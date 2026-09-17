@@ -4,16 +4,16 @@ import type { HomeCopy } from "./types";
 
 const zh: HomeCopy = {
   meta: {
-    title: "面向编码 Agent 的 AI 项目经理 | AI4Kanban",
+    title: "面向 Agent 团队的 AI 项目管理 | AI4Kanban",
     description:
-      "AI4Kanban 把模糊想法变成可执行的计划，调度编码 Agent 完成任务，只把需要人来判断的产品决策交回给你。",
+      "用 AI4Kanban 推进更大的项目。你的 AI 项目经理替 Agent 分配工作、跟进进度，把关键决策和成果交给你。",
     schema:
-      "AI4Kanban 是一个开源、本地优先、面向编码 Agent 的 AI 项目经理。它把模糊的产品想法拆解成带依赖关系的任务，在后台协调执行，保留项目中的产品决策，只在需要人的判断或最终验收时才打断开发者。",
+      "AI4Kanban 是开源、本地优先的 AI 项目经理，帮助独立创业者、创作者和小团队通过 Agent 团队推进更大的项目。它安排任务、跟进执行，并在开发工作流中评审成果；你掌握方向、关键决策和最终验收。目前内置产品开发和演示视频工作流，可通过添加工作流与 Agent 扩展到其他工作。",
   },
 
   hero: {
-    title: "让编码 Agent 自己交付，不用你全程盯着。",
-    lead: "AI4Kanban 把模糊想法变成可开工的任务，交给你的 Agent 执行，只在需要产品决策时找你。",
+    title: "你掌舵，AI 带队。",
+    lead: "从产品开发到内容营销，AI 项目经理替你带好 Agent 团队，让你一个人也能推进更大的项目。",
     ctaDownload: "下载",
     ctaGithub: "查看 GitHub ↗",
     shots: {

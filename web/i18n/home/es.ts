@@ -4,16 +4,16 @@ import type { HomeCopy } from "./types";
 
 const es: HomeCopy = {
   meta: {
-    title: "Gestor de proyectos con IA para agentes de código | AI4Kanban",
+    title: "Gestión de proyectos con IA para agentes | AI4Kanban",
     description:
-      "Convierte ideas vagas en planes ejecutables, reparte las tareas entre tus agentes de código y revisa solo las decisiones de producto que exigen criterio humano.",
+      "Impulsa proyectos más ambiciosos con AI4Kanban. Tu gestor de proyectos con IA asigna tareas a los agentes, sigue su progreso y te trae decisiones clave y resultados.",
     schema:
-      "AI4Kanban es un gestor de proyectos con IA para agentes de código: open source y local. Convierte ideas vagas en tareas ordenadas por dependencias, coordina su ejecución en segundo plano, conserva las decisiones del proyecto y solo interrumpe cuando hace falta criterio humano o validación final.",
+      "AI4Kanban es un gestor de proyectos con IA de código abierto que prioriza el uso local y ayuda a emprendedores independientes, creadores y equipos pequeños a abordar proyectos más grandes con un equipo de agentes. Asigna tareas, sigue el progreso y revisa los resultados en el flujo de desarrollo. Tú marcas el rumbo, tomas las decisiones clave y das la aprobación final. Incluye flujos de desarrollo de producto y vídeo de demostración; otros trabajos requieren añadir sus propios flujos y agentes.",
   },
 
   hero: {
-    title: "Entrega sin vigilar a tus agentes de código.",
-    lead: "AI4Kanban convierte ideas vagas en trabajo listo para construir, lo ejecuta con tus agentes y solo te pide decisiones de producto.",
+    title: "Tú marcas el rumbo. La IA dirige el equipo.",
+    lead: "Del desarrollo de producto al marketing de contenidos, tu gestor de proyectos con IA dirige a tus agentes para que puedas hacer realidad proyectos más ambiciosos.",
     ctaDownload: "Descargar",
     ctaGithub: "Ver en GitHub ↗",
     shots: {

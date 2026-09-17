@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**Next-gen vibe coding.**<br>*Agents plan and build. You make the key decisions.*
+**You set the direction. AI leads the team.**<br>*From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.*
 
 ![English](https://img.shields.io/badge/English-24231f?style=flat-square) [![简体中文](https://img.shields.io/badge/简体中文-dd4f1e?style=flat-square)](README-zh.md)
 
@@ -12,21 +12,25 @@
 
 [![Download for macOS](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/download) [![Download for Windows](https://img.shields.io/badge/Windows-2c5c86?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/download) [![Download for Linux](https://img.shields.io/badge/Linux-2f6b46?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/download)
 
-<img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding, the middle of the curve, and kanban coding">
-
 </div>
+
+One person. A whole team behind you. AI4Kanban is your AI project manager: it assigns work to your agents, tracks progress, and reviews results. You focus on direction and key decisions, with more room to take on bigger projects.
 
 ## Our philosophy
 
 Make every task demand less of your time and attention.
 
-If AI cuts the effort each task takes by 90%, one developer can get 10× as much done.
+Our goal is to help you manage 10× larger AI agent teams and take on projects 10× the size. That means AI taking on coordination, follow-ups, and reviews alongside execution, leaving you free to focus on direction, key decisions, and final approval.
 
 Our early adopters report 3–6× higher development productivity.
 
 ## How it works
 
-1. Think of AI4Kanban as your project manager. It coordinates your coding agents so you don’t have to babysit them.
+<p align="center">
+<img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding, the middle of the curve, and kanban coding">
+</p>
+
+1. Think of AI4Kanban as your project manager. It coordinates your agents so you don’t have to babysit them.
 
 2. AI4Kanban turns each rough idea into a card. The `refine` workflow clarifies the requirements, breaks down the task, and produces a plan.
 

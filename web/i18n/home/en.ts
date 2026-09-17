@@ -4,16 +4,16 @@ import type { HomeCopy } from "./types";
 
 const en: HomeCopy = {
   meta: {
-    title: "AI project manager for coding agents | AI4Kanban",
+    title: "AI project management for agent teams | AI4Kanban",
     description:
-      "Turn rough ideas into executable plans, run tasks across your coding agents, and review only the product decisions that require human judgment with AI4Kanban.",
+      "Take on bigger projects with AI4Kanban. Your AI project manager assigns work to agents, tracks progress, and brings key decisions and results back to you.",
     schema:
-      "AI4Kanban is an open-source, local-first AI project manager for coding agents. It turns rough product ideas into dependency-aware tasks, coordinates background execution, preserves project decisions, and interrupts developers only when human judgment or final approval is required.",
+      "AI4Kanban is an open-source, local-first AI project manager that helps solo founders, creators, and small teams tackle larger projects with an agent team. It assigns tasks, tracks progress, and reviews results in the development workflow. You set the direction, make key decisions, and give final approval. Product development and demo video workflows are built in; other work needs additional workflows and agents.",
   },
 
   hero: {
-    title: "Ship without babysitting coding agents.",
-    lead: "AI4Kanban turns rough ideas into build-ready work, runs it through your agents, and asks only for product decisions.",
+    title: "You set the direction. AI leads the team.",
+    lead: "From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.",
     ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
     shots: {

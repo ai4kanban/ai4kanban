@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**下一个时代的 Vibe Coding 方式**<br>*让 Agent 自己进行项目规划和实施，人类只对关键的决策进行判断。*
+**你掌舵，AI 带队。**<br>*从产品开发到内容营销，AI 项目经理替你带好 Agent 团队，让你一个人也能推进更大的项目。*
 
 [![English](https://img.shields.io/badge/English-24231f?style=flat-square)](README.md) ![简体中文](https://img.shields.io/badge/简体中文-dd4f1e?style=flat-square)
 
@@ -12,21 +12,25 @@
 
 [![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-2c5c86?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-2f6b46?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
 
-<img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding、中间层工具与 kanban coding">
-
 </div>
+
+一个人，也能带起一支团队。AI4Kanban 是你的 AI 项目经理，替你安排 Agent 的工作、跟进执行、把关成果。你专注方向和关键决策，腾出精力推进更大的项目。
 
 ## 我们的哲学
 
 让人在每一个项目任务上投入的精力最小化。
 
-只要 AI 能够让人类在开发上投入的精力缩小到原来的 1/10，那么单人能够承担的任务量就会增加到原来的 10 倍。
+我们的目标，是让你驾驭十倍规模的 AI Agent 团队，推进十倍规模的项目。为此，AI 不仅要执行任务，还要接手团队的协调、跟进和检查，把你的精力留给方向、关键决策和成果验收。
 
 AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
 ## 它是如何工作的
 
-1. 你可以把 AI4Kanban 当做是一个项目经理，一个中层管理。它是人和 Coding Agent 之间的桥梁。
+<p align="center">
+<img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding、中间层工具与 kanban coding">
+</p>
+
+1. 你可以把 AI4Kanban 当做是一个项目经理，一个中层管理。它是人和 Agent 之间的桥梁。
 
 2. 首先 AI4Kanban 会给每一个用户输入的模糊想法创建一张卡片。接着我们会通过 refine 流程去将卡片进行澄清、拆解与规划。
 

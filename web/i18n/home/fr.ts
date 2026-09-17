@@ -4,16 +4,16 @@ import type { HomeCopy } from "./types";
 
 const fr: HomeCopy = {
   meta: {
-    title: "Chef de projet IA pour agents de code | AI4Kanban",
+    title: "Gestion de projet IA pour vos agents | AI4Kanban",
     description:
-      "Transformez des idées floues en plans exécutables, confiez les tâches à vos agents de code et n'arbitrez que les décisions produit exigeant un jugement humain.",
+      "Voyez plus grand avec AI4Kanban. Votre chef de projet IA répartit les tâches entre vos agents, suit leur avancement et vous soumet décisions clés et résultats.",
     schema:
-      "AI4Kanban est un chef de projet IA open source et local pour agents de code. Il transforme les idées floues en tâches ordonnées par dépendances, orchestre l'exécution en arrière-plan, conserve les décisions prises et ne sollicite les développeurs que pour un jugement humain ou la validation finale.",
+      "AI4Kanban est un chef de projet IA open source qui privilégie le fonctionnement local et aide les entrepreneurs indépendants, les créateurs et les petites équipes à mener des projets plus vastes avec une équipe d'agents. Il répartit les tâches, suit leur avancement et vérifie les résultats dans le workflow de développement. Vous fixez le cap, prenez les décisions clés et validez les résultats. Les workflows de développement produit et de vidéo de démonstration sont intégrés ; les autres activités nécessitent l'ajout de workflows et d'agents adaptés.",
   },
 
   hero: {
-    title: "Livrez sans surveiller vos agents de code.",
-    lead: "AI4Kanban transforme vos idées floues en travail prêt à réaliser, l'exécute avec vos agents et ne vous demande que les décisions produit.",
+    title: "Vous fixez le cap. L'IA mène l'équipe.",
+    lead: "Du développement produit au marketing de contenu, votre chef de projet IA dirige vos agents pour vous permettre de mener des projets plus vastes.",
     ctaDownload: "Télécharger",
     ctaGithub: "Voir sur GitHub ↗",
     shots: {
