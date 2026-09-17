@@ -228,7 +228,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['code-reviewer', 'copywriting', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-assets'],
+      ['code-reviewer', 'copywriting', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-assets', 'video-reviewer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)
@@ -380,7 +380,7 @@ describe('an agent nobody can read', () => {
     project('outliner', { 'AGENT.md': lead(['  stage: plan', '  lead: true']) })
     assert.equal(canLead('outliner'), true)
     assert.equal(canLead('scriptwriter'), true)
-    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'video-assets', 'code-reviewer']) {
+    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'video-assets', 'code-reviewer', 'video-reviewer']) {
       assert.equal(canLead(helper), false, helper)
     }
   })

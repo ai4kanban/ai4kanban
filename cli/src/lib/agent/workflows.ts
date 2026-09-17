@@ -113,7 +113,7 @@ interface BuiltinWorkflow {
 // says so, which is why neither is required.
 //
 // `hyperframes-video` is one demo video per card (#822): its leads are `lead` agents the
-// command ships, and nothing reviews the render.
+// command ships.
 const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
@@ -131,7 +131,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     stages: {
       plan: { lead: 'scriptwriter', helpers: ['video-assets'] },
       execute: { lead: 'hyperframes-editor', helpers: [] },
-      review: { lead: '', helpers: [] },
+      review: { lead: '', helpers: ['video-reviewer'] },
     },
   },
 ]

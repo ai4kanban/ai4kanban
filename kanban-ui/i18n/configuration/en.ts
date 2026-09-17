@@ -387,6 +387,8 @@ const en: ConfigurationCopy = {
           `Added to the end of every run ${agent} does while a card is being refined — "record every clip at 1920×1080, 30 fps".`,
         "hyperframes-editor": () =>
           'Added to the end of every Implement, Conflict and Run on a demo video card — "set every caption in Inter".',
+        "video-reviewer": () =>
+          'Added to the end of every Review on a demo video — "keep every caption on screen for at least 2 seconds".',
       },
     },
     saved: "Saved",

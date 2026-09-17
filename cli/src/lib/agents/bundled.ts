@@ -18,6 +18,7 @@ import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.m
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 import videoAssets from '../../agents/video-assets/AGENT.md'
+import videoReviewer from '../../agents/video-reviewer/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'code-reviewer/AGENT.md': codeReviewer,
@@ -29,4 +30,5 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,
   'video-assets/AGENT.md': videoAssets,
+  'video-reviewer/AGENT.md': videoReviewer,
 }

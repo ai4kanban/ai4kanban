@@ -21,8 +21,9 @@ of them can be switched off:
   plan, the changelog, archive and reject.
 - **Builder** — builds cards and lands them: implement, conflict, run.
 - **Scriptwriter**, **HyperFrames editor** — lead the Demo video workflow: the scriptwriter writes the
-  video's script into the card, the editor assembles your recordings with HyperFrames and renders
-  the mp4 into the board's asset folder for that card.
+  video's script into the card — format, visual direction, a still per key shot, sound and shots —
+  and the editor assembles your recordings and sound with HyperFrames, renders the mp4 into the
+  board's asset folder for that card, and shows a preview frame per shot on the card.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
   stands today, or discards it. `akb card unstick <id>` runs it on one card.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
@@ -63,8 +64,10 @@ card, and changes nothing else. The board ships four, and `akb spec` lists them:
   one table — a row per candidate, with what it is, its pros and its cons — and one line naming
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
   doesn't come back with something new to install by default.
-- **`video-assets`** — on a Demo video card only: prepares the files the video is built from. It
-  makes the ones it can, and lists the rest for you with the folder to put them in.
+- **`video-assets`** — on a Demo video card only: prepares the images, recordings and sound the
+  video is built from. It makes the ones it can and lists the rest for you with the folder to put
+  them in. Before it marks a file ready it checks its quality, where it came from and whether the
+  video may use it, and that nothing private is on screen.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
 clean, given the card and a short note but never the conversation that asked for it; it writes one
@@ -80,8 +83,10 @@ screen nor a library goes through all of those without a spec run, and nothing t
 **Reviewers** check what a build delivered. A workflow's review stage is a list of reviewers
 with no lead: after each build, the board reads the diff, picks every reviewer whose description
 matches what it touches — the first on the list when none does — and reviews as each of them in
-one run. The board ships one, **`code-reviewer`**, which reviews any delivery that changes code
-and is the Coding workflow's reviewer. Add your own under **Configuration → Workflows**, in the
+one run. The board ships two: **`code-reviewer`** reviews any delivery that changes code and is the
+Coding workflow's reviewer; **`video-reviewer`** watches a Demo video against its script, fixes
+what it finds — unreadable captions, pacing, sound, anything private on screen — renders it again,
+and is the Demo video workflow's reviewer. Add your own under **Configuration → Workflows**, in the
 review stage. A workflow with no reviewers delivers a finished build as is, and
 **Review every build** under **General → Delivery** turns review off for every workflow.
 
