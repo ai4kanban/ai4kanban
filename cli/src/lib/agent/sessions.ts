@@ -50,7 +50,6 @@ import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from
 import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampMemoryPrune, stampMemoryReview } from './settings'
-import { dependencyRefusal } from './dependencies'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing } from './chat'
@@ -833,10 +832,6 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   if (!prev) return { error: `no run here answers to "${id}"` }
   if (prev.status === 'running') return { error: 'that run is still going' }
   if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped run can be continued' }
-  const blocked = prev.action === 'spec' && prev.cardId !== null && prev.specAgent
-    ? dependencyRefusal(prev.cardId, prev.specAgent)
-    : null
-  if (blocked) return { error: blocked }
   const resumeId = resumeIdOf(prev)
   if (!resumeId) return { error: 'that run never reported a session id to continue by' }
   // Resumed where the run it continues worked: a delivery's own worktree, or the project
@@ -983,8 +978,7 @@ export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'alr
 /** The spec agents this run has been asked for. */
 export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
 
-/** Why helpers of this round were refused before this run started (#782) — carried to the
- *  planner when the round ends. */
+/** Why helpers of this round would not start — carried to the planner when the round ends. */
 export const readSpecRefusals = (sessionId: string): string[] => readAsks(sessionId).refused
 
 /** Hand the round's refusals to the helper that runs next. */

@@ -8,6 +8,9 @@
 // file is the board's side: which agents may run, what each one is set to, and the text one
 // run is finally handed.
 
+import path from 'node:path'
+
+import { rawMove } from '../agent/command'
 import { agentRun } from '../agent/resolve'
 import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue, setSwitch } from '../agent/settings'
 import { roleNamed, stageContractProblems } from '../agent/roles'
@@ -203,7 +206,7 @@ export const specAgentOutput = (agent: SpecAgent, entries = specAgentEntries()):
 export function specAgentInstructions(
   agent: SpecAgent,
   entries = specAgentEntries(),
-): { instructions: string; references: { title: string; text: string }[]; notes: string[] } {
+): { instructions: string; references: { title: string; text: string }[]; files: string; notes: string[] } {
   const { values, notes } = specAgentSettings(agent, entries)
   const references: { title: string; text: string }[] = []
   for (const setting of agent.settings) {
@@ -219,7 +222,26 @@ export function specAgentInstructions(
     }
     references.push({ title: `${setting.label}: ${choice.label}`, text: text.trim() })
   }
-  return { instructions: agent.body.trim(), references, notes }
+  return { instructions: agent.body.trim(), references, files: agentFilesBlock(agent), notes }
+}
+
+/** The files beside an agent's `AGENT.md` (#860), as paths and nothing more — the run opens
+ *  one when the work calls for it. Nothing is pasted in: that is what keeps `AGENT.md` short
+ *  and keeps material nobody needs out of the prompt.
+ *
+ *  A project agent's files are on disk, so they are named by their path in the project. A
+ *  built-in's ship inside the command, where there is no path to open, so the board prints
+ *  them instead. Empty when the agent has none. */
+export function agentFilesBlock(agent: SpecAgent): string {
+  if (!agent.files.length) return ''
+  const dir = agent.dir
+  return [
+    'Read one only when the work calls for it:',
+    '',
+    ...agent.files.map((f) =>
+      dir ? `- \`${rel(path.join(dir, f))}\`` : `- \`${f}\` — \`${rawMove(`agent-file ${agent.name} ${f}`)}\``,
+    ),
+  ].join('\n')
 }
 
 /** An agent's memory folder, and every file in it (#421, #833) — read as the run starts. Its
@@ -283,13 +305,7 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
     // own job.
     `<${words.tag}>`,
     words.lead,
-    ...on.flatMap((a) => [
-      `- \`${a.name}\``,
-      `  ${a.description}`,
-      // Declared dependencies (#782): the board refuses to start it while one of these is on
-      // the card and not ready, so the caller asks for them first.
-      ...(a.dependencies.length ? [`  starts only after ${a.dependencies.map((d) => `\`${d}\``).join(', ')}, when on this card, has its section written and no open question of its own`] : []),
-    ]),
+    ...on.flatMap((a) => [`- \`${a.name}\``, `  ${a.description}`]),
     words.ask,
     `</${words.tag}>`,
   ].join('\n')

@@ -60,6 +60,14 @@ export function boardCommandFor(_cardId?: number): string {
   return `${command}${BOARD_FLAG || ` --dir ${REPO_ROOT}`}`
 }
 
+/** One `akb raw` move, spelled whole for a run to type: the command, the move and its words,
+ *  and the flag naming the board LAST. Before `raw`, that flag is read by the outer door and
+ *  the move's own words never reach it. */
+export function rawMove(words: string): string {
+  const command = pathLookup()('akb') ? 'akb' : `node ${absoluteSelf()}`
+  return `${command} raw ${words}${BOARD_FLAG || ` --dir ${REPO_ROOT}`}`
+}
+
 // This copy of the command by its full path, whatever folder anything runs in.
 function absoluteSelf(): string {
   const bin = path.resolve(path.dirname(SELF), '..', 'bin', 'ai4kanban.mjs')

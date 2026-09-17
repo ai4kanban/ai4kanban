@@ -10,6 +10,7 @@ import { PLANNER, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
 import { ARCHIVE, boardText, rel, GOAL, MEMORY, TRIAGE } from '../paths'
 import {
+  agentFilesBlock,
   agentMemoryBlock,
   findSpecAgent,
   specAgentInstructions,
@@ -219,8 +220,14 @@ export function leadBlock(req: AgentRequest): string {
   const name = agentForRun(req)
   const agent = name ? findSpecAgent(name) : null
   if (!agent?.canLead) return ''
+  const files = agentFilesBlock(agent)
   return boardText(
-    `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
+    [
+      `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
+      files ? `——— your own files ———\n\n${files}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
   )
 }
 
@@ -319,6 +326,7 @@ function reviewerPrompt(req: AgentRequest, agent: SpecAgent, kb: string, named: 
       .join(' '),
     `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}`,
     ...own.references.map((r) => `——— ${r.title} ———\n\n${r.text}`),
+    own.files ? `——— your own files ———\n\n${own.files}` : '',
     memory ? `——— what you remember ———\n\n${memory}` : '',
     extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
   ]
@@ -585,6 +593,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         contract ? `——— how a spec agent works ———\n\n${contract}` : '',
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
+        own?.files ? `——— your own files ———\n\n${own.files}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
         // What THIS workflow asks of it here (#715) — the assignment's own words, after the
         // agent's instructions and its memory, because it is written on top of them and never

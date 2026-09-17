@@ -78,25 +78,7 @@ export function specAgentCatalog(): SpecAgentCatalog {
     take(readProject(LEGACY_AGENTS, folder), folder)
     problems.push(`${rel(path.join(LEGACY_AGENTS, folder))}: move it to ${rel(path.join(AGENTS, folder))}/`)
   }
-  return { agents: dropUnknownDependencies(agents, problems), problems }
-}
-
-// An agent depending on one this board lacks could never start on a card that agent joins, so
-// it is reported and left out — and so is anything that depended on it in turn.
-function dropUnknownDependencies(agents: SpecAgent[], problems: string[]): SpecAgent[] {
-  let kept = agents
-  for (;;) {
-    const names = new Set(kept.map((a) => a.name))
-    const broken = kept.filter((a) => a.dependencies.some((d) => !names.has(d)))
-    if (!broken.length) return kept
-    for (const a of broken) {
-      const missing = a.dependencies.filter((d) => !names.has(d))
-      problems.push(
-        `${a.from}: it depends on ${missing.map((d) => `\`${d}\``).join(', ')}, which this board does not have, so it is not used.`,
-      )
-    }
-    kept = kept.filter((a) => !broken.includes(a))
-  }
+  return { agents, problems }
 }
 
 // ---- the agents the command ships ------------------------------------------
@@ -108,7 +90,9 @@ function readBundled(folder: string): { agent: SpecAgent } | { problem: string }
   const file = (relative: string): string | null => BUNDLED_AGENT_FILES[`${folder}/${relative}`] ?? null
   const text = file('AGENT.md')
   if (text === null) return { problem: `the built-in \`${folder}\` agent has no AGENT.md` }
-  return parseSpecAgent(text, `the built-in \`${folder}\` agent`, file, true)
+  const list = (): string[] =>
+    ownFiles(Object.keys(BUNDLED_AGENT_FILES).filter((k) => k.startsWith(`${folder}/`)).map((k) => k.slice(folder.length + 1)))
+  return parseSpecAgent(text, `the built-in \`${folder}\` agent`, file, true, list)
 }
 
 // ---- the agents the project adds -------------------------------------------
@@ -147,12 +131,33 @@ export function agentFileReader(dir: string): (relative: string) => string | nul
   }
 }
 
+/** What an agent offers a run to read (#860): everything in its folder but its own
+ *  `AGENT.md`. Dot files and dot folders are housekeeping — an editor's leftovers, a cache —
+ *  and are never named. */
+const ownFiles = (paths: string[]): string[] =>
+  paths.filter((p) => !AGENT_FILES.includes(p) && !p.split('/').some((part) => part.startsWith('.'))).sort()
+
+// One agent's folder, all the way down, as agent-relative paths. No layout is imposed: a
+// file sits wherever its agent put it.
+function walkFolder(dir: string, prefix: string): string[] {
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  return entries.flatMap((e) => {
+    const here = prefix ? `${prefix}/${e.name}` : e.name
+    return e.isDirectory() ? walkFolder(path.join(dir, e.name), here) : [here]
+  })
+}
+
 function readProject(root: string, folder: string): { agent: SpecAgent } | { problem: string } {
   const dir = path.join(root, folder)
   const file = agentFileReader(dir)
   const found = AGENT_FILES.map((name) => ({ name, text: file(name) })).find((f) => f.text !== null)
   if (!found) return { problem: `${rel(path.join(dir, AGENT_FILES[0]!))} is missing` }
-  const read = parseSpecAgent(found.text!, rel(path.join(dir, found.name)), file)
+  const read = parseSpecAgent(found.text!, rel(path.join(dir, found.name)), file, false, () => ownFiles(walkFolder(dir, '')))
   // Where it lives and what it says, whole — a project agent's file is the box the Agents
   // pane writes it through (#422), and only an agent read off disk has one.
   if ('agent' in read) Object.assign(read.agent, { dir, text: found.text! })

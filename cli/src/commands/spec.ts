@@ -1,8 +1,7 @@
 // Print specialist instructions here, or request a separate run.
 
 import { insideRun, printFlow } from '../lib/agent/flow'
-import { dependencyRefusal } from '../lib/agent/dependencies'
-import { askForSpec, readRuns, readSpecAsks } from '../lib/agent/sessions'
+import { askForSpec, readRuns } from '../lib/agent/sessions'
 import { startRun } from '../lib/agent/start'
 import { titleOf } from '../lib/agent/sessions'
 import type { AgentRequest } from '../lib/agent/types'
@@ -83,8 +82,8 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   const notes = noteOf(opts.note ?? [], opts.notes)
   const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }
 
-  const caller = insideRun()
-  if (caller && readRuns().find((r) => r.sessionId === caller)?.action === 'spec') {
+  const inside = insideRun()
+  if (inside && readRuns().find((r) => r.sessionId === inside)?.action === 'spec') {
     die(
       'a spec agent does not ask for another spec agent — answer the part you own and leave the rest of the card to the session planning it.',
       { kind: 'spec-agent-recursion', specAgent: name },
@@ -101,12 +100,6 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     say(`${name} is already working on #${id} — run ${short(live.sessionId)}. One ask is enough; don't wait for it.`)
     return { specAgent: name, cardId: id, queued: false, pending: true }
   }
-
-  // Checked again when a queued ask starts; an agent this run asked for earlier is left to
-  // that check, since it runs first.
-  const inside = insideRun()
-  const blocked = dependencyRefusal(id, name, inside ? { self: inside, deferred: readSpecAsks(inside).filter((a) => a.cardId === id).map((a) => a.specAgent) } : {})
-  if (blocked) die(blocked, { kind: 'spec-agent-blocked', specAgent: name })
 
   if (opts.print === true) return printFlow(req, program)
 

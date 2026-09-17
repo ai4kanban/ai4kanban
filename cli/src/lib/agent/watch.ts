@@ -26,7 +26,7 @@ import { buildAfterGate, cardStages, gateRunAfter } from './gate'
 import { readyGateOn, silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
-import { helperRound, refineRunsAfter, specRunsAfter } from './follow'
+import { refineRunsAfter, specRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
 import { triageRunAfter, triageWaiting } from './auto-triage'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
@@ -803,10 +803,9 @@ function settleBoard(
   before: BoardMarks,
 ): RefinementFollowUp | null {
   try {
-    const round = helperRound(specRunsAfter(readSpecAsks(run.sessionId)), run.sessionId)
-    const waitingForSpec = round.start.some((req) => req.id === run.cardId)
-    const refused = [...readSpecRefusals(run.sessionId), ...round.refused]
-    return refinementRunsAfter(run, changed, before, waitingForSpec, refused)
+    const helpers = specRunsAfter(readSpecAsks(run.sessionId))
+    const waitingForSpec = helpers.some((req) => req.id === run.cardId)
+    return refinementRunsAfter(run, changed, before, waitingForSpec, readSpecRefusals(run.sessionId))
   } catch {
     // an unreadable board — the run it followed is done either way
     return null
@@ -874,22 +873,20 @@ async function followUp(
 // next. The lead resumes when the last of them is done (`qaAfterSpec`), which is what makes
 // the sections one conclusion rather than several.
 //
-// A helper that will not start is skipped rather than taking the queue down with it. One
-// refused over its dependencies (#782) is not retried: the reason travels with the round to
-// the planner, which asks again.
+// A helper that will not start is skipped rather than taking the queue down with it, and its
+// reason travels with the round to the planner, which asks again.
 async function startHelpersInTurn(
   helpers: AgentRequest[],
   join: (req: AgentRequest) => AgentRequest,
   self: string,
 ): Promise<void> {
-  const round = helperRound(helpers, self)
-  const refused = [...readSpecRefusals(self), ...round.refused]
-  let queue = round.start
+  const refused = readSpecRefusals(self)
+  let queue = helpers
   while (queue.length) {
     const [next, ...rest] = queue
-    const queued = rest.filter((h) => h.id === next!.id).map((h) => h.specAgent ?? '')
-    const started = await startRun(join(next!), { queued })
+    const started = await startRun(join(next!))
     if ('error' in started) {
+      refused.push(started.error)
       queue = rest
       continue
     }

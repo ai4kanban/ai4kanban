@@ -25,9 +25,9 @@ After creating the group, exit. The scheduled subtasks refine themselves.
    only its proposed solution.
 2. Use every available spec agent’s `description` as its trigger. Check the current scope
    and request each match whose section is missing or outdated, even if you can plan it yourself. Then stop;
-   QA resumes after their work. Recheck triggers when the scope changes. An agent listed with
-   `starts only after` is refused while those agents are unready on the card: request them
-   first, and request it again once the refusal's reason is settled.
+   QA resumes after their work. Recheck triggers when the scope changes. When a matching
+   agent's description says it follows another agent, request that one first; request it
+   once that agent's section is written and has no open question.
 3. Resolve what project evidence answers. Follow each decision into the new questions and
    obligations it creates, especially when skipping, deferring, or dropping work.
 4. Reconstruct the promised outcome and walk concrete normal, edge, failure, recovery, and

@@ -35,8 +35,7 @@ akb raw update-questions <id> \
 ```
 
 A question about one spec agent's section adds `--agent <agent-name>` after its `--append`;
-while it is open, agents that start only after that one are refused. `--update` keeps the
-question's agent unless given another.
+`--update` keeps the question's agent unless given another.
 
 Questions are exclusive unless their options can genuinely be combined; the board supplies the
 free-text choice. Use `--mode multi` only for combinable options, recommending every option you

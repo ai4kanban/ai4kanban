@@ -27,9 +27,11 @@ export interface SpecAgent {
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
    *  the board's own `output` setting starts at. `agent` unless `akb.output` says so. */
   output: SpecOutput
-  /** The agents whose section on the same card must be ready before this one starts (#782),
-   *  from `akb.dependencies`. Checked at start only — who runs first is the planner's call. */
-  dependencies: string[]
+  /** Everything else in its folder, by agent-relative path (#860) — named in every run and
+   *  read on demand, so `AGENT.md` can point at long material instead of carrying it. A file
+   *  a setting's `reference` names is not here: that one is sent whole when its choice is
+   *  picked. */
+  files: string[]
   settings: SpecAgentSetting[]
   /** Its `AGENT.md` instructions, without the frontmatter. */
   body: string
@@ -87,6 +89,7 @@ export function parseSpecAgent(
   from: string,
   file: (relative: string) => string | null,
   builtIn = false,
+  list: () => string[] = () => [],
 ): { agent: SpecAgent } | { problem: string } {
   const bad = (why: string) => ({ problem: `${from}: ${why}` })
   const { meta, body } = splitFrontmatter(text)
@@ -143,9 +146,6 @@ export function parseSpecAgent(
   }
   const output = isSpecOutput(declaredOutput) ? declaredOutput : 'agent'
 
-  const dependencies = readDependencies(akb.dependencies, name)
-  if ('problem' in dependencies) return bad(dependencies.problem)
-
   const settings: SpecAgentSetting[] = []
   const declared = akb.settings === undefined || akb.settings === '' ? [] : akb.settings
   if (!Array.isArray(declared)) return bad(`\`${name}\`: \`akb.settings\` has to be a list`)
@@ -161,6 +161,10 @@ export function parseSpecAgent(
   const instructions = body.trim()
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
+  // A file a choice names is the setting's to send, whole, when that choice is picked — so it
+  // is never also offered as something to go and read.
+  const references = new Set(settings.flatMap((s) => s.choices.map((c) => c.reference)))
+
   return {
     agent: {
       name,
@@ -170,7 +174,7 @@ export function parseSpecAgent(
       canLead: kind === 'lead' || declaredLead === 'true',
       stage,
       output,
-      dependencies: dependencies.agents,
+      files: list().filter((p) => !references.has(p)),
       settings,
       body: instructions,
       from,
@@ -228,28 +232,6 @@ function readSettingTranslations(raw: YamlValue | undefined): Record<string, Set
     if (Object.keys(setting).length) out[key] = setting
   }
   return out
-}
-
-// `akb.dependencies`: a list of `- agent: <name>` entries and nothing else. Whether each name
-// is on the board is the catalog's check, since only it has the whole list.
-function readDependencies(raw: YamlValue | undefined, agent: string): { agents: string[] } | { problem: string } {
-  if (raw === undefined || raw === '') return { agents: [] }
-  const bad = (why: string) => ({ problem: `\`${agent}\`: ${why}` })
-  if (!Array.isArray(raw)) return bad('`akb.dependencies` has to be a list of `- agent: <name>` entries')
-  const agents: string[] = []
-  for (const item of raw) {
-    const entry = map(item)
-    const keys = entry ? Object.keys(entry) : []
-    if (!entry || keys.length !== 1 || keys[0] !== 'agent') {
-      return bad('each entry under `akb.dependencies` is `- agent: <name>`, with no other key')
-    }
-    const name = str(entry.agent)
-    if (!AGENT_NAME.test(name)) return bad(`"${name}" under \`akb.dependencies\` is not an agent name`)
-    if (name === agent) return bad('it lists itself under `akb.dependencies`')
-    if (agents.includes(name)) return bad(`it lists \`${name}\` twice under \`akb.dependencies\``)
-    agents.push(name)
-  }
-  return { agents }
 }
 
 const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)

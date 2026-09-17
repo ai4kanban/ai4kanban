@@ -5,7 +5,6 @@
 import { findSpecAgent, specAgentAssigned } from '../agents'
 import { allCards } from '../view/read'
 import type { Card } from '../view/types'
-import { dependencyRefusal } from './dependencies'
 import { refinementRequest } from './refine'
 import { cardWorkflowId } from './workflows'
 import type { AgentRequest, RefineAsk, SpecAsk } from './types'
@@ -48,20 +47,6 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
       refineEffort: ask.refineEffort,
     }]
   })
-}
-
-/** Where a round of helpers starts (#782): the first one whose dependencies are ready, and
- *  why each one before it was refused. `self` is the run that asked, closing now. */
-export function helperRound(helpers: AgentRequest[], self?: string): { start: AgentRequest[]; refused: string[] } {
-  const refused: string[] = []
-  for (let i = 0; i < helpers.length; i++) {
-    const req = helpers[i]!
-    const queued = helpers.slice(i + 1).filter((h) => h.id === req.id).map((h) => h.specAgent ?? '')
-    const blocked = dependencyRefusal(req.id as number, req.specAgent ?? '', { queued, self })
-    if (!blocked) return { start: helpers.slice(i), refused }
-    refused.push(blocked)
-  }
-  return { start: [], refused }
 }
 
 /**

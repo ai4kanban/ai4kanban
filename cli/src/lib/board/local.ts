@@ -45,6 +45,7 @@ import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove, type RemoveOptions } from '../../commands/remove'
+import { cmdAgentFile } from '../../commands/agent-file'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdDiscussion, type DiscussionOptions } from '../../commands/discussion'
 import { cmdCase, type CaseOptions } from '../../commands/case'
@@ -140,6 +141,7 @@ const MOVES: Record<string, RunMove> = {
   'record-run': ({ args }) => cmdRun(Number(args[0])),
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
+  'agent-file': ({ args }) => cmdAgentFile(args[0] ?? '', args[1] ?? ''),
   plan: ({ args, opts }) => cmdPlan(args, as<PlanOptions>(opts)),
   case: ({ args, opts }) => cmdCase(args, as<CaseOptions>(opts)),
   discussion: ({ args, opts }) => cmdDiscussion(args, as<DiscussionOptions>(opts)),
@@ -160,7 +162,7 @@ export const BOARD_MOVES: ReadonlySet<string> = new Set(Object.keys(MOVES))
 
 /** The moves that only read. They take no lock and no envelope — nothing they do can be
  *  half-written, and a board someone is mid-write on is still readable. */
-export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'peek', 'metrics', 'setup-status', 'validate'])
+export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'peek', 'metrics', 'setup-status', 'validate', 'agent-file'])
 
 // ---- the provider ----------------------------------------------------------
 

@@ -363,7 +363,7 @@ export function refinementRunsAfter(
   // The lead resumes only once the LAST helper is done (#714): while this run still carries
   // asks for the next one, the card is another agent's to write.
   const resumedQa = waitingForSpec ? null : qaAfterSpec(run)
-  // Helpers refused over their dependencies (#782) are the planner's to ask for again.
+  // A helper that would not start is the planner's to ask for again.
   const refusedNote = waitingForSpec || !refused.length ? '' : `Spec agents not started: ${refused.join(' ')}`
   const plain = resumedQa ?? (typeof next === 'object' && next ? next : null)
   const carryOn = plain && refusedNote

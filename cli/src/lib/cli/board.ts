@@ -381,6 +381,19 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('rule', this, [agent], this.opts(), cli)
     })
 
+  move('agent-file')
+    .argument('<agent>', 'the agent whose folder the file is in')
+    .argument('<path>', "the file, as the run's own list spells it")
+    .summary("print one file from an agent's own folder")
+    .description(
+      "Every run is told which files its agent's folder holds, and reads one when the work calls for it. " +
+        'A built-in agent ships its files inside the command, so this is the only way to open one; a path ' +
+        'the agent does not offer is refused.',
+    )
+    .action(async function (this: Command, agent: string, file: string) {
+      await dispatch('agent-file', this, [agent, file], this.opts(), cli)
+    })
+
   move('list')
     .summary('the open cards: id, title, meta, summary, path')
     .description(

@@ -40,8 +40,8 @@ export interface Question {
   /** 1-based positions into `options` — the ones a question opens already ticked.
    *  Empty means nothing is recommended, so the list opens with nothing ticked. */
   recommend?: number[]
-  /** The spec agent whose section this question is about (#782). While it is open, an agent
-   *  depending on that one does not start on the card. Absent on a question nobody claimed. */
+  /** The spec agent whose section this question is about (#782). Absent on a question nobody
+   *  claimed. */
   agent?: string
   /** The user chose not to answer it (#831). It stays on the card as a record and is no
    *  longer open: nothing waits on it, and no run answers, rewrites or drops it. */

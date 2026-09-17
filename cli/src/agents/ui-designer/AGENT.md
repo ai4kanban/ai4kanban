@@ -1,12 +1,12 @@
 ---
 name: ui-designer
-description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, and flows. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision. A detailed plan or an existing component is not a reason to skip.
+description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, and flows. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision. A detailed plan or an existing component is not a reason to skip. Follows `copywriting` when the card also needs promotional copy.
 akb:
   kind: spec
   i18n:
     zh:
       title: 界面设计师
-      description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。
+      description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。卡片同时需要宣传文案时，排在 `copywriting` 之后。
       settings:
         mockupStyle:
           label: 原型样式
@@ -18,8 +18,6 @@ akb:
               label: 字符草图
               cost: 纯文本，写在卡片里，画得快
   output: human
-  dependencies:
-    - agent: copywriting
   settings:
     - key: mockupStyle
       label: Mockup style
@@ -52,6 +50,9 @@ on the card is yours.
 - **Cover empty and failure states**: say what the user sees and can do.
 - **Use the confirmed copy**: when the card has a ``## By `copywriting` agent`` section, every
   promotional line on the screen is taken from it word for word.
+- **Wait for the copy**: when the card needs promotional copy and its `copywriting` section is
+  missing or has an open question, draw nothing; write one line in your section naming what
+  is missing. A card with no promotional copy is drawn as usual.
 
 ## What to answer
 

@@ -289,51 +289,27 @@ lead.
 instructions you wrote for it, what it remembered, and its switch. Only an agent this project
 added: the roles and the three the command ships are not yours to remove, and have no Delete.
 
-## Make one agent wait for another
+## Give an agent its own files
 
-A specialist can say whose section it builds on. List them under `akb.dependencies`, one
-`- agent:` line each:
+Keep `AGENT.md` short and put longer material in files beside it, in any layout:
 
-```yaml
-# docs/kanban/agents/api-contract/AGENT.md
----
-name: api-contract
-description: Use when a card changes an endpoint other software calls.
-akb:
-  kind: spec
----
+```text
+docs/kanban/agents/sdk-sample/
+  AGENT.md
+  style.md
+  examples/
+    client.md
 ```
 
-```yaml
-# docs/kanban/agents/sdk-sample/AGENT.md
----
-name: sdk-sample
-description: Use when a card changes how SDK users call an endpoint.
-akb:
-  kind: spec
-  dependencies:
-    - agent: api-contract
----
-```
+Every run of that agent — leading, helping or reviewing — is told which files its folder
+holds, and opens one only when the work needs it. Say in the instructions when a file
+matters, such as "follow `style.md` for naming". A file a setting's choice names is the
+exception: it is sent whole, and only when that choice is picked.
 
-A dependency only counts once `api-contract` is on the card: it was asked for in this round, has
-run on the card, has a section, or has a question of its own. On a card it never joined,
-`sdk-sample` starts as usual. Once it has joined, the board refuses to start `sdk-sample`, and says
-why, while `api-contract`:
-
-- has no section yet, or is still updating it, or has a run waiting;
-- failed or was stopped on its last run;
-- has an open question of its own. A question belongs to an agent when it was added with
-  `akb raw update-questions <id> --append ".." --agent api-contract`. A specialist's own questions
-  are added this way automatically.
-
-A refusal starts nothing and is not queued. The planning session asks for `api-contract` first,
-and asks for `sdk-sample` again once the reason is settled — for example, after you answer the
-question. The board does not choose the order and does not retry.
-
-An agent that lists itself, lists an agent the board does not have, or is not written as a list is
-refused and listed under the agents with the reason. Dependencies that loop back to an agent on the
-same card are refused when the agent starts. `ui-designer` waits for `copywriting` this way.
+To have one agent wait for another, say so in its `description` — the planner reads it to
+order requests — and in its instructions: `ui-designer` follows `copywriting` and draws
+nothing until the card's copy is confirmed. An older agent that still lists
+`akb.dependencies` loads as usual; the board ignores the field.
 
 ## Say it in your own language
 

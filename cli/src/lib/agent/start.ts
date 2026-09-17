@@ -15,24 +15,17 @@ import { dropRunCard, runCanStart, takeRunCard } from '../board'
 import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
-import { dependencyRefusal, type DependencyScope } from './dependencies'
 import { buildRun } from './prompts'
 import { cardWorkflowId, workflowFor, workflowKnown, workflowProblems } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import type { AgentRequest, RunRecord, RunRefusal } from './types'
 
 /** Open a run and spawn its watcher. `spawned` false means nothing is watching it — the
- *  record is there but no process will ever report on it, which is the caller's to raise.
- *  `scope` is the round a spec run was asked for in, for its dependency check (#782). */
-export async function startRun(
-  req: AgentRequest,
-  scope: DependencyScope = {},
-): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal> {
+ *  record is there but no process will ever report on it, which is the caller's to raise. */
+export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal> {
   const sessionId = randomUUID()
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
-  const short =
-    workflowRefusal(req) ??
-    (req.action === 'spec' && cardId !== null && req.specAgent ? dependencyRefusal(cardId, req.specAgent, scope) : null)
+  const short = workflowRefusal(req)
   if (short) return { error: short }
   const held = await takeRunCard(sessionId, cardId)
   if (!held.ok) return { error: held.error }
