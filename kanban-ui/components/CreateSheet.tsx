@@ -118,9 +118,17 @@ function Sheet({
     ? { agent: rail.read.agent, seesImages: rail.read.seesImages, imagesAble: rail.read.imagesAble }
     : null;
   const pictures = useCreatePictures(chatImages);
-  // The workflow the plan's card runs through (#715). Empty is the board's default.
-  const [workflow, setWorkflow] = useState("");
+  // The workflow the plan's card runs through (#715): a hand pick holds only for this
+  // discussion and plan; otherwise the agent's pick (#847), else the board's default.
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
+  const pickFor = `${discussion ?? ""}\n${plan.read?.plan?.path ?? ""}`;
+  const [picked, setPicked] = useState<{ for: string; id: string } | null>(null);
+  const usable = (id?: string) => flows?.find((f) => f.id === id && f.problems.length === 0)?.id;
+  const workflow =
+    (picked?.for === pickFor ? picked.id : undefined) ??
+    usable(plan.read?.plan?.workflow) ??
+    flows?.find((f) => f.isDefault)?.id ??
+    "";
   useEffect(() => {
     void workflowsAction().then((res) => setFlows(res.workflows));
   }, []);
@@ -179,7 +187,7 @@ function Sheet({
   // Two of them are here. Nothing is said about it: the card search is open under the box,
   // which is both the reason and the way out of it.
   const endHeld = rail.share.offered && rail.share.on && partner.offered && !partner.linked;
-  // The three answers sit under the agent's own last word where the conversation has the
+  // The answers sit under the agent's own last word where the conversation has the
   // screen to itself, and under the plan's row where it does not — beside the box either
   // way, so a plan opened out never takes them away.
   const handoff = (
@@ -191,7 +199,7 @@ function Sheet({
       failure={failure}
       flows={flows}
       workflow={workflow}
-      onWorkflow={setWorkflow}
+      onWorkflow={(id) => setPicked({ for: pickFor, id })}
       onPlan={() => onPlan(workflow || undefined)}
       onBuild={() => onBuildPlan(workflow || undefined)}
     />
@@ -511,7 +519,7 @@ function Composer({
   );
 }
 
-/** The handoff (#427, #481), under the agent's own last message: the three answers whenever
+/** The handoff (#427, #481), under the agent's own last message: the two answers whenever
  *  there is a plan and the reply is in, and while the run one of them started is going, the
  *  one line that says so.
  *
@@ -522,9 +530,9 @@ function Composer({
  *  No banner and no card of its own — these are the ways of acting on the plan beside them.
  *  The box below is never taken away.
  *
- *  Three answers, three weights. Start planning is the one to press: the filled button. Build
- *  now acts too, so it carries the accent in its frame and its ink but no fill — one thing
- *  cannot have two equally loud buttons. Not yet is the plain paper ghost; it does nothing. */
+ *  Start planning is the one to press: the filled button. Build now carries the accent in its
+ *  frame and ink but no fill. The workflow is a setting, so it sits quietly at the row's end
+ *  (#847). */
 function Handoff({
   plan,
   rail,
@@ -541,9 +549,9 @@ function Handoff({
   rail: ChatRail;
   /** This discussion shares when it ends and has no card to share under (#659), so the two
    *  answers that end it are down: Build now's "are you sure?" never opens, and no run
-   *  starts. Not yet is not an end and stays. */
+   *  starts. */
   held: boolean;
-  /** The answer whose run is being asked for (#706): its own label says so, and all three go
+  /** The answer whose run is being asked for (#706): its own label says so, and both go
    *  down — a second press would be a second run. */
   starting: PlanAnswer | null;
   /** Why the last one never came up (#706), said in the row's own space below. */
@@ -572,14 +580,12 @@ function Handoff({
   if (rail.read?.chat?.messages.at(-1)?.role !== "agent") return null;
   // A run that wrote no card leaves the plan to be answered again, and says so.
   const failed = !!read.run && !read.run.running;
-  const hint = failed ? (read.run?.answer === "build" ? c.buildAgain : c.tryAgain) : c.startHint;
-  // While a start is out every answer is down, and so is the guard. The line that explains
-  // the choice goes with them, and stays gone while a refusal is what there is to read.
+  const again = read.run?.answer === "build" ? c.buildAgain : c.tryAgain;
   const down = held || starting !== null;
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
-        <Button size="xs" disabled={down} onClick={onPlan}>
+        <Button size="xs" disabled={down} title={c.planHint} onClick={onPlan}>
           {starting === "plan" ? c.starting : c.start}
         </Button>
         {/* The panel hangs off this, so it lives inside. */}
@@ -590,6 +596,7 @@ function Handoff({
             className="font-[700]"
             aria-expanded={guard}
             disabled={down}
+            title={c.buildHint}
             style={{
               borderColor: "var(--color-nb-accent-deep)",
               color: "var(--color-nb-accent-deep)",
@@ -608,24 +615,13 @@ function Handoff({
             }}
           />
         </span>
+        {failed && !starting && !failure && <span className="text-[11.5px] text-nb-ink-soft">{again}</span>}
         {flows && flows.length > 1 && (
           <WorkflowPick flows={flows} picked={workflow} disabled={down} onPick={onWorkflow} />
         )}
-        <Button
-          size="xs"
-          variant="ghost"
-          disabled={down}
-          onClick={() => {
-            rail.say(c.notYet, { discuss: true });
-            plan.refresh();
-          }}
-        >
-          {c.notYet}
-        </Button>
-        {!starting && !failure && <span className="text-[11.5px] text-nb-ink-soft">{hint}</span>}
       </div>
       {/* Answered where it was pressed (#706): the row's own space below, never a bubble over
-          the reply the answers stand under. The three above are live again, so pressing the
+          the reply the answers stand under. The two above are live again, so pressing the
           same one is the retry — the plan, the transcript and the box are as they were. */}
       {failure && (
         <div className="px-2.5 pt-2.5">
@@ -648,8 +644,7 @@ function Handoff({
 }
 
 /** Which workflow the plan's card runs through (#715): shown only when the board has more
- *  than one, and opening on the board's default. It opens upward — the row sits at the foot
- *  of the transcript. */
+ *  than one. Styled as the box's runtime picker (#847); it opens upward. */
 function WorkflowPick({
   flows,
   picked,
@@ -676,23 +671,22 @@ function WorkflowPick({
   }, [open]);
   const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
   return (
-    <span ref={box} className="relative flex">
+    <span ref={box} className="relative ml-auto flex min-w-0">
       <button
         type="button"
+        title={c.label}
         aria-label={c.label}
         aria-expanded={open}
         disabled={disabled}
         onClick={() => setOpen((was) => !was)}
-        className={`flex h-[26px] cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-2.5 text-[12px] font-[700] disabled:cursor-not-allowed disabled:opacity-45 ${
-          open ? "outline-2 outline-nb-accent" : ""
-        }`}
+        className="flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink hover:brightness-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ background: "var(--color-nb-accent-wash)" }}
       >
-        <span className="font-[600] text-nb-ink-soft">{c.label}</span>
-        {nameOf(mine)}
-        <FiChevronDown className="text-[12px]" aria-hidden />
+        <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
+        <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 z-30 mb-1.5 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
+        <div className="absolute bottom-full right-0 z-30 mb-1.5 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
           {flows.map((f) => {
             // A workflow that cannot start would only write a card that stops on its first run.
             const off = f.problems.length > 0;

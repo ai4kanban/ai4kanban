@@ -941,6 +941,8 @@ export interface ChatPlan {
   done?: boolean
   /** What it is called, so a discussion's row can be named without opening the file. */
   title?: string
+  /** The workflow the discussion agent judged the plan fits (#847). */
+  workflow?: string
 }
 
 /** What the handoff was answered with: Start planning, which writes the cards, or Build
@@ -1081,8 +1083,9 @@ export interface DiscussRead {
    *  heading, empty when it has none, so a screen too narrow to show the plan can still name
    *  it without reading markdown of its own. Null before the first agreed outcome, and again
    *  once the plan's cards are written. Written out rather than imported: this file is copied
-   *  into the board UI and may reach only its siblings. */
-  plan: { path: string; text: string; lines: number; title: string } | null
+   *  into the board UI and may reach only its siblings. `workflow` is the one the agent
+   *  judged the plan fits (#847), absent when it named none. */
+  plan: { path: string; text: string; lines: number; title: string; workflow?: string } | null
   /** The run this plan was handed to: still working, or the one that wrote no card and can
    *  be started again. `answer` is which answer started it, so the line under the plan names
    *  a build rather than a planning pass (#481). Null when none has been started. */

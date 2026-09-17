@@ -104,3 +104,26 @@ it('retains a child-written plan when the host finishes the chat transcript', as
   assert.equal(readChat(target)?.plans?.length, 1)
   assert.equal(readChat(target)?.messages.at(-1)?.text, 'Saved')
 })
+
+it('records the workflow a plan fits, drops it on a save without one, and refuses unknown ids', async () => {
+  const { cmdPlan } = await import('../src/commands/plan.ts')
+  const target = startDiscussion()
+  process.env.KANBAN_DISCUSSION = target
+  const body = path.join(root, 'draft.md')
+  fs.writeFileSync(body, '# Demo\n')
+  fs.writeFileSync(path.join(KANBAN, 'next-id'), '848\n')
+  try {
+    const made = await cmdPlan(['new'], { title: 'Demo', bodyFile: body, workflow: 'hyperframes-video' })
+    const rel = String(made.path)
+    assert.equal(made.workflow, 'hyperframes-video')
+    assert.equal((await readDiscuss(target)).plan?.workflow, 'hyperframes-video')
+    await cmdPlan(['save'], { path: rel, bodyFile: body })
+    assert.equal((await readDiscuss(target)).plan?.workflow, undefined)
+    const bad = await cmdPlan(['save'], { path: rel, bodyFile: body, workflow: 'nope' })
+    assert.equal(bad.unknownWorkflow, 'nope')
+    assert.equal(readChat(target)?.plans?.at(-1)?.workflow, undefined)
+    assert.equal(readPlan(rel)?.text, '# Demo\n')
+  } finally {
+    delete process.env.KANBAN_DISCUSSION
+  }
+})

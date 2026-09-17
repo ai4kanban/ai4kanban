@@ -114,12 +114,12 @@ export type BoardCopy = {
         copyPath: string;
         /** The agent is rewriting the file. The words on screen are the last ones written. */
         rewriting: string;
-        /** The three answers under the ask, and the line beside them (#481). */
+        /** The two answers under the ask (#481), and what each does on hover (#847). */
         start: string;
         /** Build now off the plan: one card written from it, built in the same run. */
         build: string;
-        notYet: string;
-        startHint: string;
+        planHint: string;
+        buildHint: string;
         /** The last run never wrote a card, so the offer stands again — said for whichever
          *  of the two answers started it. */
         tryAgain: string;

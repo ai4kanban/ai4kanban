@@ -4,6 +4,7 @@ import { insideDiscussion } from '../lib/agent/env'
 import { asDiscussion } from '../lib/agent/discussions'
 import { savePlan } from '../lib/agent/save-plan'
 import { migratePlans } from '../lib/agent/migrate-plans'
+import { workflowById } from '../lib/agent/workflows'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import { newPlan, planFromText, planPathInText } from '../lib/plans'
@@ -14,6 +15,7 @@ export interface PlanOptions {
   slug?: string
   bodyFile?: string
   path?: string
+  workflow?: string
 }
 
 export async function cmdPlan(args: string[], opts: PlanOptions): Promise<MoveResult> {
@@ -30,8 +32,12 @@ export async function cmdPlan(args: string[], opts: PlanOptions): Promise<MoveRe
   const plan = sub === 'new' ? newPlan(title!, opts.slug) : { path: existing!, id: Number(/(\d+)-/.exec(existing!)?.[1]) }
   const discussion = insideDiscussion()
   const target = (discussion ? asDiscussion(discussion) : null) ?? null
-  try { savePlan(target, plan.path, text, title) }
+  // An id this board lacks is dropped, not fatal: the plan matters more than the pick.
+  const workflow = opts.workflow?.trim() || undefined
+  const known = !workflow || !!workflowById(workflow)
+  try { savePlan(target, plan.path, text, title, known ? workflow : undefined) }
   catch (err) { die(`Plan was not saved: ${String(err)}. Retry plan save --path ${plan.path}.`) }
   say(planPathInText(plan.path))
-  return { id: plan.id, file: planPathInText(plan.path), path: plan.path }
+  if (!known) say(`No workflow \`${workflow}\` on this board; the plan was saved without one. See akb workflow list.`)
+  return { id: plan.id, file: planPathInText(plan.path), path: plan.path, ...(known ? { workflow } : { unknownWorkflow: workflow }) }
 }

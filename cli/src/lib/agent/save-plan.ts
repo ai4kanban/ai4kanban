@@ -7,7 +7,7 @@ import { setChatPlan } from './chat'
 import type { ChatTarget } from './types'
 
 /** Publish the body before the link; restore it if the transcript cannot be saved. */
-export function savePlan(target: ChatTarget, rel: string, text: string, title?: string): void {
+export function savePlan(target: ChatTarget, rel: string, text: string, title?: string, workflow?: string): void {
   const file = planFile(rel)
   if (!file || !text.trim()) throw new Error('A valid plan path and nonempty body are required.')
   fs.mkdirSync(path.dirname(file), { recursive: true })
@@ -16,7 +16,7 @@ export function savePlan(target: ChatTarget, rel: string, text: string, title?: 
   try {
     fs.writeFileSync(tmp, text)
     fs.renameSync(tmp, file)
-    const result = setChatPlan(target, rel, title)
+    const result = setChatPlan(target, rel, title, workflow)
     if ('error' in result) throw new Error(result.error)
   } catch (err) {
     if (previous) fs.writeFileSync(file, previous)

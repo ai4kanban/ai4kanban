@@ -56,6 +56,9 @@ needed to assess the idea; leave detailed solution design to card planning.
 - **Keep it current**: revise a temporary draft, then run `akb raw plan save --path <plan>
   --body-file <temporary-draft>`. Only report it saved after the command confirms; preserve
   the draft and reuse the path on failure.
+- **Pick the workflow**: on `plan new` and `plan save`, add `--workflow <id>` naming the
+  workflow from `akb workflow list` whose work matches the plan. Omit it when none clearly
+  fits; the board then uses its default. Never mention the pick in a reply.
 - **Plan shape**: open with a top-level `#` heading naming the plan — that line is what the
   board shows when the screen is too narrow to lay the plan beside the conversation, so it
   has to read on its own, and every section below it is `##` or deeper. Then focus on the

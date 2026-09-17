@@ -182,6 +182,7 @@ function planOf(value: unknown): ChatPlan | undefined {
     answer: p.run ? (p.answer === 'build' ? 'build' : 'plan') : undefined,
     done: p.done === true ? true : undefined,
     title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,
+    workflow: typeof p.workflow === 'string' && p.workflow ? p.workflow : undefined,
   }
 }
 
@@ -347,12 +348,13 @@ export function setChatPlan(
   cardId: ChatTarget,
   planPath: string,
   title?: string,
+  workflow?: string,
 ): { ok: true } | { error: string } {
   if (!planFile(planPath)) return { error: `${planPath} is not a plan of this board's.` }
   const held = readChat(cardId)?.plans ?? []
   // Naming the same file again is the same plan, not a second one.
   const rest = held.filter((p) => p.path !== planPath).map((p) => ({ ...p, done: true as const }))
-  writePlans(cardId, [...rest, { path: planPath, title: title?.trim() || undefined }])
+  writePlans(cardId, [...rest, { path: planPath, title: title?.trim() || undefined, workflow: workflow || undefined }])
   return { ok: true }
 }
 

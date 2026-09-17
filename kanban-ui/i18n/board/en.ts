@@ -90,9 +90,8 @@ const en: BoardCopy = {
         rewriting: "Rewriting",
         start: "Start planning",
         build: "Build now",
-        notYet: "Not yet",
-        startHint:
-          "Start planning breaks the plan into cards and refines each one first; Build now writes a single card and builds it.",
+        planHint: "Break the plan into cards and refine each one before building",
+        buildHint: "Skip refining: write a single card and build it now",
         tryAgain: "The last run wrote no cards. The plan is as you left it.",
         buildAgain: "The last build wrote no card. The plan is as you left it.",
         planning: "Writing the cards from this plan…",

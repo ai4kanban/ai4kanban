@@ -46,7 +46,7 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
   return {
     // Spelled from the project root, the way a card's `## Source` carries it — the panel
     // shows the path to copy, and the board never opens a plan itself.
-    plan: file && { ...file, path: planPathInText(file.path), title: planHeading(file.text) },
+    plan: file && { ...file, path: planPathInText(file.path), title: planHeading(file.text), workflow: plan.workflow },
     run: plan.run ? { sessionId: plan.run, running, answer: plan.answer ?? 'plan' } : null,
   }
 }
