@@ -31,3 +31,7 @@ video/
 # Delivery state — worktrees and the like. Never committed.
 .akb/
 *.tmp.mjs
+# Demo video assets: files live on the CDN, only the index is tracked
+!/assets/video/
+/assets/video/*
+!/assets/video/README.md
