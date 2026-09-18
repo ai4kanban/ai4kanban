@@ -873,7 +873,7 @@ switch is saved with the board, and `akb spec` still lists paused agents.
 **Change** picks another choice, saved at once, board-wide. `akb spec` prints them but can't
 change them.
 
-### Cloud & Notifications → Cloud storage
+### Cloud → Cloud storage
 
 In the app only, for accounts in the Cloud preview. **Stored in** reads **Local · docs/kanban/**
 or **Cloud ·** a workspace name.

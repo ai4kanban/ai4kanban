@@ -9,7 +9,7 @@
 // behind a confirmation that names what goes.
 //
 // Moving the board back to `docs/kanban/` is NOT here: it is the Cloud storage switch on
-// Cloud & Notifications (#614), which is the same control that brought the board to Cloud.
+// the Cloud tab (#614), which is the same control that brought the board to Cloud.
 // What stays here is the one exit that switch cannot make — a workspace Cloud says is not
 // this account's, which has nothing to write back.
 //
@@ -653,7 +653,7 @@ function Delete({
  *  taken as one commit carrying those three paths and nothing else the working tree holds.
  *
  *  Exported because the storage switch finishes on the same offer (#614): a move made from
- *  Cloud & Notifications leaves exactly the change a move made here does, and one wording of
+ *  the Cloud tab leaves exactly the change a move made here does, and one wording of
  *  it is one thing to keep true. */
 export function Offer({
   change,

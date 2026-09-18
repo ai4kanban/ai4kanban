@@ -21,7 +21,8 @@ const en: ConfigurationCopy = {
     catalog: "Agents",
     upkeep: "Board",
     workspace: "Workspace",
-    cloud: "Cloud & Notifications",
+    cloud: "Cloud",
+    notifications: "Notifications",
   },
   workflows: {
     title: "Workflows",
@@ -634,6 +635,12 @@ const en: ConfigurationCopy = {
   cloud: {
     account: "Account",
     wherePosts: "Where it posts",
+    machine: "This machine",
+    notifySignIn: {
+      title: "Sign in to get notifications",
+      body: "Invite-only preview",
+      needsApp: "Signing in needs the AI4Kanban app.",
+    },
     storage: {
       title: "Cloud storage",
       note: "Moving needs the AI4Kanban app and a Cloud invite. The board pauses while it moves and comes back at the end.",
@@ -692,8 +699,7 @@ const en: ConfigurationCopy = {
       back: "Back to the board",
       stop: "Don't move",
     },
-    blurb:
-      "Where a card that needs you reaches you. One sign-in covers every project on this machine.",
+    blurb: "One sign-in covers every project on this machine.",
     checking: "Checking this machine…",
     saving: "Saving…",
     unreachable: (why) => `Cloud could not be reached: ${why}. Nothing on this board is affected.`,

@@ -84,7 +84,7 @@ export function stateNote(event: EventRow): string {
     case 'waiting_for_server':
       return event.serverName
         ? `On ${event.serverName}, as soon as that machine is reachable.`
-        : 'This board has no machine attached to run it. Attach one in Configuration → Cloud & Notifications.'
+        : 'This board has no machine attached to run it. Attach one in Configuration → Notifications.'
     case 'running':
       return event.serverName ? `On ${event.serverName}.` : ''
     // What the state name cannot carry: a refused approval and a broken build both read
@@ -122,7 +122,7 @@ export const cardUrl = (event: EventRow): string =>
     : `${API_ORIGIN}/card/${encodeURIComponent(event.boardId)}/${event.taskId}`
 
 // --- the message a scope change sends (#451) ----------------------------------
-// Moving `Configuration → Cloud → Watching` sends ONE message instead of a card each: what
+// Moving `Configuration → Notifications → Watching` sends ONE message instead of a card each: what
 // the switch brought in was already waiting, and the person who moved it is looking at the
 // bell. The words are here for the reason every other message's are — a second connector is
 // a second implementation, never a second wording.

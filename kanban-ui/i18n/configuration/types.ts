@@ -37,6 +37,7 @@ export type ConfigurationCopy = {
     /** The agents that belong to the board rather than to any workflow. */
     upkeep: string;
     cloud: string;
+    notifications: string;
     /** The workspace a Cloud board lives in (#317). Only ever on a Cloud board. */
     workspace: string;
   };
@@ -618,6 +619,10 @@ export type ConfigurationCopy = {
     account: string;
     /** The caption over the chats a notification is posted to. */
     wherePosts: string;
+    /** The caption over the machine-wide silencing switch. */
+    machine: string;
+    /** The Notifications tab's one row before a sign-in. */
+    notifySignIn: { title: string; body: string; needsApp: string };
     /** Where this board's data is kept, and the one switch that moves it (#614). Both
      *  directions go through it: on carries the board into a new workspace, off writes the
      *  workspace back into `docs/kanban/`. */

@@ -6,7 +6,7 @@
 // reads in #334), Runtimes (the list of runtimes the board owns and what each one
 // runs as, #68/#93/#443/#467/#468), Agents (the spec agents that fill part of a card's
 // spec, the connector and model each agent runs #443, the rule each one carries
-// and the AGENT.md of one you add, #191/#306/#420/#422) and Notifications (#326).
+// and the AGENT.md of one you add, #191/#306/#420/#422), Cloud and Notifications (#326, #886).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
 // there with a pane of its own, and the harness's growing field list (the model,
 // the reasoning level #97, #95's provider and base URL) never squeezes what joins
@@ -27,7 +27,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiGitCommit, FiSettings, FiSliders, FiTerminal, FiTool, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   hasWorkspaceAction,
   workflowsOfferedAction,
@@ -122,7 +122,15 @@ export const SWEEPER = "sweeper";
 // then what the user shapes for it. The split is only navigation — a heading is not a
 // control and opens nothing. Adding a settings group is one entry here plus its pane
 // below; nothing else moves.
-type Section = "general" | "runtimes" | "agents" | "catalog" | "upkeep" | "workspace" | "cloud";
+type Section =
+  | "general"
+  | "runtimes"
+  | "agents"
+  | "catalog"
+  | "upkeep"
+  | "workspace"
+  | "cloud"
+  | "notifications";
 type NavGroup = "settings" | "customize";
 const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
   { id: "general", group: "settings", icon: FiSliders },
@@ -132,11 +140,10 @@ const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
   { id: "upkeep", group: "settings", icon: FiTool },
   // The workspace this board lives in (#317). Only on a Cloud board — a Local one has no
   // workspace to run, so the entry is left out rather than drawn onto an empty pane.
-  { id: "workspace", group: "settings", icon: FiCloud },
-  // How work reaches the person this machine signs in as (#326) — named for the job, not
-  // for Cloud, which is what carries it. Beside Workspace rather than instead of it: one is
-  // the machine's sign-in, the other is this board.
-  { id: "cloud", group: "settings", icon: FiBell },
+  { id: "workspace", group: "settings", icon: FiLayers },
+  // The machine's sign-in and this board's storage, then how work reaches you (#326, #886).
+  { id: "cloud", group: "settings", icon: FiCloud },
+  { id: "notifications", group: "settings", icon: FiBell },
   // What the user shapes (#715): the workflows a card runs through, and the agents those
   // workflows assign. Only on a board that picks workflows at all — where it doesn't, the
   // whole group goes with them.
@@ -439,14 +446,15 @@ export function Configuration({
                 onError={onError}
               />
             )}
-            {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
-                this board. Mounted only while it is the section on screen: it asks the
-                service who is signed in, over the network. */}
             {/* The workspace this board lives in (#317) — its name, the machines that run its
                 work, the export, leaving Cloud and the deletion. Mounted only while it is the
                 section on screen: it asks the service what the workspace holds right now. */}
             {section === "workspace" && cloudBoard && <WorkspacePanel onError={onError} />}
-            {section === "cloud" && <CloudPanel onError={onError} />}
+            {/* Cloud and Notifications (#326, #886). One instance for both, so the account and
+                a sign-in waiting in the browser carry across a switch between them. */}
+            {(section === "cloud" || section === "notifications") && (
+              <CloudPanel tab={section} onError={onError} />
+            )}
           </div>
         </Dialog>
       )}

@@ -18,7 +18,8 @@ const zh: ConfigurationCopy = {
     catalog: "Agent",
     upkeep: "看板",
     workspace: "工作区",
-    cloud: "云端与通知",
+    cloud: "云端",
+    notifications: "通知",
   },
   workflows: {
     title: "工作流",
@@ -709,6 +710,12 @@ const zh: ConfigurationCopy = {
   cloud: {
     account: "账号",
     wherePosts: "发到哪里",
+    machine: "这台机器",
+    notifySignIn: {
+      title: "登录后接收通知",
+      body: "邀请制内测",
+      needsApp: "登录需要 AI4Kanban 应用。",
+    },
     storage: {
       title: "云端存储",
       note: "迁移需要 AI4Kanban 应用，并且账号已获 Cloud 邀请准入。迁移期间看板暂停使用，结束后回到看板。",
@@ -763,7 +770,7 @@ const zh: ConfigurationCopy = {
       back: "回到看板",
       stop: "不迁移了",
     },
-    blurb: "需要你处理的卡片通过什么方式找到你。一次登录覆盖这台机器上的所有项目。",
+    blurb: "一次登录覆盖这台机器上的所有项目。",
     checking: "正在检查这台机器…",
     saving: "保存中…",
     unreachable: (why) => `无法连接 Cloud：${why}。这个看板不受影响。`,

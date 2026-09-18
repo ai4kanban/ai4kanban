@@ -1,37 +1,17 @@
 "use client";
 
-// Notifications — where a card that needs you reaches you, and the account it reaches you
-// through (#326). Named for the job in the nav; Cloud is the plumbing, and is said in the
-// sentences rather than on the tab.
+// The Cloud and Notifications tabs (#326, #886) — one component draws both, so the account,
+// a sign-in out in the browser and the scheme callbacks survive a switch between the two.
 //
-// Four captioned groups, the same shape General is built from (components/settings.tsx):
-// **Account** — who this machine acts as, and the silencing switch that holds for every
-// board on it. **Cloud storage** — where this board's data is kept, and the one switch that
-// moves it (#614). **Where it posts** — one row per chat. **This board** — the release it
-// watches and the machine that runs its work. One row is one decision, so the sign-in, a
-// connection and a switch all read off the same left edge.
+// **Cloud**: who this machine acts as, and where this board's data is kept (#614).
+// **Notifications**: the machine's silencing switch, where it posts, and this board's tier.
+// Signed out, Notifications offers only the sign-in; expired and not-admitted draw Cloud's
+// own account group.
 //
-// The storage switch is here rather than on a page of its own because it belongs to the
-// account: it is the second thing a signed-in account can do with Cloud, and the first — the
-// sign-in above it — is what admits it at all. It is only ever drawn for an ADMITTED account,
-// which is what `SignedIn` below already means.
-//
-// The sign-in is not a board setting: one sign-in covers every project the app has open and
-// every terminal on the machine, and it is held outside every repository. That is what the
-// note under the first group says.
-//
-// The sign-in happens in three places and no fewer. This pane asks the board server for the
-// consent URL — the secret half of it never leaves the machine — the app opens that URL in
-// the user's own browser, and the answer comes back to the app over its own URL scheme and
-// is handed here to be exchanged. So the pane needs the app: in a plain browser there is no
-// scheme to come back to, and it says so instead of offering a button that cannot finish.
-//
-// Four states, one per answer a sign-in can come back with: not signed in, signed in and
-// admitted, signed in and not admitted, and expired. What the service refuses is shown in
-// the service's own words — Cloud writes its refusals to be read as they stand, and a copy
-// of them here would be a second thing to keep true. The not-admitted state keeps the same
-// account row and adds one asking row (#327): approving is the whole of getting in (#350),
-// so there is one ask here and nothing to paste back.
+// Signing in needs the app: the board server hands out the consent URL, the app opens it in
+// the browser, and the answer comes back on the app's URL scheme to be exchanged here. In a
+// plain browser the pane says so instead of offering a button that cannot finish. Cloud's
+// refusals are shown in its own words.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { FiBell, FiBellOff, FiFolder, FiLogOut, FiMail, FiUploadCloud } from "react-icons/fi";
@@ -118,7 +98,13 @@ function bridge(): AppBridge | null {
   return app?.openExternal && app.onCloudCallback ? (app as AppBridge) : null;
 }
 
-export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
+export function CloudPanel({
+  tab,
+  onError,
+}: {
+  tab: "cloud" | "notifications";
+  onError?: (msg: string) => void;
+}) {
   const c = useCopy().configuration.cloud;
   const [account, setAccount] = useState<CloudAccount | null>(null);
   const [busy, setBusy] = useState(false);
@@ -201,15 +187,11 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
       {!account ? (
         <Loading>{c.checking}</Loading>
       ) : account.state === "signed-in" ? (
-        <SignedIn
-          account={account}
-          busy={busy}
-          inApp={inApp}
-          slackTick={slackTick}
-          larkTick={larkTick}
-          onError={onError}
-          onSignOut={() => void signOut()}
-        />
+        tab === "cloud" ? (
+          <SignedIn account={account} busy={busy} inApp={inApp} onSignOut={() => void signOut()} />
+        ) : (
+          <NotificationsTab inApp={inApp} slackTick={slackTick} larkTick={larkTick} onError={onError} />
+        )
       ) : account.state === "not-admitted" ? (
         <NotAdmitted
           account={account}
@@ -217,6 +199,14 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
           onDone={load}
           onError={onError}
           onSignOut={() => void signOut()}
+        />
+      ) : tab === "notifications" && account.state !== "expired" ? (
+        <SignInForNotifications
+          account={account}
+          inApp={inApp}
+          busy={busy}
+          waiting={waiting}
+          onSignIn={() => void signIn()}
         />
       ) : (
         <SignedOut
@@ -240,20 +230,11 @@ function SignedIn({
   account,
   busy,
   inApp,
-  slackTick,
-  larkTick,
-  onError,
   onSignOut,
 }: {
   account: CloudAccount;
   busy: boolean;
-  /** Connecting a chat needs the app for the same reason signing in does: the consent
-   *  screen comes back on a URL scheme only the app answers. */
   inApp: boolean;
-  /** Bumped when a finished connection came back on that scheme. */
-  slackTick: number;
-  larkTick: number;
-  onError?: (msg: string) => void;
   onSignOut: () => void;
 }) {
   const c = useCopy().configuration.cloud;
@@ -262,14 +243,39 @@ function SignedIn({
       <Group title={c.account}>
         <Panel>
           <AccountRow account={account} busy={busy} onSignOut={onSignOut} />
-          <Silencer />
         </Panel>
-        {/* One sign-in covers every project on this machine — said under the card, because
-            it is a fact about the row above rather than something to change. */}
         <Note>{c.blurb}</Note>
       </Group>
 
       <Storage inApp={inApp} />
+    </>
+  );
+}
+
+// --- the Notifications tab, signed in -----------------------------------------
+
+function NotificationsTab({
+  inApp,
+  slackTick,
+  larkTick,
+  onError,
+}: {
+  /** Connecting a chat needs the app for the same reason signing in does: the consent
+   *  screen comes back on a URL scheme only the app answers. */
+  inApp: boolean;
+  /** Bumped when a finished connection came back on that scheme. */
+  slackTick: number;
+  larkTick: number;
+  onError?: (msg: string) => void;
+}) {
+  const c = useCopy().configuration.cloud;
+  return (
+    <>
+      <Group title={c.machine}>
+        <Panel>
+          <Silencer />
+        </Panel>
+      </Group>
 
       <Group title={c.wherePosts}>
         <Panel>
@@ -319,8 +325,7 @@ function AccountRow({
 }
 
 // --- the machine's one silencing switch (#319) --------------------------------
-// In the account's group rather than the board's: what it stops arrives from every board,
-// and the bell keeps filling either way.
+// What it stops arrives from every board, and the bell keeps filling either way.
 
 function Silencer() {
   const c = useCopy().configuration.cloud;
@@ -1290,6 +1295,46 @@ function SignedOut({
   );
 }
 
+// --- the Notifications tab, not signed in ------------------------------------
+
+function SignInForNotifications({
+  account,
+  inApp,
+  busy,
+  waiting,
+  onSignIn,
+}: {
+  account: CloudAccount;
+  inApp: boolean;
+  busy: boolean;
+  waiting: boolean;
+  onSignIn: () => void;
+}) {
+  const c = useCopy().configuration.cloud;
+  return (
+    <Group title={c.account}>
+      <Panel>
+        <Row label={c.notifySignIn.title} hint={inApp ? c.notifySignIn.body : c.notifySignIn.needsApp}>
+          {inApp && (
+            <Button size="sm" disabled={busy || !account.configured} onClick={onSignIn}>
+              <SiGithub size={14} aria-hidden />
+              {c.signIn}
+            </Button>
+          )}
+        </Row>
+      </Panel>
+
+      {waiting && <Note>{c.waiting}</Note>}
+      {!account.configured && account.message && <Alert>{account.message}</Alert>}
+      <Note>
+        <Link href={PRIVACY_URL}>{c.privacyLink}</Link>
+        {" · "}
+        <Link href={TERMS_URL}>{c.termsLink}</Link>
+      </Note>
+    </Group>
+  );
+}
+
 // --- signed in and not admitted (#327, #350) ----------------------------------
 // One ask: the refusal, the line saying how we answer, and the button. Pressing it re-reads
 // the account, so what is drawn next is the service's answer. An approval admits the account
@@ -1362,8 +1407,7 @@ function asked(at: string, undated: string, language: Language): string {
   return when.toLocaleDateString(LANGUAGE_TAGS[language], { month: "short", day: "numeric" });
 }
 
-/** What Cloud is for, and what it never receives. Said here because in 0.8.0 this pane is
- *  the only place Cloud is ever offered; #317 extends it to onboarding. */
+/** What Cloud is for, and what it never receives. */
 function Boundary() {
   const c = useCopy().configuration.cloud;
   return (

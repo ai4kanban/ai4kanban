@@ -1,7 +1,7 @@
 /**
  * The one message a scope change sends (#451).
  *
- * Moving `Configuration → Cloud → Watching` brings cards into view that were ALREADY waiting.
+ * Moving `Configuration → Notifications → Watching` brings cards into view that were ALREADY waiting.
  * They land in the bell read and raise nothing, and every connector is told to owe them no
  * new message — so what the switch is worth saying in a chat is said once: what is watched
  * now, and how many cards that turned out to be.
