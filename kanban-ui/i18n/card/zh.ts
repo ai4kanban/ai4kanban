@@ -200,6 +200,7 @@ const zh: CardCopy = {
     code: "代码",
     frame: (label) => `素材 ${label}`,
     back: (id) => `返回 #${id}`,
+    unplayable: "无法播放：浏览器不支持此文件的格式。请改用 MP4（H.264）、WebM 或 MP3。",
   },
 };
 

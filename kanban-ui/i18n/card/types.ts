@@ -265,6 +265,8 @@ export type CardCopy = {
     /** The frame's own title, for a screen reader. */
     frame: (label: string) => string;
     back: (id: number) => string;
+    /** In place of a player the browser cannot play the file in. */
+    unplayable: string;
   };
 };
 

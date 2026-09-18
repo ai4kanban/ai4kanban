@@ -71,8 +71,6 @@ folder path once, then one row per selected or needed file: shots, purpose, file
 duration, source and status (ready or human needed). For repository assets, the source path
 is enough; for other assets, include usage rights. Note any sensitive data removed.
 
-- **Image preview**: below the index, show each selected image on its own line as
-  `<Asset src=".assets/<card id>/<file>" label="<purpose>" />`.
-- **Audio and video**: give the absolute file path for review in a local media player;
-  `<Asset>` does not support playback. Do not present the path as a playable card link.
+- **Preview**: below the index, show each selected image, audio and video file on its own line
+  as `<Asset src=".assets/<card id>/<file>" label="<purpose>" />`.
 - **No approved script**: write no section; report that the script is missing or unapproved.

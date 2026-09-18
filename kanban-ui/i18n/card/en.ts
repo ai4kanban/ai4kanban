@@ -202,6 +202,7 @@ const en: CardCopy = {
     code: "Code",
     frame: (label) => `Asset ${label}`,
     back: (id) => `Back to #${id}`,
+    unplayable: "Can't play this file: the browser doesn't support its format. Use MP4 (H.264), WebM or MP3.",
   },
 };
 

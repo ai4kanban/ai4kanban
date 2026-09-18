@@ -49,7 +49,8 @@ Complete the storyboard project according to `### Script` and render it to an MP
 8. **Commit the source**: the project, composition and render script only — no assets or renders.
 9. **Record it**: after a successful render, append a ticked todo with the video's absolute path
    and the command that re-renders it, in the card's language; then, after a blank line, one
-   `<Asset src=".assets/<card id>/preview-<shot number>.png" label="<shot number>" />` line per preview frame.
+   `<Asset src=".assets/<card id>/<short-name>.mp4" label="<card title>" />` line for the video,
+   then one `<Asset src=".assets/<card id>/preview-<shot number>.png" label="<shot number>" />` line per preview frame.
 
 ## Rules
 

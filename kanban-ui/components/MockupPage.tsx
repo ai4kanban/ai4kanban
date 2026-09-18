@@ -15,7 +15,8 @@
 // A `.txt` mockup opens here too (#256), in the same monospaced block the card page shows
 // it in and at the size a drawing is read at. It never re-wraps either.
 //
-// An image (#803) is shown at its own pixel size, with that size beside its name.
+// An image (#803) is shown at its own pixel size, with that size beside its name. A video
+// (#872) fits the panel's width, with its size and length there; audio shows its length.
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryOwner } from "@/lib/types";
+import { clock, MediaPlayer, type MediaMeta } from "./MediaPlayer";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
@@ -68,6 +70,7 @@ export function MockupPage({
     const h = img.naturalHeight;
     setSize((prev) => (prev?.w === w && prev.h === h ? prev : { w, h }));
   }, []);
+  const [meta, setMeta] = useState<MediaMeta | null>(null);
   const refresh = useCallback(() => router.refresh(), [router]);
 
   // The same two triggers the memory page catches up on: a run finishing, and the window
@@ -137,6 +140,13 @@ export function MockupPage({
                 {size.w} × {size.h} px
               </span>
             )}
+            {meta && (
+              <span className="shrink-0 font-mono text-[12px] text-nb-ink-soft">
+                {[meta.width ? `${meta.width} × ${meta.height} px` : "", clock(meta.duration)]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            )}
             {view.code && (
               <button
                 type="button"
@@ -161,7 +171,16 @@ export function MockupPage({
           {/* Full size, so the panel is what scrolls — both ways, since the screen is wider
               than the body on most windows. */}
           <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
-            {view.image !== undefined ? (
+            {view.media !== undefined ? (
+              <MediaPlayer
+                key={view.media.href}
+                kind={view.media.kind}
+                href={view.media.href}
+                title={view.src}
+                fill={false}
+                onMeta={setMeta}
+              />
+            ) : view.image !== undefined ? (
               // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
               <img
                 src={view.image}

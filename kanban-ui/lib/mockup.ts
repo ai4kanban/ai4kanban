@@ -14,6 +14,8 @@
 //          shows the file's own characters in a monospaced block.
 //   image  .png .jpg .jpeg .webp .gif .svg (#803). Not read here: the page loads its bytes
 //          from app/asset-image, and an `<img>` never runs what an SVG holds.
+//   media  .mp4 .webm .mov, .mp3 .wav .m4a (#872). Not read here either: the page's own
+//          player streams them from app/asset-image.
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
 // in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
@@ -34,11 +36,16 @@ import { transform } from "sucrase";
 import { compile } from "tailwindcss";
 import type { MockupSet, MockupView } from "./mockup-tag";
 import { assetImageHref, mockupSources } from "./mockup-tag";
+import { AUDIO_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } from "./asset-bytes";
 import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
 
-export const IMAGE_EXTS = ["png", "jpg", "jpeg", "webp", "gif", "svg"];
-const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS];
+const IMAGE_EXTS = Object.keys(IMAGE_TYPES);
+const MEDIA_EXTS: Record<string, "video" | "audio"> = {
+  ...Object.fromEntries(Object.keys(VIDEO_TYPES).map((e) => [e, "video" as const])),
+  ...Object.fromEntries(Object.keys(AUDIO_TYPES).map((e) => [e, "audio" as const])),
+};
+const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS, ...Object.keys(MEDIA_EXTS)];
 
 /** `.assets/<folder>/<file>.<ext>`, or `.mockups/...` / `mockups/...` on older cards, and
  *  nothing else — no `.`, no `..`, nothing that climbs. An asset is read off the user's disk,
@@ -48,24 +55,14 @@ const SRC = new RegExp(
   "i",
 );
 
-/** One path segment that cannot climb or hide. */
-const SEGMENT = /^(?!\.)[^/\\]+$/;
-
 /** A file in a card's asset folder: this machine's `assets/`, then the older `mockups/`, then
  *  the board's `.mockups/`. `null` when it is in none of them, or the names try to climb. */
 export async function assetFile(folder: string, name: string): Promise<string | null> {
-  if (!SEGMENT.test(folder) || !SEGMENT.test(name)) return null;
-  const roots = [...new Set([await assetsDir(), await mockupsDir(), path.join(kanbanDir(), ".mockups")])];
-  for (const root of roots) {
-    const file = path.join(root, folder, name);
-    if (!file.startsWith(root + path.sep)) return null;
-    try {
-      if (fs.statSync(file).isFile()) return file;
-    } catch {
-      // Not in this folder — try the next.
-    }
-  }
-  return null;
+  return findIn(await assetRoots(), folder, name);
+}
+
+export async function assetRoots(): Promise<string[]> {
+  return [...new Set([await assetsDir(), await mockupsDir(), path.join(kanbanDir(), ".mockups")])];
 }
 
 /** How long a mockup gets to load and to draw itself, all its files together. Generous for
@@ -191,10 +188,12 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
     file = null;
   }
   if (!file) return { src, error: c.missing(src) };
-  if (IMAGE_EXTS.includes(ext)) {
-    // The mtime makes a redrawn image a new address, so the page never shows a stale one.
+  const media = MEDIA_EXTS[ext];
+  if (IMAGE_EXTS.includes(ext) || media) {
+    // The mtime makes a redrawn file a new address, so the page never shows a stale one.
     const version = Math.floor(fs.statSync(file).mtimeMs);
-    return { src, image: `${assetImageHref(folder!, fileName)}?v=${version}` };
+    const href = `${assetImageHref(folder!, fileName)}?v=${version}`;
+    return media ? { src, media: { kind: media, href } } : { src, image: href };
   }
   let code: string;
   try {

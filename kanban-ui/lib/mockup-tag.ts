@@ -28,16 +28,27 @@ export type MockupView =
       code: string;
       text?: undefined;
       image?: undefined;
+      media?: undefined;
       error?: undefined;
     }
   // A `.txt` mockup (#256): the file IS the drawing, so it is shown exactly as it stands
   // and there is nothing behind the picture to switch to.
-  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; error?: undefined }
+  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; error?: undefined }
   // An image (#803): the address of its bytes. Nothing behind it to switch to either.
-  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; error?: undefined }
+  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; error?: undefined }
+  // Video or audio (#872): the address its player streams from.
+  | {
+      src: string;
+      media: { kind: "video" | "audio"; href: string };
+      image?: undefined;
+      text?: undefined;
+      doc?: undefined;
+      code?: undefined;
+      error?: undefined;
+    }
   // The note in a mockup's place. It still carries the file's text when there was a file
   // to read — a mockup that would not draw is one you want to read the code of.
-  | { src: string; doc?: undefined; text?: undefined; image?: undefined; code?: string; error: string };
+  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; code?: string; error: string };
 
 /** The mockups a page has already read, keyed by `src` exactly as the tag wrote it. */
 export type MockupSet = Record<string, MockupView>;
@@ -75,7 +86,7 @@ export function mockupHref(src: string): string {
   return `/${src.replace(/^\./, "")}`;
 }
 
-/** Where an image's bytes are served — by card id and file name only, never a path. */
+/** Where an image's, video's or audio's bytes are served — by card id and file name only, never a path. */
 export function assetImageHref(card: string, name: string): string {
   return `/asset-image/${encodeURIComponent(card)}/${encodeURIComponent(name)}`;
 }

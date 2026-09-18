@@ -34,6 +34,7 @@
     "build:standalone": "next build && node scripts/copy-standalone-assets.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/*.test.mjs\"",
     "lint": "node ../scripts/sync-format.mjs --check && eslint .",
     "prepublishOnly": "node ../scripts/sync-version.mjs --check && node ../scripts/sync-format.mjs --check && npm run build:standalone"
   },

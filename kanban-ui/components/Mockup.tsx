@@ -17,13 +17,14 @@
 // characters in a monospaced block, at full size, scrolled rather than scaled.
 //
 // An image (#803) fills the width, never taller than a screen at that width, and links to its
-// own page at full size.
+// own page at full size. Video and audio (#872) get the browser's own player.
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FiAlertCircle, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, type MockupView } from "@/lib/mockup-tag";
+import { MediaPlayer } from "./MediaPlayer";
 
 /** The desktop screen every mockup is drawn on, before it is scaled. Every option gets
  *  this same frame — they only compare when they are the same size on the page. */
@@ -159,7 +160,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           <span className="truncate">{view.src}</span>
           <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
         </Link>
-        {/* No switch on a `.txt` mockup or an image: there is nothing behind the picture. */}
+        {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
         {view.doc !== undefined && (
           <button
             type="button"
@@ -170,7 +171,9 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           </button>
         )}
       </span>
-      {view.image !== undefined ? (
+      {view.media !== undefined ? (
+        <MediaPlayer key={view.media.href} kind={view.media.kind} href={view.media.href} title={label || view.src} fill />
+      ) : view.image !== undefined ? (
         <Picture image={view.image} src={view.src} alt={label || view.src} />
       ) : view.text !== undefined ? (
         <Drawing text={view.text} />
