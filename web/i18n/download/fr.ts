@@ -4,11 +4,12 @@ import type { DownloadCopy } from "./types";
 
 const fr: DownloadCopy = {
   meta: {
-    title: "Télécharger AI4Kanban — le tableau en application de bureau",
+    title: "Télécharger AI4Kanban pour macOS, Windows et Linux",
     description:
-      "Obtenez AI4Kanban en application de bureau pour macOS, Windows et Linux.",
+      "AI4Kanban est le chef de projet IA qui dirige votre équipe d’agents. Obtenez l’application de bureau pour macOS, Windows et Linux.",
     socialTitle: "Télécharger AI4Kanban",
-    social: "Le tableau en application de bureau pour macOS, Windows et Linux.",
+    social:
+      "Le chef de projet IA de votre équipe d’agents, sur macOS, Windows et Linux.",
   },
 
   hero: {

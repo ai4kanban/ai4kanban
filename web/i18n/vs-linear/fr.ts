@@ -7,14 +7,14 @@ const fr: VsLinearCopy = {
     title: "AI4Kanban vs. Linear — planifier dans le dépôt ou coordonner l’équipe",
     socialTitle: "AI4Kanban vs. Linear",
     description:
-      "Comparez AI4Kanban et Linear : un système de planification intégré au dépôt pour les agents de code face à une plateforme collaborative de développement produit pour les équipes et les agents.",
+      "Comparez AI4Kanban et Linear : un chef de projet IA qui dirige votre équipe d’agents depuis votre dépôt face à une plateforme collaborative de développement produit pour les équipes et les agents.",
     social:
       "Linear coordonne le travail à l’échelle de l’organisation. AI4Kanban transforme les demandes imprécises en plans prêts à exécuter dans le dépôt. Découvrez le modèle qui correspond à votre façon de travailler.",
   },
   hero: {
     badge: "Comparaison",
     title: "AI4Kanban vs.\nLinear",
-    lead: "Linear offre aux équipes un espace commun pour planifier et livrer leurs produits. AI4Kanban installe le système de planification de l’agent de code dans le dépôt. Le premier coordonne une organisation ; le second transforme une demande incomplète en travail prêt à réaliser, sans séparer le plan du code.",
+    lead: "Linear offre aux équipes un espace commun pour planifier et livrer leurs produits. AI4Kanban est un chef de projet IA qui dirige votre équipe d’agents depuis le dépôt. Le premier coordonne une organisation ; le second transforme une demande incomplète en travail prêt à réaliser, sans séparer le plan du code.",
     ours: {
       name: "AI4Kanban",
       body: "Un tableau Markdown dans le dépôt, conçu pour l’affinage piloté par l’agent.",

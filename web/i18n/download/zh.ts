@@ -4,11 +4,12 @@ import type { DownloadCopy } from "./types";
 
 const zh: DownloadCopy = {
   meta: {
-    title: "下载 AI4Kanban —— 桌面端看板",
+    title: "下载 AI4Kanban —— macOS、Windows 与 Linux 桌面应用",
     description:
-      "获取 macOS、Windows 和 Linux 上的 AI4Kanban 桌面应用。",
+      "AI4Kanban 是替你管理 Agent 团队的 AI 项目经理。获取 macOS、Windows 和 Linux 桌面应用。",
     socialTitle: "下载 AI4Kanban",
-    social: "看板的桌面应用，支持 macOS、Windows 和 Linux。",
+    social:
+      "替你管理 Agent 团队的 AI 项目经理，支持 macOS、Windows 和 Linux。",
   },
 
   hero: {

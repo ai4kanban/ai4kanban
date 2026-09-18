@@ -7,14 +7,14 @@ const es: VsLinearCopy = {
     title: "AI4Kanban vs. Linear — planificación en el repo o coordinación de equipos",
     socialTitle: "AI4Kanban vs. Linear",
     description:
-      "Compara AI4Kanban y Linear: un sistema de planificación integrado en el repo para agentes de código frente a una plataforma colaborativa de desarrollo de producto para equipos y agentes.",
+      "Compara AI4Kanban y Linear: un gestor de proyectos con IA que dirige tu equipo de agentes desde tu repo frente a una plataforma colaborativa de desarrollo de producto para equipos y agentes.",
     social:
       "Linear coordina el trabajo de toda la organización. AI4Kanban convierte peticiones incompletas en planes listos para implementar dentro del repo. Descubre qué modelo encaja con tu forma de trabajar.",
   },
   hero: {
     badge: "Comparación",
     title: "AI4Kanban vs.\nLinear",
-    lead: "Linear ofrece a los equipos un sistema compartido para planificar y entregar producto. AI4Kanban sitúa el sistema de planificación del agente de código dentro del repo. Uno coordina una organización; el otro convierte peticiones incompletas en trabajo listo para implementar sin separar el plan del código.",
+    lead: "Linear ofrece a los equipos un sistema compartido para planificar y entregar producto. AI4Kanban es un gestor de proyectos con IA que dirige tu equipo de agentes desde dentro del repo. Uno coordina una organización; el otro convierte peticiones incompletas en trabajo listo para implementar sin separar el plan del código.",
     ours: {
       name: "AI4Kanban",
       body: "Un tablero Markdown en el repo, diseñado para el refinamiento dirigido por el agente.",

@@ -4,12 +4,12 @@ import type { DownloadCopy } from "./types";
 
 const es: DownloadCopy = {
   meta: {
-    title: "Descargar AI4Kanban: el tablero como aplicación de escritorio",
+    title: "Descargar AI4Kanban para macOS, Windows y Linux",
     description:
-      "Consigue AI4Kanban como aplicación de escritorio para macOS, Windows y Linux.",
+      "AI4Kanban es el gestor de proyectos con IA que dirige tu equipo de agentes. Consigue la aplicación de escritorio para macOS, Windows y Linux.",
     socialTitle: "Descargar AI4Kanban",
     social:
-      "El tablero como aplicación de escritorio para macOS, Windows y Linux.",
+      "El gestor de proyectos con IA para tu equipo de agentes, en macOS, Windows y Linux.",
   },
 
   hero: {

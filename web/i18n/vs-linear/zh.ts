@@ -7,14 +7,14 @@ const zh: VsLinearCopy = {
     title: "AI4Kanban vs. Linear — 仓库内规划，还是团队协作",
     socialTitle: "AI4Kanban vs. Linear",
     description:
-      "比较 AI4Kanban 与 Linear：一个在仓库内帮助编码智能体把需求细化为实施计划，一个为团队提供完整的产品研发工作区。",
+      "比较 AI4Kanban 与 Linear：一个是在仓库中替你管理 Agent 团队的 AI 项目经理，一个是为团队与 Agent 提供协作的产品研发平台。",
     social:
       "需要协调团队与项目，还是让编码智能体把需求规划清楚？用关键差异判断 AI4Kanban 与 Linear 哪一个更适合你。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs.\nLinear",
-    lead: "Linear 用共享工作区协调团队、项目与智能体；AI4Kanban 在仓库内帮助编码智能体把不完整的需求细化为可实施的计划。",
+    lead: "Linear 用共享工作区协调团队、项目与智能体；AI4Kanban 是在仓库中替你管理 Agent 团队的 AI 项目经理，把不完整的需求细化为可实施的计划。",
     ours: {
       name: "AI4Kanban",
       body: "与代码一起版本化的 Markdown 看板，专注需求细化与实施准备。",

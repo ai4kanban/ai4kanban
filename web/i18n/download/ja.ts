@@ -4,11 +4,12 @@ import type { DownloadCopy } from "./types";
 
 const ja: DownloadCopy = {
   meta: {
-    title: "AI4Kanban をダウンロード — デスクトップアプリ版のボード",
+    title: "AI4Kanban をダウンロード — macOS、Windows、Linux 対応",
     description:
-      "macOS、Windows、Linux 向けの AI4Kanban デスクトップアプリ。",
+      "AI4Kanban は、エージェントチームを率いる AI プロジェクトマネージャーです。macOS、Windows、Linux 向けのデスクトップアプリを入手できます。",
     socialTitle: "AI4Kanban をダウンロード",
-    social: "macOS、Windows、Linux 向けのボードのデスクトップアプリ。",
+    social:
+      "エージェントチームを率いる AI プロジェクトマネージャー。macOS、Windows、Linux に対応。",
   },
 
   hero: {

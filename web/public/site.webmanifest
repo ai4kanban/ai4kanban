@@ -1,7 +1,7 @@
 {
   "name": "AI4Kanban",
   "short_name": "AI4Kanban",
-  "description": "The AI project manager for coding agents.",
+  "description": "The AI project manager that runs your agent team.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,8 +1,7 @@
 # AI4Kanban vs. Multica
 
-> Both products put coding agents on a kanban board. The real boundary is when
-> the agent enters the story: AI4Kanban decides and develops the task before it
-> is ready; Multica assigns and operates the task after it is ready.
+> Both products let agents execute tasks. **AI4Kanban is a ready-to-use AI
+> project-management system; Multica is a general-purpose multi-agent platform.**
 
 - **AI4Kanban** — A planning loop in your repository. The agent proposes work,
   develops vague ideas, orders the board, and remembers earlier decisions.

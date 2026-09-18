@@ -1,8 +1,8 @@
 # AI4Kanban vs. Linear
 
 > Linear is a polished project-management workspace where people and agents coordinate.
-> AI4Kanban is a repo-local planning board that an agent refines from rough idea to
-> build-ready task. This is not a cheaper Linear clone; it is a different planning model.
+> AI4Kanban is an AI project manager that runs your agent team from inside the
+> repository. This is not a cheaper Linear clone; it is a different planning model.
 
 - **AI4Kanban** — Plain Markdown in your repo. The agent owns the planning loop.
 - **Linear** — A hosted team workspace. People and agents plan, build, and review together.

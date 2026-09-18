@@ -1,6 +1,6 @@
-# AI4Kanban — the AI project manager for coding agents
+# AI4Kanban — AI project management for agent teams
 
-> Ship without babysitting coding agents. AI4Kanban turns rough ideas into build-ready work, runs it through your agents, and asks only for product decisions.
+> You set the direction. AI leads the team. From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.
 
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
@@ -54,9 +54,8 @@ Before planning new work, it reads what has already shipped and checks the curre
 User feedback, competitor research, and industry discussions can all inform what to build next. AI4Kanban turns those insights into tasks aligned with your product goals, ready for your agents to work on.
 
 User feedback, competitor research, industry reports, Reddit discussions, and your
-product roadmap feed tasks on the board. Ready tasks run through your coding agents,
-with project data stored in Markdown, to deliver product improvements and release
-iterations.
+product roadmap feed tasks on the board. Ready tasks run through your agents to
+deliver product improvements and release iterations.
 
 ## Start with the desktop app
 

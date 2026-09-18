@@ -91,3 +91,19 @@ What the copy may say, and what backs it today.
 
 Proposed wording for the board's long-term goal: "Amplify how much work one person can take on
 by having AI manage their agent team." Only the user edits `goal.md`.
+
+## Off-site copy
+
+Copy outside this repository, for whoever holds the account to update. Checked 2026-09-18.
+
+| Where | Today | Suggested |
+| --- | --- | --- |
+| GitHub repository description | Your AI project manager: agents plan and build, while you focus on ideas and make the key decisions. | One person. A whole team behind you. AI4Kanban is your AI project manager for agent teams, local-first. |
+| GitHub topics | kanban, kanban-board, agent-orchestration, project-management, spec-driven-development | Add ai-project-manager, ai-agents, agent-team; keep the rest |
+| npm package description (`cli/package.json`) | AI4Kanban's `akb` command — scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by. | Keep: it describes the package, not the product |
+| npm package page (`cli/README.md`) | Long product intro and command tutorial ("The board is the product") | Done in this repo: the package's purpose, install and links; ships with the next publish |
+| npm keywords (`cli/package.json`) | kanban, claude, claude-code, codex, agent, skill, markdown, board | Add ai-project-manager, agent-team |
+| Product Hunt title | AI4Kanban: AI project management that grows with you | AI4Kanban: AI project management for agent teams |
+| Product Hunt description | An agent-led project board that turns project goals into continuous execution — defining tasks, clarifying requirements, setting priorities, and preserving every product decision in project memory. | The short description from "Copy" above |
+| LaunchKiwi | Listed at `/p/ai-project-manager-for-coding-agents`; the page renders client-side, so its text was not read | Title: AI project management for agent teams; description: the short description. Keep the old address unless LaunchKiwi redirects it, since the site footer links there |
+| awesome-agent-kanban | Three category entries describing concrete behaviour, under the same criteria as every other tool | Keep: the directory carries no product positioning by rule |

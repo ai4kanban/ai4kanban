@@ -4,11 +4,12 @@ import type { DownloadCopy } from "./types";
 
 const en: DownloadCopy = {
   meta: {
-    title: "Download AI4Kanban — the board as a desktop app",
+    title: "Download AI4Kanban for macOS, Windows and Linux",
     description:
-      "Get AI4Kanban as a desktop app for macOS, Windows and Linux.",
+      "AI4Kanban is the AI project manager that runs your agent team. Get the desktop app for macOS, Windows and Linux.",
     socialTitle: "Download AI4Kanban",
-    social: "The board as a desktop app for macOS, Windows and Linux.",
+    social:
+      "The AI project manager for your agent team, on macOS, Windows and Linux.",
   },
 
   hero: {

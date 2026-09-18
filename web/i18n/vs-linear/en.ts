@@ -7,14 +7,14 @@ const en: VsLinearCopy = {
     title: "AI4Kanban vs. Linear — repository planning or team coordination",
     socialTitle: "AI4Kanban vs. Linear",
     description:
-      "Compare AI4Kanban and Linear: a repository-native planning system for coding agents versus a collaborative product-development platform for teams and agents.",
+      "Compare AI4Kanban and Linear: an AI project manager that runs your agent team from your repository versus a collaborative product-development platform for teams and agents.",
     social:
       "Linear coordinates work across an organization. AI4Kanban turns rough requests into build-ready plans inside the repository. See which model fits your workflow.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nLinear",
-    lead: "Linear gives teams a shared system for planning and delivering product work. AI4Kanban gives a coding agent a planning system inside the repository. One coordinates an organization; the other turns rough requests into build-ready work without separating the plan from the code.",
+    lead: "Linear gives teams a shared system for planning and delivering product work. AI4Kanban is an AI project manager that runs your agent team from inside the repository. One coordinates an organization; the other turns rough requests into build-ready work without separating the plan from the code.",
     ours: {
       name: "AI4Kanban",
       body: "A Markdown board in the repository, built around agent-led refinement.",
