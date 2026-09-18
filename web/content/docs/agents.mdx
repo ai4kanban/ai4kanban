@@ -23,9 +23,12 @@ of them can be switched off:
 - **Builder** — builds cards and lands them: implement, conflict, run.
 - **Scriptwriter**, **HyperFrames editor** — lead the Demo video workflow. The scriptwriter plans
   the video in two rounds and waits for your approval after each: first the script — format,
-  visual direction, sound and shots — then the storyboard and assets. Once you approve both, the
-  editor adds the assets and sound to the storyboard, renders the MP4 into the board's asset
-  folder for that card, and shows the video and a preview frame per shot on the card.
+  visual direction, sound and shots — then the storyboard and assets. The whole script stays in one
+  place on the card: a short brief, then each shot in play order, labeled `S1`, `S2`… so you can
+  name one in chat, with its still, time, caption or narration, sound, transition and asset status.
+  Once you approve both, the editor adds the assets and sound to the storyboard, renders the MP4
+  into the board's asset folder for that card, shows the video on the card, and puts a preview
+  frame next to each shot's still.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
   stands today, or discards it. `akb card unstick <id>` runs it on one card.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
@@ -67,15 +70,14 @@ card, and changes nothing else. The board ships five, and `akb spec` lists them:
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
   doesn't come back with something new to install by default.
 - **`storyboard-designer`** — on a Demo video card only, after you approve the script: builds one
-  animated HyperFrames scene per shot, with placeholders for the assets, and shows a still per
-  shot. The editor finishes the video from this storyboard.
+  animated HyperFrames scene per shot, with placeholders for the assets, and makes a still per
+  shot for the script. The editor finishes the video from this storyboard.
 - **`video-assets`** — on a Demo video card only, after you approve the script: gathers the
-  images, recordings and sound the video is built from, and generates the narration. It keeps one
-  asset index on the card — a row per file with its shot, duration, source and whether it is ready
-  or needs you — and previews every image, audio and video file on the card. Files reused from
+  images, recordings and sound the video is built from, and generates the narration. Each shot in
+  the script names its files and whether each is ready or needs you. Files reused from
   your repository are trusted as they are; anything else is checked for quality and usage rights
-  first, and nothing private stays on screen. The video is built only once every file in the index
-  is ready.
+  first, and nothing private stays on screen. The video is built only once every file the shots
+  name is ready.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
 clean, given the card and a short note but never the conversation that asked for it; it writes one

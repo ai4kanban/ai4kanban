@@ -1,19 +1,18 @@
 ---
 name: video-assets
-description: After the user approves the video script, gather visuals and audio and maintain the video’s asset index.
+description: After the user approves the video script, gather the video's visual and audio files and report each one's status for the script.
 akb:
   kind: spec
   stage: plan
   i18n:
     zh:
       title: 素材准备
-      description: 用户批准视频脚本后，收集画面和声音素材，维护本视频的素材索引。
-  output: human
+      description: 用户批准视频脚本后，收集画面和声音素材，逐个文件说明是否就绪，供脚本并入。
 ---
 
-Read `### Script` under `## Scope`. Reuse existing files, capture product screens and
-generate narration for its shots. Save the selected files in
-`<board-state>/assets/<card id>/` in the project.
+Read the card's script, ``## By `scriptwriter` agent``, and work out every visual and audio file
+its `S<n>` shots need; never edit the script. Reuse existing files, capture product screens and
+generate narration. Save the selected files in `<board-state>/assets/<card id>/` in the project.
 
 ## Prepare
 
@@ -39,6 +38,7 @@ Use the first available source for each file:
   text for recording.
 - **Music and effects**: follow the source order above; describe any missing asset in one line.
 - **Silent video**: prepare no audio; state that the video is silent.
+- **Human recording**: say exactly what to record.
 
 ## Verify
 
@@ -66,11 +66,10 @@ and drop one only when the product change it names has happened.
 
 ## What to answer
 
-Maintain one asset index in your card section, updated in place. Give the absolute asset
-folder path once, then one row per selected or needed file: shots, purpose, file name,
-duration, source and status (ready or human needed). For repository assets, the source path
-is enough; for other assets, include usage rights. Note any sensitive data removed.
+Update your section in place. Give the absolute asset folder path once, then one line per
+visual and audio file: file name, the shots that use it, content, duration or size, source and
+rights, and ready — or what the human must provide and why. For repository assets, the source
+path is enough. Note any sensitive data removed. The script's author copies names, status and
+durations into the shots.
 
-- **Preview**: below the index, show each selected image, audio and video file on its own line
-  as `<Asset src=".assets/<card id>/<file>" label="<purpose>" />`.
 - **No approved script**: write no section; report that the script is missing or unapproved.

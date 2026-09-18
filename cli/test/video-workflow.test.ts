@@ -118,14 +118,15 @@ describe('the hyperframes-video workflow', () => {
     const coding = (await move(root, ['create', '--title', 'Fix the header'])).id as number
 
     const refine = printed('refine', video)
-    assert.match(refine, /you, the `scriptwriter` agent[\s\S]*### Script/)
+    assert.match(refine, /you, the `scriptwriter` agent[\s\S]*## By `scriptwriter` agent/)
+    assert.match(refine, /Your output is set to be reviewed by me: write it in ``## By `scriptwriter` agent``, above `<!-- agent -->`/)
     assert.ok(refine.indexOf('`scriptwriter` agent —') > refine.indexOf('——— akb guide'))
     assert.match(refine, /storyboard-designer/)
     assert.match(refine, /video-assets/)
     assert.doesNotMatch(refine, /ui-designer|tech-stack-advisor/)
 
     const build = printed('implement', video)
-    assert.match(build, /you, the `hyperframes-editor` agent[\s\S]*storyboard-designer/)
+    assert.match(build, /you, the `hyperframes-editor` agent[\s\S]*## By `scriptwriter` agent/)
 
     for (const action of ['refine', 'implement'] as const) {
       const text = printed(action, coding)
