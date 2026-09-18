@@ -1,0 +1,14 @@
+{
+  "name": "ai4kanban-email",
+  "private": true,
+  "type": "module",
+  "description": "Render a React Email TSX to HTML and send it to the reviewer.",
+  "dependencies": {
+    "@react-email/components": "^1.0.11",
+    "esbuild": "^0.28.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-email": "^6.9.5",
+    "resend": "^6.28.1"
+  }
+}
