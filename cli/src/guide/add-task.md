@@ -58,6 +58,8 @@ setup, fill only the opening paragraph—the background refinement completes the
 
 ## Refine
 
+Carry the request's constraints into refinement; a memory opt-out does not waive planning.
+
 - **Lightweight**: use only when the source already supplies a concrete outcome, boundaries,
   and build steps. Run `akb card refine <id> --effort lightweight --print` and continue inline;
   it verifies the build scope and switches to standard QA if the plan is less settled than

@@ -28,7 +28,9 @@ After creating the group, exit. The scheduled subtasks refine themselves.
    QA resumes after their work. Recheck triggers when the scope changes. When a matching
    agent's description says it follows another agent, request that one first; request it
    once that agent's section is written and has no open question.
-3. Resolve what project evidence answers. Follow each decision into the new questions and
+3. Establish and record an evidenced acquisition path for each required input, access, or
+   capability. Research unresolved prerequisites now; listing candidates for the builder to
+   investigate does not settle them. Follow each decision into the new questions and
    obligations it creates, especially when skipping, deferring, or dropping work.
 4. Reconstruct the promised outcome and walk concrete normal, edge, failure, recovery, and
    regression scenarios from trigger to observable result. Find affected entry points in code
