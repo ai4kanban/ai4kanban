@@ -118,7 +118,7 @@ function AgentSection({
         </span>
         <span className="min-w-0 truncate text-[13.5px] font-[700]">{agentName(name)}</span>
       </summary>
-      <div className="px-5 pb-4 pt-1 max-md:px-4">{children}</div>
+      <div className="px-5 pb-4 pt-3 max-md:px-4">{children}</div>
     </details>
   );
 }
