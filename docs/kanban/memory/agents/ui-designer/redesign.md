@@ -199,6 +199,9 @@
   writes HTML and stops there — the shot is a second command, the headless-shell binary with
   `--screenshot --force-device-scale-factor=2 --window-size=<frame+80>`. A layout that
   overflows its dialog is only caught in that shot.
+- **An icon inside `.nb-md` inherits the prose image frame**: `markdown.css` gives every `img`
+  full width, a border and margins, so a 22px avatar in a card-body row needs `!m-0 !border-0`
+  and a fixed `!h`/`!w`.
 - **The previewer has no `next/link`**, though the board's renderer does: draw an `#id` jump
   as a plain `<a className="nb-idlink">` and both run it.
 - **The Runs office backdrop is layers, not one picture**: `public/run-scene/layers/`
@@ -245,6 +248,8 @@
   list that still reads.
 - **Never bundle the board's own mockup library to preview with** — it shells out through the
   CLI and hangs.
+- **A native `<video>`/`<audio>` player is drawn, not embedded**: the sandbox loads no media,
+  so draw Chromium's control bar over a first frame at 0:00, from markup and inline art.
 - **An email is drawn by running the product's own template**: copy `scripts/newsletter/
   template.mjs` into the mockup folder, patch the copy, render the issue with a `resolveImage`
   that hands back `data:` URIs, and write the `.html` products out — the images-off and

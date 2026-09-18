@@ -34,7 +34,7 @@
     }
   ],
   "agentRuntime": {
-    "discussion-helper": "fable"
+    "discussion-helper": "codex"
   },
   "memoryPrune": {
     "enabled": true,
@@ -48,6 +48,63 @@
   },
   "proposer": true,
   "memoryReview": {
-    "lastRun": "2026-09-17 13:22"
+    "lastRun": "2026-09-18 13:22"
+  },
+  "workflows": {
+    "added": [
+      {
+        "id": "wf-2",
+        "name": "Documentation"
+      },
+      {
+        "id": "wf-3",
+        "name": "Email"
+      }
+    ],
+    "stages": {
+      "wf-2": {
+        "plan": {
+          "lead": "software-planner",
+          "helpers": [
+            {
+              "agent": "copywriting",
+              "extra": ""
+            },
+            {
+              "agent": "tech-stack-advisor",
+              "extra": ""
+            },
+            {
+              "agent": "ui-designer",
+              "extra": ""
+            },
+            {
+              "agent": "prompt-writer",
+              "extra": ""
+            }
+          ]
+        },
+        "execute": {
+          "lead": "docs-pruner",
+          "helpers": []
+        },
+        "review": {
+          "helpers": [
+            {
+              "agent": "code-reviewer",
+              "extra": ""
+            }
+          ]
+        }
+      },
+      "wf-3": {
+        "plan": {
+          "lead": "email-planner"
+        },
+        "execute": {
+          "lead": "email-builder"
+        }
+      }
+    }
   }
 }

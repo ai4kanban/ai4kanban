@@ -28,3 +28,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **同一条规则逐个流程各写一句** → ✅ 规则和它的例外写在同一处，就写在诱因旁边——「对话不写记忆」
   属于 board 指南的「What earns a note」，各流程指南只留一句指回去；逐个添加正是漏掉讨论流程的写法。
+
+## skill
+
+- ❌ **Fixing a long agent output by changing its format (styleless HTML, a preview file)** → ✅ the
+  card already renders Markdown; distil the content instead: the final copy first, then only the
+  notes that affect the user's call.

@@ -55,9 +55,12 @@ covers it, or a plain-words note.
 
 - The site has a contact page at `/contact` (all five languages, linked from the footer): one form for support and for custom agents at $15 per agent, answered by email.
 - 对外定位定稿为「你掌舵，AI 带队」：AI 项目经理替你管理 Agent 团队，只汇报需要知道的事；中英文案与表达边界见仓库根目录 `positioning.md`。
+- 中英 README 与五种语言首页（标题、描述、首屏）已换成「你掌舵，AI 带队」定位。
 
 ## skill
 
+- A lead agent whose `AGENT.md` sets `akb.output: human` now writes its section above `<!-- agent -->` on every run it leads; a run that leaves it out or puts it below goes back for a format fix.
+- Planning questions are written for someone who hasn't seen the board — no card ids, agent names or board terms — and every planning agent writes its part on the card before work starts instead of leaving it as a build step.
 - A specialist can wait for another one's section with `akb.dependencies`, and a new built-in `copywriting` agent writes promotional copy that `ui-designer` waits for until you confirm it: `web/content/docs/agents.mdx`.
 - A project agent, `prompt-writer`, shows the full proposed text of any skill, agent prompt or akb guide change on the card and waits for your confirmation.
 - The built-in Content creation workflow and its three content agents are gone; Coding is the only built-in workflow, and a card still marked `content` runs on it.
@@ -69,3 +72,14 @@ covers it, or a plain-words note.
 - 新增内置工作流「演示视频」（`hyperframes-video`）：脚本作者把分镜写进卡片，素材准备备齐素材，视频组装用 HyperFrames 在本地渲染出 mp4，素材和成片放在 `.akb/boards/docs/kanban/assets/<卡片号>/`；自建工作流也可以选用 `kind: lead` 的 agent 当负责人：`web/content/docs/agents.mdx`。
 - 待你决定的问题可以在卡片的“待澄清问题”里逐题“跳过”（或 `akb raw update-questions <id> --skip <n>`）：问题保留为带删除线的记录并可“撤销”，只剩已跳过的问题时，等待中的交付自动继续；手动删除问题效果相同：`web/content/docs/daily-loop.mdx`。
 - 自建工作流的「负责 Agent」下拉框只列出声明可担任负责人的 agent（`AGENT.md` 的 `akb:` 下写 `lead: true`；新建 agent 默认只当辅助，模板里留有这一行）；内置的 Planner、Builder、脚本作者和视频组装可担任负责人，其余只当辅助；之前已选了未声明 agent 的阶段照常运行，并在该阶段标出提示：`web/content/docs/agents.mdx`。
+- 「演示视频」工作流提高了质量要求：脚本写明画幅、视觉方向、代表帧和声音；素材准备逐项核验质量、授权和敏感信息，并记下可复用素材；视频组装负责声音、校正时长、在卡片里放逐镜头预览帧和重渲命令；新增审片 agent `video-reviewer` 在评审阶段对照脚本检查并修复成片：`web/content/docs/agents.mdx`。
+- 能担任负责人的 agent 不再能当辅助：「添加辅助」里不再列出，命令会说明原因拒绝；之前已加上的辅助照常运行，直到移除。内置的 Planner 改名为「软件规划师」（`software-planner`），旧的要求文件和工作流里的 `planner` 会自动迁移，规划记忆仍在 `memory/agents/planner/`，记忆面板里显示为「规划」：`web/content/docs/agents.mdx`。
+- 「演示视频」规划分两轮，每轮等你批准：先批准脚本，再批准分镜和素材；新增「分镜设计」制作 HyperFrames 分镜，「素材准备」同时生成旁白并在卡片上维护素材索引，「视频组装」改名为「HyperFrames 剪辑」，在已批准的分镜上完成成片：`web/content/docs/agents.mdx`。
+
+## marketing
+
+- 本项目看板新增「Email」工作流：`email-planner` 写好通知、欢迎邮件或 newsletter，并在卡片里显示 HTML 预览；批准后 `email-builder` 把预览发到评审邮箱（`scripts/email/README.md`）。
+
+## local-ui
+
+- 卡片页人工阅读区里每个 agent 的段落（`By <name> agent`）默认收起为一行（头像 + 名称），点开查看；待你回答的问题所属的段落、卡片页打开期间内容有更新的段落、以及侧栏搜索词只出现在其中的段落会自动展开。
