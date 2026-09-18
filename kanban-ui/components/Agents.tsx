@@ -2358,11 +2358,14 @@ function RuntimePick({
 // never a row of broken images and two art-less agents still differ.
 export function Character({ name, size = 48 }: { name: string; size?: number }) {
   const [art, setArt] = useState(true);
-  useEffect(() => setArt(true), [name]);
+  const img = useRef<HTMLImageElement>(null);
+  // An image that failed before hydration fired its error with nobody listening.
+  useEffect(() => setArt(!(img.current?.complete && img.current.naturalWidth === 0)), [name]);
   if (!art) return <Lettered name={name} size={size} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      ref={img}
       src={`/agent-art/${name}.png`}
       alt=""
       width={size}

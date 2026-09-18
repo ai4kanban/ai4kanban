@@ -2288,6 +2288,7 @@ export function CardPage({
                 title={card.title}
                 cardId={card.id}
                 mockups={mockups}
+                questions={card.questions}
               />
 
               {/* Last on the page, under the body and its agent half: every line here is a
