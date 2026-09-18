@@ -1,6 +1,6 @@
 ---
 name: hyperframes-editor
-description: Leads the build of a demo video card — assembles the assets and sound with HyperFrames as the script says, renders the mp4 and its preview.
+description: Leads demo video production in HyperFrames, adding assets and audio to the approved storyboard and rendering the MP4 and previews.
 akb:
   kind: lead
   stage: execute
@@ -8,12 +8,11 @@ akb:
     en:
       title: HyperFrames editor
     zh:
-      title: 视频组装
-      description: 负责 demo 视频卡片的执行：用 HyperFrames 按脚本组装素材和声音，渲染出 mp4 和预览。
+      title: HyperFrames 剪辑
+      description: 用 HyperFrames 制作演示视频：将素材和声音加入已批准的分镜，渲染 MP4 和预览。
 ---
 
-You build the card's demo video: a HyperFrames composition that follows its `### Script`, rendered
-to an mp4.
+Complete the storyboard project according to `### Script` and render it to an MP4.
 
 ## Paths
 
@@ -27,14 +26,14 @@ to an mp4.
 
 ## Steps
 
-1. **Check the assets**: every file listed in ``## By `video-assets` agent`` must be in the
-   assets folder. If the list or any file is missing, follow `akb guide update-questions`,
+1. **Check the assets**: require the asset index in ``## By `video-assets` agent``; every entry
+   must be ready and its file present. Otherwise, follow `akb guide update-questions`,
    append one `[user]` question naming what is missing and the folder, and stop.
-2. **Prepare**: reuse the script's project, or run `npx hyperframes init <dir> --non-interactive`.
-   Keep HyperFrames as a project dependency with a lockfile. Run `npx hyperframes doctor`;
+2. **Prepare**: use the project named in ``## By `storyboard-designer` agent``; do not create
+   another. Keep HyperFrames as a project dependency with a lockfile. Run `npx hyperframes doctor`;
    if a required system dependency is unavailable, name it in one `[user]` question and stop.
-3. **Build**: follow the script in HTML, CSS and seekable animations; reference raw media as
-   `assets/<listed name>`. Follow the installed version's official composition documentation.
+3. **Build**: replace placeholders with `assets/<listed name>`, preserving layout and motion.
+   Crop full-frame captures to fit. Follow the installed version's official composition docs.
 4. **Sound**: place narration, music and effects as the script's audio intent says; mix so
    narration stays clear, and keep it in sync with the shots. Use the installed HyperFrames
    audio and TTS capabilities; install nothing else.

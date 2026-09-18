@@ -87,14 +87,14 @@ describe('a lead agent', () => {
 })
 
 describe('the hyperframes-video workflow', () => {
-  it('leads with its own agents, calls in video-assets, and reviews with video-reviewer', () => {
+  it('leads with its own agents, calls in storyboard-designer and video-assets, and reviews with video-reviewer', () => {
     const flow = workflowById('hyperframes-video')!
     assert.equal(flow.name, 'Demo video')
     assert.equal(flow.builtIn, true)
     assert.equal(flow.needsArtifact, true)
     assert.equal(flow.stages.plan.lead, 'scriptwriter')
     assert.equal(flow.stages.execute.lead, 'hyperframes-editor')
-    assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['video-assets'])
+    assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['storyboard-designer', 'video-assets'])
     assert.deepEqual(liveStage(flow, 'execute').helpers, [])
     assert.deepEqual(liveStage(flow, 'review').helpers.map((h) => h.agent), ['video-reviewer'])
     assert.deepEqual(workflowProblems('hyperframes-video'), [])
@@ -102,7 +102,7 @@ describe('the hyperframes-video workflow', () => {
 
   it("keeps its agents off coding's default helpers", () => {
     const helpers = liveStage(workflowById('coding')!, 'plan').helpers.map((h) => h.agent)
-    for (const name of ['video-assets', 'scriptwriter', 'hyperframes-editor', 'video-reviewer']) assert.ok(!helpers.includes(name), name)
+    for (const name of ['storyboard-designer', 'video-assets', 'scriptwriter', 'hyperframes-editor', 'video-reviewer']) assert.ok(!helpers.includes(name), name)
     assert.ok(helpers.includes('ui-designer'))
     assert.deepEqual(liveStage(workflowById('coding')!, 'review').helpers.map((h) => h.agent), ['code-reviewer'])
   })
@@ -120,11 +120,12 @@ describe('the hyperframes-video workflow', () => {
     const refine = printed('refine', video)
     assert.match(refine, /you, the `scriptwriter` agent[\s\S]*### Script/)
     assert.ok(refine.indexOf('`scriptwriter` agent —') > refine.indexOf('——— akb guide'))
+    assert.match(refine, /storyboard-designer/)
     assert.match(refine, /video-assets/)
     assert.doesNotMatch(refine, /ui-designer|tech-stack-advisor/)
 
     const build = printed('implement', video)
-    assert.match(build, /you, the `hyperframes-editor` agent[\s\S]*npx hyperframes init/)
+    assert.match(build, /you, the `hyperframes-editor` agent[\s\S]*storyboard-designer/)
 
     for (const action of ['refine', 'implement'] as const) {
       const text = printed(action, coding)

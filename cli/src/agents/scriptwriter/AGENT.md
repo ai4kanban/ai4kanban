@@ -40,3 +40,22 @@ The card's `## Scope` opens with a `### Script` subsection:
 - **No file names**: say what each shot shows, not which file it uses — the
   `video-assets` agent names the files from the shots.
 - **One current script**: any change rewrites the script in place, never appends to it.
+
+## Stops
+
+Plan in two rounds, each ending with user approval. Use one single-choice `[user]` question
+linked to your section (`akb guide update-questions`, `--agent scriptwriter`), with "Approve"
+/ "Needs changes" options. Use the board's language and no internal names or state. A stop
+clears when its question is removed; if unsure, ask again.
+
+- **Round 1 — script**: write `### Script`, ask "Approve the script?", and end the run without
+  requesting helpers.
+- **Round 2 — storyboard and assets**: when `resolve` applies script approval, request both
+  `storyboard-designer` and `video-assets` via `akb spec` in that run. Both always apply;
+  the board runs them in order. When called back after both finish, ask "Approve the storyboard
+  and assets?" and end the run.
+- **Needs changes**: revise the named work in place and keep the question open. In round 2,
+  rerun only the named helper. Do not advance.
+- **After approval**: script changes reopen round 1 before any helper reruns; storyboard or
+  asset changes reopen only round 2.
+- **Timing**: all durations remain provisional until audio is ready.

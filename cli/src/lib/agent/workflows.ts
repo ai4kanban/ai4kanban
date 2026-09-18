@@ -129,7 +129,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     name: 'Demo video',
     needsArtifact: true,
     stages: {
-      plan: { lead: 'scriptwriter', helpers: ['video-assets'] },
+      plan: { lead: 'scriptwriter', helpers: ['storyboard-designer', 'video-assets'] },
       execute: { lead: 'hyperframes-editor', helpers: [] },
       review: { lead: '', helpers: ['video-reviewer'] },
     },

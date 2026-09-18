@@ -142,7 +142,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'video-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'copywriting', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-assets'])
+    assert.deepEqual(plan, ['software-planner', 'copywriting', 'scriptwriter', 'storyboard-designer', 'tech-stack-advisor', 'ui-designer', 'video-assets'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {

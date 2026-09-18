@@ -13,6 +13,7 @@ import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
+import storyboardDesigner from '../../agents/storyboard-designer/AGENT.md'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
@@ -25,6 +26,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'copywriting/AGENT.md': copywriting,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'scriptwriter/AGENT.md': scriptwriter,
+  'storyboard-designer/AGENT.md': storyboardDesigner,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/ascii-drawing.md': uiDesignerAscii,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
