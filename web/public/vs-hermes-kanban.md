@@ -77,12 +77,14 @@ The essential difference: the skill's memory is an **input to planning** — it
 exists so the next proposal is smarter. Hermes's log is an **output of
 execution** — it exists so the past can be replayed.
 
-**AI4Kanban — remembers conclusions, forgets the rest.** Four small files,
-pruned on purpose, one folder per module: `readme.md` (what shipped),
+**AI4Kanban — remembers conclusions, forgets the rest.** A handful of small
+files, pruned on purpose, in two layers. The board keeps its own record —
+`readme.md` (what shipped) and `goal.md` (where the project is headed) — and
+every agent that remembers has a folder of its own: the planner's holds
 `decisions.md` (the calls that were settled, and why), `rejected.md` (what we
-turned down, and why), `redesign.md` (design mistakes not to repeat). `goal.md`
-sits on its own at the top of the memory folder. The agent reads them all before
-proposing or writing a card; the full history is git's job.
+turned down, and why) and `redesign.md` (design mistakes not to repeat). A
+module is a heading inside those files, not a folder. The agent reads them all
+before proposing or writing a card; the full history is git's job.
 
 > "Why isn't idea X on the board?" — One line in `rejected.md`: the idea and why
 > it was turned down. Dead ideas stay dead.

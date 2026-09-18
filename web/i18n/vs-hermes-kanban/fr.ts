@@ -149,7 +149,7 @@ const fr: VsHermesCopy = {
     ours: {
       heading: "AI4Kanban",
       verdict: "Conserve les décisions, pas chaque événement.",
-      body: "Quatre petits fichiers, **élagués volontairement**, un dossier par module : `readme.md` (ce qui a été livré), `decisions.md` (les décisions prises, et pourquoi), `rejected.md` (ce qu'on a écarté, et pourquoi), `redesign.md` (les erreurs de conception à ne pas refaire). `goal.md` vit seul, en haut du dossier mémoire. L'agent les lit tous avant de proposer ou d'écrire une carte ; l'historique complet, c'est l'affaire de git.",
+      body: "Quelques petits fichiers, **élagués volontairement**, sur deux niveaux. Le tableau tient son propre registre — `readme.md` (ce qui a été livré) et `goal.md` (où va le projet) — et chaque agent qui se souvient a son dossier : celui du planificateur contient `decisions.md` (les décisions prises, et pourquoi), `rejected.md` (ce qu'on a écarté, et pourquoi) et `redesign.md` (les erreurs de conception à ne pas refaire). Un module est une section dans ces fichiers, pas un dossier. L'agent les lit tous avant de proposer ou d'écrire une carte ; l'historique complet, c'est l'affaire de git.",
       q: "Pourquoi l'idée X n'est-elle pas sur le tableau ?",
       a: "Une ligne dans `rejected.md` : l'idée, et pourquoi elle a été écartée. Les idées mortes restent mortes.",
     },

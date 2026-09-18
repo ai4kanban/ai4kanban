@@ -21,7 +21,7 @@ export type VsTaskMasterRowKey =
 export type VsTaskMasterKanbanWinKey =
   | "asksFirst"
   | "diffablePlan"
-  | "moduleMemory"
+  | "remembers"
   | "nothingToWire";
 
 export type VsTaskMasterWinKey =

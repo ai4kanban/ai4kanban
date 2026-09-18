@@ -49,7 +49,7 @@ AI4Kanban starts from individual cards. Each card can hold 1 Grill Me plan and i
 | --- | --- |
 | Dependencies | Which cards must wait and which can run together |
 | Priority | What should be prepared or delivered next |
-| Modules | Which project memory and product area apply |
+| Modules | Which product areas the card changes, and which memory topics apply |
 | Release | Which outcome the card contributes to |
 | Todo | What must be true before the card is complete |
 
@@ -103,15 +103,13 @@ The result is a shared workspace where:
 
 The board gives every run a clear ownership boundary. One card defines the outcome and the parts of the project it may change. Dependencies stop work that is not ready, while independent cards can run in isolated Git worktrees.
 
-Project and module memory carry forward shipped behavior, current decisions, rejected directions, and design lessons. Later cards receive the memory relevant to their modules instead of replaying every earlier conversation.
+Project memory carries forward shipped behavior, current decisions, rejected directions, and design lessons. Later cards receive that memory instead of replaying every earlier conversation.
 
 This addresses a recurring problem in documented grilling workflows: users have reported [important interview decisions missing from an ADR](https://github.com/mattpocock/skills/issues/117) and [rationale being lost when a grilling session becomes a specification](https://github.com/mattpocock/skills/issues/689). AI4Kanban keeps the approved requirement and notable answers on the card, then promotes reusable decisions into project memory.
 
-<Shot
-  src="memory-v1"
-  wash="mintSky"
-  alt="Project and module memory sharing Grill Me decisions across later cards and agents"
-  caption="Cards keep task-specific decisions; compact project and module memory carries reusable decisions into future work."
+<MemoryShot
+  alt="AI4Kanban's memory page: the board's own record and the planner's memory in the sidebar, with settled decisions open"
+  caption="Cards keep task-specific decisions; compact project memory carries reusable decisions into future work."
 />
 
 ## What does the human actually read?

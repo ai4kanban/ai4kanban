@@ -79,7 +79,7 @@ const ja: VsLinearCopy = {
       },
       portfolio: {
         dimension: "計画できる範囲",
-        kanban: "カード、依存関係、優先度、ROI、release、モジュール単位の計画履歴。",
+        kanban: "カード、依存関係、優先度、ROI、release、計画のための記憶。",
         linear: "課題、プロジェクト、サイクル、イニシアチブ、マイルストーン、タイムライン、トリアージ、分析、顧客要望。",
       },
       setup: {

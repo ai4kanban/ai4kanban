@@ -112,7 +112,7 @@ const fr: VsTaskMasterCopy = {
       memory: {
         dimension: "Ce qui se transmet",
         kanban:
-          "Une mémoire par module : décisions, idées rejetées, corrections de conception et travail livré, relus avant la proposition suivante — un non reste donc un non.",
+          "Une mémoire de planification : décisions, idées rejetées, corrections de conception et travail livré, gardés par agent et relus avant la proposition suivante — un non reste donc un non.",
         taskMaster:
           "Des notes horodatées ajoutées aux sous-tâches, des fichiers de recherche enregistrés, et des étiquettes qui séparent plusieurs listes de tâches.",
       },
@@ -167,9 +167,9 @@ const fr: VsTaskMasterCopy = {
         title: "Le plan est un texte lisible",
         body: "Chaque carte est un fichier Markdown. Vous relisez un plan comme vous relisez du code : dans un diff, en mots, avant que quoi que ce soit ne soit écrit.",
       },
-      moduleMemory: {
+      remembers: {
         title: "Il se souvient de vos refus",
-        body: "Décisions, idées rejetées et corrections de conception sont gardées par module et relues avant la proposition suivante : le tableau cesse donc de suggérer deux fois la même chose.",
+        body: "Décisions, idées rejetées et corrections de conception vivent dans la mémoire du planificateur et sont relues avant la proposition suivante : le tableau cesse donc de suggérer deux fois la même chose.",
       },
       nothingToWire: {
         title: "Rien à monter",

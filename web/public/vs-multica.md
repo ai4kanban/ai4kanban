@@ -32,7 +32,7 @@ real and moves it forward.
 **AI4Kanban — Backlog is active**
 
 1. Propose or capture an incomplete idea.
-2. Read the code and module memory, resolve context, and expose the real
+2. Read the code and the planning memory, resolve context, and expose the real
    decisions.
 3. Produce a build-ready card ordered by value and dependency.
 

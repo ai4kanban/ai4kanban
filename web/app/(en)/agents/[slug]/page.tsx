@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ArticleLayout } from "@/components/blog/ArticleLayout";
+import { MemoryShot } from "@/components/blog/MemoryShot";
 import { Shot } from "@/components/blog/Shot";
 import { BUILDER_PATH } from "@/components/social";
 import { getCopy } from "@/i18n";
@@ -82,7 +83,7 @@ export default async function AgentPage({ params }: Params) {
       <Header c={c} locale="en" overlay />
       <ArticleLayout
         body={page.body}
-        extra={{ Shot }}
+        extra={{ Shot, MemoryShot }}
         header={
           <>
             <p className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-accent-deep">

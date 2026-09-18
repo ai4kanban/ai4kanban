@@ -65,7 +65,7 @@ stronger on getting from a rough idea to a real spec, and keeping what was decid
 | What the board is on disk | One Markdown file per card under `docs/kanban/`, plus plain-text memory files. A diff reads like a sentence. | One `.taskmaster/tasks/tasks.json` holding every task and subtask; `generate` can also write a text file per task. | AI4Kanban |
 | What you set up | One prompt. No MCP server, no API keys, no model configuration — your coding agent's own model does the thinking. | An MCP server or the CLI, plus main, research, and fallback models. The Claude Code and Codex providers need no extra key; most of the other providers do. | AI4Kanban |
 | Running the work | Your agent implements the card and archives it. There is no batch runner and no enforced test workflow. | `loop` runs Claude Code in fresh sessions back to back, with presets for tests, linting, and duplication; `autopilot` drives a red-green-commit TDD cycle on its own branch. | Taskmaster |
-| What carries over | Per-module memory: decisions, rejected ideas, design corrections, and shipped work — read before the next proposal, so a no stays a no. | Timestamped notes appended to subtasks, saved research files, and tags that keep separate task lists apart. | AI4Kanban |
+| What carries over | Planning memory: decisions, rejected ideas, design corrections, and shipped work, kept per agent — read before the next proposal, so a no stays a no. | Timestamped notes appended to subtasks, saved research files, and tags that keep separate task lists apart. | AI4Kanban |
 | Where it runs | Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode, and Grok Build today. The board is plain files, so another harness needs no new format — only wiring. | Cursor, Windsurf, VS Code, Claude Code, Codex, Kiro, Amazon Q and more, over MCP or the CLI, with more than fifteen model providers. | Taskmaster |
 | More than one person | Git is the collaboration: branch, review the plan in a pull request, merge. Nothing syncs in real time. | The open-source board is local too, but the same team sells Hamster, a hosted workspace with shared briefs and sync, from $40 per creator per month. | Taskmaster |
 | Licence | Apache-2.0. Use it, fork it, sell something built with it — no extra conditions. | MIT with the Commons Clause: free for personal, commercial, and academic use, but you may not sell Taskmaster itself or offer it as a hosted service. | Trade-off |
@@ -86,7 +86,8 @@ docs/kanban/
     skill/
       151-two-runs-at-once.md
   memory/
-    site/decisions.md
+    goal.md
+    agents/planner/decisions.md
 ```
 
 One card, one Markdown file. A pull request shows the plan changing in words you can read
@@ -121,8 +122,8 @@ when they edit the same card.
 - **The plan is readable prose** — Every card is a Markdown file. You review a plan the way
   you review code: in a diff, in words, before anything is written.
 - **It remembers what you turned down** — Decisions, rejected ideas, and design corrections
-  are kept per module and read before the next proposal, so the board stops suggesting the
-  same thing twice.
+  sit in the planner's own memory and are read before the next proposal, so the board stops
+  suggesting the same thing twice.
 - **Nothing to stand up** — No MCP server, no API keys, no model roles to configure, no
   tool schemas in every conversation. One prompt installs it into a repository.
 

@@ -81,7 +81,7 @@ const es: VsLinearCopy = {
       },
       portfolio: {
         dimension: "Amplitud de planificación",
-        kanban: "Tarjetas, dependencias, prioridades, ROI, releases e historial de planificación por módulo.",
+        kanban: "Tarjetas, dependencias, prioridades, ROI, releases y memoria de planificación.",
         linear: "Incidencias, proyectos, ciclos, iniciativas, hitos, cronologías, triage, insights y peticiones de clientes.",
       },
       setup: {

@@ -56,22 +56,21 @@ AI4Kanban preserves 2 kinds of context: state for each task and shared memory th
 
 **Task state** includes the approved requirement, open questions, dependencies, verification criteria, delivery worktree, run history, and review result. Compaction, `/clear`, or a new Claude Code session does not remove it because it lives in the repository, not the conversation.
 
-**Project memory** contains decisions that should affect more than 1 task. AI4Kanban keeps a fixed set of 4 Markdown files for the whole project and another set for each module.
+**Project memory** contains decisions that should affect more than 1 task. AI4Kanban keeps a fixed, small set of Markdown files for the whole project, filed by who reads and writes them: the board keeps its own record, and each agent that remembers keeps a folder of its own.
 
-| File | What future Claude Code tasks learn from it |
-| --- | --- |
-| `readme.md` | User-facing behavior already shipped |
-| `decisions.md` | Product decisions that still apply |
-| `rejected.md` | Ideas that should not be proposed again |
-| `redesign.md` | Design mistakes future work should avoid |
+| File | Kept by | What future Claude Code tasks learn from it |
+| --- | --- | --- |
+| `readme.md` | The board | User-facing behavior already shipped |
+| `goal.md` | The board | Where the project is headed |
+| `decisions.md` | The planner | Product decisions that still apply |
+| `rejected.md` | The planner | Ideas that should not be proposed again |
+| `redesign.md` | The planner | Design mistakes future work should avoid |
 
-Each card names the parts of the product it changes. A new run receives the card, project memory, and memory for those modules. It does not receive every card or a replay of old chats.
+Each card names the parts of the product it changes. A new run receives the card plus that project memory, where those parts are topics inside the files rather than folders of their own. It does not receive every card or a replay of old chats.
 
-<Shot
-  src="memory-v2"
-  wash="mintSky"
-  alt="AI4Kanban shares product decisions and design lessons across Claude Code tasks"
-  caption="Task history stays with the card; shared product decisions stay in small project and module memory files."
+<MemoryShot
+  alt="AI4Kanban's memory page: the board's own record and the planner's memory in the sidebar, with settled decisions open"
+  caption="Task history stays with the card. Shared decisions sit in small Markdown files, filed under whoever keeps them."
 />
 
 Claude Code's own [`CLAUDE.md` and auto memory](https://code.claude.com/docs/en/claude-directory) still apply. `CLAUDE.md` is useful for coding conventions and project instructions. Claude auto memory holds Claude's working notes. AI4Kanban memory is deliberately narrower: reviewed product decisions that later cards for the same part of the project should follow.
@@ -147,7 +146,7 @@ Yes. Give the planner, the builder, the reviewer, and each specialist their own 
 
 <FAQItem question="How much context does AI4Kanban add to a Claude Code run?">
 
-There is no fixed token number because task and memory size vary. Each run receives the current card, instructions for the current step, project memory, and memory for the modules that card changes. It does not load the whole board or replay AI4Kanban's chat history.
+There is no fixed token number because task and memory size vary. Each run receives the current card, instructions for the current step, and the project memory a planning decision could come from. It does not load the whole board or replay AI4Kanban's chat history.
 
 </FAQItem>
 

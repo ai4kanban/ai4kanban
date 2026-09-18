@@ -112,7 +112,7 @@ const en: VsTaskMasterCopy = {
       memory: {
         dimension: "What carries over",
         kanban:
-          "Per-module memory: decisions, rejected ideas, design corrections, and shipped work — read before the next proposal, so a no stays a no.",
+          "Planning memory: decisions, rejected ideas, design corrections, and shipped work, kept per agent — read before the next proposal, so a no stays a no.",
         taskMaster:
           "Timestamped notes appended to subtasks, saved research files, and tags that keep separate task lists apart.",
       },
@@ -167,9 +167,9 @@ const en: VsTaskMasterCopy = {
         title: "The plan is readable prose",
         body: "Every card is a Markdown file. You review a plan the way you review code — in a diff, in words, before anything is written.",
       },
-      moduleMemory: {
+      remembers: {
         title: "It remembers what you turned down",
-        body: "Decisions, rejected ideas, and design corrections are kept per module and read before the next proposal, so the board stops suggesting the same thing twice.",
+        body: "Decisions, rejected ideas, and design corrections sit in the planner's own memory and are read before the next proposal, so the board stops suggesting the same thing twice.",
       },
       nothingToWire: {
         title: "Nothing to stand up",

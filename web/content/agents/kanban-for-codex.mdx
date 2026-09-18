@@ -71,22 +71,21 @@ AI4Kanban memory is ordinary Markdown: compact, versioned, reviewable, and usabl
 
 ## Will project memory become one giant context file?
 
-No. AI4Kanban keeps the same 4 small documents for the whole project and for each module.
+No. AI4Kanban keeps the same small set of documents for the whole project, filed by who reads and writes them.
 
-| File | Keeps |
-| --- | --- |
-| `readme.md` | Shipped user-facing behavior |
-| `decisions.md` | Current product decisions |
-| `rejected.md` | Ideas that should not return |
-| `redesign.md` | Design corrections to apply next time |
+| File | Kept by | Keeps |
+| --- | --- | --- |
+| `readme.md` | The board | Shipped user-facing behavior |
+| `goal.md` | The board | Where the project is headed |
+| `decisions.md` | The planner | Current product decisions |
+| `rejected.md` | The planner | Ideas that should not return |
+| `redesign.md` | The planner | Design corrections to apply next time |
 
-A card loads the project memory plus the memory for its named modules. Regular pruning merges duplicates and removes stale detail, so the agent reads a planning brief rather than the project's entire history.
+A card loads that project memory; the parts of the product it names are topics inside those files, not files of their own. Regular pruning merges duplicates and removes stale detail, so the agent reads a planning brief rather than the project's entire history.
 
-<Shot
-  src="memory-v1"
-  wash="mintSky"
-  alt="Project memory gives future Codex tasks the decisions, rejected ideas, and design lessons they need"
-  caption="Project and module memory stay in small, reviewable Markdown files."
+<MemoryShot
+  alt="AI4Kanban's memory page: the board's own record and the planner's memory in the sidebar, with settled decisions open"
+  caption="Project memory stays in small, reviewable Markdown files, filed under whoever keeps them."
 />
 
 Read [why project decisions become the bottleneck](/blog/project-decisions-are-the-bottleneck).

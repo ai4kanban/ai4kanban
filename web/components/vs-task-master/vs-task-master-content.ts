@@ -24,14 +24,14 @@ export const compareRows: { key: VsTaskMasterRowKey; edge: TaskMasterEdge }[] = 
 export const kanbanWinOrder: VsTaskMasterKanbanWinKey[] = [
   "asksFirst",
   "diffablePlan",
-  "moduleMemory",
+  "remembers",
   "nothingToWire",
 ];
 
 export const kanbanWinIcons: Record<VsTaskMasterKanbanWinKey, string> = {
   asksFirst: "❓",
   diffablePlan: "📝",
-  moduleMemory: "🧠",
+  remembers: "🧠",
   nothingToWire: "📦",
 };
 
