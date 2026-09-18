@@ -411,7 +411,12 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
     // A delivery written down before #303 names no mode. It ran in the user's checkout
     // with no worktree, which is exactly what manual commit mode is — so that is what it
     // reads as, rather than a worktree nothing ever made.
-    commitMode: entry.commitMode === 'auto' ? 'auto' : entry.commitMode === 'manual' ? 'manual' : undefined,
+    commitMode:
+      entry.commitMode === 'auto' || entry.commitMode === 'manual' || entry.commitMode === 'files'
+        ? entry.commitMode
+        : undefined,
+    touched: readTouched(entry.touched),
+    planned: Array.isArray(entry.planned) ? entry.planned.filter((t): t is string => typeof t === 'string') : undefined,
     // Whether a fresh session reviews what it built (#416). A delivery written down before
     // the setting existed carries nothing, and every one of those was reviewed.
     aiReview: entry.aiReview === false ? false : true,
@@ -469,6 +474,11 @@ function readWorkflow(raw: unknown): FrozenWorkflow | undefined {
 
 const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value ? value : undefined
+
+function readTouched(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  return Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === 'string'))
+}
 
 // The pictures a run was handed (#517). Their folder can go before the record does — the
 // prune takes it with the log — so a name that no longer answers is simply not read back.
@@ -630,7 +640,12 @@ function readReview(raw: unknown): DeliveryReview | undefined {
     ),
     stopped:
       stop && typeof stop === 'object' && typeof stop.why === 'string'
-        ? { reason: asStopReason(stop.reason), why: stop.why, at: typeof stop.at === 'number' ? stop.at : 0 }
+        ? {
+            reason: asStopReason(stop.reason),
+            why: stop.why,
+            at: typeof stop.at === 'number' ? stop.at : 0,
+            ...(Array.isArray(stop.paths) ? { paths: stop.paths.filter((p): p is string => typeof p === 'string') } : {}),
+          }
         : undefined,
   }
 }
@@ -646,7 +661,9 @@ function asStopReason(value: unknown): ReviewStopReason {
     value === 'limit' ||
     value === 'uncommitted' ||
     value === 'landing' ||
-    value === 'capability'
+    value === 'capability' ||
+    value === 'outside' ||
+    value === 'output'
     ? value
     : 'session'
 }

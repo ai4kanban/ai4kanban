@@ -239,11 +239,15 @@ function attachDelivery(card: Card): void {
     id: live.deliveryId,
     startedAt: live.startedAt,
     state: deliveryState(live, openOf(card.questions).length),
-    commitMode: live.commitMode === 'auto' ? 'auto' : 'manual',
+    commitMode: live.commitMode === 'auto' || live.commitMode === 'files' ? live.commitMode : 'manual',
     aiReview: live.aiReview !== false,
     supersedes: supersededBy(card.id, live),
     sessionId: session?.sessionId,
     waiting: live.review?.stopped?.why,
+    filesStop:
+      live.review?.stopped?.reason === 'outside' || live.review?.stopped?.reason === 'output'
+        ? { reason: live.review.stopped.reason, paths: live.review.stopped.paths ?? [] }
+        : undefined,
     next: live.next,
     worktree: live.worktree,
     branch: live.branch,
@@ -331,7 +335,7 @@ function attachFinished(card: Card, active: DeliveryRecord | undefined): void {
   if (!last) return
   card.finished = {
     id: last.deliveryId,
-    commitMode: last.commitMode === 'auto' ? 'auto' : 'manual',
+    commitMode: last.commitMode === 'auto' || last.commitMode === 'files' ? last.commitMode : 'manual',
     commit: last.landing?.commit,
     targetBranch: last.targetBranch,
   }

@@ -28,8 +28,8 @@ with no new question is a pass; a question appended to the card waits for the us
      nothing flickers, jumps or goes black.
    - **Sound**: narration is clear over music, in sync with the shots, and free of clipping.
    - **Sensitive data**: nothing private shows on any frame.
-4. **Fix**: correct each defect in the delivery's worktree, re-render with the recorded
-   command, refresh the preview frames, and recheck that defect. Route unrelated work through
+4. **Fix**: correct each defect in the video project, re-render with the recorded command,
+   refresh the preview frames, and recheck that defect. Route unrelated work through
    `akb guide follow-up`.
 5. **Report**: one line per finding with its timestamp or frame, and what fixed it. Name every
    check you could not run and why; an unrun check is never a pass.

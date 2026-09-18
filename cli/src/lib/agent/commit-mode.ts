@@ -10,6 +10,9 @@
 // says nothing falls back to. Where no worktree is possible at all — no git, no commit to
 // fork from, or a detached HEAD — manual mode is the only answer and there is nothing to ask.
 //
+// A workflow whose output is files (#874) takes neither: it works in the project, commits
+// nothing, lands nothing, and any number run at once.
+//
 // The mode is decided once, as the delivery starts, and written onto it. Flipping the
 // setting changes the next delivery and never one already in flight.
 //
@@ -28,6 +31,7 @@ import {
   ROOT_GITIGNORE,
 } from '../paths'
 import { candidateOf, candidateDiff, candidateMark } from './candidate'
+import { plannedTodos } from './outputs'
 import { aiReviewEnabled, autoCommitAllowed, diffApprovalRequired } from './settings'
 import { readStore } from './store'
 import { cardWorkflow, workflowReviewers, type WorkflowHelper } from './workflows'
@@ -41,6 +45,7 @@ import {
   headCommit,
   inGitRepo,
   removeWorktree,
+  trackedChanges,
   treeMark,
   worktreeDir,
 } from './worktree'
@@ -103,6 +108,9 @@ export interface DeliveryStart {
   /** Whether a fresh session reviews what this delivery builds (#416), read from the
    *  setting or the dialog's tick here and never again. */
   aiReview: boolean
+  /** `files` only: what was already changed, and planned, when it started. */
+  touched?: Record<string, string>
+  planned?: string[]
 }
 
 /** The checkout a delivery's sessions work in. */
@@ -140,6 +148,9 @@ function noWorktreeWhy(): string | undefined {
 export function deliveryPlan(cardId?: number): DeliveryPlan {
   const manualWhy = noWorktreeWhy()
   const aiReview = aiReviewEnabled() && (cardId === undefined || workflowReviewersOfCard(cardId).length > 0)
+  if (cardId !== undefined && cardWorkflow(cardId)?.needsArtifact) {
+    return { commitMode: 'files', canChooseWorktree: false, aiReview }
+  }
   if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false, aiReview }
   return {
     commitMode: autoCommitAllowed() ? 'auto' : 'manual',
@@ -181,6 +192,19 @@ export function prepareDelivery(
   const reviewers = gated ? workflowReviewersOfCard(cardId) : []
   const aiReview = gated && reviewers.length > 0 ? wantsReview ?? aiReviewEnabled() : false
   const base = inGitRepo() ? headCommit() : null
+  if (gated && cardWorkflow(cardId)?.needsArtifact) {
+    return {
+      start: {
+        deliveryId,
+        commitMode: 'files',
+        base: base ?? undefined,
+        needsApproval: false,
+        aiReview,
+        touched: base ? trackedChanges() : undefined,
+        planned: plannedTodos(cardId),
+      },
+    }
+  }
   // No git, no commit to branch from, or a detached HEAD: there is nothing to fork, so the
   // delivery works where it is however it was asked for. A board in an unversioned folder
   // delivers today, and this must not take that away.
@@ -232,7 +256,11 @@ function manualRefusal(cardId: number | null, hasBase: boolean): RunRefusal | un
   // A delivery already on THIS card is the one being retried, so it is not in the way. A
   // build with no card has none to be the same as (#428): every other manual delivery is.
   const held = readStore().deliveries.find(
-    (d) => d.status === 'active' && d.commitMode !== 'auto' && (cardId === null || d.cardId !== cardId),
+    (d) =>
+      d.status === 'active' &&
+      d.commitMode !== 'auto' &&
+      d.commitMode !== 'files' &&
+      (cardId === null || d.cardId !== cardId),
   )
   if (held) {
     return {

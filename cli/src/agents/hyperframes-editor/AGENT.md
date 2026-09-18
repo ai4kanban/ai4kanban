@@ -16,10 +16,8 @@ Complete the storyboard project according to `### Script` and render it to an MP
 
 ## Paths
 
-- **Repo root**: the main checkout, not this worktree —
-  `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`. The worktree holds
-  tracked files only and is deleted after landing.
-- **Assets**: `<repo root>/<board-state>/assets/<card id>/`, the board's asset folder.
+- **Assets**: `<board-state>/assets/<card id>/` in the project, the board's asset folder.
+- **Project**: `project/` in the same folder, from ``## By `storyboard-designer` agent``.
 - **Video**: `<short-name>.mp4` in the same folder, `<short-name>` a lowercase slug of the
   card title.
 - **Preview**: `preview-<shot number>.png` in the same folder, one mid-shot frame per shot.
@@ -42,21 +40,19 @@ Complete the storyboard project according to `### Script` and render it to an MP
 6. **Render locally**: use a project render script that stages the composition and listed assets
    in a temporary directory, runs the project's pinned HyperFrames CLI there with `lint`,
    `check`, then `render --output <absolute video path>`, and cleans up the staging directory.
-   Keep the original assets in the board folder; never commit staging files or machine paths.
+   Keep the original assets in place; keep no staging files or machine paths in the project.
    Report a failed render without claiming delivery; preserve the sources and original assets
    so the same script can retry. Do not use hosted rendering.
 7. **Preview**: snapshot one mid-shot frame per shot to its preview file, and look at each.
-8. **Commit the source**: the project, composition and render script only — no assets or renders.
-9. **Record it**: after a successful render, append a ticked todo with the video's absolute path
+8. **Record it**: after a successful render, append a ticked todo with the video's absolute path
    and the command that re-renders it, in the card's language; then, after a blank line, one
    `<Asset src=".assets/<card id>/<short-name>.mp4" label="<card title>" />` line for the video,
    then one `<Asset src=".assets/<card id>/preview-<shot number>.png" label="<shot number>" />` line per preview frame.
 
 ## Rules
 
-- **No code bar**: tests, diff size and code review do not apply; run only the checks the
-  repository requires of the files you committed.
-- **Done**: the source is committed and the mp4 exists at the recorded path. A run that
-  renders nothing has not delivered; say what is missing and stop.
+- **No code bar**: tests, diff size and code review do not apply.
+- **Done**: the mp4 exists at the recorded path. A run that renders nothing has not
+  delivered; say what is missing and stop.
 - **Reproducible**: a clean checkout plus the asset folder re-renders the same video with the
   recorded command.

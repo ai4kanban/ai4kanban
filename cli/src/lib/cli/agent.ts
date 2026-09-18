@@ -40,6 +40,7 @@ import {
   cmdWorkflowNew,
   cmdWorkflowRename,
   cmdWorkflowStage,
+  cmdWorkflowWorktree,
   type WorkflowOptions,
 } from '../../commands/workflow'
 import { WORKFLOW_STAGES } from '../agent/workflows'
@@ -408,6 +409,19 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .description('Its id does not move, so every card and every finished delivery on it is unmoved too.')
     .action(async function (this: Command, id: string, name: string[]) {
       await onBoard(this, cli, () => cmdWorkflowRename(id, name.join(' ')))
+    })
+
+  flowWord('worktree')
+    .argument('<id>', 'the workflow, from `workflow list`')
+    .argument('<state>', 'on | off')
+    .summary('whether one this board added builds in a Git worktree')
+    .description(
+      'On: each delivery builds on a branch of its own and lands it — for code. Off, the default for a new ' +
+        'workflow: it works in the project, commits nothing, and ends on the files its card records. Only ' +
+        'deliveries started afterwards follow it.',
+    )
+    .action(async function (this: Command, id: string, state: string) {
+      await onBoard(this, cli, () => cmdWorkflowWorktree(id, state))
     })
 
   flowWord('delete')

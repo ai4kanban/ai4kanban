@@ -22,6 +22,7 @@ import {
   FiArrowRight,
   FiCheck,
   FiChevronDown,
+  FiChevronRight,
   FiMoreHorizontal,
   FiPlus,
   FiSearch,
@@ -35,6 +36,7 @@ import {
   duplicateWorkflowAction,
   renameWorkflowAction,
   setWorkflowStageAction,
+  setWorkflowWorktreeAction,
   workflowsAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
@@ -42,7 +44,7 @@ import { useAgentName } from "@/lib/agent-name";
 import { WORKFLOW_STAGES } from "@/lib/types";
 import type { WorkflowCandidate, WorkflowStage, WorkflowStageView, WorkflowView } from "@/lib/types";
 import { Character } from "./Agents";
-import { CAPTION, CONTROL, DANGER_BTN, FLAT_CONTROL, Loading, Note, QUIET_BTN } from "./settings";
+import { CAPTION, CONTROL, DANGER_BTN, FLAT_CONTROL, Loading, Note, Panel, QUIET_BTN, Row, Switch } from "./settings";
 
 /** What one workflow is called here. A built-in's name is the command's own English, so
  *  every language says it in its own words — the same rule a role's name follows; one this
@@ -368,6 +370,7 @@ export function WorkflowsPanel({
                         }`}
                       >
                         {c.stages[name]}
+                        <FiPlus aria-hidden className="shrink-0 text-[12px]" />
                         {blocked.has(name) && (
                           <span
                             role="img"
@@ -511,9 +514,63 @@ export function WorkflowsPanel({
                     </section>
                   </div>
                 )}
+                <Advanced key={flow.id} flow={flow} onSaved={load} />
               </>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Folded by default (#874): the one switch most workflows never need. On is a branch and a
+ *  worktree per delivery, for code; off works in the project and delivers files. A built-in's
+ *  is fixed, so it is shown rather than offered. */
+function Advanced({ flow, onSaved }: { flow: WorkflowView; onSaved: () => Promise<void> }) {
+  const c = useCopy().configuration.workflows;
+  const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const on = !flow.needsArtifact;
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+        className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+      >
+        {c.advanced}
+        {open ? (
+          <FiChevronDown aria-hidden className="text-[13px]" />
+        ) : (
+          <FiChevronRight aria-hidden className="text-[13px]" />
+        )}
+      </button>
+      {open && (
+        <div className="mt-4">
+          <Panel>
+            <Row label={c.worktree} hint={c.worktreeHint}>
+              {flow.builtIn ? (
+                <span className="text-[12px] text-nb-ink-soft">{on ? c.worktreeOn : c.worktreeOff}</span>
+              ) : (
+                <Switch
+                  on={on}
+                  label={c.worktree}
+                  onFlip={async (next) => {
+                    const res = await setWorkflowWorktreeAction(flow.id, next);
+                    setFailed(!res.ok);
+                    if (res.ok) await onSaved();
+                  }}
+                />
+              )}
+            </Row>
+          </Panel>
+          {failed && (
+            <p role="alert" className="mt-2 text-[12px] text-nb-peach-ink">
+              {c.worktreeSaveFailed}
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -150,10 +150,10 @@ describe('the <board-state> path constant', () => {
   it('spells the asset folder in the video agents’ prompts', async () => {
     const id = await videoCard()
     const assets = buildAsk({ action: 'spec', id, specAgent: 'video-assets' })
-    assert.match(assets, /<repo root>\/\.akb\/boards\/docs\/kanban\/assets\/<card id>\//)
+    assert.match(assets, /`\.akb\/boards\/docs\/kanban\/assets\/<card id>\/`/)
     assert.doesNotMatch(assets, /<board-state>/)
     const editor = buildPrompt({ action: 'implement', id })
-    assert.match(editor, /<repo root>\/\.akb\/boards\/docs\/kanban\/assets\/<card id>\//)
+    assert.match(editor, /`\.akb\/boards\/docs\/kanban\/assets\/<card id>\/`/)
     assert.doesNotMatch(editor, /<board-state>/)
   })
 

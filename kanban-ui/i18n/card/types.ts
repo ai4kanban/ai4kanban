@@ -31,6 +31,10 @@ export type CardCopy = {
   hold: (handle: string, until: string) => string;
   /** The delivery started again from the current card rather than the approved copy. */
   supersedes: string;
+  /** A delivery that makes files stopped on what it made (#874). */
+  filesOutside: (paths: string) => string;
+  filesMissing: (paths: string) => string;
+  filesNone: string;
   /** The heading over a delivery note that is waiting on the reader. */
   waitingOnYou: string;
   /** An approval taken elsewhere whose machine stopped before it finished (#318). Nothing

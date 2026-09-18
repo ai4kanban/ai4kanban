@@ -469,6 +469,10 @@ export type ReviewStopReason =
    *  not change that. The delivery stops unfinished with the card still held — there is a
    *  person's call behind it, never a card with no way out. */
   | 'capability'
+  /** A `files` delivery changed tracked files outside the board (#874). */
+  | 'outside'
+  /** A `files` delivery recorded no output file, or one it recorded is not there (#874). */
+  | 'output'
 
 /** Review across a delivery. */
 export interface DeliveryReview {
@@ -478,6 +482,8 @@ export interface DeliveryReview {
     /** One plain sentence: what stopped it, in the words the card's question uses. */
     why: string
     at: number
+    /** `outside`: the files changed; `output`: the recorded files that are missing. */
+    paths?: string[]
   }
 }
 
@@ -660,9 +666,16 @@ export interface DeliveryRecord {
   next?: 'review'
   /** How this delivery commits, decided when it started and never afterwards (#303).
    *  `auto` builds on its own branch in its own worktree; `manual` works in the user's
-   *  checkout and waits for them to commit. Flipping the setting changes the next
-   *  delivery, never one already in flight. */
+   *  checkout and waits for them to commit; `files` (#874) works in the project, commits
+   *  nothing and ends on the files it records on the card. Flipping the setting changes the
+   *  next delivery, never one already in flight. */
   commitMode?: DeliveryCommitMode
+  /** `files` only: the tracked files outside the board that were already changed when it
+   *  started, by path, with a fingerprint of each. A change beyond these stops it (#874). */
+  touched?: Record<string, string>
+  /** `files` only: the todos the card had not ticked when it started. Ticking one of these
+   *  is progress, not a record of an output file. */
+  planned?: string[]
   /** Whether a fresh session reviews what this delivery built (#416), frozen the same way.
    *  `false` and the implementation is the last agent to read the code. Absent on a
    *  delivery recorded before the setting existed, which reads as review on. */
@@ -725,7 +738,7 @@ export interface FrozenWorkflow {
 }
 
 /** How a delivery commits its work (#303). */
-export type DeliveryCommitMode = 'auto' | 'manual'
+export type DeliveryCommitMode = 'auto' | 'manual' | 'files'
 
 /** Where a resumed delivery picks back up (#639) — the step it stopped at, never one it
  *  has already done. */

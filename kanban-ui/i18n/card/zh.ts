@@ -20,6 +20,9 @@ const zh: CardCopy = {
   hold: (handle, until) => `@${handle} 正在占用这张卡片，到 ${until} 为止。现在保存会被拒绝。`,
   supersedes: "此前批准的成果已经与这张卡片不符，因此本次运行从当前版本重新开始。",
   waitingOnYou: "等你决定",
+  filesOutside: (paths) => `运行期间看板以外的文件被改动：${paths}。未自动还原，处理后请重新评审。`,
+  filesMissing: (paths) => `以下成品文件不存在：${paths}。补齐后请重新评审。`,
+  filesNone: "任务中没有记录成品文件。补上后请重新评审。",
   interrupted: {
     line: "执行这次构建的机器在完成前停止了。没有人会自动接手。",
     resume: "在这里继续",

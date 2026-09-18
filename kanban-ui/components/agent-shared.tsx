@@ -1044,6 +1044,8 @@ export function ActionDialog({
     // the plan a reader is handed says `manual` only because a browser has no checkout to
     // read one from.
     const recorded = !runsHere;
+    // A workflow that makes files (#874): no branch to pick and nothing to commit.
+    const files = plan.commitMode === "files";
     const auto = canChoose ? ownBranch : plan.commitMode === "auto";
     // Whether a second agent reviews this build is the board's own **AI review** setting
     // (#416) and nothing this dialog asks; rules older than it say nothing, and every build
@@ -1069,6 +1071,8 @@ export function ActionDialog({
         <p className={INTRO}>
           {recorded ? (
             <Rich>{c.recorded}</Rich>
+          ) : files ? (
+            reviewed ? c.files : c.filesNoReview
           ) : auto ? (
             <>
               <Rich code={BRANCH}>{autoIntro}</Rich>

@@ -44,6 +44,7 @@ import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from '
 import { readInbox } from '../signals/inbox'
 import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
+import { recordedOutputs } from './outputs'
 import { boardCommandFor } from './command'
 import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
@@ -297,6 +298,15 @@ function candidateField(delivery: DeliveryRecord | undefined, includePatch = tru
   ])
 }
 
+// What a `files` delivery made (#874): the files its card records, in place of a diff.
+function outputsField(delivery: DeliveryRecord): string[] {
+  const files = recordedOutputs(delivery)
+  return field('output', [
+    'review the output files recorded on the card against its approved requirements. Check that each file exists and meets those requirements.',
+    ...(files.length ? files.map((file) => `  ${file}`) : ['the card records no output file yet']),
+  ])
+}
+
 // Who may review this delivery (#820): its frozen reviewers, with what each one checks.
 function reviewersField(delivery: DeliveryRecord | undefined): string[] {
   const lines = frozenReviewers(delivery?.workflow).flatMap((h) => {
@@ -344,6 +354,13 @@ function rebaseReviewField(delivery: DeliveryRecord | undefined): string[] {
 // would run the worktree's copy of a command the delivery may be halfway through
 // rewriting.
 function workspaceField(delivery: DeliveryRecord | undefined): string[] {
+  // A delivery of a workflow whose output is files (#874), whatever the workflow says now.
+  if (delivery?.commitMode === 'files') {
+    return field('workspace', [
+      'Advanced > Use a Git worktree: disabled for this delivery.',
+      `work in ${REPO_ROOT}. Keep this delivery's settings even if the workflow changes during the run.`,
+    ])
+  }
   if (!delivery?.worktree) return []
   return field('workspace', [
     `write code in ${delivery.worktree} — this delivery's own worktree, on branch ${delivery.branch}.`,
@@ -490,6 +507,13 @@ function verifyField(meta: Meta): string[] {
 function committingClose(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
   const reviewed = aiReviewOn(delivery)
+  if (delivery.commitMode === 'files') {
+    return [
+      'record each output file on the card by its path — a ticked `## Todo` line naming it in backticks; a missing record or file means not delivered',
+      'do not create a branch or worktree, commit, or merge',
+      'change no tracked file outside the board. New changes there stop the delivery; never revert them automatically',
+    ]
+  }
   if (delivery.worktree) {
     return [
       `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this run ends, and ${reviewed ? 'review reads' : 'the landing takes'} that branch`,
@@ -645,11 +669,15 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'tick each box in ## Todo as you finish it — they are the record of what was built',
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
-        delivery
+        delivery?.commitMode === 'files'
           ? reviewed
-            ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
-            : `leave the card on the board — the board archives the card itself once the delivery has landed`
-          : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
+            ? 'leave the card on the board. Review comes next; the board archives it after the files pass review and the delivery checks'
+            : 'leave the card on the board. The board archives it after the output files pass the delivery checks'
+          : delivery
+            ? reviewed
+              ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
+              : `leave the card on the board — the board archives the card itself once the delivery has landed`
+            : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (openOf(card.meta.questions).length) {
         next.push(
@@ -678,7 +706,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       } else {
         facts.push(...approvedField(delivery))
         facts.push(...workspaceField(delivery))
-        facts.push(...candidateField(delivery))
+        facts.push(...(delivery?.commitMode === 'files' ? outputsField(delivery) : candidateField(delivery)))
         facts.push(...reviewField(delivery))
         if (card) {
           facts.push(...stepsField(card))
@@ -687,17 +715,20 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         }
       }
       facts.push(...reviewersField(delivery))
+      const files = delivery?.commitMode === 'files'
       close.push(`finish successfully with no new question when the work is ready — that passes review`)
       // A delivery without a card reports its blocking decision in the final message.
       close.push(
         card
-          ? `append a question to #${req.id} by \`akb guide update-questions\` only when a genuine user-owned decision blocks landing; then stop`
+          ? `append a question to #${req.id} by \`akb guide update-questions\` only when a ${files ? 'user-owned decision blocks completion' : 'genuine user-owned decision blocks landing'}; then stop`
           : `there is no card to append a question to — say a blocking decision in your last message and stop`,
       )
       if (card) {
         close.push(
           'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself and settle facts',
-          `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
+          files
+            ? 'leave the card on the board. The board archives it after the recorded files pass review and the delivery checks'
+            : `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
         )
       }
       break

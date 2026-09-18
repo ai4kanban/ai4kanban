@@ -15,6 +15,7 @@
 // keeps the files out of the way.
 
 import { spawnSync } from 'node:child_process'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -160,6 +161,20 @@ export function dirtyPaths(withUntracked: boolean, cwd = REPO_ROOT): string[] {
     // `XY path` — and `XY old -> new` for a rename, whose new name is the one that matters.
     .map((line) => line.slice(3).split(' -> ').pop()!.trim().replace(/^"|"$/g, ''))
     .filter(Boolean)
+}
+
+/** Every tracked file outside the board that differs from HEAD, with a fingerprint of what
+ *  it holds now — so a later read can tell a file changed since from one already changed. */
+export function trackedChanges(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const file of dirtyPaths(false)) {
+    try {
+      out[file] = crypto.createHash('sha1').update(fs.readFileSync(path.join(REPO_ROOT, file))).digest('hex')
+    } catch {
+      out[file] = 'gone'
+    }
+  }
+  return out
 }
 
 // ---- making one, and taking one away ----------------------------------------

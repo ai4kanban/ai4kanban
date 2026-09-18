@@ -35,8 +35,6 @@ The card's `## Scope` opens with a `### Script` subsection:
 - **Shots**: a numbered list; each shot says what is on screen, its caption or narration, and
   its duration in seconds, readable hold and transition in. The durations add up to the
   video's length; narration durations are estimates the editor corrects.
-- **Project**: where the video project lives, as a path from the repository root — an
-  existing one, or where to scaffold it.
 - **No file names**: say what each shot shows, not which file it uses — the
   `video-assets` agent names the files from the shots.
 - **One current script**: any change rewrites the script in place, never appends to it.

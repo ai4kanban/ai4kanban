@@ -24,6 +24,7 @@ import {
   createWorkflow,
   duplicateWorkflow,
   setWorkflowLead,
+  setWorkflowWorktree,
   workflowById,
   workflowProblems,
 } from '../src/lib/agent/workflows.ts'
@@ -93,6 +94,7 @@ const unreviewed = (): string => {
   const made = createWorkflow('Video')
   setWorkflowLead(made.id!, 'plan', 'software-planner')
   setWorkflowLead(made.id!, 'execute', 'builder')
+  setWorkflowWorktree(made.id!, true)
   return made.id!
 }
 

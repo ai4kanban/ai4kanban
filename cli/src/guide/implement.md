@@ -10,7 +10,7 @@ Build the approved card. Preserve settled decisions and unrelated questions.
 - A printed, interactive implementation may stay uncommitted in the target checkout only
   when the card is still clear and localized under "Choose its refine effort" in
   `akb guide add-task`. Otherwise use the tracked implementation path. Background runs
-  always keep their delivery, review, and landing path.
+  always keep their delivery and review path.
 - On an eligible interactive change, run focused checks for the affected path plus every
   repository-required check.
 

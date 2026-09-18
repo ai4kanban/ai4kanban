@@ -40,6 +40,7 @@ import {
   type DeliveryStart,
 } from './commit-mode'
 import { completeCard } from './complete'
+import { filesStop } from './outputs'
 import { insideRun } from './env'
 import { DELIVERY_FLOWS } from './flows'
 import { answeredStop, deliveryState, type DeliveryStage, type DeliveryState } from './pause'
@@ -382,6 +383,9 @@ export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string |
   // the work; this is not that.
   if (delivery.status === 'cancelled') {
     return `delivery ${id} was cancelled, so its work was given up. Start ${what} again.`
+  }
+  if (delivery.commitMode === 'files') {
+    return `delivery ${id} made files in your project, so it has no branch to carry on. Start ${what} again.`
   }
   // Manual commit mode has no checkout of its own (#303): the work is in the user's own
   // tree and their commit is what ends it, so there is no branch here to carry on.
@@ -804,6 +808,8 @@ export function joinDelivery(
       // resume and every later session follow the policy this build started with.
       aiReview: start ? start.aiReview : true,
       manualWhy: start?.manualWhy,
+      touched: start?.touched,
+      planned: start?.planned,
       // And the one read of the rules this delivery runs under (#306, #420) — the agents
       // its flows are run by, frozen the way the card is. Every run in it is
       // given these words rather than the files, a printed flow included, so editing a
@@ -965,7 +971,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   if (!run.deliveryId) return
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
   if (!before) return
-  type Settled = { end: 'finished' }
+  type Settled = { end: 'finished'; complete?: boolean }
   const questions = before.cardId === null ? 0 : openQuestions(before.cardId)
   const raisedQuestions = Math.max(0, questions - (before.initialQuestions ?? 0))
 
@@ -994,6 +1000,9 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
     !uncommitted && before.commitMode === 'manual' && before.cardId !== null && run.status === 'done' && finishing
       ? snapshotReviewed(before)
       : undefined
+  // A `files` delivery ends on what it made (#874): the files its card records, and nothing
+  // changed outside the board.
+  const files = built && before.commitMode === 'files' && finishing ? filesStop(before) : undefined
 
   const settled = withStore<Settled | null>((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)
@@ -1017,6 +1026,11 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       // read (`manualSettled` below).
       if (reviewed) {
         delivery.reviewed = reviewed
+        return null
+      }
+      if (delivery.commitMode === 'files') {
+        if (!files) return { end: 'finished', complete: delivery.cardId !== null }
+        reviewOf(delivery).stopped = { reason: files.reason, why: files.why, at: Date.now(), paths: files.paths }
         return null
       }
       // Nor is it the end in auto commit mode: the work is on the delivery's own branch and
@@ -1047,7 +1061,10 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
     delivery.next = next.start
     return null
   })
-  if (settled && 'end' in settled) endDelivery(run.deliveryId, settled.end)
+  if (settled && 'end' in settled) {
+    endDelivery(run.deliveryId, settled.end)
+    if (settled.complete) await completeCard(before.cardId as number, run.deliveryId)
+  }
   // Whatever happened, the permanent record follows the run that just closed — from
   // the caller's copy, since closing and pruning it are one write.
   syncAudit(run.deliveryId, run)

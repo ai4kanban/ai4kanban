@@ -1155,9 +1155,11 @@ function DeliveryBlock({
                 {c.noReview}
               </span>
             )}
-            <span className={CAP} title={delivery.manualWhy}>
-              {delivery.commitMode === "auto" ? c.autoCommit : c.manualCommits}
-            </span>
+            {delivery.commitMode !== "files" && (
+              <span className={CAP} title={delivery.manualWhy}>
+                {delivery.commitMode === "auto" ? c.autoCommit : c.manualCommits}
+              </span>
+            )}
           </span>
         </DeliveryFoot>
       )}
@@ -1241,7 +1243,8 @@ function FinishedBlock({
             )}
           </span>
           <span className={CAP}>
-            {finished.targetBranch ?? (finished.commitMode === "auto" ? c.autoCommit : c.manualCommits)}
+            {finished.targetBranch ??
+              (finished.commitMode === "files" ? "" : finished.commitMode === "auto" ? c.autoCommit : c.manualCommits)}
           </span>
         </DeliveryFoot>
       )}
@@ -1805,7 +1808,14 @@ export function CardPage({
 
               {deliveryLine && delivery && (
                 <DeliveryNote tone={PILL_TONE[delivery.state.stage]} paused={delivery.state.paused}>
-                  {!justBuilding && marked(delivery.state.line)}
+                  {!justBuilding &&
+                    (delivery.filesStop
+                      ? delivery.filesStop.reason === "outside"
+                        ? c.filesOutside(delivery.filesStop.paths.join(", "))
+                        : delivery.filesStop.paths.length
+                          ? c.filesMissing(delivery.filesStop.paths.join(", "))
+                          : c.filesNone
+                      : marked(delivery.state.line))}
                   {delivery.supersedes && <> {c.supersedes}</>}
                   {delivery.lost && (
                     <span className="ml-1" style={{ color: "var(--color-nb-accent-deep)" }}>

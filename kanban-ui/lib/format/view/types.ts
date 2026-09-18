@@ -129,8 +129,9 @@ export interface CardDelivery {
    *  records — never stored, so it can't go stale. */
   state: CardDeliveryState
   /** How it commits (#303): `auto` builds on a branch of its own and the board lands it,
-   *  `manual` works in the user's checkout and stops after review for their own commit. */
-  commitMode: 'auto' | 'manual'
+   *  `manual` works in the user's checkout and stops after review for their own commit,
+   *  `files` makes files in the project and commits nothing (#874). */
+  commitMode: 'auto' | 'manual' | 'files'
   /** Whether a fresh session reviews what it built (#416), frozen the same way. False and
    *  the block's foot says so — the default needs no line. */
   aiReview: boolean
@@ -145,6 +146,10 @@ export interface CardDelivery {
    *  (#302). It has put an open question on this card, so the card page says so and lets
    *  Resolve through the hold — answering is the way on. */
   waiting?: string
+  /** A `files` delivery stopped on what it made (#874): tracked files it changed outside the
+   *  board, or recorded output files that are missing (none recorded when empty). The card
+   *  page words it in the reader's language. */
+  filesStop?: { reason: 'outside' | 'output'; paths: string[] }
   /** The run the delivery is due to start next and has not (#302). It is normally
    *  gone in the same instant the watcher takes it; one that is still here belongs to a
    *  delivery whose watcher died in between, and the card page offers to start it. */
@@ -255,7 +260,7 @@ export interface DeliveryDiff {
  *  separately by `id`. */
 export interface CardFinished {
   id: string
-  commitMode: 'auto' | 'manual'
+  commitMode: 'auto' | 'manual' | 'files'
   /** The squash commit it landed, when it landed one. */
   commit?: string
   /** The branch that commit is on. */
@@ -418,8 +423,9 @@ export interface DeliveryPlan {
   /** The branch a build with its own worktree would land on. Absent when none is possible. */
   branch?: string
   /** Which side the dialog's tick starts on: `auto` when the repository allows automatic Git
-   *  commits and a worktree is possible, `manual` otherwise. */
-  commitMode: 'auto' | 'manual'
+   *  commits and a worktree is possible, `manual` otherwise. `files` when the card's workflow
+   *  has **Use a Git worktree** off (#874): there is no side to pick. */
+  commitMode: 'auto' | 'manual' | 'files'
   /** Why this build can have no worktree — no git, no commit to fork from, or a detached
    *  HEAD. Absent whenever one is possible, including when the setting is what chose manual. */
   manualWhy?: string

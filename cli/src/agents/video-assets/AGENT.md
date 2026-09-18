@@ -13,7 +13,7 @@ akb:
 
 Read `### Script` under `## Scope`. Reuse existing files, capture product screens and
 generate narration for its shots. Save the selected files in
-`<repo root>/<board-state>/assets/<card id>/`, where `<repo root>` is the main checkout.
+`<board-state>/assets/<card id>/` in the project.
 
 ## Prepare
 

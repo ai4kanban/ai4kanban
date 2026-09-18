@@ -187,6 +187,9 @@ export type RunsCopy = {
       manualFolderNoReview: string;
       manualNoReview: string;
       manualWhyNoReview: (why: string) => string;
+      /** A card whose workflow makes files (#874): no branch, no commit, and nothing to pick. */
+      files: string;
+      filesNoReview: string;
       /** What the press does on a surface that starts no run of its own (#364): the browser
        *  records it, and one of the workspace's machines builds it when one is running. It
        *  replaces the five sentences above, which describe a checkout a reader has none of. */

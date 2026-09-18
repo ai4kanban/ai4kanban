@@ -21,6 +21,10 @@ const en: CardCopy = {
   supersedes:
     "Earlier approved work no longer matched this card, so this run started fresh from the current version.",
   waitingOnYou: "waiting on you",
+  filesOutside: (paths) =>
+    `Files outside the board changed during the run: ${paths}. Nothing was reverted. Sort them out, then review again.`,
+  filesMissing: (paths) => `These finished files are missing: ${paths}. Make them, then review again.`,
+  filesNone: "The task lists no finished files. Add them, then review again.",
   interrupted: {
     line: "The machine building this stopped before it finished. Nothing picks it up on its own.",
     resume: "Resume it here",

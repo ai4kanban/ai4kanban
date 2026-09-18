@@ -622,9 +622,12 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       // to do instead of naming one.
       const delivery = deliveryFor(req)
       const aim = deliveryAim(req, delivery)
+      // A files delivery (#874) lands nothing: it is done once its recorded files pass.
+      const files = delivery?.commitMode === 'files'
+      const blocks = files ? 'blocks completion' : 'blocks landing'
       const defer = req.id === undefined
-        ? `If a genuine user decision still blocks landing, say so in your last message and stop; there is no card to write it on.`
-        : `If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`
+        ? `If a genuine user decision still ${blocks}, say so in your last message and stop; there is no card to write it on.`
+        : `If a genuine user decision still ${blocks}, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`
       if (owesFocusedReview(delivery)) {
         return [
           `${kb}. ${aim.subject} is landing, and an agent resolved a conflict between it and the target branch — a composed result nothing has judged, on a delivery that already passed review.`,
@@ -636,9 +639,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       }
       return [
         `${kb}. Review ${aim.subject} — judge what the delivery in flight on it has built against what it was approved to build, following \`akb guide review\`.`,
-        `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, changed-file summary, small diff and the reviewers.`,
+        files
+          ? `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, the output files the card records and the reviewers.`
+          : `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, changed-file summary, small diff and the reviewers.`,
         `You did not build this. Do not read the run that wrote it.`,
-        `Pick the reviewers this diff needs and review as each of them. ${defer}`,
+        `Pick the reviewers ${files ? 'these files need' : 'this diff needs'} and review as each of them. ${defer}`,
         `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
     }

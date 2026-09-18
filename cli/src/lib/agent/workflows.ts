@@ -72,10 +72,10 @@ export interface Workflow {
   name: string
   /** Whether the command ships it. A built-in cannot be renamed or deleted. */
   builtIn: boolean
-  /** Whether the execute stage has to leave a FILE behind (#715). On a coding workflow a
-   *  delivery whose tree ends identical to its base is finished — the change was already
-   *  there. On one whose output is a file, a delivery that wrote nothing has produced nothing,
-   *  and it stops unfinished saying so. A copy of a workflow carries it. */
+  /** Whether its output is files rather than code (#715, #874) — the inverse of **Use a Git
+   *  worktree**. Such a delivery works in the project with no branch, commits nothing, and
+   *  ends on the files its card records. A copy of a workflow carries it; a board's own
+   *  written before #874 carries nothing and reads as code. */
   needsArtifact: boolean
   stages: Record<WorkflowStage, WorkflowStageSetup>
 }
@@ -602,8 +602,9 @@ const freeId = (taken: string[]): string => {
 const nameTaken = (name: string, except = ''): boolean =>
   workflows().some((w) => w.id !== except && trimmedName(w.name).toLowerCase() === trimmedName(name).toLowerCase())
 
-/** Add a workflow of this board's own, with all three stages empty. The name is the user's
- *  own words; an empty one is refused here rather than saved as a workflow with no name. */
+/** Add a workflow of this board's own, with all three stages empty and no worktree (#874).
+ *  The name is the user's own words; an empty one is refused here rather than saved as a
+ *  workflow with no name. */
 export function createWorkflow(name: string): Write & { id?: string; name?: string } {
   const wanted = trimmedName(name)
   if (!wanted) return { ok: false, error: 'a workflow needs a name' }
@@ -611,7 +612,7 @@ export function createWorkflow(name: string): Write & { id?: string; name?: stri
   const id = freeId(workflows().map((w) => w.id))
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
-    added.push({ id, name: wanted })
+    added.push({ id, name: wanted, needsArtifact: true })
     block.added = added
   })
   return res.ok ? { ok: true, id, name: wanted } : res
@@ -630,7 +631,7 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
   const copy = freeId(workflows().map((w) => w.id))
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
-    added.push({ id: copy, name, ...(flow.needsArtifact ? { needsArtifact: true } : {}) })
+    added.push({ id: copy, name, needsArtifact: flow.needsArtifact })
     block.added = added
     const stages = configBlock(block.stages)
     // The assignments as they RESOLVE, not as they are saved: a stage still inheriting its
@@ -662,6 +663,21 @@ export function renameWorkflow(id: string, name: string): Write {
     block.added = added.map((entry) => {
       const row = configBlock(entry)
       return row.id === id ? { ...row, name: wanted } : row
+    })
+  })
+}
+
+/** Turn **Use a Git worktree** on or off for one of the board's own (#874). Only deliveries
+ *  started afterwards follow it. */
+export function setWorkflowWorktree(id: string, on: boolean): Write {
+  const flow = workflowById(id)
+  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (flow.builtIn) return { ok: false, error: `\`${flow.name}\` is built in — duplicate it to make one you can change` }
+  return save((block) => {
+    const added = Array.isArray(block.added) ? [...block.added] : []
+    block.added = added.map((entry) => {
+      const row = configBlock(entry)
+      return row.id === id ? { ...row, needsArtifact: !on } : row
     })
   })
 }

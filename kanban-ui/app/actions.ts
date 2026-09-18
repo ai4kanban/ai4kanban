@@ -217,6 +217,7 @@ import {
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
+  setWorkflowWorktree,
   workflows,
   workflowsOffered,
 } from "@/lib/workflows";
@@ -1768,6 +1769,16 @@ export async function renameWorkflowAction(id: string, name: string): Promise<Wr
   }
   try {
     return await renameWorkflow(id, name);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Turn **Use a Git worktree** on or off for one this board added (#874). */
+export async function setWorkflowWorktreeAction(id: string, on: boolean): Promise<WriteResult> {
+  if (typeof id !== "string" || typeof on !== "boolean") return { ok: false, error: "a workflow is set by id" };
+  try {
+    return await setWorkflowWorktree(id, on);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

@@ -293,6 +293,7 @@ export interface BoardRules {
   createWorkflow?(name: string): WriteResult & { id?: string; name?: string };
   duplicateWorkflow?(id: string, called?: string): WriteResult & { id?: string; name?: string };
   renameWorkflow?(id: string, name: string): WriteResult;
+  setWorkflowWorktree?(id: string, on: boolean): WriteResult;
   deleteWorkflow?(id: string): WriteResult;
   cardsOnWorkflow?(id: string): number[];
   setWorkflowLead?(id: string, stage: WorkflowStage, agent: string): WriteResult;

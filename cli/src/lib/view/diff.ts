@@ -26,13 +26,14 @@ const MAX_DIFF = 120_000
 /**
  * What one delivery changed, or null when there is no tab to show.
  *
- * Null means exactly that — no delivery by that id, or one that landed having committed
- * nothing. Everything else answers, with `note` carrying the plain line when the diff
+ * Null means exactly that — no delivery by that id, one that landed having committed
+ * nothing, or one that makes files. Everything else answers, with `note` carrying the plain line when the diff
  * itself could not be read.
  */
 export function deliveryDiff(deliveryId: string): DeliveryDiff | null {
   const delivery = findDelivery(deliveryId)
-  if (!delivery) return null
+  // A `files` delivery commits nothing (#874): its output is the files the card records.
+  if (!delivery || delivery.commitMode === 'files') return null
   const landed = delivery.landing?.status === 'landed' ? delivery.landing : undefined
   if (!landed) return buildingDiff(delivery)
   if (!landed.commit || !landed.onto) return null

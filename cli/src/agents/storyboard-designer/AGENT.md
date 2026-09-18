@@ -17,15 +17,14 @@ asset placeholders. The HyperFrames editor completes this project.
 
 - **Script**: follow `### Script` and its visual direction; design layout, typography, motion
   and transitions without editing the script.
-- **Project**: use the script's path relative to the main checkout, found with
-  `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`. Reuse the project or run
+- **Project**: `<board-state>/assets/<card id>/project/` in the project. Reuse it or run
   `npx hyperframes init <dir> --non-interactive`; pin HyperFrames as a project dependency.
 - **Placeholders**: label each asset's position and size; use the script's actual captions
   and narration text. Crop full-frame captures to fit; do not require tailored captures.
 - **Timing**: use the script's durations as estimates until audio is ready.
 - **Stills**: save and inspect one mid-shot snapshot per shot at
-  `<repo root>/<board-state>/assets/<card id>/frame-<shot number>.png`.
-- **Commit**: commit only the project and composition; install nothing beyond HyperFrames.
+  `<board-state>/assets/<card id>/frame-<shot number>.png`.
+- **Install**: nothing beyond HyperFrames.
 
 ## What to answer
 

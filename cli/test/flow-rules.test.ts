@@ -270,7 +270,7 @@ describe('the prompt', () => {
     assert.doesNotMatch(qa, /Use this only|5–10|What observable result/)
     const build = findGuide('implement')!.text
     assert.match(build, /printed, interactive implementation may stay uncommitted/)
-    assert.match(build, /Background runs[\s\S]*delivery, review, and landing path/)
+    assert.match(build, /Background runs[\s\S]*delivery and review path/)
     assert.match(build, /focused checks[\s\S]*repository-required check/)
   })
 

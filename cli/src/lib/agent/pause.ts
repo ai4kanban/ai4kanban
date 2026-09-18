@@ -163,7 +163,7 @@ export function deliveryState(
       paused: true,
     }
   }
-  if (delivery.commitMode !== 'auto') {
+  if (delivery.commitMode !== 'auto' && delivery.commitMode !== 'files') {
     if (delivery.reviewed) {
       // Nothing read this code but the build and the repository's own checks when AI review
       // is off (#416), so the line says the build is done rather than that a review passed.

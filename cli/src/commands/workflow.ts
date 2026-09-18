@@ -20,6 +20,7 @@ import {
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
+  setWorkflowWorktree,
   stageCandidates,
   workflowById,
   workflowProblems,
@@ -69,7 +70,7 @@ export function cmdWorkflowList(): MoveResult {
   const titleOf = (name: string) => roster.find((a) => a.name === name)?.name ?? name
   const undeclared = (name: string) => roster.some((a) => a.name === name && !a.canLead)
   for (const flow of rows) {
-    say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}`)
+    say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}${flow.needsArtifact ? '  (no worktree)' : ''}`)
     for (const stage of WORKFLOW_STAGES) {
       const setup = liveStage(flow, stage)
       const helpers = setup.helpers.map((h) => titleOf(h.agent)).join(', ')
@@ -88,7 +89,7 @@ export function cmdWorkflowList(): MoveResult {
 export function cmdWorkflowNew(name: string): MoveResult {
   const res = createWorkflow(name)
   done(res)
-  say(`added the "${res.name}" workflow (${res.id}) — all three stages are empty`)
+  say(`added the "${res.name}" workflow (${res.id}) — all three stages are empty, and it runs without a worktree`)
   return { id: res.id, name: res.name }
 }
 
@@ -104,6 +105,18 @@ export function cmdWorkflowRename(id: string, name: string): MoveResult {
   done(renameWorkflow(flow.id, name))
   say(`renamed ${flow.id} to "${name.trim()}" — every card on it is unmoved`)
   return { id: flow.id, name: name.trim() }
+}
+
+export function cmdWorkflowWorktree(id: string, state: string): MoveResult {
+  const flow = found(id)
+  if (state !== 'on' && state !== 'off') die('say `on` or `off`', { kind: 'needs-input' })
+  done(setWorkflowWorktree(flow.id, state === 'on'))
+  say(
+    state === 'on'
+      ? `"${flow.name}" now builds on a branch of its own in a worktree, and lands the result`
+      : `"${flow.name}" now works in the project and delivers the files its card records`,
+  )
+  return { id: flow.id, worktree: state === 'on' }
 }
 
 export function cmdWorkflowDelete(id: string): MoveResult {

@@ -79,6 +79,14 @@ export type ConfigurationCopy = {
     reviewers: string;
     addReviewer: string;
     noReviewers: string;
+    /** The collapsed section under the stages, and its one switch (#874): **Use a Git
+     *  worktree**, what it is for, a built-in's fixed value, and a failed save. */
+    advanced: string;
+    worktree: string;
+    worktreeHint: string;
+    worktreeOn: string;
+    worktreeOff: string;
+    worktreeSaveFailed: string;
     dropHelper: string;
     /** What THIS assignment asks of the selected helper, on top of its own instructions. */
     extra: string;

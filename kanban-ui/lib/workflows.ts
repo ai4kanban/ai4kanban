@@ -54,6 +54,13 @@ export async function renameWorkflow(id: string, name: string): Promise<WriteRes
   return rules.renameWorkflow(id, name);
 }
 
+/** Turn **Use a Git worktree** on or off for one this board added (#874). */
+export async function setWorkflowWorktree(id: string, on: boolean): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.setWorkflowWorktree) return { ok: false, error: await tooOld() };
+  return rules.setWorkflowWorktree(id, on);
+}
+
 /** Drop one this board added, once no open card still runs on it. */
 export async function deleteWorkflow(id: string): Promise<WriteResult> {
   const rules = await boardRules();

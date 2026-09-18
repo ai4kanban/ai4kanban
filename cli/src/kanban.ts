@@ -227,6 +227,7 @@ export {
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
+  setWorkflowWorktree,
   workflowViews,
   WORKFLOW_STAGES,
 } from './lib/agent/workflows'
