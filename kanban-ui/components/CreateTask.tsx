@@ -27,9 +27,18 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { createSheet, useArchivedDiscussion, useCreateSheetRequest } from "@/lib/create-open";
+import {
+  createSheet,
+  heldByButton,
+  useArchivedDiscussion,
+  useButtonError,
+  useCloseSheetRequest,
+  useCreateSheetRequest,
+  useStarting,
+} from "@/lib/create-open";
 import { failureText, startFailure, type StartFailure } from "@/lib/start-failure";
-import { dropDraft } from "@/lib/draft";
+import { createDraftKey, dropDraft } from "@/lib/draft";
+import { dropPictures } from "@/lib/picture-box";
 import { usePhone } from "@/lib/media";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
@@ -44,6 +53,20 @@ import { sessionsPanel, useAgentSessions } from "./sessions";
 // A discussion as a key, and the one conversation of a board whose rules predate the list as
 // the empty string — no `DiscussionTarget` is that, so the two never collide.
 const askedOn = (discussion: DiscussionTarget | null): string => discussion ?? "";
+
+// The same as `starting`, readable in the same tick: the answers go down on the next render,
+// and two clicks inside one would otherwise both find nothing started and ask for two runs.
+const asking = new Set<string>();
+
+/** A press on a control, not on the space between them — the title bar's empty stretch is
+ *  what the window is dragged by. */
+const PRESSABLE = "a[href], button, select, summary, [role=button], [role=link], [role=tab], [role=menuitem], [role=option]";
+
+/** Throw away what one discussion was holding unsent — it is over. */
+function forget(discussion: DiscussionTarget | null) {
+  dropDraft(createDraftKey(discussion));
+  dropPictures(askedOn(discussion));
+}
 
 export function CreateTask({
   release = null,
@@ -60,21 +83,22 @@ export function CreateTask({
   const [open, setOpen] = useState(false);
   // The discussion the sheet is holding (#496). A press opens a fresh one; a rail row hands
   // over the one it is picking back up. Null while the board's rules are older than the list,
-  // which still holds its one conversation.
-  const [discussion, setDiscussion] = useState<DiscussionTarget | null>(null);
+  // which still holds its one conversation. Picked up from the last page's button (#888).
+  const [discussion, setDiscussion] = useState<DiscussionTarget | null>(() => heldByButton.discussion);
+  useEffect(() => {
+    heldByButton.discussion = discussion;
+  }, [discussion]);
   // A plan answer whose run was refused after the reader closed the window, at phone width
   // where there is no rail row to mark (#706).
-  const [error, setError] = useState<string | null>(null);
+  const error = useButtonError();
+  const setError = createSheet.buttonError;
   // The plan answer being asked for, keyed by the discussion it was pressed on (#706). Keyed
   // rather than single because the reader may pick another discussion up while the request is
   // out: only the one that pressed goes down, and the one picked up is live and startable.
-  const [starting, setStarting] = useState<Readonly<Record<string, PlanAnswer>>>({});
+  const starting = useStarting();
   // Why the last start on the discussion the sheet is holding never came up. It lives here
   // rather than in the sheet so an answer pressed on one discussion cannot say it on another.
   const [failure, setFailure] = useState<StartFailure | null>(null);
-  // The same, readable in the same tick: the answers go down on the next render, and two
-  // clicks inside one would otherwise both find nothing started and ask for two runs.
-  const asking = useRef(new Set<string>());
 
   // The discussion this screen is holding, readable after an await — a rail row may have
   // handed over another one while a run was starting (#610).
@@ -88,17 +112,48 @@ export function CreateTask({
   useEffect(() => {
     openHere.current = open;
   }, [open]);
+  // A page change takes this button down with the window.
+  useEffect(
+    () => () => {
+      openHere.current = false;
+    },
+    [],
+  );
 
-  // Back to a fresh Create task. A discussion has no page of its own, so the sheet closing is
-  // the whole of "the discussion is over" — and what it was holding goes with it, transcript,
-  // selection and box alike, or the next press opens on a subject that is finished.
+  // The discussion is over: back to a fresh Create task, and what it was holding unsent goes
+  // with it, or the next press opens on a subject that is finished.
   const freshen = useCallback(() => {
+    forget(held.current);
     setOpen(false);
     setDiscussion(null);
     setError(null);
     setFailure(null);
-    dropDraft("create");
-  }, []);
+  }, [setError]);
+
+  // Going anywhere else closes the sheet and keeps the discussion (#888): a press on the
+  // rail, the top row, the bell or the phone's tabs, or the window taking the reader to a card.
+  const closeAsked = useCloseSheetRequest();
+  const seenClose = useRef(closeAsked);
+  useEffect(() => {
+    if (closeAsked === seenClose.current) return;
+    seenClose.current = closeAsked;
+    setOpen(false);
+  }, [closeAsked]);
+  useEffect(() => {
+    if (!open) return;
+    const leave = (e: PointerEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent && e.key !== "Enter" && e.key !== " ") return;
+      if (e instanceof PointerEvent && e.button !== 0) return;
+      const at = e.target instanceof Element ? e.target : null;
+      if (at?.closest("[data-leaves-sheet]") && at.closest(PRESSABLE)) setOpen(false);
+    };
+    window.addEventListener("pointerdown", leave, true);
+    window.addEventListener("keydown", leave, true);
+    return () => {
+      window.removeEventListener("pointerdown", leave, true);
+      window.removeEventListener("keydown", leave, true);
+    };
+  }, [open]);
 
   // The rail and this screen are never both up. Pressing Chat asks for the board's
   // conversation or a card's — and on the board the sheet is already showing the board's, so
@@ -133,7 +188,7 @@ export function CreateTask({
     // is exactly what `null` reads as.
     setDiscussion(await startDiscussionAction());
     setOpen(true);
-  }, [phone, discussion]);
+  }, [phone, discussion, setError]);
 
   // The empty board asks for the sheet from the middle of the page (#437), and a rail row
   // picks a discussion back up the same way (#496) — the first card is offered where the
@@ -149,6 +204,7 @@ export function CreateTask({
     if (!dropped || dropped === seenDropped.current) return;
     seenDropped.current = dropped;
     if (dropped.discussion === held.current) freshen();
+    else forget(dropped.discussion);
   }, [dropped, freshen]);
 
   // What is on screen, for the rail's mark (#722): the sheet covers the page under it, so
@@ -177,7 +233,7 @@ export function CreateTask({
     } else {
       void openFresh();
     }
-  }, [asked, openFresh]);
+  }, [asked, openFresh, setError]);
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
@@ -208,15 +264,15 @@ export function CreateTask({
     async (answer: PlanAnswer, workflow?: string) => {
       const on = discussion;
       const key = askedOn(on);
-      if (asking.current.has(key)) return;
-      asking.current.add(key);
-      setStarting((was) => ({ ...was, [key]: answer }));
+      if (asking.has(key)) return;
+      asking.add(key);
+      createSheet.starting(key, answer);
       setFailure(null);
       createSheet.startCleared(on);
       const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
       const res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start, workflow);
-      asking.current.delete(key);
-      setStarting((was) => Object.fromEntries(Object.entries(was).filter(([at]) => at !== key)));
+      asking.delete(key);
+      createSheet.starting(key, null);
       // A run needs an id to be watched and tailed, so a yes with none is a start that did not
       // happen — said as one rather than leaving the window on "Starting…".
       if (res.ok && res.sessionId) {
@@ -224,6 +280,7 @@ export function CreateTask({
         // (#551) — so the screen lets go of it too (#610). Unless the reader has picked up
         // another subject in the meantime; that one is not over.
         if (held.current === on) freshen();
+        else forget(on);
         // The server started it, so it is `watch` and not `start` that takes it on — otherwise
         // the card it writes would not reach the board until something else re-read it.
         watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
@@ -238,7 +295,7 @@ export function CreateTask({
       if (on && !phone) createSheet.startFailed(on, failureText(why));
       else setError(failureText(why));
     },
-    [release, discussion, watch, freshen, phone, plan],
+    [release, discussion, watch, freshen, phone, plan, setError],
   );
 
   // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
@@ -272,6 +329,7 @@ export function CreateTask({
 
       {open && (
         <CreateSheet
+          key={askedOn(discussion)}
           projectRoot={projectRoot}
           discussion={discussion}
           onClose={() => setOpen(false)}

@@ -45,6 +45,7 @@ import {
 import type { ChatCopy } from "@/i18n/chat/types";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
+import { LEAVES_SHEET } from "@/lib/create-open";
 import type { ChatRail } from "@/lib/chat-rail";
 import { useOverRail } from "@/lib/over-rail";
 import type { PictureBox } from "@/lib/picture-box";
@@ -157,7 +158,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   const trouble = rail.error ?? read?.failed ?? blocked ?? missing;
 
   return (
-    <section aria-label={c.label} className="flex h-full flex-col py-2 pl-1 pr-3">
+    <section {...LEAVES_SHEET} aria-label={c.label} className="flex h-full flex-col py-2 pl-1 pr-3">
       <Head rail={rail} />
       <Transcript
         messages={messages}

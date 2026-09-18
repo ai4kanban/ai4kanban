@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useCopy } from "@/i18n/use-copy";
+import { LEAVES_SHEET } from "@/lib/create-open";
 import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo } from "@/lib/types";
 import { ChatButton } from "./Chat";
@@ -172,6 +173,7 @@ export function Header({
     // attribute means nothing.
     <header
       data-titlebar
+      {...LEAVES_SHEET}
       // 43px whichever width it is: 7 + a 28px control + 8 at window width, 3 + a 36px
       // control + 4 at phone width. The row keeps its height so the two rails that lay
       // themselves over the body from `top-[43px]` keep meeting it exactly, and the app's

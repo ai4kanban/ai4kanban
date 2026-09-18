@@ -57,6 +57,7 @@ import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
 import type { NotificationsCopy } from "@/i18n/notifications/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useBell } from "@/lib/card-event";
+import { LEAVES_SHEET } from "@/lib/create-open";
 import type { BellRail } from "@/lib/bell-rail";
 import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
@@ -160,7 +161,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
   const live =
     rows.length > 0 || (rail.ready && !center.unavailable && center.signedIn && center.enabled);
   return (
-    <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
+    <div {...LEAVES_SHEET} className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
       <Head
         c={c}
         silenced={center.silenced}

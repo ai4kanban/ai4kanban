@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import type { PlanAnswer } from "./format/agent/types";
 import type { DiscussionTarget } from "./types";
 
 // Asking the header's Create task for its sheet, from somewhere else on the screen (#437),
@@ -17,13 +18,26 @@ import type { DiscussionTarget } from "./types";
 // The same shape as the runs panel's and the Configuration dialog's, for the same reason.
 
 let request: { at: number; discussion: DiscussionTarget | null } | null = null;
+let closing = 0;
 let dropped: { at: number; discussion: DiscussionTarget } | null = null;
 let shown: DiscussionTarget | null = null;
 // The discussions whose last start never came up (#706), and why. This window's own and
 // nothing more: it says what the last press did, not what the discussion is, so it is not
 // worth a field on disk to persist and then have to clear.
 let failed: Readonly<Record<string, string>> = {};
+// The plan answer being asked for, per discussion, and the refusal said under the button at
+// phone width (#706). Both outlive the header, which every page change mounts afresh (#888).
+let starting: Readonly<Record<string, PlanAnswer>> = {};
+let buttonError: string | null = null;
 const subs = new Set<() => void>();
+
+/** The discussion the header's button was holding, for the one the next page mounts — at
+ *  phone width it is the only way back to it (#888). */
+export const heldByButton: { discussion: DiscussionTarget | null } = { discussion: null };
+
+/** Regions whose presses lead away from the sheet: pressing a control in one closes it, and
+ *  the press still does what it does (#888). */
+export const LEAVES_SHEET = { "data-leaves-sheet": "" } as const;
 
 function tell() {
   for (const fn of subs) fn();
@@ -42,6 +56,27 @@ export const createSheet = {
    *  told none, the press opens a fresh one. */
   open(discussion: DiscussionTarget | null = null) {
     request = { at: request ? request.at + 1 : 1, discussion };
+    tell();
+  },
+
+  /** Close the sheet — the reader is going somewhere else (#888). Only hides it: the
+   *  discussion, its draft and a reply on its way are all still there to go back to. */
+  close() {
+    closing++;
+    tell();
+  },
+
+  /** A plan answer is out for this discussion (`answer`), or back (`null`). */
+  starting(key: string, answer: PlanAnswer | null) {
+    starting = Object.fromEntries(Object.entries(starting).filter(([at]) => at !== key));
+    if (answer) starting = { ...starting, [key]: answer };
+    tell();
+  },
+
+  /** What to say under the button, or null to take it down. */
+  buttonError(why: string | null) {
+    if (buttonError === why) return;
+    buttonError = why;
     tell();
   },
 
@@ -91,6 +126,33 @@ export function useCreateSheetRequest(): { at: number; discussion: DiscussionTar
     subscribe,
     () => request,
     () => request,
+  );
+}
+
+/** How many times the sheet has been asked to close. */
+export function useCloseSheetRequest(): number {
+  return useSyncExternalStore(
+    subscribe,
+    () => closing,
+    () => 0,
+  );
+}
+
+/** The plan answers out right now, by discussion. */
+export function useStarting(): Readonly<Record<string, PlanAnswer>> {
+  return useSyncExternalStore(
+    subscribe,
+    () => starting,
+    () => starting,
+  );
+}
+
+/** The refusal said under the button. */
+export function useButtonError(): string | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => buttonError,
+    () => null,
   );
 }
 

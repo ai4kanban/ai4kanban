@@ -38,6 +38,7 @@ import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
+import { LEAVES_SHEET } from "@/lib/create-open";
 import { memoryKey, memoryAgentOf, useOpenOwners } from "@/lib/memory-panel";
 import { useMemoryOwnerName } from "./memory-owner";
 import type { MemoryName, MemoryOwner } from "@/lib/types";
@@ -69,6 +70,7 @@ export function PhoneTabs({ tab, onTab }: { tab: PhoneTab; onTab: (tab: PhoneTab
   ] as const;
   return (
     <nav
+      {...LEAVES_SHEET}
       aria-label={c.tabs.nav}
       className="flex shrink-0 items-stretch border-t-[1.5px] border-nb-ink bg-nb-paper"
     >

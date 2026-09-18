@@ -9,7 +9,7 @@ import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, F
 import { workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
-import { useDraft } from "@/lib/draft";
+import { adoptSharedCreateDraft, createDraftKey, useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
@@ -108,16 +108,16 @@ function Sheet({
   const c = useCopy().board.create.sheet;
   const close = useCopy().shared.close;
   const plan = usePlanPanel(discussion);
-  // The same draft key the dialog used, so text typed and not sent is kept the way it
-  // always was — and a draft written before this screen existed is still here.
-  const [text, setText, clearDraft] = useDraft("create");
+  // Each discussion keeps its own unsent words (#888).
+  useState(() => adoptSharedCreateDraft(discussion));
+  const [text, setText, clearDraft] = useDraft(createDraftKey(discussion));
   const [headlineStopped, setHeadlineStopped] = useState(false);
   const [mounted, setMounted] = useState(false);
   // The pictures this screen was pasted into (#517, #530), judged by the conversation's agent.
   const chatImages = rail.read
     ? { agent: rail.read.agent, seesImages: rail.read.seesImages, imagesAble: rail.read.imagesAble }
     : null;
-  const pictures = useCreatePictures(chatImages);
+  const pictures = useCreatePictures(chatImages, discussion ?? "");
   // The workflow the plan's card runs through (#715): a hand pick holds only for this
   // discussion and plan; otherwise the agent's pick (#847), else the board's default.
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
@@ -265,6 +265,14 @@ function Sheet({
     <div
       ref={plan.measure}
       className={`${body ? "absolute" : "fixed"} inset-0 z-20 flex flex-col bg-nb-paper`}
+      // A link to a page of the app leaves the sheet for it, even when that page is the one
+      // underneath (#888).
+      onClickCapture={(e) => {
+        const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
+        if (link instanceof HTMLAnchorElement && link.origin === location.origin && link.target !== "_blank") {
+          onClose();
+        }
+      }}
     >
       {/* The app's own press-down button, not quiet text. It arrives mid-discussion on a
           screen that is otherwise all conversation, and a chip a shade off paper is one

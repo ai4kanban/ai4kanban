@@ -58,7 +58,7 @@ import {
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { cardChat } from "@/lib/chat-open";
-import { createSheet, useShownDiscussion, useStartFailures } from "@/lib/create-open";
+import { createSheet, LEAVES_SHEET, useShownDiscussion, useStartFailures } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
@@ -147,7 +147,7 @@ export function Rail({
   );
 
   return (
-    <div className="flex h-full flex-col py-2 pl-3 pr-1">
+    <div {...LEAVES_SHEET} className="flex h-full flex-col py-2 pl-3 pr-1">
       <SearchBox value={query} onChange={setQuery} />
       {/* What is typed puts the matches where the conversations sit. All cards stays:
           it is the board rather than a row of the list, and taking it away would

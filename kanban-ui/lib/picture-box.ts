@@ -64,29 +64,49 @@ export interface CreatePictures extends PictureBox {
 
 const nothing: ImageAgent = { agent: "", seesImages: false, imagesAble: [] };
 
-/** The pictures pasted into the create sheet (#517, #530).
+// Each discussion's unsent pictures, kept while its sheet is closed (#888): closing only hides
+// a discussion, so what was pasted into it is still there when it is opened again.
+const kept = new Map<string, { box: string; pasted: string[] }>();
+
+/** Throw one discussion's unsent pictures away — it has left the list, or its run started. */
+export function dropPictures(discussion: string): void {
+  const was = kept.get(discussion);
+  if (!was) return;
+  kept.delete(discussion);
+  void emptyRunBoxAction(was.box);
+}
+
+/** The pictures pasted into the create sheet (#517, #530), for one discussion (#888).
  *
  *  A picture is written as it is pasted — the thumbnail IS the file — so a paste that can't
- *  be saved says so straight away. A sheet closed without sending empties the box behind it. */
+ *  be saved says so straight away. They stay with the discussion until they are sent or it
+ *  is dropped (`dropPictures`). */
 export function useCreatePictures(
   /** What the conversation's agent can do with a picture. Null while that read is still
    *  coming, and on a board with no conversation to send to. */
-  chat: ImageAgent | null = null,
+  chat: ImageAgent | null,
+  /** Which discussion's box this is. */
+  discussion: string,
 ): CreatePictures {
-  const [box, setBox] = useState(() => crypto.randomUUID());
-  const [pasted, setPasted] = useState<string[]>([]);
+  const [box, setBox] = useState(() => kept.get(discussion)?.box ?? crypto.randomUUID());
+  const [pasted, setPasted] = useState<string[]>(() => kept.get(discussion)?.pasted ?? []);
   const [note, setNote] = useState<PasteNote | null>(null);
   // The send's, not the sheet's — set the moment one is out, so the unmount below leaves its
   // files alone.
   const held = useRef(false);
 
-  // The sheet was closed without sending, so nothing it was pasted into is left behind.
+  useEffect(() => {
+    if (pasted.length) kept.set(discussion, { box, pasted });
+    else kept.delete(discussion);
+  }, [discussion, box, pasted]);
+
+  // An empty box is nobody's to keep.
   useEffect(() => {
     held.current = false;
     return () => {
-      if (!held.current) void emptyRunBoxAction(box);
+      if (!held.current && kept.get(discussion)?.box !== box) void emptyRunBoxAction(box);
     };
-  }, [box]);
+  }, [box, discussion]);
 
   const sees = chat ?? nothing;
   const offered = chat !== null;
@@ -151,11 +171,13 @@ export function useCreatePictures(
   }, []);
   const sent = useCallback(() => {
     held.current = true;
+    // Also when the sheet was closed while the send was out.
+    kept.delete(discussion);
     setPasted([]);
     setNote(null);
     // A fresh box: the last one's files have moved on.
     setBox(crypto.randomUUID());
-  }, []);
+  }, [discussion]);
 
   return {
     box,

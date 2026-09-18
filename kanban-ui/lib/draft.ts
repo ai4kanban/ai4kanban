@@ -9,6 +9,24 @@ import { useCallback, useEffect, useState } from "react";
 
 const PREFIX = "kanban-draft:";
 
+/** The create sheet's draft for one discussion (#888). A board whose rules predate the list
+ *  holds one conversation, and keeps the key it always had. */
+export const createDraftKey = (discussion: string | null): string =>
+  discussion ? `create:${discussion}` : "create";
+
+/** Hand the one draft every discussion used to share to the first one opened with none of its
+ *  own (#888). */
+export function adoptSharedCreateDraft(discussion: string | null): void {
+  if (!discussion) return;
+  try {
+    const shared = window.localStorage.getItem(PREFIX + "create");
+    const own = PREFIX + createDraftKey(discussion);
+    if (!shared || window.localStorage.getItem(own)) return;
+    window.localStorage.setItem(own, shared);
+    window.localStorage.removeItem(PREFIX + "create");
+  } catch {}
+}
+
 /** Throw a draft away from outside the box that holds it — the create sheet's, once the
  *  discussion it was typed for has left the list (#610). */
 export function dropDraft(key: string): void {
