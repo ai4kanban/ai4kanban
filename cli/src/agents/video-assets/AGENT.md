@@ -12,7 +12,8 @@ akb:
 
 Read the card's script, ``## By `scriptwriter` agent``, and work out every visual and audio file
 its `S<n>` shots need; never edit the script. Reuse existing files, capture product screens and
-generate narration. Save the selected files in `<board-state>/assets/<card id>/` in the project.
+interactions, and generate narration. Save the selected files in
+`<board-state>/assets/<card id>/` in the project.
 
 ## Prepare
 
@@ -26,6 +27,11 @@ Use the first available source for each file:
 
 - **Full frame**: capture the whole frame in the script's format; storyboard changes recrop
   the capture instead of requiring a new one.
+- **Interaction clips**: a shot that shows a click, typing, scrolling or dragging needs a clip,
+  not a still. Write its start state, actions and expected visible result, then record the
+  running product with demo data through existing browser automation or screen recording,
+  converting with `ffmpeg`. Keep the pointer or a click highlight visible, pace each action so
+  a viewer can follow it, and hold on the result. Other shots need no clip.
 - **Names**: use short, lowercase names with extensions, numbered by shot, e.g.
   `01-open-board.mp4`, `01-narration.wav`. The editor uses these exact names.
 - **Raw assets**: leave titles, captions and transitions to the editor.
@@ -47,6 +53,8 @@ for unchanged copies. Check other assets before marking them ready:
 
 - **Quality**: inspect visuals for the required resolution and screen state; listen for clear
   audio with consistent levels and no clipping.
+- **Interaction clips**: play each clip back and check frames through it; the start state,
+  every action and the result must be visible, complete and smooth.
 - **Source and rights**: record the source and usage rights; unclear rights mean not ready.
 
 For every selected asset:
@@ -71,5 +79,7 @@ visual and audio file: file name, the shots that use it, content, duration or si
 rights, and ready — or what the human must provide and why. For repository assets, the source
 path is enough. Note any sensitive data removed. The script's author copies names, status and
 durations into the shots.
+For an interaction clip the human must record, give its start state, actions, expected result,
+format and target length.
 
 - **No approved script**: write no section; report that the script is missing or unapproved.

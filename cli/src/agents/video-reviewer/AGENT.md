@@ -27,6 +27,8 @@ with no new question is a pass; a question appended to the card waits for the us
      target size.
    - **Pacing and transitions**: shots match the script's order, holds and transitions;
      nothing flickers, jumps or goes black.
+   - **Interactions**: each interaction shot shows its whole action and result; no trim or
+     transition cuts either off.
    - **Sound**: narration is clear over music, in sync with the shots, and free of clipping.
    - **Sensitive data**: nothing private shows on any frame.
 4. **Fix**: correct each defect in the video project, re-render with the recorded command,
