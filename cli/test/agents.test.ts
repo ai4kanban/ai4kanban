@@ -30,7 +30,8 @@ import {
 } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
-import { removeWorkflowHelper } from '../src/lib/agent/workflows.ts'
+import { createWorkflow, removeWorkflowHelper, setWorkflowLead } from '../src/lib/agent/workflows.ts'
+import { humanSectionFor } from '../src/lib/agent/runner.ts'
 import { move, refuses, run } from './helpers/board.ts'
 
 let root = ''
@@ -750,6 +751,61 @@ describe("who a spec agent's output is for", () => {
       assert.match(choice.cost, /[\u4e00-\u9fa5]/, choice.value)
     }
     assert.equal(agentSettingsView(findSpecAgent('ui-designer')!, 'en')[0]?.label, 'Output')
+  })
+})
+
+// A lead's `akb.output` (#868): only its file says it, and a human-facing lead is told where
+// its section goes and that it has to write one.
+describe("a lead agent's output", () => {
+  const outliner = (output: string): void =>
+    project('outliner', {
+      'AGENT.md': ['---', 'name: outliner', 'description: d', 'akb:', '  kind: lead', '  stage: plan', ...(output ? [`  output: ${output}`] : []), '---', '', 'You outline.', ''].join('\n'),
+    })
+  /** Card 12, on a workflow the outliner leads the planning of. */
+  const led = (): void => {
+    const mine = createWorkflow('Mine').id!
+    assert.equal(setWorkflowLead(mine, 'plan', 'outliner').ok, true)
+    const file = card(12)
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('questions: []', `questions: []\nworkflow: ${mine}`))
+  }
+  const refine = { action: 'clarify', id: 12, refineRound: 1 } as const
+
+  it('is read from its file, a word it does not know refused', () => {
+    outliner('human')
+    assert.equal(findSpecAgent('outliner')?.output, 'human')
+    outliner('nobody')
+    assert.match(specAgentCatalog().problems.join('\n'), /`akb\.output: nobody`/)
+  })
+
+  it('ignores a value left saved for it', () => {
+    outliner('human')
+    board({ specAgents: { outliner: { output: 'agent' } } })
+    assert.equal(specAgentOutput(findSpecAgent('outliner')!), 'human')
+  })
+
+  it('makes a run it leads write its section above the boundary, and tells it so', () => {
+    outliner('human')
+    led()
+    assert.deepEqual(humanSectionFor(refine), { agent: 'outliner', required: true })
+    assert.match(buildPrompt({ action: 'clarify', id: 12 }), /write it in ``## By `outliner` agent``, above `<!-- agent -->`/)
+  })
+
+  it('changes nothing for a lead whose output is for the agent', () => {
+    outliner('')
+    led()
+    assert.equal(humanSectionFor(refine), null)
+    assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 12 }), /Your output is set to be reviewed by me/)
+    card(13)
+    assert.equal(humanSectionFor({ action: 'clarify', id: 13, refineRound: 1 }), null)
+    assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 13 }), /Your output is set to be reviewed by me/)
+  })
+
+  it('checks where a spec or review run puts its section, and never asks it for one', () => {
+    card(12)
+    assert.deepEqual(humanSectionFor({ action: 'spec', id: 12, specAgent: 'ui-designer' }), { agent: 'ui-designer', required: false })
+    assert.equal(humanSectionFor({ action: 'review', id: 12 }), null)
+    board({ specAgents: { 'code-reviewer': { output: 'human' } } })
+    assert.deepEqual(humanSectionFor({ action: 'review', id: 12 }), { agent: 'code-reviewer', required: false })
   })
 })
 

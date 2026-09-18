@@ -140,6 +140,14 @@ export function formatContractErrors(errors: readonly ContractError[]): string {
   return ['Spec format validation failed. Fix these errors without changing the planned behavior:', ...errors.map((e) => `${e.file}:${e.line} [${e.rule}] ${e.message}`)].join('\n')
 }
 
+/** An agent whose output is the user's to review (#868): on the cards its own run owns, its
+ *  section sits above the boundary, and `required` says a run it leads must write one. */
+export interface HumanSection {
+  agent: string
+  required: boolean
+  cards: ReadonlySet<number>
+}
+
 /** Ignore unrelated cards held by another run; validate this run's target and changed files. */
 export function validateRunSpecs(
   before: SpecSnapshot,
@@ -147,10 +155,41 @@ export function validateRunSpecs(
   target: number | null,
   heldElsewhere: ReadonlySet<number> = new Set(),
   required: ReadonlySet<number> = new Set(),
+  human?: HumanSection,
 ): ContractError[] {
   return [...now].flatMap(([file, card]) => {
-    if (card.id !== target && !required.has(card.id) && (heldElsewhere.has(card.id) || before.get(file)?.text === card.text)) return []
-    return validateSpec(file, card.text)
+    const own = human?.cards.has(card.id) ? validateHumanSection(file, card.text, human) : []
+    if (card.id !== target && !required.has(card.id) && (heldElsewhere.has(card.id) || before.get(file)?.text === card.text)) return own
+    return [...validateSpec(file, card.text), ...own]
   })
+}
 
+function validateHumanSection(file: string, text: string, { agent, required }: HumanSection): ContractError[] {
+  if (file.split(path.sep).includes('recurring')) return []
+  const title = `By \`${agent}\` agent`
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---')
+  if (lines[0]?.trim() !== '---' || end < 0) return []
+  const markers: number[] = []
+  let heading = 0
+  let fence: { char: string; length: number } | null = null
+  let comment = false
+  for (let i = end + 1; i < lines.length; i++) {
+    const line = lines[i]!
+    const delimiter = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+    if (fence) {
+      if (delimiter && delimiter[1]![0] === fence.char && delimiter[1]!.length >= fence.length && !delimiter[2]!.trim()) fence = null
+      continue
+    }
+    if (comment) { if (line.includes('-->')) comment = false; continue }
+    if (delimiter) { fence = { char: delimiter[1]![0]!, length: delimiter[1]!.length }; continue }
+    if (/^\s*<!--\s*agent\s*-->\s*$/.test(line)) { markers.push(i + 1); continue }
+    if (line.trim().startsWith('<!--')) { comment = !line.includes('-->'); continue }
+    if (!heading && line.match(/^ {0,3}##\s+(.+?)\s*#*\s*$/)?.[1] === title) heading = i + 1
+  }
+  if (markers.length !== 1) return []
+  const where = { file: rel(file), rule: 'human-section' }
+  if (!heading) return required ? [{ ...where, line: markers[0]!, message: `Missing ## ${title}. Write it above <!-- agent -->; with nothing to show yet, one line saying so.` }] : []
+  if (heading > markers[0]!) return [{ ...where, line: heading, message: `Move ## ${title} above <!-- agent -->: the \`${agent}\` agent's output is for the user to review.` }]
+  return []
 }

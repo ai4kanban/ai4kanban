@@ -33,6 +33,7 @@ import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './l
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
 import { openPlan } from './resolve'
+import { humanSectionFor } from './runner'
 import { planRetry, retryLine } from './retry'
 import {
   claimChanges,
@@ -468,7 +469,9 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             return true
           }
           for (const id of [...required]) if (!onBoard(id) && !missing(id)) required.delete(id)
-          formatErrors = validateRunSpecs(sources, current, record.cardId, heldElsewhere, required)
+          const human = humanSectionFor(requestOf(record))
+          const own = new Set([record.cardId, ...(peekRun(sessionId)?.createdCardIds ?? [])].filter((id): id is number => id !== null))
+          formatErrors = validateRunSpecs(sources, current, record.cardId, heldElsewhere, required, human ? { ...human, cards: own } : undefined)
           for (const [file, card] of current) {
             if (card.id === record.cardId || (!heldElsewhere.has(card.id) && sources.get(file)?.text !== card.text)) required.add(card.id)
           }

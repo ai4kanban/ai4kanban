@@ -25,7 +25,7 @@ export interface SpecAgent {
    *  the stage its `kind` always served — `spec` fills a card's spec, so it is `plan`. */
   stage: WorkflowStage | null
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
-   *  the board's own `output` setting starts at. `agent` unless `akb.output` says so. */
+   *  the board's own `output` setting starts at, and a lead's for good. `agent` unless `akb.output` says so. */
   output: SpecOutput
   /** Everything else in its folder, by agent-relative path (#860) — named in every run and
    *  read on demand, so `AGENT.md` can point at long material instead of carrying it. A file
@@ -137,10 +137,10 @@ export function parseSpecAgent(
     return bad(`\`${name}\` declares \`akb.lead: true\` — only a plan or execute agent can lead`)
   }
 
-  // Who its output is for, to start with. The setting itself is the board's — every spec
-  // agent has it, declared or not — so a file that says nothing gets `agent`, which is where
-  // a section has always gone.
-  const declaredOutput = kind === 'lead' ? '' : str(akb.output)
+  // Who its output is for, to start with. A spec agent's is the board's setting from here on;
+  // a lead's stays what its file says (#868). Saying nothing gets `agent`, which is where a
+  // section has always gone.
+  const declaredOutput = str(akb.output)
   if (declaredOutput && !isSpecOutput(declaredOutput)) {
     return bad(`\`${name}\` declares \`akb.output: ${declaredOutput}\` — it is \`${SPEC_OUTPUTS.join('` or `')}\``)
   }

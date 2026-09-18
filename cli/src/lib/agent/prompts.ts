@@ -221,9 +221,13 @@ export function leadBlock(req: AgentRequest): string {
   const agent = name ? findSpecAgent(name) : null
   if (!agent?.canLead) return ''
   const files = agentFilesBlock(agent)
+  const human = specAgentOutput(agent) === 'human'
   return boardText(
     [
       `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
+      human
+        ? `Your output is set to be reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show yet, write one line saying so.`
+        : '',
       files ? `——— your own files ———\n\n${files}` : '',
     ]
       .filter(Boolean)

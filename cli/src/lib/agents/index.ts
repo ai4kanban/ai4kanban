@@ -189,8 +189,10 @@ export function specAgentSettings(
 
 /** Who this agent's output is for (#445): the word somebody saved, or the one its own file
  *  starts it at. Read as a run starts, like everything else it is set to, so the last change
- *  is the one that counts — and it decides nothing about the cards already written. */
+ *  is the one that counts — and it decides nothing about the cards already written. A lead has
+ *  no such row, so only its file counts (#868). */
 export const specAgentOutput = (agent: SpecAgent, entries = specAgentEntries()): SpecOutput => {
+  if (agent.kind === 'lead') return agent.output
   const saved = savedEntry(agent.name, entries)?.output
   return isSpecOutput(saved) ? saved : agent.output
 }
