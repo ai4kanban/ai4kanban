@@ -10,6 +10,8 @@ A question is a decision that project evidence cannot answer, materially affects
 experience, and has at least two coherent options. Ask it directly; state each option's outcome
 and main cost, and recommend the option you would take.
 
+- **Write for users**: describe outcomes and costs without card ids, agent names, or board jargon.
+
 Settle facts, technical details, and safe choices yourself; record lasting answers below the
 human half when necessary. Never ask whether to fix work here or create a card; follow
 `akb guide follow-up` for placement.

@@ -60,6 +60,7 @@ Every flow writes a card in this order:
 
 ## `Todo`
 
+- **Build steps only**: finish planning on the card; never defer it to a todo.
 - **Preserve completed work**: never edit, delete, or untick a checked todo; append a todo
   to reverse it.
 

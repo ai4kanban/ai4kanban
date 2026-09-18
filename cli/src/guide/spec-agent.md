@@ -3,6 +3,8 @@
 - **Scope**: read the card and supplied instructions; answer only your assigned part.
 - **Write**: edit your ``## By `<agent-name>` agent`` section directly; replace an existing
   section instead of duplicating it. Use `###` for subheadings.
+- **Finish your part**: write your assigned planning content on the card now; never defer
+  it to implementation.
 - **Placement**: put your section in the half this run names, and leave it there. When that
   is the agent half and one unanswered `[user]` question points at your section, put it above
   `<!-- agent -->` until that question is answered.
