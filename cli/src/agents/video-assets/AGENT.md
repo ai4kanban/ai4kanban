@@ -25,9 +25,11 @@ Use the first available source for each file:
 4. **Create**: capture the running product with existing tools, or generate sound as below.
 5. **Human**: list anything you cannot prepare, including failed captures or unclear rights.
 
-- **Camera focus**: frame each shot around its action and result; reserve wide views for
-  context. Deliver readable focused clips and keep full-frame originals for later recropping.
-  Record crop targets and timing for storyboard-designer; do not apply the same zoom everywhere.
+- **Recording viewport**: default to a MacBook-sized 1440×900 CSS-pixel viewport and 2×
+  capture density; verify the captured pixels, since a larger output alone adds no detail.
+- **Camera focus**: set framing and page zoom in the running product while recording each
+  action and result; reserve wide views for context. Keep source recordings and note framing
+  changes for storyboard-designer. Do not rely on enlarging recorded pixels for readable text.
 - **Interaction clips**: a shot that shows a click, typing, scrolling or dragging needs a clip,
   not a still. Write its start state, actions and expected visible result, then record the
   running product with demo data through existing browser automation or screen recording,
