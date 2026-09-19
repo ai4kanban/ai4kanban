@@ -66,15 +66,7 @@ describe('the ChatGPT subscription', () => {
   // exec` a bare word it reads as a subcommand, and the run would exit before it started.
   it('puts neither the pick nor its name on the command line', () => {
     board({ provider: 'subscription' })
-    assert.deepEqual(argv(), [
-      'codex',
-      'exec',
-      '--json',
-      '--sandbox',
-      'workspace-write',
-      '-c',
-      'sandbox_workspace_write.network_access=true',
-    ])
+    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox'])
   })
 
   it('never carries a key, not even one the board holds', () => {
@@ -149,38 +141,37 @@ describe('the reasoning effort', () => {
   })
 })
 
-// The fence a Codex run works inside, and the one thing about it the board had to choose
-// deliberately. `workspace-write` blocks the network by default, and Codex is the only
-// connector that fences it at all — so a card needing an `npm install` would pass on five
-// agents and fail on this one. The network is opened with the sandbox and never apart from
-// it: a hand-written sandbox is someone choosing for themselves, network included.
+// A background run must never stop on an approval or a sandbox fence, so the default is the
+// bypass; a command that names its own sandbox keeps it.
 describe('the sandbox', () => {
-  it('opens the network alongside the workspace the board writes in', () => {
+  it('is bypassed by default, on fresh and resumed runs alike', () => {
     board()
-    assert.deepEqual(argv().slice(-4), [
-      '--sandbox',
-      'workspace-write',
-      '-c',
-      'sandbox_workspace_write.network_access=true',
-    ])
+    for (const run of [planRun('s1', root), planResume('codex', 's1', root)]) {
+      assert.ok(run)
+      assert.ok(run.argv.includes('--dangerously-bypass-approvals-and-sandbox'), run.argv.join(' '))
+      assert.ok(!run.argv.includes('workspace-write'), run.argv.join(' '))
+    }
   })
 
-  it('is left entirely to a command that names one, network and all', () => {
+  it('is left entirely to a command that names one', () => {
     board({ command: 'codex exec --json --sandbox read-only' })
+    assert.ok(!argv().includes('--dangerously-bypass-approvals-and-sandbox'), argv().join(' '))
     assert.ok(!argv().some((tok) => tok.startsWith('sandbox_')), argv().join(' '))
   })
 
-  it('is added whole to a command that names none', () => {
+  it('is added to a command that names none', () => {
     board({ command: 'codex exec' })
-    assert.deepEqual(argv(), [
-      'codex',
-      'exec',
-      '--json',
-      '--sandbox',
-      'workspace-write',
-      '-c',
-      'sandbox_workspace_write.network_access=true',
-    ])
+    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox'])
+  })
+
+  it('reads a saved former default as the default', () => {
+    for (const command of [
+      'codex exec --json --sandbox workspace-write',
+      'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
+    ]) {
+      board({ command })
+      assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox'])
+    }
   })
 })
 
@@ -193,14 +184,19 @@ describe('a command that picks the provider by hand', () => {
 
 
 describe('checkout-local state from a delivery worktree', () => {
-  it('allows the owning board and local state on fresh and resumed runs', () => {
-    board()
+  it('allows the owning board and local state to a workspace-write run, fresh or resumed', () => {
+    board({ command: 'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=false' })
     const cwd = path.join(root, '.akb/worktrees/delivery')
     for (const run of [planRun('s1', cwd), planResume('codex', 's1', cwd)]) {
       assert.ok(run)
       const dirs = run.argv.flatMap((arg, i) => arg === '--add-dir' ? [run.argv[i + 1]] : [])
       assert.deepEqual(dirs, [path.join(root, 'docs/kanban'), path.join(root, '.akb')])
     }
+  })
+
+  it('adds nothing to the default bypass', () => {
+    board()
+    assert.ok(!planRun('s1', path.join(root, '.akb/worktrees/delivery')).argv.includes('--add-dir'))
   })
 
   it('keeps an explicitly read-only run read-only', () => {

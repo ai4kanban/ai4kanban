@@ -135,7 +135,9 @@ export function activeProviderOf({
  *  spawns. Teaching only the check would light the badge for a run that still dies on
  *  `spawn codex ENOENT`. */
 export function commandOf(block: Record<string, string>, harness: Harness): string {
-  return bundledBinary(block.command?.trim() || harness.command, harness)
+  const saved = block.command?.trim()
+  const command = saved && !harness.formerCommands?.includes(saved) ? saved : harness.command
+  return bundledBinary(command, harness)
 }
 
 // The command with its first word made absolute, or exactly what it was. Untouched when the

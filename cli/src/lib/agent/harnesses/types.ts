@@ -86,6 +86,8 @@ export interface Harness
    *  Called rather than declared, because the answer depends on the environment and on this
    *  machine's home folder at the moment it is asked. */
   bundled?(): string[]
+  /** Past defaults of `command`. A saved `command` equal to one reads as the default. */
+  formerCommands?: string[]
   /** True when this harness's CLI can pick an earlier conversation back up. A failed
    *  run offers Resume only then, and it is also the whole of what a chat needs: a
    *  conversation is a second message into the session the agent already opened, so an

@@ -626,7 +626,7 @@ open one to edit it, **Make board default**, or **Test** it. Add, rename and del
 | Tool | Spawns | Settings | Key | Cost | Model |
 | --- | --- | --- | --- | --- | --- |
 | **Claude Code** (default) | `claude` | Provider, Endpoint base URL, Model, Reasoning effort | `ANTHROPIC_API_KEY` (optional) | yes | yes |
-| **Codex** | `codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true` | Provider, Endpoint base URL, Model, Reasoning effort | `OPENAI_API_KEY` (optional) | yes | yes |
+| **Codex** | `codex exec --json --dangerously-bypass-approvals-and-sandbox` | Provider, Endpoint base URL, Model, Reasoning effort | `OPENAI_API_KEY` (optional) | yes | yes |
 | **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` (optional) | no | yes |
 | **OpenCode** | `opencode run --format json` | Model, Reasoning effort | none | yes | no |
 | **Kimi Code** | `kimi --output-format stream-json -p "<prompt>"` | Provider, Model id, Endpoint format, Endpoint base URL, Model | `KIMI_MODEL_API_KEY` (endpoint pick only) | no | yes |
@@ -658,9 +658,9 @@ board's `PATH` doesn't reach needs a board restart. Installed is not working —
 - **Claude Code** — `claude`, logged in or given a key. Runs with `CLAUDE_CODE_MAX_RETRIES=0`, so
   a rate limit ends the run and frees the card. Whether hitting your plan's limit spills into paid
   usage is a claude.ai account setting.
-- **Codex** — `codex` **0.94 or newer**, signed in (a ChatGPT subscription works). The sandbox
-  keeps a run in the working folder and refuses to start outside a git repo; widen it with your
-  own `command` (your `--sandbox` wins).
+- **Codex** — `codex` **0.94 or newer**, signed in (a ChatGPT subscription works). Runs without
+  approvals or a sandbox, so a background run never stops to ask; fence it with your own
+  `command` (your `--sandbox` wins).
 - **Cursor** — `cursor-agent`, signed in: `curl https://cursor.com/install -fsS | bash`. `--force`
   lets it use tools without asking.
 - **OpenCode** — `curl -fsSL https://opencode.ai/install | bash`, then `opencode auth login`.

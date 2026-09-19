@@ -18,20 +18,10 @@ import { namesFlag, type Harness } from './types'
 // prints its final message and nothing else, so the live tail would stay empty for the
 // whole run and no thread id would ever arrive.
 //
-// `--sandbox workspace-write` is needed because `codex exec` defaults to read-only and a
-// board run writes files. It is also the whole of what a Codex run may do: inside the
-// project folder. Someone who needs more widens it in that agent's `command`. `--full-auto`
-// is deprecated in current Codex (it warns and points here), so it is never used — but a
-// command that names it, or the bypass flag, counts as a sandbox already chosen and nothing
-// is added on top.
-//
-// The network goes with it, and only with it. `workspace-write` blocks outbound network by
-// default, and Codex is the only one of the six that fences it: Claude Code, Cursor and
-// ZCode have no fence at all, and OpenCode's and dsh's are about writes rather than
-// sockets. Left off, the same card passes on five agents and fails on this one the moment
-// it needs an `npm install`, a `pip install` or a `git fetch` — a difference nobody could
-// explain from the board. It rides on the sandbox WE chose, so a hand-written sandbox keeps
-// choosing for itself, network included.
+// Bypass by default, so a background run is never stopped by an approval or a sandbox
+// fence. A command that already names a sandbox, `--full-auto` or the bypass keeps its own
+// choice; a hand-written `workspace-write` also gets the board's folders when it runs in a
+// delivery worktree.
 //
 // `--skip-git-repo-check` only outside a git repo: Codex refuses to start in an untrusted
 // folder that isn't one, and a board works without git.
@@ -43,7 +33,7 @@ function codexExtraArgs(argv: string[], cwd = REPO_ROOT): string[] {
   }
   const sandboxFlags = ['--sandbox', '-s', '--full-auto', '--dangerously-bypass-approvals-and-sandbox']
   if (!namesFlag(argv, sandboxFlags)) {
-    extra.push('--sandbox', 'workspace-write', '-c', 'sandbox_workspace_write.network_access=true')
+    extra.push('--dangerously-bypass-approvals-and-sandbox')
   }
   const flags = [...argv, ...extra]
   const workspaceWrite = flags.some((arg, i) =>
@@ -242,7 +232,12 @@ export const CODEX: Harness = {
   name: 'codex',
   label: 'Codex',
   icon: '/agents/codex.svg',
-  command: 'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
+  command: 'codex exec --json --dangerously-bypass-approvals-and-sandbox',
+  // Earlier defaults, saved verbatim by older boards.
+  formerCommands: [
+    'codex exec --json --sandbox workspace-write',
+    'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
+  ],
 
   bundled: codexBundled,
 

@@ -202,7 +202,7 @@ describe('what the command ends up being', () => {
     process.env.CODEX_CLI_PATH = bundled
     // Quoted in the command string, because that string is re-split by everything that reads
     // it; one argument again by the time a run is planned.
-    assert.equal(commandOf({}, CODEX), `"${bundled}" exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true`)
+    assert.equal(commandOf({}, CODEX), `"${bundled}" exec --json --dangerously-bypass-approvals-and-sandbox`)
     assert.equal(planRun('s1', root).argv[0], bundled)
   })
 
