@@ -19,6 +19,8 @@ import {
   type ReactNode,
 } from "react";
 import {
+  FiAlertCircle,
+  FiArrowRight,
   FiChevronDown,
   FiChevronRight,
   FiCornerDownRight,
@@ -49,12 +51,14 @@ import {
   type SignalInbox,
 } from "@/lib/types";
 import { Button } from "./button";
-import { CHROME, HAIRLINE } from "./chrome";
+import { CHROME } from "./chrome";
 import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
 import { useOverRail } from "@/lib/over-rail";
+import { useSheetUp } from "@/lib/create-open";
+import { SidePane } from "@/lib/side-pane";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { reloadSignalsRow } from "./signals-row";
 import { SourceMark, sourceName } from "./signal-sources";
@@ -85,8 +89,6 @@ const GHOST_ACT =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-accent-deep transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:px-3";
 const GHOST_INK =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:text-nb-ink focus-visible:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:px-3";
-const CARD =
-  "flex w-full flex-col rounded-[10px] border-[1.5px] shadow-[2px_2px_0_0_var(--color-nb-ink)] transition-colors";
 const LINK =
   "cursor-pointer text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2";
 
@@ -259,6 +261,10 @@ export function SignalsPage({
   const [folded, setFolded] = useState<Set<string>>(new Set());
   const [shown, setShown] = useState<Record<string, number>>({});
   const [open, setOpen] = useState<string | null>(null);
+  const switchTab = (next: Tab) => {
+    setTab(next);
+    setOpen(null);
+  };
   const [focused, setFocused] = useState<string | null>(null);
   // Held only so a card leaves its tab the instant it is judged or restored — `p:<id>` off
   // Waiting, `h:<id>` off History — and dropped once the server's list agrees.
@@ -271,6 +277,9 @@ export function SignalsPage({
       return next;
     });
   const [failed, setFailed] = useState("");
+  // Make card pressed in the detail and refused: said there, under its button.
+  const [detailFailed, setDetailFailed] = useState("");
+  const searchBox = useRef<HTMLInputElement>(null);
   const [ignoring, setIgnoring] = useState<Signal | null>(null);
   const ignoreBack = useRef<HTMLElement | null>(null);
 
@@ -394,10 +403,11 @@ export function SignalsPage({
     setSource(EVERY);
   };
 
-  const makeCard = async (signal: Signal) => {
+  const makeCard = async (signal: Signal, fromDetail = false) => {
     const { sourceId } = signal;
     if (making.has(sourceId) || sorting) return;
     setFailed("");
+    setDetailFailed("");
     setStarting((was) => new Set(was).add(sourceId));
     const done = await makeCardAction(sourceId).catch(() => ({
       ok: false,
@@ -409,11 +419,13 @@ export function SignalsPage({
       return next;
     });
     if (!done.ok || !done.sessionId) {
-      setFailed(c.makeFailed);
+      if (fromDetail) setDetailFailed(c.makeFailed);
+      else setFailed(c.makeFailed);
       return;
     }
     setStarted((was) => ({ ...was, [sourceId]: done.sessionId! }));
     kick();
+    if (fromDetail && openNow.current === sourceId) closeDetail();
   };
 
   const askIgnore = (signal: Signal) => {
@@ -461,7 +473,6 @@ export function SignalsPage({
       return;
     }
     setFailed("");
-    setOpen(null);
     reloadSignalsRow();
     refresh();
   };
@@ -480,6 +491,94 @@ export function SignalsPage({
   };
 
   const opened = open ? all.find((signal) => signal.sourceId === open) : undefined;
+  const openNow = useRef(open);
+  openNow.current = open;
+
+  /** Close the detail and hand focus back to its item, or to the search box when a search
+   *  has hidden it. */
+  const closeDetail = useCallback(() => {
+    const back = openNow.current;
+    setOpen(null);
+    requestAnimationFrame(() => {
+      const row = back ? document.getElementById(`signal-${back}`) : null;
+      (row ?? searchBox.current)?.focus();
+    });
+  }, []);
+  const dropDetail = useCallback(() => setOpen(null), []);
+
+  useEffect(() => setDetailFailed(""), [open]);
+  // Anything that takes the reader elsewhere lets go of the item, and it does not come back.
+  const sheetUp = useSheetUp();
+  useEffect(() => {
+    if (sheetUp) setOpen(null);
+  }, [sheetUp]);
+
+  // The open item left the list — made into a card, ignored, sorted away, restored: close it
+  // and move focus to its neighbour.
+  const flat = useMemo(() => groups.flatMap((g) => g.items.map((s) => s.sourceId)), [groups]);
+  const flatBefore = useRef(flat);
+  useEffect(() => {
+    const was = flatBefore.current;
+    flatBefore.current = flat;
+    if (!open || all.some((signal) => signal.sourceId === open)) return;
+    const still = new Set(flat);
+    const at = was.indexOf(open);
+    const near =
+      at < 0
+        ? flat[0]
+        : [...was.slice(at + 1), ...was.slice(0, at).reverse()].find((id) => still.has(id));
+    setOpen(null);
+    requestAnimationFrame(() =>
+      ((near && document.getElementById(`signal-${near}`)) || searchBox.current)?.focus(),
+    );
+  }, [flat, all, open]);
+
+  // The list reflows as the rail opens and closes: keep the item in view.
+  const lastOpen = useRef<string | null>(null);
+  useEffect(() => {
+    const id = open ?? lastOpen.current;
+    lastOpen.current = open;
+    if (!id) return;
+    let next = 0;
+    const first = requestAnimationFrame(() => {
+      next = requestAnimationFrame(() =>
+        document.getElementById(`signal-${id}`)?.scrollIntoView({ block: "nearest" }),
+      );
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(next);
+    };
+  }, [open]);
+
+  const detailSource = (signal: Signal) => {
+    const key = groupOf(signal);
+    const card = cardOfGroup(key);
+    return (
+      <SourceLabel
+        group={key}
+        name={groupName(key)}
+        card={card}
+        cardRef={card === null ? undefined : inbox.cards[card]}
+      />
+    );
+  };
+  const detail = opened ? (
+      <SignalDetail
+        signal={opened}
+        history={tab === "history"}
+        source={detailSource(opened)}
+        card={opened.cardId !== null ? inbox.cards[opened.cardId] : undefined}
+        making={making.has(opened.sourceId)}
+        sorting={sorting}
+        paused={!!ignoring}
+        failed={detailFailed}
+        onClose={closeDetail}
+        onMake={() => void makeCard(opened, true)}
+        onIgnore={() => askIgnore(opened)}
+        onRestore={() => void restore(opened)}
+      />
+    ) : null;
   const unconfigured = inbox.missing.length > 0;
   const hasHistory = inbox.archived.length + inbox.dismissed.length > 0;
 
@@ -495,22 +594,22 @@ export function SignalsPage({
     >
       <div className="relative flex h-full min-h-0 flex-col">
         <RunningNotice desktop={desktop} />
+        <SidePane onClose={dropDetail} onCovered={dropDetail}>
+          {detail}
+        </SidePane>
 
-        <div
-          className="flex shrink-0 items-center gap-3 px-6 py-2.5 max-md:px-4"
-          style={{ borderBottom: `1px solid ${HAIRLINE}` }}
-        >
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 px-6 py-2.5 max-md:px-4">
           <span className="inline-flex h-8 shrink-0 items-center gap-5">
             <TabButton
               label={c.pending}
               count={waiting.length - leaving.length}
               on={tab === "pending"}
-              onClick={() => setTab("pending")}
+              onClick={() => switchTab("pending")}
             />
             <TabButton
               label={c.history}
               on={tab === "history"}
-              onClick={() => setTab("history")}
+              onClick={() => switchTab("history")}
             />
           </span>
           {tab === "history" && (
@@ -523,11 +622,10 @@ export function SignalsPage({
               {c.hits(narrowed.length, all.length)}
             </span>
           )}
-          <span className="flex-1" />
-
-          <label className="relative inline-flex h-7 min-w-0 shrink items-center">
+          <label className="relative ml-auto inline-flex h-7 min-w-0 shrink items-center">
             <FiSearch size={13} className="absolute left-2.5 text-nb-ink-soft" aria-hidden />
             <input
+              ref={searchBox}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={c.search}
@@ -572,7 +670,7 @@ export function SignalsPage({
         )}
 
         <div className="relative min-h-0 flex-1">
-          <div className="flex h-full flex-col overflow-y-auto px-6 py-4 max-md:px-4">
+          <div className="flex h-full flex-col overflow-y-auto px-3 py-4 max-md:px-1">
             {groups.length === 0 ? (
               narrowing ? (
                 <Empty title={c.noHits} searched>
@@ -588,7 +686,7 @@ export function SignalsPage({
                     <span className="inline-flex items-center gap-4">
                       {unconfigured && <EndpointLink label={c.connect} />}
                       {hasHistory && (
-                        <button type="button" onClick={() => setTab("history")} className={LINK}>
+                        <button type="button" onClick={() => switchTab("history")} className={LINK}>
                           {c.seeHistory}
                         </button>
                       )}
@@ -597,7 +695,7 @@ export function SignalsPage({
                 </Empty>
               )
             ) : (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 {groups.map((group) => (
                   <SourceSection
                     key={group.key || "none"}
@@ -620,6 +718,7 @@ export function SignalsPage({
                         <HistoryCard
                           key={signal.sourceId}
                           signal={signal}
+                          selected={open === signal.sourceId}
                           card={signal.cardId !== null ? inbox.cards[signal.cardId] : undefined}
                           onOpen={() => setOpen(signal.sourceId)}
                           onRestore={() => void restore(signal)}
@@ -628,7 +727,8 @@ export function SignalsPage({
                         <QueueCard
                           key={signal.sourceId}
                           signal={signal}
-                          focused={focused === signal.sourceId && !opened}
+                          selected={open === signal.sourceId}
+                          focused={focused === signal.sourceId}
                           making={making.has(signal.sourceId)}
                           leaving={leavingIds.has(signal.sourceId)}
                           sorting={sorting}
@@ -647,27 +747,6 @@ export function SignalsPage({
               </div>
             )}
           </div>
-
-          {opened && (
-            <SignalDetail
-              signal={opened}
-              history={tab === "history"}
-              card={opened.cardId !== null ? inbox.cards[opened.cardId] : undefined}
-              making={making.has(opened.sourceId)}
-              sorting={sorting}
-              paused={!!ignoring}
-              onClose={() => {
-                const back = opened.sourceId;
-                setOpen(null);
-                requestAnimationFrame(() =>
-                  document.getElementById(`signal-${back}`)?.focus(),
-                );
-              }}
-              onMake={() => void makeCard(opened)}
-              onIgnore={() => askIgnore(opened)}
-              onRestore={() => void restore(opened)}
-            />
-          )}
         </div>
 
         {ignoring && (
@@ -849,49 +928,28 @@ function SourceSection({
 
   return (
     <section>
-      <div className="mb-2 flex h-6 w-full items-center gap-2 text-[12px] font-[700]">
+      <div className="mb-1 flex h-6 w-full items-center gap-2 px-3 text-[12px] font-[700] text-nb-ink-soft">
         <button
           type="button"
           onClick={onFold}
           aria-expanded={!folded}
           aria-label={`${name} ${folded ? c.unfold : c.fold}`}
-          className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+          className="-ml-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
         >
           {folded ? <FiChevronRight size={13} aria-hidden /> : <FiChevronDown size={13} aria-hidden />}
         </button>
-        {card !== null && cardRef ? (
-          <Link
-            href={cardHref(card, cardRef.archived)}
-            className="inline-flex min-w-0 items-center gap-1.5 hover:underline hover:underline-offset-2"
-          >
-            <span className="shrink-0 font-mono text-[11.5px] tabular-nums text-nb-ink-soft">
-              #{card}
-            </span>
-            <span className="truncate">{cardRef.title}</span>
-          </Link>
-        ) : card !== null ? (
-          <span className="font-mono text-[11.5px] tabular-nums text-nb-ink-soft">#{card}</span>
-        ) : (
-          <span className="inline-flex min-w-0 items-center gap-1.5">
-            <SourceMark type={group.key} size={14} />
-            <span className="truncate">{name}</span>
-          </span>
-        )}
-        <span className="ml-1 h-px flex-1" style={{ background: HAIRLINE }} />
+        <SourceLabel group={group.key} name={name} card={card} cardRef={cardRef} />
       </div>
       {!folded && (
         <>
-          <ul
-            aria-label={name}
-            className="grid grid-cols-3 gap-4 max-[1200px]:grid-cols-2 max-md:grid-cols-1"
-          >
+          <ul aria-label={name} className="flex flex-col gap-1 pl-5">
             {drawn.map((signal) => children(signal))}
           </ul>
           {group.items.length > drawn.length && (
             <button
               type="button"
               onClick={onMore}
-              className="mt-2 inline-flex h-7 cursor-pointer items-center text-[12px] font-[700] text-nb-accent-deep"
+              className="ml-8 mt-1 inline-flex h-7 cursor-pointer items-center text-[12px] font-[700] text-nb-accent-deep"
             >
               {c.more}
             </button>
@@ -902,26 +960,61 @@ function SourceSection({
   );
 }
 
-/** The title an item is read by: its own, or — for a record whose words were never kept —
- *  its source id. */
-function ItemTitle({ signal, fixed }: { signal: Signal; fixed?: boolean }) {
-  return signal.contentKept ? (
-    <p
-      className={`line-clamp-2 text-[13px] font-[600] leading-[19px] ${fixed ? "h-[38px]" : ""}`}
-    >
-      {signal.title}
-    </p>
-  ) : (
-    <p className="truncate font-mono text-[12px] font-[600] leading-[19px] text-nb-ink-soft">
-      {signal.sourceId}
-    </p>
+/** Where an item came from, drawn the way its group is: the card, linked, or the source. */
+function SourceLabel({
+  group,
+  name,
+  card,
+  cardRef,
+}: {
+  group: string;
+  name: string;
+  card: number | null;
+  cardRef?: { title: string; archived: boolean };
+}) {
+  if (card !== null && cardRef) {
+    return (
+      <Link
+        href={cardHref(card, cardRef.archived)}
+        className="inline-flex min-w-0 items-center gap-1.5 font-[700] text-nb-ink hover:underline hover:underline-offset-2"
+      >
+        <span className="shrink-0 font-mono text-[11.5px] tabular-nums text-nb-ink-soft">#{card}</span>
+        <span className="truncate">{cardRef.title}</span>
+      </Link>
+    );
+  }
+  if (card !== null) {
+    return <span className="font-mono text-[11.5px] tabular-nums text-nb-ink-soft">#{card}</span>;
+  }
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5 font-[700] text-nb-ink">
+      <SourceMark type={group} size={14} />
+      <span className="truncate">{name}</span>
+    </span>
   );
 }
 
-/** One waiting item: its title, and — only while it is in focus — its two ways out. The
- *  action row is always there, so focus never changes the card's size. */
+/** The title an item is read by: its own, or — for a record whose words were never kept —
+ *  its source id. */
+function ItemTitle({ signal }: { signal: Signal }) {
+  return signal.contentKept ? (
+    <span className="block truncate text-[13px] font-[600] leading-[20px]">{signal.title}</span>
+  ) : (
+    <span className="block truncate font-mono text-[12px] font-[600] leading-[20px] text-nb-ink-soft">
+      {signal.sourceId}
+    </span>
+  );
+}
+
+const ROW = "flex w-full items-center gap-2 rounded-[8px] pr-1.5 transition-colors";
+const ROW_OPEN =
+  "flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 pl-3 text-left focus-visible:outline-none";
+
+/** One waiting item: its title and summary, and — only while it is in focus and not the
+ *  one open in the detail — its two ways out. */
 function QueueCard({
   signal,
+  selected,
   focused,
   making,
   leaving,
@@ -933,6 +1026,7 @@ function QueueCard({
   onIgnore,
 }: {
   signal: Signal;
+  selected: boolean;
   focused: boolean;
   making: boolean;
   leaving: boolean;
@@ -947,7 +1041,7 @@ function QueueCard({
   const hovered = useRef(false);
   // A tap on a touch screen selects the item first, the way a hover does; the next opens it.
   const tapped = useRef(false);
-  const act = focused && !making && !leaving;
+  const act = focused && !selected && !making && !leaving;
 
   return (
     <li
@@ -966,13 +1060,20 @@ function QueueCard({
     >
       <div
         data-focused={act || undefined}
-        className={`${CARD} h-[100px] ${
-          making && !leaving ? "a4k-triage-making bg-nb-accent-wash" : "bg-nb-paper"
-        } ${leaving ? "a4k-triage-leaving" : ""} ${focused && !leaving ? "border-nb-accent" : "border-nb-ink"}`}
+        className={`${ROW} ${
+          making && !leaving
+            ? "a4k-triage-making bg-nb-accent-wash"
+            : selected
+              ? "bg-nb-accent-soft"
+              : focused
+                ? "bg-nb-wash"
+                : ""
+        } ${leaving ? "a4k-triage-leaving" : ""}`}
       >
         <button
           type="button"
           id={`signal-${signal.sourceId}`}
+          aria-current={selected || undefined}
           onPointerDown={(e) => {
             tapped.current = e.pointerType === "touch" && !focused;
           }}
@@ -984,24 +1085,36 @@ function QueueCard({
             }
             onOpen();
           }}
-          className="flex min-h-0 flex-1 cursor-pointer flex-col px-3 pt-3 text-left focus-visible:outline-none"
+          className={ROW_OPEN}
         >
-          <ItemTitle signal={signal} fixed />
+          <span className="min-w-0 flex-1">
+            <ItemTitle signal={signal} />
+            {making ? (
+              <span className="mt-0.5 block truncate text-[12px] leading-[18px] text-nb-accent-deep">
+                {c.making}
+              </span>
+            ) : (
+              signal.summary && (
+                <span className="mt-0.5 block truncate text-[12px] leading-[18px] text-nb-ink-soft">
+                  {signal.summary}
+                </span>
+              )
+            )}
+          </span>
+          {selected && (
+            <FiArrowRight size={15} className="shrink-0 text-nb-accent-deep" aria-hidden />
+          )}
         </button>
-        <div className="flex h-8 shrink-0 items-center gap-1 px-1.5 pb-1.5">
-          {making ? (
-            <span className="px-1.5 text-[12px] font-[600] text-nb-accent-deep">{c.making}</span>
-          ) : act ? (
-            <>
-              <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
-                {c.makeCard}
-              </button>
-              <button type="button" className={GHOST_INK} onClick={onIgnore}>
-                {c.ignore}
-              </button>
-            </>
-          ) : null}
-        </div>
+        {act && (
+          <span className="flex shrink-0 items-center gap-1">
+            <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
+              {c.makeCard}
+            </button>
+            <button type="button" className={GHOST_INK} onClick={onIgnore}>
+              {c.ignore}
+            </button>
+          </span>
+        )}
       </div>
     </li>
   );
@@ -1011,11 +1124,13 @@ function QueueCard({
  *  an ignored one no card was made of, the way back. */
 function HistoryCard({
   signal,
+  selected,
   card,
   onOpen,
   onRestore,
 }: {
   signal: Signal;
+  selected: boolean;
   card?: { title: string; archived: boolean };
   onOpen: () => void;
   onRestore: () => void;
@@ -1029,64 +1144,60 @@ function HistoryCard({
   return (
     <li>
       <div
-        className={`${CARD} h-[120px] border-nb-ink bg-nb-paper focus-within:border-nb-accent`}
+        className={`${ROW} ${selected ? "bg-nb-accent-soft" : "hover:bg-nb-wash focus-within:bg-nb-wash"}`}
       >
-        <div className="flex min-h-0 flex-1 flex-col px-3 pt-3">
-          <button
-            type="button"
-            id={`signal-${signal.sourceId}`}
-            onClick={onOpen}
-            className="cursor-pointer text-left focus-visible:outline-none"
-          >
+        <button
+          type="button"
+          id={`signal-${signal.sourceId}`}
+          aria-current={selected || undefined}
+          onClick={onOpen}
+          className={ROW_OPEN}
+        >
+          <span className="min-w-0 flex-1">
             <ItemTitle signal={signal} />
-          </button>
-          {became && card ? (
-            <Link
-              href={cardHref(signal.cardId!, card.archived)}
-              className="mt-1 inline-flex min-w-0 items-center gap-1 text-[12px] font-[700] text-nb-accent-deep hover:underline focus-visible:underline focus-visible:outline-none"
-            >
-              <FiCornerDownRight size={12} className="shrink-0" aria-hidden />
-              <span className="truncate">
-                #{signal.cardId} {card.title}
+            <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[12px] leading-[18px] text-nb-ink-soft">
+              {became ? (
+                <>
+                  <FiCornerDownRight size={12} className="shrink-0" aria-hidden />
+                  <span className="truncate">
+                    #{signal.cardId}
+                    {card ? ` ${card.title}` : ""}
+                  </span>
+                </>
+              ) : (
+                <span className="truncate">{signal.dismissedReason}</span>
+              )}
+              <span className="ml-auto shrink-0 pl-2 text-[11px] tabular-nums">
+                {[became ? "" : who, at].filter(Boolean).join(" · ")}
               </span>
-            </Link>
-          ) : became ? (
-            <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-[700] text-nb-ink-soft">
-              <FiCornerDownRight size={12} className="shrink-0" aria-hidden />#{signal.cardId}
-            </p>
-          ) : (
-            signal.dismissedReason && (
-              <p className="mt-1 truncate text-[12px] leading-[17px] text-nb-ink">
-                {signal.dismissedReason}
-              </p>
-            )
-          )}
-        </div>
-        <div className="flex h-8 shrink-0 items-center gap-1 px-1.5 pb-1.5">
-          <span className="truncate pl-1.5 text-[11px] tabular-nums text-nb-ink-soft">
-            {[became ? "" : who, at].filter(Boolean).join(" · ")}
+            </span>
           </span>
-          {!became && signal.contentKept && (
-            <button type="button" className={`${GHOST_ACT} ml-auto shrink-0`} onClick={onRestore}>
-              <FiRotateCcw size={12} aria-hidden />
-              {c.restore}
-            </button>
+          {selected && (
+            <FiArrowRight size={15} className="shrink-0 text-nb-accent-deep" aria-hidden />
           )}
-        </div>
+        </button>
+        {!became && signal.contentKept && !selected && (
+          <button type="button" className={`${GHOST_ACT} shrink-0`} onClick={onRestore}>
+            <FiRotateCcw size={12} aria-hidden />
+            {c.restore}
+          </button>
+        )}
       </div>
     </li>
   );
 }
 
-/** One item in full, in a panel over the right of the page — and, while it is open, the one
- *  place its actions are. */
+/** One item in full, in the window's right rail — and, while it is open, where its actions
+ *  are. The title and the actions stay put; only what is under them scrolls. */
 function SignalDetail({
   signal,
   history,
+  source,
   card,
   making,
   sorting,
   paused,
+  failed,
   onClose,
   onMake,
   onIgnore,
@@ -1094,11 +1205,13 @@ function SignalDetail({
 }: {
   signal: Signal;
   history: boolean;
+  source: ReactNode;
   card?: { title: string; archived: boolean };
   making: boolean;
   sorting: boolean;
   /** The Ignore dialog is over it and takes Escape. */
   paused: boolean;
+  failed: string;
   onClose: () => void;
   onMake: () => void;
   onIgnore: () => void;
@@ -1107,12 +1220,16 @@ function SignalDetail({
   const copy = useCopy();
   const c = copy.rail.signals;
   const language = useLanguage();
-  useOverRail();
+  const closer = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closer.current?.focus({ preventScroll: true });
+  }, [signal.sourceId]);
 
   useEffect(() => {
     if (paused) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !e.defaultPrevented) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1126,113 +1243,127 @@ function SignalDetail({
     ) : null;
   const who =
     signal.dismissedBy === "agent" ? c.byAgent : signal.dismissedBy === "user" ? c.byYou : "";
+  const restorable = history && signal.cardId === null && signal.contentKept;
+  const acts = !history || restorable || !!signal.url;
+  const title = signal.contentKept ? signal.title : signal.sourceId;
+  const tap = "h-8 max-md:h-11";
+  // The source is in the header already.
+  const meta = signal.meta
+    .filter((pair) => pair.key !== "source")
+    .map((pair) => pair.value)
+    .join(" · ");
 
   return (
-    <aside
-      role="dialog"
-      aria-label={c.detail}
-      className="absolute inset-y-0 right-0 z-30 flex w-[420px] max-w-full flex-col bg-nb-paper max-md:w-full"
-      style={{ borderLeft: `1px solid ${HAIRLINE}` }}
-    >
-      <div
-        className="flex shrink-0 items-center gap-2 px-4 py-2.5"
-        style={{ borderBottom: `1px solid ${HAIRLINE}` }}
-      >
-        <SourceMark type={signal.sourceType} size={14} />
-        <span className="min-w-0 flex-1 truncate text-[12px] font-[700]">
-          {sourceName(signal.sourceType, "")}
+    <aside aria-label={c.detail} className="flex h-full flex-col bg-nb-cream">
+      <div className="flex shrink-0 items-center gap-2 py-2.5 pl-6 pr-4 max-md:pl-4 max-md:pr-2">
+        <span className="flex h-8 min-w-0 flex-1 items-center gap-1.5 text-[12px]">
+          {source}
+          {signal.collectedAt && (
+            <span className="shrink-0 tabular-nums text-nb-ink-soft">
+              · {when(signal.collectedAt, language)}
+            </span>
+          )}
         </span>
         <button
+          ref={closer}
           type="button"
           onClick={onClose}
           aria-label={copy.shared.close}
-          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+          className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] max-md:size-11"
         >
-          <FiX size={14} aria-hidden />
+          <FiX size={16} aria-hidden />
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
-        {signal.contentKept ? (
-          <h2 className="text-[14px] font-[700] leading-[20px]">{signal.title}</h2>
-        ) : (
-          <>
-            <h2 className="break-all font-mono text-[13px] font-[700] leading-[20px]">
-              {signal.sourceId}
-            </h2>
-            <p className="mt-2 text-[12px] leading-[18px] text-nb-ink-soft">{c.contentGone}</p>
-          </>
+      <div className="shrink-0 px-6 pb-2 pt-4 max-md:px-4">
+        <h2
+          title={title}
+          className={`line-clamp-3 [overflow-wrap:anywhere] ${
+            signal.contentKept
+              ? "text-[17px] font-[700] leading-[26px]"
+              : "font-mono text-[14px] font-[700] leading-[22px]"
+          }`}
+        >
+          {title}
+        </h2>
+        {acts && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {history ? (
+              restorable && (
+                <Button size="xs" className={tap} onClick={onRestore}>
+                  <FiRotateCcw size={12} aria-hidden />
+                  {c.restore}
+                </Button>
+              )
+            ) : making ? (
+              <span className={`inline-flex items-center text-[12px] font-[600] text-nb-accent-deep ${tap}`}>
+                {c.making}
+              </span>
+            ) : (
+              <>
+                <Button size="xs" className={`${tap} max-md:px-4 max-md:text-[13px]`} disabled={sorting} onClick={onMake}>
+                  {c.makeCard}
+                </Button>
+                <button type="button" className={`${GHOST_INK} ${tap}`} onClick={onIgnore}>
+                  {c.ignore}
+                </button>
+              </>
+            )}
+            {signal.url && (
+              <a
+                href={signal.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={`${GHOST_INK} ${tap}`}
+              >
+                <FiExternalLink size={12} aria-hidden />
+                {c.viewOriginal}
+              </a>
+            )}
+          </div>
         )}
-        {signal.summary && (
-          <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-[19px]">{signal.summary}</p>
-        )}
-        {signal.meta.length > 0 && (
-          <p className="mt-3 text-[12px] leading-[18px] text-nb-ink-soft">
-            {signal.meta.map((pair) => pair.value).join(" · ")}
+        {failed && (
+          <p
+            role="alert"
+            className="mt-3 flex items-center gap-2 rounded-[9px] bg-nb-peach-soft px-3 py-2 text-[12px] leading-[16px] text-nb-ink"
+          >
+            <FiAlertCircle size={13} className="shrink-0 text-nb-peach-ink" aria-hidden />
+            {failed}
           </p>
         )}
-        <div className="mt-3 flex flex-col gap-1">
-          {line(c.collected, signal.collectedAt ? when(signal.collectedAt, language) : "")}
-          {line(c.madeAt, signal.archivedAt ? when(signal.archivedAt, language) : "")}
-          {signal.cardId !== null &&
-            line(
-              c.madeInto,
-              card ? (
-                <Link
-                  href={cardHref(signal.cardId, card.archived)}
-                  className="font-[700] text-nb-accent-deep hover:underline"
-                >
-                  #{signal.cardId} {card.title}
-                </Link>
-              ) : (
-                `#${signal.cardId}`
-              ),
-            )}
-          {line(c.dismissedAt, signal.dismissedAt ? when(signal.dismissedAt, language) : "")}
-          {line(
-            c.dismissedWhy,
-            signal.dismissedAt
-              ? [signal.dismissedReason, who].filter(Boolean).join(" · ")
-              : "",
-          )}
-        </div>
       </div>
 
-      <div
-        className="flex shrink-0 items-center gap-1 px-4 py-2.5"
-        style={{ borderTop: `1px solid ${HAIRLINE}` }}
-      >
-        {signal.url && (
-          <a
-            href={signal.url}
-            target="_blank"
-            rel="noreferrer noopener"
-            className={GHOST_INK}
-          >
-            <FiExternalLink size={12} aria-hidden />
-            {c.viewOriginal}
-          </a>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-5 pt-3 [overflow-wrap:anywhere] max-md:px-4">
+        {!signal.contentKept && (
+          <p className="text-[12px] leading-[18px] text-nb-ink-soft">{c.contentGone}</p>
         )}
-        <span className="flex-1" />
-        {history ? (
-          signal.cardId === null &&
-          signal.contentKept && (
-            <button type="button" className={GHOST_ACT} onClick={onRestore}>
-              <FiRotateCcw size={12} aria-hidden />
-              {c.restore}
-            </button>
-          )
-        ) : making ? (
-          <span className="px-2 text-[12px] font-[600] text-nb-accent-deep">{c.making}</span>
-        ) : (
-          <>
-            <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
-              {c.makeCard}
-            </button>
-            <button type="button" className={GHOST_INK} onClick={onIgnore}>
-              {c.ignore}
-            </button>
-          </>
+        {signal.summary && (
+          <p className="whitespace-pre-wrap text-[13px] leading-[20px]">{signal.summary}</p>
+        )}
+        {meta && <p className="mt-4 text-[12px] leading-[18px] text-nb-ink-soft">{meta}</p>}
+        {history && (
+          <div className="mt-4 flex flex-col gap-1">
+            {line(c.madeAt, signal.archivedAt ? when(signal.archivedAt, language) : "")}
+            {signal.cardId !== null &&
+              line(
+                c.madeInto,
+                card ? (
+                  <Link
+                    href={cardHref(signal.cardId, card.archived)}
+                    className="font-[700] text-nb-accent-deep hover:underline"
+                  >
+                    #{signal.cardId} {card.title}
+                  </Link>
+                ) : (
+                  `#${signal.cardId}`
+                ),
+              )}
+            {line(c.dismissedAt, signal.dismissedAt ? when(signal.dismissedAt, language) : "")}
+            {line(
+              c.dismissedWhy,
+              signal.dismissedAt ? [signal.dismissedReason, who].filter(Boolean).join(" · ") : "",
+            )}
+          </div>
         )}
       </div>
     </aside>

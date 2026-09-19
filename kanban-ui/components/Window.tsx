@@ -23,7 +23,7 @@
 
 import { useCopy } from "@/i18n/use-copy";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cloudCardLinkAction, getBoardsAction } from "@/app/actions";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 import {
@@ -41,6 +41,7 @@ import { createSheet } from "@/lib/create-open";
 import { BellProvider, CardEventsProvider } from "@/lib/card-event";
 import { usePhone } from "@/lib/media";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
+import { SideSlotProvider, useSideRail } from "@/lib/side-pane";
 import type { MemoryOwner } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
 import {
@@ -276,6 +277,20 @@ export function Window({
   useEffect(() => {
     if (chat.open) foldBell();
   }, [chat.open, foldBell]);
+  // A page's own pane (#904) takes the right side the same way, and gives it up the same way.
+  const side = useSideRail();
+  const sideOpen = side.pane !== null;
+  const sidePane = useRef(side.pane);
+  sidePane.current = side.pane;
+  const closeSide = useCallback(() => sidePane.current?.close(), []);
+  useEffect(() => {
+    if (!sideOpen) return;
+    foldChat();
+    foldBell();
+  }, [sideOpen, foldChat, foldBell]);
+  useEffect(() => {
+    if (chat.open || bell.open) closeSide();
+  }, [chat.open, bell.open, closeSide]);
 
   // The phone shell (#357). Board is a place you go; Find, Memory and More are screens
   // drawn over whatever page is up. So what is held here is which of those three is
@@ -297,6 +312,7 @@ export function Window({
       // every screen the phone reaches, including those two.
       foldBell();
       foldChat();
+      closeSide();
       // Board is the board — from a card page, from a memory file, from a covered board.
       if (next === "board") {
         setCover(null);
@@ -306,14 +322,17 @@ export function Window({
       // Memory from a memory file is the list again, not the file you are already on.
       setCover(next);
     },
-    [foldBell, foldChat, path, router],
+    [foldBell, foldChat, closeSide, path, router],
   );
 
   // Beside the body on a wide window, over it on a narrow one — the same rail either way,
   // so what has been typed survives the window being dragged across that line.
-  const chatBeside = chat.open && !chat.overlay && !bell.open;
-  const bellBeside = bell.open && !bell.overlay;
-  const beside = chatBeside || bellBeside;
+  const sideBeside = sideOpen && !bell.overlay;
+  const chatBeside = chat.open && !chat.overlay && !bell.open && !sideOpen;
+  const bellBeside = bell.open && !bell.overlay && !sideOpen;
+  const beside = sideBeside || chatBeside || bellBeside;
+  const covered = cover !== null;
+  const slot = useMemo(() => ({ show: side.show, covered }), [side.show, covered]);
   const corners = phone
     ? "rounded-t-[14px]"
     : `rounded-tl-[14px] ${beside ? "rounded-tr-[14px]" : ""}`;
@@ -337,6 +356,7 @@ export function Window({
     <CardEventsProvider value={bell.center.rows}>
     <ChatProvider rail={chat}>
     <BodySlotProvider value={body}>
+    <SideSlotProvider value={slot}>
     {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and
         100vh is the tall one — the tab bar at the foot would sit under the bar until the
         page was scrolled. Everywhere else the two are the same number. */}
@@ -357,6 +377,7 @@ export function Window({
           onLayoutChanged={(layout, meta) => {
             onLayoutChanged(layout, meta);
             chat.onLayoutChanged(layout, meta);
+            side.onLayoutChanged(layout, meta);
           }}
         >
           <ResizablePanel
@@ -404,7 +425,22 @@ export function Window({
           </ResizablePanel>
           {/* The right side holds ONE rail. The bell wins when both are up, because
               opening it is what folded the chat. */}
-          {bellBeside ? (
+          {sideBeside ? (
+            <>
+              <ResizableHandle aria-label={c.resize.side} onDoubleClick={side.onDoubleClick} />
+              <ResizablePanel
+                id="side"
+                panelRef={side.panel}
+                defaultSize={side.width}
+                minSize={CHAT_MIN}
+                maxSize={CHAT_MAX}
+                groupResizeBehavior="preserve-pixel-size"
+                style={PANE_CLIP}
+              >
+                {side.pane?.node}
+              </ResizablePanel>
+            </>
+          ) : bellBeside ? (
             <>
               <ResizableHandle aria-label={c.resize.bell} onDoubleClick={bell.onDoubleClick} />
               <ResizablePanel
@@ -441,7 +477,14 @@ export function Window({
           ground and an ink edge, since here it is a thing laid over the window rather than
           a part of its frame. On a phone it stops above the tab bar: a cover with no way
           off it is a screen you are stuck on. */}
-      {bell.open && bell.overlay ? (
+      {sideOpen && !sideBeside ? (
+        <div
+          className="fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+          style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
+        >
+          {side.pane?.node}
+        </div>
+      ) : bell.open && bell.overlay ? (
         <div
           className="fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
           style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
@@ -464,6 +507,7 @@ export function Window({
           drawn over it. */}
       {phone && <PhoneTabs tab={tab} onTab={goTab} />}
     </div>
+    </SideSlotProvider>
     </BodySlotProvider>
     </ChatProvider>
     </CardEventsProvider>

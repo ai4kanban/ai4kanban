@@ -21,6 +21,7 @@ let request: { at: number; discussion: DiscussionTarget | null } | null = null;
 let closing = 0;
 let dropped: { at: number; discussion: DiscussionTarget } | null = null;
 let shown: DiscussionTarget | null = null;
+let sheetUp = false;
 // The discussions whose last start never came up (#706), and why. This window's own and
 // nothing more: it says what the last press did, not what the discussion is, so it is not
 // worth a field on disk to persist and then have to clear.
@@ -80,6 +81,13 @@ export const createSheet = {
     tell();
   },
 
+  /** Whether the sheet is up — whatever opened it, on a board that may hold no discussion. */
+  up(open: boolean) {
+    if (sheetUp === open) return;
+    sheetUp = open;
+    tell();
+  },
+
   /** The discussion the sheet is showing this second, or null while no sheet is up (#722).
    *  The sheet covers the page under it, so it — not that page — is what the reader is in,
    *  and the rail marks its row instead. Only the screen holding the sheet knows which one
@@ -126,6 +134,15 @@ export function useCreateSheetRequest(): { at: number; discussion: DiscussionTar
     subscribe,
     () => request,
     () => request,
+  );
+}
+
+/** Whether the create sheet is up. */
+export function useSheetUp(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => sheetUp,
+    () => false,
   );
 }
 

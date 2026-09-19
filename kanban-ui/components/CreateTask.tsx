@@ -210,6 +210,10 @@ export function CreateTask({
   // What is on screen, for the rail's mark (#722): the sheet covers the page under it, so
   // the discussion it is holding is where the reader is, and the row below is the one to
   // mark.
+  useEffect(() => {
+    createSheet.up(open);
+    return () => createSheet.up(false);
+  }, [open]);
   const showing = open ? discussion : null;
   useEffect(() => {
     createSheet.showing(showing);
