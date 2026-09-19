@@ -1900,17 +1900,17 @@ export async function signalsRowAction(): Promise<{ show: boolean; count: number
   }
 }
 
-/** Ignore one item, with the reason the user typed (#894). */
+/** Ignore one item, with the reason the user typed, if any (#927). */
 export async function dismissSignalAction(
   sourceId: string,
   reason: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const c = await machineCopy();
-  if (typeof sourceId !== "string" || !sourceId || typeof reason !== "string" || !reason.trim()) {
+  if (typeof sourceId !== "string" || !sourceId) {
     return { ok: false, error: c.rail.signals.dismissFailed };
   }
   try {
-    return await dismissSignal(sourceId, reason);
+    return await dismissSignal(sourceId, typeof reason === "string" ? reason.trim() : "");
   } catch {
     return { ok: false, error: c.rail.signals.dismissFailed };
   }

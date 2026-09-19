@@ -540,13 +540,26 @@ describe('adding to the inbox by hand (#499)', () => {
 })
 
 describe('a queue you empty (#894)', () => {
-  it('refuses an ignore from the page with no reason, and records the one given', () => {
+  it('records the reason given from the page', () => {
     addToInbox({ text: 'A thing\n\nWords.' })
     const id = readSignals().signals[0]!.sourceId
-    assert.equal(dismissSignal(id, '  ').ok, false)
     assert.deepEqual(dismissSignal(id, 'Already done'), { ok: true })
     assert.equal(readSignals().dismissed[0]!.dismissedReason, 'Already done')
   })
+
+  for (const reason of ['', '  ']) {
+    it(`ignores from the page with no reason (${JSON.stringify(reason)}), keeping when and who (#927)`, () => {
+      addToInbox({ text: 'A thing\n\nWords.' })
+      const id = readSignals().signals[0]!.sourceId
+      assert.deepEqual(dismissSignal(id, reason), { ok: true })
+      const [kept] = readSignals().dismissed
+      assert.equal(kept!.dismissedReason, '')
+      assert.equal(kept!.dismissedBy, 'user')
+      assert.notEqual(kept!.dismissedAt, '')
+      const written = fs.readFileSync(path.join(dismissed(), path.basename(kept!.relPath)), 'utf8')
+      assert.doesNotMatch(written, /dismissed_reason/)
+    })
+  }
 
   it('restores an ignored item to the list with its dismissal cleared', () => {
     addToInbox({ text: 'Bring me back\n\nWords.' })

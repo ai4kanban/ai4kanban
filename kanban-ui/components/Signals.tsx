@@ -1396,11 +1396,11 @@ function SignalDetail({
                   `#${signal.cardId}`
                 ),
               )}
-            {line(c.dismissedAt, signal.dismissedAt ? when(signal.dismissedAt, language) : "")}
             {line(
-              c.dismissedWhy,
-              signal.dismissedAt ? [signal.dismissedReason, who].filter(Boolean).join(" · ") : "",
+              c.dismissedAt,
+              signal.dismissedAt ? [when(signal.dismissedAt, language), who].filter(Boolean).join(" · ") : "",
             )}
+            {line(c.dismissedWhy, signal.dismissedAt ? signal.dismissedReason : "")}
           </div>
         )}
       </div>
@@ -1408,7 +1408,7 @@ function SignalDetail({
   );
 }
 
-/** Ignore, with a reason — its own small dialog, whether it was asked for from the list or
+/** Ignore, with an optional reason — its own small dialog, whether it was asked for from the list or
  *  from the detail. A failure keeps what was typed. */
 function IgnoreDialog({
   signal,
@@ -1440,9 +1440,8 @@ function IgnoreDialog({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onCancel, busy]);
 
-  const ready = reason.trim().length > 0 && !busy;
   const submit = async () => {
-    if (!ready) return;
+    if (busy) return;
     setBusy(true);
     setError("");
     const done = await onIgnore(reason.trim());
@@ -1498,7 +1497,7 @@ function IgnoreDialog({
           <Button size="xs" variant="ghost" onClick={onCancel} disabled={busy}>
             {copy.shared.cancel}
           </Button>
-          <Button size="xs" onClick={() => void submit()} disabled={!ready}>
+          <Button size="xs" onClick={() => void submit()} disabled={busy}>
             {c.ignore}
           </Button>
         </div>

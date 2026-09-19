@@ -112,7 +112,7 @@ export type RailCopy = {
     making: string;
     makeFailed: string;
     ignore: string;
-    /** The Ignore dialog: its heading, the reason it asks for, and a refusal. */
+    /** The Ignore dialog: its heading, the optional reason, and a refusal. */
     ignoreTitle: string;
     why: string;
     reasonHint: string;

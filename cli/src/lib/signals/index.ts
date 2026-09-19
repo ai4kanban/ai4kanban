@@ -100,13 +100,12 @@ export function readSignals(): SignalInbox {
   }
 }
 
-/** Ignore one item from the page, with the user's reason: its file moves into
+/** Ignore one item from the page, with the user's optional reason: its file moves into
  *  `triage/dismissed/`, so no later fetch brings it back. */
-export function dismissSignal(sourceId: string, reason: string): { ok: boolean; error?: string } {
+export function dismissSignal(sourceId: string, reason = ''): { ok: boolean; error?: string } {
   if (!sourceId) return { ok: false, error: 'nothing named' }
-  if (!reason?.trim()) return { ok: false, error: 'no reason given' }
   migrateTriage()
-  const done = dismissInboxItem(sourceId, 'user', reason)
+  const done = dismissInboxItem(sourceId, 'user', typeof reason === 'string' ? reason : '')
   return done.ok ? { ok: true } : { ok: false, error: done.error }
 }
 
