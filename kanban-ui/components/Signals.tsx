@@ -20,7 +20,6 @@ import {
 } from "react";
 import {
   FiAlertCircle,
-  FiArrowRight,
   FiChevronDown,
   FiChevronRight,
   FiCornerDownRight,
@@ -51,7 +50,7 @@ import {
   type SignalInbox,
 } from "@/lib/types";
 import { Button } from "./button";
-import { CHROME } from "./chrome";
+import { CHROME, HAIRLINE } from "./chrome";
 import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
@@ -670,7 +669,8 @@ export function SignalsPage({
         )}
 
         <div className="relative min-h-0 flex-1">
-          <div className="flex h-full flex-col overflow-y-auto px-3 py-4 max-md:px-1">
+          {/* The list measures itself, so the rail opening or widening reflows the columns. */}
+          <div className="@container flex h-full flex-col overflow-y-auto px-6 pb-6 pt-3 max-md:px-4">
             {groups.length === 0 ? (
               narrowing ? (
                 <Empty title={c.noHits} searched>
@@ -695,7 +695,7 @@ export function SignalsPage({
                 </Empty>
               )
             ) : (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-5">
                 {groups.map((group) => (
                   <SourceSection
                     key={group.key || "none"}
@@ -928,7 +928,7 @@ function SourceSection({
 
   return (
     <section>
-      <div className="mb-1 flex h-6 w-full items-center gap-2 px-3 text-[12px] font-[700] text-nb-ink-soft">
+      <div className="mb-2 flex h-6 w-full items-center gap-2 text-[12px] font-[700] text-nb-ink-soft">
         <button
           type="button"
           onClick={onFold}
@@ -939,17 +939,24 @@ function SourceSection({
           {folded ? <FiChevronRight size={13} aria-hidden /> : <FiChevronDown size={13} aria-hidden />}
         </button>
         <SourceLabel group={group.key} name={name} card={card} cardRef={cardRef} />
+        {folded && (
+          <span className="shrink-0 font-[400] tabular-nums">{group.items.length}</span>
+        )}
+        <span className="ml-1 h-px min-w-6 flex-1" style={{ background: HAIRLINE }} />
       </div>
       {!folded && (
         <>
-          <ul aria-label={name} className="flex flex-col gap-1 pl-5">
+          <ul
+            aria-label={name}
+            className="grid grid-cols-1 gap-3 @min-[520px]:grid-cols-2 @min-[900px]:grid-cols-3"
+          >
             {drawn.map((signal) => children(signal))}
           </ul>
           {group.items.length > drawn.length && (
             <button
               type="button"
               onClick={onMore}
-              className="ml-8 mt-1 inline-flex h-7 cursor-pointer items-center text-[12px] font-[700] text-nb-accent-deep"
+              className="mt-1.5 inline-flex h-7 cursor-pointer items-center text-[12px] font-[700] text-nb-accent-deep"
             >
               {c.more}
             </button>
@@ -995,20 +1002,51 @@ function SourceLabel({
 }
 
 /** The title an item is read by: its own, or — for a record whose words were never kept —
- *  its source id. */
+ *  its source id. Two lines at most, and a long unbroken string wraps. */
 function ItemTitle({ signal }: { signal: Signal }) {
   return signal.contentKept ? (
-    <span className="block truncate text-[13px] font-[600] leading-[20px]">{signal.title}</span>
+    <span className="line-clamp-2 text-[13px] font-[600] leading-[19px] [overflow-wrap:anywhere]">
+      {signal.title}
+    </span>
   ) : (
-    <span className="block truncate font-mono text-[12px] font-[600] leading-[20px] text-nb-ink-soft">
+    <span className="line-clamp-2 font-mono text-[12px] font-[600] leading-[19px] text-nb-ink-soft [overflow-wrap:anywhere]">
       {signal.sourceId}
     </span>
   );
 }
 
-const ROW = "flex w-full items-center gap-2 rounded-[8px] pr-1.5 transition-colors";
-const ROW_OPEN =
-  "flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 pl-3 text-left focus-visible:outline-none";
+// One size for every card, and the foot row is always there, so hover, focus, selection and
+// making never move the grid.
+const CARD =
+  "flex h-[108px] w-full flex-col rounded-[10px] border-[1.5px] transition-colors max-md:h-[128px]";
+const CARD_BODY = "flex min-h-0 flex-1 flex-col px-3 pt-2.5";
+const CARD_FOOT = "flex h-8 shrink-0 items-center gap-1 px-1.5 pb-1.5 max-md:h-[52px]";
+const INK_SHADOW = "shadow-[2px_2px_0_0_var(--color-nb-ink)]";
+
+function cardTone(selected: boolean, hot: boolean): string {
+  if (selected)
+    return "border-nb-accent-deep bg-nb-accent-soft shadow-[2px_2px_0_0_var(--color-nb-accent-deep)]";
+  return `${hot ? "border-nb-accent" : "border-nb-ink"} bg-nb-paper ${INK_SHADOW}`;
+}
+
+/** Hover and keyboard focus both light a card; it goes dark only once neither holds it. */
+function useHot(onFocus: () => void, onBlur: () => void) {
+  const hovered = useRef(false);
+  return {
+    onMouseEnter: () => {
+      hovered.current = true;
+      onFocus();
+    },
+    onMouseLeave: (e: React.MouseEvent<HTMLLIElement>) => {
+      hovered.current = false;
+      if (!e.currentTarget.contains(document.activeElement)) onBlur();
+    },
+    onFocus,
+    onBlur: (e: React.FocusEvent<HTMLLIElement>) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !hovered.current) onBlur();
+    },
+  };
+}
 
 /** One waiting item: its title and summary, and — only while it is in focus and not the
  *  one open in the detail — its two ways out. */
@@ -1038,36 +1076,19 @@ function QueueCard({
   onIgnore: () => void;
 }) {
   const c = useCopy().rail.signals;
-  const hovered = useRef(false);
+  const hot = useHot(onFocus, onBlur);
   // A tap on a touch screen selects the item first, the way a hover does; the next opens it.
   const tapped = useRef(false);
   const act = focused && !selected && !making && !leaving;
 
   return (
-    <li
-      onMouseEnter={() => {
-        hovered.current = true;
-        onFocus();
-      }}
-      onMouseLeave={(e) => {
-        hovered.current = false;
-        if (!e.currentTarget.contains(document.activeElement)) onBlur();
-      }}
-      onFocus={onFocus}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !hovered.current) onBlur();
-      }}
-    >
+    <li className="min-w-0" {...hot}>
       <div
         data-focused={act || undefined}
-        className={`${ROW} ${
+        className={`${CARD} ${
           making && !leaving
-            ? "a4k-triage-making bg-nb-accent-wash"
-            : selected
-              ? "bg-nb-accent-soft"
-              : focused
-                ? "bg-nb-wash"
-                : ""
+            ? `a4k-triage-making border-nb-ink bg-nb-accent-wash ${INK_SHADOW}`
+            : cardTone(selected, focused && !leaving)
         } ${leaving ? "a4k-triage-leaving" : ""}`}
       >
         <button
@@ -1085,43 +1106,38 @@ function QueueCard({
             }
             onOpen();
           }}
-          className={ROW_OPEN}
+          className={`${CARD_BODY} cursor-pointer text-left focus-visible:outline-none`}
         >
-          <span className="min-w-0 flex-1">
-            <ItemTitle signal={signal} />
-            {making ? (
-              <span className="mt-0.5 block truncate text-[12px] leading-[18px] text-nb-accent-deep">
-                {c.making}
-              </span>
-            ) : (
-              signal.summary && (
-                <span className="mt-0.5 block truncate text-[12px] leading-[18px] text-nb-ink-soft">
-                  {signal.summary}
-                </span>
-              )
-            )}
-          </span>
-          {selected && (
-            <FiArrowRight size={15} className="shrink-0 text-nb-accent-deep" aria-hidden />
+          <ItemTitle signal={signal} />
+          {signal.summary && (
+            <span className="mt-0.5 block w-full truncate text-[12px] leading-[18px] text-nb-ink-soft">
+              {signal.summary}
+            </span>
           )}
         </button>
-        {act && (
-          <span className="flex shrink-0 items-center gap-1">
-            <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
-              {c.makeCard}
-            </button>
-            <button type="button" className={GHOST_INK} onClick={onIgnore}>
-              {c.ignore}
-            </button>
-          </span>
-        )}
+        <div className={CARD_FOOT}>
+          {making ? (
+            <span className="truncate px-1.5 text-[12px] font-[600] text-nb-accent-deep">
+              {c.making}
+            </span>
+          ) : act ? (
+            <>
+              <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
+                {c.makeCard}
+              </button>
+              <button type="button" className={GHOST_INK} onClick={onIgnore}>
+                {c.ignore}
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
     </li>
   );
 }
 
 /** One judged item: what it became — a linked card, or the reason it was ignored — and, for
- *  an ignored one no card was made of, the way back. */
+ *  an ignored one no card was made of, the way back while it is in focus. */
 function HistoryCard({
   signal,
   selected,
@@ -1137,51 +1153,73 @@ function HistoryCard({
 }) {
   const c = useCopy().rail.signals;
   const language = useLanguage();
+  const [focused, setFocused] = useState(false);
+  const hot = useHot(
+    () => setFocused(true),
+    () => setFocused(false),
+  );
+  const tapped = useRef(false);
   const at = judgedAt(signal) ? when(judgedAt(signal), language) : "";
   const who = signal.dismissedBy === "agent" ? c.byAgent : signal.dismissedBy === "user" ? c.byYou : "";
   const became = signal.cardId !== null;
+  const restorable = !became && signal.contentKept;
 
   return (
-    <li>
-      <div
-        className={`${ROW} ${selected ? "bg-nb-accent-soft" : "hover:bg-nb-wash focus-within:bg-nb-wash"}`}
-      >
-        <button
-          type="button"
-          id={`signal-${signal.sourceId}`}
-          aria-current={selected || undefined}
-          onClick={onOpen}
-          className={ROW_OPEN}
-        >
-          <span className="min-w-0 flex-1">
+    <li className="min-w-0" {...hot}>
+      <div className={`${CARD} ${cardTone(selected, focused)}`}>
+        <div className={CARD_BODY}>
+          <button
+            type="button"
+            id={`signal-${signal.sourceId}`}
+            aria-current={selected || undefined}
+            onPointerDown={(e) => {
+              tapped.current = e.pointerType === "touch" && !focused && restorable;
+            }}
+            onClick={() => {
+              if (tapped.current) {
+                tapped.current = false;
+                setFocused(true);
+                return;
+              }
+              onOpen();
+            }}
+            className="cursor-pointer text-left focus-visible:outline-none"
+          >
             <ItemTitle signal={signal} />
-            <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[12px] leading-[18px] text-nb-ink-soft">
-              {became ? (
-                <>
-                  <FiCornerDownRight size={12} className="shrink-0" aria-hidden />
-                  <span className="truncate">
-                    #{signal.cardId}
-                    {card ? ` ${card.title}` : ""}
-                  </span>
-                </>
-              ) : (
-                <span className="truncate">{signal.dismissedReason}</span>
-              )}
-              <span className="ml-auto shrink-0 pl-2 text-[11px] tabular-nums">
-                {[became ? "" : who, at].filter(Boolean).join(" · ")}
-              </span>
-            </span>
-          </span>
-          {selected && (
-            <FiArrowRight size={15} className="shrink-0 text-nb-accent-deep" aria-hidden />
-          )}
-        </button>
-        {!became && signal.contentKept && !selected && (
-          <button type="button" className={`${GHOST_ACT} shrink-0`} onClick={onRestore}>
-            <FiRotateCcw size={12} aria-hidden />
-            {c.restore}
           </button>
-        )}
+          {became && card ? (
+            <Link
+              href={cardHref(signal.cardId!, card.archived)}
+              className="mt-0.5 inline-flex min-w-0 items-center gap-1 text-[12px] font-[700] leading-[18px] text-nb-accent-deep hover:underline focus-visible:underline focus-visible:outline-none"
+            >
+              <FiCornerDownRight size={12} className="shrink-0" aria-hidden />
+              <span className="truncate">
+                #{signal.cardId} {card.title}
+              </span>
+            </Link>
+          ) : became ? (
+            <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-[700] leading-[18px] text-nb-ink-soft">
+              <FiCornerDownRight size={12} className="shrink-0" aria-hidden />#{signal.cardId}
+            </p>
+          ) : (
+            signal.dismissedReason && (
+              <p className="mt-0.5 truncate text-[12px] leading-[18px] text-nb-ink">
+                {signal.dismissedReason}
+              </p>
+            )
+          )}
+        </div>
+        <div className={CARD_FOOT}>
+          <span className="min-w-0 truncate pl-1.5 text-[11px] tabular-nums text-nb-ink-soft">
+            {[became ? "" : who, at].filter(Boolean).join(" · ")}
+          </span>
+          {restorable && focused && !selected && (
+            <button type="button" className={`${GHOST_ACT} ml-auto shrink-0`} onClick={onRestore}>
+              <FiRotateCcw size={12} aria-hidden />
+              {c.restore}
+            </button>
+          )}
+        </div>
       </div>
     </li>
   );
