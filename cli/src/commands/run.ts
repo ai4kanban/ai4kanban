@@ -567,7 +567,12 @@ function runLine(r: RunView, program = 'akb'): string {
   // The board's own last word rides on the row, not only in the log. `✓ done` beside a run
   // that left the board inconsistent reads as "nothing to see here", which is the one thing
   // it must not — and a note nobody opens the log for is a note nobody reads.
-  const under = [r.input && firstLine(r.input), r.note && `! ${firstLine(r.note)}`].filter(Boolean)
+  // So does why a setup run that exited cleanly still failed (#909).
+  const under = [
+    r.input && firstLine(r.input),
+    r.tickedNothing && r.error && `! ${firstLine(r.error)}`,
+    r.note && `! ${firstLine(r.note)}`,
+  ].filter(Boolean)
   return under.length ? [line, ...under.map((s) => `    ${s}`)].join('\n') : line
 }
 

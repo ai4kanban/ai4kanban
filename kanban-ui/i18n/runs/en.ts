@@ -105,6 +105,7 @@ const en: RunsCopy = {
     interrupted: "interrupted",
     done: "done",
     exited: (code) => `exited ${code}`,
+    nothingDone: "no step completed",
     blocked: "blocked",
     running: "running",
     seconds: (s) => `${s}s`,
@@ -122,6 +123,8 @@ const en: RunsCopy = {
     stoppedShort:
       "This run stopped short, so the card may be part-built — whatever it wrote is sitting in your working tree.",
     stoppedShortResume: " Resume carries it on from where it stopped.",
+    tickedNothing:
+      "This setup run ended normally but checked off no step on the setup checklist. The agent's reply below says why.",
     blocker: {
       heading: "implementation blocked",
       step: "Step",

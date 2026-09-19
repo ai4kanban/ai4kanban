@@ -35,6 +35,8 @@ export type RunsCopy = {
     interrupted: string;
     done: string;
     exited: (code: string) => string;
+    /** A setup run that exited cleanly with no checklist box ticked (#909). */
+    nothingDone: string;
     blocked: string;
     running: string;
     seconds: (s: number) => string;
@@ -50,6 +52,8 @@ export type RunsCopy = {
     /** A run that ended without finishing, and the half-sentence Resume adds. */
     stoppedShort: string;
     stoppedShortResume: string;
+    /** In place of `stoppedShort` on a setup run that ticked nothing. */
+    tickedNothing: string;
     blocker: {
       heading: string;
       step: string;

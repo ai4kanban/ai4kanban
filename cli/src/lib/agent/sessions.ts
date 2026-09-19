@@ -21,6 +21,7 @@ import { cardFile } from '../board/revision'
 import { pidAlive } from '../lock'
 import { say } from '../io'
 import { planFromText, planTitle, readPlan } from '../plans'
+import { tickedSetupSteps } from '../setup'
 import { reportRun } from '../machine/usage'
 import { SKILL_VERSION } from '../../version'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
@@ -759,6 +760,7 @@ export function openRun(
     // a resume starts the same agent rather than a different one.
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
     triage: req.action === 'create' ? req.triage : undefined,
+    setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.
     refineRound: req.refineRound,
@@ -885,6 +887,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     retry: prev.retry,
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
+    setupTicked: prev.setupTicked,
     refineRound: prev.refineRound,
     refineEffort: prev.refineEffort,
     // The same refinement carried on, not a second one — the way a resume re-joins the
@@ -1091,6 +1094,7 @@ export async function closeRun(
     error?: string
     note?: string
     endedAt?: number
+    tickedNothing?: boolean
   },
   { reportEnd = true } = {},
 ): Promise<void> {
@@ -1102,6 +1106,7 @@ export async function closeRun(
     run.code = res.code ?? null
     if (res.error) run.error = res.error
     if (res.note) run.note = res.note
+    if (res.tickedNothing) run.tickedNothing = true
     run.endedAt = res.endedAt ?? Date.now()
     run.pid = undefined
     return { ...run }

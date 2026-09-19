@@ -112,6 +112,9 @@ const zh: SetupCopy = {
     failed: "上次设置未完成。",
     readLog: "查看日志",
     failedAfter: "重新运行将从未完成的步骤继续。",
+    nothingDone: "上次运行没有完成任何一步。",
+    nothingDoneAgain: (n) => `连续 ${n} 次运行都没有完成任何一步。`,
+    changeAgent: "更换 Agent",
   },
   notice: {
     title: "设置尚未完成。",

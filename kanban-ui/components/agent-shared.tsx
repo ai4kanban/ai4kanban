@@ -167,6 +167,17 @@ export function stoppedShort(session: SessionView | null | undefined): boolean {
   return session?.status === "error" || session?.status === "interrupted";
 }
 
+/** The newest setup run, when it stopped short (#230). `nothing` counts the setup runs in a
+ *  row, newest first, that exited cleanly with no box ticked (#909); 0 is any other failure. */
+export type SetupFailure = { runId: string; nothing: number };
+
+export function setupFailure(sessions: SessionView[]): SetupFailure | null {
+  const runs = sessions.filter((r) => r.action === "setup").sort((a, b) => b.startedAt - a.startedAt);
+  if (!stoppedShort(runs[0])) return null;
+  const streak = runs.findIndex((r) => !r.tickedNothing);
+  return { runId: runs[0]!.sessionId, nothing: streak < 0 ? runs.length : streak };
+}
+
 // A run waiting out a provider that failed for a moment (#525).
 //
 // It is drawn only while the next attempt is still ahead, which is the only moment a LIVE
@@ -213,7 +224,9 @@ function runFacts(session: SessionView, c: RunsCopy["log"]): RunFact[] {
           ? c.interrupted
           : session.ok
             ? c.done
-            : c.exited(String(session.code ?? "?"));
+            : session.tickedNothing
+              ? c.nothingDone
+              : c.exited(String(session.code ?? "?"));
   // How long it took, next to the outcome: "done · 4m 12s". An interrupted run was only
   // noticed on the next pid poll — an upper bound, not a measurement, so it's marked "~".
   const took =
@@ -398,13 +411,13 @@ export function SessionLog({
   // thing to know before reading anything the agent managed to write. It lives in
   // the run's own window rather than on the card: it is one run's outcome, and it
   // goes when a newer run replaces it.
-  const unfinishedLine = warnUnfinished && unfinished && !blocker && (
+  // A setup run that ticked nothing says why everywhere, the runs panel included (#909).
+  const unfinishedLine = (warnUnfinished || session.tickedNothing) && unfinished && !blocker && (
     <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      {c.stoppedShort}
-      {resumable ? c.stoppedShortResume : ""}
+      {session.tickedNothing ? c.tickedNothing : <>{c.stoppedShort}{resumable ? c.stoppedShortResume : ""}</>}
     </p>
   );
 

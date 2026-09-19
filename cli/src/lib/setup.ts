@@ -111,6 +111,11 @@ export function readSetupChecklist(): ChecklistStep[] | null {
   return steps
 }
 
+/** How many boxes are ticked, or undefined when there is no checklist. */
+export function tickedSetupSteps(): number | undefined {
+  return readSetupChecklist()?.filter((s) => s.done).length
+}
+
 // Write the checklist. Only the fresh scaffold calls this: repairing an older board must
 // never plant one, or a board set up long ago would start asking to be set up again.
 export function writeSetupChecklist(): void {

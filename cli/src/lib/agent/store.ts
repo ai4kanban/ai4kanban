@@ -189,6 +189,8 @@ export function readStore(): Store {
         entry.triage && typeof entry.triage.sourceId === 'string' && typeof entry.triage.file === 'string'
           ? { sourceId: entry.triage.sourceId, file: entry.triage.file }
           : undefined,
+      setupTicked: Number.isInteger(entry.setupTicked) && entry.setupTicked! >= 0 ? entry.setupTicked : undefined,
+      tickedNothing: entry.tickedNothing === true ? true : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound

@@ -105,6 +105,7 @@ const zh: RunsCopy = {
     interrupted: "被打断",
     done: "完成",
     exited: (code) => `退出码 ${code}`,
+    nothingDone: "未完成任何一步",
     blocked: "阻塞",
     running: "运行中",
     seconds: (s) => `${s} 秒`,
@@ -120,6 +121,7 @@ const zh: RunsCopy = {
     tokensHint: "本次运行的 token 数，来自 Agent 自己的报告：新增输入、提示缓存的写入与读取，以及输出。",
     stoppedShort: "这次运行中途停止，卡片可能只做了一半——它写下的内容都留在你的工作区里。",
     stoppedShortResume: "「继续」会从停下的地方接着做。",
+    tickedNothing: "这次设置运行正常结束，但设置清单上没有勾掉任何一步。原因见下方 Agent 的回复。",
     blocker: {
       heading: "开发受阻",
       step: "步骤",

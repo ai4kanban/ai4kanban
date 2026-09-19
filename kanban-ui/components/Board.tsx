@@ -30,7 +30,7 @@ import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, typ
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { OpenIdsProvider } from "./open-ids";
 import { EmptyBoard, QueueView } from "./Queue";
-import { stoppedShort } from "./agent-shared";
+import { setupFailure, type SetupFailure } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus } from "./sessions";
 
 /** Everything the board screen knows that something drawn around it needs. The app's window
@@ -54,7 +54,7 @@ export interface BoardChrome {
   /** The setup run going right now, from this tab or another (#173), and the newest one
    *  when it stopped short and none has been started since (#230). */
   setupRunId: string | null;
-  failedSetupRunId: string | null;
+  failedSetup: SetupFailure | null;
   /** Read the board again — what every write here already does for itself. */
   refresh: () => Promise<void>;
   /** Wake the runs poll, and take on a run this tab caused but did not start. */
@@ -221,14 +221,8 @@ export function Board({
   const setupRunId = setupRun?.sessionId ?? null;
   // …and the newest setup run when it stopped short (#230), so the strip and the
   // guided run's closing screen say a run was tried and died instead of falling
-  // silently back to the offer. Only the newest one is asked: a failure the user
-  // has since run past is history. A run the user stopped is not a failure, and a
-  // run cut off by a dead server is — the board treats those two apart already.
-  const lastSetupRun = sessions.reduce<SessionView | undefined>(
-    (best, r) => (r.action === "setup" && (!best || r.startedAt > best.startedAt) ? r : best),
-    undefined,
-  );
-  const failedSetupRunId = stoppedShort(lastSetupRun) ? (lastSetupRun?.sessionId ?? null) : null;
+  // silently back to the offer.
+  const failedSetup = useMemo(() => setupFailure(sessions), [sessions]);
 
   // A setup run writes the board as it goes — a box ticked, the module map, the
   // first cards — so while one is going the board is re-read on every poll rather
@@ -352,7 +346,7 @@ export function Board({
     sessions,
     running: runningCardIds(sessions),
     setupRunId,
-    failedSetupRunId,
+    failedSetup,
     refresh,
     kick,
     watch,

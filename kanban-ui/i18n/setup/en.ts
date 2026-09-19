@@ -117,6 +117,9 @@ const en: SetupCopy = {
     failed: "The previous setup run did not finish.",
     readLog: "View log",
     failedAfter: "Restarting continues from the first incomplete step.",
+    nothingDone: "The last run completed no step.",
+    nothingDoneAgain: (n) => `The last ${n} runs completed no step.`,
+    changeAgent: "Change agent",
   },
   notice: {
     title: "Setup is incomplete.",

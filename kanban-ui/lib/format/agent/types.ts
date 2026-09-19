@@ -408,6 +408,12 @@ export interface RunRecord {
   specAgent?: string
   /** The triage item a create run is making a card of (#894). */
   triage?: TriageAsk
+  /** On a setup run: the checklist boxes already ticked when it started (#909). Absent when
+   *  there was no checklist. A resume carries the first run's count on. */
+  setupTicked?: number
+  /** A setup run that exited cleanly without ticking a single box (#909). It closes as a
+   *  failure, and this is what tells that failure apart from any other. */
+  tickedNothing?: boolean
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** The QA guide this refinement uses across its sessions and resume. */

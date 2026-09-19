@@ -147,7 +147,7 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
         setupInstruction={machine.setupInstruction ?? ""}
         skillInstalled={machine.skillInstalled ?? false}
         setupRunId={chrome.setupRunId}
-        failedSetupRunId={chrome.failedSetupRunId}
+        failedSetup={chrome.failedSetup}
         onFinishSetup={finishSetup}
         onAgentChanged={setAgent}
         onSaved={chrome.refresh}
@@ -218,7 +218,7 @@ function BoardStrips({ at, screen, ...chrome }: BoardChrome & { at: StripPlace }
       setup={setup}
       skillInstalled={machine.skillInstalled ?? false}
       setupRunId={chrome.setupRunId}
-      failedSetupRunId={chrome.failedSetupRunId}
+      failedSetup={chrome.failedSetup}
       onFinishSetup={finishSetup}
       onResume={setupHasQuestionsLeft(setup) ? flow.resume : undefined}
     />

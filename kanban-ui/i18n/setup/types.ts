@@ -135,6 +135,10 @@ export type SetupCopy = {
     failed: string;
     readLog: string;
     failedAfter: string;
+    /** A setup run that exited cleanly and ticked nothing (#909), once or `n` times running. */
+    nothingDone: string;
+    nothingDoneAgain: (n: number) => string;
+    changeAgent: string;
   };
   notice: {
     title: string;

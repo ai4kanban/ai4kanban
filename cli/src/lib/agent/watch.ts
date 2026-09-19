@@ -17,6 +17,7 @@ import fs from 'node:fs'
 import { boardImage, carryRunEdits, holdRunCard, rereadRunCard } from '../board'
 import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
+import { tickedSetupSteps } from '../setup'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
 import { withStore } from './store'
 import { contextLimit, refreshCatalog } from './catalog'
@@ -500,6 +501,14 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         if (status === 'done') status = 'error'
         if (record.cardId !== null && !record.deliveryId) await setCardStatus(record.cardId, 'todo')
       }
+      // A setup run exists to tick boxes and never stops to ask (#909), so a clean exit that
+      // ticked none did nothing. The last tick deletes the checklist, which reads as progress.
+      const tickedNothing = status === 'done' && tickedNoSetupStep(record)
+      const tickedNothingSaid = tickedNothing ? 'Setup ended without completing any step on its checklist.' : undefined
+      if (tickedNothing) {
+        status = 'error'
+        log.write(`\n[board] ${tickedNothingSaid}\n`)
+      }
       // Writing is the last refinement session. A clean exit is its verdict; lifecycle
       // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
       // the card at todo if questions appeared or refuses the transition for another reason.
@@ -594,10 +603,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           // stream said so.
           error: takenOver
             ? TAKEN_OVER(record.cardId)
-            : joinNotes(contractError, spawnError ??
+            : joinNotes(contractError, tickedNothingSaid, spawnError ??
               (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
           note,
           endedAt,
+          tickedNothing,
         }, { reportEnd: false })
         letGo()
         if (contractError && repairable && !takenOver && !carried
@@ -802,6 +812,13 @@ function brokeBoard(wasBroken: Set<string>): string | null {
     ...(rest ? [`  … and ${rest} more`] : []),
     `a card is taken off the board with \`${boardCommand()} raw archive <id>\` or \`${boardCommand()} raw reject <id>\`, never by deleting its file.`,
   ].join('\n')
+}
+
+// A setup run that started with a checklist and ended with it still there, no box further on.
+function tickedNoSetupStep(record: RunRecord): boolean {
+  if (record.action !== 'setup' || record.setupTicked === undefined) return false
+  const now = tickedSetupSteps()
+  return now !== undefined && now <= record.setupTicked
 }
 
 const joinNotes = (...parts: (string | null | undefined)[]): string | undefined =>

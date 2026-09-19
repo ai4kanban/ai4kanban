@@ -39,7 +39,7 @@
 // user got, so closing the window and coming back lands on the same screen.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiCheck, FiChevronUp, FiCopy, FiPlay, FiTerminal } from "react-icons/fi";
+import { FiCheck, FiChevronUp, FiCopy, FiPlay, FiSettings, FiTerminal } from "react-icons/fi";
 import {
   finishSetupAgentStepAction,
   getSetupDraftAction,
@@ -65,6 +65,7 @@ import { DiscardNewBoard } from "./desktop";
 import { FirstRun } from "./FirstRun";
 import { GuideDrawer } from "./Guide";
 import { Header } from "./Header";
+import { type SetupFailure } from "./agent-shared";
 import { sessionsPanel } from "./sessions";
 
 /** What starting the setup run answered. Same shape every board action comes back
@@ -158,29 +159,54 @@ function WatchingSetup({ runId }: { runId: string }) {
   );
 }
 
-/** The newest setup run stopped short (#230) — it failed, or it was cut off. Said
- *  where the live run said it was working, so one spot carries the whole of a
- *  run's life instead of the strip going quiet on the half that went wrong. Why
- *  it stopped stays in the log; this only says that it did. The offer stands
- *  beside it unchanged — pressing it again is the retry, and the run picks up
- *  from the first step still unticked. */
-function SetupRunFailed({ runId }: { runId: string }) {
+/** The newest setup run stopped short (#230) — it failed, or it was cut off. Why it
+ *  stopped stays in the log; this only says that it did. A run that ticked nothing
+ *  says so, and how many times running (#909). */
+function SetupRunFailed({ failed }: { failed: SetupFailure }) {
   const c = useCopy().setup.run;
   return (
-    <span className="text-[13px]" style={{ color: "var(--color-nb-peach-ink)" }}>
-      <span className="mr-1" aria-hidden>
-        ⚠
-      </span>
-      {c.failed}{" "}
+    <span className="block text-[12.5px]" style={{ color: "var(--color-nb-peach-ink)" }}>
+      {failed.nothing > 1 ? c.nothingDoneAgain(failed.nothing) : failed.nothing ? c.nothingDone : c.failed}{" "}
       <button
         type="button"
         className="cursor-pointer underline underline-offset-2 hover:text-nb-ink"
-        onClick={() => sessionsPanel.open(runId)}
+        onClick={() => sessionsPanel.open(failed.runId)}
       >
         {c.readLog}
-      </button>{" "}
-      {c.failedAfter}
+      </button>
+      {!failed.nothing && <> {c.failedAfter}</>}
     </span>
+  );
+}
+
+/** Finish setup beside a failure. Once runs have come back empty twice, pressing it again
+ *  is no longer the answer, so it drops to a ghost beside Change agent (#909). */
+function FailedMoves({
+  failed,
+  starting,
+  onStart,
+  onChangeAgent,
+}: {
+  failed: SetupFailure | null;
+  starting: boolean;
+  onStart: () => void;
+  onChangeAgent: () => void;
+}) {
+  const t = useCopy().setup;
+  const again = (failed?.nothing ?? 0) > 1;
+  return (
+    <>
+      {again && (
+        <Button size="sm" variant="ghost" className="shrink-0" onClick={onChangeAgent}>
+          <FiSettings className="text-[13px]" aria-hidden />
+          {t.run.changeAgent}
+        </Button>
+      )}
+      <Button size="sm" variant={again ? "ghost" : "accent"} className="shrink-0" disabled={starting} onClick={onStart}>
+        <FiPlay className="text-[13px]" aria-hidden />
+        {starting ? t.done.starting : t.done.finish}
+      </Button>
+    </>
   );
 }
 
@@ -198,7 +224,7 @@ export function SetupFlow({
   setupInstruction,
   skillInstalled,
   setupRunId,
-  failedSetupRunId,
+  failedSetup,
   onFinishSetup,
   onAgentChanged,
   onSaved,
@@ -227,7 +253,7 @@ export function SetupFlow({
   /** The newest setup run, when it stopped short and none has been started since
    *  (#230). Null while one is going, after one passed, and after one the user
    *  stopped — that one is not a failure. */
-  failedSetupRunId: string | null;
+  failedSetup: SetupFailure | null;
   /** Start one. The board owns the run, so this only reports what it answered. */
   onFinishSetup: () => Promise<StartAnswer>;
   /** The agent step just answered the question this flow's last screen is drawn
@@ -428,8 +454,9 @@ export function SetupFlow({
                 <DoneStep
                   setup={setup}
                   runId={setupRunId}
-                  failedRunId={failedSetupRunId}
+                  failed={failedSetup}
                   onStart={onFinishSetup}
+                  onChangeAgent={backToAgent}
                   onExit={onExit}
                 />
               )}
@@ -769,14 +796,16 @@ function AgentStep({
 function DoneStep({
   setup,
   runId,
-  failedRunId,
+  failed,
   onStart,
+  onChangeAgent,
   onExit,
 }: {
   setup: SetupState;
   runId: string | null;
-  failedRunId: string | null;
+  failed: SetupFailure | null;
   onStart: () => Promise<StartAnswer>;
+  onChangeAgent: () => void;
   onExit: () => void;
 }) {
   const c = useCopy().setup.done;
@@ -793,10 +822,10 @@ function DoneStep({
   // Started here, once, on arrival — never again, whatever the answer was.
   const began = useRef(false);
   useEffect(() => {
-    if (began.current || runId || failedRunId) return;
+    if (began.current || runId || failed) return;
     began.current = true;
     void start();
-  }, [runId, failedRunId, start]);
+  }, [runId, failed, start]);
 
   return (
     <StepBody title={c.title} blurb={c.blurb}>
@@ -804,16 +833,13 @@ function DoneStep({
           stopped is why the line is not moving, so it is read before the stops are. A run
           going well needs nothing — the line already pulses on the step it is doing, and the
           header's runs button is the way into the log. */}
-      {(failedRunId || error) && (
-        <div className="mb-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
+      {(failed || error) && (
+        <div className="mb-5 nb-section bg-nb-sheet p-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
-              {failedRunId && <SetupRunFailed runId={failedRunId} />}
+              {failed && <SetupRunFailed failed={failed} />}
             </span>
-            <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
-              <FiPlay className="text-[13px]" aria-hidden />
-              {starting ? c.starting : c.finish}
-            </Button>
+            <FailedMoves failed={failed} starting={starting} onStart={start} onChangeAgent={onChangeAgent} />
           </div>
           {error && <div className="mt-3"><Failure text={error} /></div>}
         </div>
@@ -901,7 +927,7 @@ export function SetupNotice({
   setup,
   skillInstalled,
   setupRunId,
-  failedSetupRunId,
+  failedSetup,
   onFinishSetup,
   onResume,
 }: {
@@ -915,7 +941,7 @@ export function SetupNotice({
   /** The newest setup run, when it stopped short and none has been started since
    *  (#230). Null while one is going, after one passed, and after one the user
    *  stopped. */
-  failedSetupRunId: string | null;
+  failedSetup: SetupFailure | null;
   /** Start one. */
   onFinishSetup: () => Promise<StartAnswer>;
   /** Reopen the guided run. Absent when there is nothing left in it to ask. */
@@ -923,25 +949,23 @@ export function SetupNotice({
 }) {
   const t = useCopy();
   const c = t.setup.notice;
-  const { finish: finishLabel, starting: startingLabel } = t.setup.done;
   const { start, starting, error } = useFinishSetup(onFinishSetup);
   // The offer stands only once the run's own questions are answered. While one is
   // outstanding, Continue setup is the way back to it, so the two would be the same
   // press said twice.
   const canFinish = !onResume;
   return (
-    <div
-      className="mx-4 mb-4 shrink-0 nb-panel-sm p-3 text-[13px] sm:mx-6"
-      style={{ background: "var(--color-nb-accent-soft)" }}
-    >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Meter done={setup.done} total={setup.total} label={c.meter(setup.done, setup.total)} />
-        <span className="min-w-0 flex-1">
-          <strong>{c.title}</strong>{" "}
+    <div className="mx-4 mb-4 shrink-0 nb-section bg-nb-sheet px-4 py-3 text-[13px] sm:mx-6">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <strong>{c.title}</strong>
+            <Meter done={setup.done} total={setup.total} label={c.meter(setup.done, setup.total)} />
+          </div>
           {setupRunId ? (
             <span className="text-nb-ink-soft">{c.working}</span>
-          ) : failedSetupRunId ? (
-            <SetupRunFailed runId={failedSetupRunId} />
+          ) : failedSetup ? (
+            <SetupRunFailed failed={failedSetup} />
           ) : setup.next ? (
             <span className="text-nb-ink-soft">
               {c.next} <Ticks text={setup.next.text} />
@@ -949,43 +973,47 @@ export function SetupNotice({
           ) : (
             <span className="text-nb-ink-soft">{c.lastStep}</span>
           )}
-        </span>
-        {/* The run in flight wins over every offer: one at a time, and the way to
-            it is the log, not a second press. */}
-        {setupRunId ? (
-          <WatchingSetup runId={setupRunId} />
-        ) : (
-          <>
-            {onResume && (
-              <Button size="sm" className="shrink-0" onClick={onResume}>
-                {c.resume}
-              </Button>
-            )}
-            {canFinish && (
-              <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
-                <FiPlay className="text-[13px]" aria-hidden />
-                {starting ? startingLabel : finishLabel}
-              </Button>
-            )}
-            {/* Handing the rest to a coding agent lives inside the run, one
-                press away through Continue setup, so it isn't repeated here. What
-                the strip does carry is the board with no skill at all, where that
-                path would reach nothing; the gear is on screen from here, so it
-                opens that pane rather than naming a command. */}
-            {!skillInstalled && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="shrink-0"
-                title={c.addSkillHint}
-                onClick={() => configDialog.open("general")}
-              >
-                <FiTerminal className="text-[13px]" aria-hidden />
-                {c.addSkill}
-              </Button>
-            )}
-          </>
-        )}
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {/* The run in flight wins over every offer: one at a time, and the way to
+              it is the log, not a second press. */}
+          {setupRunId ? (
+            <WatchingSetup runId={setupRunId} />
+          ) : (
+            <>
+              {onResume && (
+                <Button size="sm" className="shrink-0" onClick={onResume}>
+                  {c.resume}
+                </Button>
+              )}
+              {canFinish && (
+                <FailedMoves
+                  failed={failedSetup}
+                  starting={starting}
+                  onStart={start}
+                  onChangeAgent={() => configDialog.open("runtimes")}
+                />
+              )}
+              {/* Handing the rest to a coding agent lives inside the run, one
+                  press away through Continue setup, so it isn't repeated here. What
+                  the strip does carry is the board with no skill at all, where that
+                  path would reach nothing; the gear is on screen from here, so it
+                  opens that pane rather than naming a command. */}
+              {!skillInstalled && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0"
+                  title={c.addSkillHint}
+                  onClick={() => configDialog.open("general")}
+                >
+                  <FiTerminal className="text-[13px]" aria-hidden />
+                  {c.addSkill}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
       {error && <div className="mt-3"><Failure text={error} /></div>}
     </div>
@@ -1144,7 +1172,7 @@ function Meter({ done, total, label }: { done: number; total: number; label: str
         {Array.from({ length: total }, (_, i) => (
           <span
             key={i}
-            className="h-[6px] w-[18px] rounded-[3px]"
+            className="h-[5px] w-[14px] rounded-[3px]"
             style={{
               background:
                 i < done
@@ -1154,7 +1182,7 @@ function Meter({ done, total, label }: { done: number; total: number; label: str
           />
         ))}
       </span>
-      <span className="font-mono text-[13px] font-[700] tabular-nums text-nb-ink-soft">
+      <span className="font-mono text-[12px] font-[700] tabular-nums text-nb-ink-soft">
         {done}/{total}
       </span>
     </span>
