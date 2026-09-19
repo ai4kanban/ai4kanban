@@ -18,7 +18,7 @@ const LABEL =
 
 // The topmost heading currently on screen, or — when the reader is in the gap
 // below one — the last heading they scrolled past, so the rail never blanks.
-function useActiveHeading(ids: string[]): string | undefined {
+export function useActiveHeading(ids: string[]): string | undefined {
   const [active, setActive] = useState<string | undefined>(ids[0]);
 
   useEffect(() => {

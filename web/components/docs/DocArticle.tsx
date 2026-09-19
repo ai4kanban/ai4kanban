@@ -1,26 +1,65 @@
+import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
 import { BlogMdx } from "../blog/BlogMdx";
-import { TocBlock } from "../blog/BlogToc";
-import { Card, CardGroup } from "./DocCards";
+import { hairline } from "../styles";
+import { Callout, Card, CardGroup, InstallBoard } from "./DocCards";
 import { CopyPage } from "./CopyPage";
+import { DocTocBlock, DocTocRail } from "./DocToc";
 import { extractToc } from "@/lib/blog";
-import type { DocPage } from "@/lib/docs";
+import { DOCS_PATH, docPath, getDocsNav, type DocPage } from "@/lib/docs";
 
-// One documentation page: the opening, then the body.
+// One documentation page: a compact head, the body, then previous / next. The
+// route rail belongs to the layout; "On this page" is a rail right of the body
+// from `xl` up and a folded block above it below that.
 //
-// The opening is the blog post's, and on purpose — a title, the sentence under
-// it, and the site's rule to close it, so a doc and a post are the same kind of
-// page to read. What it adds is the pair a doc needs and a post doesn't: the
-// date the page was last checked, and the button that hands you its Markdown.
-//
-// "On this page" is the folded block rather than the rail, at every width: the
-// left column is already the route rail, and three columns inside the site's
-// content width leaves nothing for the prose.
-//
-// The route rail and the page chrome belong to the layout — this is the column.
-//
-// `toc` is off for the landing page: it is a set of cards that send you
-// somewhere else, not a page read top to bottom, and a contents list over it
-// would name the same four destinations twice.
+// `toc` is off for the landing page: it is a way into other pages, not a page
+// read top to bottom.
+
+type PagerItem = { label: string; href: string; group: string };
+
+// Previous / next run through `_nav.json` in order, across groups.
+function neighbours(href: string): [PagerItem?, PagerItem?] {
+  const flat = getDocsNav(DOCS_PATH).flatMap((g) =>
+    g.items.map((i) => ({ label: i.label, href: i.href, group: g.label })),
+  );
+  const at = flat.findIndex((i) => i.href === href);
+  return at < 0 ? [] : [flat[at - 1], flat[at + 1]];
+}
+
+function PagerLink({ item, next }: { item: PagerItem; next?: boolean }) {
+  return (
+    <a
+      href={item.href}
+      className={`group flex flex-1 flex-col gap-0.5 rounded-lg border px-4 py-3 no-underline transition-colors hover:border-[color-mix(in_srgb,var(--color-ink)_22%,transparent)] ${hairline} ${
+        next ? "items-end text-right" : ""
+      }`}
+    >
+      <span className="flex items-center gap-1.5 text-xs font-medium text-muted">
+        {!next && <FiArrowLeft className="h-3 w-3" aria-hidden="true" />}
+        {next ? "Next" : "Previous"}
+        {next && <FiArrowRight className="h-3 w-3" aria-hidden="true" />}
+      </span>
+      <span className="font-medium text-ink transition-colors group-hover:text-accent-deep">
+        {item.label}
+      </span>
+      <span className="text-xs text-muted">{item.group}</span>
+    </a>
+  );
+}
+
+function Pager({ prev, next }: { prev?: PagerItem; next?: PagerItem }) {
+  if (!prev && !next) return null;
+  const gap = <span className="hidden flex-1 sm:block" />;
+  return (
+    <nav
+      aria-label="More documentation"
+      className={`mt-12 flex flex-col gap-3 border-t pt-6 sm:flex-row ${hairline}`}
+    >
+      {prev ? <PagerLink item={prev} /> : gap}
+      {next ? <PagerLink item={next} next /> : gap}
+    </nav>
+  );
+}
+
 export function DocArticle({
   doc,
   toc: showToc = true,
@@ -28,25 +67,40 @@ export function DocArticle({
   doc: DocPage;
   toc?: boolean;
 }) {
-  const toc = extractToc(doc.body);
+  const toc = showToc ? extractToc(doc.body) : [];
+  const [prev, next] = neighbours(docPath(doc));
 
   return (
-    <article className="min-w-0 flex-1">
-      <header className="border-b-2 border-border pb-8">
-        <h1 className="text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl">
-          {doc.title}
-        </h1>
-        <p className="mt-5 text-lg text-muted">{doc.lead}</p>
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="text-sm text-muted">Updated {doc.lastUpdated}</p>
-          <CopyPage markdown={doc.body} />
-        </div>
-      </header>
+    <>
+      <article
+        className={`min-w-0 flex-1 ${showToc ? "max-w-[42rem]" : "max-w-[46rem]"}`}
+      >
+        <header>
+          <p className="text-xs font-medium text-muted">{doc.group}</p>
+          <h1 className="mt-1.5 text-[1.75rem] font-semibold leading-tight tracking-tight">
+            {doc.title}
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-muted">{doc.lead}</p>
+          <div className="mt-4 flex items-center gap-3 text-xs text-muted">
+            <span>Updated {doc.lastUpdated}</span>
+            <span aria-hidden="true">·</span>
+            <CopyPage markdown={doc.body} />
+          </div>
+        </header>
 
-      <div className="mt-10">
-        {showToc && <TocBlock items={toc} noRail />}
-        <BlogMdx source={doc.body} extra={{ Card, CardGroup }} />
-      </div>
-    </article>
+        <DocTocBlock items={toc} />
+
+        <div className="mt-8">
+          <BlogMdx
+            source={doc.body}
+            className="docs-prose"
+            extra={{ Callout, Card, CardGroup, InstallBoard }}
+          />
+        </div>
+
+        <Pager prev={prev} next={next} />
+      </article>
+      <DocTocRail items={toc} />
+    </>
   );
 }

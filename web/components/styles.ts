@@ -52,3 +52,8 @@ export const column = "mx-auto max-w-6xl px-6";
 // top of a page the header draws no fill and no rule (`Header.tsx`), so it is
 // part of the band rather than chrome the band has to clear.
 export const heroTop = "mt-10 lg:mt-16";
+
+// The documentation's quiet line: a 10% ink border, for separators that should
+// read as structure without weight.
+export const hairline =
+  "border-[color-mix(in_srgb,var(--color-ink)_10%,transparent)]";

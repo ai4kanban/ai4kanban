@@ -76,12 +76,14 @@ const components = {
 export function BlogMdx({
   source,
   extra,
+  className = "",
 }: {
   source: string;
   extra?: ComponentProps<typeof MDXRemote>["components"];
+  className?: string;
 }) {
   return (
-    <div className="blog-prose">
+    <div className={`blog-prose ${className}`}>
       <MDXRemote
         source={source}
         components={{ ...components, ...extra }}

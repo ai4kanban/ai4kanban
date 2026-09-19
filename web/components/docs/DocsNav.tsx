@@ -2,8 +2,9 @@
 
 import { useRef } from "react";
 import { usePathname } from "next/navigation";
+import { FiChevronDown } from "react-icons/fi";
 import { GITHUB_URL } from "../content";
-import { panelBareInset } from "../styles";
+import { hairline } from "../styles";
 import { docIcon } from "./doc-icons";
 import type { DocNavGroup } from "@/lib/docs";
 
@@ -11,16 +12,12 @@ import type { DocNavGroup } from "@/lib/docs";
 // `web/content/docs/_nav.json` puts them in. Rendered once by the docs layout, so it
 // keeps its scroll position as the reader moves between pages.
 //
-// From `lg` up it is a sticky column beside the body. Below that there is no
-// room for a second column, so it folds into a disclosure above the page — the
-// same block, and the same open/close, as "On this page" (`BlogToc.tsx`).
-//
-// The page you are on is marked by a step on the neutral ramp — the wash, plus
-// the weight — and not by an ember tint. The rail is chrome, and the ember is
-// reserved for the things a page is actually pointing at.
+// From `lg` up it is a sticky column beside the body. Below that it folds into
+// one row that says where you are and opens to the same groups. Labels, icons
+// and the footer share one left edge; rows bleed 8px into the gutter so a tint
+// frames the row without moving its text.
 
-const LABEL =
-  "font-mono text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted";
+const LABEL = "text-xs font-medium text-muted";
 
 function NavGroups({
   groups,
@@ -32,11 +29,11 @@ function NavGroups({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-5">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className={`${LABEL} mb-2 px-3`}>{group.label}</p>
-          <ul className="flex list-none flex-col gap-0.5">
+          <p className={`${LABEL} mb-1`}>{group.label}</p>
+          <ul className="flex list-none flex-col gap-px">
             {group.items.map((item) => {
               const current = pathname === item.href;
               const Icon = docIcon(item.icon);
@@ -46,14 +43,14 @@ function NavGroups({
                     href={item.href}
                     onClick={onNavigate}
                     aria-current={current ? "page" : undefined}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm leading-snug no-underline transition-colors ${
+                    className={`-mx-2 flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm leading-snug no-underline transition-colors ${
                       current
-                        ? "bg-code font-semibold text-ink"
-                        : "text-muted hover:text-ink"
+                        ? "bg-accent/[0.07] font-medium text-accent-deep"
+                        : "text-ink/75 hover:bg-ink/[0.04] hover:text-ink"
                     }`}
                   >
                     <Icon
-                      className="h-3.5 w-3.5 shrink-0"
+                      className="h-3.5 w-3.5 shrink-0 opacity-70"
                       aria-hidden="true"
                     />
                     {item.label}
@@ -68,11 +65,9 @@ function NavGroups({
   );
 }
 
-// The one link out of the rail. A panel here would be a second raised object on
-// a page that already has one, so it is a line of text on the page ground.
 function AskLink() {
   return (
-    <p className="mt-8 px-3 text-sm leading-relaxed text-muted">
+    <p className="mt-8 text-xs leading-relaxed text-muted">
       Something missing?
       <br />
       <a
@@ -89,34 +84,42 @@ function AskLink() {
 export function DocsNav({ groups }: { groups: DocNavGroup[] }) {
   const pathname = usePathname();
   const details = useRef<HTMLDetailsElement>(null);
+  const group = groups.find((g) => g.items.some((i) => i.href === pathname));
+  const page = group?.items.find((i) => i.href === pathname);
 
   return (
     <>
       <nav
         aria-label="Documentation"
-        className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-8rem)] lg:w-52 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-8"
+        className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-8rem)] lg:w-52 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-2 lg:pb-8"
       >
         <NavGroups groups={groups} pathname={pathname} />
         <AskLink />
       </nav>
 
-      {/* Bare wash, where "On this page" below it is raised: the rail is chrome
-          and the table of contents is about the page in front of you, and two
-          shadowed blocks stacked on a phone is two objects where there is one. */}
       <details
         ref={details}
-        className={`${panelBareInset} group px-5 py-4 lg:hidden`}
+        className={`group border-y py-2.5 lg:hidden ${hairline}`}
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-          <span className={LABEL}>Documentation</span>
-          <span
-            aria-hidden="true"
-            className="text-lg leading-none text-accent-deep transition-transform duration-200 group-open:rotate-45"
-          >
-            +
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden"
+        >
+          <span className="flex min-w-0 items-center gap-2 text-sm">
+            {page ? (
+              <>
+                <span className="shrink-0 text-muted">{group?.label}</span>
+                <span className="text-muted" aria-hidden="true">/</span>
+                <span className="truncate text-ink">{page.label}</span>
+              </>
+            ) : (
+              <span className="text-muted">Documentation</span>
+            )}
           </span>
+          <FiChevronDown
+            className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          />
         </summary>
-        <div className="mt-4">
+        <div className="mt-3 pb-1">
           <NavGroups
             groups={groups}
             pathname={pathname}

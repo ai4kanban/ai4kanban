@@ -292,3 +292,78 @@
 .blog-prose .mdx-faq-list details[open] summary {
   padding-bottom: 0.5rem;
 }
+
+/* ---------------------------------------------------------------------------
+   Documentation only (`components/docs/DocArticle.tsx`): the board's quiet
+   reading style — hairlines, soft greys, no hard shadows, no spaced caps. The
+   blog keeps everything above. */
+
+.docs-prose {
+  --prose-line: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --docs-wash: #f7f6f2;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.docs-prose h2 {
+  margin-top: 2.75rem;
+  font-size: 1.3rem;
+}
+.docs-prose h3 {
+  margin-top: 2rem;
+  font-size: 1.1rem;
+}
+.docs-prose code {
+  background: #f1efea;
+}
+.docs-prose pre {
+  border: 1px solid var(--prose-line);
+  border-radius: 0.5rem;
+  background: var(--docs-wash);
+  padding: 1rem 3.5rem 1rem 1rem;
+  box-shadow: none;
+  line-height: 1.65;
+}
+.docs-prose pre code {
+  background: none;
+}
+.docs-prose blockquote {
+  border-left-width: 1px;
+  border-left-color: var(--prose-line);
+}
+.docs-prose table {
+  border: 1px solid var(--prose-line);
+  border-radius: 0.5rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.docs-prose thead th {
+  background: none;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.docs-prose hr {
+  border-top: 1px solid var(--prose-line);
+}
+.docs-prose img {
+  border: 1px solid var(--prose-line);
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+.docs-prose > .mdx-block,
+.docs-prose > .mdx-block + * {
+  margin-top: 2rem;
+}
+.docs-prose > h2 + .mdx-block {
+  margin-top: 1rem;
+}
+.docs-prose > :first-child {
+  margin-top: 0;
+}
+/* The install block's two commands: a compact listing inside its box. */
+.docs-prose .doc-install pre {
+  padding: 0.5rem 2.75rem 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}

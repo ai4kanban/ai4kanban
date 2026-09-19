@@ -8,6 +8,42 @@ nav_label: "Overview"
 icon: "compass"
 ---
 
+## Install the board
+
+<InstallBoard download="/download">
+
+```sh
+npm install -g ai4kanban@latest
+akb install
+```
+
+</InstallBoard>
+
+Either way, the board is a folder of Markdown in `docs/kanban/` — versioned in git,
+readable by you and by your agent.
+
+## Read these first
+
+<CardGroup numbered>
+  <Card title="What makes a good goal" icon="target" href="/docs/what-makes-a-good-goal">
+    The one file the board asks you to write. Every proposal is judged against it.
+  </Card>
+  <Card title="The daily loop" icon="repeat" href="/docs/daily-loop">
+    What to say to pick work, refine a card and build it.
+  </Card>
+</CardGroup>
+
+## Then pick your tooling
+
+<CardGroup>
+  <Card title="What each coding agent can do" icon="cpu" href="/docs/connectors">
+    Claude Code, Codex, Cursor and more — what each reports back, and what a run may touch.
+  </Card>
+  <Card title="Recipes" icon="package" href="/recipes">
+    Ready-made recurring tasks you add to your board in one prompt.
+  </Card>
+</CardGroup>
+
 ## What it does
 
 As a few agents become ten, twenty, or more, assigning every task, checking every
@@ -21,48 +57,13 @@ demo video, rendered on your machine with HyperFrames from product captures and 
 footage you supply. Other work needs its own workflows and agents added first.
 AI4Kanban writes and produces; sending and publishing stay with you.
 
-## Install the board
-
-The board is a desktop app for macOS, Windows and Linux, and there is nothing to
-install before it. [Download it](/download), open your project, and the board is a
-folder of Markdown in `docs/kanban/` — versioned in git, readable by you and by
-your agent.
-
-Prefer a terminal? `npm install -g ai4kanban@latest`, then `akb install` in the
-project you want a board for.
+## More than one board
 
 One repository can hold more than one board: `akb install --board design/kanban`
 puts a second one anywhere you like. A board away from `docs/kanban` is named rather
 than found, so pass `--board <dir>` on any command, or set `AI4KANBAN_BOARD` — a
 command typed inside the board folder finds it. In the app the folder chip says which
 board you are on, and switches between them.
-
-## Read these first
-
-<CardGroup cols={2}>
-  <Card title="What makes a good goal" icon="target" href="/docs/what-makes-a-good-goal">
-    The one file the board asks you to write. Every proposal it makes is judged
-    against it, so what you put there decides what gets suggested next.
-  </Card>
-  <Card title="The daily loop" icon="repeat" href="/docs/daily-loop">
-    The rhythm once the board exists — what to say to pick work, refine a card
-    and build it, and which button does the same thing.
-  </Card>
-</CardGroup>
-
-## Then pick your tooling
-
-<CardGroup cols={2}>
-  <Card title="What each coding agent can do" icon="cpu" href="/docs/connectors">
-    Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode
-    and Grok Build all do the work. What differs is what they report back, and
-    what a run may touch.
-  </Card>
-  <Card title="Recipes" icon="package" href="/recipes">
-    Ready-made recurring tasks you add to your board in one prompt — memory
-    pruning, competitor analysis, and more.
-  </Card>
-</CardGroup>
 
 ## Where the rest lives
 
