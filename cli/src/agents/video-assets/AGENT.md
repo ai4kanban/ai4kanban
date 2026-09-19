@@ -25,8 +25,9 @@ Use the first available source for each file:
 4. **Create**: capture the running product with existing tools, or generate sound as below.
 5. **Human**: list anything you cannot prepare, including failed captures or unclear rights.
 
-- **Full frame**: capture the whole frame in the script's format; storyboard changes recrop
-  the capture instead of requiring a new one.
+- **Camera focus**: frame each shot around its action and result; reserve wide views for
+  context. Deliver readable focused clips and keep full-frame originals for later recropping.
+  Record crop targets and timing for storyboard-designer; do not apply the same zoom everywhere.
 - **Interaction clips**: a shot that shows a click, typing, scrolling or dragging needs a clip,
   not a still. Write its start state, actions and expected visible result, then record the
   running product with demo data through existing browser automation or screen recording,
@@ -54,7 +55,9 @@ for unchanged copies. Check other assets before marking them ready:
 - **Quality**: inspect visuals for the required resolution and screen state; listen for clear
   audio with consistent levels and no clipping.
 - **Interaction clips**: play each clip back and check frames through it; the start state,
-  every action and the result must be visible, complete and smooth.
+  every action and the result must be visible, complete and smooth. Check at intended playback
+  size: key text, controls and the pointer must be readable, stay in frame and clear captions.
+  Unfocused full-screen footage is not ready; reframe or recapture it.
 - **Source and rights**: record the source and usage rights; unclear rights mean not ready.
 
 For every selected asset:
