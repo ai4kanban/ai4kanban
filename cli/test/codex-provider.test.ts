@@ -32,12 +32,14 @@ function board(settings: Record<string, unknown> = {}, env = ''): void {
 const argv = (): string[] => planRun('s1', root).argv
 const runEnv = (): NodeJS.ProcessEnv => openPlan(planRun('s1', root)).env
 
+const QUIET = ['check_for_update_on_startup=false', 'notice.hide_rate_limit_model_nudge=true']
+
 /** The `-c` overrides one run carries, as `key=value`, so an assertion reads like the
- *  config it writes rather than like a walk over argv. The sandbox's own overrides are left
- *  out: they ride with the sandbox the board picks, not with a provider or a setting, and
- *  `the sandbox` below is where they are asked about. */
+ *  config it writes rather than like a walk over argv. The sandbox's overrides and the
+ *  startup defaults are left out; their own blocks below ask about them. */
 const overrides = (): string[] =>
-  argv().flatMap((tok, i) => (argv()[i - 1] === '-c' && !tok.startsWith('sandbox_') ? [tok] : []))
+  argv().flatMap((tok, i) =>
+    argv()[i - 1] === '-c' && !tok.startsWith('sandbox_') && !QUIET.includes(tok) ? [tok] : [])
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-codex-provider-'))
@@ -66,7 +68,7 @@ describe('the ChatGPT subscription', () => {
   // exec` a bare word it reads as a subcommand, and the run would exit before it started.
   it('puts neither the pick nor its name on the command line', () => {
     board({ provider: 'subscription' })
-    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox'])
+    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox', '-c', 'check_for_update_on_startup=false', '-c', 'notice.hide_rate_limit_model_nudge=true'])
   })
 
   it('never carries a key, not even one the board holds', () => {
@@ -127,7 +129,8 @@ describe('the endpoint address', () => {
 describe('the reasoning effort', () => {
   it('rides on Codex’s own config flag', () => {
     board({ reasoning: 'xhigh' })
-    assert.deepEqual(argv().slice(-2), ['-c', 'model_reasoning_effort=xhigh'])
+    const at = argv().indexOf('model_reasoning_effort=xhigh')
+    assert.equal(argv()[at - 1], '-c', argv().join(' '))
   })
 
   it('is left out entirely on the agent’s default', () => {
@@ -161,7 +164,7 @@ describe('the sandbox', () => {
 
   it('is added to a command that names none', () => {
     board({ command: 'codex exec' })
-    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox'])
+    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox', '-c', 'check_for_update_on_startup=false', '-c', 'notice.hide_rate_limit_model_nudge=true'])
   })
 
   it('reads a saved former default as the default', () => {
@@ -170,8 +173,31 @@ describe('the sandbox', () => {
       'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
     ]) {
       board({ command })
-      assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox'])
+      assert.deepEqual(argv(), ['codex', 'exec', '--json', '--dangerously-bypass-approvals-and-sandbox', '-c', 'check_for_update_on_startup=false', '-c', 'notice.hide_rate_limit_model_nudge=true'])
     }
+  })
+})
+
+// Either prompt would stall an unattended pane.
+describe('the startup prompts', () => {
+  it('are turned off on fresh and resumed runs alike', () => {
+    board()
+    for (const run of [planRun('s1', root), planResume('codex', 's1', root)]) {
+      assert.ok(run)
+      for (const config of QUIET) {
+        assert.equal(run.argv[run.argv.indexOf(config) - 1], '-c', run.argv.join(' '))
+      }
+    }
+  })
+
+  it('reach a hand-written command too', () => {
+    board({ command: 'codex exec --json --sandbox read-only' })
+    assert.ok(QUIET.every((config) => argv().includes(config)), argv().join(' '))
+  })
+
+  it('leave a command that names one of them alone', () => {
+    board({ command: 'codex exec -c check_for_update_on_startup=true --config notice.hide_rate_limit_model_nudge=false' })
+    assert.ok(!argv().some((tok) => QUIET.includes(tok)), argv().join(' '))
   })
 })
 

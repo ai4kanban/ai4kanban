@@ -25,6 +25,10 @@ import { namesFlag, type Harness } from './types'
 //
 // `--skip-git-repo-check` only outside a git repo: Codex refuses to start in an untrusted
 // folder that isn't one, and a board works without git.
+//
+// No update check and no rate-limit model nudge: either prompt stalls an unattended pane.
+const QUIET_CONFIG = ['check_for_update_on_startup=false', 'notice.hide_rate_limit_model_nudge=true']
+
 function codexExtraArgs(argv: string[], cwd = REPO_ROOT): string[] {
   const extra: string[] = []
   if (!namesFlag(argv, ['--json', '--experimental-json'])) extra.push('--json')
@@ -34,6 +38,9 @@ function codexExtraArgs(argv: string[], cwd = REPO_ROOT): string[] {
   const sandboxFlags = ['--sandbox', '-s', '--full-auto', '--dangerously-bypass-approvals-and-sandbox']
   if (!namesFlag(argv, sandboxFlags)) {
     extra.push('--dangerously-bypass-approvals-and-sandbox')
+  }
+  for (const config of QUIET_CONFIG) {
+    if (!namesFlag(argv, [config.split('=')[0]!])) extra.push('-c', config)
   }
   const flags = [...argv, ...extra]
   const workspaceWrite = flags.some((arg, i) =>
