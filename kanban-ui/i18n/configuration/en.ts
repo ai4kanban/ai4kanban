@@ -182,7 +182,6 @@ const en: ConfigurationCopy = {
 
     runtime: "Runtime",
     boardsOwn: "the board's",
-    runtimeBlurb: "The CLI and model its runs are done by.",
     openRuntimes: "Manage runtimes",
     unknownHarness: (runtime) => `Set to "${runtime}", which this board no longer has.`,
     harnessFailed: (agent) => `couldn't save what ${agent} runs`,
@@ -400,8 +399,6 @@ const en: ConfigurationCopy = {
     },
     saved: "Saved",
     ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,
-    remembers: "Memory",
-    remembersHint: "It keeps what you corrected and what you chose, and reads it before its next answer.",
     file: "AGENT.md",
     fileLabel: (agent) => `${agent}'s AGENT.md`,
     notSaved: "Not saved —",

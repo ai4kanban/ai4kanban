@@ -280,7 +280,6 @@ const zh: ConfigurationCopy = {
 
     runtime: "运行时",
     boardsOwn: "看板的",
-    runtimeBlurb: "它的运行用哪个 CLI 和模型。",
     openRuntimes: "管理运行时",
     unknownHarness: (runtime) => `设成了「${runtime}」，这个看板已经没有这一行了。`,
     harnessFailed: (agent) => `未能保存 ${agent} 用什么跑`,
@@ -492,8 +491,6 @@ const zh: ConfigurationCopy = {
     },
     saved: "已保存",
     ruleFailed: (agent) => `${agent} 的要求保存失败`,
-    remembers: "记忆",
-    remembersHint: "它会记下你的更正和选择，下次作答前先读一遍。",
     file: "AGENT.md",
     fileLabel: (agent) => `${agent} 的 AGENT.md`,
     notSaved: "未保存——",

@@ -36,7 +36,6 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiClock,
-  FiFolder,
   FiPlus,
   FiRotateCcw,
   FiScissors,
@@ -93,7 +92,6 @@ import {
   FLAT_CONTROL,
   Loading,
   Note,
-  Panel,
   QUIET_BTN,
   Switch,
 } from "./settings";
@@ -808,7 +806,7 @@ function NewRow({
 // --- the page beside the column ----------------------------------------------
 
 // Everything the selected agent is, as one screen: who it is and its switch across the top,
-// then the settings it declares, the one box you write in, and what it remembers.
+// then the settings it declares and the one box you write in.
 //
 // Which box depends on whose the agent is. A bundled agent's prompt ships inside the
 // command, so what you write for it is an instruction appended to the end of its every run.
@@ -1009,11 +1007,7 @@ function Page({
           {agent.runs && (
             <SettingRow
               label={c.runtime}
-              help={
-                agent.runs.unknownRuntime
-                  ? c.unknownHarness(agent.runs.unknownRuntime)
-                  : c.runtimeBlurb
-              }
+              help={agent.runs.unknownRuntime && c.unknownHarness(agent.runs.unknownRuntime)}
               control={
                 <RuntimePick
                   agent={agent}
@@ -1113,8 +1107,6 @@ function Page({
           {role.note}
         </p>
       )}
-
-      {agent.memory.length > 0 && <MemoryRow />}
     </div>
   );
 }
@@ -1331,25 +1323,6 @@ function SettingPick({
         </Select>
       }
     />
-  );
-}
-
-// --- what an agent remembers --------------------------------------------------
-
-// One line saying the agent remembers, and what that buys the next answer. What it keeps is
-// its own and read-only, so there is nothing here to open.
-function MemoryRow() {
-  const c = useCopy().configuration.agents;
-  return (
-    <Panel>
-      <div className="flex items-start gap-2.5 py-3">
-        <FiFolder size={14} aria-hidden className="mt-[2px] shrink-0 text-nb-ink-soft" />
-        <div className="min-w-0">
-          <span className="text-[13px] font-[700] text-nb-ink">{c.remembers}</span>
-          <p className="mt-0.5 text-[12px] leading-snug text-nb-ink-soft">{c.remembersHint}</p>
-        </div>
-      </div>
-    </Panel>
   );
 }
 

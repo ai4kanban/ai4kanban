@@ -273,9 +273,6 @@ export type ConfigurationCopy = {
     /** The right-end note on the list's first entry — an agent that named none runs
      *  Global default. Every other row notes its model id there. */
     boardsOwn: string;
-    /** Beside the label: what a runtime is, so the row is a sentence and a control rather
-     *  than a word and a gap. */
-    runtimeBlurb: string;
     /** The link across to Configuration → Runtimes, under the runtime control. */
     openRuntimes: string;
     /** The runtime the board holds for this agent is one it no longer has. */
@@ -366,9 +363,6 @@ export type ConfigurationCopy = {
     };
     saved: string;
     ruleFailed: (agent: string) => string;
-    /** The memory row, and how many paths the agent declares. */
-    remembers: string;
-    remembersHint: string;
     file: string;
     fileLabel: (agent: string) => string;
     /** Before the board's own reason a save was refused. */
