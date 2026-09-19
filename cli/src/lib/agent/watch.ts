@@ -20,6 +20,8 @@ import { boardComplaints } from '../reconcile'
 import { tickedSetupSteps } from '../setup'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
 import { withStore } from './store'
+import { cleanupDiscardedCards } from '../../commands/remove'
+import { discardedCardsPrompt } from './prompts'
 import { contextLimit, refreshCatalog } from './catalog'
 import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
@@ -175,7 +177,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // agent's name, never a key, and this is the one moment one is needed.
   const active = openPlan(spec.plan)
   // Resume the recorded action, not another phase of the same delivery.
-  const prompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId, record.action), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
+  const basePrompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId, record.action), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
+  const prompt = [basePrompt, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n')
 
   // The board as it was the moment before the agent touched it. The difference between this
   // and the same read at the close is what this run could be answerable for; which of it
@@ -226,7 +229,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // client can restart — a printing agent resumes on its own command line — and nothing
   // comes back for a run whose ask can no longer be written down, which ends on a dead
   // session exactly as it always did.
-  const restart = client && record.resumedFrom && !record.formatRepair ? restartPrompt(requestOf(record), record.deliveryId) : undefined
+  const restartBase = client && record.resumedFrom && !record.formatRepair ? restartPrompt(requestOf(record), record.deliveryId) : undefined
+  const restart = restartBase ? [restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n') : undefined
   // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
   // for a conversation and closed for a command that only prints.
   const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
@@ -455,6 +459,9 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       let formatErrors: ReturnType<typeof validateRunSpecs> = []
       if (!takenOver) {
         try {
+          const discarded = new Set(cleanupDiscardedCards(sessionId))
+          for (const [file, card] of sources) if (discarded.has(card.id)) sources.delete(file)
+          for (const id of discarded) required.delete(id)
           const current = snapshotSpecs()
           const onBoard = (id: number): boolean => [...current.values()].some((card) => card.id === id)
           // A card off the board is missing only if it did not leave the way a finished card
@@ -463,7 +470,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           // kept out of `required`, so no format repair is ever asked to restore them.
           const departed = new Set<number>()
           const missing = (id: number): boolean => {
-            if (onBoard(id)) return false
+            if (discarded.has(id) || onBoard(id)) return false
             if (leftBoardOnLanding(id)) {
               departed.add(id)
               return false
@@ -522,7 +529,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // What this run changed, taken now and taken once (agent/refine.ts). Every ending
       // claims, a failure included: a half-written card is not a card to refine, but leaving
       // its edits unclaimed would hand them to whichever run closes next.
-      const changed = [...new Set([...(record.formatRepair?.changedIds ?? []), ...claimChanges(before, sessionId)])]
+      const changed = [...new Set([...(record.formatRepair?.changedIds ?? []), ...claimChanges(before, sessionId)])].filter((id) => !peekRun(sessionId)?.discardedCards?.some((c) => c.id === id))
       const original = record.formatRepair ? new Map(record.formatRepair.existingIds.map((id) => [id, ''])) : before
       patch(sessionId, (r) => {
         r.formatRepair = contractError ? {
@@ -962,6 +969,7 @@ function requestOf(record: RunRecord): AgentRequest {
   const id = record.cardId ?? undefined
   return {
     action: record.action,
+    discard: record.discard,
     id,
     // A run with no card is named by its delivery (#428), and the sentence it was given is
     // what the record kept as its input — together they are its whole ask.

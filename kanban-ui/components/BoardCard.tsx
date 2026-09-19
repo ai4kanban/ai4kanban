@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { FiClipboard, FiHelpCircle, FiPlay, FiSkipForward } from "react-icons/fi";
+import { useContext, useEffect, useRef, useState } from "react";
+import { FiClipboard, FiHelpCircle, FiPlay, FiSkipForward, FiTrash2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
@@ -12,6 +12,8 @@ import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { sessionsPanel } from "./sessions";
 import { Button } from "./button";
+import { Dialog } from "./Dialog";
+import { BoardRefreshContext } from "@/lib/board-refresh";
 import { cardOpen } from "@/lib/card-open";
 import {
   BlockedChip,
@@ -74,7 +76,7 @@ export function BoardCard({
   // Not finished being created (#564): a different card entirely, and the branch is taken
   // before anything below reads a field the creator has not written yet.
   if (card.creation) {
-    return <BeingCreatedCard card={card} creation={card.creation} creator={creator} />;
+    return <BeingCreatedCard card={card} creation={card.creation} creator={creator} liveSession={liveSession} />;
   }
   return (
     <Link
@@ -242,9 +244,11 @@ function BeingCreatedCard({
   card,
   creation,
   creator,
+  liveSession,
 }: {
   card: Card;
   creation: CardCreation;
+  liveSession?: SessionView;
   creator?: SessionView;
 }) {
   const c = useCopy().board.card.creating;
@@ -253,7 +257,6 @@ function BeingCreatedCard({
     <div
       className="nb-inset flex flex-col rounded-[13px] p-3"
       style={{ background: "var(--color-nb-wash)" }}
-      aria-disabled
     >
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <span className="shrink-0 text-[11.5px] font-[800] text-nb-ink-soft">#{card.id}</span>
@@ -272,51 +275,99 @@ function BeingCreatedCard({
           <span className="a4k-creating-line w-[58%]" />
         </div>
       ) : (
-        <ResumeCreation creator={creator} />
+        <CreationActions card={card} creator={creator} liveSession={liveSession} />
       )}
     </div>
   );
 }
 
-// The one thing you can press on such a card, and the reason it lives here: the card has no
-// page, so the way to pick its creator back up has nowhere else to be (#564).
-//
-// Drawn only when the record still has that run to continue — a creator too old to resume,
-// or one this board can no longer start, leaves the line and no button rather than a control
-// that would refuse.
-function ResumeCreation({ creator }: { creator?: SessionView }) {
+function CreationActions({ card, creator, liveSession }: { card: Card; creator?: SessionView; liveSession?: SessionView }) {
   const c = useCopy().board.card.creating;
   const actions = useActions();
+  const refresh = useContext(BoardRefreshContext);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  const [confirming, setConfirming] = useState(false);
+  const [discardRun, setDiscardRun] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const locked = busy || !!discardRun || !!liveSession;
   const canResume = !!actions && !!creator?.canResume;
 
+  useEffect(() => {
+    if (!actions || !discardRun) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const session = await actions.getSession(discardRun);
+        const exists = await actions.cardOnBoard(card.id);
+        if (cancelled) return;
+        if (!exists) {
+          await refresh();
+          setConfirming(false);
+          setDiscardRun(null);
+        } else if (!session || session.status !== "running") {
+          setError(c.discardFailed);
+          setDiscardRun(null);
+          await refresh();
+        } else timer = setTimeout(() => void poll(), 750);
+      } catch {
+        if (!cancelled) timer = setTimeout(() => void poll(), 1500);
+      }
+    };
+    void poll();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [actions, card.id, discardRun, refresh, c.discardFailed]);
+
   const resume = async () => {
-    if (!actions || !creator || busy) return;
+    if (!actions || !creator || locked || submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError(null);
-    const res = await actions.resumeSession(creator.sessionId);
-    setBusy(false);
-    // The run that carries on is read where every run is read — the runs dialog, opened on
-    // it (#753). This card has no page of its own to follow it to.
-    if (res.ok && res.sessionId) sessionsPanel.select(res.sessionId);
-    else setError(res.error || c.resumeFailed);
+    try {
+      const res = await actions.resumeSession(creator.sessionId);
+      if (res.ok && res.sessionId) {
+        sessionsPanel.select(res.sessionId);
+        await refresh();
+      } else setError(res.error || c.resumeFailed);
+    } catch { setError(c.resumeFailed); }
+    finally { submitting.current = false; setBusy(false); }
+  };
+
+  const discard = async () => {
+    if (!actions || locked || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await actions.startAgent({ action: "reject", id: card.id, discard: true });
+      if (res.ok && res.sessionId) setDiscardRun(res.sessionId);
+      else setError(c.discardFailed);
+    } catch { setError(c.discardFailed); }
+    finally { submitting.current = false; setBusy(false); }
   };
 
   return (
-    <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-      {canResume && (
-        <Button
-          size="sm"
-          onClick={() => void resume()}
-          disabled={busy}
-          className="gap-1.5 rounded-[8px] px-2 py-1 text-[11.5px] font-[700]"
-        >
-          <FiPlay className="text-[12px]" aria-hidden />
-          {busy ? c.resuming : c.resume}
-        </Button>
-      )}
-      <span className="text-[10.5px] text-nb-ink-soft">{error ?? c.stopped}</span>
+    <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-2">
+      {canResume && <Button size="sm" onClick={() => void resume()} disabled={locked}
+        className="gap-1.5 rounded-[8px] px-2 py-1 text-[11.5px] font-[700] max-md:min-h-11">
+        <FiPlay className="text-[12px]" aria-hidden />{busy && !confirming ? c.resuming : c.resume}
+      </Button>}
+      {actions && <Button variant="ghost" size="sm" disabled={locked}
+        onClick={() => { setError(null); setConfirming(true); }}
+        className="gap-1.5 rounded-[8px] px-2 py-1 text-[11.5px] font-[700] text-nb-peach-ink max-md:min-h-11">
+        <FiTrash2 className="text-[12px]" aria-hidden />{c.discard}
+      </Button>}
+      {error && !confirming && <p role="alert" className="w-full text-[12px] text-nb-peach-ink">{error}</p>}
+      {confirming && <Dialog title={c.discardTitle(card.id)} onClose={() => { if (!locked) setConfirming(false); }} width={440}>
+        <p className="text-[13px] font-[700] break-words">{card.title}</p>
+        <p className="mt-2 text-[13px] text-nb-ink-soft">{card.isGroup ? c.discardGroup(card.subtasks?.length ?? 0) : c.discardBody}</p>
+        {error && <p role="alert" className="mt-3 rounded-[8px] bg-nb-peach-soft p-3 text-[13px] text-nb-peach-ink">{error}</p>}
+        <div className="mt-auto flex justify-end gap-2 pt-5">
+          <Button variant="ghost" disabled={locked} onClick={() => setConfirming(false)}>{c.cancel}</Button>
+          <Button variant="accent" disabled={locked} onClick={() => void discard()}>{locked ? c.discarding : error ? c.retry : c.discard}</Button>
+        </div>
+      </Dialog>}
     </div>
   );
 }

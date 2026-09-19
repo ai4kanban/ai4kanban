@@ -52,6 +52,7 @@ import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampMemoryPrune, stampMemoryReview } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
+import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing } from './chat'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
@@ -558,6 +559,7 @@ function lockedBy(
   release?: string,
   /** This run is a delivery's own work being carried on. The discussion hold lets it by. */
   inDelivery = false,
+  discard = false,
 ): string | undefined {
   // A specialist is out of that rule at both ends (`holdsCard`): it fills one section, never
   // the plan, so it neither takes the card nor waits for one. Two agents may work a card —
@@ -572,7 +574,8 @@ function lockedBy(
   // A card its creator has not finished writing takes no run at all (#564) — not the
   // specialists either, since a section written onto half a plan answers the wrong plan.
   if (cardId !== null) {
-    const refusal = creationRefusal(cardId, creationOf(runs, cardId), action)
+    if (!(action === 'reject' && discard) && runs.some((r) => r.discardedCards?.some((c) => c.id === cardId))) return `#${cardId} was discarded. Do not restore or recreate it.`
+    const refusal = creationRefusal(cardId, creationOf(runs, cardId), action, action === 'reject' && discard)
     if (refusal) return refusal
   }
   // A card whose own chat is writing a reply takes none of the runs that act on what it says
@@ -738,6 +741,7 @@ export function openRun(
     sessionId,
     cardId,
     action: req.action,
+    discard: req.discard,
     status: 'running',
     startedAt: Date.now(),
     input: runInput(req),
@@ -776,8 +780,8 @@ export function openRun(
     // after a build names none: it is the default, and the row says so by saying nothing.
     trigger: req.action === 'review' ? req.trigger : undefined,
   }
-  const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
-    const locked = lockedBy(store.runs, req.action, cardId, req.release)
+  const out = withCreationLock(() => withStore<{ run: RunRecord } | { error: string }>((store) => {
+    const locked = lockedBy(store.runs, req.action, cardId, req.release, false, req.discard)
     if (locked) return { error: locked }
     store.runs.push(record)
     // A delivery's own runs belong to a delivery — the one already in flight on this
@@ -798,7 +802,7 @@ export function openRun(
       }
     }
     return { run: record }
-  })
+  }))
   if ('error' in out) {
     // Refused after the delivery was got ready — take its worktree back rather than leave
     // a checkout behind for a delivery that never started.
@@ -866,6 +870,8 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     sessionId,
     cardId: prev.cardId,
     createdCardIds: prev.createdCardIds,
+    discard: prev.discard,
+    discardedCards: prev.discardedCards,
     action: prev.action,
     status: 'running',
     startedAt: Date.now(),
@@ -897,9 +903,24 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     // for existing (#417).
     trigger: prev.trigger,
   }
-  const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
+  const out = withCreationLock(() => withStore<{ run: RunRecord } | { error: string }>((store) => {
     const all = store.runs
-    const locked = lockedBy(all, prev.action, prev.cardId, prev.input, resuming?.status === 'active')
+    const latest = all.find((r) => r.sessionId === prev.sessionId)
+    if (!latest) return { error: 'that run has already been continued' }
+    if (latest.discardedCards?.some((c) => c.pending || locate(c.id))) return { error: 'A card discard did not finish. Retry discarding it before resuming creation.' }
+    record.discardedCards = latest.discardedCards
+    const discarded = new Set(record.discardedCards?.map((c) => c.id) ?? [])
+    if (record.formatRepair && discarded.size) {
+      const repair = record.formatRepair
+      repair.cardIds = repair.cardIds.filter((id) => !discarded.has(id))
+      repair.changedIds = repair.changedIds.filter((id) => !discarded.has(id))
+      repair.existingIds = repair.existingIds.filter((id) => !discarded.has(id))
+      repair.errors = repair.errors.split('\n').filter((line) => !record.discardedCards!.some((c) => line.includes(c.path) || new RegExp(`Task #${c.id}(?![0-9])`).test(line))).join('\n')
+      if (!repair.cardIds.length) record.formatRepair = undefined
+    }
+    const heldCreation = all.find((r) => runIsLive(r) && (r.cardId !== null && (latest.createdCardIds ?? []).includes(r.cardId) || (r.createdCardIds ?? []).some((id) => (latest.createdCardIds ?? []).includes(id))))
+    if (heldCreation) return { error: 'A card from this creation is already being worked on. Wait for that run to finish.' }
+    const locked = lockedBy(all, prev.action, prev.cardId, prev.input, resuming?.status === 'active', prev.discard)
     if (locked) return { error: locked }
     all.push(record)
     // Resume carries the DELIVERY on, rather than starting a second one: one delivery id
@@ -921,7 +942,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     const at = all.findIndex((r) => r.sessionId === prev.sessionId)
     if (at >= 0) all.splice(at, 1)
     return { run: record }
-  })
+  }))
   if ('error' in out) {
     await dropRunCard(sessionId)
     return out
@@ -1043,7 +1064,8 @@ function readAsks(sessionId: string): AsksFile {
     }]
   })
   const refused = (Array.isArray(raw.refused) ? raw.refused : []).filter((line): line is string => typeof line === 'string')
-  return { asks, refines, refused }
+  const discarded = new Set(peekRun(sessionId)?.discardedCards?.map((c) => c.id) ?? [])
+  return { asks: asks.filter((a) => !discarded.has(a.cardId)), refines: refines.filter((a) => !discarded.has(a.cardId)), refused }
 }
 
 const validRefineEffort = (value: unknown): RefineEffort | undefined =>

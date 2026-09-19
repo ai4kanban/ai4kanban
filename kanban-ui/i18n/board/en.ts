@@ -47,6 +47,14 @@ const en: BoardCopy = {
     verify: (n) => `${n} to check by hand`,
     decided: (n) => `${n} answered for you`,
     creating: {
+      discard: "Discard",
+      discarding: "Discarding…",
+      discardTitle: (id) => `Discard #${id}?`,
+      discardBody: "This removes the unfinished card from the board without recording a rejection reason.",
+      discardGroup: (count) => `This removes this group and its ${count} child cards from the board without recording a rejection reason.`,
+      discardFailed: "Discard failed. The card is still on the board. Try again.",
+      cancel: "Cancel",
+      retry: "Try again",
       mark: "creating",
       markHint: "Being created — it opens once its creator finishes",
       unfinished: "unfinished",
@@ -54,7 +62,6 @@ const en: BoardCopy = {
       resume: "Resume creating",
       resuming: "Resuming…",
       resumeFailed: "could not pick that run back up",
-      stopped: "the last run stopped short",
     },
   },
   create: {

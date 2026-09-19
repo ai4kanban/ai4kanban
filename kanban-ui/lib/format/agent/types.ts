@@ -328,6 +328,8 @@ export interface RunRecord {
   /** Cards this run created through `akb raw create`. A cardless creation run holds these
    *  until it closes, so an overlapping run cannot adopt and refine its half-written cards. */
   createdCardIds?: number[]
+  discard?: boolean
+  discardedCards?: { id: number; path: string; pending?: boolean }[]
   action: AgentAction
   status: RunStatus
   startedAt: number

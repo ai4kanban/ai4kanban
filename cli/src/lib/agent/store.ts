@@ -20,7 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { pidAlive, withLock } from '../lock'
-import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
+import { die, SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { insideRun } from './env'
 import { asContext, asUsage } from './log'
 import { holdsCard } from './types'
@@ -137,6 +137,8 @@ export function readStore(): Store {
       createdCardIds: Array.isArray(entry.createdCardIds)
         ? [...new Set(entry.createdCardIds.filter((id): id is number => Number.isInteger(id) && id > 0))]
         : undefined,
+      discard: entry.discard === true || undefined,
+      discardedCards: Array.isArray(entry.discardedCards) ? entry.discardedCards.filter((c) => Number.isInteger(c?.id) && typeof c.path === 'string').map((c) => ({ id: c.id, path: c.path, ...(c.pending ? { pending: true } : {}) })) : undefined,
       action: readAction(entry.action),
       status: asStatus(entry.status),
       startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
@@ -325,8 +327,11 @@ export const creationOf = (runs: RunRecord[], cardId: number): CardCreation | un
  * `lockedBy` takes the strict reading instead: nothing may SPAWN an agent on such a card,
  * and a run never spawns another anyway.
  */
-export const cardCreation = (cardId: number): CardCreation | undefined => {
-  const state = creationOf(readRuns(), cardId)
+export const cardCreation = (cardId: number, strict = false): CardCreation | undefined => {
+  const runs = readRuns()
+  if (!strict && runs.some((r) => r.discardedCards?.some((c) => c.id === cardId))) die(`#${cardId} was discarded. Do not restore or recreate it.`, { kind: 'card-being-created' })
+  const state = creationOf(runs, cardId)
+  if (strict) return state
   return state && state.runId === insideRun() ? undefined : state
 }
 
@@ -731,7 +736,7 @@ function prune(runs: RunRecord[], deliveries: DeliveryRecord[]): RunRecord[] {
     .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, KEEP_RUNS)
   const spared = runs.filter(
-    (r) => r.status !== 'running' && !finished.includes(r) && r.deliveryId && held.has(r.deliveryId),
+    (r) => r.status !== 'running' && !finished.includes(r) && (!!r.discardedCards?.length || (r.deliveryId && held.has(r.deliveryId))),
   )
   return [...live, ...finished, ...spared].sort((a, b) => a.startedAt - b.startedAt)
 }

@@ -64,13 +64,17 @@ export type BoardCopy = {
       /** …and the same card once its creator stopped short. */
       unfinished: string;
       unfinishedHint: string;
-      /** The one control such a card carries: pick its creator back up. There is no page
-       *  to offer it on, so it lives on the card. */
       resume: string;
       resuming: string;
       resumeFailed: string;
-      /** The line beside it, saying what went wrong. */
-      stopped: string;
+      discard: string;
+      discarding: string;
+      discardTitle: (id: number) => string;
+      discardBody: string;
+      discardGroup: (count: number) => string;
+      discardFailed: string;
+      cancel: string;
+      retry: string;
     };
   };
   create: {

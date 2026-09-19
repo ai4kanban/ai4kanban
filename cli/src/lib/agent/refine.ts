@@ -123,7 +123,9 @@ export function claimChanges(before: BoardMarks, sessionId: string): number[] {
       // Rebuilt from the board rather than merged into, so a card that has been archived or
       // rejected takes its mark with it.
       const marks: Record<string, string> = {}
+      const discarded = new Set(store.runs.flatMap((r) => r.discardedCards?.map((c) => c.id) ?? []))
       for (const [id, mark] of now) {
+        if (discarded.has(id)) continue
         const seen = store.marks[String(id)]
         const mine = !held.has(id) && before.get(id) !== mark && seen !== mark
         if (mine) claimed.push(id)

@@ -69,7 +69,7 @@ export async function cmdStartRun(
   // started below. `cardCreation` lets the creating run itself through, which is what keeps
   // a create that goes on to refine its own card working.
   if (Number.isInteger(req.id)) {
-    const creating = creationRefusal(req.id as number, cardCreation(req.id as number), action)
+    const creating = creationRefusal(req.id as number, cardCreation(req.id as number, req.discard === true), action, req.discard === true)
     if (creating) die(creating, { kind: 'card-being-created', action })
   }
   // The cards an unstick will not judge (#118). Read before anything starts or prints: a

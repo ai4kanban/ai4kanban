@@ -9,10 +9,13 @@ import path from 'node:path'
 
 import { clearChat } from '../lib/agent/chat'
 import { heldByDelivery } from '../lib/agent/deliveries'
-import { cardCreation } from '../lib/agent/store'
+import { cardCreation, creationOf, readRuns, runIsLive, withStore } from '../lib/agent/store'
+import { insideRun } from '../lib/agent/env'
+import { withCreationLock } from '../lib/agent/creation-lock'
+import { withBoardLock } from '../lib/lock'
 import { creationRefusal } from '../lib/view/rules'
 import { formatDay } from '../lib/cadence'
-import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, MOCKUPS, KANBAN } from '../lib/paths'
+import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, MOCKUPS, KANBAN, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
@@ -200,17 +203,20 @@ export interface RemoveOptions {
    *  memory. Clearing the backlog is not a conclusion worth keeping, so the receipt asks for
    *  no note and names no `rejected.md`. The mentions still have to be rewritten. */
   discard?: boolean
+  cleanupDiscarded?: boolean
 }
 
 export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {}): MoveResult {
+  return withCreationLock(() => removeCard(id, metric, options))
+}
+
+function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveResult {
   if (!Number.isInteger(id)) die('need a numeric task id')
   // A card with a delivery in flight doesn't leave the board under it — except at the hands
   // of the delivery itself, whose last step is archiving the card it just built.
   const held = heldByDelivery(id)
   if (held) die(held, { kind: 'card-held' })
-  // …and a card its creator has not finished writing doesn't leave the board either (#564):
-  // nothing has read a plan yet, so neither shipping it nor dropping it is a call to make.
-  const creating = creationRefusal(id, cardCreation(id), metric === 'completed' ? 'archive' : 'reject')
+  const creating = options.cleanupDiscarded ? null : creationRefusal(id, cardCreation(id, options.discard === true), metric === 'completed' ? 'archive' : 'reject', metric === 'rejected' && options.discard === true)
   if (creating) die(creating, { kind: 'card-being-created' })
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
@@ -233,17 +239,35 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
       : []
   // Read while the group's folder is still there; the folders themselves go after the move.
   const mockupIds = leavingIds(id, found)
-  const removedRefs = stripReadmeRefs(found)
+  const leaving = leavingCards(id, found)
+  if (options.discard && !options.cleanupDiscarded) {
+    const runs = readRuns()
+    for (const card of leaving) {
+      const refusal = creationRefusal(card.id, creationOf(runs, card.id), 'reject', true) || heldByDelivery(card.id)
+      if (refusal) die(refusal, { kind: 'card-being-created' })
+      if (runs.some((r) => r.sessionId !== insideRun() && runIsLive(r) && (r.cardId === card.id || r.createdCardIds?.includes(card.id)))) {
+        die(`#${card.id} is still being worked on. Wait for that run to finish.`, { kind: 'card-held' })
+      }
+    }
+    withStore((store) => {
+      for (const run of store.runs) {
+        if (!leaving.some((c) => run.createdCardIds?.includes(c.id))) continue
+        const marks = new Map((run.discardedCards ?? []).map((c) => [c.id, c]))
+        for (const c of leaving) marks.set(c.id, { id: c.id, path: rel(c.file), pending: true })
+        run.discardedCards = [...marks.values()]
+      }
+    })
+  }
+  // Persist the resume decision before deleting; a remaining card keeps resume blocked.
+  if (options.discard) withStore((store) => {
+    for (const run of store.runs) for (const card of run.discardedCards ?? []) {
+      if (mockupIds.includes(card.id)) delete card.pending
+    }
+  })
   // A subtask's fate is reflected in its group's root.md ## Todo, so the tracking card
   // stays accurate after the subtask file is gone: archive ticks it done, reject strikes
   // it out. Warn if the subtask isn't listed there, so the stale checklist gets noticed.
   const groupRoot = found.kind === 'file' && !options.closing ? enclosingGroupRoot(found.target) : null
-  let marked: 'tick' | 'strike' | null = null
-  if (groupRoot) {
-    const action = metric === 'completed' ? 'tick' : 'strike'
-    if (markSubtask(groupRoot, id, action)) marked = action
-    else warn(`#${id} isn't listed in ${rel(groupRoot)} ## Todo — nothing to ${action === 'tick' ? 'tick off' : 'strike out'}.`)
-  }
   // The last write the cards get, and it has to happen before the move: after it there is
   // no card under `todo/` left to write. A reject gets none — the file is about to be
   // deleted.
@@ -256,12 +280,19 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   } else {
     fs.rmSync(found.target)
   }
+  const removedRefs = stripReadmeRefs(found)
+  let marked: 'tick' | 'strike' | null = null
+  if (groupRoot) {
+    const action = metric === 'completed' ? 'tick' : 'strike'
+    if (markSubtask(groupRoot, id, action)) marked = action
+    else warn(`#${id} isn't listed in ${rel(groupRoot)} ## Todo — nothing to ${action === 'tick' ? 'tick off' : 'strike out'}.`)
+  }
   // The card is off the board now, so every blocked_by/related pointing at it is stale.
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
-  const unlinked = dropCrossRefs(id)
+  const unlinked = [...new Set(mockupIds.flatMap((gone) => dropCrossRefs(gone)))]
   const droppedMockups = dest ? [] : dropMockups(mockupIds)
   const droppedChats = dropChats(mockupIds)
-  bumpMetric(metric)
+  if (!options.cleanupDiscarded) bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   if (dest) say(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
   else if (options.discard) say(`discarded #${id}: removed ${what} — no memory written`)
@@ -432,4 +463,20 @@ function printEpitaph(id: number, relPath: string, text: string, alsoRemoved: st
     for (const f of alsoRemoved) say(`    ${f}`)
     say('    (in git history — `git show HEAD:<path>`)')
   }
+}
+
+/** Remove files an old conversation wrote back, without counting a second rejection. */
+export function cleanupDiscardedCards(sessionId: string): number[] {
+  const discarded = readRuns().find((r) => r.sessionId === sessionId)?.discardedCards ?? []
+  return withBoardLock(() => {
+    for (const card of discarded) {
+      if (card.pending) throw new Error(`Discarding #${card.id} did not finish. Retry the discard.`)
+      while (locate(card.id)) cmdRemove(card.id, 'rejected', { discard: true, cleanupDiscarded: true })
+      dropCrossRefs(card.id)
+      stripReadmeRefs({ kind: 'file', rel: path.relative(TODO, path.resolve(REPO_ROOT, card.path)).split(path.sep).join('/') })
+      dropMockups([card.id])
+      dropChats([card.id])
+    }
+    return discarded.map((c) => c.id)
+  })
 }

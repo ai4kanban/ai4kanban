@@ -9,12 +9,15 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { RUN_ENV } from '../src/lib/agent/env.ts'
-import { openRun } from '../src/lib/agent/sessions.ts'
+import { cleanupDiscardedCards } from '../src/commands/remove.ts'
+import { discardedCardsPrompt } from '../src/lib/agent/prompts.ts'
+import { watchRun } from '../src/lib/agent/watch.ts'
+import { openResume, peekRun, openRun, patch } from '../src/lib/agent/sessions.ts'
 import { cardsBeingCreated, logPathOf, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord, RunStatus } from '../src/lib/agent/types.ts'
 import { patchCard, setCardSchedule } from '../src/lib/view/edit.ts'
 import { findCard } from '../src/lib/view/read.ts'
-import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { ASSETS, SESSIONS, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { forgetMachineState, move, refuses, run } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-creation-'))
@@ -194,5 +197,212 @@ describe('no action reaches a card that is not finished being created', () => {
     assert.equal(findCard(id)?.title, 'Renamed')
     await move(root, ['archive', String(id)])
     assert.equal(findCard(id), null)
+  })
+})
+
+describe('discarding unfinished creation', () => {
+  for (const status of ['error', 'stopped', 'interrupted'] as const) {
+    it(`discards after ${status} through both the printed flow and raw removal`, async () => {
+      const id = await createdInRun()
+      endCreator(status)
+      await run(root, ['card', 'reject', String(id), '--discard', '--print'])
+      await refuses(root, ['reject', String(id)], /Use reject --discard/)
+      const opened = openRun({ action: 'reject', id, discard: true }, 'Discard')
+      assert.ok(!('error' in opened))
+      assert.equal(peekRun(opened.run.sessionId)?.discard, true)
+      process.env[RUN_ENV] = opened.run.sessionId
+      try { await move(root, ['reject', String(id), '--discard']) }
+      finally { delete process.env[RUN_ENV] }
+      assert.equal(findCard(id), null)
+      const saved = peekRun('creator-run')?.discardedCards
+      assert.equal(saved?.[0]?.id, id)
+      assert.equal(saved?.[0]?.pending, undefined)
+      assert.ok(saved?.[0]?.path.endsWith('.md'))
+      assert.equal(fs.existsSync(path.join(kanban, 'memory')), false)
+    })
+  }
+
+  it('discards when the creation process vanished', async () => {
+    const id = await createdInRun({ pid: 2 ** 30 })
+    await move(root, ['reject', String(id), '--discard'])
+    assert.equal(findCard(id), null)
+  })
+
+  it('does not let the creator bypass the live discard guard', async () => {
+    const id = await createdInRun()
+    process.env[RUN_ENV] = 'creator-run'
+    await refuses(root, ['reject', String(id), '--discard'], /still being created/)
+    await assert.rejects(() => run(root, ['card', 'reject', String(id), '--discard', '--print']), /still being created/)
+    assert.ok('error' in openRun({ action: 'reject', id, discard: true }, 'Discard'))
+    assert.ok(findCard(id))
+  })
+
+  it('refuses the whole group when one child is occupied', async () => {
+    const id = await createdInRun()
+    endCreator('error')
+    const child = await move(root, ['create', '--title', 'Child'])
+    const group = path.join(todo, `${id}-group`)
+    fs.mkdirSync(group)
+    fs.renameSync(path.join(todo, findCard(id)!.relPath), path.join(group, 'root.md'))
+    fs.renameSync(path.join(todo, findCard(child.id as number)!.relPath), path.join(group, `${child.id}-child.md`))
+    withStore((s) => s.runs.push(creator({ sessionId: 'child-worker', action: 'clarify', cardId: child.id as number, createdCardIds: [] })))
+    await refuses(root, ['reject', String(id), '--discard'], /still being worked on/)
+    assert.ok(findCard(id))
+    assert.ok(findCard(child.id as number))
+    assert.equal(peekRun('creator-run')?.discardedCards, undefined)
+  })
+
+  it('carries the discard across repeated resumes and removes a stale write without counting twice', async () => {
+    const id = await createdInRun({ harness: 'claude-code' })
+    const file = path.join(todo, findCard(id)!.relPath)
+    const text = fs.readFileSync(file, 'utf8')
+    process.env[RUN_ENV] = 'creator-run'
+    const sibling = await move(root, ['create', '--title', 'Keep this card'])
+    delete process.env[RUN_ENV]
+    endCreator('error')
+    await move(root, ['reject', String(id), '--discard'])
+    const metrics = fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8')
+    let previous = 'creator-run'
+    for (let turn = 0; turn < 2; turn++) {
+      const resumed = await openResume(previous)
+      assert.ok(!('error' in resumed), 'error' in resumed ? resumed.error : '')
+      const { run: current } = resumed
+      assert.equal(current.discardedCards?.[0]?.id, id)
+      assert.match(discardedCardsPrompt(current.discardedCards), /Do not restore or recreate/)
+      fs.writeFileSync(file, text)
+      process.env[RUN_ENV] = current.sessionId
+      assert.throws(() => patchCard(id, { title: 'Restored' }), /was discarded/)
+      delete process.env[RUN_ENV]
+      cleanupDiscardedCards(current.sessionId)
+      assert.equal(findCard(id), null)
+      assert.ok(findCard(sibling.id as number))
+      assert.equal(fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8'), metrics)
+      fs.writeFileSync(current.logPath, '')
+      endCreator(turn ? 'done' : 'error')
+      previous = current.sessionId
+    }
+    assert.equal(findCard(sibling.id as number)?.creation, undefined)
+  })
+
+  it('keeps a failed removal retryable, and blocks resume until the retry succeeds', async () => {
+    const id = await createdInRun({ harness: 'claude-code' })
+    endCreator('error')
+    const file = path.join(todo, findCard(id)!.relPath)
+    fs.writeFileSync(path.join(todo, 'README.md'), `# Tasks\n- [#${id}](8-a-card-being-written.md)\n`)
+    const before = fs.readFileSync(path.join(todo, 'README.md'), 'utf8')
+    const original = fs.rmSync
+    fs.rmSync = ((target, options) => {
+      if (String(target) === file) throw new Error('simulated removal failure')
+      return original(target, options)
+    }) as typeof fs.rmSync
+    try { await refuses(root, ['reject', String(id), '--discard'], /simulated removal failure/) }
+    finally { fs.rmSync = original }
+    assert.ok(findCard(id))
+    assert.equal(fs.readFileSync(path.join(todo, 'README.md'), 'utf8'), before)
+    assert.equal(peekRun('creator-run')?.discardedCards?.[0]?.id, id)
+    assert.ok('error' in await openResume('creator-run'))
+    await move(root, ['reject', String(id), '--discard'])
+    assert.equal(findCard(id), null)
+    assert.ok(!('error' in await openResume('creator-run')))
+  })
+
+  it('refuses discard after resume wins, and resume after discard starts', async () => {
+    const id = await createdInRun({ harness: 'claude-code' })
+    endCreator('error')
+    const resumed = await openResume('creator-run')
+    assert.ok(!('error' in resumed))
+    await refuses(root, ['reject', String(id), '--discard'], /still being created/)
+    fs.writeFileSync(resumed.run.logPath, '')
+    endCreator('error')
+    const discard = openRun({ action: 'reject', id, discard: true }, 'Discard')
+    assert.ok(!('error' in discard))
+    const denied = await openResume(resumed.run.sessionId)
+    assert.ok('error' in denied)
+    assert.match(denied.error, /already being worked on/)
+  })
+
+  it('preserves the explicit discard flag when resuming a discard run', async () => {
+    const id = await createdInRun()
+    endCreator('error')
+    const opened = openRun({ action: 'reject', id, discard: true }, 'Discard')
+    assert.ok(!('error' in opened))
+    fs.writeFileSync(opened.run.logPath, '')
+    withStore((s) => { const r = s.runs.find((r) => r.sessionId === opened.run.sessionId)!; r.harness = 'claude-code'; r.status = 'error' })
+    const resumed = await openResume(opened.run.sessionId)
+    assert.ok(!('error' in resumed), 'error' in resumed ? resumed.error : '')
+    assert.equal(resumed.run.discard, true)
+  })
+})
+
+
+describe('a resumed creator watcher', () => {
+  it('passes the discard list to the agent and cleans a stale write before validation and follow-ups', async () => {
+    const id = await createdInRun({ harness: 'claude-code' })
+    const file = path.join(todo, findCard(id)!.relPath)
+    const original = fs.readFileSync(file, 'utf8')
+    process.env[RUN_ENV] = 'creator-run'
+    const sibling = await move(root, ['create', '--title', 'Surviving card'])
+    delete process.env[RUN_ENV]
+    endCreator('error')
+    await move(root, ['reject', String(id), '--discard'])
+    withStore((s) => { s.runs[0]!.formatRepair = { attempt: 0, cardIds: [id], changedIds: [id], existingIds: [id], errors: `Task #${id} disappeared. Restore its card file.` } })
+    const resumed = await openResume('creator-run')
+    assert.ok(!('error' in resumed))
+    assert.equal(resumed.run.formatRepair, undefined)
+    const script = path.join(root, 'stale-writer.mjs')
+    const promptFile = path.join(root, 'prompt.txt')
+    fs.writeFileSync(script, `import fs from 'node:fs'; let input=''; for await (const chunk of process.stdin) input+=chunk; fs.writeFileSync(${JSON.stringify(promptFile)}, input + process.argv.slice(2).join(' ')); fs.writeFileSync(${JSON.stringify(file)}, ${JSON.stringify(original)}); console.log(JSON.stringify({type:'result',result:'Done',total_cost_usd:0.01,usage:{input_tokens:1,output_tokens:1}}));`)
+    resumed.spec.plan.argv = [process.execPath, script]
+    resumed.spec.plan.harness = 'claude-code'
+    fs.writeFileSync(path.join(SESSIONS_DIR, `${resumed.run.sessionId}.plan.json`), JSON.stringify(resumed.spec))
+    patch(resumed.run.sessionId, (r) => { r.pid = process.pid })
+    const metric = fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8')
+    assert.equal(await watchRun(resumed.run.sessionId), 0)
+    assert.match(fs.readFileSync(promptFile, 'utf8'), /Do not restore or recreate/)
+    assert.equal(findCard(id), null)
+    assert.equal(findCard(sibling.id as number)?.creation, undefined)
+    assert.equal(fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8'), metric)
+    assert.equal(peekRun(resumed.run.sessionId)?.status, 'done')
+  })
+})
+
+
+describe('discard durability and cleanup', () => {
+  it('keeps the card and index when persisting the decision fails, then permits retry', async () => {
+    const id = await createdInRun({ harness: 'claude-code' })
+    endCreator('error')
+    const rename = fs.renameSync
+    let writes = 0
+    fs.renameSync = ((from, to) => {
+      if (String(to) === SESSIONS && ++writes === 2) throw new Error('simulated persistence failure')
+      return rename(from, to)
+    }) as typeof fs.renameSync
+    try { await refuses(root, ['reject', String(id), '--discard'], /simulated persistence failure/) }
+    finally { fs.renameSync = rename }
+    assert.ok(findCard(id))
+    assert.ok('error' in await openResume('creator-run'))
+    await move(root, ['reject', String(id), '--discard'])
+    assert.equal(findCard(id), null)
+  })
+
+  it('cleans references and assets even when an old session only restores those', async () => {
+    const id = await createdInRun()
+    endCreator('error')
+    const sibling = await move(root, ['create', '--title', 'References'])
+    await move(root, ['reject', String(id), '--discard'])
+    const file = path.join(todo, findCard(sibling.id as number)!.relPath)
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('related: []', `related: [${id}]`).replace('blocked_by: []', `blocked_by: [${id}]`))
+    fs.writeFileSync(path.join(todo, 'README.md'), `# Tasks\n- [#${id}](8-a-card-being-written.md)\n`)
+    fs.mkdirSync(path.join(ASSETS, String(id)), { recursive: true })
+    fs.writeFileSync(path.join(ASSETS, String(id), 'stale.txt'), 'stale asset')
+    const metric = fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8')
+    cleanupDiscardedCards('creator-run')
+    assert.deepEqual(findCard(sibling.id as number)?.related, [])
+    assert.deepEqual(findCard(sibling.id as number)?.blocked_by, [])
+    assert.equal(fs.existsSync(path.join(ASSETS, String(id))), false)
+    assert.doesNotMatch(fs.readFileSync(path.join(todo, 'README.md'), 'utf8'), /8-a-card/)
+    assert.equal(fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8'), metric)
+    await refuses(root, ['reject', String(id), '--discard'], /no task with id/)
+    assert.equal(fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8'), metric)
   })
 })

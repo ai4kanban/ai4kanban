@@ -43,6 +43,14 @@ const zh: BoardCopy = {
     verify: (n) => `${n} 项需人工验收`,
     decided: (n) => `已代你答了 ${n} 题`,
     creating: {
+      discard: "丢弃",
+      discarding: "丢弃中…",
+      discardTitle: (id) => `丢弃 #${id}？`,
+      discardBody: "将从看板移除这张未完成的卡片，不记录否决原因。",
+      discardGroup: (count) => `将从看板移除这张组卡及其 ${count} 张子卡，不记录否决原因。`,
+      discardFailed: "丢弃失败，卡片仍在看板上。请重试。",
+      cancel: "取消",
+      retry: "重试",
       mark: "创建中",
       markHint: "正在创建——创建完成后才能打开",
       unfinished: "创建未完成",
@@ -50,7 +58,6 @@ const zh: BoardCopy = {
       resume: "继续创建",
       resuming: "正在继续…",
       resumeFailed: "未能继续那次运行",
-      stopped: "上次运行没写完",
     },
   },
   create: {

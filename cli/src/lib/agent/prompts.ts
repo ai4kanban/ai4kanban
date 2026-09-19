@@ -718,3 +718,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ].join(' ')
   }
 }
+
+export function discardedCardsPrompt(cards: { id: number; path: string }[] = []): string {
+  if (!cards.length) return ''
+  return 'The user discarded the cards listed below. Their absence is intentional. Do not restore or recreate them, including under new IDs or filenames. Continue the remaining work from the current board, preserving the other cards.\n\n' + cards.map((c) => `- #${c.id}: ${c.path}`).join('\n')
+}

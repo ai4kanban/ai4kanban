@@ -1,5 +1,7 @@
 "use client";
 
+import { BoardRefreshContext } from "@/lib/board-refresh";
+
 // The board screen: the columns, and the bands above and below them.
 //
 // It draws from one read (`BoardScreen`, lib/format/board/screen.ts) and acts through one
@@ -356,7 +358,7 @@ export function Board({
   const state = screen.standing;
 
   return (
-    <OpenIdsProvider ids={board?.openIds ?? []}>
+    <BoardRefreshContext.Provider value={refresh}><OpenIdsProvider ids={board?.openIds ?? []}>
       <Shell {...chrome}>
         <div className="flex h-full flex-col overflow-hidden">
           {/* The app's own band about how this board is being run (#175). Above the error
@@ -465,6 +467,6 @@ export function Board({
           {Strip && board?.setup && <Strip {...chrome} at="foot" />}
         </div>
       </Shell>
-    </OpenIdsProvider>
+    </OpenIdsProvider></BoardRefreshContext.Provider>
   );
 }
