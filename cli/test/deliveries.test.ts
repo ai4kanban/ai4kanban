@@ -27,7 +27,7 @@ import {
 } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { resumePrompt } from '../src/lib/agent/prompts.ts'
-import { cancelDelivery, recoverOrphanedDeliveries, resumeDelivery } from '../src/lib/agent/sessions.ts'
+import { cancelDelivery, listRuns, openResume, recoverOrphanedDeliveries, resumeDelivery } from '../src/lib/agent/sessions.ts'
 import { cardsAtWork, cardsWithLiveRun, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
@@ -785,6 +785,47 @@ describe('carrying an ended delivery on', () => {
     const res = await resumeDelivery('carry222')
     assert.equal(res.ok, false)
     assert.match(res.error ?? '', /was cancelled, so its work was given up/)
+  })
+
+  // A run of a delivery that can no longer be carried on offers no Resume, and refuses one
+  // asked for by id (#930).
+  it('takes Resume away from a run of a cancelled delivery', async () => {
+    stopped('carry333', { status: 'cancelled' })
+    const run = session({ deliveryId: 'carry333', status: 'error', endedAt: 2_000 })
+    fs.mkdirSync(path.dirname(run.logPath), { recursive: true })
+    fs.writeFileSync(run.logPath, '')
+    withStore((store) => {
+      store.runs.push(run)
+      store.deliveries.push(rowOf2('carry333'))
+    })
+    assert.equal((await listRuns()).find((r) => r.sessionId === run.sessionId)?.canResume, false)
+    const res = await openResume(run.sessionId)
+    assert.ok('error' in res)
+    assert.match(res.error, /was cancelled/)
+  })
+
+  it('keeps Resume on a run of a failed delivery that can be carried on', async () => {
+    stopped('carry444')
+    const run = session({ deliveryId: 'carry444', status: 'error', endedAt: 2_000 })
+    fs.mkdirSync(path.dirname(run.logPath), { recursive: true })
+    fs.writeFileSync(run.logPath, '')
+    withStore((store) => {
+      store.runs.push(run)
+      store.deliveries.push(rowOf2('carry444'))
+    })
+    assert.equal((await listRuns()).find((r) => r.sessionId === run.sessionId)?.canResume, true)
+  })
+
+  it('keeps Resume on a run of a failed delivery that worked in the project', async () => {
+    stopped('carry555', { commitMode: 'manual', worktree: undefined, branch: undefined })
+    const run = session({ deliveryId: 'carry555', status: 'error', endedAt: 2_000 })
+    fs.mkdirSync(path.dirname(run.logPath), { recursive: true })
+    fs.writeFileSync(run.logPath, '')
+    withStore((store) => {
+      store.runs.push(run)
+      store.deliveries.push(rowOf2('carry555'))
+    })
+    assert.equal((await listRuns()).find((r) => r.sessionId === run.sessionId)?.canResume, true)
   })
 
   // A newer delivery on the card is the one a reader means by "the delivery that stopped

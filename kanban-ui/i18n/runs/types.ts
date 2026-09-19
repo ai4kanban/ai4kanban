@@ -34,7 +34,9 @@ export type RunsCopy = {
     stopped: string;
     interrupted: string;
     done: string;
-    exited: (code: string) => string;
+    failed: string;
+    /** The failed state's tooltip: the code the agent exited with. */
+    exitCode: (code: string) => string;
     /** A setup run that exited cleanly with no checklist box ticked (#909). */
     nothingDone: string;
     blocked: string;
@@ -94,7 +96,8 @@ export type RunsCopy = {
     empty: string;
     pick: string;
     note: string;
-    resumed: string;
+    /** The timeline's mark on a session that Resume started. */
+    resumedSession: string;
     cancelled: string;
     /** The cap over a card-less delivery's pause (#428) — it has no card page to be read
      *  on, so its own label rides here. */

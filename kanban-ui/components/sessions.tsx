@@ -24,6 +24,7 @@ import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
+import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
@@ -54,6 +55,7 @@ import {
   cardlessTitle,
   EmptyRunBar,
   RunBar,
+  runState,
   SessionLog,
   type AgentReq,
   type RunHead,
@@ -376,16 +378,12 @@ function fullTime(ts: number, language: Language): string {
   });
 }
 
-// The status dot shown against each run in the list: a pulsing ember while
-// live, mint when it passed, sky when the user stopped it, peach otherwise. Peach
-// covers both a failed run and an interrupted one (a run that outlived a UI
-// restart — see registry): the dot only says whether the run got there, and
-// neither of those did. Which one it was, and what to do about it, is the log
-// pane's word. A stopped run (#49) is the one that reached no end and yet is not
-// a problem — someone ended it on purpose — so it takes the board's neutral blue
-// rather than the peach of something that went wrong.
+// One dot per session, in the same state the log window's bar says (runState): pulsing
+// while live, mint when it passed, sky when somebody stopped it, a filled peach dot when it
+// failed and a peach ring when it was cut off.
 function SessionDot({ session }: { session: SessionView }) {
-  if (session.status === "running") {
+  const state = runState(session);
+  if (state === "running") {
     return (
       <span
         className="size-[8px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
@@ -393,8 +391,10 @@ function SessionDot({ session }: { session: SessionView }) {
       />
     );
   }
-  const tone =
-    session.status === "stopped" ? "bg-nb-sky" : session.ok ? "bg-nb-mint" : "bg-nb-peach";
+  if (state === "interrupted") {
+    return <span className="size-[8px] shrink-0 rounded-full border-[1.5px] border-nb-peach bg-nb-cream" aria-hidden />;
+  }
+  const tone = state === "stopped" ? "bg-nb-sky" : state === "done" ? "bg-nb-mint" : "bg-nb-peach";
   return <span className={`size-[8px] shrink-0 rounded-full ${tone}`} aria-hidden />;
 }
 
@@ -469,7 +469,8 @@ function FlowRow({
           {steps.map((s, i) => {
             const active = s.sessionId === selectedId;
             const last = i === steps.length - 1;
-            const why = triggerLabel(s.trigger, t.runs);
+            // Resume carried the one before it on: the row above is where it came from.
+            const why = s.resumedFrom ? c.resumedSession : triggerLabel(s.trigger, t.runs);
             return (
               <button
                 key={s.sessionId}
@@ -1225,6 +1226,11 @@ function RunsPanes({
   const t = useCopy();
   const c = t.runs.panel;
   const head = useRunHead(selected, flow);
+  // A phone has no room for two panes (#930): the list fills the dialog, a picked run's log
+  // replaces it, and Collapse goes back.
+  const phone = usePhone();
+  const [listing, setListing] = useState(!selected);
+  const onPhoneList = phone && (listing || !(head && selected));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") sessionsPanel.close();
@@ -1245,7 +1251,7 @@ function RunsPanes({
       >
         {/* Nothing to head the log with: the bar falls back to the dialog's own name and
             keeps the ✕, so the window is still named and still closable. */}
-        {!(head && selected) && <EmptyRunBar title={c.heading} control={<CloseDialog />} />}
+        {(onPhoneList || !(head && selected)) && <EmptyRunBar title={c.heading} control={<CloseDialog />} />}
 
         <div className="flex min-h-0 flex-1">
           {/* left: the run list. A faint cream canvas behind the rows so the
@@ -1253,12 +1259,20 @@ function RunsPanes({
               the tab strip's "bold ink + short ember underline" — reads as the one
               raised sheet. The divider is a soft ink hairline, not a full ink
               rule: 1.5px ink borders stay reserved for structural frames. */}
-          <div className="flex w-[240px] shrink-0 flex-col border-r border-nb-ink/10 bg-nb-cream/70">
+          <div
+            className={`flex-col bg-nb-cream/70 ${
+              !phone ? "flex w-[240px] shrink-0 border-r border-nb-ink/10" : onPhoneList ? "flex min-w-0 flex-1" : "hidden"
+            }`}
+          >
             {/* An empty list says nothing here: the right pane already carries the one
                 sentence about a board that has never run, and saying it twice side by side
                 reads as two different empties. */}
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {flows.length > 0 && <RunList flows={flows} selectedId={selectedId} />}
+              {flows.length > 0 ? (
+                <RunList flows={flows} selectedId={selectedId} onOpen={phone ? () => setListing(false) : undefined} />
+              ) : (
+                phone && <p className="p-4 text-[12.5px] text-nb-ink-soft">{c.empty}</p>
+              )}
             </div>
             {/* This column IS what stands in for the room, so the refusal is answered on
                 the substitute rather than floated over the run the user came to read. */}
@@ -1266,7 +1280,7 @@ function RunsPanes({
           </div>
 
           {/* right: the one bar over the selected run, and its log under it. */}
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className={`min-w-0 flex-1 flex-col ${onPhoneList ? "hidden" : "flex"}`}>
             {head && selected ? (
               <>
                 <RunBar
@@ -1278,7 +1292,7 @@ function RunsPanes({
                     onStarted();
                   }}
                   onFollow={() => sessionsPanel.close()}
-                  control={<CloseDialog />}
+                  control={phone ? <CollapseButton onClick={() => setListing(true)} /> : <CloseDialog />}
                 />
                 <div className={LOG_WELL}>
                   <RunDetail

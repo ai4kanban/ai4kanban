@@ -202,6 +202,27 @@ function RetryWait({ retry }: { retry: RunRetry }) {
   );
 }
 
+/** A run's one state (#930). The log window's word and mark, and the history's dot, all
+ *  read it, so the same run never says two things in two places. */
+export type RunState = "running" | "done" | "failed" | "interrupted" | "stopped";
+
+export function runState(session: SessionView): RunState {
+  if (session.status === "running" || session.status === "stopped" || session.status === "interrupted") {
+    return session.status;
+  }
+  return session.ok ? "done" : "failed";
+}
+
+/** The state in words. A blocked run and a setup that ticked nothing keep their own word:
+ *  it says why, where "failed" would not. */
+function stateWord(session: SessionView, c: RunsCopy["log"]): string {
+  const state = runState(session);
+  if (state === "running") return "";
+  if (state !== "stopped" && session.blocker) return c.blocked;
+  if (state === "failed" && session.tickedNothing) return c.nothingDone;
+  return c[state];
+}
+
 /** One thing a run's facts row says, and the caveat it carries in a tooltip. */
 type RunFact = { key: string; text: string; dim?: boolean; title?: string };
 
@@ -211,22 +232,10 @@ type RunFact = { key: string; text: string; dim?: boolean; title?: string };
 // window both read them from here, so the two can't drift apart.
 function runFacts(session: SessionView, c: RunsCopy["log"]): RunFact[] {
   const running = session.status === "running";
-  // A run cut off — the UI died mid-run and the agent ended out of our sight — is never
-  // worded as an end: "interrupted", not "finished". A run the user stopped is neither a
-  // failure nor a finish, and the code it died with says nothing: we killed it.
-  const state = running
-    ? ""
-    : session.status === "stopped"
-      ? c.stopped
-      : session.blocker
-        ? c.blocked
-        : session.status === "interrupted"
-          ? c.interrupted
-          : session.ok
-            ? c.done
-            : session.tickedNothing
-              ? c.nothingDone
-              : c.exited(String(session.code ?? "?"));
+  const state = stateWord(session, c);
+  // The exit code means nothing to a reader, so it is only the failure's tooltip.
+  const exit =
+    runState(session) === "failed" && session.code != null ? c.exitCode(String(session.code)) : undefined;
   // How long it took, next to the outcome: "done · 4m 12s". An interrupted run was only
   // noticed on the next pid poll — an upper bound, not a measurement, so it's marked "~".
   const took =
@@ -237,7 +246,7 @@ function runFacts(session: SessionView, c: RunsCopy["log"]): RunFact[] {
   // never a total. A run that reported no cost shows nothing here at all.
   const cost = running || session.costUsd === undefined ? "" : formatCost(session.costUsd, c);
   const facts: RunFact[] = [];
-  if (state) facts.push({ key: "state", text: state });
+  if (state) facts.push({ key: "state", text: state, title: exit });
   if (took) facts.push({ key: "took", text: took, dim: true });
   if (cost) facts.push({ key: "cost", text: cost, dim: true, title: c.costHint });
   // The model the agent itself said it was running, shown exactly as it said it (task #98)
@@ -265,28 +274,27 @@ function RunFacts({ facts }: { facts: RunFact[] }) {
   );
 }
 
-// Live, passed, failed, cut off or stopped — as one mark. Interrupted gets its own glyph in
-// blocker ink: not the ✓ of a clean run, and not the ✕ of a run that ended badly on its
-// own. A stopped run gets the square in the board's neutral blue: it neither passed nor
-// failed, someone ended it. Every form sits in the same 22px box as the Stop button beside
-// it, so a bar is one height whether the run is live or over.
+// The run's state as one mark: ✓, ✕, ⦸ for a run cut off, ■ for one somebody stopped.
+// Every form sits in the same 22px box as the Stop button beside it, so a bar is one height
+// whether the run is live or over.
 function RunIndicator({ session, ink }: { session: SessionView; ink?: boolean }) {
+  const state = runState(session);
   return (
     <span className="grid size-[22px] shrink-0 place-items-center leading-none">
-      {session.status === "running" ? (
+      {state === "running" ? (
         // The deep ember sinks into the ink ground; the plain one does not (#760).
         <span className={ink ? PULSE_DOT_INK : PULSE_DOT} aria-hidden />
-      ) : session.status === "stopped" ? (
+      ) : state === "stopped" ? (
         <span aria-hidden className={ink ? "text-nb-sky" : undefined} style={ink ? undefined : { color: "var(--color-nb-sky-ink)" }}>■</span>
-      ) : session.status === "interrupted" ? (
+      ) : state === "interrupted" ? (
         <span aria-hidden className={ink ? "text-nb-peach" : undefined} style={ink ? undefined : { color: "var(--color-nb-peach-ink)" }}>⦸</span>
       ) : (
         <span
           aria-hidden
-          className={ink ? (session.ok ? "text-nb-mint" : "text-nb-peach") : undefined}
+          className={ink ? (state === "done" ? "text-nb-mint" : "text-nb-peach") : undefined}
           style={ink ? undefined : { color: "var(--color-nb-accent-deep)" }}
         >
-          {session.ok ? "✓" : "✕"}
+          {state === "done" ? "✓" : "✕"}
         </span>
       )}
     </span>
@@ -575,15 +583,9 @@ export function RunBar({
   /** The run office's form of the bar (#760): the whole row reversed out onto ink. */
   ink?: boolean;
 }) {
-  const t = useCopy();
-  const c = t.runs.log;
-  const p = t.runs.panel;
+  const c = useCopy().runs.log;
   const phone = usePhone();
   const facts = runFacts(session, c);
-  // A cancelled delivery is why the run ended, so it takes the state word rather than
-  // standing beside it: the run did not stop on its own.
-  const state = facts.find((f) => f.key === "state");
-  if (state && session.delivery?.status === "cancelled") state.text = p.cancelled;
   // Stop and Carry on act on the RUN. On a phone they hold the first line with the name;
   // everywhere else they ride with the numbers they qualify.
   const moves = (
@@ -623,19 +625,6 @@ export function RunBar({
         )}
         {/* A job is dated by when IT started, not by the session you happen to be reading. */}
         <span className={`shrink-0 text-[11px] ${meta}`}>{head.startedAt}</span>
-        {/* Started by Carry on — said on the time it started, the fact it qualifies —
-            otherwise it reads as a second identical run out of nowhere. */}
-        {session.resumedFrom && (
-          <span
-            className={
-              ink
-                ? "inline-flex shrink-0 items-center rounded-[2px] border border-nb-cream/45 px-1 py-0.5 text-[10px] font-[700] uppercase leading-none tracking-[0.12em] text-nb-cream/85"
-                : "nb-tag shrink-0 text-[10px]"
-            }
-          >
-            {p.resumed}
-          </span>
-        )}
         {/* 22px floor: the tallest thing that can ride here sets the bar's height, and it
             keeps that height when the run ends and the controls swap. */}
         <span className="flex min-h-[22px] shrink-0 items-center gap-1.5">

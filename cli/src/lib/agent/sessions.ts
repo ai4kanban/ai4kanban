@@ -35,6 +35,7 @@ import {
   listDeliveries,
   namedDelivery,
   resumeRecord,
+  resumeRefusal,
   settleDelivery,
   settleOrphanedDeliveries,
   sweepCheckouts,
@@ -391,14 +392,28 @@ export function resumeSessionId(run: RunRecord): string | undefined {
 const canPickUp = (r: RunRecord): boolean =>
   r.status === 'error' || r.status === 'interrupted' || r.status === 'stopped'
 
-function toView(r: RunRecord, gone?: ReadonlySet<number>): RunView {
+/** Why this run's delivery rules a resume out: it has ended, and the delivery itself can no
+ *  longer be carried on — cancelled, finished, or its checkout gone (#930). A failed one that
+ *  worked in the project itself has no checkout to lose, so its run still resumes there. */
+function endedDeliveryRefusal(r: RunRecord, refusals?: Map<string, string | undefined>): string | undefined {
+  if (!r.deliveryId || !canPickUp(r)) return undefined
+  if (refusals?.has(r.deliveryId)) return refusals.get(r.deliveryId)
+  const delivery = findDelivery(r.deliveryId)
+  const ended = delivery && delivery.status !== 'active' && (delivery.status !== 'failed' || delivery.worktree)
+  const why = ended ? resumeRefusal(delivery) : undefined
+  refusals?.set(r.deliveryId, why)
+  return why
+}
+
+function toView(r: RunRecord, gone?: ReadonlySet<number>, refusals?: Map<string, string | undefined>): RunView {
   return {
     ...r,
     durationMs: r.status !== 'running' && r.endedAt ? r.endedAt - r.startedAt : undefined,
     // The Resume offer, and everything it needs to be honest: the run stopped short, we know
-    // the id to continue by, and the connector it ran on still resumes here. Its OWN
-    // connector — re-pointing its agent since does not take the offer away (#443).
-    canResume: canPickUp(r) && !!resumeIdOf(r) && resumesUnder(r.harness),
+    // the id to continue by, the connector it ran on still resumes here (#443), and its
+    // delivery, if it ended, can still be carried on.
+    canResume:
+      canPickUp(r) && !!resumeIdOf(r) && resumesUnder(r.harness) && !endedDeliveryRefusal(r, refusals),
     cardOffBoard: r.cardId !== null && gone?.has(r.cardId) ? true : undefined,
   }
 }
@@ -454,7 +469,8 @@ export async function listRuns(): Promise<RunView[]> {
     await recoverOrphanedDeliveries()
   }
   const gone = goneCards(runs)
-  return runs.map((r) => toView(r, gone))
+  const refusals = new Map<string, string | undefined>()
+  return runs.map((r) => toView(r, gone, refusals))
 }
 
 // How often one process rescans the permanent records for deliveries it lost track of. A
@@ -841,6 +857,8 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped run can be continued' }
   const resumeId = resumeIdOf(prev)
   if (!resumeId) return { error: 'that run never reported a session id to continue by' }
+  const ended = endedDeliveryRefusal(prev)
+  if (ended) return { error: ended }
   // Resumed where the run it continues worked: a delivery's own worktree, or the project
   // itself.
   const resuming = prev.deliveryId ? findDelivery(prev.deliveryId) : undefined

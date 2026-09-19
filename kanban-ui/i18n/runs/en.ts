@@ -104,7 +104,8 @@ const en: RunsCopy = {
     stopped: "stopped",
     interrupted: "interrupted",
     done: "done",
-    exited: (code) => `exited ${code}`,
+    failed: "failed",
+    exitCode: (code) => `exit code ${code}`,
     nothingDone: "no step completed",
     blocked: "blocked",
     running: "running",
@@ -159,7 +160,7 @@ const en: RunsCopy = {
     empty: "No runs yet.",
     pick: "Select a run to see its input and log.",
     note: "note",
-    resumed: "resumed",
+    resumedSession: "resumed",
     cancelled: "cancelled",
     stopped: (label) => label,
     kept: {
