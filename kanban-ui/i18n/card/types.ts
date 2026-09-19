@@ -262,6 +262,8 @@ export type CardCopy = {
     lineAdded: string;
     lineRemoved: string;
   };
+  /** The page while the card is being read (#906). `reading` is for a screen reader only. */
+  opening: { reading: string; failed: string; retry: string };
   mockup: {
     openFull: string;
     screen: string;

@@ -26,8 +26,22 @@ export type MockupView =
       doc: string;
       /** Explicit `.hf.html` composition, played in an isolated runtime. */
       hyperframe?: boolean;
-      /** The file's own text, for the switch to the code behind the picture. */
-      code: string;
+      /** The file's own text, for the switch to the code behind the picture. Absent on a
+       *  card page, which loads it only when the switch is used (#906). */
+      code?: string;
+      text?: undefined;
+      image?: undefined;
+      media?: undefined;
+      error?: undefined;
+      deferred?: undefined;
+    }
+  // A screen a card page draws only once it scrolls near (#906), from `mockupViewHref`.
+  // `version` is the file's mtime, so a redrawn file loads again.
+  | {
+      src: string;
+      deferred: { version: number; hyperframe: boolean };
+      doc?: undefined;
+      code?: undefined;
       text?: undefined;
       image?: undefined;
       media?: undefined;
@@ -35,9 +49,9 @@ export type MockupView =
     }
   // A `.txt` mockup (#256): the file IS the drawing, so it is shown exactly as it stands
   // and there is nothing behind the picture to switch to.
-  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; error?: undefined }
+  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; error?: undefined; deferred?: undefined }
   // An image (#803): the address of its bytes. Nothing behind it to switch to either.
-  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; error?: undefined }
+  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; error?: undefined; deferred?: undefined }
   // Video or audio (#872): the address its player streams from.
   | {
       src: string;
@@ -47,10 +61,11 @@ export type MockupView =
       doc?: undefined;
       code?: undefined;
       error?: undefined;
+      deferred?: undefined;
     }
   // The note in a mockup's place. It still carries the file's text when there was a file
   // to read — a mockup that would not draw is one you want to read the code of.
-  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; code?: string; error: string };
+  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; code?: string; error: string; deferred?: undefined };
 
 /** The mockups a page has already read, keyed by `src` exactly as the tag wrote it. */
 export type MockupSet = Record<string, MockupView>;
@@ -86,6 +101,11 @@ export function mockupBlock(raw: string): MockupTag[] | null {
  *  `.assets/803/a.png` is at `/assets/803/a.png`, `.mockups/239/a.tsx` at `/mockups/239/a.tsx`. */
 export function mockupHref(src: string): string {
   return `/${src.replace(/^\./, "")}`;
+}
+
+/** Where a deferred screen is drawn (#906) — or, with `code`, only the file's text. */
+export function mockupViewHref(src: string, version: number, code = false): string {
+  return `/asset-view?src=${encodeURIComponent(src)}&v=${version}${code ? "&part=code" : ""}`;
 }
 
 /** Where an image's, video's or audio's bytes are served — by card id and file name only, never a path. */

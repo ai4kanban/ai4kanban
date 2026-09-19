@@ -197,6 +197,7 @@ const zh: CardCopy = {
     lineAdded: "新增 ",
     lineRemoved: "删除 ",
   },
+  opening: { reading: "正在读取卡片…", failed: "卡片读取失败。", retry: "重试" },
   mockup: {
     play: "播放",
     pause: "暂停",

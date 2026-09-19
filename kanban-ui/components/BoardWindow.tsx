@@ -12,6 +12,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { startSetupRunAction } from "@/app/actions";
+import { cardOpen } from "@/lib/card-open";
 import { useMachine, ScreenMachineProvider, type ScreenMachine, type StripPlace } from "@/lib/screen";
 import type { BoardScreen } from "@/lib/types";
 import { Board, type BoardChrome } from "./Board";
@@ -117,6 +118,17 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
     void refresh();
     kick();
   }, [refresh, kick]);
+  // What a card opened from here draws before its card is read (#906).
+  useEffect(() => {
+    cardOpen.rememberFrame({
+      projectRoot: machine.projectRoot,
+      openIds: board?.openIds ?? [],
+      memoryOwners: board?.memoryOwners ?? [],
+      goalWritten: board?.goalWritten ?? false,
+      agent,
+      desktop: machine.desktop,
+    });
+  }, [machine, board, agent]);
 
   // Before the board, and before the guided run: the step is the whole window, so there is
   // nothing else on screen to press and Continue is the only way past it. It is drawn here

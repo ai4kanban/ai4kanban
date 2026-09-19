@@ -159,28 +159,24 @@ async function loadPackage(id: string, c: MessagesCopy["mockup"]): Promise<unkno
   return { __esModule: true, ...((await load()) as Record<string, unknown>) };
 }
 
-/** Read and draw every mockup a card body points at. One note in place of one mockup
+/** Every mockup a card body points at. A screen is not drawn here (#906): it is left
+ *  `deferred` for the page to load as it scrolls near. One note in place of one mockup
  *  leaves the rest of the card as usual, so a failure is a value here, never a throw. */
 export async function readMockups(body: string): Promise<MockupSet> {
   const set: MockupSet = {};
-  for (const src of mockupSources(body)) set[src] = await readMockup(src);
+  for (const src of mockupSources(body)) set[src] = await readMockup(src, true, true);
   return set;
 }
 
-/** One mockup, drawn. `contain` is false on the mockup's own page, where the page is what
- *  scrolls and the frame must let the scroll through (see `frameCss`). */
-export async function readMockup(src: string, contain = true): Promise<MockupView> {
-  // Read once at the door and handed down: everything below it is sync or deep in a
-  // sandbox, and neither can wait on the language.
-  const c = (await machineCopy()).messages.mockup;
+type Located = { file: string; ext: string; folder: string; fileName: string };
+
+/** The file a `src` names, or the note saying why there is none. */
+async function locate(src: string, c: MessagesCopy["mockup"]): Promise<Located | { error: string }> {
   const match = SRC.exec(src);
-  if (!match) {
-    return { src, error: c.notAMockup(src, EXTS.map((e) => `.${e}`).join(" ")) };
-  }
+  if (!match) return { error: c.notAMockup(src, EXTS.map((e) => `.${e}`).join(" ")) };
   const [, folder, name, rawExt] = match;
-  const ext = rawExt!.toLowerCase();
   const fileName = `${name}.${rawExt}`;
-  if (!SEGMENT.test(folder!) || !SEGMENT.test(fileName)) return { src, error: c.outside(src) };
+  if (!SEGMENT.test(folder!) || !SEGMENT.test(fileName)) return { error: c.outside(src) };
   let file: string | null;
   try {
     file = await assetFile(folder!, fileName);
@@ -188,12 +184,40 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
     // No rules to ask where the assets are. A note, not a throw: this page has one job.
     file = null;
   }
-  if (!file) return { src, error: c.missing(src) };
+  if (!file) return { error: c.missing(src) };
+  return { file, ext: rawExt!.toLowerCase(), folder: folder!, fileName };
+}
+
+/** The text of a screen's file, for the switch to its code (#906). */
+export async function readMockupCode(src: string): Promise<{ code: string } | { error: string }> {
+  const c = (await machineCopy()).messages.mockup;
+  const at = await locate(src, c);
+  if ("error" in at) return at;
+  try {
+    return { code: fs.readFileSync(at.file, "utf8") };
+  } catch {
+    return { error: c.missing(src) };
+  }
+}
+
+/** One mockup, drawn. `contain` is false on the mockup's own page, where the page is what
+ *  scrolls and the frame must let the scroll through (see `frameCss`). `defer` leaves a
+ *  screen undrawn (see `readMockups`). */
+export async function readMockup(src: string, contain = true, defer = false): Promise<MockupView> {
+  // Read once at the door and handed down: everything below it is sync or deep in a
+  // sandbox, and neither can wait on the language.
+  const c = (await machineCopy()).messages.mockup;
+  const at = await locate(src, c);
+  if ("error" in at) return { src, error: at.error };
+  const { file, ext, folder, fileName } = at;
   const media = MEDIA_EXTS[ext];
-  if (IMAGE_EXTS.includes(ext) || media) {
+  if (IMAGE_EXTS.includes(ext) || media || (defer && ext !== "txt")) {
     // The mtime makes a redrawn file a new address, so the page never shows a stale one.
     const version = Math.floor(fs.statSync(file).mtimeMs);
-    const href = `${assetImageHref(folder!, fileName)}?v=${version}`;
+    if (!IMAGE_EXTS.includes(ext) && !media) {
+      return { src, deferred: { version, hyperframe: fileName.endsWith(".hf.html") } };
+    }
+    const href = `${assetImageHref(folder, fileName)}?v=${version}`;
     return media ? { src, media: { kind: media, href } } : { src, image: href };
   }
   let code: string;

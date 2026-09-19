@@ -29,8 +29,12 @@ export interface DiscussionList {
   archive(target: ChatTarget): Promise<{ ok: boolean; error?: string; reason?: string }>;
 }
 
+/** The last rows read, so a window drawn anew — a card still opening (#906) — has its rail
+ *  at once rather than after a read that waits on the navigation. Only set in the browser. */
+let lastRows: ConversationRow[] = [];
+
 export function useDiscussions(): DiscussionList {
-  const [rows, setRows] = useState<ConversationRow[]>([]);
+  const [rows, setRows] = useState<ConversationRow[]>(lastRows);
   const kickRef = useRef<() => void>(() => {});
   // At phone width there is no rail to draw them in, so nothing is read at all.
   const phone = usePhone();
@@ -49,7 +53,7 @@ export function useDiscussions(): DiscussionList {
       inFlight = true;
       try {
         const next = await listDiscussionsAction();
-        if (alive) setRows(next);
+        if (alive) setRows((lastRows = next));
       } catch {
         // transient — the next tick tries again
       } finally {

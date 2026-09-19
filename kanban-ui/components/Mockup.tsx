@@ -18,12 +18,15 @@
 //
 // An image (#803) fills the width, never taller than a screen at that width, and links to its
 // own page at full size. Video and audio (#872) get the browser's own player.
+//
+// A card page hands a screen over undrawn (#906): it is loaded once it scrolls near, and its
+// code only when the switch asks for it. Until then the frame holds its final size.
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { FiAlertCircle, FiMaximize2 } from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FiAlertCircle, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { mockupHref, type MockupView } from "@/lib/mockup-tag";
+import { mockupHref, mockupViewHref, type MockupView } from "@/lib/mockup-tag";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 
@@ -128,19 +131,75 @@ function Screen({ doc, title }: { doc: string; title: string }) {
   );
 }
 
+/** How far ahead of the viewport a screen starts loading. */
+const NEAR = "800px 0px";
+
+/** A screen or its code on its way: the screen's own size and fill, and a breathing mark. */
+function Pending({ hyperframe }: { hyperframe: boolean }) {
+  const c = useCopy().card.mockup;
+  return (
+    <span
+      role="status"
+      aria-busy="true"
+      aria-label={c.loadingPreview}
+      className={`flex w-full items-center justify-center ${hyperframe ? "bg-[#f8f5ef]" : "bg-nb-wash"}`}
+      style={hyperframe ? { aspectRatio: "16 / 9" } : { aspectRatio: `${W} / ${H}`, maxHeight: H }}
+    >
+      <FiImage aria-hidden className="a4k-breathe text-nb-ink-soft" style={{ width: 22, height: 22 }} />
+    </span>
+  );
+}
+
+/** Fetch `href` once `box` is near the viewport; `null` until it arrives. A new `href`
+ *  keeps the last answer on screen until its own one lands. */
+function useNearFetch<T>(box: React.RefObject<HTMLElement | null>, href: string | null, fail: T): T | null {
+  const [got, setGot] = useState<{ href: string; value: T } | null>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!href || near || !el) return;
+    const io = new IntersectionObserver((seen) => seen.some((e) => e.isIntersecting) && setNear(true), {
+      rootMargin: NEAR,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [box, href, near]);
+  useEffect(() => {
+    if (!href || !near) return;
+    const abort = new AbortController();
+    fetch(href, { signal: abort.signal })
+      .then((r) => (r.ok ? (r.json() as Promise<T>) : fail))
+      .catch(() => fail)
+      .then((value) => !abort.signal.aborted && setGot({ href, value }));
+    return () => abort.abort();
+  }, [href, near, fail]);
+  return got?.value ?? null;
+}
+
 /** One mockup, framed: its label and its file over the screen, and the switch between the
  *  screen and the code the file holds. */
 export function Mockup({ view, label }: { view: MockupView; label: string }) {
   const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+  const deferred = view.deferred;
+  const failed = useMemo(() => ({ src: view.src, error: c.previewFailed }) as MockupView, [view.src, c]);
+  const loaded = useNearFetch(box, deferred ? mockupViewHref(view.src, deferred.version) : null, failed);
+  // A view from another `src` is a stale answer for this slot.
+  const drawn = deferred ? (loaded?.src === view.src ? loaded : null) : view;
+  const needsCode = showCode && drawn?.doc !== undefined && drawn.code === undefined;
+  const codeHref = needsCode && deferred ? mockupViewHref(view.src, deferred.version, true) : null;
+  const noCode = useMemo(() => ({ error: c.previewFailed }), [c]);
+  const fetched = useNearFetch<{ code?: string; error?: string }>(box, codeHref, noCode);
+  const code = drawn?.code ?? (codeHref ? (fetched ? (fetched.code ?? fetched.error ?? "") : null) : null);
 
-  if (view.error !== undefined) return <Note text={view.error} />;
+  if (drawn?.error !== undefined) return <Note text={drawn.error} />;
 
   return (
     // No frame around it: a mockup is a picture of a screen, and a box drawn round it is
     // one more edge competing with the edges inside it. The caption sits over the screen,
     // and the screen's own fill is what marks where it starts.
-    <span className="my-4 block bg-nb-paper">
+    <span ref={box} className="my-4 block bg-nb-paper">
       <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-0 py-2">
         {label && (
           <span
@@ -162,7 +221,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
         </Link>
         {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
-        {view.doc !== undefined && (
+        {(deferred || view.doc !== undefined) && (
           <button
             type="button"
             onClick={() => setShowCode((v) => !v)}
@@ -172,8 +231,12 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           </button>
         )}
       </span>
-      {view.doc !== undefined && view.hyperframe && !showCode ? (
-        <HyperframePlayer key={view.src} doc={view.doc} title={label || view.src} />
+      {drawn === null || (showCode && code === null) ? (
+        <Pending hyperframe={!showCode && !!deferred?.hyperframe} />
+      ) : drawn.doc !== undefined && drawn.hyperframe && !showCode ? (
+        <span className={deferred ? "a4k-reveal block" : "block"}>
+          <HyperframePlayer key={view.src} doc={drawn.doc} title={label || view.src} />
+        </span>
       ) : view.media !== undefined ? (
         <MediaPlayer key={view.media.href} kind={view.media.kind} href={view.media.href} title={label || view.src} fill />
       ) : view.image !== undefined ? (
@@ -185,10 +248,14 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           className="block max-h-[520px] overflow-auto whitespace-pre p-3 font-mono text-[11.5px] leading-[17px]"
           style={{ background: "var(--color-nb-wash)" }}
         >
-          {view.code}
+          {code}
         </span>
       ) : (
-        view.doc !== undefined && <Screen doc={view.doc} title={label ? c.frame(label) : view.src} />
+        drawn.doc !== undefined && (
+          <span className={deferred ? "a4k-reveal block" : "block"}>
+            <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} />
+          </span>
+        )
       )}
     </span>
   );

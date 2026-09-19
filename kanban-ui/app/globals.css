@@ -487,6 +487,46 @@ body {
     opacity: 0;
   }
 }
+/* A card or a screen on its way (#906): skeleton lines with a slow sheen, a breathing mark,
+   and a short fade for what replaces them. All static for less motion. */
+.a4k-skel {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-nb-ink) 8%, transparent);
+}
+.a4k-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-nb-paper) 70%, transparent), transparent);
+  animation: a4kSheen 1.6s ease-in-out infinite;
+}
+@keyframes a4kSheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+.a4k-reveal {
+  animation: nbFadeIn 220ms ease-out both;
+}
+.a4k-breathe {
+  opacity: 0.35;
+  animation: a4kBreathe 1.8s ease-in-out infinite;
+}
+@keyframes a4kBreathe {
+  50% {
+    opacity: 0.12;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-skel::after,
+  .a4k-reveal,
+  .a4k-breathe {
+    animation: none;
+  }
+}
+
 @keyframes nbSlideInRight {
   from {
     transform: translateX(100%);

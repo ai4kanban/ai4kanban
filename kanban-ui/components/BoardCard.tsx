@@ -12,6 +12,7 @@ import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { sessionsPanel } from "./sessions";
 import { Button } from "./button";
+import { cardOpen } from "@/lib/card-open";
 import {
   BlockedChip,
   CreatingChip,
@@ -78,6 +79,7 @@ export function BoardCard({
   return (
     <Link
       href={cardHref(card.id)}
+      onClick={() => cardOpen.rememberTitle(card.id, card.title)}
       // Column flex + `mt-auto` on the badge row: in the queue's grid the cards
       // in a row stretch to the tallest one, and a one-line title would leave
       // its badges floating mid-card. This pins them to the bottom edge. No

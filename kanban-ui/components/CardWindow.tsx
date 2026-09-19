@@ -4,7 +4,8 @@
 // for the board. `CardPage` is the screen; this is the window, the top row and the one band
 // that leads somewhere only this machine has.
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { cardOpen } from "@/lib/card-open";
 import { ScreenMachineProvider, useMachine, type ScreenMachine, type StripPlace } from "@/lib/screen";
 import type { CardScreen } from "@/lib/types";
 import { CardPage, type CardChrome } from "./CardPage";
@@ -26,6 +27,15 @@ export function CardWindow({ screen, machine }: { screen: CardScreen; machine: S
 function CardShell({ screen, running, onBoardChanged, onError, children }: CardChrome & { children: ReactNode }) {
   const machine = useMachine()!;
   const { card, openIds, memoryOwners, goalWritten } = screen;
+  // What the next card's opening screen draws before its card is read (#906).
+  useEffect(() => {
+    cardOpen.rememberFrame({ projectRoot: machine.projectRoot, openIds, memoryOwners, goalWritten, agent: machine.agent, desktop: machine.desktop });
+    cardOpen.rememberTitle(card.id, card.title);
+    for (const s of card.subtasks ?? []) cardOpen.rememberTitle(s.id, s.title);
+  }, [machine, openIds, memoryOwners, goalWritten, card]);
+  // Faded in over a skeleton that was seen; a quick read just appears.
+  const [reveal] = useState(cardOpen.skeletonSeen);
+  useEffect(() => cardOpen.setSkeleton(false), []);
   return (
     <Window
       projectRoot={machine.projectRoot}
@@ -46,7 +56,7 @@ function CardShell({ screen, running, onBoardChanged, onError, children }: CardC
         />
       }
     >
-      {children}
+      <div className={reveal ? "a4k-reveal h-full" : "h-full"}>{children}</div>
     </Window>
   );
 }

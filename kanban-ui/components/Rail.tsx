@@ -56,6 +56,7 @@ import {
   type MemoryOwner,
 } from "@/lib/types";
 import { armAgentHalf } from "@/lib/agent-half";
+import { cardOpen } from "@/lib/card-open";
 import { useCardSearch } from "@/lib/card-search";
 import { cardChat } from "@/lib/chat-open";
 import { createSheet, LEAVES_SHEET, useShownDiscussion, useStartFailures } from "@/lib/create-open";
@@ -521,7 +522,10 @@ function RailRow({
     <div className="group relative">
       <Link
         href={href}
-        onClick={onOpen}
+        onClick={() => {
+          if (id !== undefined) cardOpen.rememberTitle(id, label);
+          onOpen?.();
+        }}
         title={running ? c.runningRow(label) : (title ?? label)}
         className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 pr-2 text-left text-[12.5px] ${
           active
@@ -643,7 +647,15 @@ function ChatRow({
           {inside}
         </button>
       ) : (
-        <Link href={`/${cardId}`} onClick={onOpen} title={hover} className={shape}>
+        <Link
+          href={`/${cardId}`}
+          onClick={() => {
+            cardOpen.rememberTitle(cardId, name);
+            onOpen();
+          }}
+          title={hover}
+          className={shape}
+        >
           {inside}
         </Link>
       )}
