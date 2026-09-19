@@ -3,7 +3,7 @@
 // Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
 // picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { workflowsAction } from "@/app/actions";
@@ -652,7 +652,8 @@ function Handoff({
 }
 
 /** Which workflow the plan's card runs through (#715): shown only when the board has more
- *  than one. Styled as the box's runtime picker (#847); it opens upward. */
+ *  than one. Styled as the box's runtime picker (#847). The menu portals to the page so no
+ *  scroll area clips it, and opens toward the side with more room (#898). */
 function WorkflowPick({
   flows,
   picked,
@@ -668,75 +669,208 @@ function WorkflowPick({
   const w = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
   const [open, setOpen] = useState(false);
-  const box = useRef<HTMLSpanElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<React.CSSProperties | null>(null);
+  const [fade, setFade] = useState({ top: false, bottom: false });
+  const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+
+  const close = useCallback((refocus: boolean) => {
+    setOpen(false);
+    setPlace(null);
+    if (refocus) button.current?.focus();
+  }, []);
+  useEffect(() => {
+    if (disabled) close(false);
+  }, [disabled, close]);
+
+  const readFade = () => {
+    const el = list.current;
+    if (el) setFade({ top: el.scrollTop > 0, bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 1 });
+  };
+
+  // Measured at its natural height first, then placed on the side with room and capped there.
+  useLayoutEffect(() => {
+    if (!open || place || !button.current || !menu.current) return;
+    const at = button.current.getBoundingClientRect();
+    const natural = menu.current.offsetHeight;
+    const width = Math.min(MENU_WIDTH, window.innerWidth - 2 * MENU_EDGE);
+    const below = window.innerHeight - at.bottom - MENU_GAP - MENU_EDGE;
+    const above = at.top - MENU_GAP - MENU_EDGE;
+    const down = below >= natural || below > above;
+    const left = Math.min(Math.max(at.right - width, MENU_EDGE), window.innerWidth - MENU_EDGE - width);
+    setPlace({
+      left,
+      width,
+      maxHeight: Math.max(down ? below : above, 0),
+      ...(down ? { top: at.bottom + MENU_GAP } : { bottom: window.innerHeight - at.top + MENU_GAP }),
+    });
+  }, [open, place]);
+
+  // Once placed: the one in use centred in view and focused.
+  useLayoutEffect(() => {
+    if (!place || !list.current) return;
+    const row = list.current.querySelector<HTMLElement>("[aria-checked='true']");
+    if (row) {
+      list.current.scrollTop = row.offsetTop - (list.current.clientHeight - row.offsetHeight) / 2;
+      row.focus({ preventScroll: true });
+    }
+    readFade();
+  }, [place]);
+
   useEffect(() => {
     if (!open) return;
-    const away = (e: MouseEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    const inside = (t: EventTarget | null) =>
+      t instanceof Node && (!!menu.current?.contains(t) || !!button.current?.contains(t));
+    // Capture on window runs before the sheet's own Esc, which would close the discussion.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      close(true);
     };
-    document.addEventListener("mousedown", away);
-    return () => document.removeEventListener("mousedown", away);
-  }, [open]);
-  const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+    const onDown = (e: PointerEvent) => {
+      if (!inside(e.target)) close(true);
+    };
+    // A menu left behind by a moving button is worse than a closed one.
+    const onScroll = (e: Event) => {
+      if (!(e.target instanceof Node && menu.current?.contains(e.target))) close(false);
+    };
+    const onResize = () => close(false);
+    window.addEventListener("keydown", onKey, true);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [open, close]);
+
+  const onMenuKey = (e: React.KeyboardEvent) => {
+    const items = [...(menu.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [])];
+    const now = items.indexOf(document.activeElement as HTMLElement);
+    const to =
+      e.key === "ArrowDown" ? (now + 1) % items.length
+      : e.key === "ArrowUp" ? (now - 1 + items.length) % items.length
+      : e.key === "Home" ? 0
+      : e.key === "End" ? items.length - 1
+      : -1;
+    if (to >= 0) {
+      e.preventDefault();
+      items[to]?.focus();
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      close(true);
+    }
+  };
+
   return (
-    <span ref={box} className="relative ml-auto flex min-w-0">
+    <span className="relative ml-auto flex min-w-0">
       <button
+        ref={button}
         type="button"
         title={c.label}
         aria-label={c.label}
+        aria-haspopup="menu"
         aria-expanded={open}
         disabled={disabled}
-        onClick={() => setOpen((was) => !was)}
+        onClick={() => (open ? close(false) : setOpen(true))}
         className="flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink hover:brightness-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
         style={{ background: "var(--color-nb-accent-wash)" }}
       >
         <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
         <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
       </button>
-      {open && (
-        <div className="absolute bottom-full right-0 z-30 mb-1.5 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
-          {flows.map((f) => {
-            // A workflow that cannot start would only write a card that stops on its first run.
-            const off = f.problems.length > 0;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                aria-disabled={off || undefined}
-                title={off ? w.notReadyHint : undefined}
-                onClick={() => {
-                  if (off) return;
-                  onPick(f.id);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center justify-between gap-2 rounded-[7px] px-3 py-2.5 text-left text-[12px] font-[700] ${
-                  off ? "cursor-not-allowed opacity-45" : "cursor-pointer"
-                } ${f.id === mine.id ? "bg-nb-accent-soft" : ""}`}
+      {open &&
+        createPortal(
+          <div
+            ref={menu}
+            role="menu"
+            aria-label={c.label}
+            onKeyDown={onMenuKey}
+            className="a4k-nodrag fixed z-[60] flex flex-col rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
+            style={place ?? { visibility: "hidden", top: 0, left: 0, width: MENU_WIDTH }}
+          >
+            <div className="relative flex min-h-0 flex-col">
+              <div
+                ref={list}
+                onScroll={readFade}
+                className="min-h-[38px] overflow-y-auto overscroll-contain [scrollbar-width:thin]"
+                style={{ maxHeight: MENU_ROW * MENU_ROWS }}
               >
-                <span className="min-w-0 truncate">{nameOf(f)}</span>
-                {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft">{w.notReady}</span>}
-                {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
+                {flows.map((f) => {
+                  // A workflow that cannot start would only write a card that stops on its first run.
+                  const off = f.problems.length > 0;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={f.id === mine.id}
+                      aria-disabled={off || undefined}
+                      title={off ? w.notReadyHint : undefined}
+                      onClick={() => {
+                        if (off) return;
+                        onPick(f.id);
+                        close(true);
+                      }}
+                      className={`flex w-full items-center justify-between gap-2 rounded-[7px] px-3 text-left text-[12px] font-[700] outline-none focus-visible:bg-nb-ink/[0.07] ${
+                        off ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+                      } ${f.id === mine.id ? "bg-nb-accent-soft focus-visible:bg-nb-accent-soft focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent-deep)]" : ""}`}
+                      style={{ minHeight: MENU_ROW }}
+                    >
+                      <span className="min-w-0 truncate">{nameOf(f)}</span>
+                      {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft">{w.notReady}</span>}
+                      {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
+                    </button>
+                  );
+                })}
+              </div>
+              {fade.top && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-5"
+                  style={{ background: "linear-gradient(var(--color-nb-paper), transparent)" }}
+                />
+              )}
+              {fade.bottom && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-5"
+                  style={{ background: "linear-gradient(transparent, var(--color-nb-paper))" }}
+                />
+              )}
+            </div>
+            <div className="mt-1 shrink-0 border-t border-nb-ink/10 pt-1">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  close(false);
+                  configDialog.open("agents");
+                }}
+                className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600] outline-none focus-visible:bg-nb-ink/[0.07]"
+              >
+                {c.manage}
+                <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
               </button>
-            );
-          })}
-          <div className="mt-1 border-t border-nb-ink/10 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                configDialog.open("agents");
-              }}
-              className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600]"
-            >
-              {c.manage}
-              <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
-            </button>
-          </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }
+
+const MENU_WIDTH = 254;
+const MENU_ROW = 38;
+const MENU_ROWS = 8;
+const MENU_GAP = 6;
+/** Room kept from the window's edge, the hard shadow included. */
+const MENU_EDGE = 8;
 
 /** The run one answer started, in the line the three answers stood on. The dot is what finds
  *  it: this line sits against the reply's own small grey text, and accent moving is what says
