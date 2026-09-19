@@ -216,8 +216,9 @@ re-ask a settled call.
 
 ## Notifications
 
-- The pane is **Cloud & Notifications**, carrying cloud storage and notifications as two
-  independent switches, and the cloud storage switch is the only way in and the only way back.
+- **Cloud** and **Notifications** are two settings tabs, each named for what it holds: one
+  shorter shared label hides a tab's contents, and "Alerts" reads as danger. The cloud storage
+  switch is the only way in and the only way back.
 - The desktop notification center came first, proving complete messages and actions without
   Slack; Slack reuses the same event contract as the first external connector.
 - The rail is rows carrying a card's number, title and the event's name, and nothing more. A

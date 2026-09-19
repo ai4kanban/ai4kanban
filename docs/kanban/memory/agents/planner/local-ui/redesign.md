@@ -194,7 +194,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **Change layout for one workflow or create flows on separate pages** → ✅ always keep the rail and three arrow-connected tabs; name new flows and copies on blur without confirm/cancel buttons, discard empty new entries, mark built-ins, and open compact helper details without repeating the stage.
 
-- ❌ **Wrap a lone selector in another panel or explain its implementation** → ✅ keep the selector alone, omit redundant controls and shared-runtime boilerplate.
+- ❌ **Wrap a lone selector in another panel or explain its implementation** → ✅ keep the selector alone, omit redundant controls, shared-runtime boilerplate, notes under it, and any block that looks clickable but has no action or information.
 
 - ❌ **Mix agent creation and runtime settings into a workflow assignment** → ✅ create and edit in Workflow agents; use one Select agent control for the lead and only the selected helper’s extra requirements, preserving the return path from management.
 

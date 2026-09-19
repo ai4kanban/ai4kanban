@@ -15,20 +15,20 @@ directly when they disagree.
 
 ## What to answer
 
-Read the current instructions and the constraints around them, then show, grouped by target
-file:
-
-- **Diff**: one ```` ```diff ```` block per file — a unified diff against the current text,
-  with enough context lines to apply cleanly. A new file is all `+` lines. Never a summary, a
-  direction, or a full-file paste.
-- **Why**: one line on what changes and why.
+Read the current instructions and the constraints around them, then give the final prompt
+text for each target — nothing else. When there is more than one target, label each with its
+file only. No diff, no summary of changes, no separate explanation.
 
 ## Writing standard
 
+- **Natural language only**: never write code, pseudocode, or a programmatic wrapper,
+  including code that builds, picks, or controls a prompt. State conditions, branches, and
+  order as plain instructions in the prompt.
 - **English**: the prompt text is ALWAYS written in English.
 - **Keep it tight**: only what the reader needs; say each rule once. Context is precious:
   trim what is there while you add, never pile up.
 - **Short and generic**: agents do better with a short, generic requirement than a specific,
   lengthy rule.
-- **Scannable bullets**: `- **bold title**: one liner`.
+- **Scannable Markdown**: keep headings and lists where they help; bullets read
+  `- **bold title**: one liner`.
 - **Professional and comprehensible**: plain, clear language.

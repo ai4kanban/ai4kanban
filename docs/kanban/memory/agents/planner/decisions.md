@@ -90,6 +90,7 @@ don't re-ask a settled call.
 
 ## site
 
+- **文档站界面文字**：文档站只有英文时，新增的文档界面文字只做英文，不单独做中文。
 - **首页多语言同步**：首页定位类文案改动时，en / zh / es / fr / ja 五语同批更新，不留某种语言停在旧说法。
 
 ## marketing
@@ -104,6 +105,7 @@ don't re-ask a settled call.
 
 ## skill
 
+- **创建未完成的卡**：只放行直接丢弃，不放行带否决记忆的普通拒绝。
 - **spec agent 的先后顺序**：只写在 agent 说明里，看板不做启动拦截（不再有 `akb.dependencies`）。
 - **Agent names say their scope**: the id matches the display name, and both are narrow enough to
   leave room for siblings — `software-planner`, not `planner`; `hyperframes-editor`, not `editor`.

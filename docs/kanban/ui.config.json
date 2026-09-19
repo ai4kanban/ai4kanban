@@ -19,7 +19,7 @@
       "name": "Codex",
       "harness": "codex",
       "settings": {
-        "reasoning": "high",
+        "reasoning": "medium",
         "model": "gpt-6-astra"
       }
     },
@@ -34,7 +34,10 @@
     }
   ],
   "agentRuntime": {
-    "discussion-helper": "codex"
+    "discussion-helper": "codex",
+    "video-assets": "codex",
+    "scriptwriter": "codex",
+    "builder": "codex"
   },
   "memoryPrune": {
     "enabled": true,
@@ -48,7 +51,7 @@
   },
   "proposer": true,
   "memoryReview": {
-    "lastRun": "2026-09-18 13:22"
+    "lastRun": "2026-09-19 13:23"
   },
   "workflows": {
     "added": [

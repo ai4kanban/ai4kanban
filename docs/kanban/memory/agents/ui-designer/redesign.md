@@ -99,6 +99,14 @@
   the one that throws work away says so.
 - **No bulk retry over a list of failures**: each row is a different run to pick up.
 
+## Lists of items
+
+- ❌ **Every item repeats its actions, timestamps and counts, under two stacked toolbars** → ✅
+  actions appear only on the focused item; one control row, and only what the user acts on.
+- ❌ **A form opened inside an item (an ignore reason)** → ✅ keep the item clean; the form opens
+  outside it.
+- ❌ **Borderless cards on a gray fill** → ✅ the user dislikes them; cards get a visible frame.
+
 ## Covering, cutting and fading
 
 - **A cover stops short of the only way to act**: an overlay with no way off it is a screen
@@ -177,6 +185,8 @@
 
 - ❌ **A correct direction drawn as a simplified settings page** → ✅ preserve the current
   screen's complete layout and control sizes when adding a feature.
+- ❌ **Restyled the global header while redesigning one page** → ✅ shared chrome is out of
+  scope; reuse the existing header component unchanged.
 - ❌ **A spec drawn against a view the app no longer has** → ✅ inspect the current screen, its
   modes and its controls first.
 - ❌ **Moving existing records and logs into new containers became a redesign** → ✅ reuse
