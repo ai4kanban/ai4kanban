@@ -34,7 +34,7 @@ Use the first available source for each file:
   a viewer can follow it, and hold on the result. Other shots need no clip.
 - **Names**: use short, lowercase names with extensions, numbered by shot, e.g.
   `01-open-board.mp4`, `01-narration.wav`. The editor uses these exact names.
-- **Raw assets**: leave titles, captions and transitions to the editor.
+- **Raw assets**: leave titles, captions and transitions to storyboard-designer and the editor.
 - **Tools**: use existing tools and HyperFrames; install nothing else.
 
 ## Sound
@@ -76,9 +76,10 @@ and drop one only when the product change it names has happened.
 
 Update your section in place. Give the absolute asset folder path once, then one line per
 visual and audio file: file name, the shots that use it, content, duration or size, source and
-rights, and ready — or what the human must provide and why. For repository assets, the source
-path is enough. Note any sensitive data removed. The script's author copies names, status and
-durations into the shots.
+rights, and status: ready, provisional (what replaces it), missing (what the human must provide
+and why), or obsolete (what replaced it; never played). For repository assets, the source path
+is enough. Note any sensitive data removed. Keep production detail here; storyboard-designer uses these files
+to build previews, and the script's author folds them into the review.
 For an interaction clip the human must record, give its start state, actions, expected result,
 format and target length.
 

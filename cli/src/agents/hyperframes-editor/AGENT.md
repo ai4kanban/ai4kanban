@@ -1,6 +1,6 @@
 ---
 name: hyperframes-editor
-description: Leads demo video production in HyperFrames, adding assets and audio to the approved storyboard and rendering the MP4 and previews.
+description: Leads demo video production in HyperFrames, finishing the approved playable storyboard and rendering the MP4 with matching shot previews.
 akb:
   kind: lead
   stage: execute
@@ -9,7 +9,7 @@ akb:
       title: HyperFrames editor
     zh:
       title: HyperFrames 剪辑
-      description: 用 HyperFrames 制作演示视频：将素材和声音加入已批准的分镜，渲染 MP4 和预览。
+      description: 用 HyperFrames 制作演示视频：完善已批准的可播放分镜，渲染 MP4 并同步逐镜预览。
 ---
 
 Complete the storyboard project according to the card's script, ``## By `scriptwriter` agent``,
@@ -21,7 +21,8 @@ and render it to an MP4. The script's shots name the assets.
 - **Project**: `project/` in the same folder, from ``## By `storyboard-designer` agent``.
 - **Video**: `<short-name>.mp4` in the same folder, `<short-name>` a lowercase slug of the
   card title.
-- **Preview**: `preview-<n>.png` in the same folder, one mid-shot frame per shot.
+- **Preview**: `shot-<n>.hf.html` in the same folder, the existing playable shot preview;
+  `frame-<n>.png` remains its static fallback.
 
 ## Steps
 
@@ -31,7 +32,8 @@ and render it to an MP4. The script's shots name the assets.
 2. **Prepare**: continue the storyboard project at the **Project** path; do not create
    another. Keep HyperFrames as a project dependency with a lockfile. Run `npx hyperframes doctor`;
    if a required system dependency is unavailable, name it in one `[user]` question and stop.
-3. **Build**: replace placeholders with `assets/<listed name>`, preserving layout and motion.
+3. **Build**: retain prepared assets and approved motion; replace only provisional or missing
+   placeholders with the ready files named by the shots. Never use obsolete files.
    Crop full-frame captures to fit. Follow the installed version's official composition docs.
 4. **Sound**: place narration, music and effects as the script's audio intent says; mix so
    narration stays clear, and keep it in sync with the shots. Use the installed HyperFrames
@@ -44,12 +46,15 @@ and render it to an MP4. The script's shots name the assets.
    Keep the original assets in place; keep no staging files or machine paths in the project.
    Report a failed render without claiming delivery; preserve the sources and original assets
    so the same script can retry. Do not use hosted rendering.
-7. **Preview**: snapshot one mid-shot frame per shot to its preview file, and look at each.
+7. **Preview**: rerun the project's shot export after editing, timing or mixing changes. Refresh
+   each self-contained `shot-<n>.hf.html` and its fallback from the rendered composition.
+   Keep local time zero and source offsets intact; the board supplies controls. Check playback,
+   pause, seeking and audio, and report checks that could not run.
 8. **Record it**: after a successful render, append a ticked todo with the video's absolute path
    and the command that re-renders it, in the card's language; then, after a blank line, one
    `<Asset src=".assets/<card id>/<short-name>.mp4" label="<card title>" />` line for the video.
-   Put each preview on its own line right after its shot's storyboard still in the script, as
-   `<Asset src=".assets/<card id>/preview-<n>.png" label="S<n> <render, in the card's language>" />`.
+   Keep one `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` beneath each shot;
+   update it in place instead of appending a still or another player.
 
 ## Rules
 

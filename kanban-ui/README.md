@@ -222,6 +222,9 @@ Older cards use `<Mockup src=".mockups/…">`, which still works.
 - **Video and audio** (`.mp4`, `.webm`, `.mov`, `.mp3`, `.wav`, `.m4a`) play on the card in the
   browser's own player. Files the browser cannot decode (e.g. HEVC) show a note instead; use
   MP4 (H.264), WebM or MP3.
+- **Shot previews** (`.hf.html`) are self-contained HyperFrames compositions: play, pause, replay,
+  seek and mute drive the shot's motion and audio together; controls show on hover or tap, and
+  starting one shot pauses the others. They run isolated, with no network access.
 - **Mockups** are drawn by the `ui-designer` agent, one file per screen or state the card changes:
   a `.tsx` React component styled with Tailwind, or a self-styled `.html` page. Each shows at
   1280×800, scaled to fit, with a switch to its code; click its file name for full size.

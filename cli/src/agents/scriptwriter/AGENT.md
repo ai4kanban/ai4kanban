@@ -33,18 +33,16 @@ Write the script as your ``## By `scriptwriter` agent`` section, above `<!-- age
   is all: no frames, no file names.
 - **Timing**: shot times add up to the length and stay provisional until the audio is in;
   the editor corrects them against the real audio.
-- **Round 2 goes into the shots**: run again after the helpers, fold their sections into the
-  shots and write nothing else in the human half:
-  - the storyboard still, on its own line under the shot's label, as
-    `<Asset src=".assets/<card id>/frame-<n>.png" label="S<n>" />`;
-  - each file's name and status from `video-assets` — ready, or what a human must provide
-    and why — in the shots that use it; a shared file in full only in its first shot; the
-    asset folder's absolute path once, before the first shot;
-  - the shot times, from the audio durations.
+- **Round 2 is the review**: fold the helpers' current sections into the shots. Put one
+  `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` on its own line under each
+  shot label, outside lists. The block plays the shot's visuals, motion, captions and audio.
+  List each file's status and duration with its shot; describe shared files once before S1.
+  Mark provisional, missing and obsolete assets honestly; never play obsolete files or imply
+  that a preview is finished footage. Give the asset folder once and update shot times.
 - **Production notes**: build constraints go under `## Scope`.
 - **One current script**: a change rewrites the affected shots in place and keeps times, total
-  length, frames and asset lines in step; never append a second script. Rerun only the
-  helpers a change affects, and fold their sections in again.
+  length, previews and asset lines in step; never append a second script. Rerun only the
+  helpers a change affects; have storyboard-designer rebuild affected previews before updating shots.
 
 ## Stops
 
@@ -55,13 +53,12 @@ clears when its question is removed; if unsure, ask again.
 
 - **Round 1 — script**: write the script, ask "Approve the script?", and end the run without
   requesting helpers.
-- **Round 2 — storyboard and assets**: when `resolve` applies script approval, request both
-  `storyboard-designer` and `video-assets` via `akb spec` in that run. Both always apply;
-  the board runs them in order. When called back after both finish, fold their sections into
-  the shots, ask "Approve the storyboard and assets?" and end the run.
+- **Round 2 — assets and storyboard**: after script approval, request `video-assets`, then
+  `storyboard-designer` via `akb spec` after asset preparation finishes. Both apply.
+  Fold the returned previews into the review, ask "Approve the storyboard and assets?" and end the run.
 - **Silent**: a silent video still gets `video-assets`; every shot's sound line says silent.
 - **Needs changes**: revise the named work in place and keep the question open. In round 2,
-  rerun only the named helper. Do not advance.
+  rerun the named helper; asset changes also refresh the storyboard afterward. Do not advance.
 - **After approval**: script changes reopen round 1 before any helper reruns; storyboard or
   asset changes reopen only round 2.
 - **Timing**: all durations remain provisional until audio is ready.
