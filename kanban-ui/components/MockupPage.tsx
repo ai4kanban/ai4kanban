@@ -26,6 +26,7 @@ import { useCopy } from "@/i18n/use-copy";
 import type { MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryOwner } from "@/lib/types";
 import { clock, MediaPlayer, type MediaMeta } from "./MediaPlayer";
+import { HyperframePlayer } from "./HyperframePlayer";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
@@ -171,7 +172,9 @@ export function MockupPage({
           {/* Full size, so the panel is what scrolls — both ways, since the screen is wider
               than the body on most windows. */}
           <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
-            {view.media !== undefined ? (
+            {view.doc !== undefined && view.hyperframe && !showCode ? (
+              <HyperframePlayer key={view.src} doc={view.doc} title={view.src} />
+            ) : view.media !== undefined ? (
               <MediaPlayer
                 key={view.media.href}
                 kind={view.media.kind}

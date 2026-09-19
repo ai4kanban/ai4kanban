@@ -25,6 +25,7 @@ import { FiAlertCircle, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, type MockupView } from "@/lib/mockup-tag";
 import { MediaPlayer } from "./MediaPlayer";
+import { HyperframePlayer } from "./HyperframePlayer";
 
 /** The desktop screen every mockup is drawn on, before it is scaled. Every option gets
  *  this same frame — they only compare when they are the same size on the page. */
@@ -171,7 +172,9 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           </button>
         )}
       </span>
-      {view.media !== undefined ? (
+      {view.doc !== undefined && view.hyperframe && !showCode ? (
+        <HyperframePlayer key={view.src} doc={view.doc} title={label || view.src} />
+      ) : view.media !== undefined ? (
         <MediaPlayer key={view.media.href} kind={view.media.kind} href={view.media.href} title={label || view.src} fill />
       ) : view.image !== undefined ? (
         <Picture image={view.image} src={view.src} alt={label || view.src} />

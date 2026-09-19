@@ -271,6 +271,13 @@ export type CardCopy = {
     back: (id: number) => string;
     /** In place of a player the browser cannot play the file in. */
     unplayable: string;
+    play: string;
+    pause: string;
+    replay: string;
+    seek: string;
+    mute: string;
+    unmute: string;
+    loadingPreview: string;
+    previewFailed: string;
   };
 };
-

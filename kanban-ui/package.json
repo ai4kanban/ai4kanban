@@ -39,6 +39,7 @@
     "prepublishOnly": "node ../scripts/sync-version.mjs --check && node ../scripts/sync-format.mjs --check && npm run build:standalone"
   },
   "dependencies": {
+    "@hyperframes/player": "0.8.49",
     "@radix-ui/react-dialog": "^1.1.19",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-select": "^2.3.7",

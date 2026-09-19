@@ -39,6 +39,7 @@ import { assetImageHref, mockupSources } from "./mockup-tag";
 import { AUDIO_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } from "./asset-bytes";
 import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
+import { hyperframeDocument } from "./hyperframe-document";
 
 const IMAGE_EXTS = Object.keys(IMAGE_TYPES);
 const MEDIA_EXTS: Record<string, "video" | "audio"> = {
@@ -205,6 +206,9 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   // and so nothing that can fail once the file has been read.
   if (ext === "txt") return { src, text: code };
   try {
+    if (ext === "html" && fileName.endsWith(".hf.html")) {
+      return { src, code, doc: hyperframeDocument(code), hyperframe: true };
+    }
     const doc = ext === "tsx" ? await drawComponent(file, src, contain, c) : dressPage(code, contain);
     return { src, code, doc };
   } catch (e) {
@@ -430,9 +434,7 @@ async function tailwindFor(
 
 // --- the document ------------------------------------------------------------
 
-// Nothing loads, nothing runs. The iframe's sandbox already stops the scripts; this stops
-// the fonts, images and stylesheets a mockup might reach for, so what the user looks at is
-// what the file holds and nothing arrives from anywhere else.
+// Only embedded assets load; scripts and network requests stay blocked.
 const CSP =
   "<meta http-equiv=\"Content-Security-Policy\" " +
   "content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:\">";

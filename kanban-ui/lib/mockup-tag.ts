@@ -24,6 +24,8 @@ export type MockupView =
       src: string;
       /** A whole HTML document, ready for the frame's iframe. */
       doc: string;
+      /** Explicit `.hf.html` composition, played in an isolated runtime. */
+      hyperframe?: boolean;
       /** The file's own text, for the switch to the code behind the picture. */
       code: string;
       text?: undefined;
