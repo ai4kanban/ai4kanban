@@ -29,6 +29,7 @@ import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
 import { triageRunAfter, triageWaiting } from './auto-triage'
+import { reconcileTriage } from '../signals/carded'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
@@ -635,6 +636,15 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         // it went — is carried on here. Only a sort that FINISHED: one that failed or was
         // stopped judged nothing, and the items are still where they were.
         const sortOn = status === 'done' && sorting ? await triageRunAfter(sorting) : null
+        // A **Make card** run records its item itself (#894); this catches one that wrote the
+        // card and ended before it did.
+        if (record.action === 'create' && record.triage) {
+          try {
+            reconcileTriage()
+          } catch {
+            // the item stays waiting, and the next sort reconciles it
+          }
+        }
         if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect, sortOn)
       } finally {
         releaseCardAtWork(record.cardId)
@@ -946,6 +956,7 @@ function requestOf(record: RunRecord): AgentRequest {
     // the CLI actually spawned takes it.
     runtime: record.runtime,
     specAgent: record.specAgent,
+    triage: record.triage,
     refineRound: record.refineRound,
     refineEffort: record.refineEffort,
     flowId: record.flowId,

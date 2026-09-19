@@ -717,3 +717,28 @@ body.a4k-inset .a4k-nav-edge {
   background: var(--color-nb-paper);
   box-shadow: 3px 3px 0 0 var(--color-nb-ink);
 }
+
+/* A triage item a card is being made of (#894): a slow breath between paper and a warm
+   wash, then a short fade once it has left the queue. Static wash for less motion. */
+@keyframes nbTriageMaking {
+  0%,
+  100% {
+    background-color: var(--color-nb-paper);
+  }
+  50% {
+    background-color: var(--color-nb-accent-wash);
+  }
+}
+.a4k-triage-making {
+  animation: nbTriageMaking 2.4s ease-in-out infinite;
+}
+.a4k-triage-leaving {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-triage-making {
+    animation: none;
+    background-color: var(--color-nb-accent-wash);
+  }
+}

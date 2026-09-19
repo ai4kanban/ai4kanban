@@ -199,6 +199,8 @@ export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES 
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
  *  picture across every tab. */
 export interface SessionView {
+  /** The triage item a **Make card** run is writing a card of (#894), by source id. */
+  triage?: string;
   /** This run's unique id — ours, and the key the run is tracked by. It is the agent's
    *  OWN id only when that harness adopted it (Claude Code does, via `--session-id`); a
    *  harness that mints its own keeps a second id, which the UI never sees — Resume is a

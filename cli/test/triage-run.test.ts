@@ -156,7 +156,7 @@ describe('landing one judgement', () => {
 
   it('treats an item somebody else landed as gone, not as a failure of this run', async () => {
     const id = await waiting('Taken already')
-    dismissSignal(id)
+    dismissSignal(id, 'not now')
     assert.throws(() => quiet(() => cmdTriageDismiss(id, 'too small')), /nothing waiting in triage is/)
   })
 })
@@ -164,7 +164,7 @@ describe('landing one judgement', () => {
 describe('a card that was written and an item that was ignored (#561)', () => {
   it('records the card on the ignore and leaves it ignored', async () => {
     const id = await waiting('Ignored mid-run')
-    dismissSignal(id)
+    dismissSignal(id, 'not now')
     const { value, said } = quiet(() => cmdTriageArchive(id, 11))
     assert.equal(value.where, 'dismissed')
     assert.match(said, /it stays ignored/)

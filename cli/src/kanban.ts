@@ -262,16 +262,12 @@ export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/
 export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realtime'
 export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
 
-// Triage: anything that might become work (#453, #499, #559) — what the endpoint pulled in,
-// and what somebody dropped or pasted in, and never cards. The local UI draws its rail row
-// and its page from these: whether triage is open to this board and account at all, what it
-// holds, adding to it, and ignoring one — which moves its file into `triage/dismissed/` and
-// keeps it there. `checkSource` is the one duplicate rule all of them read. Pulling is
-// `akb triage fetch` and nothing else calls it.
-// `triageAfterAdding` is what the page calls once an add lands (#562): with the triager
-// switched on, a batch of new items starts one sort. It is a separate call rather than part
-// of `addToInbox` because it starts a RUN — every other move here writes files and returns.
-export { addToInbox, checkSource, dismissSignal, readSignals, signalsAccess } from './lib/signals'
+// Triage: anything that might become work (#453, #499, #559) — never cards. The local UI
+// draws its rail row and its page from these: whether triage is open to this board and
+// account, what it holds, ignoring one with a reason, and restoring one (#894).
+// `checkSource` is the one duplicate rule all of them read. Pulling is `akb triage fetch`.
+// `addToInbox` and `triageAfterAdding` stay for writers other than the page.
+export { addToInbox, checkSource, dismissSignal, readSignals, reconcileTriage, restoreSignal, signalsAccess } from './lib/signals'
 export { triageAfterAdding } from './lib/agent/auto-triage'
 export type { SignalsAccess, TriageCheck, TriageStatus } from './lib/signals'
 

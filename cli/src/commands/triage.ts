@@ -34,6 +34,7 @@ import {
   dismissInboxItem,
   fetchSignals,
   migrateTriage,
+  restoreInboxItem,
   sayGap,
   signalConfigGaps,
   signalsAccess,
@@ -157,10 +158,7 @@ export function cmdTriageArchive(sourceId: string, cardId: number): MoveResult {
   return { source_id: said, card_id: cardId, file: done.relPath, where: done.where }
 }
 
-/** `akb triage dismiss` — ignore one item, in the agent's name and with its reason.
- *
- *  The page's own Ignore is the user's and records no reason; this one is a judgement, so
- *  the reason is what the record is for. */
+/** `akb triage dismiss` — ignore one item, in the agent's name and with its reason. */
 export function cmdTriageDismiss(sourceId: string, reason: string): MoveResult {
   const said = sourceId.trim()
   if (!said) die('say which one: `dismiss <source-id> --reason "<why>"`', { kind: 'needs-input' })
@@ -171,4 +169,16 @@ export function cmdTriageDismiss(sourceId: string, reason: string): MoveResult {
   if (!done.ok) die(done.error, { kind: 'triage-item-gone' })
   say(`${said} — ignored: ${done.relPath}`)
   return { source_id: said, reason: why, file: done.relPath }
+}
+
+/** `akb triage restore` — put one ignored item back in the list. Starts no sort: an item
+ *  just brought back would only be ignored again. */
+export function cmdTriageRestore(sourceId: string): MoveResult {
+  const said = sourceId.trim()
+  if (!said) die('say which one: `restore <source-id>`', { kind: 'needs-input' })
+  migrateTriage()
+  const done = restoreInboxItem(said)
+  if (!done.ok) die(done.error, { kind: 'triage-item-refused' })
+  say(`${said} — back in triage: ${done.relPath}`)
+  return { source_id: said, file: done.relPath }
 }

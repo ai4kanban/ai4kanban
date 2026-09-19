@@ -198,6 +198,8 @@ export interface AgentRequest {
   /** The pictures this run was handed, as paths on this machine — worked out from `box` and
    *  `shots` when the run is written down, so a browser never names one. */
   pictures?: string[]
+  /** create: the triage item this card is made of (#894) — **Make card** on the page. */
+  triage?: TriageAsk
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** The workflow the card this run is for runs on (#715) — a workflow's stable id, read
    *  off the card as the run is prepared. It decides which agent leads the run's stage, and
@@ -232,6 +234,12 @@ export interface AgentRequest {
    *  agent is set to. It applies to the one run and changes nothing in Configuration →
    *  Agents. Absent on every run that named none, which is the agent's own. */
   runtime?: string
+}
+
+/** A triage item a create run is making a card of: its source id and file from the repo root. */
+export interface TriageAsk {
+  sourceId: string
+  file: string
 }
 
 /** Every action a run can still be started with — everything but the retired ones. */
@@ -398,6 +406,8 @@ export interface RunRecord {
   /** Which agent this run is, on a `spec` run. Kept on the record so the run list can say
    *  which one is working, and so a resume starts the same agent again. */
   specAgent?: string
+  /** The triage item a create run is making a card of (#894). */
+  triage?: TriageAsk
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** The QA guide this refinement uses across its sessions and resume. */

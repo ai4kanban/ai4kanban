@@ -13,9 +13,9 @@
 //   triage/files/             the bytes of anything dropped in, shared by all three
 //
 // Leaving the list is a move, never a delete: the file that says "this was ignored" is the
-// item itself, so nothing has to be listed anywhere for a dismissal to stick. `dismissed/`
-// is kept for good — the page draws a recent window of it, the fetch is held off by all of
-// it. A move rewrites nothing but the fields this file adds, so a field written by something
+// item itself, so nothing has to be listed anywhere for a dismissal to stick. The page draws
+// a recent window of `archived/` and `dismissed/`, the fetch is held off by all of it, and
+// `restoreInboxItem` moves an ignored one back. A move rewrites nothing but the fields this file adds, so a field written by something
 // that came later survives the trip.
 //
 // Title and body are the whole requirement. `source_type`, `url`, `collected_at` and `meta`
@@ -44,7 +44,7 @@ import type { Signal, SignalMeta } from '../view/types'
 /** An item as it arrives, before the board stamps its import. */
 export type IncomingSignal = Omit<
   Signal,
-  'importedAt' | 'relPath' | 'dismissedAt' | 'dismissedBy' | 'dismissedReason' | 'contentKept'
+  'importedAt' | 'relPath' | 'dismissedAt' | 'dismissedBy' | 'dismissedReason' | 'cardId' | 'archivedAt' | 'contentKept'
 >
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
@@ -151,6 +151,8 @@ export function parse(file: string, lenient = false): Signal | null {
     dismissedAt: held.dismissed_at || '',
     dismissedBy: held.dismissed_by === 'user' || held.dismissed_by === 'agent' ? held.dismissed_by : '',
     dismissedReason: held.dismissed_reason || '',
+    cardId: /^\d+$/.test(held.card_id ?? '') ? Number(held.card_id) : null,
+    archivedAt: held.archived_at || '',
     contentKept: held.content_kept !== 'false',
     relPath: boardRel(file),
   }
@@ -210,7 +212,7 @@ export function readInbox(): Signal[] {
   return signals
 }
 
-/** Every item a card was made of. Read for the duplicate check; nothing draws it yet. */
+/** Every item a card was made of. */
 export const readArchived = (): Signal[] => readFolder(SIGNALS_ARCHIVED)
 
 /** Every item ever ignored, however long ago. What holds the fetch off. */
@@ -220,25 +222,31 @@ export const readAllDismissed = (): Signal[] => readFolder(SIGNALS_DISMISSED, tr
 export const latestImport = (signals: Signal[]): string =>
   signals.reduce((newest, signal) => (signal.importedAt > newest ? signal.importedAt : newest), '')
 
-/** How far back the ignored tab reaches. The files are kept for good; this is only what is
- *  drawn, and the page says the window out loud. */
+/** How far back History reaches. The files are kept for good; this is only what is drawn,
+ *  and the page says the window out loud. */
 export const DISMISSED_DAYS = 30
 
-/** What has been ignored recently, newest judged first (#559, #560).
- *
- *  An item with no judged stamp sorts last rather than being dropped: a missing stamp is a
- *  gap in the record, not a reason to lose the item. */
-export function readDismissed(now = new Date()): Signal[] {
+// A recent window of one folder, newest first. An item with no stamp sorts last rather than
+// being dropped: a missing stamp is a gap in the record, not a reason to lose the item.
+function recent(signals: Signal[], at: (signal: Signal) => string, now: Date): Signal[] {
   const since = formatStamp(new Date(now.getTime() - DISMISSED_DAYS * 24 * 60 * 60 * 1000))
-  const signals = readAllDismissed().filter((signal) => !signal.dismissedAt || signal.dismissedAt >= since)
-  signals.sort(
+  const kept = signals.filter((signal) => !at(signal) || at(signal) >= since)
+  kept.sort(
     (a, b) =>
-      Number(Boolean(b.dismissedAt)) - Number(Boolean(a.dismissedAt)) ||
-      b.dismissedAt.localeCompare(a.dismissedAt) ||
+      Number(Boolean(at(b))) - Number(Boolean(at(a))) ||
+      at(b).localeCompare(at(a)) ||
       a.sourceId.localeCompare(b.sourceId),
   )
-  return signals
+  return kept
 }
+
+/** What has been ignored recently, newest judged first (#559, #560). */
+export const readDismissed = (now = new Date()): Signal[] =>
+  recent(readAllDismissed(), (signal) => signal.dismissedAt, now)
+
+/** What a card was made of recently, newest archived first (#894). */
+export const readRecentArchived = (now = new Date()): Signal[] =>
+  recent(readArchived(), (signal) => signal.archivedAt, now)
 
 // ---- writing ---------------------------------------------------------------
 
@@ -251,6 +259,8 @@ export function writeSignal(incoming: IncomingSignal, importedAt: string): Signa
     dismissedAt: '',
     dismissedBy: '',
     dismissedReason: '',
+    cardId: null,
+    archivedAt: '',
     contentKept: true,
     relPath: '',
   }
@@ -259,9 +269,9 @@ export function writeSignal(incoming: IncomingSignal, importedAt: string): Signa
   return { ...signal, relPath: boardRel(file) }
 }
 
-/** Add or replace frontmatter fields on an item file, leaving everything else — including
- *  fields nothing here knows about — exactly as it was written. */
-function stamp(file: string, fields: Record<string, string>): void {
+/** Add, replace or (with null) remove frontmatter fields on an item file, leaving everything
+ *  else — including fields nothing here knows about — exactly as it was written. */
+function stamp(file: string, fields: Record<string, string | null>): void {
   const text = fs.readFileSync(file, 'utf8')
   const lines = text.split('\n')
   const close = lines.indexOf('---', 1)
@@ -270,13 +280,13 @@ function stamp(file: string, fields: Record<string, string>): void {
     const key = line.match(/^([a-z_]+):/)
     return !key || fields[key[1]!] === undefined
   })
-  const added = Object.entries(fields).map(([key, value]) => `${key}: ${yamlScalar(value)}`)
+  const added = Object.entries(fields).flatMap(([key, value]) => (value === null ? [] : [`${key}: ${yamlScalar(value)}`]))
   fs.writeFileSync(file, ['---', ...kept, ...added, ...lines.slice(close)].join('\n'))
 }
 
 /** Move one item file into a folder beside it, stamping what the move means onto it. The
  *  path it lands at, or empty when the source file has gone. */
-function moveSignal(from: string, into: string, fields: Record<string, string>): string {
+function moveSignal(from: string, into: string, fields: Record<string, string | null>): string {
   if (!fs.existsSync(from)) return ''
   fs.mkdirSync(into, { recursive: true })
   const at = path.join(into, freeName(into, path.basename(from)))
@@ -288,8 +298,7 @@ function moveSignal(from: string, into: string, fields: Record<string, string>):
 /** What one move gives back: where the file went, or why it did not go. */
 export type MoveOutcome = { ok: true; relPath: string } | { ok: false; error: string }
 
-/** Ignore one item: its file moves into `dismissed/` and is kept there for good, so no later
- *  fetch brings it back. Ignoring the same source again keeps the one record, judged afresh. */
+/** Ignore one item: its file moves into `dismissed/`, so no later fetch brings it back. Ignoring the same source again keeps the one record, judged afresh. */
 export function dismissInboxItem(sourceId: string, by: 'user' | 'agent', reason = ''): MoveOutcome {
   const found = readInbox().find((signal) => signal.sourceId === sourceId)
   if (!found) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
@@ -326,4 +335,24 @@ export function archiveInboxItem(sourceId: string, cardId: number): ArchiveOutco
     archived_at: formatStamp(new Date()),
   })
   return at ? { ok: true, relPath: at, where: 'archived' } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+}
+
+/** Put one ignored item back in the list (#894): its file moves out of `dismissed/` and loses
+ *  its dismissal. Refused when a card was already made of it, or the same id is waiting. */
+export function restoreInboxItem(sourceId: string): MoveOutcome {
+  const found = readAllDismissed().find((signal) => signal.sourceId === sourceId)
+  if (!found) return { ok: false, error: `nothing ignored in triage is ${sourceId}` }
+  if (found.cardId !== null) return { ok: false, error: `a card was already made of ${sourceId}: #${found.cardId}` }
+  if (!found.contentKept || !found.title || !found.collectedAt || !found.importedAt) {
+    return { ok: false, error: `${sourceId} was kept without its content, so there is nothing to restore` }
+  }
+  if (readInbox().some((signal) => signal.sourceId === sourceId)) {
+    return { ok: false, error: `${sourceId} is already waiting in triage` }
+  }
+  const at = moveSignal(path.join(SIGNALS_DISMISSED, path.basename(found.relPath)), TRIAGE, {
+    dismissed_at: null,
+    dismissed_by: null,
+    dismissed_reason: null,
+  })
+  return at ? { ok: true, relPath: at } : { ok: false, error: `nothing ignored in triage is ${sourceId}` }
 }

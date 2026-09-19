@@ -24,6 +24,7 @@ import { migrateTriage } from '../signals/migrate'
 import { signalsAccess } from '../signals/access'
 import { autoTriageOn } from './settings'
 import { startRun } from './start'
+import { itemsBeingCarded } from './store'
 import type { AgentRequest } from './types'
 
 /** Whether the board may start a sort by itself right now. Read at the moment a run would
@@ -49,7 +50,10 @@ const SORT: AgentRequest = { action: 'triage' }
 export function triageWaiting(): string[] {
   try {
     migrateTriage()
-    return readInbox().map((item) => item.sourceId)
+    const carding = itemsBeingCarded()
+    return readInbox()
+      .map((item) => item.sourceId)
+      .filter((sourceId) => !carding.has(sourceId))
   } catch {
     return []
   }

@@ -33,9 +33,9 @@ import {
   readSignals,
   searchCards,
   signalsOpen,
-  triageAfterAdding,
-  addToInbox,
   dismissSignal,
+  reconcileTriage,
+  restoreSignal,
 } from "@/lib/board";
 import {
   dropCase,
@@ -354,6 +354,8 @@ const ACTIONS = new Set([
   // setup strip. Started through startSetupRunAction below, which is where its own refusals
   // live.
   "setup",
+  // Sort all on the Triage page (#894) — what `akb triage run` starts.
+  "triage",
 ]);
 
 // create touches no existing card — it makes one — so it carries no `id`, and every other
@@ -361,7 +363,7 @@ const ACTIONS = new Set([
 // release instead. A setup run is the third and names nothing at all: the checklist is what
 // it works from. A changelog run is the fourth, and names a version too — the one it writes
 // up.
-const CARDLESS = new Set(["create", "plan-release", "changelog", "setup"]);
+const CARDLESS = new Set(["create", "plan-release", "changelog", "setup", "triage"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
@@ -374,6 +376,8 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   // board's own to say, and `startPlanningAction` and `startPlanBuildAction` above read it
   // server-side. Anything sent here naming one is dropped rather than followed.
   if (req.plan) req = { ...req, plan: undefined };
+  // Nor a triage item: **Make card** below reads the item's file off the board.
+  if (req.triage) req = { ...req, triage: undefined };
   // **Build now** is the one implement with no card (#428): the typed sentence is the whole
   // requirement, so it stands in for the id an implement usually names.
   const buildNow = req.action === "implement" && !!req.description?.trim();
@@ -1892,52 +1896,64 @@ export async function signalsRowAction(): Promise<{ show: boolean; count: number
   }
 }
 
-/** Add one thing to the inbox by hand (#499): a dropped file, a pasted link, or pasted text.
- *
- *  It takes a `FormData` because that is how a browser hands bytes to a server action. What
- *  it could not take is the rules' own sentence — the reader dropped the thing, so what was
- *  wrong with it is theirs to hear. What it took answers with the item's id, so the page can
- *  find what it just added among a few hundred others (#560).
- *
- *  The access check is the page's: this address is only reachable from a page that already
- *  answered it, and asking again would reach Cloud on every add. */
-export async function addToInboxAction(
-  form: FormData,
-): Promise<{ ok: boolean; error?: string; sourceId?: string }> {
+/** Ignore one item, with the reason the user typed (#894). */
+export async function dismissSignalAction(
+  sourceId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
   const c = await machineCopy();
+  if (typeof sourceId !== "string" || !sourceId || typeof reason !== "string" || !reason.trim()) {
+    return { ok: false, error: c.rail.signals.dismissFailed };
+  }
   try {
-    const typed = form.get("text");
-    const dropped = form.get("file");
-    const name = form.get("name");
-    const file =
-      dropped instanceof Blob
-        ? {
-            name: typeof name === "string" && name ? name : "file",
-            type: dropped.type,
-            data: new Uint8Array(await dropped.arrayBuffer()),
-          }
-        : undefined;
-    const done = await addToInbox({ text: typeof typed === "string" ? typed : undefined, file });
-    if (!done.ok) return { ok: false, error: done.error };
-    // And the sort over it, when the triager is switched on (#562). Awaited so the spawn is
-    // out before this action returns, never reported: the item is in triage either way.
-    await triageAfterAdding(1);
-    return { ok: true, sourceId: done.signal.sourceId };
+    return await dismissSignal(sourceId, reason);
   } catch {
-    return { ok: false, error: c.rail.signals.add.failed };
+    return { ok: false, error: c.rail.signals.dismissFailed };
   }
 }
 
-/** Ignore one signal for good: its file moves into `triage/dismissed/` and stays there. There
- *  is no undo on the page — pasting the link in again is the only way back (#559). */
-export async function dismissSignalAction(sourceId: string): Promise<{ ok: boolean; error?: string }> {
-  if (typeof sourceId !== "string" || !sourceId) {
-    return { ok: false, error: (await machineCopy()).rail.signals.dismissFailed };
-  }
+/** Put one ignored item back in the queue (#894). Starts no sort. */
+export async function restoreSignalAction(sourceId: string): Promise<{ ok: boolean; error?: string }> {
+  const c = await machineCopy();
+  if (typeof sourceId !== "string" || !sourceId) return { ok: false, error: c.rail.signals.restoreFailed };
   try {
-    return await dismissSignal(sourceId);
+    return await restoreSignal(sourceId);
   } catch {
-    return { ok: false, error: (await machineCopy()).rail.signals.dismissFailed };
+    return { ok: false, error: c.rail.signals.restoreFailed };
+  }
+}
+
+/** **Make card** (#894): a create run pointed at one waiting item, which records the card it
+ *  became. Refused while a sort runs or another run is already making this item. */
+export async function makeCardAction(sourceId: string): Promise<StartResult> {
+  const c = await machineCopy();
+  const refused: StartResult = { ok: false, error: c.rail.signals.makeFailed };
+  if (typeof sourceId !== "string" || !sourceId) return refused;
+  try {
+    const item = (await readSignals()).signals.find((signal) => signal.sourceId === sourceId);
+    if (!item) return refused;
+    const live = (await listSessions()).filter((run) => run.status === "running");
+    if (live.some((run) => run.action === "triage" || run.triage === sourceId)) return refused;
+    const req: AgentRequest = {
+      action: "create",
+      description: item.title || item.sourceId,
+      triage: { sourceId, file: item.relPath },
+    };
+    return await startSession(req, await buildPrompt(req));
+  } catch {
+    return refused;
+  }
+}
+
+/** **Sort all** (#894): the sort `akb triage run` starts, over the whole queue. */
+export async function sortTriageAction(): Promise<StartResult & { closed?: boolean }> {
+  const access = await signalsOpen();
+  if (!access.open) return { ok: false, closed: true };
+  try {
+    await reconcileTriage();
+    return await startAgentAction({ action: "triage" });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 

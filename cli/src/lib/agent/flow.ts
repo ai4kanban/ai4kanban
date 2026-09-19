@@ -41,6 +41,7 @@ import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
+import { itemsBeingCarded } from './store'
 import { readInbox } from '../signals/inbox'
 import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
@@ -1035,7 +1036,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // listing what could have been printed here — plus the three places a duplicate hides.
     case 'triage': {
       migrateTriage()
-      const waiting = readInbox()
+      const carding = itemsBeingCarded()
+      const waiting = readInbox().filter((item) => !carding.has(item.sourceId))
       facts.push(
         ...field(
           'waiting',

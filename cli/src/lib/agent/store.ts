@@ -185,6 +185,10 @@ export function readStore(): Store {
       pictures: readPictures(entry.pictures),
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
+      triage:
+        entry.triage && typeof entry.triage.sourceId === 'string' && typeof entry.triage.file === 'string'
+          ? { sourceId: entry.triage.sourceId, file: entry.triage.file }
+          : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound
@@ -243,6 +247,11 @@ export const PENDING_MS = 30_000
 export const runIsLive = (run: RunRecord): boolean =>
   run.status === 'running' &&
   (run.pid ? pidAlive(run.pid) : Date.now() - run.startedAt < PENDING_MS)
+
+/** The triage items a live **Make card** run is writing a card of (#894). A sort leaves them
+ *  alone, or one item would become two cards. */
+export const itemsBeingCarded = (): Set<string> =>
+  new Set(readRuns().flatMap((run) => (run.action === 'create' && run.triage && runIsLive(run) ? [run.triage.sourceId] : [])))
 
 /** The run working this board right now, or nothing when the machine is quiet.
  *

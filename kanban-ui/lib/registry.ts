@@ -81,6 +81,7 @@ function toView(
   return {
     sessionId: run.sessionId,
     cardId: run.cardId,
+    triage: run.triage?.sourceId,
     // The card's title as it reads now, so a retitled card reads by its current name. An
     // archived card is off the board and answers nothing, and then the title its delivery
     // froze stands in — the last thing that still knows what the run was on.

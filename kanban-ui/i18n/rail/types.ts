@@ -68,73 +68,64 @@ export type RailCopy = {
     /** The row above Archive, and the name of the page it opens. */
     row: string;
     title: string;
-    /** The two tabs and, under the ignored one, how far back it reaches. */
+    /** The two tabs and, on History, how far back it reaches. */
     pending: string;
-    dismissed: string;
+    history: string;
     window: (days: number) => string;
     /** The toolbar's search box and source picker, and what the picker calls every source. */
     search: string;
     allSources: string;
     /** How many of the total are showing, while a search or a source narrows the page. */
     hits: (shown: number, total: number) => string;
-    /** The group that holds everything nothing named a source for. It is a heading and no
-     *  more — an item under it is never given a source name or a mark of its own. */
+    /** The group that holds everything nothing named a source for. */
     noSource: string;
     /** One source group: folding it, and the button that brings the next of it in. */
     fold: string;
     unfold: string;
     more: string;
-    /** An empty page: a heading, and the line under it saying what fills it. Nothing this
-     *  search and source found gets the heading alone. The ignored tab has a pair of its
-     *  own: what lands there is not something you add. */
+    /** An empty queue, whether it never held anything or was just emptied — never a
+     *  congratulation. The link under it: the history, when there is some. */
     empty: string;
     emptyHint: string;
-    emptyDismissed: string;
-    emptyDismissedHint: string;
+    seeHistory: string;
+    emptyHistory: string;
+    emptyHistoryHint: string;
     noHits: string;
     clear: string;
-    /** No endpoint configured: one link to the docs that say how to serve and point at one.
-     *  An offer, not a demand — an unconfigured board still takes what is dropped in. */
+    /** No endpoint configured: one link to the docs that say how to serve and point at one. */
     connect: string;
-    /** Read out loud as the name of the list. */
-    list: string;
-    /** One item opened in full: what the panel is called, when it was collected, and — for
-     *  one already ignored — when and why it was. */
+    /** One item opened in full, and the lines under it. */
     detail: string;
     collected: string;
     dismissedAt: string;
     dismissedWhy: string;
-    /** On an ignored card, in place of the values a waiting one draws: the agent's own
-     *  reason, or this line when the user was the one who ignored it. */
+    madeAt: string;
+    madeInto: string;
+    /** Who ignored an item, on History. */
     byYou: string;
-    /** A record carried over from a board that kept only source ids and times (#559): its
-     *  own words were never saved, so the id stands in for the title and this chip — with
-     *  the judged time after it — stands in for the reason. */
+    byAgent: string;
+    /** A record carried over from a board that kept only source ids and times (#559). */
     contentGone: string;
-    /** The two things an item offers. Dismissing cannot be undone, which is why the word is
-     *  the plain one. Open is left off one with nothing to open. */
     viewOriginal: string;
-    dismiss: string;
-    /** A dismissal the board refused. */
+    /** The two ways out of the queue (#894), and the state of an item on its way to a card. */
+    makeCard: string;
+    making: string;
+    makeFailed: string;
+    ignore: string;
+    /** The Ignore dialog: its heading, the reason it asks for, and a refusal. */
+    ignoreTitle: string;
+    why: string;
+    reasonHint: string;
     dismissFailed: string;
-    /** Add to triage (#499, #560): the popover under the button, and what it takes. */
-    add: {
-      /** The button, and the popover's own heading. */
-      open: string;
-      title: string;
-      placeholder: string;
-      /** Staging a file: the offer, the name of the one held, and taking it back off. */
-      attach: string;
-      remove: string;
-      /** One file at a time, said where the second one was dropped. */
-      oneFile: string;
-      button: string;
-      /** An add the board refused for a reason it cannot put in the reader's language. */
-      failed: string;
-      /** It landed somewhere this page is not showing — and the way to go to it. */
-      hidden: string;
-      show: string;
-    };
+    /** Putting an ignored item back in the queue. */
+    restore: string;
+    restoreFailed: string;
+    /** Sort all: the button, while a sort runs, and why one would not start. */
+    sortAll: string;
+    sorting: string;
+    sortClosed: string;
+    sortRefused: string;
+    openConfig: string;
   };
   memoryPage: {
     /** The file exists on the board but has never been written to. */

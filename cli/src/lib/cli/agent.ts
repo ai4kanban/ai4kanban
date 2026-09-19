@@ -57,7 +57,14 @@ import {
   cmdStop,
   cmdWatch,
 } from '../../commands/run'
-import { cmdTriageAdd, cmdTriageArchive, cmdTriageCheck, cmdTriageDismiss, cmdTriageFetch } from '../../commands/triage'
+import {
+  cmdTriageAdd,
+  cmdTriageArchive,
+  cmdTriageCheck,
+  cmdTriageDismiss,
+  cmdTriageFetch,
+  cmdTriageRestore,
+} from '../../commands/triage'
 import { cmdSpec } from '../../commands/spec'
 import { cmdTelemetry } from '../../commands/telemetry'
 import { cardId, ctxOf, intInRange, oneOf, runAction, withShared, type Command } from './shared'
@@ -152,9 +159,9 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       'what is waiting to be sorted',
       'What is in triage is not a task: it never enters the card list, is never scheduled, ' +
         'and counts towards nothing. Triage is `docs/kanban/triage/`, one file each, with ' +
-        '`archived/` for what became a card and `dismissed/` for what was ignored — kept for ' +
-        'good, and what holds a later pull off. The board UI is where items are added, read ' +
-        'and ignored.',
+        '`archived/` for what became a card and `dismissed/` for what was ignored — what holds ' +
+        'a later pull off. The board UI is where items are read, made into cards, ignored and ' +
+        'restored.',
     ),
   }
 
@@ -282,14 +289,24 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   withShared(triage.command('dismiss'))
     .summary('ignore one item, with the reason')
     .description(
-      "The agent's own Ignore — the record carries `dismissed_by: agent` and the reason, where the " +
-        "page's Ignore is the user's and records none. The file moves to `dismissed/` and is kept for " +
-        'good, so no later pull brings it back.',
+      "The agent's own Ignore — the record carries `dismissed_by: agent` and the reason. The file " +
+        'moves to `dismissed/`, so no later pull brings it back; `restore` puts it back in the list.',
     )
     .argument('<source-id>', 'the item to ignore')
     .requiredOption('--reason <why>', 'why it is not worth a card')
     .action(async function (this: Command, sourceId: string) {
       await onBoard(this, cli, () => cmdTriageDismiss(sourceId, String(this.opts().reason)))
+    })
+
+  withShared(triage.command('restore'))
+    .summary('put one ignored item back in the list')
+    .description(
+      'Moves the item from `dismissed/` back to `triage/` and clears its dismissal. Refused when a card ' +
+        'was already made of it, or the same id is already waiting. Starts no sort.',
+    )
+    .argument('<source-id>', 'the ignored item')
+    .action(async function (this: Command, sourceId: string) {
+      await onBoard(this, cli, () => cmdTriageRestore(sourceId))
     })
 
   // ---- Cloud ----------------------------------------------------------------

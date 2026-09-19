@@ -14,8 +14,6 @@ import type {
   CardScreen,
   DeliveryDiff,
   DeliveryPlan,
-  InboxAddResult,
-  InboxDrop,
   MemoryFile,
   MetricsResult,
   ScreenBoard,
@@ -352,8 +350,8 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
 
 // --- the inbox waiting to be looked at (#453, #499) --------------------------
 // Nothing here is a card: the inbox never reaches the card list. Pulling is
-// `akb triage fetch` alone; what the UI does is read the inbox, add to it by hand, and
-// ignore what it does not want.
+// `akb triage fetch` alone; what the UI does is read the inbox, ignore what it does not want,
+// and restore what it ignored.
 //
 // A board whose rules predate them answers "closed" rather than throwing: the whole feature
 // is one rail row, and a row that isn't there says the same thing.
@@ -380,39 +378,32 @@ export async function readSignals(): Promise<SignalInbox> {
   return rules.readSignals();
 }
 
-/** Add one thing to the inbox by hand (#499) — a dropped file, a pasted link, or pasted
- *  text. It lands as the same Markdown file a pull writes, so triage does not know which
- *  way it came in.
+/** Ignore one item with the user's reason — its file moves to `triage/dismissed/`, and no
+ *  later pull brings it back.
  *
- *  The rules say why in English when they refuse, and that IS the reader's to act on here —
- *  what was dropped is theirs — so it is passed through rather than replaced. */
-export async function addToInbox(drop: InboxDrop): Promise<InboxAddResult> {
-  const rules = await boardRules();
-  if (!rules.addToInbox) return { ok: false, error: (await machineCopy()).messages.rules.tooOldForSignals };
-  return rules.addToInbox(drop);
-}
-
-/** Start a sort over what was just added, if the board's triager is switched on (#562).
- *  Best-effort and silent: the add has already landed, and a run that will not start is one
- *  more batch of items waiting, not a failure to report. */
-export async function triageAfterAdding(added: number): Promise<void> {
-  const rules = await boardRules();
-  if (!rules.triageAfterAdding) return;
-  await rules.triageAfterAdding(added);
-}
-
-/** Ignore one signal for good — its file moves to `triage/dismissed/`, where it is kept, and
- *  no later pull brings it back.
- *
- *  A refusal is answered in the page's own copy, not the rules'. The rules say why in
- *  English — the id is not in the inbox, the file would not go — and none of that is a
- *  reader's to act on, so what the page shows is the one line it has in both languages. */
-export async function dismissSignal(sourceId: string): Promise<{ ok: boolean; error?: string }> {
+ *  A refusal is answered in the page's own copy, not the rules': the rules say why in
+ *  English, and none of that is a reader's to act on. */
+export async function dismissSignal(sourceId: string, reason: string): Promise<{ ok: boolean; error?: string }> {
   const c = await machineCopy();
   const rules = await boardRules();
   if (!rules.dismissSignal) return { ok: false, error: c.messages.rules.tooOldForSignals };
-  const done = rules.dismissSignal(sourceId);
+  const done = rules.dismissSignal(sourceId, reason);
   return done.ok ? done : { ok: false, error: c.rail.signals.dismissFailed };
+}
+
+/** Put one ignored item back in the queue. Starts no sort. */
+export async function restoreSignal(sourceId: string): Promise<{ ok: boolean; error?: string }> {
+  const c = await machineCopy();
+  const rules = await boardRules();
+  if (!rules.restoreSignal) return { ok: false, error: c.messages.rules.tooOldForSignals };
+  const done = rules.restoreSignal(sourceId);
+  return done.ok ? done : { ok: false, error: c.rail.signals.restoreFailed };
+}
+
+/** Archive every waiting item an open card already names, before a sort judges any. */
+export async function reconcileTriage(): Promise<void> {
+  const rules = await boardRules();
+  rules.reconcileTriage?.();
 }
 
 /** What the guided first run opens with — the project, its tracks, and the goal as they

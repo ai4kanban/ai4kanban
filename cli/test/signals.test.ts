@@ -19,11 +19,11 @@ import { setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
 import { addToInbox } from '../src/lib/signals/add.ts'
 import { signalConfigGaps } from '../src/lib/signals/config.ts'
 import { fetchSignals } from '../src/lib/signals/fetch.ts'
-import { archiveInboxItem, dismissInboxItem, readAllDismissed } from '../src/lib/signals/inbox.ts'
+import { archiveInboxItem, dismissInboxItem, readAllDismissed, restoreInboxItem } from '../src/lib/signals/inbox.ts'
 import { checkSource } from '../src/lib/signals/check.ts'
 import { migrateTriage } from '../src/lib/signals/migrate.ts'
 import { matchSourceType } from '../src/lib/signals/sources.ts'
-import { dismissSignal, readSignals } from '../src/lib/signals/index.ts'
+import { dismissSignal, readSignals, restoreSignal } from '../src/lib/signals/index.ts'
 import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-signals-'))
@@ -317,7 +317,7 @@ describe('ignoring a signal (#559)', () => {
     answerWith({ signals: [wire('a1'), wire('a2')] })
     await fetchSignals()
 
-    assert.deepEqual(dismissSignal('a1'), { ok: true })
+    assert.deepEqual(dismissSignal('a1', 'not now'), { ok: true })
     assert.deepEqual(
       readSignals().signals.map((s) => s.sourceId),
       ['a2'],
@@ -326,7 +326,7 @@ describe('ignoring a signal (#559)', () => {
     assert.equal(kept!.sourceId, 'a1')
     assert.equal(kept!.title, 'Signal a1')
     assert.equal(kept!.dismissedBy, 'user')
-    assert.equal(kept!.dismissedReason, '')
+    assert.equal(kept!.dismissedReason, 'not now')
     assert.match(kept!.dismissedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
     assert.equal(waiting().length, 1)
 
@@ -375,8 +375,8 @@ describe('ignoring a signal (#559)', () => {
   })
 
   it('refuses an id nothing is waiting under', () => {
-    assert.equal(dismissSignal('nobody').ok, false)
-    assert.equal(dismissSignal('').ok, false)
+    assert.equal(dismissSignal('nobody', 'not now').ok, false)
+    assert.equal(dismissSignal('', 'not now').ok, false)
   })
 
   it('reads only the last 30 days back, and counts nothing older', async () => {
@@ -409,7 +409,7 @@ describe('the one duplicate rule (#559)', () => {
     assert.equal(pending.status, 'pending')
     assert.match(pending.relPath, /^docs\/kanban\/triage\/[^/]+\.md$/)
 
-    assert.equal(dismissSignal('a2').ok, true)
+    assert.equal(dismissSignal('a2', 'not now').ok, true)
     assert.equal(checkSource('a2').status, 'dismissed')
     assert.match(checkSource('a2').relPath, /^docs\/kanban\/triage\/dismissed\//)
 
@@ -421,7 +421,7 @@ describe('the one duplicate rule (#559)', () => {
   it('reports the first of pending, archived, dismissed when a source id is in two places', async () => {
     answerWith({ signals: [wire('a1')] })
     await fetchSignals()
-    dismissSignal('a1')
+    dismissSignal('a1', 'not now')
     // Pasted back in: the dismissed record stays, and the waiting copy is what is reported.
     fs.writeFileSync(
       path.join(triage(), 'again.md'),
@@ -447,7 +447,7 @@ describe('the one duplicate rule (#559)', () => {
   it('takes a hand-written add of something only ignored, and leaves the record where it is', () => {
     assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
     const id = readSignals().signals[0]!.sourceId
-    assert.equal(dismissSignal(id).ok, true)
+    assert.equal(dismissSignal(id, 'not now').ok, true)
     assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
     assert.deepEqual(
       readSignals().signals.map((s) => s.sourceId),
@@ -533,9 +533,59 @@ describe('adding to the inbox by hand (#499)', () => {
     const done = addToInbox({ text: 'A thing worth doing\n\nBecause of this.' })
     assert.equal(done.ok, true)
     const id = readSignals().signals[0]!.sourceId
-    assert.deepEqual(dismissSignal(id), { ok: true })
+    assert.deepEqual(dismissSignal(id, 'not now'), { ok: true })
     assert.deepEqual(readSignals().signals, [])
     assert.equal(readAllDismissed()[0]!.sourceId, id)
+  })
+})
+
+describe('a queue you empty (#894)', () => {
+  it('refuses an ignore from the page with no reason, and records the one given', () => {
+    addToInbox({ text: 'A thing\n\nWords.' })
+    const id = readSignals().signals[0]!.sourceId
+    assert.equal(dismissSignal(id, '  ').ok, false)
+    assert.deepEqual(dismissSignal(id, 'Already done'), { ok: true })
+    assert.equal(readSignals().dismissed[0]!.dismissedReason, 'Already done')
+  })
+
+  it('restores an ignored item to the list with its dismissal cleared', () => {
+    addToInbox({ text: 'Bring me back\n\nWords.' })
+    const id = readSignals().signals[0]!.sourceId
+    dismissSignal(id, 'not now')
+    assert.deepEqual(restoreSignal(id), { ok: true })
+    const [back] = readSignals().signals
+    assert.equal(back!.sourceId, id)
+    assert.equal(back!.dismissedAt, '')
+    assert.equal(back!.dismissedReason, '')
+    assert.deepEqual(readAllDismissed(), [])
+  })
+
+  it('refuses to restore one a card was made of, or one already waiting', () => {
+    addToInbox({ text: 'Carded\n\nWords.' })
+    const id = readSignals().signals[0]!.sourceId
+    dismissSignal(id, 'not now')
+    archiveInboxItem(id, 12)
+    assert.match((restoreInboxItem(id) as { error: string }).error, /#12/)
+
+    addToInbox({ text: 'Twice\n\nWords.' })
+    const again = readSignals().signals[0]!.sourceId
+    dismissSignal(again, 'not now')
+    addToInbox({ text: 'Twice\n\nWords.' })
+    assert.match((restoreInboxItem(again) as { error: string }).error, /already waiting/)
+  })
+
+  it('lists what became a card in History, with the card title, open or archived', () => {
+    fs.writeFileSync(path.join(kanban(), 'todo', '12-new-card.md'), '---\ntitle: The new card\n---\n')
+    fs.mkdirSync(path.join(kanban(), '.archive'), { recursive: true })
+    fs.writeFileSync(path.join(kanban(), '.archive', '7-old-card.md'), '---\ntitle: "An old card"\n---\n')
+    addToInbox({ text: 'Follow-up\n\nWords.', source: '#7' })
+    const id = readSignals().signals[0]!.sourceId
+    archiveInboxItem(id, 12)
+    const inbox = readSignals()
+    assert.equal(inbox.archived[0]!.cardId, 12)
+    assert.match(inbox.archived[0]!.archivedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+    assert.deepEqual(inbox.cards[12], { title: 'The new card', archived: false })
+    assert.deepEqual(inbox.cards[7], { title: 'An old card', archived: true })
   })
 })
 

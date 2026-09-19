@@ -20,10 +20,10 @@ docs/kanban/
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
 │                   does; written from the board UI or `akb raw rule`
 ├── triage/         items waiting to be sorted, one file each — not cards. Only
-│   │               `akb triage run` turns one into a card; `akb triage check <source-id>`
-│   │               finds an existing one
+│   │               `akb triage run` or the page's Make card turns one into a card;
+│   │               `akb triage check <source-id>` finds an existing one
 │   ├── archived/   items a card was made of
-│   ├── dismissed/  items ignored for good
+│   ├── dismissed/  items ignored, with the reason — `akb triage restore` puts one back
 │   └── files/      dropped-in files
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user

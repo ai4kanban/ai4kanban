@@ -758,6 +758,7 @@ export function openRun(
     // Which agent this is, on the action that is one — so the run list can name it, and so
     // a resume starts the same agent rather than a different one.
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
+    triage: req.action === 'create' ? req.triage : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.
     refineRound: req.refineRound,

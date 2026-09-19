@@ -1,23 +1,26 @@
 ---
 title: "Triage"
 title_tag: "AI4Kanban triage — pull Reddit, X and Xiaohongshu leads into your board"
-description: "Point the board at a triage endpoint and it pulls what people are saying into a list beside your cards. What lands there is a lead, not a task: read it, open the post, dismiss the ones that don't matter."
+description: "Point the board at a triage endpoint and it pulls what people are saying into a queue beside your cards. What lands there is a lead, not a task: make a card of it, or ignore it with a reason."
 lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into Triage, beside your cards. What lands there is a lead, not a task."
-last_updated: "September 11, 2026"
+last_updated: "September 19, 2026"
 nav_label: "Triage"
 icon: "inbox"
 ---
 
-**Triage** sits above **Archive** in the rail, with a count. The page groups what the board
-holds by the source it came from — Reddit, X, 小红书 — with the source's mark and name on the
-group's heading and three light cards to a row under it. A card shows its title and up to
-three of the values its source sent with it; click it for the whole thing, the original, and
-**Ignore**.
+**Triage** sits above **Archive** in the rail, with a count. It is a queue you empty: every
+item leaves as a card or is ignored with a reason. The page groups items by where they came
+from — a source such as Reddit or 小红书, or the finished card whose follow-up it is, linked.
+Hover, tab to or tap an item for its two actions:
 
-Two tabs: **Waiting**, and **Ignored** for the last 30 days. Search covers everything in the
-tab — titles, bodies, sources, those values, and on **Ignored** the reason it was ignored —
-including folded groups and the part of a group still behind **More**. The source picker
-narrows to one source and combines with the search.
+- **Make card**: starts the same run **New task** does, pointed at the item. When the run
+  finds a card that already owns the work, the item is recorded against that card instead.
+- **Ignore**: asks for a one-line reason.
+
+Click an item for the whole thing and the original. Two tabs: **Waiting**, and **History** —
+what became a card or was ignored in the last 30 days. **Restore** puts an ignored item back
+in **Waiting**, and nothing sorts it again by itself. Search and the source picker work on
+both tabs.
 
 Free to invited Cloud accounts while it is a preview. On an account that is signed out or not
 yet invited there is no rail row, and both `akb triage fetch` and `akb triage run` refuse.
@@ -30,11 +33,10 @@ whether there is work in it. Cards are what has been decided. Who decides is you
 you, by reading the list, or the **Triage** agent, which judges each item and cards what
 survives. It is off until you switch it on.
 
-That means triage needs looking at, the way a mailbox does. Ignoring an item takes it out of
-**Waiting** for good: its file moves to `docs/kanban/triage/dismissed/`, and no later pull
-brings it back. There is no undo, and that is the point — a list you can never empty is one
-you stop opening. The **Ignored** tab is a record of the last 30 days of that, read only —
-open one to read it in full, and create a card by hand if it turns out to matter after all.
+Items arrive by themselves — from an endpoint, from the **Proposer**, from `akb triage add`.
+To ask for work yourself, use **New task**. Ignoring an item moves its file to
+`docs/kanban/triage/dismissed/`, and no later pull brings it back; only **Restore** or
+`akb triage restore <source-id>` does.
 
 ## Sort it
 
@@ -42,7 +44,7 @@ open one to read it in full, and create a card by hand if it turns out to matter
 akb triage run
 ```
 
-One run judges every item waiting, one at a time. What survives becomes a card; everything
+**Sort all** on the page starts the same run. One run judges every item waiting, one at a time. What survives becomes a card; everything
 else moves to `dismissed/` with the reason. This command works whether or not the switch
 below is on.
 
@@ -69,8 +71,7 @@ seen it:
 > **From now on a new item is judged before you see it.** The ones worth doing become cards
 > by themselves, each costing one more refine run.
 
-With it on, every batch of new items starts one sort — a pull, **Add** on the page, and
-`akb triage add` alike, so an item the **Proposer** writes is judged like any other. A pull
+With it on, every batch of new items starts one sort — a pull and `akb triage add` alike, so an item the **Proposer** writes is judged like any other. A pull
 that brought nothing new starts nothing.
 
 A sort reads the list once, when it starts, so anything that arrives while it goes is unseen.
@@ -116,8 +117,7 @@ docs/kanban/triage/
 ```
 
 Leaving the list is a move, never a delete — the file itself is the record. `dismissed/` is
-kept for good and never pruned: the **Ignored** tab draws the last 30 days of it, and *all* of
-it holds a later pull off. A dropped file's copy stays in `files/` when the item moves, so the
+never pruned: **History** draws the last 30 days of it, and *all* of it holds a later pull off. A dropped file's copy stays in `files/` when the item moves, so the
 path written into the item's body is good for as long as the item is.
 
 Ask where one thing already is:
@@ -127,9 +127,8 @@ akb triage check t3_1abcdef
 ```
 
 It answers `pending`, `archived`, `dismissed` or `unseen`, with the file that says so — the
-same rule all three ways in read. A pull is held off by all three; adding by hand only by the
-first two, so pasting a link back in is the way out of an accidental ignore. It costs one
-extra file: the `dismissed/` record stays where it is, and the item waits again beside it.
+same rule all three ways in read. A pull is held off by all three; `akb triage add` only by the
+first two.
 
 A board written before this moves itself the first time triage is read: items come up out of
 `triage/inbox/`, its dropped files into `triage/files/`, and every `handled.md` id with no file
@@ -228,19 +227,9 @@ The first successful pull makes `docs/kanban/triage/` and seeds a recurring card
 its own; leave it without one and nothing runs until you ask. Delete the card if you don't want
 the job — nothing puts it back.
 
-## Put something in yourself
+## Write an item from a script
 
-The endpoint is not the only way in. **Add** in the toolbar opens a small box under the
-button: paste a link, write it out, or attach a file — one box for all three, and a note
-typed alongside a file goes in with it. A file dropped anywhere on the page is held there by
-name until you press **Add**; nothing is written before that, and closing the box keeps the
-draft. `⌘/Ctrl + Enter` adds it, plain Enter is a new line.
-
-A pasted link's domain is read against the source list. A match is that source; anything else
-keeps the domain as a `meta` entry under `domain`. A file keeps its name under `filename`, and
-neither is given a source.
-
-From a terminal:
+The endpoint is not the only way in. Scripts and agents write one item at a time:
 
 ```bash
 akb triage add --title "What it is" --text "Its own words." --source "where it came from"

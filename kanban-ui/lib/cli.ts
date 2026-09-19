@@ -69,8 +69,6 @@ import type {
   DeliveryPlan,
   DropPlan,
   FillPlan,
-  InboxAddResult,
-  InboxDrop,
   MemoryFile,
   MetricsResult,
   SaveProjectResult,
@@ -573,18 +571,15 @@ export interface BoardRules {
   dropCase?(discussion: string): void;
   readPartnerFeedback?(): PartnerFeedback;
   setPartnerFeedback?(on: boolean): WriteResult;
-  /** Triage (#453, #499): whether it is open to this board and this account at all, what it
-   *  holds, adding to it by hand, and ignoring one for good. Optional: a board can be
-   *  running rules older than the release that added them, and the rail then offers no
-   *  Triage row — `addToInbox` alone can be missing on rules that have the other three. */
+  /** Triage (#453, #894): whether it is open to this board and this account at all, what it
+   *  holds, ignoring one with a reason and restoring one. Optional: a board can be running
+   *  rules older than the release that added them, and the rail then offers no Triage row. */
   signalsAccess?(): Promise<SignalsAccess>;
   readSignals?(): SignalInbox;
-  addToInbox?(drop: InboxDrop): InboxAddResult;
-  dismissSignal?(sourceId: string): { ok: boolean; error?: string };
-  /** Sort what was just added, when the triager is switched on (#562). Called after an add
-   *  lands, never instead of it: a run that will not start leaves the item waiting, and the
-   *  add succeeded either way. Optional like the four above. */
-  triageAfterAdding?(added: number): Promise<void>;
+  dismissSignal?(sourceId: string, reason: string): { ok: boolean; error?: string };
+  restoreSignal?(sourceId: string): { ok: boolean; error?: string };
+  /** Archive every waiting item an open card already names — what a sort does first. */
+  reconcileTriage?(): unknown;
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */

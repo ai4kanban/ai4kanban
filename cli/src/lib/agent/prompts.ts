@@ -451,7 +451,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         // plan is a file the user can open, and a copy pasted in here would go stale.
         req.plan
           ? `${kb}. Add task(s) from the plan at \`${req.plan}\`. Read it first, and write \`## Source\` naming that path on every card you create.`
-          : `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
+          : req.triage
+            ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, and write \`## Source\` naming its source id \`${req.triage.sourceId}\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`
+            : `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
         "Cover what the requests asks for, DONT OVER DESIGN IT.",
         // The board was showing one release when this was asked for, so the card ships in

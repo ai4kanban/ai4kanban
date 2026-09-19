@@ -757,15 +757,25 @@ export interface Signal {
   /** Who ignored it: `user` from the page, `agent` from a run. Empty when the record does
    *  not say — a migrated one never did. */
   dismissedBy: 'user' | 'agent' | ''
-  /** Why, in the agent's own words. Empty on one the user ignored: the page says who did it
-   *  and never asks for a reason. */
+  /** Why it was ignored, in the judge's own words. Empty on an ignore from before #894. */
   dismissedReason: string
+  /** The card it became, on an item read out of `triage/archived/` — or out of `dismissed/`,
+   *  when a card was made of it after it was ignored. Null otherwise. */
+  cardId: number | null
+  /** When it was archived onto that card, `YYYY-MM-DD HH:MM` local. Empty otherwise. */
+  archivedAt: string
   /** False on a record carried over from the old handled list, which held a source id and a
    *  time and nothing else. The page draws such an item as the stub it is rather than as an
    *  item with an empty title. */
   contentKept: boolean
   /** The path from the repo root, forward slashes. */
   relPath: string
+}
+
+/** A card triage points at: its title, and whether it has left the board. */
+export interface SignalCardRef {
+  title: string
+  archived: boolean
 }
 
 /** A setting a fetch needs and the board hasn't got, and the file it is filled in. */
@@ -784,8 +794,13 @@ export interface SignalInbox {
   /** What has been ignored and is still inside the window below, newest judged first. The
    *  files are kept for good; this is only what is drawn. */
   dismissed: Signal[]
-  /** How far back the ignored tab reaches, in days — what its label says. */
+  /** What a card was made of inside the same window, newest archived first. */
+  archived: Signal[]
+  /** How far back History reaches, in days — what its label says. */
   dismissedDays: number
+  /** The title of every card an item names as its source (`meta.source: "#706"`) or became,
+   *  open or archived, by id — what a group heading and a History link are drawn with. */
+  cards: Record<number, SignalCardRef>
   /** The board's source list in its own order (#560): what orders the groups, and the keys
    *  the page's icon table is keyed on. */
   sourceTypes: string[]

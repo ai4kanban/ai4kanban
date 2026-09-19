@@ -1,23 +1,14 @@
 "use client";
 
-// Triage (#453, #499, #559, #560) — anything that might become work, in `docs/kanban/triage/`.
+// Triage (#453, #559, #560, #894) — a queue you empty. Every item waiting in
+// `docs/kanban/triage/` leaves it one of two ways: **Make card** starts a create run pointed at
+// the item, and **Ignore** records the user's reason. Items arrive on their own — follow-ups
+// from finished cards, and connected sources; a person asking for work uses **New task**.
 //
-// The page is a board, not a document: a few hundred items, grouped by the source they came
-// from, three light cards to a row. A source's name and mark are drawn once, on the group
-// heading, so a card carries only what is its own — its title, and up to three of the values
-// its source sent with it. Everything longer is behind the card.
-//
-// The whole main area is the list. There is no standing heading, lead paragraph or compose
-// box above it: **Add** opens a small popover under its own button, and that is where a link,
-// some words or a file goes in.
-//
-// **Ignored** is the same board, read only: what you or an agent judged, over the last 30
-// days. A card there draws the judgement in place of the values a waiting one draws — the
-// agent's own reason, or "you ignored it" — and there is no way back from it. Pasting the
-// link in again is the way back, which is why **Add** stays on that tab too (#559).
-//
-// Nothing here is a card: nothing on this page creates one, ranks one, or touches the board's
-// counts. Turning one into a card is #454's.
+// Items are grouped by source: a source type when one was given, otherwise the card an item
+// names as its source (`meta.source: "#706"`), linked. The two actions show on the one item in
+// focus, so the list reads as titles. **History** is what became a card or was ignored over the
+// last 30 days, and an ignored item there can be restored.
 
 import {
   useCallback,
@@ -30,16 +21,22 @@ import {
 import {
   FiChevronDown,
   FiChevronRight,
+  FiCornerDownRight,
   FiExternalLink,
   FiInbox,
-  FiPaperclip,
-  FiPlus,
+  FiRotateCcw,
   FiSearch,
-  FiTrash2,
   FiX,
+  FiZap,
 } from "react-icons/fi";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addToInboxAction, dismissSignalAction } from "@/app/actions";
+import {
+  dismissSignalAction,
+  makeCardAction,
+  restoreSignalAction,
+  sortTriageAction,
+} from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { useLanguage } from "@/components/language";
 import {
@@ -47,11 +44,13 @@ import {
   type AgentInfo,
   type Language,
   type MemoryOwner,
+  type SessionView,
   type Signal,
   type SignalInbox,
 } from "@/lib/types";
 import { Button } from "./button";
 import { CHROME, HAIRLINE } from "./chrome";
+import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
@@ -68,7 +67,7 @@ import {
 } from "./ui/select";
 import { Window } from "./Window";
 
-type Tab = "pending" | "dismissed";
+type Tab = "pending" | "history";
 
 // Radix will not take an empty string as a value, and the empty string is already the key of
 // the group nothing named a source for — so the picker carries two words of its own.
@@ -79,9 +78,19 @@ const NONE = "-";
 const FIRST = 6;
 const MORE = 12;
 
-// A collected stamp is `YYYY-MM-DD HH:MM` in the board's own local time, so it is read back
-// as local time and drawn in the language the app is set to — an English date under a Chinese
-// heading is the one thing on the row that didn't follow the setting.
+/** How long an item that became a card takes to fade out of the queue. */
+const FADE_MS = 400;
+
+const GHOST_ACT =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-accent-deep transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:px-3";
+const GHOST_INK =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:text-nb-ink focus-visible:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:px-3";
+const CARD =
+  "flex w-full flex-col rounded-[10px] border-[1.5px] shadow-[2px_2px_0_0_var(--color-nb-ink)] transition-colors";
+const LINK =
+  "cursor-pointer text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2";
+
+// A stamp is `YYYY-MM-DD HH:MM` in the board's own local time, drawn in the app's language.
 function when(stamp: string, language: Language): string {
   const at = new Date(stamp.replace(" ", "T"));
   if (Number.isNaN(at.getTime())) return stamp;
@@ -93,17 +102,32 @@ function when(stamp: string, language: Language): string {
   });
 }
 
-/** A stamp as a number to sort on. One that will not read is the smallest there is, so an
- *  item with a broken or missing time sits at the end of its group rather than the top. */
+/** A stamp as a number to sort on. One that will not read sorts last. */
 function order(stamp: string): number {
   const at = new Date(stamp.replace(" ", "T")).getTime();
   return Number.isNaN(at) ? -Infinity : at;
 }
 
-/** Everything the search looks at: what it says, where it came from, the values its source
- *  sent, and — on the ignored side — why it was ignored. Never the keys: they are not drawn,
- *  so they are not searched. A record whose own words were never kept has only its source id
- *  to find it by, and that is what the id in the title position is. */
+/** When an item was judged: made into a card, or ignored. */
+const judgedAt = (signal: Signal): string => signal.archivedAt || signal.dismissedAt;
+
+/** The card an item names as its source — `meta.source: "#706"` — or null. */
+function sourceCard(signal: Signal): number | null {
+  const said = signal.meta.find((pair) => pair.key === "source")?.value.trim() ?? "";
+  const m = said.match(/^#(\d+)$/);
+  return m ? Number(m[1]) : null;
+}
+
+/** The group an item sits in: its source type, the card it came from, or none. */
+function groupOf(signal: Signal): string {
+  if (signal.sourceType) return signal.sourceType;
+  const card = sourceCard(signal);
+  return card === null ? "" : `#${card}`;
+}
+
+const cardOfGroup = (key: string): number | null =>
+  key.startsWith("#") ? Number(key.slice(1)) : null;
+
 function matches(signal: Signal, query: string): boolean {
   if (!query) return true;
   const parts = [
@@ -118,34 +142,37 @@ function matches(signal: Signal, query: string): boolean {
 }
 
 interface Group {
-  type: string;
+  key: string;
   items: Signal[];
 }
 
-/** The items in source groups: the board's own list in its own order first, then whatever
- *  keys came in from elsewhere by key, then the one group nothing named a source for. */
+/** Source types in the board's own order, then other types by key, then card groups newest
+ *  card first, then the one group nothing named a source for. */
 function groupBySource(signals: Signal[], listed: string[]): Group[] {
   const by = new Map<string, Signal[]>();
   for (const signal of signals) {
-    const held = by.get(signal.sourceType);
+    const key = groupOf(signal);
+    const held = by.get(key);
     if (held) held.push(signal);
-    else by.set(signal.sourceType, [signal]);
+    else by.set(key, [signal]);
   }
   const known = new Set(listed);
-  const rest = [...by.keys()].filter((type) => type && !known.has(type)).sort();
+  const keys = [...by.keys()];
   const order = [
     ...listed.filter((type) => by.has(type)),
-    ...rest,
+    ...keys.filter((key) => key && !key.startsWith("#") && !known.has(key)).sort(),
+    ...keys
+      .filter((key) => key.startsWith("#"))
+      .sort((a, b) => cardOfGroup(b)! - cardOfGroup(a)!),
     ...(by.has("") ? [""] : []),
   ];
-  return order.map((type) => ({ type, items: by.get(type)! }));
+  return order.map((key) => ({ key, items: by.get(key)! }));
 }
+
+const cardHref = (id: number, archived: boolean) => (archived ? `/archive/${id}` : `/${id}`);
 
 // --- the page ---------------------------------------------------------------
 
-/** What the page is drawn in. It keeps up on the two triggers the archive page uses — a run
- *  finishing, and the window being focused again — because the recurring pull is a run like
- *  any other, and it writes the files this page lists. */
 function SignalsFrame({
   projectRoot,
   openIds,
@@ -153,6 +180,7 @@ function SignalsFrame({
   goalWritten,
   memoryOwners,
   desktop,
+  sessions,
   children,
 }: {
   projectRoot: string;
@@ -161,24 +189,9 @@ function SignalsFrame({
   goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
+  sessions: SessionView[];
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const refresh = useCallback(() => router.refresh(), [router]);
-  const noRunsOfOurOwn = useCallback(() => {}, []);
-  const { sessions } = useAgentSessions(noRunsOfOurOwn);
-  const prevRunning = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    const now = new Set(
-      sessions.filter((r) => r.status === "running").map((r) => r.sessionId),
-    );
-    let finished = false;
-    for (const id of prevRunning.current) if (!now.has(id)) finished = true;
-    prevRunning.current = now;
-    if (finished) refresh();
-  }, [sessions, refresh]);
-  useOnTabFocus(refresh);
-
   return (
     <OpenIdsProvider ids={openIds}>
       <Window
@@ -222,46 +235,120 @@ export function SignalsPage({
 }) {
   const c = useCopy().rail.signals;
   const router = useRouter();
+  const refresh = useCallback(() => router.refresh(), [router]);
+
+  // The page keeps up with runs: a card being made, a sort, and the pull all write the files
+  // this page lists.
+  const noRunsOfOurOwn = useCallback(() => {}, []);
+  const { sessions, kick } = useAgentSessions(noRunsOfOurOwn);
+  const prevRunning = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const now = new Set(
+      sessions.filter((r) => r.status === "running").map((r) => r.sessionId),
+    );
+    let finished = false;
+    for (const id of prevRunning.current) if (!now.has(id)) finished = true;
+    prevRunning.current = now;
+    if (finished) refresh();
+  }, [sessions, refresh]);
+  useOnTabFocus(refresh);
 
   const [tab, setTab] = useState<Tab>("pending");
   const [query, setQuery] = useState("");
   const [source, setSource] = useState(EVERY);
-  // Folded by hand, this visit only: one page's browsing state, not a setting.
   const [folded, setFolded] = useState<Set<string>>(new Set());
   const [shown, setShown] = useState<Record<string, number>>({});
   const [open, setOpen] = useState<string | null>(null);
-  // Dismissing is a write, so the list is redrawn from the server rather than from what this
-  // page had. Held here only so the card goes the instant it is pressed.
+  const [focused, setFocused] = useState<string | null>(null);
+  // Held only so a card leaves its tab the instant it is judged or restored — `p:<id>` off
+  // Waiting, `h:<id>` off History — and dropped once the server's list agrees.
   const [gone, setGone] = useState<Set<string>>(new Set());
+  const hide = (mark: string) => setGone((was) => new Set(was).add(mark));
+  const unhide = (mark: string) =>
+    setGone((was) => {
+      const next = new Set(was);
+      next.delete(mark);
+      return next;
+    });
   const [failed, setFailed] = useState("");
-  const [lit, setLit] = useState("");
+  const [ignoring, setIgnoring] = useState<Signal | null>(null);
+  const ignoreBack = useRef<HTMLElement | null>(null);
 
-  // Add, as a draft that outlives the popover: closing it is not throwing it away.
-  const addRef = useRef<HTMLSpanElement>(null);
-  const [openAdd, setOpenAdd] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [addNote, setAddNote] = useState("");
-  const [landed, setLanded] = useState("");
-  const [hidden, setHidden] = useState("");
+  // Make card: pressed and not yet answered, then started and not yet in the poll.
+  const [starting, setStarting] = useState<Set<string>>(new Set());
+  const [started, setStarted] = useState<Record<string, string>>({});
+  const [sortStarting, setSortStarting] = useState(false);
+  const [sortNote, setSortNote] = useState<"closed" | "refused" | null>(null);
 
-  // What each tab holds, less anything just ignored: the counts have to agree with the page
-  // the instant a card goes, not one server round trip later.
-  const live = useCallback((signals: Signal[]) => signals.filter((s) => !gone.has(s.sourceId)), [gone]);
-  const waiting = live(inbox.signals);
-  const ignored = live(inbox.dismissed);
-  const held = tab === "pending" ? inbox.signals : inbox.dismissed;
+  const making = useMemo(() => {
+    const ids = new Set(starting);
+    for (const run of sessions) {
+      if (run.status === "running" && run.triage) ids.add(run.triage);
+    }
+    for (const [sourceId, sessionId] of Object.entries(started)) {
+      if (!sessions.some((run) => run.sessionId === sessionId)) ids.add(sourceId);
+    }
+    return ids;
+  }, [sessions, starting, started]);
+  const sorting =
+    sortStarting || sessions.some((run) => run.action === "triage" && run.status === "running");
+
+  // A started run the poll has seen answers for itself from here on.
+  useEffect(() => {
+    setStarted((was) => {
+      const kept = Object.fromEntries(
+        Object.entries(was).filter(([, id]) => !sessions.some((run) => run.sessionId === id)),
+      );
+      return Object.keys(kept).length === Object.keys(was).length ? was : kept;
+    });
+  }, [sessions]);
+
+  // An item that was being made into a card and has left the queue fades out rather than
+  // vanishing — never for less motion.
+  const [leaving, setLeaving] = useState<Signal[]>([]);
+  const before = useRef<Signal[]>(inbox.signals);
+  const everMaking = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    making.forEach((id) => everMaking.current.add(id));
+  }, [making]);
+  useEffect(() => {
+    const was = before.current;
+    before.current = inbox.signals;
+    const still = new Set(inbox.signals.map((s) => s.sourceId));
+    const left = was.filter((s) => !still.has(s.sourceId) && everMaking.current.has(s.sourceId));
+    left.forEach((s) => everMaking.current.delete(s.sourceId));
+    if (left.length === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setLeaving((cur) => [...cur, ...left]);
+    setTimeout(() => setLeaving((cur) => cur.filter((s) => !left.includes(s))), FADE_MS);
+  }, [inbox.signals]);
+
+  const leavingIds = useMemo(() => new Set(leaving.map((s) => s.sourceId)), [leaving]);
+  const waiting = useMemo(
+    () => [...inbox.signals, ...leaving].filter((s) => !gone.has(`p:${s.sourceId}`)),
+    [inbox.signals, leaving, gone],
+  );
+  const judged = useMemo(
+    () => [...inbox.archived, ...inbox.dismissed].filter((s) => !gone.has(`h:${s.sourceId}`)),
+    [inbox.archived, inbox.dismissed, gone],
+  );
+  useEffect(() => {
+    const listed = new Set([
+      ...inbox.signals.map((s) => `p:${s.sourceId}`),
+      ...[...inbox.archived, ...inbox.dismissed].map((s) => `h:${s.sourceId}`),
+    ]);
+    setGone((was) => {
+      const kept = new Set([...was].filter((mark) => listed.has(mark)));
+      return kept.size === was.size ? was : kept;
+    });
+  }, [inbox.signals, inbox.archived, inbox.dismissed]);
   const all = useMemo(() => {
-    const live = held.filter((signal) => !gone.has(signal.sourceId));
-    const stamp = (signal: Signal) =>
-      tab === "dismissed" ? signal.dismissedAt : signal.collectedAt;
-    return [...live].sort(
-      (a, b) =>
-        order(stamp(b)) - order(stamp(a)) ||
-        a.sourceId.localeCompare(b.sourceId),
+    const held = tab === "pending" ? waiting : judged;
+    const stamp = tab === "history" ? judgedAt : (s: Signal) => s.collectedAt;
+    return [...held].sort(
+      (a, b) => order(stamp(b)) - order(stamp(a)) || a.sourceId.localeCompare(b.sourceId),
     );
-  }, [held, gone, tab]);
+  }, [tab, waiting, judged]);
 
   const needle = query.trim().toLowerCase();
   const picked = source === NONE ? "" : source;
@@ -269,8 +356,7 @@ export function SignalsPage({
     () =>
       all.filter(
         (signal) =>
-          matches(signal, needle) &&
-          (source === EVERY || signal.sourceType === picked),
+          matches(signal, needle) && (source === EVERY || groupOf(signal) === picked),
       ),
     [all, needle, source, picked],
   );
@@ -278,27 +364,29 @@ export function SignalsPage({
     () => groupBySource(narrowed, inbox.sourceTypes),
     [narrowed, inbox.sourceTypes],
   );
-  // Every source the page could offer, in the same order the groups come in — read off
-  // everything in this tab, not off what the search left, so narrowing never empties it.
   const sources = useMemo(
-    () => groupBySource(all, inbox.sourceTypes).map((group) => group.type),
+    () => groupBySource(all, inbox.sourceTypes).map((group) => group.key),
     [all, inbox.sourceTypes],
   );
+  const groupName = (key: string) => {
+    const card = cardOfGroup(key);
+    if (card === null) return sourceName(key, c.noSource);
+    const title = inbox.cards[card]?.title;
+    return title ? `#${card} ${title}` : `#${card}`;
+  };
 
-  // A search unfolds what it found, and leaves the fold as it was for when it is cleared.
   const searching = needle.length > 0;
-  const isFolded = (type: string) => !searching && folded.has(`${tab}:${type}`);
-  const fold = (type: string) =>
+  const isFolded = (key: string) => !searching && folded.has(`${tab}:${key}`);
+  const fold = (key: string) =>
     setFolded((was) => {
       const next = new Set(was);
-      const key = `${tab}:${type}`;
-      if (!next.delete(key)) next.add(key);
+      const at = `${tab}:${key}`;
+      if (!next.delete(at)) next.add(at);
       return next;
     });
 
-  // A different tab, search or source is a different list — how far each group was loaded
-  // said nothing about this one.
   useEffect(() => setShown({}), [tab, needle, source]);
+  useEffect(() => setSortNote(null), [tab]);
 
   const narrowing = searching || source !== EVERY;
   const clear = () => {
@@ -306,144 +394,94 @@ export function SignalsPage({
     setSource(EVERY);
   };
 
-  const dismiss = async (sourceId: string) => {
-    // Where the focus goes once the card is gone: the next one on the page, or the one before
-    // it at the end of the list.
+  const makeCard = async (signal: Signal) => {
+    const { sourceId } = signal;
+    if (making.has(sourceId) || sorting) return;
+    setFailed("");
+    setStarting((was) => new Set(was).add(sourceId));
+    const done = await makeCardAction(sourceId).catch(() => ({
+      ok: false,
+      sessionId: undefined,
+    }));
+    setStarting((was) => {
+      const next = new Set(was);
+      next.delete(sourceId);
+      return next;
+    });
+    if (!done.ok || !done.sessionId) {
+      setFailed(c.makeFailed);
+      return;
+    }
+    setStarted((was) => ({ ...was, [sourceId]: done.sessionId! }));
+    kick();
+  };
+
+  const askIgnore = (signal: Signal) => {
+    ignoreBack.current = document.activeElement as HTMLElement | null;
+    setIgnoring(signal);
+  };
+
+  const closeIgnore = () => {
+    setIgnoring(null);
+    const back = ignoreBack.current;
+    requestAnimationFrame(() => back?.focus());
+  };
+
+  /** Ignore with the reason typed; false keeps the dialog and what was typed. */
+  const ignore = async (signal: Signal, reason: string): Promise<boolean> => {
     const flat = groups.flatMap((group) =>
-      isFolded(group.type) ? [] : group.items.map((s) => s.sourceId),
+      isFolded(group.key) ? [] : group.items.map((s) => s.sourceId),
     );
-    const at = flat.indexOf(sourceId);
+    const at = flat.indexOf(signal.sourceId);
     const near = flat[at + 1] ?? flat[at - 1] ?? "";
 
-    setGone((was) => new Set(was).add(sourceId));
-    const done = await dismissSignalAction(sourceId);
+    const done = await dismissSignalAction(signal.sourceId, reason).catch(() => ({
+      ok: false,
+    }));
+    if (!done.ok) return false;
+    hide(`p:${signal.sourceId}`);
+    setIgnoring(null);
+    setOpen(null);
+    setFailed("");
+    requestAnimationFrame(() => document.getElementById(`signal-${near}`)?.focus());
+    reloadSignalsRow();
+    refresh();
+    return true;
+  };
+
+  const restore = async (signal: Signal) => {
+    hide(`h:${signal.sourceId}`);
+    const done = await restoreSignalAction(signal.sourceId).catch(() => ({
+      ok: false,
+      error: c.restoreFailed,
+    }));
     if (!done.ok) {
-      setGone((was) => {
-        const next = new Set(was);
-        next.delete(sourceId);
-        return next;
-      });
-      setFailed(done.error ?? c.dismissFailed);
+      unhide(`h:${signal.sourceId}`);
+      setFailed(done.error ?? c.restoreFailed);
       return;
     }
     setFailed("");
     setOpen(null);
-    if (near)
-      requestAnimationFrame(() =>
-        document.getElementById(`signal-${near}`)?.focus(),
-      );
     reloadSignalsRow();
-    router.refresh();
+    refresh();
   };
 
-  /** Take one item back into view, whatever is currently hiding it. */
-  const show = useCallback((sourceId: string, type: string) => {
-    setTab("pending");
-    setQuery("");
-    setSource(EVERY);
-    setFolded((was) => {
-      const next = new Set(was);
-      next.delete(`pending:${type}`);
-      return next;
-    });
-    setShown((was) => ({
-      ...was,
-      [`pending:${type}`]: Number.MAX_SAFE_INTEGER,
-    }));
-    setHidden("");
-    setLit(sourceId);
-    requestAnimationFrame(() =>
-      document
-        .getElementById(`signal-${sourceId}`)
-        ?.scrollIntoView({ block: "center" }),
-    );
-  }, []);
-
-  // What was just added: lit where it is showing, and offered where it is not. It is looked
-  // for only once the server has handed the page a list that holds it.
-  useEffect(() => {
-    if (!landed) return;
-    const item = inbox.signals.find((signal) => signal.sourceId === landed);
-    if (!item) return;
-    setLanded("");
-    if (
-      narrowed.some((signal) => signal.sourceId === landed) &&
-      tab === "pending" &&
-      !isFolded(item.sourceType)
-    ) {
-      setLit(landed);
-      return;
-    }
-    setHidden(landed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landed, inbox.signals, narrowed, tab]);
-
-  useEffect(() => {
-    if (!lit) return;
-    const stop = setTimeout(() => setLit(""), 2400);
-    return () => clearTimeout(stop);
-  }, [lit]);
-
-  const add = async () => {
-    if (adding) return;
-    if (!draft.trim() && !file) return;
-    setAdding(true);
-    setAddNote("");
-    const form = new FormData();
-    if (draft.trim()) form.set("text", draft.trim());
-    if (file) {
-      form.set("file", file);
-      form.set("name", file.name);
-    }
-    const done = await addToInboxAction(form).catch(() => ({
-      ok: false,
-      error: c.add.failed,
-      sourceId: "",
-    }));
-    setAdding(false);
+  const sortAll = async () => {
+    if (sorting) return;
+    setSortNote(null);
+    setSortStarting(true);
+    const done = await sortTriageAction().catch(() => ({ ok: false, closed: false }));
+    setSortStarting(false);
     if (!done.ok) {
-      // The draft is kept: whatever was wrong with it, it is still the reader's to fix.
-      setAddNote(done.error ?? c.add.failed);
+      setSortNote("closed" in done && done.closed ? "closed" : "refused");
       return;
     }
-    setDraft("");
-    setFile(null);
-    setOpenAdd(false);
-    setFailed("");
-    setLanded(done.sourceId ?? "");
-    reloadSignalsRow();
-    router.refresh();
+    kick();
   };
 
-  const closeAdd = useCallback(() => {
-    setOpenAdd(false);
-    requestAnimationFrame(() =>
-      addRef.current?.querySelector<HTMLButtonElement>("button")?.focus(),
-    );
-  }, []);
-
-  /** One file staged, from the button or from anywhere on the page. A second one is refused
-   *  where it landed, and what was already there is left alone. */
-  const stage = (files: FileList | File[]) => {
-    const picked = Array.from(files);
-    setOpenAdd(true);
-    if (picked.length === 0) return;
-    if (picked.length > 1 || file) {
-      setAddNote(c.add.oneFile);
-      return;
-    }
-    setAddNote("");
-    setFile(picked[0]!);
-  };
-
-  const opened = open
-    ? all.find((signal) => signal.sourceId === open)
-    : undefined;
-  // No endpoint is not an empty inbox: one is a board nothing has been pulled into, the other
-  // is a board that was never pointed anywhere. They read differently or the second one looks
-  // like the first and nobody goes looking for the setting. A board with no endpoint still
-  // takes what is added by hand (#499), so this is an offer and never a demand.
-  const unconfigured = inbox.missing.length > 0 && inbox.signals.length === 0;
+  const opened = open ? all.find((signal) => signal.sourceId === open) : undefined;
+  const unconfigured = inbox.missing.length > 0;
+  const hasHistory = inbox.archived.length + inbox.dismissed.length > 0;
 
   return (
     <SignalsFrame
@@ -453,45 +491,30 @@ export function SignalsPage({
       goalWritten={goalWritten}
       memoryOwners={memoryOwners}
       desktop={desktop}
+      sessions={sessions}
     >
-      <div
-        className="relative flex h-full min-h-0 flex-col"
-        onDragOver={(e) => {
-          if (!e.dataTransfer.types.includes("Files")) return;
-          e.preventDefault();
-        }}
-        onDrop={(e) => {
-          // Text dragged around the page is the caret's, and never an item.
-          if (!e.dataTransfer.types.includes("Files")) return;
-          e.preventDefault();
-          stage(e.dataTransfer.files);
-        }}
-      >
+      <div className="relative flex h-full min-h-0 flex-col">
         <RunningNotice desktop={desktop} />
 
         <div
-          className="flex shrink-0 items-center gap-2 px-6 py-2.5 max-md:px-4"
+          className="flex shrink-0 items-center gap-3 px-6 py-2.5 max-md:px-4"
           style={{ borderBottom: `1px solid ${HAIRLINE}` }}
         >
-          <span
-            className={`inline-flex h-7 shrink-0 overflow-hidden rounded-[8px] bg-nb-paper ${CHROME}`}
-          >
+          <span className="inline-flex h-8 shrink-0 items-center gap-5">
             <TabButton
               label={c.pending}
-              count={waiting.length}
+              count={waiting.length - leaving.length}
               on={tab === "pending"}
               onClick={() => setTab("pending")}
             />
             <TabButton
-              label={c.dismissed}
-              count={ignored.length}
-              on={tab === "dismissed"}
-              onClick={() => setTab("dismissed")}
-              divided
+              label={c.history}
+              on={tab === "history"}
+              onClick={() => setTab("history")}
             />
           </span>
-          {tab === "dismissed" && (
-            <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
+          {tab === "history" && (
+            <span className="shrink-0 text-[11.5px] text-nb-ink-soft max-md:hidden">
               {c.window(inbox.dismissedDays)}
             </span>
           )}
@@ -503,157 +526,136 @@ export function SignalsPage({
           <span className="flex-1" />
 
           <label className="relative inline-flex h-7 min-w-0 shrink items-center">
-            <FiSearch
-              size={13}
-              className="absolute left-2.5 text-nb-ink-soft"
-              aria-hidden
-            />
+            <FiSearch size={13} className="absolute left-2.5 text-nb-ink-soft" aria-hidden />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={c.search}
               aria-label={c.search}
-              className="h-7 w-[220px] min-w-[92px] rounded-[8px] bg-nb-paper pl-7 pr-2.5 text-[12px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none max-md:w-[140px]"
+              className="h-7 w-[180px] min-w-[92px] rounded-[8px] bg-nb-wash pl-7 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none max-md:w-[120px]"
             />
           </label>
 
           <Select value={source} onValueChange={setSource}>
             <SelectTrigger
               aria-label={c.allSources}
-              className="h-7 w-auto max-w-[160px] shrink-0 gap-1.5 rounded-[8px] border-0 bg-nb-paper px-2.5 py-0 text-[12px] font-[600] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)]"
+              className="h-7 w-auto max-w-[180px] shrink-0 gap-1.5 rounded-[8px] border-0 bg-transparent px-1 py-0 text-[12px] font-[600] text-nb-ink-soft shadow-none"
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={EVERY}>{c.allSources}</SelectItem>
-              {sources.map((type) => (
-                <SelectItem key={type || NONE} value={type || NONE}>
-                  {sourceName(type, c.noSource)}
+              {sources.map((key) => (
+                <SelectItem key={key || NONE} value={key || NONE}>
+                  <span className="block max-w-[260px] truncate">{groupName(key)}</span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <span ref={addRef} className="relative inline-flex shrink-0">
-            <Button
-              size="xs"
-              aria-expanded={openAdd}
-              onClick={() => (openAdd ? closeAdd() : setOpenAdd(true))}
-            >
-              <FiPlus size={13} aria-hidden />
-              {c.add.open}
-            </Button>
-            {openAdd && (
-              <AddPopover
-                draft={draft}
-                file={file}
-                note={addNote}
-                busy={adding}
-                onDraft={setDraft}
-                onPick={stage}
-                onDrop={() => setFile(null)}
-                onClose={closeAdd}
-                onAdd={() => void add()}
-              />
-            )}
-          </span>
+          {tab === "pending" && waiting.length > 0 && (
+            <SortAll
+              sorting={sorting}
+              note={sortNote}
+              onSort={() => void sortAll()}
+              onDismissNote={() => setSortNote(null)}
+            />
+          )}
         </div>
 
-        {(failed || hidden) && (
+        {failed && (
           <div className="shrink-0 px-6 pt-2.5 max-md:px-4">
-            {failed && (
-              <p className="rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-[12px] leading-[16px] text-nb-ink">
-                {failed}
-              </p>
-            )}
-            {hidden && (
-              <p className="flex items-center gap-2 rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-[12px] leading-[16px] text-nb-ink">
-                {c.add.hidden}
-                <button
-                  type="button"
-                  onClick={() =>
-                    show(
-                      hidden,
-                      inbox.signals.find((s) => s.sourceId === hidden)
-                        ?.sourceType ?? "",
-                    )
-                  }
-                  className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
-                >
-                  {c.add.show}
-                </button>
-              </p>
-            )}
+            <p className="rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-[12px] leading-[16px] text-nb-ink">
+              {failed}
+            </p>
           </div>
         )}
 
         <div className="relative min-h-0 flex-1">
           <div className="flex h-full flex-col overflow-y-auto px-6 py-4 max-md:px-4">
             {groups.length === 0 ? (
-              <Empty
-                title={
-                  narrowing
-                    ? c.noHits
-                    : tab === "dismissed"
-                      ? c.emptyDismissed
-                      : c.empty
-                }
-                hint={
-                  narrowing
-                    ? ""
-                    : tab === "dismissed"
-                      ? c.emptyDismissedHint
-                      : c.emptyHint
-                }
-                searched={narrowing}
-              >
-                {narrowing ? (
-                  <button
-                    type="button"
-                    onClick={clear}
-                    className="cursor-pointer text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2"
-                  >
+              narrowing ? (
+                <Empty title={c.noHits} searched>
+                  <button type="button" onClick={clear} className={LINK}>
                     {c.clear}
                   </button>
-                ) : (
-                  unconfigured && <EndpointLink label={c.connect} />
-                )}
-              </Empty>
+                </Empty>
+              ) : tab === "history" ? (
+                <Empty title={c.emptyHistory} hint={c.emptyHistoryHint} />
+              ) : (
+                <Empty title={c.empty} hint={c.emptyHint}>
+                  {(unconfigured || hasHistory) && (
+                    <span className="inline-flex items-center gap-4">
+                      {unconfigured && <EndpointLink label={c.connect} />}
+                      {hasHistory && (
+                        <button type="button" onClick={() => setTab("history")} className={LINK}>
+                          {c.seeHistory}
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </Empty>
+              )
             ) : (
               <div className="flex flex-col gap-5">
                 {groups.map((group) => (
                   <SourceSection
-                    key={group.type || "none"}
+                    key={group.key || "none"}
                     group={group}
-                    dismissed={tab === "dismissed"}
-                    folded={isFolded(group.type)}
-                    shown={shown[`${tab}:${group.type}`] ?? FIRST}
-                    lit={lit}
-                    onFold={() => fold(group.type)}
+                    name={groupName(group.key)}
+                    card={cardOfGroup(group.key)}
+                    cardRef={inbox.cards[cardOfGroup(group.key) ?? -1]}
+                    folded={isFolded(group.key)}
+                    shown={shown[`${tab}:${group.key}`] ?? FIRST}
+                    onFold={() => fold(group.key)}
                     onMore={() =>
                       setShown((was) => ({
                         ...was,
-                        [`${tab}:${group.type}`]:
-                          (was[`${tab}:${group.type}`] ?? FIRST) + MORE,
+                        [`${tab}:${group.key}`]: (was[`${tab}:${group.key}`] ?? FIRST) + MORE,
                       }))
                     }
-                    onOpen={setOpen}
-                  />
+                  >
+                    {(signal) =>
+                      tab === "history" ? (
+                        <HistoryCard
+                          key={signal.sourceId}
+                          signal={signal}
+                          card={signal.cardId !== null ? inbox.cards[signal.cardId] : undefined}
+                          onOpen={() => setOpen(signal.sourceId)}
+                          onRestore={() => void restore(signal)}
+                        />
+                      ) : (
+                        <QueueCard
+                          key={signal.sourceId}
+                          signal={signal}
+                          focused={focused === signal.sourceId && !opened}
+                          making={making.has(signal.sourceId)}
+                          leaving={leavingIds.has(signal.sourceId)}
+                          sorting={sorting}
+                          onFocus={() => setFocused(signal.sourceId)}
+                          onBlur={() =>
+                            setFocused((was) => (was === signal.sourceId ? null : was))
+                          }
+                          onOpen={() => setOpen(signal.sourceId)}
+                          onMake={() => void makeCard(signal)}
+                          onIgnore={() => askIgnore(signal)}
+                        />
+                      )
+                    }
+                  </SourceSection>
                 ))}
               </div>
-            )}
-
-            {unconfigured && groups.length > 0 && (
-              <p className="mt-4">
-                <EndpointLink label={c.connect} />
-              </p>
             )}
           </div>
 
           {opened && (
             <SignalDetail
               signal={opened}
-              readOnly={tab === "dismissed"}
+              history={tab === "history"}
+              card={opened.cardId !== null ? inbox.cards[opened.cardId] : undefined}
+              making={making.has(opened.sourceId)}
+              sorting={sorting}
+              paused={!!ignoring}
               onClose={() => {
                 const back = opened.sourceId;
                 setOpen(null);
@@ -661,10 +663,20 @@ export function SignalsPage({
                   document.getElementById(`signal-${back}`)?.focus(),
                 );
               }}
-              onDismiss={() => void dismiss(opened.sourceId)}
+              onMake={() => void makeCard(opened)}
+              onIgnore={() => askIgnore(opened)}
+              onRestore={() => void restore(opened)}
             />
           )}
         </div>
+
+        {ignoring && (
+          <IgnoreDialog
+            signal={ignoring}
+            onCancel={closeIgnore}
+            onIgnore={(reason) => ignore(ignoring, reason)}
+          />
+        )}
       </div>
     </SignalsFrame>
   );
@@ -673,8 +685,7 @@ export function SignalsPage({
 /** Where to read about serving and pointing at an endpoint. */
 const ENDPOINT_DOCS = "https://ai4kanban.dev/docs/triage-endpoint";
 
-/** A page with nothing on it: one centered block, no frame. A panel drawn across the pane
- *  reads as content that failed to load rather than as a page waiting to be filled. */
+/** A page with nothing on it: one centered block, no frame. */
 function Empty({
   title,
   hint,
@@ -683,7 +694,6 @@ function Empty({
 }: {
   title: string;
   hint?: string;
-  /** A search that found nothing, drawn with the search's own mark. */
   searched?: boolean;
   children?: ReactNode;
 }) {
@@ -696,25 +706,19 @@ function Empty({
         <Mark size={18} aria-hidden />
       </span>
       <p className="mt-3 text-[14px] font-[800] tracking-[-0.01em]">{title}</p>
-      {hint && (
-        <p className="mt-1 text-[12.5px] leading-relaxed text-nb-ink-soft">
-          {hint}
-        </p>
-      )}
+      {hint && <p className="mt-1 text-[12.5px] leading-relaxed text-nb-ink-soft">{hint}</p>}
       {children && <span className="mt-3 inline-flex">{children}</span>}
     </div>
   );
 }
 
-/** The offer to pull from an endpoint: the docs, and nothing about which setting is missing
- *  — the page they open says what to serve and where the two settings go. */
 function EndpointLink({ label }: { label: string }) {
   return (
     <a
       href={ENDPOINT_DOCS}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1 text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2"
+      className={`inline-flex items-center gap-1 ${LINK}`}
     >
       {label}
       <FiExternalLink size={11} aria-hidden />
@@ -722,18 +726,16 @@ function EndpointLink({ label }: { label: string }) {
   );
 }
 
-/** One of the two tabs, with what it holds. */
+/** One of the two tabs: an underline, not a pill. */
 function TabButton({
   label,
   count,
   on,
-  divided,
   onClick,
 }: {
   label: string;
-  count: number;
+  count?: number;
   on: boolean;
-  divided?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -741,85 +743,149 @@ function TabButton({
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className="flex h-full cursor-pointer items-center gap-1.5 px-3 text-[12px] font-[700] transition-colors"
-      style={{
-        background: on ? "var(--color-nb-peach-soft)" : undefined,
-        color: on ? "var(--color-nb-accent-deep)" : "var(--color-nb-ink-soft)",
-        boxShadow: divided ? `inset 1px 0 0 ${HAIRLINE}` : undefined,
-      }}
+      className={`flex h-full cursor-pointer items-center gap-1.5 border-b-2 text-[13px] font-[700] transition-colors ${
+        on ? "border-nb-accent text-nb-ink" : "border-transparent text-nb-ink-soft hover:text-nb-ink"
+      }`}
     >
       {label}
-      <span className="tabular-nums opacity-75">{count}</span>
+      {count !== undefined && (
+        <span className="text-[12px] font-[400] tabular-nums text-nb-ink-soft">{count}</span>
+      )}
     </button>
   );
 }
 
-/** One source: its mark and name once, then its items three to a row.
- *
- *  The count on the heading is everything the current search and source found in this group,
- *  whatever part of it is drawn — folding a group or leaving the rest of it unloaded is not
- *  the same as it holding less. */
-function SourceSection({
-  group,
-  dismissed,
-  folded,
-  shown,
-  lit,
-  onFold,
-  onMore,
-  onOpen,
+/** **Sort all**, and — under it — why a sort would not start. */
+function SortAll({
+  sorting,
+  note,
+  onSort,
+  onDismissNote,
 }: {
-  group: Group;
-  dismissed: boolean;
-  folded: boolean;
-  shown: number;
-  lit: string;
-  onFold: () => void;
-  onMore: () => void;
-  onOpen: (sourceId: string) => void;
+  sorting: boolean;
+  note: "closed" | "refused" | null;
+  onSort: () => void;
+  onDismissNote: () => void;
 }) {
   const c = useCopy().rail.signals;
-  const name = sourceName(group.type, c.noSource);
+  const box = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!note) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismissNote();
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) onDismissNote();
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [note, onDismissNote]);
+
+  return (
+    <span ref={box} className="relative inline-flex shrink-0">
+      <Button
+        size="xs"
+        variant="ghost"
+        disabled={sorting}
+        onClick={onSort}
+        className="disabled:opacity-70"
+      >
+        {!sorting && <FiZap size={13} aria-hidden />}
+        {sorting ? c.sorting : c.sortAll}
+      </Button>
+      {note && (
+        <span
+          role="status"
+          className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 flex w-[260px] flex-col items-start gap-1.5 bg-nb-paper px-3 py-2.5 text-[12px] leading-[17px]"
+        >
+          {note === "closed" ? c.sortClosed : c.sortRefused}
+          {note === "refused" && (
+            <button
+              type="button"
+              className={LINK}
+              onClick={() => {
+                onDismissNote();
+                configDialog.open("agents");
+              }}
+            >
+              {c.openConfig}
+            </button>
+          )}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** One group: its source — or the card it came from, linked — once, then its items. */
+function SourceSection({
+  group,
+  name,
+  card,
+  cardRef,
+  folded,
+  shown,
+  onFold,
+  onMore,
+  children,
+}: {
+  group: Group;
+  name: string;
+  card: number | null;
+  /** The card's title and where it is — absent when the board no longer holds it. */
+  cardRef?: { title: string; archived: boolean };
+  folded: boolean;
+  shown: number;
+  onFold: () => void;
+  onMore: () => void;
+  children: (signal: Signal) => ReactNode;
+}) {
+  const c = useCopy().rail.signals;
   const drawn = folded ? [] : group.items.slice(0, shown);
 
   return (
     <section>
-      <button
-        type="button"
-        onClick={onFold}
-        aria-expanded={!folded}
-        // The source is what tells one heading from the next, so it stays in the name the
-        // button is read out by; the word for the press follows it.
-        aria-label={`${name} ${folded ? c.unfold : c.fold}`}
-        className="mb-2 flex h-6 w-full cursor-pointer items-center gap-2 text-[12px] font-[700]"
-      >
-        {folded ? (
-          <FiChevronRight size={13} className="text-nb-ink-soft" aria-hidden />
+      <div className="mb-2 flex h-6 w-full items-center gap-2 text-[12px] font-[700]">
+        <button
+          type="button"
+          onClick={onFold}
+          aria-expanded={!folded}
+          aria-label={`${name} ${folded ? c.unfold : c.fold}`}
+          className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+        >
+          {folded ? <FiChevronRight size={13} aria-hidden /> : <FiChevronDown size={13} aria-hidden />}
+        </button>
+        {card !== null && cardRef ? (
+          <Link
+            href={cardHref(card, cardRef.archived)}
+            className="inline-flex min-w-0 items-center gap-1.5 hover:underline hover:underline-offset-2"
+          >
+            <span className="shrink-0 font-mono text-[11.5px] tabular-nums text-nb-ink-soft">
+              #{card}
+            </span>
+            <span className="truncate">{cardRef.title}</span>
+          </Link>
+        ) : card !== null ? (
+          <span className="font-mono text-[11.5px] tabular-nums text-nb-ink-soft">#{card}</span>
         ) : (
-          <FiChevronDown size={13} className="text-nb-ink-soft" aria-hidden />
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <SourceMark type={group.key} size={14} />
+            <span className="truncate">{name}</span>
+          </span>
         )}
-        <SourceMark type={group.type} size={14} />
-        <span className="truncate">{name}</span>
-        <span className="font-[400] tabular-nums text-nb-ink-soft">
-          {group.items.length}
-        </span>
         <span className="ml-1 h-px flex-1" style={{ background: HAIRLINE }} />
-      </button>
+      </div>
       {!folded && (
         <>
           <ul
             aria-label={name}
-            className="grid grid-cols-3 gap-3 max-[1200px]:grid-cols-2 max-md:grid-cols-1"
+            className="grid grid-cols-3 gap-4 max-[1200px]:grid-cols-2 max-md:grid-cols-1"
           >
-            {drawn.map((signal) => (
-              <SignalCard
-                key={signal.sourceId}
-                signal={signal}
-                dismissed={dismissed}
-                lit={lit === signal.sourceId}
-                onOpen={onOpen}
-              />
-            ))}
+            {drawn.map((signal) => children(signal))}
           </ul>
           {group.items.length > drawn.length && (
             <button
@@ -836,85 +902,207 @@ function SourceSection({
   );
 }
 
-/** One item, as small as it can be and still be worth reading: two lines of title, and one
- *  line under it. Waiting, that line is up to three of the values its source sent — the keys
- *  are not drawn, because `r/productivity` says what it is and `subreddit:` says it twice.
- *  Ignored, it is the judgement instead: the agent's own reason, or that you ignored it.
- *
- *  A record carried over from a board that kept only source ids has neither a title nor its
- *  own words, so the id stands in the title position — monospaced, because that is what it
- *  is — and a chip says its content was not kept and when it was judged. */
-function SignalCard({
+/** The title an item is read by: its own, or — for a record whose words were never kept —
+ *  its source id. */
+function ItemTitle({ signal, fixed }: { signal: Signal; fixed?: boolean }) {
+  return signal.contentKept ? (
+    <p
+      className={`line-clamp-2 text-[13px] font-[600] leading-[19px] ${fixed ? "h-[38px]" : ""}`}
+    >
+      {signal.title}
+    </p>
+  ) : (
+    <p className="truncate font-mono text-[12px] font-[600] leading-[19px] text-nb-ink-soft">
+      {signal.sourceId}
+    </p>
+  );
+}
+
+/** One waiting item: its title, and — only while it is in focus — its two ways out. The
+ *  action row is always there, so focus never changes the card's size. */
+function QueueCard({
   signal,
-  dismissed,
-  lit,
+  focused,
+  making,
+  leaving,
+  sorting,
+  onFocus,
+  onBlur,
   onOpen,
+  onMake,
+  onIgnore,
 }: {
   signal: Signal;
-  dismissed: boolean;
-  lit: boolean;
-  onOpen: (sourceId: string) => void;
+  focused: boolean;
+  making: boolean;
+  leaving: boolean;
+  sorting: boolean;
+  onFocus: () => void;
+  onBlur: () => void;
+  onOpen: () => void;
+  onMake: () => void;
+  onIgnore: () => void;
 }) {
   const c = useCopy().rail.signals;
-  const language = useLanguage();
-  const said = dismissed
-    ? signal.dismissedReason || (signal.dismissedBy === "user" ? c.byYou : "")
-    : signal.meta
-        .slice(0, 3)
-        .map((pair) => pair.value)
-        .join(" · ");
+  const hovered = useRef(false);
+  // A tap on a touch screen selects the item first, the way a hover does; the next opens it.
+  const tapped = useRef(false);
+  const act = focused && !making && !leaving;
+
   return (
-    <li>
-      <button
-        type="button"
-        id={`signal-${signal.sourceId}`}
-        onClick={() => onOpen(signal.sourceId)}
-        className="flex h-[80px] w-full cursor-pointer flex-col rounded-[9px] bg-nb-wash px-3 py-2.5 text-left transition-shadow hover:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
-        style={
-          lit
-            ? { boxShadow: "inset 0 0 0 1.5px var(--color-nb-accent)" }
-            : undefined
-        }
+    <li
+      onMouseEnter={() => {
+        hovered.current = true;
+        onFocus();
+      }}
+      onMouseLeave={(e) => {
+        hovered.current = false;
+        if (!e.currentTarget.contains(document.activeElement)) onBlur();
+      }}
+      onFocus={onFocus}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !hovered.current) onBlur();
+      }}
+    >
+      <div
+        data-focused={act || undefined}
+        className={`${CARD} h-[100px] ${
+          making && !leaving ? "a4k-triage-making bg-nb-accent-wash" : "bg-nb-paper"
+        } ${leaving ? "a4k-triage-leaving" : ""} ${focused && !leaving ? "border-nb-accent" : "border-nb-ink"}`}
       >
-        {signal.contentKept ? (
-          <p className="line-clamp-2 text-[13px] font-[600] leading-[19px]">
-            {signal.title}
-          </p>
-        ) : (
-          <p className="truncate font-mono text-[12px] font-[600] leading-[19px] text-nb-ink-soft">
-            {signal.sourceId}
-          </p>
-        )}
-        {signal.contentKept ? (
-          said && (
-            <p className="mt-auto truncate text-[11.5px] leading-[17px] text-nb-ink-soft">
-              {said}
-            </p>
-          )
-        ) : (
-          <span className="mt-auto inline-flex max-w-full items-center truncate rounded-[6px] bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] px-1.5 py-0.5 text-[11px] leading-[15px] text-nb-ink-soft">
-            {c.contentGone}
-            {signal.dismissedAt && ` · ${when(signal.dismissedAt, language)}`}
-          </span>
-        )}
-      </button>
+        <button
+          type="button"
+          id={`signal-${signal.sourceId}`}
+          onPointerDown={(e) => {
+            tapped.current = e.pointerType === "touch" && !focused;
+          }}
+          onClick={() => {
+            if (tapped.current) {
+              tapped.current = false;
+              onFocus();
+              return;
+            }
+            onOpen();
+          }}
+          className="flex min-h-0 flex-1 cursor-pointer flex-col px-3 pt-3 text-left focus-visible:outline-none"
+        >
+          <ItemTitle signal={signal} fixed />
+        </button>
+        <div className="flex h-8 shrink-0 items-center gap-1 px-1.5 pb-1.5">
+          {making ? (
+            <span className="px-1.5 text-[12px] font-[600] text-nb-accent-deep">{c.making}</span>
+          ) : act ? (
+            <>
+              <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
+                {c.makeCard}
+              </button>
+              <button type="button" className={GHOST_INK} onClick={onIgnore}>
+                {c.ignore}
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
     </li>
   );
 }
 
-/** One item in full, in a panel over the right of the page: everything the card had to cut,
- *  and the two things you may do with it. What has already been ignored is read only, and
- *  says when and why it was. */
-function SignalDetail({
+/** One judged item: what it became — a linked card, or the reason it was ignored — and, for
+ *  an ignored one no card was made of, the way back. */
+function HistoryCard({
   signal,
-  readOnly,
-  onClose,
-  onDismiss,
+  card,
+  onOpen,
+  onRestore,
 }: {
   signal: Signal;
-  readOnly: boolean;
+  card?: { title: string; archived: boolean };
+  onOpen: () => void;
+  onRestore: () => void;
+}) {
+  const c = useCopy().rail.signals;
+  const language = useLanguage();
+  const at = judgedAt(signal) ? when(judgedAt(signal), language) : "";
+  const who = signal.dismissedBy === "agent" ? c.byAgent : signal.dismissedBy === "user" ? c.byYou : "";
+  const became = signal.cardId !== null;
+
+  return (
+    <li>
+      <div
+        className={`${CARD} h-[120px] border-nb-ink bg-nb-paper focus-within:border-nb-accent`}
+      >
+        <div className="flex min-h-0 flex-1 flex-col px-3 pt-3">
+          <button
+            type="button"
+            id={`signal-${signal.sourceId}`}
+            onClick={onOpen}
+            className="cursor-pointer text-left focus-visible:outline-none"
+          >
+            <ItemTitle signal={signal} />
+          </button>
+          {became && card ? (
+            <Link
+              href={cardHref(signal.cardId!, card.archived)}
+              className="mt-1 inline-flex min-w-0 items-center gap-1 text-[12px] font-[700] text-nb-accent-deep hover:underline focus-visible:underline focus-visible:outline-none"
+            >
+              <FiCornerDownRight size={12} className="shrink-0" aria-hidden />
+              <span className="truncate">
+                #{signal.cardId} {card.title}
+              </span>
+            </Link>
+          ) : became ? (
+            <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-[700] text-nb-ink-soft">
+              <FiCornerDownRight size={12} className="shrink-0" aria-hidden />#{signal.cardId}
+            </p>
+          ) : (
+            signal.dismissedReason && (
+              <p className="mt-1 truncate text-[12px] leading-[17px] text-nb-ink">
+                {signal.dismissedReason}
+              </p>
+            )
+          )}
+        </div>
+        <div className="flex h-8 shrink-0 items-center gap-1 px-1.5 pb-1.5">
+          <span className="truncate pl-1.5 text-[11px] tabular-nums text-nb-ink-soft">
+            {[became ? "" : who, at].filter(Boolean).join(" · ")}
+          </span>
+          {!became && signal.contentKept && (
+            <button type="button" className={`${GHOST_ACT} ml-auto shrink-0`} onClick={onRestore}>
+              <FiRotateCcw size={12} aria-hidden />
+              {c.restore}
+            </button>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/** One item in full, in a panel over the right of the page — and, while it is open, the one
+ *  place its actions are. */
+function SignalDetail({
+  signal,
+  history,
+  card,
+  making,
+  sorting,
+  paused,
+  onClose,
+  onMake,
+  onIgnore,
+  onRestore,
+}: {
+  signal: Signal;
+  history: boolean;
+  card?: { title: string; archived: boolean };
+  making: boolean;
+  sorting: boolean;
+  /** The Ignore dialog is over it and takes Escape. */
+  paused: boolean;
   onClose: () => void;
-  onDismiss: () => void;
+  onMake: () => void;
+  onIgnore: () => void;
+  onRestore: () => void;
 }) {
   const copy = useCopy();
   const c = copy.rail.signals;
@@ -922,19 +1110,22 @@ function SignalDetail({
   useOverRail();
 
   useEffect(() => {
+    if (paused) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, paused]);
 
-  const line = (label: string, said: string) =>
+  const line = (label: string, said: ReactNode) =>
     said ? (
       <p className="text-[12px] leading-[18px] text-nb-ink-soft">
         <span className="font-[700]">{label}</span> {said}
       </p>
     ) : null;
+  const who =
+    signal.dismissedBy === "agent" ? c.byAgent : signal.dismissedBy === "user" ? c.byYou : "";
 
   return (
     <aside
@@ -947,8 +1138,6 @@ function SignalDetail({
         className="flex shrink-0 items-center gap-2 px-4 py-2.5"
         style={{ borderBottom: `1px solid ${HAIRLINE}` }}
       >
-        {/* Nothing said a source: the panel says nothing either. "No source given" is the
-            name of a group and never of an item. */}
         <SourceMark type={signal.sourceType} size={14} />
         <span className="min-w-0 flex-1 truncate text-[12px] font-[700]">
           {sourceName(signal.sourceType, "")}
@@ -964,26 +1153,18 @@ function SignalDetail({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
-        {/* A record whose own words were never kept has nothing to head it but its id, and
-            saying so once is better than an empty heading over an empty body. */}
         {signal.contentKept ? (
-          <h2 className="text-[14px] font-[700] leading-[20px]">
-            {signal.title}
-          </h2>
+          <h2 className="text-[14px] font-[700] leading-[20px]">{signal.title}</h2>
         ) : (
           <>
             <h2 className="break-all font-mono text-[13px] font-[700] leading-[20px]">
               {signal.sourceId}
             </h2>
-            <p className="mt-2 text-[12px] leading-[18px] text-nb-ink-soft">
-              {c.contentGone}
-            </p>
+            <p className="mt-2 text-[12px] leading-[18px] text-nb-ink-soft">{c.contentGone}</p>
           </>
         )}
         {signal.summary && (
-          <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-[19px]">
-            {signal.summary}
-          </p>
+          <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-[19px]">{signal.summary}</p>
         )}
         {signal.meta.length > 0 && (
           <p className="mt-3 text-[12px] leading-[18px] text-nb-ink-soft">
@@ -991,15 +1172,28 @@ function SignalDetail({
           </p>
         )}
         <div className="mt-3 flex flex-col gap-1">
-          {line(c.collected, when(signal.collectedAt, language))}
-          {line(
-            c.dismissedAt,
-            signal.dismissedAt ? when(signal.dismissedAt, language) : "",
-          )}
+          {line(c.collected, signal.collectedAt ? when(signal.collectedAt, language) : "")}
+          {line(c.madeAt, signal.archivedAt ? when(signal.archivedAt, language) : "")}
+          {signal.cardId !== null &&
+            line(
+              c.madeInto,
+              card ? (
+                <Link
+                  href={cardHref(signal.cardId, card.archived)}
+                  className="font-[700] text-nb-accent-deep hover:underline"
+                >
+                  #{signal.cardId} {card.title}
+                </Link>
+              ) : (
+                `#${signal.cardId}`
+              ),
+            )}
+          {line(c.dismissedAt, signal.dismissedAt ? when(signal.dismissedAt, language) : "")}
           {line(
             c.dismissedWhy,
-            signal.dismissedReason ||
-              (signal.dismissedBy === "user" ? c.byYou : ""),
+            signal.dismissedAt
+              ? [signal.dismissedReason, who].filter(Boolean).join(" · ")
+              : "",
           )}
         </div>
       </div>
@@ -1013,170 +1207,133 @@ function SignalDetail({
             href={signal.url}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-accent-deep transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] max-md:h-11 max-md:px-3"
+            className={GHOST_INK}
           >
             <FiExternalLink size={12} aria-hidden />
             {c.viewOriginal}
           </a>
         )}
-        {!readOnly && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:text-nb-ink max-md:h-11 max-md:px-3"
-          >
-            <FiTrash2 size={12} aria-hidden />
-            {c.dismiss}
-          </button>
+        <span className="flex-1" />
+        {history ? (
+          signal.cardId === null &&
+          signal.contentKept && (
+            <button type="button" className={GHOST_ACT} onClick={onRestore}>
+              <FiRotateCcw size={12} aria-hidden />
+              {c.restore}
+            </button>
+          )
+        ) : making ? (
+          <span className="px-2 text-[12px] font-[600] text-nb-accent-deep">{c.making}</span>
+        ) : (
+          <>
+            <button type="button" className={GHOST_ACT} disabled={sorting} onClick={onMake}>
+              {c.makeCard}
+            </button>
+            <button type="button" className={GHOST_INK} onClick={onIgnore}>
+              {c.ignore}
+            </button>
+          </>
         )}
       </div>
     </aside>
   );
 }
 
-/** Add to triage (#499, #560): a small panel under the button that opened it.
- *
- *  One box takes all three ways in — a link, some words, or a note alongside a file — and
- *  nothing is written until **Add** is pressed. A file dropped anywhere on the page is held
- *  here by name until then: a drop is an intention, not a decision, and an item written the
- *  moment something landed could not be taken back. */
-function AddPopover({
-  draft,
-  file,
-  note,
-  busy,
-  onDraft,
-  onPick,
-  onDrop,
-  onClose,
-  onAdd,
+/** Ignore, with a reason — its own small dialog, whether it was asked for from the list or
+ *  from the detail. A failure keeps what was typed. */
+function IgnoreDialog({
+  signal,
+  onCancel,
+  onIgnore,
 }: {
-  draft: string;
-  file: File | null;
-  note: string;
-  busy: boolean;
-  onDraft: (text: string) => void;
-  onPick: (files: FileList | File[]) => void;
-  onDrop: () => void;
-  onClose: () => void;
-  onAdd: () => void;
+  signal: Signal;
+  onCancel: () => void;
+  onIgnore: (reason: string) => Promise<boolean>;
 }) {
   const copy = useCopy();
   const c = copy.rail.signals;
-  const box = useRef<HTMLDivElement>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const text = useRef<HTMLTextAreaElement>(null);
-  const picker = useRef<HTMLInputElement>(null);
   const [composing, setComposing] = useState(false);
   useOverRail();
 
   useEffect(() => {
     text.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !busy) {
+        e.stopPropagation();
+        onCancel();
+      }
     };
-    const onPointerDown = (e: PointerEvent) => {
-      const at = e.target as Node;
-      if (
-        !box.current?.contains(at) &&
-        !box.current?.parentElement?.contains(at)
-      )
-        onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [onClose]);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onCancel, busy]);
 
-  const ready = Boolean(draft.trim() || file);
+  const ready = reason.trim().length > 0 && !busy;
+  const submit = async () => {
+    if (!ready) return;
+    setBusy(true);
+    setError("");
+    const done = await onIgnore(reason.trim());
+    setBusy(false);
+    if (!done) setError(c.dismissFailed);
+  };
 
   return (
     <div
-      ref={box}
-      role="dialog"
-      aria-label={c.add.title}
-      className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 w-[min(328px,calc(100vw-32px))] bg-nb-paper p-4 text-left"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nb-ink/20 px-4"
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget && !busy) onCancel();
+      }}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-[13px] font-[700]">{c.add.title}</p>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={copy.shared.close}
-          className="inline-flex size-6 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
-        >
-          <FiX size={13} aria-hidden />
-        </button>
-      </div>
-
-      <textarea
-        ref={text}
-        value={draft}
-        onChange={(e) => onDraft(e.target.value)}
-        onCompositionStart={() => setComposing(true)}
-        onCompositionEnd={() => setComposing(false)}
-        // Enter is a new line. Only the modifier sends it — and never while an input method
-        // still has the keystroke, where Enter is choosing a word.
-        onKeyDown={(e) => {
-          if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey)) return;
-          if (composing || e.nativeEvent.isComposing) return;
-          e.preventDefault();
-          if (ready && !busy) onAdd();
-        }}
-        rows={4}
-        disabled={busy}
-        placeholder={c.add.placeholder}
-        aria-label={c.add.title}
-        className="w-full resize-none rounded-[8px] bg-nb-paper px-3 py-2.5 text-[13px] leading-[20px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none disabled:opacity-60"
-      />
-
-      {file && (
-        <div className="mt-2.5 flex">
-          <span className="inline-flex h-7 max-w-full items-center gap-2 rounded-[7px] bg-nb-wash px-2 text-[11.5px] text-nb-ink-soft">
-            <FiPaperclip size={12} aria-hidden />
-            <span className="truncate">{file.name}</span>
-            <button
-              type="button"
-              onClick={onDrop}
-              aria-label={c.add.remove}
-              disabled={busy}
-              className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[6px] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] disabled:cursor-not-allowed"
-            >
-              <FiX size={11} aria-hidden />
-            </button>
-          </span>
-        </div>
-      )}
-
-      {note && (
-        <p className="mt-2 text-[11.5px] leading-[16px] text-nb-ink">{note}</p>
-      )}
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <input
-          ref={picker}
-          type="file"
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) onPick(e.target.files);
-            e.target.value = "";
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ignore-title"
+        className="w-[420px] max-w-full rounded-[14px] border-[1.5px] border-nb-ink bg-nb-paper p-5 shadow-[3px_3px_0_0_var(--color-nb-ink)]"
+      >
+        <h2 id="ignore-title" className="text-[16px] font-[800]">
+          {c.ignoreTitle}
+        </h2>
+        <p className="mt-3 line-clamp-3 text-[13px] leading-5 text-nb-ink-soft">
+          {signal.contentKept ? signal.title : signal.sourceId}
+        </p>
+        <label htmlFor="ignore-reason" className="mb-2 mt-5 block text-[12px] font-[700]">
+          {c.why}
+        </label>
+        <textarea
+          id="ignore-reason"
+          ref={text}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey)) return;
+            if (composing || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            void submit();
           }}
-        />
-        <button
-          type="button"
-          onClick={() => picker.current?.click()}
           disabled={busy}
-          className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-[600] text-nb-ink-soft transition-colors hover:text-nb-ink disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <FiPaperclip size={13} aria-hidden />
-          {c.add.attach}
-        </button>
-        <Button size="xs" disabled={busy || !ready} onClick={onAdd}>
-          {c.add.button}
-        </Button>
-      </div>
+          placeholder={c.reasonHint}
+          className="h-24 w-full resize-none rounded-[8px] bg-nb-paper px-3 py-2 text-[13px] leading-[20px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none disabled:opacity-60"
+        />
+        {error && (
+          <p role="alert" className="mt-2 text-[12px] leading-[16px] text-nb-accent-deep">
+            {error}
+          </p>
+        )}
+        <div className="mt-5 flex justify-end gap-3">
+          <Button size="xs" variant="ghost" onClick={onCancel} disabled={busy}>
+            {copy.shared.cancel}
+          </Button>
+          <Button size="xs" onClick={() => void submit()} disabled={!ready}>
+            {c.ignore}
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }
