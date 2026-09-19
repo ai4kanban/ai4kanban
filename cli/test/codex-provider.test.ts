@@ -6,6 +6,7 @@
 // that use it, and that a hand-written `command` naming the provider wins outright.
 
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -40,6 +41,7 @@ const overrides = (): string[] =>
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-codex-provider-'))
+  spawnSync('git', ['init', '-q'], { cwd: root })
   delete process.env.OPENAI_API_KEY
 })
 
