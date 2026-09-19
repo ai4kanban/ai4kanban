@@ -54,11 +54,11 @@ export function useDraft(key: string): [string, (v: string) => void, () => void]
   const [value, setValue] = useState("");
 
   // Seed after mount: localStorage is client-only, so reading it during the first
-  // render would desync SSR/hydration. A blank frame flips to the saved text.
+  // render would desync SSR/hydration. A blank frame flips to the saved text. Another key
+  // with nothing saved starts empty, never with the last key's words.
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(storageKey);
-      if (saved != null) setValue(saved);
+      setValue(window.localStorage.getItem(storageKey) ?? "");
     } catch {
       // storage unavailable (private mode / disabled) — just don't persist
     }

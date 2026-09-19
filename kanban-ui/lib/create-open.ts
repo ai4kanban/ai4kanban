@@ -33,8 +33,12 @@ let buttonError: string | null = null;
 const subs = new Set<() => void>();
 
 /** The discussion the header's button was holding, for the one the next page mounts — at
- *  phone width it is the only way back to it (#888). */
-export const heldByButton: { discussion: DiscussionTarget | null } = { discussion: null };
+ *  phone width it is the only way back to it (#888). `unspoken` is the fresh one nothing has
+ *  been sent into: it has no rail row, so the button is the only way back to its draft (#934). */
+export const heldByButton: { discussion: DiscussionTarget | null; unspoken: DiscussionTarget | null } = {
+  discussion: null,
+  unspoken: null,
+};
 
 /** Regions whose presses lead away from the sheet: pressing a control in one closes it, and
  *  the press still does what it does (#888). */

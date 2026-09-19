@@ -51,6 +51,7 @@ interface Props {
    *  list, which still holds its one conversation. */
   discussion: DiscussionTarget | null;
   onClose: () => void;
+  onSent: () => void;
   /** Start planning: start the run that writes the plan's cards. The screen stays up until
    *  it is going (#706). `workflow` is the one picked beside it, or undefined for the default. */
   onPlan: (workflow?: string) => void;
@@ -98,6 +99,7 @@ export function CreateSheet(props: Props) {
 function Sheet({
   discussion,
   onClose,
+  onSent,
   onPlan,
   onBuildPlan,
   starting,
@@ -235,6 +237,7 @@ function Sheet({
       return;
     }
     clearDraft();
+    onSent();
     pictures.sent();
     plan.refresh();
   };

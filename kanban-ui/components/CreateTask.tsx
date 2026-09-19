@@ -64,6 +64,7 @@ const PRESSABLE = "a[href], button, select, summary, [role=button], [role=link],
 
 /** Throw away what one discussion was holding unsent — it is over. */
 function forget(discussion: DiscussionTarget | null) {
+  if (heldByButton.unspoken === discussion) heldByButton.unspoken = null;
   dropDraft(createDraftKey(discussion));
   dropPictures(askedOn(discussion));
 }
@@ -176,7 +177,8 @@ export function CreateTask({
   //
   // At phone width there is no rail to list them, so the press stays on the discussion it
   // already had — one is reachable there, and a new one every press would be a subject with
-  // no way back to it.
+  // no way back to it. And a fresh one nothing was sent into is still the fresh one (#934):
+  // it has no row either, so a new one would lose what was typed into it.
   const phone = usePhone();
   const openFresh = useCallback(async () => {
     setError(null);
@@ -186,7 +188,9 @@ export function CreateTask({
     // subject's exchange on its way to the new one.
     // Null is a board whose rules are older than the list. It holds one conversation, which
     // is exactly what `null` reads as.
-    setDiscussion(await startDiscussionAction());
+    const fresh = heldByButton.unspoken ?? (await startDiscussionAction());
+    heldByButton.unspoken = fresh;
+    setDiscussion(fresh);
     setOpen(true);
   }, [phone, discussion, setError]);
 
@@ -337,6 +341,9 @@ export function CreateTask({
           projectRoot={projectRoot}
           discussion={discussion}
           onClose={() => setOpen(false)}
+          onSent={() => {
+            if (heldByButton.unspoken === discussion) heldByButton.unspoken = null;
+          }}
           starting={starting[askedOn(discussion)] ?? null}
           failure={failure}
           onPlan={(workflow) => void startFromPlan("plan", workflow)}
