@@ -39,6 +39,7 @@ const zh: MessagesCopy = {
     noSuchCard: "这不是本看板上的卡片。",
     emptyChat: "请先写点什么再发送。",
     noPlan: "这次讨论还没有可以据以写卡片的方案。",
+    onePlan: "直接开做只能用一份方案；多份方案请用“开始规划”。",
   },
   run: { noProcess: "未能为这次运行启动进程" },
   chat: {

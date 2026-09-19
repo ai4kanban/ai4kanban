@@ -19,12 +19,13 @@ import {
   chatFile,
   chatPlan,
   firstLine,
+  openPlans,
   keyOf,
   readChat,
   setChatArchived,
   setChatTitle,
 } from './chat'
-import { filePlanOfRun } from './discuss'
+import { settlePlans } from './discuss'
 import { endBlocked, END_BLOCK_SAID, type EndBlock } from './share'
 import { peekRun, titleOf } from './sessions'
 import { runIsLive } from './store'
@@ -153,29 +154,20 @@ export function archiveDiscussion(
  *  the rail (#551).
  *
  *  Only the board's own archive is undone: one the user made stays out whatever its run
- *  does. A run that wrote cards ends the subject — the plan is filed away and the row stays
- *  archived, as if the user had put it there. A run that wrote none gives the row back with
- *  its plan and its answers as they were. */
+ *  does. Once no run is working on it, the row comes back when any plan is still open — one
+ *  the run wrote no card from, or every plan of a run that wrote none (#917) — and otherwise
+ *  stays out, as if the user had put it there. */
 function settleHandoff(target: DiscussionTarget, chat: Chat): boolean {
   if (chat.archivedBy !== 'board') return false
-  const plan = chatPlan(chat)
-  // No plan left to wait on — it was let go somewhere else. The mark goes, and the row stays
-  // out: there is nothing to bring it back for.
-  if (!plan?.run) {
-    setChatArchived(target, true)
-    return false
+  const look = (id: string) => {
+    const run = peekRun(id)
+    return run && { live: runIsLive(run), cards: run.createdCardIds ?? [] }
   }
-  const run = peekRun(plan.run)
-  if (run && runIsLive(run)) return false
-  // The card, not the exit code (#481) — and a run the record no longer holds wrote none we
-  // can point at, so its discussion comes back the same way a failed one's does.
-  if (run?.createdCardIds?.length) {
-    filePlanOfRun(target, run.createdCardIds)
-    setChatArchived(target, true)
-    return false
-  }
-  setChatArchived(target, false)
-  return true
+  if (openPlans(chat).some((p) => p.run && look(p.run)?.live)) return false
+  settlePlans(target, look)
+  const open = openPlans(readChat(target)).length > 0
+  setChatArchived(target, !open)
+  return open
 }
 
 // ---- the files -------------------------------------------------------------

@@ -21,7 +21,7 @@ import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 /** Why a start was refused, where the kind is known (#706). The board's own four, plus the
  *  three this file and the actions above it answer with themselves. A refusal with no kind
  *  is one nothing here recognises, and a screen says so in one generic line. */
-export type StartRefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "rules";
+export type StartRefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "onePlan" | "rules";
 
 export interface StartResult {
   ok: boolean;

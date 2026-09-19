@@ -138,7 +138,7 @@ describe('what the plan panel does with the run it started', () => {
       return null
     })
     setChatPlan(null, PLAN_REL)
-    setChatPlanRun(null, run.sessionId, answer)
+    setChatPlanRun(null, run.sessionId, answer, [PLAN_REL])
   }
 
   it('names the answer that started it, so the line can say a build is running', async () => {
@@ -150,7 +150,7 @@ describe('what the plan panel does with the run it started', () => {
 
   it('lets the plan go once the run has written a card, however that run then ended', async () => {
     hold({ status: 'error', ok: false, endedAt: Date.now(), createdCardIds: [9] })
-    assert.deepEqual(await readDiscuss(), { plan: null, run: null })
+    assert.deepEqual(await readDiscuss(), { plan: null, plans: [], run: null })
   })
 
   it('holds the plan while that run is still working, card or no card', async () => {

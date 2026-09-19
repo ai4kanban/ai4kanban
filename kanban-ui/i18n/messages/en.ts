@@ -46,6 +46,7 @@ const en: MessagesCopy = {
     noSuchCard: "that is not a card on this board.",
     emptyChat: "say something to send.",
     noPlan: "this discussion has no plan to write cards from yet.",
+    onePlan: "Build now takes one plan; start planning to use them all.",
   },
   run: { noProcess: "couldn't start a process for that run" },
   chat: {

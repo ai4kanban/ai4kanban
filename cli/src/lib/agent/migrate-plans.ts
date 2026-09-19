@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { CHATS_DIR, KANBAN, PLANS } from '../paths'
 import { planTitle } from '../plans'
-import { chatPlan, readChat, setChatPlan } from './chat'
+import { readChat, setChatPlan } from './chat'
 import type { ChatTarget } from './types'
 
 /** Explicit migration: never overwrite a different local body or guess between discussions. */
@@ -37,7 +37,7 @@ export function migratePlans(): number {
     const linked = chats.some(c => c.plans?.some(p => p.path === rel))
     if (!linked && !file.rel.startsWith('archive/')) {
       const matches = chats.filter(c => c.messages.some(m => m.text.includes(rel)))
-      if (matches.length === 1 && !chatPlan(matches[0]!)) {
+      if (matches.length === 1) {
         const result = setChatPlan(matches[0]!.cardId, rel, planTitle(file.text))
         if ('error' in result) throw new Error(result.error)
       }

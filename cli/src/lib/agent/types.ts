@@ -181,6 +181,9 @@ export interface AgentRequest {
    *  file. The words are in the file, so `description` is left off — a copy pasted into the
    *  prompt would go stale the moment the discussion rewrote it. */
   plan?: string
+  /** create: two or more plans one discussion wrote, handed off together (#917), each a path
+   *  from the project root. One plan goes as `plan`. */
+  plans?: string[]
   /** create, and implement with no `id`: the version the new card(s) ship in — a
    *  **Build now** writes one card and it ships in the release on screen like any other
    *  (#470). plan-release: the version being planned, and changelog: the version being
@@ -925,10 +928,9 @@ export interface Chat {
   /** Where the model changed mid-conversation (#272), so a reply can be read against the
    *  model that wrote it. */
   modelChanges?: ModelChange[]
-  /** Every plan this conversation has written (#427, #496), in the order it named them,
-   *  with the live one last and not `done`. They are kept here, beside the transcript,
-   *  because the transcript is the chat rail's too and is never cleared — so nothing else
-   *  in the file could say which plan is the live one. */
+  /** Every plan this conversation has written (#427, #496), in the order it named them; the
+   *  ones not `done` are still open (#917). Kept beside the transcript, because the
+   *  transcript is the chat rail's too and is never cleared. */
   plans?: ChatPlan[]
   /** What this discussion is called (#496) — the title its latest plan gave it. Absent
    *  until one is named, and the row falls back to the first line the user typed. */
@@ -965,8 +967,8 @@ export interface ChatPlan {
    *  pass. Absent on a plan handed over before the third answer existed, which was always
    *  Start planning. */
   answer?: PlanAnswer
-  /** Its cards are written and it is no longer the live one (#496). It stays in the list —
-   *  the discussion made it — and the next plan named starts a file of its own. */
+  /** Its cards are written, or it was withdrawn (#496, #917). It stays in the list — the
+   *  discussion made it. */
   done?: boolean
   /** What it is called, so a discussion's row can be named without opening the file. */
   title?: string
@@ -1103,19 +1105,29 @@ export interface ChatView {
   pick: ChatPick
 }
 
-/** The Discuss screen's own read (#427): the plan the board's conversation is writing and
- *  the run turning that plan into cards. The transcript itself is the chat's — this is only
- *  what Discuss adds to it. */
+/** One plan as the Discuss screen draws it: its path from the project root, its text, how
+ *  long it is, and what it calls itself. `title` is the plan's own first-line heading, empty
+ *  when it has none. `workflow` is the one the agent judged the plan fits (#847). Written out
+ *  rather than imported: this file is copied into the board UI and may reach only its
+ *  siblings. */
+export interface DiscussPlan {
+  path: string
+  text: string
+  lines: number
+  title: string
+  workflow?: string
+}
+
+/** The Discuss screen's own read (#427): the plans the discussion is writing and the run
+ *  turning them into cards. The transcript itself is the chat's — this is only what Discuss
+ *  adds to it. */
 export interface DiscussRead {
-  /** The file the discussion is writing, once it has been named — its board-relative path,
-   *  its text, how long it is, and what it calls itself. `title` is the plan's own first-line
-   *  heading, empty when it has none, so a screen too narrow to show the plan can still name
-   *  it without reading markdown of its own. Null before the first agreed outcome, and again
-   *  once the plan's cards are written. Written out rather than imported: this file is copied
-   *  into the board UI and may reach only its siblings. `workflow` is the one the agent
-   *  judged the plan fits (#847), absent when it named none. */
-  plan: { path: string; text: string; lines: number; title: string; workflow?: string } | null
-  /** The run this plan was handed to: still working, or the one that wrote no card and can
+  /** The last of `plans`, or null when there is none. */
+  plan: DiscussPlan | null
+  /** Every plan still open, oldest first — what the next Start planning hands off together
+   *  (#917). Absent on rules older than that, which hold `plan` alone. */
+  plans?: DiscussPlan[]
+  /** The run these plans were handed to: still working, or the one that wrote no card and can
    *  be started again. `answer` is which answer started it, so the line under the plan names
    *  a build rather than a planning pass (#481). Null when none has been started. */
   run: { sessionId: string; running: boolean; answer: PlanAnswer } | null

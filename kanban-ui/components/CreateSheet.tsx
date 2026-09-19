@@ -118,15 +118,17 @@ function Sheet({
     ? { agent: rail.read.agent, seesImages: rail.read.seesImages, imagesAble: rail.read.imagesAble }
     : null;
   const pictures = useCreatePictures(chatImages, discussion ?? "");
-  // The workflow the plan's card runs through (#715): a hand pick holds only for this
-  // discussion and plan; otherwise the agent's pick (#847), else the board's default.
+  // The workflow the plans' cards run through (#715): a hand pick holds only for this
+  // discussion and these plans; otherwise the agent's pick when every plan names the same one
+  // (#847, #917), else the board's default.
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
-  const pickFor = `${discussion ?? ""}\n${plan.read?.plan?.path ?? ""}`;
+  const pickFor = [discussion ?? "", ...plan.plans.map((p) => p.path)].join("\n");
   const [picked, setPicked] = useState<{ for: string; id: string } | null>(null);
   const usable = (id?: string) => flows?.find((f) => f.id === id && f.problems.length === 0)?.id;
+  const agreed = new Set(plan.plans.map((p) => p.workflow));
   const workflow =
     (picked?.for === pickFor ? picked.id : undefined) ??
-    usable(plan.read?.plan?.workflow) ??
+    (agreed.size === 1 ? usable(plan.plans[0]?.workflow) : undefined) ??
     flows?.find((f) => f.isDefault)?.id ??
     "";
   useEffect(() => {
@@ -576,9 +578,13 @@ function Handoff({
   const [guard, setGuard] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
   const read = plan.read;
-  if (!read?.plan) return null;
+  const count = plan.plans.length;
+  const many = count > 1;
+  if (!read || !count) return null;
   if (read.run?.running) {
-    return <Working label={read.run.answer === "build" ? c.building : c.planning} />;
+    return (
+      <Working label={read.run.answer === "build" ? c.building : many ? c.planningMany(count) : c.planning} />
+    );
   }
   // A file that has been written at least once — a plan named a second ago has nothing in it
   // to act on. And not under a reply being written, nor under a message nobody has answered
@@ -588,10 +594,24 @@ function Handoff({
   if (rail.read?.chat?.messages.at(-1)?.role !== "agent") return null;
   // A run that wrote no card leaves the plan to be answered again, and says so.
   const failed = !!read.run && !read.run.running;
-  const again = read.run?.answer === "build" ? c.buildAgain : c.tryAgain;
+  const again = read.run?.answer === "build" ? c.buildAgain : many ? c.tryAgainMany : c.tryAgain;
   const down = held || starting !== null;
   return (
     <div>
+      {/* Several plans go together (#917), so the answer names what it takes. */}
+      {many && (
+        <div className="px-2.5 pt-3">
+          <p className="text-[11.5px] text-nb-ink-soft">{c.includes(count)}</p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {plan.plans.map((p) => (
+              <li key={p.path} className="flex min-w-0 items-center gap-1.5 text-[12.5px] font-[600]">
+                <FiFileText size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
+                <span className="truncate">{p.title || c.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
         <Button size="xs" disabled={down} title={c.planHint} onClick={onPlan}>
           {starting === "plan" ? c.starting : c.start}
@@ -603,8 +623,8 @@ function Handoff({
             variant="ghost"
             className="font-[700]"
             aria-expanded={guard}
-            disabled={down}
-            title={c.buildHint}
+            disabled={down || many}
+            title={many ? c.buildOnlyOne : c.buildHint}
             style={{
               borderColor: "var(--color-nb-accent-deep)",
               color: "var(--color-nb-accent-deep)",
@@ -623,11 +643,15 @@ function Handoff({
             }}
           />
         </span>
-        {failed && !starting && !failure && <span className="text-[11.5px] text-nb-ink-soft">{again}</span>}
+        {many && <span className="text-[11.5px] text-nb-ink-soft">{c.buildOnlyOne}</span>}
+        {failed && !starting && !failure && !many && <span className="text-[11.5px] text-nb-ink-soft">{again}</span>}
         {flows && flows.length > 1 && (
           <WorkflowPick flows={flows} picked={workflow} disabled={down} onPick={onWorkflow} />
         )}
       </div>
+      {failed && !starting && !failure && many && (
+        <p className="px-2.5 pt-2.5 text-[11.5px] text-nb-ink-soft">{again}</p>
+      )}
       {/* Answered where it was pressed (#706): the row's own space below, never a bubble over
           the reply the answers stand under. The two above are live again, so pressing the
           same one is the retry — the plan, the transcript and the box are as they were. */}
@@ -976,7 +1000,6 @@ function PlanRow({ plan }: { plan: PlanPanel }) {
  *  word above is the last thing written. */
 function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
   const c = useCopy().board.create.sheet.plan;
-  const read = plan.read;
   const full = plan.full;
   // Enlarged is a PAGE in the middle of the sheet, and only where the card had a column of
   // its own to come back to. Opened out of the collapsed row there is no such column: the
@@ -1020,6 +1043,32 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
       >
         {full ? <FiMinimize2 size={17} aria-hidden /> : <FiMaximize2 size={17} aria-hidden />}
       </button>
+      {/* One tab per plan (#917); the words and the path below are the shown plan's. */}
+      {plan.plans.length > 1 && (
+        <div
+          role="tablist"
+          className="flex shrink-0 items-end gap-5 overflow-x-auto pr-14 pt-2"
+          style={{ paddingLeft: PLAN_PAD, borderBottom: `1px solid ${HAIRLINE}` }}
+        >
+          {plan.plans.map((p) => {
+            const on = p.path === plan.plan?.path;
+            return (
+              <button
+                key={p.path}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => plan.pick(p.path)}
+                className={`-mb-px min-w-0 max-w-[180px] shrink-0 cursor-pointer truncate border-b-2 pb-2 pt-1.5 text-[12.5px] ${
+                  on ? "border-nb-accent font-[700] text-nb-ink" : "border-transparent font-[600] text-nb-ink-soft hover:text-nb-ink"
+                }`}
+              >
+                {p.title || c.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="relative min-h-0 flex-1">
         <div
           ref={box}
@@ -1044,7 +1093,7 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
       <div className="shrink-0" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="flex items-center gap-2 py-2" style={{ paddingInline: PLAN_PAD }}>
           {/* The only way out of the app: the path, copied. The board never opens a plan. */}
-          {read?.plan && <PlanPath path={read.plan.path} />}
+          {plan.plan && <PlanPath path={plan.plan.path} />}
           {plan.writing && (
             <span className="flex shrink-0 items-center gap-1.5">
               <span aria-hidden className="size-[7px] rounded-full bg-nb-accent" />

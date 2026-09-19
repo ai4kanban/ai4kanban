@@ -127,6 +127,12 @@ export type BoardCopy = {
         /** That run is still working — no second answer is offered. */
         planning: string;
         building: string;
+        /** Several open plans (#917): what Start planning takes, Build now down beside it, and
+         *  the two lines above said of them all. */
+        includes: (count: number) => string;
+        buildOnlyOne: string;
+        tryAgainMany: string;
+        planningMany: (count: number) => string;
         /** The answer that was pressed, while its run is being asked for (#706). The other
          *  two are down beside it and the box sends nothing. */
         starting: string;
@@ -139,6 +145,7 @@ export type BoardCopy = {
           worktree: string;
           akb: string;
           noPlan: string;
+          onePlan: string;
           noProcess: string;
           rules: string;
           other: string;

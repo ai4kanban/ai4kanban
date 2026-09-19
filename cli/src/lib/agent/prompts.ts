@@ -448,8 +448,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'create':
       return [
         // A create off a plan (#427) names the file rather than carrying its words: the
-        // plan is a file the user can open, and a copy pasted in here would go stale.
-        req.plan
+        // plan is a file the user can open, and a copy pasted in here would go stale. Several
+        // plans from one discussion go as one request (#917).
+        req.plans && req.plans.length > 1
+          ? `${kb}. Add task(s) from these plans, written in one discussion: ${req.plans.map((p) => `\`${p}\``).join(', ')}. Read every one first and plan them as one request: merge overlapping requirements into one card, and record dependencies between cards. Write \`## Source\` on every card naming each plan it came from; a plan no new card names is handed back to the discussion as not planned.`
+          : req.plan
           ? `${kb}. Add task(s) from the plan at \`${req.plan}\`. Read it first, and write \`## Source\` naming that path on every card you create.`
           : req.triage
             ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, and write \`## Source\` naming its source id \`${req.triage.sourceId}\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`

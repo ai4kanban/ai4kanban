@@ -43,6 +43,7 @@ export type {
   ContextWindow,
   CreateImageAgents,
   ImageAgent,
+  DiscussPlan,
   DiscussRead,
   HarnessGap,
   HarnessOption,

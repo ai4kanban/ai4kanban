@@ -63,7 +63,7 @@ import {
   dropRunPicture,
   emptyRunBox,
 } from "@/lib/create-pictures";
-import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, planToPlanFrom, readDiscuss } from "@/lib/discuss";
+import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, plansToPlanFrom, readDiscuss } from "@/lib/discuss";
 import {
   archiveDiscussion,
   asDiscussion,
@@ -769,7 +769,7 @@ export async function readDiscussAction(discussion: string | null = null): Promi
 }
 
 /**
- * Start planning: the run that turns the plan into cards.
+ * Start planning: the run that turns the discussion's open plans into cards (#917).
  *
  * The plan's path is read here rather than taken from the browser — the path reaches a
  * prompt, and the only file this may ever point at is the one the board's own conversation
@@ -814,11 +814,15 @@ async function startFromPlan(
   // the path is read here — so the only file a run may ever be pointed at is the one that
   // discussion says it is writing (#496).
   const target = (await chatTarget(discussion)) ?? null;
-  const plan = await planToPlanFrom(target);
-  if (!plan) return { ok: false, error: (await machineCopy()).messages.actions.noPlan, reason: "noPlan" };
+  const plans = await plansToPlanFrom(target);
+  if (!plans.length) return { ok: false, error: (await machineCopy()).messages.actions.noPlan, reason: "noPlan" };
+  // Build now writes one card from one plan; several go through Start planning (#917).
+  if (action === "implement" && plans.length > 1) {
+    return { ok: false, error: (await machineCopy()).messages.actions.onePlan, reason: "onePlan" };
+  }
   const request = await prepareAgentRequest({
     action,
-    plan,
+    ...(plans.length === 1 ? { plan: plans[0] } : { plans }),
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
     // The workflow the new card runs through (#715); none is the board's default.
     ...(typeof workflow === "string" && workflow.trim() ? { workflow: workflow.trim() } : {}),
@@ -831,7 +835,7 @@ async function startFromPlan(
   // is what the shared submission reads (#659) — after it the sentence would be missing from
   // what went out.
   if (typeof said === "string" && said.trim()) await noteAnswer(said.trim(), target);
-  await planningStarted(started.sessionId, answer, target);
+  await planningStarted(started.sessionId, answer, target, plans);
   return started;
 }
 

@@ -10,45 +10,49 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 import { listRuns } from './sessions'
-import { chatPlan, clearChatPlan, readChat, setChatArchived, setChatPlanRun } from './chat'
+import { openPlans, readChat, returnChatPlan, clearChatPlan, setChatArchived, setChatPlanRun } from './chat'
 import { locate, locateArchived } from '../cards'
-import { archivePlan, planHeading, planPathInText, readPlan } from '../plans'
+import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
 import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
-import { isDiscussion, type ChatTarget, type DiscussRead, type PlanAnswer } from './types'
+import { isDiscussion, type ChatPlan, type ChatTarget, type DiscussPlan, type DiscussRead, type PlanAnswer } from './types'
 
-const NOTHING: DiscussRead = { plan: null, run: null }
+const NOTHING: DiscussRead = { plan: null, plans: [], run: null }
+
+/** A run as settling reads it: still going, and the cards it wrote. */
+export type RunLook = (sessionId: string) => { live: boolean; cards: number[] } | undefined
 
 /**
- * What Discuss shows beside the transcript: the plan, and the run it was handed to.
+ * What Discuss shows beside the transcript: the open plans, and the run they were handed to.
  *
- * It is also where a finished plan is let go. A run that wrote its card can end while the
- * screen is shut, so nothing is watching to clear it then — the next read is, and by the
- * time anyone opens Discuss again the panel is gone and the next idea starts a file of its
- * own. A run that wrote none is kept, so the screen can offer it again.
+ * It is also where a finished handoff is settled. A run can end while the screen is shut, so
+ * nothing is watching then — the next read is. A run that wrote none keeps its plans, so the
+ * screen can offer them again.
  */
 export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRead> {
-  const plan = chatPlan(readChat(target))
-  if (!plan) return NOTHING
-  const run = plan.run ? (await listRuns()).find((r) => r.sessionId === plan.run) : undefined
-  // Still working, or over without writing a card — it failed, was stopped, was cut off, or
-  // the record has been trimmed away under it. Either way the plan is held: the screen says
-  // the run is going, or offers it again.
-  const running = run?.status === 'running'
-  // The card, not the exit code (#481): a Build now writes its card first and can fail
-  // building it, and that plan is finished all the same — a second answer off it would write
-  // the card twice. A run that ended having written none leaves the plan to be answered
-  // again.
-  if (plan.run && !running && run?.createdCardIds?.length) {
-    filePlanOfRun(target, run.createdCardIds)
-    return NOTHING
-  }
-  const file = readPlan(plan.path)
+  if (!openPlans(readChat(target)).length) return NOTHING
+  const runs = await listRuns()
+  settlePlans(target, (id) => {
+    const run = runs.find((r) => r.sessionId === id)
+    return run && { live: run.status === 'running', cards: run.createdCardIds ?? [] }
+  })
+  const open = openPlans(readChat(target))
+  const plans = open.map(shown).filter((p): p is DiscussPlan => p !== null)
+  if (!plans.length) return NOTHING
+  const running = (p: ChatPlan) => runs.find((r) => r.sessionId === p.run)?.status === 'running'
+  const handed = open.find(running) ?? open.find((p) => p.run)
   return {
-    // Spelled from the project root, the way a card's `## Source` carries it — the panel
-    // shows the path to copy, and the board never opens a plan itself.
-    plan: file && { ...file, path: planPathInText(file.path), title: planHeading(file.text), workflow: plan.workflow },
-    run: plan.run ? { sessionId: plan.run, running, answer: plan.answer ?? 'plan' } : null,
+    plan: plans.at(-1)!,
+    plans,
+    run: handed?.run ? { sessionId: handed.run, running: running(handed), answer: handed.answer ?? 'plan' } : null,
   }
+}
+
+// One plan as the screen draws it — spelled from the project root, the way a card's
+// `## Source` carries it: the panel shows the path to copy, and the board never opens a plan
+// itself.
+function shown(plan: ChatPlan): DiscussPlan | null {
+  const file = readPlan(plan.path)
+  return file && { ...file, path: planPathInText(file.path), title: planHeading(file.text), workflow: plan.workflow }
 }
 
 /** The run this plan was handed to has started, and which answer handed it over. Held on the
@@ -69,10 +73,14 @@ export function startedPlanning(
   sessionId: string,
   answer: PlanAnswer = 'plan',
   target: ChatTarget = null,
+  paths?: string[],
 ): { ok: true } | { error: string; reason: EndBlock } {
   const held = endBlocked(target)
   if (held) return { error: END_BLOCK_SAID[held], reason: held }
-  const handed = setChatPlanRun(target, sessionId, answer)
+  // The plans the run was pointed at, spelled the way the read gave them; none named is every
+  // open one, which is what a screen older than #917 hands over.
+  const rels = paths?.map(planFromText).filter((p): p is string => p !== null)
+  const handed = setChatPlanRun(target, sessionId, answer, rels ?? openPlans(readChat(target)).map((p) => p.path))
   if (handed && isDiscussion(target)) {
     setChatArchived(target, true, 'board')
     // Started, never waited on, and never able to take the handoff down with it: the screen
@@ -82,43 +90,78 @@ export function startedPlanning(
   return { ok: true }
 }
 
-/** The run has written its cards, so the plan it was handed is finished: it is filed away
- *  under `plans/archive/`, every card that run wrote is repointed at where it went, and the
- *  discussion lets it go so the next idea starts a file of its own (#551). */
-export function filePlanOfRun(target: ChatTarget, cardIds: number[]): void {
-  const plan = chatPlan(readChat(target))
-  const moved = plan && archivePlan(plan.path)
-  if (plan && moved && moved !== plan.path) {
-    for (const id of cardIds) repointSource(id, plan.path, moved)
+/** Settle every open plan whose run has ended having written cards (#917). A plan some new
+ *  card names in `## Source` is finished: it is filed under `plans/archive/`, those cards are
+ *  repointed at where it went, and the discussion lets it go. One no card names goes back to
+ *  the discussion to be handed off again. A run handed a single plan wrote its cards from it
+ *  whatever they name, as it always has. */
+export function settlePlans(target: ChatTarget, look: RunLook): void {
+  const byRun = new Map<string, ChatPlan[]>()
+  for (const p of openPlans(readChat(target))) if (p.run) byRun.set(p.run, [...(byRun.get(p.run) ?? []), p])
+  for (const [sessionId, plans] of byRun) {
+    const run = look(sessionId)
+    // The card, not the exit code (#481): a Build now writes its card first and can fail
+    // building it, and that plan is finished all the same.
+    if (!run || run.live || !run.cards.length) continue
+    for (const plan of plans) {
+      const naming = plans.length === 1 ? run.cards : run.cards.filter((id) => sourceNames(id, plan.path))
+      if (!naming.length) {
+        returnChatPlan(target, plan.path)
+        continue
+      }
+      const moved = archivePlan(plan.path)
+      if (moved && moved !== plan.path) for (const id of naming) repointSource(id, plan.path, moved)
+      clearChatPlan(target, plan.path)
+    }
   }
-  clearChatPlan(target)
+}
+
+// One card's file, whatever became of the card; null when it is gone.
+function cardFile(id: number): string | null {
+  const found = locate(id) ?? locateArchived(id)
+  if (!found) return null
+  return found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+}
+
+// A card's `## Source` section — the card's last, so from the heading to the end.
+function sourceOf(text: string): string {
+  const at = text.search(/^## Source\s*$/m)
+  return at < 0 ? '' : text.slice(at)
+}
+
+// Whether a card's `## Source` names this plan, however it was spelled — by its id, the one
+// part of the name that survives a rename and the move into `archive/`.
+function sourceNames(id: number, plan: string): boolean {
+  const planId = /(\d+)-[^/]*\.md$/.exec(plan)?.[1]
+  if (!planId) return false
+  try {
+    const file = cardFile(id)
+    return !!file && new RegExp(`plans/(archive/)?${planId}-`).test(sourceOf(fs.readFileSync(file, 'utf8')))
+  } catch {
+    return false
+  }
 }
 
 // Rewrite one card's `## Source` to name where the plan went. A card already rejected or
 // otherwise gone is passed over — the plan still moves, and nothing here is worth failing
 // the move for.
 function repointSource(id: number, from: string, to: string): void {
-  let file: string
+  let file: string | null
   let text: string
   try {
-    const found = locate(id) ?? locateArchived(id)
-    if (!found) return
-    file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    file = cardFile(id)
+    if (!file) return
     text = fs.readFileSync(file, 'utf8')
   } catch {
     return
   }
-  const at = text.search(/^## Source\s*$/m)
-  if (at < 0) return
-  // `## Source` is the card's last section, so from the heading to the end is the whole of
-  // it. Both spellings are replaced: the path from the project root, which is what a card
+  const was = sourceOf(text)
+  if (!was) return
+  // Both spellings are replaced: the path from the project root, which is what a card
   // carries, and the board-relative one in case something wrote that instead.
-  const head = text.slice(0, at)
-  const source = text
-    .slice(at)
-    .replaceAll(planPathInText(from), planPathInText(to))
-    .replaceAll(from, to)
-  if (source === text.slice(at)) return
+  const head = text.slice(0, text.length - was.length)
+  const source = was.replaceAll(planPathInText(from), planPathInText(to)).replaceAll(from, to)
+  if (source === was) return
   try {
     fs.writeFileSync(file, head + source)
   } catch {

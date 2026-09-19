@@ -423,6 +423,8 @@ export interface BoardRules {
     sessionId: string,
     answer?: PlanAnswer,
     target?: ChatTarget,
+    /** The plans the run was pointed at (#917); rules older than that hand over the live one. */
+    paths?: string[],
   ): void | { ok: true } | { error: string; reason?: string };
 
   // The discussions this board is holding (#496). The rail lists them, Create task opens a

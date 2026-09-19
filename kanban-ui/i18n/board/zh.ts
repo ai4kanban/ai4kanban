@@ -87,6 +87,10 @@ const zh: BoardCopy = {
         buildAgain: "上一次开做没有写出卡片。方案还是你留下的样子。",
         planning: "正在根据这份方案写卡片……",
         building: "正在按这份方案开做……",
+        includes: (count) => `开始规划将包含 ${count} 份方案`,
+        buildOnlyOne: "只有一份方案时可用",
+        tryAgainMany: "上一次运行没有写出卡片。方案都还是你留下的样子。",
+        planningMany: (count) => `正在根据 ${count} 份方案写卡片……`,
         starting: "启动中…",
         failed: {
           dirty: "先提交或暂存这些改动",
@@ -94,6 +98,7 @@ const zh: BoardCopy = {
           worktree: "没能为这次任务建出分支和工作目录",
           akb: "没能准备这次任务要用的目录",
           noPlan: "这次讨论还没有可以据以开工的方案",
+          onePlan: "直接开做只能用一份方案，多份方案请用“开始规划”",
           noProcess: "没能启动运行进程",
           rules: "看板的运行规则太旧，请更新 ai4kanban 命令",
           other: "没能启动",

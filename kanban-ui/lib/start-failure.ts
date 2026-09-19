@@ -15,6 +15,7 @@ export interface FailureCopy {
   worktree: string;
   akb: string;
   noPlan: string;
+  onePlan: string;
   noProcess: string;
   rules: string;
   other: string;

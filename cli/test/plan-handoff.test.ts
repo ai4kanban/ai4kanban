@@ -10,12 +10,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { noteChatMessage, readChat, setChatPlan } from '../src/lib/agent/chat.ts'
-import { startedPlanning } from '../src/lib/agent/discuss.ts'
+import { clearChatPlan, noteChatMessage, openPlans, readChat, setChatPlan } from '../src/lib/agent/chat.ts'
+import { readDiscuss, startedPlanning } from '../src/lib/agent/discuss.ts'
+import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { archiveDiscussion, listDiscussions, startDiscussion } from '../src/lib/agent/discussions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { DiscussionTarget, RunRecord } from '../src/lib/agent/types.ts'
-import { dropPlan, planFile, readPlan } from '../src/lib/plans.ts'
+import { dropPlan, planFile, planPathInText, readPlan } from '../src/lib/plans.ts'
 import { PLANS, PLANS_ARCHIVE, TODO, setBoardRoot } from '../src/lib/paths.ts'
 
 const PLAN_REL = 'plans/12-one-outcome.md'
@@ -232,5 +233,119 @@ describe('a plan in either folder', () => {
   it('refuses anything that would climb out of either', () => {
     assert.equal(planFile('plans/archive/../../todo/9-a-card.md'), null)
     assert.equal(planFile('plans/archive/'), null)
+  })
+})
+
+describe('several plans in one discussion (#917)', () => {
+  const OTHER_REL = 'plans/13-another-subject.md'
+
+  // A discussion that wrote two plans, one subject each.
+  const twoPlans = (): DiscussionTarget => {
+    const target = discussing()
+    fs.writeFileSync(path.join(PLANS, '13-another-subject.md'), '# Another subject\n')
+    setChatPlan(target, OTHER_REL, 'Another subject')
+    return target
+  }
+
+  // A card whose `## Source` names the given plans.
+  const cardFrom = (id: number, ...rels: string[]): string => {
+    const file = path.join(TODO, `${id}-a-card.md`)
+    const source = rels.map((r) => `- \`${planPathInText(r)}\``).join('\n')
+    fs.writeFileSync(file, `---\ntitle: A card\n---\nThe requirement.\n\n## Source\n\n${source}\n`)
+    return file
+  }
+
+  const openPaths = (target: DiscussionTarget): string[] => openPlans(readChat(target)).map((p) => p.path)
+
+  it('keeps an earlier plan open when a new one is named', () => {
+    const target = twoPlans()
+    assert.deepEqual(openPaths(target), [PLAN_REL, OTHER_REL])
+    // Saving the same path again rewrites it in place.
+    setChatPlan(target, PLAN_REL, 'One outcome, revised')
+    assert.deepEqual(openPaths(target), [PLAN_REL, OTHER_REL])
+  })
+
+  it('reads every open plan, the last one as `plan`', async () => {
+    const target = twoPlans()
+    const read = await readDiscuss(target)
+    assert.deepEqual(read.plans?.map((p) => p.title), ['One outcome', 'Another subject'])
+    assert.equal(read.plan?.title, 'Another subject')
+  })
+
+  it('hands both to one run, and files both once cards name them', () => {
+    const target = twoPlans()
+    const first = cardFrom(9, PLAN_REL)
+    cardFrom(10, OTHER_REL)
+    startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9, 10] }), 'plan', target)
+
+    assert.equal(rowIsThere(target), false)
+    assert.deepEqual(openPaths(target), [])
+    assert.equal(fileIsThere(FILED_REL), true)
+    assert.equal(fileIsThere('plans/archive/13-another-subject.md'), true)
+    assert.match(fs.readFileSync(first, 'utf8'), new RegExp(FILED_REL))
+  })
+
+  it('hands back a plan no card names, and brings the discussion back', async () => {
+    const target = twoPlans()
+    cardFrom(9, PLAN_REL)
+    startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9] }), 'plan', target)
+
+    assert.equal(rowIsThere(target), true)
+    assert.equal(readChat(target)?.archived, false)
+    assert.deepEqual(openPaths(target), [OTHER_REL])
+    assert.equal(readChat(target)?.plans?.find((p) => p.path === OTHER_REL)?.run, undefined)
+    assert.equal(fileIsThere(FILED_REL), true)
+    assert.equal(fileIsThere(OTHER_REL), true)
+    // The retry offers only what is left.
+    const read = await readDiscuss(target)
+    assert.deepEqual(read.plans?.map((p) => p.title), ['Another subject'])
+    assert.equal(read.run, null)
+  })
+
+  it('settles the same way when the screen reads it first', async () => {
+    const target = twoPlans()
+    cardFrom(9, OTHER_REL)
+    startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9] }), 'plan', target)
+
+    assert.deepEqual((await readDiscuss(target)).plans?.map((p) => p.title), ['One outcome'])
+    assert.equal(rowIsThere(target), true)
+  })
+
+  it('gives both back when the run wrote no card', () => {
+    const target = twoPlans()
+    const sessionId = run()
+    startedPlanning(sessionId, 'plan', target)
+    ended(sessionId)
+
+    assert.equal(rowIsThere(target), true)
+    assert.deepEqual(openPaths(target), [PLAN_REL, OTHER_REL])
+    assert.equal(fileIsThere(PLAN_REL), true)
+    assert.equal(fileIsThere(OTHER_REL), true)
+  })
+
+  it('leaves a withdrawn plan out of the handoff', async () => {
+    const target = twoPlans()
+    assert.equal(clearChatPlan(target, PLAN_REL), true)
+    assert.deepEqual((await readDiscuss(target)).plans?.map((p) => p.title), ['Another subject'])
+
+    startedPlanning(run(), 'plan', target)
+    assert.equal(readChat(target)?.plans?.find((p) => p.path === PLAN_REL)?.run, undefined)
+    // The file stays.
+    assert.equal(fileIsThere(PLAN_REL), true)
+  })
+
+  it('hands over only the plans the run was pointed at', () => {
+    const target = twoPlans()
+    startedPlanning(run(), 'plan', target, [planPathInText(OTHER_REL)])
+    assert.equal(readChat(target)?.plans?.find((p) => p.path === PLAN_REL)?.run, undefined)
+    assert.notEqual(readChat(target)?.plans?.find((p) => p.path === OTHER_REL)?.run, undefined)
+  })
+
+  it('asks for one request from every plan, and keeps the one-plan ask as it was', () => {
+    const one = buildPrompt({ action: 'create', plan: '/p/plans/12-one.md' })
+    assert.match(one, /Add task\(s\) from the plan at `\/p\/plans\/12-one\.md`/)
+    const both = buildPrompt({ action: 'create', plans: ['/p/plans/12-one.md', '/p/plans/13-two.md'] })
+    assert.match(both, /from these plans, written in one discussion: `\/p\/plans\/12-one\.md`, `\/p\/plans\/13-two\.md`/)
+    assert.match(both, /a plan no new card names is handed back to the discussion/)
   })
 })

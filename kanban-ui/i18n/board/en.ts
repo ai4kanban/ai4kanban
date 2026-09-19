@@ -96,6 +96,10 @@ const en: BoardCopy = {
         buildAgain: "The last build wrote no card. The plan is as you left it.",
         planning: "Writing the cards from this plan…",
         building: "Building from this plan…",
+        includes: (count) => `Start planning includes ${count} plans`,
+        buildOnlyOne: "Only available with one plan",
+        tryAgainMany: "The last run wrote no cards. The plans are as you left them.",
+        planningMany: (count) => `Writing the cards from ${count} plans…`,
         starting: "Starting…",
         failed: {
           dirty: "Commit or stash these changes first",
@@ -103,6 +107,7 @@ const en: BoardCopy = {
           worktree: "The branch and working folder for this task could not be created",
           akb: "The folder this task works in could not be prepared",
           noPlan: "This discussion has no plan to start from yet",
+          onePlan: "Build now takes one plan. Start planning to use them all",
           noProcess: "The run could not be started",
           rules: "This board's rules are too old — update the ai4kanban command",
           other: "It did not start",

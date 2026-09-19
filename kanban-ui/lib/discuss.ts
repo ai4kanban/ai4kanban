@@ -52,17 +52,23 @@ export async function noteAnswer(text: string, target: ChatTarget = null): Promi
   }
 }
 
-/** The run this plan was handed to has started, and which answer handed it over (#481). */
-export async function planningStarted(sessionId: string, answer: PlanAnswer, target: ChatTarget = null): Promise<void> {
+/** The run these plans were handed to has started, and which answer handed it over (#481). */
+export async function planningStarted(
+  sessionId: string,
+  answer: PlanAnswer,
+  target: ChatTarget = null,
+  paths?: string[],
+): Promise<void> {
   try {
-    (await boardRules()).startedPlanning?.(sessionId, answer, target);
+    (await boardRules()).startedPlanning?.(sessionId, answer, target, paths);
   } catch {
     // Unrecorded, so reopening Discuss offers the run again rather than saying it is going.
   }
 }
 
-/** The plan path a run is pointed at — as the project spells it, which is how the read
- *  already carries it. Null when the conversation is writing none. */
-export async function planToPlanFrom(target: ChatTarget = null): Promise<string | null> {
-  return (await readDiscuss(target)).plan?.path ?? null;
+/** The plan paths a run is pointed at — every open plan (#917), as the project spells them,
+ *  which is how the read already carries them. Empty when the conversation is writing none. */
+export async function plansToPlanFrom(target: ChatTarget = null): Promise<string[]> {
+  const read = await readDiscuss(target);
+  return (read.plans ?? (read.plan ? [read.plan] : [])).map((p) => p.path);
 }

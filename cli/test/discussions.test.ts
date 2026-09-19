@@ -176,7 +176,7 @@ describe('archiving one by hand', () => {
     spoke(target, 'this one became cards')
     const built = plan('9-built.md')
     setChatPlan(target, built, 'Built')
-    setChatPlanRun(target, 'session-1', 'build')
+    setChatPlanRun(target, 'session-1', 'build', [built])
 
     assert.deepEqual(archiveDiscussion(target), { ok: true, plans: [] })
     assert.equal(planIsThere(built), true)

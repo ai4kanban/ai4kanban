@@ -56,6 +56,9 @@ needed to assess the idea; leave detailed solution design to card planning.
 - **Keep it current**: revise a temporary draft, then run `akb raw plan save --path <plan>
   --body-file <temporary-draft>`. Only report it saved after the command confirms; preserve
   the draft and reuse the path on failure.
+- **One plan per subject**: a new version of a plan is saved over it; start another plan only
+  for a separate subject. When a plan is replaced or the user drops it, run
+  `akb raw plan drop --path <plan>` so it is not handed off.
 - **Pick the workflow**: on `plan new` and `plan save`, add `--workflow <id>` naming the
   workflow from `akb workflow list` whose work matches the plan. Omit it when none clearly
   fits; the board then uses its default. Never mention the pick in a reply.

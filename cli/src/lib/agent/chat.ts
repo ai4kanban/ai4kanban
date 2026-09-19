@@ -323,11 +323,15 @@ function chatOrOpen(cardId: ChatTarget): Chat {
   return readChat(cardId) ?? { cardId, harness: chatAgent().name, messages: [], startedAt: now, updatedAt: now }
 }
 
-/** The plan one conversation is writing right now: the last one it named, until that one is
- *  let go. A conversation writing none answers undefined. */
+/** The plans one conversation is still writing, oldest first: every one it named and has
+ *  not let go (#917). Several can be open at once — one per subject. */
+export function openPlans(chat: Chat | null): ChatPlan[] {
+  return (chat?.plans ?? []).filter((p) => !p.done)
+}
+
+/** The plan one conversation is writing right now: the last one it has not let go. */
 export function chatPlan(chat: Chat | null): ChatPlan | undefined {
-  const last = chat?.plans?.[chat.plans.length - 1]
-  return last && !last.done ? last : undefined
+  return openPlans(chat).at(-1)
 }
 
 // Write the list back, and with it the name the discussion goes under: the live plan's title,
@@ -341,9 +345,9 @@ function writePlans(cardId: ChatTarget, plans: ChatPlan[]): void {
   writeChat(chat)
 }
 
-/** Point one conversation at a plan it is writing. It is appended to the list rather than
- *  replacing what is there: a discussion writes one plan at a time, but the ones it finished
- *  are still its own (#496), and naming a new one only lets the live slot go. */
+/** Point one conversation at a plan it is writing. A new path is appended beside the plans
+ *  still open (#917): each is its own subject, handed off together. Saving the same path
+ *  again is the same plan, rewritten in place. */
 export function setChatPlan(
   cardId: ChatTarget,
   planPath: string,
@@ -352,38 +356,46 @@ export function setChatPlan(
 ): { ok: true } | { error: string } {
   if (!planFile(planPath)) return { error: `${planPath} is not a plan of this board's.` }
   const held = readChat(cardId)?.plans ?? []
-  // Naming the same file again is the same plan, not a second one.
-  const rest = held.filter((p) => p.path !== planPath).map((p) => ({ ...p, done: true as const }))
-  writePlans(cardId, [...rest, { path: planPath, title: title?.trim() || undefined, workflow: workflow || undefined }])
+  const plan: ChatPlan = { path: planPath, title: title?.trim() || undefined, workflow: workflow || undefined }
+  const same = held.some((p) => p.path === planPath)
+  writePlans(cardId, same ? held.map((p) => (p.path === planPath ? plan : p)) : [...held, plan])
   return { ok: true }
 }
 
-/** The run this plan was handed to has started, and which answer handed it over (#481). The
- *  ask is answered by it, so it goes; the plan is held until that run has written a card.
- *
- *  Answers whether there was a live plan to hand over — the caller archives the discussion
- *  on a handoff (#551), and one with nothing in flight has nothing to bring it back. */
-export function setChatPlanRun(cardId: ChatTarget, sessionId: string, answer: PlanAnswer): boolean {
+/** The run these plans were handed to has started, and which answer handed it over (#481).
+ *  Answers whether any of them was open — the caller archives the discussion on a handoff
+ *  (#551), and one with nothing in flight has nothing to bring it back. */
+export function setChatPlanRun(cardId: ChatTarget, sessionId: string, answer: PlanAnswer, paths: string[]): boolean {
   const chat = readChat(cardId)
-  const live = chatPlan(chat)
-  if (!live) return false
+  const handed = openPlans(chat).filter((p) => paths.includes(p.path))
+  if (!handed.length) return false
   writePlans(
     cardId,
-    (chat?.plans ?? []).map((p) => (p.path === live.path ? { ...p, run: sessionId, answer } : p)),
+    (chat?.plans ?? []).map((p) => (handed.includes(p) ? { ...p, run: sessionId, answer } : p)),
   )
   return true
 }
 
-/** Let the live plan go — its cards are written, and the next idea starts a file of its own.
- *  It stays on the list: the discussion wrote it, and that does not stop being true. */
-export function clearChatPlan(cardId: ChatTarget): void {
+/** Hand one plan back to the discussion: the run it went to never took it up (#917). */
+export function returnChatPlan(cardId: ChatTarget, planPath: string): void {
   const chat = readChat(cardId)
-  const live = chatPlan(chat)
-  if (!live) return
   writePlans(
     cardId,
-    (chat?.plans ?? []).map((p) => (p.path === live.path ? { ...p, done: true } : p)),
+    (chat?.plans ?? []).map((p) => (p.path === planPath ? { ...p, run: undefined, answer: undefined } : p)),
   )
+}
+
+/** Let one plan go — its cards are written, or it was withdrawn. It stays on the list: the
+ *  discussion wrote it, and that does not stop being true. With no path, the live one. */
+export function clearChatPlan(cardId: ChatTarget, planPath?: string): boolean {
+  const chat = readChat(cardId)
+  const gone = planPath ?? chatPlan(chat)?.path
+  if (!gone || !openPlans(chat).some((p) => p.path === gone)) return false
+  writePlans(
+    cardId,
+    (chat?.plans ?? []).map((p) => (p.path === gone ? { ...p, done: true } : p)),
+  )
+  return true
 }
 
 /** Name one discussion (#496). Written straight onto its file, so the rail and `akb chat`
