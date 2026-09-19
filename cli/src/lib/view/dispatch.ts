@@ -1,9 +1,10 @@
 // ---- what the board should start on its own --------------------------------
 //
-// Five jobs that need no user at all: the cards somebody scheduled, whose last blocker has
+// The jobs that need no user at all: the cards somebody scheduled, whose last blocker has
 // now left the board, the recurring cards whose cadence has elapsed, the day's review of
-// what the conversations settled, and — on a board that asked for them — the memory pruner's
-// own cadence and the sweep of the stale cards. A front end with a timer asks this once a
+// what the conversations settled, the review of the dismissal reasons, and — on a board
+// that asked for them — the memory pruner's own cadence and the sweep of the stale cards.
+// A front end with a timer asks this once a
 // tick and starts whatever comes back — it holds the timer, this holds the rules, so a board
 // driven from a window and a board driven from anywhere else pick the same cards in the same
 // order.
@@ -18,8 +19,9 @@
 // `dueScheduled`), and the sweep, which starts its own run because its report has to be keyed
 // to it (`../agent/sweep.ts`).
 
-import { nextDue, parseStamp } from '../cadence'
-import { memoryPrune, memoryReview, memoryReviewerOn } from '../agent/settings'
+import { formatStamp, nextDue, parseStamp } from '../cadence'
+import { dismissalReview, memoryPrune, memoryReview, memoryReviewerOn } from '../agent/settings'
+import { dismissalWorkWaiting } from '../agent/dismissal-review'
 import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { anyChatSince } from '../agent/memory-review'
 import { answeredWork } from '../agent/deliveries'
@@ -115,6 +117,22 @@ function memoryReviewDue(runs: RunView[]): boolean {
   const last = Math.max(since, ...passes.map((r) => r.startedAt))
   if (last && Date.now() - last < REVIEW_INTERVAL) return false
   return anyChatSince(since)
+}
+
+// Whether the dismissal review is due (#929). On, none of its own going, its cadence elapsed
+// since the later of the newest attempt's start and the last pass — so a failed review waits
+// a whole cadence rather than retrying every tick — and something to read. The window is the
+// last pass, so what a failed one missed is still in it next time.
+function dismissalReviewDue(runs: RunView[]): boolean {
+  const review = dismissalReview()
+  if (!review.enabled) return false
+  const passes = runs.filter((r) => r.action === 'review-dismissals')
+  if (passes.some((r) => r.status === 'running')) return false
+  const since = parseStamp(review.lastRun)?.getTime() ?? 0
+  const last = Math.max(since, ...passes.map((r) => r.startedAt))
+  const due = last ? nextDue(formatStamp(new Date(last)), review.cadence) : new Date(0)
+  if (!due || due.getTime() > Date.now()) return false
+  return dismissalWorkWaiting(since)
 }
 
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
@@ -237,6 +255,7 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // And the day's review of what the conversations settled (#748). A slot of its own for the
   // same reason: it touches no card, so nothing it does can queue behind a card's run.
   if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
+  if (dismissalReviewDue(runs)) work.push({ action: 'review-dismissals' })
 
   // The deliveries whose question has been answered (#302). Not gated on the slots above
   // for the same reason landing isn't: another look at work already built is that

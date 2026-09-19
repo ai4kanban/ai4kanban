@@ -77,6 +77,7 @@ describe('the roles', () => {
         'memory-pruner',
         'memory-reviewer',
         'sweeper',
+        'dismissal-reviewer',
         'feedback',
         'gater',
         'decider',
@@ -91,6 +92,7 @@ describe('the roles', () => {
     assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
     // Settling a stale card is the sweeper's (#118).
     assert.equal(roleForFlow('unstick')!.name, 'sweeper')
+    assert.equal(roleForFlow('review-dismissals')!.name, 'dismissal-reviewer')
     // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
     assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
     assert.equal(roleForFlow('gate')!.name, 'gater')
@@ -134,6 +136,7 @@ describe('the roles', () => {
       'memory-pruner',
       'memory-reviewer',
       'sweeper',
+      'dismissal-reviewer',
       'feedback',
       'gater',
       'decider',
@@ -154,20 +157,21 @@ describe('the roles', () => {
 
   it('rosters the roles first, then the specialists the command ships', () => {
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 11), [
+    assert.deepEqual(names.slice(0, 12), [
       'discussion-helper',
       'software-planner',
       'builder',
       'memory-pruner',
       'memory-reviewer',
       'sweeper',
+      'dismissal-reviewer',
       'feedback',
       'gater',
       'decider',
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(11), [
+    assert.deepEqual(names.slice(12), [
       'code-reviewer',
       'copywriting',
       'hyperframes-editor',
@@ -180,11 +184,11 @@ describe('the roles', () => {
     ])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(11).fill('role'), 'spec', 'spec', 'lead', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec'],
+      [...Array(12).fill('role'), 'spec', 'spec', 'lead', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[11]!.flows, [])
+    assert.deepEqual(agentRoster()[12]!.flows, [])
     // Five roles can be switched off, and each reads a key of its own (#447, #493, #534,
     // #562, #748). None of them belongs to a workflow: an agent a stage assigns has no
     // switch, the reviewer included (#749, #783).

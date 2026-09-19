@@ -37,6 +37,7 @@ export type MessagesCopy = {
     runtimes: string;
     usageReporting: string;
     memoryPruner: string;
+    dismissalReviewer: string;
     cardSweeper: string;
   };
   /** The refusals a server action gives back to the screen that called it. The rest

@@ -806,3 +806,55 @@ export function stampMemoryReview(when: Date): void {
     cfg.memoryReview = { ...configBlock(cfg.memoryReview), lastRun: formatStamp(when) }
   })
 }
+
+// ---- the dismissal review's schedule (#929) ---------------------------------
+//
+//   "dismissalReview": { "enabled": false, "cadence": "3d at 08:00", "lastRun": "2026-09-19 08:00" }
+//
+// The pruner's three fields, the other way round: it ships ON and daily, so only switching it
+// off and a cadence other than the default are written down. Off keeps the cadence.
+//
+// `lastRun` is the window: when the last review that PASSED began, so a reason written while
+// it was reading is still new to the next one.
+
+/** The cadence a board that never set one reviews on. */
+export const DISMISSAL_REVIEW_CADENCE = '1d'
+
+/** What the file says about the dismissal review. A cadence nothing parses reads as off. */
+export function dismissalReview(): CadenceSchedule {
+  let block: Record<string, unknown> = {}
+  try {
+    block = configBlock(readConfigRaw().dismissalReview)
+  } catch {
+    // unreadable reads as the default
+  }
+  const cadence = (typeof block.cadence === 'string' && block.cadence.trim()) || DISMISSAL_REVIEW_CADENCE
+  const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+  return { enabled: block.enabled !== false && parseCadence(cadence) !== null, cadence, lastRun }
+}
+
+/** Save the switch and the cadence, keeping the window. An invalid cadence saves nothing. */
+export function setDismissalReview(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
+  const cadence = next.cadence.trim() || DISMISSAL_REVIEW_CADENCE
+  if (parseCadence(cadence) === null) {
+    return { ok: false, error: `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}` }
+  }
+  return writeConfig((cfg) => {
+    const block = configBlock(cfg.dismissalReview)
+    const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+    const body = {
+      ...(next.enabled ? {} : { enabled: false }),
+      ...(cadence !== DISMISSAL_REVIEW_CADENCE ? { cadence } : {}),
+      ...(lastRun ? { lastRun } : {}),
+    }
+    if (Object.keys(body).length) cfg.dismissalReview = body
+    else delete cfg.dismissalReview
+  })
+}
+
+/** Move the window to a review that passed, stamped with when that review STARTED. */
+export function stampDismissalReview(when: Date): void {
+  writeConfig((cfg) => {
+    cfg.dismissalReview = { ...configBlock(cfg.dismissalReview), lastRun: formatStamp(when) }
+  })
+}

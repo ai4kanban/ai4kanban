@@ -16,6 +16,7 @@ export type AgentRoleName =
   | "proposer"
   | "memory-pruner"
   | "memory-reviewer"
+  | "dismissal-reviewer"
   | "sweeper"
   | "feedback"
   | "triage";
@@ -338,6 +339,8 @@ export type ConfigurationCopy = {
     /** The sweeper (#119) — the same controls as the pruner's, plus the report of the sweep
      *  they start. The cadence is its whole opt-in: it sweeps nothing until one is saved. */
     sweeper: CadenceCopy & SweepCopy;
+    /** The dismissal reviewer (#929) — the pruner's controls; Off in its menu asks first. */
+    dismissalReviewer: CadenceCopy;
     /** The memory reviewer (#748) — another agent whose page carries an action: it reads
      *  the conversations every day, and **Review now** asks for one whatever the switch
      *  says. No cadence beside it, so the quiet line under the button is the whole of what
@@ -870,6 +873,8 @@ export type CadenceCopy = {
   /** A save the board refused, and rules that predate this schedule. */
   saveFailed: string;
   tooOld: string;
+  /** Asked at the list's foot before Off saves — only on a schedule that ships on. */
+  confirmOff?: { title: string; body: string; action: string };
 };
 
 /** What the sweeper's page says beyond its controls (#119): the compact summary under the

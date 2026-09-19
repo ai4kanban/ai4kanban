@@ -5,8 +5,11 @@ with a refine scheduled on it; everything else moves to `dismissed/` with the re
 nothing worth a card is a complete result.
 
 Read only: the waiting items, `docs/kanban/memory/goal.md`, the planner's memory in
-`docs/kanban/memory/agents/planner/` (its `rejected.md` included), `docs/kanban/modules.md`,
-and the open cards. Change nothing but the cards you create and the items you land.
+`docs/kanban/memory/agents/planner/` (its `rejected.md` and `dismissed.md` included),
+`docs/kanban/modules.md`, and the open cards. `dismissed.md` is the user's triage taste
+learned from past dismissals: weigh it against the goal, and let the goal and any
+instruction given with this run win over it. Change nothing but the cards you create and the
+items you land.
 
 ## 1. Judge one item
 

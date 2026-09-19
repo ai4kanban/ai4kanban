@@ -226,6 +226,17 @@ export const FLOWS: Flow[] = [
         'is where it is switched off and where Review now is.',
     ],
   },
+  // The dismissal reviewer's one flow (#929). Typed bare: it acts on the dismissals.
+  {
+    command: 'review-dismissals',
+    action: 'review-dismissals',
+    argument: '',
+    gloss: "learn the user's triage preferences from their dismissal reasons",
+    more: [
+      'Reads the reasons written since the last review that passed, and withdraws what rested on ' +
+        'an item since restored. Configuration → Board → Learn from dismissals sets its cadence.',
+    ],
+  },
   // The triager's one flow (#561). Typed under `triage`, beside the words that put items
   // there: it acts on what is waiting rather than on a card, so it names nothing.
   {

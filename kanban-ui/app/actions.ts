@@ -142,6 +142,8 @@ import {
   diffApprovalRequired,
   memoryPrune,
   memoryReview,
+  dismissalReview,
+  setDismissalReview,
   saveCardSweep,
   setAiReview,
   setAutoCommit,
@@ -1319,6 +1321,41 @@ export async function memoryReviewAction(): Promise<{
  *  the run record's own one-at-a-time rule, so the button never has to know. */
 export async function startReviewMemoryAction(): Promise<StartResult> {
   const req: AgentRequest = { action: "review-memory" };
+  return startSession(req, await buildPrompt(req));
+}
+
+// --- the dismissal reviewer (#929) -------------------------------------------
+// Its schedule — Off in the cadence menu is its switch — and Review now.
+
+export async function dismissalReviewAction(): Promise<{
+  schedule: CadenceSchedule | null;
+  error?: string;
+}> {
+  try {
+    return { schedule: await dismissalReview() };
+  } catch (e) {
+    return { schedule: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setDismissalReviewAction(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<WriteResult> {
+  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
+    return { ok: false, error: "a review schedule is saved as an opt-in and a cadence" };
+  }
+  try {
+    return await setDismissalReview(next);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Start one review by hand — works with the schedule off; one at a time is the run
+ *  record's rule. */
+export async function startReviewDismissalsAction(): Promise<StartResult> {
+  const req: AgentRequest = { action: "review-dismissals" };
   return startSession(req, await buildPrompt(req));
 }
 

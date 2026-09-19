@@ -61,12 +61,16 @@ import {
   startCardSweepAction,
   startPruneMemoryAction,
   startReviewMemoryAction,
+  dismissalReviewAction,
+  setDismissalReviewAction,
+  startReviewDismissalsAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
 import { type Cadence, type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import { LANGUAGE_TAGS, WORKFLOW_STAGES } from "@/lib/types";
 import type {
+  AgentAction,
   AgentInfo,
   AgentView,
   Language,
@@ -114,6 +118,9 @@ const COSTLY = "decider";
 // reason as the one above: there is exactly one, and its page is the only place Review now
 // belongs.
 const REVIEWER_OF_MEMORY = "memory-reviewer";
+
+// The dismissal reviewer (#929): the pruner's controls, on by default.
+const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
 
 export function AgentsPanel({
   info,
@@ -945,6 +952,7 @@ function Page({
             agent's Delete, each keeping the place it already had. */}
         <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
           {agent.name === PRUNER && <PruneControls onError={onError} />}
+          {agent.name === REVIEWER_OF_DISMISSALS && <DismissalControls onError={onError} />}
           {agent.name === SWEEPER && <SweepControls sweep={sweep} />}
           {agent.name === REVIEWER_OF_MEMORY && (
             <ReviewControls off={off} onError={onError} />
@@ -1441,20 +1449,68 @@ function CadenceControls({
 
 // --- the memory pruner's own controls (#514) ---------------------------------
 
-// Its data and its words; the layout above is shared with the sweeper.
 function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.agents.pruner;
+  return (
+    <ScheduledControls
+      copy={c}
+      icon={<FiScissors aria-hidden />}
+      action="prune-memory"
+      read={memoryPruneAction}
+      save={setMemoryPruneAction}
+      start={startPruneMemoryAction}
+      onError={onError}
+    />
+  );
+}
+
+// --- the dismissal reviewer's own controls (#929) ----------------------------
+
+function DismissalControls({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.agents.dismissalReviewer;
+  return (
+    <ScheduledControls
+      copy={c}
+      icon={<FiRotateCcw aria-hidden />}
+      action="review-dismissals"
+      read={dismissalReviewAction}
+      save={setDismissalReviewAction}
+      start={startReviewDismissalsAction}
+      onError={onError}
+    />
+  );
+}
+
+// A scheduled agent's data — its schedule and its runs — for the layout above; the sweeper
+// keeps its own, since it carries a report as well.
+function ScheduledControls({
+  copy: c,
+  icon,
+  action,
+  read,
+  save: write,
+  start: begin,
+  onError,
+}: {
+  copy: CadenceCopy;
+  icon: React.ReactNode;
+  action: AgentAction;
+  read: () => Promise<{ schedule: CadenceSchedule | null; error?: string }>;
+  save: (next: { enabled: boolean; cadence: string }) => Promise<{ ok: boolean; error?: string }>;
+  start: () => Promise<{ ok: boolean; error?: string }>;
+  onError?: (msg: string) => void;
+}) {
   const [schedule, setSchedule] = useState<MemoryPruneSchedule | null>(null);
   const [tooOld, setTooOld] = useState(false);
   const [running, setRunning] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const readSchedule = useCallback(async () => {
-    const res = await memoryPruneAction();
+    const res = await read();
     setSchedule(res.schedule);
     setTooOld(!res.schedule && !res.error);
     if (res.error) onError?.(res.error);
-  }, [onError]);
+  }, [read, onError]);
 
   // What the runs record says about pruning right now: whether one is going, and whether
   // the newest finished one got through. Polled while a pass is live and read once
@@ -1462,7 +1518,7 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   const readRuns = useCallback(async () => {
     let live = false;
     try {
-      const runs = (await listSessionsAction()).filter((r) => r.action === "prune-memory");
+      const runs = (await listSessionsAction()).filter((r) => r.action === action);
       live = runs.some((r) => r.status === "running");
       const done = runs.filter((r) => r.status !== "running").sort((a, b) => b.startedAt - a.startedAt)[0];
       setFailed(!!done && done.status !== "done");
@@ -1471,7 +1527,7 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
     }
     setRunning(live);
     return live;
-  }, []);
+  }, [action]);
 
   useEffect(() => {
     void readSchedule();
@@ -1494,7 +1550,7 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
     if (running) return;
     setRunning(true);
     setFailed(false);
-    const res = await startPruneMemoryAction();
+    const res = await begin();
     if (!res.ok) {
       setRunning(false);
       onError?.(res.error || c.saveFailed);
@@ -1506,7 +1562,7 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   // Write the schedule and read back what landed. False is a refusal — the list says so
   // itself, in its own words, and the state on screen is still the one that is running.
   const save = async (next: { enabled: boolean; cadence: string }) => {
-    const res = await setMemoryPruneAction(next);
+    const res = await write(next);
     if (!res.ok) return false;
     await readSchedule();
     return true;
@@ -1515,7 +1571,7 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   return (
     <CadenceControls
       copy={c}
-      icon={<FiScissors aria-hidden />}
+      icon={icon}
       schedule={schedule}
       tooOld={tooOld}
       running={running}
@@ -1954,6 +2010,8 @@ function CadenceMenu({
   const [busy, setBusy] = useState<Pick | null>(null);
   const [failed, setFailed] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  // Off on a schedule that ships on asks first, at the list's foot (#929).
+  const [askingOff, setAskingOff] = useState(false);
   const list = useRef<HTMLDivElement>(null);
 
   const presetOf = (c: Cadence | null): Preset | null => {
@@ -2014,8 +2072,9 @@ function CadenceMenu({
     rows[next]?.focus();
   };
 
-  const pick = async (id: Pick) => {
+  const pick = async (id: Pick, confirmed = false) => {
     if (busy) return;
+    setAskingOff(false);
     if (id === "custom") {
       setFailed("");
       setDraft(
@@ -2029,6 +2088,11 @@ function CadenceMenu({
     // Already what is saved: there is nothing to write, and writing anyway would restate a
     // cadence the parser never recognised.
     if (id === picked) return onDismiss();
+    if (id === "off" && copy.confirmOff && !confirmed) {
+      setFailed("");
+      setAskingOff(true);
+      return;
+    }
     setFailed("");
     setBusy(id);
     // Switching off keeps the cadence, so the same one comes back when it is switched on.
@@ -2053,7 +2117,7 @@ function CadenceMenu({
             disabled={!!busy}
             onClick={() => void pick(id)}
             className={`relative flex w-full cursor-pointer select-none items-center gap-3 rounded-[7px] py-1.5 pl-2.5 pr-8 text-left text-[13px] font-[600] text-nb-ink outline-none hover:bg-nb-wash focus-visible:bg-nb-wash disabled:cursor-wait disabled:opacity-60 ${
-              id === "custom" && draft ? "bg-nb-wash" : ""
+              (id === "custom" && draft) || (id === "off" && askingOff) ? "bg-nb-wash" : ""
             }`}
           >
             {label(id)}
@@ -2089,6 +2153,21 @@ function CadenceMenu({
             else setFailed(copy.saveFailed);
           }}
         />
+      )}
+
+      {askingOff && copy.confirmOff && (
+        <div className="mt-1 border-t border-nb-ink/12 px-1.5 pb-1.5 pt-2.5">
+          <p className="text-[13px] font-[700] text-nb-ink">{copy.confirmOff.title}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">{copy.confirmOff.body}</p>
+          <div className="mt-2.5 flex items-center justify-end gap-2">
+            <Button variant="ghost" size="xs" onClick={() => setAskingOff(false)}>
+              {copy.cancel}
+            </Button>
+            <Button variant="accent" size="xs" onClick={() => void pick("off", true)}>
+              {copy.confirmOff.action}
+            </Button>
+          </div>
+        </div>
       )}
 
       {!draft && failed && (

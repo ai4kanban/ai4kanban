@@ -99,6 +99,10 @@ export type AgentAction =
    *  new content since the last review that passed. Chats write no memory themselves, so
    *  this is the only thing that turns what a conversation settled into a note. */
   | 'review-memory'
+  /** Learn the user's triage preferences from their dismissal reasons (#929) — the dismissal
+   *  reviewer's one flow. It names no card: the flow lists the new reasons and the restored
+   *  items, and it writes only the planner's `dismissed.md`. */
+  | 'review-dismissals'
   /** Reflect on a card the board has just completed (#534) — the proposer's one flow. It
    *  names the completed card, which is no longer on the board, so it reads it at its
    *  `.archive/` path; what it writes is inbox items for the work that should follow, and

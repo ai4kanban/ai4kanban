@@ -165,3 +165,21 @@ export async function memoryReview(): Promise<MemoryReviewState | null> {
   const rules = await boardRules();
   return rules.memoryReview ? rules.memoryReview() : null;
 }
+
+// --- the dismissal review's schedule (#929) ----------------------------------
+
+export async function dismissalReview(): Promise<CadenceSchedule | null> {
+  const rules = await boardRules();
+  return rules.dismissalReview ? rules.dismissalReview() : null;
+}
+
+export async function setDismissalReview(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setDismissalReview) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.dismissalReviewer };
+  }
+  return rules.setDismissalReview(next);
+}

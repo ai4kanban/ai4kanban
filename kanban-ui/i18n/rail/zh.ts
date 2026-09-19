@@ -34,6 +34,7 @@ const zh: RailCopy = {
       decisions: "已定下的决策",
       redesign: "设计上的教训",
       rejected: "被否决的想法",
+      dismissed: "筛选偏好",
     },
     prune: "整理记忆",
     pruneTitle: "整理记忆——在配置里打开它的页面",

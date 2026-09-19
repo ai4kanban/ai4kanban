@@ -544,6 +544,10 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Rewrite or delete a note an earlier review wrote that the conversation has since overturned, rather than adding a second one.`,
         `Change nothing but the memory files: no card, no \`verify:\` line, no question for anyone.`,
       ].join(' ')
+    // The dismissal review (#929). The flow lists the dismissals and restored ids; the guide
+    // holds every rule.
+    case 'review-dismissals':
+      return `${kb}. Learn the user's triage preferences from their dismissals, following \`akb guide review-dismissals\`.`
     // Reflecting on a card the board has just completed (#534). The card is off the board,
     // so the ask names the archive: nothing else can find it. What it may write is inbox
     // items and nothing else — a proposal is triaged like anything else that arrives there,

@@ -622,13 +622,14 @@ export interface MemoryRef {
 }
 
 /** Every memory file there is, in the order a panel lists them: the board's own record
- *  first — what shipped, where the project is going — then the three an agent learns. */
+ *  first — what shipped, where the project is going — then the ones the planner learns. */
 export const MEMORY_FILES: readonly MemoryRef[] = [
   { name: 'readme', label: 'What shipped' },
   { name: 'goal', label: 'The goal' },
   { name: 'decisions', label: 'Settled decisions' },
   { name: 'rejected', label: 'Rejected ideas' },
   { name: 'redesign', label: 'Design mistakes' },
+  { name: 'dismissed', label: 'Triage preferences' },
 ]
 
 /** One group the memory panel draws (#805): the board's own record, or one agent's folder.

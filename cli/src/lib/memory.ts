@@ -35,8 +35,9 @@ export interface MemoryTarget {
 /** The agent every planning memory belongs to. Its flows are the ones that write them. */
 export const PLANNER = 'planner'
 
-/** The planner's three, in the order a roster lists them. */
-export const PLANNER_MEMORY_FILES = ['decisions.md', 'rejected.md', 'redesign.md'] as const
+/** The planner's files, in the order a roster lists them. `dismissed.md` is written only by
+ *  the dismissal review (#929). */
+export const PLANNER_MEMORY_FILES = ['decisions.md', 'rejected.md', 'redesign.md', 'dismissed.md'] as const
 
 /** The board's own record — what it did, and where it is going. Not an agent's. */
 export const BOARD_MEMORY_FILES = ['readme.md', 'goal.md'] as const
@@ -66,6 +67,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
 before proposing so you don't re-suggest them.
+`,
+  'dismissed.md': `# Triage preferences
+
+What the user's dismissal reasons say about which triage items are worth a card, grouped
+by module. One line each, ending in the source ids it rests on. Written by the dismissal
+review; a line with no source id is the user's own.
 `,
   // The goal starts with the `reviewed:` line and nothing else: the file is the user's own
   // words, and anything seeded above them is text they have to delete first. What belongs in

@@ -31,9 +31,12 @@ import type { AgentKind } from '../agents/parse'
 // once here because the two content roles read and write the same files: a board that
 // remembered its content decisions somewhere else would be a board whose pruner could only
 // ever read half of what it decided.
-const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN] = ['decisions.md', 'rejected.md', 'redesign.md'].map(
-  (name) => `memory/agents/${PLANNER}/${name}`,
-) as [string, string, string]
+const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN, PLANNER_DISMISSED] = [
+  'decisions.md',
+  'rejected.md',
+  'redesign.md',
+  'dismissed.md',
+].map((name) => `memory/agents/${PLANNER}/${name}`) as [string, string, string, string]
 
 /** One role: an agent the board ships, named by the work rather than by a flow. */
 export interface AgentRole {
@@ -150,6 +153,15 @@ const MEMORY_REVIEWER: AgentRole = {
   confirm: 'off',
 }
 
+// The role that learns triage taste from dismissal reasons (#929). No roster switch: like
+// the pruner it is started by its cadence, and Off in that cadence's menu is the switch. It
+// ships on, daily (./settings.ts). It writes the planner's `dismissed.md` and nothing else.
+const DISMISSAL_REVIEWER: AgentRole = {
+  name: 'dismissal-reviewer',
+  gloss: 'learns your triage preferences from the reasons you give for dismissing items',
+  memory: [PLANNER_DISMISSED],
+}
+
 // The role that looks back at finished work (#534). Like the gater and the decider it is
 // off until asked for — a board that turns it on spends one run per completion — and like
 // them it owns no memory: what it proposes goes into the inbox to be triaged, and a
@@ -229,6 +241,7 @@ const BOARD_ROLES: AgentRole[] = [
   MEMORY_PRUNER,
   MEMORY_REVIEWER,
   SWEEPER,
+  DISMISSAL_REVIEWER,
   FEEDBACK,
   GATER,
   DECIDER,

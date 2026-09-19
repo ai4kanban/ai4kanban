@@ -51,7 +51,7 @@ import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
-import { stampMemoryPrune, stampMemoryReview } from './settings'
+import { stampDismissalReview, stampMemoryPrune, stampMemoryReview } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
@@ -98,6 +98,7 @@ const SINGLETON_ACTIONS = new Set<AgentAction>([
   'setup',
   'prune-memory',
   'review-memory',
+  'review-dismissals',
   'triage',
   'unstick',
 ])
@@ -121,6 +122,7 @@ const VERB: Record<AgentAction, string> = {
   setup: 'set up',
   'prune-memory': 'pruned',
   'review-memory': 'reviewed for memory',
+  'review-dismissals': 'reviewed for triage preferences',
   triage: 'sorted',
   reflect: 'reflected on',
   spec: 'specified',
@@ -137,6 +139,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   setup: 'this board is already being set up',
   'prune-memory': 'the memory is already being pruned',
   'review-memory': 'the conversations are already being reviewed',
+  'review-dismissals': 'the dismissals are already being reviewed',
   triage: 'triage is already being sorted',
   unstick: 'the board is already being swept',
 }
@@ -356,6 +359,16 @@ function recordMemoryReview(run: RunRecord): void {
   if (run.action !== 'review-memory' || run.status !== 'done') return
   try {
     stampMemoryReview(new Date(run.startedAt))
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And the dismissal review's window (#929), on the same terms: a pass, stamped with its start.
+function recordDismissalReview(run: RunRecord): void {
+  if (run.action !== 'review-dismissals' || run.status !== 'done') return
+  try {
+    stampDismissalReview(new Date(run.startedAt))
   } catch {
     // the settings file would not take the write — the run is over either way
   }
@@ -1165,6 +1178,7 @@ export async function closeRun(
   await recordRecurringRun(closed)
   recordPrune(closed)
   recordMemoryReview(closed)
+  recordDismissalReview(closed)
   // Last, because it is the only step that reads what the five above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.

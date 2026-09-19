@@ -341,6 +341,10 @@ export interface BoardRules {
   // rules older than the reviewer draw its page without the last-review line.
   memoryReview?(): MemoryReviewState;
 
+  // the dismissal review's schedule (#929). Optional like the ones above.
+  dismissalReview?(): CadenceSchedule;
+  setDismissalReview?(next: { enabled: boolean; cadence: string }): WriteResult;
+
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the
   // release that added them, and the chat says so rather than the window failing to draw.

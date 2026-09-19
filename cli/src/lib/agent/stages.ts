@@ -129,6 +129,7 @@ const BOARD_NODES: FlowNode[] = [
   { flow: 'feedback', kind: 'event', agent: 'feedback' },
   { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
   { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
+  { flow: 'review-dismissals', kind: 'event', agent: 'dismissal-reviewer' },
 ]
 
 /** Which of the three configurable stages a kernel stage is (#715). `discuss` is none of

@@ -19,6 +19,8 @@ On top of that, per file:
   `readme.md` line pointing at it), not here; drop it from `rejected.md`.
 - `agents/planner/redesign.md` — one line per entry: the mistake, then the design to use.
   Drop an entry once that design is the obvious default.
+- `agents/planner/dismissed.md` — one line per triage preference. Merge and trim the wording,
+  but keep every source id in parentheses: they are how a restored item withdraws its line.
 - `readme.md` — the board's own record, one line per shipped user-facing behavior. Where a
   published doc covers it, the line is just a link to that doc's path. **Replace a prose
   entry with a link only after you have confirmed the doc covers that behavior** — search the

@@ -52,7 +52,8 @@ import { aiReviewOn, owesFocusedReview } from './review'
 import { frozenReviewers, NO_REVIEWERS } from './workflows'
 import { field, metaLine, numbered } from './facts'
 import { chatsToReview } from './memory-review'
-import { memoryReview } from './settings'
+import { dismissalReview, memoryReview } from './settings'
+import { dismissalsToReview, dismissedMemoryPath, withdrawnSources } from './dismissal-review'
 import { translating } from './language'
 import { buildAsk, frozenRules, leadBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
@@ -580,6 +581,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // judges by — plus its own flow, and NOT the rest of `board`: it writes memory files and
   // no card at all.
   'review-memory': ['board', 'review-memory'],
+  'review-dismissals': ['review-dismissals'],
   // A reflection gets its own flow and `evaluate-task`, the bar an idea is held to before
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
   // format and the memory set are a page about work it may not do.
@@ -1014,6 +1016,29 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'rewrite or delete a note an earlier review wrote that a conversation has since overturned, rather than adding a second one',
         'writing nothing at all is a complete result, and most conversations earn it',
         'change nothing else — not a card, not the goal, not the code',
+      )
+      break
+    }
+    // The dismissal review (#929): the two lists are the job, decided before any run starts.
+    case 'review-dismissals': {
+      const lastRun = dismissalReview().lastRun
+      const dismissals = dismissalsToReview(parseStamp(lastRun)?.getTime() ?? 0)
+      const withdrawn = withdrawnSources()
+      facts.push(...field('window', lastRun ? `since the last review that passed, ${lastRun}` : 'every dismissal — none has been reviewed yet'))
+      facts.push(
+        ...field(
+          'dismissals',
+          dismissals.length === 0
+            ? '(none)'
+            : dismissals.flatMap((d) => [`  ${d.sourceId} — ${d.title || '(untitled)'}`, `    file: ${d.file}`, `    reason: ${d.reason}`]),
+        ),
+      )
+      facts.push(...field('withdrawn', withdrawn.length === 0 ? '(none)' : withdrawn.join(', ')))
+      facts.push(...field('memory', dismissedMemoryPath()))
+      facts.push(...field('modules', rel(MODULES_MD)))
+      close.push(
+        `write ${dismissedMemoryPath()} and nothing else — writing nothing is a complete result`,
+        'raise nothing for anyone: there is no card to question',
       )
       break
     }

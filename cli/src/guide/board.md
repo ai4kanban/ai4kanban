@@ -16,7 +16,7 @@ docs/kanban/
 │   ├── readme.md   what shipped — the board's own record
 │   ├── goal.md     the long-term goal, horizon, and roadmap
 │   └── agents/     one folder per agent that keeps memory, named after it —
-│                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`
+│                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`, `dismissed.md`
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
 │                   does; written from the board UI or `akb raw rule`
 ├── triage/         items waiting to be sorted, one file each — not cards. Only
@@ -120,8 +120,10 @@ move the files into the group's folder:
   without interrupting the user.
 - **`memory/agents/planner/`**: owned by the plan lead — `software-planner`, or the agent a
   workflow names in its place. `decisions.md` holds user-facing answers that guide future planning,
-  `redesign.md` design mistakes to avoid, `rejected.md` turned-down ideas and why. Flows that
-  only judge — the gate, the decider, the sweep, triage, a reflection — read them and write none.
+  `redesign.md` design mistakes to avoid, `rejected.md` turned-down ideas and why,
+  `dismissed.md` triage preferences learned from the user's dismissal reasons — written only by
+  the dismissal review (`akb guide review-dismissals`). Flows that only judge — the gate, the
+  decider, the sweep, triage, a reflection — read them and write none.
 - **`memory/agents/<agent>/`**: a spec agent keeps the files its own AGENT.md names, and only
   those (`akb guide update-questions`). An agent whose instructions name none keeps none.
 

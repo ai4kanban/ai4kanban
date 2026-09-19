@@ -42,7 +42,7 @@ export type RailCopy = {
     /** An agent that keeps memory and has written none yet. */
     empty: string;
     /** The memory files, keyed by the name the board's rules give each one. */
-    files: { readme: string; goal: string; decisions: string; redesign: string; rejected: string };
+    files: { readme: string; goal: string; decisions: string; redesign: string; rejected: string; dismissed: string };
     /** The button over them (#514): it opens the pruner's page in Configuration,
      *  which is where a pass is started and a cadence is set. */
     prune: string;
