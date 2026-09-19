@@ -47,10 +47,6 @@ There is no `akb` on PATH here — `.claude/skills/kanban` is a symlink to `skil
 skill note gives the general answer. In this checkout `akb` means `node cli/bin/ai4kanban.mjs`.
 Use that instead of `npx`, and never install the command globally.
 
-## Long conversation
-
-If the current session is long and all about a plan, when we finalize the plan, write a HANDOFF.md file so we can implement it in a fresh session.
-
 ## Code Style
 
 When you see a lengthy comment, trim it down aggressively to key notes for future writers, or just remove it. Code is enough to explain itself. Add comments only when necessary.
