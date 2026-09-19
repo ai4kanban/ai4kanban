@@ -35,3 +35,4 @@ video/
 !/assets/video/
 /assets/video/*
 !/assets/video/README.md
+.playwright-mcp
