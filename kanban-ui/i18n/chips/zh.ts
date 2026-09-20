@@ -12,6 +12,11 @@ const zh: ChipsCopy = {
     implementingLong: "正在开发",
   },
   pending: "排队中",
+  schedule: {
+    action: { implement: "开发", refine: "澄清" },
+    waiting: (action, ids) => `${action} · 等待 ${ids}`,
+    queued: (action) => `${action} · 排队中`,
+  },
   discussing: "讨论中",
   discussingHint: "聊天正在回话——这一轮回话结束前卡片冻结。",
   failed: "未完成",

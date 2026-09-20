@@ -7,7 +7,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
 import { openOf, parseQuestion } from "@/lib/questions";
-import { scheduleLabel } from "@/lib/schedule";
+import { scheduleMark } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { sessionsPanel } from "./sessions";
@@ -135,7 +135,7 @@ export function BoardCard({
             // Something is queued to run on this card the moment its blockers clear (#140).
             // It stands in for the status pill — one mark per card — and the card keeps its
             // place in the column: it is the same card, just not startable yet.
-            <PendingPill label={scheduleLabel(card)} />
+            <PendingPill label={scheduleMark(card, t.chips)} />
           ) : (
             <StatusPill status={card.status} />
           )}

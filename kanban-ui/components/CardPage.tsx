@@ -73,7 +73,7 @@ import type { BoardChange } from "@/lib/chat-rail";
 import { useOnHistoryRestore } from "@/lib/history-restore";
 import { cardChat } from "@/lib/chat-open";
 import { canImplement, canRefine } from "@/lib/refine";
-import { scheduleLabel } from "@/lib/schedule";
+import { scheduleMark } from "@/lib/schedule";
 import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
 import { ConfirmationPopover } from "./confirm-popover";
@@ -1787,7 +1787,7 @@ export function CardPage({
                 ) : card.schedule ? (
                   // Waiting on its blockers, with a run already queued (#140) — the mark
                   // stands in for the stage, and says what will run and what it waits for.
-                  <PendingPill label={scheduleLabel(card)} detailed />
+                  <PendingPill label={scheduleMark(card, t.chips)} detailed />
                 ) : cloudBand ? (
                   // The card's live Cloud event (#319), last in this band's order and only
                   // where no local mark already holds the slot: once a delivery is running
@@ -2185,7 +2185,7 @@ export function CardPage({
                       color: "var(--color-nb-peach-ink)",
                     }}
                   >
-                    {scheduleLabel(card)}
+                    {scheduleMark(card, t.chips)}
                   </span>
                   {fieldWrites && (
                     <button

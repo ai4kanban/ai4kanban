@@ -1,3 +1,5 @@
+import type { ScheduledAction } from "@/lib/schedule";
+
 /** The chips and small selects a card wears, on the board and on its own page. */
 export type ChipsCopy = {
   /** The high / med / low scale, shared by priority and ROI. */
@@ -14,6 +16,13 @@ export type ChipsCopy = {
   };
   /** The mark a card wears while something is queued to run on it. */
   pending: string;
+  /** What that mark spells out (#140): the action queued on the card, and whether it is
+   *  held by a blocker or simply waiting its turn. */
+  schedule: {
+    action: Record<ScheduledAction, string>;
+    waiting: (action: string, ids: string) => string;
+    queued: (action: string) => string;
+  };
   /** A card whose own chat is writing a reply (#633) — the chip, and what its hover says. */
   discussing: string;
   discussingHint: string;

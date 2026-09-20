@@ -7,5 +7,18 @@
 // and the dispatcher runs them in the CLI, and they are the same functions. Fix them in
 // cli/src/lib/view/.
 
+import type { ChipsCopy } from "@/i18n/chips/types";
+import type { Card } from "./format/view/types";
+
 export { scheduleLabel, scheduleRefusal } from "./format/view/rules";
 export type { CardSchedule, ScheduledAction } from "./format/view/types";
+
+/** The same line as `scheduleLabel`, in the interface language (#956). The CLI keeps the
+ *  English one; the screens draw this. Card numbers and the `·` separator read the same in
+ *  every language. */
+export function scheduleMark(card: Card, copy: ChipsCopy): string {
+  if (!card.schedule) return "";
+  const action = copy.schedule.action[card.schedule.action];
+  const waiting = card.openBlockers.map((b) => `#${b.id}`).join(", ");
+  return waiting ? copy.schedule.waiting(action, waiting) : copy.schedule.queued(action);
+}

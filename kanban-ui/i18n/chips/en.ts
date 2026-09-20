@@ -12,6 +12,11 @@ const en: ChipsCopy = {
     implementingLong: "Being implemented",
   },
   pending: "pending",
+  schedule: {
+    action: { implement: "implement", refine: "refine" },
+    waiting: (action, ids) => `${action} · waiting on ${ids}`,
+    queued: (action) => `${action} · queued`,
+  },
   discussing: "discussing",
   discussingHint: "Its chat is writing a reply — the card is held until that reply lands.",
   failed: "unfinished",
