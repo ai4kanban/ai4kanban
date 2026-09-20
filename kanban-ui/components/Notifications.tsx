@@ -59,6 +59,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { useBell } from "@/lib/card-event";
 import { LEAVES_SHEET } from "@/lib/create-open";
 import type { BellRail } from "@/lib/bell-rail";
+import { statusLabel } from "@/lib/notification-status";
 import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -406,7 +407,7 @@ function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; o
         <span
           className={`mt-[3px] flex items-center gap-1.5 text-[11.5px] font-[700] ${row.unread ? "text-nb-accent-deep" : "text-nb-ink-soft"}`}
         >
-          {row.label}
+          {statusLabel(row, c)}
           <span aria-hidden className="text-nb-ink-soft/50">
             ·
           </span>

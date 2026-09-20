@@ -21,6 +21,7 @@ import {
   runRowFlow,
   runRows,
 } from "./run-alerts";
+import { wordedAlerts } from "./notification-status";
 import { notificationGroup, type CloudEventState, type NotificationGroup, type SessionView } from "./types";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
@@ -158,6 +159,11 @@ export function useBellRail({
   // Held in a ref so the poll below never restarts when the app's handler changes identity.
   const alertsRef = useRef(onAlerts);
   alertsRef.current = onAlerts;
+  // The words an interruption is raised in, held the same way and for the same reason: the
+  // language can change under a running poll, and a restart there would drop a tick.
+  const words = useCopy().notifications;
+  const copyRef = useRef(words);
+  copyRef.current = words;
 
   useEffect(() => {
     let live = true;
@@ -200,7 +206,8 @@ export function useBellRail({
         setReady(true);
         // Handed out once. Nothing is raised later to make up for a window that was focused
         // when one arrived — that is the whole of the second interruption's rule.
-        if (next.alerts.length > 0) alertsRef.current?.(next.alerts);
+        if (next.alerts.length > 0)
+          alertsRef.current?.(wordedAlerts(next.alerts, next.rows, copyRef.current));
         // Handed out once too, and held until the rail is folded: the switch is made in
         // Configuration, so the bell is usually down when the line arrives.
         if (next.filled) setFilled(next.filled);

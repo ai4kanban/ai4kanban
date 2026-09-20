@@ -1,6 +1,7 @@
-/** The bell in the top row and the rail it opens (#319). A Cloud row's own words are the
- *  ones `akb` built and are never translated — this is the chrome around them, plus the two
- *  lines the app writes itself for a run of this board's that stopped short (#809). */
+/** The bell in the top row and the rail it opens (#319). A row's card number and title are
+ *  the board's own and stay as it wrote them; everything the app says around them is here —
+ *  the chrome, the state each row is in (#952), and the two lines written for a run of this
+ *  board's that stopped short (#809). */
 export type NotificationsCopy = {
   /** The bell, in its two states. Only read out loud. */
   bell: string;
@@ -18,6 +19,21 @@ export type NotificationsCopy = {
   tabs: { todo: string; landed: string };
   /** Read out loud on the landed tab while it holds something new — the dot alone. */
   tabNew: string;
+  /** The state a row is in — its second line, and what its system notification says (#952).
+   *  One per state a card's decision moves through, with the two an actionable card can be
+   *  in named apart: a question to answer, and a build to approve. */
+  status: {
+    question: string;
+    readyForReview: string;
+    accepted: string;
+    waitingForServer: string;
+    running: string;
+    completed: string;
+    failed: string;
+    cancelled: string;
+    interrupted: string;
+    stale: string;
+  };
   /** The unread count over the list, and the one click that empties it. */
   newCount: (unread: number) => string;
   markAllRead: string;

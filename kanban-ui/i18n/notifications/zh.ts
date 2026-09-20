@@ -13,6 +13,18 @@ const zh: NotificationsCopy = {
   everyRelease: "全部版本",
   tabs: { todo: "待处理", landed: "已落地" },
   tabNew: "有新记录",
+  status: {
+    question: "待回答",
+    readyForReview: "待审核",
+    accepted: "启动中",
+    waitingForServer: "等待机器",
+    running: "执行中",
+    completed: "已完成",
+    failed: "未能落地",
+    cancelled: "已停止",
+    interrupted: "已中断",
+    stale: "不再等待",
+  },
   newCount: (unread) => `${unread} 条新消息`,
   markAllRead: "全部标为已读",
   justNow: "刚刚",
@@ -34,7 +46,7 @@ const zh: NotificationsCopy = {
   },
   empty: {
     title: "没有待处理事项",
-    body: "需要你处理的卡片会出现在这里：待评审、待回答，或者没能落地的交付。",
+    body: "需要你处理的卡片会出现在这里：待审核、待回答，或者没能落地的交付。",
   },
   emptyLanded: {
     title: "还没有落地记录",

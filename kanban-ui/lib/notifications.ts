@@ -34,8 +34,13 @@ export interface NotificationRow {
   workspaceId?: string;
   taskId: number;
   taskTitle: string;
+  /** The state's name in English, as the rules wrote it. The rail words the state itself
+   *  (lib/notification-status.ts) and falls back to this. */
   label: string;
   state: string;
+  /** What the card is asking, which is what tells an actionable question from an actionable
+   *  review. Absent from rules that predate the app wording the states itself (#952). */
+  kind?: string;
   /** The rail draws this one. Absent from rules that predate the filter, where every row was
    *  drawn — the rail treats that as true rather than emptying itself. */
   onRail?: boolean;

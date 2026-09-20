@@ -44,6 +44,7 @@ import {
   onTheRail,
   takenOverEndings,
   type CloudEvent,
+  type CloudEventKind,
   type CloudEventState,
   type NotificationGroup,
 } from './events'
@@ -63,9 +64,13 @@ export interface NotificationRow {
   workspaceId: string
   taskId: number
   taskTitle: string
-  /** The event's name — what the row's second line and a notification both say. */
+  /** The event's name in English — what a surface too old to word the state itself draws.
+   *  The app words `state` and `kind` in its own language instead (#952). */
   label: string
   state: CloudEventState
+  /** What the card is asking, so a surface can tell an actionable question from an
+   *  actionable review without a second word for either. */
+  kind: CloudEventKind
   /** The rail draws this one. False on the states nobody has to act on — the card page still
    *  reads them here for its title band. */
   onRail: boolean
@@ -376,6 +381,7 @@ export function readCloudCenter(): NotificationCenter {
       taskTitle: event.taskTitle,
       label: eventLabel(event),
       state: event.state,
+      kind: event.kind,
       onRail: onTheRail(event) && !takenOver.has(event.id),
       // Only a state waiting for a person counts, so a delivery starting under a row the
       // user has already read leaves it read. A row a scope change brought in arrives read
