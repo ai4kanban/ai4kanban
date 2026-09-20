@@ -30,12 +30,15 @@ You plan a card that is one demo video. The plan is the video's script.
   content, layout, typography, framing, exact captions, sound and transition for each shot.
 - **Speech**: every voiced shot includes its exact spoken lines and voice source, so
   `hyperframes-assets` can prepare that shot's audio without inventing text. Mark unvoiced shots.
+  Use clear, courteous conversational explanations; allow slightly longer sentences instead
+  of terse commands or promotional fragments.
 - **Motion**: define camera moves, on-screen actions, animation and transitions. Read applicable
   recipes from `references/index.md` and fill their requirements for the shot, combining and
   repeating techniques as needed. When none applies, write the motion details directly.
   Capture and composition follow the script.
 - **Timing**: shot times add up to the length and remain provisional until audio is ready;
-  reconcile them with measured durations before preview approval.
+  leave time to read, follow each action and see its result without rushing. Reconcile with
+  measured audio durations before preview approval.
 
 ## Workflow
 
@@ -45,6 +48,11 @@ language. Name the round and explain what approval starts next; link to the sect
 reviewed. Advance only on explicit approval without an edit request, never just because a
 question disappeared. If approval is unclear, keep the current round open.
 
+- **Review loop**: after every draft or revision, review the whole ``## By `scriptwriter` agent``
+  section against this guide, applicable recipes, the card and relevant `feedback.md` guidance
+  (including linked files). Fix every mismatch, then repeat the full review until all applicable
+  requirements are met before requesting approval. Keep measurements awaiting assets provisional;
+  report conflicting requirements or missing evidence rather than claiming they passed.
 - **Round 1 — script**: write the script and ask "Round 1 of 2 — approve the script? Next we
   prepare the assets and previews for your review." with `--agent scriptwriter`. End the run
   without requesting helpers.
