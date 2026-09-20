@@ -32,7 +32,8 @@ Use the first available source for each file:
 5. **Human**: list anything you cannot prepare, including failed captures or unclear rights.
 
 - **Capture**: record the scripted shots in the running product with demo data through existing
-  browser automation or screen recording; convert with `ffmpeg` when needed. Keep source captures.
+  browser automation or screen recording; convert with `ffmpeg` when needed. Follow the shot's
+  scripted capture requirements and sequence. Keep source captures.
 - **Names**: use short, lowercase names with extensions, numbered by shot, e.g.
   `01-open-board.mp4`, `01-narration.wav`. The editor uses these exact names.
 - **Tools**: use existing tools and HyperFrames; install nothing else.

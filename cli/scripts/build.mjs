@@ -44,7 +44,7 @@ await esbuild.build({
   target: 'node18',
   // The board's flows are markdown under src/guide/, inlined as strings so the one built
   // file still carries everything an agent needs (see src/lib/guide.ts).
-  loader: { '.md': 'text' },
+  loader: { '.md': 'text', '.tsx': 'text' },
   banner: { js: BANNER },
   legalComments: 'none',
 })

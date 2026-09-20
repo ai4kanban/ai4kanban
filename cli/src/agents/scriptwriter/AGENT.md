@@ -30,9 +30,10 @@ You plan a card that is one demo video. The plan is the video's script.
   content, layout, typography, framing, exact captions, sound and transition for each shot.
 - **Speech**: every voiced shot includes its exact spoken lines and voice source, so
   `hyperframes-assets` can prepare that shot's audio without inventing text. Mark unvoiced shots.
-- **Motion**: define camera moves, on-screen actions, animation and transitions. Reuse an
-  applicable recipe and state the shot-specific choices; when none applies, write the full
-  motion details in the script. Capture and composition follow it.
+- **Motion**: define camera moves, on-screen actions, animation and transitions. Read applicable
+  recipes from `references/index.md` and fill their requirements for the shot, combining and
+  repeating techniques as needed. When none applies, write the motion details directly.
+  Capture and composition follow the script.
 - **Timing**: shot times add up to the length and remain provisional until audio is ready;
   reconcile them with measured durations before preview approval.
 

@@ -1,12 +1,13 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { basename, resolve } from 'node:path'
 
 // Generate the HyperFrames composition; media playback stays with HyperFrames.
 const [source, destination, config] = process.argv.slice(2)
 if (!source || !destination) throw new Error('Usage: demo.tsx <capture.mp4> <project-directory> [shot.json]')
 const project = resolve(destination)
 mkdirSync(project, { recursive: true })
-const media = resolve(project, '05-type-request.mp4')
+const clip = basename(source)
+const media = resolve(project, clip)
 if (resolve(source) !== media) copyFileSync(source, media)
 
 const shot = config ? JSON.parse(readFileSync(config, 'utf8')) : {
@@ -50,7 +51,7 @@ writeFileSync(resolve(project, 'index.html'), `<!DOCTYPE html>
 <body>
   <div id="root" data-composition-id="main" data-start="0" data-duration="${shot.duration}" data-width="${shot.width}" data-height="${shot.height}">
     <div id="camera">
-      <video id="a-roll" class="clip" src="05-type-request.mp4" muted playsinline data-start="0" data-duration="${shot.duration}" data-track-index="0"></video>
+      <video id="a-roll" class="clip" src="${clip}" muted playsinline data-start="0" data-duration="${shot.duration}" data-track-index="0"></video>
     </div>
   </div>
   <script>

@@ -17,5 +17,8 @@
     // builds them can resolve — see scripts/test.mjs.
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "scripts"]
+  "include": ["src", "test", "scripts"],
+  // A recipe's demo code is a text asset this package ships, not source it compiles — see
+  // src/agents/agents.d.ts.
+  "exclude": ["src/agents/*/recipes/**"]
 }

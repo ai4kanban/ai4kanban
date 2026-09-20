@@ -14,6 +14,9 @@ import copywriting from '../../agents/copywriting/AGENT.md'
 import hyperframesAssets from '../../agents/hyperframes-assets/AGENT.md'
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
+import scriptwriterRecipes from '../../agents/scriptwriter/references/index.md'
+import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md'
+import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
@@ -26,6 +29,9 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'hyperframes-assets/AGENT.md': hyperframesAssets,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'scriptwriter/AGENT.md': scriptwriter,
+  'scriptwriter/references/index.md': scriptwriterRecipes,
+  'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
+  'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/ascii-drawing.md': uiDesignerAscii,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
