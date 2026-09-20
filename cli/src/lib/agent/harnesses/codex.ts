@@ -293,10 +293,11 @@ export const CODEX: Harness = {
           label: 'OpenAI API',
           blurb: 'Pay per token, with an OpenAI API key.',
           needs: ['apiKey'],
-          // A board that pasted a key before this list existed pasted it to run on it. It
-          // reads as this provider until the user picks otherwise — and on a machine with
-          // no `codex login` it is the only pick whose runs start at all.
-          preferWhenSet: ['apiKey'],
+          // No `preferWhenSet`: a saved key is a filled box, not a pick. Reading it as one
+          // made the dialog open on the API for anyone who had ever pasted a key, and the
+          // ChatGPT subscription — the way most people reach Codex — had to be chosen by
+          // hand every time. A key that is meant to pay for the runs is one pick away and
+          // stays picked (#938).
           args: codexProvider('openai-api', 'OpenAI', 'https://api.openai.com/v1'),
         },
         {

@@ -79,11 +79,11 @@ export const CLAUDE_CODE: Harness = {
           label: 'Anthropic API',
           blurb: 'Pay per token, with an Anthropic API key.',
           needs: ['apiKey'],
-          // A board that saved a key before this list existed was running every run on
-          // that key. It reads as this provider until the user picks otherwise —
-          // defaulting it to the subscription would drop the key from every run, which is
-          // the opposite of "change nothing, see no change".
-          preferWhenSet: ['apiKey'],
+          // No `preferWhenSet`: a saved key is a filled box, not a pick. Reading it as one
+          // made the dialog open on the API for anyone who had ever pasted a key, and the
+          // subscription — the way most people reach Claude Code — had to be chosen by hand
+          // every time. A key that is meant to pay for the runs is one pick away and stays
+          // picked (#938).
         },
         {
           id: 'endpoint',

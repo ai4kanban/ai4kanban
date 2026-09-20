@@ -58,6 +58,14 @@ describe('the ChatGPT subscription', () => {
     assert.equal(agentInfo().values.provider, 'subscription')
   })
 
+  // A key in the box is not a pick (#938). It stays there for the moment its provider is
+  // chosen, and until then the run goes through the login the CLI already holds.
+  it('is still the default on a board that holds a key but picked nothing', () => {
+    board({}, 'OPENAI_API_KEY__GLOBAL=sk-board\n')
+    assert.equal(agentInfo().values.provider, 'subscription')
+    assert.equal(runEnv().OPENAI_API_KEY, undefined)
+  })
+
   it('declares no provider of its own — the CLI runs on its own login', () => {
     board({ provider: 'subscription' })
     assert.deepEqual(overrides(), [])
@@ -96,8 +104,8 @@ describe('the OpenAI API', () => {
     assert.equal(runEnv().OPENAI_API_KEY, 'sk-board')
   })
 
-  it('is what a board holding a key reads as, so a pasted key goes on being used', () => {
-    board({}, 'OPENAI_API_KEY__GLOBAL=sk-board\n')
+  it('is kept once picked, and goes on using the key the board holds', () => {
+    board({ provider: 'openai-api' }, 'OPENAI_API_KEY__GLOBAL=sk-board\n')
     assert.equal(agentInfo().values.provider, 'openai-api')
   })
 })

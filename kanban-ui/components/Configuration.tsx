@@ -1075,7 +1075,10 @@ export function HarnessPicker({
                   <ProviderField
                     key={setting.key}
                     setting={setting}
-                    value={values[setting.key] ?? ""}
+                    // The provider IN EFFECT, not the raw saved value: a setup that has
+                    // never picked one still runs on the default, so the box says which
+                    // rather than sitting empty and asking to be picked (#938).
+                    value={picked?.id ?? values[setting.key] ?? ""}
                     waitingFor={pending === (values[setting.key] ?? "") ? waitingFor : []}
                     disabled={saving}
                     onPick={pickProvider}
