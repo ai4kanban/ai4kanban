@@ -23,12 +23,13 @@ of them can be switched off:
 - **Builder** — builds cards and lands them: implement, conflict, run.
 - **Scriptwriter**, **HyperFrames editor** — lead the Demo video workflow. The scriptwriter plans
   the video in two rounds and waits for your approval after each: first the script — format,
-  visual direction, sound and shots — then the storyboard and assets. The whole script stays in one
-  place on the card: a short brief, then each shot in play order, labeled `S1`, `S2`… so you can
-  name one in chat, with its still, time, caption or narration, sound, transition and asset status.
-  Once you approve both, the editor adds the assets and sound to the storyboard, renders the MP4
-  into the board's asset folder for that card, shows the video on the card, and puts a preview
-  frame next to each shot's still.
+  visual direction, motion, sound and shots — then the assets and the playable previews built from
+  it. The script stays in one place on the card: a short brief, then each shot in play order,
+  labeled `S1`, `S2`… so you can name one in chat, with its time, caption or narration, sound and
+  transition. The files and previews sit in a section of their own, matched to the same shot
+  labels, so reading the script never means reading a file list. Once you approve both, the editor
+  finishes that same project, renders the MP4 into the board's asset folder for that card, and
+  shows the video on the card.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
   stands today, or discards it. `akb card unstick <id>` runs it on one card.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
@@ -53,7 +54,7 @@ rather than on.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
-card, and changes nothing else. The board ships five, and `akb spec` lists them:
+card, and changes nothing else. The board ships four, and `akb spec` lists them:
 
 - **`copywriting`** — writes the promotional copy a card changes: website pages, the README,
   release notes, and store or Product Hunt listings. User documentation, text inside the product
@@ -69,16 +70,14 @@ card, and changes nothing else. The board ships five, and `akb spec` lists them:
   one table — a row per candidate, with what it is, its pros and its cons — and one line naming
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
   doesn't come back with something new to install by default.
-- **`storyboard-designer`** — on a Demo video card only, after you approve the script: builds one
-  animated HyperFrames scene per shot, with placeholders for the assets, and makes a still per
-  shot for the script. The editor finishes the video from this storyboard.
-- **`video-assets`** — on a Demo video card only, after you approve the script: gathers the
-  images, recordings and sound the video is built from, and generates the narration. Each shot in
-  the script names its files and whether each is ready or needs you. Files reused from
-  your repository are trusted as they are; anything else is checked for quality and usage rights
-  first, and nothing private stays on screen. A shot that shows a click, typing, scrolling or
-  dragging gets a recording of the product doing it; if one can't be recorded, the shot tells you
-  exactly what to record. The video is built only once every file the shots name is ready.
+- **`hyperframes-assets`** — on a Demo video card only, after you approve the script: gathers the
+  images, recordings and sound the video is built from, generates the narration, and builds one
+  playable HyperFrames preview per shot so you can watch the video before it is rendered. It
+  follows the approved script rather than making creative calls of its own: a direction it can't
+  carry out goes back to the scriptwriter. Its answer is a section of its own, listing each shot's
+  files and preview and whether each is ready or needs you. Files reused from your repository are
+  trusted as they are; anything else is checked for quality and usage rights first, and nothing
+  private stays on screen. The video is built only once every file the shots need is ready.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
 clean, given the card and a short note but never the conversation that asked for it; it writes one

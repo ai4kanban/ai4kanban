@@ -33,6 +33,7 @@ import {
   cardsOnWorkflowAction,
   createWorkflowAction,
   deleteWorkflowAction,
+  dismissRetiredAssignmentAction,
   duplicateWorkflowAction,
   renameWorkflowAction,
   setWorkflowStageAction,
@@ -352,6 +353,19 @@ export function WorkflowsPanel({
                     }
                   />
                 </div>
+
+                {flow.retiredAssignment && (
+                  <Note>
+                    {c.retired}{" "}
+                    <button
+                      type="button"
+                      className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
+                      onClick={() => void write(dismissRetiredAssignmentAction(flow.id))}
+                    >
+                      {c.retiredSeen}
+                    </button>
+                  </Note>
+                )}
 
                 <div className="flex items-center gap-1.5">
                   {WORKFLOW_STAGES.map((name, i) => (

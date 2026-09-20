@@ -133,7 +133,14 @@ export interface AgentMemory {
   text: string
 }
 
-export const agentMemoryDir = (agent: string): string => path.join(AGENT_MEMORY, agent)
+// An agent renamed between releases takes its memory with it (`adoptRenamedMemory`), except
+// where the folder holds notes a board has been writing for releases and the name it was
+// written under is the one to keep: planning memory is the board's whoever leads it (#858),
+// and the video asset catalogue is a list of files on this machine (#945).
+const KEPT_MEMORY_FOLDERS: Record<string, string> = { 'hyperframes-assets': 'video-assets' }
+
+export const agentMemoryDir = (agent: string): string =>
+  path.join(AGENT_MEMORY, KEPT_MEMORY_FOLDERS[agent] ?? agent)
 
 export const agentMemoryFile = (agent: string, name: string): string => path.join(agentMemoryDir(agent), name)
 
@@ -201,7 +208,8 @@ function writeLegacyAgentMemory(agent: string, name: LegacyAgentMemoryName, text
 //
 // Never fatal: the read goes on with whatever is under the current name.
 function adoptRenamedMemory(agent: string): void {
-  // Planning memory is the board's, whoever leads planning (#858).
+  // Planning memory is the board's, whoever leads planning (#858). A folder in
+  // `KEPT_MEMORY_FOLDERS` needs no filter here: both names resolve to the same folder.
   for (const was of specAgentNames(agent).slice(1).filter((name) => name !== PLANNER)) {
     moveMemory(agentMemoryDir(was), agentMemoryDir(agent))
     moveMemory(legacyAgentMemoryFile(was), legacyAgentMemoryFile(agent))

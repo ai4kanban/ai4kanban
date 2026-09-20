@@ -110,6 +110,10 @@ export type ConfigurationCopy = {
     /** Confirming a delete, and what it says when open cards still run on it. */
     confirmDelete: (name: string) => string;
     inUse: (n: number) => string;
+    /** Under the name of a workflow an upgrade took an assignment off (#945): what took the
+     *  work over, and the word that clears the line for good. */
+    retired: string;
+    retiredSeen: string;
     loading: string;
     tooOld: string;
     /** A save the board refused. */

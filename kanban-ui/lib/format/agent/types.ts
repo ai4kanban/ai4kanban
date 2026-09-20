@@ -1718,6 +1718,9 @@ export interface WorkflowView {
   isDefault: boolean
   /** Whether its execute stage has to leave a file behind to count as finished. */
   needsArtifact: boolean
+  /** Whether an upgrade took a retired agent off this workflow and the user has not been
+   *  told yet (#945). The pane says what happened, and **Got it** clears it. */
+  retiredAssignment: boolean
   stages: WorkflowStageView[]
   /** Why it cannot start a card, one line each. Empty when all three stages have a lead. */
   problems: string[]

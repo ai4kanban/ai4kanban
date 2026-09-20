@@ -60,6 +60,8 @@ const zh: ConfigurationCopy = {
     namePlaceholder: "工作流名称",
     confirmDelete: (name) => `删除「${name}」？`,
     inUse: (n) => `还有 ${n} 张未归档卡片在用它，请先完成或删除这些卡片。`,
+    retired: "逐镜预览现在由「HyperFrames 素材」制作，原「分镜设计」指派已移除。",
+    retiredSeen: "知道了",
     loading: "正在加载工作流…",
     tooOld: "这个项目里的运行规则太旧，无法列出它的工作流。请升级命令后重新打开这个对话框。",
     saveFailed: "未能保存该修改",
@@ -525,7 +527,7 @@ const zh: ConfigurationCopy = {
       spec: (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「遵循 app/globals.css 里的设计变量」。`,
       byAgent: {
         scriptwriter: () => "会附加到演示视频卡片每一次新建、澄清和修订运行的末尾——例如「全片不超过 60 秒」。",
-        "video-assets": (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「录屏统一 1920×1080、30 帧」。`,
+        "hyperframes-assets": (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「录屏统一 1920×1080、30 帧」。`,
         "hyperframes-editor": () => "会附加到演示视频卡片每一次开发、解冲突和执行运行的末尾——例如「字幕统一用思源黑体」。",
         "video-reviewer": () => "会附加到演示视频每一次审片的末尾——例如「每句字幕至少停留 2 秒」。",
       },

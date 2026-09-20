@@ -220,6 +220,7 @@ import {
   setWorkflowHelperExtra,
   setWorkflowLead,
   setWorkflowWorktree,
+  dismissRetiredAssignment,
   workflows,
   workflowsOffered,
 } from "@/lib/workflows";
@@ -1824,6 +1825,16 @@ export async function setWorkflowWorktreeAction(id: string, on: boolean): Promis
   if (typeof id !== "string" || typeof on !== "boolean") return { ok: false, error: "a workflow is set by id" };
   try {
     return await setWorkflowWorktree(id, on);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Take the "an assignment was removed" mark off one workflow (#945). */
+export async function dismissRetiredAssignmentAction(id: string): Promise<WriteResult> {
+  if (typeof id !== "string") return { ok: false, error: "a workflow is dismissed by id" };
+  try {
+    return await dismissRetiredAssignment(id);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

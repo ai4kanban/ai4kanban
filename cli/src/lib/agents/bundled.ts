@@ -11,26 +11,24 @@
 
 import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
+import hyperframesAssets from '../../agents/hyperframes-assets/AGENT.md'
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
-import storyboardDesigner from '../../agents/storyboard-designer/AGENT.md'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
-import videoAssets from '../../agents/video-assets/AGENT.md'
 import videoReviewer from '../../agents/video-reviewer/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'code-reviewer/AGENT.md': codeReviewer,
   'copywriting/AGENT.md': copywriting,
+  'hyperframes-assets/AGENT.md': hyperframesAssets,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'scriptwriter/AGENT.md': scriptwriter,
-  'storyboard-designer/AGENT.md': storyboardDesigner,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/ascii-drawing.md': uiDesignerAscii,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,
-  'video-assets/AGENT.md': videoAssets,
   'video-reviewer/AGENT.md': videoReviewer,
 }

@@ -15,6 +15,7 @@ import {
   findSpecAgent,
   specAgentInstructions,
   specAgentOutput,
+  specAgentNames,
   specAgentSelector,
   type SpecAgent,
 } from '../agents'
@@ -591,6 +592,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       // What this agent remembers (#421, #833) — after its instructions, so the board's own
       // words end before the agent's do.
       const memory = agent ? agentMemoryBlock(agent) : ''
+      // A card written before this agent was renamed heads that section with the old name
+      // (#858, #945). Say so, or a rerun leaves a second section beside the first.
+      const wasCalled = agent ? specAgentNames(agent.name).slice(1) : []
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
@@ -598,6 +602,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           half === 'human'
             ? 'Your output is set to be reviewed by me: put your section above `<!-- agent -->`, and leave it there.'
             : 'Your output is set to be read by the agent that builds this: put your section below `<!-- agent -->`, before `## Decided by the agent`.',
+          wasCalled.length
+            ? `On a card written before this agent was renamed that section is headed ` +
+              `${wasCalled.map((was) => '``## By `' + was + '` agent``').join(' or ')} — rewrite that one ` +
+              `under the name above, in place, rather than adding a second.`
+            : '',
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
           `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
         ]

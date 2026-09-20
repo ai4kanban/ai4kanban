@@ -167,6 +167,20 @@ describe('memory, as a contract write (#805)', () => {
     assert.equal(other.ok, false)
     assert.equal(await board().readMemoryFile('../../readme', 'copywriting'), null)
   })
+
+  // `video-assets` became `hyperframes-assets` (#945) and kept its folder. The panel reads and
+  // writes the file the agent is actually handed, not one under the name it goes by now.
+  it('reads and writes a renamed agent’s memory where the agent keeps it', async () => {
+    write('memory/agents/video-assets/assets.md', '- board.mp4 — the board, 4s.\n')
+    const owner = (await board().readMemoryOwners()).find((o) => o.agent === 'hyperframes-assets')
+    assert.deepEqual(owner?.files, ['assets'])
+    const file = await board().readMemoryFile('assets', 'hyperframes-assets')
+    assert.equal(file?.text, '- board.mp4 — the board, 4s.\n')
+    const saved = await onBoard((env) => board().saveMemoryFile('assets', '- card.mp4 — one card, 3s.', 'hyperframes-assets', env))
+    assert.ok(saved.ok)
+    assert.equal(read('memory/agents/video-assets/assets.md'), '- card.mp4 — one card, 3s.\n')
+    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents', 'hyperframes-assets')), false)
+  })
 })
 
 describe('the team, as a contract read and write', () => {

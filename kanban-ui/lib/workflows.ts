@@ -61,6 +61,14 @@ export async function setWorkflowWorktree(id: string, on: boolean): Promise<Writ
   return rules.setWorkflowWorktree(id, on);
 }
 
+/** Take the "an assignment was removed" mark off one workflow (#945). The assignment is
+ *  already gone; this only stops the pane saying so. */
+export async function dismissRetiredAssignment(id: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.dismissRetiredAssignment) return { ok: false, error: await tooOld() };
+  return rules.dismissRetiredAssignment(id);
+}
+
 /** Drop one this board added, once no open card still runs on it. */
 export async function deleteWorkflow(id: string): Promise<WriteResult> {
   const rules = await boardRules();

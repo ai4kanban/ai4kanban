@@ -224,6 +224,7 @@ export {
   addWorkflowHelper,
   createWorkflow,
   DEFAULT_WORKFLOW,
+  dismissRetiredAssignment,
   duplicateWorkflow,
   removeWorkflowHelper,
   renameWorkflow,

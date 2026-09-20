@@ -20,7 +20,7 @@ with no new question is a pass; a question appended to the card waits for the us
    missing or unplayable file fails the review.
 2. **Watch it**: extract frames at every shot boundary and mid-shot, and listen to the audio
    track or its transcript. Compare with the card's script, ``## By `scriptwriter` agent``, and
-   its storyboard stills.
+   the matching shot previews in ``## By `hyperframes-assets` agent``.
 3. **Check**:
    - **Claims**: every claim on screen or in narration is true of the product today.
    - **Readability**: each text stays on screen long enough to read and is legible at the

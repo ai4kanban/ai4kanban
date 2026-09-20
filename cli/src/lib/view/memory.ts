@@ -16,13 +16,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { agentRoster } from '../agent/roles'
-import { BOARD_MEMORY_FILES, PLANNER, memoryNamesOf, migrateMemory } from '../memory'
-import { AGENT_MEMORY, MEMORY, rel } from '../paths'
+import { BOARD_MEMORY_FILES, PLANNER, agentMemoryDir, memoryNamesOf, migrateMemory } from '../memory'
+import { MEMORY, rel } from '../paths'
 import { readGoalBody } from './goal'
 import { MEMORY_FILES, type MemoryFile, type MemoryName, type MemoryOwner } from './types'
 
+// `agentMemoryDir`, never the name itself: an agent renamed between releases may keep its
+// folder under the name it wrote it under (#945), and this panel reads and writes the same
+// files its prompt is handed.
 const memoryPath = (name: string, agent: string): string =>
-  path.join(agent ? path.join(AGENT_MEMORY, agent) : MEMORY, `${name}.md`)
+  path.join(agent ? agentMemoryDir(agent) : MEMORY, `${name}.md`)
 
 const nameOf = (file: string): MemoryName => file.replace(/\.md$/, '') as MemoryName
 

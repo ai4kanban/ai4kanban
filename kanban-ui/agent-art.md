@@ -59,14 +59,12 @@ the whole difference, and it has to be readable at 48px.
 - **`scriptwriter.png`** — scripts a demo video. Holding a **storyboard sheet** across the
   chest: a cream page with an ember title bar and two rows, each a small sky or mint shot
   frame beside two black caption lines.
-- **`video-assets.png`** — prepares the recordings a video needs. Holding a **lilac camera**
-  across the chest, a cream-ringed sky lens in the middle, a sky viewfinder and an ember
-  record button on top.
+- **`hyperframes-assets.png`** — prepares the media and shot previews a video needs. Holding a
+  **lilac camera** across the chest, a cream-ringed sky lens in the middle, a sky viewfinder and
+  an ember record button on top.
 - **`hyperframes-editor.png`** — assembles and renders the video. Holding a **clapperboard**
   across the chest — a sky slate with cream lines under an ember-and-cream striped bar — with
   its clapstick swung open up past the left shoulder.
-- **`storyboard-designer.png`** — draws the video's shots. Holding a **tall, narrow storyboard
-  strip** up beside the body: a cream strip of three stacked frames, sky, mint and ember.
 - **`video-reviewer.png`** — checks the rendered video. Holding a **sky screen** across the
   chest with a cream play triangle, a big **mint tick** over its corner.
 - **`memory-pruner.png`** — squeezes memory back down to what helps planning. A **mint

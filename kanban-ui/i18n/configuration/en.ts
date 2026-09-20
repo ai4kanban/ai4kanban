@@ -64,6 +64,8 @@ const en: ConfigurationCopy = {
     confirmDelete: (name) => `Delete "${name}"?`,
     inUse: (n) =>
       `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Finish or drop ${n === 1 ? "it" : "them"} first.`,
+    retired: "HyperFrames assets now builds the shot previews, so the Storyboard designer assignment was removed.",
+    retiredSeen: "Got it",
     loading: "Loading workflows…",
     tooOld:
       "The board's rules in this project are too old to list its workflows. Update the command and reopen this dialog.",
@@ -430,7 +432,7 @@ const en: ConfigurationCopy = {
       byAgent: {
         scriptwriter: () =>
           'Added to the end of every Create, Refine and Revise run on a demo video card — "keep the whole video under 60 seconds".',
-        "video-assets": (agent) =>
+        "hyperframes-assets": (agent) =>
           `Added to the end of every run ${agent} does while a card is being refined — "record every clip at 1920×1080, 30 fps".`,
         "hyperframes-editor": () =>
           'Added to the end of every Implement, Conflict and Run on a demo video card — "set every caption in Inter".',

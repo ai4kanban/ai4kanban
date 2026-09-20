@@ -24,6 +24,7 @@ import {
   cardWorkflowId,
   DEFAULT_WORKFLOW,
   deleteWorkflow,
+  dismissRetiredAssignment,
   duplicateWorkflow,
   frozenWorkflow,
   liveStage,
@@ -142,7 +143,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'video-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'copywriting', 'scriptwriter', 'storyboard-designer', 'tech-stack-advisor', 'ui-designer', 'video-assets'])
+    assert.deepEqual(plan, ['software-planner', 'copywriting', 'hyperframes-assets', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -227,6 +228,67 @@ describe('the leads of a workflow the command ships', () => {
     assert.equal(setWorkflowLead(copy.id!, 'execute', 'test-writer').ok, true)
     assert.equal(workflowById(copy.id!)!.stages.execute.lead, 'test-writer')
     assert.equal(workflowById('coding')!.stages.execute.lead, 'builder')
+  })
+})
+
+// `storyboard-designer` is retired: `hyperframes-assets` builds the shot previews now (#945).
+// A board that had assigned it loses the assignment on the upgrade, and the workflows it came
+// off say so once.
+describe('an assignment an upgrade retired', () => {
+  const config = (): Record<string, any> =>
+    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+
+  const saveConfig = (cfg: Record<string, unknown>): void =>
+    fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
+
+  const marked = (): string[] => workflowViews().filter((w) => w.retiredAssignment).map((w) => w.id)
+
+  const assigned = (): Record<string, unknown> => ({
+    workflows: {
+      stages: {
+        'hyperframes-video': {
+          plan: { helpers: [{ agent: 'storyboard-designer', extra: 'x' }, { agent: 'video-assets', extra: 'y' }] },
+        },
+      },
+    },
+  })
+
+  it('comes off every saved stage, and marks only the workflows it came off', () => {
+    saveConfig(assigned())
+    const video = workflowViews().find((w) => w.id === 'hyperframes-video')!
+    // The old name of the agent that stays is rewritten, with its own requirement kept.
+    assert.deepEqual(video.stages[0]!.helpers, [{ agent: 'hyperframes-assets', extra: 'y' }])
+    assert.deepEqual(marked(), ['hyperframes-video'])
+    assert.deepEqual(config().workflows.retired, ['hyperframes-video'])
+  })
+
+  it('leaves a workflow that never assigned it alone', () => {
+    saveConfig({ workflows: { stages: { coding: { plan: { helpers: [{ agent: 'ui-designer', extra: '' }] } } } } })
+    assert.deepEqual(marked(), [])
+    assert.equal(config().workflows.retired, undefined)
+  })
+
+  it('runs once: a second read writes nothing and the mark does not come back', () => {
+    saveConfig(assigned())
+    assert.deepEqual(marked(), ['hyperframes-video'])
+    assert.equal(dismissRetiredAssignment('hyperframes-video').ok, true)
+    assert.deepEqual(marked(), [])
+    assert.equal(config().workflows.retired, undefined)
+    // The assignment is gone, so nothing re-marks it.
+    assert.deepEqual(marked(), [])
+    assert.deepEqual(
+      workflowViews().find((w) => w.id === 'hyperframes-video')!.stages[0]!.helpers.map((h) => h.agent),
+      ['hyperframes-assets'],
+    )
+  })
+
+  it('ships the video workflow with hyperframes-assets and nothing retired', () => {
+    assert.deepEqual(
+      liveStage(workflowById('hyperframes-video')!, 'plan').helpers.map((h) => h.agent),
+      ['hyperframes-assets'],
+    )
+    assert.deepEqual(marked(), [])
+    assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
   })
 })
 

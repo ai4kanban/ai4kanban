@@ -77,6 +77,9 @@ export interface Workflow {
    *  ends on the files its card records. A copy of a workflow carries it; a board's own
    *  written before #874 carries nothing and reads as code. */
   needsArtifact: boolean
+  /** Whether an upgrade took a retired agent off this workflow and the user has not been
+   *  told yet (#945). Cleared by `dismissRetiredAssignment`. */
+  retiredAssignment: boolean
   stages: Record<WorkflowStage, WorkflowStageSetup>
 }
 
@@ -129,7 +132,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     name: 'Demo video',
     needsArtifact: true,
     stages: {
-      plan: { lead: 'scriptwriter', helpers: ['storyboard-designer', 'video-assets'] },
+      plan: { lead: 'scriptwriter', helpers: ['hyperframes-assets'] },
       execute: { lead: 'hyperframes-editor', helpers: [] },
       review: { lead: '', helpers: ['video-reviewer'] },
     },
@@ -197,6 +200,12 @@ const addedRows = (cfg: Record<string, unknown>): { id: string; name: string; ne
 const storedStages = (cfg: Record<string, unknown>, id: string): Record<string, unknown> =>
   configBlock(configBlock(workflowsBlock(cfg).stages)[id])
 
+/** The workflows an upgrade took a retired agent off, still waiting to be told about (#945). */
+const retiredRows = (cfg: Record<string, unknown>): string[] => {
+  const raw = workflowsBlock(cfg).retired
+  return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string') : []
+}
+
 // One stage as the config holds it. `lead` present and empty is a stage somebody cleared on
 // purpose, so it is kept apart from a stage nobody has touched.
 function readStage(raw: unknown): { lead?: string; helpers?: WorkflowHelper[] } {
@@ -241,7 +250,14 @@ function resolveOne(
       helpersChosen: saved.helpers !== undefined,
     }
   }
-  return { id, name, builtIn, needsArtifact: base?.needsArtifact ?? needsArtifact, stages }
+  return {
+    id,
+    name,
+    builtIn,
+    needsArtifact: base?.needsArtifact ?? needsArtifact,
+    retiredAssignment: retiredRows(cfg).includes(id),
+    stages,
+  }
 }
 
 // ---- folding an older board's switches (#749) -------------------------------
@@ -437,9 +453,16 @@ function renameSavedAgents(cfg: Record<string, unknown>): boolean {
         const one = { ...configBlock(value) }
         if (typeof one.lead === 'string') one.lead = canonicalSpecAgent(one.lead)
         if (Array.isArray(one.helpers)) {
-          one.helpers = one.helpers.map((h) => {
+          // A stage that saved BOTH names keeps one assignment, the first written — the old
+          // name's own extra requirements are not dropped onto the new one.
+          const seen = new Set<string>()
+          one.helpers = one.helpers.flatMap((h) => {
             const row = configBlock(h)
-            return typeof row.agent === 'string' ? { ...row, agent: canonicalSpecAgent(row.agent) } : h
+            if (typeof row.agent !== 'string') return [h]
+            const agent = canonicalSpecAgent(row.agent)
+            if (seen.has(agent)) return []
+            seen.add(agent)
+            return [{ ...row, agent }]
           })
         }
         mine[stage] = one
@@ -452,11 +475,60 @@ function renameSavedAgents(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
+// ---- dropping a retired agent's assignments (#945) --------------------------
+//
+// `storyboard-designer` is gone: `hyperframes-assets` builds the shot previews now. A board
+// that had assigned it keeps an assignment nothing answers to, so the agent comes off every
+// saved stage, once, and each workflow it came off is marked — the Workflows pane says what
+// happened there, and **Got it** takes the mark away. One pass: what it removes is what
+// makes it run, so the line below is false from then on.
+
+const RETIRED_AGENTS = new Set(['storyboard-designer'])
+
+const retired = (agent: unknown): boolean => typeof agent === 'string' && RETIRED_AGENTS.has(canonicalSpecAgent(agent))
+
+const assignsRetired = (cfg: Record<string, unknown>): boolean =>
+  Object.values(configBlock(workflowsBlock(cfg).stages)).some((flow) =>
+    Object.values(configBlock(flow)).some((raw) => {
+      const helpers = configBlock(raw).helpers
+      return Array.isArray(helpers) && helpers.some((h) => retired(configBlock(h).agent))
+    }),
+  )
+
+/** Take every retired agent off the saved assignments, marking the workflows it came off.
+ *  True when it wrote, which is once per board. */
+function dropRetiredAgents(cfg: Record<string, unknown>): boolean {
+  if (!assignsRetired(cfg)) return false
+  const { ok } = writeConfig((raw) => {
+    const block = configBlock(raw.workflows)
+    const all = configBlock(block.stages)
+    const marked = new Set(retiredRows(raw))
+    for (const [id, flow] of Object.entries(all)) {
+      const mine = configBlock(flow)
+      for (const [stage, value] of Object.entries(mine)) {
+        const one = { ...configBlock(value) }
+        if (!Array.isArray(one.helpers)) continue
+        const kept = one.helpers.filter((h) => !retired(configBlock(h).agent))
+        if (kept.length === one.helpers.length) continue
+        one.helpers = kept
+        mine[stage] = one
+        marked.add(id)
+      }
+      all[id] = mine
+    }
+    block.stages = all
+    if (marked.size) block.retired = [...marked]
+    raw.workflows = block
+  })
+  return ok
+}
+
 /** Every workflow this board has, built-ins first and then its own in the order they were
  *  made. */
 export function workflows(): Workflow[] {
   let cfg = safeConfig()
   if (renameSavedAgents(cfg)) cfg = safeConfig()
+  if (dropRetiredAgents(cfg)) cfg = safeConfig()
   if (dropBuiltinLeads(cfg)) cfg = safeConfig()
   if (foldReviewLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
@@ -682,6 +754,17 @@ export function setWorkflowWorktree(id: string, on: boolean): Write {
   })
 }
 
+/** Take the "an assignment was removed" mark off one workflow (#945) — **Got it** in the
+ *  Workflows pane. The assignment itself is already gone; this is only the telling. */
+export function dismissRetiredAssignment(id: string): Write {
+  if (!workflowById(id)) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  return save((block) => {
+    const kept = retiredRows({ workflows: block }).filter((one) => one !== id)
+    if (kept.length) block.retired = kept
+    else delete block.retired
+  })
+}
+
 /** Drop one of the board's own, with the assignments it carried. Whoever calls this checks
  *  first that no open card still runs on it — the cards are the board's to walk, not this
  *  file's. */
@@ -698,6 +781,9 @@ export function deleteWorkflow(id: string): Write {
     delete stages[id]
     if (Object.keys(stages).length) block.stages = stages
     else delete block.stages
+    const marked = retiredRows({ workflows: block }).filter((one) => one !== id)
+    if (marked.length) block.retired = marked
+    else delete block.retired
   })
 }
 
@@ -909,6 +995,7 @@ export function workflowViews(): WorkflowView[] {
     builtIn: flow.builtIn,
     isDefault: flow.id === DEFAULT_WORKFLOW,
     needsArtifact: flow.needsArtifact,
+    retiredAssignment: flow.retiredAssignment,
     stages: WORKFLOW_STAGES.map((stage) => {
       const setup = liveStage(flow, stage)
       return { stage, lead: setup.lead, helpers: setup.helpers, candidates: byStage.get(stage) ?? [] }

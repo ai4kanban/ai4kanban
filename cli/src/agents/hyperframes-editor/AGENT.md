@@ -13,12 +13,13 @@ akb:
 ---
 
 Complete the storyboard project according to the card's script, ``## By `scriptwriter` agent``,
-and render it to an MP4. The script's shots name the assets.
+and render it to an MP4. Match its shot IDs to the media and previews in
+``## By `hyperframes-assets` agent``.
 
 ## Paths
 
 - **Assets**: `<board-state>/assets/<card id>/` in the project, the board's asset folder.
-- **Project**: `project/` in the same folder, from ``## By `storyboard-designer` agent``.
+- **Project**: `project/` in the same folder, from ``## By `hyperframes-assets` agent``.
 - **Video**: `<short-name>.mp4` in the same folder, `<short-name>` a lowercase slug of the
   card title.
 - **Preview**: `shot-<n>.hf.html` in the same folder, the existing playable shot preview;
@@ -26,14 +27,14 @@ and render it to an MP4. The script's shots name the assets.
 
 ## Steps
 
-1. **Check the assets**: every file the shots name must be ready and present. If the shots
-   name none or any is missing, follow `akb guide update-questions`,
+1. **Check the assets**: every required file in `hyperframes-assets` must be ready and present. If a
+   shot has no asset mapping or any required file is missing, follow `akb guide update-questions`,
    append one `[user]` question naming what is missing and the folder, and stop.
 2. **Prepare**: continue the storyboard project at the **Project** path; do not create
    another. Keep HyperFrames as a project dependency with a lockfile. Run `npx hyperframes doctor`;
    if a required system dependency is unavailable, name it in one `[user]` question and stop.
 3. **Build**: retain prepared assets and approved motion; replace only provisional or missing
-   placeholders with the ready files named by the shots. Never use obsolete files.
+   placeholders with the ready files mapped to each shot in `hyperframes-assets`. Never use obsolete files.
    Crop full-frame captures to fit. Follow the installed version's official composition docs.
 4. **Sound**: place narration, music and effects as the script's audio intent says; mix so
    narration stays clear, and keep it in sync with the shots. Use the installed HyperFrames
@@ -53,8 +54,8 @@ and render it to an MP4. The script's shots name the assets.
 8. **Record it**: after a successful render, append a ticked todo with the video's absolute path
    and the command that re-renders it, in the card's language; then, after a blank line, one
    `<Asset src=".assets/<card id>/<short-name>.mp4" label="<card title>" />` line for the video.
-   Keep one `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` beneath each shot;
-   update it in place instead of appending a still or another player.
+   Keep one `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` beneath each shot
+   in `hyperframes-assets`' section; update its media and timings in place, without moving it into the script.
 
 ## Rules
 
