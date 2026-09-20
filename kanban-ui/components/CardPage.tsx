@@ -1317,6 +1317,26 @@ export type CardStrips = ComponentType<CardChrome & { at: StripPlace }>;
 /** No frame at all: the page draws itself and nothing around it. */
 const Bare: CardShell = ({ children }) => <>{children}</>;
 
+/** The title band's word for a live Cloud decision, in the interface language. `bandLabel`
+ *  is the shared English fallback, so a state added to `CARD_BAND_STATES` still shows
+ *  something before its copy exists. */
+function bandWord(c: CardCopy, state: CloudEventState): string {
+  switch (state) {
+    case "actionable":
+      return c.cloudBand.actionable;
+    case "accepted":
+      return c.cloudBand.accepted;
+    case "waiting_for_server":
+      return c.cloudBand.waitingForServer;
+    case "running":
+      return c.cloudBand.running;
+    case "stale":
+      return c.cloudBand.stale;
+    default:
+      return bandLabel(state);
+  }
+}
+
 // The card page: one card, everything it says, and every control that acts on it.
 //
 // Like the board screen (components/Board.tsx) it draws from one read and acts through one
@@ -1525,7 +1545,7 @@ export function CardPage({
   const cloudEvent = useCardEvent(card.id);
   const cloudBand =
     cloudEvent && (CARD_BAND_STATES as string[]).includes(cloudEvent.state)
-      ? bandLabel(cloudEvent.state as CloudEventState)
+      ? bandWord(c, cloudEvent.state as CloudEventState)
       : "";
 
   // Tail the newest session on this card: live while it runs, and re-openable once

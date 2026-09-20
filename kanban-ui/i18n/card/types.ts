@@ -19,6 +19,15 @@ export type CardCopy = {
    *  hold is live. A hint, not a gate: what protects the card is the refusal a save meets,
    *  so this says who to wait for and until when, and nothing about asking them. */
   hold: (handle: string, until: string) => string;
+  /** The mark beside the title for this card's live Cloud decision — the states no local
+   *  mark has words for. Same terms the bell uses, one short word each. */
+  cloudBand: {
+    actionable: string;
+    accepted: string;
+    waitingForServer: string;
+    running: string;
+    stale: string;
+  };
   /** The delivery started again from the current card rather than the approved copy. */
   supersedes: string;
   /** A delivery that makes files stopped on what it made (#874). */

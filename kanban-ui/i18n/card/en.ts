@@ -11,6 +11,13 @@ const en: CardCopy = {
   ended: "Ended",
   offBoard: { line: "This card left the board.", open: "Open in archive" },
   hold: (handle, until) => `@${handle} is holding this card until ${until}. A save now is refused.`,
+  cloudBand: {
+    actionable: "Actionable",
+    accepted: "Starting",
+    waitingForServer: "Waiting for a machine",
+    running: "Running",
+    stale: "No longer waiting",
+  },
   supersedes:
     "Earlier approved work no longer matched this card, so this run started fresh from the current version.",
   waitingOnYou: "waiting on you",

@@ -11,6 +11,13 @@ const zh: CardCopy = {
   ended: "已结束",
   offBoard: { line: "这张卡片已离开看板。", open: "在归档中打开" },
   hold: (handle, until) => `@${handle} 正在占用这张卡片，到 ${until} 为止。现在保存会被拒绝。`,
+  cloudBand: {
+    actionable: "待处理",
+    accepted: "启动中",
+    waitingForServer: "等待机器",
+    running: "执行中",
+    stale: "不再等待",
+  },
   supersedes: "此前批准的成果已经与这张卡片不符，因此本次运行从当前版本重新开始。",
   waitingOnYou: "等你决定",
   filesOutside: (paths) => `运行期间看板以外的文件被改动：${paths}。未自动还原，处理后请重新评审。`,
