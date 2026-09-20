@@ -6,7 +6,7 @@
 // machine, so a team shares one answer.
 //
 // Whether a delivery starts by itself is NOT here: that is the Gater (#493), a board agent
-// with its own switch, rule and connector on Configuration → Agents.
+// with its own switch, rule and connector on Configuration → Board.
 //
 // **Automatic Git commits** (#303) is the side each Implement opens on. On — the default —
 // a build gets a branch and a worktree of its own, so several run at once without touching

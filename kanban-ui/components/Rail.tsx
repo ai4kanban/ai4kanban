@@ -403,7 +403,7 @@ function PruneButton() {
         variant="ghost"
         size="xs"
         title={c.pruneTitle}
-        onClick={() => configDialog.open("agents", PRUNER)}
+        onClick={() => configDialog.open("upkeep", PRUNER)}
         className="mx-2.5 mb-1 h-[32px] w-[calc(100%-1.25rem)] font-[700] text-nb-accent-deep"
       >
         <FiScissors size={13} aria-hidden />

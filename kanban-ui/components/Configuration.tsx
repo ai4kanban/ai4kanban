@@ -27,7 +27,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiX, FiZap } from "react-icons/fi";
 import {
   hasWorkspaceAction,
   workflowsOfferedAction,
@@ -62,7 +62,7 @@ import type {
 } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
 import { AgentsPanel } from "./Agents";
-import { WorkflowsPanel, type WorkflowSpot } from "./Workflows";
+import { WorkflowsPanel } from "./Workflows";
 import { CloudPanel } from "./Cloud";
 import { CloudMigration, useMigrating } from "./CloudMigration";
 import { Dialog } from "./Dialog";
@@ -125,8 +125,7 @@ export const SWEEPER = "sweeper";
 type Section =
   | "general"
   | "runtimes"
-  | "agents"
-  | "catalog"
+  | "workflows"
   | "upkeep"
   | "workspace"
   | "cloud"
@@ -144,11 +143,10 @@ const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
   // The machine's sign-in and this board's storage, then how work reaches you (#326, #886).
   { id: "cloud", group: "settings", icon: FiCloud },
   { id: "notifications", group: "settings", icon: FiBell },
-  // What the user shapes (#715): the workflows a card runs through, and the agents those
-  // workflows assign. Only on a board that picks workflows at all — where it doesn't, the
-  // whole group goes with them.
-  { id: "agents", group: "customize", icon: FiGitCommit },
-  { id: "catalog", group: "customize", icon: FiUsers },
+  // What the user shapes (#715, #944): the workflows a card runs through AND the agents each
+  // stage assigns, in the one entry. Only on a board that picks workflows at all — where it
+  // doesn't, the group goes with it.
+  { id: "workflows", group: "customize", icon: FiGitCommit },
 ];
 const NAV_GROUPS: NavGroup[] = ["settings", "customize"];
 
@@ -288,14 +286,8 @@ export function Configuration({
     void workflowsOfferedAction().then(setFlows);
   }, [open]);
   const sections = SECTIONS.filter(
-    (entry) =>
-      (entry.id !== "workspace" || cloudBoard) && (!["agents", "catalog"].includes(entry.id) || flows),
+    (entry) => (entry.id !== "workspace" || cloudBoard) && (entry.id !== "workflows" || flows),
   );
-
-  // Where the Workflows pane was when it sent the user to Workflow agents, so **Back to
-  // workflow** lands on the same workflow, the same stage and the same picker (#715).
-  const [spot, setSpot] = useState<WorkflowSpot | undefined>(undefined);
-  const [cameFromWorkflow, setCameFromWorkflow] = useState(false);
 
   return (
     <>
@@ -393,41 +385,14 @@ export function Configuration({
                 added, its own AGENT.md. Mounted only while it is the section on screen: it
                 asks the board for its roster when it draws, and that roster carries the
                 switches and the rules as they read right now. */}
-            {/* The workflows a card runs through (#715) — the list, the three stages of the
-                selected one, and who runs each. Mounted only while it is the section on
-                screen: it asks the board for its workflows and their candidates when it
-                draws, and both move as agents are added. */}
-            {section === "agents" && (
+            {/* The workflows a card runs through and the agents they assign, in one pane
+                (#715, #944) — the workflow, its three stages, who runs each, and the selected
+                agent's whole page beside the list. Mounted only while it is the section on
+                screen: it asks the board for its workflows, their candidates and the roster
+                when it draws, and all three move as agents are added. */}
+            {section === "workflows" && (
               <WorkflowsPanel
-                spot={spot}
-                onSpot={setSpot}
-                onManage={(stage) => {
-                  setSpot((was) => (was ? { ...was, stage } : was));
-                  setCameFromWorkflow(true);
-                  setSection("catalog");
-                }}
-                onError={onError}
-              />
-            )}
-            {/* Where those agents are DEFINED, as opposed to assigned: a name, the stage it
-                belongs to, its instructions and what it runs on. Creating one here changes
-                no workflow — it only becomes something a stage can be given. */}
-            {section === "catalog" && (
-              <AgentsPanel
                 info={agent}
-                scope="workflow"
-                stage={spot?.stage}
-                onStage={(stage) => setSpot((was) => (was ? { ...was, stage } : was))}
-                {...(cameFromWorkflow
-                  ? {
-                      onBack: () => {
-                        setCameFromWorkflow(false);
-                        setSection("agents");
-                      },
-                    }
-                  : {})}
-                openOn={pickAgent}
-                onPicked={() => setPickAgent("")}
                 onRuntimes={() => setSection("runtimes")}
                 onError={onError}
               />
@@ -439,7 +404,6 @@ export function Configuration({
             {section === "upkeep" && (
               <AgentsPanel
                 info={agent}
-                scope="board"
                 openOn={pickAgent}
                 onPicked={() => setPickAgent("")}
                 onRuntimes={() => setSection("runtimes")}

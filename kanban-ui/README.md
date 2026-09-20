@@ -234,9 +234,10 @@ Older cards use `<Mockup src=".mockups/…">`, which still works.
   helpers.
 - **Mockups are sandboxed**: nothing runs, loads from the network or answers a click. A missing or
   unsupported file reads as a plain note.
-- **Mockup style** (Configuration → Agents, `mockupStyle` in `ui.config.json`) is board-wide:
-  a rendered screen (default), or a **plain-text drawing** — a much cheaper run, written into the
-  card body itself as one block per screen, so it travels with the card in git.
+- **Mockup style** (the `ui-designer`'s page under Configuration → Workflows, `mockupStyle` in
+  `ui.config.json`) is board-wide: a rendered screen (default), or a **plain-text drawing** — a
+  much cheaper run, written into the card body itself as one block per screen, so it travels with
+  the card in git.
 
 A card pulled from another board shows its asset tags as notes until `ui-designer` draws them
 again.
@@ -772,7 +773,7 @@ ANTHROPIC_API_KEY=sk-ant-…
 
 | Key | Meaning | Missing means |
 | --- | --- | --- |
-| `readyGate` | **Auto-approve builds** (Configuration → Agents) | off (also if the file won't parse) |
+| `readyGate` | **Auto-approve builds** (Configuration → Board) | off (also if the file won't parse) |
 | `autoCommit` | **Automatic Git commits** | on |
 | `requireDiffApproval` | **Approve diffs before landing** | off |
 | `aiReview` | **Review every build** | on (also if the file won't parse) |

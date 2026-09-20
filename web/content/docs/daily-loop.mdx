@@ -160,7 +160,7 @@ question the same way it warns about a blocker.
 
 ## Let clear cards build themselves
 
-**Gater** in Configuration → Agents replaces that press. It is off by default. With it on,
+**Gater** in Configuration → Board replaces that press. It is off by default. With it on,
 every card that reaches ready is judged first by that agent: it reads the card against the same
 standard the board writes cards to — an observable outcome, scope that says what to build, a
 `## Todo` a builder can follow, nothing left open — and either passes it straight into a
@@ -170,8 +170,8 @@ stopped it. Answer that question and the card refines, reaches ready again, and 
 The Gater runs one card at a time, in the order **"what's next?"** would name them, and it
 never takes a card that is blocked, recurring, a group's main card, or already in flight. It
 judges as you would, so it is given the project's goal and the planner's `decisions.md` and
-`rejected.md` on top of the card, and it runs on its own tool and model, set on its row in
-Configuration → Agents — so the judgment can run on a stronger model than the builds it lets
+`rejected.md` on top of the card, and it runs on its own tool and model, set on its page in
+Configuration → Board — so the judgment can run on a stronger model than the builds it lets
 through. A run that fails or is stopped changes nothing: the card stays where it is. Turning the
 switch on does not go back over the cards already sitting at ready — those are still yours to
 press.

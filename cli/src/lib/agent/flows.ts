@@ -64,7 +64,7 @@ export interface Flow {
 const NOTE = 'anything the run should know, in your own words'
 
 // The runtime one run spawns on (#518) — the same pick the create sheet makes, for the two
-// flows it starts. It is this run's alone: nothing in Configuration → Agents moves, and the
+// flows it starts. It is this run's alone: nothing in Configuration → Board moves, and the
 // next run of the same flow is back on its agent's own runtime.
 const RUNTIME_OPTION: FlowOption = {
   flags: '--runtime <id>',
@@ -127,7 +127,7 @@ export const FLOWS: Flow[] = [
     gloss: 'judge whether a ready card is clear enough to build unattended',
     more: [
       'The board runs this itself on each card that reaches `ready`, when the gater is switched on ' +
-        '(Configuration → Agents). It passes the card straight into a delivery, or appends ' +
+        '(Configuration → Board). It passes the card straight into a delivery, or appends ' +
         'the one question that stops it.',
     ],
   },
@@ -150,7 +150,7 @@ export const FLOWS: Flow[] = [
     argument: '<id>',
     gloss: "answer the card's open questions for the user",
     more: [
-      'The board runs this itself when the decider is switched on (Configuration → Agents); type it to ' +
+      'The board runs this itself when the decider is switched on (Configuration → Board); type it to ' +
         'have it answer one card whether or not the switch is on.',
     ],
   },
@@ -209,7 +209,7 @@ export const FLOWS: Flow[] = [
     argument: '',
     gloss: 'squeeze the memory back down to what helps planning',
     more: [
-      'The project, the modules and the agents, in one run. Configuration → Agents → Memory pruner is ' +
+      'The project, the modules and the agents, in one run. Configuration → Board → Memory pruner is ' +
         'where it is started and where a recurring pass is switched on.',
     ],
   },
@@ -222,7 +222,7 @@ export const FLOWS: Flow[] = [
     gloss: 'read the conversations that said something new, and write down what they settled',
     more: [
       'Chats write no memory themselves — this is what does. Daily, over every conversation with ' +
-        'new messages since the last review that passed; Configuration → Agents → Review chat memory ' +
+        'new messages since the last review that passed; Configuration → Board → Review chat memory ' +
         'is where it is switched off and where Review now is.',
     ],
   },

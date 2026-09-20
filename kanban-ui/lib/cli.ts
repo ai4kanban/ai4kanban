@@ -524,7 +524,7 @@ export interface BoardRules {
   // which runtime each agent runs (#467). The pick is the board's, in
   // docs/kanban/ui.config.json, so every checkout runs each agent as the same thing.
   // Optional: a project can be running rules older than the release that added them, and
-  // Configuration → Agents then draws no runtime row.
+  // an agent's page then draws no runtime row.
   /** Point one agent at a runtime, or back at Global default with "". */
   setAgentRuntime?(agent: string, runtime: string, legacyNames?: string[]): WriteResult;
   /** What one agent runs here — its runtime's id, its harness's name and label, and the

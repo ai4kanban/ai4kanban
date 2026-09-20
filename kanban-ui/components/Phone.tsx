@@ -244,7 +244,7 @@ export function MemoryScreen({
         variant="ghost"
         size="sm"
         title={c.pruneTitle}
-        onClick={() => configDialog.open("agents", PRUNER)}
+        onClick={() => configDialog.open("upkeep", PRUNER)}
         className="mb-3 mt-1 h-11 w-full font-[700] text-nb-accent-deep"
       >
         <FiScissors size={15} aria-hidden />

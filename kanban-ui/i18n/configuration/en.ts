@@ -9,6 +9,10 @@ import type { ConfigurationCopy } from "./types";
 const PRUNE_UNITS: Record<CadenceUnit, string> = { m: "Minutes", h: "Hours", d: "Days" };
 const PRUNE_UNIT_ONE: Record<CadenceUnit, string> = { m: "minute", h: "hour", d: "day" };
 
+// Workflow names in a sentence: "Coding", "Coding and Demo video", "A, B and C".
+const list = (names: string[]): string =>
+  names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+
 const en: ConfigurationCopy = {
   open: "Configuration",
   title: "Configuration",
@@ -17,8 +21,7 @@ const en: ConfigurationCopy = {
   section: {
     general: "General",
     runtimes: "Runtimes",
-    agents: "Workflows",
-    catalog: "Agents",
+    workflows: "Workflows",
     upkeep: "Board",
     workspace: "Workspace",
     cloud: "Cloud",
@@ -27,35 +30,45 @@ const en: ConfigurationCopy = {
   workflows: {
     title: "Workflows",
     add: "New workflow",
+    findWorkflow: "Find a workflow…",
     builtIn: "Built-in",
     isDefault: "Default",
     builtInNames: { coding: "Coding", "hyperframes-video": "Demo video" },
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
     lead: "Lead agent",
     pickLead: "Select agent",
-    leadFixed: "Built-in leads are fixed. Duplicate this workflow to choose your own.",
     leadUndeclared: "This agent isn't declared as a lead.",
     notReady: "Not ready",
     notReadyHint: "This stage cannot start yet",
     stageProblem: "This stage has no agent that can lead it. Assign one before it can start.",
     helpers: "Helpers",
     addHelper: "Add helper",
+    noneInStage: "No helpers in this stage yet.",
+    emptyPage: "Add one and its brief and settings open here.",
     reviewers: "Reviewers",
     addReviewer: "Add reviewer",
     noReviewers: "With no reviewers, a finished build is delivered as is.",
-    advanced: "Advanced",
     worktree: "Use a Git worktree",
     worktreeHint: "For coding workflows: make changes on a separate branch, then merge into the project.",
     worktreeOn: "Enabled",
     worktreeOff: "Disabled",
     worktreeSaveFailed: "Could not save. Try again.",
-    dropHelper: "Remove helper",
+    dropHelper: "Remove from stage",
     extra: "Extra requirements",
     extraPlaceholder: "For example: use the product's existing terminology.",
+    extraScope: (flow, stage) => `${flow} · ${stage} only`,
     find: "Find an agent…",
     noCandidates: "No available agents",
-    manage: "Manage agents",
-    more: "More",
+    newAgent: "Create one",
+    newAgentHint: "A new agent can be a helper or a reviewer",
+    alsoUsedBy: (flows) =>
+      `Also used by ${list(flows)} — a change here reaches ${flows.length === 1 ? "it" : "them"} too.`,
+    usedOnlyHere: "Only this workflow uses it.",
+    unused: "No workflow uses it yet.",
+    extraPointer: "To change only what this workflow asks of it, use Extra requirements below.",
+    roleNote: "A built-in role. Its brief ships with the command and cannot be edited.",
+    deleteUsedBy: (flows) => `${list(flows)} still ${flows.length === 1 ? "uses" : "use"} it.`,
+    more: (flow) => `More for ${flow}`,
     duplicate: "Duplicate",
     rename: "Rename",
     remove: "Delete",
@@ -163,11 +176,7 @@ const en: ConfigurationCopy = {
   agents: {
     manual: "Manual",
     automatic: "Automatic",
-    stageTabs: { plan: "Plan", execute: "Execute", review: "Review" },
-    noneInStage: "No agents in this stage",
-    back: "Back to workflow",
-    stage: "Stage",
-    builtIn: "Built-in",
+    back: "Back",
     copyPath: "Copy path",
     rowOn: "On",
     rowOff: "Off",
@@ -217,7 +226,7 @@ const en: ConfigurationCopy = {
         name: "Code reviewer",
         gloss: "Reviews the code a build delivered and fixes what it finds.",
         rule: 'Added to the end of every Review — "reject any dependency the card did not name".',
-        note: "Whether every build is reviewed is a delivery setting, under General → Delivery. Which workflows call this agent in is set under Workflows.",
+        note: "Whether every build is reviewed is a delivery setting, under General → Delivery.",
       },
       gater: {
         name: "Auto-approve builds",
@@ -450,7 +459,6 @@ const en: ConfigurationCopy = {
 
     saveFailed: (agent) => `couldn't save ${agent}'s setting`,
 
-    add: "New agent",
     newAgent: "New agent",
     namePlaceholder: "release-notes",
     nameHint: "lowercase, dashes",

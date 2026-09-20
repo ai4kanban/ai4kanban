@@ -170,7 +170,7 @@ export function setAiReview(on: boolean): { ok: boolean; error?: string } {
 // passes goes straight into a delivery, on this board's saved delivery settings; a card it
 // fails gets one `[user]` question, which takes it back to `todo` for the user to answer.
 //
-// It is the gater's switch (#493), turned on in Configuration → Agents. The key is the one
+// It is the gater's switch (#493), turned on in Configuration → Board. The key is the one
 // it was written under, so a board that turned the gate on before the split keeps it.
 
 /** True only when somebody switched the ready gate on. A file that won't parse reads as

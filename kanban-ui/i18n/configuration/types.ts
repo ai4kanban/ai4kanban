@@ -31,10 +31,8 @@ export type ConfigurationCopy = {
   section: {
     general: string;
     runtimes: string;
-    /** The workflows a card runs through (#715). */
-    agents: string;
-    /** Where a workflow's agents are defined, as opposed to assigned. */
-    catalog: string;
+    /** The workflows a card runs through, and the agents each stage assigns (#715, #944). */
+    workflows: string;
     /** The agents that belong to the board rather than to any workflow. */
     upkeep: string;
     cloud: string;
@@ -46,9 +44,11 @@ export type ConfigurationCopy = {
    *  the selected one's three stages beside it. A workflow says WHO runs each stage; the
    *  agents themselves are defined one section down. */
   workflows: {
-    /** The column's caption, and the button under it. */
+    /** What the section is called, and the button that makes one. */
     title: string;
     add: string;
+    /** The search box in the workflow selector. */
+    findWorkflow: string;
     /** Beside a workflow the command ships, and beside the one a new card starts on. */
     builtIn: string;
     isDefault: string;
@@ -61,9 +61,6 @@ export type ConfigurationCopy = {
     /** The one agent that runs the selected stage, and the picker when nobody does. */
     lead: string;
     pickLead: string;
-    /** Under a built-in's lead, which the command fixes: the way to a workflow with leads
-     *  of your own (#774). */
-    leadFixed: string;
     /** Under a lead picked before agents declared whether they may lead (#846). */
     leadUndeclared: string;
     /** Beside a workflow that cannot start a card, and the one line that says what it
@@ -73,33 +70,53 @@ export type ConfigurationCopy = {
     /** In place of the lead, on a stage that cannot start: no lead, a lead this board no
      *  longer has, or a lead that belongs to another stage all read the same. */
     stageProblem: string;
-    /** The agents that stage's lead may call in, and the button that adds one. */
+    /** The agents that stage's lead may call in, the button that adds one, and the line
+     *  drawn when the stage has none. */
     helpers: string;
     addHelper: string;
+    noneInStage: string;
+    /** Beside the empty column: what the space to its right is for. */
+    emptyPage: string;
     /** The review stage's list, which has no lead (#820): its caption, its add button, and
      *  the line drawn when it is empty. */
     reviewers: string;
     addReviewer: string;
     noReviewers: string;
-    /** The collapsed section under the stages, and its one switch (#874): **Use a Git
-     *  worktree**, what it is for, a built-in's fixed value, and a failed save. */
-    advanced: string;
+    /** The one switch in the more menu (#874, #944): **Use a Git worktree**, what it is
+     *  for, a built-in's fixed value, and a failed save. */
     worktree: string;
     worktreeHint: string;
     worktreeOn: string;
     worktreeOff: string;
     worktreeSaveFailed: string;
+    /** Taking the selected agent out of this stage. It stays on the board. */
     dropHelper: string;
-    /** What THIS assignment asks of the selected helper, on top of its own instructions. */
+    /** What THIS assignment asks of the selected helper, on top of its own instructions,
+     *  and the one line saying how far it reaches. */
     extra: string;
     extraPlaceholder: string;
-    /** Inside a picker: the search box, what a list with nothing in it says, and the way
-     *  across to where agents are defined. */
+    extraScope: (flow: string, stage: string) => string;
+    /** Inside the agent picker: the search box, what a list with nothing in it says, and
+     *  the way to an agent this stage does not have yet (#944). */
     find: string;
     noCandidates: string;
-    manage: string;
-    /** The more menu, and what is in it. */
-    more: string;
+    newAgent: string;
+    newAgentHint: string;
+    /** Where else the selected agent is used, on its page. Shared instructions are shared,
+     *  so a change to them lands everywhere — which is why the pointer to this workflow's
+     *  own extra requirements sits right under it. */
+    alsoUsedBy: (flows: string[]) => string;
+    usedOnlyHere: string;
+    unused: string;
+    extraPointer: string;
+    /** Under a built-in role's line: its brief ships with the command. */
+    roleNote: string;
+    /** One more line in the delete confirmation, when workflows still assign it. */
+    deleteUsedBy: (flows: string[]) => string;
+    /** The more menu — named after the workflow it acts on (#944), because it sits beside
+     *  the selected AGENT and everything in it is the workflow's. Its first row repeats
+     *  that name, so nothing in it reads as the agent's. */
+    more: (flow: string) => string;
     duplicate: string;
     rename: string;
     remove: string;
@@ -233,26 +250,16 @@ export type ConfigurationCopy = {
       ran: (harness: string) => string;
     };
   };
-  /** Configuration → Agents (#422): everyone working on the board as a grid of characters,
-   *  and the page one opens — its rule, what it remembers, its settings, and a project
+  /** An agent's own page (#422, #944) — the same page under Configuration → Workflows and
+   *  under Configuration → Board: its rule, what it remembers, its settings, and a project
    *  agent's own `AGENT.md`. */
   agents: {
-    /** The two groups the picker column is split into (#742), named for what starts an
-     *  agent: the ones you call yourself, and the ones the board may start on its own. */
+    /** The two groups Configuration → Board's column is split into (#742), named for what
+     *  starts an agent: the ones you call yourself, and the ones the board may start. */
     manual: string;
     automatic: string;
-    /** Configuration → Workflow agents (#715): the same pane, filtered to the agents a
-     *  workflow can assign and grouped by the stage each declares. */
-    stageTabs: { plan: string; execute: string; review: string };
-    /** The whole column when this stage has no agent yet. */
-    noneInStage: string;
-    /** Back to where the pane was opened from, and the line beside it naming the place. */
+    /** The way back out of the sweep report (#119). */
     back: string;
-    /** Which stage a new agent is being added to. */
-    stage: string;
-    /** The two groups the Workflow agents column is split into: where each agent came
-     *  from — the command ships it, or this project added it. `yours` below is the other. */
-    builtIn: string;
     /** The one press beside a project agent's file path. */
     copyPath: string;
     /** A column row's own state, read there and flipped on the page beside it. Only a
@@ -381,8 +388,7 @@ export type ConfigurationCopy = {
 
     saveFailed: (agent: string) => string;
 
-    /** Add a specialist. */
-    add: string;
+    /** Naming a new agent (#944) — the row the workflow pane opens under its stage. */
     newAgent: string;
     namePlaceholder: string;
     nameHint: string;

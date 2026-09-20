@@ -888,7 +888,7 @@ function SortAll({
               className={LINK}
               onClick={() => {
                 onDismissNote();
-                configDialog.open("agents");
+                configDialog.open("workflows");
               }}
             >
               {c.openConfig}

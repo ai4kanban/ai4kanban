@@ -173,7 +173,7 @@ export function cmdInit(): MoveResult {
       say(`  a module's entries are a \`## <module>\` topic in the file they moved into`)
     }
     if (goalRepaired) say(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
-    if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Agents); its cadence is kept there, switched off`)
+    if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Board); its cadence is kept there, switched off`)
     if (added.includes(rel(MODULES_MD))) {
       say(`  next: fill in ${rel(MODULES_MD)} (see "The module map")`)
     }

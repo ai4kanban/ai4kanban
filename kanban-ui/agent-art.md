@@ -1,6 +1,6 @@
 # The agent characters
 
-Configuration → Agents draws one character per agent. This is the recipe for the next one:
+An agent's page draws one character per agent. This is the recipe for the next one:
 generate the image, name it after the agent, and commit it.
 
 - **Where a file goes**: `kanban-ui/public/agent-art/<agent name>.png` — `builder.png`,

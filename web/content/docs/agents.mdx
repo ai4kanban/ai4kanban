@@ -8,9 +8,11 @@ nav_label: "Agents"
 icon: "layers"
 ---
 
-Every flow the board starts is run by a named **agent**. **Configuration → Agents** draws all of
-them as a grid of characters, and selecting one opens its page: its rule, what it remembers, its
-settings, and — for one you added — its own instructions.
+Every flow the board starts is run by a named **agent**, and each one has a page: its rule, what
+it remembers, its settings, and — for one you added — its own instructions. Where you reach that
+page says who assigns the agent. **Configuration → Workflows** picks a workflow, steps through its
+plan, execute and review stages, and lists the agents each stage assigns. **Configuration → Board**
+lists the agents the board runs itself, which no workflow assigns and every workflow gets.
 
 There are two kinds.
 
@@ -63,7 +65,7 @@ card, and changes nothing else. The board ships four, and `akb spec` lists them:
 - **`ui-designer`** — draws the screen a card needs as one design, one drawing per page or state
   it changes and each named for what it shows, with nothing written under the drawings. Its
   **mockup** is either a rendered screen or a plain-text drawing depending on the board's
-  **Mockup style** setting (Configuration → Agents). See "Assets on a card" in
+  **Mockup style** setting, on its page under Configuration → Workflows. See "Assets on a card" in
   `kanban-ui/README.md`. On a card that has copy, it waits until you have confirmed the copy and
   then uses it word for word.
 - **`tech-stack-advisor`** — picks the library, tool, or service a card leans on. Its answer is
@@ -100,10 +102,10 @@ and is the Demo video workflow's reviewer. Add your own under **Configuration �
 review stage. A workflow with no reviewers delivers a finished build as is, and
 **Review every build** under **General → Delivery** turns review off for every workflow.
 
-When you do want one: **"put the ui-designer agent on #4"**, or `akb spec ui-designer 4`. Setting
-what it produces is on its page in **Configuration → Agents**. Whether it joins a card's planning at
-all is its workflow's plan stage, under **Configuration → Workflows**: add it there and it is offered,
-remove it and nothing asks for it. A role is always on except the ones above, because a board without
+When you do want one: **"put the ui-designer agent on #4"**, or `akb spec ui-designer 4`. Whether
+it joins a card's planning at all is its workflow's plan stage, under **Configuration → Workflows**:
+add it there and it is offered, remove it and nothing asks for it. Setting what it produces is on
+its page, beside that same list. A role is always on except the ones above, because a board without
 nobody plans anything.
 
 ## Let the Decider answer for you
@@ -112,7 +114,7 @@ A card that reaches the end of its planning with nothing but `[user]` questions 
 waits for you. So does a delivery a review sends back with a question. **Decider** is the switch
 that removes both waits: it answers those questions in your place and the card carries on.
 
-Switch it on in **Configuration → Agents**, in the **Optional** group. It asks once before it goes
+Switch it on in **Configuration → Board**, in the **Automatic** group. It asks once before it goes
 on, because it is the most expensive switch on the board:
 
 > **While this is on, nothing stops for you.** An idea runs all the way to landed without asking
@@ -140,8 +142,8 @@ that is already stopped — those cards move on their next refine, or when you t
 Nothing on the board looks at finished work. A follow-up surfaces only when a build or a plan
 notices one mid-task, and **Triage** reads outside sources — never your own history.
 
-**Proposer** is the switch that closes that gap. Switch it on in **Configuration → Agents**, in the
-**Optional** group. From then on, every card that reaches the archive starts one reflection over
+**Proposer** is the switch that closes that gap. Switch it on in **Configuration → Board**, in the
+**Automatic** group. From then on, every card that reaches the archive starts one reflection over
 that card alone: it reads what shipped, judges what work follows from it against your goal and the
 planning memory, and puts each survivor in **Triage**.
 
@@ -257,10 +259,11 @@ That guide is the one place the file is written from — its name, its descripti
 files beside it and the translations it carries — so what comes back is an agent this board accepts.
 `akb spec` lists the agents this board can use and, under them, anything wrong with one it found.
 
-**Add a specialist** in Configuration → Agents starts one from the board instead: it asks for a
-name, writes the folder under `docs/kanban/agents/`, and opens the new agent's page with its
-instructions box focused. A name a role or a bundled agent already answers to is refused in place.
-The whole file is the box on that page, frontmatter included, and a save the board would refuse
+**Add helper → Create one** in Configuration → Workflows starts one from the board instead: it
+asks for a name, writes the folder under `docs/kanban/agents/`, assigns it to the stage you were
+looking at, and opens the new agent's page with its instructions box focused. A name a role or a
+bundled agent already answers to is refused in place. The whole file is the box on that page,
+frontmatter included, and a save the board would refuse
 keeps your text and says what is wrong rather than leaving an agent it cannot read — the pane and
 the file are one thing.
 

@@ -877,7 +877,7 @@ function WorkflowPick({
                 role="menuitem"
                 onClick={() => {
                   close(false);
-                  configDialog.open("agents");
+                  configDialog.open("workflows");
                 }}
                 className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600] outline-none focus-visible:bg-nb-ink/[0.07]"
               >

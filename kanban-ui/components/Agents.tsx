@@ -68,7 +68,7 @@ import {
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
 import { type Cadence, type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
-import { LANGUAGE_TAGS, WORKFLOW_STAGES } from "@/lib/types";
+import { LANGUAGE_TAGS } from "@/lib/types";
 import type {
   AgentAction,
   AgentInfo,
@@ -97,7 +97,6 @@ import {
   FLAT_CONTROL,
   Loading,
   Note,
-  QUIET_BTN,
   Switch,
 } from "./settings";
 import {
@@ -123,43 +122,12 @@ const REVIEWER_OF_MEMORY = "memory-reviewer";
 // The dismissal reviewer (#929): the pruner's controls, on by default.
 const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
 
-export function AgentsPanel({
-  info,
-  scope = "board",
-  stage: openStage,
-  onStage,
-  onBack,
-  backLabel = "",
-  openOn = "",
-  onPicked,
-  onRuntimes,
-  onError,
-}: {
-  /** The connectors this board can run, and which one is its default (#443) — what the
-   *  runtime row on an agent's page offers. */
-  info: AgentInfo;
-  /** Which half of the roster this is (#715). `workflow` draws the agents a workflow can
-   *  assign, grouped by the stage each declares, and is where one is created; `board` draws
-   *  the agents that belong to the board itself — the discussion, the gate, the decider, the
-   *  pruner — which no workflow assigns and every workflow gets. */
-  scope?: "workflow" | "board";
-  /** Which stage the `workflow` scope opens on. */
-  stage?: WorkflowStage;
-  /** Taken whenever the stage tab moves, so the dialog remembers where the pane was. */
-  onStage?: (stage: WorkflowStage) => void;
-  /** Back to the workflow this pane was opened from, when it was opened from one. */
-  onBack?: () => void;
-  /** What that trip came from, in the user's own words — `<workflow> · <stage>`. */
-  backLabel?: string;
-  /** The agent to open the page on, when the pane was opened by a deep link (#514). Empty
-   *  the rest of the time, and then the column's first **Always on** row is selected. */
-  openOn?: string;
-  /** Taken, so selecting another row afterwards is never undone. */
-  onPicked?: () => void;
-  /** Cross to Configuration → Runtimes — where a runtime is actually set up. */
-  onRuntimes?: () => void;
-  onError?: (msg: string) => void;
-}) {
+/** The roster, and every write that touches it — read once and shared by the two panes that
+ *  draw an agent (#944). Configuration → Board lists the agents the board runs itself;
+ *  Configuration → Workflows lists the ones a workflow assigns, stage by stage. Both open
+ *  the SAME page beside their column, so a rule, a runtime and an `AGENT.md` are written in
+ *  one place wherever the agent was reached from. */
+export function useAgentRoster(onError?: (msg: string) => void) {
   const c = useCopy().configuration.agents;
   const titleOf = useAgentTitle();
   const [agents, setAgents] = useState<AgentView[] | null>(null);
@@ -178,27 +146,18 @@ export function AgentsPanel({
   // Why the board refused an `AGENT.md`, and whose. It holds the page open on that agent:
   // an agent left with a file the catalog cannot read drops out of the roster into the
   // problems list, with no way back into it from here.
-  const [refusal, setRefusal] = useState<{ agent: string; why: string } | null>(
-    null,
-  );
+  const [refusal, setRefusal] = useState<{ agent: string; why: string } | null>(null);
   // What is being saved right now, by the thing being saved: an agent's name for its
   // switch, `name/key` for one of its settings.
   const [saving, setSaving] = useState<string[]>([]);
-  const [adding, setAdding] = useState(false);
-  // Which stage the workflow pane is showing. The board scope has no tabs — a board agent
-  // belongs to no stage — so it is read there only to keep one `useState` per render.
-  const [stage, setStage] = useState<WorkflowStage>(openStage ?? "plan");
-  useEffect(() => {
-    if (openStage) setStage(openStage);
-  }, [openStage]);
-  // Focus the new agent's `AGENT.md` box once, when Add a specialist lands on it — the
-  // whole point of the button is to carry straight on into writing the prompt.
+  // Focus the new agent's `AGENT.md` box once, when New agent lands on it — the whole point
+  // of the button is to carry straight on into writing the prompt.
   const [focusFile, setFocusFile] = useState(false);
 
-  // The roster, and the boxes seeded from it. Read when the pane opens, and again after a
-  // specialist is added — the board decides what the new agent's file says, so the pane
-  // takes its answer rather than assembling one.
-  const load = async (): Promise<void> => {
+  // The roster, and the boxes seeded from it. Read when the pane opens, and again after an
+  // agent is added — the board decides what the new agent's file says, so the pane takes its
+  // answer rather than assembling one.
+  const load = useCallback(async (): Promise<void> => {
     const res = await agentsAction();
     setAgents(res.agents);
     setProblems(res.problems);
@@ -207,36 +166,13 @@ export function AgentsPanel({
     if (!res.agents) return;
     setRules(Object.fromEntries(res.agents.map((a) => [a.name, a.rule])));
     setFiles(
-      Object.fromEntries(
-        res.agents.filter((a) => a.file).map((a) => [a.name, a.file!.text]),
-      ),
+      Object.fromEntries(res.agents.filter((a) => a.file).map((a) => [a.name, a.file!.text])),
     );
-  };
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
-
-  // The agent a deep link named (#514) — Prune memory in the rail opens this pane on the
-  // pruner's page. It selects the row rather than scrolling to it: the page sits beside the
-  // column, so there is nothing off screen to reveal. It waits for the roster, because
-  // selecting a name the column does not hold yet would draw no page at all.
-  useEffect(() => {
-    if (!openOn || !agents?.some((a) => a.name === openOn)) return;
-    setPicked(openOn);
-    onPicked?.();
-  }, [openOn, agents, onPicked]);
-
-  // The pane opens on the first **Always on** agent — entering Agents lands you on a page
-  // you did not ask for, which is the price of never drawing the column beside an empty
-  // half. Runs again when a delete leaves nothing selected.
-  useEffect(() => {
-    if (!agents?.length) return;
-    const here = agents.filter((a) => (scope === "workflow" ? a.stage === stage : !a.stage));
-    if (picked && here.some((a) => a.name === picked)) return;
-    if (openOn && here.some((a) => a.name === openOn)) return;
-    setPicked(here.length ? (here.find((a) => !a.switchable) ?? here[0]!).name : "");
-  }, [agents, picked, openOn, scope, stage]);
+  }, [load]);
 
   // Saving what a page holds when it is left. Read off a ref rather than off the render the
   // callback was made in, because one of the callers below fires as the pane is coming
@@ -256,10 +192,7 @@ export function AgentsPanel({
     if (rule !== agent.rule) {
       const res = await setAgentRuleAction(name, rule);
       if (res.ok) {
-        setAgents(
-          (all) =>
-            all?.map((a) => (a.name === name ? { ...a, rule } : a)) ?? all,
-        );
+        setAgents((all) => all?.map((a) => (a.name === name ? { ...a, rule } : a)) ?? all);
         setSavedRule(name);
       } else {
         box.onError?.(res.error || box.c.ruleFailed(name));
@@ -274,10 +207,7 @@ export function AgentsPanel({
         return false;
       }
       setAgents(
-        (all) =>
-          all?.map((a) =>
-            a.name === name ? { ...a, file: { ...a.file!, text } } : a,
-          ) ?? all,
+        (all) => all?.map((a) => (a.name === name ? { ...a, file: { ...a.file!, text } } : a)) ?? all,
       );
     }
     // Past the save, the box and the file say the same thing — written just now, or put back
@@ -301,34 +231,27 @@ export function AgentsPanel({
 
   // One page at a time, and always one: pressing the selected row does nothing. A refused
   // `AGENT.md` holds the selection where it is, with the reason showing.
-  const select = async (name: string) => {
-    if (name === picked) return;
-    if (picked && !(await leave.current(picked))) return;
+  const pickedRef = useRef(picked);
+  pickedRef.current = picked;
+  const select = useCallback(async (name: string) => {
+    const was = pickedRef.current;
+    if (name === was) return;
+    if (was && !(await leave.current(was))) return;
     setPicked(name);
-  };
+  }, []);
 
   // Flip one switch: on screen at once, saved behind it, and put back if the save fails. A
   // switch that silently didn't land is a setting the user can't trust.
   const flip = async (agent: AgentView, on: boolean) => {
-    setAgents(
-      (all) =>
-        all?.map((a) => (a.name === agent.name ? { ...a, enabled: on } : a)) ??
-        all,
-    );
+    setAgents((all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: on } : a)) ?? all);
     setSaving((names) => [...names, agent.name]);
     try {
       const res = await setSpecAgentAction(agent.name, on);
       if (!res.ok) {
         setAgents(
-          (all) =>
-            all?.map((a) =>
-              a.name === agent.name ? { ...a, enabled: !on } : a,
-            ) ?? all,
+          (all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: !on } : a)) ?? all,
         );
-        onError?.(
-          res.error ||
-            (on ? c.flipFailedOn : c.flipFailedOff)(titleOf(agent)),
-        );
+        onError?.(res.error || (on ? c.flipFailedOn : c.flipFailedOff)(titleOf(agent)));
       }
     } finally {
       setSaving((names) => names.filter((n) => n !== agent.name));
@@ -342,11 +265,8 @@ export function AgentsPanel({
     const put = (v: string) =>
       setAgents(
         (all) =>
-          all?.map((a) =>
-            a.name === agent.name
-              ? { ...a, values: { ...a.values, [key]: v } }
-              : a,
-          ) ?? all,
+          all?.map((a) => (a.name === agent.name ? { ...a, values: { ...a.values, [key]: v } } : a)) ??
+          all,
       );
     const token = `${agent.name}/${key}`;
     put(value);
@@ -380,42 +300,30 @@ export function AgentsPanel({
     }
   };
 
-  // Naming the new agent leaves the page that is open, so a refused `AGENT.md` holds the
-  // selection here the way selecting another row does.
-  const openAdd = async () => {
-    if (picked && !(await leave.current(picked))) return;
-    setAdding(true);
-  };
-
-  // Add a specialist finishes on the new agent's own page, with its `AGENT.md` box focused:
-  // an agent whose file is still the template is an agent that does nothing.
-  //
-  // The row stays up, and stays busy, until that page is actually on screen — writing the
-  // agent and reading the roster back take a moment, and taking the row away first leaves
-  // the column looking like nothing happened.
-  const create = async (name: string): Promise<string> => {
-    const res = await createAgentAction(name, scope === "workflow" ? stage : undefined);
-    if (!res.ok) return res.error || c.saveFailed(name);
+  // Write one agent and read the roster back. It returns the name the board actually wrote,
+  // so the caller can assign it where it was created and open its page — which is where a
+  // new agent has to end up, because one whose file is still the template does nothing.
+  const create = async (
+    name: string,
+    stage?: WorkflowStage,
+  ): Promise<{ agent?: string; error?: string }> => {
+    const res = await createAgentAction(name, stage);
+    if (!res.ok) return { error: res.error || c.saveFailed(name) };
     await load();
-    setPicked(res.agent ?? name);
-    setFocusFile(true);
-    setAdding(false);
-    return "";
+    return { agent: res.agent ?? name };
   };
 
   // Delete the agent whose page is open. The roster is read again BEFORE the selection is
   // cleared, so the save-on-leave under it finds no such agent and writes nothing back into
-  // the folder that has just gone. Clearing it hands the page back to the first Always on
-  // row, which is where the pane started.
+  // the folder that has just gone. Clearing it hands the page back to the column's first row,
+  // which is where the pane started.
   const remove = async (name: string) => {
     const gone = agents?.find((a) => a.name === name);
     setSaving((names) => [...names, name]);
     try {
       const res = await deleteAgentAction(name);
       if (!res.ok)
-        return onError?.(
-          res.error || c.deleteFailed(gone ? titleOf(gone) : spellAgent(name)),
-        );
+        return onError?.(res.error || c.deleteFailed(gone ? titleOf(gone) : spellAgent(name)));
       setRefusal((was) => (was?.agent === name ? null : was));
       // Reseeds both boxes off the new roster, so the deleted agent's unsaved text goes
       // with it rather than sitting in a map nothing draws from.
@@ -426,20 +334,160 @@ export function AgentsPanel({
     }
   };
 
-  // Which agents this pane is answerable for. A workflow agent declares a stage; a board
-  // agent declares none. The two panes are the same page beside two halves of one roster —
-  // a rule, a runtime and an `AGENT.md` read the same way wherever the agent is assigned.
-  const mine = agents?.filter((a) => (scope === "workflow" ? !!a.stage : !a.stage)) ?? null;
-  const inStage = mine?.filter((a) => a.stage === stage) ?? [];
+  return {
+    agents,
+    problems,
+    loadError,
+    loaded,
+    load,
+    picked,
+    setPicked,
+    select,
+    rules,
+    setRules,
+    files,
+    setFiles,
+    savedRule,
+    setSavedRule,
+    refusal,
+    saving,
+    focusFile,
+    setFocusFile,
+    leave,
+    flip,
+    pick,
+    bind,
+    create,
+    remove,
+  };
+}
+
+export type AgentRoster = ReturnType<typeof useAgentRoster>;
+
+/** The selected agent's whole page, wired to the roster above. Both panes draw this one:
+ *  what is different between them goes in through the slots (#944). */
+export function AgentDetail({
+  roster,
+  agent,
+  info,
+  corner,
+  usage,
+  actions,
+  extra,
+  deleteNote,
+  onDeleted,
+  onRuntimes,
+  onError,
+}: {
+  roster: AgentRoster;
+  agent: AgentView;
+  info: AgentInfo;
+  /** Beside the agent's name, right-aligned — the workflow's own menu. */
+  corner?: React.ReactNode;
+  /** Under the agent's line: where else it is used, and what a role cannot be told. */
+  usage?: React.ReactNode;
+  /** Actions of this pane's own, in a row under the header beside Delete. */
+  actions?: React.ReactNode;
+  /** A section between the settings and the instruction box. */
+  extra?: React.ReactNode;
+  /** One more line in the delete confirmation — which workflows lose it. */
+  deleteNote?: string;
+  /** Run after the agent is gone, for a pane holding something else that named it. */
+  onDeleted?: () => void | Promise<void>;
+  onRuntimes?: () => void;
+  onError?: (msg: string) => void;
+}) {
+  return (
+    <Page
+      agent={agent}
+      rule={roster.rules[agent.name] ?? ""}
+      file={roster.files[agent.name]}
+      saved={roster.savedRule === agent.name}
+      refusal={roster.refusal && roster.refusal.agent === agent.name ? roster.refusal.why : ""}
+      focusFile={roster.focusFile}
+      onFocused={() => roster.setFocusFile(false)}
+      onRule={(text) => {
+        roster.setRules((all) => ({ ...all, [agent.name]: text }));
+        roster.setSavedRule("");
+      }}
+      onFile={(text) => roster.setFiles((all) => ({ ...all, [agent.name]: text }))}
+      onLeave={() => void roster.leave.current(agent.name)}
+      onPick={(key, value) => void roster.pick(agent, key, value)}
+      info={info}
+      onRuntime={(runtime) => void roster.bind(agent, runtime)}
+      onRuntimes={onRuntimes}
+      onError={onError}
+      onDelete={async () => {
+        await roster.remove(agent.name);
+        await onDeleted?.();
+      }}
+      busySwitch={roster.saving.includes(agent.name)}
+      busy={(key) => roster.saving.includes(`${agent.name}/${key}`)}
+      corner={corner}
+      usage={usage}
+      actions={actions}
+      extra={extra}
+      deleteNote={deleteNote}
+    />
+  );
+}
+
+/** Configuration → Board: the agents the board runs itself (#742) — the discussion, the gate,
+ *  the decider, the pruner. No workflow assigns them and every workflow gets them, so they
+ *  are read by what STARTS each one: the ones you call, then the ones the board starts. */
+export function AgentsPanel({
+  info,
+  openOn = "",
+  onPicked,
+  onRuntimes,
+  onError,
+}: {
+  /** The connectors this board can run, and which one is its default (#443) — what the
+   *  runtime row on an agent's page offers. */
+  info: AgentInfo;
+  /** The agent to open the page on, when the pane was opened by a deep link (#514). Empty
+   *  the rest of the time, and then the column's first **Always on** row is selected. */
+  openOn?: string;
+  /** Taken, so selecting another row afterwards is never undone. */
+  onPicked?: () => void;
+  /** Cross to Configuration → Runtimes — where a runtime is actually set up. */
+  onRuntimes?: () => void;
+  onError?: (msg: string) => void;
+}) {
+  const c = useCopy().configuration.agents;
+  const roster = useAgentRoster(onError);
+  const { agents, picked, setPicked, select, saving } = roster;
+
+  // The agent a deep link named (#514) — Prune memory in the rail opens this pane on the
+  // pruner's page. It selects the row rather than scrolling to it: the page sits beside the
+  // column, so there is nothing off screen to reveal. It waits for the roster, because
+  // selecting a name the column does not hold yet would draw no page at all.
+  useEffect(() => {
+    if (!openOn || !agents?.some((a) => a.name === openOn)) return;
+    setPicked(openOn);
+    onPicked?.();
+  }, [openOn, agents, onPicked, setPicked]);
+
+  // The pane opens on the first **Always on** agent — entering this pane lands you on a page
+  // you did not ask for, which is the price of never drawing the column beside an empty
+  // half. Runs again when a delete leaves nothing selected.
+  useEffect(() => {
+    if (!agents?.length) return;
+    const here = agents.filter((a) => !a.stage);
+    if (picked && here.some((a) => a.name === picked)) return;
+    if (openOn && here.some((a) => a.name === openOn)) return;
+    setPicked(here.length ? (here.find((a) => !a.switchable) ?? here[0]!).name : "");
+  }, [agents, picked, openOn, setPicked]);
+
+  // Which agents this pane is answerable for: a board agent declares no stage.
+  const mine = agents?.filter((a) => !a.stage) ?? null;
   const agent = mine?.find((a) => a.name === picked);
-  // The two halves of a BOARD roster, named for how each agent starts (#742). Automatic is
-  // the closed set of roles the board may start on its own — a switch there says whether it
-  // may, not whether the agent is available. Everything else is Manual: the roles you call
-  // yourself, and every agent this project added, which is only ever called by name.
+  // The two halves of the roster, named for how each agent starts (#742). Automatic is the
+  // closed set of roles the board may start on its own — a switch there says whether it may,
+  // not whether the agent is available. Everything else is Manual: the roles you call
+  // yourself, which is only ever by name.
   const automatic = (mine ?? []).filter((a) => a.kind === "role" && a.switchable);
   const manual = (mine ?? []).filter((a) => !(a.kind === "role" && a.switchable));
-  const shipped = inStage.filter((a) => a.builtIn);
-  const added = inStage.filter((a) => !a.builtIn);
 
   const row = (a: AgentView) => (
     <PickRow
@@ -449,62 +497,16 @@ export function AgentsPanel({
       confirm={c.roles[a.name as keyof typeof c.roles]?.confirm}
       busy={saving.includes(a.name)}
       onOpen={() => void select(a.name)}
-      onFlip={(next) => flip(a, next)}
+      onFlip={(next) => roster.flip(a, next)}
     />
   );
 
   return (
     <div className="flex min-h-full flex-col gap-5">
-      {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
-      {!loaded && <Loading>{c.loading}</Loading>}
-      {loaded && !loadError && agents === null && (
+      {roster.loadError && <Note icon={<FiAlertCircle />}>{roster.loadError}</Note>}
+      {!roster.loaded && <Loading>{c.loading}</Loading>}
+      {roster.loaded && !roster.loadError && agents === null && (
         <Note icon={<FiAlertCircle />}>{c.tooOld}</Note>
-      )}
-
-      {/* Back to the workflow this pane was opened from, with the place it came from beside
-          it. Only ever drawn on that trip: entering Workflow agents from the sidebar comes
-          from nowhere, and a back button to nowhere is a dead control. */}
-      {agents && onBack && (
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft"
-          >
-            <FiArrowLeft aria-hidden />
-            {c.back}
-          </button>
-          {backLabel && <span className="text-[11.5px] text-nb-ink-soft">{backLabel}</span>}
-        </div>
-      )}
-
-      {/* One tab per stage (#715). An agent declares the stage it belongs to, so this is
-          which half of the pane's own roster is on screen — not a filter over all of them.
-          The arrows between them are the order a card actually goes through, which is the one
-          thing three same-looking tabs don't say. */}
-      {agents && scope === "workflow" && (
-        <div className="flex items-center gap-1">
-          {WORKFLOW_STAGES.map((name, i) => (
-            <Fragment key={name}>
-              {i > 0 && (
-                <FiChevronRight size={13} aria-hidden className="shrink-0 text-nb-ink-soft/60" />
-              )}
-              <button
-                type="button"
-                aria-current={name === stage}
-                onClick={() => {
-                  setStage(name);
-                  onStage?.(name);
-                }}
-                className={`cursor-pointer rounded-[8px] px-3 py-1 text-[12px] font-[700] transition-colors duration-100 ${
-                  name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
-                }`}
-              >
-                {c.stageTabs[name]}
-              </button>
-            </Fragment>
-          ))}
-        </div>
       )}
 
       {agents && (
@@ -519,99 +521,39 @@ export function AgentsPanel({
                 Wide enough for a name that says the JOB (#742) — longer than one that says
                 what the agent is called, and a truncated job is no name at all. */}
             <div className="w-[292px] shrink-0 border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
-              {/* One column, split two ways depending on which half of the roster this is.
-                  A BOARD agent is read by what starts it: the ones you call, then the ones
-                  the board starts. A WORKFLOW agent is read by where it came from —
-                  built-in or this project's — because what decides whether it runs is the
-                  workflow that assigns it, not a switch here (#715). */}
-              {scope === "workflow" ? (
-                <>
-                  <Roster title={c.builtIn}>
-                    <div className="flex flex-col">{shipped.map(row)}</div>
+              {manual.length > 0 && (
+                <Roster title={c.manual}>
+                  <div className="flex flex-col">{manual.map(row)}</div>
+                </Roster>
+              )}
+              {/* A board that runs no automatic role has nothing under this caption, so
+                  neither the caption nor its rule is drawn. */}
+              {automatic.length > 0 && (
+                <div className={manual.length > 0 ? "mt-4 border-t border-nb-ink/10 pt-4" : ""}>
+                  <Roster title={c.automatic}>
+                    <div className="flex flex-col">{automatic.map(row)}</div>
                   </Roster>
-                  {added.length > 0 && (
-                    <div className="mt-4 border-t border-nb-ink/10 pt-4">
-                      <Roster title={c.yours}>
-                        <div className="flex flex-col">{added.map(row)}</div>
-                      </Roster>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  {manual.length > 0 && (
-                    <Roster title={c.manual}>
-                      <div className="flex flex-col">{manual.map(row)}</div>
-                    </Roster>
-                  )}
-                  {/* A board that runs no automatic role has nothing under this caption, so
-                      neither the caption nor its rule is drawn. */}
-                  {automatic.length > 0 && (
-                    <div className={manual.length > 0 ? "mt-4 border-t border-nb-ink/10 pt-4" : ""}>
-                      <Roster title={c.automatic}>
-                        <div className="flex flex-col">{automatic.map(row)}</div>
-                      </Roster>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
-              {scope === "workflow" && inStage.length === 0 && (
-                <p className="px-2 py-3 text-[11.5px] text-nb-ink-soft">{c.noneInStage}</p>
-              )}
-              {/* A board agent is one of a closed set the command ships, so there is nothing
-                  to add here; a workflow agent is a file this project writes. */}
-              {scope === "workflow" &&
-                (adding ? (
-                  <NewRow onCreate={create} onCancel={() => setAdding(false)} />
-                ) : (
-                  <button
-                    type="button"
-                    className={`${QUIET_BTN} mt-2.5 w-full justify-center`}
-                    onClick={() => void openAdd()}
-                  >
-                    <FiPlus aria-hidden />
-                    {c.add}
-                  </button>
-                ))}
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col">
               {agent && (
-                <Page
+                <AgentDetail
+                  roster={roster}
                   agent={agent}
-                  rule={rules[agent.name] ?? ""}
-                  file={files[agent.name]}
-                  saved={savedRule === agent.name}
-                  refusal={
-                    refusal && refusal.agent === agent.name ? refusal.why : ""
-                  }
-                  focusFile={focusFile}
-                  onFocused={() => setFocusFile(false)}
-                  onRule={(text) => {
-                    setRules((all) => ({ ...all, [agent.name]: text }));
-                    setSavedRule("");
-                  }}
-                  onFile={(text) =>
-                    setFiles((all) => ({ ...all, [agent.name]: text }))
-                  }
-                  onLeave={() => void leave.current(agent.name)}
-                  onPick={(key, value) => void pick(agent, key, value)}
                   info={info}
-                  onRuntime={(runtime) => void bind(agent, runtime)}
                   onRuntimes={onRuntimes}
                   onError={onError}
-                  onDelete={() => remove(agent.name)}
-                  busySwitch={saving.includes(agent.name)}
-                  busy={(key) => saving.includes(`${agent.name}/${key}`)}
                 />
               )}
             </div>
           </div>
 
-          {problems.length > 0 && (
+          {roster.problems.length > 0 && (
             <Note icon={<FiAlertCircle />}>
               {c.problems}
-              {problems.map((problem) => (
+              {roster.problems.map((problem) => (
                 <span key={problem} className="mt-1 block">
                   {problem}
                 </span>
@@ -732,11 +674,12 @@ function CopyPath({ path }: { path: string }) {
   );
 }
 
-// Add a specialist finishes here: the row the new agent will take asks for its name, and a
-// name already taken — by a bundled agent, by a role, or by a folder already under
-// `docs/kanban/agents/` — is refused right in the column, so the pane never creates the
-// clash it would then have to report as a problem.
-function NewRow({
+/** New agent finishes here: the row the new agent will take asks for its name, and a name
+ *  already taken — by a bundled agent, by a role, or by a folder already under
+ *  `docs/kanban/agents/` — is refused right in the column, so the pane never creates the
+ *  clash it would then have to report as a problem. `onCreate` returns why it was refused,
+ *  or empty when the agent was written. */
+export function NewAgentRow({
   onCreate,
   onCancel,
 }: {
@@ -843,6 +786,11 @@ function Page({
   onDelete,
   busySwitch,
   busy,
+  corner,
+  usage,
+  actions,
+  extra,
+  deleteNote,
 }: {
   agent: AgentView;
   info: AgentInfo;
@@ -867,6 +815,15 @@ function Page({
   /** The switch, or the delete, is in flight — they are the same agent-wide save. */
   busySwitch: boolean;
   busy: (key: string) => boolean;
+  /** What the pane around this page adds (#944). `corner` sits beside the agent's name,
+   *  `usage` under its line, `actions` in a row of its own beside Delete, `extra` between
+   *  the settings and the instruction box, and `deleteNote` is one more line in the
+   *  delete confirmation. */
+  corner?: React.ReactNode;
+  usage?: React.ReactNode;
+  actions?: React.ReactNode;
+  extra?: React.ReactNode;
+  deleteNote?: string;
 }) {
   const c = useCopy().configuration.agents;
   const box = useRef<HTMLTextAreaElement>(null);
@@ -920,23 +877,52 @@ function Page({
   // page ending halfway up and leaving the bottom of the dialog empty. `min-h-full` rather
   // than `h-full`: the guide below opens in place, and the one thing that must not happen
   // is the page ending under the pane's floor.
+  /* Only an agent this project added: a role runs the board's own flows and a bundled agent
+     ships inside the command, so neither is this board's to remove. Where it is drawn is the
+     pane's answer — beside the board's own controls, or in the row of actions the workflow
+     pane puts under the header. */
+  const removal = agent.file ? (
+    <span ref={anchor} className="relative shrink-0">
+      <button type="button" className={DANGER_BTN} disabled={busySwitch} onClick={() => setAsking(true)}>
+        <FiTrash2 aria-hidden />
+        {c.delete}
+      </button>
+      <ConfirmationPopover
+        open={asking}
+        anchorRef={anchor}
+        align="right"
+        confirm="filled"
+        title={c.deleteTitle(title)}
+        description={deleteNote ? `${deleteNote} ${c.deleteBlurb}` : c.deleteBlurb}
+        cancelLabel={c.cancel}
+        confirmLabel={c.delete}
+        busy={busySwitch}
+        onDismiss={() => setAsking(false)}
+        onConfirm={() => void onDelete()}
+      />
+    </span>
+  ) : null;
+
   return (
     <div className="flex min-h-full flex-col gap-4">
       {/* Narrow, the switch and the action drop under the name rather than squeezing it to
           one word a line. */}
       <div className="flex items-start justify-between gap-4 max-sm:flex-col max-sm:gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <span
             className={`flex size-[44px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}
           >
             <Character name={agent.name} size={44} />
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="text-[14px] font-[800] text-nb-ink">{title}</span>
-              {agent.file && (
-                <span className="min-w-0 text-[11px] text-nb-ink-soft">{c.yours}</span>
-              )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-[14px] font-[800] text-nb-ink">{title}</span>
+                {agent.file && (
+                  <span className="min-w-0 text-[11px] text-nb-ink-soft">{c.yours}</span>
+                )}
+              </div>
+              {corner}
             </div>
             {/* A specialist's description is a paragraph at times, and a paragraph in a
                 header is read by nobody, so all but its first sentence opens. A role says when
@@ -945,6 +931,7 @@ function Page({
               {role ? role.gloss : <Clipped text={sentence(agent.gloss)} />}
             </p>
             {role?.when && <Trigger text={role.when} />}
+            {usage}
           </div>
         </div>
 
@@ -952,45 +939,25 @@ function Page({
             (#715). A second switch here, beside the first, is two controls for one answer.
             What is left is the three agents whose page carries an action of its own — the
             pruner (#514), the sweeper (#119) and the memory reviewer (#748) — and an added
-            agent's Delete, each keeping the place it already had. */}
-        <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
-          {agent.name === PRUNER && <PruneControls onError={onError} />}
-          {agent.name === REVIEWER_OF_DISMISSALS && <DismissalControls onError={onError} />}
-          {agent.name === SWEEPER && <SweepControls sweep={sweep} />}
-          {agent.name === REVIEWER_OF_MEMORY && (
-            <ReviewControls off={off} onError={onError} />
-          )}
-
-          {/* Only an agent this project added: a role runs the board's own flows and a
-              bundled agent ships inside the command, so neither is this board's to remove. */}
-          {agent.file && (
-            <span ref={anchor} className="relative shrink-0">
-              <button
-                type="button"
-                className={DANGER_BTN}
-                disabled={busySwitch}
-                onClick={() => setAsking(true)}
-              >
-                <FiTrash2 aria-hidden />
-                {c.delete}
-              </button>
-              <ConfirmationPopover
-                open={asking}
-                anchorRef={anchor}
-                align="right"
-                confirm="filled"
-                title={c.deleteTitle(title)}
-                description={c.deleteBlurb}
-                cancelLabel={c.cancel}
-                confirmLabel={c.delete}
-                busy={busySwitch}
-                onDismiss={() => setAsking(false)}
-                onConfirm={() => void onDelete()}
-              />
-            </span>
-          )}
-        </div>
+            agent's Delete, each keeping the place it already had. A pane that puts its own
+            actions under the header (#944) takes the Delete with them. */}
+        {!corner && (
+          <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
+            {agent.name === PRUNER && <PruneControls onError={onError} />}
+            {agent.name === REVIEWER_OF_DISMISSALS && <DismissalControls onError={onError} />}
+            {agent.name === SWEEPER && <SweepControls sweep={sweep} />}
+            {agent.name === REVIEWER_OF_MEMORY && <ReviewControls off={off} onError={onError} />}
+            {removal}
+          </div>
+        )}
       </div>
+
+      {corner && (actions || removal) && (
+        <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
+          {actions}
+          {removal}
+        </div>
+      )}
 
       <hr className="shrink-0 border-nb-ink/10" />
 
@@ -1046,6 +1013,10 @@ function Page({
       {/* What the current or latest sweep came to (#119) — a compact line, and the way into
           the whole of it. The rows themselves are never here: this is a settings page. */}
       {agent.name === SWEEPER && <SweepSummary sweep={sweep} onOpen={() => setReport(true)} />}
+
+      {/* What only THIS assignment asks of the agent (#944) — the workflow pane's own
+          section, between what the agent runs as and the instructions it always carries. */}
+      {extra}
 
       <section className="flex min-h-0 flex-1 flex-col">
         <h4 className="shrink-0 text-[13.5px] font-[800] leading-tight text-nb-ink">

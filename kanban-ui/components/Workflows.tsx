@@ -1,25 +1,24 @@
 "use client";
 
-// Configuration → Workflows (#715).
+// Configuration → Workflows (#715, #944).
 //
 // Every card on this board goes through one workflow: `plan → execute → review`. A workflow
-// says WHO runs each of the three and who they may call in — nothing about the order, and
-// nothing about what any of them is. The agents themselves are defined one section down, in
-// Workflow agents; here they are only assigned.
+// says WHO runs each of the three and who they may call in. This pane is the one place both
+// halves of that answer live: pick a workflow at the top of the middle column, step through
+// its three stages, and the agent you select there opens its own page — its brief, its
+// instructions, what it runs on — beside the list.
 //
-// The list on the left is always drawn, even with one workflow on it: a pane that changes
-// shape when a second workflow appears is a pane nobody can learn. Naming happens in that
-// list, in a box with no buttons — a valid name saves when it loses focus, an empty one
-// takes the row away again.
+// The agents themselves are the board's roster (`components/Agents.tsx`), shared with
+// Configuration → Board so an agent reads and writes the same wherever it was reached from.
+// What belongs to the ASSIGNMENT rather than to the agent — the extra requirements, the
+// stage it sits in — is the only thing this pane adds to that page.
 //
-// What this pane knows about an agent is its name, its line and the stage it declares. Which
-// agents can take a stage is the board's answer, asked for with the rest; so is every
+// Which agents can take a stage is the board's answer, asked for with the rest; so is every
 // refusal. Nothing here has a copy of those rules.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
-  FiArrowRight,
   FiCheck,
   FiChevronDown,
   FiChevronRight,
@@ -27,7 +26,6 @@ import {
   FiPlus,
   FiSearch,
   FiTrash2,
-  FiX,
 } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
@@ -43,9 +41,25 @@ import {
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
 import { WORKFLOW_STAGES } from "@/lib/types";
-import type { WorkflowCandidate, WorkflowStage, WorkflowStageView, WorkflowView } from "@/lib/types";
-import { Character } from "./Agents";
-import { CAPTION, CONTROL, DANGER_BTN, FLAT_CONTROL, Loading, Note, Panel, QUIET_BTN, Row, Switch } from "./settings";
+import type {
+  AgentInfo,
+  AgentView,
+  WorkflowCandidate,
+  WorkflowStage,
+  WorkflowStageView,
+  WorkflowView,
+} from "@/lib/types";
+import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
+import {
+  ACCENT_BTN,
+  CAPTION,
+  CONTROL,
+  FLAT_CONTROL,
+  Loading,
+  Note,
+  QUIET_BTN,
+  Switch,
+} from "./settings";
 
 /** What one workflow is called here. A built-in's name is the command's own English, so
  *  every language says it in its own words — the same rule a role's name follows; one this
@@ -70,58 +84,55 @@ export const stageBlocked = (setup: WorkflowStageView): boolean =>
 const leadUndeclared = (setup: WorkflowStageView): boolean =>
   setup.candidates.some((a) => a.name === setup.lead && !a.canLead);
 
-/** The one mark this card adds, in the shape of the `Built-in` chip beside it — peach is the
- *  palette's attention hue and is all that separates the two. A ready workflow gets none. */
-function NotReadyPill({ children }: { children: string }) {
+/** A quiet chip — **Built-in**, **Default**. Peach is the palette's attention hue and is all
+ *  that separates **Not ready** from the other two. */
+function Pill({ children, tone = "wash" }: { children: string; tone?: "wash" | "peach" }) {
   return (
-    <span className="shrink-0 rounded-[5px] bg-nb-peach-soft px-1.5 py-0.5 text-[10px] font-[700] text-nb-peach-ink">
+    <span
+      className={`shrink-0 rounded-[5px] px-1.5 py-0.5 text-[10px] font-[700] ${
+        tone === "peach" ? "bg-nb-peach-soft text-nb-peach-ink" : "bg-nb-ink/7 text-nb-ink-soft"
+      }`}
+    >
       {children}
     </span>
   );
 }
 
-/** Where the pane is, so a trip to Workflow agents and back lands on the same stage of the
- *  same workflow with the same thing selected. Held by the dialog rather than here, because
- *  the pane itself is unmounted while the other section is open. */
-export interface WorkflowSpot {
-  workflow: string;
-  stage: WorkflowStage;
-  /** Which picker was open when the trip started, so the same one reopens. */
-  picking?: "lead" | "helper";
-  /** The helper whose extra requirements were open. */
-  helper?: string;
+function Caption({ children }: { children: string }) {
+  return <h4 className={`${CAPTION} mb-1.5 text-nb-ink-soft`}>{children}</h4>;
 }
 
 export function WorkflowsPanel({
-  spot,
-  onSpot,
-  onManage,
+  info,
+  onRuntimes,
   onError,
 }: {
-  /** Where to open, when coming back from Workflow agents. */
-  spot?: WorkflowSpot;
-  /** Taken whenever the pane moves, so the dialog can bring it back here. */
-  onSpot?: (spot: WorkflowSpot) => void;
-  /** Cross to Workflow agents, preselecting the stage being assigned. */
-  onManage?: (stage: WorkflowStage) => void;
+  /** The connectors this board can run, and which one is its default (#443) — what the
+   *  runtime row on the selected agent's page offers. */
+  info: AgentInfo;
+  /** Cross to Configuration → Runtimes — where a runtime is actually set up. */
+  onRuntimes?: () => void;
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.workflows;
+  const ca = useCopy().configuration.agents;
   const nameOf = useWorkflowName();
-  const agentGloss = useCandidateGloss();
+  const roster = useAgentRoster(onError);
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [picked, setPicked] = useState(spot?.workflow ?? "");
-  const [stage, setStage] = useState<WorkflowStage>(spot?.stage ?? "plan");
-  // The name box in the list, when one is open: which workflow it renames (empty on a
-  // workflow just added, which is the same box).
+  const [picked, setPicked] = useState("");
+  const [stage, setStage] = useState<WorkflowStage>("plan");
+  // The name box, when one is open: which workflow it renames (a workflow just added is the
+  // same box, on a row the board has already allocated).
   const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
   const [menu, setMenu] = useState(false);
-  const [picking, setPicking] = useState<"lead" | "helper" | null>(spot?.picking ?? null);
-  const [helper, setHelper] = useState(spot?.helper ?? "");
+  // Which layer is open over the column: the workflow list, the lead picker, or the list of
+  // agents this stage could still be given.
+  const [picking, setPicking] = useState<"flow" | "lead" | "helper" | null>(null);
+  const [adding, setAdding] = useState(false);
   // What the extra-requirements box holds right now, by `<workflow>/<stage>/<agent>`, so
-  // switching helpers never loses an edit that has not been saved yet.
+  // switching agents never loses an edit that has not been saved yet.
   const [extras, setExtras] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -143,20 +154,32 @@ export function WorkflowsPanel({
     setPicked(flows[0]!.id);
   }, [flows, picked]);
 
-  // Say where the pane is, every time it moves. The dialog keeps it so a trip to Workflow
-  // agents can come straight back — including the picker that was open and the helper whose
-  // requirements were showing.
-  useEffect(() => {
-    if (!picked) return;
-    onSpot?.({ workflow: picked, stage, ...(picking ? { picking } : {}), ...(helper ? { helper } : {}) });
-  }, [picked, stage, picking, helper, onSpot]);
-
   const flow = flows?.find((f) => f.id === picked);
   const setup = flow?.stages.find((s) => s.stage === stage);
   // The review stage has reviewers and no lead (#820).
   const reviewing = stage === "review";
   // Which of the three cannot start, so the tabs can say which one to fix.
   const blocked = new Set((flow?.stages ?? []).filter(stageBlocked).map((s) => s.stage));
+  // Every agent this stage has, in the order the column draws them.
+  const assigned = useMemo(
+    () => (setup ? [...(reviewing || !setup.lead ? [] : [setup.lead]), ...setup.helpers.map((h) => h.agent)] : []),
+    [setup, reviewing],
+  );
+
+  // Always land on an agent of this stage that the board still has: a page beside an empty
+  // column is half a pane, and the one the last stage had is not in this one. A stage can
+  // also still name an agent this board deleted — that name has no page, so it is never the
+  // one selected, and the stage says so in its own line instead.
+  const { picked: shown, setPicked: show, select } = roster;
+  const here = useCallback(
+    (name: string) => !!roster.agents?.some((a) => a.name === name),
+    [roster.agents],
+  );
+  useEffect(() => {
+    if (!roster.agents) return;
+    if (shown && assigned.includes(shown) && here(shown)) return;
+    show(assigned.find(here) ?? "");
+  }, [roster.agents, assigned, shown, show, here]);
 
   const refused = (res: { ok: boolean; error?: string }): boolean => {
     if (res.ok) return false;
@@ -179,10 +202,10 @@ export function WorkflowsPanel({
     m: Parameters<typeof setWorkflowStageAction>[2],
   ): Promise<boolean> => write(setWorkflowStageAction(picked, to, m));
 
-  // Adding a workflow opens the name box on a row that is already real: the board allocates
-  // the id, and an empty name takes the row straight back off. The alternative — a box that
-  // holds an unnamed nothing — cannot show the three empty stages beside it.
+  // Adding a workflow opens the name box on a workflow that is already real: the board
+  // allocates the id, and an empty name takes it straight back off.
   const add = async () => {
+    setPicking(null);
     const res = await createWorkflowAction(newName(flows ?? [], c.add));
     if (refused(res)) return;
     await load();
@@ -190,7 +213,7 @@ export function WorkflowsPanel({
     setNaming({ id: res.id!, text: res.name ?? "" });
   };
 
-  // Named in the words the list draws it in: a built-in's own name is the English the
+  // Named in the words the selector draws it in: a built-in's own name is the English the
   // command ships, so a copy taking that would sit in the list in another language.
   const duplicate = async () => {
     setMenu(false);
@@ -211,10 +234,6 @@ export function WorkflowsPanel({
     setNaming(null);
     const wanted = box.text.trim();
     const was = flows?.find((f) => f.id === box.id);
-    // An empty name IS the delete, with nothing asked and no draft kept: a workflow just
-    // added goes straight back off the list, and one that was already there is dropped the
-    // same way. The board refuses a delete an open card still depends on, and the redraw
-    // puts the name back.
     if (!wanted) {
       const gone = await deleteWorkflowAction(box.id);
       if (!gone.ok) {
@@ -255,6 +274,75 @@ export function WorkflowsPanel({
     await move(stage, { kind: "extra", agent, extra: text });
   };
 
+  // A new agent is created AND assigned in one press: the button that opened this row was
+  // "add one to this stage", and an agent created but left unassigned would look like the
+  // press did nothing. The template writes a helper, never a lead (#944).
+  const createAgent = async (name: string): Promise<string> => {
+    const made = await roster.create(name, stage);
+    if (made.error || !made.agent) return made.error || c.saveFailed;
+    setAdding(false);
+    if (!(await move(stage, { kind: "add-helper", agent: made.agent }))) return "";
+    show(made.agent);
+    // Its page opens with the `AGENT.md` box focused: the whole point of the press was to
+    // carry straight on into writing the prompt.
+    roster.setFocusFile(true);
+    return "";
+  };
+
+  // Which workflows assign this agent, anywhere in their three stages — what a shared agent's
+  // page says before its instructions are edited, and what its delete warns about.
+  const usersOf = useCallback(
+    (name: string): WorkflowView[] =>
+      (flows ?? []).filter((f) =>
+        f.stages.some((s) => s.lead === name || s.helpers.some((h) => h.agent === name)),
+      ),
+    [flows],
+  );
+
+  const agent = roster.agents?.find((a) => a.name === shown);
+  const isLead = !!setup && !reviewing && shown === setup.lead;
+
+  // Everything about the WORKFLOW rather than about the agent on screen. Drawn in the right
+  // column's top corner whether or not this stage has anybody in it — a workflow you cannot
+  // rename because its review stage is empty is a workflow nobody can fix.
+  const menuNode = flow ? (
+    <MoreMenu
+      open={menu}
+      onOpen={() => setMenu((was) => !was)}
+      onDismiss={() => setMenu(false)}
+      label={c.more(nameOf(flow))}
+      flowName={nameOf(flow)}
+      flow={flow}
+      onSaved={load}
+      onError={onError}
+      items={[
+        { label: c.duplicate, run: () => void duplicate() },
+        ...(flow.builtIn
+          ? []
+          : [
+              {
+                label: c.rename,
+                run: () => {
+                  setMenu(false);
+                  setNaming({ id: flow.id, text: nameOf(flow) });
+                },
+              },
+            ]),
+      ]}
+      danger={
+        flow.builtIn
+          ? undefined
+          : {
+              label: c.remove,
+              confirm: c.confirmDelete(nameOf(flow)),
+              inUse: c.inUse,
+              id: flow.id,
+              run: remove,
+            }
+      }
+    />
+  ) : null;
+
   return (
     <div className="flex min-h-full flex-col gap-5">
       {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
@@ -263,15 +351,14 @@ export function WorkflowsPanel({
 
       {flows && (
         <div className="flex flex-1 items-stretch gap-6 max-sm:flex-col max-sm:gap-4">
-          <div className="w-[190px] shrink-0 border-r border-nb-ink/10 pr-5 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
-            <div className={`${CAPTION} mb-3 text-nb-ink-soft`}>{c.title}</div>
-            {/* The negative margin gives the name box's focus ring room to draw: scrolling on
-                one axis clips the other, and a ring flush with the edge comes out cut. */}
-            <div className="-mx-[3px] max-h-[420px] overflow-y-auto px-[3px]">
-              {flows.map((f) =>
-                naming?.id === f.id ? (
+          {/* The workflow, its three stages and the agents in the one that is open — top to
+              bottom in the order they are read, with the rule down the right edge running
+              the whole height of the pane. */}
+          <div className="flex w-[292px] shrink-0 flex-col border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
+            <div className="mb-5 flex shrink-0 flex-col gap-3">
+              <div className="relative w-full">
+                {naming ? (
                   <NameBox
-                    key={f.id}
                     label={c.nameLabel}
                     placeholder={c.namePlaceholder}
                     value={naming.text}
@@ -279,316 +366,331 @@ export function WorkflowsPanel({
                     onBlur={() => void nameBlur()}
                   />
                 ) : (
-                  <button
-                    key={f.id}
-                    type="button"
-                    aria-current={f.id === picked}
-                    onClick={() => {
-                      setPicked(f.id);
-                      setPicking(null);
-                      setHelper("");
-                    }}
-                    className={`mb-1 block w-full cursor-pointer rounded-[9px] px-2.5 py-2.5 text-left text-[12.5px] font-[700] transition-colors duration-100 ${
-                      f.id === picked ? "bg-nb-accent-soft text-nb-accent-deep" : "text-nb-ink-soft"
-                    }`}
-                  >
-                    <span className="block truncate">{nameOf(f)}</span>
-                    {(f.builtIn || f.isDefault || f.problems.length > 0) && (
-                      <span className="mt-1 block text-[10.5px] font-[500] text-nb-ink-soft">
-                        {[f.builtIn ? c.builtIn : "", f.isDefault ? c.isDefault : ""].filter(Boolean).join(" · ")}
-                        {f.problems.length > 0 && (
-                          <>
-                            {(f.builtIn || f.isDefault) && " · "}
-                            <span className="font-[700] text-nb-peach-ink">{c.notReady}</span>
-                          </>
-                        )}
-                      </span>
-                    )}
-                  </button>
-                ),
-              )}
-            </div>
-            <button type="button" className={`${QUIET_BTN} mt-3 w-full justify-center px-1.5`} onClick={() => void add()}>
-              <FiPlus aria-hidden />
-              {c.add}
-            </button>
-          </div>
-
-          <div className="flex min-w-0 flex-1 flex-col gap-5">
-            {flow && (
-              <>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[15px] font-[800] tracking-[-0.02em]">{nameOf(flow)}</span>
-                    {flow.builtIn && (
-                      <span className="shrink-0 rounded-[5px] bg-nb-wash px-1.5 py-0.5 text-[10px] font-[700] text-nb-ink-soft">
-                        {c.builtIn}
-                      </span>
-                    )}
-                    {flow.problems.length > 0 && <NotReadyPill>{c.notReady}</NotReadyPill>}
-                  </div>
-                  <MoreMenu
-                    open={menu}
-                    onOpen={() => setMenu((was) => !was)}
-                    onDismiss={() => setMenu(false)}
-                    label={c.more}
-                    items={[
-                      { label: c.duplicate, run: () => void duplicate() },
-                      ...(flow.builtIn
-                        ? []
-                        : [
-                            {
-                              label: c.rename,
-                              run: () => {
-                                setMenu(false);
-                                setNaming({ id: flow.id, text: nameOf(flow) });
-                              },
-                            },
-                          ]),
-                    ]}
-                    danger={
-                      flow.builtIn
-                        ? undefined
-                        : { label: c.remove, confirm: c.confirmDelete(nameOf(flow)), inUse: c.inUse, id: flow.id, run: remove }
-                    }
-                  />
-                </div>
-
-                {flow.retiredAssignment && (
-                  <Note>
-                    {c.retired}{" "}
+                  flow && (
                     <button
                       type="button"
-                      className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
-                      onClick={() => void write(dismissRetiredAssignmentAction(flow.id))}
+                      aria-label={c.title}
+                      aria-expanded={picking === "flow"}
+                      onClick={() => setPicking((was) => (was === "flow" ? null : "flow"))}
+                      className={`${FLAT_CONTROL} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3 ${
+                        picking === "flow" ? "outline-2 outline-nb-accent" : ""
+                      }`}
                     >
-                      {c.retiredSeen}
+                      <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
+                        {nameOf(flow)}
+                      </span>
+                      {flow.builtIn && (
+                        <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
+                      )}
+                      {flow.isDefault && <Pill>{c.isDefault}</Pill>}
+                      {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+                      <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
                     </button>
-                  </Note>
+                  )
                 )}
+                {picking === "flow" && (
+                  <FlowPicker
+                    flows={flows}
+                    chosen={picked}
+                    onPick={(id) => {
+                      setPicking(null);
+                      setPicked(id);
+                    }}
+                    onAdd={() => void add()}
+                    onDismiss={() => setPicking(null)}
+                  />
+                )}
+              </div>
 
-                <div className="flex items-center gap-1.5">
-                  {WORKFLOW_STAGES.map((name, i) => (
-                    <div key={name} className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        aria-current={name === stage}
-                        title={blocked.has(name) ? c.notReadyHint : undefined}
-                        onClick={() => {
-                          setStage(name);
-                          setPicking(null);
-                          setHelper("");
-                        }}
-                        className={`flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 text-[12.5px] font-[700] transition-colors duration-100 ${
-                          name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink"
-                        }`}
-                      >
-                        {c.stages[name]}
-                        <FiPlus aria-hidden className="shrink-0 text-[12px]" />
-                        {blocked.has(name) && (
-                          <span
-                            role="img"
-                            aria-label={c.notReadyHint}
-                            className="size-[6px] shrink-0 rounded-full bg-nb-peach-ink"
-                          />
-                        )}
-                      </button>
-                      {i < WORKFLOW_STAGES.length - 1 && (
-                        <FiArrowRight aria-hidden className="text-[12px] text-nb-ink-soft/45" />
+              {flow?.retiredAssignment && (
+                <Note>
+                  {c.retired}{" "}
+                  <button
+                    type="button"
+                    className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
+                    onClick={() => void write(dismissRetiredAssignmentAction(flow.id))}
+                  >
+                    {c.retiredSeen}
+                  </button>
+                </Note>
+              )}
+
+              {/* The arrows between them are the order a card actually goes through, which is
+                  the one thing three same-looking tabs don't say. */}
+              <div className="flex shrink-0 items-center gap-1">
+                {WORKFLOW_STAGES.map((name, i) => (
+                  <div key={name} className="flex items-center gap-1">
+                    {i > 0 && (
+                      <FiChevronRight size={13} aria-hidden className="shrink-0 text-nb-ink-soft/60" />
+                    )}
+                    <button
+                      type="button"
+                      aria-current={name === stage}
+                      title={blocked.has(name) ? c.notReadyHint : undefined}
+                      onClick={() => {
+                        setStage(name);
+                        setPicking(null);
+                        setAdding(false);
+                      }}
+                      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[8px] px-3 py-1 text-[12px] font-[700] transition-colors duration-100 ${
+                        name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
+                      }`}
+                    >
+                      {c.stages[name]}
+                      {blocked.has(name) && (
+                        <span
+                          role="img"
+                          aria-label={c.notReadyHint}
+                          className="size-[6px] shrink-0 rounded-full bg-nb-peach-ink"
+                        />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {setup && flow && (
+              <>
+                {stageBlocked(setup) && (
+                  <p className="mb-3 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>
+                )}
+                {/* A built-in's lead is what its name promises, so it is shown and not
+                    offered (#774). On a workflow of this board's own the chevron beside it
+                    is what swaps it. */}
+                {!reviewing && (
+                  <section className="mb-4">
+                    <Caption>{c.lead}</Caption>
+                    <div className="relative">
+                      {setup.lead ? (
+                        <StageRow
+                          name={setup.lead}
+                          agent={setup.candidates.find((a) => a.name === setup.lead)}
+                          held={shown === setup.lead}
+                          onOpen={() => void select(setup.lead)}
+                          swap={
+                            flow.builtIn
+                              ? undefined
+                              : {
+                                  label: c.pickLead,
+                                  open: picking === "lead",
+                                  onOpen: () => setPicking((was) => (was === "lead" ? null : "lead")),
+                                }
+                          }
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPicking((was) => (was === "lead" ? null : "lead"))}
+                          className={`${FLAT_CONTROL} flex h-[36px] w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700] ${
+                            picking === "lead" ? "outline-2 outline-nb-accent" : ""
+                          }`}
+                        >
+                          {c.pickLead}
+                          <FiChevronDown aria-hidden />
+                        </button>
+                      )}
+                      {picking === "lead" && (
+                        <AgentPicker
+                          candidates={setup.candidates.filter(
+                            (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
+                          )}
+                          chosen={setup.lead}
+                          onPick={async (name) => {
+                            setPicking(null);
+                            if (await move(stage, { kind: "lead", agent: name })) show(name);
+                          }}
+                          onDismiss={() => setPicking(null)}
+                        />
                       )}
                     </div>
-                  ))}
-                </div>
-
-                {setup && (
-                  <div className="min-w-0">
-                    {stageBlocked(setup) && <p className="mb-3 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
-                    {!reviewing && <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.lead}</h4>}
-                    {/* A built-in's lead is what its name promises, so it is shown and not
-                        offered (#774). The line under it says the way to another one. */}
-                    {reviewing ? null : flow.builtIn ? (
-                      <div>
-                        <LeadRow setup={setup} />
-                        <p className="mt-1.5 text-[11.5px] text-nb-ink-soft">{c.leadFixed}</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="relative inline-block">
-                          <LeadButton
-                            setup={setup}
-                            open={picking === "lead"}
-                            pickLead={c.pickLead}
-                            onOpen={() => setPicking((was) => (was === "lead" ? null : "lead"))}
-                          />
-                          {picking === "lead" && (
-                            <Picker
-                              candidates={setup.candidates.filter(
-                                (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
-                              )}
-                              chosen={setup.lead}
-                              onPick={async (name) => {
-                                setPicking(null);
-                                await move(stage, { kind: "lead", agent: name });
-                              }}
-                              onManage={() => onManage?.(stage)}
-                              onDismiss={() => setPicking(null)}
-                            />
-                          )}
-                        </div>
-                        {leadUndeclared(setup) && (
-                          <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
-                        )}
-                      </div>
+                    {leadUndeclared(setup) && (
+                      <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
                     )}
-
-                    <section className={reviewing ? "" : "mt-5"}>
-                      <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{reviewing ? c.reviewers : c.helpers}</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {setup.helpers.map((h) => (
-                          <HelperTile
-                            key={h.agent}
-                            agent={setup.candidates.find((a) => a.name === h.agent)}
-                            name={h.agent}
-                            selected={helper === h.agent}
-                            onOpen={() => setHelper((was) => (was === h.agent ? "" : h.agent))}
-                          />
-                        ))}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            className={`${QUIET_BTN} h-[42px] ${picking === "helper" ? "outline-2 outline-nb-accent" : ""}`}
-                            onClick={() => setPicking((was) => (was === "helper" ? null : "helper"))}
-                          >
-                            <FiPlus aria-hidden />
-                            {reviewing ? c.addReviewer : c.addHelper}
-                          </button>
-                          {picking === "helper" && (
-                            <Picker
-                              right
-                              candidates={setup.candidates.filter(
-                                (a) => !a.canLead && a.name !== setup.lead && !setup.helpers.some((h) => h.agent === a.name),
-                              )}
-                              chosen=""
-                              onPick={async (name) => {
-                                setPicking(null);
-                                if (await move(stage, { kind: "add-helper", agent: name })) setHelper(name);
-                              }}
-                              onManage={() => onManage?.(stage)}
-                              onDismiss={() => setPicking(null)}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      {reviewing && !setup.helpers.length && (
-                        <p className="mt-3 text-[12px] leading-[19px] text-nb-ink-soft">{c.noReviewers}</p>
-                      )}
-
-                      {helper && setup.helpers.some((h) => h.agent === helper) && (
-                        <div className="mt-2 max-w-[460px] border-t border-nb-ink/12 pt-3">
-                          {/* The lit chip above says WHICH helper, so this line says what it
-                              is for — the same clause the picker listed it under (#759). */}
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="min-w-0 text-[11.5px] leading-[18px] text-nb-ink-soft">
-                              {agentGloss(setup.candidates.find((a) => a.name === helper), helper)}
-                            </p>
-                            <div className="flex shrink-0 gap-1">
-                              <button
-                                type="button"
-                                aria-label={c.dropHelper}
-                                className="grid size-6 cursor-pointer place-items-center text-nb-ink-soft"
-                                onClick={async () => {
-                                  const gone = helper;
-                                  setHelper("");
-                                  await move(stage, { kind: "drop-helper", agent: gone });
-                                }}
-                              >
-                                <FiTrash2 aria-hidden />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={c.dropHelper}
-                                className="grid size-6 cursor-pointer place-items-center text-nb-ink-soft"
-                                onClick={() => void saveExtra(helper).then(() => setHelper(""))}
-                              >
-                                <FiX aria-hidden />
-                              </button>
-                            </div>
-                          </div>
-                          <h4 className={`${CAPTION} mt-3 mb-1.5 text-nb-ink-soft`}>{c.extra}</h4>
-                          <textarea
-                            value={extraOf(helper)}
-                            placeholder={c.extraPlaceholder}
-                            onChange={(e) => setExtras((all) => ({ ...all, [extraKey(helper)]: e.target.value }))}
-                            onBlur={() => void saveExtra(helper)}
-                            className={`${CONTROL} h-[60px] resize-none text-[12px] leading-[19px]`}
-                          />
-                        </div>
-                      )}
-                    </section>
-                  </div>
+                  </section>
                 )}
-                <Advanced key={flow.id} flow={flow} onSaved={load} />
+
+                <section className="min-w-0">
+                  <Caption>{reviewing ? c.reviewers : c.helpers}</Caption>
+                  {setup.helpers.map((h) => (
+                    <StageRow
+                      key={h.agent}
+                      name={h.agent}
+                      agent={setup.candidates.find((a) => a.name === h.agent)}
+                      held={shown === h.agent}
+                      onOpen={() => void select(h.agent)}
+                    />
+                  ))}
+                  {!setup.helpers.length && (
+                    <p className="px-2.5 py-2 text-[11.5px] text-nb-ink-soft">
+                      {reviewing ? c.noReviewers : c.noneInStage}
+                    </p>
+                  )}
+                  {adding ? (
+                    <NewAgentRow onCreate={createAgent} onCancel={() => setAdding(false)} />
+                  ) : (
+                    <div className="relative mt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setPicking((was) => (was === "helper" ? null : "helper"))}
+                        className={`${QUIET_BTN} w-full justify-center ${
+                          picking === "helper" ? "outline-2 outline-nb-accent" : ""
+                        }`}
+                      >
+                        <FiPlus aria-hidden />
+                        {reviewing ? c.addReviewer : c.addHelper}
+                      </button>
+                      {picking === "helper" && (
+                        <AgentPicker
+                          candidates={setup.candidates.filter(
+                            (a) =>
+                              !a.canLead &&
+                              a.name !== setup.lead &&
+                              !setup.helpers.some((h) => h.agent === a.name),
+                          )}
+                          chosen=""
+                          onPick={async (name) => {
+                            setPicking(null);
+                            if (await move(stage, { kind: "add-helper", agent: name })) show(name);
+                          }}
+                          onNew={() => {
+                            setPicking(null);
+                            setAdding(true);
+                          }}
+                          onDismiss={() => setPicking(null)}
+                        />
+                      )}
+                    </div>
+                  )}
+                </section>
               </>
             )}
           </div>
+
+          {/* The selected agent, whole: what it is, where else it is used, what this stage
+              asks of it on top of that, and the instructions it carries everywhere. */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {agent && flow && (
+              <AgentDetail
+                roster={roster}
+                agent={agent}
+                info={info}
+                onRuntimes={onRuntimes}
+                onError={onError}
+                corner={menuNode}
+                usage={<Usage agent={agent} here={flow} users={usersOf(agent.name)} scoped={!isLead} />}
+                deleteNote={deleteNote(c, usersOf(agent.name).map(nameOf))}
+                onDeleted={load}
+                actions={
+                  !isLead ? (
+                    <button
+                      type="button"
+                      className={QUIET_BTN}
+                      onClick={async () => {
+                        const gone = agent.name;
+                        show("");
+                        await move(stage, { kind: "drop-helper", agent: gone });
+                      }}
+                    >
+                      <FiTrash2 aria-hidden />
+                      {c.dropHelper}
+                    </button>
+                  ) : undefined
+                }
+                extra={
+                  !isLead ? (
+                    <section className="shrink-0">
+                      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                        <h4 className={`${CAPTION} text-nb-ink-soft`}>{c.extra}</h4>
+                        <span className="shrink-0 text-[10.5px] text-nb-ink-soft">
+                          {c.extraScope(nameOf(flow), c.stages[stage])}
+                        </span>
+                      </div>
+                      <textarea
+                        key={extraKey(agent.name)}
+                        value={extraOf(agent.name)}
+                        placeholder={c.extraPlaceholder}
+                        aria-label={c.extra}
+                        onChange={(e) =>
+                          setExtras((all) => ({ ...all, [extraKey(agent.name)]: e.target.value }))
+                        }
+                        onBlur={() => void saveExtra(agent.name)}
+                        className={`${CONTROL} h-[60px] resize-none text-[12px] leading-[19px]`}
+                      />
+                    </section>
+                  ) : undefined
+                }
+              />
+            )}
+            {!agent && flow && (
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 text-[12px] leading-[19px] text-nb-ink-soft">{c.emptyPage}</p>
+                {menuNode}
+              </div>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* An agent whose `AGENT.md` the catalog cannot read is not in the roster, so the
+          reason it is missing is said here rather than nowhere. */}
+      {flows && roster.problems.length > 0 && (
+        <Note icon={<FiAlertCircle />}>
+          {ca.problems}
+          {roster.problems.map((problem) => (
+            <span key={problem} className="mt-1 block">
+              {problem}
+            </span>
+          ))}
+        </Note>
       )}
     </div>
   );
 }
 
-/** Folded by default (#874): the one switch most workflows never need. On is a branch and a
- *  worktree per delivery, for code; off works in the project and delivers files. A built-in's
- *  is fixed, so it is shown rather than offered. */
-function Advanced({ flow, onSaved }: { flow: WorkflowView; onSaved: () => Promise<void> }) {
+/** Where else this agent is used, and what that means for the box below (#944). A shared
+ *  agent's instructions are shared with it, so the way to change only what THIS workflow
+ *  asks is the extra requirements — said here, where the edit is about to be made. */
+function Usage({
+  agent,
+  here,
+  users,
+  scoped,
+}: {
+  agent: AgentView;
+  here: WorkflowView;
+  users: WorkflowView[];
+  /** Whether this assignment has extra requirements of its own — a lead has none. */
+  scoped: boolean;
+}) {
   const c = useCopy().configuration.workflows;
-  const [open, setOpen] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const on = !flow.needsArtifact;
+  const nameOf = useWorkflowName();
+  const others = users.filter((f) => f.id !== here.id);
+  const line = !users.length
+    ? c.unused
+    : others.length
+      ? c.alsoUsedBy(others.map(nameOf))
+      : c.usedOnlyHere;
   return (
-    <div className="mt-3">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((was) => !was)}
-        className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-      >
-        {c.advanced}
-        {open ? (
-          <FiChevronDown aria-hidden className="text-[13px]" />
-        ) : (
-          <FiChevronRight aria-hidden className="text-[13px]" />
-        )}
-      </button>
-      {open && (
-        <div className="mt-4">
-          <Panel>
-            <Row label={c.worktree} hint={c.worktreeHint}>
-              {flow.builtIn ? (
-                <span className="text-[12px] text-nb-ink-soft">{on ? c.worktreeOn : c.worktreeOff}</span>
-              ) : (
-                <Switch
-                  on={on}
-                  label={c.worktree}
-                  onFlip={async (next) => {
-                    const res = await setWorkflowWorktreeAction(flow.id, next);
-                    setFailed(!res.ok);
-                    if (res.ok) await onSaved();
-                  }}
-                />
-              )}
-            </Row>
-          </Panel>
-          {failed && (
-            <p role="alert" className="mt-2 text-[12px] text-nb-peach-ink">
-              {c.worktreeSaveFailed}
-            </p>
-          )}
-        </div>
+    <>
+      <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink">
+        {line}
+        {others.length > 0 && scoped && <span className="text-nb-ink-soft"> {c.extraPointer}</span>}
+      </p>
+      {agent.kind === "role" && (
+        <p className="mt-0.5 text-[11.5px] leading-[17px] text-nb-ink-soft">{c.roleNote}</p>
       )}
-    </div>
+    </>
   );
+}
+
+/** One more line in the delete confirmation: an agent two workflows assign is about to go
+ *  from both, and the confirmation is the last place that can be said. */
+function deleteNote(
+  c: { deleteUsedBy: (flows: string[]) => string },
+  flows: string[],
+): string | undefined {
+  return flows.length ? c.deleteUsedBy(flows) : undefined;
 }
 
 /** What one agent is CALLED here — the one lookup every screen names an agent by
@@ -607,7 +709,8 @@ function useCandidateGloss(): (agent: WorkflowCandidate | undefined, name: strin
   );
 }
 
-// A name that is not taken yet, so the row the box opens on is real from the first keystroke.
+// A name that is not taken yet, so the workflow the box opens on is real from the first
+// keystroke.
 function newName(flows: WorkflowView[], base: string): string {
   const taken = new Set(flows.map((f) => f.name.trim().toLowerCase()));
   if (!taken.has(base.trim().toLowerCase())) return base;
@@ -646,78 +749,60 @@ function NameBox({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
       }}
-      className={`${CONTROL} mb-1 h-[34px] px-2 py-1 text-[12.5px] outline-2 outline-nb-accent`}
+      className={`${CONTROL} h-[44px] px-3 text-[14px] font-[800] outline-2 outline-nb-accent`}
     />
   );
 }
 
-/** The lead of a built-in stage: who it is, and nothing to press. */
-function LeadRow({ setup }: { setup: WorkflowStageView }) {
-  const nameOf = useCandidateName();
-  const lead = setup.candidates.find((a) => a.name === setup.lead);
-  return (
-    <div className="flex h-[36px] items-center gap-1.5">
-      {setup.lead && <Character name={setup.lead} size={28} />}
-      <span className="truncate px-1 text-[12.5px] font-[700]">{nameOf(lead, setup.lead)}</span>
-    </div>
-  );
-}
-
-function LeadButton({
-  setup,
-  open,
-  pickLead,
-  onOpen,
-}: {
-  setup: WorkflowStageView;
-  open: boolean;
-  pickLead: string;
-  onOpen: () => void;
-}) {
-  const nameOf = useCandidateName();
-  const lead = setup.candidates.find((a) => a.name === setup.lead);
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`${FLAT_CONTROL} flex h-[36px] min-w-[204px] cursor-pointer items-center gap-1.5 rounded-[10px] px-2 text-[12.5px] font-[700] ${
-        open ? "outline-2 outline-nb-accent" : ""
-      }`}
-    >
-      {setup.lead && <Character name={setup.lead} size={28} />}
-      <span className="flex flex-1 items-center justify-between gap-3 px-1">
-        <span className="truncate">{setup.lead ? nameOf(lead, setup.lead) : pickLead}</span>
-        <FiChevronDown aria-hidden />
-      </span>
-    </button>
-  );
-}
-
-function HelperTile({
-  agent,
+/** One agent of the open stage, in the column. Pressing it opens its page beside the list;
+ *  the chevron, where there is one, swaps who leads instead. */
+function StageRow({
   name,
-  selected,
+  agent,
+  held,
   onOpen,
+  swap,
 }: {
-  agent: WorkflowCandidate | undefined;
   name: string;
-  selected: boolean;
+  agent: WorkflowCandidate | undefined;
+  held: boolean;
   onOpen: () => void;
+  swap?: { label: string; open: boolean; onOpen: () => void };
 }) {
   const nameOf = useCandidateName();
   return (
-    <button
-      type="button"
-      aria-current={selected}
-      onClick={onOpen}
-      className={`flex h-[42px] cursor-pointer items-center gap-1.5 rounded-[9px] px-2 transition-colors duration-100 ${
-        selected ? "bg-nb-accent-soft" : "bg-nb-wash"
+    <div
+      className={`flex w-full items-center gap-2 rounded-[9px] px-2.5 py-[5px] transition-colors duration-100 ${
+        held ? "bg-nb-accent-soft" : "hover:bg-nb-sheet"
       }`}
     >
-      <Character name={name} size={29} />
-      <span className="text-[12px] font-[700]">{nameOf(agent, name)}</span>
-      <FiChevronDown aria-hidden className="text-[11px]" />
-    </button>
+      <button
+        type="button"
+        aria-current={held}
+        onClick={onOpen}
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+      >
+        <span className="flex size-[26px] shrink-0 items-end justify-center">
+          <Character name={name} size={26} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700] leading-[16px] text-nb-ink">
+          {nameOf(agent, name)}
+        </span>
+      </button>
+      {swap && (
+        <button
+          type="button"
+          aria-label={swap.label}
+          aria-expanded={swap.open}
+          onClick={swap.onOpen}
+          className={`grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft ${
+            swap.open ? "outline-2 outline-nb-accent" : ""
+          }`}
+        >
+          <FiChevronDown aria-hidden />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -755,22 +840,82 @@ function useDismiss<T extends HTMLElement>(onDismiss: () => void) {
   return box;
 }
 
-/** One list of agents, searchable, with the way across to where they are defined under it.
- *  The lead picker and the helper picker are the same list: both pick ONE agent off the
- *  candidates the board offered for this stage, and neither can make one. */
-function Picker({
+/** The workflows this board has, searchable, with **New workflow** under them as a button of
+ *  its own: making one is not picking one, and a row that looks like the rest would be
+ *  pressed by accident. */
+function FlowPicker({
+  flows,
+  chosen,
+  onPick,
+  onAdd,
+  onDismiss,
+}: {
+  flows: WorkflowView[];
+  chosen: string;
+  onPick: (id: string) => void;
+  onAdd: () => void;
+  onDismiss: () => void;
+}) {
+  const c = useCopy().configuration.workflows;
+  const nameOf = useWorkflowName();
+  const [find, setFind] = useState("");
+  const wanted = find.trim().toLowerCase();
+  const shown = wanted ? flows.filter((f) => nameOf(f).toLowerCase().includes(wanted)) : flows;
+  const box = useDismiss<HTMLDivElement>(onDismiss);
+  return (
+    <div
+      ref={box}
+      className="absolute left-0 top-full z-30 mt-2 w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-2 shadow-[3px_3px_0_var(--color-nb-ink)]"
+    >
+      <div className="relative mb-2">
+        <FiSearch aria-hidden className="absolute left-2.5 top-2.5 text-[12px] text-nb-ink-soft" />
+        <input
+          autoFocus
+          value={find}
+          placeholder={c.findWorkflow}
+          onChange={(e) => setFind(e.target.value)}
+          className={`${CONTROL} pl-8 text-[12px]`}
+        />
+      </div>
+      {shown.map((f) => (
+        <button
+          key={f.id}
+          type="button"
+          onClick={() => onPick(f.id)}
+          className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-2 py-2 text-left ${
+            f.id === chosen ? "bg-nb-accent-soft" : ""
+          }`}
+        >
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700]">{nameOf(f)}</span>
+          {f.builtIn && <span className="shrink-0 text-[10.5px] text-nb-ink-soft">{c.builtIn}</span>}
+          {f.isDefault && <Pill>{c.isDefault}</Pill>}
+          {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+        </button>
+      ))}
+      <div className="mt-2 border-t border-nb-ink/10 pt-2">
+        <button type="button" onClick={onAdd} className={`${ACCENT_BTN} w-full justify-center`}>
+          <FiPlus aria-hidden />
+          {c.add}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** One list of agents, searchable. The lead picker and the helper picker are the same list:
+ *  both pick ONE agent off the candidates the board offered for this stage. Only the helper
+ *  picker can make one — the template writes a helper, never a lead. */
+function AgentPicker({
   candidates,
   chosen,
-  right,
   onPick,
-  onManage,
+  onNew,
   onDismiss,
 }: {
   candidates: WorkflowCandidate[];
   chosen: string;
-  right?: boolean;
   onPick: (name: string) => void;
-  onManage: () => void;
+  onNew?: () => void;
   onDismiss: () => void;
 }) {
   const c = useCopy().configuration.workflows;
@@ -785,9 +930,7 @@ function Picker({
   return (
     <div
       ref={box}
-      className={`absolute top-full z-30 mt-2 w-[278px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-2 shadow-[3px_3px_0_var(--color-nb-ink)] ${
-        right ? "right-0" : "left-0"
-      }`}
+      className="absolute left-0 top-full z-30 mt-2 w-full min-w-[262px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-2 shadow-[3px_3px_0_var(--color-nb-ink)]"
     >
       <div className="relative mb-2">
         <FiSearch aria-hidden className="absolute left-2.5 top-2.5 text-[12px] text-nb-ink-soft" />
@@ -820,55 +963,76 @@ function Picker({
           </button>
         ))
       )}
-      <div className="mt-1 border-t border-nb-ink/10 pt-1">
-        <button
-          type="button"
-          onClick={onManage}
-          className="flex w-full cursor-pointer items-center justify-between px-2 py-2 text-left text-[12px] font-[600]"
-        >
-          {c.manage}
-          <FiArrowRight aria-hidden />
-        </button>
-      </div>
+      {onNew && (
+        <div className="mt-1 border-t border-nb-ink/10 pt-1.5">
+          <button
+            type="button"
+            onClick={onNew}
+            className="flex w-full cursor-pointer items-center gap-1.5 px-2 text-left text-[12px] font-[700]"
+          >
+            <FiPlus aria-hidden />
+            {c.newAgent}
+          </button>
+          <span className="mt-0.5 block px-2 pb-1 text-[10.5px] leading-[15px] text-nb-ink-soft">
+            {c.newAgentHint}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
+/** Everything about the WORKFLOW rather than about the agent on screen: renaming it,
+ *  duplicating it, whether its deliveries get a Git worktree of their own (#874), and
+ *  deleting it. */
 function MoreMenu({
   open,
   onOpen,
   onDismiss,
   label,
+  flowName,
   items,
   danger,
+  flow,
+  onSaved,
+  onError,
 }: {
   open: boolean;
   onOpen: () => void;
   onDismiss: () => void;
   label: string;
+  flowName: string;
   items: { label: string; run: () => void }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
+  flow: WorkflowView;
+  onSaved: () => Promise<void>;
+  onError?: (msg: string) => void;
 }) {
+  const c = useCopy().configuration.workflows;
   // How many open cards the delete would strand, asked as the menu opens so the confirm row
   // can SAY it — a delete that fails after the click is a rule the user learns by hitting it.
   const [held, setHeld] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
   const box = useDismiss<HTMLDivElement>(onDismiss);
+  const on = !flow.needsArtifact;
   useEffect(() => {
     if (!open) return void setAsking(false);
     if (!danger) return;
     void cardsOnWorkflowAction(danger.id).then((res) => setHeld(res.cards.length));
   }, [open, danger]);
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button type="button" aria-label={label} className={`${QUIET_BTN} px-2`} onClick={onOpen}>
         <FiMoreHorizontal aria-hidden className="text-[17px]" />
       </button>
       {open && (
         <div
           ref={box}
-          className="absolute right-0 top-[35px] z-20 w-[210px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
+          className="absolute right-0 top-[35px] z-20 w-[258px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
         >
+          {/* Whose menu this is. It opens beside the selected agent, so without this line
+              every row in it reads as something done to that agent. */}
+          <p className={`${CAPTION} truncate px-2.5 pt-1 pb-1.5 text-nb-ink-soft/70`}>{flowName}</p>
           {items.map((item) => (
             <button
               key={item.label}
@@ -879,11 +1043,34 @@ function MoreMenu({
               {item.label}
             </button>
           ))}
+          {/* On is a branch and a worktree per delivery, for code; off works in the project
+              and delivers files. A built-in's is fixed, so it is shown rather than offered. */}
+          <div className="mt-1 border-t border-nb-ink/10 px-2.5 pt-2 pb-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 text-[12px] font-[600]">{c.worktree}</span>
+              {flow.builtIn ? (
+                <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
+                  {on ? c.worktreeOn : c.worktreeOff}
+                </span>
+              ) : (
+                <Switch
+                  on={on}
+                  label={c.worktree}
+                  onFlip={async (next) => {
+                    const res = await setWorkflowWorktreeAction(flow.id, next);
+                    if (res.ok) await onSaved();
+                    else onError?.(c.worktreeSaveFailed);
+                  }}
+                />
+              )}
+            </div>
+            <p className="mt-1 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.worktreeHint}</p>
+          </div>
           {danger && !asking && (
             <button
               type="button"
               onClick={() => setAsking(true)}
-              className="block h-[31px] w-full cursor-pointer rounded-[7px] px-2.5 text-left text-[12px] font-[600] text-nb-peach-ink"
+              className="mt-1 block h-[31px] w-full cursor-pointer rounded-[7px] px-2.5 text-left text-[12px] font-[600] text-nb-peach-ink"
             >
               {danger.label}
             </button>
@@ -896,7 +1083,7 @@ function MoreMenu({
                 <button
                   type="button"
                   onClick={danger.run}
-                  className={`${DANGER_BTN} mt-2 w-full justify-center`}
+                  className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink"
                 >
                   {danger.label}
                 </button>

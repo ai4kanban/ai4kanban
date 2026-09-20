@@ -17,7 +17,7 @@ const PRUNE_SLUG = 'prune-the-memory'
 /**
  * Take the old "Prune the memory" card off a board, once (#514).
  *
- * Pruning is an agent now, not a card: it is started from Configuration → Agents → Memory
+ * Pruning is an agent now, not a card: it is started from Configuration → Board → Memory
  * pruner and repeats on the cadence set there. A board upgrading into that would otherwise
  * carry two prune schedules — the card's and the agent's — so the card goes, and whatever
  * cadence it carried is kept as a preference beside the agent.
