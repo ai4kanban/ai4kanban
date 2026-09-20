@@ -85,6 +85,7 @@ import type {
 import type { CadenceCopy } from "@/i18n/configuration/types";
 import { Button } from "./button";
 import { AgentMark, configDialog, PRUNER, SWEEPER, useRuntimeName } from "./Configuration";
+import { GuideDrawer } from "./Guide";
 import { useLanguage } from "./language";
 import { sessionsPanel } from "./sessions";
 import { ConfirmationPopover } from "./confirm-popover";
@@ -916,9 +917,11 @@ function Page({
   // The page fills the pane and the box you write in takes whatever the rest of it leaves.
   // Everything above the box is fixed-height — who the agent is, and what it runs — so the
   // one part of this page that is a workspace is the one part that grows, rather than the
-  // page ending halfway up and leaving the bottom of the dialog empty.
+  // page ending halfway up and leaving the bottom of the dialog empty. `min-h-full` rather
+  // than `h-full`: the guide below opens in place, and the one thing that must not happen
+  // is the page ending under the pane's floor.
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex min-h-full flex-col gap-4">
       {/* Narrow, the switch and the action drop under the name rather than squeezing it to
           one word a line. */}
       <div className="flex items-start justify-between gap-4 max-sm:flex-col max-sm:gap-3">
@@ -1058,6 +1061,19 @@ function Page({
             </code>
             <CopyPath path={agent.file.path} />
           </div>
+        )}
+        {/* What may go in the file, one press from the box you write it in (#935). It opens
+            here rather than in a browser: the desktop window hands an external link to the
+            system browser, and a hand-off that fails is a click that did nothing. Only an
+            agent this project added — a built-in agent's box is a rule, not an `AGENT.md`. */}
+        {!writesRule && agent.file && (
+          <GuideDrawer
+            guide="agents"
+            title={c.guideTitle}
+            className="mt-2 shrink-0 text-[12px] leading-relaxed text-nb-ink-soft"
+          >
+            {c.guideLine}
+          </GuideDrawer>
         )}
         {writesRule ? (
           <textarea

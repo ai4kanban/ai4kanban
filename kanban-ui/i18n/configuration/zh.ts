@@ -534,6 +534,8 @@ const zh: ConfigurationCopy = {
     ruleFailed: (agent) => `${agent} 的要求保存失败`,
     file: "AGENT.md",
     fileLabel: (agent) => `${agent} 的 AGENT.md`,
+    guideLine: "akb 块决定这个 agent 何时被叫到、怎么运行。",
+    guideTitle: "每个键怎么写",
     notSaved: "未保存——",
 
     saveFailed: (agent) => `${agent} 的设置保存失败`,

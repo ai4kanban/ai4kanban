@@ -368,6 +368,10 @@ export type ConfigurationCopy = {
     ruleFailed: (agent: string) => string;
     file: string;
     fileLabel: (agent: string) => string;
+    /** Between the file path and the box: one sentence, ending in the words that open the
+     *  guide to what may go in the file. The guide itself is English in both languages. */
+    guideLine: string;
+    guideTitle: string;
     /** Before the board's own reason a save was refused. */
     notSaved: string;
 

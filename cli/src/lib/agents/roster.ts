@@ -134,8 +134,11 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
 // in the problems under it — and every line a flow would pick it by says it is unwritten.
 //
 // A stage names where it can be assigned (#715) and is what a workflow agent declares. With
-// none, it falls back to `spec` — a specialist that fills part of a card's spec. It helps until
-// `lead: true` is uncommented, and then only leads (#846, #858).
+// none, it falls back to `spec` — a specialist that fills part of a card's spec.
+//
+// Every other key is one line pointing at `akb guide write-agent` (#935): the constraints —
+// that a `review` agent cannot lead, what a `reference` has to be — belong in the guide, not
+// in a template nobody has read yet.
 function agentTemplate(name: string, stage?: WorkflowStage): string {
   return [
     '---',
@@ -143,10 +146,7 @@ function agentTemplate(name: string, stage?: WorkflowStage): string {
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
     ...(stage ? [`  stage: ${stage}`] : ['  kind: spec']),
-    ...(stage === 'review' ? [] : ['  # lead: true              # uncomment to make it lead its stage instead of helping']),
-    '  # i18n:                    # what `description` says to a reader in another',
-    '  #   zh:                    # language. Drawn only — every run is given the English.',
-    '  #     description:',
+    '  # output, settings, i18n, and whether it leads: `akb guide write-agent`',
     '---',
     '',
     `Unwritten. Write what \`${name}\` does here: what it is given, what it produces, and`,

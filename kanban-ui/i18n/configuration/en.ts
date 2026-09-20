@@ -442,6 +442,8 @@ const en: ConfigurationCopy = {
     ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,
     file: "AGENT.md",
     fileLabel: (agent) => `${agent}'s AGENT.md`,
+    guideLine: "The akb block decides when this agent is asked for and how it runs.",
+    guideTitle: "What each key means",
     notSaved: "Not saved —",
 
     saveFailed: (agent) => `couldn't save ${agent}'s setting`,
