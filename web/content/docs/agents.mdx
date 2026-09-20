@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 17, 2026"
+last_updated: "September 20, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -232,7 +232,7 @@ agent's page lists the files it has, read-only:
   `rejected.md` and `redesign.md`. Whoever leads a plan stage writes them;
   the Gate, the Decider and the Proposer read them and write none. No other role owns a file.
 - A **specialist** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
-  files it keeps there and what each holds — add a `## What you remember` section to yours.
+  files it keeps there and what each holds.
   `ui-designer` keeps `redesign.md` and `decisions.md`, `copywriting` keeps `writing.md`, and
   `tech-stack-advisor` keeps none. Every file in the folder is handed to each of its runs.
 - **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
@@ -244,108 +244,33 @@ agent's page lists the files it has, read-only:
 
 ## Add one of your own
 
-**Add a specialist** in Configuration → Agents asks for a name, writes the folder and file, and
-opens the new agent's page with its instructions box focused, so you write the prompt without
-leaving the dialog. A name a role or a bundled agent already answers to is refused in place.
+Creating a custom agent requires the [AI4Kanban skill](/docs/daily-loop) in your project and the
+[`akb` CLI](/docs#install-the-board). Follow the linked setup instructions if either is missing.
+
+In your project's coding agent session, describe the agent you need:
 
 ```text
-docs/kanban/agents/api-contract/AGENT.md
-docs/kanban/agents/api-contract/references/openapi.md   # optional
+Use the AI4Kanban skill. Read akb guide write-agent,
+then create an agent that [describe its job].
 ```
 
+That guide is the one place the file is written from — its name, its description, its settings, the
+files beside it and the translations it carries — so what comes back is an agent this board accepts.
+`akb spec` lists the agents this board can use and, under them, anything wrong with one it found.
+
+**Add a specialist** in Configuration → Agents starts one from the board instead: it asks for a
+name, writes the folder under `docs/kanban/agents/`, and opens the new agent's page with its
+instructions box focused. A name a role or a bundled agent already answers to is refused in place.
 The whole file is the box on that page, frontmatter included, and a save the board would refuse
-keeps your text and says what is wrong rather than leaving an agent it cannot read. Writing the file
-by hand in an editor works exactly the same way — the pane and the file are one thing.
+keeps your text and says what is wrong rather than leaving an agent it cannot read — the pane and
+the file are one thing.
 
-`AGENT.md` opens with frontmatter carrying the agent's `name`, the `description` a planning
-session picks it by and the Agents pane shows under its name, and an `akb:` block saying which
-hook it plugs into:
-
-```yaml
----
-name: api-contract
-description: Use when a card changes an endpoint other software calls.
-akb:
-  kind: spec
-  settings:
-    - key: style
-      label: Contract style
-      default: openapi
-      choices:
-        - value: openapi
-          label: OpenAPI
-          cost: a schema fragment per endpoint — precise, and longer to read
-          reference: references/openapi.md
-        - value: prose
-          label: Prose
-          cost: a paragraph per endpoint — quick to read, easy to argue with
-          reference: references/prose.md
----
-```
-
-Everything under the frontmatter is the agent's instructions. `kind: spec` is the hook it plugs
-into. A `settings` entry becomes a control on that agent's page, and only the chosen
-choice's `reference` is loaded into the run — the instructions for the option nobody picked are never read. `akb spec`
-lists the agents this board can use and, under them, anything wrong with one it found.
-
-A new agent **helps** a stage. Add `lead: true` under `akb:` to make it **lead** its plan or
-execute stage instead: an agent that can lead is only offered as a workflow's lead, and never as a
-helper. Of the ones the board ships, the Software planner, the Builder, the Scriptwriter and the
-HyperFrames editor lead. A workflow that already has an undeclared agent leading, or a lead among
-its helpers, keeps running until you change it, and Configuration → Workflows marks an undeclared
-lead.
+A new agent **helps** a stage. It can be written to **lead** a plan or execute stage instead, and
+one that can lead is only offered as a workflow's lead, never as a helper. Of the ones the board
+ships, the Software planner, the Builder, the Scriptwriter and the HyperFrames editor lead. A
+workflow that already has an undeclared agent leading, or a lead among its helpers, keeps running
+until you change it, and Configuration → Workflows marks an undeclared lead.
 
 **Delete** on an agent's page removes it and everything the board kept for it — the folder, the
 instructions you wrote for it, what it remembered, and its switch. Only an agent this project
 added: the roles and the three the command ships are not yours to remove, and have no Delete.
-
-## Give an agent its own files
-
-Keep `AGENT.md` short and put longer material in files beside it, in any layout:
-
-```text
-docs/kanban/agents/sdk-sample/
-  AGENT.md
-  style.md
-  examples/
-    client.md
-```
-
-Every run of that agent — leading, helping or reviewing — is told which files its folder
-holds, and opens one only when the work needs it. Say in the instructions when a file
-matters, such as "follow `style.md` for naming". A file a setting's choice names is the
-exception: it is sent whole, and only when that choice is picked.
-
-To have one agent wait for another, say so in its `description` — the planner reads it to
-order requests — and in its instructions: `ui-designer` follows `copywriting` and draws
-nothing until the card's copy is confirmed. An older agent that still lists
-`akb.dependencies` loads as usual; the board ignores the field.
-
-## Say it in your own language
-
-`description` and the words its settings are drawn by are read by people, not only by the
-board, so an agent can carry them in another language under `akb.i18n`:
-
-```yaml
-akb:
-  kind: spec
-  i18n:
-    zh:
-      description: 当卡片改动其他软件会调用的接口时使用。
-      settings:
-        style:
-          label: 契约格式
-          choices:
-            openapi:
-              label: OpenAPI
-              cost: 每个接口一段 schema——精确，但读起来长
-```
-
-Say only what you want translated: anything you leave out keeps the English the agent declares.
-Whichever language your machine is set to is what the Agents pane draws. Every run is handed the
-English lines whatever you add here, so a translation can never change what an agent is asked to
-do. The roles the board ships — Software planner, Builder, Gater, Decider, Proposer and
-Triage — are translated with the rest of the product and carry no block of their own.
-
-Agents used to live in `docs/kanban/skills/<name>/SKILL.md`. That folder still works for one
-release, and every agent found there is listed with a line telling you to move it.
