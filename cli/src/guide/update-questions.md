@@ -71,7 +71,7 @@ implementation agent can run in `## Todo` instead.
 
 ### An agent's memory
 
-A spec agent keeps `docs/kanban/memory/agents/<agent>/`, and its own AGENT.md says which
+An agent keeps `docs/kanban/memory/agents/<agent>/`, and its own AGENT.md says which
 files are there and what each holds. When the user's answer or revision lands on that agent's
 section — its recommendation taken, sent back, or overruled — read its AGENT.md and append
 one line to the file it names for that kind of note, creating the file if missing. An agent
@@ -82,5 +82,5 @@ that will change the agent's next proposal. Most answers change nothing lasting:
 files untouched then, and merge into an equivalent line rather than repeating it.
 
 One line, in the user's own terms, and no card id, date, or story of the run. Nothing else
-goes in those files; the rest of them is the agent's. Never add a file its instructions do
-not name.
+goes in those files; the rest of them is the agent's. Create files only where its instructions
+name a file or permit a split path; follow and maintain its index when reading or updating.

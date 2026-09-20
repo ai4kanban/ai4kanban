@@ -232,10 +232,13 @@ agent's page lists the files it has, read-only:
 - **Planning** keeps three files in `docs/kanban/memory/agents/planner/`: `decisions.md`,
   `rejected.md` and `redesign.md`. Whoever leads a plan stage writes them;
   the Gate, the Decider and the Proposer read them and write none. No other role owns a file.
-- A **specialist** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
+- An **agent** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
   files it keeps there and what each holds.
   `ui-designer` keeps `redesign.md` and `decisions.md`, `copywriting` keeps `writing.md`, and
-  `tech-stack-advisor` keeps none. Every file in the folder is handed to each of its runs.
+  `tech-stack-advisor` keeps none. A specialist is handed every file in its folder on each run.
+- **The video agents remember your feedback.** Tell the scriptwriter or the assets agent what to
+  do differently and the next video starts from it, keeping general taste apart from what applies
+  to one recording recipe. Nothing you say is written back into a recipe.
 - **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
   and `goal.md` are facts rather than taste, so they sit outside every agent's folder.
 - **How the product looks is not memory.** Colours, dimensions and component detail are read from

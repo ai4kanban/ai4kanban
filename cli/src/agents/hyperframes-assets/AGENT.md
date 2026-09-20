@@ -94,6 +94,24 @@ what it suits, its limits, and what change in the product makes it need recaptur
 this card made. The files are local to each machine: skip an entry whose file is missing here,
 and drop one only when the product change it names has happened.
 
+Keep `feedback.md` beside it: distilled preferences (dos) and corrections (don'ts) about
+capturing, generating, sound and previews, never raw feedback. `assets.md` indexes files.
+Read and apply relevant guidance before preparing assets; the approved script wins.
+
+- **General and per-recipe apart**: general preferences under `## General`, feedback on one
+  recording recipe under `## <recipe ID>`, naming the version or condition when it does not hold
+  for every use of that recipe. One change to one video never becomes a general rule.
+- **Split when useful**: compact first; if unrelated topics still burden each read, move them
+  into sibling `feedback/<topic-or-recipe>.md` files. Keep general guidance and a linked index
+  with each file's scope in `feedback.md`; read it first, then relevant files. Keep each rule
+  in one place with its meaning and conditions intact. Update it there on later reviews.
+  Verify moved content and links before removing the source; repair broken links before use.
+- **Never write back to a recipe**: a recipe file ships with the command; one project's taste
+  stays in this project's memory.
+- **One line each**: follow "What earns a note" in `akb guide board` — only a user correction or
+  preference that changes your next pass, stated as what to do or avoid. Merge duplicates
+  and rewrite overturned guidance in place; never invent a preference from an ambiguous review.
+
 ## What to answer
 
 Update your section in place, grouped by the script's stable `S<n>` IDs. Give the asset folder

@@ -1008,7 +1008,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(
         ...field('memory', [
           `${rel(agentMemoryDir(PLANNER))}/ — decisions.md, rejected.md, redesign.md: where a planning note goes`,
-          `${rel(AGENT_MEMORY)}/<agent>/ — a spec agent's own files, which its AGENT.md names`,
+          `${rel(AGENT_MEMORY)}/<agent>/ — an agent's own files, which its AGENT.md names`,
         ]),
       )
       close.push(

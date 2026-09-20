@@ -62,3 +62,23 @@ question disappeared. If approval is unclear, keep the current round open.
 - **Needs changes**: an edit request through Resolve, including one alongside "Approve",
   means revise and review again. Stay in the current round, or reopen round 1 if the script
   changes. Update its approval question in place, restoring it if removed; do not advance.
+
+## Memory
+
+Keep `docs/kanban/memory/agents/scriptwriter/feedback.md`: distilled preferences (dos) and
+corrections (don'ts) about wording, shots and pacing, never raw feedback. Read and apply the
+relevant guidance before writing, revising or choosing recipes; the current card wins.
+
+- **General and per-recipe apart**: general preferences under `## General`, feedback on one
+  recording recipe under `## <recipe ID>`, naming the version or condition when it does not hold
+  for every use of that recipe. One change to one video never becomes a general rule.
+- **Split when useful**: compact first; if unrelated topics still burden each read, move them
+  into sibling `feedback/<topic-or-recipe>.md` files. Keep general guidance and a linked index
+  with each file's scope in `feedback.md`; read it first, then relevant files. Keep each rule
+  in one place with its meaning and conditions intact. Update it there on later reviews.
+  Verify moved content and links before removing the source; repair broken links before use.
+- **Never write back to a recipe**: a recipe file ships with the command; one project's taste
+  stays in this project's memory.
+- **One line each**: follow "What earns a note" in `akb guide board` — only a user correction or
+  preference that changes your next script, stated as what to do or avoid. Merge duplicates
+  and rewrite overturned guidance in place; never invent a preference from an ambiguous review.

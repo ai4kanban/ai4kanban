@@ -124,8 +124,8 @@ move the files into the group's folder:
   `dismissed.md` triage preferences learned from the user's dismissal reasons — written only by
   the dismissal review (`akb guide review-dismissals`). Flows that only judge — the gate, the
   decider, the sweep, triage, a reflection — read them and write none.
-- **`memory/agents/<agent>/`**: a spec agent keeps the files its own AGENT.md names, and only
-  those (`akb guide update-questions`). An agent whose instructions name none keeps none.
+- **`memory/agents/<agent>/`**: an agent keeps only the files and split paths its own AGENT.md
+  declares (`akb guide update-questions`). An agent whose instructions name none keeps none.
 
 File a note under the `## <module>` heading its card's `modules:` names, creating it if
 missing. There are no per-module folders.

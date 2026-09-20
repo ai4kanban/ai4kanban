@@ -23,8 +23,12 @@ whole job.
   note for it. If one is already there from an earlier review, delete it now.
 - **Where it goes**: a durable choice goes in `docs/kanban/memory/agents/planner/decisions.md`
   and a design lesson in its `redesign.md`, under the `## <module>` topic each conversation is
-  listed with. Where what was settled lands on a spec agent's work, write that agent's own
-  memory too — "An agent's memory" in `akb guide update-questions`.
+  listed with. Where what was settled lands on an agent's own work, one that leads and one that
+  helps alike, follow that agent's declared files, split paths and index — "An agent's memory"
+  in `akb guide update-questions`. Distill settled feedback into reusable preferences (dos) and
+  corrections (don'ts), retaining their scope; never copy raw reviews. An agent whose instructions
+  name no memory gets no new file. Reorganize only within declared split paths, keeping the
+  index current and updating existing guidance at its indexed location.
 - **Change nothing else**: no card, no open question, no `verify:` line, no code. The memory
   files are the whole of what this run writes.
 - **Say what you wrote**: finish by reporting each conversation you read, and for each the
