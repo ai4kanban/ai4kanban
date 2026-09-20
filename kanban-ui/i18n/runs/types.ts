@@ -174,18 +174,22 @@ export type RunsCopy = {
       /** The one-click sentence, in the shapes the tick and the checkout put it in
        *  (#346): onto a named branch, onto whatever branch you are on, in this very
        *  folder because the box is unticked, and — where there was never a box — because
-       *  no worktree is possible here (`manualWhy`) or the setting is off (`manual`). */
+       *  no worktree is possible here (`manualWhy`) or the setting is off (`manual`). One
+       *  line each: what the press does, and nothing about todos, shipped lines or the
+       *  archive, which the reader finds out by watching it happen. */
       autoBranch: (branch: string) => string;
       autoHere: string;
       needsApproval: string;
-      thenArchives: string;
       manualFolder: string;
       manual: string;
       manualWhy: (why: string) => string;
       /** The box that picks where THIS build works (#346), and the line under it — which
-       *  follows the tick, since what it costs is what the tick changes. */
+       *  follows the tick, since what it costs is what the tick changes. `ownBranchLocal`
+       *  replaces `ownBranchOn` while the project folder holds uncommitted changes (#958):
+       *  the worktree is cut from the commit, so those changes stay behind. */
       ownBranch: string;
       ownBranchOn: string;
+      ownBranchLocal: string;
       ownBranchOff: string;
       /** The same five sentences with **AI review** off (#416): no review step, and the
        *  commit is matched against what the build left rather than what review passed. */

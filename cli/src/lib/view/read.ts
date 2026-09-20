@@ -257,6 +257,7 @@ function attachDelivery(card: Card): void {
     landing: live.landing && {
       status: live.landing.status,
       why: live.landing.why,
+      wait: live.landing.wait,
       commit: live.landing.commit,
       overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
       retry: landingRetry(live.landing),

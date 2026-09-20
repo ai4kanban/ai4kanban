@@ -272,6 +272,10 @@ export interface CardLanding {
   status: CardLandingStatus
   /** Why it is waiting, or why it stopped — one plain sentence. */
   why?: string
+  /** The user's own files landing will not write over (#958), while that is what it waits
+   *  on. The card page words it in the reader's language; `why` says the same in the
+   *  board's. */
+  wait?: { kind: 'overwrite' | 'untracked'; files: string[] }
   /** The squash commit on the target branch, once it has landed. */
   commit?: string
   /** Cards being built over the same files. A warning, never a reason to refuse. */
@@ -436,6 +440,10 @@ export interface DeliveryPlan {
    *  possible. Absent on rules older than the choice, and the dialog then offers no box and
    *  says only what `commitMode` alone always said. */
   canChooseWorktree?: boolean
+  /** The project folder holds uncommitted changes (#958). Nothing is refused for it — the
+   *  tick's line just adds that they stay behind. Only ever true where a worktree is
+   *  possible: with the build working in the folder itself there is nothing to leave. */
+  localChanges?: boolean
   /** Which side the dialog's AI review tick starts on (#416), read from the setting.
    *  Absent on rules older than it, and the dialog then offers no box — every delivery
    *  those rules start is reviewed. */

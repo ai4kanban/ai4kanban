@@ -218,31 +218,22 @@ const zh: RunsCopy = {
     cancel: "取消",
     implement: {
       title: (id) => `开发 #${id}`,
-      autoBranch: (branch) =>
-        `点一下就把这张卡片走完：Agent 先构建，再由一次全新的运行评审并修复，最后看板把它作为一个提交合入 \`${branch}\`。`,
-      autoHere:
-        "点一下就把这张卡片走完：Agent 先构建，再由一次全新的运行评审并修复，最后看板把它作为一个提交合入你当前所在的分支。",
-      needsApproval: "在此之前它会等你批准工作区，因为这个看板要求差异批准。",
-      thenArchives: "随后它会勾掉 todo、写下交付说明，并把卡片归档。",
-      manualFolder:
-        "点一下就把这张卡片走完：Agent 就在你的项目目录里构建，再由一次全新的运行评审并修复，然后停下。不会替你提交：评审通过后由你自己提交，卡片会在那时归档。",
-      manual:
-        "点一下就把这张卡片走完：Agent 先构建，再由一次全新的运行评审并修复，然后停下。当前是**手动提交模式**，因此不会替你提交：评审通过后由你自己提交，卡片会在那时归档。",
-      manualWhy: (why) =>
-        `点一下就把这张卡片走完：Agent 先构建，再由一次全新的运行评审并修复，然后停下。不会替你提交——${why}。评审通过后由你自己提交，卡片会在那时归档。`,
-      ownBranch: "在单独的分支上构建",
-      ownBranchOn: "Agent 在项目的一份独立副本（git worktree）里工作，你自己的文件原样不动。",
-      ownBranchOff: "Agent 就在当前目录里工作，在你提交它留下的改动之前，别的构建都开不了。",
-      autoBranchNoReview: (branch) =>
-        `点一下就把这张卡片走完：Agent 构建之后，看板直接把它作为一个提交合入 \`${branch}\`，中间没有任何评审。`,
-      autoHereNoReview:
-        "点一下就把这张卡片走完：Agent 构建之后，看板直接把它作为一个提交合入你当前所在的分支，中间没有任何评审。",
-      manualFolderNoReview:
-        "点一下就把这张卡片走完：Agent 就在你的项目目录里构建，然后停下。不会有评审，也不会替你提交：由你自己提交它构建出来的改动，卡片会在那时归档。",
+      autoBranch: (branch) => `自动开发、审查并合入 \`${branch}\`。`,
+      autoHere: "自动开发、审查并合入你当前所在的分支。",
+      needsApproval: "合入前由你批准这份改动。",
+      manualFolder: "在你的项目目录里开发并审查，由你自己提交。",
+      manual: "在你的项目目录里开发并审查。当前是**手动提交模式**，由你自己提交。",
+      manualWhy: (why) => `在你的项目目录里开发并审查——${why}。由你自己提交。`,
+      ownBranch: "在 git worktree 中开发",
+      ownBranchOn: "从当前提交创建独立目录。",
+      ownBranchLocal: "从当前提交创建独立目录，未提交的改动不会带入。",
+      ownBranchOff: "在你的项目目录里开发，一次只能开一个。",
+      autoBranchNoReview: (branch) => `自动开发并合入 \`${branch}\`，中间没有审查。`,
+      autoHereNoReview: "自动开发并合入你当前所在的分支，中间没有审查。",
+      manualFolderNoReview: "在你的项目目录里开发，没有审查，由你自己提交。",
       manualNoReview:
-        "点一下就把这张卡片走完：Agent 构建之后停下。不会有评审，而且当前是**手动提交模式**，因此不会替你提交：由你自己提交它构建出来的改动，卡片会在那时归档。",
-      manualWhyNoReview: (why) =>
-        `点一下就把这张卡片走完：Agent 构建之后停下。不会有评审，也不会替你提交——${why}。由你自己提交它构建出来的改动，卡片会在那时归档。`,
+        "在你的项目目录里开发，没有审查。当前是**手动提交模式**，由你自己提交。",
+      manualWhyNoReview: (why) => `在你的项目目录里开发，没有审查——${why}。由你自己提交。`,
       files: "Agent 制作文件，经 AI 评审通过后归档任务。成品可在任务中查看。",
       filesNoReview: "Agent 制作文件，完成后归档任务。成品可在任务中查看。",
       recorded:

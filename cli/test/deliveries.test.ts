@@ -620,6 +620,7 @@ describe('a delivery the live record lost', () => {
       onto: 'abc123',
       at: 3_000,
       why: undefined,
+      wait: undefined,
       rebasedAt: undefined,
       rebaseKind: undefined,
       commit: undefined,

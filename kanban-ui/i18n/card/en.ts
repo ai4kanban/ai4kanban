@@ -25,6 +25,16 @@ const en: CardCopy = {
     `Files outside the board changed during the run: ${paths}. Nothing was reverted. Sort them out, then review again.`,
   filesMissing: (paths) => `These finished files are missing: ${paths}. Make them, then review again.`,
   filesNone: "The task lists no finished files. Add them, then review again.",
+  landWait: {
+    overwrite: (files) =>
+      files.length === 1
+        ? `Merging would overwrite your changes to \`${files[0]}\`. Commit or stash them.`
+        : `Merging would overwrite your changes to ${files.length} files. Commit or stash them.`,
+    untracked: (files) =>
+      files.length === 1
+        ? `\`${files[0]}\` is not in git, and merging would overwrite it. Move or delete it.`
+        : `${files.length} files are not in git, and merging would overwrite them. Move or delete them.`,
+  },
   interrupted: {
     line: "The machine building this stopped before it finished. Nothing picks it up on its own.",
     resume: "Resume it here",

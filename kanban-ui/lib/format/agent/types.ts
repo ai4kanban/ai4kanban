@@ -559,10 +559,22 @@ export interface LandingCheck {
 
 /** How a delivery's landing is going. It is also the landing SLOT: exactly one active
  *  delivery may be `landing`, which is what "one card at a time" means. */
+/** What a landing's fast-forward would have written over in the user's own checkout
+ *  (#958): a tracked file they have changed, or an untracked file of theirs on a path the
+ *  landed commit creates. Recorded beside the sentence so a screen can say it in its own
+ *  language, and because the two have different ways out. */
+export interface LandingWait {
+  kind: 'overwrite' | 'untracked'
+  files: string[]
+}
+
 export interface DeliveryLanding {
   status: LandingStatus
   /** Why it is waiting, or why it stopped — one plain sentence. */
   why?: string
+  /** The user's own files the landing will not write over (#958), while that is what it is
+   *  waiting on. Cleared by every other reason a landing waits. */
+  wait?: LandingWait
   /** Rebases spent on a target branch that kept moving. Never bounded: a target that keeps
    *  moving is a race inside the board, so the landing waits and replays until it goes
    *  through (#665). */

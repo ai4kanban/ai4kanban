@@ -1484,6 +1484,9 @@ export function CardPage({
   // A delivery that is only building — waiting on nothing, holding nothing up. The one stage
   // with nothing to say beyond the pill already saying it.
   const justBuilding = delivery?.state.stage === "working" || !delivery?.state.line;
+  // The user's own files a landing will not write over (#958). Only while that IS what it
+  // waits on: the record keeps the last one until the next pass looks again.
+  const landWait = delivery?.state.stage === "refused" ? delivery.landing?.wait : undefined;
   // The one line under the title band — see where it renders for what it says.
   const deliveryLine = !!delivery && (!justBuilding || !!delivery.supersedes || !!delivery.lost);
   // This card's own chat is writing a reply (#633), so the requirement is about to move:
@@ -1835,7 +1838,11 @@ export function CardPage({
                         : delivery.filesStop.paths.length
                           ? c.filesMissing(delivery.filesStop.paths.join(", "))
                           : c.filesNone
-                      : marked(delivery.state.line))}
+                      : /* Landing is holding off the reader's own files (#958) — worded
+                           here, because the two ways out are different sentences. */
+                        landWait
+                        ? marked(c.landWait[landWait.kind](landWait.files))
+                        : marked(delivery.state.line))}
                   {delivery.supersedes && <> {c.supersedes}</>}
                   {delivery.lost && (
                     <span className="ml-1" style={{ color: "var(--color-nb-accent-deep)" }}>

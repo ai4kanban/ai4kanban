@@ -76,6 +76,20 @@ describe('what the dialog is told', () => {
     assert.equal(plan.branch, 'main')
     assert.equal(plan.needsApproval, true)
     assert.equal(plan.manualWhy, undefined)
+    assert.equal(plan.localChanges, false)
+  })
+
+  // What the tick's line adds while the project folder is not clean (#958). It refuses
+  // nothing — it is only the difference between two sentences.
+  it('says the project folder holds uncommitted changes', () => {
+    assert.equal(deliveryPlan().localChanges, false)
+    fs.writeFileSync(path.join(root, 'code.txt'), 'edited\n')
+    assert.equal(deliveryPlan().localChanges, true)
+    // Staged and still uncommitted is uncommitted.
+    git(['add', 'code.txt'])
+    assert.equal(deliveryPlan().localChanges, true)
+    git(['commit', '--quiet', '-m', 'mine'])
+    assert.equal(deliveryPlan().localChanges, false)
   })
 
   it('starts ticked when the repository allows automatic commits', () => {
@@ -135,6 +149,25 @@ describe('what the tick does', () => {
     assert.equal(got.start.commitMode, 'manual')
   })
 
+  // The user's own uncommitted work stops nothing here (#958): the worktree is checked out
+  // from the commit, so it neither carries their changes in nor touches them.
+  it('starts through staged, unstaged and untracked work in the project folder', () => {
+    fs.writeFileSync(path.join(root, 'code.txt'), 'edited\n')
+    fs.writeFileSync(path.join(root, 'staged.txt'), 'staged\n')
+    git(['add', 'staged.txt'])
+    fs.writeFileSync(path.join(root, 'untracked.txt'), 'new\n')
+
+    const got = prepareDelivery(7, 'auto')
+    assert.ok('start' in got, 'error' in got ? got.error : '')
+    assert.ok(got.start.worktree)
+    // Nothing of theirs was carried into the build, and nothing of theirs was touched.
+    const inside = path.join(root, got.start.worktree!, 'code.txt')
+    assert.equal(fs.readFileSync(inside, 'utf8'), 'base\n')
+    assert.equal(fs.readFileSync(path.join(root, 'code.txt'), 'utf8'), 'edited\n')
+    assert.equal(git(['diff', '--cached', '--name-only']), 'staged.txt')
+    undoPrepared(got.start)
+  })
+
   it('builds on a detached HEAD instead of refusing it', () => {
     git(['checkout', '--quiet', '--detach'])
     const got = prepareDelivery(7, 'auto')
@@ -149,9 +182,12 @@ describe('what the tick does', () => {
 // language reads the kind and lists the paths itself, so dropping either on the way out
 // leaves every refusal generic.
 describe('what a refused build carries', () => {
+  // A build with no branch of its own works in the project folder itself, so a change
+  // already sitting there would be read as its own work. It is the only one that refuses
+  // for a dirty checkout now (#958).
   it('names the dirty checkout and the files in it', () => {
     fs.writeFileSync(path.join(root, 'code.txt'), 'edited\n')
-    const got = prepareDelivery(7, 'auto')
+    const got = prepareDelivery(7, 'manual')
     assert.ok('error' in got)
     assert.equal(got.reason, 'dirty')
     assert.deepEqual(got.paths, ['code.txt'])
@@ -159,7 +195,7 @@ describe('what a refused build carries', () => {
 
   it('reaches the run that asked for the build', () => {
     fs.writeFileSync(path.join(root, 'code.txt'), 'edited\n')
-    const opened = openRun({ action: 'implement', id: 7, title: 'A card', commitMode: 'auto' }, 'prompt', [])
+    const opened = openRun({ action: 'implement', id: 7, title: 'A card', commitMode: 'manual' }, 'prompt', [])
     assert.ok('error' in opened)
     assert.equal(opened.reason, 'dirty')
     assert.deepEqual(opened.paths, ['code.txt'])

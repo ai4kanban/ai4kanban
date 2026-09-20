@@ -34,6 +34,13 @@ export type CardCopy = {
   filesOutside: (paths: string) => string;
   filesMissing: (paths: string) => string;
   filesNone: string;
+  /** Landing will not write over the user's own files (#958). A change of theirs is
+   *  committed or stashed; a file of theirs git does not track is moved or deleted — two
+   *  different ways out, so two sentences. One file is named, more are counted. */
+  landWait: {
+    overwrite: (files: string[]) => string;
+    untracked: (files: string[]) => string;
+  };
   /** The heading over a delivery note that is waiting on the reader. */
   waitingOnYou: string;
   /** An approval taken elsewhere whose machine stopped before it finished (#318). Nothing

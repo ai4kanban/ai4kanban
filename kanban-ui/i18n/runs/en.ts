@@ -223,34 +223,28 @@ const en: RunsCopy = {
     cancel: "Cancel",
     implement: {
       title: (id) => `Implement #${id}`,
-      autoBranch: (branch) =>
-        `One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and the board lands it as one commit on \`${branch}\`.`,
-      autoHere:
-        "One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and the board lands it as one commit on the branch you are on.",
-      needsApproval:
-        " It waits for you to approve the tree before that, because this board requires diff approval.",
-      thenArchives: " Then it ticks the todos, writes the shipped line, and archives the card.",
-      manualFolder:
-        "One click carries this card all the way: the agent builds it here in your project folder, then a fresh run reviews and fixes it, and it stops. Nothing is committed for you: commit what review passed, and the card is archived then.",
+      autoBranch: (branch) => `Build, review, and merge into \`${branch}\` automatically.`,
+      autoHere: "Build, review, and merge into the branch you are on automatically.",
+      needsApproval: " You approve the diff before it merges.",
+      manualFolder: "Build and review in your project folder. You commit the result.",
       manual:
-        "One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and it stops. **Manual commit mode** is on, so nothing is committed for you: commit what review passed, and the card is archived then.",
-      manualWhy: (why) =>
-        `One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and it stops. Nothing is committed for you — ${why}. Commit what review passed, and the card is archived then.`,
-      ownBranch: "Build this on a branch of its own",
-      ownBranchOn:
-        "The agent works in a separate copy of the project — a git worktree — so your own files are left exactly as they are.",
-      ownBranchOff:
-        "The agent works right here, in this folder, and nothing else can be built until you commit what it leaves.",
+        "Build and review in your project folder. **Manual commit mode** is on, so you commit the result.",
+      manualWhy: (why) => `Build and review in your project folder — ${why}. You commit the result.`,
+      ownBranch: "Develop in a git worktree",
+      ownBranchOn: "Creates a separate directory from the current commit.",
+      ownBranchLocal:
+        "Creates a separate directory from the current commit, without your uncommitted changes.",
+      ownBranchOff: "Develops in your project folder, one build at a time.",
       autoBranchNoReview: (branch) =>
-        `One click carries this card all the way: the agent builds it, and the board lands it as one commit on \`${branch}\`. Nothing reviews it in between.`,
+        `Build and merge into \`${branch}\` automatically. Nothing reviews it in between.`,
       autoHereNoReview:
-        "One click carries this card all the way: the agent builds it, and the board lands it as one commit on the branch you are on. Nothing reviews it in between.",
+        "Build and merge into the branch you are on automatically. Nothing reviews it in between.",
       manualFolderNoReview:
-        "One click carries this card all the way: the agent builds it here in your project folder, and it stops. Nothing reviews it, and nothing is committed for you: commit what it built, and the card is archived then.",
+        "Build in your project folder, with no review. You commit the result.",
       manualNoReview:
-        "One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and **manual commit mode** is on, so nothing is committed for you: commit what it built, and the card is archived then.",
+        "Build in your project folder, with no review. **Manual commit mode** is on, so you commit the result.",
       manualWhyNoReview: (why) =>
-        `One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and nothing is committed for you — ${why}. Commit what it built, and the card is archived then.`,
+        `Build in your project folder, with no review — ${why}. You commit the result.`,
       files:
         "The agent creates the files. After AI review passes, the task is archived. View the finished files on the task.",
       filesNoReview: "The agent creates the files and archives the task when done. View the finished files on the task.",

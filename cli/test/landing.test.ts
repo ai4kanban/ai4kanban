@@ -307,31 +307,147 @@ describe('one card at a time', () => {
     assert.equal(landing.checks?.[0]?.ok, true)
   })
 
-  it('waits on its branch, holding no slot, while the checkout is dirty', async () => {
+  // The user's own work in the checkout (#958). A landing is a fast-forward, so it walks
+  // straight past changes on paths the landed commit does not touch, and stops only where
+  // it would write over one. Nothing here is ever committed, stashed or discarded for them.
+  it('lands past the user\'s staged, unstaged and untracked work on other paths', async () => {
+    const first = await reviewed(1, 'card one', 'one\n')
+    fs.writeFileSync(path.join(root, 'staged.txt'), 'staged\n')
+    git(['add', 'staged.txt'])
+    fs.writeFileSync(path.join(root, 'mergeable.txt'), 'unstaged\n')
+    fs.writeFileSync(path.join(root, 'untracked.txt'), 'untracked\n')
+    // Half of one file staged and half of it not — the split has to survive too.
+    fs.writeFileSync(path.join(root, 'split.txt'), 'first\n')
+    git(['add', 'split.txt'])
+    fs.writeFileSync(path.join(root, 'split.txt'), 'first\nsecond\n')
+
+    await advanceLanding()
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.deepEqual(log(), ['card one (#1)', 'start'])
+    // Every file, and the staged/unstaged split, exactly as the user left it.
+    assert.equal(fs.readFileSync(path.join(root, 'staged.txt'), 'utf8'), 'staged\n')
+    assert.equal(fs.readFileSync(path.join(root, 'mergeable.txt'), 'utf8'), 'unstaged\n')
+    assert.equal(fs.readFileSync(path.join(root, 'untracked.txt'), 'utf8'), 'untracked\n')
+    assert.equal(fs.readFileSync(path.join(root, 'split.txt'), 'utf8'), 'first\nsecond\n')
+    assert.equal(git(['diff', '--cached', '--name-only']), ['split.txt', 'staged.txt'].join('\n'))
+    assert.equal(git(['diff', '--name-only']), ['mergeable.txt', 'split.txt'].join('\n'))
+  })
+
+  it('waits, holding no slot, when landing would overwrite a change of the user\'s', async () => {
     const first = await reviewed(1, 'card one', 'one\n')
     fs.writeFileSync(path.join(root, 'shared.txt'), 'mine\n')
 
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
-    assert.match(landingOf(first.deliveryId)?.why ?? '', /uncommitted changes in `shared\.txt` — commit or stash it$/)
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /^your changes to `shared\.txt` in your checkout would be overwritten by landing — commit or stash it$/)
+    assert.deepEqual(landingOf(first.deliveryId)?.wait, { kind: 'overwrite', files: ['shared.txt'] })
     assert.deepEqual(log(), ['start'])
+    // Their change is still theirs: not committed, not stashed, not reverted.
+    assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'mine\n')
+    assert.equal(git(['stash', 'list']), '')
 
     // Stashed, and the next pass lands it. (Committing instead moves the target branch, so
     // that path rebases and reviews again — "a target branch that moved" below.)
     git(['checkout', '--quiet', '--', 'shared.txt'])
     await advanceLanding()
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.equal(landingOf(first.deliveryId)?.wait, undefined)
     assert.deepEqual(log(), ['card one (#1)', 'start'])
   })
 
-  it('waits while the index holds anything of the user\'s', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
-    fs.writeFileSync(path.join(root, 'staged.txt'), 'x\n')
-    git(['add', 'staged.txt'])
+  it('waits when the landed commit adds a path the user already has a file on', async () => {
+    const first = await reviewed(1, 'card one', 'one\n', 'fresh.txt')
+    fs.writeFileSync(path.join(root, 'fresh.txt'), 'mine\n')
 
     assert.equal(await advanceLanding(), null)
-    assert.match(landingOf(first.deliveryId)?.why ?? '', /^`staged\.txt` is staged in your checkout/)
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /^`fresh\.txt` in your checkout is not in git, and landing would write over it — move or delete it$/)
+    assert.deepEqual(landingOf(first.deliveryId)?.wait, { kind: 'untracked', files: ['fresh.txt'] })
+    assert.equal(fs.readFileSync(path.join(root, 'fresh.txt'), 'utf8'), 'mine\n')
     assert.deepEqual(log(), ['start'])
+
+    fs.rmSync(path.join(root, 'fresh.txt'))
+    await advanceLanding()
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+  })
+
+  // Both refusals in one message, which git really does write when both apply. The kind has
+  // to be read off the heading the listed files sit under: paired with the other heading's,
+  // a change of the user's reads back as a file of theirs to move or delete.
+  it('names the change of the user\'s when git refuses over both at once', async () => {
+    const built = run('implement', 1, 'card one')
+    const delivery = activeDelivery(1)!
+    const dir = worktreeDir(delivery.worktree!)
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n')
+    fs.writeFileSync(path.join(dir, 'fresh.txt'), 'added\n')
+    await end(built)
+    await passReview(1, 'card one')
+    fs.writeFileSync(path.join(root, 'shared.txt'), 'mine\n')
+    fs.writeFileSync(path.join(root, 'fresh.txt'), 'mine too\n')
+
+    assert.equal(await advanceLanding(), null)
+    assert.deepEqual(landingOf(delivery.deliveryId)?.wait, { kind: 'overwrite', files: ['shared.txt'] })
+    assert.match(landingOf(delivery.deliveryId)?.why ?? '', /commit or stash it$/)
+    assert.equal(fs.readFileSync(path.join(root, 'fresh.txt'), 'utf8'), 'mine too\n')
+  })
+
+  // An IGNORED file of theirs on a path the landed commit writes. Git guards an untracked
+  // file and refuses; an ignored one it overwrites without a word, so this is the one thing
+  // a fast-forward would destroy in silence — and it is asked for before the move.
+  it('waits rather than write over an ignored file of the user\'s', async () => {
+    fs.appendFileSync(path.join(root, '.gitignore'), 'secret.env\n')
+    git(['add', '.gitignore'])
+    git(['commit', '--quiet', '-m', 'ignore secret.env'])
+    const built = run('implement', 1, 'card one')
+    const delivery = activeDelivery(1)!
+    const dir = worktreeDir(delivery.worktree!)
+    fs.writeFileSync(path.join(dir, 'secret.env'), 'from the build\n')
+    git(['add', '-f', 'secret.env'], dir)
+    await end(built)
+    await passReview(1, 'card one')
+    fs.writeFileSync(path.join(root, 'secret.env'), 'mine\n')
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
+    assert.deepEqual(landingOf(delivery.deliveryId)?.wait, { kind: 'untracked', files: ['secret.env'] })
+    assert.equal(fs.readFileSync(path.join(root, 'secret.env'), 'utf8'), 'mine\n')
+    assert.deepEqual(log(), ['ignore secret.env', 'start'])
+
+    fs.rmSync(path.join(root, 'secret.env'))
+    await advanceLanding()
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
+    assert.equal(fs.readFileSync(path.join(root, 'secret.env'), 'utf8'), 'from the build\n')
+  })
+
+  // `merge.autoStash` on would have git stash the user's change, fast-forward, and re-apply
+  // it — and a re-apply that conflicts leaves conflict markers in their file. The landing
+  // closes the config on the command, so their setting cannot reach their files.
+  it('leaves the checkout alone even with merge.autoStash on', async () => {
+    git(['config', 'merge.autoStash', 'true'])
+    const first = await reviewed(1, 'card one', 'one\n')
+    fs.writeFileSync(path.join(root, 'shared.txt'), 'mine\n')
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
+    assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'mine\n')
+    assert.equal(git(['stash', 'list']), '')
+    assert.deepEqual(log(), ['start'])
+  })
+
+  // The target branch checked out somewhere else of the user's. Moving the ref under it
+  // would leave that working tree reading as a checkout full of changes nobody made, so the
+  // fast-forward is run there instead — the same move, in the checkout it belongs to.
+  it('fast-forwards the worktree the target branch is checked out in', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-elsewhere-'))
+    git(['checkout', '--quiet', '-b', 'scratch'])
+    git(['worktree', 'add', '--quiet', elsewhere, 'main'])
+
+    await advanceLanding()
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
+    assert.deepEqual(log('main'), ['card one (#1)', 'start'])
+    assert.equal(fs.readFileSync(path.join(elsewhere, 'shared.txt'), 'utf8'), 'one\n')
+    assert.equal(spawnSync('git', ['status', '--porcelain'], { cwd: elsewhere, encoding: 'utf8' }).stdout, '')
+    git(['worktree', 'remove', '--force', elsewhere])
   })
 
   it('lands over the board\'s own staged files, which never land themselves', async () => {

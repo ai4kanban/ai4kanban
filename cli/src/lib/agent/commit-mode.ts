@@ -117,9 +117,10 @@ export interface DeliveryStart {
 export const deliveryCwd = (delivery: { worktree?: string }): string =>
   delivery.worktree ? worktreeDir(delivery.worktree) : REPO_ROOT
 
-// What a dirty checkout refuses with (#544): the move first, the paths under it. Plain and
-// unquoted, one per line, so a long path reads as a path rather than as prose. The paths ride
-// beside the sentence too (#706), so a screen saying this in its own words still lists them.
+// What a dirty checkout refuses a MANUAL build with (#544): the move first, the paths under
+// it. Plain and unquoted, one per line, so a long path reads as a path rather than as prose.
+// The paths ride beside the sentence too (#706), so a screen saying this in its own words
+// still lists them. A build with a worktree of its own never reaches here (#958).
 const dirtyRefusal = (files: string[]): RunRefusal => ({
   error: [
     'Commit or stash your changes before starting.',
@@ -157,6 +158,10 @@ export function deliveryPlan(cardId?: number): DeliveryPlan {
     branch: currentBranch() ?? undefined,
     needsApproval: diffApprovalRequired(),
     canChooseWorktree: true,
+    // Tracked changes only, the board's own files left out — the same count the worktree
+    // path has always read the checkout by. It says nothing about whether the build may
+    // start (#958); it is only what the dialog adds a clause for.
+    localChanges: dirtyPaths(false).length > 0,
     aiReview,
   }
 }
@@ -219,10 +224,10 @@ export function prepareDelivery(
     }
   }
 
-  // `noWorktreeWhy` cleared all three, so the branch and the base are both there.
+  // `noWorktreeWhy` cleared all three, so the branch and the base are both there. Nothing
+  // is asked about the user's own uncommitted work (#958): the worktree is checked out from
+  // a commit, so their changes are neither carried into it nor touched by it.
   const targetBranch = currentBranch() as string
-  const dirty = dirtyPaths(false)
-  if (dirty.length) return dirtyRefusal(dirty)
   // `.akb/` is where the worktrees go, and it must be ignored before the first one lands.
   // Boards set up before that line existed get it here — `ensureAkbDir` writes both.
   try {

@@ -35,6 +35,7 @@ import type {
   DeliveryStep,
   FrozenWorkflow,
   LandingStatus,
+  LandingWait,
   ReviewStopReason,
   ReviewTrigger,
   ReviewVerdict,
@@ -556,6 +557,7 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
     commit: text(box.commit),
     onto: text(box.onto),
     overlap: Array.isArray(box.overlap) ? box.overlap.filter((n) => Number.isInteger(n)) : undefined,
+    wait: readLandingWait(box.wait),
     conflictFiles: Array.isArray(box.conflictFiles)
       ? box.conflictFiles.filter((f): f is string => typeof f === 'string')
       : undefined,
@@ -569,6 +571,16 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
       : undefined,
     at: num(box.at) ?? 0,
   }
+}
+
+// The user's own files a landing will not write over (#958). Both halves have to read, or
+// the wait is just its sentence: a kind with no files says nothing a screen can list.
+function readLandingWait(raw: unknown): DeliveryLanding['wait'] {
+  if (!raw || typeof raw !== 'object') return undefined
+  const box = raw as Partial<LandingWait>
+  if (box.kind !== 'overwrite' && box.kind !== 'untracked') return undefined
+  const files = Array.isArray(box.files) ? box.files.filter((f): f is string => typeof f === 'string') : []
+  return files.length ? { kind: box.kind, files } : undefined
 }
 
 const asLandingStatus = (value: unknown): LandingStatus =>

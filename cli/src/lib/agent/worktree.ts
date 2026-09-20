@@ -21,6 +21,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { AKB_DIR, ensureAkbDir, KANBAN, REPO_ROOT, rel } from '../paths'
+import type { LandingWait } from './types'
 
 // A diff can be megabytes. Nothing here prints one — they are hashed, counted or written
 // to a file — so the cap is about not holding a whole repository in memory.
@@ -379,16 +380,6 @@ export const branchTip = (branch: string): string | null =>
 export const isAncestor = (older: string, newer: string, cwd = REPO_ROOT): boolean =>
   spawnSync('git', ['merge-base', '--is-ancestor', older, newer], { cwd, windowsHide: true }).status === 0
 
-/** The paths staged in this checkout's index, the board's own files left out. Landing
- *  refuses while any are: a fast-forward under a half-built commit would leave the user
- *  staring at staged files they did not stage.
- *
- *  The board's own files change as every card moves, and no landed commit ever contains
- *  one — a delivery's worktree leaves them out and `commitWork` refuses them — so a staged
- *  card file is never in a fast-forward's way. */
-export const stagedPaths = (cwd = REPO_ROOT): string[] =>
-  (git(['diff', '--cached', '--name-only', ...outsideBoard()], cwd) ?? '').split('\n').filter(Boolean)
-
 /** The files between two commits, or null when git would not answer. The two are told
  *  apart deliberately: a landing decides what to review from this, and an unreadable
  *  comparison read as an empty one would land work nothing had judged. */
@@ -488,10 +479,87 @@ export function rebaseInProgress(dir: string): boolean {
 export const conflictedPaths = (dir: string): string[] =>
   (git(['diff', '--name-only', '--diff-filter=U'], dir) ?? '').split('\n').filter(Boolean)
 
-/** Move the target branch to a commit in the USER's own checkout, where it is the branch
- *  they have out — so their index and working tree follow it, as a `git pull` would. */
-export const fastForward = (commit: string): { ok: boolean; why?: string } =>
-  scripted(['merge', '--ff-only', commit], REPO_ROOT)
+/** Move the target branch to a commit in the checkout that has it out — so its index and
+ *  working tree follow, as a `git pull` would. `REPO_ROOT` unless the branch is checked out
+ *  in a worktree of its own.
+ *
+ *  `merge.autoStash` is forced OFF rather than left to the user's git config: with it on,
+ *  git stashes their changes, fast-forwards, and re-applies — and a re-apply that conflicts
+ *  leaves conflict markers in their files. The board never touches the user's changes, so
+ *  the config that would is closed on the command.
+ *
+ *  Uncommitted work elsewhere in the checkout is no business of this call's: git
+ *  fast-forwards straight past it, and names the paths it truly cannot move over. */
+export function fastForward(commit: string, cwd = REPO_ROOT): { ok: boolean; why?: string; blocked?: LandingWait } {
+  const ignored = ignoredInTheWay(commit, cwd)
+  if (ignored.length) {
+    return { ok: false, why: `${ignored.join(', ')} would be overwritten`, blocked: { kind: 'untracked', files: ignored } }
+  }
+  const done = scripted(['-c', 'merge.autoStash=false', 'merge', '--ff-only', commit], cwd)
+  if (done.ok) return done
+  return { ...done, blocked: blockedBy(done.why ?? '') }
+}
+
+/** Files of the user's the move would destroy WITHOUT git saying so: a `.gitignore`d file on
+ *  a path the landed commit writes. Git guards an untracked file and refuses; an ignored one
+ *  it overwrites in silence, so those paths are asked for before the move rather than read
+ *  out of a refusal that never comes. Ignored means untracked, so the way out is the same. */
+function ignoredInTheWay(commit: string, cwd: string): string[] {
+  const incoming = git(['diff', '--name-only', '-z', `HEAD..${commit}`], cwd)
+  const paths = incoming === null ? [] : incoming.split('\0').filter(Boolean)
+  const found: string[] = []
+  // Asked a batch at a time: a wide commit's paths would otherwise outgrow one command
+  // line, and a command that never ran would read back as nothing in the way.
+  for (let at = 0; at < paths.length; at += 200) {
+    const batch = paths.slice(at, at + 200).map((p) => `:(literal)${p}`)
+    const out = git(['ls-files', '--others', '--ignored', '--exclude-standard', '-z', '--', ...batch], cwd)
+    if (out) found.push(...out.split('\0').filter(Boolean))
+  }
+  return found
+}
+
+// Git's own two refusals, read back as the board's. Each opens with a heading and lists
+// the paths under it, one per line and indented; the sentence after them is git's advice,
+// which the board words itself.
+//
+// One message can carry BOTH headings — a change of theirs on one path, a file of theirs on
+// another — so the kind is read off the heading whose files these are, never off the whole
+// message. The first heading wins, and the other kind surfaces on the next pass; a kind
+// paired with the other one's files would tell the user to delete work they had edited.
+function blockedBy(why: string): LandingWait | undefined {
+  let kind: LandingWait['kind'] | undefined
+  const files: string[] = []
+  for (const line of why.split('\n')) {
+    if (!kind) {
+      kind = headingKind(line)
+      continue
+    }
+    if (!/^\s/.test(line)) break
+    const file = line.trim()
+    if (file) files.push(file)
+  }
+  return kind && files.length ? { kind, files } : undefined
+}
+
+const headingKind = (line: string): LandingWait['kind'] | undefined =>
+  /untracked working tree files would be (?:overwritten|removed)/i.test(line)
+    ? 'untracked'
+    : /local changes to the following files would be overwritten/i.test(line)
+      ? 'overwrite'
+      : undefined
+
+/** The checkout that has this branch out, or null when no checkout does — the main one
+ *  included, so a landing always knows whose working tree its move is about to change. */
+export function branchWorktree(branch: string): string | null {
+  const out = git(['worktree', 'list', '--porcelain'])
+  if (out === null) return null
+  let dir: string | null = null
+  for (const line of out.split('\n')) {
+    if (line.startsWith('worktree ')) dir = line.slice('worktree '.length).trim()
+    else if (line.trim() === `branch refs/heads/${branch}` && dir) return dir
+  }
+  return null
+}
 
 /** Move the target branch's ref, refusing unless it still points where the landing found
  *  it. `moved` is the target having moved again under us, which is retried rather than

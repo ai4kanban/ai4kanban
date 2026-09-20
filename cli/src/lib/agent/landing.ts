@@ -17,11 +17,12 @@
 // squash is made in the delivery's own worktree, and the target branch is fast-forwarded
 // under them so their index and working tree follow it the way a `git pull` would.
 
+import fs from 'node:fs'
 import path from 'node:path'
 import { setCardStatusOn } from '../board'
 import { say } from '../io'
 import { tryLock } from '../lock'
-import { REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { rel, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { answerOutcome, takeUnchanged } from './answers'
 import { approvalStands, cancelApproval } from './approval'
 import { boardCommand } from './command'
@@ -40,16 +41,15 @@ import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS, IN_LINE } from './pause'
 import { aiReviewOn, reviewOf } from './review'
 import { backoffMs } from './retry'
 import { readStore, withStore } from './store'
-import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
+import type { AgentRequest, DeliveryLanding, DeliveryRecord, LandingWait } from './types'
 import {
   abortRebase,
   branchPatch,
   branchTip,
+  branchWorktree,
   changedPaths,
   continueRebase,
   conflictedPaths,
-  currentBranch,
-  dirtyPaths,
   fastForward,
   isAncestor,
   lastCommitTouching,
@@ -59,7 +59,6 @@ import {
   rebaseOnto,
   reverseApplies,
   squashOnto,
-  stagedPaths,
   worktreeDir,
   worktreeExists,
 } from './worktree'
@@ -146,6 +145,15 @@ function patchLanding(deliveryId: string, change: (landing: DeliveryLanding) => 
   syncAudit(deliveryId)
 }
 
+// The sentence a landing waits on, and the files it names where it names any (#958).
+// Written together everywhere: `wait` is the same fact in a shape a screen can word itself,
+// so a `why` that replaces it replaces both — and a wait can never outlive its sentence.
+const sayWhy = (deliveryId: string, why: string, wait?: LandingWait): void =>
+  patchLanding(deliveryId, (landing) => {
+    landing.why = why
+    landing.wait = wait
+  })
+
 // Put the slot back, saying why. The delivery stays ACTIVE and queued: whatever stopped it
 // — a dirty checkout, a target that would not take the commit — is a thing the user fixes,
 // and the next pass tries again.
@@ -153,10 +161,11 @@ function patchLanding(deliveryId: string, change: (landing: DeliveryLanding) => 
 // Whatever a conflict was in the middle of goes with it (#595). Every caller here is a
 // reason OUTSIDE the conflict, so the card must stop saying an attempt is coming — the wait
 // between two attempts gives the slot back on its own, and never through this.
-function giveUpSlot(delivery: DeliveryRecord, why: string): void {
+function giveUpSlot(delivery: DeliveryRecord, why: string, wait?: LandingWait): void {
   patchLanding(delivery.deliveryId, (landing) => {
     landing.status = 'waiting'
     landing.why = why
+    landing.wait = wait
     landing.conflictFiles = undefined
     landing.conflictFails = undefined
     landing.conflictAt = undefined
@@ -197,7 +206,7 @@ function holdForQuestions(): Set<string> {
     takeUnchanged(delivery)
     const why = questionWhy(delivery.cardId, asked)
     if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
-    else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
+    else if (delivery.landing.why !== why) sayWhy(delivery.deliveryId, why)
   }
   return held
 }
@@ -238,7 +247,7 @@ function holdForApproval(already: Set<string>): Set<string> {
     held.add(delivery.deliveryId)
     const why = approvalWhy(delivery, stands.why)
     if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
-    else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
+    else if (delivery.landing.why !== why) sayWhy(delivery.deliveryId, why)
   }
   return held
 }
@@ -384,7 +393,7 @@ function noteQueue(held: Set<string>): void {
     // its wait is over — the tick that picks it back up is exactly the one this would spoil.
     if (delivery.landing.conflictAt || delivery.landing.retryAt) continue
     if (delivery.landing.why === why) continue
-    patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
+    sayWhy(delivery.deliveryId, why)
   }
 }
 
@@ -523,19 +532,10 @@ function landingRefusal(delivery: DeliveryRecord): string | undefined {
   if (!target) {
     return `\`${delivery.targetBranch}\` is gone — put the branch back, or discard the delivery`
   }
-  // The user's own staging, not the board's: a card's files move with the work and never
-  // land, so counting them would stop every delivery on the board's own bookkeeping.
-  const staged = stagedPaths()
-  if (staged.length) {
-    return `${some(staged)} ${are(staged.length)} staged in your checkout — commit or unstage ${them(staged.length)}`
-  }
-  // Tracked changes only, exactly as the start gate counts them (`prepareDelivery`): the
-  // board's own files are left out, and an untracked file of the user's is not in the way
-  // of a fast-forward unless the landed commit adds that same path, which git says itself.
-  const dirty = dirtyPaths(false)
-  if (dirty.length) {
-    return `your checkout has uncommitted changes in ${some(dirty)} — commit or stash ${them(dirty.length)}`
-  }
+  // Nothing is asked here about the user's own staged, changed or untracked files (#958).
+  // A fast-forward moves straight past work the landed commit does not touch, and names the
+  // paths it truly cannot move over — so the move itself is the judge, and `move` below
+  // words whatever it names.
   const pending = pendingPaths(worktreeDir(delivery.worktree!))
   if (pending.length) {
     return `its worktree still holds ${some(pending)} — clear ${them(pending.length)}`
@@ -752,13 +752,23 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
 
 // ---- moving the target branch -----------------------------------------------
 
-// The last step, and the only one that touches the user's own checkout. Their branch is
-// fast-forwarded under them when it is the one they have out, so their index and working
-// tree move with it; otherwise the ref is moved, and only from where the landing found it.
+// The last step, and the only one that touches a checkout of the user's. Wherever the
+// target branch is checked out — their project folder, or a worktree of their own — it is
+// fast-forwarded there, so that index and working tree move with it; with the branch out
+// nowhere, the ref is moved, and only from where the landing found it.
+//
+// Whatever else is uncommitted there rides through untouched (#958). The fast-forward
+// refuses only over the user's own work on a path the landed commit changes, and `landWait`
+// below turns that refusal into the two things they can do about it.
 async function move(delivery: DeliveryRecord, tip: string, target: string): Promise<Step> {
   const branch = delivery.targetBranch!
-  const here = currentBranch(REPO_ROOT) === branch
-  const moved = here ? asMove(fastForward(tip)) : moveBranchRef(branch, tip, target)
+  const checkout = branchWorktree(branch)
+  const moved = checkout ? asMove(fastForward(tip, checkout)) : moveBranchRef(branch, tip, target)
+  if ('blocked' in moved) {
+    const wait = moved.blocked
+    giveUpSlot(delivery, landWait(wait, checkout!), wait)
+    return { done: true }
+  }
   if ('moved' in moved) {
     // It moved again between the ancestor check and this write — a race of milliseconds.
     // Waited out rather than retried inside this call (#665): nothing bounds the retries
@@ -776,11 +786,42 @@ async function move(delivery: DeliveryRecord, tip: string, target: string): Prom
 }
 
 // A fast-forward that git refused because the branch had already moved on reads the same
-// as a guarded ref move that lost its race.
-const asMove = (res: { ok: boolean; why?: string }): { ok: true } | { moved: true } | { ok: false; error: string } => {
+// as a guarded ref move that lost its race. A refusal over the user's own files is its own
+// answer: it names them, and it is waited out rather than reported as a broken landing.
+const asMove = (
+  res: { ok: boolean; why?: string; blocked?: LandingWait },
+): { ok: true } | { moved: true } | { blocked: LandingWait } | { ok: false; error: string } => {
   if (res.ok) return { ok: true }
+  if (res.blocked) return { blocked: res.blocked }
   if (/not possible to fast-forward|non-fast-forward|diverge/i.test(res.why ?? '')) return { moved: true }
   return { ok: false, error: `couldn't move your checkout onto the landed commit: ${res.why ?? 'git refused'}` }
+}
+
+// One folder, whatever each side spelled it: `git worktree list` answers in real paths and
+// the board's root may be reached through a symlink, so `/var` and `/private/var` are the
+// same checkout said twice.
+const sameDir = (a: string, b: string): boolean => {
+  const real = (dir: string): string => {
+    try {
+      return fs.realpathSync(dir)
+    } catch {
+      return path.resolve(dir)
+    }
+  }
+  return real(a) === real(b)
+}
+
+// What the landing is waiting for, in one line: the files in the way and the move that
+// clears them. The two refusals have different ways out — a change of the user's is
+// committed or stashed, a file of theirs the commit would create is moved or deleted — so
+// they are worded apart rather than sharing a vaguer sentence. `where` names the checkout
+// only when it is not the project folder, since a second one is the surprising case.
+function landWait(wait: LandingWait, where: string): string {
+  const files = wait.files
+  const at = sameDir(where, REPO_ROOT) ? 'your checkout' : `\`${rel(where)}\``
+  return wait.kind === 'untracked'
+    ? `${some(files)} in ${at} ${are(files.length)} not in git, and landing would write over ${them(files.length)} — move or delete ${them(files.length)}`
+    : `your changes to ${some(files)} in ${at} would be overwritten by landing — commit or stash ${them(files.length)}`
 }
 
 // ---- afterwards -------------------------------------------------------------
@@ -794,6 +835,7 @@ async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto:
   patchLanding(delivery.deliveryId, (landing) => {
     landing.status = 'landed'
     landing.why = landed.why
+    landing.wait = undefined
     landing.commit = landed.commit
     landing.onto = landed.onto
   })

@@ -1080,7 +1080,6 @@ export function ActionDialog({
               <Rich code={BRANCH}>{autoIntro}</Rich>
               {/* The one place the click does NOT carry the card all the way (#308). */}
               {plan.needsApproval ? c.needsApproval : ""}
-              {c.thenArchives}
             </>
           ) : canChoose ? (
             <Rich>{reviewed ? c.manualFolder : c.manualFolderNoReview}</Rich>
@@ -1093,7 +1092,10 @@ export function ActionDialog({
             on={ownBranch}
             onFlip={setOwnBranch}
             label={c.ownBranch}
-            hint={ownBranch ? c.ownBranchOn : c.ownBranchOff}
+            /* Uncommitted work in the project folder stops nothing (#958) — the worktree is
+               cut from the commit — so the tick's own line is the only place it is said,
+               and only while the tick is on. */
+            hint={ownBranch ? (plan.localChanges ? c.ownBranchLocal : c.ownBranchOn) : c.ownBranchOff}
           />
         )}
         {asked > 0 && (

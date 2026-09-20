@@ -23,6 +23,16 @@ const zh: CardCopy = {
   filesOutside: (paths) => `运行期间看板以外的文件被改动：${paths}。未自动还原，处理后请重新评审。`,
   filesMissing: (paths) => `以下成品文件不存在：${paths}。补齐后请重新评审。`,
   filesNone: "任务中没有记录成品文件。补上后请重新评审。",
+  landWait: {
+    overwrite: (files) =>
+      files.length === 1
+        ? `合入会覆盖你对 \`${files[0]}\` 的改动。请先提交或暂存。`
+        : `合入会覆盖你对 ${files.length} 个文件的改动。请先提交或暂存。`,
+    untracked: (files) =>
+      files.length === 1
+        ? `\`${files[0]}\` 不在 git 里，合入会覆盖它。请先移走或删除。`
+        : `有 ${files.length} 个文件不在 git 里，合入会覆盖它们。请先移走或删除。`,
+  },
   interrupted: {
     line: "执行这次构建的机器在完成前停止了。没有人会自动接手。",
     resume: "在这里继续",
