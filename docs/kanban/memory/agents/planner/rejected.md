@@ -1,6 +1,7 @@
 # Rejected
 
-Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
+Ideas we turned down for the project as a whole, grouped by topic. One line each: the idea,
+and why we said no. A module's own rejections live in its folder beside this file. Read
 before proposing so you don't re-suggest them.
 
 ## Storage
@@ -11,11 +12,4 @@ before proposing so you don't re-suggest them.
 ## Distribution
 
 - **Skill-marketplace listings** — we no longer ship AI4Kanban as a skill, so directory
-  listings (LobeHub, awesome-lists, the scraped mega-directories) point at a channel we
-  don't distribute through.
-
-## cloud
-
-- **Growing IM integrations (Lark app listings and the like)** — IM support is being wound
-  down; invest in web and mobile instead, where people see the whole card — mockups,
-  images and the full spec — not a chat summary.
+  listings point at a channel we don't distribute through.

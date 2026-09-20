@@ -5,13 +5,11 @@ before proposing so you don't re-suggest them.
 
 ## The board
 
-- **The expanded specialist-agent registration form and editor proposal** — the user rejected the combined registration and runtime expansion as overdesigned; skip it.
-- **A file-storage-only switch for team collaboration** — a Cloud screen must handle members,
-  stale revisions, active writers and conflicts, which treating Cloud as another file location
-  leaves invisible.
-- **A board-location picker as the whole collaboration UI** — choosing Local or Cloud is only
-  onboarding; the app must also show membership, questions, card ownership, shared memory and
-  delivery recovery.
+- **The expanded specialist-agent registration form and editor proposal** — rejected as
+  overdesigned.
+- **A file-storage-only switch, or a board-location picker, as the whole collaboration UI** —
+  the app must also show membership, questions, card ownership, shared memory and delivery
+  recovery, which treating Cloud as another file location leaves invisible.
 - **GitHub Projects as the team's board UI** — the shared board lives in Cloud; GitHub Issues
   supplies proposals and receives progress, never a second place a card can be changed.
 - **Ready-only focus toggle**, and **muting cards you can't start yet** — the board is small
@@ -36,11 +34,9 @@ before proposing so you don't re-suggest them.
   while planning, and asking by hand is too rare to buy a control per card.
 - **Working the board from the keyboard** — a shortcut set, its dispatcher and a panel listing
   it would cost more than the mouse trips they save.
-- **A `#` card picker over the chat box** — pointing at a card is already typing `#12`, and a
-  list with its keyboard mode is UI bought for a string the user can type.
+- **A `#` card picker over the chat box** — pointing at a card is already typing `#12`.
 - **Serving the board to a phone from the user's own machine** — Cloud's URL and sign-in reach
-  a phone from anywhere and work while the machine is asleep; the cost we accepted is that a
-  user who never turns Cloud on has no phone access.
+  a phone from anywhere and work while the machine is asleep.
 - **Kanbo, a desktop pet that speaks the board's notifications** — the system notification
   center already delivers the same alerts and gets out of the way after.
 - **Laying a card's screens out side by side on a canvas** — it trades scrolling for panning
@@ -49,9 +45,8 @@ before proposing so you don't re-suggest them.
 ## Runs
 
 - **Human-in-the-loop / mid-run reply to the agent** — the agent raises open questions on the
-  card; watching a run is a read-only tail of its log.
-- **A follow-up prompt box on any finished run** — Resume covers the real need with no typing,
-  and a prompt box is the first step toward a full chat inside the board.
+  card; watching a run is a read-only tail of its log. A follow-up prompt box on a finished
+  run is the same thing: Resume covers the real need with no typing.
 - **Per-card run history list** — the most recent run's log surviving a restart is enough, and
   the runs panel covers browsing.
 - **A plain-words reason beside a failed run** — the only reason on offer is the tail of the
@@ -86,10 +81,6 @@ before proposing so you don't re-suggest them.
 
 ## Feedback
 
-- **A lasting list of shared feedback numbers in Settings** — the feedback path is a side
-  channel, not a product surface; a machine-level append log plus a Settings entry with its own
-  count, empty state and unreadable state is more than it earns.
-- **A details dialog for the install id in Privacy settings** — reading the id is a rare,
-  one-off need already served by `akb telemetry status`; a copy button, an empty state, a
-  reset warning and a deletion walkthrough over-build a side channel the settings pane only
-  has to switch on and off.
+- **A lasting list of shared feedback numbers in Settings**, and **a details dialog for the
+  install id** — the feedback path is a side channel, not a product surface; reading the id is
+  already served by `akb telemetry status`.

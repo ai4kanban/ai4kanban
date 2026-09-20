@@ -5,14 +5,15 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Storage choices
 
-- ❌ **Choosing KV for a small feature without checking the project's existing storage** → ✅ prefer the existing D1 stack when it fits, accounting for shared maintenance rather than only initial code size.
+- ❌ **Choosing KV for a small feature without checking the project's existing storage** → ✅
+  prefer the existing D1 stack when it fits, accounting for shared maintenance rather than
+  only initial code size.
 
 ## Getting started
 
-- ❌ **Offering a terminal install beside the download, however quietly** → ✅ the app is the
-  only way in the site recommends; it carries `akb` and installs it at first open.
-- ❌ **Softening a way in we no longer want by demoting it** → ✅ take it off the page. A way
-  in that is still shown is still offered, whatever weight it is given.
+- ❌ **Offering a terminal install beside the download, or softening it by demoting it** → ✅
+  take it off the page. A way in that is still shown is still offered, whatever weight it is
+  given.
 
 ## Landing-page visuals
 
@@ -27,12 +28,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **Leaving the privacy and terms pages to explain what a feature does** → ✅ give the
   feature its own page and let the legal pages state only what they promise, linking to it.
-
-## The training page
-
-- ❌ **Booking used a monthly calendar, quota claims and a mail link** → ✅ show the visitor's
-  current week by hour and reserve real availability through an on-site form with a clear
-  result, without displaying the author's time.
 - ❌ **Training copy drifted into product introductions and prominent disclaimers** → ✅ lead
   with project guidance and outcomes; keep product positioning as background evidence and omit
   unsolicited qualification copy.

@@ -20,5 +20,6 @@ the number at the front of a filename is the task id.
 - [#792 Build a proof section from this repo's own numbers](791-showcase-proof/792-build-a-proof-section-from-this-repo-s-own-numbers.md)
 - [#848 Reshoot the homepage screenshots and share image](769-broader-work-positioning/848-reshoot-the-homepage-screenshots-and-share-image.md)
 - [#850 Make a 60-second demo of one board breaking down, designing and delivering a feature](769-broader-work-positioning/850-make-a-demo-video-of-one-board-running-development-and-video.md)
-- [#914 为 Codex 增加可选 auto 权限模式](914-codex-auto-permission-mode.md)
-- [#920 Discard a card whose creation failed](920-discard-failed-creation.md)
+- [#946 Write the recording sequence into the video script](946-write-the-recording-sequence-into-the-video-script.md)
+- [#947 Seed a shot reference library for video scripts](947-seed-a-shot-reference-library-for-video-scripts.md)
+- [#950 Remember video feedback for the next video](950-remember-video-feedback-for-the-next-video.md)
