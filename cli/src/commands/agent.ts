@@ -41,7 +41,6 @@ import {
 import { testConnection } from '../lib/agent/test'
 import { HARNESSES, RAW_ARGS_KEY } from '../lib/agent/harnesses'
 import type { HarnessSetting } from '../lib/agent/types'
-import { specAgentNames } from '../lib/agents'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import { finishSetupStep } from '../lib/view/api'
@@ -357,8 +356,7 @@ function bindAgent(args: string[]): MoveResult {
   if (!asked) {
     die(`name a runtime: akb agent bind ${agent} ${known[1]?.id ?? GLOBAL_ID}, or "-" for Global default. This board has: ${known.map((r) => r.id).join(', ')}.`, { kind: 'needs-input' })
   }
-  const legacy = specAgentNames(agent).slice(1)
-  const res = setAgentRuntime(agent, asked === '-' ? '' : asked, legacy)
+  const res = setAgentRuntime(agent, asked === '-' ? '' : asked)
   if (!res.ok) die(res.error ?? 'the runtime could not be saved', { kind: 'save-failed' })
   const runs = agentRun(agent)
   say(

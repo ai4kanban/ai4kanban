@@ -291,6 +291,23 @@ describe('writing the list', () => {
     assert.equal(agentRun('builder').runtime, 'global')
     assert.equal(agentInfo().runtimes.find((r) => r.id === 'global')?.agents, 0)
   })
+
+  // `video-assets` became `hyperframes-assets` (#945); a pick still under the old name is read,
+  // so every write clears it, or it wins again the moment the new one is gone.
+  it('clears a pick saved under the name the agent had before', () => {
+    const { id } = addRuntime('Cheap', 'codex')
+    const other = addRuntime('Other', 'codex').id!
+    config({ ...held(), agentRuntime: { 'video-assets': id, builder: id } })
+    assert.equal(agentRun('hyperframes-assets').runtime, id)
+    assert.equal(setAgentRuntime('hyperframes-assets', '').ok, true)
+    assert.deepEqual(held().agentRuntime, { builder: id })
+    assert.equal(agentRun('hyperframes-assets').runtime, 'global')
+    config({ ...held(), agentRuntime: { 'video-assets': id, builder: id } })
+    setAgentRuntime('hyperframes-assets', other)
+    assert.deepEqual(held().agentRuntime, { builder: id, 'hyperframes-assets': other })
+    setAgentRuntime('hyperframes-assets', '')
+    assert.deepEqual(held().agentRuntime, { builder: id })
+  })
 })
 
 describe('the raw arguments', () => {

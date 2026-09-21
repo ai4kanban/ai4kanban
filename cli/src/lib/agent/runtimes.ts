@@ -29,6 +29,7 @@ import path from 'node:path'
 
 import { DEFAULT_HARNESS, HARNESSES, MODEL_KEY, harnessByName } from './harnesses'
 import { configBlock, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
+import { specAgentNames } from '../spec-agent-names'
 import type { Harness } from './harnesses'
 import { refusal, type RunRefusal, type Saved } from './types'
 
@@ -190,16 +191,13 @@ export function runtimeOfAgent(
   return undefined
 }
 
-/** Point one agent at a runtime, or back at **Global default** with an empty id. */
-export function setAgentRuntime(
-  agent: string,
-  runtime: string,
-  legacyNames: string[] = [],
-): Saved {
+/** Point one agent at a runtime, or back at **Global default** with an empty id. A pick left
+ *  under a name the agent had before goes too, or it would win the next read. */
+export function setAgentRuntime(agent: string, runtime: string): Saved {
   if (runtime && !runtimeById(runtime)) return { ok: false, ...noRuntime(runtime) }
   return writeConfig((cfg) => {
     const block = { ...readAgentRuntime(cfg) }
-    for (const legacy of legacyNames) delete block[legacy]
+    for (const name of specAgentNames(agent)) delete block[name]
     if (runtime && runtime !== GLOBAL_ID) block[agent] = runtime
     else delete block[agent]
     writePicks(cfg, block)
@@ -207,8 +205,8 @@ export function setAgentRuntime(
 }
 
 /** Drop one agent's pick. Called when the agent itself is deleted. */
-export function forgetAgentRuntime(agent: string, legacyNames: string[] = []): Saved {
-  return setAgentRuntime(agent, '', legacyNames)
+export function forgetAgentRuntime(agent: string): Saved {
+  return setAgentRuntime(agent, '')
 }
 
 // ---- writing the list --------------------------------------------------------

@@ -526,7 +526,7 @@ export interface BoardRules {
   // Optional: a project can be running rules older than the release that added them, and
   // an agent's page then draws no runtime row.
   /** Point one agent at a runtime, or back at Global default with "". */
-  setAgentRuntime?(agent: string, runtime: string, legacyNames?: string[]): WriteResult;
+  setAgentRuntime?(agent: string, runtime: string): WriteResult;
   /** What one agent runs here — its runtime's id, its harness's name and label, and the
    *  settings that harness takes. */
   agentHarness?(agent?: string): {
