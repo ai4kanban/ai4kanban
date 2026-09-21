@@ -4,6 +4,10 @@ Compose desktop overview, focus, interaction and hold in the order the shot need
 names one example, not a required sequence. Repeat or interleave actions and camera moves,
 interact before focusing, or return to overview without choosing a different recipe.
 
+- **Overview**: the full device screen at its normal viewing size, showing what users really
+  see. Content such as a canvas may extend beyond the screen; preserve the app's normal
+  layout and scaling. Never shrink fonts or zoom out to fit all content on screen.
+
 A shot that uses this recipe fills all six fields below for the actual product; a shot that
 does not — a title card, a typographic animation — is untouched by them. Write one ordered
 sequence aligning camera moves, actions, visible wait conditions and holds. Preserve the
@@ -21,8 +25,9 @@ timing and submission state are not defaults.
 
 ## Verified demos
 
-Both clips come from this prompt as it now stands (prompt v3), rendered from a project the
-generator below wrote. Verification v2 came from an earlier prompt and is history only.
+Both clips come from prompt v3, before the overview definition above was clarified, rendered
+from a project the generator below wrote. They have not been reverified against that clarification.
+Verification v2 came from an earlier prompt and is history only.
 Build: HyperFrames 0.8.55, GSAP 3.14.2.
 
 ### v3 — one push-in, ending unsubmitted
