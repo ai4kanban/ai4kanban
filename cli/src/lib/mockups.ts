@@ -25,7 +25,7 @@ export const assetsDir = (): string => ASSETS
 export const mockupsDir = (): string => MOCKUPS
 
 // A self-closing tag with no `<` or `>` inside it, the same one the reader matches.
-const TAG = /<(?:Asset|Mockup)\b[^<>]*?\/>/
+const TAG = /<(?:Asset|Mockup|Storyboard)\b[^<>]*?\/>/
 const FENCE = /^\s*(```|~~~)/
 
 /** The leading run of tags on a line, and whatever prose follows them — `null` when the

@@ -288,4 +288,27 @@ export type CardCopy = {
     loadingPreview: string;
     previewFailed: string;
   };
+  /** A `<Storyboard>` script (#963). */
+  storyboard: {
+    heading: string;
+    summary: (shots: number, seconds: string) => string;
+    sketch: string;
+    timeline: string;
+    voiceover: string;
+    noVoiceover: string;
+    action: string;
+    details: string;
+    captions: string;
+    start: string;
+    end: string;
+    noFrame: string;
+    empty: string;
+    needsFixing: string;
+    fixHint: string;
+    copyDiagnostics: string;
+    copied: string;
+    diagnostics: string;
+    reload: string;
+    unavailable: string;
+  };
 };

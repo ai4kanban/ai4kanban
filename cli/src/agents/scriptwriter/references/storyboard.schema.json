@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI4Kanban storyboard",
+  "description": "Structure only. `akb raw validate <card id> --json` also checks unique shot IDs, that shots start at 0 and meet at their boundaries, and that every frame is a readable same-card image at most 1280px wide.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "shots"],
+  "properties": {
+    "version": { "const": 1 },
+    "shots": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/shot" } }
+  },
+  "$defs": {
+    "text": { "type": "string", "pattern": "\\S" },
+    "shot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "start", "end", "voiceover", "action", "captions", "details", "frames"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^S[1-9][0-9]*$" },
+        "start": { "type": "number", "minimum": 0 },
+        "end": { "type": "number", "exclusiveMinimum": 0 },
+        "voiceover": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode"],
+              "properties": { "mode": { "const": "none" } }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "text", "source"],
+              "properties": {
+                "mode": { "const": "spoken" },
+                "text": { "$ref": "#/$defs/text" },
+                "source": { "$ref": "#/$defs/text" }
+              }
+            }
+          ]
+        },
+        "action": { "$ref": "#/$defs/text" },
+        "captions": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "details": { "$ref": "#/$defs/text" },
+        "frames": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["src", "alt"],
+            "properties": {
+              "src": { "type": "string", "pattern": "^\\.assets/[1-9][0-9]*/[^./\\\\][^/\\\\]*\\.(png|jpe?g|webp|gif)$" },
+              "alt": { "$ref": "#/$defs/text" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

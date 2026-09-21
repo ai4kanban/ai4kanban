@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { FiChevronRight } from "react-icons/fi";
 import type { MockupSet } from "@/lib/mockup-tag";
+import type { StoryboardSet } from "@/lib/storyboard";
 import type { Question } from "@/lib/types";
 import { useCopy } from "@/i18n/use-copy";
 import { AGENT_HALF, type HumanPiece, splitCardBody, splitHuman, useCardFolds } from "@/lib/agent-half";
@@ -11,6 +12,8 @@ import { Character } from "./Agents";
 import { HAIRLINE } from "./chrome";
 import { Fold } from "./fold";
 import { Markdown } from "./Markdown";
+
+const NO_STORYBOARDS: StoryboardSet = {};
 
 /** A card's body, in its two halves (#262).
  *
@@ -25,12 +28,15 @@ export function CardBody({
   title,
   cardId,
   mockups,
+  storyboards,
   questions,
 }: {
   body: string;
   title: string;
   cardId: number;
   mockups?: MockupSet;
+  /** Absent off this machine: each tag then says to open the card in the app. */
+  storyboards?: StoryboardSet;
   questions?: Question[];
 }) {
   const c = useCopy().card;
@@ -63,12 +69,12 @@ export function CardBody({
                   open={isOpen(p.key)}
                   onToggle={(open) => onToggle(p.key, open)}
                 >
-                  <Markdown body={p.body} mockups={mockups} />
+                  <Markdown body={p.body} mockups={mockups} storyboards={storyboards ?? NO_STORYBOARDS} />
                 </AgentSection>
               ))}
             </div>
           ) : (
-            <Markdown key={k} body={run.body} mockups={mockups} />
+            <Markdown key={k} body={run.body} mockups={mockups} storyboards={storyboards ?? NO_STORYBOARDS} />
           ),
         )}
       </div>
@@ -79,7 +85,7 @@ export function CardBody({
           open={isOpen(AGENT_HALF)}
           onToggle={(open) => onToggle(AGENT_HALF, open)}
         >
-          <Markdown body={halves.agent} mockups={mockups} className="nb-md-soft" />
+          <Markdown body={halves.agent} mockups={mockups} storyboards={storyboards ?? NO_STORYBOARDS} className="nb-md-soft" />
         </Fold>
       )}
     </>

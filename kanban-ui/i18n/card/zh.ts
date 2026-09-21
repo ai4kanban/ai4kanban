@@ -224,6 +224,28 @@ const zh: CardCopy = {
     back: (id) => `返回 #${id}`,
     unplayable: "无法播放：浏览器不支持此文件的格式。请改用 MP4（H.264）、WebM 或 MP3。",
   },
+  storyboard: {
+    heading: "静态分镜",
+    summary: (shots, seconds) => `${shots} 镜 · ${seconds} 秒`,
+    sketch: "示意 · 非成片画面",
+    timeline: "镜头",
+    voiceover: "旁白",
+    noVoiceover: "无旁白",
+    action: "动作",
+    details: "制作说明",
+    captions: "字幕",
+    start: "起始",
+    end: "结束",
+    noFrame: "暂无画面",
+    empty: "尚无镜头",
+    needsFixing: "分镜需要修正",
+    fixHint: "复制诊断交给生成它的助手，修正后重新加载。",
+    copyDiagnostics: "复制诊断",
+    copied: "已复制",
+    diagnostics: "详细诊断",
+    reload: "重新加载",
+    unavailable: "在应用中打开此卡片即可查看分镜。",
+  },
 };
 
 export default zh;

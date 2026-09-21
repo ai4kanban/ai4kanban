@@ -13,7 +13,8 @@ akb:
   output: human
 ---
 
-Read the card's script, ``## By `scriptwriter` agent``, and work out every visual and audio file
+Read the storyboard JSON linked from ``## By `scriptwriter` agent`` when present; otherwise
+read the legacy Markdown script. Validate structured scripts before preparing assets. Work out every visual and audio file
 its `S<n>` shots need; never edit the script. Reuse existing files, capture product screens and
 interactions, and generate narration. Save the selected files in
 `<board-state>/assets/<card id>/` in the project.

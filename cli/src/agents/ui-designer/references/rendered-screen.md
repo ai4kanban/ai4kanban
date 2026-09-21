@@ -46,5 +46,5 @@ own — a blank line above it and a blank line below:
 
 A tag sharing a line or paragraph with prose is printed as text. `src` is the entry file's name,
 written exactly as above and resolved by the board; `label` is required and is the screen's name
-for a reader, in the board's language. `<Asset>` is the only HTML tag allowed in a card body;
-inside backticks or a fenced block, it remains text.
+for a reader, in the board's language. Use `<Asset>` for mockups; cards also support `<Storyboard>`
+for scripts with storyboard manifests. Inside backticks or a fenced block, either remains text.

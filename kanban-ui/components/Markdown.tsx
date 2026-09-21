@@ -24,10 +24,13 @@ import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
+import { storyboardTag } from "@/lib/format/storyboard";
 import { mockupBlock, type MockupSet } from "@/lib/mockup-tag";
+import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
 import { Copied, useCopyText } from "./copy";
 import { Mockup } from "./Mockup";
+import { Storyboard, StoryboardUnavailable } from "./Storyboard";
 import { useOpenIds } from "./open-ids";
 
 // react-markdown strips URLs with unknown protocols, which would drop our
@@ -105,6 +108,26 @@ function remarkMockups(mockups: MockupSet | null) {
   };
 }
 
+// remark plugin: a `<Storyboard src=".." />` alone in its paragraph becomes the storyboard it
+// names (#963), on a card page only. Anywhere else, or sharing a line, it stays text.
+function remarkStoryboards(storyboards: StoryboardSet | null) {
+  return () => (tree: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree as any, "html", (node: any, index: number | undefined, parent: any) => {
+      if (index == null || !parent || !/<Storyboard\b/.test(node.value)) return;
+      const src = storyboards && parent.type === "root" ? storyboardTag(node.value) : null;
+      parent.children.splice(
+        index,
+        1,
+        src === null
+          ? { type: "text", value: node.value }
+          : { type: "storyboard", data: { hName: "storyboard", hProperties: { "data-src": src }, hChildren: [] } },
+      );
+      return [SKIP, index + 1];
+    });
+  };
+}
+
 // Fenced blocks are coloured by their language tag only — an untagged block stays plain, since
 // a wrong guess reads worse than none (#827). A diff is drawn by rehypeDiff instead, in the
 // Diff tab's colours.
@@ -157,6 +180,16 @@ function MockupNode(props: any) {
   const mockups = useContext(MockupsContext);
   const view = mockups?.[props["data-src"] as string];
   return view ? <Mockup view={view} label={props["data-label"] || ""} /> : null;
+}
+
+const StoryboardsContext = createContext<StoryboardSet | null>(null);
+
+// A card page reads every storyboard it has on disk; one it holds none for is a page with no
+// disk behind it — the hosted board.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function StoryboardNode(props: any) {
+  const view = useContext(StoryboardsContext)?.[props["data-src"] as string];
+  return view ? <Storyboard view={view} /> : <StoryboardUnavailable />;
 }
 
 /** The memory file being drawn, so its relative `.md` links open the file they name (#959). */
@@ -235,7 +268,7 @@ function codeOf(node: ExtraProps["node"]): string {
 
 // `mockup` is our own tag rather than an HTML one, so the map is cast: what
 // react-markdown looks up is the tag name, and it has no type for that one.
-const COMPONENTS = { mockup: MockupNode, a: Anchor } as Components;
+const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, a: Anchor } as Components;
 
 // Held apart as a constant rather than spread at render: a fresh `components` object every
 // render is a fresh component type, which React answers by remounting the whole subtree.
@@ -247,6 +280,8 @@ export function Markdown({
   /** The mockups this page has already read, keyed by `src` (#239). Only a card page
    *  hands them over — everywhere else a `<Mockup>` tag reads as the text it is. */
   mockups,
+  /** The storyboards this page has read (#963). Only a card page hands them over. */
+  storyboards,
   /** Put a copy button on every fenced block (#269). Only a reply in the chat rail asks
    *  for it. */
   copyCode,
@@ -255,6 +290,7 @@ export function Markdown({
   body: string;
   className?: string;
   mockups?: MockupSet;
+  storyboards?: StoryboardSet;
   copyCode?: boolean;
   /** Set on a memory page; hold it stable across renders. */
   memory?: MemoryLinks;
@@ -264,11 +300,12 @@ export function Markdown({
   const ids = useOpenIds();
   // Held across renders so a poll doesn't re-parse every body on the page.
   const plugins = useMemo(
-    () => [remarkGfm, remarkCardLinks(ids), remarkMockups(mockups ?? null)],
-    [ids, mockups],
+    () => [remarkGfm, remarkCardLinks(ids), remarkMockups(mockups ?? null), remarkStoryboards(storyboards ?? null)],
+    [ids, mockups, storyboards],
   );
   return (
     <MockupsContext.Provider value={mockups ?? null}>
+      <StoryboardsContext.Provider value={storyboards ?? null}>
       <MemoryLinksContext.Provider value={memory ?? null}>
         <div className={className ? `nb-md ${className}` : "nb-md"}>
           <ReactMarkdown
@@ -281,6 +318,7 @@ export function Markdown({
           </ReactMarkdown>
         </div>
       </MemoryLinksContext.Provider>
+      </StoryboardsContext.Provider>
     </MockupsContext.Provider>
   );
 }

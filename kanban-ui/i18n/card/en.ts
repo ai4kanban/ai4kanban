@@ -227,6 +227,28 @@ const en: CardCopy = {
     back: (id) => `Back to #${id}`,
     unplayable: "Can't play this file: the browser doesn't support its format. Use MP4 (H.264), WebM or MP3.",
   },
+  storyboard: {
+    heading: "Storyboard",
+    summary: (shots, seconds) => `${shots} ${shots === 1 ? "shot" : "shots"} · ${seconds}s`,
+    sketch: "Sketch · Not final footage",
+    timeline: "Shots",
+    voiceover: "Voiceover",
+    noVoiceover: "No voiceover",
+    action: "Action",
+    details: "Production details",
+    captions: "Captions",
+    start: "Start",
+    end: "End",
+    noFrame: "No frame",
+    empty: "No shots yet",
+    needsFixing: "Storyboard needs fixing",
+    fixHint: "Copy the diagnostics to the agent that wrote it, then reload once it's fixed.",
+    copyDiagnostics: "Copy diagnostics",
+    copied: "Copied",
+    diagnostics: "Diagnostics",
+    reload: "Reload",
+    unavailable: "Open this card in the app to see its storyboard.",
+  },
 };
 
 export default en;

@@ -3,7 +3,8 @@ import path from 'node:path'
 
 import { idPrefix, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
-import { rel, TODO } from './paths'
+import { ASSETS, rel, TODO } from './paths'
+import { assetName, checkStoryboard, formatDiagnostic, storyboardMarkers, storyboardTag, type StoryboardDiagnostic } from './storyboard'
 import { LEVELS, STATUSES } from './validate'
 
 export interface ContractError {
@@ -11,6 +12,12 @@ export interface ContractError {
   line: number
   rule: string
   message: string
+  /** Set on a storyboard problem (#963). */
+  code?: string
+  pointer?: string
+  expected?: string
+  actual?: string
+  column?: number
 }
 
 export interface CardSource {
@@ -30,8 +37,9 @@ export function snapshotSpecs(): SpecSnapshot {
   return out
 }
 
-/** Format only: semantic planning decisions remain the agent's responsibility. */
-export function validateSpec(file: string, text: string): ContractError[] {
+/** Format only: semantic planning decisions remain the agent's responsibility. With `id`, a
+ *  storyboard the card points at is checked too, files included. */
+export function validateSpec(file: string, text: string, id?: number): ContractError[] {
   const errors: ContractError[] = []
   const add = (line: number, rule: string, message: string) => errors.push({ file: rel(file), line, rule, message })
   const lines = text.replace(/\r\n/g, '\n').split('\n')
@@ -101,6 +109,9 @@ export function validateSpec(file: string, text: string): ContractError[] {
       }
       if (!/\bsrc="[^"]+"/.test(line) || !/\blabel="[^"]+"/.test(line)) add(i + 1, 'mockup-attributes', 'Add non-empty src="..." and label="..." attributes to the Asset tag.')
     }
+    if (/^\s*<Storyboard\b/.test(line) && (storyboardTag(line) === null || lines[i - 1]?.trim() || lines[i + 1]?.trim())) {
+      add(i + 1, 'storyboard-block', 'Put one self-closing <Storyboard src=".assets/<card id>/storyboard.json" /> tag on its own line, with blank lines around it.')
+    }
   }
   if (fence) add(fence.line, 'code-fence', `Unclosed code block. Close it with ${fence.char.repeat(fence.length)} on its own line.`)
   if (comment) add(lines.length, 'comment', 'Unclosed HTML comment. Add --> so the rest of the card remains visible.')
@@ -133,6 +144,43 @@ export function validateSpec(file: string, text: string): ContractError[] {
     const next = headings.find((h) => h.line > todo.line)?.line ?? lines.length + 1
     if (!visible.slice(todo.line, next - 1).some((line) => /^\s*[-*+]\s*\[[ xX]?\]/.test(line))) add(todo.line, 'todos', '## Todo needs at least one checkbox step, for example - [ ] Implement the requested behavior.')
   }
+  if (id !== undefined) errors.push(...validateStoryboards(file, id, text))
+  return errors
+}
+
+/** A file inside `dir`, symlinks resolved — `null` when absent or when it leads out. */
+function inside(dir: string, name: string): string | null {
+  try {
+    const root = fs.realpathSync(dir)
+    const real = fs.realpathSync(path.join(dir, name))
+    return real.startsWith(root + path.sep) && fs.statSync(real).isFile() ? real : null
+  } catch {
+    return null
+  }
+}
+
+/** Every storyboard the card points at, checked against its JSON and frames (#963). */
+export function validateStoryboards(file: string, id: number, text: string): ContractError[] {
+  const errors: ContractError[] = []
+  const dir = path.join(ASSETS, String(id))
+  for (const marker of storyboardMarkers(text)) {
+    const named = assetName(marker.src, id, ['json'])
+    if (!('name' in named)) {
+      errors.push({ file: rel(file), line: marker.line, rule: 'storyboard-src', message: `Storyboard src is ${named.actual}; expected ${named.expected}.` })
+      continue
+    }
+    const json = inside(dir, named.name)
+    const shown = rel(json ?? path.join(dir, named.name))
+    const { diagnostics } = checkStoryboard(json ? fs.readFileSync(json, 'utf8') : null, {
+      file: shown,
+      cardId: id,
+      read: (name) => {
+        const frame = inside(dir, name)
+        return frame ? fs.readFileSync(frame) : null
+      },
+    })
+    errors.push(...diagnostics.map((d: StoryboardDiagnostic) => ({ ...d, line: d.line ?? 1, rule: 'storyboard', message: formatDiagnostic(d) })))
+  }
   return errors
 }
 
@@ -160,7 +208,7 @@ export function validateRunSpecs(
   return [...now].flatMap(([file, card]) => {
     const own = human?.cards.has(card.id) ? validateHumanSection(file, card.text, human) : []
     if (card.id !== target && !required.has(card.id) && (heldElsewhere.has(card.id) || before.get(file)?.text === card.text)) return own
-    return [...validateSpec(file, card.text), ...own]
+    return [...validateSpec(file, card.text, card.id), ...own]
   })
 }
 

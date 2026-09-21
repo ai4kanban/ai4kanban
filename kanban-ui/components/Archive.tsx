@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { FiArchive, FiTag } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupSet } from "@/lib/mockup-tag";
+import type { StoryboardSet } from "@/lib/storyboard";
 import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, MemoryOwner } from "@/lib/types";
 import { CardBody } from "./CardBody";
 import { HAIRLINE } from "./chrome";
@@ -231,6 +232,7 @@ function RecordEndsHere({ label, count }: { label: string; count: number }) {
 export function ArchivedCardPage({
   card,
   mockups,
+  storyboards,
   openIds,
   agent,
   projectRoot,
@@ -240,6 +242,7 @@ export function ArchivedCardPage({
 }: {
   card: ArchivedCardFile;
   mockups?: MockupSet;
+  storyboards?: StoryboardSet;
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
@@ -281,7 +284,7 @@ export function ArchivedCardPage({
         </div>
       )}
       <div className="mt-4 flex flex-col gap-2">
-        <CardBody body={card.body} title={card.title} cardId={card.id} mockups={mockups} />
+        <CardBody body={card.body} title={card.title} cardId={card.id} mockups={mockups} storyboards={storyboards} />
       </div>
     </ArchiveFrame>
   );

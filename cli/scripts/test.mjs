@@ -36,7 +36,7 @@ await esbuild.build({
   format: 'esm',
   target: 'node18',
   outExtension: { '.js': '.mjs' },
-  loader: { '.md': 'text', '.tsx': 'text' },
+  loader: { '.md': 'text', '.tsx': 'text', '.json': 'text' },
   legalComments: 'none',
   // Same reason as the build's: an ESM bundle holding a CommonJS dependency needs a
   // `require` in scope (scripts/build.mjs).

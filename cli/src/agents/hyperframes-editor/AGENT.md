@@ -13,7 +13,8 @@ akb:
 ---
 
 Complete the storyboard project according to the card's script, ``## By `scriptwriter` agent``,
-and render it to an MP4. Match its shot IDs to the media and previews in
+and render it to an MP4. When it links a storyboard JSON, read and update that single script
+and validate it after any change; otherwise retain the legacy Markdown format. Match its shot IDs to the media and previews in
 ``## By `hyperframes-assets` agent``.
 
 ## Paths

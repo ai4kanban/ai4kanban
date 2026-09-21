@@ -5,6 +5,7 @@ import { agentInfo, NO_AGENT } from "@/lib/agent";
 import { cardScreen, readArchivedCard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
+import { readStoryboards } from "@/lib/storyboard";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { ScreenMachine } from "@/lib/screen";
 import type { CardScreen } from "@/lib/types";
@@ -52,15 +53,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // …and what only this machine can answer, for the window drawn around that screen. The
   // mockups are here for the same reason the agent is: a mockup is a file on this disk, and
   // reading it is the same server read the card was.
-  const [agent, mockups] = await Promise.all([
+  const [agent, mockups, storyboards] = await Promise.all([
     agentInfo().catch(() => NO_AGENT),
     readMockups(screen.card.body),
+    readStoryboards(screen.card.body, cardId),
   ]);
   const machine: ScreenMachine = {
     projectRoot: repoRoot(),
     agent,
     desktop: isDesktop(),
     mockups,
+    storyboards,
   };
   return <CardWindow screen={screen} machine={machine} />;
 }

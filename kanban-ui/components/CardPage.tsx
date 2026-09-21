@@ -1389,6 +1389,7 @@ export function CardPage({
   // travels with the machine rather than on the card's read. A caller without one draws the
   // tags as the plain links they are.
   const mockups = useMachine()?.mockups ?? {};
+  const storyboards = useMachine()?.storyboards;
   const { card, openIds, releases, plan, diff, hold, standing: boardState } = screen;
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -2340,6 +2341,7 @@ export function CardPage({
                 title={card.title}
                 cardId={card.id}
                 mockups={mockups}
+                storyboards={storyboards}
                 questions={card.questions}
               />
 

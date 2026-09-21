@@ -21,6 +21,7 @@
 
 import { createContext, useContext } from "react";
 import type { MockupSet } from "./mockup-tag";
+import type { StoryboardSet } from "./storyboard";
 import type {
   AgentInfo,
   BoardScreen,
@@ -131,6 +132,8 @@ export interface ScreenMachine {
   /** The screens the card on screen points its `<Mockup>` tags at, already read off this
    *  disk (#239). Absent on the board, which draws none. */
   mockups?: MockupSet;
+  /** The storyboards its `<Storyboard>` tags point at (#963), read the same way. */
+  storyboards?: StoryboardSet;
 }
 
 // ---- which of a card page's controls a surface offers (#364) ----------------

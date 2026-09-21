@@ -89,6 +89,8 @@ Every flow writes a card in this order:
 - **Keep bullets atomic**: use `- **<short title>**: <one clear sentence>` for one rule per
   bullet.
 - **Specify behavior**: omit planning notes and unnecessary coding details.
+- **Supported embeds**: only valid `<Asset>` and `<Storyboard>` markers alone in a paragraph
+  embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
 - **Say each decision once**: merge duplicates across the three decision sections; remove
   decisions that only repeat scope or no longer apply.
 

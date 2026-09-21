@@ -74,6 +74,8 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //                            laid out — and the two screen shapes assembled from one Cloud
 //                            read. `akb` reads a card off disk with these; a hosted page
 //                            reads the same card over the network with them.
+//   storyboard               the storyboard JSON contract (#963) — `akb raw validate` and the
+//                            card page check a script with the same rules.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
@@ -88,6 +90,7 @@ const SHARED = [
   "board/contract.ts",
   "board/screen.ts",
   "board/assemble.ts",
+  "storyboard.ts",
 ];
 
 const BANNER = (name) =>

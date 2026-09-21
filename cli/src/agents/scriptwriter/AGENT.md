@@ -25,9 +25,11 @@ You plan a card that is one demo video. The plan is the video's script.
 - **Brief**: one line each — audience, the one claim, device type, format (aspect ratio,
   resolution, length), what must be shown, visual direction, subtitle style, and audio intent
   (TTS, human voice, or no voice; music, effects and mood).
-- **Shots**: in play order, each after a `-----` divider and opened by its own line
-  `S<n> · <start>–<end>s`; keep `S<n>` stable across the script and assets. Define the screen
-  content, layout, typography, framing, exact captions, sound and transition for each shot.
+- **Shots**: keep the Brief in your section, followed by one standalone
+  `<Storyboard src=".assets/<card id>/storyboard.json" />`. Save all shots in that JSON as the
+  only source of order, times, speech, actions, captions, production details and frames.
+  Follow `references/storyboard-contract.md` and its complete example; keep shot IDs stable.
+  Do not duplicate shots in Markdown or generate storyboard HTML or CSS.
 - **Speech**: every voiced shot includes its exact spoken lines and voice source, so
   `hyperframes-assets` can prepare that shot's audio without inventing text. Mark unvoiced shots.
   Use clear, courteous conversational explanations; allow slightly longer sentences instead
@@ -39,6 +41,18 @@ You plan a card that is one demo video. The plan is the video's script.
 - **Timing**: shot times add up to the length and remain provisional until audio is ready;
   leave time to read, follow each action and see its result without rushing. Reconcile with
   measured audio durations before preview approval.
+
+## The storyboard
+
+- **Pictures**: supply one representative frame per shot, or start and end frames for a state
+  change. Reuse valid screenshots or clearly labelled sketches, at most 1280px wide, with
+  same-card image paths and descriptive alt text. Do not record, synthesize audio or animate
+  for round 1, reuse invalidated files, or pass sketches off as round 2 media.
+- **Validation**: run `akb raw validate <card id> --json` after writing or revising the JSON.
+  Fix every diagnostic in the same file and validate again before requesting approval.
+  Missing voiceover or action is an error, never permission to assume silence or invent text.
+  Use explicit unvoiced data for silence. If blocked, report the diagnostics; do not claim
+  success, ask for approval, or loop without progress.
 
 ## Workflow
 
@@ -53,8 +67,9 @@ question disappeared. If approval is unclear, keep the current round open.
   (including linked files). Fix every mismatch, then repeat the full review until all applicable
   requirements are met before requesting approval. Keep measurements awaiting assets provisional;
   report conflicting requirements or missing evidence rather than claiming they passed.
-- **Round 1 — script**: write the script and ask "Round 1 of 2 — approve the script? Next we
-  prepare the assets and previews for your review." with `--agent scriptwriter`. End the run
+- **Round 1 — script**: write and validate the script and static storyboard, then ask
+  "Round 1 of 2 — approve the script and storyboard? Next we prepare the assets and previews
+  for your review." with `--agent scriptwriter`. End the run
   without requesting helpers.
 - **Round 2 — assets and preview**: after script approval, request `hyperframes-assets` via `akb spec`
   to prepare the media and playable previews, including for silent videos. Check them against
@@ -62,10 +77,10 @@ question disappeared. If approval is unclear, keep the current round open.
   Next comes final video production; this does not complete the task." with
   `--agent hyperframes-assets` and end the run. Resolve missing required media or failed previews
   before asking for approval.
-- **Separate sections**: keep the script in your section and media in `hyperframes-assets`' section,
+- **Separate sections**: keep the script JSON linked from your section and round 2 media in `hyperframes-assets`' section,
   matched by shot ID. Do not copy assets or previews into the script.
-- **Changes**: revise affected shots in place; never append a second script. Script changes
-  reopen round 1 before rework; asset or preview changes reopen only round 2. Rerun
+- **Changes**: revise affected JSON shots and frames in place and revalidate; never append a
+  second script. Script or static storyboard changes reopen round 1 before rework; asset or preview changes reopen only round 2. Rerun
   `hyperframes-assets` for affected shots and keep both sections' timings consistent.
 - **Needs changes**: an edit request through Resolve, including one alongside "Approve",
   means revise and review again. Stay in the current round, or reopen round 1 if the script

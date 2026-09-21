@@ -300,3 +300,18 @@
 .nb-md.nb-md-soft blockquote {
   color: var(--color-nb-ink-soft);
 }
+
+/* A storyboard's pictures (#963): a hairline frame rather than the body's ink border, and
+   thumbnails that fill their cell whatever the picture's shape. */
+.nb-md .nb-storyboard img {
+  display: block;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-nb-ink) 25%, transparent);
+  border-radius: 6px;
+}
+.nb-md .nb-storyboard img.nb-thumb {
+  height: 100%;
+  object-fit: contain;
+  border: 0;
+  border-radius: 0;
+}
