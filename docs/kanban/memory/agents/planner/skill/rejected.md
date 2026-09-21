@@ -22,6 +22,9 @@ before proposing so you don't re-suggest them.
   fill in yet, and a second call site means two flows to keep in step. Refine asks.
 - **`akb.produces`, a frontmatter field declaring a spec agent's output formats** — a format
   contract written into the agent's own prompt is enough.
+- **Seeding a shot reference library for `scriptwriter`** — how a recipe entry is written is
+  already owned by the `recipe-creator` skill, so restating that convention in the agent's own
+  index gives one rule two homes to drift between.
 - **OpenDesign as a third mockup style** — until our own drawing is good, a style that spawns
   a second coding agent with its own sign-in buys a shared look on a moving foundation.
 

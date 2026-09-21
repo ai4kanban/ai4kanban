@@ -31,6 +31,8 @@ One line per durable choice the user made about these designs.
   ready or has failed; while checking or downloading, draw nothing.
 - **定期整理独占一行太丑**：收成「立即整理」旁的小控件，点击才展开周期设置；周期用含关闭和预设的单一
   菜单，预设选中即保存，自定义才显示数值、单位和可选时间。按在哪里就答在哪里。
+- **「与 X 共用，修改同步生效」这类整行说明太占地方**：收成名称旁的「共用 · X」小标签，后果放进它的
+  悬停提示；腾出的行让操作按钮并进名称行。
 - **自建 Agent 只填名称、阶段、指令、运行时**：名称支持中文显示名，内部标识自动生成。指令框就是它
   整份 `AGENT.md`（frontmatter 在内），所以往里加一个键不需要新表单字段。
 - **复制来的 agent 要画成复制后的样子**：运行时直接显示来源 agent 那一个；规则框里是复制来的原文，
@@ -58,3 +60,7 @@ One line per durable choice the user made about these designs.
 - **定价一律画成具体金额，不留「待定 / 面议」**：档位块直接写出数字和计费周期，占位的价格不算画完
   这一屏。
 - **Usage dashboard**: show production data only; no development data or environment switch.
+
+## Storyboards
+
+- **全片浏览用顶部时间线，不用侧栏索引**：条目多到一行放不下时，用悬停平滑放大代替横向滚动。

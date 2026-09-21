@@ -33,7 +33,9 @@ Use the first available source for each file:
 
 - **Capture**: record the scripted shots in the running product with demo data through existing
   browser automation or screen recording; convert with `ffmpeg` when needed. Follow the shot's
-  scripted capture requirements and sequence. Keep source captures.
+  scripted capture requirements and sequence. Keep source captures. Before reporting capture as
+  blocked, search for browser and recording tools through the harness's tool discovery; one tool
+  failing does not rule out others.
 - **Names**: use short, lowercase names with extensions, numbered by shot, e.g.
   `01-open-board.mp4`, `01-narration.wav`. The editor uses these exact names.
 - **Tools**: use existing tools and HyperFrames; install nothing else.

@@ -216,5 +216,11 @@ components are read from the app's own `design.md`, never written here.
 - **An email is drawn by running the product's own template**, patched for the copy, with
   images handed back as `data:` URIs; the images-off and plain-text states then come free.
   Hide images without placeholders or reserved height.
+- **The board draws every mockup at 1280×800, so `max-sm:` never fires there**: a narrow
+  screen hard-codes its stacked layout inside a 390px box, and a copied narrow dialog's
+  `fixed` becomes `absolute`, or it spreads across the whole canvas.
 - **Never bundle the board's own mockup library to preview with** — it shells out through the
   CLI and hangs.
+- **An `.html` asset's `#` link resolves against the board page** and replaces the frame with
+  it: put `<base href="about:srcdoc">` in its head, and in-page jumps, `:target` and
+  `<details>` all work without scripts.

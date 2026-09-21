@@ -37,14 +37,18 @@ covers it, or a plain-words note.
   A review stage is a list of reviewers with no lead, and a workflow with none delivers
   unreviewed: `web/content/docs/agents.mdx`.
 - 只有编码工作流才开分支和 worktree：其他工作流直接在项目目录里运行、不提交也不合入，多张卡可同时跑；
-  自建工作流在「高级设置」里用「使用独立 Git 工作区」切换：`web/content/docs/daily-loop.mdx`。
+  自建工作流在名称旁 `⋯` 的「高级设置」里用「使用独立 Git 工作区」切换：`web/content/docs/daily-loop.mdx`。
+- 工作流的复制、重命名、删除都在名称旁的 `⋯` 里；删除前按钮直接写明要删的工作流，仍有卡片在用时只说明原因。
 - An agent is an ordinary `AGENT.md`: its `description` is what the panes show, `akb.stage`
   says which stage it can take, `akb.output: human` puts its section above `<!-- agent -->`,
   and `lead: true` is what lets it lead a stage rather than help. `akb guide write-agent`
   covers writing one: `web/content/docs/agents.mdx`.
 - A spec agent's memory is its own `AGENT.md`'s business: every file in
   `docs/kanban/memory/agents/<agent>/` is handed to each of its runs, and the memory panel
-  lists only the agents that have written one: `web/content/docs/agents.mdx`.
+  lists only the agents that have written one: `web/content/docs/agents.mdx`. Files split
+  into the folder named after an entry file (`feedback/<topic>.md`) are listed under it in the
+  panel, open as their own pages, and the entry file's index links to them; runs still get
+  only the top-level files.
 - A memory file belongs to whoever writes it: `docs/kanban/memory/` holds the board's own
   record and goal, and everything a run learned is an agent's, under `memory/agents/<agent>/`.
   Memory keeps only notes that change a later planning call; asking not to record suppresses
