@@ -61,11 +61,10 @@ const en: ConfigurationCopy = {
     noCandidates: "No available agents",
     newAgent: "Create one",
     newAgentHint: "A new agent can be a helper or a reviewer",
-    alsoUsedBy: (flows) =>
-      `Also used by ${list(flows)} — a change here reaches ${flows.length === 1 ? "it" : "them"} too.`,
+    sharedWith: (flows) => `Shared · ${flows.join(", ")}`,
+    sharedTip: (flows) => `Changes here also apply to ${list(flows)}`,
     usedOnlyHere: "Only this workflow uses it.",
     unused: "No workflow uses it yet.",
-    extraPointer: "To change only what this workflow asks of it, use Extra requirements below.",
     roleNote: "A built-in role. Its brief ships with the command and cannot be edited.",
     deleteUsedBy: (flows) => `${list(flows)} still ${flows.length === 1 ? "uses" : "use"} it.`,
     more: (flow) => `More for ${flow}`,

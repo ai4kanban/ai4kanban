@@ -102,13 +102,12 @@ export type ConfigurationCopy = {
     noCandidates: string;
     newAgent: string;
     newAgentHint: string;
-    /** Where else the selected agent is used, on its page. Shared instructions are shared,
-     *  so a change to them lands everywhere — which is why the pointer to this workflow's
-     *  own extra requirements sits right under it. */
-    alsoUsedBy: (flows: string[]) => string;
+    /** Where else the selected agent is used: a chip beside its name, and the tip saying a
+     *  change reaches those workflows too. */
+    sharedWith: (flows: string[]) => string;
+    sharedTip: (flows: string[]) => string;
     usedOnlyHere: string;
     unused: string;
-    extraPointer: string;
     /** Under a built-in role's line: its brief ships with the command. */
     roleNote: string;
     /** One more line in the delete confirmation, when workflows still assign it. */

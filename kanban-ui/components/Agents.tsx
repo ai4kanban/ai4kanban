@@ -371,6 +371,7 @@ export function AgentDetail({
   agent,
   info,
   corner,
+  tag,
   usage,
   actions,
   extra,
@@ -384,9 +385,11 @@ export function AgentDetail({
   info: AgentInfo;
   /** Beside the agent's name, right-aligned — the workflow's own menu. */
   corner?: React.ReactNode;
+  /** Beside the agent's name, left — which other workflows share it. */
+  tag?: React.ReactNode;
   /** Under the agent's line: where else it is used, and what a role cannot be told. */
   usage?: React.ReactNode;
-  /** Actions of this pane's own, in a row under the header beside Delete. */
+  /** Actions of this pane's own, beside Delete and `corner`. */
   actions?: React.ReactNode;
   /** A section between the settings and the instruction box. */
   extra?: React.ReactNode;
@@ -424,6 +427,7 @@ export function AgentDetail({
       busySwitch={roster.saving.includes(agent.name)}
       busy={(key) => roster.saving.includes(`${agent.name}/${key}`)}
       corner={corner}
+      tag={tag}
       usage={usage}
       actions={actions}
       extra={extra}
@@ -787,6 +791,7 @@ function Page({
   busySwitch,
   busy,
   corner,
+  tag,
   usage,
   actions,
   extra,
@@ -815,11 +820,12 @@ function Page({
   /** The switch, or the delete, is in flight — they are the same agent-wide save. */
   busySwitch: boolean;
   busy: (key: string) => boolean;
-  /** What the pane around this page adds (#944). `corner` sits beside the agent's name,
-   *  `usage` under its line, `actions` in a row of its own beside Delete, `extra` between
-   *  the settings and the instruction box, and `deleteNote` is one more line in the
+  /** What the pane around this page adds (#944). `corner` sits at the name row's right with
+   *  `actions` and Delete before it, `tag` beside the name, `usage` under its line, `extra`
+   *  between the settings and the instruction box, and `deleteNote` is one more line in the
    *  delete confirmation. */
   corner?: React.ReactNode;
+  tag?: React.ReactNode;
   usage?: React.ReactNode;
   actions?: React.ReactNode;
   extra?: React.ReactNode;
@@ -879,8 +885,7 @@ function Page({
   // is the page ending under the pane's floor.
   /* Only an agent this project added: a role runs the board's own flows and a bundled agent
      ships inside the command, so neither is this board's to remove. Where it is drawn is the
-     pane's answer — beside the board's own controls, or in the row of actions the workflow
-     pane puts under the header. */
+     pane's answer — beside the board's own controls, or beside the workflow pane's corner. */
   const removal = agent.file ? (
     <span ref={anchor} className="relative shrink-0">
       <button type="button" className={DANGER_BTN} disabled={busySwitch} onClick={() => setAsking(true)}>
@@ -916,13 +921,18 @@ function Page({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-[14px] font-[800] text-nb-ink">{title}</span>
-                {agent.file && (
-                  <span className="min-w-0 text-[11px] text-nb-ink-soft">{c.yours}</span>
-                )}
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="shrink-0 text-[14px] font-[800] text-nb-ink">{title}</span>
+                {agent.file && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
+                {tag}
               </div>
-              {corner}
+              {corner && (
+                <div className="flex shrink-0 items-center gap-1">
+                  {actions}
+                  {removal}
+                  {corner}
+                </div>
+              )}
             </div>
             {/* A specialist's description is a paragraph at times, and a paragraph in a
                 header is read by nobody, so all but its first sentence opens. A role says when
@@ -939,8 +949,8 @@ function Page({
             (#715). A second switch here, beside the first, is two controls for one answer.
             What is left is the three agents whose page carries an action of its own — the
             pruner (#514), the sweeper (#119) and the memory reviewer (#748) — and an added
-            agent's Delete, each keeping the place it already had. A pane that puts its own
-            actions under the header (#944) takes the Delete with them. */}
+            agent's Delete, each keeping the place it already had. A pane with a `corner` (#944)
+            draws the Delete beside it. */}
         {!corner && (
           <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
             {agent.name === PRUNER && <PruneControls onError={onError} />}
@@ -951,13 +961,6 @@ function Page({
           </div>
         )}
       </div>
-
-      {corner && (actions || removal) && (
-        <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
-          {actions}
-          {removal}
-        </div>
-      )}
 
       <hr className="shrink-0 border-nb-ink/10" />
 

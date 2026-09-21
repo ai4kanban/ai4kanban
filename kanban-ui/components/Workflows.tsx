@@ -22,6 +22,7 @@ import {
   FiCheck,
   FiChevronDown,
   FiChevronRight,
+  FiLink,
   FiMoreHorizontal,
   FiPlus,
   FiSearch,
@@ -50,6 +51,7 @@ import type {
   WorkflowView,
 } from "@/lib/types";
 import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
+import { ELASTIC_CHIP } from "./chips";
 import {
   ACCENT_BTN,
   CAPTION,
@@ -578,7 +580,8 @@ export function WorkflowsPanel({
                 onRuntimes={onRuntimes}
                 onError={onError}
                 corner={menuNode}
-                usage={<Usage agent={agent} here={flow} users={usersOf(agent.name)} scoped={!isLead} />}
+                tag={<SharedChip here={flow} users={usersOf(agent.name)} />}
+                usage={<Usage agent={agent} here={flow} users={usersOf(agent.name)} />}
                 deleteNote={deleteNote(c, usersOf(agent.name).map(nameOf))}
                 onDeleted={load}
                 actions={
@@ -648,35 +651,39 @@ export function WorkflowsPanel({
   );
 }
 
-/** Where else this agent is used, and what that means for the box below (#944). A shared
- *  agent's instructions are shared with it, so the way to change only what THIS workflow
- *  asks is the extra requirements — said here, where the edit is about to be made. */
-function Usage({
-  agent,
-  here,
-  users,
-  scoped,
-}: {
-  agent: AgentView;
-  here: WorkflowView;
-  users: WorkflowView[];
-  /** Whether this assignment has extra requirements of its own — a lead has none. */
-  scoped: boolean;
-}) {
+/** The workflows besides this one that assign the agent — its instructions are theirs too. */
+const othersOf = (here: WorkflowView, users: WorkflowView[]) => users.filter((f) => f.id !== here.id);
+
+/** Beside a shared agent's name: which workflows share it, and in its tip what that means. */
+function SharedChip({ here, users }: { here: WorkflowView; users: WorkflowView[] }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
-  const others = users.filter((f) => f.id !== here.id);
-  const line = !users.length
-    ? c.unused
-    : others.length
-      ? c.alsoUsedBy(others.map(nameOf))
-      : c.usedOnlyHere;
+  const others = othersOf(here, users).map(nameOf);
+  if (!others.length) return null;
+  return (
+    <span
+      tabIndex={0}
+      className="nb-chip nb-tip nb-tip-start min-w-0 self-center"
+      data-tip={c.sharedTip(others)}
+      style={{
+        ...ELASTIC_CHIP,
+        background: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)",
+        color: "var(--color-nb-ink-soft)",
+      }}
+    >
+      <FiLink aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="truncate">{c.sharedWith(others)}</span>
+    </span>
+  );
+}
+
+/** Under the line of an agent no other workflow shares (#944). */
+function Usage({ agent, here, users }: { agent: AgentView; here: WorkflowView; users: WorkflowView[] }) {
+  const c = useCopy().configuration.workflows;
+  const line = !users.length ? c.unused : othersOf(here, users).length ? "" : c.usedOnlyHere;
   return (
     <>
-      <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink">
-        {line}
-        {others.length > 0 && scoped && <span className="text-nb-ink-soft"> {c.extraPointer}</span>}
-      </p>
+      {line && <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink">{line}</p>}
       {agent.kind === "role" && (
         <p className="mt-0.5 text-[11.5px] leading-[17px] text-nb-ink-soft">{c.roleNote}</p>
       )}
