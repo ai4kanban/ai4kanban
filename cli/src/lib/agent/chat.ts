@@ -398,6 +398,30 @@ export function clearChatPlan(cardId: ChatTarget, planPath?: string): boolean {
   return true
 }
 
+/** A resume replaced run `from` with `to`: every plan handed to `from` now names `to`, or a
+ *  handoff would read its run as gone and put the discussion back (#970). Left unsorted —
+ *  nobody spoke to these conversations. */
+export function repointChatRuns(from: string, to: string): void {
+  let names: string[]
+  try {
+    names = fs.readdirSync(CHATS_DIR).filter((name) => name.endsWith('.json'))
+  } catch {
+    return
+  }
+  for (const name of names) {
+    let target: ChatTarget
+    try {
+      target = (JSON.parse(fs.readFileSync(path.join(CHATS_DIR, name), 'utf8')) as Partial<Chat>).cardId ?? null
+    } catch {
+      continue
+    }
+    const chat = readChat(target)
+    if (!chat?.plans?.some((p) => p.run === from)) continue
+    chat.plans = chat.plans.map((p) => (p.run === from ? { ...p, run: to } : p))
+    writeChat(chat)
+  }
+}
+
 /** Name one discussion (#496). Written straight onto its file, so the rail and `akb chat`
  *  read the same name. */
 export function setChatTitle(cardId: ChatTarget, title: string): void {

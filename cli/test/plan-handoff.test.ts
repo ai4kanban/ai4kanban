@@ -10,11 +10,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { clearChatPlan, noteChatMessage, openPlans, readChat, setChatPlan } from '../src/lib/agent/chat.ts'
+import { clearChatPlan, noteChatMessage, openPlans, readChat, repointChatRuns, setChatPlan } from '../src/lib/agent/chat.ts'
 import { readDiscuss, startedPlanning } from '../src/lib/agent/discuss.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { archiveDiscussion, listDiscussions, startDiscussion } from '../src/lib/agent/discussions.ts'
-import { withStore } from '../src/lib/agent/store.ts'
+import { logPathOf, withStore } from '../src/lib/agent/store.ts'
 import type { DiscussionTarget, RunRecord } from '../src/lib/agent/types.ts'
 import { dropPlan, planFile, planPathInText, readPlan } from '../src/lib/plans.ts'
 import { PLANS, PLANS_ARCHIVE, TODO, setBoardRoot } from '../src/lib/paths.ts'
@@ -59,7 +59,7 @@ const discussing = (): DiscussionTarget => {
 // wrote; left running, it is one nobody is waiting on yet.
 const run = (over: Partial<RunRecord> = {}): string => {
   const sessionId = `s${++next}`
-  const logPath = path.join(root, 'docs', 'kanban', '.sessions', `${sessionId}.log`)
+  const logPath = logPathOf(sessionId)
   // The record drops a finished run whose log has gone, so give it one.
   fs.mkdirSync(path.dirname(logPath), { recursive: true })
   fs.writeFileSync(logPath, '')
@@ -191,11 +191,38 @@ describe('the run that wrote nothing', () => {
     assert.equal(fileIsThere(PLAN_REL), true)
   })
 
-  it('gives it back when the record no longer holds the run at all', () => {
+  it('keeps it out when the record no longer holds the run at all (#970)', () => {
     const target = discussing()
     startedPlanning('trimmed-away', 'plan', target)
-    assert.equal(rowIsThere(target), true)
+    assert.equal(rowIsThere(target), false)
     assert.equal(fileIsThere(PLAN_REL), true)
+  })
+})
+
+describe('a run continued under another id (#970)', () => {
+  it('follows the handoff to the run that replaced it', () => {
+    const target = discussing()
+    card(9)
+    const first = run()
+    startedPlanning(first, 'plan', target)
+    // A resume drops the record it continues and carries on under a new id.
+    const second = run({ createdCardIds: [9] })
+    withStore((store) => {
+      store.runs = store.runs.filter((r) => r.sessionId !== first)
+      return null
+    })
+    repointChatRuns(first, second)
+
+    assert.equal(rowIsThere(target), false)
+    assert.equal(readChat(target)?.plans?.[0]?.run, second)
+
+    withStore((store) => {
+      const found = store.runs.find((r) => r.sessionId === second)
+      if (found) Object.assign(found, { status: 'done', ok: true, endedAt: Date.now() })
+      return null
+    })
+    assert.equal(rowIsThere(target), false)
+    assert.equal(fileIsThere(FILED_REL), true)
   })
 })
 

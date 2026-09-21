@@ -56,7 +56,7 @@ import { stampDismissalReview, stampMemoryPrune, stampMemoryReview } from './set
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
-import { cardsDiscussing } from './chat'
+import { cardsDiscussing, repointChatRuns } from './chat'
 import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
@@ -1008,6 +1008,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   const inherited = readAsks(prev.sessionId)
   if (inherited.asks.length || inherited.refines.length) writeAsks(sessionId, inherited)
   clearAsks(prev.sessionId)
+  repointChatRuns(prev.sessionId, sessionId)
   try {
     fs.unlinkSync(prev.logPath)
   } catch {

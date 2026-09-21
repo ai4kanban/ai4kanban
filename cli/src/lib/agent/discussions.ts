@@ -163,7 +163,9 @@ function settleHandoff(target: DiscussionTarget, chat: Chat): boolean {
     const run = peekRun(id)
     return run && { live: runIsLive(run), cards: run.createdCardIds ?? [] }
   }
-  if (openPlans(chat).some((p) => p.run && look(p.run)?.live)) return false
+  // A run with no record is not one that wrote nothing: it may have been continued under
+  // another id, so the row stays out rather than coming back unasked (#970).
+  if (openPlans(chat).some((p) => p.run && (look(p.run)?.live ?? true))) return false
   settlePlans(target, look)
   const open = openPlans(readChat(target)).length > 0
   setChatArchived(target, !open)
