@@ -16,7 +16,7 @@
 // Which agents can take a stage is the board's answer, asked for with the rest; so is every
 // refusal. Nothing here has a copy of those rules.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiCheck,
@@ -576,8 +576,8 @@ export function WorkflowsPanel({
             )}
           </div>
 
-          {/* The selected agent, whole: what it is, where else it is used, what this stage
-              asks of it on top of that, and the instructions it carries everywhere. */}
+          {/* The selected agent: what it is, where else it is used, and what this stage
+              asks of it. */}
           <div className="flex min-w-0 flex-1 flex-col">
             {agent && flow && (
               <AgentDetail
@@ -611,21 +611,18 @@ export function WorkflowsPanel({
                   !isLead ? (
                     <section className="shrink-0">
                       <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                        <h4 className={`${CAPTION} text-nb-ink-soft`}>{c.extra}</h4>
-                        <span className="shrink-0 text-[10.5px] text-nb-ink-soft">
+                        <h4 className={`${CAPTION} shrink-0 text-nb-ink-soft`}>{c.extra}</h4>
+                        <span className="min-w-0 truncate text-[10.5px] text-nb-ink-soft">
                           {c.extraScope(nameOf(flow), c.stages[stage])}
                         </span>
                       </div>
-                      <textarea
+                      <ExtraBox
                         key={extraKey(agent.name)}
                         value={extraOf(agent.name)}
                         placeholder={c.extraPlaceholder}
-                        aria-label={c.extra}
-                        onChange={(e) =>
-                          setExtras((all) => ({ ...all, [extraKey(agent.name)]: e.target.value }))
-                        }
+                        label={c.extra}
+                        onChange={(text) => setExtras((all) => ({ ...all, [extraKey(agent.name)]: text }))}
                         onBlur={() => void saveExtra(agent.name)}
-                        className={`${CONTROL} h-[60px] resize-none text-[12px] leading-[19px]`}
                       />
                     </section>
                   ) : undefined
@@ -652,6 +649,55 @@ export function WorkflowsPanel({
         </Note>
       )}
     </div>
+  );
+}
+
+/** The stage's instruction box, as tall as its words. */
+function ExtraBox({
+  value,
+  placeholder,
+  label,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  placeholder: string;
+  label: string;
+  onChange: (text: string) => void;
+  onBlur: () => void;
+}) {
+  const box = useRef<HTMLTextAreaElement>(null);
+  const fit = useCallback(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+  useLayoutEffect(fit, [value, fit]);
+  // A narrower pane wraps the same words onto more lines.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fit();
+    });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [fit]);
+  return (
+    <textarea
+      ref={box}
+      rows={2}
+      value={value}
+      placeholder={placeholder}
+      aria-label={label}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      className={`${CONTROL} min-h-[60px] resize-none overflow-hidden text-[12px] leading-[19px]`}
+    />
   );
 }
 

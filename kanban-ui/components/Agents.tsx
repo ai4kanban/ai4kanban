@@ -123,6 +123,9 @@ const REVIEWER_OF_MEMORY = "memory-reviewer";
 // The dismissal reviewer (#929): the pruner's controls, on by default.
 const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
 
+// The board's own "who is the output for" row, on every spec agent (#445).
+const OUTPUT_KEY = "output";
+
 /** The roster, and every write that touches it — read once and shared by the two panes that
  *  draw an agent (#944). Configuration → Board lists the agents the board runs itself;
  *  Configuration → Workflows lists the ones a workflow assigns, stage by stage. Both open
@@ -392,7 +395,8 @@ export function AgentDetail({
   usage?: React.ReactNode;
   /** Actions of this pane's own, beside Delete. */
   actions?: React.ReactNode;
-  /** A section between the settings and the instruction box. */
+  /** A section between the settings and the instruction box; in a `scoped` pane it takes
+   *  the rule box's place. */
   extra?: React.ReactNode;
   /** One more line in the delete confirmation — which workflows lose it. */
   deleteNote?: string;
@@ -871,6 +875,10 @@ function Page({
   // owns only the words appended to its runs.
   const writesRule = !agent.file;
   const off = !agent.enabled;
+  // In a workflow the stage's own box is the one place to add instructions (#976): the
+  // board-wide rule and who the output is for stay as saved, edited elsewhere.
+  const stageBox = !!(scoped && extra);
+  const settings = stageBox ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings;
 
   // The report is read in this pane rather than over it (#119): the dialog is already a
   // window, and the way back is the settings this was opened from.
@@ -983,7 +991,7 @@ function Page({
           resolves to, what the pick costs. The runtime row is absent on rules older than the
           release that added it (#469), rather than drawn empty with a list that could only
           fail. */}
-      {(agent.runs || agent.settings.length > 0) && (
+      {(agent.runs || settings.length > 0) && (
         <div className="flex shrink-0 flex-col gap-5">
           {agent.runs && (
             <SettingRow
@@ -1000,7 +1008,7 @@ function Page({
               }
             />
           )}
-          {agent.settings.map((setting: SpecAgentSettingView) => (
+          {settings.map((setting: SpecAgentSettingView) => (
             <SettingPick
               key={setting.key}
               setting={setting}
@@ -1021,80 +1029,82 @@ function Page({
           section, between what the agent runs as and the instructions it always carries. */}
       {extra}
 
-      <section className="flex min-h-0 flex-1 flex-col">
-        <h4 className="shrink-0 text-[13.5px] font-[800] leading-tight text-nb-ink">
-          {writesRule ? c.rule : c.file}
-        </h4>
-        {/* Where the file actually is (#715). An agent this project added is a file on disk
-            like any other, and a person editing it in their own editor needs the path — so
-            it is drawn, in full, with one press to copy it. */}
-        {!writesRule && agent.file && (
-          <div className="mt-2 flex shrink-0 items-start gap-2 rounded-[10px] bg-nb-wash px-3 py-2">
-            <code className="min-w-0 flex-1 select-text break-all font-mono text-[11.5px] leading-[20px] text-nb-ink">
-              {agent.file.path}
-            </code>
-            <CopyPath path={agent.file.path} />
-          </div>
-        )}
-        {/* What may go in the file, one press from the box you write it in (#935). It opens
-            here rather than in a browser: the desktop window hands an external link to the
-            system browser, and a hand-off that fails is a click that did nothing. Only an
-            agent this project added — a built-in agent's box is a rule, not an `AGENT.md`. */}
-        {!writesRule && agent.file && (
-          <GuideDrawer
-            guide="agents"
-            title={c.guideTitle}
-            className="mt-2 shrink-0 text-[12px] leading-relaxed text-nb-ink-soft"
-          >
-            {c.guideLine}
-          </GuideDrawer>
-        )}
-        {writesRule ? (
-          <textarea
-            key={`rule/${agent.name}`}
-            value={rule}
-            onChange={(e) => onRule(e.target.value)}
-            onBlur={onLeave}
-            spellCheck={false}
-            aria-label={c.ruleLabel(agent.name)}
-            placeholder={placeholder}
-            className="mt-2 min-h-[110px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-3 py-2.5 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
-          />
-        ) : (
-          <>
+      {!(stageBox && writesRule) && (
+        <section className="flex min-h-0 flex-1 flex-col">
+          <h4 className="shrink-0 text-[13.5px] font-[800] leading-tight text-nb-ink">
+            {writesRule ? c.rule : c.file}
+          </h4>
+          {/* Where the file actually is (#715). An agent this project added is a file on disk
+              like any other, and a person editing it in their own editor needs the path — so
+              it is drawn, in full, with one press to copy it. */}
+          {!writesRule && agent.file && (
+            <div className="mt-2 flex shrink-0 items-start gap-2 rounded-[10px] bg-nb-wash px-3 py-2">
+              <code className="min-w-0 flex-1 select-text break-all font-mono text-[11.5px] leading-[20px] text-nb-ink">
+                {agent.file.path}
+              </code>
+              <CopyPath path={agent.file.path} />
+            </div>
+          )}
+          {/* What may go in the file, one press from the box you write it in (#935). It opens
+              here rather than in a browser: the desktop window hands an external link to the
+              system browser, and a hand-off that fails is a click that did nothing. Only an
+              agent this project added — a built-in agent's box is a rule, not an `AGENT.md`. */}
+          {!writesRule && agent.file && (
+            <GuideDrawer
+              guide="agents"
+              title={c.guideTitle}
+              className="mt-2 shrink-0 text-[12px] leading-relaxed text-nb-ink-soft"
+            >
+              {c.guideLine}
+            </GuideDrawer>
+          )}
+          {writesRule ? (
             <textarea
-              ref={box}
-              key={`file/${agent.name}`}
-              value={file ?? ""}
-              onChange={(e) => onFile(e.target.value)}
+              key={`rule/${agent.name}`}
+              value={rule}
+              onChange={(e) => onRule(e.target.value)}
               onBlur={onLeave}
               spellCheck={false}
-              aria-label={c.fileLabel(agent.name)}
-              className="mt-2 min-h-[190px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+              aria-label={c.ruleLabel(agent.name)}
+              placeholder={placeholder}
+              className="mt-2 min-h-[110px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-3 py-2.5 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
             />
-            {/* The board reads the text the way its catalog reads an agent. A save it would
-                refuse keeps every word of it, keeps this page open, and says what is wrong. */}
-            {refusal && (
-              <p className="mt-2 flex shrink-0 items-start gap-2 rounded-[9px] bg-nb-peach-soft px-2.5 py-[7px] text-[11.5px] leading-[16px] text-nb-peach-ink">
-                <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />
-                <span className="min-w-0">
-                  {c.notSaved} {refusal}
-                </span>
-              </p>
-            )}
-          </>
-        )}
-        {/* Where the words go, and — for the moment after a save — that they got there. One
-            line, so the box is never followed by two. */}
-        {saved ? (
-          <p className="mt-1.5 flex shrink-0 items-center gap-1 text-[11.5px] font-[700] text-nb-mint-ink">
-            <FiCheck aria-hidden />
-            {c.saved}
-          </p>
-        ) : (
-          <p className="mt-1.5 shrink-0 text-[11.5px] text-nb-ink-soft">{c.savedHere}</p>
-        )}
-      </section>
+          ) : (
+            <>
+              <textarea
+                ref={box}
+                key={`file/${agent.name}`}
+                value={file ?? ""}
+                onChange={(e) => onFile(e.target.value)}
+                onBlur={onLeave}
+                spellCheck={false}
+                aria-label={c.fileLabel(agent.name)}
+                className="mt-2 min-h-[190px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+              />
+              {/* The board reads the text the way its catalog reads an agent. A save it would
+                  refuse keeps every word of it, keeps this page open, and says what is wrong. */}
+              {refusal && (
+                <p className="mt-2 flex shrink-0 items-start gap-2 rounded-[9px] bg-nb-peach-soft px-2.5 py-[7px] text-[11.5px] leading-[16px] text-nb-peach-ink">
+                  <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />
+                  <span className="min-w-0">
+                    {c.notSaved} {refusal}
+                  </span>
+                </p>
+              )}
+            </>
+          )}
+          {/* Where the words go, and — for the moment after a save — that they got there. One
+              line, so the box is never followed by two. */}
+          {saved ? (
+            <p className="mt-1.5 flex shrink-0 items-center gap-1 text-[11.5px] font-[700] text-nb-mint-ink">
+              <FiCheck aria-hidden />
+              {c.saved}
+            </p>
+          ) : (
+            <p className="mt-1.5 shrink-0 text-[11.5px] text-nb-ink-soft">{c.savedHere}</p>
+          )}
+        </section>
+      )}
 
       {/* What this role has left to say — how the decider chooses (#447), what the triager
           costs beside the other two switches (#562), what the memory review rewrites rather
