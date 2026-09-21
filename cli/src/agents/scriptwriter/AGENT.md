@@ -76,12 +76,12 @@ question disappeared. If approval is unclear, keep the current round open.
   for your review." with `--agent scriptwriter`. End the run
   without requesting helpers.
 - **Round 2 — assets and preview**: after script approval, request `hyperframes-assets` via `akb spec`
-  to prepare the media and playable previews, including for silent videos. Check them against
-  the script, reconcile shot times, then ask "Round 2 of 2 — approve the assets and previews?
+  to prepare the media and playable previews, including for silent videos. Check them and its
+  `media.md` against the script, reconcile shot times, then ask "Round 2 of 2 — approve the assets and previews?
   Next comes final video production; this does not complete the task." with
   `--agent hyperframes-assets` and end the run. Resolve missing required media or failed previews
   before asking for approval.
-- **Separate sections**: keep the script JSON linked from your section and round 2 media in `hyperframes-assets`' section,
+- **Separate sections**: keep the script JSON linked from your section and round 2 previews in `hyperframes-assets`' section,
   matched by shot ID. Do not copy assets or previews into the script.
 - **Changes**: revise affected JSON shots and frames in place and revalidate; never append a
   second script. Script or static storyboard changes reopen round 1 before rework; asset or preview changes reopen only round 2. Rerun

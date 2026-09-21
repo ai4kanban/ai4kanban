@@ -59,8 +59,8 @@ playable preview the user reviews in the board. The HyperFrames editor finishes 
   `npx hyperframes init <dir> --non-interactive`; pin HyperFrames as a project dependency.
 - **Build**: assemble the scripted shots with the prepared media. Label missing items as
   placeholders and exclude obsolete files. Final editing and mixing remain the editor's work.
-- **Timing**: report measured audio durations and any mismatch with the script to the
-  scriptwriter. Apply the reconciled shot timings; HyperFrames owns playback on one timeline.
+- **Timing**: record measured audio durations and any mismatch with the script in the index
+  for the scriptwriter. Apply the reconciled shot timings; HyperFrames owns playback on one timeline.
 - **Export**: export each shot from the project as a self-contained `shot-<n>.hf.html` in
   `<board-state>/assets/<card id>/`, with runtime, fonts and media embedded, no network or
   local-path access, and matching the installed board player runtime version. Reset its local
@@ -69,8 +69,8 @@ playable preview the user reviews in the board. The HyperFrames editor finishes 
 - **Controls**: the board player owns playback, seeking and mute. Export the composition only;
   never embed a playbar, autoplay, or a separate media clock in the shot.
 - **Check it**: lint and check the project, then play, pause and drag each preview in the board.
-  Keep a mid-shot `frame-<n>.png` as a static fallback. Report a failed or blocked check
-  honestly, and never call a failed export playable.
+  Keep a mid-shot `frame-<n>.png` as a static fallback. Record every check in the index; never
+  call a failed export playable.
 
 ## Verify
 
@@ -88,9 +88,18 @@ For every selected asset:
 
 - **Availability**: confirm the file exists in the card's asset folder.
 - **Sensitive data**: remove secrets, personal data and private paths using demo data or
-  blurring; report what you changed.
+  blurring; record what you changed.
 - **Duration**: record audio/video length in seconds; for stills, record planned screen time.
   Shot durations remain provisional until audio is ready.
+
+## The index
+
+Keep `media.md` in the asset folder as the full record the editor and scriptwriter read. Give
+the project path, then, grouped by `S<n>` with shared media first, one line per file: name,
+use, source and rights, duration or size, and status — ready, provisional (replacement),
+missing (what the human must supply), or obsolete (replacement; never played). For repository
+assets, the source path is enough. Add the checks run, their results and sensitive data
+removed. Update it in place.
 
 ## Memory
 
@@ -119,18 +128,16 @@ Read and apply relevant guidance before preparing assets; the approved script wi
 
 ## What to answer
 
-Update your section in place, grouped by the script's stable `S<n>` IDs. Give the asset folder
-and shared project path once; list shared media once before the shots.
+Update your section in place, grouped by the script's stable `S<n>` IDs. The user reviews the
+assembled previews, not the files behind them.
 
-- **Media**: present each shot's clips, images and audio with an `<Asset>` block on its own
-  line, outside lists. State file name, content, duration or size, source and rights, and status:
-  ready, provisional (replacement), missing (what the human must supply), or obsolete
-  (replacement; never played). For repository assets, the source path is enough.
 - **Preview**: under each shot label, put
-  `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` on its own line. State its
-  duration, remaining placeholders and fallback path; never present a preview as finished footage.
-- **Blocked work**: report failed checks or exports without calling them playable. For missing
-  human recordings, relay the scripted lines or actions, format and target length. Note sensitive
-  data removed. Refresh affected media and previews in place; keep this section separate from
-  the script.
+  `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` on its own line, then one
+  line with its duration and the placeholders it still shows; never present a preview as finished
+  footage. When its export failed, show `frame-<n>.png` instead and say the preview failed.
+- **Needs you**: before the shots, list only what blocks review or needs the user: items the
+  human must supply or decide, including unclear rights; for missing recordings, the scripted
+  lines or actions, format and target length.
+- **Nothing else**: file lists, sources, measurements and check records stay in `media.md`.
+  Refresh affected previews in place; keep this section separate from the script.
 - **No approved script**: write no section; report that the script is missing or unapproved.
