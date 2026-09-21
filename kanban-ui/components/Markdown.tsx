@@ -39,7 +39,7 @@ import { useOpenIds } from "./open-ids";
 const urlTransform = (url: string) =>
   url.startsWith("card:") ? url : defaultUrlTransform(url);
 
-// remark plugin: turn `#<number>` in PLAIN TEXT into a card link, but only for
+// remark plugin: turn `#<number>` in PLAIN TEXT (outside links) into a card link, but only for
 // ids that are still open. Because it visits mdast `text` nodes only, `#12`
 // inside inline code or a fenced block (which live on `inlineCode`/`code` nodes)
 // is never touched. Non-open ids are left as plain text — no dead links.
@@ -49,8 +49,10 @@ function remarkCardLinks(openIds: Set<number>) {
   // makes unified invoke it with no tree.
   return () => (tree: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    visit(tree as any, "text", (node: any, index: number | undefined, parent: any) => {
-      if (index == null || !parent) return;
+    visit(tree as any, (node: any, index: number | undefined, parent: any) => {
+      // Text already inside a link stays as it is: a link within a link is invalid HTML.
+      if (node.type === "link" || node.type === "linkReference") return SKIP;
+      if (node.type !== "text" || index == null || !parent) return;
       const value: string = node.value;
       const regex = /#(\d+)/g;
       const children: unknown[] = [];
