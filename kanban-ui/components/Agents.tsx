@@ -370,7 +370,7 @@ export function AgentDetail({
   roster,
   agent,
   info,
-  corner,
+  scoped,
   tag,
   usage,
   actions,
@@ -383,13 +383,13 @@ export function AgentDetail({
   roster: AgentRoster;
   agent: AgentView;
   info: AgentInfo;
-  /** Beside the agent's name, right-aligned — the workflow's own menu. */
-  corner?: React.ReactNode;
+  /** Drawn inside a workflow: this pane's actions and Delete sit at the name row's right. */
+  scoped?: boolean;
   /** Beside the agent's name, left — which other workflows share it. */
   tag?: React.ReactNode;
   /** Under the agent's line: where else it is used, and what a role cannot be told. */
   usage?: React.ReactNode;
-  /** Actions of this pane's own, beside Delete and `corner`. */
+  /** Actions of this pane's own, beside Delete. */
   actions?: React.ReactNode;
   /** A section between the settings and the instruction box. */
   extra?: React.ReactNode;
@@ -426,7 +426,7 @@ export function AgentDetail({
       }}
       busySwitch={roster.saving.includes(agent.name)}
       busy={(key) => roster.saving.includes(`${agent.name}/${key}`)}
-      corner={corner}
+      scoped={scoped}
       tag={tag}
       usage={usage}
       actions={actions}
@@ -790,7 +790,7 @@ function Page({
   onDelete,
   busySwitch,
   busy,
-  corner,
+  scoped,
   tag,
   usage,
   actions,
@@ -820,11 +820,11 @@ function Page({
   /** The switch, or the delete, is in flight — they are the same agent-wide save. */
   busySwitch: boolean;
   busy: (key: string) => boolean;
-  /** What the pane around this page adds (#944). `corner` sits at the name row's right with
-   *  `actions` and Delete before it, `tag` beside the name, `usage` under its line, `extra`
-   *  between the settings and the instruction box, and `deleteNote` is one more line in the
-   *  delete confirmation. */
-  corner?: React.ReactNode;
+  /** What the pane around this page adds (#944). `scoped` puts `actions` and Delete at the
+   *  name row's right, `tag` sits beside the name, `usage` under its line, `extra` between the
+   *  settings and the instruction box, and `deleteNote` is one more line in the delete
+   *  confirmation. */
+  scoped?: boolean;
   tag?: React.ReactNode;
   usage?: React.ReactNode;
   actions?: React.ReactNode;
@@ -885,7 +885,7 @@ function Page({
   // is the page ending under the pane's floor.
   /* Only an agent this project added: a role runs the board's own flows and a bundled agent
      ships inside the command, so neither is this board's to remove. Where it is drawn is the
-     pane's answer — beside the board's own controls, or beside the workflow pane's corner. */
+     pane's answer — beside the board's own controls, or at the workflow pane's name row. */
   const removal = agent.file ? (
     <span ref={anchor} className="relative shrink-0">
       <button type="button" className={DANGER_BTN} disabled={busySwitch} onClick={() => setAsking(true)}>
@@ -926,11 +926,10 @@ function Page({
                 {agent.file && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
                 {tag}
               </div>
-              {corner && (
+              {scoped && (actions || removal) && (
                 <div className="flex shrink-0 items-center gap-1">
                   {actions}
                   {removal}
-                  {corner}
                 </div>
               )}
             </div>
@@ -949,9 +948,9 @@ function Page({
             (#715). A second switch here, beside the first, is two controls for one answer.
             What is left is the three agents whose page carries an action of its own — the
             pruner (#514), the sweeper (#119) and the memory reviewer (#748) — and an added
-            agent's Delete, each keeping the place it already had. A pane with a `corner` (#944)
-            draws the Delete beside it. */}
-        {!corner && (
+            agent's Delete, each keeping the place it already had. A `scoped` pane (#944) draws
+            the Delete beside its own actions. */}
+        {!scoped && (
           <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
             {agent.name === PRUNER && <PruneControls onError={onError} />}
             {agent.name === REVIEWER_OF_DISMISSALS && <DismissalControls onError={onError} />}

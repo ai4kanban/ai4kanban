@@ -112,18 +112,19 @@ export type ConfigurationCopy = {
     roleNote: string;
     /** One more line in the delete confirmation, when workflows still assign it. */
     deleteUsedBy: (flows: string[]) => string;
-    /** The more menu — named after the workflow it acts on (#944), because it sits beside
-     *  the selected AGENT and everything in it is the workflow's. Its first row repeats
-     *  that name, so nothing in it reads as the agent's. */
+    /** The more menu beside the workflow's name (#964), read out with that name. */
     more: (flow: string) => string;
     duplicate: string;
     rename: string;
     remove: string;
+    /** The fold at the menu's foot that holds the worktree switch (#964). */
+    advanced: string;
     /** The name box a new or renamed workflow is typed into. It saves on blur and has no
      *  buttons, so this is only read out loud. */
     nameLabel: string;
     namePlaceholder: string;
-    /** Confirming a delete, and what it says when open cards still run on it. */
+    /** The confirm button — the action and the name, no question — and what shows instead
+     *  when open cards still run on it. */
     confirmDelete: (name: string) => string;
     inUse: (n: number) => string;
     /** Under the name of a workflow an upgrade took an assignment off (#945): what took the

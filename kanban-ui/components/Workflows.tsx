@@ -304,16 +304,16 @@ export function WorkflowsPanel({
   const agent = roster.agents?.find((a) => a.name === shown);
   const isLead = !!setup && !reviewing && shown === setup.lead;
 
-  // Everything about the WORKFLOW rather than about the agent on screen. Drawn in the right
-  // column's top corner whether or not this stage has anybody in it — a workflow you cannot
-  // rename because its review stage is empty is a workflow nobody can fix.
+  // Beside the workflow's name, whatever the stage holds and whoever is selected (#964).
   const menuNode = flow ? (
     <MoreMenu
       open={menu}
-      onOpen={() => setMenu((was) => !was)}
+      onOpen={() => {
+        setPicking(null);
+        setMenu((was) => !was);
+      }}
       onDismiss={() => setMenu(false)}
       label={c.more(nameOf(flow))}
-      flowName={nameOf(flow)}
       flow={flow}
       onSaved={load}
       onError={onError}
@@ -357,39 +357,45 @@ export function WorkflowsPanel({
               bottom in the order they are read, with the rule down the right edge running
               the whole height of the pane. */}
           <div className="flex w-[292px] shrink-0 flex-col border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
-            <div className="mb-5 flex shrink-0 flex-col gap-3">
-              <div className="relative w-full">
-                {naming ? (
-                  <NameBox
-                    label={c.nameLabel}
-                    placeholder={c.namePlaceholder}
-                    value={naming.text}
-                    onChange={(text) => setNaming({ ...naming, text })}
-                    onBlur={() => void nameBlur()}
-                  />
-                ) : (
-                  flow && (
-                    <button
-                      type="button"
-                      aria-label={c.title}
-                      aria-expanded={picking === "flow"}
-                      onClick={() => setPicking((was) => (was === "flow" ? null : "flow"))}
-                      className={`${FLAT_CONTROL} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3 ${
-                        picking === "flow" ? "outline-2 outline-nb-accent" : ""
-                      }`}
-                    >
-                      <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
-                        {nameOf(flow)}
-                      </span>
-                      {flow.builtIn && (
-                        <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
-                      )}
-                      {flow.isDefault && <Pill>{c.isDefault}</Pill>}
-                      {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
-                      <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
-                    </button>
-                  )
-                )}
+            <div className="mb-5 flex shrink-0 flex-col gap-5">
+              <div className="relative flex w-full items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  {naming ? (
+                    <NameBox
+                      label={c.nameLabel}
+                      placeholder={c.namePlaceholder}
+                      value={naming.text}
+                      onChange={(text) => setNaming({ ...naming, text })}
+                      onBlur={() => void nameBlur()}
+                    />
+                  ) : (
+                    flow && (
+                      <button
+                        type="button"
+                        aria-label={c.title}
+                        aria-expanded={picking === "flow"}
+                        onClick={() => {
+                          setMenu(false);
+                          setPicking((was) => (was === "flow" ? null : "flow"));
+                        }}
+                        className={`${FLAT_CONTROL} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3 ${
+                          picking === "flow" ? "outline-2 outline-nb-accent" : ""
+                        }`}
+                      >
+                        <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
+                          {nameOf(flow)}
+                        </span>
+                        {flow.builtIn && (
+                          <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
+                        )}
+                        {flow.isDefault && <Pill>{c.isDefault}</Pill>}
+                        {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+                        <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
+                      </button>
+                    )
+                  )}
+                </div>
+                {menuNode}
                 {picking === "flow" && (
                   <FlowPicker
                     flows={flows}
@@ -579,7 +585,7 @@ export function WorkflowsPanel({
                 info={info}
                 onRuntimes={onRuntimes}
                 onError={onError}
-                corner={menuNode}
+                scoped
                 tag={<SharedChip here={flow} users={usersOf(agent.name)} />}
                 usage={<Usage agent={agent} here={flow} users={usersOf(agent.name)} />}
                 deleteNote={deleteNote(c, usersOf(agent.name).map(nameOf))}
@@ -626,10 +632,7 @@ export function WorkflowsPanel({
               />
             )}
             {!agent && flow && (
-              <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 text-[12px] leading-[19px] text-nb-ink-soft">{c.emptyPage}</p>
-                {menuNode}
-              </div>
+              <p className="min-w-0 text-[12px] leading-[19px] text-nb-ink-soft">{c.emptyPage}</p>
             )}
           </div>
         </div>
@@ -989,15 +992,13 @@ function AgentPicker({
   );
 }
 
-/** Everything about the WORKFLOW rather than about the agent on screen: renaming it,
- *  duplicating it, whether its deliveries get a Git worktree of their own (#874), and
- *  deleting it. */
+/** Everything about the WORKFLOW: duplicating, renaming and deleting it, and — folded away
+ *  under Advanced settings — whether its deliveries get a Git worktree of their own (#874). */
 function MoreMenu({
   open,
   onOpen,
   onDismiss,
   label,
-  flowName,
   items,
   danger,
   flow,
@@ -1008,7 +1009,6 @@ function MoreMenu({
   onOpen: () => void;
   onDismiss: () => void;
   label: string;
-  flowName: string;
   items: { label: string; run: () => void }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
   flow: WorkflowView;
@@ -1016,87 +1016,102 @@ function MoreMenu({
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.workflows;
-  // How many open cards the delete would strand, asked as the menu opens so the confirm row
+  // How many open cards the delete would strand, asked as the menu opens so the confirm step
   // can SAY it — a delete that fails after the click is a rule the user learns by hitting it.
   const [held, setHeld] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
   const box = useDismiss<HTMLDivElement>(onDismiss);
   const on = !flow.needsArtifact;
   useEffect(() => {
-    if (!open) return void setAsking(false);
+    if (!open) {
+      setAsking(false);
+      setAdvanced(false);
+      return;
+    }
     if (!danger) return;
     void cardsOnWorkflowAction(danger.id).then((res) => setHeld(res.cards.length));
   }, [open, danger]);
+  const row = "flex h-[31px] w-full cursor-pointer items-center rounded-[7px] px-2.5 text-left text-[12px] font-[600]";
   return (
     <div className="relative shrink-0">
-      <button type="button" aria-label={label} className={`${QUIET_BTN} px-2`} onClick={onOpen}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={onOpen}
+        className={`${FLAT_CONTROL} grid size-[44px] cursor-pointer place-items-center rounded-[10px] text-nb-ink focus-visible:outline-2 focus-visible:outline-nb-accent ${
+          open ? "outline-2 outline-nb-accent" : ""
+        }`}
+      >
         <FiMoreHorizontal aria-hidden className="text-[17px]" />
       </button>
       {open && (
         <div
           ref={box}
-          className="absolute right-0 top-[35px] z-20 w-[258px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
+          className="absolute right-0 top-full z-30 mt-4 w-[258px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
         >
-          {/* Whose menu this is. It opens beside the selected agent, so without this line
-              every row in it reads as something done to that agent. */}
-          <p className={`${CAPTION} truncate px-2.5 pt-1 pb-1.5 text-nb-ink-soft/70`}>{flowName}</p>
           {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={item.run}
-              className="block h-[31px] w-full cursor-pointer rounded-[7px] px-2.5 text-left text-[12px] font-[600]"
-            >
+            <button key={item.label} type="button" onClick={item.run} className={row}>
               {item.label}
             </button>
           ))}
-          {/* On is a branch and a worktree per delivery, for code; off works in the project
-              and delivers files. A built-in's is fixed, so it is shown rather than offered. */}
-          <div className="mt-1 border-t border-nb-ink/10 px-2.5 pt-2 pb-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="min-w-0 text-[12px] font-[600]">{c.worktree}</span>
-              {flow.builtIn ? (
-                <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
-                  {on ? c.worktreeOn : c.worktreeOff}
-                </span>
-              ) : (
-                <Switch
-                  on={on}
-                  label={c.worktree}
-                  onFlip={async (next) => {
-                    const res = await setWorkflowWorktreeAction(flow.id, next);
-                    if (res.ok) await onSaved();
-                    else onError?.(c.worktreeSaveFailed);
-                  }}
-                />
-              )}
-            </div>
-            <p className="mt-1 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.worktreeHint}</p>
-          </div>
           {danger && !asking && (
-            <button
-              type="button"
-              onClick={() => setAsking(true)}
-              className="mt-1 block h-[31px] w-full cursor-pointer rounded-[7px] px-2.5 text-left text-[12px] font-[600] text-nb-peach-ink"
-            >
+            <button type="button" onClick={() => setAsking(true)} className={`${row} mt-1 text-nb-peach-ink`}>
               {danger.label}
             </button>
           )}
-          {danger && asking && (
-            <div className="px-2.5 py-2">
-              <p className="text-[12px] font-[700]">{danger.confirm}</p>
-              {held ? <p className="mt-1 text-[11.5px] text-nb-ink-soft">{danger.inUse(held)}</p> : null}
-              {held === 0 && (
+          {danger && asking && held !== null && (
+            <div className="mt-1 px-2.5 py-2">
+              {held > 0 ? (
+                <p className="text-[11.5px] text-nb-ink-soft">{danger.inUse(held)}</p>
+              ) : (
                 <button
                   type="button"
                   onClick={danger.run}
-                  className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink"
+                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink [overflow-wrap:anywhere]"
                 >
-                  {danger.label}
+                  {danger.confirm}
                 </button>
               )}
             </div>
           )}
+          {/* On is a branch and a worktree per delivery, for code; off works in the project
+              and delivers files. A built-in's is fixed, so it is shown rather than offered. */}
+          <div className="mt-1 border-t border-nb-ink/10 pt-1">
+            <button
+              type="button"
+              aria-expanded={advanced}
+              onClick={() => setAdvanced((was) => !was)}
+              className={`${row} justify-between text-nb-ink-soft`}
+            >
+              {c.advanced}
+              {advanced ? <FiChevronDown aria-hidden /> : <FiChevronRight aria-hidden />}
+            </button>
+            {advanced && (
+              <div className="px-2.5 pt-2 pb-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 text-[12px] font-[600]">{c.worktree}</span>
+                  {flow.builtIn ? (
+                    <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
+                      {on ? c.worktreeOn : c.worktreeOff}
+                    </span>
+                  ) : (
+                    <Switch
+                      on={on}
+                      label={c.worktree}
+                      onFlip={async (next) => {
+                        const res = await setWorkflowWorktreeAction(flow.id, next);
+                        if (res.ok) await onSaved();
+                        else onError?.(c.worktreeSaveFailed);
+                      }}
+                    />
+                  )}
+                </div>
+                <p className="mt-1 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.worktreeHint}</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

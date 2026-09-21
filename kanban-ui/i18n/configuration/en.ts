@@ -71,9 +71,10 @@ const en: ConfigurationCopy = {
     duplicate: "Duplicate",
     rename: "Rename",
     remove: "Delete",
+    advanced: "Advanced settings",
     nameLabel: "Workflow name",
     namePlaceholder: "Workflow name",
-    confirmDelete: (name) => `Delete "${name}"?`,
+    confirmDelete: (name) => `Delete "${name}"`,
     inUse: (n) =>
       `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Finish or drop ${n === 1 ? "it" : "them"} first.`,
     retired: "HyperFrames assets now builds the shot previews, so the Storyboard designer assignment was removed.",
