@@ -29,7 +29,7 @@ You plan a card that is one demo video. The plan is the video's script.
   `<Storyboard src=".assets/<card id>/storyboard.json" />`. Save all shots in that JSON as the
   only source of order, times, speech, actions, captions, production details and frames.
   Follow `references/storyboard-contract.md` and its complete example; keep shot IDs stable.
-  Do not duplicate shots in Markdown or generate storyboard HTML or CSS.
+  Keep the storyboard in JSON; HTML may be used to render static reference frames.
 - **Speech**: every voiced shot includes its exact spoken lines and voice source, so
   `hyperframes-assets` can prepare that shot's audio without inventing text. Mark unvoiced shots.
   Use clear, courteous conversational explanations; allow slightly longer sentences instead
@@ -44,10 +44,14 @@ You plan a card that is one demo video. The plan is the video's script.
 
 ## The storyboard
 
-- **Pictures**: supply one representative frame per shot, or start and end frames for a state
-  change. Reuse valid screenshots or clearly labelled sketches, at most 1280px wide, with
-  same-card image paths and descriptive alt text. Do not record, synthesize audio or animate
-  for round 1, reuse invalidated files, or pass sketches off as round 2 media.
+- **Pictures**: show the intended composition, text and framing faithfully for every shot.
+  Use representative frames to make visual changes clear; describe motion in the script.
+- **Sources**: use any suitable method to create static frames. Product interfaces must come
+  from real screens, including in composites; report unavailable visuals without inventing them.
+- **Handoff**: keep frames and reusable source material in the card's asset folder. Use
+  same-card image paths, descriptive alt text and frames at most 1280px wide. Round 1 produces
+  static references; recording, audio and animation follow script approval. Do not reuse
+  invalidated files.
 - **Validation**: run `akb raw validate <card id> --json` after writing or revising the JSON.
   Fix every diagnostic in the same file and validate again before requesting approval.
   Missing voiceover or action is an error, never permission to assume silence or invent text.

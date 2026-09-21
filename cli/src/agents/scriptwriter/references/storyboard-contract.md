@@ -10,7 +10,9 @@ same-card storyboard attachment.
   source. Never replace a missing field with null, blank text or a guessed default.
 - **Content**: action states what changes or deliberately stays still; captions lists exact
   screen text, or an explicit empty array. Details defines layout, framing, typography, sound,
-  motion and transitions. Frame entries contain only a same-card src and descriptive alt.
+  motion and transitions, and links reusable frame sources. Frame entries contain only a
+  same-card src and descriptive alt. If more visual references are needed, link additional
+  same-card frames in details; frame limits do not determine shot boundaries.
 - **Timing**: unique stable S-number IDs, finite seconds, positive durations, starting at zero
   with consecutive shots meeting at their boundaries; the array determines playback order.
 - **Repair**: run `akb raw validate <card id> --json`; fix every field or asset named by its
