@@ -39,12 +39,12 @@ import { useCopy } from "@/i18n/use-copy";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { LEAVES_SHEET } from "@/lib/create-open";
-import { memoryKey, memoryAgentOf, useOpenOwners } from "@/lib/memory-panel";
+import { memoryKey, memoryAgentOf, memoryTree, useOpenOwners } from "@/lib/memory-panel";
 import { useMemoryOwnerName } from "./memory-owner";
 import type { MemoryName, MemoryOwner } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { HAIRLINE, PHONE_ROW } from "./chrome";
+import { HAIRLINE, PHONE_ROW, SPINE } from "./chrome";
 import { configDialog, PRUNER } from "./Configuration";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
@@ -310,25 +310,36 @@ function MemoryRows({
   active: string | null;
 }) {
   const c = useCopy().rail.memory;
+  const row = (name: string, label: string) => {
+    const key = memoryKey(agent, name);
+    return (
+      <Link
+        key={name}
+        href={`/memory/${key}`}
+        aria-current={active === key ? "page" : undefined}
+        className={cn(PHONE_ROW, active === key && "border-nb-ink bg-nb-paper")}
+      >
+        <FiFileText size={15} className="shrink-0 text-nb-ink-soft" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
+      </Link>
+    );
+  };
+  // The rail's tree (#959). The spine's centre sits on the entry file's icon centre: 12px
+  // padding + the border (1.5px, drawn as 1px) + half of 15px.
   return (
     <>
-      {files.map((name) => {
-        const key = memoryKey(agent, name);
-        return (
-          <Link
-            key={name}
-            href={`/memory/${key}`}
-            aria-current={active === key ? "page" : undefined}
-            className={cn(PHONE_ROW, active === key && "border-nb-ink bg-nb-paper")}
-          >
-            <FiFileText size={15} className="shrink-0 text-nb-ink-soft" aria-hidden />
-            <span className="min-w-0 flex-1 truncate">
-              {c.files[name as keyof RailCopy["memory"]["files"]] ?? name}
-            </span>
-            <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
-          </Link>
-        );
-      })}
+      {memoryTree(files).map(({ name, kids }) => (
+        <div key={name} className="flex flex-col gap-1">
+          {row(name, c.files[name as keyof RailCopy["memory"]["files"]] ?? name)}
+          {kids.length > 0 && (
+            <div className="relative flex flex-col gap-1 pl-8">
+              <span aria-hidden className="absolute bottom-1 left-[20px] top-0 w-px" style={{ background: SPINE }} />
+              {kids.map((kid) => row(kid.name, kid.label))}
+            </div>
+          )}
+        </div>
+      ))}
     </>
   );
 }

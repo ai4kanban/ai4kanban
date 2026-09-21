@@ -35,6 +35,7 @@ const en: RailCopy = {
       redesign: "Design mistakes",
       rejected: "Rejected ideas",
       dismissed: "Triage preferences",
+      feedback: "Feedback",
     },
     prune: "Prune memory",
     pruneTitle: "Prune memory — opens its page in Configuration",

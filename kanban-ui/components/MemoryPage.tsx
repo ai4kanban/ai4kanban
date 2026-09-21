@@ -12,7 +12,7 @@
 // Settled decisions, and a page headed `decisions.md` would read as a different thing. Where
 // the file sits is the ⋯ menu's business, not the page's.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiCheck, FiCopy, FiMoreHorizontal } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import type { RailCopy } from "@/i18n/rail/types";
@@ -56,10 +56,17 @@ export function MemoryPage({
   const c = useCopy().rail;
   // The owner's own title comes off the group the panel drew, so a specialist's page is
   // headed the way its row beside it reads — a role's own name is this copy's either way.
-  const owner = useMemoryOwnerName({
-    agent: file.agent,
-    title: memoryOwners.find((o) => o.agent === file.agent)?.title ?? "",
-  });
+  const held = memoryOwners.find((o) => o.agent === file.agent);
+  const owner = useMemoryOwnerName({ agent: file.agent, title: held?.title ?? "" });
+  const label = (name: string) => c.memory.files[name as keyof RailCopy["memory"]["files"]] ?? name;
+  // A file split out of an entry file (#959) is headed by its name in that folder, under the
+  // entry file's.
+  const slash = file.name.indexOf("/");
+  const entry = slash > 0 ? file.name.slice(0, slash) : "";
+  const links = useMemo(
+    () => ({ agent: file.agent, name: file.name, files: held?.files ?? [] }),
+    [file.agent, file.name, held?.files],
+  );
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const refresh = useCallback(() => router.refresh(), [router]);
@@ -119,10 +126,10 @@ export function MemoryPage({
                 {/* Whose memory this is. Two agents' `decisions.md` carry the same label,
                     so without the owner over it they read as the same page (#130, #805). */}
                 <p className="mb-0.5 truncate text-[11px] font-[800] uppercase tracking-[0.12em] text-nb-ink-soft">
-                  {owner}
+                  {entry ? `${owner} · ${label(entry)}` : owner}
                 </p>
                 <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">
-                  {c.memory.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
+                  {entry ? file.name.slice(slash + 1) : label(file.name)}
                 </h1>
               </div>
               <PathMenu file={file} />
@@ -130,7 +137,7 @@ export function MemoryPage({
 
             <div className="nb-panel-sm p-5 max-md:p-4">
               {file.written ? (
-                <Markdown body={file.text} />
+                <Markdown body={file.text} memory={links} />
               ) : (
                 // The row stays on a board that has never written this file, so the page has
                 // to say why it is empty. An empty panel would read as a failed read.

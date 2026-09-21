@@ -15,6 +15,41 @@ export function memoryAgentOf(key: string | null): string {
   return at > 0 ? key!.slice(0, at) : "";
 }
 
+/** An owner's files as the panel draws them (#959): each entry file with the files split out
+ *  into its folder, named by their path under it — `feedback/recipes/tour` is `recipes/tour`
+ *  under `feedback`, so the tree never grows past two levels. */
+export function memoryTree(files: string[]): { name: string; kids: { name: string; label: string }[] }[] {
+  const top = files.filter((name) => !name.includes("/"));
+  return top.map((name) => ({
+    name,
+    kids: files
+      .filter((kid) => kid.startsWith(`${name}/`))
+      .map((kid) => ({ name: kid, label: kid.slice(name.length + 1) })),
+  }));
+}
+
+/** Where a relative `.md` link in one memory file lands, as a memory key — or null when it
+ *  names no file that owner holds. Resolved against the folder the file sits in. */
+export function memoryLinkKey(href: string, agent: string, from: string, files: string[]): string | null {
+  const [target] = href.split("#");
+  if (!target?.endsWith(".md")) return null;
+  let path: string;
+  try {
+    path = decodeURI(target);
+  } catch {
+    return null;
+  }
+  const parts = from.split("/").slice(0, -1);
+  for (const part of path.slice(0, -3).split("/")) {
+    if (part === "..") {
+      if (!parts.length) return null;
+      parts.pop();
+    } else if (part && part !== ".") parts.push(part);
+  }
+  const name = parts.join("/");
+  return files.includes(name) ? memoryKey(agent, name) : null;
+}
+
 // Whether the rail's Memory panel is expanded, remembered across reloads (#129).
 //
 // Kept in the browser like the rail's width, and not keyed by project: whether you keep

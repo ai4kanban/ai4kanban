@@ -25,16 +25,46 @@ import { MEMORY_FILES, type MemoryFile, type MemoryName, type MemoryOwner } from
 // folder under the name it wrote it under (#945), and this panel reads and writes the same
 // files its prompt is handed.
 const memoryPath = (name: string, agent: string): string =>
-  path.join(agent ? agentMemoryDir(agent) : MEMORY, `${name}.md`)
+  path.join(agent ? agentMemoryDir(agent) : MEMORY, ...`${name}.md`.split('/'))
 
 const nameOf = (file: string): MemoryName => file.replace(/\.md$/, '') as MemoryName
 
+// How far below an entry file's folder the panel looks.
+const SPLIT_DEPTH = 4
+
+/** The `.md` files under one folder, as `/`-joined names without `.md`, sorted. */
+const splitNames = (dir: string, depth = 1): string[] => {
+  if (depth > SPLIT_DEPTH) return []
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  return entries
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .flatMap((e) =>
+      e.isDirectory()
+        ? splitNames(path.join(dir, e.name), depth + 1).map((sub) => `${e.name}/${sub}`)
+        : e.isFile() && e.name.endsWith('.md')
+          ? [nameOf(e.name)]
+          : [],
+    )
+}
+
 /** The files one owner may hold, in the panel's order — the board's two, or the agent's own,
- *  the known names first and any other file its prompt keeps after them. */
+ *  the known names first and any other file its prompt keeps after them. Each agent file is
+ *  followed by what was split out of it into the folder of the same name (#959). */
 const filesOf = (agent: string): MemoryName[] => {
   const held = (agent ? memoryNamesOf(agent) : BOARD_MEMORY_FILES).map(nameOf)
   const known = MEMORY_FILES.map((ref) => ref.name).filter((name) => held.includes(name))
-  return [...known, ...held.filter((name) => !known.includes(name))]
+  const top = [...known, ...held.filter((name) => !known.includes(name))]
+  if (!agent) return top
+  return top.flatMap((name) =>
+    fs.existsSync(memoryPath(name, agent))
+      ? [name, ...splitNames(path.join(agentMemoryDir(agent), name)).map((sub) => `${name}/${sub}`)]
+      : [name],
+  )
 }
 
 /** Every memory folder on this board — planning's always, whoever leads it (#858), then each

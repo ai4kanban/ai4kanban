@@ -16,6 +16,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 import { board, withLease, type OpEnvelope, type OpResult } from '../src/lib/board/index.ts'
 import { boardFingerprint, clearBoardCopy, packBoard, portableDelivery, unpackBoard } from '../src/lib/board/transfer.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
+import { readAgentMemory } from '../src/lib/memory.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { DeliveryRecord } from '../src/lib/agent/types.ts'
 import type { Meta } from '../src/lib/types.ts'
@@ -180,6 +181,53 @@ describe('memory, as a contract write (#805)', () => {
     assert.ok(saved.ok)
     assert.equal(read('memory/agents/video-assets/assets.md'), '- card.mp4 — one card, 3s.\n')
     assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents', 'hyperframes-assets')), false)
+  })
+})
+
+// An entry file's folder holds what was split out of it (#959): the panel lists and opens
+// those files, and a run is still handed only the top-level ones.
+describe('memory split into an entry file’s folder (#959)', () => {
+  const filesOf = async (agent: string) => (await board().readMemoryOwners()).find((o) => o.agent === agent)?.files
+
+  it('lists and opens the files split out of an entry file, after it', async () => {
+    write('memory/agents/copywriting/feedback.md', '- [pacing](feedback/pacing.md)\n')
+    write('memory/agents/copywriting/feedback/pacing.md', '- Slow.\n')
+    write('memory/agents/copywriting/feedback/recipes/product-tour.md', '- Tour.\n')
+    write('memory/agents/copywriting/feedback/notes.txt', 'no\n')
+    write('memory/agents/copywriting/writing.md', '- Short.\n')
+    write('memory/agents/copywriting/redesign.md', '- Wrong.\n')
+    write('memory/agents/copywriting/redesign/topic.md', '- Topic.\n')
+    assert.deepEqual(await filesOf('copywriting'), [
+      'redesign',
+      'redesign/topic',
+      'feedback',
+      'feedback/pacing',
+      'feedback/recipes/product-tour',
+      'writing',
+    ])
+    const deep = await board().readMemoryFile('feedback/recipes/product-tour', 'copywriting')
+    assert.equal(deep?.text, '- Tour.\n')
+    assert.equal(deep?.relPath, 'docs/kanban/memory/agents/copywriting/feedback/recipes/product-tour.md')
+    assert.equal(await board().readMemoryFile('feedback/notes', 'copywriting'), null)
+    assert.equal(await board().readMemoryFile('feedback/../writing', 'copywriting'), null)
+    // A run is handed the top-level files only.
+    const roster = (await board().readAgents()).agents.find((a) => a.name === 'copywriting')?.memory
+    assert.deepEqual(roster, [
+      'docs/kanban/memory/agents/copywriting/feedback.md',
+      'docs/kanban/memory/agents/copywriting/redesign.md',
+      'docs/kanban/memory/agents/copywriting/writing.md',
+    ])
+    assert.deepEqual(readAgentMemory('copywriting').map((m) => m.name), ['feedback.md', 'redesign.md', 'writing.md'])
+  })
+
+  it("lists the planner's split files, and no folder without an entry file", async () => {
+    write('memory/agents/planner/decisions.md', '- A.\n')
+    write('memory/agents/planner/decisions/topic.md', '- Topic.\n')
+    write('memory/agents/planner/cloud/decisions.md', '- Old.\n')
+    write('memory/agents/planner/rejected/topic.md', '- No entry file.\n')
+    assert.deepEqual(await filesOf('planner'), ['decisions', 'decisions/topic'])
+    assert.equal((await board().readMemoryFile('decisions/topic', 'planner'))?.text, '- Topic.\n')
+    assert.equal(await board().readMemoryFile('cloud/decisions', 'planner'), null)
   })
 })
 

@@ -25,6 +25,10 @@ export const CHROME = "border-[1.5px] border-nb-ink shadow-[2px_2px_0_0_var(--co
  *  the same weight, but it takes the control's own ink. */
 export const HAIRLINE = "color-mix(in srgb, var(--color-nb-ink) 14%, transparent)";
 
+/** The tree spine under a memory entry file (#959) — firmer than a hairline, which
+ *  disappears between two rows of text. */
+export const SPINE = "color-mix(in srgb, var(--color-nb-ink) 22%, transparent)";
+
 /** A full-width row you press, at phone width (#357) — the shape the rail's rows and a
  *  card's subtask rows take when the screen itself is the list. 48px tall, because a thumb
  *  is not a cursor, and the same transparent-border-that-colours-in hover the subtask rows

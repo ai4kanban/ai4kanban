@@ -46,7 +46,7 @@ import {
 } from "react-icons/fi";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
-import { memoryKey, memoryAgentOf, useMemoryPanel, useOpenOwners } from "@/lib/memory-panel";
+import { memoryKey, memoryAgentOf, memoryTree, useMemoryPanel, useOpenOwners } from "@/lib/memory-panel";
 import { useMemoryOwnerName } from "./memory-owner";
 import {
   isDiscussion,
@@ -62,7 +62,7 @@ import { cardChat } from "@/lib/chat-open";
 import { createSheet, LEAVES_SHEET, useShownDiscussion, useStartFailures } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
 import { Button } from "./button";
-import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { HAIRLINE, PULSE_DOT, SPINE } from "./chrome";
 import { configDialog, PRUNER } from "./Configuration";
 import {
   DropdownMenu,
@@ -414,7 +414,9 @@ function PruneButton() {
   );
 }
 
-/** The files one owner holds, in the order the board lists them (#130, #805). */
+/** The files one owner holds, in the order the board lists them (#130, #805), each with the
+ *  files split out into its folder hung under it (#959). The spine's centre sits on the entry
+ *  file's icon centre (10px padding + half of 13px), clear of the children's outline. */
 function MemoryFileRows({
   agent,
   files,
@@ -425,16 +427,28 @@ function MemoryFileRows({
   active: string | null;
 }) {
   const c = useCopy().rail.memory;
+  const icon = <FiFileText size={13} className="shrink-0" aria-hidden />;
+  const row = (name: string, label: string) => (
+    <RailRow
+      key={name}
+      href={`/memory/${memoryKey(agent, name)}`}
+      label={label}
+      icon={icon}
+      active={active === memoryKey(agent, name)}
+    />
+  );
   return (
     <>
-      {files.map((name) => (
-        <RailRow
-          key={name}
-          href={`/memory/${memoryKey(agent, name)}`}
-          label={c.files[name as keyof RailCopy["memory"]["files"]] ?? name}
-          icon={<FiFileText size={13} className="shrink-0" aria-hidden />}
-          active={active === memoryKey(agent, name)}
-        />
+      {memoryTree(files).map(({ name, kids }) => (
+        <div key={name}>
+          {row(name, c.files[name as keyof RailCopy["memory"]["files"]] ?? name)}
+          {kids.length > 0 && (
+            <div className="relative flex flex-col gap-0.5 pl-7 pt-0.5">
+              <span aria-hidden className="absolute bottom-[3px] left-[16px] top-0 w-px" style={{ background: SPINE }} />
+              {kids.map((kid) => row(kid.name, kid.label))}
+            </div>
+          )}
+        </div>
       ))}
     </>
   );

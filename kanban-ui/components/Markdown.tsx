@@ -23,6 +23,7 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
+import { memoryLinkKey } from "@/lib/memory-panel";
 import { mockupBlock, type MockupSet } from "@/lib/mockup-tag";
 import { useCardHref } from "./board-links";
 import { Copied, useCopyText } from "./copy";
@@ -158,8 +159,27 @@ function MockupNode(props: any) {
   return view ? <Mockup view={view} label={props["data-label"] || ""} /> : null;
 }
 
+/** The memory file being drawn, so its relative `.md` links open the file they name (#959). */
+export interface MemoryLinks {
+  agent: string;
+  /** The file's own name — `feedback/pacing` — which its links resolve against. */
+  name: string;
+  /** Every file that owner holds. */
+  files: string[];
+}
+
+const MemoryLinksContext = createContext<MemoryLinks | null>(null);
+
+const RELATIVE_MD = /^(?![a-z][a-z0-9+.-]*:|\/|#)[^#?]*\.md(#.*)?$/i;
+
 function Anchor({ href, children }: { href?: string; children?: React.ReactNode }) {
   const cardHref = useCardHref();
+  const memory = useContext(MemoryLinksContext);
+  if (memory && href && RELATIVE_MD.test(href)) {
+    const key = memoryLinkKey(href, memory.agent, memory.name, memory.files);
+    // No such file: plain text rather than a link that leads nowhere.
+    return key ? <Link href={`/memory/${key}`}>{children}</Link> : <>{children}</>;
+  }
   if (href && href.startsWith("card:")) {
     const id = Number(href.slice(5));
     return (
@@ -230,11 +250,14 @@ export function Markdown({
   /** Put a copy button on every fenced block (#269). Only a reply in the chat rail asks
    *  for it. */
   copyCode,
+  memory,
 }: {
   body: string;
   className?: string;
   mockups?: MockupSet;
   copyCode?: boolean;
+  /** Set on a memory page; hold it stable across renders. */
+  memory?: MemoryLinks;
 }) {
   // Every markdown body on a page linkifies against the same set — see
   // OpenIdsProvider for why this is context rather than a prop.
@@ -246,16 +269,18 @@ export function Markdown({
   );
   return (
     <MockupsContext.Provider value={mockups ?? null}>
-      <div className={className ? `nb-md ${className}` : "nb-md"}>
-        <ReactMarkdown
-          remarkPlugins={plugins}
-          rehypePlugins={REHYPE_PLUGINS}
-          urlTransform={urlTransform}
-          components={copyCode ? COMPONENTS_COPY : COMPONENTS}
-        >
-          {body}
-        </ReactMarkdown>
-      </div>
+      <MemoryLinksContext.Provider value={memory ?? null}>
+        <div className={className ? `nb-md ${className}` : "nb-md"}>
+          <ReactMarkdown
+            remarkPlugins={plugins}
+            rehypePlugins={REHYPE_PLUGINS}
+            urlTransform={urlTransform}
+            components={copyCode ? COMPONENTS_COPY : COMPONENTS}
+          >
+            {body}
+          </ReactMarkdown>
+        </div>
+      </MemoryLinksContext.Provider>
     </MockupsContext.Provider>
   );
 }

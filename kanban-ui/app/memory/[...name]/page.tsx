@@ -24,9 +24,9 @@ export default async function Page({ params }: { params: Promise<{ name: string[
   if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} desktop={isDesktop()} />;
 
   const { name: segments } = await params;
-  if (segments.length > 2) notFound();
-  const agentName = segments.length === 2 ? segments[0]! : "";
-  const name = segments[segments.length - 1]!;
+  // `/memory/<agent>/<name...>`: a file split out of an entry file carries its folder (#959).
+  const agentName = segments.length > 1 ? segments[0]! : "";
+  const name = segments.slice(segments.length > 1 ? 1 : 0).join("/");
 
   // The memory is read through the CLI, like the rest of the board. No copy of its rules is
   // not an empty memory — it is a board nothing can be read from — so it says so and names
