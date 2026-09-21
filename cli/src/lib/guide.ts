@@ -101,7 +101,7 @@ export const GUIDES: Guide[] = [
   { name: 'triage', when: 'judge what is waiting in triage: card the worthwhile, ignore the rest', text: triage },
   { name: 'unstick', when: 'settle a card that sat too long: keep it rewritten, or discard it', text: unstick },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
-  { name: 'write-agent', when: 'write an agent of your own — the AGENT.md keys, its files, and how to check it', text: writeAgent },
+  { name: 'write-agent', when: 'create or change an agent, including one built from a skill — its AGENT.md, files, memory, and how to check it', text: writeAgent },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
   { name: 'update', when: 'pull a newer version into a project that already has one', text: update },

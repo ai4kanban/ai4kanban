@@ -86,13 +86,46 @@ akb:
               cost: 与真实界面一致，画得慢
 ```
 
-## Files and memory
+## Files
 
-- **Beside `AGENT.md`**: every other file in the folder is named to the run by its path and
-  opened only when the work calls for it. Put long material there and keep `AGENT.md` short.
-  A file a choice's `reference` names is not offered this way.
-- **`docs/kanban/memory/agents/<name>/`**: the agent's own memory, read into every run. Say in
-  `AGENT.md` which files it keeps there and what each one holds; say nothing and it keeps none.
+Every file beside `AGENT.md`, in any subfolder, is named to the run by its path and opened only
+when the work calls for it. Put long material there and keep `AGENT.md` short. A file a
+choice's `reference` names is not offered this way.
+
+## Imported skills
+
+An agent may carry several skills, each whole in its own `skills/<skill>/` folder.
+
+- **Keep the capability**: copy the skill's instructions, scripts, resources and license
+  unchanged; never reduce it to rewritten instructions. Leave out installed packages and caches,
+  and name any file it refers to that you could not get.
+- **Record the source**: list each in a `## Skills` section of `AGENT.md` as
+  `- **<skill>**: <when to use it>. Source: <URL or pasted> @ <commit, tag or snapshot date>`.
+- **Adapt outside it**: say in `AGENT.md` when to use each skill and how its result becomes
+  this agent's output; paths inside a skill resolve from its folder. Keep the skill folder
+  untouched so an update can replace it whole.
+- **Runtime needs**: check every command, package and credential the skill needs on this
+  machine. Name what is missing under its bullet and tell the user; never call the agent usable
+  while anything is missing, and never copy a key into the folder.
+- **Update and remove**: update only when the user asks — replace the folder, show the diff and
+  change the version. Remove a skill with its folder and bullet. Each agent owns its copies, so
+  no change reaches another agent.
+
+## Memory
+
+`docs/kanban/memory/agents/<name>/` is read into every run. Keep none unless a user's
+correction should change the agent's next output. Otherwise say in `AGENT.md`:
+
+- **Files**: each file and what it holds; `## General` for what always holds, and a heading per
+  situation (a format, a recipe, a channel) for what holds only there.
+- **When**: which file to apply before which step, and which answers or corrections to record.
+- **What goes in**: lasting preferences, decisions and corrections only — never raw feedback,
+  run history, or what the instructions already say.
+
+## Output
+
+Choose the form the reader takes in fastest and say it in `AGENT.md`: an image for a look, a
+storyboard for a sequence over time, readable Markdown for everything else.
 
 ## Dependencies
 
@@ -108,6 +141,14 @@ Nothing declares one. Say it in words, in both places:
 Say what the agent owns, what it produces, and what it leaves alone. Don't repeat the contract
 every run is already given (`akb guide spec-agent`): where the section goes, how to validate,
 how to keep memory, and how to defer to the user.
+
+## Work with the user
+
+- **Ask little**: settle what the request, the skill and the board already answer; ask the rest
+  as `akb guide update-questions` does, and never ask again what is answered.
+- **Important choices**: give a recommendation and its tradeoff, and accept a free answer.
+- **Show each edit**: when changing an existing agent, show every changed file as a unified
+  diff with context, followed by one sentence of reason.
 
 ## Check it
 
