@@ -11,7 +11,7 @@ import { ASSETS, setBoardRoot } from '../src/lib/paths'
 import { setBoardProvider } from '../src/lib/board'
 import { validateSpec } from '../src/lib/spec-contract'
 import {
-  FRAME_FIELDS, ROOT_FIELDS, SHOT_FIELDS, checkStoryboard, formatDiagnostics, imageWidth, storyboardMarkers,
+  FRAME_FIELDS, ROOT_FIELDS, SHOT_FIELDS, SLIDE_FIELDS, checkStoryboard, formatDiagnostics, imageWidth, storyboardMarkers,
 } from '../src/lib/storyboard'
 import { BUNDLED_AGENT_FILES } from '../src/lib/agents/bundled'
 import { move, refuses } from './helpers/board'
@@ -43,12 +43,13 @@ describe('the storyboard contract', () => {
   it('accepts the shipped example, spoken and unvoiced shots alike', () => {
     const { storyboard, diagnostics } = check(example)
     assert.deepEqual(diagnostics, [])
+    assert.ok(storyboard && 'shots' in storyboard)
     assert.equal(storyboard!.shots[1]!.voiceover.mode, 'none')
     assert.match(storyboard!.shots[1]!.action, /静止/)
   })
 
   it('keeps the schema to the fields the validator enforces', () => {
-    assert.deepEqual(schema.required, [...ROOT_FIELDS])
+    assert.deepEqual(schema.required, ROOT_FIELDS.filter((f) => f !== 'slides'))
     assert.deepEqual(schema.$defs.shot.required, [...SHOT_FIELDS])
     assert.deepEqual(schema.$defs.shot.properties.frames.items.required, [...FRAME_FIELDS])
   })
@@ -79,7 +80,7 @@ describe('the storyboard contract', () => {
   it('refuses another version, no shots and a file that is not there', () => {
     assert.deepEqual(codes(edit((d) => { d.version = 2 })), ['/version unsupported-version'])
     assert.deepEqual(codes(edit((d) => { d.shots = [] })), ['/shots no-shots'])
-    assert.deepEqual(check(edit((d) => { d.shots = [] })).storyboard?.shots, [])
+    assert.deepEqual(check(edit((d) => { d.shots = [] })).storyboard, { version: 1, shots: [] })
     assert.deepEqual(codes(null), [' file-missing'])
   })
 
@@ -139,6 +140,59 @@ describe('the storyboard contract', () => {
     const text = formatDiagnostics('storyboard.json', 963, check(edit((d) => { delete d.shots[0].action })).diagnostics)
     assert.match(text, /akb raw validate 963 --json/)
     assert.match(text, /\/shots\/0\/action \[missing-field\]/)
+  })
+})
+
+describe('a slide deck storyboard', () => {
+  const slidesExample = BUNDLED_AGENT_FILES['deck-planner/references/slides.example.json']!
+  const slidesSchema = JSON.parse(BUNDLED_AGENT_FILES['deck-planner/references/slides.schema.json']!)
+  const previews: Record<string, Uint8Array> = { 'previews/cover.png': png(1280), 'previews/results.png': png(1280) }
+  const checkSlides = (source: string) =>
+    checkStoryboard(source, { file: 'storyboard.json', cardId: 969, read: (name) => previews[name] ?? null })
+  const slideCodes = (change: (data: any) => void) => {
+    const data = JSON.parse(slidesExample)
+    change(data)
+    return checkSlides(JSON.stringify(data)).diagnostics.map((d) => `${d.pointer} ${d.code}`)
+  }
+
+  it('accepts the shipped example: pages with no timing, previews in a subfolder', () => {
+    const { storyboard, diagnostics } = checkSlides(slidesExample)
+    assert.deepEqual(diagnostics, [])
+    assert.ok(storyboard && 'slides' in storyboard)
+    assert.equal(storyboard.slides[1]!.notes, '')
+  })
+
+  it('keeps the schema to the fields the validator enforces', () => {
+    assert.deepEqual(slidesSchema.required, ['version', 'slides'])
+    assert.deepEqual(slidesSchema.$defs.slide.required, [...SLIDE_FIELDS])
+  })
+
+  it('refuses shot fields, bad IDs and a missing preview field', () => {
+    const got = slideCodes((d) => {
+      d.slides[0].start = 0
+      d.slides[1].id = 'cover'
+      d.slides[1].copy = ['']
+      delete d.slides[1].preview
+    })
+    for (const want of ['/slides/0/start unknown-field', '/slides/1/id duplicate-id', '/slides/1/copy/0 invalid-value', '/slides/1/preview missing-field']) {
+      assert.ok(got.includes(want), want)
+    }
+    assert.deepEqual(slideCodes((d) => { d.slides[0].id = 'S1' }), ['/slides/0/id invalid-value'])
+    assert.deepEqual(slideCodes((d) => { d.shots = [] }), ['/shots unknown-field'])
+  })
+
+  it('still draws a slide whose preview is missing, and never lets a path climb', () => {
+    const missing = JSON.parse(slidesExample)
+    missing.slides[0].preview.src = '.assets/969/previews/gone.png'
+    const { storyboard, diagnostics } = checkSlides(JSON.stringify(missing))
+    assert.deepEqual(diagnostics.map((d) => d.code), ['frame-missing'])
+    assert.ok(storyboard)
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/previews/../../x.png' }), ['/slides/0/preview/src frame-path'])
+    assert.deepEqual(slideCodes((d) => { d.slides = [] }), ['/slides no-slides'])
+  })
+
+  it('keeps video frames out of subfolders', () => {
+    assert.deepEqual(codes(edit((d) => { d.shots[0].frames[0].src = '.assets/963/previews/s1.png' })), ['/shots/0/frames/0/src frame-path'])
   })
 })
 

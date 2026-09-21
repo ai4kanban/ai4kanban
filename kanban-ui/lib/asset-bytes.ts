@@ -26,7 +26,12 @@ export const AUDIO_TYPES: Record<string, string> = {
   m4a: "audio/mp4",
 };
 
-export const ASSET_TYPES: Record<string, string> = { ...IMAGE_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES };
+// Delivered files (#969): shown as a download, never opened in the board.
+export const FILE_TYPES: Record<string, string> = {
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+};
+
+export const ASSET_TYPES: Record<string, string> = { ...IMAGE_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES, ...FILE_TYPES };
 
 /** `[start, end]` inclusive for one `bytes=` range, `"unsatisfiable"` for one past the end,
  *  and `null` for no range, a malformed one or several — all served whole. */
@@ -49,9 +54,9 @@ export function parseRange(header: string | null, size: number): [number, number
 export const SEGMENT = /^(?!\.)[^/\\]+$/;
 
 /** `folder/name` in the first root that has it. `null` when it is in none of them, or the
- *  names try to climb. */
+ *  names try to climb. `name` may sit in subfolders, `previews/cover.png`. */
 export function findIn(roots: string[], folder: string, name: string): string | null {
-  if (!SEGMENT.test(folder) || !SEGMENT.test(name)) return null;
+  if (!SEGMENT.test(folder) || !name.split("/").every((part) => SEGMENT.test(part))) return null;
   for (const root of roots) {
     const file = path.join(root, folder, name);
     if (!file.startsWith(root + path.sep)) return null;
@@ -78,6 +83,9 @@ export function fileResponse(file: string, type: string, range: string | null): 
     // An SVG opened on its own must not run as a page of the board.
     "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
   };
+  if (Object.values(FILE_TYPES).includes(type)) {
+    headers["Content-Disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(file))}`;
+  }
   const want = parseRange(range, size);
   if (want === "unsatisfiable") {
     return new Response(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });

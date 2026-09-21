@@ -32,6 +32,7 @@ export type MockupView =
       text?: undefined;
       image?: undefined;
       media?: undefined;
+      file?: undefined;
       error?: undefined;
       deferred?: undefined;
     }
@@ -45,17 +46,31 @@ export type MockupView =
       text?: undefined;
       image?: undefined;
       media?: undefined;
+      file?: undefined;
       error?: undefined;
     }
   // A `.txt` mockup (#256): the file IS the drawing, so it is shown exactly as it stands
   // and there is nothing behind the picture to switch to.
-  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; error?: undefined; deferred?: undefined }
+  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined }
   // An image (#803): the address of its bytes. Nothing behind it to switch to either.
-  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; error?: undefined; deferred?: undefined }
+  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined }
   // Video or audio (#872): the address its player streams from.
   | {
       src: string;
       media: { kind: "video" | "audio"; href: string };
+      file?: undefined;
+      image?: undefined;
+      text?: undefined;
+      doc?: undefined;
+      code?: undefined;
+      error?: undefined;
+      deferred?: undefined;
+    }
+  // A delivered file (#969): the address it downloads from.
+  | {
+      src: string;
+      file: { name: string; href: string };
+      media?: undefined;
       image?: undefined;
       text?: undefined;
       doc?: undefined;
@@ -65,7 +80,7 @@ export type MockupView =
     }
   // The note in a mockup's place. It still carries the file's text when there was a file
   // to read — a mockup that would not draw is one you want to read the code of.
-  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; code?: string; error: string; deferred?: undefined };
+  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined };
 
 /** The mockups a page has already read, keyed by `src` exactly as the tag wrote it. */
 export type MockupSet = Record<string, MockupView>;

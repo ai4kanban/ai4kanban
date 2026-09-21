@@ -223,6 +223,7 @@ const zh: CardCopy = {
     frame: (label) => `素材 ${label}`,
     back: (id) => `返回 #${id}`,
     unplayable: "无法播放：浏览器不支持此文件的格式。请改用 MP4（H.264）、WebM 或 MP3。",
+    download: "下载",
   },
   storyboard: {
     heading: "静态分镜",
@@ -245,6 +246,15 @@ const zh: CardCopy = {
     diagnostics: "详细诊断",
     reload: "重新加载",
     unavailable: "在应用中打开此卡片即可查看分镜。",
+    slidesHeading: "幻灯片",
+    pages: (n) => `${n} 页`,
+    slidesTimeline: "页面",
+    onSlide: "页面文字",
+    notes: "演讲备注",
+    noNotes: "无备注",
+    layout: "版式与素材",
+    noPreview: "暂无预览",
+    emptySlides: "尚无页面",
   },
 };
 

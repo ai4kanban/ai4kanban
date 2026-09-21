@@ -48,3 +48,15 @@ test("nothing outside the card's folder, nothing of another type", () => {
   assert.equal(serve("872", "notes.exe").status, 404);
   assert.equal(serve("872", "gone.mp4").status, 404);
 });
+
+test("a delivered deck downloads, and a subfolder name stays inside the card", async () => {
+  fs.mkdirSync(path.join(root, "872", "previews"));
+  fs.writeFileSync(path.join(root, "872", "deck.pptx"), bytes);
+  fs.writeFileSync(path.join(root, "872", "previews", "cover.png"), bytes);
+  const deck = serve("872", "deck.pptx");
+  assert.equal(deck.status, 200);
+  assert.match(deck.headers.get("content-disposition"), /^attachment; filename\*=UTF-8''deck\.pptx$/);
+  assert.equal(serve("872", "clip.mp4").headers.get("content-disposition"), null);
+  assert.equal(serve("872", "previews/cover.png").status, 200);
+  assert.equal(serve("872", "previews/../../secret.mp3").status, 404);
+});

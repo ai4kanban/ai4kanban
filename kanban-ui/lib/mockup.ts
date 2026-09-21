@@ -16,6 +16,7 @@
 //          from app/asset-image, and an `<img>` never runs what an SVG holds.
 //   media  .mp4 .webm .mov, .mp3 .wav .m4a (#872). Not read here either: the page's own
 //          player streams them from app/asset-image.
+//   file   .pptx (#969). A delivered file, offered as a download from app/asset-image.
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
 // in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
@@ -36,7 +37,7 @@ import { transform } from "sucrase";
 import { compile } from "tailwindcss";
 import type { MockupSet, MockupView } from "./mockup-tag";
 import { assetImageHref, mockupSources } from "./mockup-tag";
-import { AUDIO_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } from "./asset-bytes";
+import { AUDIO_TYPES, FILE_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } from "./asset-bytes";
 import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
 import { hyperframeDocument } from "./hyperframe-document";
@@ -46,7 +47,8 @@ const MEDIA_EXTS: Record<string, "video" | "audio"> = {
   ...Object.fromEntries(Object.keys(VIDEO_TYPES).map((e) => [e, "video" as const])),
   ...Object.fromEntries(Object.keys(AUDIO_TYPES).map((e) => [e, "audio" as const])),
 };
-const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS, ...Object.keys(MEDIA_EXTS)];
+const FILE_EXTS = Object.keys(FILE_TYPES);
+const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS, ...Object.keys(MEDIA_EXTS), ...FILE_EXTS];
 
 /** `.assets/<folder>/<file>.<ext>`, or `.mockups/...` / `mockups/...` on older cards, and
  *  nothing else — no `.`, no `..`, nothing that climbs. An asset is read off the user's disk,
@@ -211,6 +213,9 @@ export async function readMockup(src: string, contain = true, defer = false): Pr
   if ("error" in at) return { src, error: at.error };
   const { file, ext, folder, fileName } = at;
   const media = MEDIA_EXTS[ext];
+  if (FILE_EXTS.includes(ext)) {
+    return { src, file: { name: fileName, href: `${assetImageHref(folder, fileName)}?v=${Math.floor(fs.statSync(file).mtimeMs)}` } };
+  }
   if (IMAGE_EXTS.includes(ext) || media || (defer && ext !== "txt")) {
     // The mtime makes a redrawn file a new address, so the page never shows a stale one.
     const version = Math.floor(fs.statSync(file).mtimeMs);

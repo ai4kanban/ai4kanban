@@ -229,7 +229,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['code-reviewer', 'copywriting', 'hyperframes-assets', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-reviewer'],
+      ['code-reviewer', 'copywriting', 'deck-builder', 'deck-planner', 'hyperframes-assets', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-reviewer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)

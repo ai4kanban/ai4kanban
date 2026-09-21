@@ -226,6 +226,7 @@ const en: CardCopy = {
     frame: (label) => `Asset ${label}`,
     back: (id) => `Back to #${id}`,
     unplayable: "Can't play this file: the browser doesn't support its format. Use MP4 (H.264), WebM or MP3.",
+    download: "Download",
   },
   storyboard: {
     heading: "Storyboard",
@@ -248,6 +249,15 @@ const en: CardCopy = {
     diagnostics: "Diagnostics",
     reload: "Reload",
     unavailable: "Open this card in the app to see its storyboard.",
+    slidesHeading: "Slides",
+    pages: (n) => `${n} ${n === 1 ? "slide" : "slides"}`,
+    slidesTimeline: "Slides",
+    onSlide: "On the slide",
+    notes: "Speaker notes",
+    noNotes: "No notes",
+    layout: "Layout and assets",
+    noPreview: "No preview",
+    emptySlides: "No slides yet",
   },
 };
 

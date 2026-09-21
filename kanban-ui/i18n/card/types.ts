@@ -279,6 +279,7 @@ export type CardCopy = {
     back: (id: number) => string;
     /** In place of a player the browser cannot play the file in. */
     unplayable: string;
+    download: string;
     play: string;
     pause: string;
     replay: string;
@@ -310,5 +311,14 @@ export type CardCopy = {
     diagnostics: string;
     reload: string;
     unavailable: string;
+    slidesHeading: string;
+    pages: (slides: number) => string;
+    slidesTimeline: string;
+    onSlide: string;
+    notes: string;
+    noNotes: string;
+    layout: string;
+    noPreview: string;
+    emptySlides: string;
   };
 };

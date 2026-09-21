@@ -33,7 +33,7 @@ const en: ConfigurationCopy = {
     findWorkflow: "Find a workflow…",
     builtIn: "Built-in",
     isDefault: "Default",
-    builtInNames: { coding: "Coding", "hyperframes-video": "Demo video" },
+    builtInNames: { coding: "Coding", "hyperframes-video": "Demo video", "slide-deck": "Slide deck" },
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
     lead: "Lead agent",
     pickLead: "Select agent",
@@ -447,6 +447,10 @@ const en: ConfigurationCopy = {
           'Added to the end of every Implement, Conflict and Run on a demo video card — "set every caption in Inter".',
         "video-reviewer": () =>
           'Added to the end of every Review on a demo video — "keep every caption on screen for at least 2 seconds".',
+        "deck-planner": () =>
+          'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
+        "deck-builder": () =>
+          'Added to the end of every Implement, Conflict and Run on a slide deck card — "name the file after the event date".',
       },
     },
     saved: "Saved",

@@ -32,6 +32,12 @@ of them can be switched off:
   labels, so reading the script never means reading a file list. Once you approve both, the editor
   finishes that same project, renders the MP4 into the board's asset folder for that card, and
   shows the video on the card.
+- **Deck planner**, **Deck builder** — lead the Slide deck workflow. The planner works in two
+  rounds and waits for your approval after each: first the content — audience, goal, facts,
+  design and every slide's copy — then a real preview of every slide. A content change sends it
+  back to the first round; a visual-only change redraws just the slides it touches. Once you
+  approve both, the builder makes an editable `.pptx`, checks it against the approved previews,
+  and puts a download on the card.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
   stands today, or discards it. `akb card unstick <id>` runs it on one card.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
@@ -236,6 +242,7 @@ agent's page lists the files it has, read-only:
   files it keeps there and what each holds.
   `ui-designer` keeps `redesign.md` and `decisions.md`, `copywriting` keeps `writing.md`, and
   `tech-stack-advisor` keeps none. A specialist is handed every file in its folder on each run.
+- **The deck planner remembers your feedback** in `feedback.md`, so the next deck starts from it.
 - **The video agents remember your feedback.** Tell the scriptwriter or the assets agent what to
   do differently and the next video starts from it, keeping general taste apart from what applies
   to one recording recipe. Nothing you say is written back into a recipe. Long feedback is split

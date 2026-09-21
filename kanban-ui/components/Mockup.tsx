@@ -17,14 +17,15 @@
 // characters in a monospaced block, at full size, scrolled rather than scaled.
 //
 // An image (#803) fills the width, never taller than a screen at that width, and links to its
-// own page at full size. Video and audio (#872) get the browser's own player.
+// own page at full size. Video and audio (#872) get the browser's own player. A delivered
+// file (#969) is a download.
 //
 // A card page hands a screen over undrawn (#906): it is loaded once it scrolls near, and its
 // code only when the switch asks for it. Until then the frame holds its final size.
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiImage, FiMaximize2 } from "react-icons/fi";
+import { FiAlertCircle, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, type MockupView } from "@/lib/mockup-tag";
 import { MediaPlayer } from "./MediaPlayer";
@@ -150,6 +151,31 @@ function Pending({ hyperframe }: { hyperframe: boolean }) {
   );
 }
 
+function Download({ file, label }: { file: { name: string; href: string }; label: string }) {
+  const c = useCopy().card.mockup;
+  return (
+    <span className="my-4 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      {label && (
+        <span
+          className="nb-chip shrink-0"
+          style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
+        >
+          {label}
+        </span>
+      )}
+      <a
+        href={file.href}
+        download={file.name}
+        className="inline-flex min-w-0 items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]"
+        title={c.download}
+      >
+        <FiDownload aria-hidden className="shrink-0" style={{ width: 12, height: 12 }} />
+        <span className="truncate">{file.name}</span>
+      </a>
+    </span>
+  );
+}
+
 /** Fetch `href` once `box` is near the viewport; `null` until it arrives. A new `href`
  *  keeps the last answer on screen until its own one lands. */
 function useNearFetch<T>(box: React.RefObject<HTMLElement | null>, href: string | null, fail: T): T | null {
@@ -194,6 +220,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
   const code = drawn?.code ?? (codeHref ? (fetched ? (fetched.code ?? fetched.error ?? "") : null) : null);
 
   if (drawn?.error !== undefined) return <Note text={drawn.error} />;
+  if (view.file) return <Download file={view.file} label={label} />;
 
   return (
     // No frame around it: a mockup is a picture of a screen, and a box drawn round it is

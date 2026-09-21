@@ -15,17 +15,22 @@ import {
   frameProblem,
   storyboardMarkers,
   type StoryboardDiagnostic,
+  type StoryboardFrame,
   type StoryboardShot,
+  type StoryboardSlide,
 } from "./format/storyboard";
 
 export type StoryboardFrameView = { src: string; alt: string; href: string | null };
 export type StoryboardShotView = Omit<StoryboardShot, "frames"> & { frames: StoryboardFrameView[] };
+export type StoryboardSlideView = Omit<StoryboardSlide, "preview"> & { preview: StoryboardFrameView };
 
-/** A script to draw — `shots` null when the file could not be read as one. `report` is what
- *  Copy hands back to the session that wrote the file; empty when nothing is wrong. */
+/** A script to draw: a video's shots or a deck's slides (#969), both null when the file could
+ *  not be read as either. `report` is what Copy hands back to the session that wrote the
+ *  file; empty when nothing is wrong. */
 export type StoryboardView = {
   src: string;
   shots: StoryboardShotView[] | null;
+  slides: StoryboardSlideView[] | null;
   diagnostics: StoryboardDiagnostic[];
   report: string;
 };
@@ -60,7 +65,7 @@ export async function readStoryboards(body: string, cardId: number): Promise<Sto
     const named = assetName(src, cardId, ["json"]);
     if (!("name" in named)) {
       const diagnostics = [{ file: src, code: "storyboard-src", pointer: "", ...named }];
-      set[src] = { src, shots: null, diagnostics, report: formatDiagnostics(src, cardId, diagnostics) };
+      set[src] = { src, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, cardId, diagnostics) };
       continue;
     }
     const json = dir ? inside(dir, named.name) : null;
@@ -79,16 +84,17 @@ export async function readStoryboards(body: string, cardId: number): Promise<Sto
         return bytes;
       },
     });
-    const shots = storyboard?.shots.map((shot) => ({
-      ...shot,
-      frames: shot.frames.map(({ src: frameSrc, alt }) => {
-        const at = assetName(frameSrc, cardId, FRAME_TYPES);
-        return { src: frameSrc, alt, href: ("name" in at && drawn.get(at.name)) || null };
-      }),
-    }));
+    const frame = ({ src: frameSrc, alt }: StoryboardFrame, nested = false) => {
+      const at = assetName(frameSrc, cardId, FRAME_TYPES, nested);
+      return { src: frameSrc, alt, href: ("name" in at && drawn.get(at.name)) || null };
+    };
+    const shots = storyboard && "shots" in storyboard ? storyboard.shots.map((shot) => ({ ...shot, frames: shot.frames.map((f) => frame(f)) })) : null;
+    const slides =
+      storyboard && "slides" in storyboard ? storyboard.slides.map((slide) => ({ ...slide, preview: frame(slide.preview, true) })) : null;
     set[src] = {
       src,
-      shots: shots ?? null,
+      shots,
+      slides,
       diagnostics,
       report: diagnostics.length ? formatDiagnostics(file, cardId, diagnostics) : "",
     };

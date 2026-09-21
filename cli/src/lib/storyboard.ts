@@ -2,13 +2,15 @@
 //
 //   <Storyboard src=".assets/963/storyboard.json" />
 //
-// The tag stands alone in its paragraph; the JSON beside it is the only copy of the shots. The
+// The tag stands alone in its paragraph; the JSON beside it is the only copy of the shots — or,
+// for a slide deck (#969), of the slides: static pages with no timing, one preview each. The
 // command and the board UI both check it with this module, so a file one accepts the other draws.
 // No filesystem here: a caller hands `checkStoryboard` the text and a reader for the frames.
 
 export const STORYBOARD_VERSION = 1
-export const ROOT_FIELDS = ['version', 'shots'] as const
+export const ROOT_FIELDS = ['version', 'shots', 'slides'] as const
 export const SHOT_FIELDS = ['id', 'start', 'end', 'voiceover', 'action', 'captions', 'details', 'frames'] as const
+export const SLIDE_FIELDS = ['id', 'title', 'copy', 'notes', 'layout', 'assets', 'preview'] as const
 export const FRAME_FIELDS = ['src', 'alt'] as const
 export const FRAME_TYPES = ['png', 'jpg', 'jpeg', 'webp', 'gif'] as const
 export const MAX_FRAME_WIDTH = 1280
@@ -25,7 +27,17 @@ export interface StoryboardShot {
   details: string
   frames: StoryboardFrame[]
 }
-export interface Storyboard { version: 1; shots: StoryboardShot[] }
+export interface StoryboardSlide {
+  id: string
+  title: string
+  copy: string[]
+  /** Empty when the slide has no speaker notes. */
+  notes: string
+  layout: string
+  assets: string[]
+  preview: StoryboardFrame
+}
+export type Storyboard = { version: 1; shots: StoryboardShot[] } | { version: 1; slides: StoryboardSlide[] }
 
 export interface StoryboardDiagnostic {
   /** The JSON file, as the caller named it. */
@@ -44,6 +56,7 @@ const TAG = /^<Storyboard\b([^<>]*?)\/>$/
 const SRC_ATTR = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')/
 const SEGMENT = /^(?!\.)[^/\\]+$/
 const SHOT_ID = /^S[1-9][0-9]*$/
+const SLIDE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const EPSILON = 1e-9
 
 /** The `src` of a block that is exactly one `<Storyboard … />` tag — `null` for anything else. */
@@ -72,15 +85,16 @@ export function storyboardMarkers(body: string): { src: string; line: number }[]
   return found
 }
 
-/** The file name a same-card `.assets/<card>/<name>` path points at, or why it may not. */
-export function assetName(src: string, cardId: number, exts: readonly string[]): { name: string } | { expected: string; actual: string } {
+/** The file name a same-card `.assets/<card>/<name>` path points at, or why it may not.
+ *  `nested` lets the name sit in a subfolder, `previews/cover.png`. */
+export function assetName(src: string, cardId: number, exts: readonly string[], nested = false): { name: string } | { expected: string; actual: string } {
   const expected = `.assets/${cardId}/<file>.${exts.length === 1 ? exts[0] : `{${exts.join(',')}}`} in this card's asset folder`
   if (/^[a-z][a-z0-9+.-]*:/i.test(src)) return { expected, actual: `an external address ${JSON.stringify(src)}` }
   const parts = src.split('/')
-  if (parts[0] !== '.assets' || parts.length !== 3) return { expected, actual: JSON.stringify(src) }
+  if (parts[0] !== '.assets' || parts.length < 3 || (!nested && parts.length !== 3)) return { expected, actual: JSON.stringify(src) }
   if (parts[1] !== String(cardId)) return { expected, actual: `another card's folder ${JSON.stringify(parts[1])}` }
-  const name = parts[2]!
-  if (!SEGMENT.test(name)) return { expected, actual: JSON.stringify(src) }
+  if (!parts.slice(2).every((part) => SEGMENT.test(part))) return { expected, actual: JSON.stringify(src) }
+  const name = parts.slice(2).join('/')
   const ext = name.split('.').pop()!.toLowerCase()
   if (!name.includes('.') || !exts.includes(ext)) return { expected, actual: `file type ${JSON.stringify(name.includes('.') ? ext : '')}` }
   return { name }
@@ -213,7 +227,7 @@ export function checkStoryboard(
   const nonblank = 'a non-blank string'
 
   if (!isObject(data)) {
-    add('invalid-value', '', 'an object with version and shots', describe(data))
+    add('invalid-value', '', 'an object with version and shots or slides', describe(data))
     return { storyboard: null, diagnostics }
   }
   fields(data, '', ROOT_FIELDS)
@@ -222,6 +236,51 @@ export function checkStoryboard(
   } else {
     required(data, '', 'version', `the number ${STORYBOARD_VERSION}`, (v) => v === STORYBOARD_VERSION)
   }
+  const frameAt = (frame: unknown, fat: string, nested: boolean) => {
+    if (!isObject(frame)) { add('invalid-value', fat, 'an object with src and alt', describe(frame)); return }
+    fields(frame, fat, FRAME_FIELDS)
+    required(frame, fat, 'alt', `${nonblank} describing the picture`, text)
+    if (!required(frame, fat, 'src', `${nonblank}: the image path`, text)) return
+    const named = assetName(frame.src as string, cardId, FRAME_TYPES, nested)
+    if (!('name' in named)) { add('frame-path', `${fat}/src`, named.expected, named.actual); return }
+    if (!read) return
+    const problem = frameProblem(read(named.name))
+    if (problem) add(problem.code, `${fat}/src`, `a readable image at most ${MAX_FRAME_WIDTH}px wide`, problem.actual)
+  }
+  const strings = (value: Record<string, unknown>, at: string, key: string, expected: string) => {
+    if (required(value, at, key, expected, Array.isArray)) {
+      ;(value[key] as unknown[]).forEach((c, k) => { if (!text(c)) add('invalid-value', `${at}/${key}/${k}`, nonblank, describe(c)) })
+    }
+  }
+  // A missing picture or nothing in it yet still leaves a script to draw; anything else does not.
+  const drawable = new Set(['frame-missing', 'frame-unreadable', 'frame-too-wide', 'no-shots', 'no-slides'])
+  const result = () => ({ storyboard: diagnostics.some((d) => !drawable.has(d.code)) ? null : (data as unknown as Storyboard), diagnostics })
+
+  if (data.slides !== undefined) {
+    if (data.shots !== undefined) add('unknown-field', '/shots', 'shots or slides, not both', 'both')
+    if (!required(data, '', 'slides', 'an array of slides in page order', Array.isArray)) return { storyboard: null, diagnostics }
+    const slides = data.slides as unknown[]
+    if (!slides.length) add('no-slides', '/slides', 'at least one slide', 'an empty array')
+    const ids = new Map<string, number>()
+    slides.forEach((slide, i) => {
+      const at = `/slides/${i}`
+      if (!isObject(slide)) { add('invalid-value', at, 'a slide object', describe(slide)); return }
+      fields(slide, at, SLIDE_FIELDS)
+      if (required(slide, at, 'id', 'a stable lowercase slide ID such as "cover"', (v) => typeof v === 'string' && SLIDE_ID.test(v))) {
+        const id = slide.id as string
+        if (ids.has(id)) add('duplicate-id', `${at}/id`, 'an ID no other slide uses', `${JSON.stringify(id)}, already used at /slides/${ids.get(id)}/id`)
+        else ids.set(id, i)
+      }
+      required(slide, at, 'title', nonblank, text)
+      strings(slide, at, 'copy', 'an array of the exact text on the slide, or [] for none')
+      required(slide, at, 'notes', 'the speaker notes, or "" for none', (v) => typeof v === 'string')
+      required(slide, at, 'layout', `${nonblank}: the recipe layout this slide uses`, text)
+      strings(slide, at, 'assets', 'an array of the images, charts and files the slide uses, or [] for none')
+      if (required(slide, at, 'preview', 'an object with src and alt', isObject)) frameAt(slide.preview, `${at}/preview`, true)
+    })
+    return result()
+  }
+
   const shots = data.shots
   if (!required(data, '', 'shots', 'an array of shots in play order', Array.isArray)) return { storyboard: null, diagnostics }
   const list = shots as unknown[]
@@ -262,31 +321,15 @@ export function checkStoryboard(
       } else required(v, vat, 'mode', '"none" or "spoken"', () => false)
     }
     required(shot, at, 'action', `${nonblank}: what changes, or what deliberately stays still`, text)
-    if (required(shot, at, 'captions', 'an array of exact caption strings, or [] for none', Array.isArray)) {
-      ;(shot.captions as unknown[]).forEach((c, k) => { if (!text(c)) add('invalid-value', `${at}/captions/${k}`, nonblank, describe(c)) })
-    }
+    strings(shot, at, 'captions', 'an array of exact caption strings, or [] for none')
     required(shot, at, 'details', `${nonblank}: layout, framing, typography, sound, motion and transition`, text)
     if (required(shot, at, 'frames', 'an array of one or two frames: start, then end', Array.isArray)) {
       const frames = shot.frames as unknown[]
       if (frames.length < 1 || frames.length > 2) add('frame-count', `${at}/frames`, 'one or two frames', `${frames.length} frames`)
-      frames.forEach((frame, k) => {
-        const fat = `${at}/frames/${k}`
-        if (!isObject(frame)) { add('invalid-value', fat, 'an object with src and alt', describe(frame)); return }
-        fields(frame, fat, FRAME_FIELDS)
-        required(frame, fat, 'alt', `${nonblank} describing the picture`, text)
-        if (!required(frame, fat, 'src', `${nonblank}: the image path`, text)) return
-        const named = assetName(frame.src as string, cardId, FRAME_TYPES)
-        if (!('name' in named)) { add('frame-path', `${fat}/src`, named.expected, named.actual); return }
-        if (!read) return
-        const problem = frameProblem(read(named.name))
-        if (problem) add(problem.code, `${fat}/src`, `a readable image at most ${MAX_FRAME_WIDTH}px wide`, problem.actual)
-      })
+      frames.forEach((frame, k) => frameAt(frame, `${at}/frames/${k}`, false))
     }
   })
-  // A missing picture or no shots yet still leaves a script to draw; anything else does not.
-  const drawable = new Set(['frame-missing', 'frame-unreadable', 'frame-too-wide', 'no-shots'])
-  const structural = diagnostics.some((d) => !drawable.has(d.code))
-  return { storyboard: structural ? null : (data as unknown as Storyboard), diagnostics }
+  return result()
 }
 
 /** One diagnostic on one line — where, then what is wrong and what is wanted. */

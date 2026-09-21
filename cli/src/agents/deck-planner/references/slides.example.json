@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "slides": [
+    {
+      "id": "cover",
+      "title": "用看板交付 AI 工作",
+      "copy": ["工程团队分享 · 2026 年 9 月"],
+      "notes": "开场只说一件事：需求怎样不在对话里丢失。",
+      "layout": "封面",
+      "assets": [".assets/969/logo.svg"],
+      "preview": { "src": ".assets/969/previews/cover.png", "alt": "封面：标题与副标题居中" }
+    },
+    {
+      "id": "results",
+      "title": "三个月交付 212 张卡片",
+      "copy": ["212", "平均每张卡片返工 0.4 次"],
+      "notes": "",
+      "layout": "大数字",
+      "assets": [],
+      "preview": { "src": ".assets/969/previews/results.png", "alt": "大数字 212，下方一行说明" }
+    }
+  ]
+}

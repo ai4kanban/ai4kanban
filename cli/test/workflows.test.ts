@@ -116,10 +116,13 @@ afterEach(() => {
 })
 
 describe('the workflows a board has', () => {
-  it('ships two, configured by nobody, with both leads set', () => {
-    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video'])
+  it('ships three, configured by nobody, with both leads set', () => {
+    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video', 'slide-deck'])
     assert.equal(workflowById('coding')!.name, 'Coding')
     assert.deepEqual(workflowProblems('coding'), [])
+    const deck = workflowById('slide-deck')!
+    assert.deepEqual([deck.stages.plan.lead, deck.stages.execute.lead, deck.needsArtifact], ['deck-planner', 'deck-builder', true])
+    assert.deepEqual(workflowProblems('slide-deck'), [])
     // Nothing was written to make that true: a board that never opened the pane still runs.
     assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
   })
@@ -139,11 +142,11 @@ describe('the workflows a board has', () => {
   })
 
   it('offers a stage only the agents that declare it', () => {
-    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'hyperframes-editor', 'test-writer'])
+    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'deck-builder', 'hyperframes-editor', 'test-writer'])
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'video-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'copywriting', 'hyperframes-assets', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['software-planner', 'copywriting', 'deck-planner', 'hyperframes-assets', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -689,10 +692,10 @@ describe('who may lead a stage (#846)', () => {
     stageAgent('outliner', 'plan', true)
     const mine = createWorkflow('Mine')
     const leads = planView(mine.id!).candidates.filter((a) => a.canLead).map((a) => a.name)
-    assert.deepEqual(leads, ['software-planner', 'scriptwriter', 'outliner'])
+    assert.deepEqual(leads, ['software-planner', 'deck-planner', 'scriptwriter', 'outliner'])
     assert.deepEqual(
       stageCandidates('execute').filter((a) => a.canLead).map((a) => a.name),
-      ['builder', 'hyperframes-editor', 'test-writer'],
+      ['builder', 'deck-builder', 'hyperframes-editor', 'test-writer'],
     )
     assert.match(setWorkflowLead(mine.id!, 'plan', 'ui-designer').error!, /can only help/)
   })

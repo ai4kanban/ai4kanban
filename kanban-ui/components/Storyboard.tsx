@@ -3,14 +3,15 @@
 // A card's static storyboard (#963): the script a `<Storyboard>` tag points at, read and
 // checked on the server (lib/storyboard.ts). A timeline of equal 120px thumbnails on top,
 // scrolled natively when it overflows; under it every shot, picture left and script right,
-// stacked once the body is narrower than 640px.
+// stacked once the body is narrower than 640px. A slide deck's storyboard (#969) is the same
+// layout with pages instead of shots: a preview per slide and no timing.
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { FiCheck, FiChevronRight, FiCopy, FiRotateCw } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { formatDiagnostic } from "@/lib/format/storyboard";
-import type { StoryboardFrameView, StoryboardShotView, StoryboardView } from "@/lib/storyboard";
+import type { StoryboardFrameView, StoryboardShotView, StoryboardSlideView, StoryboardView } from "@/lib/storyboard";
 import { useCopyText } from "./copy";
 import { ExpandableImage } from "./image-preview";
 import { Markdown } from "./Markdown";
@@ -30,11 +31,11 @@ function Reload() {
   );
 }
 
-function Heading({ children }: { children?: React.ReactNode }) {
+function Heading({ title, children }: { title?: string; children?: React.ReactNode }) {
   const c = useCopy().card.storyboard;
   return (
     <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <span className="text-[15px] font-[700]">{c.heading}</span>
+      <span className="text-[15px] font-[700]">{title ?? c.heading}</span>
       {children}
     </div>
   );
@@ -52,6 +53,7 @@ export function StoryboardUnavailable() {
 }
 
 export function Storyboard({ view }: { view: StoryboardView }) {
+  if (view.slides) return <Slides slides={view.slides} />;
   return view.shots ? <Shots shots={view.shots} /> : <Broken view={view} />;
 }
 
@@ -204,7 +206,7 @@ function Shot({ id, shot, current }: { id: string; shot: StoryboardShotView; cur
   );
 }
 
-function Frame({ frame }: { frame: StoryboardFrameView }) {
+function Frame({ frame, missing }: { frame: StoryboardFrameView; missing?: string }) {
   const c = useCopy().card.storyboard;
   const [failed, setFailed] = useState<string | null>(null);
   if (frame.href && failed !== frame.href) {
@@ -220,8 +222,105 @@ function Frame({ frame }: { frame: StoryboardFrameView }) {
   }
   return (
     <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-[6px] border border-dashed border-[color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] bg-nb-wash text-nb-ink-soft">
-      <span>{c.noFrame}</span>
+      <span>{missing ?? c.noFrame}</span>
       <Reload />
     </div>
+  );
+}
+
+function Slides({ slides }: { slides: StoryboardSlideView[] }) {
+  const c = useCopy().card.storyboard;
+  const base = useId();
+  const [current, setCurrent] = useState(0);
+  const anchor = (k: number) => `${base}-${k}`;
+
+  const go = (k: number) => {
+    setCurrent(k);
+    document.getElementById(anchor(k))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5">
+      <Heading title={c.slidesHeading}>
+        {slides.length > 0 && <span className="text-nb-ink-soft">{c.pages(slides.length)}</span>}
+      </Heading>
+      {slides.length === 0 ? (
+        <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.emptySlides}</div>
+      ) : (
+        <>
+          <div className="mb-6 overflow-x-auto" role="group" aria-label={c.slidesTimeline}>
+            <div className="flex w-max gap-2 p-[3px]">
+              {slides.map((slide, k) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => go(k)}
+                  aria-current={k === current ? "true" : undefined}
+                  aria-label={`${k + 1} · ${slide.title}`}
+                  className="w-[120px] shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                >
+                  <div
+                    className={`aspect-video overflow-hidden rounded-[4px] bg-nb-wash ${k === current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+                    {slide.preview.href && <img className="nb-thumb" src={slide.preview.href} alt="" />}
+                  </div>
+                  <div className="px-1 pt-1 text-[11px] font-[700]">{k + 1}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-8">
+            {slides.map((slide, k) => (
+              <Slide key={slide.id} id={anchor(k)} slide={slide} page={k + 1} current={k === current} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Slide({ id, slide, page, current }: { id: string; slide: StoryboardSlideView; page: number; current: boolean }) {
+  const c = useCopy().card.storyboard;
+  return (
+    <section id={id} className="scroll-mt-4" aria-current={current ? "true" : undefined}>
+      <div className={`mb-2 font-[700] ${current ? "text-nb-accent-deep" : ""}`}>
+        {page} · {slide.title}
+      </div>
+      <div className="grid grid-cols-2 items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4">
+        <div className="min-w-0 overflow-hidden rounded-[6px]">
+          <Frame frame={slide.preview} missing={c.noPreview} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          {slide.copy.length > 0 && (
+            <div>
+              <div className="mb-1 font-[700]">{c.onSlide}</div>
+              {slide.copy.map((line, k) => (
+                <div key={k}>{line}</div>
+              ))}
+            </div>
+          )}
+          <div>
+            <div className="mb-1 font-[700]">{c.notes}</div>
+            {slide.notes.trim() ? <div>{slide.notes}</div> : <div className="text-nb-ink-soft">{c.noNotes}</div>}
+          </div>
+          <details className="group">
+            <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft focus-visible:outline-2 focus-visible:outline-nb-accent">
+              <FiChevronRight size={13} aria-hidden className="transition-transform group-open:rotate-90" />
+              {c.layout}
+            </summary>
+            <div className="mt-2 text-nb-ink-soft">
+              <div>{slide.layout}</div>
+              {slide.assets.map((asset, k) => (
+                <div key={k} className="break-all">
+                  {asset}
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
   );
 }
