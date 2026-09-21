@@ -235,10 +235,10 @@ export interface BoardRules {
    *  A refusal carries the kind behind it where the rules name one (#706); rules older than
    *  that answer with the sentence alone, which reads as a refusal with no kind. */
   startRun?(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal>;
-  openResume(id: string): Promise<{ run: RunRecord } | { error: string }>;
+  openResume(id: string): Promise<{ run: RunRecord } | RunRefusal>;
   markSpawned(sessionId: string, pid: number | undefined): void;
   spawnWatcher(sessionId: string): number | undefined;
-  stopRun(id: string): Promise<{ ok: boolean; sessionId?: string; error?: string }>;
+  stopRun(id: string): Promise<{ ok: boolean; sessionId?: string } & Partial<RunRefusal>>;
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
   refinementRequest?(req: CommandRequest): AgentRequest | { error: string };
@@ -251,12 +251,12 @@ export interface BoardRules {
   /** Where one delivery stands, by its own id — what a card page draws in its title band.
    *  A build with no card (#428) has no card page, so its flow in Runs draws this. */
   deliveryPause?(deliveryId: string): CardDeliveryState | undefined;
-  cancelDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
+  cancelDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>>;
   /** Carry an ended delivery on from where it stopped (#639) — a delivery that stopped with
    *  its worktree and branch still here. Finished steps are not redone. */
-  resumeDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
+  resumeDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>>;
   /** A delivery's worktree and branch, thrown away on request (#303). */
-  discardDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
+  discardDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>>;
   /** The checkout an ENDED delivery still has, when the board kept it (#720) — nothing on
    *  one already cleared up, which is every ending but a stop with a job left to finish. */
   keptCheckout?(deliveryId: string): { worktree: string; branch?: string } | undefined;
@@ -266,7 +266,7 @@ export interface BoardRules {
   approveDelivery?(
     id: string,
     from?: string,
-  ): Promise<{ ok: true; deliveryId: string; covers: string } | { ok: false; error: string }>;
+  ): Promise<{ ok: true; deliveryId: string; covers: string } | ({ ok: false } & RunRefusal)>;
   /** Deliveries whose worktree or branch has gone missing — reported at startup, never
    *  started over. */
   repairDeliveries?(): string[];
@@ -378,7 +378,7 @@ export interface BoardRules {
        *  to. Rules from before it ignore it, and the switch is not drawn on such a board. */
       share?: boolean;
     },
-  ): Promise<ChatReply | { error: string }>;
+  ): Promise<ChatReply | RunRefusal>;
   clearChat?(cardId: ChatTarget): boolean;
   /** The pictures pasted into one conversation (#441): saved beside its transcript, taken
    *  back out one at a time, and looked up by name when the browser asks to draw one.
@@ -408,7 +408,7 @@ export interface BoardRules {
   pickChatRuntime?(
     cardId: ChatTarget,
     runtime: string | null,
-  ): { ok: true; cleared: boolean; restarted?: boolean; runtime: string } | { error: string };
+  ): { ok: true; cleared: boolean; restarted?: boolean; runtime: string } | RunRefusal;
 
   // Discuss (#427) — one discussion's conversation, with the plan it is talking into shape.
   // Optional like the chat itself: a project running rules older than the release that added

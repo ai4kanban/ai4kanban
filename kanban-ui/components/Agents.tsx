@@ -107,6 +107,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { sayFailure } from "@/lib/start-failure";
 
 // The one agent on this board whose switch stops the board asking you anything (#447). Its
 // page carries the only red strip in this dialog. Named here because there is exactly one.
@@ -195,7 +196,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
         setAgents((all) => all?.map((a) => (a.name === name ? { ...a, rule } : a)) ?? all);
         setSavedRule(name);
       } else {
-        box.onError?.(res.error || box.c.ruleFailed(name));
+        box.onError?.(sayFailure(res, box.c.ruleFailed(name)));
       }
     }
 
@@ -203,7 +204,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
     if (agent.file && text !== undefined && text !== agent.file.text) {
       const res = await saveAgentFileAction(name, text);
       if (!res.ok) {
-        setRefusal({ agent: name, why: res.error || box.c.ruleFailed(name) });
+        setRefusal({ agent: name, why: sayFailure(res, box.c.ruleFailed(name))});
         return false;
       }
       setAgents(
@@ -251,7 +252,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
         setAgents(
           (all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: !on } : a)) ?? all,
         );
-        onError?.(res.error || (on ? c.flipFailedOn : c.flipFailedOff)(titleOf(agent)));
+        onError?.(sayFailure(res, (on ? c.flipFailedOn : c.flipFailedOff)(titleOf(agent))));
       }
     } finally {
       setSaving((names) => names.filter((n) => n !== agent.name));
@@ -275,7 +276,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
       const res = await setSpecAgentSettingAction(agent.name, key, value);
       if (!res.ok) {
         put(was);
-        onError?.(res.error || c.saveFailed(titleOf(agent)));
+        onError?.(sayFailure(res, c.saveFailed(titleOf(agent))));
       }
     } finally {
       setSaving((names) => names.filter((n) => n !== token));
@@ -291,7 +292,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
     try {
       const res = await setAgentRuntimeAction(agent.name, runtime);
       if (!res.ok) {
-        onError?.(res.error || c.harnessFailed(titleOf(agent)));
+        onError?.(sayFailure(res, c.harnessFailed(titleOf(agent))));
         return;
       }
       await load();
@@ -308,7 +309,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
     stage?: WorkflowStage,
   ): Promise<{ agent?: string; error?: string }> => {
     const res = await createAgentAction(name, stage);
-    if (!res.ok) return { error: res.error || c.saveFailed(name) };
+    if (!res.ok) return { error: sayFailure(res, c.saveFailed(name))};
     await load();
     return { agent: res.agent ?? name };
   };
@@ -323,7 +324,7 @@ export function useAgentRoster(onError?: (msg: string) => void) {
     try {
       const res = await deleteAgentAction(name);
       if (!res.ok)
-        return onError?.(res.error || c.deleteFailed(gone ? titleOf(gone) : spellAgent(name)));
+        return onError?.(sayFailure(res, c.deleteFailed(gone ? titleOf(gone) : spellAgent(name))));
       setRefusal((was) => (was?.agent === name ? null : was));
       // Reseeds both boxes off the new roster, so the deleted agent's unsaved text goes
       // with it rather than sitting in a map nothing draws from.
@@ -1542,7 +1543,7 @@ function ScheduledControls({
     const res = await begin();
     if (!res.ok) {
       setRunning(false);
-      onError?.(res.error || c.saveFailed);
+      onError?.(sayFailure(res, c.saveFailed));
       return;
     }
     void readRuns();
@@ -1614,7 +1615,7 @@ function useCardSweep(active: boolean, onError?: (msg: string) => void) {
     const res = await startCardSweepAction();
     setStarting(false);
     if (!res.ok) {
-      onError?.(res.error || c.saveFailed);
+      onError?.(sayFailure(res, c.saveFailed));
       return;
     }
     void read();
@@ -1919,7 +1920,7 @@ function ReviewControls({
     const res = await startReviewMemoryAction();
     if (!res.ok) {
       setRunning(false);
-      onError?.(res.error || c.startFailed);
+      onError?.(sayFailure(res, c.startFailed));
       return;
     }
     void readRuns();

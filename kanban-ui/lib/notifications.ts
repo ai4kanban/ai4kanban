@@ -1,3 +1,4 @@
+import { machineCopy } from "./language";
 import { boardRules } from "./cli";
 import { alertsAllowed, autoWorkAllowed } from "./desktop";
 import type { CloudEventAnswer, NotificationGroup } from "./types";
@@ -23,7 +24,7 @@ import type { CloudEventAnswer, NotificationGroup } from "./types";
 
 /** What the section shows when the rules loaded here predate the notification center. The
  *  bell stays away rather than drawing a count nothing can fill. */
-const TOO_OLD = "The board's rules in this project are too old for Cloud notifications.";
+const tooOld = async (): Promise<string> => (await machineCopy()).messages.rules.tooOldForNotifications;
 
 /** One row of the rail — mirrored from the rules so the browser can name it. */
 export interface NotificationRow {
@@ -120,7 +121,7 @@ const OFF: NotificationCenter = {
   rows: [],
   unread: 0,
   alerts: [],
-  unavailable: TOO_OLD,
+  unavailable: "",
 };
 
 /** The bell as it stands, and the alerts waiting to be raised. Reading takes the alerts
@@ -128,7 +129,7 @@ const OFF: NotificationCenter = {
  *  window that was focused when one arrived. */
 export async function notificationCenter(): Promise<NotificationCenter> {
   const rules = await boardRules();
-  if (!rules.readCloudCenter || !rules.startCloudCenter) return OFF;
+  if (!rules.readCloudCenter || !rules.startCloudCenter) return { ...OFF, unavailable: await tooOld() };
   // Idempotent, and the one place the connection is opened: every screen polls this.
   rules.startCloudCenter(autoWorkAllowed());
   const center = rules.readCloudCenter();
@@ -159,7 +160,7 @@ export async function readAllNotifications(group?: NotificationGroup): Promise<v
  *  machine, beside the sign-in: the interruptions it stops arrive from every enabled board. */
 export async function setSilenced(on: boolean): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.setNotificationsSilenced) return { ok: false, error: TOO_OLD };
+  if (!rules.setNotificationsSilenced) return { ok: false, error: await tooOld() };
   return rules.setNotificationsSilenced(on);
 }
 
@@ -186,7 +187,7 @@ export async function boardNotifications(): Promise<BoardNotifications> {
 /** Watch a different release — what the rail asks for when the last one closed. */
 export async function watchRelease(release: string): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.watchRelease) return { ok: false, error: TOO_OLD };
+  if (!rules.watchRelease) return { ok: false, error: await tooOld() };
   return rules.watchRelease(release);
 }
 
@@ -194,7 +195,7 @@ export async function watchRelease(release: string): Promise<{ ok: boolean; erro
  *  means on there, and the section draws none. */
 export async function setBoardNotify(on: boolean): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.setBoardNotify) return { ok: false, error: TOO_OLD };
+  if (!rules.setBoardNotify) return { ok: false, error: await tooOld() };
   return rules.setBoardNotify(on);
 }
 
@@ -207,14 +208,14 @@ const NO_SERVER: BoardServer = { attached: false, here: false, machineName: "", 
  *  refused and told which one. */
 export async function setBoardServer(on: boolean, takeOver = false): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.setBoardServer) return { ok: false, error: TOO_OLD };
+  if (!rules.setBoardServer) return { ok: false, error: await tooOld() };
   return rules.setBoardServer(on, takeOver);
 }
 
 /** Take up a delivery whose server was killed under it, on the machine that claimed it. */
 export async function resumeCloudRequest(eventId: string): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.resumeCloudRequest) return { ok: false, error: TOO_OLD };
+  if (!rules.resumeCloudRequest) return { ok: false, error: await tooOld() };
   return rules.resumeCloudRequest(eventId);
 }
 
@@ -224,7 +225,7 @@ export async function cancelCloudRequest(
   eventId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.cancelCloudRequest) return { ok: false, error: TOO_OLD };
+  if (!rules.cancelCloudRequest) return { ok: false, error: await tooOld() };
   return rules.cancelCloudRequest(taskId, eventId);
 }
 

@@ -122,7 +122,11 @@ describe('the run a plan build opens', () => {
     fs.writeFileSync(path.join(PLANS, '13-blank.md'), '   \n\n')
     for (const rel of ['plans/13-blank.md', 'plans/99-never-written.md']) {
       const opened = openBuild(`docs/kanban/${rel}`)
-      assert.deepEqual(opened, { error: `there is nothing written in docs/kanban/${rel} yet, so there is nothing to build.` })
+      assert.deepEqual(opened, {
+        error: `there is nothing written in docs/kanban/${rel} yet, so there is nothing to build.`,
+        reason: 'planEmpty',
+        args: { path: `docs/kanban/${rel}` },
+      })
     }
   })
 })

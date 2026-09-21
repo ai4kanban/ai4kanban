@@ -38,6 +38,7 @@ import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/
 import { Button } from "./button";
 import { type CommandInstall, commandRowState, type CommandRowState, InstallCommand, readCommandInstall } from "./desktop";
 import { Group, Note, Panel, QUIET_BTN, Row, Status } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 /** The **Setup** group of Configuration → General. It reads its own state when it first
  *  draws — the board's poll never carries it, since one of the two answers spawns a
@@ -85,7 +86,7 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
       const res = await installSkillAction();
       setDone(res);
       setSkill(res.state.folders.length ? res.state : skill);
-      if (!res.ok) onError?.(res.error || c.addFailed);
+      if (!res.ok) onError?.(sayFailure(res, c.addFailed));
       // The command on the PATH can't have changed, but the folders have — re-read so the
       // list under the button is what is on disk rather than what was there a click ago.
       await load();
@@ -317,7 +318,7 @@ function Receipt({ result, copy }: { result: SkillInstall; copy: SkillCopy }) {
         style={{ color: ok ? "var(--color-nb-mint-ink)" : "var(--color-nb-peach-ink)" }}
       >
         {ok ? <FiCheck className="mt-[2px] shrink-0" aria-hidden /> : <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />}
-        {ok ? copy.receipt.ok : result.error || copy.receipt.nothing}
+        {ok ? copy.receipt.ok : sayFailure(result, copy.receipt.nothing)}
       </p>
       {result.wrote.length > 0 && (
         <ul className="mt-1.5 flex flex-col gap-1">

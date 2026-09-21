@@ -55,7 +55,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
-import { isDiscussion } from './types'
+import { isDiscussion, refusal, type RunRefusal } from './types'
 import type {
   Chat,
   ChatMessage,
@@ -353,8 +353,8 @@ export function setChatPlan(
   planPath: string,
   title?: string,
   workflow?: string,
-): { ok: true } | { error: string } {
-  if (!planFile(planPath)) return { error: `${planPath} is not a plan of this board's.` }
+): { ok: true } | RunRefusal {
+  if (!planFile(planPath)) return refusal('planNotFound', `${planPath} is not a plan of this board's.`, { path: planPath })
   const held = readChat(cardId)?.plans ?? []
   const plan: ChatPlan = { path: planPath, title: title?.trim() || undefined, workflow: workflow || undefined }
   const same = held.some((p) => p.path === planPath)
@@ -506,21 +506,29 @@ export function noteChatMessage(cardId: ChatTarget, text: string): void {
 // one that picked its own goes on running that, and one already spoken to goes on running the
 // CLI that opened it. So the only conversation turned away is one whose CLI this board has no
 // runtime for at all — there is nothing left that could pick its session up.
-function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
+function blockedBy(cardId: ChatTarget, chat: Chat | null): RunRefusal | undefined {
   const agent = chatAgent(runtimeOf(chat))
   if (!agent.canChat) {
-    return `chat is not available on ${agent.label}. The agents that can hold a conversation: ${agent.able.join(', ')}.`
+    const agents = agent.able.join(', ')
+    return refusal(
+      'chatUnavailable',
+      `chat is not available on ${agent.label}. The agents that can hold a conversation: ${agents}.`,
+      { agent: agent.label, agents },
+    )
   }
   // A transcript with nothing in it was held with nobody — a model typed into the box
   // before the first message leaves one (#272), and it is not something to clear.
   if (chat?.messages.length && chat.harness !== agent.name) {
-    return (
-      `this conversation was held with ${harnessLabel(chat.harness)}, and this board has no ` +
-      `${harnessLabel(chat.harness)} runtime left to carry it on — a session means nothing to another agent. ` +
-      `Clear it to start fresh with ${agent.label}.`
+    const previous = harnessLabel(chat.harness)
+    return refusal(
+      'chatRuntimeGone',
+      `this conversation was held with ${previous}, and this board has no ` +
+        `${previous} runtime left to carry it on — a session means nothing to another agent. ` +
+        `Clear it to start fresh with ${agent.label}.`,
+      { previous, agent: agent.label },
     )
   }
-  if (answeringOn(cardId)) return 'this conversation is still answering the last message.'
+  if (answeringOn(cardId)) return chatBusy()
   return undefined
 }
 
@@ -528,11 +536,20 @@ function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
  *  actually runs. One sentence, written here so the window's refusal and `akb chat`'s are
  *  the same words — the box turns a paste away before it gets this far, and this is the
  *  second look that a send takes whatever the box thought. */
-function imagesRefusedBy(chat: Chat | null): string | undefined {
+function imagesRefusedBy(chat: Chat | null): RunRefusal | undefined {
   const agent = chatAgent(runtimeOf(chat))
   if (agent.seesImages) return undefined
-  return `${agent.label} can't see images. The agents that can: ${agent.imagesAble.join(', ')}.`
+  const agents = agent.imagesAble.join(', ')
+  return refusal('chatNoImages', `${agent.label} can't see images. The agents that can: ${agents}.`, {
+    agent: agent.label,
+    agents,
+  })
 }
+
+const chatBusy = (): RunRefusal => refusal('chatBusy', 'this conversation is still answering the last message.')
+
+const blockedView = (why: RunRefusal | undefined): Pick<ChatView, 'blocked' | 'blockedRefusal'> =>
+  why ? { blocked: why.error, blockedRefusal: why } : {}
 
 /** One conversation and what the board can do about it right now. */
 export function readChatView(cardId: ChatTarget): ChatView {
@@ -550,7 +567,7 @@ export function readChatView(cardId: ChatTarget): ChatView {
     // A screen reads it to keep up with a reply it never started, and with the board that
     // reply is changing as it goes.
     answering: answeringOn(cardId),
-    blocked: blockedBy(cardId, chat),
+    ...blockedView(blockedBy(cardId, chat)),
     pick: pickOf(chat),
   }
 }
@@ -621,18 +638,22 @@ function pickOf(chat: Chat | null): ChatPick {
 export function pickChatRuntime(
   cardId: ChatTarget,
   runtime: string | null,
-): { ok: true; cleared: boolean; restarted: boolean; runtime: string } | { error: string } {
+): { ok: true; cleared: boolean; restarted: boolean; runtime: string } | RunRefusal {
   const offered = chatRuntimes()
   const want = runtime ?? chatAgent().runtime
   if (!offered.some((r) => r.id === want)) {
     const known = runtimeById(want)
-    return {
-      error: known
-        ? `${known.name} can't hold a conversation. The runtimes that can: ${offered.map((r) => r.name).join(', ')}.`
-        : `this board has no runtime called "${want}". It has: ${offered.map((r) => r.id).join(', ')}.`,
+    if (known) {
+      const runtimes = offered.map((r) => r.name).join(', ')
+      return refusal('chatRuntime', `${known.name} can't hold a conversation. The runtimes that can: ${runtimes}.`, {
+        runtime: known.name,
+        runtimes,
+      })
     }
+    const runtimes = offered.map((r) => r.id).join(', ')
+    return refusal('runtimeNotFound', `this board has no runtime called "${want}". It has: ${runtimes}.`, { id: want, runtimes })
   }
-  if (answeringOn(cardId)) return { error: 'this conversation is still answering the last message.' }
+  if (answeringOn(cardId)) return chatBusy()
 
   const chat = readChat(cardId)
   const own = runtime === null ? undefined : want
@@ -917,11 +938,11 @@ export async function sendChatMessage(
   cardId: ChatTarget,
   message: string,
   options: SendOptions = {},
-): Promise<ChatReply | { error: string }> {
+): Promise<ChatReply | RunRefusal> {
   const text = message.trim()
   const chat = readChat(cardId)
   const blocked = blockedBy(cardId, chat)
-  if (blocked) return { error: blocked }
+  if (blocked) return blocked
   // The pictures this turn really has (#441): the ones still on this machine, in the order
   // they went into the box. A resend sends the same files again rather than saving a second
   // copy, so one deleted since is dropped here — and a message that was nothing but that
@@ -930,14 +951,16 @@ export async function sendChatMessage(
   const shots = named.filter((name) => chatImageFile(cardId, name) !== null)
   if (shots.length) {
     const refused = imagesRefusedBy(chat)
-    if (refused) return { error: refused }
+    if (refused) return refused
   }
   if (!text && !shots.length) {
-    return { error: named.length ? 'those pictures are no longer on this machine.' : 'say something to send.' }
+    return named.length
+      ? refusal('chatPicturesGone', 'those pictures are no longer on this machine.')
+      : refusal('chatEmpty', 'say something to send.')
   }
 
   const release = startAnswering(cardId)
-  if (!release) return { error: 'this conversation is still answering the last message.' }
+  if (!release) return chatBusy()
   try {
     // Read off the conversation as it stood before this turn's message went into it, which is
     // exactly what `blockedBy` judged the send against.
@@ -957,7 +980,7 @@ export async function sendChatMessage(
       // leaves such a file (#272), and it must not go stale against the board.
       held.harness = agent.name
       const skill = ensureSkillInstalled(REPO_ROOT)
-      if (!skill.ok) return { error: skill.error || 'the kanban skill could not be installed.' }
+      if (!skill.ok) return refusal('skillNotInstalled', skill.error || 'the kanban skill could not be installed.')
     }
     // Written down before the agent is asked anything, so a reply that never arrives still
     // leaves the conversation holding what the user said. The board's own opening turn is
@@ -995,7 +1018,11 @@ export async function sendChatMessage(
       ? planResume(held.harness, held.resumeId, REPO_ROOT, CHAT_AGENT, own)
       : planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own)
     if (!plan) {
-      return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
+      const previous = harnessLabel(held.harness)
+      return refusal('chatForeign', `${agent.label} can't carry on a ${previous} conversation. Clear it to start fresh.`, {
+        agent: agent.label,
+        previous,
+      })
     }
     // Where the pictures go is the connector's own answer (agent/harnesses/types.ts): one
     // that reads a path out of the words is told them, and one with a flag per file is

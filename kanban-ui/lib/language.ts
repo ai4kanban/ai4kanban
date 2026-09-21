@@ -1,6 +1,7 @@
 import { getCopy } from "@/i18n";
 import type { UiCopy } from "@/i18n/types";
 import { boardRules } from "./cli";
+import { refusalLine, type Refused } from "./start-failure";
 import { DEFAULT_LANGUAGE, isLanguage, type Language, type WriteResult } from "./types";
 
 // --- the language this MACHINE works in (#334) -------------------------------
@@ -29,4 +30,23 @@ export async function setMachineLanguage(value: Language): Promise<WriteResult> 
  *  Rules that cannot say fall back to English rather than failing the render. */
 export async function machineCopy(): Promise<UiCopy> {
   return getCopy(await machineLanguage().catch(() => DEFAULT_LANGUAGE));
+}
+
+/** A failure the board's rules answered, said in this machine's language (#955): its kind's
+ *  sentence where the copy has one, or the board's own words marked `raw` for the screen to
+ *  put under its own summary. An answer with no error passes untouched. */
+export async function said<T extends Refused>(r: T): Promise<T> {
+  if (!r.error || r.raw !== undefined) return r;
+  const line = refusalLine(r, await machineCopy());
+  return { ...r, error: line ?? r.error, raw: !line };
+}
+
+/** The same for something the rules threw. A refusal the board threw carries its kind in
+ *  `kind` and its values in `details`. */
+export async function saidThrown(e: unknown): Promise<{ error: string; raw?: boolean }> {
+  const error = e instanceof Error ? e.message : String(e);
+  const kinded = e as { kind?: unknown; details?: Record<string, string> } | null;
+  const reason = typeof kinded?.kind === "string" ? kinded.kind : undefined;
+  const out: Refused = await said({ error, reason, args: kinded?.details });
+  return { error: out.error!, raw: out.raw };
 }

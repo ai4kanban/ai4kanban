@@ -1,8 +1,7 @@
-import { getCopy } from "@/i18n";
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
-import { machineCopy } from "./language";
-import { DEFAULT_LANGUAGE, type Chat, type ChatPick, type ChatTarget } from "./types";
+import { machineCopy, said } from "./language";
+import { type Chat, type ChatPick, type ChatTarget } from "./types";
 
 // --- the conversation, through the CLI (#242) --------------------------------
 // The chat itself is the command's (cli/src/lib/agent/chat.ts): the transcript file, the
@@ -75,10 +74,12 @@ export interface ChatRead {
 const keyOf = (target: ChatTarget): string =>
   target === null ? "board" : typeof target === "string" ? target : `card-${target}`;
 
-// Read at load, so English: this is the line for rules too old to hold a conversation,
-// and the language is one of the things such a copy may not be able to answer for.
-const ENGLISH = getCopy(DEFAULT_LANGUAGE).messages.rules;
-const TOO_OLD = `${ENGLISH.tooOldForChat} ${ENGLISH.updateIt}`;
+// Rules too old to hold a conversation. Such a copy may not know the language either, and
+// then `machineCopy` says it in English.
+async function tooOld(): Promise<string> {
+  const { rules } = (await machineCopy()).messages;
+  return `${rules.tooOldForChat} ${rules.updateIt}`;
+}
 
 interface Flight {
   /** The reply so far, as the agent writes it. Frozen once stopped, so the words on screen
@@ -135,7 +136,7 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
   } catch (e) {
     return { ...NOTHING, blocked: whyNoRules(e) };
   }
-  if (!rules.readChatView) return { ...NOTHING, blocked: TOO_OLD };
+  if (!rules.readChatView) return { ...NOTHING, blocked: await tooOld() };
   const view = rules.readChatView(cardId);
   const { live, failed } = flights();
   const flight = live.get(keyOf(cardId));
@@ -166,7 +167,10 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     seesImages: view.seesImages ?? false,
     imagesAble: view.imagesAble ?? [],
     missing: agentMissing(agent),
-    blocked: stillBlocked(view, agent.options),
+    blocked: stillBlocked(
+      { ...view, blocked: view.blockedRefusal ? (await said(view.blockedRefusal)).error : view.blocked },
+      agent.options,
+    ),
     failed: failed.get(keyOf(cardId)),
     // Absent on rules older than the pick — the rail then draws the box it always drew.
     pick: view.pick ?? null,
@@ -186,9 +190,9 @@ export async function pickChatRuntime(
   } catch (e) {
     return { ok: false, error: whyNoRules(e) };
   }
-  if (!rules.pickChatRuntime) return { ok: false, error: TOO_OLD };
+  if (!rules.pickChatRuntime) return { ok: false, error: await tooOld() };
   const picked = rules.pickChatRuntime(cardId, runtime);
-  if ("error" in picked) return { ok: false, error: picked.error };
+  if ("error" in picked) return said({ ok: false, ...picked });
   flights().failed.delete(keyOf(cardId));
   // `cleared` says whether there was a transcript to lose — a switch to a row on the same
   // CLI takes nothing away, and neither does one it refused. `restarted` says the
@@ -252,10 +256,10 @@ export async function sendChat(
     return { ok: false, error: whyNoRules(e) };
   }
   const send = rules.sendChatMessage;
-  if (!send) return { ok: false, error: TOO_OLD };
+  if (!send) return { ok: false, error: await tooOld() };
   // The sheet pasted into its own box (#530) and this copy of the board cannot bring one
   // over. Said here rather than sending the words without their pictures.
-  if (opts.box && !rules.adoptChatPictures) return { ok: false, error: TOO_OLD };
+  if (opts.box && !rules.adoptChatPictures) return { ok: false, error: await tooOld() };
 
   const key = keyOf(cardId);
   const { live, failed } = flights();
@@ -308,7 +312,7 @@ export async function sendChat(
       // The transcript is on disk by the time this runs, so a stopped reply hands its words
       // over here rather than being drawn beside the message that now holds them.
       flight.landed = true;
-      if ("error" in sent) failed.set(key, sent.error);
+      if ("error" in sent) return said(sent).then((why) => void failed.set(key, why.error));
     })
     .catch((e: unknown) => {
       failed.set(key, e instanceof Error ? e.message : String(e));
@@ -347,7 +351,7 @@ export async function addChatImage(
   } catch (e) {
     return { ok: false, error: whyNoRules(e) };
   }
-  if (!rules.addChatImage) return { ok: false, error: TOO_OLD };
+  if (!rules.addChatImage) return { ok: false, error: await tooOld() };
   const saved = rules.addChatImage(cardId, data, type);
   return "error" in saved ? { ok: false, error: saved.error } : { ok: true, name: saved.name };
 }
@@ -381,7 +385,7 @@ export async function clearChat(cardId: ChatTarget): Promise<{ ok: boolean; erro
   } catch (e) {
     return { ok: false, error: whyNoRules(e) };
   }
-  if (!rules.clearChat) return { ok: false, error: TOO_OLD };
+  if (!rules.clearChat) return { ok: false, error: await tooOld() };
   flights().failed.delete(keyOf(cardId));
   rules.clearChat(cardId);
   return { ok: true };

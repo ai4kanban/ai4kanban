@@ -1,7 +1,6 @@
-import { getCopy } from "@/i18n";
+import { machineCopy } from "./language";
 import { boardRules } from "./cli";
 import {
-  DEFAULT_LANGUAGE,
   type CloudAccount,
   type CloudMove,
   type LarkChat,
@@ -23,7 +22,7 @@ import {
 /** What the section shows when the rules loaded here predate Cloud. It draws the not
  *  signed-in state and says why the button cannot help. */
 // Read at load, so English: rules that predate Cloud may predate the language setting too.
-const TOO_OLD = getCopy(DEFAULT_LANGUAGE).messages.rules.tooOldForCloud;
+const tooOld = async (): Promise<string> => (await machineCopy()).messages.rules.tooOldForCloud;
 
 const UNKNOWN: CloudAccount = {
   state: "signed-out",
@@ -32,7 +31,7 @@ const UNKNOWN: CloudAccount = {
   avatarUrl: null,
   avatarData: null,
   email: null,
-  message: TOO_OLD,
+  message: "",
   inviteRequestedAt: null,
   sessionFile: "",
   configured: false,
@@ -41,28 +40,28 @@ const UNKNOWN: CloudAccount = {
 /** Who this machine is signed in as, asked of Cloud itself. */
 export async function cloudAccount(): Promise<CloudAccount> {
   const rules = await boardRules();
-  return rules.readCloudAccount ? rules.readCloudAccount() : UNKNOWN;
+  return rules.readCloudAccount ? rules.readCloudAccount() : { ...UNKNOWN, message: await tooOld() };
 }
 
 /** The consent screen to open in the user's own browser. The secret half of the sign-in
  *  stays on this machine; the answer comes back to the app over its URL scheme. */
 export async function startCloudSignIn(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const rules = await boardRules();
-  if (!rules.startCloudSignIn) return { ok: false, error: TOO_OLD };
+  if (!rules.startCloudSignIn) return { ok: false, error: await tooOld() };
   return rules.startCloudSignIn();
 }
 
 /** The answer the app caught, turned into a sign-in this machine holds. */
 export async function finishCloudSignIn(callback: string): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.finishCloudSignIn) return { ok: false, error: TOO_OLD };
+  if (!rules.finishCloudSignIn) return { ok: false, error: await tooOld() };
   return rules.finishCloudSignIn(callback);
 }
 
 /** Stop this machine reaching Cloud. Nothing already on the board is touched. */
 export async function signOutOfCloud(): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.signOutOfCloud) return { ok: false, error: TOO_OLD };
+  if (!rules.signOutOfCloud) return { ok: false, error: await tooOld() };
   return rules.signOutOfCloud();
 }
 
@@ -71,7 +70,7 @@ export async function signOutOfCloud(): Promise<{ ok: boolean; error?: string }>
 /** Ask us for an invite. Pressing again records no second request and sends no second email. */
 export async function requestCloudInvite(): Promise<CloudMove> {
   const rules = await boardRules();
-  if (!rules.requestCloudInvite) return { ok: false, error: TOO_OLD };
+  if (!rules.requestCloudInvite) return { ok: false, error: await tooOld() };
   return rules.requestCloudInvite();
 }
 
@@ -85,19 +84,19 @@ export async function requestCloudInvite(): Promise<CloudMove> {
 // handed straight to the service, which is the whole reason a connection is made through
 // the browser rather than by pasting something into a box.
 
-const NO_SLACK: SlackState = { connection: null, configured: false, error: TOO_OLD };
+const NO_SLACK: SlackState = { connection: null, configured: false, error: "" };
 
 /** The connection this account holds, or the absence of one. */
 export async function slackState(): Promise<SlackState> {
   const rules = await boardRules();
-  return rules.readSlackState ? rules.readSlackState() : NO_SLACK;
+  return rules.readSlackState ? rules.readSlackState() : { ...NO_SLACK, error: await tooOld() };
 }
 
 /** The consent screen to open in the user's own browser. Slack answers the service, which
  *  hands the browser back to the app on its URL scheme. */
 export async function startSlackConnect(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const rules = await boardRules();
-  if (!rules.startSlackConnect) return { ok: false, error: TOO_OLD };
+  if (!rules.startSlackConnect) return { ok: false, error: await tooOld() };
   return rules.startSlackConnect();
 }
 
@@ -106,21 +105,21 @@ export async function slackConversations(): Promise<
   { ok: true; conversations: SlackConversation[] } | { ok: false; error: string }
 > {
   const rules = await boardRules();
-  if (!rules.readSlackConversations) return { ok: false, error: TOO_OLD };
+  if (!rules.readSlackConversations) return { ok: false, error: await tooOld() };
   return rules.readSlackConversations();
 }
 
 /** Point it at one. Picking again is also how a refusal Slack raised is cleared. */
 export async function setSlackChannel(channelId: string, channelName: string): Promise<CloudMove> {
   const rules = await boardRules();
-  if (!rules.setSlackChannel) return { ok: false, error: TOO_OLD };
+  if (!rules.setSlackChannel) return { ok: false, error: await tooOld() };
   return rules.setSlackChannel(channelId, channelName);
 }
 
 /** Stop posting. No board is touched and every event goes on exactly as it was. */
 export async function disconnectSlack(): Promise<CloudMove> {
   const rules = await boardRules();
-  if (!rules.disconnectSlack) return { ok: false, error: TOO_OLD };
+  if (!rules.disconnectSlack) return { ok: false, error: await tooOld() };
   return rules.disconnectSlack();
 }
 
@@ -129,12 +128,12 @@ export async function disconnectSlack(): Promise<CloudMove> {
 // press settles the event. Connecting names a cloud, because 飞书 and Lark international are
 // two platforms that list two apps.
 
-const NO_LARK: LarkState = { connection: null, clouds: [], error: TOO_OLD };
+const NO_LARK: LarkState = { connection: null, clouds: [], error: "" };
 
 /** The connection this account holds, or the absence of one. */
 export async function larkState(): Promise<LarkState> {
   const rules = await boardRules();
-  return rules.readLarkState ? rules.readLarkState() : NO_LARK;
+  return rules.readLarkState ? rules.readLarkState() : { ...NO_LARK, error: await tooOld() };
 }
 
 /** The consent screen to open in the user's own browser, for one cloud. */
@@ -142,7 +141,7 @@ export async function startLarkConnect(
   cloud: LarkCloud,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const rules = await boardRules();
-  if (!rules.startLarkConnection) return { ok: false, error: TOO_OLD };
+  if (!rules.startLarkConnection) return { ok: false, error: await tooOld() };
   return rules.startLarkConnection(cloud);
 }
 
@@ -151,21 +150,21 @@ export async function larkChats(): Promise<
   { ok: true; chats: LarkChat[] } | { ok: false; error: string }
 > {
   const rules = await boardRules();
-  if (!rules.readLarkChats) return { ok: false, error: TOO_OLD };
+  if (!rules.readLarkChats) return { ok: false, error: await tooOld() };
   return rules.readLarkChats();
 }
 
 /** Point it at one. Picking again is also how a refusal Lark raised is cleared. */
 export async function setLarkChat(chat: LarkChat): Promise<CloudMove> {
   const rules = await boardRules();
-  if (!rules.setLarkChat) return { ok: false, error: TOO_OLD };
+  if (!rules.setLarkChat) return { ok: false, error: await tooOld() };
   return rules.setLarkChat(chat);
 }
 
 /** Stop posting. A Slack connection beside this one keeps posting, and no board is touched. */
 export async function disconnectLark(): Promise<CloudMove> {
   const rules = await boardRules();
-  if (!rules.disconnectLark) return { ok: false, error: TOO_OLD };
+  if (!rules.disconnectLark) return { ok: false, error: await tooOld() };
   return rules.disconnectLark();
 }
 

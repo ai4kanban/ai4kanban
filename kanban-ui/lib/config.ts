@@ -1,4 +1,4 @@
-import { machineCopy } from "./language";
+import { machineCopy, said } from "./language";
 import { boardRules } from "./cli";
 import type {
   CadenceSchedule,
@@ -13,7 +13,7 @@ import type {
 // does, so `akb agent` and this dialog are one writer with one set of rules.
 
 export async function setHarness(name: string): Promise<{ ok: boolean; error?: string }> {
-  return (await boardRules()).setHarness(name);
+  return said(await (await boardRules()).setHarness(name));
 }
 
 export async function setHarnessSetting(
@@ -21,7 +21,7 @@ export async function setHarnessSetting(
   value: string,
   harness?: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  return (await boardRules()).setHarnessSetting(key, value, harness);
+  return said(await (await boardRules()).setHarnessSetting(key, value, harness));
 }
 
 // --- auto-delivery (#303) ----------------------------------------------------
@@ -40,7 +40,7 @@ export async function setAutoCommit(on: boolean): Promise<{ ok: boolean; error?:
   if (!rules.setAutoCommit) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.autoDelivery };
   }
-  return rules.setAutoCommit(on);
+  return said(await rules.setAutoCommit(on));
 }
 
 // --- diff approval (#308) ----------------------------------------------------
@@ -57,7 +57,7 @@ export async function setDiffApproval(on: boolean): Promise<{ ok: boolean; error
   if (!rules.setDiffApproval) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.diffApproval };
   }
-  return rules.setDiffApproval(on);
+  return said(await rules.setDiffApproval(on));
 }
 
 // --- AI review (#416, #783) ---------------------------------------------------
@@ -74,7 +74,7 @@ export async function setAiReview(on: boolean): Promise<{ ok: boolean; error?: s
   if (!rules.setAiReview) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.aiReview };
   }
-  return rules.setAiReview(on);
+  return said(await rules.setAiReview(on));
 }
 
 // --- the silence limit (#394) -------------------------------------------------
@@ -93,7 +93,7 @@ export async function setSilenceMinutes(minutes: number): Promise<{ ok: boolean;
   if (!rules.setSilenceMinutes) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.silenceLimit };
   }
-  return rules.setSilenceMinutes(minutes);
+  return said(await rules.setSilenceMinutes(minutes));
 }
 
 // --- the memory pruner's schedule (#514) -------------------------------------
@@ -114,7 +114,7 @@ export async function setMemoryPrune(next: {
   if (!rules.setMemoryPrune) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.memoryPruner };
   }
-  return rules.setMemoryPrune(next);
+  return said(await rules.setMemoryPrune(next));
 }
 
 // --- the sweep of the stale cards (#119) -------------------------------------
@@ -140,7 +140,7 @@ export async function saveCardSweep(next: {
   if (!rules.saveCardSweep) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
   }
-  return rules.saveCardSweep(next);
+  return said(await rules.saveCardSweep(next));
 }
 
 export async function sweepReport(): Promise<SweepReport | null> {
@@ -153,7 +153,7 @@ export async function startCardSweep(): Promise<{ ok: boolean; error?: string }>
   if (!rules.startCardSweep) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
   }
-  return rules.startCardSweep();
+  return said(await rules.startCardSweep());
 }
 
 // --- the memory reviewer's last review (#748) --------------------------------
@@ -181,5 +181,5 @@ export async function setDismissalReview(next: {
   if (!rules.setDismissalReview) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.dismissalReviewer };
   }
-  return rules.setDismissalReview(next);
+  return said(await rules.setDismissalReview(next));
 }

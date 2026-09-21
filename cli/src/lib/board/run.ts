@@ -20,6 +20,7 @@ import { heldLine } from './cloud'
 import type { CarryResult } from './cloud'
 import type { BoardPayload } from './transfer'
 import { stampHolder } from '../cloud/holds'
+import { refusal, type RunRefusal } from '../agent/types'
 
 /**
  * How often a run's hold on its card is renewed, and how soon a renewal that did not land is
@@ -33,7 +34,7 @@ import { stampHolder } from '../cloud/holds'
 const CARD_RENEW_MS = 10 * 60_000
 const CARD_RETRY_MS = 60_000
 
-export type RunHold = { ok: true } | { ok: false; error: string }
+export type RunHold = { ok: true } | ({ ok: false } & RunRefusal)
 
 /** Whether a run may start on this board at all. A Cloud board out of reach refuses one
  *  rather than letting it work the copy already on disk — the machine holding the card would
@@ -41,12 +42,17 @@ export type RunHold = { ok: true } | { ok: false; error: string }
 export function runCanStart(): RunHold {
   const cloud = cloudHandle()
   if (!cloud || !cloud.state().offline) return { ok: true }
-  return { ok: false, error: UNREACHABLE }
+  return UNREACHABLE
 }
 
-const UNREACHABLE =
-  'Cloud could not be reached, so this run was not started — a run works the workspace, ' +
-  'never the copy left on this machine. Try again when the board is back.'
+const UNREACHABLE = {
+  ok: false,
+  ...refusal(
+    'cloudUnreachable',
+    'Cloud could not be reached, so this run was not started — a run works the workspace, ' +
+      'never the copy left on this machine. Try again when the board is back.',
+  ),
+} as const
 
 /**
  * Hold this run's card before it starts.
@@ -67,11 +73,12 @@ export async function takeRunCard(sessionId: string, cardId: number | null): Pro
   if (got.takenOver) {
     // The workspace's own sentence names who is holding the card (#375). What is added here
     // is the two things it cannot say: when the wait ends, and what to do instead.
-    return { ok: false, error: `${heldLine(got.error, got.until)} Wait for that hold to run out, or work another card.` }
+    const details = heldLine(got.error, got.until)
+    return { ok: false, ...refusal('cardHeld', `${details} Wait for that hold to run out, or work another card.`, { details }) }
   }
   // Anything else the workspace never answered: the run does not start on the copy alone,
   // because the machine holding the card would have its edits written over.
-  return { ok: false, error: cloud.state().offline ? UNREACHABLE : got.error }
+  return cloud.state().offline ? UNREACHABLE : { ok: false, error: got.error }
 }
 
 /** Give this run's share of its card back. The workspace's lock goes with it when nothing

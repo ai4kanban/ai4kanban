@@ -16,9 +16,9 @@ import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
-import { cardWorkflowId, workflowFor, workflowKnown, workflowProblems } from './workflows'
+import { cardWorkflowId, workflowFor, workflowIssues, workflowKnown } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
-import type { AgentRequest, RunRecord, RunRefusal } from './types'
+import { refusal, type AgentRequest, type RunRecord, type RunRefusal } from './types'
 
 /** Open a run and spawn its watcher. `spawned` false means nothing is watching it — the
  *  record is there but no process will ever report on it, which is the caller's to raise. */
@@ -26,9 +26,9 @@ export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spa
   const sessionId = randomUUID()
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   const short = workflowRefusal(req)
-  if (short) return { error: short }
+  if (short) return short
   const held = await takeRunCard(sessionId, cardId)
-  if (!held.ok) return { error: held.error }
+  if (!held.ok) return held
 
   const opened = open(req, sessionId)
   if ('error' in opened) await dropRunCard(sessionId)
@@ -48,19 +48,29 @@ const RETIRED_WORKFLOWS = ['content']
 // than finding it out now. A run already inside a delivery is not checked — that delivery
 // froze its own answer, and re-reading the board would refuse a build in flight over a change
 // made after it started.
-export function workflowRefusal(req: AgentRequest): string | null {
+export function workflowRefusal(req: AgentRequest): RunRefusal | null {
   if (!Number.isInteger(req.id)) return null
   if (deliveryFor(req)) return null
   const id = cardWorkflowId(req.id as number)
   // A card naming a workflow this board no longer has RESOLVES to the default, so that the
   // card is still readable — but it does not run: `workflowFor` never answers nothing here,
   // and a card quietly built by agents nobody assigned it is worse than a card that stops.
-  if (!workflowKnown(id) && !RETIRED_WORKFLOWS.includes(id)) return `#${req.id} names the "${id}" workflow, and this board has no such workflow.`
+  if (!workflowKnown(id) && !RETIRED_WORKFLOWS.includes(id)) {
+    return refusal('workflowUnknown', `#${req.id} names the "${id}" workflow, and this board has no such workflow.`, {
+      card: String(req.id),
+      workflow: id,
+    })
+  }
   const flow = workflowFor(id)
   if (!flow) return null
-  const problems = workflowProblems(flow.id)
-  if (!problems.length) return null
-  return `${problems[0]} Assign it in Configuration → Workflows, or with \`akb workflow stage ${flow.id} --stage <stage> --lead <agent>\`.`
+  const [problem] = workflowIssues(flow.id)
+  if (!problem) return null
+  const command = `akb workflow stage ${flow.id} --stage <stage> --lead <agent>`
+  return {
+    ...problem,
+    error: `${problem.error} Assign it in Configuration → Workflows, or with \`${command}\`.`,
+    args: { ...problem.args, command },
+  }
 }
 
 /** The same, from inside a board move — where the board's own lock is held and nothing may be
@@ -68,7 +78,7 @@ export function workflowRefusal(req: AgentRequest): string | null {
  *  card lock to take; what a Cloud board still refuses is a workspace out of reach. */
 export function startCardlessRun(req: AgentRequest): { run: RunRecord; spawned: boolean } | RunRefusal {
   const can = runCanStart()
-  return can.ok ? open(req, randomUUID()) : { error: can.error }
+  return can.ok ? open(req, randomUUID()) : can
 }
 
 /** What this run is written down from (#517): the pictures pasted into the create sheet

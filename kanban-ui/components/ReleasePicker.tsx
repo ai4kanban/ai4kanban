@@ -59,6 +59,7 @@ import { CHROME, SegmentDivider } from "./chrome";
 import { Dialog } from "./Dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
+import { sayFailure } from "@/lib/start-failure";
 
 // The values the entries that aren't releases carry. `readReleases` cuts a
 // line at the em dash, so a release id can never hold one — not even from a
@@ -349,7 +350,7 @@ function ReleaseGoalDialog({
       return;
     }
     setSaving(false);
-    setError(res.error || c.saveFailed);
+    setError(sayFailure(res, c.saveFailed));
   };
 
   return (
@@ -421,7 +422,7 @@ function PlanReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || c.startFailed);
+    setError(sayFailure(res, c.startFailed));
   };
 
   return (
@@ -503,7 +504,7 @@ function CloseReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || c.failed);
+    setError(sayFailure(res, c.failed));
   };
 
   return (
@@ -630,7 +631,7 @@ function DropReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || c.failed);
+    setError(sayFailure(res, c.failed));
   };
 
   return (
@@ -778,7 +779,7 @@ function NewReleaseDialog({
       return;
     }
     setSaving(false);
-    setError(res.error || c.failed);
+    setError(sayFailure(res, c.failed));
   };
 
   return (

@@ -1,3 +1,4 @@
+import { machineCopy } from "./language";
 import { boardRules, whyNoRules } from "./cli";
 import { clearChat, readChat, sendChat } from "./chat";
 import type { SetupProposal } from "./types";
@@ -93,7 +94,7 @@ export async function openSetupChat(): Promise<{ ok: boolean; error?: string }> 
   } catch (e) {
     return { ok: false, error: whyNoRules(e) };
   }
-  if (!rules.setupOpening) return { ok: false, error: "this board's rules are too old to hold the first-run conversation." };
+  if (!rules.setupOpening) return { ok: false, error: (await machineCopy()).messages.rules.tooOldForSetup };
   await clearChat("setup");
   return sendChat("setup", rules.setupOpening(), { fromBoard: true });
 }

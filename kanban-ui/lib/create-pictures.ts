@@ -1,3 +1,4 @@
+import { machineCopy } from "./language";
 import { boardRules, whyNoRules } from "./cli";
 
 // --- the pictures pasted into the create sheet (#517) ------------------------
@@ -11,7 +12,7 @@ import { boardRules, whyNoRules } from "./cli";
 // and the command is what turns the two into a file inside a folder the board itself wrote.
 
 /** Nothing this board could take a picture with — no rules, or a copy older than the box. */
-const NO_BOX = "this board's command is too old to take a picture. Update it.";
+const tooOld = async (): Promise<string> => (await machineCopy()).messages.rules.tooOldForPictures;
 
 export async function addRunPicture(
   box: string,
@@ -24,7 +25,7 @@ export async function addRunPicture(
   } catch (e) {
     return { ok: false, error: whyNoRules(e) };
   }
-  if (!rules.addRunPicture) return { ok: false, error: NO_BOX };
+  if (!rules.addRunPicture) return { ok: false, error: await tooOld() };
   const saved = rules.addRunPicture(box, data, type);
   return "error" in saved ? { ok: false, error: saved.error } : { ok: true, name: saved.name };
 }

@@ -1,4 +1,5 @@
 import { boardRules } from "./cli";
+import { said } from "./language";
 
 // --- the board's keys (#168) -------------------------------------------------
 // They live in docs/kanban/.env, kept out of git by the board's own ignore file, and the
@@ -9,7 +10,7 @@ import { boardRules } from "./cli";
 // leaves the machine: nothing here returns one.
 
 export async function setSecret(name: string, value: string): Promise<{ ok: boolean; error?: string }> {
-  return (await boardRules()).setSecret(name, value);
+  return said((await boardRules()).setSecret(name, value));
 }
 
 /** One runtime's key, under the id-scoped line a run actually reads (#467). `harness` names
@@ -24,7 +25,7 @@ export async function setHarnessSecret(
   harness?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  return rules.setHarnessSecret
-    ? rules.setHarnessSecret(setting.key, value, harness)
-    : rules.setSecret(setting.env, value);
+  return said(
+    rules.setHarnessSecret ? rules.setHarnessSecret(setting.key, value, harness) : rules.setSecret(setting.env, value),
+  );
 }

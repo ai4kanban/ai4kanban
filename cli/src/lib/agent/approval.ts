@@ -13,9 +13,9 @@
 // the permanent record keeps.
 
 import { workMark } from './commit-mode'
-import { namedDelivery, syncAudit } from './deliveries'
+import { namedDelivery, syncAudit, unknownDelivery } from './deliveries'
 import { withStore } from './store'
-import type { DeliveryRecord } from './types'
+import { refusal, type DeliveryRecord, type RunRefusal } from './types'
 
 /** Whether the approval standing on this delivery still covers the tree that would land.
  *
@@ -77,19 +77,26 @@ export function cancelApproval(deliveryId: string, moved?: 'base' | 'tree'): voi
 export function approveDelivery(
   id: string,
   from?: string,
-): { ok: true; deliveryId: string; covers: string } | { ok: false; error: string } {
-  if (!id.trim()) return { ok: false, error: 'name the delivery to approve' }
+): { ok: true; deliveryId: string; covers: string } | ({ ok: false } & RunRefusal) {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to approve', { action: 'approve' }) }
   const delivery = namedDelivery(id)
-  if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
+  if (!delivery) return { ok: false, ...unknownDelivery(id) }
+  const args = { id: delivery.deliveryId }
   if (delivery.status !== 'active') {
-    return { ok: false, error: `delivery ${delivery.deliveryId} has already ended, so there is nothing left to approve` }
+    return {
+      ok: false,
+      ...refusal('deliveryEnded', `delivery ${delivery.deliveryId} has already ended, so there is nothing left to approve`, args),
+    }
   }
   if (!delivery.approval?.required) {
     return {
       ok: false,
-      error:
+      ...refusal(
+        'deliveryNoApproval',
         `delivery ${delivery.deliveryId} needs no approval — **Approve diffs before landing** was off when it ` +
-        `started, and the setting is frozen on a delivery the way its commit mode is.`,
+          `started, and the setting is frozen on a delivery the way its commit mode is.`,
+        args,
+      ),
     }
   }
   // Read outside the lock: it runs git.
@@ -103,7 +110,9 @@ export function approveDelivery(
     live.approval.events.push({ kind: 'approved', base, mark, from, at })
     return true
   })
-  if (!written) return { ok: false, error: `delivery ${delivery.deliveryId} ended while it was being approved` }
+  if (!written) {
+    return { ok: false, ...refusal('deliveryEndedApproving', `delivery ${delivery.deliveryId} ended while it was being approved`, args) }
+  }
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId, covers: approvalCovers(base, mark) }
 }

@@ -67,6 +67,7 @@ import { GuideDrawer } from "./Guide";
 import { Header } from "./Header";
 import { type SetupFailure } from "./agent-shared";
 import { sessionsPanel } from "./sessions";
+import { sayFailure } from "@/lib/start-failure";
 
 /** What starting the setup run answered. Same shape every board action comes back
  *  with: it happened, or this line says why not. */
@@ -129,7 +130,7 @@ function useFinishSetup(onStart: () => Promise<StartAnswer>) {
     setError(null);
     try {
       const res = await onStart();
-      if (!res.ok) setError(res.error || c.startFailed);
+      if (!res.ok) setError(sayFailure(res, c.startFailed));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -607,7 +608,7 @@ function ProjectStep({
     try {
       const res = await saveSetupProjectAction(draft.project.name, draft.project.description);
       if (!res.ok) {
-        setError(res.error || c.saveFailed);
+        setError(sayFailure(res, c.saveFailed));
         return;
       }
       onSaved();
@@ -673,7 +674,7 @@ function GoalStep({
     const res = await saveGoalAction(text);
     setSaving(false);
     if (!res.ok) {
-      setError(res.error || c.saveFailed);
+      setError(sayFailure(res, c.saveFailed));
       return;
     }
     onSaved(text);
@@ -748,7 +749,7 @@ function AgentStep({
     try {
       const res = await finishSetupAgentStepAction();
       if (!res.ok) {
-        setError(res.error || c.saveFailed);
+        setError(sayFailure(res, c.saveFailed));
         return;
       }
       onDone(res.agent);

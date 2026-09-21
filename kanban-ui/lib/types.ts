@@ -133,8 +133,11 @@ export type {
   SignalsAccess,
   Subtask,
   VerifyResult,
-  WriteResult,
 } from "./format/view/types";
+import type { WriteResult as BoardWriteResult } from "./format/view/types";
+/** A board write as a screen gets it: `raw` marks an `error` the server could not put in the
+ *  reader's language, which the screen lists under its own summary (#955). */
+export type WriteResult = BoardWriteResult & { raw?: boolean };
 export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
 
 // The one read each screen makes (#374) — what the board screen draws, and what a card page

@@ -10,7 +10,7 @@
 
 import path from "node:path";
 
-import { getCopy } from "@/i18n";
+import { machineCopy } from "./language";
 import {
   boardRules,
   type CloudChange,
@@ -19,11 +19,8 @@ import {
   type WorkspaceNodeWire,
 } from "./cli";
 import { repoRoot } from "./paths";
-import { DEFAULT_LANGUAGE } from "./types";
 
-// Read at load, so English: rules that predate the workspace controls may predate the
-// language setting too.
-const TOO_OLD = getCopy(DEFAULT_LANGUAGE).messages.rules.tooOldForCloud;
+const tooOld = async (): Promise<string> => (await machineCopy()).messages.rules.tooOldForCloud;
 
 export type WorkspaceMove = { ok: true } | { ok: false; error: string };
 
@@ -112,7 +109,7 @@ export async function workspaceView(): Promise<WorkspaceView> {
     name: pointer.name ?? "",
     change: pendingChange(rules.readCloudChange?.(root, "go")),
   };
-  if (!rules.readCloudWorkspace || !rules.readWorkspaceNodes) return { ...held, error: TOO_OLD };
+  if (!rules.readCloudWorkspace || !rules.readWorkspaceNodes) return { ...held, error: await tooOld() };
 
   const read = await rules.readCloudWorkspace(pointer.workspace);
   if (!read.ok) return { ...held, error: read.error, stranded: read.stranded === true };
@@ -145,7 +142,7 @@ const pendingChange = (change: CloudChange | undefined): CloudChange | null =>
 export async function renameWorkspace(name: string): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.renameCloudWorkspace || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.renameCloudWorkspace || !id) return { ok: false, error: await tooOld() };
   const done = await rules.renameCloudWorkspace(id, name);
   return done.ok ? { ok: true } : { ok: false, error: done.error };
 }
@@ -153,7 +150,7 @@ export async function renameWorkspace(name: string): Promise<WorkspaceMove> {
 export async function renameWorkspaceNode(nodeId: string, name: string): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.renameCloudNode || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.renameCloudNode || !id) return { ok: false, error: await tooOld() };
   const done = await rules.renameCloudNode(id, nodeId, name);
   return done.ok ? { ok: true } : { ok: false, error: done.error };
 }
@@ -161,7 +158,7 @@ export async function renameWorkspaceNode(nodeId: string, name: string): Promise
 export async function removeWorkspaceNode(nodeId: string): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.removeCloudNode || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.removeCloudNode || !id) return { ok: false, error: await tooOld() };
   const done = await rules.removeCloudNode(id, nodeId);
   return done.ok ? { ok: true } : { ok: false, error: done.error };
 }
@@ -176,8 +173,8 @@ export async function removeWorkspaceNode(nodeId: string): Promise<WorkspaceMove
 export async function exportWorkspace(dir: string): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.exportCloudBoard || !id) return { ok: false, error: TOO_OLD };
-  if (!dir) return { ok: false, error: "Name the folder to write the board into." };
+  if (!rules.exportCloudBoard || !id) return { ok: false, error: await tooOld() };
+  if (!dir) return { ok: false, error: (await machineCopy()).messages.actions.exportFolder };
   const done = await rules.exportCloudBoard(id, dir);
   return done.ok ? { ok: true } : { ok: false, error: done.error ?? "" };
 }
@@ -200,7 +197,7 @@ export async function leaveWorkspace(force = false): Promise<WorkspaceExit> {
   const rules = await boardRules();
   const root = repoRoot();
   const id = rules.readBoardPointer?.(root)?.workspace ?? "";
-  if (!rules.leaveCloud || !rules.abandonCloud || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.leaveCloud || !rules.abandonCloud || !id) return { ok: false, error: await tooOld() };
   // A workspace this machine cannot read has nothing to write back, so leaving it is only
   // taking the pointer off — whatever markdown `docs/kanban/` holds becomes the board again.
   if (force) return { ok: true, cards: 0, change: leftChange(rules.abandonCloud(root).change) };
@@ -220,7 +217,7 @@ export async function deleteWorkspace(): Promise<WorkspaceExit> {
   const rules = await boardRules();
   const root = repoRoot();
   const id = rules.readBoardPointer?.(root)?.workspace ?? "";
-  if (!rules.deleteCloudWorkspace || !rules.abandonCloud || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.deleteCloudWorkspace || !rules.abandonCloud || !id) return { ok: false, error: await tooOld() };
   const done = await rules.deleteCloudWorkspace(id);
   if (!done.ok) return { ok: false, error: done.error };
   // The workspace is gone, so the checkout must stop naming it — a checkout left pointed at
@@ -234,7 +231,7 @@ const leftChange = (change: CloudChange): CloudChange | null =>
 /** Take the offered commit, going either way. */
 export async function commitCloudChange(kind: "go" | "leave"): Promise<WorkspaceMove> {
   const rules = await boardRules();
-  if (!rules.commitCloudChange) return { ok: false, error: TOO_OLD };
+  if (!rules.commitCloudChange) return { ok: false, error: await tooOld() };
   const done = rules.commitCloudChange(repoRoot(), kind);
   return done.ok ? { ok: true } : { ok: false, error: done.error ?? "" };
 }
@@ -244,7 +241,7 @@ export async function commitCloudChange(kind: "go" | "leave"): Promise<Workspace
 export async function addWorkspaceMember(handle: string, role: MemberRoleWire): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.addCloudMember || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.addCloudMember || !id) return { ok: false, error: await tooOld() };
   const done = await rules.addCloudMember(id, handle, role);
   return done.ok ? { ok: true } : { ok: false, error: done.error };
 }
@@ -252,7 +249,7 @@ export async function addWorkspaceMember(handle: string, role: MemberRoleWire): 
 export async function removeWorkspaceMember(accountId: string): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.removeCloudMember || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.removeCloudMember || !id) return { ok: false, error: await tooOld() };
   const done = await rules.removeCloudMember(id, accountId);
   return done.ok ? { ok: true } : { ok: false, error: done.error };
 }
@@ -260,7 +257,7 @@ export async function removeWorkspaceMember(accountId: string): Promise<Workspac
 export async function setWorkspaceMemberRole(accountId: string, role: MemberRoleWire): Promise<WorkspaceMove> {
   const rules = await boardRules();
   const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
-  if (!rules.setCloudMemberRole || !id) return { ok: false, error: TOO_OLD };
+  if (!rules.setCloudMemberRole || !id) return { ok: false, error: await tooOld() };
   const done = await rules.setCloudMemberRole(id, accountId, role);
   return done.ok ? { ok: true } : { ok: false, error: done.error };
 }

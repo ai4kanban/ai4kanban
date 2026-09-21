@@ -108,7 +108,7 @@ import {
   type WorkspaceMove,
   type WorkspaceView,
 } from "@/lib/workspace";
-import { machineCopy, setMachineLanguage } from "@/lib/language";
+import { machineCopy, saidThrown, setMachineLanguage } from "@/lib/language";
 import {
   recordUsageDisclosure,
   reportAppOpen,
@@ -938,7 +938,7 @@ export async function startSetupRunAction(): Promise<StartResult> {
   try {
     setup = await readSetupState();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
   if (!setup) return { ok: false, error: "this board is already set up" };
   const req: AgentRequest = { action: "setup" };
@@ -1239,7 +1239,7 @@ export async function setMemoryPruneAction(next: {
   try {
     return await setMemoryPrune(next);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1286,7 +1286,7 @@ export async function setCardSweepAction(next: {
   try {
     return await saveCardSweep(next);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1297,7 +1297,7 @@ export async function startCardSweepAction(): Promise<WriteResult> {
   try {
     return await startCardSweep();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1349,7 +1349,7 @@ export async function setDismissalReviewAction(next: {
   try {
     return await setDismissalReview(next);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1544,7 +1544,7 @@ export async function addRuntimeAction(
     if (!res.ok) return res;
     return { ok: true, id: res.id, agent: await agentInfo().catch(() => undefined) };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1637,7 +1637,7 @@ async function withAgent(
     if (!res.ok) return res;
     return { ok: true, agent: await agentInfo().catch(() => undefined) };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1671,7 +1671,7 @@ export async function setSpecAgentAction(name: string, on: boolean): Promise<Wri
   try {
     return await setSpecAgentEnabled(name, on);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1689,7 +1689,7 @@ export async function setSpecAgentSettingAction(
   try {
     return await setSpecAgentSetting(name, key, value);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1724,7 +1724,7 @@ export async function setAgentRuleAction(agent: string, text: string): Promise<W
   try {
     return await setAgentRule(agent, text);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1741,7 +1741,7 @@ export async function createAgentAction(
   try {
     return await createAgent(name, stage);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1754,7 +1754,7 @@ export async function saveAgentFileAction(name: string, text: string): Promise<W
   try {
     return await saveAgentFile(name, text);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1790,7 +1790,7 @@ export async function createWorkflowAction(name: string): Promise<WriteResult & 
   try {
     return await createWorkflow(name);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1804,7 +1804,7 @@ export async function duplicateWorkflowAction(
   try {
     return await duplicateWorkflow(id, typeof called === "string" ? called : undefined);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1816,7 +1816,7 @@ export async function renameWorkflowAction(id: string, name: string): Promise<Wr
   try {
     return await renameWorkflow(id, name);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1826,7 +1826,7 @@ export async function setWorkflowWorktreeAction(id: string, on: boolean): Promis
   try {
     return await setWorkflowWorktree(id, on);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1836,7 +1836,7 @@ export async function dismissRetiredAssignmentAction(id: string): Promise<WriteR
   try {
     return await dismissRetiredAssignment(id);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1847,7 +1847,7 @@ export async function deleteWorkflowAction(id: string): Promise<WriteResult> {
   try {
     return await deleteWorkflow(id);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1883,7 +1883,7 @@ export async function setWorkflowStageAction(
     if (move.kind === "drop-helper") return await removeWorkflowHelper(id, stage, move.agent);
     return await setWorkflowHelperExtra(id, stage, move.agent, move.extra ?? "");
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -1894,7 +1894,7 @@ export async function deleteAgentAction(name: string): Promise<WriteResult> {
   try {
     return await deleteAgent(name);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2005,7 +2005,7 @@ export async function sortTriageAction(): Promise<StartResult & { closed?: boole
     await reconcileTriage();
     return await startAgentAction({ action: "triage" });
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2028,7 +2028,7 @@ export async function startCloudSignInAction(): Promise<{ ok: true; url: string 
   try {
     return await startCloudSignIn();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2041,7 +2041,7 @@ export async function finishCloudSignInAction(callback: string): Promise<{ ok: b
   try {
     return await finishCloudSignIn(callback);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2050,7 +2050,7 @@ export async function signOutOfCloudAction(): Promise<{ ok: boolean; error?: str
   try {
     return await signOutOfCloud();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2063,7 +2063,7 @@ export async function requestCloudInviteAction(): Promise<CloudMove> {
   try {
     return await requestCloudInvite();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2233,7 +2233,7 @@ export async function startSlackConnectAction(): Promise<
   try {
     return await startSlackConnect();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2245,7 +2245,7 @@ export async function slackConversationsAction(): Promise<
   try {
     return await slackConversations();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2255,7 +2255,7 @@ export async function setSlackChannelAction(channelId: string, channelName: stri
   try {
     return await setSlackChannel(channelId, typeof channelName === "string" ? channelName : "");
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2264,7 +2264,7 @@ export async function disconnectSlackAction(): Promise<CloudMove> {
   try {
     return await disconnectSlack();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2288,7 +2288,7 @@ export async function startLarkConnectAction(
   try {
     return await startLarkConnect(cloud);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2300,7 +2300,7 @@ export async function larkChatsAction(): Promise<
   try {
     return await larkChats();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2314,7 +2314,7 @@ export async function setLarkChatAction(chat: LarkChat): Promise<CloudMove> {
       direct: chat.direct === true,
     });
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2323,7 +2323,7 @@ export async function disconnectLarkAction(): Promise<CloudMove> {
   try {
     return await disconnectLark();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2348,7 +2348,7 @@ export async function setLanguageAction(value: Language): Promise<WriteResult> {
   try {
     return await setMachineLanguage(value);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2369,7 +2369,7 @@ export async function setUsageReportingAction(on: boolean): Promise<WriteResult>
   try {
     return await setUsageReporting(on === true);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2382,7 +2382,7 @@ export async function recordUsageDisclosureAction(on: boolean): Promise<WriteRes
     if (saved.ok && on) await reportAppOpen().catch(() => undefined);
     return saved;
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2401,7 +2401,7 @@ export async function setPartnerFeedbackAction(on: boolean): Promise<WriteResult
   try {
     return await setPartnerFeedback(on === true);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2516,7 +2516,7 @@ export async function setSilencedAction(on: boolean): Promise<WriteResult> {
   try {
     return await setSilenced(!!on);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2543,7 +2543,7 @@ export async function watchReleaseAction(release: string): Promise<WriteResult> 
   try {
     return await watchRelease(release.trim());
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2552,7 +2552,7 @@ export async function setBoardNotifyAction(on: boolean): Promise<WriteResult> {
   try {
     return await setBoardNotify(!!on);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2565,7 +2565,7 @@ export async function setBoardServerAction(on: boolean, takeOver = false): Promi
   try {
     return await setBoardServer(!!on, !!takeOver);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2575,7 +2575,7 @@ export async function resumeCloudRequestAction(eventId: string): Promise<WriteRe
   try {
     return await resumeCloudRequest(eventId);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -2587,6 +2587,6 @@ export async function cancelCloudRequestAction(taskId: number, eventId: string):
   try {
     return await cancelCloudRequest(taskId, eventId);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }

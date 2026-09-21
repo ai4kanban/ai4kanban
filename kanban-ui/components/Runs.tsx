@@ -15,6 +15,7 @@ import { FiAlertCircle } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { setSilenceLimitAction, silenceLimitAction } from "@/app/actions";
 import { CONTROL, Group, Panel, Row } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 /** The **Runs** group of Configuration → General. It reads the limit from the board when it
  *  draws, and saves what you typed once you leave the box. */
@@ -58,7 +59,7 @@ export function RunsGroup({ onError }: { onError?: (msg: string) => void }) {
     if (res.ok) setSaved(minutes);
     else {
       setTyped(String(saved ?? 0));
-      onError?.(res.error || c.failed);
+      onError?.(sayFailure(res, c.failed));
     }
   };
 

@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
 import { Loading } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 /**
  * The bell, and its unread count beside it.
@@ -451,7 +452,7 @@ function PickRelease({ c, onPicked }: { c: NotificationsCopy; onPicked: () => vo
     setError(null);
     try {
       const done = await watchReleaseAction(release);
-      if (!done.ok) setError(done.error ?? c.closed.failed);
+      if (!done.ok) setError(sayFailure(done, c.closed.failed));
       else onPicked();
     } finally {
       setBusy(false);

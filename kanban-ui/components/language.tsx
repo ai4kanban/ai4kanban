@@ -28,6 +28,7 @@ import { Rich } from "@/i18n/rich";
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language, type WriteResult } from "@/lib/types";
 import { FLAT_CONTROL, Group, Panel } from "./settings";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
+import { sayFailure } from "@/lib/start-failure";
 
 const LanguageContext = createContext<{
   language: Language;
@@ -72,7 +73,7 @@ export function LanguageProvider({
         const saved = await onSave(next);
         if (!saved.ok) {
           hold(was);
-          return saved.error || c.saveFailed;
+          return sayFailure(saved, c.saveFailed);
         }
         // Half of what is on screen was rendered on the server in the old language — the
         // window title and the header among it. Asking for a new render is what turns those

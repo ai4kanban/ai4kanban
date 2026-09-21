@@ -313,14 +313,108 @@ export type RunRefusalKind =
   | 'worktree'
   /** The folder the worktrees go in could not be prepared. */
   | 'akb'
+  // A run or a delivery that cannot be started, continued or ended (#955).
+  | 'runNotFound'
+  | 'runAmbiguous'
+  | 'runGoing'
+  | 'runNotResumable'
+  | 'runNoSession'
+  | 'runContinued'
+  | 'runForeign'
+  | 'discardUnfinished'
+  | 'creationHeld'
+  | 'deliveryUnnamed'
+  | 'deliveryNotFound'
+  | 'deliveryActive'
+  | 'deliveryFinished'
+  | 'deliveryCancelled'
+  | 'deliveryFiles'
+  | 'deliveryManual'
+  | 'deliveryWorktreeGone'
+  | 'deliveryBranchGone'
+  | 'deliveryCardGone'
+  | 'deliveryHeld'
+  | 'deliveryTakenOver'
+  | 'deliveryRunGoing'
+  | 'deliveryNone'
+  | 'deliveryEnded'
+  | 'deliveryNoApproval'
+  | 'deliveryEndedApproving'
+  | 'planEmpty'
+  | 'cardBusy'
+  | 'cardDiscarded'
+  | 'cardCreating'
+  | 'cardUnfinished'
+  | 'cardDiscussed'
+  | 'workflowUnknown'
+  | 'workflowNoLead'
+  | 'workflowLeadMissing'
+  | 'workflowLeadStage'
+  | 'noReviewers'
+  | 'cloudUnreachable'
+  | 'cardHeld'
+  // Runtimes, workflows and settings the Configuration dialog saves.
+  | 'runtimeUnnamed'
+  | 'runtimeTaken'
+  | 'runtimeNotFound'
+  | 'runtimeKey'
+  | 'harnessNotFound'
+  | 'globalRename'
+  | 'globalDelete'
+  | 'harnessUnused'
+  | 'workflowUnnamed'
+  | 'workflowTaken'
+  | 'workflowNotFound'
+  | 'workflowBuiltInRename'
+  | 'workflowBuiltInChange'
+  | 'workflowBuiltInDelete'
+  | 'workflowBuiltInLeads'
+  | 'reviewNoLead'
+  | 'agentNotFound'
+  | 'agentCannotLead'
+  | 'agentNotLead'
+  | 'agentHelps'
+  | 'agentCannotHelp'
+  | 'agentLeadNotHelper'
+  | 'agentLeads'
+  | 'agentNotHelping'
+  | 'minutes'
+  | 'fileParse'
+  | 'fileWrite'
+  | 'fileRead'
+  | 'gitignoreWrite'
+  | 'cadence'
+  // A conversation that cannot take the message.
+  | 'chatUnavailable'
+  | 'chatRuntimeGone'
+  | 'chatNoImages'
+  | 'chatRuntime'
+  | 'chatPicturesGone'
+  | 'chatEmpty'
+  | 'chatBusy'
+  | 'skillNotInstalled'
+  | 'chatForeign'
+  | 'planNotFound'
+
+/** The values a refusal's sentence names — ids, names, paths, commands — for a screen that
+ *  says the sentence in its own words. Never translated. */
+export type RefusalArgs = Record<string, string>
 
 /** A refused run: the board's own sentence, and the kind behind it where there is one. */
 export interface RunRefusal {
   error: string
   reason?: RunRefusalKind
+  args?: RefusalArgs
   /** The files a `dirty` refusal named, so a screen can list them under its own sentence. */
   paths?: string[]
 }
+
+/** What a settings write answers: ok, or the refusal. */
+export type Saved = { ok: boolean } & Partial<RunRefusal>
+
+/** A refusal with its kind, for a screen to say in its own language. */
+export const refusal = (reason: RunRefusalKind, error: string, args?: RefusalArgs): RunRefusal =>
+  args ? { error, reason, args } : { error, reason }
 
 /** One run, as the shared record holds it. Every process reads and writes this same
  *  shape — the record is the only thing that knows what is running. */
@@ -1122,6 +1216,8 @@ export interface ChatView {
   /** Why a message can't be sent right now, when something is in the way: the agent can't
    *  hold a conversation, this one belongs to another agent, or a reply is still coming. */
   blocked?: string
+  /** The same refusal with its kind (#955). */
+  blockedRefusal?: RunRefusal
   /** What this conversation runs on, and what it could run on instead (#272). */
   pick: ChatPick
 }

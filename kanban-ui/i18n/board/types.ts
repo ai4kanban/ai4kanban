@@ -140,18 +140,9 @@ export type BoardCopy = {
         /** The answer that was pressed, while its run is being asked for (#706). The other
          *  two are down beside it and the box sends nothing. */
         starting: string;
-        /** Why the run never started, one sentence per kind of refusal (#706). Said under
-         *  the three answers, which are live again — pressing the same one is the retry.
-         *  `other` is a refusal this app has no sentence for. */
+        /** Why the run never started, when the refusal has no sentence of its own (#706). Said
+         *  under the three answers, which are live again — pressing the same one is the retry. */
         failed: {
-          dirty: string;
-          busy: string;
-          worktree: string;
-          akb: string;
-          noPlan: string;
-          onePlan: string;
-          noProcess: string;
-          rules: string;
           other: string;
         };
       };

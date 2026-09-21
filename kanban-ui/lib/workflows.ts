@@ -1,4 +1,4 @@
-import { machineCopy } from "./language";
+import { machineCopy, said } from "./language";
 import { boardRules } from "./cli";
 import type { WorkflowStage, WorkflowView, WriteResult } from "./types";
 
@@ -32,7 +32,7 @@ export async function workflowsOffered(): Promise<boolean> {
 export async function createWorkflow(name: string): Promise<WriteResult & { id?: string; name?: string }> {
   const rules = await boardRules();
   if (!rules.createWorkflow) return { ok: false, error: await tooOld() };
-  return rules.createWorkflow(name);
+  return said(await rules.createWorkflow(name));
 }
 
 /** Copy one whole, assignments and extra requirements and all. `called` is what the screen
@@ -44,21 +44,21 @@ export async function duplicateWorkflow(
 ): Promise<WriteResult & { id?: string; name?: string }> {
   const rules = await boardRules();
   if (!rules.duplicateWorkflow) return { ok: false, error: await tooOld() };
-  return rules.duplicateWorkflow(id, called);
+  return said(await rules.duplicateWorkflow(id, called));
 }
 
 /** Rename one this board added. Its id does not move, so every card on it is unmoved. */
 export async function renameWorkflow(id: string, name: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.renameWorkflow) return { ok: false, error: await tooOld() };
-  return rules.renameWorkflow(id, name);
+  return said(await rules.renameWorkflow(id, name));
 }
 
 /** Turn **Use a Git worktree** on or off for one this board added (#874). */
 export async function setWorkflowWorktree(id: string, on: boolean): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setWorkflowWorktree) return { ok: false, error: await tooOld() };
-  return rules.setWorkflowWorktree(id, on);
+  return said(await rules.setWorkflowWorktree(id, on));
 }
 
 /** Take the "an assignment was removed" mark off one workflow (#945). The assignment is
@@ -66,14 +66,14 @@ export async function setWorkflowWorktree(id: string, on: boolean): Promise<Writ
 export async function dismissRetiredAssignment(id: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.dismissRetiredAssignment) return { ok: false, error: await tooOld() };
-  return rules.dismissRetiredAssignment(id);
+  return said(await rules.dismissRetiredAssignment(id));
 }
 
 /** Drop one this board added, once no open card still runs on it. */
 export async function deleteWorkflow(id: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.deleteWorkflow) return { ok: false, error: await tooOld() };
-  return rules.deleteWorkflow(id);
+  return said(await rules.deleteWorkflow(id));
 }
 
 /** The open cards still running on one workflow — what a delete is refused over. */
@@ -86,21 +86,21 @@ export async function cardsOnWorkflow(id: string): Promise<number[]> {
 export async function setWorkflowLead(id: string, stage: WorkflowStage, agent: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setWorkflowLead) return { ok: false, error: await tooOld() };
-  return rules.setWorkflowLead(id, stage, agent);
+  return said(await rules.setWorkflowLead(id, stage, agent));
 }
 
 /** Let a stage's lead call one more agent in. */
 export async function addWorkflowHelper(id: string, stage: WorkflowStage, agent: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.addWorkflowHelper) return { ok: false, error: await tooOld() };
-  return rules.addWorkflowHelper(id, stage, agent);
+  return said(await rules.addWorkflowHelper(id, stage, agent));
 }
 
 /** End one helper's assignment to a stage. The agent itself is untouched. */
 export async function removeWorkflowHelper(id: string, stage: WorkflowStage, agent: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.removeWorkflowHelper) return { ok: false, error: await tooOld() };
-  return rules.removeWorkflowHelper(id, stage, agent);
+  return said(await rules.removeWorkflowHelper(id, stage, agent));
 }
 
 /** What THIS assignment asks of a helper, on top of its own instructions. */
@@ -112,5 +112,5 @@ export async function setWorkflowHelperExtra(
 ): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setWorkflowHelperExtra) return { ok: false, error: await tooOld() };
-  return rules.setWorkflowHelperExtra(id, stage, agent, extra);
+  return said(await rules.setWorkflowHelperExtra(id, stage, agent, extra));
 }

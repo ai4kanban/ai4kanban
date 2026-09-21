@@ -33,6 +33,7 @@ import { PULSE_DOT, PULSE_DOT_INK } from "./chrome";
 import { ContextRing } from "./context-ring";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
+import { sayFailure } from "@/lib/start-failure";
 
 // Run-log chrome as Tailwind utilities, colocated with the markup that uses it.
 // The pulse dot the running badge and the live title bar wear is the board's
@@ -721,7 +722,7 @@ export function ResumeButton({
       // run, or this one aged out of the kept-30 window. Say it and leave the
       // button alive to try again.
       if (res.ok && res.sessionId) onResumed?.(res.sessionId);
-      else setError(res.error || c.failed);
+      else setError(sayFailure(res, c.failed));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -808,7 +809,7 @@ function StopButton({ sessionId, ink }: { sessionId: string; ink?: boolean }) {
       // window. Say it and let the button be pressed again.
       if (!res.ok) {
         setAsked(false);
-        setError(res.error || c.failed);
+        setError(sayFailure(res, c.failed));
       }
     } catch (e) {
       setAsked(false);

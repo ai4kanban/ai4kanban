@@ -1,6 +1,7 @@
-import { machineCopy } from "./language";
+import { machineCopy, said, saidThrown } from "./language";
 import { boardRules, NoRulesError, type AgentRequest, type RunView } from "./cli";
-import type { RunRefusalKind } from "./format/agent/types";
+import type { RefusalArgs, RunRefusal } from "./format/agent/types";
+import type { RefusalKind } from "./start-failure";
 import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 
 // --- the runs, through the CLI (#168) ----------------------------------------
@@ -18,37 +19,30 @@ import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 // What is left in this file is the shape the browser reads. A run's record and the view the
 // UI has always had are nearly the same object; the few differences are below.
 
-/** Why a start was refused, where the kind is known (#706). The board's own four, plus the
- *  three this file and the actions above it answer with themselves. A refusal with no kind
- *  is one nothing here recognises, and a screen says so in one generic line. */
-export type StartRefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "onePlan" | "rules";
-
 export interface StartResult {
   ok: boolean;
   sessionId?: string;
   error?: string;
   /** The kind behind `error`, for a screen that must say it in the user's language rather
    *  than passing the board's own English on. */
-  reason?: StartRefusalKind;
+  reason?: RefusalKind;
+  args?: RefusalArgs;
   /** The files the refusal named — `dirty` alone carries any. */
   paths?: string[];
+  /** `error` is the board's own English, with no sentence of the reader's for it. */
+  raw?: boolean;
 }
 
 /** No usable copy of the board's rules — the one refusal a screen can neither retry nor
  *  read the board's own words for, since there is no board to read a language from. */
-const noRules = (e: unknown): StartResult => ({
-  ok: false,
-  error: e instanceof Error ? e.message : String(e),
-  reason: e instanceof NoRulesError ? "rules" : undefined,
-});
+const noRules = async (e: unknown): Promise<StartResult> =>
+  e instanceof NoRulesError
+    ? said({ ok: false, error: e.message, reason: "rules" })
+    : { ok: false, ...(await saidThrown(e)) };
 
-/** A refusal from the rules, as this file hands it on. */
-const refused = (why: { error: string; reason?: RunRefusalKind; paths?: string[] }): StartResult => ({
-  ok: false,
-  error: why.error,
-  reason: why.reason,
-  paths: why.paths,
-});
+/** A refusal from the rules, in the reader's language. */
+const refused = (why: RunRefusal): Promise<StartResult> =>
+  said({ ok: false, error: why.error, reason: why.reason, args: why.args, paths: why.paths });
 
 /** The card titles one read needs, each card looked up once (#725). `titleOf` walks `todo/`
  *  to find the file before it reads it, and the runs of one board crowd onto a handful of
@@ -151,7 +145,7 @@ function toView(
 async function launch(
   open: (
     rules: Awaited<ReturnType<typeof boardRules>>,
-  ) => ({ run: { sessionId: string } } | { error: string }) | Promise<{ run: { sessionId: string } } | { error: string }>,
+  ) => ({ run: { sessionId: string } } | RunRefusal) | Promise<{ run: { sessionId: string } } | RunRefusal>,
 ): Promise<StartResult> {
   let rules;
   try {
@@ -201,9 +195,9 @@ export async function resumeSession(sessionId: string): Promise<StartResult> {
  *  from a poll that can be a second and a half stale. */
 export async function stopSession(sessionId: string): Promise<StartResult> {
   try {
-    return await (await boardRules()).stopRun(sessionId);
+    return await said(await (await boardRules()).stopRun(sessionId));
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -288,10 +282,9 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
     if (!rules.cancelDelivery) {
       return { ok: false, error: (await machineCopy()).messages.tooOld.deliveries };
     }
-    const res = await rules.cancelDelivery(id);
-    return { ok: res.ok, error: res.error };
+    return said(await rules.cancelDelivery(id));
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -306,9 +299,9 @@ export async function resumeDelivery(id: string): Promise<StartResult> {
       return { ok: false, error: (await machineCopy()).messages.tooOld.resumeDelivery };
     }
     const res = await rules.resumeDelivery(id);
-    return { ok: res.ok, error: res.error };
+    return said({ ok: res.ok, error: res.error, reason: res.reason, args: res.args });
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -321,10 +314,9 @@ export async function discardDelivery(id: string): Promise<StartResult> {
     if (!rules.discardDelivery) {
       return { ok: false, error: (await machineCopy()).messages.tooOld.worktrees };
     }
-    const res = await rules.discardDelivery(id);
-    return { ok: res.ok, error: res.error };
+    return said(await rules.discardDelivery(id));
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
@@ -338,9 +330,9 @@ export async function approveDelivery(id: string): Promise<StartResult> {
       return { ok: false, error: (await machineCopy()).messages.tooOld.diffApproval };
     }
     const res = await rules.approveDelivery(id, "the card page");
-    return res.ok ? { ok: true } : { ok: false, error: res.error };
+    return res.ok ? { ok: true } : said(res);
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 

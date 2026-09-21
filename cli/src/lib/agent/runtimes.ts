@@ -30,6 +30,7 @@ import path from 'node:path'
 import { DEFAULT_HARNESS, HARNESSES, MODEL_KEY, harnessByName } from './harnesses'
 import { configBlock, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
 import type { Harness } from './harnesses'
+import { refusal, type RunRefusal, type Saved } from './types'
 
 /** One runtime, as the board holds it. */
 export interface Runtime {
@@ -151,12 +152,12 @@ export function secretVar(env: string, runtimeId: string): string {
 }
 
 /** Save one runtime's key, or clear it with an empty value. The value is never read back. */
-export function setRuntimeSecret(id: string, settingKey: string, value: string): { ok: boolean; error?: string } {
+export function setRuntimeSecret(id: string, settingKey: string, value: string): Saved {
   const runtime = runtimeById(id)
-  if (!runtime) return { ok: false, error: `no runtime called "${id}" on this board.` }
+  if (!runtime) return { ok: false, ...noRuntime(id) }
   const setting = harnessByName(runtime.harness)?.settings.find((s) => s.key === settingKey)
   if (!setting?.env || setting.kind !== 'secret') {
-    return { ok: false, error: `"${settingKey}" is not a key ${runtime.name} takes.` }
+    return { ok: false, ...refusal('runtimeKey', `"${settingKey}" is not a key ${runtime.name} takes.`, { key: settingKey, name: runtime.name }) }
   }
   return setSecret(secretVar(setting.env, runtime.id), value)
 }
@@ -194,8 +195,8 @@ export function setAgentRuntime(
   agent: string,
   runtime: string,
   legacyNames: string[] = [],
-): { ok: boolean; error?: string } {
-  if (runtime && !runtimeById(runtime)) return { ok: false, error: `no runtime called "${runtime}" on this board.` }
+): Saved {
+  if (runtime && !runtimeById(runtime)) return { ok: false, ...noRuntime(runtime) }
   return writeConfig((cfg) => {
     const block = { ...readAgentRuntime(cfg) }
     for (const legacy of legacyNames) delete block[legacy]
@@ -206,7 +207,7 @@ export function setAgentRuntime(
 }
 
 /** Drop one agent's pick. Called when the agent itself is deleted. */
-export function forgetAgentRuntime(agent: string, legacyNames: string[] = []): { ok: boolean; error?: string } {
+export function forgetAgentRuntime(agent: string, legacyNames: string[] = []): Saved {
   return setAgentRuntime(agent, '', legacyNames)
 }
 
@@ -214,11 +215,11 @@ export function forgetAgentRuntime(agent: string, legacyNames: string[] = []): {
 
 /** Add a runtime, on the harness named. Its id is generated from the name to what
  *  `docs/kanban/.env` parses, and it is what everything keys by from here on. */
-export function addRuntime(name: string, harness: string): { ok: boolean; id?: string; error?: string } {
+export function addRuntime(name: string, harness: string): Saved & { id?: string } {
   const wanted = name.trim()
   const bad = nameError(wanted)
-  if (bad) return { ok: false, error: bad }
-  if (!harnessByName(harness)) return { ok: false, error: `no harness called "${harness}" — \`akb agent list\` says what this version runs.` }
+  if (bad) return { ok: false, ...bad }
+  if (!harnessByName(harness)) return { ok: false, ...noHarness(harness) }
   const list = readRuntimes()
   const id = freeId(wanted, new Set(list.map((r) => r.id)))
   const res = save([...list, { id, name: wanted, harness, settings: {} }])
@@ -227,11 +228,13 @@ export function addRuntime(name: string, harness: string): { ok: boolean; id?: s
 
 /** Rename one runtime. Nothing moves: the id keys the key line, the agents' picks and every
  *  run already recorded, so a rename is lossless on every computer. */
-export function renameRuntime(id: string, name: string): { ok: boolean; error?: string } {
-  if (id === GLOBAL_ID) return { ok: false, error: `${GLOBAL_NAME} keeps its name — it is the row every agent falls back to.` }
+export function renameRuntime(id: string, name: string): Saved {
+  if (id === GLOBAL_ID) {
+    return { ok: false, ...refusal('globalRename', `${GLOBAL_NAME} keeps its name — it is the row every agent falls back to.`) }
+  }
   const wanted = name.trim()
   const bad = nameError(wanted, id)
-  if (bad) return { ok: false, error: bad }
+  if (bad) return { ok: false, ...bad }
   return change(id, (runtime) => ({ ...runtime, name: wanted }))
 }
 
@@ -239,10 +242,12 @@ export function renameRuntime(id: string, name: string): { ok: boolean; error?: 
  *  is never refused for being in use. Its key goes with it: every `docs/kanban/.env` line named
  *  after this id is cleared, so the key is off this computer whether the delete was typed here
  *  or in a pane. */
-export function deleteRuntime(id: string): { ok: boolean; error?: string } {
-  if (id === GLOBAL_ID) return { ok: false, error: `${GLOBAL_NAME} can't be deleted — it is what an agent naming no runtime runs.` }
+export function deleteRuntime(id: string): Saved {
+  if (id === GLOBAL_ID) {
+    return { ok: false, ...refusal('globalDelete', `${GLOBAL_NAME} can't be deleted — it is what an agent naming no runtime runs.`) }
+  }
   const list = readRuntimes()
-  if (!list.some((r) => r.id === id)) return { ok: false, error: `no runtime called "${id}" on this board.` }
+  if (!list.some((r) => r.id === id)) return { ok: false, ...noRuntime(id) }
   // The agents that named it fall back with the write: `save` resolves every pick against the
   // list it is writing, and a pick nothing answers to is **Global default**.
   const res = save(list.filter((r) => r.id !== id))
@@ -254,7 +259,7 @@ export function deleteRuntime(id: string): { ok: boolean; error?: string } {
 // row ran: an id never moves, so a harness the row used to be on can have left a line behind,
 // and a line nobody would ever see again is a key still sitting on the disk. A variable this
 // file doesn't hold is skipped, so the delete never rewrites `.env` for nothing.
-function clearKeysOf(id: string): { ok: boolean; error?: string } {
+function clearKeysOf(id: string): Saved {
   const env = readEnvFile()
   for (const harness of HARNESSES) {
     for (const setting of harness.settings) {
@@ -275,9 +280,9 @@ function clearKeysOf(id: string): { ok: boolean; error?: string } {
  *  The model is dropped however both declare it. An id is one CLI's own word — `opus` handed
  *  to Cursor is a run that fails to start — so a switch leaves the new harness's own default
  *  running until somebody picks a model for it. */
-export function setRuntimeHarness(id: string, harness: string): { ok: boolean; error?: string } {
+export function setRuntimeHarness(id: string, harness: string): Saved {
   const known = harnessByName(harness)
-  if (!known) return { ok: false, error: `no harness called "${harness}" — \`akb agent list\` says what this version runs.` }
+  if (!known) return { ok: false, ...noHarness(harness) }
   return change(id, (runtime) => {
     if (runtime.harness === harness) return runtime
     const keep = new Set([...known.settings.map((s) => s.key), 'command'])
@@ -292,7 +297,7 @@ export function setRuntimeHarness(id: string, harness: string): { ok: boolean; e
  *
  *  The value is never checked here. Model ids change faster than we ship, so the CLI is the
  *  only validator: a bad one makes the run exit non-zero and the reason is in its log. */
-export function setRuntimeSetting(id: string, key: string, value: string): { ok: boolean; error?: string } {
+export function setRuntimeSetting(id: string, key: string, value: string): Saved {
   return change(id, (runtime) => {
     const settings = { ...runtime.settings }
     const next = value.trim()
@@ -304,7 +309,7 @@ export function setRuntimeSetting(id: string, key: string, value: string): { ok:
 
 /** Save the harness **Global default** runs — `akb agent use`, and the board's own answer to
  *  "what does a run spawn". Every other runtime is untouched. */
-export function setHarness(name: string): { ok: boolean; error?: string } {
+export function setHarness(name: string): Saved {
   return setRuntimeHarness(GLOBAL_ID, name)
 }
 
@@ -318,36 +323,45 @@ function runtimeOnHarness(harness?: string): Runtime | null {
   return list.find((r) => r.harness === harness) ?? null
 }
 
-const noRow = (harness?: string): { ok: false; error: string } => ({
+const noRow = (harness?: string): { ok: false } & RunRefusal => ({
   ok: false,
-  error: `no runtime on this board runs "${harness}" — add one with \`akb agent runtime add\`, or move Global default onto it.`,
+  ...refusal(
+    'harnessUnused',
+    `no runtime on this board runs "${harness}" — add one with \`akb agent runtime add\`, or move Global default onto it.`,
+    { name: harness ?? '' },
+  ),
 })
 
+const noRuntime = (id: string): RunRefusal => refusal('runtimeNotFound', `no runtime called "${id}" on this board.`, { id })
+
+const noHarness = (name: string): RunRefusal =>
+  refusal('harnessNotFound', `no harness called "${name}" — \`akb agent list\` says what this version runs.`, { name })
+
 /** Save one setting on the runtime a harness name points at. */
-export function setHarnessSetting(key: string, value: string, harness?: string): { ok: boolean; error?: string } {
+export function setHarnessSetting(key: string, value: string, harness?: string): Saved {
   const row = runtimeOnHarness(harness)
   return row ? setRuntimeSetting(row.id, key, value) : noRow(harness)
 }
 
 /** Save the key on the runtime a harness name points at, under that row's own id-scoped line
  *  — the same line a run reads. What a pane drawing one row per harness writes. */
-export function setHarnessSecret(key: string, value: string, harness?: string): { ok: boolean; error?: string } {
+export function setHarnessSecret(key: string, value: string, harness?: string): Saved {
   const row = runtimeOnHarness(harness)
   return row ? setRuntimeSecret(row.id, key, value) : noRow(harness)
 }
 
 // Read the list, change one row, write it back. The pre-runtimes keys go with the first write:
 // the list is the whole truth now, and leaving them behind would leave two answers on disk.
-function change(id: string, edit: (runtime: Runtime) => Runtime): { ok: boolean; error?: string } {
+function change(id: string, edit: (runtime: Runtime) => Runtime): Saved {
   const list = readRuntimes()
-  if (!list.some((r) => r.id === id)) return { ok: false, error: `no runtime called "${id}" on this board.` }
+  if (!list.some((r) => r.id === id)) return { ok: false, ...noRuntime(id) }
   return save(list.map((r) => (r.id === id ? edit(r) : r)))
 }
 
 // Write the list, and settle the agents' picks against it in the same write. The pre-runtime
 // keys go with it: the list is the whole truth now, and leaving `harness`, `harnessSettings` or
 // `agentHarness` behind would leave a second answer on disk for the next reader to find.
-function save(list: Runtime[]): { ok: boolean; error?: string } {
+function save(list: Runtime[]): Saved {
   return writeConfig((cfg) => {
     const picks = readAgentRuntime(cfg)
     cfg.runtimes = list
@@ -373,10 +387,10 @@ function writePicks(cfg: Record<string, unknown>, picks: Record<string, string>,
 
 /** Why this name can't be used, or null when it can. A name is the user's own words and holds
  *  anything — it is unique on the board and not empty, and that is the whole of the rule. */
-function nameError(name: string, self?: string): string | null {
-  if (!name) return 'a runtime needs a name.'
+function nameError(name: string, self?: string): RunRefusal | null {
+  if (!name) return refusal('runtimeUnnamed', 'a runtime needs a name.')
   const clash = readRuntimes().find((r) => r.id !== self && r.name.toLowerCase() === name.toLowerCase())
-  return clash ? `this board already has a runtime called "${clash.name}".` : null
+  return clash ? refusal('runtimeTaken', `this board already has a runtime called "${clash.name}".`, { name: clash.name }) : null
 }
 
 // An id nothing else on the board has, generated from the name to what `docs/kanban/.env`

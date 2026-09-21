@@ -1,5 +1,5 @@
 import { boardRules } from "./cli";
-import { machineCopy } from "./language";
+import { machineCopy, said } from "./language";
 import type { WriteResult } from "./types";
 
 // --- the board's runtimes, through the CLI (#467, #468) -----------------------
@@ -23,22 +23,22 @@ export async function addRuntime(
   harness: string,
 ): Promise<WriteResult & { id?: string }> {
   const got = await writer((r) => r.addRuntime);
-  return "error" in got ? { ok: false, error: got.error } : got.move(name, harness);
+  return "error" in got ? { ok: false, error: got.error } : said(await got.move(name, harness));
 }
 
 export async function renameRuntime(id: string, name: string): Promise<WriteResult> {
   const got = await writer((r) => r.renameRuntime);
-  return "error" in got ? { ok: false, error: got.error } : got.move(id, name);
+  return "error" in got ? { ok: false, error: got.error } : said(await got.move(id, name));
 }
 
 export async function deleteRuntime(id: string): Promise<WriteResult> {
   const got = await writer((r) => r.deleteRuntime);
-  return "error" in got ? { ok: false, error: got.error } : got.move(id);
+  return "error" in got ? { ok: false, error: got.error } : said(await got.move(id));
 }
 
 export async function setRuntimeHarness(id: string, harness: string): Promise<WriteResult> {
   const got = await writer((r) => r.setRuntimeHarness);
-  return "error" in got ? { ok: false, error: got.error } : got.move(id, harness);
+  return "error" in got ? { ok: false, error: got.error } : said(await got.move(id, harness));
 }
 
 export async function setRuntimeSetting(
@@ -47,7 +47,7 @@ export async function setRuntimeSetting(
   value: string,
 ): Promise<WriteResult> {
   const got = await writer((r) => r.setRuntimeSetting);
-  return "error" in got ? { ok: false, error: got.error } : got.move(id, key, value);
+  return "error" in got ? { ok: false, error: got.error } : said(await got.move(id, key, value));
 }
 
 /** One row's key, on its own id-scoped line. `key` is the setting's own key, never the
@@ -59,5 +59,5 @@ export async function setRuntimeSecret(
   value: string,
 ): Promise<WriteResult> {
   const got = await writer((r) => r.setRuntimeSecret);
-  return "error" in got ? { ok: false, error: got.error } : got.move(id, key, value);
+  return "error" in got ? { ok: false, error: got.error } : said(await got.move(id, key, value));
 }

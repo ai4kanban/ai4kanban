@@ -1,3 +1,6 @@
+import type { RefusalKind } from "@/lib/start-failure";
+import type { RefusalArgs } from "@/lib/format/agent/types";
+
 /** The few sentences the server writes itself, outside any component — `lib/`, and
  *  the handful of refusals in `app/actions.ts` a person can actually land on. */
 export type MessagesCopy = {
@@ -16,6 +19,9 @@ export type MessagesCopy = {
     tooOldForMemory: string;
     tooOldForArchive: string;
     tooOldForSignals: string;
+    tooOldForNotifications: string;
+    tooOldForPictures: string;
+    tooOldForSetup: string;
     /** The line every `tooOldFor…` above ends with. */
     updateIt: string;
   };
@@ -49,8 +55,15 @@ export type MessagesCopy = {
     /** Start planning was pressed on a discussion that is writing no plan. */
     noPlan: string;
     onePlan: string;
+    /** Export was pressed with no folder named. */
+    exportFolder: string;
   };
   run: { noProcess: string };
+  /** Why the board refused something, one sentence per kind (#955). An argument naming an
+   *  action, a stage or a built-in workflow arrives already in this language. */
+  refusal: Record<RefusalKind, (a: RefusalArgs) => string>;
+  /** `task` in a delivery refusal when the delivery has no card. */
+  theBuild: string;
   chat: { busy: string; sendFailed: string; clearFailed: string; pickFailed: string };
   /** What an `<Asset>` tag says when the file behind it can't be shown. Each names
    *  the `src` the card gave. */

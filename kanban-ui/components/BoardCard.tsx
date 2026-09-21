@@ -27,6 +27,7 @@ import {
   StatusPill,
   TodoProgress,
 } from "./chips";
+import { sayFailure } from "@/lib/start-failure";
 
 // One card, as every column draws it. A card has to look the same wherever it
 // sits — a queue column, the recurring column — so there is one component and
@@ -329,7 +330,7 @@ function CreationActions({ card, creator, liveSession }: { card: Card; creator?:
       if (res.ok && res.sessionId) {
         sessionsPanel.select(res.sessionId);
         await refresh();
-      } else setError(res.error || c.resumeFailed);
+      } else setError(sayFailure(res, c.resumeFailed));
     } catch { setError(c.resumeFailed); }
     finally { submitting.current = false; setBusy(false); }
   };

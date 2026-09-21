@@ -70,6 +70,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { sayFailure } from "@/lib/start-failure";
 
 export function Rail({
   activeId,
@@ -140,7 +141,7 @@ export function Rail({
         setArchiveFailed(
           done.reason === "share-needs-card"
             ? c.discussions.archiveNeedsCard
-            : done.error || c.discussions.archiveFailed,
+            : sayFailure(done, c.discussions.archiveFailed),
         );
       } else if (isDiscussion(target)) createSheet.archived(target);
     },

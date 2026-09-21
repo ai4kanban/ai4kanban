@@ -41,6 +41,7 @@ import { Button } from "./button";
 import { HarnessPicker, TestResult, type RunTest } from "./Configuration";
 import { DiscardNewBoard } from "./desktop";
 import { GuideDrawer } from "./Guide";
+import { sayFailure } from "@/lib/start-failure";
 
 // How often the conversation is re-read: fast while a turn is out, so the waiting view
 // gives way the moment the reply lands; slow while it is the user's turn, where the only
@@ -235,7 +236,7 @@ function AgentTurn({
     try {
       const res = await finishSetupAgentStepAction();
       if (!res.ok) {
-        setError(res.error || t.setup.agent.saveFailed);
+        setError(sayFailure(res, t.setup.agent.saveFailed));
         return;
       }
       onDone(res.agent);
@@ -434,7 +435,7 @@ function ProjectTurn({
     try {
       const res = await saveSetupProjectAction(projectName, description);
       if (!res.ok) {
-        setSaveError(res.error || t.setup.project.saveFailed);
+        setSaveError(sayFailure(res, t.setup.project.saveFailed));
         return;
       }
       onSaved();
@@ -571,7 +572,7 @@ function GoalTurn({
     const res = await saveGoalAction(text);
     setSaving(false);
     if (!res.ok) {
-      setError(res.error || t.setup.goal.saveFailed);
+      setError(sayFailure(res, t.setup.goal.saveFailed));
       return;
     }
     onSaved();

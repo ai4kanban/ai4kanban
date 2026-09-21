@@ -34,6 +34,7 @@ import { PHONE_ROW, TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { GuideDrawer } from "./Guide";
 import { Markdown } from "./Markdown";
+import { sayFailure } from "@/lib/start-failure";
 
 // Same input rules as the agent dialogs' textarea, taller: the goal is a few
 // paragraphs and a roadmap, not a note.
@@ -191,7 +192,7 @@ function GoalForm({
     const res = await saveGoalAction(text);
     setSaving(false);
     if (!res.ok) {
-      setError(res.error || t.rail.goal.saveFailed);
+      setError(sayFailure(res, t.rail.goal.saveFailed));
       return;
     }
     onSaved(text);

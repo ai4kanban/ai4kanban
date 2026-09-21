@@ -69,6 +69,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Window } from "./Window";
+import { sayFailure } from "@/lib/start-failure";
 
 type Tab = "pending" | "history";
 
@@ -468,7 +469,7 @@ export function SignalsPage({
     }));
     if (!done.ok) {
       unhide(`h:${signal.sourceId}`);
-      setFailed(done.error ?? c.restoreFailed);
+      setFailed(sayFailure(done, c.restoreFailed));
       return;
     }
     setFailed("");

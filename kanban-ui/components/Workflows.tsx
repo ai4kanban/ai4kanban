@@ -62,6 +62,7 @@ import {
   QUIET_BTN,
   Switch,
 } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 /** What one workflow is called here. A built-in's name is the command's own English, so
  *  every language says it in its own words — the same rule a role's name follows; one this
@@ -185,7 +186,7 @@ export function WorkflowsPanel({
 
   const refused = (res: { ok: boolean; error?: string }): boolean => {
     if (res.ok) return false;
-    onError?.(res.error || c.saveFailed);
+    onError?.(sayFailure(res, c.saveFailed));
     return true;
   };
 
@@ -281,7 +282,7 @@ export function WorkflowsPanel({
   // press did nothing. The template writes a helper, never a lead (#944).
   const createAgent = async (name: string): Promise<string> => {
     const made = await roster.create(name, stage);
-    if (made.error || !made.agent) return made.error || c.saveFailed;
+    if (made.error || !made.agent) return sayFailure(made, c.saveFailed);
     setAdding(false);
     if (!(await move(stage, { kind: "add-helper", agent: made.agent }))) return "";
     show(made.agent);

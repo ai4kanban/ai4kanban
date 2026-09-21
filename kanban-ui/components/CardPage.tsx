@@ -85,6 +85,7 @@ import { useWorkflowName } from "./Workflows";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
+import { sayFailure } from "@/lib/start-failure";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
 
@@ -172,7 +173,7 @@ function HandChecks({
 
   const settle = (res: { ok: boolean; error?: string; verify?: string[] }, fallback: string) => {
     if (res.verify) setLines(res.verify);
-    setNote(res.ok ? "" : res.error || fallback);
+    setNote(res.ok ? "" : sayFailure(res, fallback));
     // The board card's clipboard mark counts these lines, so the board is re-read too.
     router.refresh();
     return res.ok;
@@ -239,7 +240,7 @@ function HandChecks({
         </ul>
       )}
       {note && (
-        <p className="mt-2 text-[12px] leading-snug" style={{ color: "var(--color-nb-peach-ink)" }}>
+        <p className="mt-2 whitespace-pre-line break-words text-[12px] leading-snug" style={{ color: "var(--color-nb-peach-ink)" }}>
           {note}
         </p>
       )}
@@ -379,6 +380,24 @@ const heldNote = (delivery: CardDelivery, c: CardCopy): string => {
 // apart from anything else (#313). Ending the delivery is the next screen's business: stop
 // first, then Resume or Discard. Its glyph is the filled pause circle that pairs with Resume's
 // play: a solid mark, and one that says the run is held rather than thrown away.
+/** A failure on the card page: the sentence, then the paths or the raw words under it, as
+ *  written — never translated (#955). */
+function FailureBox({ text }: { text: string }) {
+  const [line, ...details] = text.split("\n");
+  return (
+    <div className="nb-section break-words bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
+      {line}
+      {details.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5 font-mono text-[12px]">
+          {details.map((d, i) => (
+            <li key={i}>{d}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function StopRun({ session, onError }: { session: SessionView; onError: (why: string) => void }) {
   const c = useCopy().card.delivery.stop;
   const actions = useActions();
@@ -395,7 +414,7 @@ function StopRun({ session, onError }: { session: SessionView; onError: (why: st
     const res = await actions.stopSession(session.sessionId);
     if (!res.ok) {
       setAsked(false);
-      onError(res.error || c.failed);
+      onError(sayFailure(res, c.failed));
     }
   };
 
@@ -467,7 +486,7 @@ function ResumeDelivery({
     // A refusal is the registry's own words — the card is locked by another run, or this
     // one aged out of the kept window. Say it and leave the control alive to try again.
     if (res.ok && res.sessionId) onResumed(res.sessionId);
-    else onError(res.error || c.failed);
+    else onError(sayFailure(res, c.failed));
   };
 
   if (!actions || (!pickUp && !owed)) return null;
@@ -511,7 +530,7 @@ function ResumeEndedDelivery({
     setBusy(true);
     const res = await actions.resumeDelivery(id);
     setBusy(false);
-    if (!res.ok) onError(res.error || c.carryOnFailed);
+    if (!res.ok) onError(sayFailure(res, c.carryOnFailed));
     else onResumed();
   };
 
@@ -580,7 +599,7 @@ function DiscardDelivery({
     setBusy(true);
     const res = await actions.discardDelivery(id);
     setBusy(false);
-    if (!res.ok) onError(res.error || c.failed);
+    if (!res.ok) onError(sayFailure(res, c.failed));
     else onDiscarded();
   };
 
@@ -730,7 +749,7 @@ function InterruptedRequest({
         which === "resume"
           ? await actions.resumeCloudRequest(eventId)
           : await actions.cancelCloudRequest(taskId, eventId);
-      if (!done.ok) onError(done.error || (which === "resume" ? c.resumeFailed : c.cancelFailed));
+      if (!done.ok) onError(sayFailure(done, (which === "resume" ? c.resumeFailed : c.cancelFailed)));
       onDone();
     } finally {
       setBusy(null);
@@ -921,7 +940,7 @@ function ApprovalPane({
     setBusy(true);
     const res = await actions.approveDelivery(delivery.id);
     setBusy(false);
-    if (!res.ok) onError(res.error || c.failed);
+    if (!res.ok) onError(sayFailure(res, c.failed));
     else onApproved();
   };
 
@@ -1602,7 +1621,7 @@ export function CardPage({
     setDialog(null);
     const removes = req.action === "reject" || req.action === "archive";
     const res = await start(req, label, removes);
-    setError(res.ok ? null : res.error || c.toolbar.startFailed);
+    setError(res.ok ? null : sayFailure(res, c.toolbar.startFailed));
   };
 
   // Queue an action on this card instead of starting it (#140). The card keeps its stage and
@@ -1613,14 +1632,14 @@ export function CardPage({
     if (!actions) return;
     setDialog(null);
     const res = await actions.scheduleCard(card.id, action, notes, card.revision);
-    setError(res.ok ? null : res.error || c.toolbar.scheduleFailed);
+    setError(res.ok ? null : sayFailure(res, c.toolbar.scheduleFailed));
     if (res.ok) router.refresh();
   };
 
   const unschedule = async () => {
     if (!actions) return;
     const res = await actions.unscheduleCard(card.id, card.revision);
-    setError(res.ok ? null : res.error || c.toolbar.unscheduleFailed);
+    setError(res.ok ? null : sayFailure(res, c.toolbar.unscheduleFailed));
     if (res.ok) router.refresh();
   };
 
@@ -1634,7 +1653,7 @@ export function CardPage({
     try {
       const res = await actions.patchCard(id, patch, card.revision);
       if (!res.ok) {
-        setError(res.error || c.toolbar.editFailed);
+        setError(sayFailure(res, c.toolbar.editFailed));
         if (res.kind === "conflict") router.refresh();
         return false;
       }
@@ -1693,11 +1712,7 @@ export function CardPage({
               </div>
             )}
 
-            {error && (
-              <div className="nb-section whitespace-pre-line break-words bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
-                {error}
-              </div>
-            )}
+            {error && <FailureBox text={error} />}
 
             {/* The card left the board while it was being read (#299). Not an alert either:
                 nothing failed, the work finished — so it sits where the offline line sits,

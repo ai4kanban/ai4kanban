@@ -19,6 +19,7 @@ import { isDiscussion, type ChatTarget } from "./types";
 import { useMatches } from "./media";
 import type { PasteNote, PictureBox } from "./picture-box";
 import { overRail } from "./over-rail";
+import { sayFailure } from "@/lib/start-failure";
 
 // The chat rail's own state (#242): whether it is up, how wide it is, and the conversation
 // it is showing.
@@ -712,7 +713,7 @@ export function useChatRail({
         ...feedback,
         share: shareOn,
       });
-      if (!res.ok) setError(res.error ?? c.sendFailed);
+      if (!res.ok) setError(sayFailure(res, c.sendFailed));
       kickRef.current();
       return res.ok;
     },
@@ -757,7 +758,7 @@ export function useChatRail({
     async (runtime: string | null) => {
       setError(null);
       const res = await pickChatRuntimeAction(cardId, runtime);
-      if (!res.ok) setError(res.error ?? c.pickFailed);
+      if (!res.ok) setError(sayFailure(res, c.pickFailed));
       // Only where the switch really threw a transcript away: what the rail was still
       // holding of it goes too. A refused switch, and one to a row on the same CLI, cost
       // nothing — least of all what is typed in the box.
@@ -781,7 +782,7 @@ export function useChatRail({
   const clear = useCallback(async () => {
     setError(null);
     const res = await clearChatAction(cardId);
-    if (!res.ok) setError(res.error ?? c.clearFailed);
+    if (!res.ok) setError(sayFailure(res, c.clearFailed));
     // Their files went with the transcript, so the box lets go of them too (#441).
     setPasted([]);
     setPasteNote(null);

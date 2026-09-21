@@ -72,6 +72,7 @@ import { MODEL_ROW, ModelRow } from "./model-row";
 import { ACCENT_BTN, CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./settings";
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { sayFailure } from "@/lib/start-failure";
 
 // Every box, list and small button in here is the settings kit's
 // (components/settings.tsx) — CONTROL is the fill a field wears, FLAT_CONTROL the same one
@@ -767,7 +768,7 @@ export function HarnessPicker({
         : await setHarnessAction(option.name);
       if (!res.ok || !res.agent) {
         revert();
-        onError?.(res.error || c.saveFailed);
+        onError?.(sayFailure(res, c.saveFailed));
         return;
       }
       // The file as it now reads: this agent's own block — the settings it had
@@ -806,7 +807,7 @@ export function HarnessPicker({
         ? await setRuntimeSecretAction(bind.runtime.id, setting.key, next)
         : await setHarnessSecretAction(setting.key, next);
       if (!res.ok) {
-        onError?.(res.error || c.saveSecretFailed(rules(setting.label).toLowerCase()));
+        onError?.(sayFailure(res, c.saveSecretFailed(rules(setting.label).toLowerCase())));
         return false;
       }
       told(res.agent);
@@ -850,7 +851,7 @@ export function HarnessPicker({
         return true;
       }
       put(was);
-      onError?.(res.error || c.saveSettingFailed(rules(setting.label).toLowerCase()));
+      onError?.(sayFailure(res, c.saveSettingFailed(rules(setting.label).toLowerCase())));
       return false;
     } catch (e) {
       put(was);

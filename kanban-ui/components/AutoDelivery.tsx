@@ -41,6 +41,7 @@ import {
   setDiffApprovalAction,
 } from "@/app/actions";
 import { Group, Panel, Row, Switch } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 /** The **Delivery** group of Configuration → General. It reads all three settings from the
  *  board when it draws. */
@@ -73,7 +74,7 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
     const res = await setAutoCommitAction(next);
     if (!res.ok) {
       setCommits(!next);
-      onError?.(res.error || (next ? c.commits.failedOn : c.commits.failedOff));
+      onError?.(sayFailure(res, (next ? c.commits.failedOn : c.commits.failedOff)));
     }
   };
 
@@ -82,7 +83,7 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
     const res = await setDiffApprovalAction(next);
     if (!res.ok) {
       setApproval(!next);
-      onError?.(res.error || (next ? c.approval.failedOn : c.approval.failedOff));
+      onError?.(sayFailure(res, (next ? c.approval.failedOn : c.approval.failedOff)));
     }
   };
 
@@ -91,7 +92,7 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
     const res = await setAiReviewAction(next);
     if (!res.ok) {
       setReview(!next);
-      onError?.(res.error || (next ? c.review.failedOn : c.review.failedOff));
+      onError?.(sayFailure(res, (next ? c.review.failedOn : c.review.failedOff)));
     }
   };
 

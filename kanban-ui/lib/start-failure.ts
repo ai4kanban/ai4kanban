@@ -1,39 +1,69 @@
-import type { StartResult } from "./registry";
+import type { UiCopy } from "@/i18n/types";
+import type { RefusalArgs, RunRefusalKind } from "./format/agent/types";
 
-// --- a start that was refused, in the user's language (#706) -------------------
+// --- a refusal, in the user's language (#706, #955) ------------------------------
 //
-// The board answers a refused run in its own English, and one refusal in seven is a path
-// list. The screen the answers were pressed on says it in the language the app is set to, so
-// the board's sentence is translated HERE — the one place the app reads a refusal — and
-// nowhere else. Anything the board refuses with that this list has no kind for is one
-// generic line: a sentence that guesses is worse than one that admits it knows nothing.
+// The board refuses in its own English, with the kind behind the sentence. The server says it
+// in the language the app is set to HERE — the one place a refusal is translated — keeping the
+// names, paths and commands it carries as they are. A refusal with no kind is the board's raw
+// sentence: the screen says its own one-line summary and lists the raw sentence under it,
+// since a sentence that guesses is worse than one that admits it knows nothing.
 
-/** The one sentence per kind, as the copy holds it. */
-export interface FailureCopy {
-  dirty: string;
-  busy: string;
-  worktree: string;
-  akb: string;
-  noPlan: string;
-  onePlan: string;
-  noProcess: string;
-  rules: string;
-  other: string;
+/** Every refusal the copy has a sentence for: the board's kinds, and the few the app answers
+ *  with itself. */
+export type RefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "onePlan" | "rules";
+
+/** Anything that failed, as a server action hands it to the screen. `raw` marks an `error`
+ *  that is the board's own English, not yet said in the user's language. */
+export interface Refused {
+  error?: string;
+  reason?: string;
+  args?: RefusalArgs;
+  /** The files a `dirty` refusal named. */
+  paths?: string[];
+  raw?: boolean;
 }
 
-/** A refusal as the screen draws it: one line, and the paths it named under it. */
+/** The refusal in the reader's language, or undefined when the copy has no sentence for it. */
+export function refusalLine(r: Refused, t: UiCopy): string | undefined {
+  const say = r.reason ? (t.messages.refusal as Record<string, ((a: RefusalArgs) => string) | undefined>)[r.reason] : undefined;
+  if (!say) return undefined;
+  const a = r.args ?? {};
+  const action = a.action;
+  const stage = (s?: string) => (s ? t.configuration.workflows.stages[s as "plan"] ?? s : "");
+  const builtIn = a.workflow ? (t.configuration.workflows.builtInNames as Record<string, string>)[a.workflow] : undefined;
+  const word = (words: Partial<Record<string, string>>, key: string) => words[key];
+  return say({
+    ...a,
+    ...(action ? { verb: word(t.runs.verb, action) ?? action, act: word(t.runs.action, action) ?? word(t.chips.schedule.action, action) ?? action } : {}),
+    ...(a.stage ? { stage: stage(a.stage) } : {}),
+    ...(a.assigned ? { assigned: stage(a.assigned) } : {}),
+    ...(builtIn && a.name ? { name: builtIn } : {}),
+    ...("task" in a ? { task: a.task ? `#${a.task}` : t.messages.theBuild } : {}),
+  });
+}
+
+/** A failure as the screen draws it: one line, and what goes under it — the paths a refusal
+ *  named, or the raw sentence the line summarises. */
 export interface StartFailure {
   line: string;
   paths: string[];
 }
 
-/** What to say about a start that did not start. A result that came back ok with no run id
- *  is a start that did not happen either, and reads as the generic refusal. */
-export function startFailure(res: StartResult, c: FailureCopy): StartFailure {
-  return { line: res.reason ? c[res.reason] : c.other, paths: res.paths ?? [] };
+/** What to say about something that failed. `fallback` is the screen's own line for this
+ *  action, said when the answer carries nothing the reader can read — no error, or a raw one. */
+export function failure(res: Refused, fallback: string): StartFailure {
+  if (!res.error) return { line: fallback, paths: res.paths ?? [] };
+  if (res.raw) return { line: fallback, paths: [res.error] };
+  return { line: res.error, paths: res.paths ?? [] };
 }
 
-/** The same, as one string — for the two places with no room to lay the paths out: the
- *  message under the Create task button at phone width, and a rail row's hover. */
-export const failureText = (failure: StartFailure): string =>
-  [failure.line, ...failure.paths].join("\n");
+/** The same, as one string — for the places with no room to lay the lines out. */
+export const failureText = (failure: StartFailure): string => [failure.line, ...failure.paths].join("\n");
+
+/** One call for a screen that shows a failure as text. */
+export const sayFailure = (res: Refused, fallback: string): string => failureText(failure(res, fallback));
+
+/** A start that did not start. A result that came back ok with no run id is a start that did
+ *  not happen either, and reads as `other`. */
+export const startFailure = (res: Refused, c: { other: string }): StartFailure => failure(res, c.other);

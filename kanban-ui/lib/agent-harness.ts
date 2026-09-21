@@ -1,4 +1,5 @@
 import { boardRules } from "./cli";
+import { machineCopy, said } from "./language";
 import type { WriteResult } from "./types";
 
 // --- which runtime each agent runs, through the CLI (#467) -------------------
@@ -10,11 +11,9 @@ import type { WriteResult } from "./types";
 // The move is optional on the rules: a project can be running a command older than named
 // runtimes, and the Agents pane then draws no runtime row rather than one whose picker fails.
 
-const TOO_OLD =
-  "this board's rules are older than named runtimes — run `npm install -g ai4kanban`.";
-
 /** Point one agent at a runtime, or back at Global default with "". */
 export async function setAgentRuntime(agent: string, runtime: string): Promise<WriteResult> {
   const rules = await boardRules();
-  return rules.setAgentRuntime ? rules.setAgentRuntime(agent, runtime) : { ok: false, error: TOO_OLD };
+  if (!rules.setAgentRuntime) return { ok: false, error: (await machineCopy()).messages.tooOld.runtimes };
+  return said(rules.setAgentRuntime(agent, runtime));
 }

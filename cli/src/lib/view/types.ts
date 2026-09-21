@@ -547,6 +547,10 @@ export interface WriteResult {
   kind?: string
   /** On a conflict, the revision the board holds now — what the screen re-reads through. */
   current?: string
+  /** The refusal's kind and the values it names (#955), for a screen that says it in its own
+   *  language — one of `RunRefusalKind`. */
+  reason?: string
+  args?: Record<string, string>
 }
 
 /** The fields a direct edit may write. Everything else about a card (id, links,

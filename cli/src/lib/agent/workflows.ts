@@ -32,8 +32,10 @@ import { specAgentCatalog } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
 import {
+  refusal,
   WORKFLOW_STAGES,
   type FrozenWorkflow,
+  type RunRefusal,
   type WorkflowCandidate,
   type WorkflowHelper,
   type WorkflowStage,
@@ -566,24 +568,51 @@ export const stageCandidates = (stage: WorkflowStage): RosterEntry[] =>
  *  from the assignment instead, because a delivery that cannot start over an optional agent
  *  is a delivery held up by nothing. */
 export function workflowProblems(id: string): string[] {
+  return workflowIssues(id).map((issue) => issue.error)
+}
+
+/** The same, each with its kind. */
+export function workflowIssues(id: string): RunRefusal[] {
   const flow = workflowById(id)
-  if (!flow) return [`this board has no \`${id}\` workflow.`]
+  if (!flow) return [refusal('workflowNotFound', `this board has no \`${id}\` workflow.`, { id })]
   const roster = agentRoster()
-  const problems: string[] = []
+  const problems: RunRefusal[] = []
   for (const stage of WORKFLOW_STAGES) {
     if (stage === REVIEW) continue
     const { lead } = flow.stages[stage]
+    const name = flow.name
     if (!lead) {
-      problems.push(`\`${flow.name}\` has no agent leading its ${stage} stage — assign one before it can run.`)
+      problems.push(
+        refusal('workflowNoLead', `\`${name}\` has no agent leading its ${stage} stage — assign one before it can run.`, {
+          name,
+          stage,
+          workflow: flow.id,
+        }),
+      )
       continue
     }
     const found = roster.find((entry) => entry.name === lead)
     if (!found) {
-      problems.push(`\`${flow.name}\` has \`${lead}\` leading its ${stage} stage, and this board has no such agent.`)
+      problems.push(
+        refusal('workflowLeadMissing', `\`${name}\` has \`${lead}\` leading its ${stage} stage, and this board has no such agent.`, {
+          name,
+          agent: lead,
+          stage,
+          workflow: flow.id,
+        }),
+      )
       continue
     }
     if (found.stage !== stage) {
-      problems.push(`\`${flow.name}\` has \`${lead}\` leading its ${stage} stage, and \`${lead}\` is a ${found.stage} agent.`)
+      problems.push(
+        refusal('workflowLeadStage', `\`${name}\` has \`${lead}\` leading its ${stage} stage, and \`${lead}\` is a ${found.stage} agent.`, {
+          name,
+          agent: lead,
+          stage,
+          assigned: found.stage ?? 'board',
+          workflow: flow.id,
+        }),
+      )
     }
   }
   return problems
@@ -634,7 +663,7 @@ export const workflowReviewers = (flow: Workflow): WorkflowHelper[] => stageHelp
 
 // ---- writing ---------------------------------------------------------------
 
-type Write = { ok: boolean; error?: string }
+type Write = { ok: boolean } & Partial<RunRefusal>
 
 const save = (change: (block: Record<string, unknown>) => void): Write =>
   writeConfig((cfg) => {
@@ -679,8 +708,8 @@ const nameTaken = (name: string, except = ''): boolean =>
  *  workflow with no name. */
 export function createWorkflow(name: string): Write & { id?: string; name?: string } {
   const wanted = trimmedName(name)
-  if (!wanted) return { ok: false, error: 'a workflow needs a name' }
-  if (nameTaken(wanted)) return { ok: false, error: `this board already has a workflow called "${wanted}"` }
+  if (!wanted) return { ok: false, ...refusal('workflowUnnamed', 'a workflow needs a name') }
+  if (nameTaken(wanted)) return { ok: false, ...refusal('workflowTaken', `this board already has a workflow called "${wanted}"`, { name: wanted }) }
   const id = freeId(workflows().map((w) => w.id))
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
@@ -694,7 +723,7 @@ export function createWorkflow(name: string): Write & { id?: string; name?: stri
  *  copy is the board's own whatever it was copied from, so it can be renamed and deleted. */
 export function duplicateWorkflow(id: string, called?: string): Write & { id?: string; name?: string } {
   const flow = workflowById(id)
-  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
   // What it is CALLED where the copy was asked for: a built-in's name is the English the
   // command ships, and the screen draws it in the reader's own words. The copy takes those
   // words, and the name it was copied from counts as taken so the first copy is numbered.
@@ -725,11 +754,11 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
  *  delivery pointing at it keeps pointing at it. */
 export function renameWorkflow(id: string, name: string): Write {
   const flow = workflowById(id)
-  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
-  if (flow.builtIn) return { ok: false, error: `\`${flow.name}\` is built in — duplicate it to make one you can rename` }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+  if (flow.builtIn) return { ok: false, ...refusal('workflowBuiltInRename', `\`${flow.name}\` is built in — duplicate it to make one you can rename`, { name: flow.name, workflow: flow.id }) }
   const wanted = trimmedName(name)
-  if (!wanted) return { ok: false, error: 'a workflow needs a name' }
-  if (nameTaken(wanted, id)) return { ok: false, error: `this board already has a workflow called "${wanted}"` }
+  if (!wanted) return { ok: false, ...refusal('workflowUnnamed', 'a workflow needs a name') }
+  if (nameTaken(wanted, id)) return { ok: false, ...refusal('workflowTaken', `this board already has a workflow called "${wanted}"`, { name: wanted }) }
   return save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
     block.added = added.map((entry) => {
@@ -743,8 +772,8 @@ export function renameWorkflow(id: string, name: string): Write {
  *  started afterwards follow it. */
 export function setWorkflowWorktree(id: string, on: boolean): Write {
   const flow = workflowById(id)
-  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
-  if (flow.builtIn) return { ok: false, error: `\`${flow.name}\` is built in — duplicate it to make one you can change` }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+  if (flow.builtIn) return { ok: false, ...refusal('workflowBuiltInChange', `\`${flow.name}\` is built in — duplicate it to make one you can change`, { name: flow.name, workflow: flow.id }) }
   return save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
     block.added = added.map((entry) => {
@@ -757,7 +786,7 @@ export function setWorkflowWorktree(id: string, on: boolean): Write {
 /** Take the "an assignment was removed" mark off one workflow (#945) — **Got it** in the
  *  Workflows pane. The assignment itself is already gone; this is only the telling. */
 export function dismissRetiredAssignment(id: string): Write {
-  if (!workflowById(id)) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (!workflowById(id)) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
   return save((block) => {
     const kept = retiredRows({ workflows: block }).filter((one) => one !== id)
     if (kept.length) block.retired = kept
@@ -770,8 +799,8 @@ export function dismissRetiredAssignment(id: string): Write {
  *  file's. */
 export function deleteWorkflow(id: string): Write {
   const flow = workflowById(id)
-  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
-  if (flow.builtIn) return { ok: false, error: `\`${flow.name}\` is built in and cannot be deleted` }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+  if (flow.builtIn) return { ok: false, ...refusal('workflowBuiltInDelete', `\`${flow.name}\` is built in and cannot be deleted`, { name: flow.name, workflow: flow.id }) }
   return save((block) => {
     const added = Array.isArray(block.added) ? block.added : []
     const kept = added.filter((entry) => configBlock(entry).id !== id)
@@ -800,7 +829,7 @@ export function deleteWorkflow(id: string): Write {
 // an answer no read ever consults (#774).
 function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStageSetup) => void): Write {
   const flow = workflowById(id)
-  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
   const before = liveStage(flow, stage)
   const setup: WorkflowStageSetup = { ...before, helpers: before.helpers.map((h) => ({ ...h })) }
   change(setup)
@@ -831,26 +860,30 @@ function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStag
  *  wants another one duplicates it (#774). */
 export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string): Write {
   const owner = workflowById(id)
-  if (!owner) return { ok: false, error: `this board has no \`${id}\` workflow` }
-  if (stage === REVIEW) return { ok: false, error: 'the review stage has no lead, only reviewers' }
+  if (!owner) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+  if (stage === REVIEW) return { ok: false, ...refusal('reviewNoLead', 'the review stage has no lead, only reviewers') }
   if (owner.builtIn) {
     return {
       ok: false,
-      error: `\`${owner.name}\` is built in — its lead agents are fixed. Duplicate it to make one you can reassign.`,
+      ...refusal(
+        'workflowBuiltInLeads',
+        `\`${owner.name}\` is built in — its lead agents are fixed. Duplicate it to make one you can reassign.`,
+        { name: owner.name, workflow: owner.id },
+      ),
     }
   }
   const wanted = agent.trim()
   if (wanted) {
     const found = agentRoster().find((entry) => entry.name === wanted)
-    if (!found) return { ok: false, error: `this board has no \`${wanted}\` agent` }
-    if (found.stage !== stage) return { ok: false, error: `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot lead ${stage}` }
+    if (!found) return { ok: false, ...refusal('agentNotFound', `this board has no \`${wanted}\` agent`, { agent: wanted }) }
+    if (found.stage !== stage) return { ok: false, ...refusal('agentCannotLead', `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot lead ${stage}`, { agent: wanted, assigned: found.stage ?? 'board', stage }) }
     // A lead saved before #846 keeps running; only a new pick is held to the declaration.
     if (!found.canLead && owner.stages[stage].lead !== wanted) {
-      return { ok: false, error: `\`${wanted}\` does not declare \`akb.lead: true\`, so it can only help` }
+      return { ok: false, ...refusal('agentNotLead', `\`${wanted}\` does not declare \`akb.lead: true\`, so it can only help`, { agent: wanted }) }
     }
   }
   if (owner.stages[stage].helpers.some((h) => h.agent === wanted)) {
-    return { ok: false, error: `\`${wanted}\` already helps this stage — remove it from the helpers first` }
+    return { ok: false, ...refusal('agentHelps', `\`${wanted}\` already helps this stage — remove it from the helpers first`, { agent: wanted }) }
   }
   return setStage(id, stage, (setup) => {
     setup.lead = wanted
@@ -861,14 +894,14 @@ export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string)
 export function addWorkflowHelper(id: string, stage: WorkflowStage, agent: string): Write {
   const wanted = agent.trim()
   const found = agentRoster().find((entry) => entry.name === wanted)
-  if (!found) return { ok: false, error: `this board has no \`${wanted}\` agent` }
-  if (found.stage !== stage) return { ok: false, error: `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}` }
+  if (!found) return { ok: false, ...refusal('agentNotFound', `this board has no \`${wanted}\` agent`, { agent: wanted }) }
+  if (found.stage !== stage) return { ok: false, ...refusal('agentCannotHelp', `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}`, { agent: wanted, assigned: found.stage ?? 'board', stage }) }
   if (found.canLead) {
-    return { ok: false, error: `\`${wanted}\` can lead a stage, so it never helps one — it would run a second full ${stage}` }
+    return { ok: false, ...refusal('agentLeadNotHelper', `\`${wanted}\` can lead a stage, so it never helps one — it would run a second full ${stage}`, { agent: wanted, stage }) }
   }
   const flow = workflowById(id)
   if (flow?.stages[stage].lead === wanted) {
-    return { ok: false, error: `\`${wanted}\` already leads this stage` }
+    return { ok: false, ...refusal('agentLeads', `\`${wanted}\` already leads this stage`, { agent: wanted }) }
   }
   return setStage(id, stage, (setup) => {
     if (!setup.helpers.some((h) => h.agent === wanted)) setup.helpers.push({ agent: wanted, extra: '' })
@@ -888,9 +921,9 @@ export const removeWorkflowHelper = (id: string, stage: WorkflowStage, agent: st
 export function setWorkflowHelperExtra(id: string, stage: WorkflowStage, agent: string, extra: string): Write {
   const wanted = agent.trim()
   const flow = workflowById(id)
-  if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
   if (!liveStage(flow, stage).helpers.some((h) => h.agent === wanted)) {
-    return { ok: false, error: `\`${wanted}\` does not help the ${stage} stage of "${flow.name}"` }
+    return { ok: false, ...refusal('agentNotHelping', `\`${wanted}\` does not help the ${stage} stage of "${flow.name}"`, { agent: wanted, stage, name: flow.name, workflow: flow.id }) }
   }
   return setStage(id, stage, (setup) => {
     setup.helpers = setup.helpers.map((h) => (h.agent === wanted ? { ...h, extra } : h))

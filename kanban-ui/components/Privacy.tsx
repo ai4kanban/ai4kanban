@@ -31,6 +31,7 @@ import { openLink } from "./desktop";
 import { Dialog } from "./Dialog";
 import { LogoMark } from "./Logo";
 import { Alert, Group, Panel, Row, Switch } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 /** The one address a deletion request goes to (#628). Written here rather than in the copy
  *  so both languages name the same one, and so no second address can creep in. */
@@ -76,7 +77,7 @@ export function UsageDisclosure({ onDone }: { onDone: () => void }) {
       // A save that did not land leaves the step where it is: the record is what the step
       // is gated on, so an unwritten one means it is still owed on the next open.
       if (!res.ok) {
-        setError(res.error || c.saveFailed);
+        setError(sayFailure(res, c.saveFailed));
         return;
       }
       onDone();
@@ -181,7 +182,7 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
     const res = await setUsageReportingAction(next);
     if (!res.ok) {
       setHeld(was);
-      onError?.(res.error || (next ? c.failedOn : c.failedOff));
+      onError?.(sayFailure(res, (next ? c.failedOn : c.failedOff)));
       return;
     }
     await load();
@@ -250,7 +251,7 @@ export function PartnerRow({ onError }: { onError?: (msg: string) => void }) {
     const res = await setPartnerFeedbackAction(next);
     if (!res.ok) {
       setHeld(was);
-      onError?.(res.error || (next ? c.failedOn : c.failedOff));
+      onError?.(sayFailure(res, (next ? c.failedOn : c.failedOff)));
       return false;
     }
     await load();

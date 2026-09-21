@@ -76,6 +76,7 @@ import {
   Switch,
 } from "./settings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { sayFailure } from "@/lib/start-failure";
 
 /** The published pages the terms say signing in confirms you have read. */
 const PRIVACY_URL = "https://ai4kanban.dev/privacy";
@@ -146,7 +147,7 @@ export function CloudPanel({
         setBusy(true);
         try {
           const done = await finishCloudSignInAction(url);
-          if (!done.ok) onError?.(done.error || c.finishFailed);
+          if (!done.ok) onError?.(sayFailure(done, c.finishFailed));
           await load();
         } finally {
           setBusy(false);
@@ -174,7 +175,7 @@ export function CloudPanel({
     setBusy(true);
     try {
       const done = await signOutOfCloudAction();
-      if (!done.ok) onError?.(done.error || c.signOutFailed);
+      if (!done.ok) onError?.(sayFailure(done, c.signOutFailed));
       setWaiting(false);
       await load();
     } finally {
@@ -768,7 +769,7 @@ function Slack({
     setWorking("connect");
     try {
       const start = await startSlackConnectAction();
-      if (!start.ok) return onError?.(start.error || c.connectFailed);
+      if (!start.ok) return onError?.(sayFailure(start, c.connectFailed));
       await app.openExternal(start.url);
       setWaiting(true);
     } finally {
@@ -781,7 +782,7 @@ function Slack({
     setWorking(what);
     try {
       const done = await run();
-      if (!done.ok) onError?.(done.error || (what === "save" ? c.saveFailed : c.disconnectFailed));
+      if (!done.ok) onError?.(sayFailure(done, (what === "save" ? c.saveFailed : c.disconnectFailed)));
       await load();
     } finally {
       setPicked(null);
@@ -941,7 +942,7 @@ function Lark({
     setConnecting(cloud);
     try {
       const start = await startLarkConnectAction(cloud);
-      if (!start.ok) return onError?.(start.error || c.connectFailed);
+      if (!start.ok) return onError?.(sayFailure(start, c.connectFailed));
       await app.openExternal(start.url);
       setWaiting(true);
     } finally {
@@ -955,7 +956,7 @@ function Lark({
     setWorking(what);
     try {
       const done = await run();
-      if (!done.ok) onError?.(done.error || (what === "save" ? c.saveFailed : c.disconnectFailed));
+      if (!done.ok) onError?.(sayFailure(done, (what === "save" ? c.saveFailed : c.disconnectFailed)));
       await load();
     } finally {
       setPicked(null);
@@ -1107,7 +1108,7 @@ function Notifications() {
     setError(null);
     try {
       const done = await run();
-      if (!done.ok) setError(done.error ?? c.saveFailed);
+      if (!done.ok) setError(sayFailure(done, c.saveFailed));
       await load();
     } finally {
       setPending({});

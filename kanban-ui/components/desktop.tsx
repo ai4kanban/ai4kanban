@@ -46,6 +46,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { sayFailure } from "@/lib/start-failure";
 
 /** Where a person gets the app. One place, named here, used by both notices. */
 export const DOWNLOAD_URL = "https://ai4kanban.dev/download";
@@ -931,7 +932,7 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
               // so there is nothing to do here but keep the button quiet until
               // the new page arrives.
               if (!res.ok) {
-                setError(res.error ?? c.makeFailed);
+                setError(sayFailure(res, c.makeFailed));
                 setBusy(false);
               }
             })
@@ -992,7 +993,7 @@ export function DiscardNewBoard({ shape = "button" }: { shape?: "button" | "link
       // there is nothing left to draw here but a failure.
       .then((res) => {
         if (!res.ok) {
-          setError(res.error ?? c.discardFailed);
+          setError(sayFailure(res, c.discardFailed));
           setBusy(false);
         }
       })
@@ -1088,7 +1089,7 @@ export function InstallCommand({
         onNote?.(
           res.ok
             ? { ok: true, text: res.state.kind === "path" ? c.donePath : c.doneSymlink }
-            : { ok: false, text: res.error ?? c.failed },
+            : { ok: false, text: sayFailure(res, c.failed)},
         );
       })
       .catch((e) => onNote?.({ ok: false, text: e instanceof Error ? e.message : String(e) }))

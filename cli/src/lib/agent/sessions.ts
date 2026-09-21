@@ -37,6 +37,7 @@ import {
   resumeRecord,
   resumeRefusal,
   settleDelivery,
+  unknownDelivery,
   settleOrphanedDeliveries,
   sweepCheckouts,
   syncAudit,
@@ -56,7 +57,7 @@ import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withSt
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing } from './chat'
-import { holdsCard, SPECIALIST_ACTIONS } from './types'
+import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
   AgentRequest,
@@ -67,6 +68,8 @@ import type {
   RefineEffort,
   RunRecord,
   RunRefusal,
+  RunRefusalKind,
+  RefusalArgs,
   RunStatus,
   RunView,
   SpecAsk,
@@ -170,6 +173,8 @@ export interface StartResult {
   ok: boolean
   sessionId?: string
   error?: string
+  reason?: RunRefusalKind
+  args?: RefusalArgs
 }
 
 /** How a run's own ending reads as one of #319's nine event states. A run the user stopped
@@ -408,7 +413,7 @@ const canPickUp = (r: RunRecord): boolean =>
 /** Why this run's delivery rules a resume out: it has ended, and the delivery itself can no
  *  longer be carried on — cancelled, finished, or its checkout gone (#930). A failed one that
  *  worked in the project itself has no checkout to lose, so its run still resumes there. */
-function endedDeliveryRefusal(r: RunRecord, refusals?: Map<string, string | undefined>): string | undefined {
+function endedDeliveryRefusal(r: RunRecord, refusals?: Map<string, RunRefusal | undefined>): RunRefusal | undefined {
   if (!r.deliveryId || !canPickUp(r)) return undefined
   if (refusals?.has(r.deliveryId)) return refusals.get(r.deliveryId)
   const delivery = findDelivery(r.deliveryId)
@@ -418,7 +423,7 @@ function endedDeliveryRefusal(r: RunRecord, refusals?: Map<string, string | unde
   return why
 }
 
-function toView(r: RunRecord, gone?: ReadonlySet<number>, refusals?: Map<string, string | undefined>): RunView {
+function toView(r: RunRecord, gone?: ReadonlySet<number>, refusals?: Map<string, RunRefusal | undefined>): RunView {
   return {
     ...r,
     durationMs: r.status !== 'running' && r.endedAt ? r.endedAt - r.startedAt : undefined,
@@ -482,7 +487,7 @@ export async function listRuns(): Promise<RunView[]> {
     await recoverOrphanedDeliveries()
   }
   const gone = goneCards(runs)
-  const refusals = new Map<string, string | undefined>()
+  const refusals = new Map<string, RunRefusal | undefined>()
   return runs.map((r) => toView(r, gone, refusals))
 }
 
@@ -589,7 +594,7 @@ function lockedBy(
   /** This run is a delivery's own work being carried on. The discussion hold lets it by. */
   inDelivery = false,
   discard = false,
-): string | undefined {
+): RunRefusal | undefined {
   // A specialist is out of that rule at both ends (`holdsCard`): it fills one section, never
   // the plan, so it neither takes the card nor waits for one. Two agents may work a card —
   // they write different things — and a card
@@ -598,14 +603,28 @@ function lockedBy(
   // pretends otherwise.
   if (cardId !== null && holdsCard(action)) {
     const live = runs.find((r) => r.status === 'running' && r.cardId === cardId && holdsCard(r.action))
-    if (live) return `#${cardId} is already being ${VERB[live.action]}`
+    if (live) {
+      return refusal('cardBusy', `#${cardId} is already being ${VERB[live.action]}`, {
+        card: String(cardId),
+        action: live.action,
+      })
+    }
   }
   // A card its creator has not finished writing takes no run at all (#564) — not the
   // specialists either, since a section written onto half a plan answers the wrong plan.
   if (cardId !== null) {
-    if (!(action === 'reject' && discard) && runs.some((r) => r.discardedCards?.some((c) => c.id === cardId))) return `#${cardId} was discarded. Do not restore or recreate it.`
-    const refusal = creationRefusal(cardId, creationOf(runs, cardId), action, action === 'reject' && discard)
-    if (refusal) return refusal
+    if (!(action === 'reject' && discard) && runs.some((r) => r.discardedCards?.some((c) => c.id === cardId))) {
+      return refusal('cardDiscarded', `#${cardId} was discarded. Do not restore or recreate it.`, { card: String(cardId) })
+    }
+    const creation = creationOf(runs, cardId)
+    const creating = creationRefusal(cardId, creation, action, action === 'reject' && discard)
+    if (creating && creation) {
+      return refusal(creation.state === 'creating' ? 'cardCreating' : 'cardUnfinished', creating, {
+        card: String(cardId),
+        run: creation.runId.slice(0, 8),
+        action,
+      })
+    }
   }
   // A card whose own chat is writing a reply takes none of the runs that act on what it says
   // (#633) — the reply is about to rewrite it. Here rather than at each caller, so a button,
@@ -616,19 +635,19 @@ function lockedBy(
   // now, and refusing it would strand a delivery on a conversation it knows nothing about.
   if (cardId !== null && !inDelivery && HELD_BY_DISCUSSION.has(action)) {
     const asked = REFINE_PASS.has(action) ? 'refine' : action
-    const refusal = discussingRefusal(cardId, cardsDiscussing().has(cardId), asked)
-    if (refusal) return refusal
+    const discussing = discussingRefusal(cardId, cardsDiscussing().has(cardId), asked)
+    if (discussing) return refusal('cardDiscussed', discussing, { card: String(cardId), action: asked })
   }
   if (SINGLETON_ACTIONS.has(action)) {
     const live = runs.find((r) => r.status === 'running' && r.action === action)
-    if (live) return SINGLETON_BUSY[action] ?? `a task is already being ${VERB[action]}`
+    if (live) return { error: SINGLETON_BUSY[action] ?? `a task is already being ${VERB[action]}` }
   }
   // One changelog per version, not one across the board: two runs on two versions write two
   // different files, and only two on the SAME version would write over each other. The
   // version a run is for is its input, which is what it was written down as.
   if (action === 'changelog' && release) {
     const live = runs.find((r) => r.status === 'running' && r.action === 'changelog' && r.input === release)
-    if (live) return `a changelog for ${release} is already being written`
+    if (live) return { error: `a changelog for ${release} is already being written` }
   }
   return undefined
 }
@@ -676,13 +695,13 @@ export function titleOf(cardId: number | undefined): string | undefined {
  *  plan the handoff was answered on (#481). It is the delivery's title and the whole of its
  *  frozen `approved` requirements at once, so an empty one is nothing to build and the run is
  *  refused rather than opened. Undefined when this is not a card-less build. */
-function approvedDirect(req: AgentRequest): DirectBuild | { error: string } | undefined {
+function approvedDirect(req: AgentRequest): DirectBuild | RunRefusal | undefined {
   const named = req.plan?.trim()
   if (named) {
     const rel = planFromText(named)
     const text = (rel ? readPlan(rel)?.text : '')?.trim() ?? ''
     const title = planTitle(text)
-    if (!title) return { error: `there is nothing written in ${named} yet, so there is nothing to build.` }
+    if (!title) return refusal('planEmpty', `there is nothing written in ${named} yet, so there is nothing to build.`, { path: named })
     return { title, approved: text, plan: named }
   }
   const typed = req.description?.trim()
@@ -706,11 +725,13 @@ export function openRun(
   // a pin nothing answers to would quietly run **Global default**, and a run on another
   // model than the one picked is the worst way to answer a pick.
   if (req.runtime && !runtimeById(req.runtime)) {
-    return {
-      error: `this board has no runtime called "${req.runtime}". It has: ${readRuntimes()
-        .map((r) => r.id)
-        .join(', ')}.`,
-    }
+    const runtimes = readRuntimes()
+      .map((r) => r.id)
+      .join(', ')
+    return refusal('runtimeNotFound', `this board has no runtime called "${req.runtime}". It has: ${runtimes}.`, {
+      id: req.runtime,
+      runtimes,
+    })
   }
   // A build with no delivery on its card opens one, and a delivery is got ready before
   // anything is written down (#303): the commit mode is decided, the checkout is checked,
@@ -749,7 +770,7 @@ export function openRun(
         : undefined
     : undefined
   if (req.action === 'review' && joining && !frozenReviewers(joining.workflow).length) {
-    return { error: NO_REVIEWERS }
+    return refusal('noReviewers', NO_REVIEWERS)
   }
   const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
@@ -809,9 +830,9 @@ export function openRun(
     // after a build names none: it is the default, and the row says so by saying nothing.
     trigger: req.action === 'review' ? req.trigger : undefined,
   }
-  const out = withCreationLock(() => withStore<{ run: RunRecord } | { error: string }>((store) => {
+  const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release, false, req.discard)
-    if (locked) return { error: locked }
+    if (locked) return locked
     store.runs.push(record)
     // A delivery's own runs belong to a delivery — the one already in flight on this
     // card, or, for a build, a new one opened here. Same transaction as the run it
@@ -827,7 +848,9 @@ export function openRun(
       } else if (!joinActive(store, record, req.action, req.deliveryId)) {
         store.runs.pop()
         const on = req.deliveryId ? `delivery ${req.deliveryId}` : `#${cardId}`
-        return { error: `no delivery is in flight on ${on}, so there is nothing to ${req.action}` }
+        return refusal('deliveryNone', `no delivery is in flight on ${on}, so there is nothing to ${req.action}`, {
+          on: req.deliveryId ?? `#${cardId}`,
+        })
       }
     }
     return { run: record }
@@ -856,7 +879,7 @@ export function openRun(
  *  its log deleted. The two are one piece of work — the same conversation, carried on — so
  *  the list keeps one row for it, the one that is still going. The cost is that the earlier
  *  run's log goes with it; `resumedFrom` survives as the mark of where this run began. */
-export async function openResume(id: string): Promise<{ run: RunRecord; spec: RunSpec } | { error: string }> {
+export async function openResume(id: string): Promise<{ run: RunRecord; spec: RunSpec } | RunRefusal> {
   const restore: RunRecord[] = []
   const runs = withRuns((all) => {
     reap(all, [], restore)
@@ -864,14 +887,14 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   })
   for (const run of restore) await restoreCardStatus(run)
   const prev = findRun(runs, id)
-  if (prev === null) return { error: `"${id}" matches more than one run — give more of the id` }
-  if (!prev) return { error: `no run here answers to "${id}"` }
-  if (prev.status === 'running') return { error: 'that run is still going' }
-  if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped run can be continued' }
+  if (prev === null) return ambiguousRun(id)
+  if (!prev) return unknownRun(id)
+  if (prev.status === 'running') return refusal('runGoing', 'that run is still going')
+  if (!canPickUp(prev)) return refusal('runNotResumable', 'only a failed, interrupted or stopped run can be continued')
   const resumeId = resumeIdOf(prev)
-  if (!resumeId) return { error: 'that run never reported a session id to continue by' }
+  if (!resumeId) return refusal('runNoSession', 'that run never reported a session id to continue by')
   const ended = endedDeliveryRefusal(prev)
-  if (ended) return { error: ended }
+  if (ended) return ended
   // Resumed where the run it continues worked: a delivery's own worktree, or the project
   // itself.
   const resuming = prev.deliveryId ? findDelivery(prev.deliveryId) : undefined
@@ -887,9 +910,8 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     prev.runtime ? { pin: prev.runtime } : {},
   )
   if (!plan) {
-    return {
-      error: `this version can't continue a conversation ${prev.harness || 'the agent that started it'} opened`,
-    }
+    const agent = prev.harness || 'the agent that started it'
+    return refusal('runForeign', `this version can't continue a conversation ${agent} opened`, { agent })
   }
 
   const sessionId = randomUUID()
@@ -934,11 +956,13 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     // for existing (#417).
     trigger: prev.trigger,
   }
-  const out = withCreationLock(() => withStore<{ run: RunRecord } | { error: string }>((store) => {
+  const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
     const all = store.runs
     const latest = all.find((r) => r.sessionId === prev.sessionId)
-    if (!latest) return { error: 'that run has already been continued' }
-    if (latest.discardedCards?.some((c) => c.pending || locate(c.id))) return { error: 'A card discard did not finish. Retry discarding it before resuming creation.' }
+    if (!latest) return refusal('runContinued', 'that run has already been continued')
+    if (latest.discardedCards?.some((c) => c.pending || locate(c.id))) {
+      return refusal('discardUnfinished', 'A card discard did not finish. Retry discarding it before resuming creation.')
+    }
     record.discardedCards = latest.discardedCards
     const discarded = new Set(record.discardedCards?.map((c) => c.id) ?? [])
     if (record.formatRepair && discarded.size) {
@@ -950,9 +974,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
       if (!repair.cardIds.length) record.formatRepair = undefined
     }
     const heldCreation = all.find((r) => runIsLive(r) && (r.cardId !== null && (latest.createdCardIds ?? []).includes(r.cardId) || (r.createdCardIds ?? []).some((id) => (latest.createdCardIds ?? []).includes(id))))
-    if (heldCreation) return { error: 'A card from this creation is already being worked on. Wait for that run to finish.' }
+    if (heldCreation) return refusal('creationHeld', 'A card from this creation is already being worked on. Wait for that run to finish.')
     const locked = lockedBy(all, prev.action, prev.cardId, prev.input, resuming?.status === 'active', prev.discard)
-    if (locked) return { error: locked }
+    if (locked) return locked
     all.push(record)
     // Resume carries the DELIVERY on, rather than starting a second one: one delivery id
     // covers both runs, and the flow is re-entered so each step checks its own
@@ -1202,6 +1226,10 @@ export async function reportRunEnded(
   await reportCloudRunEnd(sessionId, cardId, RUN_OUTCOME[status] ?? 'failed')
 }
 
+const unknownRun = (id: string): RunRefusal => refusal('runNotFound', `no run here answers to "${id}"`, { id })
+const ambiguousRun = (id: string): RunRefusal =>
+  refusal('runAmbiguous', `"${id}" matches more than one run — give more of the id`, { id })
+
 /** Ask a run to end. The watcher is signalled; the record is marked so whichever path
  *  witnesses the end — the watcher's own close, or a later reap — records `stopped` rather
  *  than a failure.
@@ -1213,15 +1241,17 @@ export async function stopRun(id: string): Promise<StartResult> {
   const out = withRuns((runs) => {
     reap(runs, [], restore)
     const run = findRun(runs, id)
-    if (run === null) return { ok: false, error: `"${id}" matches more than one run — give more of the id` }
-    if (!run) return { ok: false, error: `no run here answers to "${id}"` }
+    if (run === null) return { ok: false, ...ambiguousRun(id) }
+    if (!run) return { ok: false, ...unknownRun(id) }
     if (run.status !== 'running') return { ok: true, sessionId: run.sessionId }
     run.stopping = true
     return { ok: true, sessionId: run.sessionId, pid: run.pid, live: true }
   })
   for (const run of restore) await restoreCardStatus(run)
   const live = out as StartResult & { pid?: number; live?: boolean }
-  if (!live.ok || !live.live) return { ok: live.ok, sessionId: live.sessionId, error: live.error }
+  if (!live.ok || !live.live) {
+    return { ok: live.ok, sessionId: live.sessionId, error: live.error, reason: live.reason, args: live.args }
+  }
   if (live.pid) {
     try {
       process.kill(live.pid, 'SIGTERM')
@@ -1247,10 +1277,10 @@ export async function stopRun(id: string): Promise<StartResult> {
  *
  *  The delivery is ended BEFORE the run is stopped, so the card is free from the first
  *  moment and nothing can slip a second delivery in behind the stop. */
-export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }> {
-  if (!id.trim()) return { ok: false, error: 'name the delivery to cancel' }
+export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>> {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to cancel', { action: 'cancel' }) }
   const delivery = namedDelivery(id)
-  if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
+  if (!delivery) return { ok: false, ...unknownDelivery(id) }
   if (delivery.status !== 'active') return { ok: true, deliveryId: delivery.deliveryId }
   endDelivery(delivery.deliveryId, 'cancelled')
   // A delivery that has ended must not still be writing files.
@@ -1302,10 +1332,10 @@ async function runIsDown(sessionId: string): Promise<void> {
  */
 export async function resumeDelivery(
   id: string,
-): Promise<{ ok: boolean; deliveryId?: string; error?: string; landed?: boolean; carryOn?: DeliveryCarryOn }> {
-  if (!id.trim()) return { ok: false, error: 'name the delivery to carry on' }
+): Promise<{ ok: boolean; deliveryId?: string; landed?: boolean; carryOn?: DeliveryCarryOn } & Partial<RunRefusal>> {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to carry on', { action: 'resume' }) }
   const put = resumeRecord(id)
-  if (!put.ok) return { ok: false, error: put.error }
+  if (!put.ok) return put
   const delivery = put.delivery
   if (await settleAlreadyLanded(delivery)) {
     return { ok: true, deliveryId: delivery.deliveryId, landed: true }
@@ -1332,10 +1362,10 @@ export function discardCost(id: string): { deliveryId: string; worktree?: string
  *
  *  It never reaches the user's main checkout: only a path inside `.akb/` is ever removed
  *  (agent/worktree.ts). */
-export async function discardDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }> {
-  if (!id.trim()) return { ok: false, error: 'name the delivery to discard' }
+export async function discardDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>> {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to discard', { action: 'discard' }) }
   const delivery = namedDelivery(id)
-  if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
+  if (!delivery) return { ok: false, ...unknownDelivery(id) }
   if (delivery.status === 'active') {
     const cancelled = await cancelDelivery(delivery.deliveryId)
     if (!cancelled.ok) return cancelled

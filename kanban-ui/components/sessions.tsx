@@ -64,6 +64,7 @@ import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { Copied, useCopyText } from "./copy";
 import { botTargetId, RunScene } from "./RunScene";
+import { sayFailure } from "@/lib/start-failure";
 
 const POLL_MS = 1500; // while a run is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -583,7 +584,7 @@ function DeliveryKept({
     const res = which === "resume" ? await actions.resumeDelivery(id) : await actions.discardDelivery(id);
     setBusy(null);
     if (res.ok) onMoved();
-    else setError(res.error || (which === "resume" ? c.carryOnFailed : c.discardFailed));
+    else setError(sayFailure(res, (which === "resume" ? c.carryOnFailed : c.discardFailed)));
   };
 
   if (!kept || !actions) return null;

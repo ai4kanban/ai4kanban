@@ -33,7 +33,7 @@ import path from 'node:path'
 
 import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
-import type { CadenceSchedule, MemoryPruneSchedule, MemoryReviewState } from './types'
+import { refusal, type CadenceSchedule, type MemoryPruneSchedule, type MemoryReviewState, type Saved } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
 
@@ -86,7 +86,7 @@ export function autoCommitAllowed(): boolean {
 }
 
 /** Save it. Turning it back on drops the key rather than writing `true`. */
-export function setAutoCommit(on: boolean): { ok: boolean; error?: string } {
+export function setAutoCommit(on: boolean): Saved {
   return writeConfig((cfg) => {
     if (on) delete cfg.autoCommit
     else cfg.autoCommit = false
@@ -117,7 +117,7 @@ export function diffApprovalRequired(): boolean {
 }
 
 /** Save it. Turning it back off drops the key rather than writing `false`. */
-export function setDiffApproval(on: boolean): { ok: boolean; error?: string } {
+export function setDiffApproval(on: boolean): Saved {
   return writeConfig((cfg) => {
     if (on) cfg.requireDiffApproval = true
     else delete cfg.requireDiffApproval
@@ -151,7 +151,7 @@ export function aiReviewEnabled(): boolean {
 }
 
 /** Save it. Turning it back on drops the key rather than writing `true`. */
-export function setAiReview(on: boolean): { ok: boolean; error?: string } {
+export function setAiReview(on: boolean): Saved {
   return writeConfig((cfg) => {
     if (on) delete cfg.aiReview
     else cfg.aiReview = false
@@ -179,7 +179,7 @@ export function setAiReview(on: boolean): { ok: boolean; error?: string } {
 export const readyGateOn = (): boolean => switchedOn('readyGate')
 
 /** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setReadyGate = (on: boolean): { ok: boolean; error?: string } => setSwitch('readyGate', on)
+export const setReadyGate = (on: boolean): Saved => setSwitch('readyGate', on)
 
 // ---- the decider: does the board answer your questions for you? (#447) ------
 //
@@ -199,7 +199,7 @@ export const setReadyGate = (on: boolean): { ok: boolean; error?: string } => se
 export const deciderOn = (): boolean => switchedOn('decider')
 
 /** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setDecider = (on: boolean): { ok: boolean; error?: string } => setSwitch('decider', on)
+export const setDecider = (on: boolean): Saved => setSwitch('decider', on)
 
 // ---- the proposer: does a finished card propose what comes next? (#534) -----
 //
@@ -218,7 +218,7 @@ export const setDecider = (on: boolean): { ok: boolean; error?: string } => setS
 export const proposerOn = (): boolean => switchedOn('proposer')
 
 /** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setProposer = (on: boolean): { ok: boolean; error?: string } => setSwitch('proposer', on)
+export const setProposer = (on: boolean): Saved => setSwitch('proposer', on)
 
 // ---- auto triage: does a new item get judged by itself? (#562) --------------
 //
@@ -243,7 +243,7 @@ export const autoTriageOn = (): boolean => switchedOn('autoTriage')
 export const memoryReviewerOn = (): boolean => switchedOn('memoryReviewer')
 
 /** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setAutoTriage = (on: boolean): { ok: boolean; error?: string } => setSwitch('autoTriage', on)
+export const setAutoTriage = (on: boolean): Saved => setSwitch('autoTriage', on)
 
 // ---- a switchable role's own key (#493, #534, #748, #783) ------------------
 //
@@ -282,7 +282,7 @@ export function switchedOn(key: RoleSwitch): boolean {
 }
 
 /** Save it. Back at the default drops the key rather than writing it down. */
-export function setSwitch(key: RoleSwitch, on: boolean): { ok: boolean; error?: string } {
+export function setSwitch(key: RoleSwitch, on: boolean): Saved {
   return writeConfig((cfg) => {
     if (on === ON_BY_DEFAULT.has(key)) delete cfg[key]
     else cfg[key] = on
@@ -315,10 +315,13 @@ export function silenceMinutes(): number {
   }
 }
 
+const badCadence = (cadence: string) =>
+  refusal('cadence', `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}`, { cadence, formats: CADENCE_FORMS })
+
 /** Save it, in whole minutes. Back at the default drops the key rather than writing 10. */
-export function setSilenceMinutes(minutes: number): { ok: boolean; error?: string } {
+export function setSilenceMinutes(minutes: number): Saved {
   if (!Number.isInteger(minutes) || minutes < 0) {
-    return { ok: false, error: 'that setting is a whole number of minutes, or 0 to switch it off' }
+    return { ok: false, ...refusal('minutes', 'that setting is a whole number of minutes, or 0 to switch it off') }
   }
   return writeConfig((cfg) => {
     if (minutes === SILENCE_MINUTES) delete cfg.silenceMinutes
@@ -411,7 +414,7 @@ export function setSpecAgentSwitch(
   name: string,
   on: boolean,
   legacyNames: string[] = [],
-): { ok: boolean; error?: string } {
+): Saved {
   return writeSpecAgentEntry(name, legacyNames, (entry) => ({ ...entry, enabled: on }))
 }
 
@@ -427,7 +430,7 @@ export function setSpecAgentValue(
   key: string,
   value: string,
   legacyNames: string[] = [],
-): { ok: boolean; error?: string } {
+): Saved {
   return writeSpecAgentEntry(name, legacyNames, (entry) => {
     const values = { ...entry.values }
     const next = value.trim()
@@ -447,7 +450,7 @@ export function setSpecAgentOutput(
   name: string,
   output: string,
   legacyNames: string[] = [],
-): { ok: boolean; error?: string } {
+): Saved {
   const next = output.trim()
   return writeSpecAgentEntry(name, legacyNames, ({ output: _was, ...entry }) =>
     next ? { ...entry, output: next } : entry,
@@ -457,7 +460,7 @@ export function setSpecAgentOutput(
 /** Drop one spec agent's entry entirely — its switch, who its output is for and every value
  *  it had picked. Called when the agent itself is deleted: a settings block for an agent
  *  nobody has is a line the user can neither read nor reach. */
-export function forgetSpecAgent(name: string, legacyNames: string[] = []): { ok: boolean; error?: string } {
+export function forgetSpecAgent(name: string, legacyNames: string[] = []): Saved {
   return writeConfig((cfg) => {
     const block = { ...configBlock(cfg.specAgents) }
     for (const key of [name, ...legacyNames]) delete block[key]
@@ -474,7 +477,7 @@ function writeSpecAgentEntry(
   name: string,
   legacyNames: string[],
   change: (entry: SpecAgentEntry) => SpecAgentEntry,
-): { ok: boolean; error?: string } {
+): Saved {
   return writeConfig((cfg) => {
     const block = { ...configBlock(cfg.specAgents) }
     const entry = change(entryOf(block, [name, ...legacyNames]) ?? { enabled: true, values: {} })
@@ -495,13 +498,19 @@ function writeSpecAgentEntry(
 /** Read the config, apply one change, write it back — the shared body of every setter,
  *  here and in ./runtimes.ts. A file that won't parse fails the save instead of overwriting
  *  it: losing the user's settings is worse than a failed save. */
-export function writeConfig(change: (cfg: Record<string, unknown>) => void): { ok: boolean; error?: string } {
+export function writeConfig(change: (cfg: Record<string, unknown>) => void): Saved {
   let cfg: Record<string, unknown>
   try {
     cfg = readConfigRaw()
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: `couldn't save: ${UI_CONFIG} won't parse (${why}). Fix the file, then try again.` }
+    return {
+      ok: false,
+      ...refusal('fileParse', `couldn't save: ${UI_CONFIG} won't parse (${why}). Fix the file, then try again.`, {
+        path: UI_CONFIG,
+        details: why,
+      }),
+    }
   }
   change(cfg)
   try {
@@ -510,7 +519,7 @@ export function writeConfig(change: (cfg: Record<string, unknown>) => void): { o
     return { ok: true }
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: `couldn't write ${UI_CONFIG}: ${why}` }
+    return { ok: false, ...refusal('fileWrite', `couldn't write ${UI_CONFIG}: ${why}`, { path: UI_CONFIG, details: why }) }
   }
 }
 
@@ -579,7 +588,7 @@ const IGNORE_BLOCK = "# The board's API keys — never commit them.\n.env\n"
 //
 // This runs BEFORE a key is written, and a failure refuses the save: writing a key we
 // can't keep out of git is worse than not saving it.
-function ensureIgnored(): { ok: boolean; error?: string } {
+function ensureIgnored(): Saved {
   try {
     if (!fs.existsSync(KANBAN_GITIGNORE)) {
       fs.mkdirSync(path.dirname(KANBAN_GITIGNORE), { recursive: true })
@@ -593,7 +602,13 @@ function ensureIgnored(): { ok: boolean; error?: string } {
     return { ok: true }
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: `couldn't write ${KANBAN_GITIGNORE} to keep the key out of git: ${why}` }
+    return {
+      ok: false,
+      ...refusal('gitignoreWrite', `couldn't write ${KANBAN_GITIGNORE} to keep the key out of git: ${why}`, {
+        path: KANBAN_GITIGNORE,
+        details: why,
+      }),
+    }
   }
 }
 
@@ -603,7 +618,7 @@ function ensureIgnored(): { ok: boolean; error?: string } {
  *
  *  It is created 0600 (owner only): it holds keys, and on a shared machine the default
  *  would let anyone else on it read them. */
-export function setSecret(name: string, value: string): { ok: boolean; error?: string } {
+export function setSecret(name: string, value: string): Saved {
   const ignored = ensureIgnored()
   if (!ignored.ok) return ignored
 
@@ -612,7 +627,7 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
     lines = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8').split('\n') : []
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: `couldn't read ${ENV_FILE}: ${why}` }
+    return { ok: false, ...refusal('fileRead', `couldn't read ${ENV_FILE}: ${why}`, { path: ENV_FILE, details: why }) }
   }
 
   const next = value.trim()
@@ -637,7 +652,7 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
     return { ok: true }
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e)
-    return { ok: false, error: `couldn't write ${ENV_FILE}: ${why}` }
+    return { ok: false, ...refusal('fileWrite', `couldn't write ${ENV_FILE}: ${why}`, { path: ENV_FILE, details: why }) }
   }
 }
 
@@ -678,10 +693,10 @@ export function memoryPrune(): MemoryPruneSchedule {
 
 /** Save the opt-in and the cadence, keeping the last run. Switching it on needs a cadence
  *  the board can read — an invalid one can never activate a schedule. */
-export function setMemoryPrune(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
+export function setMemoryPrune(next: { enabled: boolean; cadence: string }): Saved {
   const cadence = next.cadence.trim()
   if ((next.enabled || cadence) && parseCadence(cadence) === null) {
-    return { ok: false, error: `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}` }
+    return { ok: false, ...badCadence(cadence) }
   }
   return writeConfig((cfg) => {
     const block = configBlock(cfg.memoryPrune)
@@ -743,10 +758,10 @@ export function cardSweep(): CadenceSchedule {
 }
 
 /** Save the opt-in and the cadence, keeping the last sweep. */
-export function setCardSweep(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
+export function setCardSweep(next: { enabled: boolean; cadence: string }): Saved {
   const cadence = next.cadence.trim()
   if ((next.enabled || cadence) && parseCadence(cadence) === null) {
-    return { ok: false, error: `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}` }
+    return { ok: false, ...badCadence(cadence) }
   }
   return writeConfig((cfg) => {
     const block = configBlock(cfg.cardSweep)
@@ -834,10 +849,10 @@ export function dismissalReview(): CadenceSchedule {
 }
 
 /** Save the switch and the cadence, keeping the window. An invalid cadence saves nothing. */
-export function setDismissalReview(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
+export function setDismissalReview(next: { enabled: boolean; cadence: string }): Saved {
   const cadence = next.cadence.trim() || DISMISSAL_REVIEW_CADENCE
   if (parseCadence(cadence) === null) {
-    return { ok: false, error: `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}` }
+    return { ok: false, ...badCadence(cadence) }
   }
   return writeConfig((cfg) => {
     const block = configBlock(cfg.dismissalReview)

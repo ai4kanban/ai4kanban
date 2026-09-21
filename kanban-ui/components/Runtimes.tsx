@@ -39,6 +39,7 @@ import type { AgentInfo, LoggedOutAgent, RuntimeView } from "@/lib/types";
 import { AgentMark, Field, HarnessPicker, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import { CONTROL, QUIET_BTN } from "./settings";
+import { sayFailure } from "@/lib/start-failure";
 
 export function RuntimesPanel({
   agent,
@@ -276,7 +277,8 @@ function Row({
     try {
       const res = await renameRuntimeAction(row.id, next);
       if (!res.ok || !res.agent) {
-        onError?.(res.error || c.renameFailed);
+        if (res.reason === "runtimeTaken") setRefusal(c.nameTaken);
+        else onError?.(sayFailure(res, c.renameFailed));
         return;
       }
       setTyped(null);
@@ -294,7 +296,7 @@ function Row({
     try {
       const res = await deleteRuntimeAction(row.id);
       if (!res.ok || !res.agent) {
-        onError?.(res.error || c.removeFailed);
+        onError?.(sayFailure(res, c.removeFailed));
         return;
       }
       setRemoving(false);
@@ -576,7 +578,8 @@ function NewRow({
     try {
       const res = await addRuntimeAction(name, picked);
       if (!res.ok || !res.agent || !res.id) {
-        onError?.(res.error || c.addFailed);
+        if (res.reason === "runtimeTaken") setRefusal(c.nameTaken);
+        else onError?.(sayFailure(res, c.addFailed));
         return;
       }
       // The row exists; now it gets what was typed into it, in the order it was typed — a
@@ -585,7 +588,7 @@ function NewRow({
       // dropping it to undo one setting would take the others with it.
       let agent = res.agent;
       const settled = (out: { ok: boolean; error?: string; agent?: AgentInfo }) => {
-        if (!out.ok) onError?.(out.error || c.addFailed);
+        if (!out.ok) onError?.(sayFailure(out, c.addFailed));
         else if (out.agent) agent = out.agent;
       };
       for (const [key, value] of Object.entries(values)) {

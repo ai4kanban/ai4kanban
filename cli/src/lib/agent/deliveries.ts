@@ -55,13 +55,17 @@ import {
   reviewOf,
 } from './review'
 import { readDeliveryRow, readStore, runIsLive, withStore, type Store } from './store'
-import type {
-  AgentRequest,
-  DeliveryCarryOn,
-  DeliveryRecord,
-  DeliveryStatus,
-  DirectBuild,
-  RunRecord,
+import {
+  refusal,
+  type AgentRequest,
+  type DeliveryCarryOn,
+  type DeliveryRecord,
+  type DeliveryStatus,
+  type DirectBuild,
+  type RefusalArgs,
+  type RunRecord,
+  type RunRefusal,
+  type RunRefusalKind,
 } from './types'
 import { branchExists, dropEmptyWorktreeFolders, removeWorktree, worktreeExists } from './worktree'
 
@@ -370,45 +374,74 @@ export function endedDelivery(id: string): DeliveryRecord | undefined {
  *  This is also the board's one test of whether a delivery's checkout is worth KEEPING
  *  (#720): `tidyCheckout` removes the worktree and branch of every delivery this refuses,
  *  so the button and the clean-up can never disagree about which work survives. */
-export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string | undefined {
+export function resumeRefusal(delivery: DeliveryRecord, store?: Store): RunRefusal | undefined {
   const id = delivery.deliveryId
   const what = delivery.cardId === null ? 'the build' : `#${delivery.cardId}`
-  const rebuild = `Discard it with \`${boardCommand()} delivery discard ${id}\` and start ${what} again.`
-  if (delivery.status === 'active') return `delivery ${id} has not ended — it is still in flight on ${what}.`
+  const task = delivery.cardId === null ? '' : String(delivery.cardId)
+  const discard = `${boardCommand()} delivery discard ${id}`
+  const rebuild = `Discard it with \`${discard}\` and start ${what} again.`
+  if (delivery.status === 'active') {
+    return refusal('deliveryActive', `delivery ${id} has not ended — it is still in flight on ${what}.`, { id, task })
+  }
   if (delivery.status === 'finished') {
-    return `delivery ${id} finished; resume carries on one that ended abnormally.`
+    return refusal('deliveryFinished', `delivery ${id} finished; resume carries on one that ended abnormally.`, { id })
   }
   // Cancelling is the user giving the delivery up (#720) — the board ends it, throws its
   // checkout away and starts again from the card. Stopping a RUN is the pause that keeps
   // the work; this is not that.
   if (delivery.status === 'cancelled') {
-    return `delivery ${id} was cancelled, so its work was given up. Start ${what} again.`
+    return refusal('deliveryCancelled', `delivery ${id} was cancelled, so its work was given up. Start ${what} again.`, { id, task })
   }
   if (delivery.commitMode === 'files') {
-    return `delivery ${id} made files in your project, so it has no branch to carry on. Start ${what} again.`
+    return refusal(
+      'deliveryFiles',
+      `delivery ${id} made files in your project, so it has no branch to carry on. Start ${what} again.`,
+      { id, task },
+    )
   }
   // Manual commit mode has no checkout of its own (#303): the work is in the user's own
   // tree and their commit is what ends it, so there is no branch here to carry on.
   if (delivery.commitMode !== 'auto') {
-    return `delivery ${id} committed in your own checkout, so it has no branch to carry on. Start ${what} again.`
+    return refusal(
+      'deliveryManual',
+      `delivery ${id} committed in your own checkout, so it has no branch to carry on. Start ${what} again.`,
+      { id, task },
+    )
   }
   if (!worktreeExists(delivery.worktree)) {
-    return `delivery ${id}'s worktree ${delivery.worktree ?? ''} is gone, so there is nothing to carry on. ${rebuild}`
+    const path = delivery.worktree ?? ''
+    return refusal(
+      'deliveryWorktreeGone',
+      `delivery ${id}'s worktree ${path} is gone, so there is nothing to carry on. ${rebuild}`,
+      { id, task, path, command: discard },
+    )
   }
   if (!branchExists(delivery.branch)) {
-    return `delivery ${id}'s branch ${delivery.branch} is gone, so there is nothing to carry on. ${rebuild}`
+    const branch = delivery.branch ?? ''
+    return refusal(
+      'deliveryBranchGone',
+      `delivery ${id}'s branch ${branch} is gone, so there is nothing to carry on. ${rebuild}`,
+      { id, task, branch, command: discard },
+    )
   }
   // A **Build now** delivery holds no card (#428), so there is nothing here to check.
   if (delivery.cardId === null) return undefined
+  const card = String(delivery.cardId)
   if (cardOnBoard(delivery.cardId) === false) {
-    return `#${delivery.cardId} is no longer on the board, so delivery ${id} has nothing left to finish.`
+    return refusal(
+      'deliveryCardGone',
+      `#${card} is no longer on the board, so delivery ${id} has nothing left to finish.`,
+      { id, card },
+    )
   }
   const live = store ?? readStore()
   const holder = activeIn(live, delivery.cardId)
   if (holder) {
-    return (
-      `delivery ${holder.deliveryId} is building #${delivery.cardId} now — ` +
-      `end that one first with \`${boardCommand()} delivery cancel ${holder.deliveryId}\`.`
+    const command = `${boardCommand()} delivery cancel ${holder.deliveryId}`
+    return refusal(
+      'deliveryHeld',
+      `delivery ${holder.deliveryId} is building #${card} now — end that one first with \`${command}\`.`,
+      { other: holder.deliveryId, card, command },
     )
   }
   // And a delivery that opened on this card after this one ended has taken the job over,
@@ -421,10 +454,18 @@ export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string |
           (d) => d.cardId === delivery.cardId && d.deliveryId !== id && d.startedAt >= delivery.endedAt!,
         )
   if (after) {
-    return `delivery ${after.deliveryId} took #${delivery.cardId} over after this one ended, so there is nothing left to carry on.`
+    return refusal(
+      'deliveryTakenOver',
+      `delivery ${after.deliveryId} took #${card} over after this one ended, so there is nothing left to carry on.`,
+      { other: after.deliveryId, card },
+    )
   }
   return undefined
 }
+
+/** The refusal for a delivery id that names none. */
+export const unknownDelivery = (id: string): RunRefusal =>
+  refusal('deliveryNotFound', `no delivery here answers to "${id}"`, { id })
 
 /** Is this card still on the board? `undefined` when the board could not be read — a
  *  folder that would not open is not a card somebody removed, and reading it as one would
@@ -451,6 +492,8 @@ export interface TidyResult {
   /** Why nothing was removed this time, when it was neither of the two above: a run of the
    *  delivery is still going, or git refused. Retried by the next sweep. */
   error?: string
+  reason?: RunRefusalKind
+  args?: RefusalArgs
 }
 
 const NOTHING: TidyResult = { removed: false, kept: false }
@@ -480,7 +523,7 @@ export function tidyCheckout(deliveryId: string): TidyResult {
   // Really going, not merely recorded as such: a watcher that died leaves a `running` row
   // behind, and reading that as a live process would hold the checkout forever.
   if (store.runs.some((r) => r.deliveryId === deliveryId && runIsLive(r))) {
-    return { removed: false, kept: false, error: `a run of delivery ${deliveryId} is still going` }
+    return { removed: false, kept: false, error: `a run of delivery ${deliveryId} is still going`, reason: 'deliveryRunGoing', args: { id: deliveryId } }
   }
   const removed = removeWorktree(row.worktree, row.branch, true)
   if (!removed.ok) return { removed: false, kept: false, error: removed.error }
@@ -547,17 +590,17 @@ export function sweepCheckouts(): string[] {
  *  outside it, and a discard or a fresh delivery in between must not be overwritten.
  *
  *  The caller writes the card's stage, once the board lease is back. */
-export function resumeRecord(id: string): { ok: true; delivery: DeliveryRecord } | { ok: false; error: string } {
+export function resumeRecord(id: string): { ok: true; delivery: DeliveryRecord } | ({ ok: false } & RunRefusal) {
   const found = endedDelivery(id)
-  if (!found) return { ok: false, error: `no delivery here answers to "${id}"` }
+  if (!found) return { ok: false, ...unknownDelivery(id) }
   const refused = resumeRefusal(found)
-  if (refused) return { ok: false, error: refused }
-  const out = withStore<{ ok: true; delivery: DeliveryRecord } | { ok: false; error: string }>((store) => {
+  if (refused) return { ok: false, ...refused }
+  const out = withStore<{ ok: true; delivery: DeliveryRecord } | ({ ok: false } & RunRefusal)>((store) => {
     const audit = wholeAudit(auditPath(found.deliveryId))
     const row = (audit && auditRow(audit)) ?? store.deliveries.find((d) => d.deliveryId === found.deliveryId)
-    if (!row) return { ok: false, error: `no delivery here answers to "${id}"` }
+    if (!row) return { ok: false, ...unknownDelivery(id) }
     const again = resumeRefusal(row, store)
-    if (again) return { ok: false, error: again }
+    if (again) return { ok: false, ...again }
     const at = Date.now()
     const resumed: DeliveryRecord = {
       ...row,
