@@ -16,7 +16,7 @@ Build the approved card. Preserve settled decisions and unrelated questions.
 
 ## A build that writes its own card
 
-**Build now** sends a requirement with no card behind it — a typed sentence, or the plan a
+**Start now** sends a requirement with no card behind it — a typed sentence, or the plan a
 discussion settled. Write the card first, in the same run, then build it. The board points
 the run and its delivery at the card as the create lands, so from there it is an ordinary
 build.

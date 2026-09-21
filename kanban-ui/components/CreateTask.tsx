@@ -291,7 +291,7 @@ export function CreateTask({
         else forget(on);
         // The server started it, so it is `watch` and not `start` that takes it on — otherwise
         // the card it writes would not reach the board until something else re-read it.
-        watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
+        watch(res.sessionId, answer === "build" ? "Start now" : "Plan tasks");
         sessionsPanel.open(res.sessionId);
         return;
       }

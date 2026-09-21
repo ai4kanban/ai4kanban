@@ -81,9 +81,9 @@ same transcript, agent and model as the right-hand rail — and never shows in *
 - **The plan**: once an outcome is agreed, the agent writes it to
   `docs/kanban/plans/<id>-<slug>.md` (the problem and the agreed behavior, 30–50 lines), shown in
   a resizable panel on the right and rewritten as the discussion moves.
-- **Start planning** starts the run that writes the cards, in the release on screen, each citing
+- **Plan tasks** starts the run that writes the cards, in the release on screen, each citing
   the plan in `## Source`.
-- **Build now** asks first, then one run writes a single card from the plan and builds it — no
+- **Start now** asks first, then one run writes a single card from the plan and builds it — no
   refine, no review.
 - **Not yet** leaves it. You can also type any of the three.
 - **Workflow picker**: on a board with several workflows, it picks which one the new cards use.
@@ -97,8 +97,8 @@ Plans are board content and travel with the board.
 **Share with the team when it ends**, under the Discuss box and under a card's chat, sends the
 whole conversation and the code behind it to the AI4Kanban team when the conversation ends.
 
-- **What ends it**: **Start planning**, **Build now**, or **End discussion** on the rail's **⋯**.
-  Closing the screen, Esc, or cancelling Build now does not.
+- **What ends it**: **Plan tasks**, **Start now**, or **End discussion** on the rail's **⋯**.
+  Closing the screen, Esc, or cancelling Start now does not.
 - **Off by default** on every conversation. The first time you turn it on, it shows what is
   shared. Nothing is collected until the end, so turning it off or clearing the conversation
   leaves nothing behind.
@@ -323,7 +323,7 @@ running badge and a read-only live log.
 | **Implement** | Until every todo is checked. Never on a group root or a recurring card. |
 | **Run** | On a recurring card, in place of Implement. |
 | **Refine** | While a refine would still move the card. |
-| **Edit** | Always. Opens the card's chat; say what to change. |
+| **Revise** | Always. Opens the card's chat; say what to change. |
 | **Resolve** | When the card has open questions, including while a delivery waits on you. |
 | **Review again** | While a stopped delivery waits on the question its review left. |
 | **Continue delivery** | When a delivery's next session never started. |
@@ -465,7 +465,7 @@ stopped rebase, `akb guide review` prints the flow.
 #### Turning AI review off
 
 **Review every build** (Configuration → General → Delivery) is the only switch; there is no
-per-build option. **Build now** is never reviewed.
+per-build option. **Start now** is never reviewed.
 
 - **Frozen per delivery**: the foot of the delivery block reads **No AI review** on one started
   without it.

@@ -9,7 +9,7 @@ needed to assess the idea; leave detailed solution design to card planning.
   settles in a plan the user can review before choosing what happens next.
 - **A clear small ask is one turn**: when the first message already states a small,
   well-defined change, skip the direction-setting, ask nothing back, and save a plan in that
-  reply that **Build now** can take as it stands.
+  reply that **Start now** can take as it stands.
 - **Understand the problem**: start from what feels missing, frustrating, or confusing, who
   experiences it, and why it matters. Use what they already shared.
 - **Answer the question first**: separate the outcome the user wants from the means they
