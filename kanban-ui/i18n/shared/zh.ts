@@ -4,6 +4,7 @@ import type { SharedCopy } from "./types";
 
 const zh: SharedCopy = {
   close: "关闭",
+  viewLarger: "放大查看",
   cancel: "取消",
   save: "保存",
   saving: "保存中…",

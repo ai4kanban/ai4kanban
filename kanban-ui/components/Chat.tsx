@@ -28,7 +28,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import {
   FiArrowDown,
   FiCheck,
@@ -47,9 +46,7 @@ import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { LEAVES_SHEET } from "@/lib/create-open";
 import type { ChatRail } from "@/lib/chat-rail";
-import { useOverRail } from "@/lib/over-rail";
 import type { PictureBox } from "@/lib/picture-box";
-import { useSwipeBack } from "@/lib/swipe-back";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
@@ -59,6 +56,7 @@ import { ContextRing } from "./context-ring";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { ShareRow } from "./Feedback";
+import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
 import {
   DropdownMenu,
@@ -1170,54 +1168,8 @@ export function Pasted({ box }: { box: PictureBox }) {
           ))}
         </div>
       )}
-      {there && <Preview src={box.src(shown)} onClose={() => setShown(null)} />}
+      {there && <ImagePreview src={box.src(shown)} alt={c.picture} onClose={() => setShown(null)} />}
     </>
-  );
-}
-
-/** One picture, whole, over everything else (#530). Uncropped and no bigger than it is: a
- *  screenshot is read here, and a picture blown past its own pixels is harder to read than
- *  the thumbnail was.
- *
- *  Nothing about the draft moves while it is up, and every way out — Escape, the ✕, the
- *  scrim, the swipe back — puts it back exactly as it was. Escape is taken in the capture
- *  phase and stopped there, because the screens underneath answer that key too
- *  (components/CreateSheet.tsx, lib/chat-rail.ts) and one press must close one thing. */
-function Preview({ src, onClose }: { src: string; onClose: () => void }) {
-  const c = useCopy();
-  useOverRail();
-  // It covers the page, so the swipe back leaves it before the screen it opened over (#526).
-  useSwipeBack(true, onClose);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.stopPropagation();
-      onClose();
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
-
-  return createPortal(
-    <div className="nb-scrim" style={{ alignItems: "center", zIndex: 60 }} onClick={onClose}>
-      <button
-        type="button"
-        aria-label={c.shared.close}
-        onClick={onClose}
-        className="absolute right-4 top-4 grid size-9 cursor-pointer place-items-center rounded-[8px] bg-nb-paper text-nb-ink shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
-      >
-        <FiX size={18} aria-hidden />
-      </button>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
-          served by app/chat-image/ or app/create-image/. */}
-      <img
-        src={src}
-        alt={c.chat.picture}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-full max-w-full rounded-[10px] object-contain shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-      />
-    </div>,
-    document.body,
   );
 }
 

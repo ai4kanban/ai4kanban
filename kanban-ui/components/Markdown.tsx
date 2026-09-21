@@ -29,6 +29,7 @@ import { mockupBlock, type MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
 import { Copied, useCopyText } from "./copy";
+import { ExpandableImage } from "./image-preview";
 import { Mockup } from "./Mockup";
 import { Storyboard, StoryboardUnavailable } from "./Storyboard";
 import { useOpenIds } from "./open-ids";
@@ -205,9 +206,11 @@ const MemoryLinksContext = createContext<MemoryLinks | null>(null);
 
 const RELATIVE_MD = /^(?![a-z][a-z0-9+.-]*:|\/|#)[^#?]*\.md(#.*)?$/i;
 
-function Anchor({ href, children }: { href?: string; children?: React.ReactNode }) {
+function Anchor({ href, children, node }: { href?: string; children?: React.ReactNode } & ExtraProps) {
   const cardHref = useCardHref();
   const memory = useContext(MemoryLinksContext);
+  // A linked picture opens the preview rather than the link — never a button inside a link.
+  if (node?.children.some((kid) => kid.type === "element" && kid.tagName === "img")) return <>{children}</>;
   if (memory && href && RELATIVE_MD.test(href)) {
     const key = memoryLinkKey(href, memory.agent, memory.name, memory.files);
     // No such file: plain text rather than a link that leads nowhere.
@@ -266,9 +269,14 @@ function codeOf(node: ExtraProps["node"]): string {
   return text;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function Img({ node, ...rest }: React.ComponentProps<"img"> & ExtraProps) {
+  return <ExpandableImage {...rest} />;
+}
+
 // `mockup` is our own tag rather than an HTML one, so the map is cast: what
 // react-markdown looks up is the tag name, and it has no type for that one.
-const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, a: Anchor } as Components;
+const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, a: Anchor, img: Img } as Components;
 
 // Held apart as a constant rather than spread at render: a fresh `components` object every
 // render is a fresh component type, which React answers by remounting the whole subtree.

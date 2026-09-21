@@ -4,6 +4,7 @@ import type { SharedCopy } from "./types";
 
 const en: SharedCopy = {
   close: "Close",
+  viewLarger: "View larger",
   cancel: "Cancel",
   save: "Save",
   saving: "Saving…",

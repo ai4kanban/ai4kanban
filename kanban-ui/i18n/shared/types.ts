@@ -2,6 +2,8 @@
  *  screen's folder, however short it is. */
 export type SharedCopy = {
   close: string;
+  /** Opens a picture in the full-window preview. */
+  viewLarger: string;
   cancel: string;
   save: string;
   saving: string;

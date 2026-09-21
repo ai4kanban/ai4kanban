@@ -12,6 +12,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { formatDiagnostic } from "@/lib/format/storyboard";
 import type { StoryboardFrameView, StoryboardShotView, StoryboardView } from "@/lib/storyboard";
 import { useCopyText } from "./copy";
+import { ExpandableImage } from "./image-preview";
 import { Markdown } from "./Markdown";
 
 const seconds = (n: number) => String(Number(n.toFixed(2)));
@@ -207,8 +208,15 @@ function Frame({ frame }: { frame: StoryboardFrameView }) {
   const c = useCopy().card.storyboard;
   const [failed, setFailed] = useState<string | null>(null);
   if (frame.href && failed !== frame.href) {
-    // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
-    return <img src={frame.href} alt={frame.alt} onError={() => setFailed(frame.href)} />;
+    return (
+      <ExpandableImage
+        src={frame.href}
+        alt={frame.alt}
+        onError={() => setFailed(frame.href)}
+        hint
+        className="block w-full"
+      />
+    );
   }
   return (
     <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-[6px] border border-dashed border-[color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] bg-nb-wash text-nb-ink-soft">
