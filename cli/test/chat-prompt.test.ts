@@ -11,6 +11,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { chatPrompt } from '../src/lib/agent/chat.ts'
+import { findGuide } from '../src/lib/guide.ts'
 import { setAgentRule } from '../src/lib/agent/rules.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { restoreMachineHome } from './helpers/board.ts'
@@ -103,5 +104,19 @@ describe('the discussion helper', () => {
 
   it('says nothing about a rule the board never wrote', () => {
     assert.doesNotMatch(chatPrompt(null, 'an idea'), /carries one rule of its own/)
+  })
+})
+
+// A clear edit lands on its turn; only a pure question or a hold-off waits (#995).
+describe('when a card chat writes', () => {
+  it('names every case the brief decides', () => {
+    const chat = findGuide('card-chat')!.text
+    assert.match(chat, /stated\s+outright, asked as a question/)
+    assert.match(chat, /a yes to a change you proposed last turn/)
+    assert.match(chat, /never ask them to confirm what they already said/)
+    assert.match(chat, /a question about why/)
+    assert.match(chat, /Told to discuss first or\s+hold off, leave the card alone/)
+    assert.match(chat, /only when its answer would materially\s+change the edit/)
+    assert.doesNotMatch(chat, /write it once they say go/)
   })
 })
