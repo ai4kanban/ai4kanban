@@ -34,8 +34,11 @@ Use the first available source for each file:
 4. **Create**: capture the running product with existing tools, or generate sound as below.
 5. **Human**: list anything you cannot prepare, including failed captures or unclear rights.
 
-- **Capture**: record the scripted shots in the running product with demo data through existing
-  browser automation or screen recording; keep captures in their original format. Establish a
+- **Recorder**: obtain your bundled `record.mjs` with `akb raw agent-file hyperframes-assets
+  record.mjs` and keep it in the project. Write only task configuration and per-shot reset,
+  actions and completion conditions; reuse them on reruns instead of rewriting recorder logic.
+  Use the same recorder for batches and selected-shot retakes. Keep original captures.
+- **Capture**: record the scripted shots in the running product with demo data. Establish a
   restorable baseline and rehearse the scripted reset before capture. Before every take,
   restore and verify the starting state against its reference screenshot, accounting for
   language and variable content. Repeat real actions when their state can be reset: clear
@@ -71,7 +74,8 @@ playable preview the user reviews in the board. The HyperFrames editor finishes 
   `<board-state>/assets/<card id>/`, with runtime, fonts and media embedded, no network or
   local-path access, and matching the installed board player runtime version. Reset its local
   clock to zero, preserving the shot's source offsets, motion and audio cues. Keep a repeatable
-  export command in the project, and use one source for preview and rendering.
+  export command supporting selected shots in the project, and use one source for preview
+  and rendering. Refresh affected previews and reconcile timing changes in the shared project.
 - **Controls**: the board player owns playback, seeking and mute. Export the composition only;
   never embed a playbar, autoplay, or a separate media clock in the shot.
 - **Check it**: lint and check the project, then play, pause and drag each preview in the board.
@@ -105,7 +109,20 @@ the project path, then, grouped by `S<n>` with shared media first, one line per 
 use, source and rights, duration or size, and status — ready, provisional (replacement),
 missing (what the human must supply), or obsolete (replacement; never played). For repository
 assets, the source path is enough. Add the checks run, their results and sensitive data
-removed. Update it in place.
+removed. Include recorder version, configuration and action paths, repeatable commands and
+per-shot input references, outputs and checks. Update each shot as it passes.
+
+## Reruns
+
+- **Reuse**: retain the project and unaffected media after rechecking them. Redo affected shots
+  when inputs or required product state change, checks fail, files are missing, or the user
+  requests a retake even with an unchanged script; include dependent shots when affected.
+- **Resume**: use per-shot completion records to continue unfinished work. Record to temporary
+  files and replace outputs only after checks pass; never present an old take as a new success.
+- **Full retake**: invalidate the requested recordings while preserving scripts, configuration,
+  baselines and project structure. Retain unrelated audio and media.
+- **Failures**: report a failed shot and continue independent shots. A failed reset or capture
+  is missing; other usable but unresolved media stay provisional and appear under Needs you.
 
 ## Memory
 

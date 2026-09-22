@@ -17,6 +17,7 @@ import slidesExample from '../../agents/deck-planner/references/slides.example.j
 import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
 import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
 import hyperframesAssets from '../../agents/hyperframes-assets/AGENT.md'
+import hyperframesRecorder from '../../agents/hyperframes-assets/record.mjs' with { type: 'text' }
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
 import scriptwriterRecipes from '../../agents/scriptwriter/references/index.md'
@@ -41,6 +42,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,
   'deck-planner/scripts/validate-storyboard.mjs': slidesValidator,
   'hyperframes-assets/AGENT.md': hyperframesAssets,
+  'hyperframes-assets/record.mjs': hyperframesRecorder,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'scriptwriter/AGENT.md': scriptwriter,
   'scriptwriter/references/index.md': scriptwriterRecipes,
