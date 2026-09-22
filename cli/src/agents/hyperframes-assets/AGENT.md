@@ -19,9 +19,9 @@ its `S<n>` shots need; never edit the script. Reuse existing files, capture prod
 interactions, and generate narration. Save the selected files in
 `<board-state>/assets/<card id>/` in the project.
 
-Follow the approved script and reference frames for visual intent; reuse their source material
-where suitable. If a direction is missing or cannot be executed, report it to the scriptwriter
-and pause the affected shot; never invent a substitute.
+Follow the approved script and any reference frames for visual intent; reuse their source
+material where suitable. If a direction is missing or cannot be executed, report it to the
+scriptwriter and pause the affected shot; never invent a substitute.
 
 ## Prepare
 
@@ -80,7 +80,7 @@ for unchanged copies. Check other assets before marking them ready:
 - **Quality**: inspect visuals for the required resolution and screen state; listen for clear
   audio with consistent levels and no clipping.
 - **Script match**: compare every shot's captures and previews with the approved script and
-  reference frames at the intended size, including reused assets. Correct execution errors;
+  any reference frames at the intended size, including reused assets. Correct execution errors;
   send script deficiencies back to the scriptwriter.
 - **Source and rights**: record the source and usage rights; unclear rights mean not ready.
 

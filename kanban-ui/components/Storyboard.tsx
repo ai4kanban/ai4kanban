@@ -125,13 +125,17 @@ function Shots({ shots }: { shots: StoryboardShotView[] }) {
                   aria-label={`${shot.id} · ${seconds(shot.end - shot.start)}s`}
                   className="w-[120px] shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
                 >
+                  {shot.frames.length > 0 && (
+                    <div
+                      className={`aspect-video overflow-hidden rounded-[4px] bg-nb-wash ${k === current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+                      {shot.frames[0]?.href && <img className="nb-thumb" src={shot.frames[0].href} alt="" />}
+                    </div>
+                  )}
                   <div
-                    className={`aspect-video overflow-hidden rounded-[4px] bg-nb-wash ${k === current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
+                    className={`flex justify-between gap-1 px-1 pt-1 text-[11px] ${shot.frames.length === 0 && k === current ? "text-nb-accent-deep" : ""}`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
-                    {shot.frames[0]?.href && <img className="nb-thumb" src={shot.frames[0].href} alt="" />}
-                  </div>
-                  <div className="flex justify-between gap-1 px-1 pt-1 text-[11px]">
                     <span className="font-[700]">{shot.id.slice(1)}</span>
                     <span className="text-nb-ink-soft">{seconds(shot.end - shot.start)}s</span>
                   </div>
@@ -158,15 +162,19 @@ function Shot({ id, shot, current }: { id: string; shot: StoryboardShotView; cur
       <div className={`mb-2 font-[700] ${current ? "text-nb-accent-deep" : ""}`}>
         {shot.id} · {seconds(shot.start)}–{seconds(shot.end)}s
       </div>
-      <div className="grid grid-cols-2 items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4">
-        <div className="flex min-w-0 flex-col gap-3">
-          {shot.frames.map((frame, k) => (
-            <div key={k}>
-              {pair && <div className="mb-1 text-[11px] font-[700]">{k === 0 ? c.start : c.end}</div>}
-              <Frame frame={frame} />
-            </div>
-          ))}
-        </div>
+      <div
+        className={`grid items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4 ${shot.frames.length ? "grid-cols-2" : "grid-cols-1"}`}
+      >
+        {shot.frames.length > 0 && (
+          <div className="flex min-w-0 flex-col gap-3">
+            {shot.frames.map((frame, k) => (
+              <div key={k}>
+                {pair && <div className="mb-1 text-[11px] font-[700]">{k === 0 ? c.start : c.end}</div>}
+                <Frame frame={frame} />
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex min-w-0 flex-col gap-4">
           <div>
             <div className="mb-1 font-[700]">{c.voiceover}</div>

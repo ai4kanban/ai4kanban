@@ -70,6 +70,10 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
       add(value.line, key, `Invalid ${key} ${JSON.stringify(value.value)}. Expected ${allowed.join(', ')}; use akb raw update.`)
     }
   }
+  const approved = fields.get('preview_approved')
+  if (approved && approved.value !== 'true') {
+    add(approved.line, 'preview_approved', `Invalid preview_approved ${JSON.stringify(approved.value)}. Only the board writes it, as true; remove the line.`)
+  }
   for (const key of ['blocked_by', 'related', 'modules', 'questions', 'verify', 'decided']) {
     const field = fields.get(key)
     if (!field) continue

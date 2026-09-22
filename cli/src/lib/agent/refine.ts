@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto'
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
 import { decideRunAfter } from './decide'
-import { byDispatchOrder, canRefine, openOf, parseQuestion } from '../view/rules'
+import { byDispatchOrder, canRefine, openOf, parseQuestion, previewPending } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-end'
@@ -181,6 +181,12 @@ function afterQa(
   // decider is on (#447), and then one run answers them instead of the user.
   if (openOf(card.questions).length > 0) return decideRunAfter(card.id)
   if (refinementStep(card) === 'done') return null
+  // A video card whose script was just approved goes back to its lead for round 2 (#991). Only
+  // after the user's answer: a QA pass that ended without asking anything stops here.
+  if (previewPending(card.workflow, card.previewApproved)) {
+    if (round > 0) return null
+    return { action: 'clarify', id: card.id, title: card.title, refineRound: 1, refineEffort, ...(flowId ? { flowId } : {}) }
+  }
   return {
     action: 'writing',
     id: card.id,

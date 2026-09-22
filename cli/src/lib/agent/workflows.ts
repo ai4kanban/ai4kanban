@@ -27,6 +27,7 @@ import path from 'node:path'
 
 import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
+import type { Meta } from '../types'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
@@ -954,17 +955,22 @@ export function workflowsConfigured(): boolean {
 
 /** The id a card carries, straight off its file. Empty when the card is not there, carries
  *  no `workflow:` key, or is archived — the caller resolves that to the default. */
-export function cardWorkflowId(id: number): string {
+export const cardWorkflowId = (id: number): string => cardMeta(id)?.workflow ?? ''
+
+/** Whether a card's shot previews were approved (#991). */
+export const cardPreviewApproved = (id: number): boolean => cardMeta(id)?.preview_approved ?? false
+
+function cardMeta(id: number): Meta | null {
   // Every step of this is best-effort. It is read on the way into a prompt, and a folder
   // that is not there — a half-made board, a card already archived away — means the card
   // names no workflow, never a run that cannot start.
   try {
     const found = locate(id) ?? locateArchived(id)
-    if (!found) return ''
+    if (!found) return null
     const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-    return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.workflow ?? ''
+    return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta
   } catch {
-    return ''
+    return null
   }
 }
 

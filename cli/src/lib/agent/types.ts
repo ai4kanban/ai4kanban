@@ -344,6 +344,8 @@ export type RunRefusalKind =
   | 'cardUnfinished'
   | 'cardDiscussed'
   | 'workflowUnknown'
+  /** A video card whose shot previews the user has not approved (#991). */
+  | 'previewUnapproved'
   | 'workflowNoLead'
   | 'workflowLeadMissing'
   | 'workflowLeadStage'

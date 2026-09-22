@@ -326,9 +326,9 @@ export function checkStoryboard(
     required(shot, at, 'action', `${nonblank}: what changes, or what deliberately stays still`, text)
     strings(shot, at, 'captions', 'an array of exact caption strings, or [] for none')
     required(shot, at, 'details', `${nonblank}: layout, framing, typography, sound, motion and transition`, text)
-    if (required(shot, at, 'frames', 'an array of one or two frames: start, then end', Array.isArray)) {
+    if (required(shot, at, 'frames', 'an array of up to two frames — start, then end — or an empty array', Array.isArray)) {
       const frames = shot.frames as unknown[]
-      if (frames.length < 1 || frames.length > 2) add('frame-count', `${at}/frames`, 'one or two frames', `${frames.length} frames`)
+      if (frames.length > 2) add('frame-count', `${at}/frames`, 'at most two frames', `${frames.length} frames`)
       frames.forEach((frame, k) => frameAt(frame, `${at}/frames/${k}`, false))
     }
   })

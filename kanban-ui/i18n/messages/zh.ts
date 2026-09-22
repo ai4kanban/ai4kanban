@@ -102,6 +102,7 @@ const zh: MessagesCopy = {
       `#${a.card} 尚未创建完成：运行 ${a.run} 提前结束。请先在看板上继续该运行完成创建，或直接丢弃这张卡片。`,
     cardDiscussed: (a) => `#${a.card} 的对话正在回复，暂时无法${a.act}。回复完成或停止后即可操作。`,
     workflowUnknown: (a) => `#${a.card} 指定了“${a.workflow}”工作流，但看板中没有该工作流。`,
+    previewUnapproved: () => "逐镜预览尚未确认。",
     workflowNoLead: (a) => `“${a.name}”的${a.stage}阶段尚无主导 Agent，请先分配再启动。`,
     workflowLeadMissing: (a) => `“${a.name}”的${a.stage}阶段指定了 ${a.agent}，但看板中没有该 Agent。`,
     workflowLeadStage: (a) => `“${a.name}”的${a.stage}阶段指定了 ${a.agent}，但该 Agent 属于${a.assigned}阶段。`,

@@ -27,7 +27,7 @@ import { recordAnswer, takeUnchanged } from '../lib/agent/answers'
 import { findSpecAgent } from '../lib/agents'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
-import { creationRefusal } from '../lib/view/rules'
+import { creationRefusal, isApprovalQuestion, previewPending, VIDEO_WORKFLOW } from '../lib/view/rules'
 import type { ScheduledAction } from '../lib/view/types'
 import { TASKS_HEADING, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
@@ -306,6 +306,11 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     meta.status = 'todo'
     changes.push('status→todo (open questions)')
   }
+  // Nor is a video card ready before the user approved its shot previews (#991).
+  if (previewPending(meta.workflow, meta.preview_approved) && meta.status === 'ready') {
+    meta.status = 'todo'
+    changes.push('status→todo (previews not approved)')
+  }
 
   const curRel = path.relative(TODO, file)
   const isSubtask = found.kind === 'file' && enclosingGroupRoot(file) !== null
@@ -432,6 +437,12 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       changes.push('cleared')
     } else if (op.kind === 'drop') {
       const ns = positions(op, 'drop')
+      // Dropping round 2's approval question is the user approving the shot previews (#991).
+      const previews = meta.questions.some((q, i) => ns.includes(i + 1) && q.agent === 'hyperframes-assets')
+      if (previews && meta.workflow === VIDEO_WORKFLOW && !meta.preview_approved) {
+        meta.preview_approved = true
+        changes.push('previews approved')
+      }
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
     } else if (op.kind === 'to-verify') {
@@ -465,8 +476,14 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       changes.push(`reopened ${ns.join(',')}`)
     } else if (op.kind === 'append') {
       const agent = op.question!.agent ?? asker
-      meta.questions.push(agent ? { ...op.question!, agent } : op.question!)
+      const q = agent ? { ...op.question!, agent } : op.question!
+      meta.questions.push(q)
       changes.push('appended')
+      // Asking either round again withdraws the preview approval.
+      if (meta.preview_approved && isApprovalQuestion(meta.workflow, q)) {
+        meta.preview_approved = false
+        changes.push('preview approval withdrawn')
+      }
     } else {
       const [n] = positions(op, 'update')
       // parseQuestionPositions refused anything out of range, so the slot is there.
@@ -478,9 +495,9 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   warnBadQuestionTags(meta.questions)
   const open = openOf(meta.questions).length
   // The same invariant cmdUpdate holds: a `ready` card has no open questions.
-  if (open > 0 && meta.status === 'ready') {
+  if ((open > 0 || previewPending(meta.workflow, meta.preview_approved)) && meta.status === 'ready') {
     meta.status = 'todo'
-    changes.push('status→todo (open questions)')
+    changes.push(open > 0 ? 'status→todo (open questions)' : 'status→todo (previews not approved)')
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   if (scheduleRefineOnBlock(id)) changes.push('schedule→refine when unblocked')

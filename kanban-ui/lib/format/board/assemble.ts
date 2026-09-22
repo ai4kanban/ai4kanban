@@ -276,6 +276,7 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     verify: lines(meta.verify),
     decided: decided(meta.decided),
     workflow: text(meta.workflow),
+    previewApproved: meta.preview_approved === true,
     modules: lines(meta.modules),
     last_run: lastRun,
     cadence,

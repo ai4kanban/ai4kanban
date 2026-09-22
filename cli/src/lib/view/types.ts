@@ -344,6 +344,8 @@ export interface Card {
    *  Empty on a card that names none and on a board that picks no workflows, and both read
    *  as the default workflow. */
   workflow: string
+  /** Its shot previews were approved — `hyperframes-video` cards only (#991). */
+  previewApproved?: boolean
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
   /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and only once

@@ -36,6 +36,9 @@ export interface Meta {
    *  renaming one leaves every card pointing at it. Empty on a card written before the field
    *  and on a board that picks no workflows, and both read as the default workflow. */
   workflow: string
+  /** A `hyperframes-video` card's shot previews were approved (#991): set when round 2's
+   *  approval question is dropped, cleared when either round asks again. */
+  preview_approved: boolean
   cadence: string
   last_run: string
   /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way

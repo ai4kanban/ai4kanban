@@ -57,6 +57,20 @@ export function hasOptions(q: Question): q is OptionsQuestion {
  *  raw list. */
 export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => questions.filter((q) => !q.skipped)
 
+// ---- a video card's preview approval (#991) --------------------------------
+
+/** A video card is built only once the user approved its shot previews — round 2 of the
+ *  scriptwriter's two approvals. Asking either round again withdraws that approval. */
+export const VIDEO_WORKFLOW = 'hyperframes-video'
+const APPROVAL_ASKERS = ['scriptwriter', 'hyperframes-assets']
+
+export const previewPending = (workflow: string, approved: boolean | undefined): boolean =>
+  workflow === VIDEO_WORKFLOW && !approved
+
+/** One of the two planning approvals — never answered on the user's behalf. */
+export const isApprovalQuestion = (workflow: string, q: Question): boolean =>
+  workflow === VIDEO_WORKFLOW && APPROVAL_ASKERS.includes(q.agent ?? '')
+
 /** Split a question's leading `[user] ` tag off its text. No token means untagged: freshly
  *  raised, not yet triaged. There is no tag for an answered question — answering removes it
  *  from the list. */

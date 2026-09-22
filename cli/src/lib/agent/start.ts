@@ -16,7 +16,8 @@ import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
-import { cardWorkflowId, workflowFor, workflowIssues, workflowKnown } from './workflows'
+import { cardPreviewApproved, cardWorkflowId, workflowFor, workflowIssues, workflowKnown } from './workflows'
+import { previewPending } from '../view/rules'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import { refusal, type AgentRequest, type RunRecord, type RunRefusal } from './types'
 
@@ -60,6 +61,10 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
       card: String(req.id),
       workflow: id,
     })
+  }
+  // A video card is built only from previews the user approved (#991).
+  if (req.action === 'implement' && previewPending(id, cardPreviewApproved(req.id as number))) {
+    return refusal('previewUnapproved', `#${req.id}'s shot previews are not approved yet.`, { card: String(req.id) })
   }
   const flow = workflowFor(id)
   if (!flow) return null

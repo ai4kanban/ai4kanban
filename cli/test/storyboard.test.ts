@@ -46,6 +46,7 @@ describe('the storyboard contract', () => {
     assert.ok(storyboard && 'shots' in storyboard)
     assert.equal(storyboard!.shots[1]!.voiceover.mode, 'none')
     assert.match(storyboard!.shots[1]!.action, /静止/)
+    assert.deepEqual(storyboard!.shots[1]!.frames, [])
   })
 
   it('keeps the schema to the fields the validator enforces', () => {
@@ -114,7 +115,9 @@ describe('the storyboard contract', () => {
     frames['junk.png'] = new Uint8Array([1, 2, 3])
     assert.deepEqual(src('.assets/963/wide.png'), ['/shots/0/frames/0/src frame-too-wide'])
     assert.deepEqual(src('.assets/963/junk.png'), ['/shots/0/frames/0/src frame-unreadable'])
-    assert.deepEqual(codes(edit((d) => { d.shots[0].frames = [] })), ['/shots/0/frames frame-count'])
+    assert.deepEqual(codes(edit((d) => { d.shots[0].frames = [] })), [])
+    assert.deepEqual(codes(edit((d) => { d.shots[0].frames.push(d.shots[0].frames[0], d.shots[0].frames[0]) })), ['/shots/0/frames frame-count'])
+    assert.deepEqual(codes(edit((d) => { delete d.shots[1].frames })), ['/shots/1/frames missing-field'])
     // A missing picture still leaves the script to read.
     assert.ok(check(edit((d) => { d.shots[0].frames[0].src = '.assets/963/gone.png' })).storyboard)
   })
@@ -250,7 +253,7 @@ A requirement.
   })
   afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
-  it('passes with a complete script and its frames', async () => {
+  it('passes with a complete script and its frames, a frameless shot included', async () => {
     assert.deepEqual(validateSpec(file, card(tag), 1), [])
     assert.equal((await move(root, ['validate', '1'])).valid, true)
   })

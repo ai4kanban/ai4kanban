@@ -5,7 +5,8 @@ maintained with and tested by the shared validator. Save JSON alone, without fen
 same-card storyboard attachment.
 
 - **Required fields**: version 1 and ordered shots; each shot supplies id, start, end,
-  voiceover, action, captions, details and one or two frames. Unknown fields are errors.
+  voiceover, action, captions, details and frames: up to two, or an explicit empty array.
+  Unknown fields are errors.
 - **Speech**: voiceover mode is none with no other fields, or spoken with nonblank text and
   source. Never replace a missing field with null, blank text or a guessed default.
 - **Content**: action states what changes or deliberately stays still; captions lists exact
