@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { FiCheck, FiChevronRight, FiCopy, FiRotateCw } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { formatDiagnostic } from "@/lib/format/storyboard";
+import { formatDiagnostic } from "@/lib/storyboard-check";
 import type { StoryboardFrameView, StoryboardShotView, StoryboardSlideView, StoryboardView } from "@/lib/storyboard";
 import { useCopyText } from "./copy";
 import { ExpandableImage } from "./image-preview";

@@ -18,7 +18,7 @@
     "allowImportingTsExtensions": true
   },
   "include": ["src", "test", "scripts"],
-  // A recipe's demo code is a text asset this package ships, not source it compiles — see
-  // src/agents/agents.d.ts.
-  "exclude": ["src/agents/*/recipes/**"]
+  // A recipe's demo code and an agent's scripts are text assets this package ships, not
+  // source it compiles — see src/agents/agents.d.ts.
+  "exclude": ["src/agents/*/recipes/**", "src/agents/*/scripts/**"]
 }

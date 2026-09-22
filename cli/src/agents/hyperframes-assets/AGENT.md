@@ -14,7 +14,8 @@ akb:
 ---
 
 Read the storyboard JSON linked from ``## By `scriptwriter` agent`` when present; otherwise
-read the legacy Markdown script. Validate structured scripts before preparing assets. Work out every visual and audio file
+read the legacy Markdown script. Validate structured scripts with scriptwriter's
+`scripts/validate-storyboard.mjs` before preparing assets. Work out every visual and audio file
 its `S<n>` shots need; never edit the script. Reuse existing files, capture product screens and
 interactions, and generate narration. Save the selected files in
 `<board-state>/assets/<card id>/` in the project.
@@ -34,9 +35,14 @@ Use the first available source for each file:
 5. **Human**: list anything you cannot prepare, including failed captures or unclear rights.
 
 - **Capture**: record the scripted shots in the running product with demo data through existing
-  browser automation or screen recording; convert with `ffmpeg` when needed. Follow the shot's
-  scripted capture requirements and sequence. Keep source captures. Before reporting capture as
-  blocked, search for browser and recording tools through the harness's tool discovery; one tool
+  browser automation or screen recording; keep captures in their original format. Establish a
+  restorable baseline and rehearse the scripted reset before capture. Before every take,
+  restore and verify the starting state against its reference screenshot, accounting for
+  language and variable content. Repeat real actions when their state can be reset: clear
+  a message view before resending, or restore code and board backups or revert demo commits.
+  Preserve unrelated work. Keep sources, baseline locations, reset steps and check results
+  in `media.md`. If reset or verification fails, mark the shot missing; return missing reset
+  or stand-in directions to the scriptwriter. Before reporting capture as blocked, search for browser and recording tools through the harness's tool discovery; one tool
   failing does not rule out others.
 - **Names**: use short, lowercase names with extensions, numbered by shot, e.g.
   `01-open-board.mp4`, `01-narration.wav`. The editor uses these exact names.

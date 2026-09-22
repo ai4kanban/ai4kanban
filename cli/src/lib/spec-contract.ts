@@ -4,7 +4,7 @@ import path from 'node:path'
 import { idPrefix, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { ASSETS, rel, TODO } from './paths'
-import { assetName, checkStoryboard, formatDiagnostic, storyboardMarkers, storyboardTag, type StoryboardDiagnostic } from './storyboard'
+import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
 import { LEVELS, STATUSES } from './validate'
 
 export interface ContractError {
@@ -12,12 +12,6 @@ export interface ContractError {
   line: number
   rule: string
   message: string
-  /** Set on a storyboard problem (#963). */
-  code?: string
-  pointer?: string
-  expected?: string
-  actual?: string
-  column?: number
 }
 
 export interface CardSource {
@@ -38,7 +32,7 @@ export function snapshotSpecs(): SpecSnapshot {
 }
 
 /** Format only: semantic planning decisions remain the agent's responsibility. With `id`, a
- *  storyboard the card points at is checked too, files included. */
+ *  storyboard the card points at must be a file in its asset folder. */
 export function validateSpec(file: string, text: string, id?: number): ContractError[] {
   const errors: ContractError[] = []
   const add = (line: number, rule: string, message: string) => errors.push({ file: rel(file), line, rule, message })
@@ -163,27 +157,16 @@ function inside(dir: string, name: string): string | null {
   }
 }
 
-/** Every storyboard the card points at, checked against its JSON and frames (#963). */
+/** Every storyboard the card points at is a JSON file in its asset folder. Its contents are the
+ *  owner agent's to check, with that agent's `scripts/validate-storyboard.mjs` (#992). */
 export function validateStoryboards(file: string, id: number, text: string): ContractError[] {
   const errors: ContractError[] = []
   const dir = path.join(ASSETS, String(id))
   for (const marker of storyboardMarkers(text)) {
     const named = assetName(marker.src, id, ['json'])
-    if (!('name' in named)) {
-      errors.push({ file: rel(file), line: marker.line, rule: 'storyboard-src', message: `Storyboard src is ${named.actual}; expected ${named.expected}.` })
-      continue
-    }
-    const json = inside(dir, named.name)
-    const shown = rel(json ?? path.join(dir, named.name))
-    const { diagnostics } = checkStoryboard(json ? fs.readFileSync(json, 'utf8') : null, {
-      file: shown,
-      cardId: id,
-      read: (name) => {
-        const frame = inside(dir, name)
-        return frame ? fs.readFileSync(frame) : null
-      },
-    })
-    errors.push(...diagnostics.map((d: StoryboardDiagnostic) => ({ ...d, line: d.line ?? 1, rule: 'storyboard', message: formatDiagnostic(d) })))
+    const add = (message: string) => errors.push({ file: rel(file), line: marker.line, rule: 'storyboard-src', message })
+    if (!('name' in named)) add(`Storyboard src is ${named.actual}; expected ${named.expected}.`)
+    else if (!inside(dir, named.name)) add(`Storyboard src ${marker.src} names no file in this card's asset folder. Write the JSON there or fix the path.`)
   }
   return errors
 }

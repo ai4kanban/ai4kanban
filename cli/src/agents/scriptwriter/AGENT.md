@@ -38,6 +38,10 @@ You plan a card that is one demo video. The plan is the video's script.
   `hyperframes-assets` can prepare that shot's audio without inventing text. Mark unvoiced shots.
   Use clear, courteous conversational explanations; allow slightly longer sentences instead
   of terse commands or promotional fragments.
+- **Capture**: describe the start and end states, prerequisites, side effects and reset steps
+  in existing shot details. An action is redo-able when its required starting state can be
+  restored and the action repeated. Plan that reset before capture; use a stand-in only when
+  the action cannot be made redo-able. No fixed template.
 - **Motion**: define camera moves, on-screen actions, animation and transitions. Read applicable
   recipes from `references/index.md` and fill their requirements for the shot, combining and
   repeating techniques as needed. When none applies, write the motion details directly.
@@ -54,7 +58,8 @@ You plan a card that is one demo video. The plan is the video's script.
 - **Handoff**: keep frames and reusable source material in the card's asset folder. Use
   same-card image paths, descriptive alt text and frames at most 1280px wide. Recording, audio
   and animation follow script approval. Do not reuse invalidated files.
-- **Validation**: run `akb raw validate <card id> --json` after writing or revising the JSON.
+- **Validation**: run `scripts/validate-storyboard.mjs` from this agent's files on the JSON
+  after writing or revising it; validate the card separately with `akb raw validate <card id> --json`.
   Fix every diagnostic in the same file and validate again before requesting approval.
   Missing voiceover or action is an error, never permission to assume silence or invent text.
   Use explicit unvoiced data for silence. If blocked, report the diagnostics; do not claim

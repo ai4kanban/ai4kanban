@@ -25,7 +25,8 @@ deliver.
 
 ## Steps
 
-1. **Check the source**: the storyboard JSON validates, every slide has an approved preview,
+1. **Check the source**: validate the storyboard JSON with deck-planner's
+   `scripts/validate-storyboard.mjs`; every slide must have an approved preview,
    and every asset and font it names is present. If anything is missing, append one `[user]`
    question (`akb guide update-questions`) naming it, and stop.
 2. **Build**: run the project's build; continue that project, do not create another.

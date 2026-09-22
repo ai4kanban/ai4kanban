@@ -1,24 +1,23 @@
-// Read the storyboards a card body points at (#963), checked with the same rules as
-// `akb raw validate` (lib/format/storyboard.ts). Frames are served by app/asset-image; only
-// files that pass here get an address.
+// Read the storyboards a card body points at (#963), checked by lib/storyboard-check.ts.
+// Frames are served by app/asset-image; only files that pass here get an address.
 
 import fs from "node:fs";
 import path from "node:path";
 import { assetImageHref } from "./mockup-tag";
 import { assetsDir } from "./cli";
 import { repoRoot } from "./paths";
+import { assetName, storyboardMarkers } from "./format/storyboard";
 import {
-  assetName,
   checkStoryboard,
   formatDiagnostics,
   FRAME_TYPES,
   frameProblem,
-  storyboardMarkers,
+  storyboardOwner,
   type StoryboardDiagnostic,
   type StoryboardFrame,
   type StoryboardShot,
   type StoryboardSlide,
-} from "./format/storyboard";
+} from "./storyboard-check";
 
 export type StoryboardFrameView = { src: string; alt: string; href: string | null };
 export type StoryboardShotView = Omit<StoryboardShot, "frames"> & { frames: StoryboardFrameView[] };
@@ -65,14 +64,15 @@ export async function readStoryboards(body: string, cardId: number): Promise<Sto
     const named = assetName(src, cardId, ["json"]);
     if (!("name" in named)) {
       const diagnostics = [{ file: src, code: "storyboard-src", pointer: "", ...named }];
-      set[src] = { src, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, cardId, diagnostics) };
+      set[src] = { src, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, "scriptwriter", diagnostics) };
       continue;
     }
     const json = dir ? inside(dir, named.name) : null;
     const file = dir ? shown(path.join(dir, named.name)) : src;
     // Frames that pass, by name, with the address the page loads them from.
     const drawn = new Map<string, string>();
-    const { storyboard, diagnostics } = checkStoryboard(json ? fs.readFileSync(json, "utf8") : null, {
+    const source = json ? fs.readFileSync(json, "utf8") : null;
+    const { storyboard, diagnostics } = checkStoryboard(source, {
       file,
       cardId,
       read: (name) => {
@@ -96,7 +96,7 @@ export async function readStoryboards(body: string, cardId: number): Promise<Sto
       shots,
       slides,
       diagnostics,
-      report: diagnostics.length ? formatDiagnostics(file, cardId, diagnostics) : "",
+      report: diagnostics.length ? formatDiagnostics(file, storyboardOwner(source), diagnostics) : "",
     };
   }
   return set;

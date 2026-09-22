@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI4Kanban slide storyboard",
-  "description": "Structure only. `akb raw validate <card id> --json` also checks unique slide IDs and that every preview is a readable same-card image at most 1280px wide. Array order is page order.",
+  "description": "Structure only. This agent's `scripts/validate-storyboard.mjs` also checks unique slide IDs and that every preview is a readable same-card image at most 1280px wide. Array order is page order.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "slides"],

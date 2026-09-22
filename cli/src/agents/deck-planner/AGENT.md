@@ -37,7 +37,8 @@ as `.assets/<card id>/...`.
 - **Slides**: write ordinary Markdown sections, `## Slide 1: ...`, `## Slide 2: ...`,
   with each slide's exact copy, speaker notes, layout and assets. These sections are the
   content source; round 1 has no Storyboard, thumbnails or preview placeholders.
-- **Validation**: run `akb raw validate <card id> --json` after every change and fix every diagnostic.
+- **Validation**: run `akb raw validate <card id> --json` after every change. When storyboard
+  JSON exists, also run this agent's `scripts/validate-storyboard.mjs` on it; fix every diagnostic.
 - **One story**: the outline reads as one argument from first slide to last; one message per
   slide, with copy short enough to take in at a glance.
 

@@ -92,6 +92,12 @@ Every file beside `AGENT.md`, in any subfolder, is named to the run by its path 
 when the work calls for it. Put long material there and keep `AGENT.md` short. A file a
 choice's `reference` names is not offered this way.
 
+- **Scripts**: every agent owns its task scripts in its own folder, including built-in agents.
+  Keep business validation there, outside the CLI's board logic. Document the runtime, inputs
+  and invocation beside the script; consumers use the owner's script. Built-in files can be
+  saved through `akb raw agent-file <agent> <path>` and run locally with their relative layout
+  intact; custom agents use their existing folders.
+
 ## Imported skills
 
 An agent may carry several skills, each whole in its own `skills/<skill>/` folder.
