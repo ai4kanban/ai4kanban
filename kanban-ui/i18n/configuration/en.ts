@@ -54,7 +54,7 @@ const en: ConfigurationCopy = {
     worktreeOff: "Disabled",
     worktreeSaveFailed: "Could not save. Try again.",
     dropHelper: "Remove from stage",
-    extra: "Extra instructions",
+    extra: "Extra requirements",
     extraPlaceholder: "e.g. Keep the product's existing terms.",
     extraScope: (flow, stage) => `${flow} · ${stage}`,
     find: "Find an agent…",

@@ -91,8 +91,9 @@ export type ConfigurationCopy = {
     worktreeSaveFailed: string;
     /** Taking the selected agent out of this stage. It stays on the board. */
     dropHelper: string;
-    /** What THIS assignment asks of the selected helper, on top of its own instructions,
-     *  and the one line saying how far it reaches. */
+    /** What THIS assignment asks of the selected built-in helper, on top of its own
+     *  instructions, and the one line saying how far it reaches. An agent this project
+     *  added is told through its own `AGENT.md` instead, so it has no box here. */
     extra: string;
     extraPlaceholder: string;
     extraScope: (flow: string, stage: string) => string;

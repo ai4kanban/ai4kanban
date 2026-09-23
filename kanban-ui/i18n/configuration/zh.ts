@@ -47,7 +47,7 @@ const zh: ConfigurationCopy = {
     worktreeOff: "未启用",
     worktreeSaveFailed: "未能保存，请重试。",
     dropHelper: "移出环节",
-    extra: "补充要求",
+    extra: "额外要求",
     extraPlaceholder: "例如：沿用产品现有术语。",
     extraScope: (flow, stage) => `${flow} · ${stage}`,
     find: "查找 Agent…",

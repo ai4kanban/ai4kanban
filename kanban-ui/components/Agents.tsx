@@ -375,6 +375,7 @@ export function AgentDetail({
   agent,
   info,
   scoped,
+  inStage,
   tag,
   usage,
   actions,
@@ -389,14 +390,16 @@ export function AgentDetail({
   info: AgentInfo;
   /** Drawn inside a workflow: this pane's actions and Delete sit at the name row's right. */
   scoped?: boolean;
+  /** The agent is drawn as one stage's assignment — see `Page`. */
+  inStage?: boolean;
   /** Beside the agent's name, left — which other workflows share it. */
   tag?: React.ReactNode;
   /** Under the agent's line: where else it is used, and what a role cannot be told. */
   usage?: React.ReactNode;
   /** Actions of this pane's own, beside Delete. */
   actions?: React.ReactNode;
-  /** A section between the settings and the instruction box; in a `scoped` pane it takes
-   *  the rule box's place. */
+  /** A section between the settings and the instruction box; on a built-in agent in a
+   *  `scoped` pane it takes the rule box's place. */
   extra?: React.ReactNode;
   /** One more line in the delete confirmation — which workflows lose it. */
   deleteNote?: string;
@@ -432,6 +435,7 @@ export function AgentDetail({
       busySwitch={roster.saving.includes(agent.name)}
       busy={(key) => roster.saving.includes(`${agent.name}/${key}`)}
       scoped={scoped}
+      inStage={inStage}
       tag={tag}
       usage={usage}
       actions={actions}
@@ -796,6 +800,7 @@ function Page({
   busySwitch,
   busy,
   scoped,
+  inStage,
   tag,
   usage,
   actions,
@@ -830,6 +835,9 @@ function Page({
    *  settings and the instruction box, and `deleteNote` is one more line in the delete
    *  confirmation. */
   scoped?: boolean;
+  /** This pane is one stage's assignment (#944), not the agent's board-wide page: what it is
+   *  told for this stage alone is edited here, and who its output is for stays as saved. */
+  inStage?: boolean;
   tag?: React.ReactNode;
   usage?: React.ReactNode;
   actions?: React.ReactNode;
@@ -875,10 +883,9 @@ function Page({
   // owns only the words appended to its runs.
   const writesRule = !agent.file;
   const off = !agent.enabled;
-  // In a workflow the stage's own box is the one place to add instructions (#976): the
-  // board-wide rule and who the output is for stay as saved, edited elsewhere.
-  const stageBox = !!(scoped && extra);
-  const settings = stageBox ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings;
+  // In a workflow the one box on the page is where instructions go (#976): the board-wide
+  // rule and who the output is for stay as saved, edited elsewhere.
+  const settings = inStage ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings;
 
   // The report is read in this pane rather than over it (#119): the dialog is already a
   // window, and the way back is the settings this was opened from.
@@ -1026,10 +1033,12 @@ function Page({
       {agent.name === SWEEPER && <SweepSummary sweep={sweep} onOpen={() => setReport(true)} />}
 
       {/* What only THIS assignment asks of the agent (#944) — the workflow pane's own
-          section, between what the agent runs as and the instructions it always carries. */}
+          section, between what the agent runs as and the instructions it always carries.
+          Absent on an agent this project added (#1007): its `AGENT.md` below is the one
+          place its requirements are written. */}
       {extra}
 
-      {!(stageBox && writesRule) && (
+      {!(inStage && writesRule) && (
         <section className="flex min-h-0 flex-1 flex-col">
           <h4 className="shrink-0 text-[13.5px] font-[800] leading-tight text-nb-ink">
             {writesRule ? c.rule : c.file}

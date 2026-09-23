@@ -607,8 +607,12 @@ export function WorkflowsPanel({
                     </button>
                   ) : undefined
                 }
+                inStage={!isLead}
                 extra={
-                  !isLead ? (
+                  /* Only an agent the command ships (#1007): one this project added owns its
+                     whole `AGENT.md`, which is the box below, and a second place to write
+                     requirements only asks which one to use. */
+                  !isLead && !agent.file ? (
                     <section className="shrink-0">
                       <div className="mb-1.5 flex items-baseline justify-between gap-2">
                         <h4 className={`${CAPTION} shrink-0 text-nb-ink-soft`}>{c.extra}</h4>
