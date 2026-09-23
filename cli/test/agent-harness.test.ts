@@ -147,11 +147,12 @@ describe('an agent with a runtime of its own', () => {
     assert.equal(plan({ action: 'spec', specAgent: 'tech-stack-advisor' }).runtime, 'global')
   })
 
-  it('keeps the spec agent’s runtime out of its settings, and its switch a switch', () => {
-    assert.deepEqual(specAgentEntries()['ui-designer'], { enabled: true, values: { mockupStyle: 'ascii' } })
+  it('keeps the spec agent’s runtime out of its entry, and its switch a switch', () => {
+    // A key the board no longer reads is carried, not acted on (#1003).
+    assert.deepEqual(specAgentEntries()['ui-designer'], { enabled: true, extra: { mockupStyle: 'ascii' } })
     const view = readSpecAgents().find((s) => s.name === 'ui-designer')
     assert.equal(view?.enabled, true)
-    assert.equal(view?.values.mockupStyle, 'ascii')
+    assert.deepEqual(Object.keys(view!.values), ['output'])
     assert.equal(view?.harness, 'codex')
   })
 

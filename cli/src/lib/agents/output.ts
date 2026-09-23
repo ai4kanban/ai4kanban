@@ -1,12 +1,11 @@
 // Who a spec agent's finished output is for (#445).
 //
 // The board's own setting, on every spec agent: an `AGENT.md` declares nothing for it, and
-// an agent this project added has it too. It is drawn as one more row on the agent's page,
-// first, above whatever settings the agent declares for itself.
+// an agent this project added has it too. Since #1003 it is the ONLY setting an agent's page
+// draws — an agent declares none of its own.
 //
 // It saves under `output` inside that agent's entry in ui.config.json, which is the board's
-// key the way `enabled` and `runtime` are — so no agent can declare a setting that fights
-// it (../agents/parse.ts).
+// key the way `enabled` and `runtime` are.
 //
 // The words never mention the card's halves. "Human review" and "Agent use" say who reads
 // the output, which is the whole of what the user is choosing; where that lands on the card
@@ -24,9 +23,8 @@ const CHOICES: Record<string, { label: string; cost: string }> = {
   agent: { label: 'Agent use', cost: 'kept for the agent that builds it; you never have to read it' },
 }
 
-// The row's own words in the languages the board reads (#334). An agent's `akb.i18n` can't
-// carry them — the setting is not the agent's to declare — so they live here, beside the
-// English, and are looked up the same way an agent's are (./index.ts).
+// The row's own words in the languages the board reads (#334) — beside the English they fall
+// back to.
 const SAID: Record<string, SettingLines> = {
   zh: {
     label: '产出',
@@ -46,11 +44,11 @@ export const outputSetting = (agent: SpecAgent): SpecAgentSetting => ({
   default: agent.output,
 })
 
-/** Every setting one agent's page draws, in that order: the board's own row, then the ones
- *  the agent declares. A `write` agent writes files rather than a card's section, so the row
- *  is not on it — it would be a choice with nothing to act on. */
+/** Every setting one agent's page draws — the board's own row, and nothing else (#1003). A
+ *  `lead` agent writes its stage rather than a card's section, so the row is not on it: it
+ *  would be a choice with nothing to act on. */
 export const agentSettings = (agent: SpecAgent): SpecAgentSetting[] =>
-  agent.kind === 'spec' ? [outputSetting(agent), ...agent.settings] : agent.settings
+  agent.kind === 'spec' ? [outputSetting(agent)] : []
 
 /** What the row says in one language, or nothing when it is only English there. */
 export const outputLines = (language: Language): SettingLines | undefined => SAID[language]

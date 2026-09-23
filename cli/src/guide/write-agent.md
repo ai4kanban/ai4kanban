@@ -36,32 +36,8 @@ You write the words a screen shows.
 Everything under the frontmatter is the agent's instructions, read fresh on every run —
 a file with none is refused.
 
-## Settings
-
-```yaml
-akb:
-  # Optional; UI choices for this agent. Default none.
-  # Every setting/choice field below is required except help.
-  settings:
-    # Unique; not enabled, runtime or output.
-    - key: mockupStyle
-      # UI label.
-      label: Mockup style
-      # Optional one-line guidance under the label.
-      help: Choose a format.
-      # Must match one of this setting's choice values.
-      default: full
-      # At least one choice.
-      choices:
-        # Unique within this setting.
-        - value: full
-          label: Rendered screen
-          # The choice's tradeoff.
-          cost: true to the real UI, slower to draw
-          # Existing file inside this agent's folder; sent whole when selected.
-          # Keep choice-specific instructions here and shared ones in AGENT.md.
-          reference: references/rendered-screen.md
-```
+An agent declares no options of its own. Two ways of working is two agents, each with its own
+`AGENT.md` — a switch that changes how one agent works costs more than it buys.
 
 ## Translations
 
@@ -74,23 +50,12 @@ akb:
       # Display name; does not change the agent's name.
       title: 界面文案师
       description: 当卡片修改产品界面文案时使用。
-      settings:
-        # Existing setting key.
-        mockupStyle:
-          label: 原型样式
-          help: 选择格式。
-          choices:
-            # Existing choice value.
-            full:
-              label: 渲染页面
-              cost: 与真实界面一致，画得慢
 ```
 
 ## Files
 
 Every file beside `AGENT.md`, in any subfolder, is named to the run by its path and opened only
-when the work calls for it. Put long material there and keep `AGENT.md` short. A file a
-choice's `reference` names is not offered this way.
+when the work calls for it. Put long material there and keep `AGENT.md` short.
 
 - **Scripts**: every agent owns its task scripts in its own folder, including built-in agents.
   Keep business validation there, outside the CLI's board logic. Document the runtime, inputs

@@ -1,4 +1,4 @@
-## Mockup format: a rendered screen
+## How to draw a rendered screen
 
 A mockup is a folder of files under `<board-state>/assets/<card id>/`, and it starts as a copy
 of the real screen's own source — never a lookalike written from scratch. Copy first, trim

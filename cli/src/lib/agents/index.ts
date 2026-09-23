@@ -2,17 +2,16 @@
 //
 // A spec agent fills one section, in-session or in a separate run.
 
-// Nothing about an agent is written in TypeScript. Its name, the line it is picked by, the
-// part of the spec it owns and the settings it declares all come out of its own `AGENT.md`
-// (./parse.ts), whether the command ships it or the project added it (./catalog.ts). This
-// file is the board's side: which agents may run, what each one is set to, and the text one
-// run is finally handed.
+// Nothing about an agent is written in TypeScript. Its name, the line it is picked by and the
+// part of the spec it owns all come out of its own `AGENT.md` (./parse.ts), whether the
+// command ships it or the project added it (./catalog.ts). This file is the board's side:
+// which agents may run, what each one is set to, and the text one run is finally handed.
 
 import path from 'node:path'
 
 import { rawMove } from '../agent/command'
 import { agentRun } from '../agent/resolve'
-import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue, setSwitch } from '../agent/settings'
+import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSwitch } from '../agent/settings'
 import { roleNamed, stageContractProblems } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
@@ -66,19 +65,14 @@ export function agentTitles(language: Language = readLanguage()): Record<string,
   return titles
 }
 
-/** The settings an agent declares, as a screen reads them: the words in the language this
- *  machine reads (#334), and never the reference a choice loads — that is the run's business.
- *
- *  Drawn only, like the lines above. A run is handed the English, so the reference it
- *  loads is picked by the choice's `value`, which no translation touches. */
+/** The settings on an agent's page, as a screen reads them: the words in the language this
+ *  machine reads (#334). Drawn only, like the lines above — a run is handed the English. */
 export function agentSettingsView(
   agent: SpecAgent,
   language: Language = readLanguage(),
 ): SpecAgentSettingView[] {
-  const said = agent.i18n[language]?.settings ?? {}
   return agentSettings(agent).map((setting) => {
-    // The board's own row is not the agent's to translate, so its words come from beside it.
-    const spoken = setting.key === OUTPUT_KEY ? outputLines(language) : said[setting.key]
+    const spoken = setting.key === OUTPUT_KEY ? outputLines(language) : undefined
     const help = spoken?.help || setting.help
     return {
       key: setting.key,
@@ -130,9 +124,9 @@ export function specSection(body: string, name: string): string | null {
 
 // ---- switched on, switched off, and set (#191, #255) ------------------------
 //
-// An agent that declares settings is set in the board UI, and those settings are saved with
-// the board, so they are the same for everyone working on it and the same wherever the board
-// works — a flow run from a terminal reads them too.
+// An agent is set in the board UI, and what it is set to is saved with the board, so it is
+// the same for everyone working on it and the same wherever the board works — a flow run
+// from a terminal reads it too.
 //
 // A switch is what an agent NO workflow can reach still has (#749): one that declares no
 // stage. A workflow agent has none — its stage assignment is the whole answer, and a
@@ -158,20 +152,19 @@ const savedEntry = (name: string, entries: Record<string, SpecAgentEntry>): Spec
   return null
 }
 
-/** What one agent is set to: every setting it declares, carrying the saved value or its own
+/** What one agent is set to: every setting on its page, carrying the saved value or its own
  *  default. `notes` holds a line for each value that had to fall back — a choice renamed or
- *  dropped between releases would otherwise reach a run as a word its agent has no reference
- *  for, and silently getting a different answer than last time is worse than being told. */
+ *  dropped between releases would otherwise reach a run as a word nobody offers, and silently
+ *  getting a different answer than last time is worse than being told. */
 export function specAgentSettings(
   agent: SpecAgent,
   entries = specAgentEntries(),
 ): { values: Record<string, string>; notes: string[] } {
   const entry = savedEntry(agent.name, entries)
-  const saved = entry?.values ?? {}
   const values: Record<string, string> = {}
   const notes: string[] = []
   for (const setting of agentSettings(agent)) {
-    const picked = setting.key === OUTPUT_KEY ? entry?.output : saved[setting.key]
+    const picked = setting.key === OUTPUT_KEY ? entry?.output : undefined
     if (picked !== undefined && setting.choices.some((c) => c.value === picked)) {
       values[setting.key] = picked
       continue
@@ -187,6 +180,26 @@ export function specAgentSettings(
   return { values, notes }
 }
 
+// What a board still holds for a setting an agent used to declare (#1003), and the one line
+// its run log gets for it. Only for a setting whose removal CHANGED what the agent produces:
+// somebody who never opens the agent's page would otherwise get a different answer than last
+// time with nothing said.
+const RETIRED_SETTINGS: { agent: string; key: string; note: string }[] = [
+  {
+    agent: 'ui-designer',
+    key: 'mockupStyle',
+    note:
+      "the `ui-designer` agent's Mockup style is saved on this board, and it is no longer a setting — " +
+      'ASCII drawings are retired, so this run draws a rendered screen.',
+  },
+]
+
+const retiredNotes = (agent: SpecAgent, entries: Record<string, SpecAgentEntry>): string[] => {
+  const entry = savedEntry(agent.name, entries)
+  if (!entry) return []
+  return RETIRED_SETTINGS.filter((r) => r.agent === agent.name && r.key in entry.extra).map((r) => r.note)
+}
+
 /** Who this agent's output is for (#445): the word somebody saved, or the one its own file
  *  starts it at. Read as a run starts, like everything else it is set to, so the last change
  *  is the one that counts — and it decides nothing about the cards already written. A lead has
@@ -197,34 +210,19 @@ export const specAgentOutput = (agent: SpecAgent, entries = specAgentEntries()):
   return isSpecOutput(saved) ? saved : agent.output
 }
 
-/** Everything one spec run is handed of its agent: the `AGENT.md` instructions, and the one
- *  reference each picked choice names — never the others. The board resolves and loads them
- *  here, as the run starts, so the agent has nothing to go and find: a reference it had to
- *  fetch is a reference it can skip, and the ones it must not read would be a folder away.
- *
- *  A reference that has gone missing is reported rather than passed over. The setting said
- *  which way to work, and a run that quietly worked the other way is the failure this
- *  reports its way out of. */
+/** Everything one spec run is handed of its agent: its `AGENT.md` instructions and the paths
+ *  of the files beside them. `notes` is what the board owes that run's log before the agent
+ *  says a word. */
 export function specAgentInstructions(
   agent: SpecAgent,
   entries = specAgentEntries(),
-): { instructions: string; references: { title: string; text: string }[]; files: string; notes: string[] } {
-  const { values, notes } = specAgentSettings(agent, entries)
-  const references: { title: string; text: string }[] = []
-  for (const setting of agent.settings) {
-    const choice = setting.choices.find((c) => c.value === values[setting.key])
-    if (!choice?.reference) continue
-    const text = agent.file(choice.reference)
-    if (text === null) {
-      notes.push(
-        `the \`${agent.name}\` agent's ${setting.label} is "${choice.label}", whose ${choice.reference} ` +
-          'is missing — the run goes ahead without it.',
-      )
-      continue
-    }
-    references.push({ title: `${setting.label}: ${choice.label}`, text: text.trim() })
+): { instructions: string; files: string; notes: string[] } {
+  const { notes } = specAgentSettings(agent, entries)
+  return {
+    instructions: agent.body.trim(),
+    files: agentFilesBlock(agent),
+    notes: [...notes, ...retiredNotes(agent, entries)],
   }
-  return { instructions: agent.body.trim(), references, files: agentFilesBlock(agent), notes }
 }
 
 /** The files beside an agent's `AGENT.md` (#860), as paths and nothing more — the run opens
@@ -313,9 +311,8 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
   ].join('\n')
 }
 
-/** Every spec agent as a screen reads it: its description, whether it is on, the settings it
- *  declares and what each one is set to. The reference a choice loads is left out — it is
- *  the run's business, not a dialog's. */
+/** Every spec agent as a screen reads it: its description, whether it is on, the settings on
+ *  its page and what each one is set to. */
 export function readSpecAgents(): SpecAgentView[] {
   const entries = specAgentEntries()
   return specAgents().map((agent) => ({
@@ -361,7 +358,7 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
   return setSpecAgentSwitch(agent.name, on, specAgentNames(agent.name).slice(1))
 }
 
-/** Save one of the settings an agent declares. The agent, the key and the value are all
+/** Save one of the settings on an agent's page. The agent, the key and the value are all
  *  checked against what this board has, so nothing writes a setting no agent has or a choice
  *  no setting offers. A value that IS the setting's default is dropped rather than written
  *  down — the file records what somebody changed. */
@@ -384,11 +381,7 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
   // An empty value means "back to the default", and so does the default itself — both drop
   // the key, so the file never records a pick nobody made.
   const save = !picked || picked === setting.default ? '' : picked
-  const legacy = specAgentNames(agent.name).slice(1)
-  // The board's own row is the entry's own key, beside `enabled`, so it is
-  // never written among the values the agent declares.
-  if (setting.key === OUTPUT_KEY) return setSpecAgentOutput(agent.name, save, legacy)
-  return setSpecAgentValue(agent.name, setting.key, save, legacy)
+  return setSpecAgentOutput(agent.name, save, specAgentNames(agent.name).slice(1))
 }
 
 export const notAnAgent = (name: string): string => notOnHook(name, 'spec')
@@ -482,8 +475,7 @@ function agentList(
 }
 
 // What one agent is set to, under the lines it is listed by. One line per setting: what
-// it is called, the choice in effect, and what that choice costs. An agent that declares none
-// adds nothing, so the list reads exactly as it did before settings existed.
+// it is called, the choice in effect, and what that choice costs.
 //
 // The choices not in effect are left out on purpose: a setting is picked in the board UI,
 // never here, so a terminal listing that spelled out every option would be a menu with

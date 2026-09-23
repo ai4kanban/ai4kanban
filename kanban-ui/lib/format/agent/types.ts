@@ -1541,19 +1541,13 @@ export interface AgentInfo {
   staleCommand?: boolean
 }
 
-/** One choice on a spec agent's setting (#255, #403). `reference` names the file inside the
- *  agent that this choice loads — agent-relative, e.g. `references/ascii-drawing.md`. Only
- *  the picked choice's reference reaches a run, so the instructions for a format nobody
- *  chose are never read. */
+/** One choice on a spec agent's setting (#255, #403). */
 export interface SpecAgentChoice {
   value: string
   label: string
   /** What this choice costs, in one line: how long the run takes, how much detail it
    *  gives, or how readable the result is. Shown wherever the choice is offered. */
   cost: string
-  /** The file this choice loads, relative to the agent's own folder. Every choice an agent
-   *  declares names one; the board's own settings (#445) load nothing. */
-  reference?: string
 }
 
 /** Who a spec agent's finished output is for (#445) — the board's own setting, on every spec
@@ -1568,15 +1562,14 @@ export type SpecOutput = (typeof SPEC_OUTPUTS)[number]
 export const isSpecOutput = (value: unknown): value is SpecOutput =>
   typeof value === 'string' && (SPEC_OUTPUTS as readonly string[]).includes(value)
 
-/** One setting a spec agent declares (#255) — `HarnessSetting` above, for the agent that
- *  fills part of a card's spec rather than the CLI a run spawns. It is always a pick from
- *  named choices: never free text, never a number.
+/** One setting on a spec agent's page (#255, #1003) — `HarnessSetting` above, for the agent
+ *  that fills part of a card's spec rather than the CLI a run spawns. It is always a pick
+ *  from named choices: never free text, never a number.
  *
- *  A spec agent's settings ARE its configuration, declared in its own `AGENT.md`
- *  frontmatter, so a new agent brings its own with it and no screen has to learn its name. */
+ *  Every one of them is the board's own (./agents/output.ts). An agent declares none: two
+ *  ways of working is two agents, each with its own `AGENT.md`. */
 export interface SpecAgentSetting {
-  /** The key it saves under inside that agent's entry in ui.config.json. `enabled` and
-   *  `output` are the entry's own keys, so no setting may take one. */
+  /** The key it saves under inside that agent's entry in ui.config.json. */
   key: string
   label: string
   help?: string
@@ -1585,9 +1578,8 @@ export interface SpecAgentSetting {
   default: string
 }
 
-/** One choice as a screen reads it: everything but the reference it loads, which is the
- *  run's business and nothing a dialog would draw. */
-export type SpecAgentChoiceView = Omit<SpecAgentChoice, 'reference'>
+/** One choice as a screen reads it. */
+export type SpecAgentChoiceView = SpecAgentChoice
 
 /** One setting as a screen reads it. */
 export type SpecAgentSettingView = Omit<SpecAgentSetting, 'choices'> & { choices: SpecAgentChoiceView[] }
@@ -1602,8 +1594,7 @@ export interface SpecAgentView {
   /** False only when somebody switched it off. While it is off the board starts no new run
    *  of it, on any card, from a screen or a terminal. */
   enabled: boolean
-  /** The settings this agent declares, in the order a dialog draws them. Empty for an agent
-   *  that takes none. */
+  /** The settings this agent's page draws, in order. Empty for an agent that takes none. */
   settings: SpecAgentSettingView[]
   /** What each of those settings is set to right now, by key. Every setting is in here — one
    *  nobody picked carries its own default, so a screen never has to work one out. */

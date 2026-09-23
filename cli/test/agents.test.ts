@@ -152,75 +152,6 @@ describe("what an agent says to a reader who doesn't read English", () => {
     }
   })
 
-  it('translates the words a setting is drawn by, and nothing a run picks by', () => {
-    const agent = findSpecAgent('ui-designer')!
-    const setting = agentSettingsView(agent, 'zh').find((s) => s.key === 'mockupStyle')
-    assert.ok(setting)
-    assert.match(setting.label, /[\u4e00-\u9fa5]/)
-    for (const choice of setting.choices) {
-      assert.match(choice.label, /[\u4e00-\u9fa5]/, choice.value)
-      assert.match(choice.cost, /[\u4e00-\u9fa5]/, choice.value)
-    }
-    // The values and the default are what a run reads the reference by, so a translation
-    // leaves them exactly as the file declares them.
-    assert.deepEqual(
-      setting.choices.map((c) => c.value),
-      agent.settings[0]!.choices.map((c) => c.value),
-    )
-    assert.equal(setting.default, agent.settings[0]!.default)
-    const english = agentSettingsView(agent, 'en').find((s) => s.key === 'mockupStyle')!
-    assert.deepEqual(english.choices[0]!.label, agent.settings[0]!.choices[0]!.label)
-  })
-
-  it('falls back per word when a setting is only half translated', () => {
-    project('api-contract', {
-      'references/openapi.md': 'A schema fragment.',
-      'references/prose.md': 'A paragraph.',
-      'AGENT.md': [
-        '---',
-        'name: api-contract',
-        'description: Use when a card changes an endpoint other software calls.',
-        'akb:',
-        '  kind: spec',
-        '  i18n:',
-        '    zh:',
-        '      settings:',
-        '        style:',
-        '          label: \u5951\u7ea6\u683c\u5f0f',
-        '          choices:',
-        '            openapi:',
-        '              cost: \u6bcf\u4e2a\u63a5\u53e3\u4e00\u6bb5 schema\uff0c\u7cbe\u786e\u4f46\u8bfb\u8d77\u6765\u957f',
-        '  settings:',
-        '    - key: style',
-        '      label: Contract style',
-        '      help: How precise the contract is.',
-        '      default: openapi',
-        '      choices:',
-        '        - value: openapi',
-        '          label: OpenAPI',
-        '          cost: a schema fragment per endpoint',
-        '          reference: references/openapi.md',
-        '        - value: prose',
-        '          label: Prose',
-        '          cost: a paragraph per endpoint',
-        '          reference: references/prose.md',
-        '---',
-        '',
-        'You settle the wire contract a card changes.',
-        '',
-      ].join('\n'),
-    })
-    const setting = agentSettingsView(findSpecAgent('api-contract')!, 'zh').find((s) => s.key === 'style')
-    assert.ok(setting)
-    assert.equal(setting.label, '\u5951\u7ea6\u683c\u5f0f')
-    // Nothing was said about the help line or the second choice, so both stay English
-    // rather than going blank.
-    assert.equal(setting.help, 'How precise the contract is.')
-    assert.equal(setting.choices[0]!.label, 'OpenAPI')
-    assert.equal(setting.choices[0]!.cost, '\u6bcf\u4e2a\u63a5\u53e3\u4e00\u6bb5 schema\uff0c\u7cbe\u786e\u4f46\u8bfb\u8d77\u6765\u957f')
-    assert.equal(setting.choices[1]!.label, 'Prose')
-    assert.equal(setting.choices[1]!.cost, 'a paragraph per endpoint')
-  })
 })
 
 describe('the agents this command ships', () => {
@@ -239,15 +170,11 @@ describe('the agents this command ships', () => {
     assert.equal(ui.builtIn, true)
   })
 
-  it('carries `ui-designer`\'s mockup style, its two choices and their references', () => {
-    const setting = findSpecAgent('ui-designer')!.settings[0]!
-    assert.equal(setting.key, 'mockupStyle')
-    assert.equal(setting.default, 'full')
-    assert.deepEqual(
-      setting.choices.map((c) => c.value),
-      ['full', 'ascii'],
-    )
-    for (const choice of setting.choices) assert.match(choice.reference ?? '', /^references\//)
+  it("draws only the board's own row on `ui-designer`, and names its reference as a file", () => {
+    const agent = findSpecAgent('ui-designer')!
+    assert.deepEqual(agentSettingsView(agent).map((s) => s.key), ['output'])
+    assert.ok(agent.files.includes('references/rendered-screen.md'))
+    assert.match(agent.body, /Read `references\/rendered-screen\.md` before you draw/)
   })
 
   it('still answers to every name each of them had before', () => {
@@ -269,7 +196,9 @@ describe('an agent the project adds', () => {
     assert.deepEqual(view?.settings.map((s) => s.key), ['output'])
   })
 
-  it('is set like a built-in one', () => {
+  // An `akb.settings:` block is read by nothing (#1003). A board that still carries one keeps
+  // its agent rather than losing it over a dead key.
+  it('keeps its agent when its file still declares settings, and offers none of them', () => {
     project('api-contract', {
       'AGENT.md': AGENT.replace(
         '  kind: spec\n',
@@ -284,21 +213,17 @@ describe('an agent the project adds', () => {
           '          label: OpenAPI',
           '          cost: a schema fragment per endpoint',
           '          reference: references/openapi.md',
-          '        - value: prose',
-          '          label: Prose',
-          '          cost: one paragraph per endpoint',
-          '          reference: references/prose.md',
           '',
         ].join('\n'),
       ),
       'references/openapi.md': 'Write an OpenAPI fragment.',
-      'references/prose.md': 'Write a paragraph.',
     })
-    assert.equal(setSpecAgentSetting('api-contract', 'style', 'prose').ok, true)
+    assert.deepEqual(specAgentCatalog().problems, [])
     const agent = findSpecAgent('api-contract')!
-    assert.deepEqual(specAgentInstructions(agent).references, [
-      { title: 'Contract style: Prose', text: 'Write a paragraph.' },
-    ])
+    assert.deepEqual(agentSettingsView(agent).map((s) => s.key), ['output'])
+    assert.equal(setSpecAgentSetting('api-contract', 'style', 'prose').ok, false)
+    // The file it named is an ordinary file beside `AGENT.md` now, offered by its path.
+    assert.ok(agent.files.includes('references/openapi.md'))
   })
 
   it('is refused rather than allowed to shadow a built-in name', () => {
@@ -386,33 +311,6 @@ describe('an agent nobody can read', () => {
     }
   })
 
-  it('reports a choice whose reference is not there', () => {
-    assert.match(
-      problemFor({
-        'AGENT.md': [
-          '---',
-          'name: broken',
-          'description: d',
-          'akb:',
-          '  kind: spec',
-          '  settings:',
-          '    - key: style',
-          '      label: Style',
-          '      default: a',
-          '      choices:',
-          '        - value: a',
-          '          label: A',
-          '          cost: c',
-          '          reference: references/gone.md',
-          '---',
-          '',
-          'Body.',
-        ].join('\n'),
-      }),
-      /points at a missing references\/gone\.md/,
-    )
-  })
-
   it('reports a folder whose AGENT.md calls itself something else', () => {
     assert.match(problemFor({ 'AGENT.md': AGENT }), /make the two match/)
   })
@@ -483,27 +381,31 @@ describe('what a session is shown', () => {
     )
   })
 
-  it('hands a spec run the contract, its agent and only the picked reference', () => {
+  it('hands a spec run the contract, its agent and the paths of its own files', () => {
     const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
     assert.match(prompt, /You are the `ui-designer` spec agent on task 12/)
     assert.match(prompt, /Be a spec agent/)
     assert.match(prompt, /You draw the screen a card needs/)
-    assert.match(prompt, /Mockup format: a rendered screen/)
-    assert.doesNotMatch(prompt, /Mockup format: a plain-text drawing/)
+    assert.match(prompt, /——— your own files ———/)
+    assert.match(prompt, /`references\/rendered-screen\.md`/)
+    // Named, never pasted in: the run opens it when the work calls for it.
+    assert.doesNotMatch(prompt, /How to draw a rendered screen/)
   })
 
-  it('swaps the reference when the board picks the other style', () => {
+  // A board that saved the retired Mockup style gets its run log told, so somebody who never
+  // opens the agent's page is not quietly given a different answer than last time (#1003).
+  it('says in the log that a saved mockup style is retired', () => {
     board({ specAgents: { 'ui-designer': { mockupStyle: 'ascii' } } })
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
-    assert.match(prompt, /Mockup format: a plain-text drawing/)
-    assert.doesNotMatch(prompt, /Mockup format: a rendered screen/)
+    const notes: string[] = []
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }, notes)
+    assert.match(notes.join('\n'), /Mockup style is saved on this board.*rendered screen/)
+    assert.doesNotMatch(prompt, /ASCII/)
   })
 
-  it('falls back and says so when the saved choice is gone', () => {
-    board({ specAgents: { 'ui-designer': { mockupStyle: 'sketch' } } })
+  it('says nothing about a style no board saved', () => {
     const notes: string[] = []
     buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }, notes)
-    assert.match(notes.join('\n'), /Mockup style is saved as "sketch"/)
+    assert.doesNotMatch(notes.join('\n'), /Mockup style/)
   })
 })
 
@@ -666,7 +568,7 @@ describe("an agent's memory folder", () => {
 })
 
 // Who a spec agent's finished output is for (#445): the board's own row on every spec agent,
-// saved beside `enabled` and `runtime` rather than among the settings the agent declares.
+// saved beside `enabled` and `runtime`, and since #1003 the only row on its page.
 describe("who a spec agent's output is for", () => {
   const saved = (): Record<string, Record<string, unknown>> =>
     JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8')).specAgents
@@ -690,7 +592,7 @@ describe("who a spec agent's output is for", () => {
   it("is on the spec agents in the pane's roster, and on none of the roles", async () => {
     const rows = async (name: string): Promise<string[]> =>
       (await readAgents()).agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
-    assert.deepEqual(await rows('ui-designer'), ['output', 'mockupStyle'])
+    assert.deepEqual(await rows('ui-designer'), ['output'])
     assert.deepEqual(await rows('tech-stack-advisor'), ['output'])
     assert.deepEqual(await rows('software-planner'), [])
   })
@@ -713,7 +615,7 @@ describe("who a spec agent's output is for", () => {
 
   // A `runtime` left by a board written before #443 goes: named runtimes are gone, and the
   // agent it pointed at runs the connector the board gives it now.
-  it("leaves the agent's own values beside it, and drops a stale runtime", () => {
+  it('leaves a key the board no longer reads exactly where it is, and drops a stale runtime', () => {
     board({ specAgents: { 'ui-designer': { runtime: 'cheap', mockupStyle: 'ascii' } } })
     assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, true)
     assert.deepEqual(saved()['ui-designer'], { output: 'agent', mockupStyle: 'ascii' })
@@ -725,29 +627,6 @@ describe("who a spec agent's output is for", () => {
     assert.match(refused.error!, /not one of the choices for Output/)
     board({ specAgents: { 'ui-designer': { output: 'nobody' } } })
     assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
-  })
-
-  it("is the board's key, so no agent may declare a setting or a value of its own for it", () => {
-    project('api-contract', {
-      'AGENT.md': AGENT.replace(
-        '  kind: spec\n',
-        [
-          '  kind: spec',
-          '  settings:',
-          '    - key: output',
-          '      label: Output',
-          '      default: one',
-          '      choices:',
-          '        - value: one',
-          '          label: One',
-          '          cost: one line',
-          '          reference: references/one.md',
-          '',
-        ].join('\n'),
-      ),
-      'references/one.md': 'One.',
-    })
-    assert.match(specAgentCatalog().problems.join('\n'), /`output` is the board's own key/)
   })
 
   it('refuses an `akb.output` naming nobody', () => {

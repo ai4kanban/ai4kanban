@@ -28,7 +28,6 @@ import storyboardValidator from '../../agents/scriptwriter/scripts/validate-stor
 import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md'
 import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
-import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 import videoReviewer from '../../agents/video-reviewer/AGENT.md'
@@ -54,7 +53,6 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
   'ui-designer/AGENT.md': uiDesigner,
-  'ui-designer/references/ascii-drawing.md': uiDesignerAscii,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,
   'video-reviewer/AGENT.md': videoReviewer,

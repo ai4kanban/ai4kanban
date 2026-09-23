@@ -18,7 +18,7 @@
 //   "agentRuntime": { "builder": "cheap" },
 //   "specAgents": {
 //     "tech-stack-advisor": false,
-//     "ui-designer": { "enabled": false, "mockupStyle": "ascii" }
+//     "ui-designer": { "enabled": false, "output": "agent" }
 //   }
 //
 // What a run runs as is one runtime, and all of it — harness, provider, endpoint, key, model
@@ -335,50 +335,49 @@ export function setSilenceMinutes(minutes: number): Saved {
 //
 //   "specAgents": {
 //     "tech-stack-advisor": false,
-//     "ui-designer": { "enabled": false, "output": "agent", "mockupStyle": "ascii" }
+//     "ui-designer": { "enabled": false, "output": "agent" }
 //   }
 //
-// `enabled` and `output` are the entry's own keys — the board's two answers about an
-// agent — and every other key is one of the settings that agent declares.
+// `enabled` and `output` are the board's two answers about an agent, and they are the whole
+// of what an entry means (#1003). A key beside them is one a release used to read — it is
+// carried through a write untouched and acted on by nothing.
 //
-// An agent the file doesn't name is on, with every setting at its default. A plain boolean
-// is the switch on its own — the shape written before settings existed, read the same way
-// it always was. An entry that is neither reads as on with every default, because a
-// hand-edit that put a string or a list here says nothing anyone can act on.
+// An agent the file doesn't name is on, at its default. A plain boolean is the switch on its
+// own — the shape written before the entry had a second key, read the same way it always
+// was. An entry that is neither reads as on at every default, because a hand-edit that put a
+// string or a list here says nothing anyone can act on.
 //
 // Only what somebody changed is written down: switching an agent back on drops `enabled`
-// rather than writing `true`, and a value put back to its default drops its key. The two
-// are independent — flipping the switch leaves the picked values alone, and picking a value
+// rather than writing `true`, and an output put back to its default drops its key. The two
+// are independent — flipping the switch leaves the output alone, and setting the output
 // leaves the switch alone.
 
 /** One spec agent's entry, read. */
 export interface SpecAgentEntry {
   enabled: boolean
-  /** The picked values, by setting key — only the ones the file carries. Filling the rest
-   *  in from the agent's own defaults is `lib/agents/`'s, which is the only side
-   *  that knows what an agent offers. */
-  values: Record<string, string>
-  /** Who this agent's output is for (#445), when somebody has said. A reserved key in the
-   *  entry, never one of the values above — an agent that declared an `output` setting
-   *  would otherwise fight it. */
+  /** Who this agent's output is for (#445), when somebody has said. */
   output?: string
+  /** Every other key the file carries for this agent, exactly as it holds them — kept only
+   *  so a write puts them back. Nothing reads one: a setting an agent declared for itself is
+   *  gone (#1003), and this is the user's file. */
+  extra: Record<string, unknown>
 }
 
 // One entry as the file holds it. Null for a shape we can't read, which the callers take as
 // "nothing saved for this agent". `runtime` is read and dropped: a board written before #443
 // has one, and the agent it pointed at runs the board's harness now.
-const RESERVED_SPEC_KEYS = ['enabled', 'runtime', 'output']
+const BOARD_SPEC_KEYS = ['enabled', 'runtime', 'output']
 
 function parseSpecEntry(value: unknown): SpecAgentEntry | null {
-  if (typeof value === 'boolean') return { enabled: value, values: {} }
+  if (typeof value === 'boolean') return { enabled: value, extra: {} }
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const raw = value as Record<string, unknown>
-  const values: Record<string, string> = {}
+  const extra: Record<string, unknown> = {}
   for (const [key, v] of Object.entries(raw)) {
-    if (!RESERVED_SPEC_KEYS.includes(key) && typeof v === 'string') values[key] = v
+    if (!BOARD_SPEC_KEYS.includes(key)) extra[key] = v
   }
   const output = typeof raw.output === 'string' ? raw.output.trim() : ''
-  return { enabled: raw.enabled !== false, values, ...(output ? { output } : {}) }
+  return { enabled: raw.enabled !== false, ...(output ? { output } : {}), extra }
 }
 
 // One agent's entry under its current name or a name it used to have. The first name that
@@ -418,34 +417,11 @@ export function setSpecAgentSwitch(
   return writeSpecAgentEntry(name, legacyNames, (entry) => ({ ...entry, enabled: on }))
 }
 
-/** Save one of the settings a spec agent declares, leaving its switch and its other values
- *  alone. An empty value drops the key, which is how a value goes back to its default: a
- *  missing key and one holding the default mean the same thing, and only one of them reads
- *  as deliberate.
- *
- *  That the key and the value are ones the agent offers is checked by the caller above this
- *  (`lib/agents/`), which is the side that knows. */
-export function setSpecAgentValue(
-  name: string,
-  key: string,
-  value: string,
-  legacyNames: string[] = [],
-): Saved {
-  return writeSpecAgentEntry(name, legacyNames, (entry) => {
-    const values = { ...entry.values }
-    const next = value.trim()
-    if (next) values[key] = next
-    else delete values[key]
-    return { ...entry, values }
-  })
-}
-
-/** Save who one spec agent's output is for (#445), leaving its switch and its own values
- *  alone. An empty value drops the key, which is how it goes back to the default its
- *  `AGENT.md` starts it at.
+/** Save who one spec agent's output is for (#445), leaving its switch alone. An empty value
+ *  drops the key, which is how it goes back to the default its `AGENT.md` starts it at.
  *
  *  That the word is one the board offers is checked by the caller above this
- *  (`lib/agents/`), the way an agent's own settings are. */
+ *  (`lib/agents/`). */
 export function setSpecAgentOutput(
   name: string,
   output: string,
@@ -457,8 +433,8 @@ export function setSpecAgentOutput(
   )
 }
 
-/** Drop one spec agent's entry entirely — its switch, who its output is for and every value
- *  it had picked. Called when the agent itself is deleted: a settings block for an agent
+/** Drop one spec agent's entry entirely — its switch, who its output is for, and whatever
+ *  else it carried. Called when the agent itself is deleted: a settings block for an agent
  *  nobody has is a line the user can neither read nor reach. */
 export function forgetSpecAgent(name: string, legacyNames: string[] = []): Saved {
   return writeConfig((cfg) => {
@@ -480,13 +456,13 @@ function writeSpecAgentEntry(
 ): Saved {
   return writeConfig((cfg) => {
     const block = { ...configBlock(cfg.specAgents) }
-    const entry = change(entryOf(block, [name, ...legacyNames]) ?? { enabled: true, values: {} })
+    const entry = change(entryOf(block, [name, ...legacyNames]) ?? { enabled: true, extra: {} })
     for (const legacy of legacyNames) delete block[legacy]
     delete block[name]
     const body = {
       ...(entry.enabled ? {} : { enabled: false }),
       ...(entry.output ? { output: entry.output } : {}),
-      ...entry.values,
+      ...entry.extra,
     }
     if (Object.keys(body).length > (entry.enabled ? 0 : 1)) block[name] = body
     else if (!entry.enabled) block[name] = false

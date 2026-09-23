@@ -1,6 +1,6 @@
 // Read and validate an agent’s frontmatter and instructions.
 
-import { isSpecOutput, SPEC_OUTPUTS, type SpecAgentChoice, type SpecAgentSetting, type SpecOutput } from '../agent/types'
+import { isSpecOutput, SPEC_OUTPUTS, type SpecOutput } from '../agent/types'
 import { WORKFLOW_STAGES, type WorkflowStage } from '../agent/workflows'
 import { parseYamlBlock, splitFrontmatter } from './yaml'
 import type { YamlValue } from './yaml'
@@ -28,11 +28,8 @@ export interface SpecAgent {
    *  the board's own `output` setting starts at, and a lead's for good. `agent` unless `akb.output` says so. */
   output: SpecOutput
   /** Everything else in its folder, by agent-relative path (#860) — named in every run and
-   *  read on demand, so `AGENT.md` can point at long material instead of carrying it. A file
-   *  a setting's `reference` names is not here: that one is sent whole when its choice is
-   *  picked. */
+   *  read on demand, so `AGENT.md` can point at long material instead of carrying it. */
   files: string[]
-  settings: SpecAgentSetting[]
   /** Its `AGENT.md` instructions, without the frontmatter. */
   body: string
   /** Where it was read from, for a message a person has to act on. */
@@ -54,13 +51,12 @@ export interface AgentLines {
    *  run is asked for by — and stays English everywhere; this is only ever drawn. */
   title?: string
   description?: string
-  /** What its settings say here, by setting key. */
-  settings?: Record<string, SettingLines>
 }
 
-/** One setting's user-facing words in another language. Keyed by the setting's own `key` and
- *  each choice's own `value`, so a translation never restates the shape — anything it leaves
- *  out falls back to the English the setting declares. */
+/** One setting's user-facing words in another language, keyed by each choice's own `value` —
+ *  anything left out falls back to the English the setting declares. Every setting is the
+ *  board's own (#1003), so these live beside it (../agents/output.ts) rather than in an
+ *  `AGENT.md`. */
 export interface SettingLines {
   label?: string
   help?: string
@@ -81,7 +77,6 @@ const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan', l
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
 export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
-const RESERVED_KEYS = ['enabled', 'runtime', 'output']
 
 /** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
 export function parseSpecAgent(
@@ -146,24 +141,12 @@ export function parseSpecAgent(
   }
   const output = isSpecOutput(declaredOutput) ? declaredOutput : 'agent'
 
-  const settings: SpecAgentSetting[] = []
-  const declared = akb.settings === undefined || akb.settings === '' ? [] : akb.settings
-  if (!Array.isArray(declared)) return bad(`\`${name}\`: \`akb.settings\` has to be a list`)
-  for (const raw of declared) {
-    const setting = readSetting(raw, name, file)
-    if ('problem' in setting) return bad(setting.problem)
-    if (settings.some((s) => s.key === setting.setting.key)) {
-      return bad(`\`${name}\` declares the setting \`${setting.setting.key}\` twice`)
-    }
-    settings.push(setting.setting)
-  }
-
   const instructions = body.trim()
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
-  // A file a choice names is the setting's to send, whole, when that choice is picked — so it
-  // is never also offered as something to go and read.
-  const references = new Set(settings.flatMap((s) => s.choices.map((c) => c.reference)))
+  // `akb.settings` is read by nothing (#1003). A file on a board that still declares one is
+  // left on the board rather than refused: the key does nothing, and taking the agent away
+  // over a dead line would cost more than it says.
 
   return {
     agent: {
@@ -174,8 +157,7 @@ export function parseSpecAgent(
       canLead: kind === 'lead' || declaredLead === 'true',
       stage,
       output,
-      files: list().filter((p) => !references.has(p)),
-      settings,
+      files: list(),
       body: instructions,
       from,
       builtIn,
@@ -194,42 +176,11 @@ function readTranslations(raw: YamlValue | undefined): Record<string, AgentLines
   for (const [tag, value] of Object.entries(block)) {
     const said = map(value)
     if (!said) continue
-    const settings = readSettingTranslations(said.settings)
     const lines: AgentLines = {
       ...(str(said.title) ? { title: str(said.title) } : {}),
       ...(str(said.description) ? { description: str(said.description) } : {}),
-      ...(Object.keys(settings).length ? { settings } : {}),
     }
     if (Object.keys(lines).length) out[tag] = lines
-  }
-  return out
-}
-
-// The `settings` block under one language: `<key>: { label, help, choices: { <value>: {…} } }`.
-// Dropped rather than refused, like the lines above — a translation is only ever drawn.
-function readSettingTranslations(raw: YamlValue | undefined): Record<string, SettingLines> {
-  const block = map(raw)
-  if (!block) return {}
-  const out: Record<string, SettingLines> = {}
-  for (const [key, value] of Object.entries(block)) {
-    const said = map(value)
-    if (!said) continue
-    const choices: Record<string, { label?: string; cost?: string }> = {}
-    for (const [choice, words] of Object.entries(map(said.choices) ?? {})) {
-      const spoken = map(words)
-      if (!spoken) continue
-      const lines = {
-        ...(str(spoken.label) ? { label: str(spoken.label) } : {}),
-        ...(str(spoken.cost) ? { cost: str(spoken.cost) } : {}),
-      }
-      if (Object.keys(lines).length) choices[choice] = lines
-    }
-    const setting: SettingLines = {
-      ...(str(said.label) ? { label: str(said.label) } : {}),
-      ...(str(said.help) ? { help: str(said.help) } : {}),
-      ...(Object.keys(choices).length ? { choices } : {}),
-    }
-    if (Object.keys(setting).length) out[key] = setting
   }
   return out
 }
@@ -237,53 +188,6 @@ function readSettingTranslations(raw: YamlValue | undefined): Record<string, Set
 const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)
 
 const isStage = (value: string): value is WorkflowStage => (WORKFLOW_STAGES as readonly string[]).includes(value)
-
-function readSetting(
-  raw: YamlValue,
-  agent: string,
-  file: (relative: string) => string | null,
-): { setting: SpecAgentSetting } | { problem: string } {
-  const bad = (why: string) => ({ problem: `\`${agent}\`: ${why}` })
-  const entry = map(raw)
-  if (!entry) return bad('each entry under `akb.settings` has to be a block with a `key`')
-  const key = str(entry.key)
-  if (!key) return bad('a setting has no `key`')
-  if (RESERVED_KEYS.includes(key)) return bad(`\`${key}\` is the board's own key and cannot be a setting`)
-  const label = str(entry.label)
-  if (!label) return bad(`the \`${key}\` setting has no \`label\``)
-
-  const rawChoices = entry.choices
-  if (!Array.isArray(rawChoices) || !rawChoices.length) {
-    return bad(`the \`${key}\` setting offers no \`choices\``)
-  }
-  const choices: SpecAgentChoice[] = []
-  for (const rawChoice of rawChoices) {
-    const choice = map(rawChoice)
-    if (!choice) return bad(`a choice under \`${key}\` is not a block`)
-    const value = str(choice.value)
-    const choiceLabel = str(choice.label)
-    const cost = str(choice.cost)
-    const reference = str(choice.reference)
-    if (!value) return bad(`a choice under \`${key}\` has no \`value\``)
-    if (choices.some((c) => c.value === value)) return bad(`\`${key}\` offers the choice "${value}" twice`)
-    if (!choiceLabel) return bad(`the "${value}" choice under \`${key}\` has no \`label\``)
-    if (!cost) return bad(`the "${value}" choice under \`${key}\` has no \`cost\``)
-    if (!reference) return bad(`the "${value}" choice under \`${key}\` names no \`reference\``)
-    if (reference.startsWith('/') || reference.split('/').includes('..')) {
-      return bad(`the "${value}" choice under \`${key}\` points outside the agent: ${reference}`)
-    }
-    if (file(reference) === null) return bad(`the "${value}" choice under \`${key}\` points at a missing ${reference}`)
-    choices.push({ value, label: choiceLabel, cost, reference })
-  }
-
-  const fallback = str(entry.default)
-  if (!fallback) return bad(`the \`${key}\` setting has no \`default\``)
-  if (!choices.some((c) => c.value === fallback)) {
-    return bad(`the \`${key}\` setting defaults to "${fallback}", which is not one of its choices`)
-  }
-  const help = str(entry.help)
-  return { setting: { key, label, ...(help ? { help } : {}), choices, default: fallback } }
-}
 
 const str = (value: YamlValue | undefined): string => (typeof value === 'string' ? value.trim() : '')
 

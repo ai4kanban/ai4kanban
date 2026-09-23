@@ -225,19 +225,16 @@ Older cards use `<Mockup src=".mockups/…">`, which still works.
 - **Shot previews** (`.hf.html`) are self-contained HyperFrames compositions: play, pause, replay,
   seek and mute drive the shot's motion and audio together; controls show on hover or tap, and
   starting one shot pauses the others. They run isolated, with no network access.
-- **Mockups** are drawn by the `ui-designer` agent, one file per screen or state the card changes:
-  a `.tsx` React component styled with Tailwind, or a self-styled `.html` page. Each shows at
-  1280×800, scaled to fit, with a switch to its code; click its file name for full size.
+- **Mockups** are drawn by the `ui-designer` agent as rendered screens, one file per screen or
+  state the card changes: a `.tsx` React component styled with Tailwind, or a self-styled `.html`
+  page. Each shows at 1280×800, scaled to fit, with a switch to its code; click its file name for
+  full size.
 - **A `.tsx` mockup is a copy of the real screen**: `ui-designer` copies the components it is
   built from, strips data, network and click handling, and changes only what the card changes. It
   may import React, `react-icons`, `next/link`, `next/image`, `next/navigation` and class-name
   helpers.
 - **Mockups are sandboxed**: nothing runs, loads from the network or answers a click. A missing or
   unsupported file reads as a plain note.
-- **Mockup style** (the `ui-designer`'s page under Configuration → Workflows, `mockupStyle` in
-  `ui.config.json`) is board-wide: a rendered screen (default), or a **plain-text drawing** — a
-  much cheaper run, written into the card body itself as one block per screen, so it travels with
-  the card in git.
 
 A card pulled from another board shows its asset tags as notes until `ui-designer` draws them
 again.
@@ -767,7 +764,7 @@ ANTHROPIC_API_KEY=sk-ant-…
     { "id": "cheap", "name": "Cheap", "harness": "codex", "settings": { "model": "gpt-5.1-codex" } }
   ],
   "agentRuntime": { "builder": "cheap" },
-  "specAgents": { "ui-designer": { "mockupStyle": "ascii" } }
+  "specAgents": { "ui-designer": { "output": "agent" } }
 }
 ```
 
@@ -779,7 +776,7 @@ ANTHROPIC_API_KEY=sk-ant-…
 | `aiReview` | **Review every build** | on (also if the file won't parse) |
 | `runtimes` | The runtime rows; the first is **Global default** | one Claude Code row |
 | `agentRuntime` | Which runtime each agent runs, by agent name → runtime `id` | **Global default** |
-| `specAgents` | Per-agent changes: `enabled: false`, or a non-default setting | on, with defaults |
+| `specAgents` | Per-agent changes: `enabled: false`, or a non-default `output` | on, with defaults |
 
 Inside a runtime row:
 

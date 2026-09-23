@@ -70,11 +70,10 @@ card, and changes nothing else. The board ships four, and `akb spec` lists them:
   and social posts are not its job. It writes the final copy and leaves one question asking you
   to confirm it.
 - **`ui-designer`** — draws the screen a card needs as one design, one drawing per page or state
-  it changes and each named for what it shows, with nothing written under the drawings. Its
-  **mockup** is either a rendered screen or a plain-text drawing depending on the board's
-  **Mockup style** setting, on its page under Configuration → Workflows. See "Assets on a card" in
-  `kanban-ui/README.md`. On a card that has copy, it waits until you have confirmed the copy and
-  then uses it word for word.
+  it changes and each named for what it shows, with nothing written under the drawings. Every
+  **mockup** is a rendered screen — a copy of the product's own screen, true to the real UI. See
+  "Assets on a card" in `kanban-ui/README.md`. On a card that has copy, it waits until you have
+  confirmed the copy and then uses it word for word.
 - **`tech-stack-advisor`** — picks the library, tool, or service a card leans on. Its answer is
   one table — a row per candidate, with what it is, its pros and its cons — and one line naming
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
@@ -268,8 +267,8 @@ Use the AI4Kanban skill. Read akb guide write-agent,
 then create an agent that [describe its job].
 ```
 
-That guide is the one place the file is written from — its name, its description, its settings, the
-files beside it and the translations it carries — so what comes back is an agent this board accepts.
+That guide is the one place the file is written from — its name, its description, the files beside
+it and the translations it carries — so what comes back is an agent this board accepts.
 `akb spec` lists the agents this board can use and, under them, anything wrong with one it found.
 
 **Add helper → Create one** in Configuration → Workflows starts one from the board instead: it

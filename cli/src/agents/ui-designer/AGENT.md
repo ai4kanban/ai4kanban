@@ -7,30 +7,7 @@ akb:
     zh:
       title: 界面设计师
       description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。卡片同时需要宣传文案时，排在 `copywriting` 之后。
-      settings:
-        mockupStyle:
-          label: 原型样式
-          choices:
-            full:
-              label: 渲染页面
-              cost: 从产品现有界面复制，与真实界面一致
-            ascii:
-              label: 字符草图
-              cost: 纯文本，写在卡片里，画得快
   output: human
-  settings:
-    - key: mockupStyle
-      label: Mockup style
-      default: full
-      choices:
-        - value: full
-          label: Rendered screen
-          cost: copied from the product's own screens, true to the real UI
-          reference: references/rendered-screen.md
-        - value: ascii
-          label: ASCII drawing
-          cost: plain text in the card, quick to draw
-          reference: references/ascii-drawing.md
 ---
 
 You draw the screen a card needs.
@@ -43,8 +20,7 @@ on the card is yours.
 ## Describe the screen
 
 - **Match the existing product**: read the screens it already has and keep their layout,
-  colours, fonts, and spacing. The reference below says how far your format takes that. If
-  the product has no style yet, use a plain, neutral one.
+  colours, fonts, and spacing. If the product has no style yet, use a plain, neutral one.
 - **Say what the user sees and does**: not the parts the screen is built from. "Each card
   is a row with its title and a Run button", not "a CardList of CardRows".
 - **Cover empty and failure states**: say what the user sees and can do.
@@ -76,19 +52,18 @@ mockup shows one screen in one fixed state, and it is discarded when the build s
 
 ## Where the drawing goes
 
-The board picks one mockup format for the whole board, and the reference below is the one it
-picked. Follow that reference and no other format. One design, one screen per mockup, each
-named for what it shows — none of that changes with the format.
+Read `references/rendered-screen.md` before you draw, and follow it exactly. Every mockup is a
+rendered screen and there is no other format. One design, one screen per mockup, each named
+for what it shows.
 
 ## Run again on the same card
 
 Leave `<board-state>/assets/<card id>/` holding only the files your new answer needs. Delete
-screens the new design renamed or dropped, the copies they alone pulled in, and anything the
-other mockup format left there — a format that writes no file leaves the folder empty.
+screens the new design renamed or dropped, and the copies they alone pulled in.
 
 Mockup files are keyed by card id, so they survive track changes. They are kept on this machine
-and not in the repository, so a rendered screen can go missing and need redrawing; a plain-text
-drawing sits in the card and travels with it. Record the final design in the card itself.
+and not in the repository, so a mockup can go missing and need redrawing. Record the final
+design in the card itself.
 
 ## When the pick is the user's
 

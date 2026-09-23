@@ -304,7 +304,7 @@ function roster(req: AgentRequest): string {
 }
 
 /** The words one run is given, and anything the board owes that run's log before the agent
- *  says a word: a spec agent's setting whose saved value it no longer offers and has fallen
+ *  says a word: a spec agent's setting whose saved value is no longer offered and has fallen
  *  back, and the one-time fold of a board's per-flow rules onto its agents (#420). */
 export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
   const notes: string[] = migrateFlowRules()
@@ -330,7 +330,6 @@ function reviewerPrompt(req: AgentRequest, agent: SpecAgent, kb: string, named: 
       .filter(Boolean)
       .join(' '),
     `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}`,
-    ...own.references.map((r) => `——— ${r.title} ———\n\n${r.text}`),
     own.files ? `——— your own files ———\n\n${own.files}` : '',
     memory ? `——— what you remember ———\n\n${memory}` : '',
     extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
@@ -580,8 +579,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       if (agent?.stage === 'review') return reviewerPrompt(req, agent, kb, named, notes)
       const found = req.id === undefined ? null : locate(req.id)
       const cardFile = found ? rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target) : `task #${req.id}`
-      // The one read of what this agent is set to, taken as the run starts and frozen for
-      // it: everything below is assembled from these values (#255).
+      // The one read of what this agent is set to, taken as the run starts and frozen for it
+      // (#255).
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
       const contract = findGuide('spec-agent')?.text.trim()
@@ -614,7 +613,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           .join(' '),
         contract ? `——— how a spec agent works ———\n\n${contract}` : '',
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
-        ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
         // What THIS workflow asks of it here (#715) — the assignment's own words, after the

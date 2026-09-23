@@ -66,9 +66,8 @@ describe('what an agent offers', () => {
     assert.deepEqual(findSpecAgent('api-contract')!.files, [])
   })
 
-  it("leaves out a file a setting's choice names — that one is sent whole when it is picked", () => {
-    // Both of `ui-designer`'s files are references, so it offers none to go and read.
-    assert.deepEqual(findSpecAgent('ui-designer')!.files, [])
+  it('offers a reference file the way it offers any other file (#1003)', () => {
+    assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md'])
   })
 })
 
@@ -107,12 +106,11 @@ describe('what a run is told', () => {
     assert.doesNotMatch(helperAsk('api-contract'), /your own files/)
   })
 
-  it("keeps the reference nobody picked out of the run, list and all", () => {
+  it("names `ui-designer`'s reference by path rather than pasting it in (#1003)", () => {
     const ask = helperAsk('ui-designer')
-    assert.doesNotMatch(ask, /references\/ascii-drawing\.md/)
-    assert.doesNotMatch(ask, /your own files/)
-    // …and the one that IS picked still arrives whole.
-    assert.match(ask, /Mockup style: Rendered screen/)
+    assert.match(ask, /your own files/)
+    assert.match(ask, /references\/rendered-screen\.md/)
+    assert.doesNotMatch(ask, /How to draw a rendered screen/)
   })
 })
 
@@ -125,7 +123,7 @@ describe('`akb raw agent-file`', () => {
   it("prints a built-in agent's file, which has no path to open", async () => {
     BUNDLED_AGENT_FILES['ui-designer/spacing.md'] = 'Eight pixels, or a multiple of it.'
     try {
-      assert.deepEqual(findSpecAgent('ui-designer')!.files, ['spacing.md'])
+      assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md', 'spacing.md'])
       const said = await move(root, ['agent-file', 'ui-designer', 'spacing.md'])
       assert.equal(said.text, 'Eight pixels, or a multiple of it.')
       assert.match(buildAsk({ action: 'spec', id: card, specAgent: 'ui-designer' }), /agent-file ui-designer spacing\.md/)
