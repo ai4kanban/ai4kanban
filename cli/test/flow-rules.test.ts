@@ -219,15 +219,15 @@ describe('the prompt', () => {
   })
 
   it('loads only the QA guide selected for the clarify session', () => {
-    for (const [effort, guide] of [
-      ['lightweight', 'qa-lightweight'],
-      ['standard', 'qa-loop'],
+    for (const [effort, guide, extra] of [
+      ['lightweight', 'qa-lightweight', []],
+      ['standard', 'qa-loop', ['validate-assumption']],
     ] as const) {
       const req = { action: 'clarify' as const, id: 1, refineRound: 1, refineEffort: effort }
       assert.match(buildPrompt(req), new RegExp(`akb guide ${guide}`))
       startCollecting()
       try {
-        assert.deepEqual(printFlow(req).guides, ['writing', 'update-questions', guide])
+        assert.deepEqual(printFlow(req).guides, ['writing', 'update-questions', guide, ...extra])
       } finally {
         stopCollecting()
       }

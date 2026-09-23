@@ -54,6 +54,7 @@ import triage from '../guide/triage.md'
 import unstick from '../guide/unstick.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
+import validateAssumption from '../guide/validate-assumption.md'
 import writeAgent from '../guide/write-agent.md'
 import writing from '../guide/writing.md'
 
@@ -83,6 +84,7 @@ export const GUIDES: Guide[] = [
   { name: 'gate', when: 'judge whether a settled card can be built with nobody watching', text: gate },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
   { name: 'qa-lightweight', when: 'check one clear, localized task with a short evidence walk', text: qaLightweight },
+  { name: 'validate-assumption', when: 'settle a factual premise the plan turns on, before it reaches the build', text: validateAssumption },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
   { name: 'decide', when: "answer a card's open questions in the user's place", text: decide },

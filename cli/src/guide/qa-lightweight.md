@@ -11,7 +11,8 @@ Follow `akb guide qa-loop` in this session when any of these conditions holds:
 - **Unsettled scope**: the work is broader or more uncertain than the card shows, or fixes keep
   revealing further gaps.
 - **Unproven prerequisites**: a build step depends on inputs, access, or capabilities whose
-  availability and acquisition path have not been established.
+  availability and acquisition path have not been established, or on a factual premise you are
+  concretely unsure about. Escalate rather than validating it here.
 - **User questions**: more than three `[user]` questions survive classification.
 
 Otherwise settle implementation details and fix concrete omissions or contradictions directly.

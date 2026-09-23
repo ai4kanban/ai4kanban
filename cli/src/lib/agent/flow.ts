@@ -604,8 +604,10 @@ const guidesFor = (req: AgentRequest): string[] => {
   if (req.action === 'propose') return []
   if (req.action === 'spec' && findSpecAgent(req.specAgent ?? '')?.stage === 'review') return []
   if (req.action !== 'clarify') return GUIDES_FOR[req.action]
-  const qa = req.refineEffort === 'lightweight' ? 'qa-lightweight' : 'qa-loop'
-  return ['writing', 'update-questions', qa]
+  // Standard QA validates the premises the plan turns on, so it gets that flow up front;
+  // lightweight QA never runs one and escalates instead, so its list is unchanged.
+  if (req.refineEffort === 'lightweight') return ['writing', 'update-questions', 'qa-lightweight']
+  return ['writing', 'update-questions', 'qa-loop', 'validate-assumption']
 }
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
