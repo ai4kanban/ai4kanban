@@ -756,7 +756,10 @@ const en: ConfigurationCopy = {
     blurb: "One sign-in covers every project on this machine.",
     checking: "Checking this machine…",
     saving: "Saving…",
-    unreachable: (why) => `Cloud could not be reached: ${why}. Nothing on this board is affected.`,
+    unreachable: {
+      title: "Cloud is unreachable right now",
+      body: "Retrying on its own — it reconnects as soon as your network is back. This board is unaffected.",
+    },
     signedIn: "Signed in",
     signOut: "Sign out",
     notAdmitted: "This account is not in the preview yet.",

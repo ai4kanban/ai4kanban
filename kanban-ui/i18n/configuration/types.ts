@@ -709,7 +709,9 @@ export type ConfigurationCopy = {
     checking: string;
     /** Beside a control whose new value is already drawn but not yet written. */
     saving: string;
-    unreachable: (why: string) => string;
+    /** The band a pane carries while it cannot reach Cloud and is retrying on its own.
+     *  Why it failed is not said: there is nothing the user can do with it. */
+    unreachable: { title: string; body: string };
     signedIn: string;
     signOut: string;
     notAdmitted: string;

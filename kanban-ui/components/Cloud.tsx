@@ -88,6 +88,12 @@ const SIGNED_IN = "ai4kanban://cloud/signed-in";
 const SLACK_CONNECTED = "ai4kanban://cloud/slack-connected";
 const LARK_CONNECTED = "ai4kanban://cloud/lark-connected";
 
+/** How long to wait before asking Cloud again after a read that did not get through: one
+ *  second, doubling up to half a minute, and never giving up (#1005). While the pane is
+ *  open somebody is waiting for the connection, and closing the dialog stops the loop. */
+const FIRST_WAIT = 1_000;
+const LONGEST_WAIT = 30_000;
+
 interface AppBridge {
   openExternal(url: string): Promise<void>;
   onCloudCallback(fn: (url: string) => void): () => void;
@@ -117,14 +123,68 @@ export function CloudPanel({
   const [slackTick, setSlackTick] = useState(0);
   const [larkTick, setLarkTick] = useState(0);
   const inApp = typeof window !== "undefined" && !!bridge();
+  // Reads in a row that did not reach Cloud. Non-zero is the whole of the failed state: it
+  // draws the band and it keeps the retry going.
+  const [misses, setMisses] = useState(0);
+  // The window is behind something else, so there is nobody to recover for.
+  const [away, setAway] = useState(false);
+  // Bumped by a reason to ask right now rather than wait out the rest of the delay.
+  const [now, setNow] = useState(0);
+  // Every read takes a number; only the newest one is allowed to write what it found, so a
+  // slow answer cannot land on top of a sign-out or a later read.
+  const asked = useRef(0);
+  const wait = useRef(0);
 
   const load = useCallback(async () => {
-    setAccount(await cloudAccountAction());
+    const mine = ++asked.current;
+    let found: CloudAccount | null = null;
+    try {
+      found = await cloudAccountAction();
+    } catch {
+      // The read itself failed. Same band, same retry — never a pane stuck on "Checking…".
+    }
+    if (mine !== asked.current) return;
+    if (found) setAccount(found);
+    if (found && !found.error) {
+      wait.current = 0;
+      setMisses(0);
+      return;
+    }
+    wait.current = Math.min(Math.max(wait.current * 2, FIRST_WAIT), LONGEST_WAIT);
+    setMisses((n) => n + 1);
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Recovering on its own (#1005). Only the account read is retried — a migration or a
+  // sign-out is the user's move and is never replayed for them.
+  useEffect(() => {
+    if (!misses || away) return;
+    const id = setTimeout(() => void load(), wait.current);
+    return () => clearTimeout(id);
+  }, [misses, away, now, load]);
+
+  // The network coming back, and the window coming forward, are both worth asking on at
+  // once. Neither does anything while the account is fine: the loop above is off.
+  useEffect(() => {
+    const ask = () => {
+      wait.current = 0;
+      setNow((n) => n + 1);
+    };
+    const seen = () => {
+      const hidden = document.visibilityState === "hidden";
+      setAway(hidden);
+      if (!hidden) ask();
+    };
+    window.addEventListener("online", ask);
+    document.addEventListener("visibilitychange", seen);
+    return () => {
+      window.removeEventListener("online", ask);
+      document.removeEventListener("visibilitychange", seen);
+    };
+  }, []);
 
   // The two answers the app caught on its URL scheme, told apart by what each one says: a
   // finished sign-in is exchanged here, on the server that holds the session — the app never
@@ -186,7 +246,8 @@ export function CloudPanel({
   return (
     <div className="flex flex-col gap-6">
       {!account ? (
-        <Loading>{c.checking}</Loading>
+        // Nothing to draw yet — and once a read has failed, the band below is what is said.
+        !misses && <Loading>{c.checking}</Loading>
       ) : account.state === "signed-in" ? (
         tab === "cloud" ? (
           <SignedIn account={account} busy={busy} inApp={inApp} onSignOut={() => void signOut()} />
@@ -220,7 +281,7 @@ export function CloudPanel({
         />
       )}
 
-      {account?.error && <Alert>{c.unreachable(account.error)}</Alert>}
+      {!!misses && <Alert title={c.unreachable.title}>{c.unreachable.body}</Alert>}
     </div>
   );
 }

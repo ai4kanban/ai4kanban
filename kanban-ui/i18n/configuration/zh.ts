@@ -821,7 +821,10 @@ const zh: ConfigurationCopy = {
     blurb: "一次登录覆盖这台机器上的所有项目。",
     checking: "正在检查这台机器…",
     saving: "保存中…",
-    unreachable: (why) => `无法连接 Cloud：${why}。这个看板不受影响。`,
+    unreachable: {
+      title: "暂时无法连接 Cloud",
+      body: "正在自动重试，网络恢复后会自己接上。这个看板不受影响。",
+    },
     signedIn: "已登录",
     signOut: "退出登录",
     notAdmitted: "这个账号还不在内测名单中。",
