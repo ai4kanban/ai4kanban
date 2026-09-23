@@ -14,7 +14,7 @@ Classification: [card](https://github.com/heygen-com/hyperframes/blob/0641921558
 - **Use for**: a short social teaser that shows off many variants of one thing.
 - **Source**: [`texture-launch-video/index.html`](https://github.com/heygen-com/hyperframes-launches/blob/6259ea7aa45042fa6ebf941538cf7621cf6dad0f/texture-launch-video/index.html) holds every scene on one timeline.
 - **Preview**: [Watch](https://hyperframes.dev/viewer/b92c24b4-5143-4bce-85ce-408be4c3c4ec)
-- **Shared**: the glass-card push is the same code as [vfx-heygen-combined](#vfx-heygen-combined); blur zoom-through with [variables-launch](tooling-shown-working.md#variables-launch).
+- **Shared**: the glass-card push is the same code as [vfx-heygen-combined](#vfx-heygen-combined); blur zoom-through with [variables-launch](tooling-shown-working.md#variables-launch); the dissolve is [domain-warp-dissolve](shader-transitions.md#domain-warp-dissolve) with a stronger warp.
 
 ## vfx-heygen-combined
 

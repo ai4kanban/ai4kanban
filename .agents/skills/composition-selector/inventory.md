@@ -105,8 +105,8 @@ Work list for growing the selection index: every renderable composition in the t
 | `registry/blocks/carousel-vision-4/` | `a2751d5c8da8` | simple | pending |  | Carousels |  |
 | `registry/blocks/carousel-vision-5/` | `752e371eb822` | simple | pending |  | Carousels |  |
 | `registry/blocks/chatgpt-exchange/` | `d0e90701404a` | simple | pending |  | Scenes & demos / Showcases |  |
-| `registry/blocks/chromatic-radial-split/` | `1cb7cc65a9f2` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/chromatic-radial-split.mp4) |
-| `registry/blocks/cinematic-zoom/` | `698319b00fa2` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/cinematic-zoom.mp4) |
+| `registry/blocks/chromatic-radial-split/` | `1cb7cc65a9f2` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/chromatic-radial-split.mp4) |
+| `registry/blocks/cinematic-zoom/` | `698319b00fa2` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/cinematic-zoom.mp4) |
 | `registry/blocks/claude-exchange/` | `55e19d622b4c` | simple | pending |  | Scenes & demos / Showcases |  |
 | `registry/blocks/code-3d-extrude/` | `1f09413c5475` | simple | pending |  | Code / Code Animations | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-3d-extrude.mp4) |
 | `registry/blocks/code-diff/` | `dad0069595f0` | simple | pending |  | Code / Code Animations | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-diff.mp4) |
@@ -146,17 +146,17 @@ Work list for growing the selection index: every renderable composition in the t
 | `registry/blocks/cross-warp-morph/` | `0c5e700173c1` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/cross-warp-morph.mp4) |
 | `registry/blocks/cuboid-carousel/` | `990339dbcfcc` | simple | pending |  | 3D motion | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/cuboid-carousel.mp4) |
 | `registry/blocks/data-chart/` | `c4dafbd19285` | simple | pending |  | Data & charts / Data | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/data-chart.mp4) |
-| `registry/blocks/domain-warp-dissolve/` | `2309947c175d` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/domain-warp-dissolve.mp4) |
+| `registry/blocks/domain-warp-dissolve/` | `2309947c175d` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/domain-warp-dissolve.mp4) |
 | `registry/blocks/editorial-flash-overlay/` | `d25d6cee7e17` | simple | pending |  | Scenes & demos / Social Overlays | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/editorial-flash-overlay.mp4) |
-| `registry/blocks/flash-through-white/` | `9ead226ddd03` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/flash-through-white.mp4) |
+| `registry/blocks/flash-through-white/` | `9ead226ddd03` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/flash-through-white.mp4) |
 | `registry/blocks/flowchart/` | `8743365b1073` | simple | pending |  | Blocks | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/flowchart.mp4) |
 | `registry/blocks/flowchart-vertical/` | `c7ff9dd6b48c` | simple | pending |  | Blocks | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/flowchart-vertical.mp4) |
 | `registry/blocks/freeze-frame-dressing/` | `c4e185ef199e` | simple | pending |  | Scenes & demos / Social Overlays | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/freeze-frame-dressing.mp4) |
 | `registry/blocks/frost-sequence-camera-orbit/` | `9f0b6d502f50` | simple | pending |  | 3D motion | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/frost-sequence-camera-orbit.mp4) |
 | `registry/blocks/gallery-tunnel/` | `d64fa9b649df` | simple | pending |  | Scenes & demos / Showcases |  |
 | `registry/blocks/glass-shard-title/` | `acd505c55f8e` | simple | pending |  | 3D motion | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/glass-shard-title.mp4) |
-| `registry/blocks/glitch/` | `590946aa9d92` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/glitch.mp4) |
-| `registry/blocks/gravitational-lens/` | `a90897fa199b` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/gravitational-lens.mp4) |
+| `registry/blocks/glitch/` | `590946aa9d92` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/glitch.mp4) |
+| `registry/blocks/gravitational-lens/` | `a90897fa199b` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/gravitational-lens.mp4) |
 | `registry/blocks/halftone-field/` | `94e683fae525` | simple | pending |  | Surfaces / Texture |  |
 | `registry/blocks/heygen-avatar-promo-card/` | `41111b9f2218` | simple | pending |  | Scenes & demos / Showcases | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/heygen-avatar-promo-card.mp4) |
 | `registry/blocks/hw-frame/` | `3048dab421f5` | simple | pending |  | Blocks |  |
@@ -168,7 +168,7 @@ Work list for growing the selection index: every renderable composition in the t
 | `registry/blocks/hw-write-title/` | `f37e5763a962` | simple | pending |  | Text & captions / Typography & Text |  |
 | `registry/blocks/instagram-follow/` | `26ac0a6a8916` | simple | pending |  | Scenes & demos / Social Overlays | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/instagram-follow.mp4) |
 | `registry/blocks/ios26-liquid-glass/` | `7aaf8f45e350` | simple | pending |  | Surfaces / HTML-in-Canvas | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/ios26-liquid-glass.mp4) |
-| `registry/blocks/light-leak/` | `e6446ac2a384` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/light-leak.mp4) |
+| `registry/blocks/light-leak/` | `e6446ac2a384` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/light-leak.mp4) |
 | `registry/blocks/liquid-glass-context-menu/` | `8c54666cc114` | simple | pending |  | Surfaces / HTML-in-Canvas | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/liquid-glass-context-menu.mp4) |
 | `registry/blocks/liquid-glass-media-controls/` | `bec2ab988c2d` | simple | pending |  | Surfaces / HTML-in-Canvas | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/liquid-glass-media-controls.mp4) |
 | `registry/blocks/liquid-glass-notification/` | `bbdf3c07de2f` | simple | pending |  | Surfaces / HTML-in-Canvas | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/liquid-glass-notification.mp4) |
@@ -206,9 +206,9 @@ Work list for growing the selection index: every renderable composition in the t
 | `registry/blocks/oscilloscope-trace/` | `965ebad60e9d` | simple | pending |  | Scenes & demos / Showcases | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/oscilloscope-trace.mp4) |
 | `registry/blocks/rack-focus/` | `15c549c8d127` | simple | pending |  | Scenes & demos / Showcases |  |
 | `registry/blocks/reddit-post/` | `87b7b0823c24` | simple | pending |  | Scenes & demos / Social Overlays | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/reddit-post.mp4) |
-| `registry/blocks/ridged-burn/` | `59c5833b1551` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/ridged-burn.mp4) |
+| `registry/blocks/ridged-burn/` | `59c5833b1551` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/ridged-burn.mp4) |
 | `registry/blocks/ripple-waves/` | `e78c8b066b2b` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/ripple-waves.mp4) |
-| `registry/blocks/sdf-iris/` | `6b16cd1bc1e1` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/sdf-iris.mp4) |
+| `registry/blocks/sdf-iris/` | `6b16cd1bc1e1` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/sdf-iris.mp4) |
 | `registry/blocks/share-sheet-carousel/` | `1578c979ef87` | simple | pending |  | Scenes & demos / Showcases |  |
 | `registry/blocks/slack-notification-ad/` | `2888a261cbda` | simple | pending |  | Scenes & demos / Showcases |  |
 | `registry/blocks/spain-map/` | `7e8ec5afeaed` | simple | pending |  | Data & charts / Data | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/spain-map.mp4) |
@@ -247,7 +247,7 @@ Work list for growing the selection index: every renderable composition in the t
 | `registry/blocks/vfx-text-cursor/` | `ced4cf90ff1b` | simple | pending |  | Surfaces / HTML-in-Canvas | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/vfx-text-cursor.mp4) |
 | `registry/blocks/vpn-youtube-spot/` | `9bfe4e95c084` | simple | pending |  | Scenes & demos / Showcases | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/vpn-youtube-spot.mp4) |
 | `registry/blocks/weight-wave/` | `85bdcd32dd89` | simple | pending |  | Text & captions / Typography & Text |  |
-| `registry/blocks/whip-pan/` | `08a61007b4d0` | simple | pending |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/whip-pan.mp4) |
+| `registry/blocks/whip-pan/` | `08a61007b4d0` | simple | documented |  | Transitions / Shader Transitions | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/whip-pan.mp4) |
 | `registry/blocks/wireframe-portal-title/` | `6e6921434dc9` | simple | pending |  | 3D motion | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/wireframe-portal-title.mp4) |
 | `registry/blocks/world-map/` | `24b94373d976` | simple | pending |  | Data & charts / Data | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/world-map.mp4) |
 | `registry/blocks/x-post/` | `51a278bc7d81` | simple | pending |  | Scenes & demos / Social Overlays | [Watch](https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/x-post.mp4) |
@@ -648,7 +648,7 @@ Rows per source and group. **Gap** marks a group with nothing documented yet.
 | Blocks | Text & captions / Lower Thirds | 0 | 12 | 0 | 0 | **Gap** |
 | Blocks | Text & captions / Typography & Text | 0 | 6 | 0 | 0 | **Gap** |
 | Blocks | Transitions / CSS Transitions | 0 | 17 | 0 | 0 | **Gap** |
-| Blocks | Transitions / Shader Transitions | 0 | 14 | 0 | 0 | **Gap** |
+| Blocks | Transitions / Shader Transitions | 10 | 4 | 0 | 0 |  |
 | Components | Code / Code Animations | 0 | 1 | 0 | 0 | **Gap** |
 | Components | Data & charts / Data | 0 | 8 | 0 | 0 | **Gap** |
 | Components | Motion & effects / Camera & 3D | 0 | 10 | 0 | 0 | **Gap** |
@@ -660,4 +660,4 @@ Rows per source and group. **Gap** marks a group with nothing documented yet.
 | Components | Text & captions / Captions | 0 | 16 | 0 | 0 | **Gap** |
 | Components | Text & captions / Typography & Text | 0 | 36 | 0 | 0 | **Gap** |
 | Skill examples | Uncategorized | 0 | 106 | 0 | 2 | **Gap** |
-| **Total** | | 5 | 545 | 2 | 2 | |
+| **Total** | | 15 | 535 | 2 | 2 | |

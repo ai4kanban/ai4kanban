@@ -14,9 +14,10 @@ Choose from the recipe categories linked below and read only the matching file u
 
 ## Categories
 
-Categories are the groups of HyperFrames' own [examples page](https://github.com/heygen-com/hyperframes/blob/0641921558eadcee0a026fa6db39e3e9e5b76f62/docs/examples.mdx?plain=1#L10).
+Launch films take the groups of HyperFrames' own [examples page](https://github.com/heygen-com/hyperframes/blob/0641921558eadcee0a026fa6db39e3e9e5b76f62/docs/examples.mdx?plain=1#L10); blocks take their [Catalog navigation](https://github.com/heygen-com/hyperframes/blob/0641921558eadcee0a026fa6db39e3e9e5b76f62/docs/docs.json) group.
 
 - [Product & launch films](references/composition/product-launch-films.md) — a product told as a launch film: `spacex-launch`
 - [The tooling, shown working](references/composition/tooling-shown-working.md) — one feature demonstrated: `variables-launch`
 - [Motion, sound & effects](references/composition/motion-sound-effects.md) — motion as the message: `texture-launch-video`, `vfx-heygen-combined`
 - [Workflows & integrations](references/composition/workflows-integrations.md) — a workflow from problem to result: `pr-to-video-launch`
+- [Shader transitions](references/composition/shader-transitions.md) — a 2s WebGL cut between two scenes: `domain-warp-dissolve`, `ridged-burn`, `sdf-iris`, `whip-pan`, `cinematic-zoom`, `chromatic-radial-split`, `glitch`, `gravitational-lens`, `flash-through-white`, `light-leak`
