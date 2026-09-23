@@ -13,16 +13,22 @@ akb:
   output: human
 ---
 
-Read the storyboard JSON linked from ``## By `scriptwriter` agent`` when present; otherwise
-read the legacy Markdown script. Validate structured scripts with scriptwriter's
-`scripts/validate-storyboard.mjs` before preparing assets. Work out every visual and audio file
-its `S<n>` shots need; never edit the script. Reuse existing files, capture product screens and
-interactions, and generate narration. Save the selected files in
-`<board-state>/assets/<card id>/` in the project.
+Read the approved script in ``## By `scriptwriter` agent``. Markdown is the content source
+for new cards; preserve an existing approved JSON script as its source. Never change approved
+content. Prepare media, production details and playable previews in the card's asset folder.
 
-Follow the approved script and any reference frames for visual intent; reuse their source
-material where suitable. If a direction is missing or cannot be executed, report it to the
-scriptwriter and pause the affected shot; never invent a substitute.
+Independently resolve capture, reset, motion, layout and transition details within the approved
+intent, consulting scriptwriter's `references/index.md` recipes as applicable. Missing execution
+details are yours to settle; missing intent or an unavoidable content change goes back to the
+scriptwriter before affected work continues. Use a stand-in only when real actions cannot be
+made repeatable, and return any change to the approved demonstration for script approval.
+
+For Markdown scripts, derive `storyboard.json` using scriptwriter's storyboard contract,
+preserving IDs, order, exact speech and required visuals. Fill production details and measured
+timings as assets become available; do not invent preliminary times to satisfy validation.
+Validate completed JSON with scriptwriter's `scripts/validate-storyboard.mjs` before preview
+review. Derived JSON is not a second content source. For existing approved JSON scripts,
+report required source changes to the scriptwriter rather than editing them yourself.
 
 ## Prepare
 
@@ -44,8 +50,8 @@ Use the first available source for each file:
   language and variable content. Repeat real actions when their state can be reset: clear
   a message view before resending, or restore code and board backups or revert demo commits.
   Preserve unrelated work. Keep sources, baseline locations, reset steps and check results
-  in `media.md`. If reset or verification fails, mark the shot missing; return missing reset
-  or stand-in directions to the scriptwriter. Before reporting capture as blocked, search for browser and recording tools through the harness's tool discovery; one tool
+  in `media.md`. If reset or verification fails, mark the shot missing; resolve execution details yourself and return only blocked intent or required content
+  changes to the scriptwriter. Before reporting capture as blocked, search for browser and recording tools through the harness's tool discovery; one tool
   failing does not rule out others.
 - **Names**: use short, lowercase names with extensions, numbered by shot, e.g.
   `01-open-board.mp4`, `01-narration.wav`. The editor uses these exact names.
@@ -68,8 +74,9 @@ playable preview the user reviews in the board. The HyperFrames editor finishes 
   `npx hyperframes init <dir> --non-interactive`; pin HyperFrames as a project dependency.
 - **Build**: assemble the scripted shots with the prepared media. Label missing items as
   placeholders and exclude obsolete files. Final editing and mixing remain the editor's work.
-- **Timing**: record measured audio durations and any mismatch with the script in the index
-  for the scriptwriter. Apply the reconciled shot timings; HyperFrames owns playback on one timeline.
+- **Timing**: determine shot times from measured narration, captured actions and reading needs,
+  including silent shots. Keep derived JSON, media.md and previews consistent; report an unmet
+  target length or required content change to the scriptwriter. HyperFrames owns playback on one timeline.
 - **Export**: export each shot from the project as a self-contained `shot-<n>.hf.html` in
   `<board-state>/assets/<card id>/`, with runtime, fonts and media embedded, no network or
   local-path access, and matching the installed board player runtime version. Reset its local
@@ -154,6 +161,9 @@ Read and apply relevant guidance before preparing assets; the approved script wi
 Update your section in place, grouped by the script's stable `S<n>` IDs. The user reviews the
 assembled previews, not the files behind them.
 
+- **Storyboard**: once the derived JSON is complete, show one standalone
+  `<Storyboard src=".assets/<card id>/storyboard.json" />` in this section; keep approved
+  content in the scriptwriter section. Regenerate affected shots after approved content changes.
 - **Preview**: under each shot label, put
   `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` on its own line, then one
   line with its duration and the placeholders it still shows; never present a preview as finished
