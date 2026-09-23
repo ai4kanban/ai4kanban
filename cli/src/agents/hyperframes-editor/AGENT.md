@@ -12,10 +12,12 @@ akb:
       description: 用 HyperFrames 制作演示视频：完善已批准的可播放分镜，渲染 MP4 并同步逐镜预览。
 ---
 
-Complete the storyboard project according to the card's script, ``## By `scriptwriter` agent``,
-and render it to an MP4. When it links a storyboard JSON, read and update that single script
-and validate it with scriptwriter's `scripts/validate-storyboard.mjs` after any change; otherwise
-retain the legacy Markdown format. Match its shot IDs to the media in **Index** and the previews in ``## By `hyperframes-assets` agent``.
+Complete the storyboard project using the storyboard JSON linked anywhere on the card and
+render it to an MP4. If missing, follow `akb guide update-questions`, append one `[user]`
+question requesting it, and stop. Read the brief, subtitle style and audio intent from
+``## By `scriptwriter` agent``. Validate the JSON with scriptwriter's
+`scripts/validate-storyboard.mjs` after any change. Match its shot IDs to the media in
+**Index** and the previews in ``## By `hyperframes-assets` agent``.
 
 ## Paths
 
@@ -41,8 +43,9 @@ retain the legacy Markdown format. Match its shot IDs to the media in **Index** 
 4. **Sound**: place narration, music and effects as the script's audio intent says; mix so
    narration stays clear, and keep it in sync with the shots. Use the installed HyperFrames
    audio and TTS capabilities; install nothing else.
-5. **Fix the timing**: where real audio is longer or shorter than the script's estimate,
-   retime the shots and update their times and the total length in the script.
+5. **Fix the timing**: where real audio is longer or shorter than the storyboard JSON's estimate,
+   retime the shots and update their times and total length in that JSON; leave the approved
+   Markdown script unchanged.
 6. **Render locally**: use a project render script that stages the composition and listed assets
    in a temporary directory, runs the project's pinned HyperFrames CLI there with `lint`,
    `check`, then `render --output <absolute video path>`, and cleans up the staging directory.
