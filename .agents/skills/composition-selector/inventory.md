@@ -1,6 +1,6 @@
 # Composition inventory
 
-Work list for growing the selection index: every renderable composition in the two source repos, with its status. Built from metadata only. `SKILL.md` does not link it.
+Work list for growing the selection index: every renderable composition in the two source repos, with its status. Built from metadata only. For maintainers of this repository; it is not distributed with the agent.
 
 - **hyperframes**: [`0641921558eadcee0a026fa6db39e3e9e5b76f62`](https://github.com/heygen-com/hyperframes/tree/0641921558eadcee0a026fa6db39e3e9e5b76f62)
 - **hyperframes-launches**: [`6259ea7aa45042fa6ebf941538cf7621cf6dad0f`](https://github.com/heygen-com/hyperframes-launches/tree/6259ea7aa45042fa6ebf941538cf7621cf6dad0f)

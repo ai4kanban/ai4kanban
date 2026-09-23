@@ -25,6 +25,12 @@ import storyboardContract from '../../agents/scriptwriter/references/storyboard-
 import storyboardExample from '../../agents/scriptwriter/references/storyboard.example.json'
 import storyboardSchema from '../../agents/scriptwriter/references/storyboard.schema.json'
 import storyboardValidator from '../../agents/scriptwriter/scripts/validate-storyboard.mjs' with { type: 'text' }
+import compositionIndex from '../../agents/scriptwriter/references/composition/index.md'
+import compositionProductLaunchFilms from '../../agents/scriptwriter/references/composition/product-launch-films.md'
+import compositionToolingShownWorking from '../../agents/scriptwriter/references/composition/tooling-shown-working.md'
+import compositionMotionSoundEffects from '../../agents/scriptwriter/references/composition/motion-sound-effects.md'
+import compositionWorkflowsIntegrations from '../../agents/scriptwriter/references/composition/workflows-integrations.md'
+import compositionShaderTransitions from '../../agents/scriptwriter/references/composition/shader-transitions.md'
 import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md'
 import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
@@ -50,6 +56,12 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/references/storyboard.example.json': storyboardExample as unknown as string,
   'scriptwriter/references/storyboard.schema.json': storyboardSchema as unknown as string,
   'scriptwriter/scripts/validate-storyboard.mjs': storyboardValidator,
+  'scriptwriter/references/composition/index.md': compositionIndex,
+  'scriptwriter/references/composition/product-launch-films.md': compositionProductLaunchFilms,
+  'scriptwriter/references/composition/tooling-shown-working.md': compositionToolingShownWorking,
+  'scriptwriter/references/composition/motion-sound-effects.md': compositionMotionSoundEffects,
+  'scriptwriter/references/composition/workflows-integrations.md': compositionWorkflowsIntegrations,
+  'scriptwriter/references/composition/shader-transitions.md': compositionShaderTransitions,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
   'ui-designer/AGENT.md': uiDesigner,

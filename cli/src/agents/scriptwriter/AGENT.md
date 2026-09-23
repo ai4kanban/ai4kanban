@@ -28,9 +28,10 @@ prepares media and previews; the editor produces the final video.
   This is the content source; round 1 needs no storyboard JSON, frames or per-shot times.
 - **Speech**: give exact conversational, courteous lines and voice source for voiced shots;
   explicitly mark unvoiced shots. Missing narration never means silence.
-- **Direction**: specify only what affects the story or its approval. Consult applicable
-  recipes in `references/index.md` when useful; leave capture plans and production details
-  to `hyperframes-assets`.
+- **Direction**: specify only what affects the story or its approval. Choose applicable
+  recipes from `references/index.md` by the shot's purpose, sequence and pacing, naming the
+  chosen recipe and its reference path in the shot; leave capture plans and production
+  details to `hyperframes-assets`.
 
 ## The storyboard
 
