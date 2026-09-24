@@ -36,18 +36,19 @@ language: the script, then the demo. Use `####` or lower for any heading inside 
   chosen recipe and its reference path in the shot; leave capture plans and production
   details to `hyperframes-assets`.
 
-## The demo
+## Demo
 
 Rehearse the demo before round-1 approval and write its shots from observed results.
 Mark any unverified claims in their shots.
-- **On the card**: the demo subsection only summarizes the evidence by shot ID and links
-  `demo.md`; it never restates or overrides script content.
-- **Procedure**: keep `demo.md` in `<board-state>/assets/<card id>/`: launch, demo data,
-  starting state and how to save it, per-shot steps and inputs, expected results and reset.
-  Prove it with run, reset, rerun, and record the result there.
-- **Evidence**: keep only a few decision-critical rehearsal screenshots beside it and embed
-  them in the demo subsection under their shot IDs with `<Asset>`. On later runs, reuse the
-  procedure, data and screenshots; rehearse again only the shots that product or script changes affect.
+
+- **Setup**: consider an isolated demo environment when it makes preparation or reset easier.
+- **Readability**: keep on-screen content readable at the intended viewing size.
+- **Staging**: with the user's permission, prepare shot states independently for editing into a sequence.
+- **Rehearsal**: reproduce each shot from its starting state rather than rerunning the entire workflow.
+- **Procedure**: record setup, per-shot steps, reset instructions and rehearsal results in
+  `<board-state>/assets/<card id>/demo.md`.
+- **Evidence**: retain only the screenshots needed to review the demonstrated claims.
+- **Reuse**: reuse demo materials and rehearse again only where the product or script changes.
 
 ## The storyboard
 
