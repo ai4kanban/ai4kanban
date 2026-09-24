@@ -58,14 +58,14 @@ import type { NotificationsCopy } from "@/i18n/notifications/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useBell } from "@/lib/card-event";
 import { LEAVES_SHEET } from "@/lib/create-open";
-import type { BellRail } from "@/lib/bell-rail";
+import type { BellRail, PageState } from "@/lib/bell-rail";
 import { statusLabel } from "@/lib/notification-status";
 import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
-import { Loading } from "./settings";
+import { Loading, QUIET_BTN } from "./settings";
 import { sayFailure } from "@/lib/start-failure";
 
 /**
@@ -148,10 +148,11 @@ export function BellPane({ rail }: { rail: BellRail }) {
   // The rules' own call, so the tabs and the bell's count can never split a row two ways.
   // Rules older than the tabs still hand back a state, which is all this reads.
   const shown = rows.filter((row) => notificationGroup(row.state as CloudEventState) === tab);
-  const landedNew = rows.some(
-    (row) => row.unread && notificationGroup(row.state as CloudEventState) === "landed",
-  );
-  const unread = shown.filter((row) => row.unread).length;
+  // A paged read counts the rows it did not load too (#1033).
+  const landedNew = center.tabUnread
+    ? center.tabUnread.landed > 0
+    : rows.some((row) => row.unread && notificationGroup(row.state as CloudEventState) === "landed");
+  const unread = center.tabUnread?.[tab] ?? shown.filter((row) => row.unread).length;
   // Switching to a tab is reading it: the dot and the read marks are one thing.
   const pick = (next: NotificationGroup) => {
     setTab(next);
@@ -175,7 +176,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
       {/* Every end below is about Cloud, and none of them is the whole truth once this board
           has rows of its own. So a rail with something on it draws the list, and the ends are
           what is left to say when there is nothing. */}
-      {!live && !rail.ready ? (
+      {(!live && !rail.ready) || (rows.length === 0 && center.loading) ? (
         <div className="flex flex-1 items-center justify-center">
           <Loading>{c.checking}</Loading>
         </div>
@@ -255,6 +256,15 @@ export function BellPane({ rail }: { rail: BellRail }) {
                     onOpen={() => void rail.openRow(row.eventId)}
                   />
                 ))}
+                {center.more && (
+                  <Foot
+                    c={c}
+                    state={rail.paging[tab]}
+                    more={center.more[tab]}
+                    grown={rail.grown[tab]}
+                    onMore={() => void rail.loadMore(tab)}
+                  />
+                )}
               </div>
             </>
           )}
@@ -418,6 +428,47 @@ function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; o
       <FiChevronRight className="mt-[3px] shrink-0 text-nb-ink-soft/60" size={13} aria-hidden />
     </button>
   );
+}
+
+/** The list's last line (#1033): the next page, while it loads, a retry when it failed, and
+ *  the end — which only a tab that has loaded past its first page draws. */
+function Foot({
+  c,
+  state,
+  more,
+  grown,
+  onMore,
+}: {
+  c: NotificationsCopy;
+  state: PageState;
+  more: boolean;
+  grown: boolean;
+  onMore: () => void;
+}) {
+  if (state === "failed")
+    return (
+      <div className="flex items-center justify-center gap-2.5 py-3">
+        <span className="text-[11.5px] font-[700] text-nb-peach-ink">{c.loadFailed}</span>
+        <button type="button" onClick={onMore} className={QUIET_BTN}>
+          {c.retry}
+        </button>
+      </div>
+    );
+  if (more || state === "loading")
+    return (
+      <div className="flex justify-center py-3">
+        <button
+          type="button"
+          onClick={onMore}
+          disabled={state === "loading"}
+          className={cn(QUIET_BTN, "min-w-[96px] justify-center")}
+        >
+          {state === "loading" ? c.loadingMore : c.loadMore}
+        </button>
+      </div>
+    );
+  if (!grown) return null;
+  return <p className="py-4 text-center text-[11.5px] font-[500] text-nb-ink-soft">{c.end}</p>;
 }
 
 /** How long ago a row changed. Read off the clock at render, which the poll re-runs every

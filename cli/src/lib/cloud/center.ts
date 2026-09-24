@@ -87,6 +87,9 @@ export interface NotificationAlert {
   title: string
   /** The event's name, or the outcome for the second notification. */
   body: string
+  /** What the app words `body` from (#952), so an alert needs no row on the page. */
+  state: CloudEventState
+  eventKind: CloudEventKind
   /** An outcome is raised whether or not the window is focused; an actionable event is not
    *  raised at all while it is. */
   kind: 'actionable' | 'outcome'
@@ -97,6 +100,14 @@ export interface NotificationAlert {
 export interface WatchFill {
   release: string
   cards: number
+}
+
+/** How much of the rail a paged read hands back (#1033): rows per tab, and the cards whose
+ *  newest event the caller needs whether or not its row is loaded. */
+export interface CenterPage {
+  todo: number
+  landed: number
+  cards?: number[]
 }
 
 /** What the bell draws, and what this board's Cloud section needs beside it. */
@@ -120,6 +131,14 @@ export interface NotificationCenter {
   unread: number
   /** Alerts to raise now, handed out once. */
   alerts: NotificationAlert[]
+  /** Paged reads only (#1033): whether each tab holds rows past the page asked for. */
+  more?: Record<NotificationGroup, boolean>
+  /** Paged reads only: each tab's unread rows, loaded or not. */
+  tabUnread?: Record<NotificationGroup, number>
+  /** Paged reads only: the newest event on each card the read asked about, drawn or not. */
+  cards?: NotificationRow[]
+  /** Signed in and the first read from Cloud has not come back yet. */
+  loading?: boolean
   /** The scope change that just filled the bell (#451), handed out once. Absent when no
    *  switch brought anything in — the rail draws its one line only when there is one. */
   filled?: WatchFill
@@ -183,6 +202,8 @@ interface Held {
   /** Bumped by every stop. A read still in flight then belongs to a center that is gone, so
    *  it raises nothing. */
   epoch: number
+  /** The first durable read has come back, answered or not. */
+  loaded?: boolean
 }
 
 function state(): Held {
@@ -249,6 +270,7 @@ export function stopCloudCenter(): void {
   held.events.clear()
   held.alerts = []
   held.readAt = undefined
+  held.loaded = false
   // Nothing a stopped center was still waiting on may raise anybody: signing out and quitting
   // are both the user saying they are done being interrupted.
   for (const timer of held.retries) clearTimeout(timer)
@@ -266,6 +288,7 @@ async function catchUp(firstTime: boolean): Promise<void> {
   held.readAt = Date.now()
   void flushCloudOutbox()
   const answer = await listEvents()
+  held.loaded = true
   if (!answer.ok) {
     held.error = answer.error
     return
@@ -351,13 +374,18 @@ const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string)
   title: `#${event.taskId} ${event.taskTitle}`,
   body,
   kind,
+  state: event.state,
+  eventKind: event.kind,
 })
 
 // ---- what the bell draws ----------------------------------------------------
 
 /** This board's live events, newest change first, and the alerts waiting to be raised.
- *  Reading takes the alerts away: they are raised once or not at all. */
-export function readCloudCenter(): NotificationCenter {
+ *  Reading takes the alerts away: they are raised once or not at all.
+ *
+ *  With `page`, `rows` is only the first rows of each tab's rail, so what the app is handed
+ *  stays the same size however long the history grows (#1033). */
+export function readCloudCenter(page?: CenterPage): NotificationCenter {
   const held = state()
   const marks = reads()
   const enabled = cloudBoardFor(KANBAN)
@@ -395,6 +423,9 @@ export function readCloudCenter(): NotificationCenter {
     }))
     .sort((a, b) => (a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId))
 
+  const unread = rows.filter((r) => r.unread && notificationGroup(r.state) === 'todo').length
+  const paged = page ? pageOf(rows, page) : { rows }
+
   const alerts = notificationsSilenced() ? [] : held.alerts
   held.alerts = []
   // Handed out once, like an alert. The rail keeps it on screen while it is open; nothing is
@@ -410,12 +441,37 @@ export function readCloudCenter(): NotificationCenter {
     boardId,
     release: enabled?.release ?? '',
     silenced: notificationsSilenced(),
-    rows,
-    unread: rows.filter((r) => r.unread && notificationGroup(r.state) === 'todo').length,
+    ...paged,
+    unread,
     alerts,
+    loading: !!readSession() && !!(held.starting || held.live) && !held.loaded && !held.error,
     ...(filled ? { filled } : {}),
     error: held.error,
     unsent: unsentToCloud().length,
+  }
+}
+
+const PAGE_MAX = 10_000
+
+function pageOf(
+  all: NotificationRow[],
+  page: CenterPage,
+): Pick<NotificationCenter, 'rows' | 'more' | 'tabUnread' | 'cards'> {
+  const size = (n: number) => Math.min(PAGE_MAX, Math.max(0, Math.floor(Number(n) || 0)))
+  const rail = { todo: [] as NotificationRow[], landed: [] as NotificationRow[] }
+  for (const row of all) if (row.onRail) rail[notificationGroup(row.state)].push(row)
+  const todo = rail.todo.slice(0, size(page.todo))
+  const landed = rail.landed.slice(0, size(page.landed))
+  const kept = new Set([...todo, ...landed])
+  const asked = new Set(page.cards ?? [])
+  const cards: NotificationRow[] = []
+  for (const row of all) if (asked.delete(row.taskId)) cards.push(row)
+  const unreadIn = (rows: NotificationRow[]) => rows.filter((r) => r.unread).length
+  return {
+    rows: all.filter((row) => kept.has(row)),
+    more: { todo: rail.todo.length > todo.length, landed: rail.landed.length > landed.length },
+    tabUnread: { todo: unreadIn(rail.todo), landed: unreadIn(rail.landed) },
+    cards,
   }
 }
 

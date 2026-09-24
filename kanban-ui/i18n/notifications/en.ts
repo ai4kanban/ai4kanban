@@ -36,6 +36,11 @@ const en: NotificationsCopy = {
   daysAgo: (d) => `${d}d ago`,
   runStopped: "Run didn't finish",
   runStoppedBody: "The run on this card didn't finish. Open it to see what happened.",
+  loadMore: "Load more",
+  loadingMore: "Loading…",
+  loadFailed: "Couldn't load more",
+  retry: "Retry",
+  end: "No more notifications",
   checking: "Checking…",
   unavailable: "Notifications aren’t available here",
   signedOut: {

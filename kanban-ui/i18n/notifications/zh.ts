@@ -33,6 +33,11 @@ const zh: NotificationsCopy = {
   daysAgo: (d) => `${d} 天前`,
   runStopped: "运行未完成",
   runStoppedBody: "这张卡上的运行没跑完，点开查看原因。",
+  loadMore: "加载更多",
+  loadingMore: "加载中…",
+  loadFailed: "加载失败",
+  retry: "重试",
+  end: "没有更多通知了",
   checking: "检查中…",
   unavailable: "这里无法使用通知",
   signedOut: {

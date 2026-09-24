@@ -57,6 +57,17 @@ export interface NotificationAlert {
   title: string;
   body: string;
   kind: "actionable" | "outcome";
+  /** What the app words `body` from. Absent from rules older than the paged read (#1033). */
+  state?: string;
+  eventKind?: string;
+}
+
+/** How much of the rail to read (#1033): rows per tab, and the cards whose newest event the
+ *  window needs whether or not the rail has loaded it. */
+export interface CenterPage {
+  todo: number;
+  landed: number;
+  cards?: number[];
 }
 
 /** One scope change, as the line above the rows says it (#451): what is watched now, and how
@@ -78,6 +89,12 @@ export interface NotificationCenter {
    *  deliveries are outside it (#613); the rail dots their tab instead. */
   unread: number;
   alerts: NotificationAlert[];
+  /** Paged reads only (#1033), absent from older rules — which hand back every row. */
+  more?: Record<NotificationGroup, boolean>;
+  tabUnread?: Record<NotificationGroup, number>;
+  cards?: NotificationRow[];
+  /** Signed in and the first read from Cloud has not come back yet. */
+  loading?: boolean;
   /** The scope change that just filled the bell (#451), handed out once. Absent when no
    *  switch brought anything in, and from rules that predate it. */
   filled?: WatchFill;
@@ -127,12 +144,12 @@ const OFF: NotificationCenter = {
 /** The bell as it stands, and the alerts waiting to be raised. Reading takes the alerts
  *  away: they are raised once or not at all, and nothing is raised later to make up for a
  *  window that was focused when one arrived. */
-export async function notificationCenter(): Promise<NotificationCenter> {
+export async function notificationCenter(page?: CenterPage): Promise<NotificationCenter> {
   const rules = await boardRules();
   if (!rules.readCloudCenter || !rules.startCloudCenter) return { ...OFF, unavailable: await tooOld() };
   // Idempotent, and the one place the connection is opened: every screen polls this.
   rules.startCloudCenter(autoWorkAllowed());
-  const center = rules.readCloudCenter();
+  const center = rules.readCloudCenter(page);
   // Reading took the alerts away wherever this runs; only the one board that interrupts
   // passes them on.
   return alertsAllowed() ? center : { ...center, alerts: [] };

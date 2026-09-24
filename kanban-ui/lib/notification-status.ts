@@ -45,9 +45,8 @@ export function statusLabel(row: Pick<NotificationRow, "label" | "state" | "kind
  * The same states, said out loud: the interruptions the app is about to raise, reworded from
  * the row each one is about.
  *
- * The rules hand out the alerts and the rows in one answer, and an alert is only ever raised
- * for an event that has a row, so the row is what carries the state to word. An alert with no
- * row behind it keeps the words it came with.
+ * Rules that page the rail (#1033) put the state on the alert itself; older ones hand every
+ * row back beside it. An alert with neither keeps the words it came with.
  */
 export function wordedAlerts(
   alerts: NotificationAlert[],
@@ -56,7 +55,9 @@ export function wordedAlerts(
 ): NotificationAlert[] {
   const byId = new Map(rows.map((row) => [row.eventId, row]));
   return alerts.map((alert) => {
-    const row = byId.get(alert.eventId);
+    const row = alert.state
+      ? { label: alert.body, state: alert.state, kind: alert.eventKind }
+      : byId.get(alert.eventId);
     return row ? { ...alert, body: statusLabel(row, c) } : alert;
   });
 }

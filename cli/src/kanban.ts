@@ -291,7 +291,7 @@ export {
   startCloudCenter,
   stopCloudCenter,
 } from './lib/cloud/center'
-export type { NotificationAlert, NotificationCenter, NotificationRow } from './lib/cloud/center'
+export type { CenterPage, NotificationAlert, NotificationCenter, NotificationRow } from './lib/cloud/center'
 // The card link a Slack message carries (#320). The app catches `ai4kanban://card/…` on the
 // scheme #326 registered and asks here where it leads — the board's own path on this
 // machine, or that the board has been moved away.

@@ -195,6 +195,7 @@ export function Window({
   const { sessions } = useAgentSessions(noRunsOfOurOwn);
   const bell = useBellRail({
     projectRoot,
+    cardId: currentId ?? null,
     sessions,
     onAlerts: raiseNotifications,
     onOpenCard: goToCard,
@@ -353,7 +354,7 @@ export function Window({
     <BellProvider value={bell}>
     {/* The card page reads the same rows the bell draws (#364), through a context of its
         own: a page drawn without a bell around it — the hosted board — fills it too. */}
-    <CardEventsProvider value={bell.center.rows}>
+    <CardEventsProvider value={bell.cardEvents}>
     <ChatProvider rail={chat}>
     <BodySlotProvider value={body}>
     <SideSlotProvider value={slot}>

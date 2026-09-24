@@ -53,7 +53,7 @@ import type {
   SlackState,
 } from "./format/cloud/types";
 import type { CardHold } from "./format/board/screen";
-import type { BoardNotifications, NotificationCenter } from "./notifications";
+import type { BoardNotifications, CenterPage, NotificationCenter } from "./notifications";
 import type { Language, UsageReporting } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
@@ -733,7 +733,7 @@ export interface BoardRules {
   // alerts it hands out are account-wide — which of the on-screen boards raises them is
   // `alertsAllowed()` in ./desktop.ts, not this.
   startCloudCenter?(onScreen: boolean): void;
-  readCloudCenter?(): NotificationCenter;
+  readCloudCenter?(page?: CenterPage): NotificationCenter;
   openNotification?(
     eventId: string,
   ): { boardPath: string | null; boardDir: string | null; taskId: number } | null;

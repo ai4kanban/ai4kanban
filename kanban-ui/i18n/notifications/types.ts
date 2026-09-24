@@ -47,6 +47,12 @@ export type NotificationsCopy = {
    *  behind it, so these are the app's own words rather than the board's. */
   runStopped: string;
   runStoppedBody: string;
+  /** The list's foot (#1033): the next page, while it loads, when it failed, and the end. */
+  loadMore: string;
+  loadingMore: string;
+  loadFailed: string;
+  retry: string;
+  end: string;
   /** Still asking the board where the account stands. */
   checking: string;
   /** The rail's ends: a mark, what would fill it, and where to go. */

@@ -60,6 +60,17 @@ const OVERLAY_UNDER = "(width < 60rem)";
 const OPEN_MS = 2_500;
 const FOLDED_MS = 6_000;
 
+/** Rows a tab shows at first, and how many more each Load more adds (#1033). */
+const PAGE = 30;
+const FIRST_PAGE: Record<NotificationGroup, number> = { todo: PAGE, landed: PAGE };
+
+/** Where a tab's Load more stands. */
+export type PageState = "idle" | "loading" | "failed";
+const IDLE: Record<NotificationGroup, PageState> = { todo: "idle", landed: "idle" };
+
+const newestFirst = (a: NotificationRow, b: NotificationRow) =>
+  a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId;
+
 /** The blank the bell draws until its first read lands. */
 const NOTHING: NotificationCenter = {
   signedIn: false,
@@ -85,6 +96,13 @@ export interface BellRail {
   /** The window is too narrow for the rail to stand beside the board, so it covers it. */
   overlay: boolean;
   center: NotificationCenter;
+  /** Every live event the card page may ask about: the rail's rows, and the open card's
+   *  newest event whether or not its row is loaded. */
+  cardEvents: NotificationRow[];
+  /** Each tab's Load more (#1033), and whether it has loaded past its first page. */
+  paging: Record<NotificationGroup, PageState>;
+  grown: Record<NotificationGroup, boolean>;
+  loadMore(tab: NotificationGroup): Promise<void>;
   /** The scope change that filled the bell (#451), until the rail is folded. The server
    *  hands it out once, so it is held here — the switch is usually made with the rail down,
    *  and the line has to be there when it is opened. */
@@ -107,6 +125,8 @@ export function useBellRail({
   /** The project this window is showing, so a row that names another board is known for
    *  one and switches the app to it. */
   projectRoot,
+  /** The card this window is showing, whose newest event the card page reads. */
+  cardId,
   /** Every run the board knows about, as this window last polled them (#809). The rows for
    *  the ones that stopped short are built from these. */
   sessions,
@@ -120,6 +140,7 @@ export function useBellRail({
   onOpenRun,
 }: {
   projectRoot: string;
+  cardId: number | null;
   sessions: SessionView[];
   onAlerts?(alerts: NotificationAlert[]): void;
   onOpenCard(taskId: number): void;
@@ -129,6 +150,14 @@ export function useBellRail({
   const [cloud, setCloud] = useState<NotificationCenter>(NOTHING);
   const [ready, setReady] = useState(false);
   const [filled, setFilled] = useState<WatchFill | null>(null);
+  // How far each tab has been loaded. The ref is what a read asks with; a read that comes back
+  // after the page moved is someone else's answer and draws nothing.
+  const [limits, setLimits] = useState(FIRST_PAGE);
+  const limitsRef = useRef(limits);
+  const [paging, setPaging] = useState(IDLE);
+  const pageEpoch = useRef(0);
+  const cardRef = useRef(cardId);
+  cardRef.current = cardId;
   // Destructured, because the two moves below go into callbacks other effects depend on and
   // both are stable — only the rows change with each poll.
   const { rows: ourRows, open: openRunRow, readAllRunRows } = useRunRows(
@@ -138,18 +167,32 @@ export function useBellRail({
     onAlerts,
   );
   // Cloud's rows and this board's own, in one list newest first — which is the order the
-  // rail draws and the only thing that decides where a row sits. The count follows the same
-  // rule Cloud's does: the To do tab, unread.
+  // rail draws and the only thing that decides where a row sits. Every run row is To do, so
+  // it adds to that tab's count; on a paged read, one older than the tab's loaded page waits
+  // for Load more like any other row.
   const center = useMemo<NotificationCenter>(() => {
     if (ourRows.length === 0) return cloud;
-    const rows = [...cloud.rows, ...ourRows].sort((a, b) =>
-      a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId,
+    const merged = [...cloud.rows, ...ourRows].sort(newestFirst);
+    const ours = ourRows.filter((r) => r.unread).length;
+    if (!cloud.more || !cloud.tabUnread) {
+      const unread = merged.filter(
+        (r) => r.unread && notificationGroup(r.state as CloudEventState) === "todo",
+      ).length;
+      return { ...cloud, rows: merged, unread };
+    }
+    let todo = 0;
+    const rows = merged.filter(
+      (r) => notificationGroup(r.state as CloudEventState) !== "todo" || ++todo <= limits.todo,
     );
-    const unread = rows.filter(
-      (r) => r.unread && notificationGroup(r.state as CloudEventState) === "todo",
-    ).length;
-    return { ...cloud, rows, unread };
-  }, [cloud, ourRows]);
+    return {
+      ...cloud,
+      rows,
+      unread: cloud.unread + ours,
+      more: { ...cloud.more, todo: cloud.more.todo || todo > limits.todo },
+      tabUnread: { ...cloud.tabUnread, todo: cloud.tabUnread.todo + ours },
+    };
+  }, [cloud, ourRows, limits.todo]);
+  const cardEvents = useMemo(() => [...(cloud.cards ?? []), ...center.rows], [cloud.cards, center.rows]);
   const overlay = useMatches(OVERLAY_UNDER);
   const { panel, onLayoutChanged, onDoubleClick } = useWidth();
   const kickRef = useRef<() => void>(() => {});
@@ -185,32 +228,47 @@ export function useBellRail({
     }
   }, []);
 
+  // Every read hands out alerts and the scope-change line once, whichever read it was.
+  const readPage = useCallback(async (page: Record<NotificationGroup, number>) => {
+    const next = await notificationCenterAction({
+      ...page,
+      cards: cardRef.current === null ? [] : [cardRef.current],
+    });
+    // Handed out once. Nothing is raised later to make up for a window that was focused
+    // when one arrived — that is the whole of the second interruption's rule.
+    if (next.alerts.length > 0) alertsRef.current?.(wordedAlerts(next.alerts, next.rows, copyRef.current));
+    // Handed out once too, and held until the rail is folded: the switch is made in
+    // Configuration, so the bell is usually down when the line arrives.
+    if (next.filled) setFilled(next.filled);
+    return next;
+  }, []);
+
+  const setPage = useCallback((next: Record<NotificationGroup, number>) => {
+    limitsRef.current = next;
+    setLimits(next);
+  }, []);
+
   // The one read every screen makes. It is also what opens the account's Realtime
   // connection on the server, so the poll is what keeps the bell live rather than a
-  // second thing to start.
+  // second thing to start. Each read replaces the loaded rows whole, so an update, a read
+  // mark or a Load more in between never leaves a row twice or not at all.
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const read = async () => {
+      const page = limitsRef.current;
       let next: NotificationCenter | null = null;
       try {
-        next = await notificationCenterAction();
+        next = await readPage(page);
       } catch {
         // A read that failed is a read the next tick makes again. The rows on screen stay
         // where they are: they are the last thing that was true, which beats emptying the
         // bell over one bad second.
       }
       if (!alive) return;
-      if (next) {
+      if (next && limitsRef.current === page) {
         setCloud(next);
         setReady(true);
-        // Handed out once. Nothing is raised later to make up for a window that was focused
-        // when one arrived — that is the whole of the second interruption's rule.
-        if (next.alerts.length > 0)
-          alertsRef.current?.(wordedAlerts(next.alerts, next.rows, copyRef.current));
-        // Handed out once too, and held until the rail is folded: the switch is made in
-        // Configuration, so the bell is usually down when the line arrives.
-        if (next.filled) setFilled(next.filled);
       }
       timer = setTimeout(() => void read(), open ? OPEN_MS : FOLDED_MS);
     };
@@ -223,7 +281,50 @@ export function useBellRail({
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, [open]);
+  }, [open, readPage]);
+
+  // A new card page asks for its own event now, rather than a tick later.
+  const askedCard = useRef(cardId);
+  useEffect(() => {
+    if (askedCard.current === cardId) return;
+    askedCard.current = cardId;
+    kickRef.current();
+  }, [cardId]);
+
+  const loadMore = useCallback(
+    async (tab: NotificationGroup) => {
+      const from = limitsRef.current;
+      const epoch = pageEpoch.current;
+      const page = { ...from, [tab]: from[tab] + PAGE };
+      setPaging((was) => ({ ...was, [tab]: "loading" }));
+      try {
+        const next = await readPage(page);
+        if (next.unavailable) throw new Error(next.unavailable);
+        // Folded, or another tab's page landed meanwhile: this answer is for a page gone.
+        if (limitsRef.current !== from || pageEpoch.current !== epoch) {
+          setPaging((was) => ({ ...was, [tab]: "idle" }));
+          return;
+        }
+        setPage(page);
+        setCloud(next);
+        setPaging((was) => ({ ...was, [tab]: "idle" }));
+      } catch {
+        setPaging((was) => ({ ...was, [tab]: "failed" }));
+      }
+    },
+    [readPage, setPage],
+  );
+
+  // Back to the first page when the rail folds or it is showing another scope.
+  const firstPage = useCallback(() => {
+    pageEpoch.current++;
+    setPaging(IDLE);
+    if (limitsRef.current === FIRST_PAGE) return;
+    setPage(FIRST_PAGE);
+    kickRef.current();
+  }, [setPage]);
+  const scope = `${cloud.boardId}\n${cloud.release}`;
+  useEffect(() => firstPage(), [scope, firstPage]);
 
   const openRow = useCallback(
     async (eventId: string) => {
@@ -263,7 +364,12 @@ export function useBellRail({
         const tabOf = (r: { state: string }) => notificationGroup(r.state as CloudEventState);
         const rows = was.rows.map((r) => (!group || tabOf(r) === group ? { ...r, unread: false } : r));
         // The bell counts `todo` alone, so emptying the landed tab leaves the number where it is.
-        return { ...was, rows, unread: rows.filter((r) => r.unread && tabOf(r) === "todo").length };
+        const tabUnread = was.tabUnread && {
+          todo: group === "landed" ? was.tabUnread.todo : 0,
+          landed: group === "todo" ? was.tabUnread.landed : 0,
+        };
+        const unread = tabUnread ? tabUnread.todo : rows.filter((r) => r.unread && tabOf(r) === "todo").length;
+        return { ...was, rows, unread, tabUnread };
       });
       // This board's own rows are all in To do, so the Landed tab's button leaves them alone.
       if (group !== "landed") readAllRunRows();
@@ -278,7 +384,10 @@ export function useBellRail({
       const next = !was;
       // Folding is reading it: the line said why those rows arrived quietly, and they are
       // still there to look at.
-      if (!next) setFilled(null);
+      if (!next) {
+        setFilled(null);
+        firstPage();
+      }
       try {
         window.localStorage.setItem(OPEN_KEY, next ? "1" : "0");
       } catch {
@@ -286,17 +395,18 @@ export function useBellRail({
       }
       return next;
     });
-  }, []);
+  }, [firstPage]);
 
   const fold = useCallback(() => {
     setOpen(false);
     setFilled(null);
+    firstPage();
     try {
       window.localStorage.setItem(OPEN_KEY, "0");
     } catch {
       // storage unavailable
     }
-  }, []);
+  }, [firstPage]);
 
   const unfold = useCallback(() => {
     setOpen(true);
@@ -315,6 +425,10 @@ export function useBellRail({
     unfold,
     overlay,
     center,
+    cardEvents,
+    paging,
+    grown: { todo: limits.todo > PAGE, landed: limits.landed > PAGE },
+    loadMore,
     filled,
     openRow,
     readAll,

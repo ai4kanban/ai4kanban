@@ -170,3 +170,43 @@ describe('a card handled again clears what its earlier tries left (#695)', () =>
     )
   })
 })
+
+describe('a paged read (#1033)', () => {
+  const at = (i: number) => `2026-09-01T${String(i).padStart(2, '0')}:00:00Z`
+  const history = () => [
+    ...Array.from({ length: 5 }, (_, i) =>
+      event(`landed-${i}`, { taskId: 100 + i, state: 'completed', acted: true, changedAt: at(i) }),
+    ),
+    ...Array.from({ length: 3 }, (_, i) => event(`ask-${i}`, { taskId: 200 + i, changedAt: at(10 + i) })),
+    event('working', { taskId: 300, state: 'running', acted: true, changedAt: at(20) }),
+  ]
+
+  it('hands back each tab up to its page, with the whole count and whether more is held', async () => {
+    fakeCloud(history())
+    for (const e of history()) await readHint(e.id)
+    const center = readCloudCenter({ todo: 2, landed: 2 })
+    assert.deepEqual(
+      center.rows.map((r) => r.eventId),
+      ['ask-2', 'ask-1', 'landed-4', 'landed-3'],
+    )
+    assert.deepEqual(center.more, { todo: true, landed: true })
+    assert.deepEqual(center.tabUnread, { todo: 3, landed: 5 })
+    assert.equal(center.unread, 3)
+  })
+
+  it('reads a card the page leaves out, including a state the rail never draws', async () => {
+    fakeCloud(history())
+    for (const e of history()) await readHint(e.id)
+    const center = readCloudCenter({ todo: 1, landed: 1, cards: [300, 100] })
+    assert.deepEqual(center.cards?.map((r) => r.eventId), ['working', 'landed-0'])
+    assert.deepEqual(readCloudCenter({ todo: 9, landed: 9 }).more, { todo: false, landed: false })
+  })
+
+  it('keeps an unpaged read whole, as older apps ask for it', async () => {
+    fakeCloud(history())
+    for (const e of history()) await readHint(e.id)
+    const center = readCloudCenter()
+    assert.equal(center.rows.length, 9)
+    assert.equal(center.more, undefined)
+  })
+})

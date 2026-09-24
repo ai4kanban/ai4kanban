@@ -132,6 +132,7 @@ import {
   setSilenced,
   watchRelease,
   type BoardNotifications,
+  type CenterPage,
   type NotificationCenter,
 } from "@/lib/notifications";
 import {
@@ -2471,9 +2472,16 @@ export async function dropCaseAction(discussion: string): Promise<void> {
 // Reading takes the alerts away. An alert is raised once or not at all — nothing is raised
 // later to make up for a window that happened to be focused when one arrived.
 
-export async function notificationCenterAction(): Promise<NotificationCenter> {
+export async function notificationCenterAction(page?: CenterPage): Promise<NotificationCenter> {
   try {
-    return await notificationCenter();
+    const count = (n: unknown) => (Number.isInteger(n) && (n as number) >= 0 ? (n as number) : 0);
+    return await notificationCenter(
+      page && {
+        todo: count(page.todo),
+        landed: count(page.landed),
+        cards: Array.isArray(page.cards) ? page.cards.filter((id) => Number.isInteger(id)) : [],
+      },
+    );
   } catch (e) {
     return {
       signedIn: false,
