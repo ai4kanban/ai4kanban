@@ -27,6 +27,12 @@ const zh: ConfigurationCopy = {
     builtIn: "内置",
     isDefault: "默认",
     builtInNames: { coding: "软件开发", "hyperframes-video": "演示视频", "slide-deck": "演示文稿" },
+    builtInDescriptions: {
+      coding: "规划、实现并审查软件改动。",
+      "hyperframes-video": "从脚本出发，经剪辑和审查，做出一段演示视频。",
+      "slide-deck": "规划并制作一份可编辑的 PowerPoint 演示文稿。",
+    },
+    about: (name) => `${name}说明`,
     stages: { plan: "规划", execute: "执行", review: "评审" },
     lead: "负责 Agent",
     pickLead: "选择 Agent",

@@ -1819,6 +1819,8 @@ export interface WorkflowView {
   id: string
   name: string
   builtIn: boolean
+  /** What a built-in is for, in English. Absent on a board's own. */
+  description?: string
   /** Whether it is the one a card with no workflow of its own runs on. */
   isDefault: boolean
   /** Whether its execute stage has to leave a file behind to count as finished. */

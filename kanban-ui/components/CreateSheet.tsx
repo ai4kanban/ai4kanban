@@ -28,6 +28,7 @@ import { Copied, useCopyText } from "./copy";
 import { DiscussFeedbackBlock, ShareRow, useDiscussFeedback, type DiscussFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
 import { useWorkflowName } from "./Workflows";
+import { useWorkflowTip } from "./WorkflowTip";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
  *  narrows the room the column is centred in, so the transcript and the box below it move
@@ -701,13 +702,20 @@ function WorkflowPick({
   const list = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<React.CSSProperties | null>(null);
   const [fade, setFade] = useState({ top: false, bottom: false });
+  const rows = useRef(new Map<string, HTMLElement>());
+  const tip = useWorkflowTip(menu);
+  const { shownId: tipShown, clear: clearTip } = tip;
   const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
 
-  const close = useCallback((refocus: boolean) => {
-    setOpen(false);
-    setPlace(null);
-    if (refocus) button.current?.focus();
-  }, []);
+  const close = useCallback(
+    (refocus: boolean) => {
+      clearTip();
+      setOpen(false);
+      setPlace(null);
+      if (refocus) button.current?.focus();
+    },
+    [clearTip],
+  );
   useEffect(() => {
     if (disabled) close(false);
   }, [disabled, close]);
@@ -754,10 +762,11 @@ function WorkflowPick({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();
-      close(true);
+      if (tipShown) clearTip();
+      else close(true);
     };
     const onDown = (e: PointerEvent) => {
-      if (!inside(e.target)) close(true);
+      if (!inside(e.target) && !(e.target instanceof Element && e.target.closest("[data-workflow-tip]"))) close(true);
     };
     // A menu left behind by a moving button is worse than a closed one.
     const onScroll = (e: Event) => {
@@ -774,7 +783,7 @@ function WorkflowPick({
       document.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
     };
-  }, [open, close]);
+  }, [open, close, tipShown, clearTip]);
 
   const onMenuKey = (e: React.KeyboardEvent) => {
     const items = [...(menu.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [])];
@@ -824,35 +833,53 @@ function WorkflowPick({
             <div className="relative flex min-h-0 flex-col">
               <div
                 ref={list}
-                onScroll={readFade}
+                onScroll={() => {
+                  tip.clear();
+                  readFade();
+                }}
                 className="min-h-[38px] overflow-y-auto overscroll-contain [scrollbar-width:thin]"
                 style={{ maxHeight: MENU_ROW * MENU_ROWS }}
               >
                 {flows.map((f) => {
                   // A workflow that cannot start would only write a card that stops on its first run.
                   const off = f.problems.length > 0;
+                  const row = () => rows.current.get(f.id) ?? null;
+                  const props = tip.rowProps(f, row);
                   return (
-                    <button
+                    <div
                       key={f.id}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={f.id === mine.id}
-                      aria-disabled={off || undefined}
-                      title={off ? w.notReadyHint : undefined}
-                      onClick={() => {
-                        if (off) return;
-                        onPick(f.id);
-                        close(true);
+                      ref={(el) => {
+                        if (el) rows.current.set(f.id, el);
+                        else rows.current.delete(f.id);
                       }}
-                      className={`flex w-full items-center justify-between gap-2 rounded-[7px] px-3 text-left text-[12px] font-[700] outline-none focus-visible:bg-nb-ink/[0.07] ${
-                        off ? "cursor-not-allowed opacity-45" : "cursor-pointer"
-                      } ${f.id === mine.id ? "bg-nb-accent-soft focus-visible:bg-nb-accent-soft focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent-deep)]" : ""}`}
-                      style={{ minHeight: MENU_ROW }}
+                      className={`flex items-center rounded-[7px] ${
+                        f.id === mine.id ? "bg-nb-accent-soft" : tip.shownId === f.id ? "bg-nb-wash" : ""
+                      }`}
                     >
-                      <span className="min-w-0 truncate">{nameOf(f)}</span>
-                      {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft">{w.notReady}</span>}
-                      {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
-                    </button>
+                      <button
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={f.id === mine.id}
+                        aria-disabled={off || undefined}
+                        title={off && !("aria-describedby" in props) ? w.notReadyHint : undefined}
+                        onClick={() => {
+                          if (off) return;
+                          tip.clear();
+                          onPick(f.id);
+                          close(true);
+                        }}
+                        className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-[7px] px-3 text-left text-[12px] font-[700] outline-none ${
+                          off ? "cursor-not-allowed" : "cursor-pointer hover:bg-nb-wash"
+                        } ${f.id === mine.id ? "hover:bg-transparent focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent-deep)]" : "focus-visible:bg-nb-ink/[0.07]"}`}
+                        style={{ minHeight: MENU_ROW }}
+                        {...props}
+                      >
+                        <span className={`min-w-0 break-words ${off ? "opacity-45" : ""}`}>{nameOf(f)}</span>
+                        {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft opacity-45">{w.notReady}</span>}
+                        {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
+                      </button>
+                      {tip.infoButton(f, nameOf(f), row)}
+                    </div>
                   );
                 })}
               </div>
@@ -871,6 +898,7 @@ function WorkflowPick({
                 />
               )}
             </div>
+            {tip.layer(flows)}
             <div className="mt-1 shrink-0 border-t border-nb-ink/10 pt-1">
               <button
                 type="button"

@@ -34,6 +34,12 @@ const en: ConfigurationCopy = {
     builtIn: "Built-in",
     isDefault: "Default",
     builtInNames: { coding: "Coding", "hyperframes-video": "Demo video", "slide-deck": "Slide deck" },
+    builtInDescriptions: {
+      coding: "Plan, implement, and review software changes.",
+      "hyperframes-video": "Create a demo video from a script through editing and review.",
+      "slide-deck": "Plan and create an editable PowerPoint presentation.",
+    },
+    about: (name) => `About ${name}`,
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
     lead: "Lead agent",
     pickLead: "Select agent",

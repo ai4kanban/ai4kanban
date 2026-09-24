@@ -51,6 +51,7 @@ import type {
 } from "@/lib/types";
 import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
 import { ELASTIC_CHIP } from "./chips";
+import { useWorkflowTip } from "./WorkflowTip";
 import {
   ACCENT_BTN,
   CAPTION,
@@ -383,7 +384,7 @@ export function WorkflowsPanel({
               bottom in the order they are read, with the rule down the right edge running
               the whole height of the pane. */}
           <div className="flex w-[292px] shrink-0 flex-col border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
-            <div className="mb-5 flex shrink-0 flex-col gap-5">
+            <div className="mb-5 flex shrink-0 flex-col gap-3">
               <Popover open={picking === "flow"} onOpenChange={(open) => setPicking(open ? "flow" : null)}>
                 <PopoverAnchor asChild>
                   <div className="flex w-full items-center gap-2">
@@ -898,23 +899,65 @@ function FlowPicker({
   const [find, setFind] = useState("");
   const wanted = find.trim().toLowerCase();
   const shown = wanted ? flows.filter((f) => nameOf(f).toLowerCase().includes(wanted)) : flows;
+  const panel = useRef<HTMLDivElement>(null);
+  const rows = useRef(new Map<string, HTMLElement>());
+  const tip = useWorkflowTip(panel);
   return (
     <PopoverContent
+      ref={panel}
       aria-label={c.title}
       onKeyDown={stepOptions}
+      onScroll={tip.clear}
+      onInteractOutside={(e) => {
+        if (e.target instanceof Element && e.target.closest("[data-workflow-tip]")) e.preventDefault();
+      }}
+      onEscapeKeyDown={(e) => {
+        if (!tip.shownId) return;
+        e.preventDefault();
+        tip.clear();
+      }}
       className="w-[var(--radix-popover-trigger-width)]"
     >
-      <PopoverSearch value={find} placeholder={c.findWorkflow} onChange={(e) => setFind(e.target.value)} />
+      <PopoverSearch
+        value={find}
+        placeholder={c.findWorkflow}
+        onChange={(e) => {
+          tip.clear();
+          setFind(e.target.value);
+        }}
+      />
       <div role="listbox" aria-label={c.title}>
-        {shown.map((f) => (
-          <PopoverOption key={f.id} selected={f.id === chosen} onClick={() => onPick(f.id)} className="py-2">
-            <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700]">{nameOf(f)}</span>
-            {f.builtIn && <span className="shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">{c.builtIn}</span>}
-            {f.isDefault && <Pill>{c.isDefault}</Pill>}
-            {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
-          </PopoverOption>
-        ))}
+        {shown.map((f) => {
+          const row = () => rows.current.get(f.id) ?? null;
+          return (
+            <div
+              key={f.id}
+              ref={(el) => {
+                if (el) rows.current.set(f.id, el);
+                else rows.current.delete(f.id);
+              }}
+              className="flex items-center"
+            >
+              <PopoverOption
+                selected={f.id === chosen}
+                data-active={tip.shownId === f.id || undefined}
+                onClick={() => {
+                  tip.clear();
+                  onPick(f.id);
+                }}
+                className="py-2"
+                {...tip.rowProps(f, row)}
+              >
+                <span className="min-w-0 flex-1 break-words text-[12.5px] font-[700]">{nameOf(f)}</span>
+                {f.isDefault && <Pill>{c.isDefault}</Pill>}
+                {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+              </PopoverOption>
+              {tip.infoButton(f, nameOf(f), row)}
+            </div>
+          );
+        })}
       </div>
+      {tip.layer(shown)}
       <div className="mt-1 border-t border-nb-ink/10 p-1 pt-2">
         <button type="button" onClick={onAdd} className={`${ACCENT_BTN} w-full justify-center`}>
           <FiPlus aria-hidden />

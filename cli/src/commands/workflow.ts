@@ -13,6 +13,7 @@ import { die } from '../lib/paths'
 import { agentRoster } from '../lib/agent/roles'
 import {
   addWorkflowHelper,
+  builtinDescription,
   createWorkflow,
   duplicateWorkflow,
   liveStage,
@@ -71,6 +72,8 @@ export function cmdWorkflowList(): MoveResult {
   const undeclared = (name: string) => roster.some((a) => a.name === name && !a.canLead)
   for (const flow of rows) {
     say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}${flow.needsArtifact ? '  (no worktree)' : ''}`)
+    const description = flow.builtIn ? builtinDescription(flow.id) : undefined
+    if (description) say(`  ${description}`)
     for (const stage of WORKFLOW_STAGES) {
       const setup = liveStage(flow, stage)
       const helpers = setup.helpers.map((h) => titleOf(h.agent)).join(', ')
@@ -83,7 +86,7 @@ export function cmdWorkflowList(): MoveResult {
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
-  return { workflows: rows }
+  return { workflows: rows.map((flow) => (flow.builtIn ? { ...flow, description: builtinDescription(flow.id) } : flow)) }
 }
 
 export function cmdWorkflowNew(name: string): MoveResult {

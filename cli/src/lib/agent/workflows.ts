@@ -110,6 +110,8 @@ type BuiltinHelpers = 'every' | string[]
 interface BuiltinWorkflow {
   id: string
   name: string
+  /** What it is for, in English; screens translate it by id. */
+  description: string
   needsArtifact?: boolean
   stages: Record<WorkflowStage, { lead: string; helpers: BuiltinHelpers }>
 }
@@ -124,6 +126,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
     name: 'Coding',
+    description: 'Plan, implement, and review software changes.',
     stages: {
       plan: { lead: 'software-planner', helpers: 'every' },
       execute: { lead: 'builder', helpers: [] },
@@ -133,6 +136,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'hyperframes-video',
     name: 'Demo video',
+    description: 'Create a demo video from a script through editing and review.',
     needsArtifact: true,
     stages: {
       plan: { lead: 'scriptwriter', helpers: ['hyperframes-assets'] },
@@ -143,6 +147,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'slide-deck',
     name: 'Slide deck',
+    description: 'Plan and create an editable PowerPoint presentation.',
     needsArtifact: true,
     stages: {
       plan: { lead: 'deck-planner', helpers: [] },
@@ -172,6 +177,9 @@ export const BUILTIN_WORKFLOW_IDS: string[] = BUILTINS.map((w) => w.id)
 /** Whether a workflow is one of the command's own — what refuses a rename, a delete, and a
  *  change of lead. */
 export const isBuiltinWorkflow = (id: string): boolean => BUILTIN_WORKFLOW_IDS.includes(id)
+
+/** What a built-in is for. A board's own workflow has none. */
+export const builtinDescription = (id: string): string | undefined => BUILTINS.find((w) => w.id === id)?.description
 
 // ---- reading ---------------------------------------------------------------
 
@@ -1042,6 +1050,7 @@ export function workflowViews(): WorkflowView[] {
     id: flow.id,
     name: flow.name,
     builtIn: flow.builtIn,
+    ...(flow.builtIn ? { description: builtinDescription(flow.id) } : {}),
     isDefault: flow.id === DEFAULT_WORKFLOW,
     needsArtifact: flow.needsArtifact,
     retiredAssignment: flow.retiredAssignment,

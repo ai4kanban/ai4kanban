@@ -56,6 +56,10 @@ export type ConfigurationCopy = {
      *  ships them — a workflow this board adds is the user's own words and is drawn as
      *  written. Keyed by the workflow's own id, which never changes. */
     builtInNames: Record<"coding" | "hyperframes-video" | "slide-deck", string>;
+    /** What each built-in is for, shown beside its row in a workflow list. */
+    builtInDescriptions: Record<"coding" | "hyperframes-video" | "slide-deck", string>;
+    /** The touch-screen button that shows a workflow's description. */
+    about: (name: string) => string;
     /** The three stages, in the order a card goes through them. */
     stages: { plan: string; execute: string; review: string };
     /** The one agent that runs the selected stage, and the picker when nobody does. */
