@@ -31,7 +31,7 @@ question requesting it, and stop. Read the brief, subtitle style and audio inten
 
 ## Steps
 
-1. **Check the assets**: every required file in **Index** must be ready and present. If a
+1. **Check the assets**: reuse approved checks in **Index** and confirm required files exist. If a
    shot has no asset mapping or any required file is missing, follow `akb guide update-questions`,
    append one `[user]` question naming what is missing and the folder, and stop.
 2. **Prepare**: continue the storyboard project at the **Project** path; do not create
@@ -52,10 +52,9 @@ question requesting it, and stop. Read the brief, subtitle style and audio inten
    Keep the original assets in place; keep no staging files or machine paths in the project.
    Report a failed render without claiming delivery; preserve the sources and original assets
    so the same script can retry. Do not use hosted rendering.
-7. **Preview**: rerun the project's shot export after editing, timing or mixing changes. Refresh
-   each self-contained `shot-<n>.hf.html` and its fallback from the rendered composition.
-   Keep local time zero and source offsets intact; the board supplies controls. Check playback,
-   pause, seeking and audio, and report checks that could not run.
+7. **Verify**: check the rendered MP4's picture, timing and sound, reporting any checks not run.
+   Refresh and validate affected shot previews and fallbacks after composition changes,
+   preserving local time zero and source offsets.
 8. **Record it**: after a successful render, append a ticked todo with the video's absolute path
    and the command that re-renders it, in the card's language; then, after a blank line, one
    `<Asset src=".assets/<card id>/<short-name>.mp4" label="<card title>" />` line for the video.
