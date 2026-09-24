@@ -191,6 +191,9 @@ export interface AgentRequest {
   /** create: two or more plans one discussion wrote, handed off together (#917), each a path
    *  from the project root. One plan goes as `plan`. */
   plans?: string[]
+  /** create: the conversation whose own agent session writes the cards (#1026), as its
+   *  transcript key — a discussion's Plan tasks. */
+  chat?: string
   /** create, and implement with no `id`: the version the new card(s) ship in — a
    *  **Build now** writes one card and it ships in the release on screen like any other
    *  (#470). plan-release: the version being planned, and changelog: the version being
@@ -396,6 +399,7 @@ export type RunRefusalKind =
   | 'chatBusy'
   | 'skillNotInstalled'
   | 'chatForeign'
+  | 'chatNoSession'
   | 'planNotFound'
 
 /** The values a refusal's sentence names — ids, names, paths, commands — for a screen that
@@ -493,6 +497,9 @@ export interface RunRecord {
   /** The run this one continued, when it was started by Resume. It names a run that is
    *  deliberately gone: resuming drops the record it took over from. */
   resumedFrom?: string
+  /** The conversation this run was said into (#1026), by its transcript key: the run carries
+   *  that conversation's session on, and holds it while it goes. */
+  chat?: string
   formatRepair?: { attempt: number; errors: string; cardIds: number[]; changedIds: number[]; existingIds: number[] }
   /** The automatic retry this run is part of (#525), on the run WAITING for the next
    *  attempt and on every attempt after the first. Absent on a run that has never hit a

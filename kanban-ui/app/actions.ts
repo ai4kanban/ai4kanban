@@ -829,6 +829,8 @@ async function startFromPlan(
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
     // The workflow the new card runs through (#715); none is the board's default.
     ...(typeof workflow === "string" && workflow.trim() ? { workflow: workflow.trim() } : {}),
+    // Plan tasks is said into the discussion's own session (#1026).
+    ...(action === "create" && typeof target !== "number" ? { chat: target ?? "board" } : {}),
   });
   const started = await startSession(request, await buildPrompt(request));
   if (!started.ok || !started.sessionId) return started;

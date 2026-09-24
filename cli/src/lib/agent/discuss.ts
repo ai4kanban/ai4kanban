@@ -9,7 +9,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 
-import { listRuns } from './sessions'
+import { listRuns, peekRun } from './sessions'
 import { openPlans, readChat, returnChatPlan, clearChatPlan, setChatArchived, setChatPlanRun } from './chat'
 import { locate, locateArchived } from '../cards'
 import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
@@ -84,8 +84,9 @@ export function startedPlanning(
   if (handed && isDiscussion(target)) {
     setChatArchived(target, true, 'board')
     // Started, never waited on, and never able to take the handoff down with it: the screen
-    // has already moved on to the run, and this turn is the board's own.
-    void shareOnEnd(target).catch(() => {})
+    // has already moved on to the run, and this turn is the board's own. A run said into this
+    // discussion's session submits once it ends instead (#1026).
+    if (!peekRun(sessionId)?.chat) void shareOnEnd(target).catch(() => {})
   }
   return { ok: true }
 }

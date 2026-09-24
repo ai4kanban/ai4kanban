@@ -55,7 +55,8 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
-import { isDiscussion, refusal, type RunRefusal } from './types'
+import { readRuns, runIsLive } from './store'
+import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
 import type {
   Chat,
   ChatMessage,
@@ -730,6 +731,10 @@ const UNNAMED_MS = 10_000
 // Who is answering, or nobody — and a marker left behind by a process that is gone is
 // cleared here rather than left to block the conversation for good.
 export function answeringOn(cardId: ChatTarget): boolean {
+  return markerHeld(cardId) || (typeof cardId !== 'number' && chatRunLive(keyOf(cardId)))
+}
+
+function markerHeld(cardId: ChatTarget): boolean {
   const dir = busyDir(cardId)
   let age: number
   try {
@@ -797,6 +802,60 @@ function startAnswering(cardId: ChatTarget): (() => void) | null {
     // taken away, rather than holding the conversation shut for good.
   }
   return () => fs.rmSync(dir, { recursive: true, force: true })
+}
+
+// ---- a run said into a conversation's own session (#1026) --------------------
+//
+// Plan tasks carries the discussion's session on rather than opening a blank one, so the
+// cards are written by the agent that held the discussion. The run is the conversation's turn
+// while it goes: nothing else may resume that session until it ends.
+
+const chatRunLive = (key: string): boolean => readRuns().some((r) => r.chat === key && runIsLive(r))
+
+/** The conversation a transcript key names, when a run may be said into it. */
+export function chatOfKey(key: string): ChatTarget | undefined {
+  if (key === 'board') return null
+  return isDiscussion(key as ChatTarget) ? (key as DiscussionTarget) : undefined
+}
+
+const noSession = (): RunRefusal => refusal('chatNoSession', 'this discussion has no session to continue.')
+
+/** Hold a conversation while a run on its session is written down. Released once the record
+ *  is written: from there the live run is what keeps everyone else out. */
+export function holdChat(key: string): (() => void) | RunRefusal {
+  const target = chatOfKey(key)
+  if (target === undefined) return noSession()
+  return startAnswering(target) ?? chatBusy()
+}
+
+/** How a run resumes this conversation's session, held. Refused rather than opening a fresh
+ *  session: the point of the run is what that session already holds. */
+export function takeChatSession(key: string): { plan: RunPlan; runtime: string; release(): void } | RunRefusal {
+  const target = chatOfKey(key)
+  if (target === undefined) return noSession()
+  const chat = readChat(target)
+  const blocked = blockedBy(target, chat)
+  if (blocked) return blocked
+  if (!chat?.resumeId) return noSession()
+  const runtime = runtimeOf(chat)
+  const plan = planResume(chat.harness, chat.resumeId, REPO_ROOT, CHAT_AGENT, { pin: runtime })
+  if (!plan) {
+    const agent = chatAgent(runtime).label
+    const previous = harnessLabel(chat.harness)
+    return refusal('chatForeign', `${agent} can't carry on a ${previous} conversation. Clear it to start fresh.`, { agent, previous })
+  }
+  const release = holdChat(key)
+  return typeof release === 'function' ? { plan, runtime, release } : release
+}
+
+/** A run said into this conversation has ended: the conversation carries on by the id it left. */
+export function chatRunEnded(key: string, resumeId: string | undefined): void {
+  const target = chatOfKey(key)
+  if (target === undefined || !resumeId) return
+  const chat = readChat(target)
+  if (!chat || chat.resumeId === resumeId) return
+  chat.resumeId = resumeId
+  writeChat(chat)
 }
 
 // ---- sending one message ---------------------------------------------------

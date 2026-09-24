@@ -163,6 +163,7 @@ const en: MessagesCopy = {
     chatBusy: () => "This conversation is still answering the last message.",
     skillNotInstalled: () => "The kanban skill could not be installed.",
     chatForeign: (a) => `${a.agent} can't carry on a ${a.previous} conversation. Clear it to start fresh.`,
+    chatNoSession: () => "This discussion has no session to continue. Keep discussing, then try again.",
     planNotFound: (a) => `${a.path} is not a plan on this board.`,
   },
   theBuild: "the build",

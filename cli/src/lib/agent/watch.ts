@@ -37,6 +37,8 @@ import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './l
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
 import { openPlan } from './resolve'
+import { chatOfKey, chatRunEnded } from './chat'
+import { shareOnEnd } from './share'
 import { humanSectionFor } from './runner'
 import { planRetry, retryLine } from './retry'
 import {
@@ -229,7 +231,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // client can restart — a printing agent resumes on its own command line — and nothing
   // comes back for a run whose ask can no longer be written down, which ends on a dead
   // session exactly as it always did.
-  const restartBase = client && record.resumedFrom && !record.formatRepair ? restartPrompt(requestOf(record), record.deliveryId) : undefined
+  // Never on a run said into a conversation (#1026): a fresh session holds none of it.
+  const restartBase = client && record.resumedFrom && !record.formatRepair && !record.chat ? restartPrompt(requestOf(record), record.deliveryId) : undefined
   const restart = restartBase ? [restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n') : undefined
   // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
   // for a conversation and closed for a command that only prints.
@@ -667,6 +670,14 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         releaseCardAtWork(record.cardId)
         await reportRunEnded(sessionId, record.cardId, status)
       }
+      // The conversation it was said into is free again (#1026) — unless a resume took the run
+      // over — and the end that handoff made submits only now.
+      const left = record.chat ? peekRun(sessionId) : undefined
+      if (record.chat && left) {
+        chatRunEnded(record.chat, left.resumeId)
+        const target = chatOfKey(record.chat)
+        if (target !== undefined) await shareOnEnd(target).catch(() => {})
+      }
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -781,7 +792,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             cwd: workDir,
             // Only a resumed run carries a conversation to continue. A fresh run's session
             // is opened inside the conversation, and its id comes back here.
-            resumeId: record.resumedFrom ? record.resumeId : undefined,
+            resumeId: record.resumedFrom || record.chat ? record.resumeId : undefined,
             restartPrompt: restart,
             log: append,
             gotResumeId: (id, restarted) => gotResumeId(id, restarted),

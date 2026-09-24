@@ -177,6 +177,7 @@ export function readStore(): Store {
       resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
       logPath: logPathIn(entry.logPath, entry.sessionId),
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
+      chat: typeof entry.chat === 'string' && entry.chat ? entry.chat : undefined,
       formatRepair: entry.formatRepair && typeof entry.formatRepair === 'object'
         && Number.isInteger(entry.formatRepair.attempt) && entry.formatRepair.attempt >= 0
         && typeof entry.formatRepair.errors === 'string'

@@ -56,7 +56,7 @@ import { stampDismissalReview, stampMemoryPrune, stampMemoryReview } from './set
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
-import { cardsDiscussing, repointChatRuns } from './chat'
+import { cardsDiscussing, holdChat, repointChatRuns } from './chat'
 import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
@@ -392,7 +392,7 @@ function recordDismissalReview(run: RunRecord): void {
 //   • THIS run is a later turn of an earlier conversation. It carries that conversation's
 //     id, not our new key.
 function resumeIdOf(r: RunRecord): string | undefined {
-  if (adoptsSessionId(r.harness) && !r.resumedFrom) return r.sessionId
+  if (adoptsSessionId(r.harness) && !r.resumedFrom && !r.chat) return r.sessionId
   return r.resumeId
 }
 
@@ -719,6 +719,8 @@ export function openRun(
   prompt: string,
   notes: string[] = [],
   sessionId: string = randomUUID(),
+  /** The conversation session this run carries on (#1026), in place of a fresh one. */
+  said?: RunPlan,
 ): { run: RunRecord; spec: RunSpec } | RunRefusal {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   // The runtime this one run was asked for (#518). Refused here rather than resolved away:
@@ -782,7 +784,7 @@ export function openRun(
   // and not this one.
   // …and on the runtime this run was started with, when it named one (#518) — over the one
   // its agent is set to, and for this run alone.
-  const plan = planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
+  const plan = said ? { ...said, note: null } : planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
   // What that agent resolved to, when the board names a connector this version can't run. It
   // goes in the log rather than being swallowed: a run on another tool than the one asked
   // for is the first thing to check when its output looks wrong.
@@ -807,8 +809,10 @@ export function openRun(
     version: SKILL_VERSION,
     cwd,
     argv: plan.argv,
-    // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
-    // none, and one that mints its own has nothing to record yet.
+    // No `resumeId` on a fresh run: one under an agent that takes our id needs none, and one
+    // that mints its own has nothing to record yet. A run said into a conversation carries
+    // that conversation's.
+    ...(said ? { chat: req.chat, resumeId: said.resumeId ?? undefined } : {}),
     logPath: logPathOf(sessionId),
     // Which agent this is, on the action that is one — so the run list can name it, and so
     // a resume starts the same agent rather than a different one.
@@ -915,6 +919,22 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   }
 
   const sessionId = randomUUID()
+  // The conversation's session is one turn at a time, a resume included (#1026).
+  const chat = prev.chat ? holdChat(prev.chat) : undefined
+  if (chat && 'error' in chat) return chat
+  try {
+    return await resumeHeld(prev, plan, sessionId, resuming)
+  } finally {
+    chat?.()
+  }
+}
+
+async function resumeHeld(
+  prev: RunRecord,
+  plan: RunPlan,
+  sessionId: string,
+  resuming: DeliveryRecord | undefined,
+): Promise<{ run: RunRecord; spec: RunSpec } | RunRefusal> {
   // The same rule a fresh run passes: the card is held before the record is written, so a
   // resume onto a card another machine has taken leaves nothing behind (#398).
   const holds = await takeRunCard(sessionId, prev.cardId)
@@ -940,6 +960,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     argv: plan.argv,
     resumeId: plan.resumeId ?? undefined,
     resumedFrom: prev.sessionId,
+    chat: prev.chat,
     formatRepair: prev.formatRepair ? { ...prev.formatRepair, attempt: prev.formatRepair.attempt + 1 } : undefined,
     // The retry chain carries on rather than starting over (#525): this run IS the attempt
     // the failed one scheduled, so its count and its window come with it.
