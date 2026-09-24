@@ -4,12 +4,14 @@
 // language — the panel and rows are ui/select.tsx's, so a command menu and an
 // open select read as one family. The difference is what the rows are: a
 // select's rows answer "which one", these do something when picked. Only the
-// pieces the board uses are here — trigger, content, item, label, separator.
+// pieces the board uses are here.
 
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+
+import { POPUP_PANEL, POPUP_ROW } from "./popover";
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
@@ -27,7 +29,8 @@ const DropdownMenuContent = React.forwardRef<
       sideOffset={sideOffset}
       onEscapeKeyDown={(e) => e.stopPropagation()}
       className={cn(
-        "z-[60] min-w-[9rem] overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1 text-nb-ink shadow-[3px_3px_0_0_var(--color-nb-ink)] data-[state=open]:animate-[nbPopIn_130ms_ease] data-[state=closed]:animate-[nbFadeOut_100ms_ease]",
+        POPUP_PANEL,
+        "max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[9rem] overflow-y-auto p-1",
         className,
       )}
       {...props}
@@ -43,13 +46,22 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-[7px] px-2.5 py-1.5 text-[13px] font-[600] text-nb-ink outline-none data-[highlighted]:bg-nb-wash data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      POPUP_ROW,
       className,
     )}
     {...props}
   />
 ));
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
+
+/** An on/off row. It draws no mark of its own: the caller shows the state in the row. */
+const DropdownMenuCheckboxItem = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
+>(({ className, ...props }, ref) => (
+  <DropdownMenuPrimitive.CheckboxItem ref={ref} className={cn(POPUP_ROW, className)} {...props} />
+));
+DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;
 
 const DropdownMenuLabel = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Label>,
@@ -83,6 +95,7 @@ export {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 };

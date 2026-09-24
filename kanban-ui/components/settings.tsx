@@ -177,21 +177,32 @@ export function Switch({
       aria-label={label}
       disabled={held}
       onClick={() => void flip()}
-      // At full size there is no frame: off is a filled grey track rather than an empty
-      // outlined one, so the switch still reads on whatever surface it sits on.
-      className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
+      className="inline-flex shrink-0 cursor-pointer rounded-full transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <SwitchTrack on={on === true} size={size} />
+    </button>
+  );
+}
+
+/** The switch's look alone, for a row that is itself the control — a menu's on/off item.
+ *  At full size there is no frame: off is a filled grey track rather than an empty outlined
+ *  one, so it still reads on whatever surface it sits on. */
+export function SwitchTrack({ on, size = "md" }: { on: boolean; size?: "md" | "sm" }) {
+  return (
+    <span
+      aria-hidden
+      className={`relative inline-flex shrink-0 items-center rounded-full transition-[background-color] duration-150 motion-reduce:transition-none ${
         size === "sm" ? "h-[15px] w-[26px] border-[1.5px] border-nb-ink" : "h-6 w-11"
       } ${on ? "bg-nb-accent" : "bg-nb-ink/20"}`}
     >
       <span
-        className={`inline-block rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 ${
+        className={`inline-block rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 motion-reduce:transition-none ${
           size === "sm"
             ? `size-[10px] ${on ? "translate-x-[11px]" : "translate-x-px"}`
             : `size-[18px] ${on ? "translate-x-[21px]" : "translate-x-[3px]"}`
         }`}
-        aria-hidden
       />
-    </button>
+    </span>
   );
 }
 

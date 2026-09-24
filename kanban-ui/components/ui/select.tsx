@@ -18,6 +18,8 @@ import { FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
 
 import { cn } from "@/lib/utils";
 
+import { POPUP_PANEL, POPUP_ROW, POPUP_TRIGGER } from "./popover";
+
 const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
@@ -29,7 +31,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-left text-[14px] text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-60 data-[placeholder]:text-nb-ink-soft/60 [&>span]:min-w-0 [&>span]:truncate",
+      POPUP_TRIGGER,
+      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-left text-[14px] text-nb-ink data-[placeholder]:text-nb-ink-soft/60 [&>span]:min-w-0 [&>span]:truncate",
       className,
     )}
     {...props}
@@ -86,7 +89,8 @@ const SelectContent = React.forwardRef<
       // the way a native select's Escape never reaches the page.
       onEscapeKeyDown={(e) => e.stopPropagation()}
       className={cn(
-        "relative z-[60] max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper text-nb-ink shadow-[3px_3px_0_0_var(--color-nb-ink)] data-[state=open]:animate-[nbPopIn_130ms_ease] data-[state=closed]:animate-[nbFadeOut_100ms_ease]",
+        POPUP_PANEL,
+        "relative max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-hidden",
         className,
       )}
       {...props}
@@ -130,8 +134,9 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none rounded-[7px] py-1.5 pl-2.5 pr-8 text-[13px] font-[600] text-nb-ink outline-none data-[highlighted]:bg-nb-wash data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      hint ? "flex-col items-start gap-0.5" : "items-center",
+      POPUP_ROW,
+      "pr-8",
+      hint ? "flex-col items-start gap-0.5" : "",
       note ? "gap-3" : "",
       className,
     )}

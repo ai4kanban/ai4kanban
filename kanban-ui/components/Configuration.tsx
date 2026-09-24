@@ -68,7 +68,8 @@ import { CloudMigration, useMigrating } from "./CloudMigration";
 import { Dialog } from "./Dialog";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
-import { MODEL_ROW, ModelRow } from "./model-row";
+import { ModelRow } from "./model-row";
+import { POPUP_ROW, Popover, PopoverAnchor, PopoverContent } from "./ui/popover";
 import { ACCENT_BTN, CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./settings";
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -1948,14 +1949,10 @@ function SuggestBox({
       ? all
       : all.filter((one) => one.toLowerCase().includes(typed));
 
+  // A row the arrow keys reach is scrolled into sight.
   useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", away);
-    return () => document.removeEventListener("mousedown", away);
-  }, [open]);
+    if (active >= 0) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [active, id]);
 
   const close = () => {
     setOpen(false);
@@ -1992,74 +1989,81 @@ function SuggestBox({
     );
   }
 
+  // The list is a popup of its own, but the focus never leaves the box: whatever is typed is
+  // what gets saved, and the arrow keys only point at a row.
   return (
-    <div ref={box} className="relative">
-      <input
-        id={id}
-        type="text"
-        role="combobox"
-        aria-expanded={open}
-        aria-controls={`${id}-list`}
-        aria-autocomplete="list"
-        aria-activedescendant={open && active >= 0 ? `${id}-option-${active}` : undefined}
-        value={value}
-        disabled={disabled}
-        placeholder={setting.placeholder}
-        spellCheck={false}
-        autoComplete="off"
-        onChange={(e) => {
-          onChange(e.target.value);
-          setOpen(true);
-          setActive(-1);
+    <Popover open={open && shown.length > 0} onOpenChange={(next) => !next && close()}>
+      <PopoverAnchor asChild>
+        <div ref={box} className="relative">
+          <input
+            id={id}
+            type="text"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={`${id}-list`}
+            aria-autocomplete="list"
+            aria-activedescendant={open && active >= 0 ? `${id}-option-${active}` : undefined}
+            value={value}
+            disabled={disabled}
+            placeholder={setting.placeholder}
+            spellCheck={false}
+            autoComplete="off"
+            onChange={(e) => {
+              onChange(e.target.value);
+              setOpen(true);
+              setActive(-1);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={(e) => onSave(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                move(open ? 1 : 0);
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                move(-1);
+              } else if (e.key === "Enter") {
+                if (open && active >= 0 && shown[active]) {
+                  e.preventDefault();
+                  pick(shown[active]);
+                } else {
+                  close();
+                  e.currentTarget.blur();
+                }
+              } else if (e.key === "Tab") {
+                close();
+              }
+            }}
+            className={`${CONTROL} pr-9`}
+          />
+          <button
+            type="button"
+            tabIndex={-1}
+            disabled={disabled}
+            aria-label={c.suggestions}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setOpen((was) => !was);
+              setActive(-1);
+            }}
+            className="absolute right-1 top-1/2 flex -translate-y-1/2 cursor-pointer items-center rounded-[8px] p-1.5 text-nb-ink-soft transition-colors hover:bg-nb-canvas hover:text-nb-ink active:bg-nb-canvas disabled:cursor-wait motion-reduce:transition-none"
+          >
+            <FiChevronDown
+              size={15}
+              className={`transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+      </PopoverAnchor>
+      <PopoverContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          if (box.current?.contains(e.target as Node)) e.preventDefault();
         }}
-        onFocus={() => setOpen(true)}
-        onBlur={(e) => onSave(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            move(open ? 1 : 0);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            move(-1);
-          } else if (e.key === "Enter") {
-            if (open && active >= 0 && shown[active]) {
-              e.preventDefault();
-              pick(shown[active]);
-            } else {
-              close();
-              e.currentTarget.blur();
-            }
-          } else if (e.key === "Escape" && open) {
-            // The dialog closes on Escape from a window listener. Closing just this list is
-            // what a native picker does, so the key stops here.
-            e.stopPropagation();
-            close();
-          } else if (e.key === "Tab") {
-            close();
-          }
-        }}
-        className={`${CONTROL} pr-9`}
-      />
-      <button
-        type="button"
-        tabIndex={-1}
-        disabled={disabled}
-        aria-label={c.suggestions}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => {
-          setOpen((was) => !was);
-          setActive(-1);
-        }}
-        className="absolute right-1 top-1/2 flex -translate-y-1/2 cursor-pointer items-center rounded-[8px] p-1.5 text-nb-ink-soft transition-colors hover:text-nb-ink disabled:cursor-wait"
+        className="max-h-[min(14rem,var(--radix-popover-content-available-height))] w-[var(--radix-popover-trigger-width)]"
       >
-        <FiChevronDown size={15} className={open ? "rotate-180 transition-transform" : "transition-transform"} />
-      </button>
-      {open && shown.length > 0 && (
-        <ul
-          id={`${id}-list`}
-          role="listbox"
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-56 overflow-y-auto rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1 shadow-[3px_3px_0_0_var(--color-nb-ink)]"
-        >
+        <ul id={`${id}-list`} role="listbox">
           {shown.map((one, at) => (
             <li key={one}>
               <button
@@ -2072,14 +2076,15 @@ function SuggestBox({
                 onMouseDown={(e) => e.preventDefault()}
                 onMouseEnter={() => setActive(at)}
                 onClick={() => pick(one)}
-                className={`${MODEL_ROW} ${at === active ? "bg-nb-wash" : ""}`}
+                data-active={at === active}
+                className={POPUP_ROW}
               >
                 <ModelRow id={one} picked={one === value} />
               </button>
             </li>
           ))}
         </ul>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

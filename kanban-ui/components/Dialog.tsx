@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDismissableLayerSurface } from "@radix-ui/react-dismissable-layer";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
@@ -47,6 +48,15 @@ export function Dialog({
   const phone = usePhone();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // The panel stops every click, which Radix reads as a press some control has taken, so a
+  // popup open in the dialog would stay open. Marked as a surface, a press on it closes one.
+  const markSurface = useDismissableLayerSurface();
+  const surface = useCallback(
+    (el: HTMLDivElement | null) => {
+      markSurface(el);
+    },
+    [markSurface],
+  );
 
   // The chat rail wants Esc too (#267). A dialog is over it while it is up, so the key
   // closes the dialog and leaves the reply alone.
@@ -93,7 +103,7 @@ export function Dialog({
     return createPortal(
       // `data-a4k-overlay` so the app's title bar lets the top of this page take clicks
       // (app/globals.css) — a drag region swallows a press rather than passing it on.
-      <div data-a4k-overlay className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col bg-nb-paper">
+      <div ref={surface} data-a4k-overlay className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col bg-nb-paper">
         {head}
         {flush ? (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
@@ -110,6 +120,7 @@ export function Dialog({
   return createPortal(
     <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
       <div
+        ref={surface}
         className="nb-panel flex flex-col"
         style={{ width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" }}
         onClick={(e) => e.stopPropagation()}

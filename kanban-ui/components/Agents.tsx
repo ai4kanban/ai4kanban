@@ -107,6 +107,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { POPUP_ROW, POPUP_TRIGGER, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
 import { sayFailure } from "@/lib/start-failure";
 
 // The one agent on this board whose switch stops the board asking you anything (#447). Its
@@ -1395,7 +1396,6 @@ function CadenceControls({
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
-  const anchor = useRef<HTMLSpanElement>(null);
 
   // The cadence the board is really on. A schedule can only be enabled with one the parser
   // reads, so `on` and a null `saved` cannot happen together — a cadence nothing recognises
@@ -1416,36 +1416,34 @@ function CadenceControls({
         {running ? copy.running : copy.run}
       </button>
       {!tooOld && !blocked && (
-        <span ref={anchor} className="relative">
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-haspopup="listbox"
-            title={copy.chipLabel(state || copy.off)}
-            aria-label={copy.chipLabel(state || copy.off)}
-            onClick={() => setOpen((was) => !was)}
-            // Neutral while off, ember once it is running: the closed chip's whole job is
-            // to say whether anything starts by itself, and what. Running, the cadence
-            // alone is the whole answer; off, it takes the setting's name to mean anything.
-            className={`flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] transition-colors duration-100 ${
-              state ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft hover:bg-nb-canvas"
-            }`}
-          >
-            <FiClock size={12} aria-hidden />
-            {state || copy.chipLabel(copy.off)}
-            <FiChevronDown size={11} aria-hidden />
-          </button>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title={copy.chipLabel(state || copy.off)}
+              aria-label={copy.chipLabel(state || copy.off)}
+              // Neutral while off, ember once it is running: the closed chip's whole job is
+              // to say whether anything starts by itself, and what. Running, the cadence
+              // alone is the whole answer; off, it takes the setting's name to mean anything.
+              className={`${POPUP_TRIGGER} flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] ${
+                state ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
+              }`}
+            >
+              <FiClock size={12} aria-hidden />
+              {state || copy.chipLabel(copy.off)}
+              <FiChevronDown size={11} aria-hidden />
+            </button>
+          </PopoverTrigger>
           {open && (
             <CadenceMenu
               saved={saved}
               enabled={on}
               copy={copy}
-              anchorRef={anchor}
               onDismiss={() => setOpen(false)}
               onSave={onSave}
             />
           )}
-        </span>
+        </Popover>
       )}
       <span className="text-[11px] text-nb-ink-soft">
         {failed && !running ? `${copy.failed} · ` : ""}
@@ -2003,7 +2001,6 @@ function CadenceMenu({
   saved,
   enabled,
   copy,
-  anchorRef,
   onDismiss,
   onSave,
 }: {
@@ -2012,7 +2009,6 @@ function CadenceMenu({
   saved: Cadence | null;
   enabled: boolean;
   copy: CadenceCopy;
-  anchorRef: React.RefObject<HTMLSpanElement | null>;
   onDismiss: () => void;
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
 }) {
@@ -2037,49 +2033,6 @@ function CadenceMenu({
 
   // Leaving never writes. A draft only exists until something is pressed, so there is
   // nothing here to lose that the user did not already decide to lose.
-  const leave = useRef(onDismiss);
-  leave.current = onDismiss;
-  useEffect(() => {
-    // Escape takes this list and nothing else. Configuration closes on the same key from
-    // `window`, so the press is caught on the way down and stopped there — otherwise backing
-    // out of the cadence takes the whole dialog with it. The unit list is its own layer and
-    // answers Escape first, so a press inside it is left alone.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if ((e.target as Element | null)?.closest?.("[data-radix-popper-content-wrapper]")) return;
-      e.stopPropagation();
-      leave.current();
-    };
-    // The unit list portals to <body>, so a press in it is a press in this panel.
-    const onPointerDown = (e: PointerEvent) => {
-      const at = e.target as Element | null;
-      if (!at || anchorRef.current?.contains(at) || at.closest("[data-radix-popper-content-wrapper]")) return;
-      leave.current();
-    };
-    document.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [anchorRef]);
-
-  // Open on the cadence in effect, so a keyboard lands in the list rather than at its edge.
-  useEffect(() => {
-    const rows = list.current?.querySelectorAll<HTMLButtonElement>('[role="option"]');
-    rows?.[ROWS.indexOf(picked)]?.focus();
-    // Once, as the list opens — moving the tick afterwards must not steal focus back.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const step = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    e.preventDefault();
-    const rows = Array.from(list.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
-    const at = rows.indexOf(document.activeElement as HTMLButtonElement);
-    const next = e.key === "ArrowDown" ? (at + 1) % rows.length : (at < 1 ? rows.length : at) - 1;
-    rows[next]?.focus();
-  };
 
   const pick = async (id: Pick, confirmed = false) => {
     if (busy) return;
@@ -2115,8 +2068,17 @@ function CadenceMenu({
   };
 
   return (
-    <div className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 w-[280px] bg-nb-paper p-1 text-left">
-      <div ref={list} role="listbox" aria-label={copy.recurring} onKeyDown={step} className="flex flex-col">
+    <PopoverContent
+      align="end"
+      aria-label={copy.recurring}
+      // Open on the cadence in effect, so a keyboard lands in the list rather than at its edge.
+      onOpenAutoFocus={(e) => {
+        e.preventDefault();
+        list.current?.querySelectorAll<HTMLElement>('[role="option"]')[ROWS.indexOf(picked)]?.focus();
+      }}
+      className="w-[280px] text-left"
+    >
+      <div ref={list} role="listbox" aria-label={copy.recurring} onKeyDown={stepOptions} className="flex flex-col">
         {ROWS.map((id) => (
           <button
             key={id}
@@ -2125,9 +2087,8 @@ function CadenceMenu({
             aria-selected={picked === id}
             disabled={!!busy}
             onClick={() => void pick(id)}
-            className={`relative flex w-full cursor-pointer select-none items-center gap-3 rounded-[7px] py-1.5 pl-2.5 pr-8 text-left text-[13px] font-[600] text-nb-ink outline-none hover:bg-nb-wash focus-visible:bg-nb-wash disabled:cursor-wait disabled:opacity-60 ${
-              (id === "custom" && draft) || (id === "off" && askingOff) ? "bg-nb-wash" : ""
-            }`}
+            data-active={(id === "custom" && !!draft) || (id === "off" && askingOff)}
+            className={`${POPUP_ROW} gap-3 pr-8`}
           >
             {label(id)}
             {id === "custom" && <FiChevronDown size={11} aria-hidden className="-ml-2 shrink-0 opacity-45" />}
@@ -2184,7 +2145,7 @@ function CadenceMenu({
           {failed}
         </p>
       )}
-    </div>
+    </PopoverContent>
   );
 }
 

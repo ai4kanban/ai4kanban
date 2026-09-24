@@ -7,11 +7,6 @@
 
 import { FiCheck } from "react-icons/fi";
 
-/** The frame a row wears in a list that isn't a Radix menu — Configuration's, which sits in
- *  the field rather than in a portal. A menu item brings its own. */
-export const MODEL_ROW =
-  "flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-left";
-
 /** `tag` is the one thing a list may say about an id beyond its name, and it is the board's
  *  own business rather than the model's: which of them this board runs. Nothing here
  *  describes a model — that is the provider's job, not ours. */

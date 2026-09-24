@@ -19,13 +19,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
-  FiCheck,
   FiChevronDown,
   FiChevronRight,
   FiLink,
   FiMoreHorizontal,
   FiPlus,
-  FiSearch,
   FiTrash2,
 } from "react-icons/fi";
 import {
@@ -60,9 +58,28 @@ import {
   Loading,
   Note,
   QUIET_BTN,
-  Switch,
+  SwitchTrack,
 } from "./settings";
 import { sayFailure } from "@/lib/start-failure";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  POPUP_ROW,
+  POPUP_TRIGGER,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverOption,
+  PopoverSearch,
+  PopoverTrigger,
+  stepOptions,
+} from "./ui/popover";
 
 /** What one workflow is called here. A built-in's name is the command's own English, so
  *  every language says it in its own words — the same rule a role's name follows; one this
@@ -309,11 +326,7 @@ export function WorkflowsPanel({
   const menuNode = flow ? (
     <MoreMenu
       open={menu}
-      onOpen={() => {
-        setPicking(null);
-        setMenu((was) => !was);
-      }}
-      onDismiss={() => setMenu(false)}
+      onOpenChange={setMenu}
       label={c.more(nameOf(flow))}
       flow={flow}
       onSaved={load}
@@ -359,44 +372,43 @@ export function WorkflowsPanel({
               the whole height of the pane. */}
           <div className="flex w-[292px] shrink-0 flex-col border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
             <div className="mb-5 flex shrink-0 flex-col gap-5">
-              <div className="relative flex w-full items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  {naming ? (
-                    <NameBox
-                      label={c.nameLabel}
-                      placeholder={c.namePlaceholder}
-                      value={naming.text}
-                      onChange={(text) => setNaming({ ...naming, text })}
-                      onBlur={() => void nameBlur()}
-                    />
-                  ) : (
-                    flow && (
-                      <button
-                        type="button"
-                        aria-label={c.title}
-                        aria-expanded={picking === "flow"}
-                        onClick={() => {
-                          setMenu(false);
-                          setPicking((was) => (was === "flow" ? null : "flow"));
-                        }}
-                        className={`${FLAT_CONTROL} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3 ${
-                          picking === "flow" ? "outline-2 outline-nb-accent" : ""
-                        }`}
-                      >
-                        <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
-                          {nameOf(flow)}
-                        </span>
-                        {flow.builtIn && (
-                          <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
-                        )}
-                        {flow.isDefault && <Pill>{c.isDefault}</Pill>}
-                        {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
-                        <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
-                      </button>
-                    )
-                  )}
-                </div>
-                {menuNode}
+              <Popover open={picking === "flow"} onOpenChange={(open) => setPicking(open ? "flow" : null)}>
+                <PopoverAnchor asChild>
+                  <div className="flex w-full items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      {naming ? (
+                        <NameBox
+                          label={c.nameLabel}
+                          placeholder={c.namePlaceholder}
+                          value={naming.text}
+                          onChange={(text) => setNaming({ ...naming, text })}
+                          onBlur={() => void nameBlur()}
+                        />
+                      ) : (
+                        flow && (
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label={c.title}
+                              className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3`}
+                            >
+                              <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
+                                {nameOf(flow)}
+                              </span>
+                              {flow.builtIn && (
+                                <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
+                              )}
+                              {flow.isDefault && <Pill>{c.isDefault}</Pill>}
+                              {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+                              <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
+                            </button>
+                          </PopoverTrigger>
+                        )
+                      )}
+                    </div>
+                    {menuNode}
+                  </div>
+                </PopoverAnchor>
                 {picking === "flow" && (
                   <FlowPicker
                     flows={flows}
@@ -406,10 +418,9 @@ export function WorkflowsPanel({
                       setPicked(id);
                     }}
                     onAdd={() => void add()}
-                    onDismiss={() => setPicking(null)}
                   />
                 )}
-              </div>
+              </Popover>
 
               {flow?.retiredAssignment && (
                 <Note>
@@ -470,37 +481,33 @@ export function WorkflowsPanel({
                 {!reviewing && (
                   <section className="mb-4">
                     <Caption>{c.lead}</Caption>
-                    <div className="relative">
-                      {setup.lead ? (
-                        <StageRow
-                          name={setup.lead}
-                          agent={setup.candidates.find((a) => a.name === setup.lead)}
-                          held={shown === setup.lead}
-                          onOpen={() => void select(setup.lead)}
-                          swap={
-                            flow.builtIn
-                              ? undefined
-                              : {
-                                  label: c.pickLead,
-                                  open: picking === "lead",
-                                  onOpen: () => setPicking((was) => (was === "lead" ? null : "lead")),
-                                }
-                          }
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setPicking((was) => (was === "lead" ? null : "lead"))}
-                          className={`${FLAT_CONTROL} flex h-[36px] w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700] ${
-                            picking === "lead" ? "outline-2 outline-nb-accent" : ""
-                          }`}
-                        >
-                          {c.pickLead}
-                          <FiChevronDown aria-hidden />
-                        </button>
-                      )}
+                    <Popover open={picking === "lead"} onOpenChange={(open) => setPicking(open ? "lead" : null)}>
+                      <PopoverAnchor asChild>
+                        <div>
+                          {setup.lead ? (
+                            <StageRow
+                              name={setup.lead}
+                              agent={setup.candidates.find((a) => a.name === setup.lead)}
+                              held={shown === setup.lead}
+                              onOpen={() => void select(setup.lead)}
+                              swap={flow.builtIn ? undefined : c.pickLead}
+                            />
+                          ) : (
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[36px] w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700]`}
+                              >
+                                {c.pickLead}
+                                <FiChevronDown aria-hidden />
+                              </button>
+                            </PopoverTrigger>
+                          )}
+                        </div>
+                      </PopoverAnchor>
                       {picking === "lead" && (
                         <AgentPicker
+                          label={c.pickLead}
                           candidates={setup.candidates.filter(
                             (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
                           )}
@@ -509,10 +516,9 @@ export function WorkflowsPanel({
                             setPicking(null);
                             if (await move(stage, { kind: "lead", agent: name })) show(name);
                           }}
-                          onDismiss={() => setPicking(null)}
                         />
                       )}
-                    </div>
+                    </Popover>
                     {leadUndeclared(setup) && (
                       <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
                     )}
@@ -538,19 +544,16 @@ export function WorkflowsPanel({
                   {adding ? (
                     <NewAgentRow onCreate={createAgent} onCancel={() => setAdding(false)} />
                   ) : (
-                    <div className="relative mt-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setPicking((was) => (was === "helper" ? null : "helper"))}
-                        className={`${QUIET_BTN} w-full justify-center ${
-                          picking === "helper" ? "outline-2 outline-nb-accent" : ""
-                        }`}
-                      >
-                        <FiPlus aria-hidden />
-                        {reviewing ? c.addReviewer : c.addHelper}
-                      </button>
+                    <Popover open={picking === "helper"} onOpenChange={(open) => setPicking(open ? "helper" : null)}>
+                      <PopoverTrigger asChild>
+                        <button type="button" className={`${QUIET_BTN} ${POPUP_TRIGGER} mt-2.5 w-full justify-center`}>
+                          <FiPlus aria-hidden />
+                          {reviewing ? c.addReviewer : c.addHelper}
+                        </button>
+                      </PopoverTrigger>
                       {picking === "helper" && (
                         <AgentPicker
+                          label={reviewing ? c.addReviewer : c.addHelper}
                           candidates={setup.candidates.filter(
                             (a) =>
                               !a.canLead &&
@@ -566,10 +569,9 @@ export function WorkflowsPanel({
                             setPicking(null);
                             setAdding(true);
                           }}
-                          onDismiss={() => setPicking(null)}
                         />
                       )}
-                    </div>
+                    </Popover>
                   )}
                 </section>
               </>
@@ -828,7 +830,8 @@ function StageRow({
   agent: WorkflowCandidate | undefined;
   held: boolean;
   onOpen: () => void;
-  swap?: { label: string; open: boolean; onOpen: () => void };
+  /** The label of the chevron that swaps who leads; the row must sit in that Popover. */
+  swap?: string;
 }) {
   const nameOf = useCandidateName();
   return (
@@ -851,54 +854,18 @@ function StageRow({
         </span>
       </button>
       {swap && (
-        <button
-          type="button"
-          aria-label={swap.label}
-          aria-expanded={swap.open}
-          onClick={swap.onOpen}
-          className={`grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft ${
-            swap.open ? "outline-2 outline-nb-accent" : ""
-          }`}
-        >
-          <FiChevronDown aria-hidden />
-        </button>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={swap}
+            className={`${POPUP_TRIGGER} grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft`}
+          >
+            <FiChevronDown aria-hidden />
+          </button>
+        </PopoverTrigger>
       )}
     </div>
   );
-}
-
-/** A press anywhere else, or Escape, closes the layer this ref is on — what every other menu
- *  in the app does, and what a menu that only closes on a pick makes the user hunt for.
- *
- *  The press is measured against the popover's POSITIONING parent, which holds the button
- *  that opened it: measured against the popover alone, pressing that button would close the
- *  layer here and its own toggle would open it straight back. Escape stops where it is caught
- *  — the dialog closes on Escape too, and one key should shut one thing. */
-function useDismiss<T extends HTMLElement>(onDismiss: () => void) {
-  const box = useRef<T>(null);
-  const close = useRef(onDismiss);
-  close.current = onDismiss;
-  useEffect(() => {
-    const pressed = (e: PointerEvent) => {
-      const at = e.target as Element | null;
-      const near = box.current?.parentElement;
-      if (!at || !near || near.contains(at)) return;
-      close.current();
-    };
-    const typed = (e: KeyboardEvent) => {
-      // Nothing open under this ref: the key is the dialog's, not ours.
-      if (e.key !== "Escape" || !box.current) return;
-      e.stopPropagation();
-      close.current();
-    };
-    document.addEventListener("pointerdown", pressed, true);
-    document.addEventListener("keydown", typed, true);
-    return () => {
-      document.removeEventListener("pointerdown", pressed, true);
-      document.removeEventListener("keydown", typed, true);
-    };
-  }, []);
-  return box;
 }
 
 /** The workflows this board has, searchable, with **New workflow** under them as a button of
@@ -909,57 +876,41 @@ function FlowPicker({
   chosen,
   onPick,
   onAdd,
-  onDismiss,
 }: {
   flows: WorkflowView[];
   chosen: string;
   onPick: (id: string) => void;
   onAdd: () => void;
-  onDismiss: () => void;
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
   const [find, setFind] = useState("");
   const wanted = find.trim().toLowerCase();
   const shown = wanted ? flows.filter((f) => nameOf(f).toLowerCase().includes(wanted)) : flows;
-  const box = useDismiss<HTMLDivElement>(onDismiss);
   return (
-    <div
-      ref={box}
-      className="absolute left-0 top-full z-30 mt-2 w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-2 shadow-[3px_3px_0_var(--color-nb-ink)]"
+    <PopoverContent
+      aria-label={c.title}
+      onKeyDown={stepOptions}
+      className="w-[var(--radix-popover-trigger-width)]"
     >
-      <div className="relative mb-2">
-        <FiSearch aria-hidden className="absolute left-2.5 top-2.5 text-[12px] text-nb-ink-soft" />
-        <input
-          autoFocus
-          value={find}
-          placeholder={c.findWorkflow}
-          onChange={(e) => setFind(e.target.value)}
-          className={`${CONTROL} pl-8 text-[12px]`}
-        />
+      <PopoverSearch value={find} placeholder={c.findWorkflow} onChange={(e) => setFind(e.target.value)} />
+      <div role="listbox" aria-label={c.title}>
+        {shown.map((f) => (
+          <PopoverOption key={f.id} selected={f.id === chosen} onClick={() => onPick(f.id)} className="py-2">
+            <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700]">{nameOf(f)}</span>
+            {f.builtIn && <span className="shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">{c.builtIn}</span>}
+            {f.isDefault && <Pill>{c.isDefault}</Pill>}
+            {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+          </PopoverOption>
+        ))}
       </div>
-      {shown.map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={() => onPick(f.id)}
-          className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-2 py-2 text-left ${
-            f.id === chosen ? "bg-nb-accent-soft" : ""
-          }`}
-        >
-          <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700]">{nameOf(f)}</span>
-          {f.builtIn && <span className="shrink-0 text-[10.5px] text-nb-ink-soft">{c.builtIn}</span>}
-          {f.isDefault && <Pill>{c.isDefault}</Pill>}
-          {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
-        </button>
-      ))}
-      <div className="mt-2 border-t border-nb-ink/10 pt-2">
+      <div className="mt-1 border-t border-nb-ink/10 p-1 pt-2">
         <button type="button" onClick={onAdd} className={`${ACCENT_BTN} w-full justify-center`}>
           <FiPlus aria-hidden />
           {c.add}
         </button>
       </div>
-    </div>
+    </PopoverContent>
   );
 }
 
@@ -967,17 +918,17 @@ function FlowPicker({
  *  both pick ONE agent off the candidates the board offered for this stage. Only the helper
  *  picker can make one — the template writes a helper, never a lead. */
 function AgentPicker({
+  label,
   candidates,
   chosen,
   onPick,
   onNew,
-  onDismiss,
 }: {
+  label: string;
   candidates: WorkflowCandidate[];
   chosen: string;
   onPick: (name: string) => void;
   onNew?: () => void;
-  onDismiss: () => void;
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useCandidateName();
@@ -987,59 +938,38 @@ function AgentPicker({
   const shown = wanted
     ? candidates.filter((a) => `${a.name} ${a.title} ${nameOf(a, a.name)}`.toLowerCase().includes(wanted))
     : candidates;
-  const box = useDismiss<HTMLDivElement>(onDismiss);
   return (
-    <div
-      ref={box}
-      className="absolute left-0 top-full z-30 mt-2 w-full min-w-[262px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-2 shadow-[3px_3px_0_var(--color-nb-ink)]"
+    <PopoverContent
+      aria-label={label}
+      onKeyDown={stepOptions}
+      className="w-[var(--radix-popover-trigger-width)] min-w-[262px]"
     >
-      <div className="relative mb-2">
-        <FiSearch aria-hidden className="absolute left-2.5 top-2.5 text-[12px] text-nb-ink-soft" />
-        <input
-          autoFocus
-          value={find}
-          placeholder={c.find}
-          onChange={(e) => setFind(e.target.value)}
-          className={`${CONTROL} pl-8 text-[12px]`}
-        />
-      </div>
+      <PopoverSearch value={find} placeholder={c.find} onChange={(e) => setFind(e.target.value)} />
       {shown.length === 0 ? (
-        <p className="px-2 py-3 text-[12px] text-nb-ink-soft">{c.noCandidates}</p>
+        <p className="px-2.5 py-3 text-[12px] text-nb-ink-soft">{c.noCandidates}</p>
       ) : (
-        shown.map((a) => (
-          <button
-            key={a.name}
-            type="button"
-            onClick={() => onPick(a.name)}
-            className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-2 py-2 text-left ${
-              a.name === chosen ? "bg-nb-accent-soft" : ""
-            }`}
-          >
-            <Character name={a.name} size={28} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-[700]">{nameOf(a, a.name)}</span>
-              <span className="block truncate text-[10.5px] text-nb-ink-soft">{glossOf(a, a.name)}</span>
-            </span>
-            {a.name === chosen && <FiCheck aria-hidden className="text-[13px]" />}
-          </button>
-        ))
+        <div role="listbox" aria-label={label}>
+          {shown.map((a) => (
+            <PopoverOption key={a.name} selected={a.name === chosen} onClick={() => onPick(a.name)} className="px-2">
+              <Character name={a.name} size={28} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12px] font-[700]">{nameOf(a, a.name)}</span>
+                <span className="block truncate text-[10.5px] font-[400] text-nb-ink-soft">{glossOf(a, a.name)}</span>
+              </span>
+            </PopoverOption>
+          ))}
+        </div>
       )}
       {onNew && (
-        <div className="mt-1 border-t border-nb-ink/10 pt-1.5">
-          <button
-            type="button"
-            onClick={onNew}
-            className="flex w-full cursor-pointer items-center gap-1.5 px-2 text-left text-[12px] font-[700]"
-          >
+        <div className="mt-1 border-t border-nb-ink/10 pt-1">
+          <button type="button" onClick={onNew} className={`${POPUP_ROW} gap-1.5 text-[12px] font-[700]`}>
             <FiPlus aria-hidden />
             {c.newAgent}
           </button>
-          <span className="mt-0.5 block px-2 pb-1 text-[10.5px] leading-[15px] text-nb-ink-soft">
-            {c.newAgentHint}
-          </span>
+          <span className="block px-2.5 pb-1.5 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.newAgentHint}</span>
         </div>
       )}
-    </div>
+    </PopoverContent>
   );
 }
 
@@ -1047,8 +977,7 @@ function AgentPicker({
  *  under Advanced settings — whether its deliveries get a Git worktree of their own (#874). */
 function MoreMenu({
   open,
-  onOpen,
-  onDismiss,
+  onOpenChange,
   label,
   items,
   danger,
@@ -1057,8 +986,7 @@ function MoreMenu({
   onError,
 }: {
   open: boolean;
-  onOpen: () => void;
-  onDismiss: () => void;
+  onOpenChange: (open: boolean) => void;
   label: string;
   items: { label: string; run: () => void }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
@@ -1072,7 +1000,10 @@ function MoreMenu({
   const [held, setHeld] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
   const [advanced, setAdvanced] = useState(false);
-  const box = useDismiss<HTMLDivElement>(onDismiss);
+  const [flipping, setFlipping] = useState(false);
+  // A pick moves on to something else — often the name box, which saves on blur — so focus
+  // goes back to the button only when the menu was left without one.
+  const acted = useRef(false);
   const on = !flow.needsArtifact;
   useEffect(() => {
     if (!open) {
@@ -1080,91 +1011,111 @@ function MoreMenu({
       setAdvanced(false);
       return;
     }
+    acted.current = false;
     if (!danger) return;
     void cardsOnWorkflowAction(danger.id).then((res) => setHeld(res.cards.length));
   }, [open, danger]);
-  const row = "flex h-[31px] w-full cursor-pointer items-center rounded-[7px] px-2.5 text-left text-[12px] font-[600]";
+  const act = (run: () => void) => () => {
+    acted.current = true;
+    run();
+  };
+  const flip = async () => {
+    if (flipping) return;
+    setFlipping(true);
+    const res = await setWorkflowWorktreeAction(flow.id, !on);
+    if (res.ok) await onSaved();
+    else onError?.(c.worktreeSaveFailed);
+    setFlipping(false);
+  };
+  const row = "h-[31px] text-[12px]";
   return (
-    <div className="relative shrink-0">
-      <button
-        type="button"
-        aria-label={label}
-        aria-expanded={open}
-        onClick={onOpen}
-        className={`${FLAT_CONTROL} grid size-[44px] cursor-pointer place-items-center rounded-[10px] text-nb-ink focus-visible:outline-2 focus-visible:outline-nb-accent ${
-          open ? "outline-2 outline-nb-accent" : ""
-        }`}
-      >
-        <FiMoreHorizontal aria-hidden className="text-[17px]" />
-      </button>
-      {open && (
-        <div
-          ref={box}
-          className="absolute right-0 top-full z-30 mt-4 w-[258px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
+    <DropdownMenu open={open} onOpenChange={onOpenChange} modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className={`${FLAT_CONTROL} ${POPUP_TRIGGER} grid size-[44px] shrink-0 cursor-pointer place-items-center rounded-[10px] text-nb-ink`}
         >
-          {items.map((item) => (
-            <button key={item.label} type="button" onClick={item.run} className={row}>
-              {item.label}
-            </button>
-          ))}
-          {danger && !asking && (
-            <button type="button" onClick={() => setAsking(true)} className={`${row} mt-1 text-nb-peach-ink`}>
-              {danger.label}
-            </button>
-          )}
-          {danger && asking && held !== null && (
-            <div className="mt-1 px-2.5 py-2">
-              {held > 0 ? (
-                <p className="text-[11.5px] text-nb-ink-soft">{danger.inUse(held)}</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={danger.run}
-                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink [overflow-wrap:anywhere]"
-                >
-                  {danger.confirm}
-                </button>
-              )}
-            </div>
-          )}
-          {/* On is a branch and a worktree per delivery, for code; off works in the project
-              and delivers files. A built-in's is fixed, so it is shown rather than offered. */}
-          <div className="mt-1 border-t border-nb-ink/10 pt-1">
-            <button
-              type="button"
-              aria-expanded={advanced}
-              onClick={() => setAdvanced((was) => !was)}
-              className={`${row} justify-between text-nb-ink-soft`}
-            >
-              {c.advanced}
-              {advanced ? <FiChevronDown aria-hidden /> : <FiChevronRight aria-hidden />}
-            </button>
-            {advanced && (
-              <div className="px-2.5 pt-2 pb-1.5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="min-w-0 text-[12px] font-[600]">{c.worktree}</span>
-                  {flow.builtIn ? (
-                    <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
-                      {on ? c.worktreeOn : c.worktreeOff}
-                    </span>
-                  ) : (
-                    <Switch
-                      on={on}
-                      label={c.worktree}
-                      onFlip={async (next) => {
-                        const res = await setWorkflowWorktreeAction(flow.id, next);
-                        if (res.ok) await onSaved();
-                        else onError?.(c.worktreeSaveFailed);
-                      }}
-                    />
-                  )}
-                </div>
-                <p className="mt-1 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.worktreeHint}</p>
-              </div>
+          <FiMoreHorizontal aria-hidden className="text-[17px]" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        collisionPadding={8}
+        onCloseAutoFocus={(e) => {
+          if (acted.current) e.preventDefault();
+        }}
+        className="w-[258px] p-1.5"
+      >
+        {items.map((item) => (
+          <DropdownMenuItem key={item.label} onSelect={act(item.run)} className={row}>
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+        {danger && !asking && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setAsking(true);
+            }}
+            className={`${row} mt-1 text-nb-peach-ink`}
+          >
+            {danger.label}
+          </DropdownMenuItem>
+        )}
+        {danger && asking && held !== null && (
+          <div className="mt-1 px-2.5 py-2">
+            {held > 0 ? (
+              <p className="text-[11.5px] text-nb-ink-soft">{danger.inUse(held)}</p>
+            ) : (
+              <DropdownMenuItem
+                onSelect={act(danger.run)}
+                className="justify-center gap-1.5 bg-nb-peach-soft text-[12px] font-[700] text-nb-peach-ink [overflow-wrap:anywhere] data-[highlighted]:bg-nb-peach/45 hover:bg-nb-peach/45"
+              >
+                {danger.confirm}
+              </DropdownMenuItem>
             )}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+        {/* On is a branch and a worktree per delivery, for code; off works in the project
+            and delivers files. A built-in's is fixed, so it is shown rather than offered. */}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          aria-expanded={advanced}
+          onSelect={(e) => {
+            e.preventDefault();
+            setAdvanced((was) => !was);
+          }}
+          className={`${row} justify-between text-nb-ink-soft`}
+        >
+          {c.advanced}
+          {advanced ? <FiChevronDown aria-hidden /> : <FiChevronRight aria-hidden />}
+        </DropdownMenuItem>
+        {advanced && (
+          <div className="pb-1">
+            {flow.builtIn ? (
+              <div className="flex items-center justify-between gap-3 px-2.5 py-1.5">
+                <span className="min-w-0 text-[12px] font-[600]">{c.worktree}</span>
+                <span className="shrink-0 text-[11.5px] text-nb-ink-soft">{on ? c.worktreeOn : c.worktreeOff}</span>
+              </div>
+            ) : (
+              <DropdownMenuCheckboxItem
+                checked={on}
+                disabled={flipping}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void flip();
+                }}
+                className="justify-between gap-3 text-[12px]"
+              >
+                <span className="min-w-0">{c.worktree}</span>
+                <SwitchTrack on={on} />
+              </DropdownMenuCheckboxItem>
+            )}
+            <p className="mt-0.5 px-2.5 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.worktreeHint}</p>
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
