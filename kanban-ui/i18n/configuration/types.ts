@@ -107,8 +107,8 @@ export type ConfigurationCopy = {
      *  change reaches those workflows too. */
     sharedWith: (flows: string[]) => string;
     sharedTip: (flows: string[]) => string;
-    usedOnlyHere: string;
-    unused: string;
+    /** Above the helpers this project added. */
+    yoursDivider: string;
     /** Under a built-in role's line: its brief ships with the command. */
     roleNote: string;
     /** One more line in the delete confirmation, when workflows still assign it. */

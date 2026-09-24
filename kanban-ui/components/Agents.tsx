@@ -940,7 +940,7 @@ function Page({
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-baseline gap-2">
                 <span className="shrink-0 text-[14px] font-[800] text-nb-ink">{title}</span>
-                {agent.file && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
+                {agent.file && !scoped && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
                 {tag}
               </div>
               {scoped && (actions || removal) && (

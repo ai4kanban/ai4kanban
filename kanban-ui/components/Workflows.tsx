@@ -44,6 +44,7 @@ import type {
   AgentInfo,
   AgentView,
   WorkflowCandidate,
+  WorkflowHelper,
   WorkflowStage,
   WorkflowStageView,
   WorkflowView,
@@ -320,6 +321,17 @@ export function WorkflowsPanel({
   );
 
   const agent = roster.agents?.find((a) => a.name === shown);
+  const isYours = (name: string) => !!roster.agents?.find((a) => a.name === name)?.file;
+  const helperRows = (helpers: WorkflowHelper[]) =>
+    helpers.map((h) => (
+      <StageRow
+        key={h.agent}
+        name={h.agent}
+        agent={setup?.candidates.find((a) => a.name === h.agent)}
+        held={shown === h.agent}
+        onOpen={() => void select(h.agent)}
+      />
+    ));
   const isLead = !!setup && !reviewing && shown === setup.lead;
 
   // Beside the workflow's name, whatever the stage holds and whoever is selected (#964).
@@ -527,15 +539,9 @@ export function WorkflowsPanel({
 
                 <section className="min-w-0">
                   <Caption>{reviewing ? c.reviewers : c.helpers}</Caption>
-                  {setup.helpers.map((h) => (
-                    <StageRow
-                      key={h.agent}
-                      name={h.agent}
-                      agent={setup.candidates.find((a) => a.name === h.agent)}
-                      held={shown === h.agent}
-                      onOpen={() => void select(h.agent)}
-                    />
-                  ))}
+                  {helperRows(setup.helpers.filter((h) => !isYours(h.agent)))}
+                  {setup.helpers.some((h) => isYours(h.agent)) && <YoursDivider label={c.yoursDivider} />}
+                  {helperRows(setup.helpers.filter((h) => isYours(h.agent)))}
                   {!setup.helpers.length && (
                     <p className="px-2.5 py-2 text-[11.5px] text-nb-ink-soft">
                       {reviewing ? c.noReviewers : c.noneInStage}
@@ -590,7 +596,7 @@ export function WorkflowsPanel({
                 onError={onError}
                 scoped
                 tag={<SharedChip here={flow} users={usersOf(agent.name)} />}
-                usage={<Usage agent={agent} here={flow} users={usersOf(agent.name)} />}
+                usage={<Usage agent={agent} />}
                 deleteNote={deleteNote(c, usersOf(agent.name).map(nameOf))}
                 onDeleted={load}
                 actions={
@@ -733,18 +739,23 @@ function SharedChip({ here, users }: { here: WorkflowView; users: WorkflowView[]
   );
 }
 
-/** Under the line of an agent no other workflow shares (#944). */
-function Usage({ agent, here, users }: { agent: AgentView; here: WorkflowView; users: WorkflowView[] }) {
-  const c = useCopy().configuration.workflows;
-  const line = !users.length ? c.unused : othersOf(here, users).length ? "" : c.usedOnlyHere;
+/** Between the built-in helpers and the ones this project added. */
+function YoursDivider({ label }: { label: string }) {
   return (
-    <>
-      {line && <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink">{line}</p>}
-      {agent.kind === "role" && (
-        <p className="mt-0.5 text-[11.5px] leading-[17px] text-nb-ink-soft">{c.roleNote}</p>
-      )}
-    </>
+    <div role="separator" aria-label={label} className="flex items-center gap-2 px-2.5 py-1.5">
+      <span className="h-px flex-1 bg-nb-ink/10" />
+      <span className="shrink-0 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">{label}</span>
+      <span className="h-px flex-1 bg-nb-ink/10" />
+    </div>
   );
+}
+
+/** Under a built-in role's line. */
+function Usage({ agent }: { agent: AgentView }) {
+  const c = useCopy().configuration.workflows;
+  return agent.kind === "role" ? (
+    <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink-soft">{c.roleNote}</p>
+  ) : null;
 }
 
 /** One more line in the delete confirmation: an agent two workflows assign is about to go
