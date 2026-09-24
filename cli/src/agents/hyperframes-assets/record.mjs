@@ -107,9 +107,12 @@ const DEFAULTS = {
 const CURSOR = `(()=>{
   if(document.querySelector('#akb-capture-cursor')) return;
   const style=document.createElement('style');
-  style.textContent='#akb-capture-cursor{position:fixed;z-index:2147483647;width:18px;height:24px;pointer-events:none;left:0;top:0;transition:left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 1px 1px #fff)}#akb-capture-cursor:before{content:"";display:block;width:0;height:0;border-left:7px solid transparent;border-right:2px solid transparent;border-bottom:20px solid #191816;transform:rotate(-35deg);transform-origin:center}.akb-click-ring{position:fixed;z-index:2147483646;width:54px;height:54px;border:4px solid #dd4f1e;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(.35);opacity:1;animation:akb-ring .3s ease-out forwards}@keyframes akb-ring{to{transform:translate(-50%,-50%) scale(1);opacity:0}}';
+  style.textContent='#akb-capture-cursor{position:fixed;z-index:2147483647;width:17px;height:25px;pointer-events:none;left:0;top:0;transition:left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))}#akb-capture-cursor svg{display:block;overflow:visible}.akb-click-ring{position:fixed;z-index:2147483646;width:54px;height:54px;border:4px solid #dd4f1e;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(.35);opacity:1;animation:akb-ring .3s ease-out forwards}@keyframes akb-ring{to{transform:translate(-50%,-50%) scale(1);opacity:0}}';
   document.head.append(style);
-  const cursor=document.createElement('div');cursor.id='akb-capture-cursor';document.body.append(cursor);
+  const cursor=document.createElement('div');cursor.id='akb-capture-cursor';
+  // The macOS arrow, its tip on (0,0) so it lands on the click; the stroke is drawn under the fill, outside the shape.
+  cursor.innerHTML='<svg width="17" height="25" viewBox="0 0 17 25"><path d="M0 0V19L4.4 14.9L7.3 21.6L10.4 20.3L7.6 13.8H13.3Z" fill="#000" stroke="#fff" stroke-width="2" stroke-linejoin="round" paint-order="stroke"/></svg>';
+  document.body.append(cursor);
 })()`
 
 // ---- odds and ends ---------------------------------------------------------
@@ -388,16 +391,28 @@ async function attach(endpoint, target) {
     return b
   }
 
-  const cursor = () => ev(CURSOR)
   const ring = (x, y) =>
     ev(`(()=>{const r=document.createElement('div');r.className='akb-click-ring';r.style.left='${x}px';r.style.top='${y}px';document.body.append(r);setTimeout(()=>r.remove(),400)})()`)
+  // The drawn cursor glides for .45s; a click waits for it to land so the ring opens under the tip.
+  let at = null
+  const cursor = () => {
+    at = null
+    return ev(CURSOR)
+  }
+  const land = async (x, y) => {
+    const same = at?.x === x && at?.y === y
+    const left = same ? at.t + 450 - Date.now() : 450
+    if (!same) await move(x, y, 0)
+    if (left > 0) await sleep(left)
+  }
   const move = async (x, y, wait = 500) => {
+    at = { x, y, t: Date.now() }
     await ev(`(()=>{const e=document.querySelector('#akb-capture-cursor');if(e){e.style.left='${x}px';e.style.top='${y}px'}})()`)
     await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
     if (wait) await sleep(wait)
   }
   const click = async (x, y, wait = 400) => {
-    await move(x, y, 0)
+    await land(x, y)
     await ring(x, y)
     await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
     await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 })
@@ -437,7 +452,7 @@ async function attach(endpoint, target) {
     },
     async domClick(expr, wait = 500) {
       const b = await need(expr)
-      await move(b.x, b.y, 0)
+      await land(b.x, b.y)
       await ring(b.x, b.y)
       await ev(`(${expr}).click()`)
       if (wait) await sleep(wait)
