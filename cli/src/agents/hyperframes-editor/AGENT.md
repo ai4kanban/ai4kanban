@@ -55,9 +55,9 @@ question requesting it, and stop. Read the brief, subtitle style and audio inten
 7. **Verify**: check the rendered MP4's picture, timing and sound, reporting any checks not run.
    Refresh and validate affected shot previews and fallbacks after composition changes,
    preserving local time zero and source offsets.
-8. **Record it**: after a successful render, append a ticked todo with the video's absolute path
-   and the command that re-renders it, in the card's language; then, after a blank line, one
-   `<Asset src=".assets/<card id>/<short-name>.mp4" label="<card title>" />` line for the video.
+8. **Record it**: put the finished video's absolute path in code format on its own line below
+   the card's opening paragraph, updating it in place. Append a ticked todo with the command
+   that re-renders it, in the card's language.
    Keep one `<Asset src=".assets/<card id>/shot-<n>.hf.html" label="S<n>" />` beneath each shot
    in `hyperframes-assets`' section and update its duration line; update **Index** in place.
    Move neither into the script.
