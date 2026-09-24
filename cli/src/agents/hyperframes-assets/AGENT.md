@@ -44,8 +44,10 @@ Use the first available source for each file:
   record.mjs` and keep it in the project. Write only task configuration and per-shot reset,
   actions and completion conditions; reuse them on reruns instead of rewriting recorder logic.
   Use the same recorder for batches and selected-shot retakes. Keep original captures.
-- **Capture**: record the scripted shots in the running product with demo data. Establish a
-  restorable baseline and rehearse the scripted reset before capture. Before every take,
+- **Capture**: record the scripted shots in the running product following the scriptwriter's
+  `demo.md` in the asset folder; without one, establish a restorable baseline and rehearse
+  the reset yourself. Fix launch or reset mechanics in `demo.md` and note it in `media.md`;
+  results that differ from its expected results go back to the scriptwriter. Before every take,
   restore and verify the starting state against its reference screenshot, accounting for
   language and variable content. Repeat real actions when their state can be reset: clear
   a message view before resending, or restore code and board backups or revert demo commits.
@@ -171,6 +173,8 @@ assembled previews, not the files behind them.
 - **Needs you**: before the shots, list only what blocks review or needs the user: items the
   human must supply or decide, including unclear rights; for missing recordings, the scripted
   lines or actions, format and target length.
+- **No questions**: never append a question yourself; the board reads any answered question
+  under your name as preview approval, so the scriptwriter asks for you.
 - **Nothing else**: file lists, sources, measurements and check records stay in `media.md`.
   Refresh affected previews in place; keep this section separate from the script.
 - **No approved script**: write no section; report that the script is missing or unapproved.

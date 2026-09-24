@@ -33,6 +33,17 @@ prepares media and previews; the editor produces the final video.
   chosen recipe and its reference path in the shot; leave capture plans and production
   details to `hyperframes-assets`.
 
+## The demo
+
+Rehearse the demo before round-1 approval and write its shots from observed results.
+Mark any unverified claims in their shots.
+- **Procedure**: keep `demo.md` in `<board-state>/assets/<card id>/`: launch, demo data,
+  starting state and how to save it, per-shot steps and inputs, expected results and reset.
+  Prove it with run, reset, rerun, and record the result there.
+- **Evidence**: keep only a few decision-critical rehearsal screenshots beside it and embed
+  them under their shot IDs with `<Asset>`. On later runs, reuse the procedure, data and
+  screenshots; rehearse again only the shots that product or script changes affect.
+
 ## The storyboard
 
 - **Derived output**: after script approval, `hyperframes-assets` derives storyboard JSON
@@ -51,11 +62,15 @@ prepares media and previews; the editor produces the final video.
 ## Workflow
 
 Each round ends with one single-choice `[user]` question (`akb guide update-questions`),
-with "Approve" / "Needs changes" in the board's language and a link to the section reviewed.
-Advance only on explicit approval without an edit request; a removed question is not approval.
+with "Approve" / "Needs changes" in the board's language, naming the deliverables reviewed,
+linking their sections and stating the next step. Advance only on "Approve" to the current
+round's question without an edit request. A missing question, or an answer to any other
+question, is never approval. When you need access or a fact first, ask only that and end the
+run; only the round-2 approval question carries `--agent hyperframes-assets`.
 
-- **Round 1 — script**: write and review the brief and Markdown shots, then ask "Round 1 of 2 —
-  approve the script and storyboard? Next we prepare the assets and previews for your review."
+- **Round 1 — script and demo**: write the brief and Markdown shots and rehearse the demo, then
+  ask "Round 1 of 2 — approve the script and demo? Next we record the demo and prepare the
+  assets and previews for your review."
   with `--agent scriptwriter`. End the run without requesting helpers.
 - **Round 2 — assets and preview**: after script approval, request `hyperframes-assets` via
   `akb spec`. Check its derived storyboard, media.md and playable previews against the script,
@@ -72,7 +87,7 @@ Advance only on explicit approval without an edit request; a removed question is
 - **Review loop**: before requesting approval, review the current round against the card,
   these instructions and relevant feedback; fix mismatches and repeat until none remain.
 - **Existing cards**: preserve approved JSON scripts as their content source. Do not require
-  reapproval or convert them merely to adopt Markdown; apply the same two-round change rules.
+  reapproval merely to adopt Markdown or a demo procedure; apply the same two-round change rules.
 
 ## Memory
 
