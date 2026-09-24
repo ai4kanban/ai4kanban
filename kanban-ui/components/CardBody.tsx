@@ -69,7 +69,21 @@ export function CardBody({
                   open={isOpen(p.key)}
                   onToggle={(open) => onToggle(p.key, open)}
                 >
-                  <Markdown body={p.body} mockups={mockups} storyboards={storyboards ?? NO_STORYBOARDS} />
+                  {p.intro && <Markdown body={p.intro} mockups={mockups} storyboards={storyboards ?? NO_STORYBOARDS} />}
+                  {p.subs.length > 0 && (
+                    <div className={p.intro ? "mt-3" : undefined}>
+                      {p.subs.map((s) => (
+                        <SubSection
+                          key={s.key}
+                          heading={s.heading}
+                          open={isOpen(s.key)}
+                          onToggle={(open) => onToggle(s.key, open)}
+                        >
+                          <Markdown body={s.body} mockups={mockups} storyboards={storyboards ?? NO_STORYBOARDS} />
+                        </SubSection>
+                      ))}
+                    </div>
+                  )}
                 </AgentSection>
               ))}
             </div>
@@ -125,6 +139,34 @@ function AgentSection({
         <span className="min-w-0 truncate text-[13.5px] font-[700]">{agentName(name)}</span>
       </summary>
       <div className="px-5 pb-4 pt-3 max-md:px-4">{children}</div>
+    </details>
+  );
+}
+
+// One `###` heading of an agent section, folding on its own (#1019). The heading keeps its
+// Markdown look and gains only the arrow: no rule, ground or border either way.
+function SubSection({
+  heading,
+  open,
+  onToggle,
+  children,
+}: {
+  heading: string;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="nb-fold" open={open} onToggle={(e) => onToggle(e.currentTarget.open)}>
+      <summary className="-mx-2 flex cursor-pointer list-none items-center gap-2 rounded-[6px] px-2 py-2 text-nb-ink transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]">
+        <FiChevronRight
+          size={13}
+          aria-hidden
+          className={`shrink-0 text-nb-ink-soft transition-transform duration-150 ease-out ${open ? "rotate-90" : ""}`}
+        />
+        <Markdown body={`### ${heading}`} className="min-w-0" />
+      </summary>
+      <div className="pb-3 pl-[21px] pt-1">{children}</div>
     </details>
   );
 }

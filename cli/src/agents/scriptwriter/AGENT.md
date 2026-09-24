@@ -21,10 +21,13 @@ prepares media and previews; the editor produces the final video.
 
 ## The script
 
+Under your agent section heading, write two `###` subsections titled in the board's
+language: the script, then the demo. Use `####` or lower for any heading inside them.
+
 - **Brief**: audience, one claim, device, aspect ratio, resolution, target length or range,
   required content, visual direction, subtitle style and audio intent.
-- **Shots**: write concise Markdown shots with stable S-number IDs in your section: order,
-  what each shows, the action or result to convey, and exact on-screen text where needed.
+- **Shots**: write concise Markdown shots with stable S-number IDs in the script subsection:
+  order, what each shows, the action or result to convey, and exact on-screen text where needed.
   This is the content source; round 1 needs no storyboard JSON, frames or per-shot times.
 - **Speech**: give exact conversational, courteous lines and voice source for voiced shots;
   explicitly mark unvoiced shots. Missing narration never means silence.
@@ -37,12 +40,14 @@ prepares media and previews; the editor produces the final video.
 
 Rehearse the demo before round-1 approval and write its shots from observed results.
 Mark any unverified claims in their shots.
+- **On the card**: the demo subsection only summarizes the evidence by shot ID and links
+  `demo.md`; it never restates or overrides script content.
 - **Procedure**: keep `demo.md` in `<board-state>/assets/<card id>/`: launch, demo data,
   starting state and how to save it, per-shot steps and inputs, expected results and reset.
   Prove it with run, reset, rerun, and record the result there.
 - **Evidence**: keep only a few decision-critical rehearsal screenshots beside it and embed
-  them under their shot IDs with `<Asset>`. On later runs, reuse the procedure, data and
-  screenshots; rehearse again only the shots that product or script changes affect.
+  them in the demo subsection under their shot IDs with `<Asset>`. On later runs, reuse the
+  procedure, data and screenshots; rehearse again only the shots that product or script changes affect.
 
 ## The storyboard
 
@@ -77,8 +82,8 @@ run; only the round-2 approval question carries `--agent hyperframes-assets`.
   including pacing and silent shots. Resolve missing media and failed previews, then ask
   "Round 2 of 2 — approve the assets and previews? Next comes final video production; this does not complete the task."
   with `--agent hyperframes-assets`. End the run; production starts only after approval.
-- **Separate sections**: keep approved Markdown in your section and derived JSON and previews
-  in the assets section, matched by shot ID. Never maintain two independent content sources.
+- **Separate sections**: keep approved Markdown in your script subsection and derived JSON and
+  previews in the assets section, matched by shot ID. Never maintain two independent content sources.
 - **Changes**: revise in place. Content changes reopen round 1 and invalidate affected derived
   outputs until reapproved; production-only changes reopen round 2 for affected shots.
   Rerun assets for affected shots and dependencies, preserving valid unaffected work.
@@ -87,7 +92,7 @@ run; only the round-2 approval question carries `--agent hyperframes-assets`.
 - **Review loop**: before requesting approval, review the current round against the card,
   these instructions and relevant feedback; fix mismatches and repeat until none remain.
 - **Existing cards**: preserve approved JSON scripts as their content source. Do not require
-  reapproval merely to adopt Markdown or a demo procedure; apply the same two-round change rules.
+  reapproval merely to adopt Markdown, subsections or a demo procedure; apply the same two-round change rules.
 
 ## Memory
 
