@@ -55,6 +55,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   shipped, planned, rejected and remembered work before creating cards.
 - ❌ **Give each external source a separate task-creation or board-editing path** → ✅ treat
   every source as a peer input to the shared Triage lifecycle.
+- ❌ **A plan's split adds a limit the user never asked for and parks the rest of the result
+  in a recurring card** → ✅ the cards together deliver what the discussion asked for; batching
+  splits the work, never the result.
 - ❌ **Return a discussion plan with decisions the agent could propose left unresolved** → ✅
   choose and justify proposed outcomes, then loop until no gap remains; ask only for
   indispensable user information, with a recommendation, and never force a closing question.
@@ -85,6 +88,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   executor is one more execute-stage runtime, and what comes back is a list of paths.
 - ❌ **A service token became a required user-facing connection step** → ✅ let the integration
   own service authorization and keep connector management separate from collection behavior.
+- ❌ **A screen that assumes an agent wrote every field its layout needs** → ✅ everything the
+  UI reads is structured output with a full example in the prompt and a validator that names
+  the failing field; invalid output goes back to the session that wrote it and blocks approval.
 
 ## The command and its guides
 

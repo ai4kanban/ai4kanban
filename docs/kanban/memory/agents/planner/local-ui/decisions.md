@@ -32,6 +32,9 @@ re-ask a settled call.
 - A new project always gets its own repository: creating one from the launcher runs `git init`
   even inside an existing one.
 - The coding agent skill is an extra you turn on, not part of getting a board.
+- **Install status answers only "can I use the board?"**: no standalone skill panel. When all
+  is well, no skill path, version or rewrite button; only a problem shows what it affects and
+  how to fix it.
 - Onboarding leads with a Local board; Cloud is offered beside it, labelled, never
   preselected.
 
@@ -67,6 +70,16 @@ re-ask a settled call.
   rules and settings, starts with empty memory, and the stage switches to it at once.
 - **Runtimes is one list you add to**, with the default a position rather than a badge. No
   Computers picker until a board can know a second machine.
+- **共享提示不占整行**：Agent 被多个工作流共用时，只在名称旁放一个「共用 · <工作流名>」小标签，后果写进悬停提示；整句的共享说明信息量低、占地方。
+- **Creating an agent starts from what it should do** — a written need or a skill from the web,
+  both typed into one chat box with no separate field for a link. The flow asks how it should
+  work where the input leaves that open, and designs its memory and the form of its output
+  along with its duties. The `write-agent` guide is its only rulebook, and the conversation
+  does not happen inside the Configuration dialog.
+- **A stage's agent panel keeps one optional Extra instructions box** for a built-in agent in
+  that stage, labelled 「额外要求」 with no agent name repeated: no output selector and no
+  second instructions box with another scope to choose. A custom agent shows no such box —
+  its own `AGENT.md` is where those requirements go.
 
 ## Deliveries
 
@@ -125,6 +138,9 @@ re-ask a settled call.
   API key, and a provider the user has already saved is kept.
 - A triage provider's status is read, not monitored: the UI shows what the last import
   returned and runs no watcher.
+- A settings tab that cannot reach Cloud keeps retrying on its own for as long as it is
+  open — up to 30 seconds apart, with no attempt limit — so a restored network needs no
+  click, and it says the local board is unaffected.
 - Let the selected runtime attempt a PDF or Word attachment and surface its errors; do not
   disable document formats by model or make the board convert them first.
 
@@ -164,8 +180,8 @@ re-ask a settled call.
 
 - Create task is an action, not a place: a full-screen sheet over the board that Esc or ✕
   closes. Its box is **Discuss** only, with no mode switch; a new card's workflow is picked
-  beside the plan's Start planning / Build now.
-- After **Start planning** or **Build now** the discussion window shows **Starting…** and
+  beside the plan's Plan tasks / Start now.
+- After **Plan tasks** or **Start now** the discussion window shows **Starting…** and
   closes itself the moment the run really starts; a refused start stays put with its reason.
 - The chat is a full-height rail down the right, folded away by default so the board stays the
   centre, following what you are reading so only one conversation is ever on screen.
@@ -219,8 +235,13 @@ re-ask a settled call.
   again. The launcher carries its own switcher, because it is the screen you meet before there
   is a board.
 - Only new writing follows the setting, so a board that switches holds both languages at once.
-- Everything `akb` produces stays English wherever it surfaces, and a guide the app unfolds in
-  place is English only — one copy both languages read.
+- `akb`'s terminal output stays English, and a guide the app unfolds in place is English only.
+  What the app shows — errors and status labels included, even when they come from `akb` —
+  follows the app's language.
+- **Action labels fit every workflow and stay short**: no software-only verb such as Implement
+  or Build on a shared button, and a new label is never longer than the one it replaces —
+  Start now, Plan tasks, Revise.
+- **界面失败提示的英文**：按界面风格重写（首字母大写、带句号、不提终端命令），但不能丢掉原句的信息。
 
 ## The board on a phone
 

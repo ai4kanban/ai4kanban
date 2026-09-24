@@ -5,6 +5,35 @@ covers it, or a plain-words note.
 
 ## skill
 
+- prompt-writer edits a prompt only when its agent lacks a needed instruction, in the
+  prompt of the task that needs it and within the flows the card names; app-controlled
+  mechanics never become agent duties.
+- The scriptwriter writes its section as two subsections, the script then the demo.
+- Screen recordings from `record.mjs` draw a standard macOS arrow pointer whose tip, the
+  real click and the click ring all land on the same point.
+- The scriptwriter's demo guide is product-neutral: an isolated environment is optional, shot
+  states may be staged with the user's permission, and each shot is rehearsed on its own
+  instead of rerunning the whole workflow.
+- The scriptwriter rehearses the demo in the product before round 1 and hands in a
+  reproducible `demo.md` with a few rehearsal screenshots; round 1 now approves the script and
+  demo, and the assets agent records from that procedure.
+- The video editor cuts from the storyboard JSON wherever the card links it, including the
+  assets agent's derived storyboard; with no JSON it stops and asks instead of reading the
+  Markdown script, and retiming updates only the JSON.
+- A video card's screen recordings come from the assets agent's own recorder, saved with
+  `akb raw agent-file hyperframes-assets record.mjs`: a task writes only its environment and,
+  per shot, how to reset, what the starting state must be, and the actions. It records a batch
+  or one named shot, skips what is already recorded and unchanged, retakes on request, and
+  checks size, length and the rate it really sampled at before replacing a file.
+- A video retake restores and checks the shot's starting state before every take, so real actions such as sending a message are recorded again from the same screen. Storyboard JSON is checked by its owner agent's `scripts/validate-storyboard.mjs` (scriptwriter for videos, deck-planner for slides), saved with `akb raw agent-file <agent> scripts/validate-storyboard.mjs`; `akb raw validate` no longer checks its contents.
+- A video script's round 1 is Markdown shots in the scriptwriter's section — order, what each
+  shot shows and its exact lines, with no storyboard JSON, frames or per-shot times.
+  `hyperframes-assets` derives the storyboard JSON from that approved content, settles the
+  capture and production details itself, and sets shot times from what it measured; round 2
+  reviews those previews. Changing approved content reopens round 1.
+- Pick composition and animation references for this repo's videos by category: the local `composition-selector` skill (`.agents/skills/composition-selector/`), five pilot entries.
+- A Demo video card's asset section shows one playable preview per shot plus only what needs
+  you; the full media record lives in the asset folder's `media.md`: `web/content/docs/agents.mdx`.
 - The daily loop — add, refine, resolve, review, finish, reject, what rejection records and
   what **Just discard** skips, skipping a single open question, and what a build leaves on
   `verify:`: `web/content/docs/daily-loop.mdx`.
@@ -69,8 +98,8 @@ covers it, or a plain-words note.
   讨论，可再次提交；`akb raw plan drop --path <plan>` 撤回不想交接的方案。
 - Mentioning work a card does not cover, while talking on that card, opens a new card for it;
   the conversation says so and stays on the card you were reading.
-- 卡片对话先回答并给出修改建议，用户确认后才改卡；明说的修改和待定问题的回答仍当轮写入，结果不同的
-  想法另建新卡。
+- 卡片对话在修改意图明确时当轮改卡（包括问句形式的要求和对上一轮建议的同意），不再等二次确认；纯粹
+  询问或要求先讨论时只回答，结果不同的想法另建新卡。
 - Planning questions are written for someone who hasn't seen the board — no card ids, agent
   names or board terms — and every planning agent writes its part on the card before work
   starts.
@@ -91,11 +120,22 @@ covers it, or a plain-words note.
   prompt or akb guide change and waits for your confirmation.
 - Codex 默认以 `--dangerously-bypass-approvals-and-sandbox` 运行，不再因审批、沙箱、启动更新检查
   或「切换低价模型」提示中断，不是 git 仓库的项目也能选用；自己写了同名配置的命令保持不变。
+- 视频卡第一轮由 scriptwriter 交付 `storyboard.json` 结构化分镜，示意图仅在构图需要时附；`akb raw validate <id> --json` 逐项指出漏写的旁白、动作、时段或图片问题，不合格的分镜不能请求或接受批准。第二轮逐镜预览经你确认后卡片才能进入 ready 或开始成片，重新发起任一轮确认即撤销，Decider 不代答这两轮确认：`web/content/docs/agents.mdx`。
+- 新增内置工作流「演示文稿」（`slide-deck`）：演示文稿策划先交付受众、目标、事实台账、版式方案和逐页文案，批准后再给每页真实预览图，两轮各等你批准；演示文稿制作据此生成可编辑的 `.pptx`，逐页核对预览后在卡片上提供下载：`web/content/docs/agents.mdx`。
+- An agent declares no settings of its own: one agent is one way of working, and two ways is two agents. `ui-designer` always draws a rendered screen — the ASCII drawing is retired, and a board that saved it is told so in the run's log: `akb guide write-agent`.
+- Standard planning QA now checks out the facts a plan turns on instead of handing them to you: it searches for authoritative sources, records the evidence it found, revises the plan when a premise turns out wrong, and stays open — naming the missing evidence — when it cannot settle one. Lightweight planning escalates to standard rather than checking anything itself: `akb guide validate-assumption`.
 
 ## local-ui
 
 `kanban-ui/README.md` is this module's doc; a line naming no other doc is covered there.
 
+- 通知中心每个标签先显示 30 条，列表底部“加载更多”继续查看更早的通知；铃铛数字和“N 条新通知”仍计入全部通知，历史再多也不会拖慢通知中心。
+- 配置和新建任务的工作流下拉框里，悬停或键盘聚焦内置工作流可看它的用途说明，触屏点行旁的信息按钮查看；`akb workflow list` 同样列出内置工作流的说明。
+- 讨论里点 Plan tasks 时，由原讨论的 agent 会话接着写任务卡，讨论中未写进计划的细节也会带进卡片；创建过程仍在运行列表里，进行中该讨论暂不能发消息。
+- 配置里的工作流/agent 选择器、“…”菜单、定时节奏和模型建议与其他下拉框同一种弹层：悬停和方向键高亮，Esc 或点空白处只关闭弹层，焦点回到按钮。
+- 卡片页上 agent 段落里的每个三级标题都能单独折叠：打开段落后各小节默认展开，可逐节收起；搜索或卡片更新时只展开相关小节。
+- 配置页的云端和通知设置连不上 Cloud 时会自己重试：页面上说明正在自动重试、本地看板不受影响，网络回来后无需重开设置就回到已登录状态。
+- A card's `<Storyboard>` also shows a slide deck: numbered pages with a preview, on-slide text, speaker notes and layout, and a "No preview" placeholder with Reload; an `<Asset>` pointing at a `.pptx` is a download button.
 - The desktop app from `ai4kanban.dev/download` reopens the last repo, finds your coding
   agent, installs `akb` itself and updates in the background; the launcher opens, drops and
   creates projects, one at a time: `desktop/README.md`.
@@ -134,9 +174,10 @@ covers it, or a plain-words note.
 - 讨论界面的工作流菜单按上下空间自动选择展开方向并始终留在窗口内，键盘可移动和选择，滚动或改尺寸时
   自动关闭。
 - 卡片页和看板上的「讨论中」会在对话结束后自动消失，按钮随之解冻。
-- Create task has no mode switch: sending always starts a discussion, and **Start planning**
-  or **Build now** under its plan is where work begins, with a **Workflow** picker beside them.
+- Create task has no mode switch: sending always starts a discussion, and **Plan tasks**
+  or **Start now** under its plan is where work begins, with a **Workflow** picker beside them.
   Pictures pasted or dragged in go with the message you send.
+- 「规划任务」或「立即开始」启动后，讨论会一直留在侧栏之外，规划中途被自动续跑也不会让它重新出现。
 - Edit on a card opens that card's chat with the caret in the box and the first line typed for
   you; pressing it again folds the rail away.
 - A conversation you have already spoken in stays on the agent that opened it; changing the
@@ -168,6 +209,15 @@ covers it, or a plain-words note.
 - 像素房间里浮着的面板画成游戏对话框：直角、粗墨线、硬阴影、标题栏反色、贴边推出；只在办公室内用。
 - A project holding more than one board draws each board's folder beside the folder chip and
   opens another in a new window.
+- 卡片中的 `<Storyboard>` 显示静态分镜：顶部可横向滚动的镜头时间线，每镜左图右文（窄屏上下），无图镜头文字占满整行且时间线不显示缩略图；分镜有误时显示“分镜需要修正”，可复制诊断并重新加载。
+- 分镜画面和卡片、聊天、日志、记忆等 Markdown 中的图片都可点击（或 Tab 后按 Enter）放大查看，按原比例适应窗口且不超过原图；Esc、✕、点击图片外区域或滑动返回即可关闭，回到原来的阅读位置。
+
+- 启动、继续、取消、丢弃、配置校验、Cloud 与对话的失败提示跟随界面语言；路径、命令和第三方原始诊断原样列在下面，未知错误显示该操作的本地化兜底句。
+- A card's **Edit** button is now **Revise** (修订).
+- In **Configuration → Workflows**, a built-in helper's page has one **Extra requirements** box for that workflow stage (e.g. "Demo video · Plan"), growing with its text; the Output picker and the board-wide instructions box are gone from it, and their saved values still apply. An agent you added has no such box — its own `AGENT.md`, on the same page, is where everything it is told goes.
+- 改过名的 Agent（如 HyperFrames 素材）切回「全局默认」或换运行时后立即生效，旧名下的绑定不再覆盖选择。
+- agent 页面不再有由 agent 自己声明的设置行；**原型样式**已经没有了，界面设计师只画渲染页面，页面上留下的是运行时和这个环节的额外要求。
+- 工作流设置里，自建的辅助 Agent / 评审员排在内置之后，上方有一条“我的”分隔线；详情面板不再显示“Yours”标记和“只有这个工作流在用它”等使用状态文字。
 
 ## site
 
@@ -197,6 +247,7 @@ covers it, or a plain-words note.
   week hour by hour. English and Chinese only.
 - `/contact` (all five languages, linked from the footer) is one form for support and for
   custom agents at $15 per agent, answered by email.
+- 文档里的界面设计师只画渲染页面，不再提**原型样式**这个可选项：`web/content/docs/agents.mdx`。
 
 ## docs
 

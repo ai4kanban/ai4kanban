@@ -76,13 +76,6 @@ don't re-ask a settled call.
 - The install badge shows the real count of installs, however far below the download count it
   sits. The gap is not hidden and the badge does not wait for a better number.
 
-## skill
+## marketing
 
-- 视频助手记下的运镜配方反馈只留在本项目的看板记忆里，随命令分发的配方条目不因某个项目的反馈改写；换一个项目要重新提一遍。
-- 构建在独立工作树里从当前提交切出、不含主目录里手头的未提交改动时，要在启动处说明这一点，而不是让用户等结果对不上才发现；主目录干净时不提。
-- **审核用的画面与它的文字相邻**：每个镜头的画面紧跟自己的脚本段落，而不是单独一张总览；标题栏下常驻一条按播放顺序排列的缩略图时间线，点格跳转。
-- **镜头多时时间线不横向滚动**：全部镜头排满一行，悬停放大看清。
-
-## local-ui
-
-- **共享提示不占整行**：Agent 被多个工作流共用时，只在名称旁放一个「共用 · <工作流名>」小标签，后果写进悬停提示；整句的共享说明信息量低、占地方。
+- **演示视频的被演示产品**：功能开发演示用专门搭建的独立演示项目，不直接拿 AI4Kanban 自身开发做演示

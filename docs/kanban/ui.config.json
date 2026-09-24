@@ -34,18 +34,17 @@
     },
     {
       "id": "terra",
-      "name": "Terra",
+      "name": "Sol",
       "harness": "codex",
       "settings": {
         "provider": "subscription",
-        "model": "gpt-5.6-terra"
+        "model": "gpt-5.6-sol"
       }
     }
   ],
   "agentRuntime": {
     "discussion-helper": "codex",
-    "video-assets": "terra",
-    "scriptwriter": "codex"
+    "video-assets": "terra"
   },
   "memoryPrune": {
     "enabled": true,
@@ -59,55 +58,16 @@
   },
   "proposer": true,
   "memoryReview": {
-    "lastRun": "2026-09-20 13:23"
+    "lastRun": "2026-09-24 10:46"
   },
   "workflows": {
     "added": [
-      {
-        "id": "wf-2",
-        "name": "Documentation"
-      },
       {
         "id": "wf-3",
         "name": "Email"
       }
     ],
     "stages": {
-      "wf-2": {
-        "plan": {
-          "lead": "software-planner",
-          "helpers": [
-            {
-              "agent": "copywriting",
-              "extra": ""
-            },
-            {
-              "agent": "tech-stack-advisor",
-              "extra": ""
-            },
-            {
-              "agent": "ui-designer",
-              "extra": ""
-            },
-            {
-              "agent": "prompt-writer",
-              "extra": ""
-            }
-          ]
-        },
-        "execute": {
-          "lead": "docs-pruner",
-          "helpers": []
-        },
-        "review": {
-          "helpers": [
-            {
-              "agent": "code-reviewer",
-              "extra": ""
-            }
-          ]
-        }
-      },
       "wf-3": {
         "plan": {
           "lead": "email-planner"
