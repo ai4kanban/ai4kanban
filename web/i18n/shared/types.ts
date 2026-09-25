@@ -14,6 +14,8 @@ export type SharedCopy = {
      *  drawn in those two and nowhere else — `PATH_LOCALES` in `lib/i18n.ts` is
      *  what decides, not this string. */
     training: string;
+    /** The pricing page. English and Chinese only, like `training`. */
+    pricing: string;
     /** Only read out loud: the label on the phone header's menu button. */
     menu: string;
   };
@@ -35,6 +37,8 @@ export type SharedCopy = {
     /** The training page, in the footer's Product column. Drawn only where the
      *  page is published — see `nav.training`. */
     training: string;
+    /** The pricing page, beside training. */
+    pricing: string;
     /** The contact page, in the footer's Product column. */
     contact: string;
     /** The GitHub releases page. */

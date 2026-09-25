@@ -9,6 +9,7 @@ const ja: SharedCopy = {
     blog: "ブログ",
     compare: "比較",
     training: "トレーニング",
+    pricing: "料金",
     menu: "メニュー",
   },
   footer: {
@@ -24,6 +25,7 @@ const ja: SharedCopy = {
     blog: "Blog",
     cloud: "Cloud",
     training: "トレーニング",
+    pricing: "料金",
     contact: "お問い合わせ",
     changelog: "Changelog",
     builder: "Builder",

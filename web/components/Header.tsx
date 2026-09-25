@@ -47,6 +47,7 @@ export function Header({
   // three the link is not drawn at all — pointing a French reader at an English
   // sales page is worse than not offering it.
   const training = publishedIn("/training", locale);
+  const pricing = publishedIn("/pricing", locale);
 
   return (
     // Sticky at every width — one row of chrome is cheap to pin, and on a phone
@@ -124,6 +125,14 @@ export function Header({
             {nav.blog}
           </a>
           <CompareMenu label={nav.compare} locale={locale} />
+          {pricing && (
+            <a
+              href={localeHref(locale, "/pricing")}
+              className="transition-colors hover:text-ink"
+            >
+              {nav.pricing}
+            </a>
+          )}
           {/* Last in the text run, a plain link like its neighbours: the row's
               one filled block stays Download, so the training page is reached
               the way the docs are rather than as a second call to action. */}

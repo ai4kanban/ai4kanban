@@ -9,6 +9,7 @@ const zh: SharedCopy = {
     blog: "博客",
     compare: "对比",
     training: "培训",
+    pricing: "定价",
     menu: "菜单",
   },
   footer: {
@@ -24,6 +25,7 @@ const zh: SharedCopy = {
     blog: "Blog",
     cloud: "Cloud",
     training: "培训",
+    pricing: "定价",
     contact: "联系我们",
     changelog: "Changelog",
     builder: "Builder",

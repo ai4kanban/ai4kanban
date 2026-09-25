@@ -52,6 +52,9 @@ export function SiteFooter({
         { href: "/cloud", label: t.cloud },
         // Two languages only, so in the other three the row is absent rather
         // than pointing at a page that reader cannot use.
+        ...(publishedIn("/pricing", locale)
+          ? [{ href: localePath(locale, "/pricing"), label: t.pricing }]
+          : []),
         ...(publishedIn("/training", locale)
           ? [{ href: localePath(locale, "/training"), label: t.training }]
           : []),

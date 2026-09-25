@@ -9,6 +9,7 @@ const fr: SharedCopy = {
     blog: "Blog",
     compare: "Comparatifs",
     training: "Formation",
+    pricing: "Tarifs",
     menu: "Menu",
   },
   footer: {
@@ -24,6 +25,7 @@ const fr: SharedCopy = {
     blog: "Blog",
     cloud: "Cloud",
     training: "Formation",
+    pricing: "Tarifs",
     contact: "Contact",
     changelog: "Changelog",
     builder: "Builder",

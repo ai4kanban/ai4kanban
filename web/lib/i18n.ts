@@ -56,6 +56,7 @@ export const PATH_LOCALES: Record<string, readonly Locale[]> = {
   "/vs-multica": LOCALES,
   "/vs-task-master": LOCALES,
   "/training": ["en", "zh"],
+  "/pricing": ["en", "zh"],
 };
 
 /** Every route that exists in more than one language. */
