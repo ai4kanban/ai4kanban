@@ -7,4 +7,4 @@
 // by scripts/sync-format.mjs — the button runs it in the browser, the follow-up runs it in
 // the CLI, and they are the same function. Fix it in cli/src/lib/view/.
 
-export { canImplement, canRefine } from "./format/view/rules";
+export { canImplement, canRefine, planDeliveryGap } from "./format/view/rules";

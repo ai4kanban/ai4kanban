@@ -3,7 +3,7 @@
 > AI4Kanban is the AI project manager that manages your agent team. As a few agents
 > become ten, twenty, or more, it organizes the work, follows through on execution, and
 > checks the results, bringing you key updates, decisions that need your judgment, and
-> results to approve. Two workflows are built in, product development and demo video;
+> results to approve. Two workflows are built in, product development and product video;
 > other work needs its own workflows and agents added first. AI4Kanban writes and
 > produces; sending and publishing stay with you.
 

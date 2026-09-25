@@ -146,7 +146,7 @@ describe('Use a Git worktree', () => {
     assert.equal(workflowById(id)!.needsArtifact, true)
   })
 
-  it('is fixed on a built-in: on for Coding, off for Demo video', () => {
+  it('is fixed on a built-in: on for Coding, off for Product video', () => {
     assert.equal(workflowById('coding')!.needsArtifact, false)
     assert.equal(workflowById('hyperframes-video')!.needsArtifact, true)
     assert.match(setWorkflowWorktree('coding', false).error ?? '', /built in/)
@@ -154,7 +154,9 @@ describe('Use a Git worktree', () => {
 
   it('comes with a copy', () => {
     assert.equal(workflowById(duplicateWorkflow('coding').id!)!.needsArtifact, false)
-    assert.equal(workflowById(duplicateWorkflow('hyperframes-video').id!)!.needsArtifact, true)
+    const video = workflowById(duplicateWorkflow('hyperframes-video').id!)!
+    assert.equal(video.needsArtifact, true)
+    assert.equal(video.delivers, 'plan')
   })
 
   it('changes only deliveries started afterwards', () => {

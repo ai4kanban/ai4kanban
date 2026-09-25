@@ -54,6 +54,7 @@ export function normalizeQuestion(raw: unknown): Question {
     const text = String(source.question ?? source.text ?? '')
     const extra = {
       ...(typeof source.agent === 'string' && source.agent.trim() ? { agent: source.agent.trim() } : {}),
+      ...(typeof source.approves === 'string' && source.approves.trim() ? { approves: source.approves.trim() } : {}),
       ...(source.skipped === true || source.skipped === 'true' ? { skipped: true } : {}),
     }
     const options = (Array.isArray(source.options) ? source.options : [])
@@ -109,6 +110,8 @@ export function parseQuestionsBlock(lines: string[]): Question[] {
         q.mode = unquote(val)
       } else if (key === 'agent') {
         q.agent = unquote(val)
+      } else if (key === 'approves') {
+        q.approves = unquote(val)
       } else if (key === 'skipped') {
         q.skipped = unquote(val) === 'true'
       }
@@ -154,6 +157,10 @@ function addToDraft(q: QuestionDraft, key: string, value: string): void {
     const m = value.toLowerCase()
     if (!MODES.includes(m)) die(`--mode must be single | multi (got "${value}")`)
     q.mode = m
+    return
+  }
+  if (key === 'script-approval') {
+    q.approves = 'pending'
     return
   }
   const text = value.trim()
@@ -232,7 +239,7 @@ function finalizeHandover(q: QuestionDraft): Question {
 // One op of `update-questions`, as read off argv. `--agent` claims the question for a spec
 // agent; left off an `--update`, the question keeps the agent it had.
 export interface QuestionOp {
-  kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify' | 'skip' | 'unskip'
+  kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify' | 'skip' | 'unskip' | 'approve'
   ns?: string
   n?: number
   draft?: QuestionDraft
@@ -257,7 +264,7 @@ export function readQuestionOps(typed: Typed[]): QuestionOp[] {
     const [key, value] = typed[i]!
     if (key === 'clear') {
       ops.push({ kind: 'clear' })
-    } else if (key === 'drop' || key === 'to-verify' || key === 'skip' || key === 'unskip') {
+    } else if (key === 'drop' || key === 'to-verify' || key === 'skip' || key === 'unskip' || key === 'approve') {
       ops.push({ kind: key, ns: value })
     } else if (key === 'append') {
       ops.push({ kind: 'append', draft: newDraft('append', value) })
@@ -275,7 +282,7 @@ export function readQuestionOps(typed: Typed[]): QuestionOp[] {
     }
   }
   if (!ops.length) {
-    die('update-questions needs at least one op: --append ".." | --update <n> ".." | --drop n[,n...] | --to-verify n[,n...] | --skip n[,n...] | --unskip n[,n...] | --clear')
+    die('update-questions needs at least one op: --append ".." | --update <n> ".." | --drop n[,n...] | --approve n | --to-verify n[,n...] | --skip n[,n...] | --unskip n[,n...] | --clear')
   }
   for (const op of ops) {
     if (op.draft) {

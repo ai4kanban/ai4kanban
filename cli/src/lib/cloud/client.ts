@@ -10,7 +10,7 @@
 
 import type { CardPayload, DeliveryPayload, DocumentPayload } from '../board/transfer'
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
-import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
+import type { CloudEvent, CloudEventAnswer, CloudEventDecision, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
 import type { CloudServer } from './servers'
 import { accessToken } from './session'
@@ -93,7 +93,7 @@ export interface PublishBody {
   release: string
   revision: string
   kind: 'ready_for_review' | 'question'
-  decision: 'implement' | 'answer'
+  decision: CloudEventDecision
   questions: CloudEvent['questions']
   /** The card's opening paragraph and its review notes, bounded by the publisher (#320) —
    *  what a Slack message is reviewed from while this machine is off. */
@@ -140,7 +140,7 @@ export const readEvent = (eventId: string): Promise<CloudCall<{ event: CloudEven
 export const recordAction = (body: {
   opId: string
   eventId: string
-  decision: 'implement' | 'answer'
+  decision: CloudEventDecision
   revision: string
   answers: CloudEventAnswer[]
   /** `accepted` for an action taken on this machine; #318's server is what produces

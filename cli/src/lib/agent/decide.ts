@@ -27,14 +27,13 @@ import type { AgentRequest } from './types'
 
 /** Whether the board may answer this card's questions by itself: it has questions, every one
  *  of them is the user's call, and nothing else is in the way. A card whose questions are
- *  still untriaged belongs to QA, not here. A video card's script and preview approvals
- *  stay the user's own (#991).
+ *  still untriaged belongs to QA, not here. A script approval stays the user's own (#1057).
  *
  *  Typing `akb card decide <id>` bypasses all of it, as every flow does. */
 export function decidable(card: Card): boolean {
   return (
     openOf(card.questions).length > 0 &&
-    openOf(card.questions).every((q) => parseQuestion(q.text).tag === 'user' && !isApprovalQuestion(card.workflow, q)) &&
+    openOf(card.questions).every((q) => parseQuestion(q.text).tag === 'user' && !isApprovalQuestion(q)) &&
     card.openBlockers.length === 0 &&
     !card.recurring
   )

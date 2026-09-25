@@ -9,7 +9,7 @@ import type { ConfigurationCopy } from "./types";
 const PRUNE_UNITS: Record<CadenceUnit, string> = { m: "Minutes", h: "Hours", d: "Days" };
 const PRUNE_UNIT_ONE: Record<CadenceUnit, string> = { m: "minute", h: "hour", d: "day" };
 
-// Workflow names in a sentence: "Coding", "Coding and Demo video", "A, B and C".
+// Workflow names in a sentence: "Coding", "Coding and Product video", "A, B and C".
 const list = (names: string[]): string =>
   names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 
@@ -33,10 +33,10 @@ const en: ConfigurationCopy = {
     findWorkflow: "Find a workflow…",
     builtIn: "Built-in",
     isDefault: "Default",
-    builtInNames: { coding: "Coding", "hyperframes-video": "Demo video", "slide-deck": "Slide deck" },
+    builtInNames: { coding: "Coding", "hyperframes-video": "Product video", "slide-deck": "Slide deck" },
     builtInDescriptions: {
       coding: "Plan, implement, and review software changes.",
-      "hyperframes-video": "Create a demo video from a script through editing and review.",
+      "hyperframes-video": "Approve a script, get a finished product video, and archive it when you are happy.",
       "slide-deck": "Plan and create an editable PowerPoint presentation.",
     },
     about: (name) => `About ${name}`,
@@ -82,7 +82,7 @@ const en: ConfigurationCopy = {
     confirmDelete: (name) => `Delete "${name}"`,
     inUse: (n) =>
       `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Finish or drop ${n === 1 ? "it" : "them"} first.`,
-    retired: "HyperFrames assets now builds the shot previews, so the Storyboard designer assignment was removed.",
+    retired: "Some agents this workflow used were retired, so their assignments were removed.",
     retiredSeen: "Got it",
     loading: "Loading workflows…",
     tooOld:
@@ -445,13 +445,9 @@ const en: ConfigurationCopy = {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,
       byAgent: {
         scriptwriter: () =>
-          'Added to the end of every Create, Refine and Revise run on a demo video card — "keep the whole video under 60 seconds".',
-        "hyperframes-assets": (agent) =>
-          `Added to the end of every run ${agent} does while a card is being refined — "record every clip at 1920×1080, 30 fps".`,
-        "hyperframes-editor": () =>
-          'Added to the end of every Implement, Conflict and Run on a demo video card — "set every caption in Inter".',
-        "video-reviewer": () =>
-          'Added to the end of every Review on a demo video — "keep every caption on screen for at least 2 seconds".',
+          'Added to the end of every Create, Refine and Revise run on a product video card — "keep the whole video under 60 seconds".',
+        "hyperframes-editor": (agent) =>
+          `Added to the end of every run ${agent} does while a product video is being made — "record every clip at 1920×1080, 30 fps".`,
         "deck-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
         "deck-builder": () =>

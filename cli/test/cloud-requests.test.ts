@@ -174,6 +174,21 @@ describe('a task edited, resolved or moved after its message was created', () =>
     assert.match(String(refused), /open questions on #12 have changed/)
   })
 
+  it('archives a finished product video, and refuses one that is not finished', () => {
+    const finished = card({
+      deliversIn: 'plan',
+      scriptApproved: true,
+      body: '<Asset src="out/film.mp4" />\n\n- [x] Render: `npx hyperframes render`',
+      todos: { total: 1, done: 1 },
+    })
+    assert.equal(refuseStart(finished, request({ decision: 'archive' })), null)
+    assert.match(
+      String(refuseStart({ ...finished, todos: { total: 2, done: 1 } }, request({ decision: 'archive' }))),
+      /no longer ready to archive/,
+    )
+    assert.match(String(refuseStart(card(), request({ decision: 'archive' }))), /no longer ready to archive/)
+  })
+
   it('runs the one that still matches', () => {
     assert.equal(refuseStart(card(), request()), null)
   })

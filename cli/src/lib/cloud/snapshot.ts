@@ -27,10 +27,10 @@
 
 import crypto from 'node:crypto'
 
-import { openOf, parseQuestion } from '../view/rules'
+import { openOf, parseQuestion, planDeliveryGap } from '../view/rules'
 import type { Card } from '../view/types'
 import { ALL_RELEASES, type CloudBoard } from './boards'
-import { decisionFor, type CloudEventKind, type CloudEventQuestion } from './events'
+import { decisionFor, type CloudEventDecision, type CloudEventKind, type CloudEventQuestion } from './events'
 import { eventHome, type EventHome } from './home'
 
 /** How much of the card's own words an event carries.
@@ -53,7 +53,7 @@ export interface EventSnapshot {
   release: string
   revision: string
   kind: CloudEventKind
-  decision: 'implement' | 'answer'
+  decision: CloudEventDecision
   questions: CloudEventQuestion[]
   /** The card's opening paragraph (#320), so a message can be reviewed while the machine
    *  that raised it is off. Empty on a card that opens with nothing. */
@@ -106,8 +106,16 @@ export function actionableKind(
   if (atWork?.has(card.id)) return null
   if (card.openBlockers?.length) return null
   if (userQuestions(card).length > 0) return 'question'
-  return card.status === 'ready' ? 'ready_for_review' : null
+  if (card.status !== 'ready') return null
+  // A card finished in planning asks to be archived, and only once its film is done (#1057).
+  if (card.deliversIn === 'plan' && !archivable(card)) return null
+  return 'ready_for_review'
 }
+
+/** Whether a card finished in planning is done and may be archived: the script approved and
+ *  nothing left in the way (#1057). */
+export const archivable = (card: Card): boolean =>
+  card.deliversIn === 'plan' && !!card.scriptApproved && planDeliveryGap(card) === null
 
 /** The snapshot for a card the board raises an event about, or null when it raises none. */
 export function snapshotFor(
@@ -128,7 +136,7 @@ export function snapshotFor(
     release: card.release,
     revision: card.revision,
     kind,
-    decision: decisionFor(kind),
+    decision: decisionFor(kind, card.deliversIn),
     questions,
     summary: bound(openingParagraph(card.body), SUMMARY_LIMIT),
     notes: bound(reviewNotes(card.body), NOTES_LIMIT),

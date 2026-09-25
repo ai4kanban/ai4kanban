@@ -56,17 +56,12 @@ the whole difference, and it has to be readable at 48px.
 - **`decider.png`** — answers a card's `[user]` questions the way you would. A **two-way
   signpost** held beside the body on a grey post: a mint arrow pointing forward and a grey
   one pointing back.
-- **`scriptwriter.png`** — scripts a demo video. Holding a **storyboard sheet** across the
+- **`scriptwriter.png`** — scripts a product video. Holding a **storyboard sheet** across the
   chest: a cream page with an ember title bar and two rows, each a small sky or mint shot
   frame beside two black caption lines.
-- **`hyperframes-assets.png`** — prepares the media and shot previews a video needs. Holding a
-  **lilac camera** across the chest, a cream-ringed sky lens in the middle, a sky viewfinder and
-  an ember record button on top.
-- **`hyperframes-editor.png`** — assembles and renders the video. Holding a **clapperboard**
-  across the chest — a sky slate with cream lines under an ember-and-cream striped bar — with
-  its clapstick swung open up past the left shoulder.
-- **`video-reviewer.png`** — checks the rendered video. Holding a **sky screen** across the
-  chest with a cream play triangle, a big **mint tick** over its corner.
+- **`hyperframes-editor.png`** — the Video editor: produces and checks the film during planning.
+  Holding a **clapperboard** across the chest — a sky slate with cream lines under an
+  ember-and-cream striped bar — with its clapstick swung open up past the left shoulder.
 - **`memory-pruner.png`** — squeezes memory back down to what helps planning. A **mint
   notebook** with a spiral spine across the chest, and **grey pruning shears** with ember
   handles raised in the free hand.

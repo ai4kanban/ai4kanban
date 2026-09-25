@@ -12,8 +12,9 @@ const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   reviewer: 'code-reviewer',
   // Renamed in #858; its planning memory stays in `memory/agents/planner/`.
   planner: 'software-planner',
-  // Renamed in #945; its asset memory stays in `memory/agents/video-assets/`.
-  'video-assets': 'hyperframes-assets',
+  // Renamed in #945 and folded into the editor in #1057; its asset memory stays in
+  // `memory/agents/video-assets/`.
+  'video-assets': 'hyperframes-editor',
 }
 
 /** The name a spec agent goes by now, for a name it may have gone by before. */

@@ -8,7 +8,7 @@ const en: HomeCopy = {
     description:
       "Take on bigger projects with AI4Kanban. Your AI project manager assigns work to agents, tracks progress, and brings key decisions and results back to you.",
     schema:
-      "AI4Kanban is an open-source, local-first AI project manager that helps solo founders, creators, and small teams tackle larger projects with an agent team. It assigns tasks, tracks progress, and reviews results in the development workflow. You set the direction, make key decisions, and give final approval. Product development and demo video workflows are built in; other work needs additional workflows and agents.",
+      "AI4Kanban is an open-source, local-first AI project manager that helps solo founders, creators, and small teams tackle larger projects with an agent team. It assigns tasks, tracks progress, and reviews results in the development workflow. You set the direction, make key decisions, and give final approval. Product development and product video workflows are built in; other work needs additional workflows and agents.",
   },
 
   hero: {

@@ -111,7 +111,8 @@ const en: MessagesCopy = {
     cardDiscussed: (a) =>
       `The chat on #${a.card} is writing a reply, so you can't ${a.act} it yet. It frees up as soon as the reply lands or is stopped.`,
     workflowUnknown: (a) => `#${a.card} uses the "${a.workflow}" workflow, which this board doesn't have.`,
-    previewUnapproved: () => "Shot previews are not approved yet.",
+    planDelivered: () => "This card is finished during planning — archive it instead.",
+    scriptUnapproved: () => "The script isn't approved yet.",
     workflowNoLead: (a) => `${a.name} has no agent leading its ${a.stage} stage. Assign one before it can run.`,
     workflowLeadMissing: (a) => `${a.name} has ${a.agent} leading its ${a.stage} stage, and this board has no such agent.`,
     workflowLeadStage: (a) =>

@@ -37,6 +37,8 @@ import {
   dueLabel,
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
+import { workflowFor } from '../agent/workflows'
+import { scriptApproved } from '../script-approval'
 import { goalWritten } from './goal'
 import { readMemoryOwners } from './memory'
 import type {
@@ -72,6 +74,8 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   // being built once. The path is what says so — the same test `record-run` makes before it
   // will record a run.
   const recurring = relPath.split('/')[0] === 'recurring'
+  const flow = meta.workflow ? workflowFor(meta.workflow) : undefined
+  const plan = flow?.delivers === 'plan'
   return {
     id,
     // Derived from the file exactly as it is on disk (lib/board/revision.ts), so a card
@@ -89,7 +93,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     verify: meta.verify,
     decided: meta.decided,
     workflow: meta.workflow,
-    previewApproved: meta.preview_approved,
+    ...(plan ? { deliversIn: 'plan' as const, scriptApproved: scriptApproved(meta.script_approved, body, flow.stages.plan.lead) } : {}),
     modules: meta.modules,
     last_run: meta.last_run,
     cadence: meta.cadence,

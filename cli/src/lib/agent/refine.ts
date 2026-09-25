@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto'
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
 import { decideRunAfter } from './decide'
-import { byDispatchOrder, canRefine, openOf, parseQuestion, previewPending } from '../view/rules'
+import { byDispatchOrder, canRefine, openOf, parseQuestion, planDeliveryGap } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-end'
@@ -180,13 +180,19 @@ function afterQa(
   // QA converged and left only the user's calls. That is where the card stops — unless the
   // decider is on (#447), and then one run answers them instead of the user.
   if (openOf(card.questions).length > 0) return decideRunAfter(card.id)
-  if (refinementStep(card) === 'done') return null
-  // A video card whose script was just approved goes back to its lead for round 2 (#991). Only
-  // after the user's answer: a QA pass that ended without asking anything stops here.
-  if (previewPending(card.workflow, card.previewApproved)) {
+  // A card finishing in planning (#1057) is written up once its film is done. Until then the
+  // user's answer — the script approved, or a change asked for — goes back to its lead, which
+  // asks again or has the film made. A pass that ended without asking anything stops here.
+  if (card.deliversIn === 'plan') {
+    if (planDeliveryGap(card) === null) return card.status === 'ready' ? null : writingAfter(card, round, flowId, refineEffort)
     if (round > 0) return null
     return { action: 'clarify', id: card.id, title: card.title, refineRound: 1, refineEffort, ...(flowId ? { flowId } : {}) }
   }
+  if (refinementStep(card) === 'done') return null
+  return writingAfter(card, round, flowId, refineEffort)
+}
+
+function writingAfter(card: Card, round: number, flowId: string | undefined, refineEffort: RefineEffort): AgentRequest {
   return {
     action: 'writing',
     id: card.id,

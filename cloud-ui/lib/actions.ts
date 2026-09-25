@@ -12,24 +12,24 @@
 // start, so recording it IS the press. What that leaves is a decision waiting for one of the
 // workspace's own machines, which is what the card says until one picks it up.
 //
-// Every other method is unreachable and says so. The surface names the two controls it offers
-// (`HOSTED_CONTROLS`), and the card page draws those and no more — so nothing on the page can
+// Every other method is unreachable and says so. The surface names the controls it offers
+// (`hostedControls`), and the card page draws those and no more — so nothing on the page can
 // call one of these. They throw rather than answering a plausible refusal, because a control
 // that quietly does nothing is worse than one that is not there.
 
 import type { CardControl, ScreenActions, StartAnswer } from "@/lib/screen";
-import type { CloudEventAnswer } from "@/lib/types";
+import type { CloudEventAnswer, CloudEventDecision } from "@/lib/types";
 import { UNREACHABLE } from "./cloud";
 
 /**
- * The two decisions a hosted card page offers, and no third.
+ * The decisions a hosted card page offers, following what the card's live event asks.
  *
- * `implement` is approving a delivery for review; `resolve` is answering the card's
- * user-owned questions. Everything else the app's card page can do — editing a card's fields,
- * refining it, archiving it, rejecting it, taking a stopped delivery up again — stays in the
- * app.
+ * `implement` is approving a delivery for review; `archive` is accepting a card finished in
+ * planning (#1057); `resolve` is answering the card's user-owned questions. Everything else
+ * the app's card page can do stays in the app.
  */
-export const HOSTED_CONTROLS: CardControl[] = ["implement", "resolve"];
+export const hostedControls = (decision?: CloudEventDecision): CardControl[] =>
+  decision === "archive" ? ["archive", "resolve"] : ["implement", "resolve"];
 
 /** What the browser's press needs beside the card: the event it acts on, and what a refusal
  *  and an outage each say. */
@@ -53,7 +53,7 @@ export interface HostedPress {
 /** A method this surface does not offer. Unreachable by construction: the page draws only
  *  the controls above. */
 const noSuchControl = (): never => {
-  throw new Error("The hosted board offers this card's two decisions and nothing else.");
+  throw new Error("The hosted board offers this card's decisions and nothing else.");
 };
 
 export function hostedActions(press: HostedPress): ScreenActions {
@@ -68,7 +68,7 @@ export function hostedActions(press: HostedPress): ScreenActions {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           eventId: press.eventId,
-          decision: req.action === "resolve" ? "answer" : "implement",
+          decision: req.action === "resolve" ? "answer" : req.action === "archive" ? "archive" : "implement",
           // The revision the page DREW the card at. The machine re-reads the card before it
           // runs and refuses one that has moved (#318), so the gap between drawing this page
           // and pressing costs a refusal rather than a build nobody approved.

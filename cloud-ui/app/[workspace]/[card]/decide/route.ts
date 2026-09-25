@@ -37,7 +37,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const ask = ((await request.json().catch(() => null)) ?? {}) as Ask;
   const eventId = typeof ask.eventId === "string" ? ask.eventId.trim() : "";
-  const decision = ask.decision === "answer" ? "answer" : "implement";
+  const decision = ask.decision === "answer" || ask.decision === "archive" ? ask.decision : "implement";
   const revision = typeof ask.revision === "string" ? ask.revision : "";
   // A press with nothing to press on is this page being out of date rather than a refusal
   // anybody wrote — the card has moved, and the redraw that follows says what it is now.

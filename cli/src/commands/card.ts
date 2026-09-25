@@ -10,8 +10,9 @@ import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
-import { DEFAULT_WORKFLOW, workflowById, workflows } from '../lib/agent/workflows'
-import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
+import { cardMeta, DEFAULT_WORKFLOW, workflowById, workflowFor, workflows } from '../lib/agent/workflows'
+import { pickedApproval, scriptVersion } from '../lib/script-approval'
+import { QUESTION_TAGS, hasOptions, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { readDecidedOp, type DecidedInput } from '../lib/decided'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
@@ -20,14 +21,14 @@ import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
-import { cardCreation, readStore } from '../lib/agent/store'
+import { cardCreation, readRuns, readStore } from '../lib/agent/store'
 import { insideRun } from '../lib/agent/env'
 import { activeDelivery } from '../lib/agent/deliveries'
 import { recordAnswer, takeUnchanged } from '../lib/agent/answers'
 import { findSpecAgent } from '../lib/agents'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
-import { creationRefusal, isApprovalQuestion, previewPending, VIDEO_WORKFLOW } from '../lib/view/rules'
+import { creationRefusal } from '../lib/view/rules'
 import type { ScheduledAction } from '../lib/view/types'
 import { TASKS_HEADING, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
@@ -306,11 +307,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     meta.status = 'todo'
     changes.push('status→todo (open questions)')
   }
-  // Nor is a video card ready before the user approved its shot previews (#991).
-  if (previewPending(meta.workflow, meta.preview_approved) && meta.status === 'ready') {
-    meta.status = 'todo'
-    changes.push('status→todo (previews not approved)')
-  }
 
   const curRel = path.relative(TODO, file)
   const isSubtask = found.kind === 'file' && enclosingGroupRoot(file) !== null
@@ -435,14 +431,14 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
     if (op.kind === 'clear') {
       meta.questions = meta.questions.filter((q) => q.skipped)
       changes.push('cleared')
+    } else if (op.kind === 'approve') {
+      const [n, ...more] = positions(op, 'approve')
+      if (more.length) die('--approve takes one question')
+      meta.script_approved = approvalOf(id, meta.questions[n! - 1]!, body)
+      meta.questions = meta.questions.filter((_, i) => i !== n! - 1)
+      changes.push(`script approved, dropped ${n}`)
     } else if (op.kind === 'drop') {
       const ns = positions(op, 'drop')
-      // Dropping round 2's approval question is the user approving the shot previews (#991).
-      const previews = meta.questions.some((q, i) => ns.includes(i + 1) && q.agent === 'hyperframes-assets')
-      if (previews && meta.workflow === VIDEO_WORKFLOW && !meta.preview_approved) {
-        meta.preview_approved = true
-        changes.push('previews approved')
-      }
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
     } else if (op.kind === 'to-verify') {
@@ -477,27 +473,30 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
     } else if (op.kind === 'append') {
       const agent = op.question!.agent ?? asker
       const q = agent ? { ...op.question!, agent } : op.question!
+      // Asking for approval again withdraws the one given (#1057).
+      if (q.approves) {
+        q.approves = askedVersion(id, meta.workflow, q, body)
+        if (meta.script_approved) changes.push('script approval withdrawn')
+        meta.script_approved = ''
+      }
       meta.questions.push(q)
       changes.push('appended')
-      // Asking either round again withdraws the preview approval.
-      if (meta.preview_approved && isApprovalQuestion(meta.workflow, q)) {
-        meta.preview_approved = false
-        changes.push('preview approval withdrawn')
-      }
     } else {
       const [n] = positions(op, 'update')
       // parseQuestionPositions refused anything out of range, so the slot is there.
-      const agent = op.question!.agent ?? meta.questions[n! - 1]!.agent
-      meta.questions[n! - 1] = agent ? { ...op.question!, agent } : op.question!
+      const was = meta.questions[n! - 1]!
+      const agent = op.question!.agent ?? was.agent
+      const approves = op.question!.approves ? askedVersion(id, meta.workflow, op.question!, body) : was.approves
+      meta.questions[n! - 1] = { ...op.question!, ...(agent ? { agent } : {}), ...(approves ? { approves } : {}) }
       changes.push(`rewrote ${n}`)
     }
   }
   warnBadQuestionTags(meta.questions)
   const open = openOf(meta.questions).length
   // The same invariant cmdUpdate holds: a `ready` card has no open questions.
-  if ((open > 0 || previewPending(meta.workflow, meta.preview_approved)) && meta.status === 'ready') {
+  if (open > 0 && meta.status === 'ready') {
     meta.status = 'todo'
-    changes.push(open > 0 ? 'status→todo (open questions)' : 'status→todo (previews not approved)')
+    changes.push('status→todo (open questions)')
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   if (scheduleRefineOnBlock(id)) changes.push('schedule→refine when unblocked')
@@ -509,6 +508,39 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       ')',
   )
   return { id, changes, open, verify: meta.verify.length, file: rel(file) }
+}
+
+// ---- the script approval (#1057) ---------------------------------------------
+
+// The version a script-approval question asks about: the plan lead's section as it reads now.
+// Only a workflow that finishes in planning asks one, and only once there is a script to show.
+function askedVersion(id: number, workflow: string, q: Question, body: string): string {
+  const flow = workflowFor(workflow)
+  if (flow?.delivers !== 'plan') die(`#${id}'s workflow is built after planning, so it has no script to approve`, { kind: 'no-script-approval' })
+  if (!hasOptions(q) || q.mode !== 'single') die('a script approval is a single-choice question: its first --option approves, the others ask for changes')
+  const version = scriptVersion(body, flow.stages.plan.lead)
+  if (!version) die(`#${id} has no \`${flow.stages.plan.lead}\` section yet — write the script before asking for approval`, { kind: 'no-script' })
+  return version
+}
+
+// What `--approve` records, or a refusal. The question must ask about the script as it reads
+// now, and inside a run only the user's own explicit pick of the approval counts: a resolve
+// run whose answers ticked the first option and said nothing else. The decider and every
+// other run are refused, whatever they conclude.
+function approvalOf(id: number, q: Question, body: string): string {
+  if (!q.approves) die(`that question on #${id} does not ask for script approval — drop it instead`, { kind: 'not-script-approval' })
+  const flow = workflowFor(cardMeta(id)?.workflow ?? '')
+  if (q.approves !== scriptVersion(body, flow?.stages.plan.lead ?? '')) {
+    die(`the script on #${id} changed after this question was asked, so it cannot approve it — ask again`, { kind: 'script-changed' })
+  }
+  const inside = insideRun()
+  if (inside) {
+    const run = readRuns().find((r) => r.sessionId === inside)
+    if (run?.action !== 'resolve' || !pickedApproval(run.input ?? '', q)) {
+      die(`only the user approves #${id}'s script: their answer has to pick "${q.options?.[0] ?? ''}" and ask for nothing else. Drop the question and apply what they asked for instead.`, { kind: 'not-approved-by-user' })
+    }
+  }
+  return q.approves
 }
 
 // A skip is an answer that changed nothing (#831), so the delivery in flight carries on once

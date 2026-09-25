@@ -1,5 +1,5 @@
-// The built-in demo video workflow (#822): `lead` agents, the `<board-state>` path constant,
-// and which flows print a lead's own instructions.
+// The built-in product video workflow (#822, #1057): `lead` agents, the `<board-state>` path
+// constant, and which flows print a lead's own instructions.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -87,30 +87,30 @@ describe('a lead agent', () => {
 })
 
 describe('the hyperframes-video workflow', () => {
-  it('leads with its own agents, calls in hyperframes-assets, and reviews with video-reviewer', () => {
+  it('plans with its own lead, calls in hyperframes-editor, and builds nothing', () => {
     const flow = workflowById('hyperframes-video')!
-    assert.equal(flow.name, 'Demo video')
+    assert.equal(flow.name, 'Product video')
     assert.equal(flow.builtIn, true)
     assert.equal(flow.needsArtifact, true)
+    assert.equal(flow.delivers, 'plan')
     assert.equal(flow.stages.plan.lead, 'scriptwriter')
-    assert.equal(flow.stages.execute.lead, 'hyperframes-editor')
-    assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['hyperframes-assets'])
+    assert.equal(flow.stages.execute.lead, '')
+    assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['hyperframes-editor'])
     assert.deepEqual(liveStage(flow, 'execute').helpers, [])
-    assert.deepEqual(liveStage(flow, 'review').helpers.map((h) => h.agent), ['video-reviewer'])
+    assert.deepEqual(liveStage(flow, 'review').helpers, [])
     assert.deepEqual(workflowProblems('hyperframes-video'), [])
   })
 
   it("keeps its agents off coding's default helpers", () => {
     const helpers = liveStage(workflowById('coding')!, 'plan').helpers.map((h) => h.agent)
-    for (const name of ['hyperframes-assets', 'scriptwriter', 'hyperframes-editor', 'video-reviewer']) assert.ok(!helpers.includes(name), name)
+    for (const name of ['scriptwriter', 'hyperframes-editor']) assert.ok(!helpers.includes(name), name)
     assert.ok(helpers.includes('ui-designer'))
     assert.deepEqual(liveStage(workflowById('coding')!, 'review').helpers.map((h) => h.agent), ['code-reviewer'])
   })
 
-  it('runs each lead under its own name', async () => {
+  it('runs its lead under its own name', async () => {
     const id = await videoCard()
     assert.equal(agentForRun({ action: 'clarify', id, refineRound: 1 }), 'scriptwriter')
-    assert.equal(agentForRun({ action: 'implement', id }), 'hyperframes-editor')
   })
 
   it("prints the lead's instructions after the shared flow, and only on its own cards", async () => {
@@ -121,38 +121,32 @@ describe('the hyperframes-video workflow', () => {
     assert.match(refine, /you, the `scriptwriter` agent[\s\S]*## By `scriptwriter` agent/)
     assert.match(refine, /Your output is set to be reviewed by me: write it in ``## By `scriptwriter` agent``, above `<!-- agent -->`/)
     assert.ok(refine.indexOf('`scriptwriter` agent —') > refine.indexOf('——— akb guide'))
-    assert.match(refine, /hyperframes-assets/)
+    assert.match(refine, /hyperframes-editor/)
     assert.doesNotMatch(refine, /ui-designer|tech-stack-advisor/)
-
-    const build = printed('implement', video)
-    assert.match(build, /you, the `hyperframes-editor` agent[\s\S]*## By `scriptwriter` agent/)
+    assert.throws(() => printed('implement', video), /archived rather than built/)
 
     for (const action of ['refine', 'implement'] as const) {
       const text = printed(action, coding)
-      assert.doesNotMatch(text, /you, the `(scriptwriter|hyperframes-editor)` agent/)
-      assert.doesNotMatch(text, /hyperframes-assets/)
+      assert.doesNotMatch(text, /you, the `scriptwriter` agent/)
+      assert.doesNotMatch(text, /hyperframes-editor/)
     }
-    assert.match(buildPrompt({ action: 'implement', id: video }), /you, the `hyperframes-editor` agent/)
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: coding }), /hyperframes-editor/)
   })
 
   it("prints the lead's instructions on a board's own workflow too", async () => {
     const mine = createWorkflow('Clips').id!
     assert.equal(setWorkflowLead(mine, 'plan', 'software-planner').ok, true)
-    assert.equal(setWorkflowLead(mine, 'execute', 'hyperframes-editor').ok, true)
+    assert.equal(setWorkflowLead(mine, 'execute', 'deck-builder').ok, true)
     const id = (await move(root, ['create', '--title', 'A clip', '--workflow', mine])).id as number
-    assert.match(printed('implement', id), /you, the `hyperframes-editor` agent/)
+    assert.match(printed('implement', id), /you, the `deck-builder` agent/)
     assert.doesNotMatch(printed('refine', id), /you, the `scriptwriter` agent/)
   })
 })
 
 describe('the <board-state> path constant', () => {
-  it('spells the asset folder in the video agents’ prompts', async () => {
+  it('spells the asset folder in the video editor’s prompt', async () => {
     const id = await videoCard()
-    const assets = buildAsk({ action: 'spec', id, specAgent: 'hyperframes-assets' })
-    assert.match(assets, /`\.akb\/boards\/docs\/kanban\/assets\/<card id>\/`/)
-    assert.doesNotMatch(assets, /<board-state>/)
-    const editor = buildPrompt({ action: 'implement', id })
+    const editor = buildAsk({ action: 'spec', id, specAgent: 'hyperframes-editor' })
     assert.match(editor, /`\.akb\/boards\/docs\/kanban\/assets\/<card id>\/`/)
     assert.doesNotMatch(editor, /<board-state>/)
   })

@@ -64,6 +64,7 @@ export default async function Page({
       copy={copy}
       workspace={workspace}
       event={rowFor(events, id)}
+      decision={events.find((e) => e.taskId === id)?.decision}
       account={account}
     />
   );

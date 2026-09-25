@@ -5,7 +5,7 @@ const en: PricingCopy = {
   meta: {
     title: "AI4Kanban pricing — Free, Pro and seed partners",
     description:
-      "AI4Kanban is free and open source. Pro adds email, slide deck and demo video workflows for $10 a month, billed yearly.",
+      "AI4Kanban is free and open source. Pro adds email, slide deck and product video workflows for $10 a month, billed yearly.",
   },
   hero: {
     eyebrow: "PRICING",
@@ -31,7 +31,7 @@ const en: PricingCopy = {
     yearly: { price: "$120", per: "/ year", sub: "$10 a month, billed yearly" },
     monthly: { price: "$15", per: "/ month" },
     leadIn: "Everything in Free, plus:",
-    rows: ["Email workflow", "Slide deck workflow", "Demo video workflow", "Priority support"],
+    rows: ["Email workflow", "Slide deck workflow", "Product video workflow", "Priority support"],
     button: "Coming soon",
   },
   seed: {

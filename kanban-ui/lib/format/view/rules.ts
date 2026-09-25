@@ -60,19 +60,27 @@ export function hasOptions(q: Question): q is OptionsQuestion {
  *  raw list. */
 export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => questions.filter((q) => !q.skipped)
 
-// ---- a video card's preview approval (#991) --------------------------------
+// ---- a card that finishes in planning (#1057) -------------------------------
+//
+// A product video is made while the card is planned: the user approves the script, planning
+// produces and checks the film, and the user archives the card to accept it. Nothing is built.
 
-/** A video card is built only once the user approved its shot previews — round 2 of the
- *  scriptwriter's two approvals. Asking either round again withdraws that approval. */
-export const VIDEO_WORKFLOW = 'hyperframes-video'
-const APPROVAL_ASKERS = ['scriptwriter', 'hyperframes-assets']
+/** A question asking the user to approve the script — never answered on their behalf. */
+export const isApprovalQuestion = (q: Question): boolean => !!q.approves
 
-export const previewPending = (workflow: string, approved: boolean | undefined): boolean =>
-  workflow === VIDEO_WORKFLOW && !approved
+/** What a card finishing in planning still lacks before it can be archived, or null when it
+ *  is done: nothing left to answer, a playable video `<Asset>` in its body, its re-render
+ *  command in a ticked todo, and every todo ticked. */
+export function planDeliveryGap(card: Pick<Card, 'questions' | 'todos' | 'body'>): 'questions' | 'film' | 'command' | 'todos' | null {
+  if (openOf(card.questions).length > 0) return 'questions'
+  if (!/<Asset\s[^>]*src="[^"]+\.(mp4|webm|mov|m4v)"/i.test(card.body)) return 'film'
+  if (!/^[ \t]*[-*]\s+\[[xX]\].*`[^`]+`/m.test(card.body)) return 'command'
+  const { total, done } = card.todos
+  return total > 0 && done === total ? null : 'todos'
+}
 
-/** One of the two planning approvals — never answered on the user's behalf. */
-export const isApprovalQuestion = (workflow: string, q: Question): boolean =>
-  workflow === VIDEO_WORKFLOW && APPROVAL_ASKERS.includes(q.agent ?? '')
+/** A card finishing in planning with more to do before it is archived. */
+const planUnfinished = (card: Card): boolean => card.deliversIn === 'plan' && planDeliveryGap(card) !== null
 
 /** Split a question's leading `[user] ` tag off its text. No token means untagged: freshly
  *  raised, not yet triaged. There is no tag for an answered question — answering removes it
@@ -153,6 +161,9 @@ export function byDispatchOrder(a: Card, b: Card): number {
  * A card with no questions at all is refinable, and so is one with a freshly raised,
  * untagged question — that one still needs triage.
  *
+ * A card finishing in planning (#1057) stays refinable, `ready` or ticked, until its film
+ * is done: planning is where it is made.
+ *
  * Being blocked is deliberately NOT part of this. The follow-up skips a blocked card
  * because spending a run on a plan whose foundation could still change shape is wasted
  * work — but that is a judgment about where to spend a turn, not a fact about the card. A
@@ -161,9 +172,9 @@ export function byDispatchOrder(a: Card, b: Card): number {
 export function canRefine(card: Card): boolean {
   if (card.recurring) return false
   if (card.isGroup) return false
-  if (card.status !== 'todo') return false
+  if (card.status !== 'todo' && !planUnfinished(card)) return false
   const { total, done } = card.todos
-  if (total > 0 && done === total) return false
+  if (total > 0 && done === total && !planUnfinished(card)) return false
   const open = openOf(card.questions)
   if (open.length > 0 && open.every((q) => parseQuestion(q.text).tag === 'user')) {
     return false
@@ -181,12 +192,15 @@ export function canRefine(card: Card): boolean {
  * do. And a card whose every box is ticked is finished: what it is waiting for is an
  * archive, not another build.
  *
+ * A card whose workflow finishes in planning is never built (#1057): it is archived.
+ *
  * Being blocked is not part of this, the same as with `canRefine`: it is a judgment about
  * when to spend a turn, not a fact about the card.
  */
 export function canImplement(card: Card): boolean {
   if (card.recurring) return false
   if (card.isGroup) return false
+  if (card.deliversIn === 'plan') return false
   const { total, done } = card.todos
   return !(total > 0 && done === total)
 }

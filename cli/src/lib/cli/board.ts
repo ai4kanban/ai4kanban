@@ -210,6 +210,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--append <text>', 'add one question to the end', opInOrder('append'))
     .option('--update <n> <text...>', 'rewrite question <n> whole', opInOrder('update'))
     .option('--drop <positions>', 'remove answered questions, e.g. 1 or 1,3', opInOrder('drop'))
+    .option('--approve <position>', 'record that the user approved the script this question asks about, and remove it', opInOrder('approve'))
     .option('--to-verify <positions>', 'move hand-checks into `verify:`', opInOrder('to-verify'))
     .option('--skip <positions>', "mark [user] questions skipped: kept as a record, no longer open", opInOrder('skip'))
     .option('--unskip <positions>', 'reopen skipped questions', opInOrder('unskip'))
@@ -218,6 +219,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--recommended-option <text>', 'a choice for the op before it, ticked to start', opInOrder('recommended-option'))
     .option('--mode <mode>', 'how many choices the op before it takes: single | multi', opInOrder('mode'))
     .option('--agent <name>', 'the spec agent whose section the op before it is about', opInOrder('agent'))
+    .option('--script-approval', 'the --append before it asks the user to approve the current script; its first option approves', opInOrder('script-approval'))
     .action(async function (this: Command, id: number) {
       await dispatch('update-questions', this, [String(id)], { ops: questionOps }, cli)
     })

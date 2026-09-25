@@ -19,6 +19,8 @@ export interface QuestionDraft {
   mode?: string
   recommend?: number[]
   agent?: string
+  /** Asks the user to approve the current script (#1057); the version is filled in by the op. */
+  approves?: string
 }
 
 // A card's frontmatter, after parsing. Every field is normalized on the way in, so a
@@ -36,9 +38,12 @@ export interface Meta {
    *  renaming one leaves every card pointing at it. Empty on a card written before the field
    *  and on a board that picks no workflows, and both read as the default workflow. */
   workflow: string
-  /** A `hyperframes-video` card's shot previews were approved (#991): set when round 2's
-   *  approval question is dropped, cleared when either round asks again. */
+  /** A video card's shot previews were approved under the retired two-round flow (#991).
+   *  Still read, never acted on: it authorizes nothing since #1057. */
   preview_approved: boolean
+  /** The script version the user approved (#1057), or empty. Only `update-questions --approve`
+   *  writes it; it counts only while it matches the script as the card now reads. */
+  script_approved: string
   cadence: string
   last_run: string
   /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way

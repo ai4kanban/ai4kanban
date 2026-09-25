@@ -51,7 +51,7 @@ import {
   registerBoard,
   retireEvent,
 } from './client'
-import type { CloudEventAnswer, CloudEventState } from './events'
+import type { CloudEventAnswer, CloudEventDecision, CloudEventState } from './events'
 import {
   claimForEvent,
   clearPublications,
@@ -552,7 +552,7 @@ export async function retireBoardEvents(): Promise<void> {
  *  the outbox and is retried like a publication, so a click never waits for a round trip. */
 export function recordCloudActionFor(
   taskId: number,
-  decision: 'implement' | 'answer',
+  decision: CloudEventDecision,
   revision: string,
   answers: CloudEventAnswer[] = [],
 ): void {

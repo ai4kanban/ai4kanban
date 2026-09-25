@@ -15,7 +15,7 @@ import path from 'node:path'
 import { withLock } from '../lock'
 import { AKB_DIR, ensureAkbDir, KANBAN, REPO_ROOT } from '../paths'
 import { isProjectBoard } from './boards'
-import type { CloudEventAnswer, CloudEventState } from './events'
+import type { CloudEventAnswer, CloudEventDecision, CloudEventState } from './events'
 import type { EventSnapshot } from './snapshot'
 
 /** What this board last got onto Cloud for one task. */
@@ -54,7 +54,7 @@ export type Pending =
   | (Queued & {
       kind: 'action'
       eventId: string
-      decision: 'implement' | 'answer'
+      decision: CloudEventDecision
       revision: string
       answers: CloudEventAnswer[]
     })
@@ -100,7 +100,7 @@ export interface HeldClaim {
   requestId: string
   eventId: string
   taskId: number
-  decision: 'implement' | 'answer'
+  decision: CloudEventDecision
   /** The run an approved ANSWER started. An implement's states are reported by its delivery;
    *  a resolve has no delivery, so this is what says whose ending is the request's outcome. */
   sessionId?: string

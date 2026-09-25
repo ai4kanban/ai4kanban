@@ -121,6 +121,26 @@ describe('which tasks a board raises an event about', () => {
     assert.equal(actionableKind(held, BOARD), 'question')
   })
 
+  it('asks to archive a finished product video, and nothing before it is finished', () => {
+    const film = '<Asset src="out/film.mp4" />\n\n- [x] Render: `npx hyperframes render`'
+    const finished = card({
+      status: 'ready',
+      deliversIn: 'plan',
+      scriptApproved: true,
+      body: film,
+      todos: { total: 1, done: 1 },
+    })
+    assert.equal(actionableKind(finished, BOARD), 'ready_for_review')
+    assert.equal(snapshotFor(finished, BOARD)?.decision, 'archive')
+
+    assert.equal(actionableKind({ ...finished, body: BODY }, BOARD), null)
+    assert.equal(actionableKind({ ...finished, scriptApproved: false }, BOARD), null)
+    assert.equal(actionableKind({ ...finished, todos: { total: 2, done: 1 } }, BOARD), null)
+    // A question on it still asks.
+    const asking = { ...finished, questions: [asked('[user] Which cut?')] }
+    assert.equal(snapshotFor(asking, BOARD)?.decision, 'answer')
+  })
+
   it('asks the question rather than the approval when a task is both', () => {
     // Answering rewrites the card and moves its revision, so an approval granted first
     // would bind a revision about to change.

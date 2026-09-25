@@ -7,6 +7,9 @@
 // agent's ship inside the built command, where there is no path to open — this is the door
 // onto those. A path the agent does not offer is refused, so nothing reads past its folder.
 
+import { insideRun } from '../lib/agent/env'
+import { readRuns } from '../lib/agent/store'
+import { cardWorkflowId, scriptApprovedOn, workflowFor } from '../lib/agent/workflows'
 import { findSpecAgent, specAgentNamesOnBoard } from '../lib/agents'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
@@ -28,8 +31,22 @@ export function cmdAgentFile(askedName: string, askedFile: string): MoveResult {
     const has = agent.files.length ? `Its files are: ${agent.files.join(', ')}.` : 'It has none.'
     die(`the \`${agent.name}\` agent has no \`${file}\`. ${has}`, { kind: 'no-such-agent-file', agent: agent.name, file })
   }
+  refuseUnapprovedProduction(agent.name)
   const text = agent.file(file)
   if (text === null) die(`can't read \`${file}\` from the \`${agent.name}\` agent`, { kind: 'no-such-agent-file', agent: agent.name, file })
   say(text)
   return { agent: agent.name, file, text }
+}
+
+// A production tool is not handed to a run on a card whose script the user has not approved
+// (#1057) — the recorder is how footage gets made.
+function refuseUnapprovedProduction(agent: string): void {
+  const inside = insideRun()
+  const cardId = inside ? readRuns().find((r) => r.sessionId === inside)?.cardId : null
+  if (typeof cardId !== 'number') return
+  const flow = workflowFor(cardWorkflowId(cardId))
+  if (flow?.delivers !== 'plan' || agent === flow.stages.plan.lead) return
+  if (!scriptApprovedOn(cardId, flow.stages.plan.lead)) {
+    die(`#${cardId}'s script is not approved yet, so nothing is produced for it.`, { kind: 'script-unapproved', agent })
+  }
 }

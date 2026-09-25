@@ -32,11 +32,13 @@ import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
+import { scriptApproved } from '../script-approval'
 import {
   refusal,
   WORKFLOW_STAGES,
   type FrozenWorkflow,
   type RunRefusal,
+  type DeliveryStage,
   type WorkflowCandidate,
   type WorkflowHelper,
   type WorkflowStage,
@@ -80,6 +82,9 @@ export interface Workflow {
    *  ends on the files its card records. A copy of a workflow carries it; a board's own
    *  written before #874 carries nothing and reads as code. */
   needsArtifact: boolean
+  /** The stage that hands over the finished work (#1057). `plan` means planning produces it
+   *  and the user archives it: nothing is built, so the execute stage may stay empty. */
+  delivers: DeliveryStage
   /** Whether an upgrade took a retired agent off this workflow and the user has not been
    *  told yet (#945). Cleared by `dismissRetiredAssignment`. */
   retiredAssignment: boolean
@@ -113,6 +118,7 @@ interface BuiltinWorkflow {
   /** What it is for, in English; screens translate it by id. */
   description: string
   needsArtifact?: boolean
+  delivers?: DeliveryStage
   stages: Record<WorkflowStage, { lead: string; helpers: BuiltinHelpers }>
 }
 
@@ -120,8 +126,9 @@ interface BuiltinWorkflow {
 // helpers are the specialists the command ships — each joins only when its own applicability
 // says so, which is why neither is required.
 //
-// `hyperframes-video` is one demo video per card (#822), `slide-deck` one editable `.pptx`
-// (#969): their leads are `lead` agents the command ships.
+// `hyperframes-video` is one product video per card (#822, #1057), finished and checked during
+// planning; `slide-deck` one editable `.pptx` (#969). Their leads are `lead` agents the command
+// ships.
 const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
@@ -135,13 +142,14 @@ const BUILTINS: BuiltinWorkflow[] = [
   },
   {
     id: 'hyperframes-video',
-    name: 'Demo video',
-    description: 'Create a demo video from a script through editing and review.',
+    name: 'Product video',
+    description: 'Approve a script, get a finished product video, and archive it when you are happy.',
     needsArtifact: true,
+    delivers: 'plan',
     stages: {
-      plan: { lead: 'scriptwriter', helpers: ['hyperframes-assets'] },
-      execute: { lead: 'hyperframes-editor', helpers: [] },
-      review: { lead: '', helpers: ['video-reviewer'] },
+      plan: { lead: 'scriptwriter', helpers: ['hyperframes-editor'] },
+      execute: { lead: '', helpers: [] },
+      review: { lead: '', helpers: [] },
     },
   },
   {
@@ -203,17 +211,24 @@ interface StoredHelper {
 
 const workflowsBlock = (cfg: Record<string, unknown>): Record<string, unknown> => configBlock(cfg.workflows)
 
-const addedRows = (cfg: Record<string, unknown>): { id: string; name: string; needsArtifact: boolean }[] => {
+interface AddedRow {
+  id: string
+  name: string
+  needsArtifact: boolean
+  delivers: DeliveryStage
+}
+
+const addedRows = (cfg: Record<string, unknown>): AddedRow[] => {
   const raw = workflowsBlock(cfg).added
   if (!Array.isArray(raw)) return []
-  const rows: { id: string; name: string; needsArtifact: boolean }[] = []
+  const rows: AddedRow[] = []
   for (const entry of raw) {
     const row = configBlock(entry)
     const id = typeof row.id === 'string' ? row.id.trim() : ''
     const name = typeof row.name === 'string' ? row.name.trim() : ''
     if (!id || !WORKFLOW_ID.test(id) || isBuiltinWorkflow(id)) continue
     if (rows.some((r) => r.id === id)) continue
-    rows.push({ id, name, needsArtifact: row.needsArtifact === true })
+    rows.push({ id, name, needsArtifact: row.needsArtifact === true, delivers: row.delivers === 'plan' ? 'plan' : 'execute' })
   }
   return rows
 }
@@ -252,6 +267,7 @@ function resolveOne(
   name: string,
   builtIn: boolean,
   needsArtifact = false,
+  delivers: DeliveryStage = 'execute',
 ): Workflow {
   const base = BUILTINS.find((w) => w.id === id)
   const stages = emptyStages()
@@ -276,6 +292,7 @@ function resolveOne(
     name,
     builtIn,
     needsArtifact: base?.needsArtifact ?? needsArtifact,
+    delivers: base ? (base.delivers ?? 'execute') : delivers,
     retiredAssignment: retiredRows(cfg).includes(id),
     stages,
   }
@@ -498,13 +515,13 @@ function renameSavedAgents(cfg: Record<string, unknown>): boolean {
 
 // ---- dropping a retired agent's assignments (#945) --------------------------
 //
-// `storyboard-designer` is gone: `hyperframes-assets` builds the shot previews now. A board
-// that had assigned it keeps an assignment nothing answers to, so the agent comes off every
-// saved stage, once, and each workflow it came off is marked — the Workflows pane says what
-// happened there, and **Got it** takes the mark away. One pass: what it removes is what
-// makes it run, so the line below is false from then on.
+// Agents the command no longer ships (`hyperframes-assets` and `video-reviewer` went into the
+// video editor, #1057). A board that had assigned one keeps an assignment nothing answers to,
+// so the agent comes off every saved stage, once, and each workflow it came off is marked —
+// the Workflows pane says what happened there, and **Got it** takes the mark away. One pass:
+// what it removes is what makes it run, so the line below is false from then on.
 
-const RETIRED_AGENTS = new Set(['storyboard-designer'])
+const RETIRED_AGENTS = new Set(['storyboard-designer', 'hyperframes-assets', 'video-reviewer'])
 
 const retired = (agent: unknown): boolean => typeof agent === 'string' && RETIRED_AGENTS.has(canonicalSpecAgent(agent))
 
@@ -555,7 +572,7 @@ export function workflows(): Workflow[] {
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
-    ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact)),
+    ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers)),
   ]
 }
 
@@ -599,6 +616,8 @@ export function workflowIssues(id: string): RunRefusal[] {
   for (const stage of WORKFLOW_STAGES) {
     if (stage === REVIEW) continue
     const { lead } = flow.stages[stage]
+    // Planning hands over the work, so nothing is built (#1057).
+    if (stage === 'execute' && flow.delivers === 'plan' && !lead) continue
     const name = flow.name
     if (!lead) {
       problems.push(
@@ -751,7 +770,7 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
   const copy = freeId(workflows().map((w) => w.id))
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
-    added.push({ id: copy, name, needsArtifact: flow.needsArtifact })
+    added.push({ id: copy, name, needsArtifact: flow.needsArtifact, ...(flow.delivers === 'plan' ? { delivers: 'plan' } : {}) })
     block.added = added
     const stages = configBlock(block.stages)
     // The assignments as they RESOLVE, not as they are saved: a stage still inheriting its
@@ -965,10 +984,8 @@ export function workflowsConfigured(): boolean {
  *  no `workflow:` key, or is archived — the caller resolves that to the default. */
 export const cardWorkflowId = (id: number): string => cardMeta(id)?.workflow ?? ''
 
-/** Whether a card's shot previews were approved (#991). */
-export const cardPreviewApproved = (id: number): boolean => cardMeta(id)?.preview_approved ?? false
-
-function cardMeta(id: number): Meta | null {
+/** A card's frontmatter, straight off its file, or null when it is not there. */
+export function cardMeta(id: number): Meta | null {
   // Every step of this is best-effort. It is read on the way into a prompt, and a folder
   // that is not there — a half-made board, a card already archived away — means the card
   // names no workflow, never a run that cannot start.
@@ -979,6 +996,21 @@ function cardMeta(id: number): Meta | null {
     return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta
   } catch {
     return null
+  }
+}
+
+/** Whether the user approved a card's script as it now reads (#1057). `lead` is the agent
+ *  whose section is the script — its workflow's plan lead. */
+export function scriptApprovedOn(id: number, lead: string): boolean {
+  const meta = cardMeta(id)
+  if (!meta?.script_approved) return false
+  try {
+    const found = locate(id)
+    if (!found) return false
+    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    return scriptApproved(meta.script_approved, parseFrontmatter(fs.readFileSync(file, 'utf8')).body, lead)
+  } catch {
+    return false
   }
 }
 
@@ -1053,6 +1085,7 @@ export function workflowViews(): WorkflowView[] {
     ...(flow.builtIn ? { description: builtinDescription(flow.id) } : {}),
     isDefault: flow.id === DEFAULT_WORKFLOW,
     needsArtifact: flow.needsArtifact,
+    delivers: flow.delivers,
     retiredAssignment: flow.retiredAssignment,
     stages: WORKFLOW_STAGES.map((stage) => {
       const setup = liveStage(flow, stage)

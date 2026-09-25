@@ -42,7 +42,7 @@ import type {
   WorkflowStage,
   WorkflowView,
 } from "./format/agent/types";
-import type { CloudEventAnswer, NotificationGroup } from "./format/cloud/events";
+import type { CloudEventAnswer, CloudEventDecision, NotificationGroup } from "./format/cloud/events";
 import type {
   CloudAccount,
   CloudMove,
@@ -748,7 +748,7 @@ export interface BoardRules {
    *  Never waits on the network: the board's own outbox retries it. */
   recordCloudActionFor?(
     taskId: number,
-    decision: "implement" | "answer",
+    decision: CloudEventDecision,
     revision: string,
     answers: CloudEventAnswer[],
   ): void;

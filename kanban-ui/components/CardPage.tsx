@@ -72,7 +72,7 @@ import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
 import { useOnHistoryRestore } from "@/lib/history-restore";
 import { cardChat } from "@/lib/chat-open";
-import { canImplement, canRefine } from "@/lib/refine";
+import { canImplement, canRefine, planDeliveryGap } from "@/lib/refine";
 import { scheduleMark } from "@/lib/schedule";
 import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
@@ -342,14 +342,15 @@ function visibleActions(card: Card, offered: readonly CardControl[] | null): Set
   // is queued. Cancelling the schedule brings the button back for this blocked episode.
   if (canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
   if (hasUserQuestions) buttons.add("resolve"); // Resolve — has a decision the user owns
-  // Archive — every subtask resolved, or all todos checked. Never on a recurring
-  // card: it has no end state, and archiving one would take a job off the board.
-  if (!card.recurring && (card.isGroup ? groupDone : allDone)) buttons.add("archive");
+  // Archive — every subtask resolved, or all todos checked; a card finished in planning
+  // once its approved script's film is done. Never on a recurring card: archiving one takes a job off the board.
+  const finished = card.isGroup ? groupDone : card.deliversIn === "plan" ? !!card.scriptApproved && planDeliveryGap(card) === null : allDone;
+  if (!card.recurring && finished) buttons.add("archive");
   buttons.add("reject"); // Reject — always
   // What the SURFACE offers, on top of what the card's state allows (#364). A surface that
-  // names none offers all of them, which is the app; the hosted board names Implement and
-  // Resolve, so a reader on a borrowed phone can make a card's two decisions and nothing
-  // else. Narrowing only: a control the card's own state rules out never comes back.
+  // names none offers all of them, which is the app; the hosted board names only the card's
+  // decisions, so a reader on a borrowed phone can make those and nothing else. Narrowing
+  // only: a control the card's own state rules out never comes back.
   if (!offered) return buttons;
   for (const button of buttons) if (!offered.includes(button)) buttons.delete(button);
   return buttons;

@@ -28,6 +28,7 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   // re-emitted whenever it is there, so no rewrite of a card can drop it.
   if (m.workflow) out.push(`workflow: ${yamlScalar(m.workflow)}`)
   if (m.preview_approved) out.push('preview_approved: true')
+  if (m.script_approved) out.push(`script_approved: ${yamlScalar(m.script_approved)}`)
   // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
   // ./cadence.ts). Written only when the card carries one; no cadence means the
   // card runs when a human clicks Run and never on its own.
@@ -49,7 +50,7 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
     out.push('questions:')
     for (const raw of m.questions) {
       const q = normalizeQuestion(raw)
-      if (!hasOptions(q) && !q.agent && !q.skipped) {
+      if (!hasOptions(q) && !q.agent && !q.approves && !q.skipped) {
         out.push(`  - ${yamlScalar(q.text)}`)
         continue
       }
@@ -61,6 +62,7 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
         out.push(`    recommend: [${q.recommend.join(', ')}]`)
       }
       if (q.agent) out.push(`    agent: ${yamlScalar(q.agent)}`)
+      if (q.approves) out.push(`    approves: ${yamlScalar(q.approves)}`)
       if (q.skipped) out.push('    skipped: true')
     }
   }
@@ -189,6 +191,7 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''
   meta.preview_approved = meta.preview_approved === 'true'
+  meta.script_approved = meta.script_approved == null ? '' : String(meta.script_approved).trim()
   // When this card last ran — recurring cards only, and only once they have run.
   // Anything but text reads as never run, so a blanked or damaged line just means
   // the card has no run to report.

@@ -144,7 +144,7 @@ export function WorkflowsPanel({
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [picked, setPicked] = useState("");
-  const [stage, setStage] = useState<WorkflowStage>("plan");
+  const [tab, setStage] = useState<WorkflowStage>("plan");
   // The name box, when one is open: which workflow it renames (a workflow just added is the
   // same box, on a row the board has already allocated).
   const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
@@ -177,11 +177,16 @@ export function WorkflowsPanel({
   }, [flows, picked]);
 
   const flow = flows?.find((f) => f.id === picked);
+  // A workflow finished in planning has no execute or review stage to show (#1057).
+  const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
+  const stage = stages.includes(tab) ? tab : "plan";
   const setup = flow?.stages.find((s) => s.stage === stage);
   // The review stage has reviewers and no lead (#820).
   const reviewing = stage === "review";
   // Which of the three cannot start, so the tabs can say which one to fix.
-  const blocked = new Set((flow?.stages ?? []).filter(stageBlocked).map((s) => s.stage));
+  const blocked = new Set(
+    (flow?.stages ?? []).filter((s) => stages.includes(s.stage) && stageBlocked(s)).map((s) => s.stage),
+  );
   // Every agent this stage has, in the order the column draws them.
   const assigned = useMemo(
     () => (setup ? [...(reviewing || !setup.lead ? [] : [setup.lead]), ...setup.helpers.map((h) => h.agent)] : []),
@@ -451,7 +456,7 @@ export function WorkflowsPanel({
               {/* The arrows between them are the order a card actually goes through, which is
                   the one thing three same-looking tabs don't say. */}
               <div className="flex shrink-0 items-center gap-1">
-                {WORKFLOW_STAGES.map((name, i) => (
+                {stages.map((name, i) => (
                   <div key={name} className="flex items-center gap-1">
                     {i > 0 && (
                       <FiChevronRight size={13} aria-hidden className="shrink-0 text-nb-ink-soft/60" />

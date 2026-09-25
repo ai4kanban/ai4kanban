@@ -169,18 +169,19 @@ describe('memory, as a contract write (#805)', () => {
     assert.equal(await board().readMemoryFile('../../readme', 'copywriting'), null)
   })
 
-  // `video-assets` became `hyperframes-assets` (#945) and kept its folder. The panel reads and
-  // writes the file the agent is actually handed, not one under the name it goes by now.
+  // `video-assets` became `hyperframes-assets` (#945), then `hyperframes-editor` (#1057), and
+  // kept its folder. The panel reads and writes the file the agent is actually handed, not one
+  // under the name it goes by now.
   it('reads and writes a renamed agent’s memory where the agent keeps it', async () => {
     write('memory/agents/video-assets/assets.md', '- board.mp4 — the board, 4s.\n')
-    const owner = (await board().readMemoryOwners()).find((o) => o.agent === 'hyperframes-assets')
+    const owner = (await board().readMemoryOwners()).find((o) => o.agent === 'hyperframes-editor')
     assert.deepEqual(owner?.files, ['assets'])
-    const file = await board().readMemoryFile('assets', 'hyperframes-assets')
+    const file = await board().readMemoryFile('assets', 'hyperframes-editor')
     assert.equal(file?.text, '- board.mp4 — the board, 4s.\n')
-    const saved = await onBoard((env) => board().saveMemoryFile('assets', '- card.mp4 — one card, 3s.', 'hyperframes-assets', env))
+    const saved = await onBoard((env) => board().saveMemoryFile('assets', '- card.mp4 — one card, 3s.', 'hyperframes-editor', env))
     assert.ok(saved.ok)
     assert.equal(read('memory/agents/video-assets/assets.md'), '- card.mp4 — one card, 3s.\n')
-    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents', 'hyperframes-assets')), false)
+    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents', 'hyperframes-editor')), false)
   })
 })
 

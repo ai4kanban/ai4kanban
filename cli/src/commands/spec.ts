@@ -17,7 +17,7 @@ import {
   SPEC_ASSIGN_HOME,
 } from '../lib/agents'
 import { activeDelivery } from '../lib/agent/deliveries'
-import { cardWorkflowId, frozenReviewers } from '../lib/agent/workflows'
+import { cardWorkflowId, frozenReviewers, scriptApprovedOn, workflowFor } from '../lib/agent/workflows'
 import type { MoveResult } from '../lib/types'
 import { followRun, short } from './run'
 
@@ -77,6 +77,15 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
       `the \`${name}\` spec agent is not assigned to the planning of #${id}, so it isn't running. Plan that part of the card yourself and carry on. It joins when ${SPEC_ASSIGN_HOME}.`,
       { kind: 'spec-agent-off', specAgent: name },
     )
+  }
+
+  // Nothing is produced for a card finishing in planning before its script is approved (#1057).
+  const flow = workflowFor(cardWorkflowId(id))
+  if (flow?.delivers === 'plan' && !scriptApprovedOn(id, flow.stages.plan.lead)) {
+    die(`#${id}'s script is not approved yet, so \`${name}\` does not start. Ask the user to approve it first.`, {
+      kind: 'script-unapproved',
+      specAgent: name,
+    })
   }
 
   const notes = noteOf(opts.note ?? [], opts.notes)

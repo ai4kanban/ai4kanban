@@ -136,8 +136,8 @@ export interface AgentMemory {
 // An agent renamed between releases takes its memory with it (`adoptRenamedMemory`), except
 // where the folder holds notes a board has been writing for releases and the name it was
 // written under is the one to keep: planning memory is the board's whoever leads it (#858),
-// and the video asset catalogue is a list of files on this machine (#945).
-const KEPT_MEMORY_FOLDERS: Record<string, string> = { 'hyperframes-assets': 'video-assets' }
+// and the video asset catalogue is a list of files on this machine (#945, #1057).
+const KEPT_MEMORY_FOLDERS: Record<string, string> = { 'hyperframes-editor': 'video-assets' }
 
 export const agentMemoryDir = (agent: string): string =>
   path.join(AGENT_MEMORY, KEPT_MEMORY_FOLDERS[agent] ?? agent)

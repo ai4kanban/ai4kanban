@@ -174,10 +174,12 @@ function standing(event: EventRow, openId?: string): Element {
  *
  * An **Implement** for the exact ready revision, or — for a question — the controls #319's
  * contract allows: an event carrying exactly one single-choice question is a button per
- * option, and anything else is a form submitting every answer at once.
+ * option, and anything else is a form submitting every answer at once. A card to archive is
+ * accepted on the card itself (#1057), so it gets the link alone.
  */
 function decision(event: EventRow): Element[] {
   const link = linkButton(event)
+  if (event.decision === 'archive') return [actions([link])]
   if (event.decision === 'implement') {
     return [
       actions([button('Implement', { a: ACT_IMPLEMENT, ...actionValue(event) }, 'primary'), link]),

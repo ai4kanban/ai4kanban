@@ -124,7 +124,7 @@ export const UNREACHABLE = "unreachable";
 export async function pressEvent(
   eventId: string,
   token: string,
-  body: { opId: string; decision: "implement" | "answer"; revision: string; answers: EventAnswer[] },
+  body: { opId: string; decision: "implement" | "answer" | "archive"; revision: string; answers: EventAnswer[] },
 ): Promise<Press> {
   let response: Response;
   try {

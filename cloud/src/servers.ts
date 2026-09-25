@@ -47,7 +47,7 @@ export interface RequestRow {
   taskId: number
   taskTitle: string
   revision: string
-  decision: 'implement' | 'answer'
+  decision: 'implement' | 'answer' | 'archive'
   answers: unknown[]
   questions: unknown[]
 }

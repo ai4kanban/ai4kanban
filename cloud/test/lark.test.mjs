@@ -122,6 +122,13 @@ describe('cardFor', () => {
     assert.doesNotMatch(said(card), /<at /, 'a report is not an ask')
   })
 
+  it('offers only the card link on a card to archive', () => {
+    assert.deepEqual(
+      buttons(cardFor(anEvent({ decision: 'archive' }))).map((b) => b.label),
+      ['Open card in app'],
+    )
+  })
+
   it('names the machine a decision waits for, and says when there is none', () => {
     const waiting = cardFor(anEvent({ state: 'waiting_for_server', acted: true }))
     assert.match(said(waiting), /On Wutao/)

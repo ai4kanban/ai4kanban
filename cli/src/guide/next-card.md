@@ -18,6 +18,7 @@ A candidate is `status: ready` with an empty `blocked_by`. Drop these whatever t
 - **a group root** (`isRoot: true`) — the work is in its subtasks, not the root,
 - **a recurring card** (its file is under `todo/recurring/`) — it has no end state, and
   `akb card run` starts it rather than `akb card implement`,
+- **a card whose workflow finishes in planning** — it is ready for review and archive, not a build,
 - **a card a run is already building** — it is in flight and needs nothing.
 
 ## 3. Rank what is left

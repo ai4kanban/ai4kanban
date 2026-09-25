@@ -410,9 +410,9 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   const onCloud =
     !!cloudRevision &&
     Number.isInteger(req.id) &&
-    (req.action === "resolve" || req.action === "implement" || req.action === "run");
+    (req.action === "resolve" || req.action === "implement" || req.action === "run" || req.action === "archive");
   if (onCloud) {
-    const decision = req.action === "resolve" ? "answer" : "implement";
+    const decision = req.action === "resolve" ? "answer" : req.action === "archive" ? "archive" : "implement";
     await recordCloudAction(req.id as number, decision, cloudRevision!, cloudAnswers ?? []);
   }
   // That order owes a compensation: an action recorded for a run that never started would

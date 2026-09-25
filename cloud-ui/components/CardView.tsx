@@ -17,8 +17,9 @@ import { CardPage, type CardChrome } from "@/components/CardPage";
 import { CardEventsProvider, useCardEvent } from "@/lib/card-event";
 import type { CardScreen } from "@/lib/format/board/screen";
 import type { NotificationRow } from "@/lib/notifications";
+import type { CloudEventDecision } from "@/lib/types";
 import { ScreenActionsProvider, ScreenControlsProvider } from "@/lib/screen";
-import { HOSTED_CONTROLS, hostedActions } from "../lib/actions";
+import { hostedActions, hostedControls } from "../lib/actions";
 import type { HostedAccount } from "../lib/cloud";
 import type { HostedCopy } from "../lib/copy";
 import { AccountProvider, CopyProvider, OpenInApp, TopRow } from "./Frame";
@@ -50,6 +51,8 @@ export function CardView({
   /** This card's live decision, as the workspace holds it — or null when it is raising none.
    *  One row, not the workspace's whole list: a card page asks about one card. */
   event,
+  /** What that event asks for, which picks the controls the page offers. */
+  decision,
   /** The app link this page offers, for a machine that holds a copy of this workspace. */
   workspace,
   /** Who the top row names (#575). Null when that one read did not answer. */
@@ -58,11 +61,13 @@ export function CardView({
   screen: CardScreen;
   copy: HostedCopy;
   event: NotificationRow | null;
+  decision?: CloudEventDecision;
   workspace: string;
   account: HostedAccount | null;
 }) {
   const router = useRouter();
   const rows = useMemo(() => (event ? [event] : []), [event]);
+  const controls = useMemo(() => hostedControls(decision), [decision]);
   const actions = useMemo(
     () =>
       hostedActions({
@@ -85,7 +90,7 @@ export function CardView({
             {/* A card with no live decision is handed no writer at all, so every control on
                 the page is gone rather than dead — the same read-only page #322 drew. */}
             <ScreenActionsProvider value={event ? actions : null}>
-              <ScreenControlsProvider value={HOSTED_CONTROLS}>
+              <ScreenControlsProvider value={controls}>
                 <CardPage screen={screen} shell={Shell} />
               </ScreenControlsProvider>
             </ScreenActionsProvider>

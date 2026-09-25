@@ -160,7 +160,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['code-reviewer', 'copywriting', 'deck-builder', 'deck-planner', 'hyperframes-assets', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-reviewer'],
+      ['code-reviewer', 'copywriting', 'deck-builder', 'deck-planner', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)
@@ -306,7 +306,7 @@ describe('an agent nobody can read', () => {
     project('outliner', { 'AGENT.md': lead(['  stage: plan', '  lead: true']) })
     assert.equal(canLead('outliner'), true)
     assert.equal(canLead('scriptwriter'), true)
-    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'hyperframes-assets', 'code-reviewer', 'video-reviewer']) {
+    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'hyperframes-editor', 'code-reviewer']) {
       assert.equal(canLead(helper), false, helper)
     }
   })
@@ -522,18 +522,18 @@ describe("an agent's memory folder", () => {
     assert.equal(fs.existsSync(was), false)
   })
 
-  // `video-assets` became `hyperframes-assets` (#945), but its catalogue of files on this
-  // machine is not worth moving: the folder keeps the name it was written under, and the
-  // agent is handed it under its new name.
+  // `video-assets` became `hyperframes-assets` (#945), then `hyperframes-editor` (#1057), but its
+  // catalogue of files on this machine is not worth moving: the folder keeps the name it was
+  // written under, and the agent is handed it under its new name.
   it('reads the asset catalogue from the folder its old name wrote, and leaves it there', () => {
     const was = path.join(kanban(), 'memory', 'agents', 'video-assets')
     fs.mkdirSync(was, { recursive: true })
     fs.writeFileSync(path.join(was, 'assets.md'), '# assets\n\n- board.mp4 — the board, 4s.\n')
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-assets' })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' })
     assert.match(prompt, /board\.mp4 — the board, 4s\./)
     assert.match(prompt, /`docs\/kanban\/memory\/agents\/video-assets\/`/)
     assert.ok(fs.existsSync(path.join(was, 'assets.md')))
-    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'hyperframes-assets')), false)
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'hyperframes-editor')), false)
   })
 
   // A run setting the board saved under the old name still reaches the agent, and the new
@@ -541,10 +541,10 @@ describe("an agent's memory folder", () => {
   it('reads a setting saved under the name it had before, new name first', () => {
     const setting = (cfg: Record<string, unknown>): void =>
       fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify({ specAgents: cfg }))
-    setting({ 'video-assets': { output: 'agent' } })
-    assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-assets' }), /read by the agent that builds this/)
-    setting({ 'video-assets': { output: 'agent' }, 'hyperframes-assets': { output: 'human' } })
-    assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-assets' }), /reviewed by me/)
+    setting({ 'video-assets': { output: 'human' } })
+    assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), /reviewed by me/)
+    setting({ 'video-assets': { output: 'human' }, 'hyperframes-editor': { output: 'agent' } })
+    assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), /read by the agent that builds this/)
     assert.match(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'), /video-assets/)
   })
 

@@ -17,6 +17,10 @@ another question, or change project code.
 akb raw update-questions <id> --drop <n[,n...]>
 ```
 
+A question carrying `approves:` asks the user to approve a script. When they picked its first
+option and asked for nothing else, record it with `--approve <n>` instead of `--drop`; any other
+answer is applied and dropped, never approved.
+
 When an answer sends an agent's (`agent:`) section back for rework that the user must confirm
 again, keep or `--update` the question instead of dropping it. Once no question is left for
 that agent, request each matching agent whose description says it follows it and whose

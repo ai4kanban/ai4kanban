@@ -1,7 +1,7 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
 import { alertsAllowed, autoWorkAllowed } from "./desktop";
-import type { CloudEventAnswer, NotificationGroup } from "./types";
+import type { CloudEventAnswer, CloudEventDecision, NotificationGroup } from "./types";
 
 // --- the notification center (#319) ------------------------------------------
 // The bell, and what each board fills it with. Signing in is what turns a board on — the
@@ -250,7 +250,7 @@ export async function cancelCloudRequest(
  *  never blocks the click: the board's own outbox retries it. */
 export async function recordCloudAction(
   taskId: number,
-  decision: "implement" | "answer",
+  decision: CloudEventDecision,
   revision: string,
   answers: CloudEventAnswer[],
 ): Promise<void> {

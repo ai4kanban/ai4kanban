@@ -1329,11 +1329,25 @@ export function ActionDialog({
   return (
     <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
       <p className={INTRO}>{c.blurb}</p>
-      <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
+      {/* A hosted press records the decision and starts no run, so there is no note to carry. */}
+      {runsHere && (
+        <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
+      )}
       <DialogButtons
         onClose={onClose}
         confirmLabel={c.confirm}
-        onConfirm={() => run({ action: "archive", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Archive #${dialog.card.id}`)}
+        onConfirm={() =>
+          run(
+            {
+              action: "archive",
+              id: dialog.card.id,
+              title: dialog.card.title,
+              notes: text.trim() || undefined,
+              cloudRevision: dialog.card.revision,
+            },
+            `Archive #${dialog.card.id}`,
+          )
+        }
       />
     </Dialog>
   );

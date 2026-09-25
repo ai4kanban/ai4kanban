@@ -49,7 +49,8 @@ export function cardStages(): CardStages {
 const settledDuring = (before: CardStages, id: number): boolean => (before.get(id) ?? 'todo') === 'todo'
 
 /** Whether the board may put a gate on this card by itself. The same cards `akb guide
- *  next-card` drops — a group root, a recurring job, a card already in flight — plus the two
+ *  next-card` drops — a group root, a recurring job, a card finishing in planning, a card
+ *  already in flight — plus the two
  *  a gate has nothing to judge: one still waiting on an answer, and one waiting on another
  *  card. Typing `akb card gate <id>` bypasses all of it, as every flow does. */
 export function gateable(card: Card): boolean {
@@ -57,6 +58,7 @@ export function gateable(card: Card): boolean {
     card.status === 'ready' &&
     !card.isGroup &&
     !card.recurring &&
+    card.deliversIn !== 'plan' &&
     openOf(card.questions).length === 0 &&
     card.openBlockers.length === 0 &&
     !activeDelivery(card.id)

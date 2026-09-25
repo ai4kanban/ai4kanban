@@ -26,11 +26,17 @@ import { KANBAN } from '../paths'
 import { findCard } from '../view/read'
 import type { Card, WriteResult } from '../view/types'
 import { claimRequest, listRequests, renewClaim } from './client'
-import { answeredFromEvent, answerNotes, type CloudEventAnswer, type CloudEventQuestion } from './events'
+import {
+  answeredFromEvent,
+  answerNotes,
+  type CloudEventAnswer,
+  type CloudEventDecision,
+  type CloudEventQuestion,
+} from './events'
 import { claimForEvent, dropClaim, heldClaims, holdClaim, notePublication, recordForEvent } from './outbox'
 import { recordCloudEventState } from './publish'
 import { serverForBoard } from './servers'
-import { userQuestions } from './snapshot'
+import { archivable, userQuestions } from './snapshot'
 
 /** One job for a board's server, with everything it needs to run it and nothing else. */
 export interface CloudRequest {
@@ -46,7 +52,7 @@ export interface CloudRequest {
   taskTitle: string
   /** The card revision the action was granted against. Binding. */
   revision: string
-  decision: 'implement' | 'answer'
+  decision: CloudEventDecision
   answers: CloudEventAnswer[]
   /** The questions the event carried, so a remote answer is read back against the list it
    *  was given rather than against whatever the card says now. */
@@ -153,8 +159,9 @@ const claimOf = (request: CloudRequest, sessionId?: string) => ({
  * delivery that died without reporting — a claim nobody is working must be allowed to run out
  * and read as interrupted, which is the whole of how a killed server is noticed.
  */
-function carrying(taskId: number, decision: 'implement' | 'answer', sessionId?: string): boolean {
+function carrying(taskId: number, decision: CloudEventDecision, sessionId?: string): boolean {
   if (decision === 'implement') return !!activeDelivery(taskId)
+  // An answer and an archive are each one run.
   return !!sessionId && peekRun(sessionId)?.status === 'running'
 }
 
@@ -177,6 +184,9 @@ export function refuseStart(
   if (card.revision !== request.revision) return `#${request.taskId} has changed since this was approved.`
   if (request.decision === 'implement') {
     return card.status === 'ready' ? null : `#${request.taskId} is no longer ready to build.`
+  }
+  if (request.decision === 'archive') {
+    return archivable(card) ? null : `#${request.taskId} is no longer ready to archive.`
   }
   // An answer: the questions it answers must still be the card's, because the entries are
   // one per question in the order the event carried them.
@@ -201,12 +211,19 @@ async function start(request: CloudRequest): Promise<Started | Refusal> {
     return { started: true }
   }
 
-  const notes = answerNotes(answeredFromEvent(request.questions, request.answers))
-  const run = await startRun({ action: 'resolve', id: card.id, title: card.title, notes })
+  const run =
+    request.decision === 'archive'
+      ? await startRun({ action: 'archive', id: card.id, title: card.title })
+      : await startRun({
+          action: 'resolve',
+          id: card.id,
+          title: card.title,
+          notes: answerNotes(answeredFromEvent(request.questions, request.answers)),
+        })
   if ('error' in run) return { started: false, reason: run.error }
   if (!run.spawned) return { started: false, reason: 'This machine could not start a process for that run.' }
-  // A resolve is not a delivery, so nothing else reports how it ended. The run it started is
-  // what does (see reportCloudRunEnd in ./publish.ts).
+  // A resolve or an archive is not a delivery, so nothing else reports how it ended. The run
+  // it started is what does (see reportCloudRunEnd in ./publish.ts).
   holdClaim(claimOf(request, run.run.sessionId))
   recordCloudEventState(request.eventId, 'running')
   return { started: true }

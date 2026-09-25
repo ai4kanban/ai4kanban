@@ -54,12 +54,13 @@ export const isFinalEventState = (state: CloudEventState): boolean =>
  *  would bind a revision about to change. */
 export type CloudEventKind = 'ready_for_review' | 'question'
 
-/** What the event asks the person to decide. One per kind, named apart from the kind so a
- *  surface draws a button from the decision and a heading from the kind. */
-export type CloudEventDecision = 'implement' | 'answer'
+/** What the event asks the person to decide, named apart from the kind so a surface draws a
+ *  button from the decision and a heading from the kind. A card finished in planning is
+ *  archived rather than built (#1057). */
+export type CloudEventDecision = 'implement' | 'answer' | 'archive'
 
-export const decisionFor = (kind: CloudEventKind): CloudEventDecision =>
-  kind === 'question' ? 'answer' : 'implement'
+export const decisionFor = (kind: CloudEventKind, deliversIn?: 'plan'): CloudEventDecision =>
+  kind === 'question' ? 'answer' : deliversIn === 'plan' ? 'archive' : 'implement'
 
 /** One user-owned question, as an event carries it. The board's internal `[user]` tag is
  *  stripped before it gets here — Cloud never sees the board's own vocabulary. */

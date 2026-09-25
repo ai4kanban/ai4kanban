@@ -10,7 +10,7 @@
 //
 // Runtime: Node 22 or later (global `WebSocket`) with `ffmpeg` and `ffprobe` on PATH. Nothing
 // is installed. Save it from the agent with
-// `akb raw agent-file hyperframes-assets record.mjs > record.mjs`, and keep it in the project.
+// `akb raw agent-file hyperframes-editor record.mjs > record.mjs`, and keep it in the project.
 //
 // You write two kinds of file beside it and nothing else:
 //

@@ -180,6 +180,14 @@ describe('recordAction', () => {
     assert.equal(calls[0].args.p_state, 'accepted')
   })
 
+  it('records an archive decision', async () => {
+    const calls = fakeDatabase(anEvent({ state: 'accepted' }))
+
+    await recordAction(ENV, OWNER, EVENT, { opId: 'op-3', decision: 'archive', revision: 'r1' })
+
+    assert.equal(calls[0].args.p_decision, 'archive')
+  })
+
   it('refuses an action naming no attempt, so a retry can never be told apart from a second', async () => {
     const calls = fakeDatabase(anEvent())
 

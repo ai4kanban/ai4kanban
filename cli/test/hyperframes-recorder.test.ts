@@ -1,4 +1,4 @@
-// The recorder `hyperframes-assets` ships (#993). A video task writes its environment and its
+// The recorder `hyperframes-editor` ships (#993). A video task writes its environment and its
 // per-shot actions; connecting, sampling, encoding, checking and remembering what is already
 // recorded are this one file's, so no second task writes them again.
 //
@@ -34,7 +34,7 @@ const ledger = (): Record<string, { status: string; output?: string; sampledFps?
 before(() => {
   project = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-record-')))
   recorder = path.join(project, 'record.mjs')
-  fs.writeFileSync(recorder, BUNDLED_AGENT_FILES['hyperframes-assets/record.mjs']!)
+  fs.writeFileSync(recorder, BUNDLED_AGENT_FILES['hyperframes-editor/record.mjs']!)
 })
 
 after(() => {
@@ -47,11 +47,11 @@ after(() => {
 
 describe('the agent ships it', () => {
   it('names it among its own files, to be saved with `akb raw agent-file`', () => {
-    assert.deepEqual(findSpecAgent('hyperframes-assets')!.files, ['record.mjs'])
+    assert.deepEqual(findSpecAgent('hyperframes-editor')!.files, ['record.mjs'])
   })
 
   it('is a runnable script, not a description of one', () => {
-    const text = BUNDLED_AGENT_FILES['hyperframes-assets/record.mjs']!
+    const text = BUNDLED_AGENT_FILES['hyperframes-editor/record.mjs']!
     assert.match(text, /^#!\/usr\/bin\/env node/)
     assert.match(text, /record\.config\.mjs/)
     assert.match(text, /shots\/<id>\.mjs/)

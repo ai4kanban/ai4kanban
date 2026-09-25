@@ -142,11 +142,11 @@ describe('the workflows a board has', () => {
   })
 
   it('offers a stage only the agents that declare it', () => {
-    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'deck-builder', 'hyperframes-editor', 'test-writer'])
-    assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'video-reviewer', 'test-checker'])
+    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'deck-builder', 'test-writer'])
+    assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'copywriting', 'deck-planner', 'hyperframes-assets', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['software-planner', 'copywriting', 'deck-planner', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -234,8 +234,8 @@ describe('the leads of a workflow the command ships', () => {
   })
 })
 
-// `storyboard-designer` is retired: `hyperframes-assets` builds the shot previews now (#945).
-// A board that had assigned it loses the assignment on the upgrade, and the workflows it came
+// `storyboard-designer` (#945), `hyperframes-assets` and `video-reviewer` (#1057) are retired.
+// A board that had assigned one loses the assignment on the upgrade, and the workflows it came
 // off say so once.
 describe('an assignment an upgrade retired', () => {
   const config = (): Record<string, any> =>
@@ -250,7 +250,14 @@ describe('an assignment an upgrade retired', () => {
     workflows: {
       stages: {
         'hyperframes-video': {
-          plan: { helpers: [{ agent: 'storyboard-designer', extra: 'x' }, { agent: 'video-assets', extra: 'y' }] },
+          plan: {
+            helpers: [
+              { agent: 'storyboard-designer', extra: 'x' },
+              { agent: 'hyperframes-assets', extra: 'z' },
+              { agent: 'video-assets', extra: 'y' },
+            ],
+          },
+          review: { helpers: [{ agent: 'video-reviewer', extra: 'r' }] },
         },
       },
     },
@@ -260,7 +267,8 @@ describe('an assignment an upgrade retired', () => {
     saveConfig(assigned())
     const video = workflowViews().find((w) => w.id === 'hyperframes-video')!
     // The old name of the agent that stays is rewritten, with its own requirement kept.
-    assert.deepEqual(video.stages[0]!.helpers, [{ agent: 'hyperframes-assets', extra: 'y' }])
+    assert.deepEqual(video.stages[0]!.helpers, [{ agent: 'hyperframes-editor', extra: 'y' }])
+    assert.deepEqual(video.stages[2]!.helpers, [])
     assert.deepEqual(marked(), ['hyperframes-video'])
     assert.deepEqual(config().workflows.retired, ['hyperframes-video'])
   })
@@ -281,14 +289,14 @@ describe('an assignment an upgrade retired', () => {
     assert.deepEqual(marked(), [])
     assert.deepEqual(
       workflowViews().find((w) => w.id === 'hyperframes-video')!.stages[0]!.helpers.map((h) => h.agent),
-      ['hyperframes-assets'],
+      ['hyperframes-editor'],
     )
   })
 
-  it('ships the video workflow with hyperframes-assets and nothing retired', () => {
+  it('ships the video workflow with hyperframes-editor and nothing retired', () => {
     assert.deepEqual(
       liveStage(workflowById('hyperframes-video')!, 'plan').helpers.map((h) => h.agent),
-      ['hyperframes-assets'],
+      ['hyperframes-editor'],
     )
     assert.deepEqual(marked(), [])
     assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
@@ -695,7 +703,7 @@ describe('who may lead a stage (#846)', () => {
     assert.deepEqual(leads, ['software-planner', 'deck-planner', 'scriptwriter', 'outliner'])
     assert.deepEqual(
       stageCandidates('execute').filter((a) => a.canLead).map((a) => a.name),
-      ['builder', 'deck-builder', 'hyperframes-editor', 'test-writer'],
+      ['builder', 'deck-builder', 'test-writer'],
     )
     assert.match(setWorkflowLead(mine.id!, 'plan', 'ui-designer').error!, /can only help/)
   })

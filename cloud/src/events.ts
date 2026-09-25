@@ -29,7 +29,7 @@ export interface EventRow {
   release: string
   revision: string
   kind: 'ready_for_review' | 'question'
-  decision: 'implement' | 'answer'
+  decision: 'implement' | 'answer' | 'archive'
   state: string
   questions: unknown[]
   /** The card's opening paragraph, as the publisher bounded it (#320). Empty on an event
@@ -54,7 +54,7 @@ export interface EventRow {
 }
 
 const KINDS = ['ready_for_review', 'question']
-const DECISIONS = ['implement', 'answer']
+const DECISIONS = ['implement', 'answer', 'archive']
 const OUTCOMES = ['running', 'completed', 'failed', 'cancelled', 'interrupted']
 
 /** Register a board under the id the machine minted. Cloud never learns where it is. */

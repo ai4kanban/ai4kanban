@@ -350,8 +350,10 @@ export type RunRefusalKind =
   | 'cardUnfinished'
   | 'cardDiscussed'
   | 'workflowUnknown'
-  /** A video card whose shot previews the user has not approved (#991). */
-  | 'previewUnapproved'
+  /** A card whose workflow finishes in planning: it is archived, never built (#1057). */
+  | 'planDelivered'
+  /** Production asked for before the user approved the current script (#1057). */
+  | 'scriptUnapproved'
   | 'workflowNoLead'
   | 'workflowLeadMissing'
   | 'workflowLeadStage'
@@ -1784,6 +1786,9 @@ export const WORKFLOW_STAGES = ['plan', 'execute', 'review'] as const
 /** One of the three. */
 export type WorkflowStage = (typeof WORKFLOW_STAGES)[number]
 
+/** The stage that hands over a workflow's finished work (#1057). */
+export type DeliveryStage = 'plan' | 'execute'
+
 /** One helper assigned to one stage of one workflow, and what that assignment asks of it on
  *  top of the agent's own instructions. The extra belongs to the ASSIGNMENT — the same agent
  *  helping two workflows carries a different one in each. */
@@ -1828,6 +1833,8 @@ export interface WorkflowView {
   isDefault: boolean
   /** Whether its execute stage has to leave a file behind to count as finished. */
   needsArtifact: boolean
+  /** The stage that hands over the finished work (#1057). */
+  delivers: DeliveryStage
   /** Whether an upgrade took a retired agent off this workflow and the user has not been
    *  told yet (#945). The pane says what happened, and **Got it** clears it. */
   retiredAssignment: boolean

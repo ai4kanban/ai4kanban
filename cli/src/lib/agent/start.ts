@@ -16,8 +16,7 @@ import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
-import { cardPreviewApproved, cardWorkflowId, workflowFor, workflowIssues, workflowKnown } from './workflows'
-import { previewPending } from '../view/rules'
+import { cardWorkflowId, scriptApprovedOn, workflowFor, workflowIssues, workflowKnown } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import { takeChatSession } from './chat'
 import { refusal, type AgentRequest, type RunRecord, type RunRefusal } from './types'
@@ -63,12 +62,18 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
       workflow: id,
     })
   }
-  // A video card is built only from previews the user approved (#991).
-  if (req.action === 'implement' && previewPending(id, cardPreviewApproved(req.id as number))) {
-    return refusal('previewUnapproved', `#${req.id}'s shot previews are not approved yet.`, { card: String(req.id) })
-  }
   const flow = workflowFor(id)
   if (!flow) return null
+  // A workflow that finishes in planning builds nothing (#1057), and nothing is produced for it
+  // before the user approved the script as it now reads.
+  if (flow.delivers === 'plan') {
+    if (req.action === 'implement') {
+      return refusal('planDelivered', `#${req.id} is finished during planning, so it is archived rather than built.`, { card: String(req.id) })
+    }
+    if (req.action === 'spec' && !scriptApprovedOn(req.id as number, flow.stages.plan.lead)) {
+      return refusal('scriptUnapproved', `#${req.id}'s script is not approved yet, so nothing is produced for it.`, { card: String(req.id) })
+    }
+  }
   const [problem] = workflowIssues(flow.id)
   if (!problem) return null
   const command = `akb workflow stage ${flow.id} --stage <stage> --lead <agent>`

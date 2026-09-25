@@ -16,9 +16,8 @@ import deckPlanner from '../../agents/deck-planner/AGENT.md'
 import slidesExample from '../../agents/deck-planner/references/slides.example.json'
 import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
 import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
-import hyperframesAssets from '../../agents/hyperframes-assets/AGENT.md'
-import hyperframesRecorder from '../../agents/hyperframes-assets/record.mjs' with { type: 'text' }
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
+import hyperframesRecorder from '../../agents/hyperframes-editor/record.mjs' with { type: 'text' }
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
 import scriptwriterRecipes from '../../agents/scriptwriter/references/index.md'
 import storyboardContract from '../../agents/scriptwriter/references/storyboard-contract.md'
@@ -36,7 +35,6 @@ import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
-import videoReviewer from '../../agents/video-reviewer/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'code-reviewer/AGENT.md': codeReviewer,
@@ -46,9 +44,8 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'deck-planner/references/slides.example.json': slidesExample as unknown as string,
   'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,
   'deck-planner/scripts/validate-storyboard.mjs': slidesValidator,
-  'hyperframes-assets/AGENT.md': hyperframesAssets,
-  'hyperframes-assets/record.mjs': hyperframesRecorder,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
+  'hyperframes-editor/record.mjs': hyperframesRecorder,
   'scriptwriter/AGENT.md': scriptwriter,
   'scriptwriter/references/index.md': scriptwriterRecipes,
   'scriptwriter/references/storyboard-contract.md': storyboardContract,
@@ -67,5 +64,4 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,
-  'video-reviewer/AGENT.md': videoReviewer,
 }

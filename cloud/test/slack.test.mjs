@@ -77,6 +77,14 @@ describe('messageFor', () => {
     assert.match(offered[1].url, /^https:\/\/[^/]+\/card\//)
   })
 
+  it('offers only the card link on a card to archive', () => {
+    const { blocks } = messageFor(anEvent({ decision: 'archive' }))
+    assert.deepEqual(
+      buttons(blocks).map((b) => b.action),
+      ['open_card'],
+    )
+  })
+
   it('carries the card’s own words, as Slack’s markup rather than the board’s', () => {
     const { blocks } = messageFor(
       anEvent({

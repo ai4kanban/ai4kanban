@@ -239,10 +239,12 @@ function whatNext(event: EventRow, why: string): string {
  * An **Implement** for the exact ready revision, or — for a question — the controls #319's
  * contract allows: an event carrying exactly one single-choice question is a button per
  * option, and anything else opens a modal that submits every answer at once. One press may
- * not spend the event's single action on one question and forfeit the rest.
+ * not spend the event's single action on one question and forfeit the rest. A card to archive
+ * is accepted on the card itself (#1057), so it gets the link alone.
  */
 function decision(event: EventRow): Block[] {
   const link = linkButton(event)
+  if (event.decision === 'archive') return [linkOnly(event)]
   if (event.decision === 'implement') {
     return [
       actions([

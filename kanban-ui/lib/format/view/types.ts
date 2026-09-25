@@ -46,6 +46,9 @@ export interface Question {
   /** The spec agent whose section this question is about (#782). Absent on a question nobody
    *  claimed. */
   agent?: string
+  /** The script version this question asks the user to approve (#1057). Only
+   *  `update-questions --script-approval` sets it; its first option is the approval. */
+  approves?: string
   /** The user chose not to answer it (#831). It stays on the card as a record and is no
    *  longer open: nothing waits on it, and no run answers, rewrites or drops it. */
   skipped?: boolean
@@ -347,8 +350,10 @@ export interface Card {
    *  Empty on a card that names none and on a board that picks no workflows, and both read
    *  as the default workflow. */
   workflow: string
-  /** Its shot previews were approved — `hyperframes-video` cards only (#991). */
-  previewApproved?: boolean
+  /** Its workflow finishes in planning (#1057): the card is archived, never built. */
+  deliversIn?: 'plan'
+  /** The user approved its script as it now reads — cards finishing in planning only. */
+  scriptApproved?: boolean
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
   /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and only once

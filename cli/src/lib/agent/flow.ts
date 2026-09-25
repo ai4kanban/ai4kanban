@@ -36,6 +36,7 @@ import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
 import { PLANNER, agentMemoryDir, memoryFile, planningMemoryFiles } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
+import { workflowRefusal } from './start'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -1158,6 +1159,9 @@ function leadLine(req: AgentRequest, program: string): string {
 /** Print the flow for one action and start nothing. The result is the same flow as data, so
  *  a caller reading `--json` gets what the terminal was shown. */
 export function printFlow(rawReq: AgentRequest, program = 'akb'): MoveResult {
+  // A card finishing in planning is archived, never built (#1057) — printed or not.
+  const unbuilt = rawReq.action === 'implement' ? workflowRefusal(rawReq) : null
+  if (unbuilt?.reason === 'planDelivered') die(unbuilt.error, { kind: 'plan-delivered' })
   const req = withWorkflow(rawReq)
   const flow = buildFlow(req, program)
   // The ask WITHOUT this board's own rule for the action (#306). A printed flow gets the

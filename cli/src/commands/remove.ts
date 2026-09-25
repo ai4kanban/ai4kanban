@@ -13,7 +13,8 @@ import { cardCreation, creationOf, readRuns, runIsLive, withStore } from '../lib
 import { insideRun } from '../lib/agent/env'
 import { withCreationLock } from '../lib/agent/creation-lock'
 import { withBoardLock } from '../lib/lock'
-import { creationRefusal } from '../lib/view/rules'
+import { creationRefusal, planDeliveryGap } from '../lib/view/rules'
+import { findCard } from '../lib/view/read'
 import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, MOCKUPS, KANBAN, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
@@ -206,6 +207,29 @@ export interface RemoveOptions {
   cleanupDiscarded?: boolean
 }
 
+// Why a card finishing in planning (#1057) is not ready to archive, or null: the same check its
+// Archive button draws from, plus what only this machine can see — an approved script as the
+// card now reads, and the film on disk.
+function unfinishedFilm(id: number): string | null {
+  const card = findCard(id)
+  if (card?.deliversIn !== 'plan') return null
+  const gap = planDeliveryGap(card)
+  if (gap) {
+    const what = {
+      questions: 'it still has open questions',
+      film: 'no playable video <Asset> is on the card',
+      command: 'no ticked todo records the command that re-renders it',
+      todos: 'not every todo is ticked',
+    }[gap]
+    return `#${id} is not finished: ${what}.`
+  }
+  if (!card.scriptApproved) return `#${id} is not finished: its script as it now reads is not approved.`
+  const missing = [...card.body.matchAll(/<Asset\s[^>]*src="(\.assets\/[^"]+\.(?:mp4|webm|mov|m4v))"/gi)]
+    .map((m) => m[1]!)
+    .find((src) => !fs.existsSync(path.join(ASSETS, src.slice('.assets/'.length))))
+  return missing ? `#${id} is not finished: ${missing} is not on this machine.` : null
+}
+
 export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {}): MoveResult {
   return withCreationLock(() => removeCard(id, metric, options))
 }
@@ -220,6 +244,8 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   if (creating) die(creating, { kind: 'card-being-created' })
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+  const unfinished = metric === 'completed' ? unfinishedFilm(id) : null
+  if (unfinished) die(unfinished, { kind: 'plan-delivery-unfinished' })
   // Archive keeps the card (moved out of todo/), reject deletes it. Resolve the
   // destination before anything is written, so a name clash fails with the board
   // untouched rather than half-updated.
