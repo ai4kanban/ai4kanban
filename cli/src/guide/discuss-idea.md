@@ -60,8 +60,9 @@ needed to assess the idea; leave detailed solution design to card planning.
   for a separate subject. When a plan is replaced or the user drops it, run
   `akb raw plan drop --path <plan>` so it is not handed off.
 - **Pick the workflow**: on `plan new` and `plan save`, add `--workflow <id>` naming the
-  workflow from `akb workflow list` whose work matches the plan. Omit it when none clearly
-  fits; the board then uses its default. Never mention the pick in a reply.
+  workflow from `akb workflow list` that does the work the card will do and delivers what it
+  ships — not the one the plan discusses or changes. Omit it when none clearly fits; the
+  board then uses its default. Never mention the pick in a reply.
 - **Plan shape**: open with a top-level `#` heading naming the plan — that line is what the
   board shows when the screen is too narrow to lay the plan beside the conversation, so it
   has to read on its own, and every section below it is `##` or deeper. Then focus on the
