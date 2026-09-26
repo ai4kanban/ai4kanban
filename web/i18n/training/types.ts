@@ -57,7 +57,7 @@ export type TrainingCopy = {
   /** The week, the form, and every state either can be in. */
   booking: {
     heading: Heading;
-    thisWeek: string;
+    nextSevenDays: string;
     /** `{zone}` — the IANA name, e.g. `America/New_York`. */
     zoneNote: string;
     /** Shown while the browser is still telling us what zone it is in. */
@@ -65,7 +65,7 @@ export type TrainingCopy = {
     /** No zone at all: the visitor picks one. */
     zonePrompt: string;
     zoneLabel: string;
-    /** The week holds no open hour. */
+    /** The next seven days hold no open hour. */
     empty: string;
     /** The availability read failed. Never "fully booked". */
     failed: string;

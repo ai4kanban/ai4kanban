@@ -1,9 +1,9 @@
-// Projecting the coach's hours into the week the visitor is actually in (#683).
+// Projecting the coach's hours into the visitor's next seven days (#683).
 //
 // The service answers with absolute instants and knows nothing about where they
 // will be read. Everything here is the other half: given a browser's IANA zone,
-// which local week is "this week", and which cell of a seven-day by twenty-four
-// hour grid each instant lands in.
+// which seven local days come next, starting today, and which cell of a
+// seven-day by twenty-four hour grid each instant lands in.
 //
 // It is deliberately pure — no React, no `fetch`, no `document`. Daylight saving
 // is the whole reason it exists as its own file: a week is not always 168 hours,
@@ -131,42 +131,34 @@ export function instantOf(
 }
 
 export type Week = {
-  /** Monday 00:00 in the visitor's zone, as an instant. */
+  /** Today 00:00 in the visitor's zone, as an instant. */
   from: Date;
-  /** The following Monday 00:00, exclusive. */
+  /** 00:00 seven days later, exclusive. */
   to: Date;
   /** The seven days, in order. */
   days: WeekDay[];
 };
 
 export type WeekDay = {
-  /** 0–6 from Monday — the column. */
+  /** 0–6 from today — the column. */
   index: number;
   weekday: Weekday;
   year: number;
   month: number;
   day: number;
-  /** Monday 00:00 local for this day, as an instant. */
+  /** 00:00 local for this day, as an instant. */
   startsAt: Date;
   /** Whether this is the day the visitor is reading on. */
   today: boolean;
 };
 
 /**
- * The visitor's current week: Monday 00:00 local through the next Monday 00:00.
- *
- * The card's boundary, not a rolling seven days — a person reading on Sunday
- * evening is looking at the week that is nearly over, and the page says so
- * rather than quietly showing them next Thursday as if it were this one.
+ * The visitor's next seven days: today 00:00 local through 00:00 seven days on.
+ * Today is always the first column.
  */
-export function currentWeek(now: Date, zone: string): Week {
+export function comingWeek(now: Date, zone: string): Week {
   const today = localParts(now, zone);
-  const from = instantOf(
-    zone,
-    today.year,
-    today.month,
-    today.day - (today.weekday - 1),
-  );
+  const from = instantOf(zone, today.year, today.month, today.day);
 
   const days: WeekDay[] = [];
   for (let index = 0; index < 7; index += 1) {
@@ -195,7 +187,7 @@ export function currentWeek(now: Date, zone: string): Week {
 
 /** One slot as the grid holds it: where it goes, and how to name it. */
 export type PlacedSlot = Slot & {
-  /** Column, 0–6 from Monday. */
+  /** Column, 0–6 from today. */
   dayIndex: number;
   /** Row, 0–23 in the visitor's own clock. */
   hour: number;
@@ -323,7 +315,7 @@ export function shortWeekday(at: Date, zone: string, locale: string): string {
   }).format(at);
 }
 
-/** `8–14 September` / `9月8日–14日` — the week, over the grid. */
+/** `8–14 September` / `9月8日–14日` — the seven days, over the grid. */
 export function weekLabel(week: Week, zone: string, locale: string): string {
   const first = week.days[0];
   const last = week.days[6];

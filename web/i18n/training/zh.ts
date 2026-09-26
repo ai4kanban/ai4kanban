@@ -128,13 +128,13 @@ const zh: TrainingCopy = {
 
   booking: {
     heading: { eyebrow: "预约", title: "从第一次对话开始" },
-    thisWeek: "本周",
+    nextSevenDays: "未来 7 天",
     zoneNote: "你的当地时间 · {zone}",
     loading: "正在识别你的时区……",
     zonePrompt: "无法自动识别时区。请选择时区，以查看当地时间的预约安排。",
     zoneLabel: "时区",
-    empty: "本周暂无可预约时间，请下周再查看。",
-    failed: "无法加载本周预约时间。",
+    empty: "未来 7 天暂无可预约时间，请过几天再查看。",
+    failed: "无法加载可预约时间。",
     retry: "重试",
     open: "可预约",
     booked: "已预约",
@@ -144,7 +144,7 @@ const zh: TrainingCopy = {
     openAria: "{day} {time}，可预约",
     bookedAria: "{day} {time}，已预约",
     timeColumn: "时间",
-    gridLabel: "本周排期，按小时排列，使用你的当地时间",
+    gridLabel: "未来 7 天排期，按小时排列，使用你的当地时间",
   },
 
   form: {
@@ -186,7 +186,7 @@ const zh: TrainingCopy = {
     cancelling: "正在取消……",
     cancelledTitle: "预约已取消",
     cancelledLead: "这个时间已重新开放预约。",
-    backToWeek: "返回本周时间表",
+    backToWeek: "返回可预约时间",
     manageLoading: "正在打开你的预约……",
     manageFailed: "无法打开预约信息，该预约可能已取消。",
   },

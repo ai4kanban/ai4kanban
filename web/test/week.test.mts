@@ -1,4 +1,4 @@
-// Projecting the coach's hours into the reader's week (#683).
+// Projecting the coach's hours into the reader's next seven days (#683).
 //
 // The service hands the page absolute instants and says nothing about where they
 // will be read. Everything checked here is the other half of that — and it is
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  currentWeek,
+  comingWeek,
   hourRows,
   instantOf,
   localParts,
@@ -49,34 +49,34 @@ describe("reading an instant on somebody else's clock", () => {
   });
 });
 
-describe("this week, where the reader is", () => {
-  it("runs Monday 00:00 to the next Monday 00:00, in local time", () => {
+describe("the next seven days, where the reader is", () => {
+  it("runs today 00:00 to 00:00 seven days on, in local time", () => {
     // Wednesday afternoon in New York.
-    const week = currentWeek(new Date("2026-09-16T18:00:00Z"), "America/New_York");
+    const week = comingWeek(new Date("2026-09-16T18:00:00Z"), "America/New_York");
 
-    assert.equal(week.from.toISOString(), "2026-09-14T04:00:00.000Z");
-    assert.equal(week.to.toISOString(), "2026-09-21T04:00:00.000Z");
+    assert.equal(week.from.toISOString(), "2026-09-16T04:00:00.000Z");
+    assert.equal(week.to.toISOString(), "2026-09-23T04:00:00.000Z");
     assert.deepEqual(
       week.days.map((d) => d.day),
-      [14, 15, 16, 17, 18, 19, 20],
+      [16, 17, 18, 19, 20, 21, 22],
     );
     assert.deepEqual(
       week.days.map((d) => d.today),
-      [false, false, true, false, false, false, false],
+      [true, false, false, false, false, false, false],
     );
   });
 
-  it("puts a Sunday reader in the week that is ending, not the one starting", () => {
+  it("starts a Sunday evening reader on that Sunday and runs into next week", () => {
     // Sunday 23:00 in Berlin is 21:00 UTC on the 20th.
-    const week = currentWeek(new Date("2026-09-20T21:00:00Z"), "Europe/Berlin");
+    const week = comingWeek(new Date("2026-09-20T21:00:00Z"), "Europe/Berlin");
 
-    assert.equal(week.days[0]?.day, 14);
-    assert.equal(week.days[6]?.day, 20);
-    assert.equal(week.days[6]?.today, true);
+    assert.equal(week.days[0]?.day, 20);
+    assert.equal(week.days[0]?.today, true);
+    assert.equal(week.days[6]?.day, 26);
   });
 
   it("crosses a month boundary without renumbering the days", () => {
-    const week = currentWeek(new Date("2026-10-01T12:00:00Z"), "Europe/London");
+    const week = comingWeek(new Date("2026-09-28T12:00:00Z"), "Europe/London");
 
     assert.deepEqual(
       week.days.map((d) => `${d.month}-${d.day}`),
@@ -85,7 +85,7 @@ describe("this week, where the reader is", () => {
   });
 
   it("crosses a year boundary too", () => {
-    const week = currentWeek(new Date("2026-12-31T12:00:00Z"), "Europe/London");
+    const week = comingWeek(new Date("2026-12-28T12:00:00Z"), "Europe/London");
 
     assert.equal(week.days[0]?.year, 2026);
     assert.equal(week.days[6]?.year, 2027);
@@ -95,36 +95,44 @@ describe("this week, where the reader is", () => {
     );
   });
 
-  it("is 167 hours long the week a zone springs forward", () => {
+  it("is 167 hours long across the day a zone springs forward", () => {
     // Europe/Berlin loses an hour at 02:00 local on Sunday 2027-03-28.
-    const week = currentWeek(new Date("2027-03-24T12:00:00Z"), "Europe/Berlin");
+    const week = comingWeek(new Date("2027-03-24T12:00:00Z"), "Europe/Berlin");
 
     assert.equal((week.to.getTime() - week.from.getTime()) / 3_600_000, 167);
     assert.equal(week.days.length, 7);
   });
 
-  it("is 169 hours long the week a zone falls back", () => {
+  it("is 169 hours long across the day a zone falls back", () => {
     // Europe/Berlin gains an hour at 03:00 local on Sunday 2026-10-25.
-    const week = currentWeek(new Date("2026-10-20T12:00:00Z"), "Europe/Berlin");
+    const week = comingWeek(new Date("2026-10-20T12:00:00Z"), "Europe/Berlin");
 
     assert.equal((week.to.getTime() - week.from.getTime()) / 3_600_000, 169);
   });
 
   it("starts a day whose local midnight the clock skips at the hour it jumps to", () => {
     // Chile moves its clock forward at midnight: 2026-09-06 has no 00:00 local.
-    const week = currentWeek(new Date("2026-09-02T12:00:00Z"), "America/Santiago");
-    const sunday = week.days[6];
+    const week = comingWeek(new Date("2026-09-02T12:00:00Z"), "America/Santiago");
+    const sunday = week.days[4];
 
     assert.equal(sunday?.day, 6);
-    // The day still starts, an hour late, and the week still holds seven of them.
+    // The day still starts, an hour late, and the window still holds seven days.
     assert.equal(localParts(sunday!.startsAt, "America/Santiago").day, 6);
     assert.equal(localParts(sunday!.startsAt, "America/Santiago").hour, 1);
+  });
+
+  it("starts today when the reader's own midnight is skipped", () => {
+    // Read at 01:30 on the morning Chile skipped midnight.
+    const week = comingWeek(new Date("2026-09-06T04:30:00Z"), "America/Santiago");
+
+    assert.equal(week.days[0]?.day, 6);
+    assert.equal(localParts(week.from, "America/Santiago").hour, 1);
   });
 });
 
 describe("dropping the hours into the grid", () => {
   const zone = "Asia/Shanghai";
-  const week = currentWeek(new Date("2026-09-16T04:00:00Z"), zone);
+  const week = comingWeek(new Date("2026-09-14T00:00:00Z"), zone);
 
   it("puts each hour on the day and row a local clock reads it at", () => {
     const rows = hourRows([open(MONDAY_10), booked(WEDNESDAY_22), open(FRIDAY_22)], week, zone);
@@ -137,17 +145,25 @@ describe("dropping the hours into the grid", () => {
 
   it("moves the same hours into a western reader's own evening", () => {
     const ny = "America/New_York";
-    const nyWeek = currentWeek(new Date("2026-09-16T18:00:00Z"), ny);
+    const nyWeek = comingWeek(new Date("2026-09-14T12:00:00Z"), ny);
     const rows = hourRows([open(MONDAY_10), open(FRIDAY_22)], nyWeek, ny);
 
-    // Monday 10:00 +08 is Sunday 22:00 in New York — the last column of the week
-    // before, which for this reader is the last column of theirs.
-    assert.equal(rows[22]?.cells[6]?.length, 0, "that Sunday is next week's, not this one's");
+    // Monday 10:00 +08 is Sunday 13th 22:00 in New York — the day before this
+    // reader's seven days start, so not in the grid.
+    assert.equal(rows[22]?.cells[6]?.length, 0, "the Sunday before today is not in the grid");
     // Friday 22:00 +08 is Friday 10:00 in New York.
     assert.equal(rows[10]?.cells[4]?.[0]?.state, "open");
   });
 
-  it("leaves an hour outside the week out of the grid entirely", () => {
+  it("shows a Saturday reader next Monday's hour", () => {
+    // Saturday 26th 12:00 in Shanghai; Monday 28th 10:00 is two days on.
+    const saturday = comingWeek(new Date("2026-09-26T04:00:00Z"), zone);
+    const rows = hourRows([open("2026-09-28T02:00:00Z")], saturday, zone);
+
+    assert.equal(rows[10]?.cells[2]?.[0]?.state, "open");
+  });
+
+  it("leaves an hour outside the seven days out of the grid entirely", () => {
     const rows = hourRows([open("2026-09-28T02:00:00Z")], week, zone);
 
     assert.equal(
@@ -160,7 +176,7 @@ describe("dropping the hours into the grid", () => {
     // Berlin falls back at 03:00 local on 2026-10-25: 00:00Z and 01:00Z are both
     // "02:00" on the wall. Two real hours, and a visitor may book either.
     const berlin = "Europe/Berlin";
-    const berlinWeek = currentWeek(new Date("2026-10-21T12:00:00Z"), berlin);
+    const berlinWeek = comingWeek(new Date("2026-10-19T12:00:00Z"), berlin);
     const rows = hourRows(
       [open("2026-10-25T00:00:00Z"), open("2026-10-25T01:00:00Z")],
       berlinWeek,
@@ -178,7 +194,7 @@ describe("dropping the hours into the grid", () => {
   it("has no row at all for a local hour the clock skips", () => {
     // Berlin springs forward at 02:00 local on 2027-03-28: there is no 02:xx.
     const berlin = "Europe/Berlin";
-    const berlinWeek = currentWeek(new Date("2027-03-24T12:00:00Z"), berlin);
+    const berlinWeek = comingWeek(new Date("2027-03-22T12:00:00Z"), berlin);
     const rows = hourRows([open("2027-03-28T01:00:00Z")], berlinWeek, berlin);
 
     // 01:00Z is 03:00 local, because 02:00 does not exist that morning.
@@ -199,7 +215,7 @@ describe("dropping the hours into the grid", () => {
 
 describe("folding the hours nothing is offered in", () => {
   const zone = "Asia/Shanghai";
-  const week = currentWeek(new Date("2026-09-16T04:00:00Z"), zone);
+  const week = comingWeek(new Date("2026-09-14T00:00:00Z"), zone);
 
   it("folds the empty run before the first hour and after the last", () => {
     const rows = hourRows([open(MONDAY_10), open(FRIDAY_22)], week, zone);

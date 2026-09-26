@@ -140,13 +140,13 @@ const en: TrainingCopy = {
 
   booking: {
     heading: { eyebrow: "Book", title: "Start with a conversation" },
-    thisWeek: "This week",
+    nextSevenDays: "Next 7 days",
     zoneNote: "Your local time · {zone}",
     loading: "Detecting your timezone…",
     zonePrompt: "We couldn't detect your timezone. Select it to see available times in your local time.",
     zoneLabel: "Timezone",
-    empty: "No appointments available this week. Please check again next week.",
-    failed: "We couldn't load this week's availability.",
+    empty: "No appointments available in the next 7 days. Please check again in a few days.",
+    failed: "We couldn't load the available times.",
     retry: "Try again",
     open: "Available",
     booked: "Booked",
@@ -156,7 +156,7 @@ const en: TrainingCopy = {
     openAria: "{day} at {time}, available",
     bookedAria: "{day} at {time}, booked",
     timeColumn: "Time",
-    gridLabel: "This week's schedule, by hour, in your local time",
+    gridLabel: "Schedule for the next 7 days, by hour, in your local time",
   },
 
   form: {
@@ -199,7 +199,7 @@ const en: TrainingCopy = {
     cancelling: "Cancelling…",
     cancelledTitle: "Booking cancelled",
     cancelledLead: "This time is available for booking again.",
-    backToWeek: "Back to this week's availability",
+    backToWeek: "Back to available times",
     manageLoading: "Opening your booking…",
     manageFailed: "We couldn't open your booking. It may have been cancelled.",
   },

@@ -16,7 +16,7 @@ import {
 } from "./api";
 import { initialState, reducer, validate, type ServiceId } from "./state";
 import type { PlacedSlot, Slot, Week } from "./week";
-import { browserZone, currentWeek, weekLabel } from "./week";
+import { browserZone, comingWeek, weekLabel } from "./week";
 
 // The page's one client island (#683): the week, the form, and the result.
 //
@@ -30,15 +30,15 @@ import { browserZone, currentWeek, weekLabel } from "./week";
 //
 //   the zone     detected, and asked for when the browser will not say. Until
 //                one is settled the section is a placeholder, not a wrong week.
-//   the week     recomputed on a timer, so a page left open past midnight on
-//                Sunday shows the new week. What was typed survives that; a
-//                selection the new week no longer offers does not.
+//   the week     the next seven days, recomputed on a timer so a page left
+//                open past midnight moves on a day. What was typed survives
+//                that; a selection the new window no longer offers does not.
 //   the submit   `state.ts` holds the rule that a failure never costs what was
 //                typed, and `api.ts` the rule that an answer we did not hear is
 //                unknown rather than absent.
 
-/** How often the page checks whether its week is still the current one. A minute
- *  is far more often than a week rolls over and cheap enough not to matter. */
+/** How often the page checks whether its seven days still start today. A minute
+ *  is far more often than a day rolls over and cheap enough not to matter. */
 const WEEK_TICK_MS = 60_000;
 
 /** A short list, because it is a fallback and not a zone picker: one per broad
@@ -112,12 +112,12 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
     return () => window.removeEventListener(CHOOSE_SERVICE, choose);
   }, []);
 
-  // 3. Which week is it, here? Rechecked on a timer so a page open across the
-  //    boundary moves with it.
+  // 3. Which seven days, here? Rechecked on a timer so a page open across
+  //    midnight moves with it.
   useEffect(() => {
     if (!zone) return;
     const settle = () => {
-      const next = currentWeek(new Date(), zone);
+      const next = comingWeek(new Date(), zone);
       setWeek((held) => (held && held.from.getTime() === next.from.getTime() ? held : next));
     };
     settle();
@@ -301,7 +301,7 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h3 className="text-2xl font-bold tracking-tight">
               {label}
-              <span className="ml-3 text-sm font-normal text-muted">{t.booking.thisWeek}</span>
+              <span className="ml-3 text-sm font-normal text-muted">{t.booking.nextSevenDays}</span>
             </h3>
             <p className="text-sm text-muted">{t.booking.zoneNote.replace("{zone}", zone)}</p>
           </div>
