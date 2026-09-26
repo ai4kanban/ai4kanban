@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-// Render one React Email file to HTML, or send it to the reviewer. Both go through the same
-// `renderEmail`, so the HTML the card shows is the HTML the reviewer receives.
+// Render one React Email file to HTML, the HTML version the product sends.
 //
-//   node scripts/email/email.mjs render <path>/email.tsx
-//   node scripts/email/email.mjs send <path>/email.tsx
+//   node scripts/email/email.mjs render <path>/<email>.tsx
 //
 // The TSX lives in the board's asset folder, outside any package: its imports resolve from
 // this folder's node_modules. Setup: scripts/email/README.md.
@@ -17,19 +15,11 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const MODULES = path.join(HERE, 'node_modules')
 const BUILD_DIR = path.join(MODULES, '.email-build')
 
-const MAIL_FROM = 'AI4Kanban <newsletter@ai4kanban.dev>'
-const REVIEWER = process.env.EMAIL_REVIEWER || 'support@ai4kanban.dev'
-
 const HELP = `
-渲染或发送一封邮件 / Render or send one email
+渲染一封邮件 / Render one email
 
 用法 / Usage
-  node scripts/email/email.mjs render <email.tsx>   写出同目录的 email.html / write email.html beside it
-  node scripts/email/email.mjs send <email.tsx>     发预览给评审人 / send a preview to the reviewer
-
-环境变量 / Environment
-  RESEND_API_KEY   发信必填 / required to send
-  EMAIL_REVIEWER   评审邮箱，默认 / reviewer, default: ${REVIEWER}
+  node scripts/email/email.mjs render <name>.tsx   写出同目录的 <name>.html / write <name>.html beside it
 `.trim()
 
 function die(message, code = 1) {
@@ -69,37 +59,21 @@ export async function renderEmail(file) {
   const subject = mod.subject ?? Email.subject
   if (typeof subject !== 'string' || !subject.trim()) die(`${file} must export its subject: \`export const subject = '…'\`.`)
   const { createElement } = await import('react')
-  const { render, toPlainText } = await import('@react-email/components')
+  const { render } = await import('@react-email/components')
   const html = await render(createElement(Email)).catch((err) => die(`Cannot render ${file}:\n${err.message}`))
-  return { subject: subject.trim(), html, text: toPlainText(html) }
+  return { subject: subject.trim(), html }
 }
 
 async function main(argv) {
   const [action, file] = argv
   if (!action || action === '-h' || action === '--help') return console.log(HELP)
-  if (!['render', 'send'].includes(action) || !file) die(HELP)
+  if (action !== 'render' || !file) die(HELP)
   if (!fs.existsSync(file)) die(`No such file: ${file}`)
   const email = await renderEmail(file)
-
-  if (action === 'render') {
-    const target = path.join(path.dirname(path.resolve(file)), 'email.html')
-    fs.writeFileSync(target, email.html)
-    console.log(`${target}\nSubject: ${email.subject}`)
-    return
-  }
-
-  const key = process.env.RESEND_API_KEY
-  if (!key) die('Not sent: RESEND_API_KEY is not set.', 2)
-  const { Resend } = await import('resend')
-  const { data, error } = await new Resend(key).emails.send({
-    from: MAIL_FROM,
-    to: REVIEWER,
-    subject: `[Preview] ${email.subject}`,
-    html: email.html,
-    text: email.text,
-  })
-  if (error) die(`Not sent: ${error.message}`, 3)
-  console.log(`Sent to ${REVIEWER} (${data.id})`)
+  const source = path.resolve(file)
+  const target = path.join(path.dirname(source), `${path.basename(source, path.extname(source))}.html`)
+  fs.writeFileSync(target, email.html)
+  console.log(`${target}\nSubject: ${email.subject}`)
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) await main(process.argv.slice(2))
