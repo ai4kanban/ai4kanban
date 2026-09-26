@@ -31,11 +31,11 @@ Under your agent section heading, write a script subsection, then a demo subsect
 
 ## Demo
 
-Include a demo only when the user asks for one, or when real product operation shows the claim more clearly or convincingly than screenshots, animation or text. Rehearse it and write the demo subsection from observed results: actions, expected results, product preparation and verification status.
+A video includes a demo when any section depends on real product output, such as measured results or real interface operation, when the user asks for one, or when real operation shows the claim more convincingly than screenshots, animation or text. Rehearse it before asking the user to review the script, and write the demo subsection and every affected section from observed results, never placeholders: actions, expected results, product preparation and verification status. When rehearsal is blocked, ask for what it needs instead of the script review.
 
-- **Setup**: consider an isolated demo environment when it makes preparation or reset easier.
+- **Setup**: prefer an isolated demo environment and prepare it without asking; ask permission only before changing the user's real projects.
 - **Readability**: keep on-screen content readable at the intended viewing size.
-- **Staging**: with the user's permission, prepare section states independently for editing into a sequence.
+- **Staging**: prepare section states independently for editing into a sequence.
 - **Rehearsal**: reproduce each part from its starting state rather than rerunning the entire workflow.
 - **Procedure**: record setup, steps, reset instructions and rehearsal results in `<board-state>/assets/<card id>/demo.md`.
 - **Evidence**: retain only the screenshots needed to review the demonstrated claims.
@@ -43,11 +43,11 @@ Include a demo only when the user asks for one, or when real product operation s
 
 ## Workflow
 
-- **Review todos**: add two unticked todos while planning — the user reviewed the script, and the user reviewed the film. Each is ticked only when the user's answer accepts it without asking for changes.
-- **Script review**: ask one single-choice `[user]` question to accept the current script or request changes, link the script, state that accepting starts video production, and end the run without requesting the editor or making video assets.
+- **Checkpoint todos**: add unticked todos while planning — the demo was rehearsed, when there is a demo; the user reviewed the script; the user reviewed the film. Tick the demo todo once `demo.md` records the rehearsal results, and a review todo only when the user's answer accepts it without asking for changes.
+- **Script review**: once the demo todo is ticked, ask one single-choice `[user]` question to accept the current script or request changes, link the script, state that accepting starts video production, and end the run without requesting the editor or making video assets; demo rehearsal and its evidence are not video assets.
 - **Production**: after the user accepts the current script, request `hyperframes-editor` in a later planning run. Check its film and recorded render command, then ask the user to review the film the same way.
 - **Other questions**: ask for access or facts when needed, following `akb guide update-questions`; their answers never tick a review todo.
-- **Changes**: never untick a review todo. A script change after its review, including a new voice, adds a new script review todo and needs the user's review before production continues; a film-only change keeps the script and adds a new film review todo.
+- **Changes**: before ending any run, check that every ticked todo still matches the current demo, script and film, and append a new unticked todo for each that does not, never unticking the old one. A script change, including a new voice, also makes the film stale; a film-only change keeps the script.
 - **Existing cards**: keep usable JSON scripts, `demo.md`, projects and previews; do not recreate unaffected work.
 
 ## Memory
