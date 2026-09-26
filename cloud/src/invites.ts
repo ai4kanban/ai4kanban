@@ -108,24 +108,43 @@ function message(record: Queued) {
   return record.kind === 'approval' ? approval(record) : requestNotice(record)
 }
 
-/** They are in, and where to go. Replying reaches the mailbox a person reads. */
+/** The app labels the approval names. A test holds them to `kanban-ui/i18n/configuration/en.ts`. */
+export const APP_LABELS = {
+  configuration: 'Configuration',
+  cloud: 'Cloud',
+  signIn: 'Sign in with GitHub',
+}
+
+const SET_UP_URL = 'https://ai4kanban.dev/cloud'
+const ABOUT =
+  'Cloud notifies you on your desktop and in Slack when your board needs a decision, so you can step away without leaving your agents waiting.'
+
+/** They are in, and the one thing to do next. The button goes to the web: mail clients drop
+ *  `ai4kanban://` links. */
 function approval(record: Queued) {
+  const { configuration, cloud, signIn } = APP_LABELS
+  const path = `${configuration} → ${cloud}`
+  const already = 'Already signed in? The pane shows you’re in next time you open it.'
   return {
     to: record.email,
-    subject: 'You are in the AI4Kanban Cloud preview',
+    subject: 'You’re in the AI4Kanban Cloud preview',
     text: [
-      'Your request to join the AI4Kanban Cloud preview has been approved. Your account is in —',
-      'there is nothing to paste and nothing more to do.',
+      `Open AI4Kanban, go to ${path}, and click ${signIn}.`,
+      already,
       '',
-      'Open AI4Kanban and go to Configuration → Cloud. If you are already signed in,',
-      'the pane says you are in the next time you open it.',
+      `Set up Cloud: ${SET_UP_URL}`,
       '',
-      'Cloud carries the moments your board needs you — a card ready for review, a question only',
-      'you can answer — to your desktop and to Slack, and your own machine still does the work.',
-      'What it is, and what it holds: https://ai4kanban.dev/cloud',
-      '',
-      `Reply to this message if anything is in the way. — ${SUPPORT_EMAIL}`,
+      ABOUT,
     ].join('\n'),
+    html: [
+      '<!doctype html><html lang="en"><body style="margin:0;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,Arial,sans-serif;color:#24231f">',
+      '<div style="max-width:520px;margin:0 auto">',
+      '<h1 style="font-size:22px;line-height:1.3;margin:0 0 16px">You’re in the Cloud preview</h1>',
+      `<p style="font-size:17px;line-height:1.55;margin:0 0 24px">Open AI4Kanban, go to <b>${path}</b>, and click <b>${signIn}</b>. ${already}</p>`,
+      `<a href="${SET_UP_URL}" style="display:inline-block;background:#dd4f1e;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:6px">Set up Cloud</a>`,
+      `<p style="font-size:14px;line-height:1.6;color:#635a4e;margin:28px 0 0">${ABOUT}</p>`,
+      '</div></body></html>',
+    ].join(''),
   }
 }
 

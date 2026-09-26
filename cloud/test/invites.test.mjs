@@ -3,9 +3,10 @@
 // Postgres in test/sql/checks.sql.
 
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { requestInvite, sendPendingMail } from '../src/invites.ts'
+import { APP_LABELS, requestInvite, sendPendingMail } from '../src/invites.ts'
 
 const ENV = {
   SUPABASE_URL: 'https://project.supabase.co',
@@ -96,16 +97,29 @@ describe('sendPendingMail', () => {
     assert.equal(sends.length, 0)
   })
 
-  it('tells the requester they are in, and asks them to paste nothing', async () => {
+  it('tells the requester they are in, with the next step first', async () => {
     answers.pending_mail = [approval]
 
     assert.deepEqual(await sendPendingMail(ENV), { queued: 1, sent: 1, failed: 0 })
-    assert.deepEqual(sends[0].to, ['asker@example.com'])
-    assert.equal(sends[0].reply_to, 'support@ai4kanban.dev')
-    assert.match(sends[0].from, /invites@ai4kanban\.dev/)
-    assert.match(sends[0].text, /approved/)
-    assert.match(sends[0].text, /Configuration/)
-    assert.doesNotMatch(sends[0].text, /code/i)
+    const [mail] = sends
+    assert.deepEqual(mail.to, ['asker@example.com'])
+    assert.equal(mail.reply_to, 'support@ai4kanban.dev')
+    assert.match(mail.from, /invites@ai4kanban\.dev/)
+    assert.match(mail.subject, /You’re in/)
+    assert.match(mail.text.split('\n')[0], /Configuration → Cloud, and click Sign in with GitHub/)
+    for (const body of [mail.text, mail.html]) {
+      assert.match(body, /https:\/\/ai4kanban\.dev\/cloud/)
+      assert.match(body, /Already signed in\?/)
+      assert.doesNotMatch(body, /ai4kanban:\/\/|reply|code|<img/i)
+    }
+    assert.match(mail.html, />Set up Cloud</)
+  })
+
+  it('names the app’s labels as the app spells them', () => {
+    const copy = readFileSync(new URL('../../kanban-ui/i18n/configuration/en.ts', import.meta.url), 'utf8')
+    assert.match(copy, new RegExp(`\\n  title: "${APP_LABELS.configuration}",`))
+    assert.match(copy, new RegExp(`\\n    cloud: "${APP_LABELS.cloud}",`))
+    assert.match(copy, new RegExp(`\\n    signIn: "${APP_LABELS.signIn}",`))
   })
 
   it('sends the notice to support, replying to whoever asked', async () => {

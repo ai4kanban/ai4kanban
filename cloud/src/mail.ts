@@ -20,6 +20,8 @@ export interface Message {
   to: string
   subject: string
   text: string
+  /** The same message for clients that show HTML; `text` stays for those that do not. */
+  html?: string
   /** Who a reply goes to. `support@ai4kanban.dev` for an invitation; the requester for the
    *  notice that they asked, so answering by hand is a reply. */
   replyTo?: string
@@ -44,6 +46,7 @@ export async function sendMail(env: Env, message: Message): Promise<void> {
         reply_to: message.replyTo ?? SUPPORT_EMAIL,
         subject: message.subject,
         text: message.text,
+        html: message.html,
       }),
     })
   } catch (e) {
