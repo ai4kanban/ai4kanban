@@ -216,29 +216,29 @@ function TierCard({
   const monthly = service === "monthly";
   return (
     <div className={`${panelStatic} ${framed} flex flex-col overflow-hidden`}>
-      <div className={`px-6 py-7 sm:px-8 ${monthly ? apricot : "bg-band"}`}>
-        <p className="font-mono text-xs font-semibold tracking-widest text-accent-deep">
+      <div className={`px-6 py-5 sm:px-7 ${monthly ? apricot : "bg-band"}`}>
+        <p className="font-mono text-[0.7rem] font-semibold tracking-widest text-accent-deep">
           {tier.eyebrow}
         </p>
-        <h3 className="mt-3 text-2xl font-bold tracking-tight">{tier.name}</h3>
-        <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{tier.body}</p>
-        <p className="mt-6 flex items-baseline gap-1.5">
-          <span className="text-5xl font-bold tracking-tight">{tier.price}</span>
-          <span className="text-[0.95rem] text-muted">{tier.per.trim()}</span>
+        <h3 className="mt-2 text-xl font-bold tracking-tight">{tier.name}</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted">{tier.body}</p>
+        <p className="mt-4 flex items-baseline gap-1.5">
+          <span className="text-[2.6rem] leading-none font-bold tracking-tight">{tier.price}</span>
+          <span className="text-sm text-muted">{tier.per.trim()}</span>
         </p>
       </div>
-      <ul className="flex-1 divide-y divide-ink/10 px-6 py-3 sm:px-8">
+      <ul className="flex-1 divide-y divide-ink/10 px-6 py-2 sm:px-7">
         {tier.rows.map((row) => (
-          <li key={row.lead} className="flex gap-3 py-4">
+          <li key={row.lead} className="flex gap-3 py-3">
             <Check />
             <div className="min-w-0">
-              <p className="font-semibold">{row.lead}</p>
-              <p className="mt-1 text-[0.95rem] leading-relaxed text-muted">{row.body}</p>
+              <p className="text-[0.95rem] font-semibold">{row.lead}</p>
+              <p className="mt-0.5 text-sm leading-relaxed text-muted">{row.body}</p>
             </div>
           </li>
         ))}
       </ul>
-      <div className="px-6 pb-8 sm:px-8">
+      <div className="px-6 pb-6 sm:px-7">
         <BookButton service={service} variant={monthly ? "primary" : "secondary"}>
           {tier.cta}
         </BookButton>
@@ -251,8 +251,8 @@ export function Tiers({ t }: { t: TrainingCopy }) {
   return (
     <section className={gap}>
       <Heading {...t.tiers.heading} />
-      <p className="mt-3 max-w-2xl text-[0.95rem] leading-relaxed text-muted">{t.tiers.lead}</p>
-      <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-10">
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{t.tiers.lead}</p>
+      <div className="mt-7 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
         <TierCard tier={t.tiers.single} service="single" />
         <TierCard tier={t.tiers.monthly} service="monthly" />
       </div>
