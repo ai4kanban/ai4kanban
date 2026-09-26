@@ -59,6 +59,9 @@ re-ask a settled call.
   governing the terms. The same company publishes both pages for dist0, so the site's versions
   adapt those rather than starting from a template.
 - They are not translated: they follow the blog, which is English-only.
+- **收款主体**：收款账户属于厦门宛理之间科技有限公司；条款需要写主体时以 NULLREACH LTD 为网站和 Cloud
+  的主体，不为收款路径另写一段公司关系说明。
+- **培训条款**：厦门宛理之间科技有限公司是培训的销售及开票主体，只写全称；培训同样适用英格兰及威尔士法律；开课前取消全额退款，按月指导退还未上课次，我方取消由客户选改期或退款。
 - `support@ai4kanban.dev`, on the site's own domain, is the address for support and data
   requests, and any later page needing a contact uses it too.
 - A change to what we collect amends the existing page in place with a new effective date,
@@ -83,6 +86,21 @@ re-ask a settled call.
 - **预约怎么排？**：作者维护 UTC+8 开放小时，访客只看自己当地当前周的小时排期；不宣传名额数量、不展示
   作者时间。站内选时、填资料、提交并保存真实预约，成功后该小时关闭。
 - **培训页发几种语言？**：只发英文 `/training` 和中文 `/zh/training`——只承诺能交付的语言。
+
+## The pricing page
+
+- **标题**：英文「Free to run. Pro when you need more.」，中文「免费开启，Pro 更进一步」。
+- **功能行用用户的话**：写「Works with 8 coding agents / 支持 8 种 AI 编码工具」「No limit on concurrent
+  tasks / 不限同时运行的任务数」，不用「runtime providers」「parallel runs」这类开发者术语。
+
+## The header and workflow pages
+
+- **页头**：导航链接收进一个展开的大面板，不在一行里平铺。
+- **每个工作流落地页各开一张卡**：每页都要单独精修 UI，不合在一张卡里做。
+
+## The site's look
+
+- **`web/design.md` 只是参考**：页面设计可以突破它的规范。
 
 ## The newsletter
 

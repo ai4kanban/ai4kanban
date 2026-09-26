@@ -8,6 +8,8 @@ covers it, or a plain-words note.
 - prompt-writer edits a prompt only when its agent lacks a needed instruction, in the
   prompt of the task that needs it and within the flows the card names; app-controlled
   mechanics never become agent duties.
+- prompt-writer remembers this project's lasting prompt-writing corrections in
+  `docs/kanban/memory/agents/prompt-writer/rules.md` and applies them before drafting.
 - The scriptwriter writes its section as two subsections, the script then the demo.
 - Screen recordings from `record.mjs` draw a standard macOS arrow pointer whose tip, the
   real click and the click ring all land on the same point.
@@ -108,22 +110,18 @@ covers it, or a plain-words note.
   moves an older board's memory over and removes what a release retired: `akb guide update`.
 - The reading language belongs to the machine, and what the board writes follows it: "The
   board's language" in `akb guide board`.
-- 新增内置工作流「演示视频」（`hyperframes-video`）：脚本作者一份写全画面、运动、字幕和逐镜台词，
-  「HyperFrames 素材」按已批准的脚本备齐素材并产出可播放的逐镜预览，HyperFrames 剪辑在本地渲染出
-  mp4，`video-reviewer` 对照脚本检查成片。脚本与素材在卡片上各占一个小节、按镜头编号对应，两轮各等
-  你批准：`web/content/docs/agents.mdx`。
-- 演示视频中展示操作的镜头会配一段真实产品的录屏；录不了时，素材状态写明需要你录制的起始状态、操作、
-  预期结果、画幅和时长：`web/content/docs/agents.mdx`。
+- 内置工作流「产品视频」（`hyperframes-video`）：脚本作者写好受众、核心主张、连续叙事和逐字旁白，只在你要求或真实操作更有说服力时加入演示；你确认一次脚本后，视频剪辑才在规划阶段制作、自检成片并嵌入卡片，满意即归档，改脚本须重新确认、只改成片直接重做：`web/content/docs/agents.mdx`。
 - 内置 `copywriting` agent 不自带写作规则：语气、用词和长短只取自项目已发布的文案和 `writing.md`，
   交付成稿在前——按页面与小节只给改动的部分，多语言分组，后附最多三条影响判断的说明。
 - A project agent, `prompt-writer`, answers with the final prompt text of any skill, agent
   prompt or akb guide change and waits for your confirmation.
 - Codex 默认以 `--dangerously-bypass-approvals-and-sandbox` 运行，不再因审批、沙箱、启动更新检查
   或「切换低价模型」提示中断，不是 git 仓库的项目也能选用；自己写了同名配置的命令保持不变。
-- 视频卡第一轮由 scriptwriter 交付 `storyboard.json` 结构化分镜，示意图仅在构图需要时附；`akb raw validate <id> --json` 逐项指出漏写的旁白、动作、时段或图片问题，不合格的分镜不能请求或接受批准。第二轮逐镜预览经你确认后卡片才能进入 ready 或开始成片，重新发起任一轮确认即撤销，Decider 不代答这两轮确认：`web/content/docs/agents.mdx`。
 - 新增内置工作流「演示文稿」（`slide-deck`）：演示文稿策划先交付受众、目标、事实台账、版式方案和逐页文案，批准后再给每页真实预览图，两轮各等你批准；演示文稿制作据此生成可编辑的 `.pptx`，逐页核对预览后在卡片上提供下载：`web/content/docs/agents.mdx`。
 - An agent declares no settings of its own: one agent is one way of working, and two ways is two agents. `ui-designer` always draws a rendered screen — the ASCII drawing is retired, and a board that saved it is told so in the run's log: `akb guide write-agent`.
 - Standard planning QA now checks out the facts a plan turns on instead of handing them to you: it searches for authoritative sources, records the evidence it found, revises the plan when a premise turns out wrong, and stays open — naming the missing evidence — when it cannot settle one. Lightweight planning escalates to standard rather than checking anything itself: `akb guide validate-assumption`.
+- 讨论保存的方案按后续卡片实际要做的工作和交付结果选择工作流，不再按方案讨论或修改的对象归类；没有明确匹配时仍用看板默认工作流。
+- 产品视频的旁白默认用 AI4Kanban Cloud 托管声音（30 个，任意语言，含韩语、粤语）：一句话描述想要的声音，或在审批脚本前试听 2–3 个候选再选；换声音需重新审批脚本，只重新生成旁白。未登录或生成失败时会提示，不会暗中改用本地声音：`web/content/docs/agents.mdx`。
 
 ## local-ui
 
@@ -218,6 +216,7 @@ covers it, or a plain-words note.
 - 改过名的 Agent（如 HyperFrames 素材）切回「全局默认」或换运行时后立即生效，旧名下的绑定不再覆盖选择。
 - agent 页面不再有由 agent 自己声明的设置行；**原型样式**已经没有了，界面设计师只画渲染页面，页面上留下的是运行时和这个环节的额外要求。
 - 工作流设置里，自建的辅助 Agent / 评审员排在内置之后，上方有一条“我的”分隔线；详情面板不再显示“Yours”标记和“只有这个工作流在用它”等使用状态文字。
+- 产品视频卡不再提供「开发」：成片、待办和问题都完成后卡片页显示「归档」，托管看板同样可以归档；修订进行中「归档」暂时隐藏。
 
 ## site
 
@@ -245,9 +244,16 @@ covers it, or a plain-words note.
 - [/training](https://ai4kanban.dev/training) sells one-to-one project guidance and takes the
   booking on the page — $99 for one session, $349 a month for four, the visitor's own current
   week hour by hour. English and Chinese only.
+- [/pricing](https://ai4kanban.dev/pricing) lists Free, Pro ($120 a year or $15 a month, not
+  yet on sale), the seed-partner waitlist and training; linked from the header and footer.
+  English and Chinese only.
 - `/contact` (all five languages, linked from the footer) is one form for support and for
   custom agents at $15 per agent, answered by email.
 - 文档里的界面设计师只画渲染页面，不再提**原型样式**这个可选项：`web/content/docs/agents.mdx`。
+- `/terms` is rewritten short: NULLREACH LTD (Manchester address) runs the site and Cloud,
+  厦门宛理之间科技有限公司 sells and invoices training, with payment, cancellation and refund rules;
+  the booking form and confirmation email name the seller.
+- 首页、定价页和 `llms.txt` 把内置的演示视频工作流改称「产品视频」。
 
 ## docs
 

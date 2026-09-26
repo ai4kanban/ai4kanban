@@ -52,7 +52,7 @@ don't re-ask a settled call.
 - Curated cases, rubrics, runners and experiment summaries live in the separate private
   repository `ai4kanban-evals`. Incoming submissions are reproduced and reviewed before
   admission; only reproducible cases are admitted.
-- A partner is promised one page, once, before consent: no payment, the case stays in the
+- A partner, seed partners included, is promised one page, once, before consent: no payment, the case stays in the
   closed eval set indefinitely, the analysis may pass through a model provider, and a letter
   deletes what they submitted. A later use needs consent gathered again.
 
@@ -71,6 +71,15 @@ don't re-ask a settled call.
   every language; the quote and the payment are settled by email, and the site takes no
   payment.
 
+## Pricing
+
+- **四档**：Free（Apache 2.0、支持 8 种编码 agent、7 个 agent 组成的编码工作流、不限并发和自定义工作流/agent、邮件支持）；
+  Pro $15/月或 $120/年，默认显示年付（邮件、幻灯片、演示视频工作流与优先支持）；种子伙伴（在保护隐私的
+  前提下分享对话，换 6 个月 Pro，候补加入，内部上限 20 人，满额即暂停，不对外公布）；培训只放一张链接到
+  `/training` 的卡，不写细节。
+- **托管旁白额度**：Pro 每月含 60 分钟托管旁白、不另收费，用尽暂停至下月；成本按满额仍小有盈利来定。
+- **Pro 不只是工作流**：对外说 Pro 时不把差别限定为「更多工作流」。
+
 ## Showing our own numbers
 
 - The install badge shows the real count of installs, however far below the download count it
@@ -79,3 +88,7 @@ don't re-ask a settled call.
 ## marketing
 
 - **演示视频的被演示产品**：功能开发演示用专门搭建的独立演示项目，不直接拿 AI4Kanban 自身开发做演示
+
+## skill
+
+- **按交付物选工作流**：看卡片最终要交付什么，不看它改动的对象；改视频规则的卡片走编码流程，产品视频流程只用于做视频。指南里的选择规则不举具体工作流名，免得工作流改名或增删后失效。

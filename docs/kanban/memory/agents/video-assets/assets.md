@@ -13,3 +13,10 @@
 - `.akb/boards/docs/kanban/assets/850/07-hover-controls.mp4` — 在修改后原型中真实移入、移出并显示悬停控制栏，适合交互验证；9s、2880×1620、30 fps，项目自产；播放器悬停行为变化时重录。
 - `.akb/boards/docs/kanban/assets/850/08-start-delivery.mp4` — 启动交付并打开 Run history，适合后台执行交接；10s、2880×1620、30 fps，项目自产；Implement 或运行历史入口变化时重录。
 - `.akb/boards/docs/kanban/assets/850/00-music.mp3` — Overworld (BGM) 循环到 164.6s 的全片底乐，CC0；适合约 2 分 45 秒以内的旁白片；更长的片子须从 `sources/cc0/overworld.mp3` 重新循环。
+- `.akb/boards/docs/kanban/assets/850/00-click.mp3` — CC0 点击音，只适合脚本中的真实点击；0.097s；操作音选择变化时替换。
+- `.akb/boards/docs/kanban/assets/850/00-select.mp3` — CC0 选择音，只适合脚本中的真实选项选择；0.040s；操作音选择变化时替换。
+- `.akb/boards/docs/kanban/assets/850/00-confirm.mp3` — CC0 确认音，只适合脚本中的提交和启动反馈；0.290s；操作音选择变化时替换。
+- `.akb/boards/docs/kanban/assets/850/00-logo-mark.svg` — 仓库产品标志，适合口播标志字幕和片尾署名；`web/public/logo-mark.svg` 变化时替换。
+- `.akb/boards/docs/kanban/assets/850/10-scriptwriter.png`、`10-video-assets.png`、`10-video-editor.png` — 仓库角色图，适合片尾署名；96×96 透明；角色图系列变化时替换。
+- `.akb/boards/docs/kanban/assets/850/0<n>-narration-en.wav`、`0<n>-narration-zh.wav`（n=1–9） — Kokoro `af_heart` / `zf_xiaobei` 的 #850 批准旁白；24 kHz 单声道；该段批准文案变化时替换。
+- `.akb/boards/docs/kanban/assets/850/base-board.png` — Tasklane s1-baseline 桌面全景（9 张卡、3 READY），适合开场擦出的真实界面；1920×1080；看板布局变化时替换。

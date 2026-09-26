@@ -9,6 +9,8 @@ One line per durable choice the user made about these designs.
   程度，就说明复制的范围选错了。
 - **卡片含宣传文案时，只依据已确认的 copywriting 段作画**：文案段缺失、或它的 `[user]` 确认问题还
   没答，这个请求会被看板搁置，不启动。图上的字以确认稿为准，不自己改写。
+- **布局要平衡，不留大块空白**：内容短时把操作放到详情对侧或提示条内，不让按钮贴在左侧、右边空出
+  一大片。
 
 ## Runtimes
 

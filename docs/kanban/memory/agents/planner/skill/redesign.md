@@ -22,6 +22,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   board's existing commands already return the data, the deliverable is a flow the command
   prints and the agent applies, and nothing is built.
 - ❌ **Name a file off a title the user has not decided yet** → ✅ name it off the id alone.
+- ❌ **用成对的自定义标签给 agent 写的卡片内容分区** → ✅ 用普通 Markdown 标题，由界面折叠；模型常漏写结束标签，新格式还要校验器和旧卡迁移。
+- ❌ **为一项选择在卡片上新加一个持久控件（如 MDX 选择器）** → ✅ 用已有的选择机制：frontmatter、
+  `[user]` 问题、对话与审批；MDX 组件无状态，存不下答案。
 
 ## Planning a card
 

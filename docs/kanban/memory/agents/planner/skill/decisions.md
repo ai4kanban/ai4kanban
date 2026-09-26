@@ -54,7 +54,7 @@ re-ask a settled call.
   working and are never migrated.
 - The decider answers every `[user]` question still open on a card, takes the recommended
   option when it cannot decide, never hands a card back, and has no round cap.
-- **假设在规划 QA 中验证**：卡片上未证实的前提（如某个参数是否可行）在标准 QA 里取证验证，不留给构建阶段；快速规划不自行验证，遇到时升级到标准 QA。
+- **假设在规划 QA 中验证**：卡片上未证实的前提（如某个参数是否可行）在标准 QA 里逐项实测取证，结论写进卡片，不留给构建阶段；没测过的不写成「已验证」，也不靠删掉那句要求了事。验证不可行的部分就放弃，整张卡都不可行就放弃这张卡。快速规划不自行验证，遇到时升级到标准 QA。
 
 ## Implementation runs
 
@@ -196,8 +196,11 @@ re-ask a settled call.
   whose runtime is "external" — the board runs nothing and records only the paths handed back.
 - A spec agent's `description` names the kinds of work it covers, never repository paths.
 - **内容类工作流用专用代理**：视频、PPT 等工作流各自配规划与制作代理，不复用编码工作流的 `software-planner` 与 `builder`。
-- **Video assets are one agent**: `hyperframes-assets` prepares picture and sound; no separate audio
-  or sound-design agent. **演示视频不进 git**：composition 源文件和渲染脚本与成片一起放在素材目录。
+- **产品视频只维护脚本和记忆**：工作流只规定制作前确认连贯叙事与准确文案、成片后检查、经验沉淀；
+  动画配方、技术栈和制作方式由执行代理自定，不写进工作流或卡片。镜头按连续叙事规划，衔接和逐镜一样
+  要紧。演示只是可选手段，用到时制作前一并评审演示准备。**视频不进 git**：源文件和渲染脚本与成片一起
+  放在素材目录。
+- **旁白只让用户选音色，不选模型**：托管音色经 AI4Kanban Cloud 提供，用户不必为每家供应商配 API key。
 - **自建工作流是否开分支**由用户在工作流设置里自选，开启后不开分支、不提交。
 - 视频助手记下的运镜配方反馈只留在本项目的看板记忆里，随命令分发的配方条目不因某个项目的反馈改写；换一个项目要重新提一遍。
 - **审核用的画面与它的文字相邻**：每个镜头的画面紧跟自己的脚本段落，而不是单独一张总览；标题栏下常驻一条按播放顺序排列的缩略图时间线，点格跳转。
@@ -252,6 +255,7 @@ re-ask a settled call.
   Plans are modified through ai4kanban only.
 - A discussion's transcript never enters git: a card built from it references the local
   record, and without that record the plan alone governs.
+- **交接带上用户原话**：**Plan tasks** 和 **Start now** 把讨论记录连同方案一起交给后续规划与实现；方案是契约，用户原话补充意图，不必沿用同一会话。
 - There is no separate lightweight QA flow: the check a small change needs happens in the
   conversation, so a small change is never escalated into a full QA pass.
 - **创建未完成的卡**只放行直接丢弃，不放行带否决记忆的普通拒绝。

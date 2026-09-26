@@ -31,21 +31,8 @@
         "provider": "subscription",
         "model": "fable"
       }
-    },
-    {
-      "id": "terra",
-      "name": "Sol",
-      "harness": "codex",
-      "settings": {
-        "provider": "subscription",
-        "model": "gpt-5.6-sol"
-      }
     }
   ],
-  "agentRuntime": {
-    "discussion-helper": "codex",
-    "video-assets": "terra"
-  },
   "memoryPrune": {
     "enabled": true,
     "cadence": "7d",
@@ -58,7 +45,7 @@
   },
   "proposer": true,
   "memoryReview": {
-    "lastRun": "2026-09-24 10:46"
+    "lastRun": "2026-09-26 10:47"
   },
   "workflows": {
     "added": [
