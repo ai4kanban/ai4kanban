@@ -1,7 +1,7 @@
 "use client";
 
-// The Create-task action, self-contained so the shared Header can show it on
-// both the board and a card page. The button opens the create sheet (#426);
+// The New idea action (#1081), self-contained so the shared Header can show it on every page.
+// The button opens the create sheet (#426);
 // starting a session pops the header's global sessions panel open on that new
 // session so the agent is visibly working (a create takes a while — a silent
 // button reads as "nothing happened"). When the session finishes it re-opens the
@@ -25,7 +25,7 @@ import {
   startPlanningAction,
 } from "@/app/actions";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { LuLightbulb } from "react-icons/lu";
 import { useCopy } from "@/i18n/use-copy";
 import {
   createSheet,
@@ -156,19 +156,19 @@ export function CreateTask({
     };
   }, [open]);
 
-  // The rail and this screen are never both up. Pressing Chat asks for the board's
-  // conversation or a card's — and on the board the sheet is already showing the board's, so
-  // both up is one exchange drawn twice, in two boxes that answer each other. Opening either
-  // folds the other, the way the chat rail and the bell already treat each other
-  // (components/Window.tsx).
+  // The rail and this screen are never both up: opening either folds the other, the way the
+  // chat rail and the bell already treat each other (components/Window.tsx).
   const rail = useChatRailHere();
   const railOpen = rail?.open === true;
   const foldRail = rail?.fold;
   useEffect(() => {
     if (railOpen) setOpen(false);
   }, [railOpen]);
+  // Only a rail on screen: off a card's pages it is hidden, and its remembered state stays.
+  const railOpenRef = useRef(railOpen);
+  railOpenRef.current = railOpen;
   useEffect(() => {
-    if (open) foldRail?.();
+    if (open && railOpenRef.current) foldRail?.();
   }, [open, foldRail]);
 
   // Every press is a new subject (#496): the sheet opens on a discussion of its own, so a
@@ -307,7 +307,7 @@ export function CreateTask({
   );
 
   // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
-  // screens keep the button but drop its label — a plus in the same square frame, still the
+  // screens keep the button but drop its label — a bulb in the same square frame, still the
   // same target.
   const label = c.button;
   return (
@@ -318,7 +318,7 @@ export function CreateTask({
         aria-label={label}
         onClick={() => void openFresh()}
       >
-        <FiPlus className="text-[15px]" aria-hidden />
+        <LuLightbulb className="text-[15px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{label}</span>
       </Button>
 

@@ -8,7 +8,7 @@ const en: ChromeCopy = {
     description: "Local kanban board — spawn agents to do the work.",
   },
   header: { home: "All cards", github: "AI4Kanban on GitHub" },
-  resize: { rail: "Resize the rail", chat: "Resize the chat", bell: "Resize notifications", side: "Resize details" },
+  resize: { rail: "Resize the rail", chat: "Resize the discussion", bell: "Resize notifications", side: "Resize details" },
   cardLink: {
     notHere: "That card's board is not on this machine. Open it there, or open that folder here.",
   },
@@ -80,11 +80,11 @@ const en: ChromeCopy = {
       board: "Board",
       atTheComputer: "At the computer",
       atTheComputerBlurb:
-        "Watching a run, reading a diff, choosing the agent and talking to it all want a window.",
+        "Watching a run, reading a diff, choosing the agent and discussing a card all want a window.",
       runs: "Runs",
       diffs: "Diffs",
       configuration: "Configuration",
-      chat: "Chat",
+      chat: "Discuss",
     },
   },
   notFound: {

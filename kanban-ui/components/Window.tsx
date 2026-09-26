@@ -164,15 +164,16 @@ export function Window({
   // get out from behind (#357).
   const phone = usePhone();
   const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
-  // The chat rail follows what this window is showing (#242): a card's page gets that
-  // card's own conversation, the board and a memory file get the board's. One chat on
-  // screen, and nothing to choose.
-  const chat = useChatRail({
+  // The chat rail follows what this window is showing (#242). Only a card's pages draw it
+  // (#1081); elsewhere it stays folded whatever was remembered, and its poll still keeps the
+  // page under it fresh.
+  const polled = useChatRail({
     projectRoot,
     cardId: currentId ?? null,
     cardTitle: currentTitle,
     onBoardChanged,
   });
+  const chat = currentId == null ? { ...polled, open: false } : polled;
   // The bell (#319) shares the right side with the chat: one rail at a time, so opening
   // either folds the other. Its rows are this board's; a system notification clicked from
   // another board is what can lead out of this project, which is why it needs the router.
@@ -355,7 +356,7 @@ export function Window({
     {/* The card page reads the same rows the bell draws (#364), through a context of its
         own: a page drawn without a bell around it — the hosted board — fills it too. */}
     <CardEventsProvider value={bell.cardEvents}>
-    <ChatProvider rail={chat}>
+    <ChatProvider rail={chat} onBoardChanged={onBoardChanged}>
     <BodySlotProvider value={body}>
     <SideSlotProvider value={slot}>
     {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and

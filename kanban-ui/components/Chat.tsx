@@ -1,12 +1,10 @@
 "use client";
 
 // The chat rail down the right of the window (#242) — the mirror of the card rail on the
-// left, and the board's own conversation with its agent.
+// left, and a card's own conversation with its agent.
 //
-// It is folded away by default: the board and the card being read are what the app is for,
-// and a chat is a second way in you ask for. The Chat button in the top row is what asks;
-// the rail follows what you are reading, so the board and a memory file get the board's
-// conversation and a card's page gets that card's own. One chat on screen, ever.
+// It is folded away by default, and drawn only on a card's pages (#1081): the Discuss button
+// in the top row is what asks, and the board's questions go to New idea instead.
 //
 // The rail is the same cream as the left one, with no surface of its own, so the window
 // still reads as one frame with the body's paper in the middle of it. On a window too
@@ -36,16 +34,16 @@ import {
   FiCopy,
   FiEdit3,
   FiImage,
-  FiMessageSquare,
   FiRefreshCw,
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+import { LuMessagesSquare } from "react-icons/lu";
 import type { ChatCopy } from "@/i18n/chat/types";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { LEAVES_SHEET } from "@/lib/create-open";
-import type { ChatRail } from "@/lib/chat-rail";
+import type { BoardChange, ChatRail } from "@/lib/chat-rail";
 import type { PictureBox } from "@/lib/picture-box";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
@@ -82,9 +80,29 @@ const STICK_PX = 72;
 // which the page builds and hands the window as a prop. Context is what puts the two on the
 // same state without every page threading it through its header.
 const RailContext = createContext<ChatRail | null>(null);
+type OnBoardChanged = ((change: BoardChange) => void) | undefined;
+const BoardChangedContext = createContext<OnBoardChanged>(undefined);
 
-export function ChatProvider({ rail, children }: { rail: ChatRail; children: React.ReactNode }) {
-  return <RailContext.Provider value={rail}>{children}</RailContext.Provider>;
+export function ChatProvider({
+  rail,
+  onBoardChanged,
+  children,
+}: {
+  rail: ChatRail;
+  onBoardChanged?: OnBoardChanged;
+  children: React.ReactNode;
+}) {
+  return (
+    <RailContext.Provider value={rail}>
+      <BoardChangedContext.Provider value={onBoardChanged}>{children}</BoardChangedContext.Provider>
+    </RailContext.Provider>
+  );
+}
+
+/** The page's re-read, for New idea's discussion (#1081): it moves cards when asked, and the
+ *  board behind it has to follow at its reply's pace. */
+export function useBoardChanged(): OnBoardChanged {
+  return useContext(BoardChangedContext);
 }
 
 /** The conversation this window is showing, for a screen that draws it somewhere other than
@@ -93,13 +111,13 @@ export function useChatRailHere(): ChatRail | null {
   return useContext(RailContext);
 }
 
-/** The top row's Chat button, beside Create task. It carries the mark that says a reply
- *  arrived while the rail was folded — an ember dot, and the same thing in words for a
- *  reader who isn't looking at colour. */
+/** The top row's Discuss button, on a card's pages only (#1081) — the board's questions go to
+ *  New idea. It carries the mark that says a reply arrived while the rail was folded — an
+ *  ember dot, and the same thing in words for a reader who isn't looking at colour. */
 export function ChatButton() {
   const c = useCopy().chat;
   const rail = useContext(RailContext);
-  if (!rail) return null;
+  if (!rail || cardOf(rail) === null) return null;
   return (
     <div className="relative flex shrink-0 items-center">
       <Button
@@ -112,7 +130,7 @@ export function ChatButton() {
         onClick={rail.toggle}
         style={rail.open ? { background: "var(--color-nb-accent-soft)" } : undefined}
       >
-        <FiMessageSquare className="text-[14px]" aria-hidden />
+        <LuMessagesSquare className="text-[14px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{c.label}</span>
       </Button>
       {rail.unread && (
@@ -202,7 +220,7 @@ function Head({ rail }: { rail: ChatRail }) {
 
   return (
     <div className="mb-1.5 flex h-[30px] shrink-0 items-center gap-2 px-2.5">
-      <FiMessageSquare size={13} className="shrink-0" aria-hidden />
+      <LuMessagesSquare size={13} className="shrink-0" aria-hidden />
       <span className="shrink-0 text-[12.5px] font-[700]">{c.label}</span>
       <span
         className="truncate text-[12px] text-nb-ink-soft"
@@ -992,15 +1010,12 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
       </div>
     );
   }
-  const [about, asks] =
-    cardId === null
-      ? [c.emptyBoard, c.emptyBoardAsks]
-      : [c.emptyCard(cardId), c.emptyCardAsks];
+  if (cardId === null) return null;
   return (
     <div className="px-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
-      <p>{about}</p>
+      <p>{c.emptyCard(cardId)}</p>
       <ul className="mt-2 flex flex-col gap-1.5">
-        {asks.map((line) => (
+        {c.emptyCardAsks.map((line) => (
           <li key={line} className="flex gap-1.5">
             <span aria-hidden>·</span>
             <span>{line}</span>

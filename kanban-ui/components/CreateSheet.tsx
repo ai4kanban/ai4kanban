@@ -19,7 +19,7 @@ import type { DiscussionTarget, WorkflowView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import type { StartFailure } from "@/lib/start-failure";
 import { Button } from "./button";
-import { Transcript, Pasted, Pick } from "./Chat";
+import { Transcript, Pasted, Pick, useBoardChanged } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
@@ -69,11 +69,12 @@ interface Props {
 }
 
 // Discuss is one DISCUSSION's conversation (#427, #496), never the window's rail: the rail
-// holds the board's own or a card's, and this screen is neither. So the sheet opens its own
+// holds a card's, and this screen is not one. So the sheet opens its own
 // on whichever discussion it was given, and a reply to another one goes on arriving behind
 // it — the server owns every reply, so nothing is cut off by the screen it is not on.
 export function CreateSheet(props: Props) {
-  const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion });
+  const onBoardChanged = useBoardChanged();
+  const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion, onBoardChanged });
   // The card this discussion is linked to (#628). Held beside the rail rather than inside
   // the composer — and seeded from the rail's own read,
   // because the link lives beside the transcript and comes back with it (#679).

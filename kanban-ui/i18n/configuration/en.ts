@@ -215,7 +215,7 @@ const en: ConfigurationCopy = {
         gloss: "Help decide what's worth building.",
         trigger: "When you chat",
         rule: 'Added to the end of every message you send it — "always end with the one question I have not thought about".',
-        when: "you talk to it — Discuss, or the chat beside a card. It helps you decide what you want and whether an idea deserves work; a discussion that ends in nothing is a fine outcome.",
+        when: "you talk to it — New idea, or Discuss on a card. It helps you decide what you want and whether an idea deserves work; a discussion that ends in nothing is a fine outcome.",
       },
       "software-planner": {
         name: "Software planner",

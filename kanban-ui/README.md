@@ -59,8 +59,8 @@ The header carries:
 
 - **The goal** (compass) — see [The goal](#the-goal).
 - **The release dropdown** — see [Releases](#releases).
-- **Create task** — a full-screen sheet: describe an idea and send it. Sending always starts a
-  [Discuss](#discuss) conversation. An unsent draft is kept; Esc or ✕ returns to the board. To
+- **New idea** (bulb) — a full-screen sheet: share an idea, ask how things are going, or ask it
+  to move or start a card. Sending always starts a [discussion](#new-idea). An unsent draft is kept; Esc or ✕ returns to the board. To
   write a card straight from a sentence, use `akb create`.
 - **Runs** — every agent session, live or finished, drawn as an office: one robot per job, at a
   desk while it works. Click a robot to read its log; **Completed** and **Unfinished** open the
@@ -69,12 +69,12 @@ The header carries:
 - **Insights** (chart) — **Daily progress**: completed, created and rejected cards over the last
   30 days, from `docs/kanban/metrics.csv`. Read-only.
 - **Configuration** (gear) — see [Configuration](#configuration).
-- **Chat** — see [Chat](#chat).
+- **Discuss** — on a card's pages only; see [Discuss a card](#discuss-a-card).
 
-### Discuss
+### New idea
 
-**Discuss** turns a vague idea into a conversation instead of a run. It is the board's chat — the
-same transcript, agent and model as the right-hand rail — and never shows in **Runs**.
+**New idea** turns a vague idea into a conversation instead of a run, and answers for the board.
+It never shows in **Runs**.
 
 - **The Discussion helper questions the idea** rather than taking it as a spec. Ending in defer,
   drop or investigate is a fine outcome.
@@ -86,15 +86,18 @@ same transcript, agent and model as the right-hand rail — and never shows in *
 - **Start now** asks first, then one run writes a single card from the plan and builds it — no
   refine, no review.
 - **Not yet** leaves it. You can also type any of the three.
+- **Board requests**: it answers how things are going from the board as it is. Asked plainly, it
+  moves, rewords, archives, rejects or starts an existing card — a build as a run in **Runs** —
+  and says so when the board refuses.
 - **Workflow picker**: on a board with several workflows, it picks which one the new cards use.
-- **Nothing is lost** on closing: reopening Discuss returns to the same conversation and plan. A
+- **Nothing is lost** on closing: reopening it from the rail returns to the same conversation and plan. A
   run that writes no card brings the offer back.
 
 Plans are board content and travel with the board.
 
 ### Sharing a conversation with the team
 
-**Share with the team when it ends**, under the Discuss box and under a card's chat, sends the
+**Share with the team when it ends**, under the New idea box and under a card's discussion, sends the
 whole conversation and the code behind it to the AI4Kanban team when the conversation ends.
 
 - **What ends it**: **Plan tasks**, **Start now**, or **End discussion** on the rail's **⋯**.
@@ -131,10 +134,10 @@ has no Find, so use the box.
 
 **Memory** and **Archive** sit at the foot of the rail.
 
-### Chat
+### Discuss a card
 
-**Chat** in the header opens a rail on the right, about this project. It remembers whether it was
-open, and keeps one conversation for the board and one per card; walking to another card leaves
+**Discuss** in the header of a card's page opens a rail on the right, about that card. It
+remembers whether it was open, and keeps one conversation per card; walking to another card leaves
 nothing of the last one behind. It answers from the goal, module map, open cards, memory and
 settings, and a card it names is a link.
 
@@ -511,7 +514,7 @@ scans the backlog: a card written by hand in your editor needs **Refine**.
 A card in the **recurring** column is a job you repeat and never archive. **Run** does one pass
 through its **Process**, records it, and tightens a step or two. A step that needs your judgment
 is left undone and written as an open question; the next run folds in your answer. There is no
-**Archive** or **Refine**. To make one, describe the job in **Create task** and say it repeats.
+**Archive** or **Refine**. To make one, describe the job in **New idea** and say it repeats.
 
 **Cadence** (next to **Last run**) runs it automatically — every N minutes, hours or days, with a
 time of day for days. **No cadence** means it runs only on **Run**. **Next run** shows when it is
@@ -817,7 +820,7 @@ stay per machine. An unknown `id` falls back to **Global default** with a note i
 that isn't installed fails with its install command.
 
 Every flow is run by its role: refine, clarify and `akb card resolve` by the software planner;
-Discuss, card chat and `akb chat` by the discussion helper; a `spec` or `write` pass by the
+New idea, card discussions and `akb chat` by the discussion helper; a `spec` or `write` pass by the
 specialist it names.
 
 **Terminal**: `akb agent` lists everything; `akb agent runtime add|rename|delete` edits rows;

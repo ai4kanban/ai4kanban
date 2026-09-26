@@ -38,12 +38,12 @@ import {
   FiColumns,
   FiFileText,
   FiInbox,
-  FiMessageSquare,
   FiMoreHorizontal,
   FiScissors,
   FiSearch,
   FiX,
 } from "react-icons/fi";
+import { LuMessagesSquare } from "react-icons/lu";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryAgentOf, memoryTree, useMemoryPanel, useOpenOwners } from "@/lib/memory-panel";
@@ -619,7 +619,7 @@ function ChatRow({
   const inside = (
     <>
       {cardId === undefined ? (
-        <FiMessageSquare size={13} className="shrink-0" aria-hidden />
+        <LuMessagesSquare size={13} className="shrink-0" aria-hidden />
       ) : (
         <span
           className="shrink-0 font-mono text-[11px] tabular-nums"

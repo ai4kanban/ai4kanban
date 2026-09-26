@@ -35,8 +35,6 @@ export type ChatCopy = {
   youStopped: string;
   /** The rail with nothing in it yet: what the chat is for, and what to ask it.
    *  Tuples, so a language cannot ship a shorter list than English. */
-  emptyBoard: string;
-  emptyBoardAsks: [string, string, string, string];
   emptyCard: (id: number) => string;
   emptyCardAsks: [string, string, string];
   /** What you can do with a message without retyping it (#269) — the words on the

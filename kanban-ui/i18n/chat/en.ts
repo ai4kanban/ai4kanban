@@ -3,11 +3,11 @@
 import type { ChatCopy } from "./types";
 
 const en: ChatCopy = {
-  label: "Chat",
+  label: "Discuss",
   unread: "a new reply is waiting",
   clear: "Clear this conversation",
   clearConfirm: "Clear it",
-  fold: "Fold the chat away",
+  fold: "Fold the discussion away",
   aboutBoard: "the board",
   aboutBoardHint: "about the whole board",
   aboutCard: (id) => `#${id}`,
@@ -26,14 +26,6 @@ const en: ChatCopy = {
   toFoot: "Jump to the newest line",
   stopped: "What arrived is kept — send another message to carry on.",
   youStopped: "you stopped the reply.",
-  emptyBoard:
-    "Ask about this project, or say what to change. It answers from this board, and it makes the changes you settle on.",
-  emptyBoardAsks: [
-    "What should I build next?",
-    "What is holding everything up?",
-    "Put #12 in v1 and drop #14.",
-    "Start a build on #12.",
-  ],
   emptyCard: (id) =>
     `Ask about #${id}, or say what to change. It answers from this card and the rest of the board, and it makes the changes you settle on.`,
   emptyCardAsks: [

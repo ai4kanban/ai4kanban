@@ -26,7 +26,6 @@ import {
   FiFileText,
   FiFolder,
   FiGitBranch,
-  FiMessageSquare,
   FiMoreHorizontal,
   FiPlay,
   FiScissors,
@@ -34,6 +33,7 @@ import {
   FiSettings,
   FiX,
 } from "react-icons/fi";
+import { LuMessagesSquare } from "react-icons/lu";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { armAgentHalf } from "@/lib/agent-half";
@@ -368,7 +368,7 @@ export function MoreScreen({
     { label: c.runs, Icon: FiPlay },
     { label: c.diffs, Icon: FiGitBranch },
     { label: c.configuration, Icon: FiSettings },
-    { label: c.chat, Icon: FiMessageSquare },
+    { label: c.chat, Icon: LuMessagesSquare },
   ];
   return (
     <Screen title={p.tabs.more}>

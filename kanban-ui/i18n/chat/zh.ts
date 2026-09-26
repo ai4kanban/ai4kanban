@@ -3,11 +3,11 @@
 import type { ChatCopy } from "./types";
 
 const zh: ChatCopy = {
-  label: "对话",
+  label: "讨论",
   unread: "有新回复",
   clear: "清空这段对话",
   clearConfirm: "确认清空",
-  fold: "收起对话",
+  fold: "收起讨论",
   aboutBoard: "整个看板",
   aboutBoardHint: "关于整个看板",
   aboutCard: (id) => `#${id}`,
@@ -26,13 +26,6 @@ const zh: ChatCopy = {
   toFoot: "跳到最新一条",
   stopped: "已经收到的内容会保留——再发一条消息即可继续。",
   youStopped: "你停止了这次回复。",
-  emptyBoard: "问它这个项目的情况，或者说出你想改什么。它依据这个看板作答，并落实你确定下来的改动。",
-  emptyBoardAsks: [
-    "接下来该做什么？",
-    "现在是什么卡住了整体进度？",
-    "把 #12 放进 v1，并否决 #14。",
-    "开始开发 #12。",
-  ],
   emptyCard: (id) =>
     `问它 #${id} 的情况，或者说出你想改什么。它依据这张卡片和整个看板作答，并落实你确定下来的改动。`,
   emptyCardAsks: ["这张卡片还有什么不清楚的？", "它是不是大到无法一次做完？", "有哪些可以砍掉？"],

@@ -18,8 +18,8 @@ import { Sessions } from "./sessions";
 
 // The window's top row (components/Window.tsx draws the rest of it), shared by
 // the board and the card detail page and identical on both: the mark leads home,
-// and the Create-task action, the Insights charts and the Configuration
-// gear sit on the right. Create task is
+// and New idea, the Insights charts and the Configuration
+// gear sit on the right. New idea is
 // self-contained (see CreateTask) so both pages
 // get it without threading any session state through the header. `projectRoot` is
 // the repo the server is driving (holds docs/kanban/) — shown as a small badge so
@@ -30,16 +30,16 @@ import { Sessions } from "./sessions";
 // the board draws one layout now, so there is nothing to switch between and a
 // control offering the choice would be offering a board that no longer exists.
 //
-// The bell (#319) and the Chat button (#242) are a pair, and sit as one (#807): the two
+// The bell (#319) and the Discuss button (#242) are a pair, and sit as one (#807): the two
 // rails share the right of the window and hold it one at a time, so the two controls that
 // fold them stand together, outside the tool cluster. Both draw nothing of their own — the
 // rails' state lives in the window (components/Window.tsx), which is what keeps one of them
-// on screen whichever page is up.
+// on screen whichever page is up. Discuss shows on a card's pages only (#1081).
 //
 // The bell left the cluster because it is the row's one control that changes by itself and
 // waits for a hand, while the cluster is where the board's machinery is looked at. Its
 // weight is its state: a ghost block when there is nothing, filled ember with the count in
-// white when there is. Create task stays the only button that is always orange.
+// white when there is. New idea stays the only button that is always orange.
 //
 // The release dropdown (#104) is the one thing that isn't on both pages, on
 // board-only terms: it says which version the columns are
@@ -220,7 +220,7 @@ export function Header({
         <span className="hidden items-center gap-2 md:flex">
           <UpdateChip />
           {/* The repository leads the group: the same ghost block as Goal and
-              Chat, icon-only, since it is the one control here that acts on
+              Discuss, icon-only, since it is the one control here that acts on
               nothing on this board. */}
           <GitHubLink />
         </span>

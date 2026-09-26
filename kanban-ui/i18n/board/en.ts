@@ -65,17 +65,18 @@ const en: BoardCopy = {
     },
   },
   create: {
-    button: "Create task",
+    button: "New idea",
     startFailed: "could not start the agent",
     sheet: {
       headlines: [
+        "What should we do next?",
         "What do you want to achieve?",
         "What problems are users facing?",
         "What could be improved?",
         "What market trends do you want to follow?",
       ],
-      slogan: "Share your idea, even if it’s still rough. Let your agent help clarify it and turn it into actionable tasks.",
-      placeholder: "A goal, user feedback, or an idea to validate…",
+      slogan: "Share an idea, even a rough one, and your agent turns it into tasks. Or ask how things are going, move cards, start work.",
+      placeholder: "An idea, some user feedback, or “move #12 into v1”…",
       answer: "Answer, or say what is still wrong",
       workflow: { label: "Workflow", manage: "Manage workflows" },
       send: "Send",
