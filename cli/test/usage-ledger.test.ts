@@ -57,13 +57,14 @@ const view = (days = 30) => {
 }
 
 describe('usage ledger', () => {
-  it('imports the record and old replies on the first read, old replies unattributed', () => {
+  it('imports the record and old replies on the first read, old replies by their conversation', () => {
     withStore((s) => s.runs.push(run('a', { status: 'done', endedAt: Date.now() - 2 * DAY, usage: tokens(10), costUsd: 1 })))
     fs.mkdirSync(CHATS_DIR, { recursive: true })
     fs.writeFileSync(
       path.join(CHATS_DIR, 'board.json'),
       JSON.stringify({
-        harness: 'claude-code',
+        harness: 'codex',
+        model: 'gpt-6-sol',
         messages: [
           { role: 'you', text: 'hi', at: Date.now() - 3 * DAY },
           { role: 'agent', text: 'yo', at: Date.now() - 3 * DAY + 5, usage: tokens(3), costUsd: 0.5 },
@@ -72,7 +73,7 @@ describe('usage ledger', () => {
     )
     const v = view()
     assert.equal(v.rows.length, 2)
-    assert.deepEqual(v.rows.map((r) => [r.harness, r.runs, r.turns]), [['claude-code', 1, 0], [undefined, 0, 1]])
+    assert.deepEqual(v.rows.map((r) => [r.harness, r.model, r.runs, r.turns]), [['claude-code', 'claude-opus-5-5', 1, 0], ['codex', 'gpt-6-sol', 0, 1]])
     assert.equal(v.totalUsd, 1.5)
     assert.ok(v.since < Date.now() - 2.9 * DAY)
   })
@@ -103,8 +104,9 @@ describe('usage ledger', () => {
     finish('p1', { costUsd: 4 })
     finish('p2', { usage: tokens(1) })
     const rows = view().rows
-    assert.deepEqual(rows.map((r) => r.model), ['mixed', undefined])
+    assert.deepEqual(rows.map((r) => r.model), ['mixed', undefined, 'free-model'])
     assert.equal(rows[0].unpriced, 1)
+    assert.deepEqual([rows[2].costUsd, rows[2].unpriced, rows[2].tokens.input], [0, 1, 100])
     assert.equal(rows[0].costUsd, 4)
     assert.equal(view().totalUsd, 5)
   })
@@ -131,6 +133,23 @@ describe('usage ledger', () => {
     assert.equal(readLedger()!.entries.some((e) => e.key === 'run:ancient'), false)
     const [row] = view(365).rows
     assert.deepEqual([row.harness, row.turns, row.costUsd], ['codex', 1, 0.2])
+  })
+
+  it('names the ledger’s unattributed replies after their conversation', () => {
+    view()
+    const ledger = readLedger()!
+    const at = Date.now() - DAY
+    ledger.entries.push(
+      { key: 'chat:card-7:1', kind: 'chat', at, usage: tokens(4) },
+      { key: 'chat:card-7:2', kind: 'chat', at, model: 'gpt-6-astra', usage: tokens(4) },
+      { key: 'chat:gone:3', kind: 'chat', at, usage: tokens(1), costUsd: 0.1 },
+    )
+    fs.writeFileSync(USAGE, JSON.stringify(ledger))
+    fs.mkdirSync(CHATS_DIR, { recursive: true })
+    fs.writeFileSync(path.join(CHATS_DIR, 'card-7.json'), JSON.stringify({ harness: 'codex', model: 'gpt-6-sol', messages: [] }))
+    const rows = view().rows.map((r) => [r.harness, r.model, r.turns])
+    assert.deepEqual(rows, [[undefined, undefined, 1], ['codex', 'gpt-6-sol', 1], ['codex', 'gpt-6-astra', 1]])
+    assert.equal(readLedger()!.entries.filter((e) => e.harness === 'codex').length, 2)
   })
 
   it('says so when the ledger cannot be read', () => {

@@ -20,7 +20,7 @@ export interface UsageEntry {
   key: string
   kind: 'run' | 'chat'
   at: number
-  /** Absent on a reply written before replies named their connector. */
+  /** Absent on an old reply whose conversation is gone. */
   harness?: string
   model?: string
   usage?: TokenUsage
@@ -77,7 +77,47 @@ export const runEntry = (r: RunRecord): UsageEntry => ({
   costUsd: r.costUsd,
 })
 
-// Replies already on disk. One written before replies named their connector stays unnamed.
+interface Conversation {
+  harness?: unknown
+  model?: unknown
+  messages?: unknown
+}
+
+function readConversation(name: string): Conversation | null {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(CHATS_DIR, `${name}.json`), 'utf8')) as Conversation
+  } catch {
+    return null
+  }
+}
+
+// A reply written before replies named their connector goes by its conversation's: a
+// conversation keeps one connector once it opens a session, and its model is the latest one.
+function nameAfter(e: UsageEntry, chat: Conversation | null): UsageEntry {
+  if (e.harness || !chat || typeof chat.harness !== 'string' || !chat.harness) return e
+  const model = e.model ?? (typeof chat.model === 'string' && chat.model ? chat.model : undefined)
+  return { ...e, harness: chat.harness, model }
+}
+
+const conversationOf = (e: UsageEntry) => e.key.slice(5, e.key.lastIndexOf(':'))
+
+/** Name the unnamed replies a ledger holds after their conversations, when those are still
+ *  on disk. Returns whether any changed. */
+function nameReplies(ledger: UsageLedger): boolean {
+  const chats = new Map<string, Conversation | null>()
+  let changed = false
+  ledger.entries = ledger.entries.map((e) => {
+    if (e.kind !== 'chat' || e.harness) return e
+    const name = conversationOf(e)
+    if (!chats.has(name)) chats.set(name, readConversation(name))
+    const named = nameAfter(e, chats.get(name)!)
+    if (named !== e) changed = true
+    return named
+  })
+  return changed
+}
+
+// Replies already on disk.
 function importedReplies(): UsageEntry[] {
   let names: string[]
   try {
@@ -86,19 +126,15 @@ function importedReplies(): UsageEntry[] {
     return []
   }
   const out: UsageEntry[] = []
-  for (const name of names) {
-    let messages: unknown
-    try {
-      messages = (JSON.parse(fs.readFileSync(path.join(CHATS_DIR, name), 'utf8')) as { messages?: unknown }).messages
-    } catch {
-      continue
-    }
-    if (!Array.isArray(messages)) continue
-    for (const m of messages as (Partial<UsageEntry> & { role?: unknown })[]) {
+  for (const file of names) {
+    const name = file.slice(0, -5)
+    const chat = readConversation(name)
+    if (!chat || !Array.isArray(chat.messages)) continue
+    for (const m of chat.messages as (Partial<UsageEntry> & { role?: unknown })[]) {
       if (m?.role !== 'agent' || typeof m.at !== 'number' || !m.at) continue
       const { harness, model, usage, costUsd } = m
-      const entry = asEntry({ key: `chat:${name.slice(0, -5)}:${m.at}`, kind: 'chat', at: m.at, harness, model, usage, costUsd })
-      if (entry) out.push(entry)
+      const entry = asEntry({ key: `chat:${name}:${m.at}`, kind: 'chat', at: m.at, harness, model, usage, costUsd })
+      if (entry) out.push(nameAfter(entry, chat))
     }
   }
   return out
@@ -114,6 +150,8 @@ export function appendUsageLocked(add: UsageEntry[], runs: RunRecord[]): void {
     const imported = [...runs.filter((r) => r.status !== 'running').map(runEntry), ...importedReplies()]
     ledger = { since: Math.min(Date.now(), ...imported.map((e) => e.at)), entries: [] }
     incoming = [...imported, ...add]
+  } else {
+    nameReplies(ledger)
   }
   const seen = new Set(ledger.entries.map((e) => e.key))
   for (const e of incoming) {
@@ -131,9 +169,12 @@ export function recordReplyUsage(entry: UsageEntry, runs: () => RunRecord[]): vo
   withLock(SESSIONS_LOCK, "writing this board's run list", () => appendUsageLocked([entry], runs()))
 }
 
-/** The ledger, made on the spot the first time anything asks. */
+/** The ledger, made on the spot the first time anything asks, and rewritten when a reply it
+ *  holds can now be named. */
 export function loadLedger(runs: () => RunRecord[]): UsageLedger {
-  return readLedger() ?? withLock(SESSIONS_LOCK, "writing this board's run list", () => {
+  const ledger = readLedger()
+  if (ledger && !nameReplies(ledger)) return ledger
+  return withLock(SESSIONS_LOCK, "writing this board's run list", () => {
     appendUsageLocked([], runs())
     return readLedger()!
   })

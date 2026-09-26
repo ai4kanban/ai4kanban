@@ -599,7 +599,7 @@ function UsageRow({ r, share, phone }: { r: Row; share: number; phone: boolean }
   const u = useCopy().rail.insights.usage;
   const log = useCopy().runs.log;
   const model = r.connector ? (r.model ?? u.noModel) : null;
-  const cost = formatCost(r.costUsd, log);
+  const cost = r.unpriced < r.runs + r.turns ? formatCost(r.costUsd, log) : "—";
   const tokens = shortTokens(tokenSum(r));
   const counts = [r.runs > 0 && u.runs(r.runs), r.turns > 0 && u.turns(r.turns), r.unpriced > 0 && u.unpriced(r.unpriced)]
     .filter(Boolean)

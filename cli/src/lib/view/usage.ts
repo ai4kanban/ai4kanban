@@ -1,5 +1,5 @@
 // The usage ledger (../agent/usage.ts) summed for Insights: one row per connector and model
-// over the last `span` local days, costliest first.
+// over the last `span` local days that reported a cost or tokens, costliest first.
 
 import { harnessLabel } from '../agent/resolve'
 import { readRuns } from '../agent/store'
@@ -47,15 +47,15 @@ export function readUsageView(span: number): UsageResult {
   }
 
   const total = (r: UsageRow) => r.tokens.input + r.tokens.cacheCreation + r.tokens.cacheRead + r.tokens.output
-  const priced = [...rows.values()]
-    .filter((r) => r.unpriced < r.runs + r.turns)
+  const shown = [...rows.values()]
+    .filter((r) => r.unpriced < r.runs + r.turns || total(r) > 0)
     .sort((a, b) => b.costUsd - a.costUsd || total(b) - total(a))
   return {
     ok: true,
     view: {
       since: ledger.since,
-      rows: priced,
-      totalUsd: priced.reduce((n, r) => n + r.costUsd, 0),
+      rows: shown,
+      totalUsd: shown.reduce((n, r) => n + r.costUsd, 0),
       empty: !any,
     },
   }

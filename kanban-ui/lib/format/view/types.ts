@@ -754,7 +754,7 @@ export interface UsageRow {
 export interface UsageView {
   /** The first moment the ledger has records for (epoch ms). */
   since: number
-  /** Rows with a reported cost, costliest first. */
+  /** Rows with a reported cost or any tokens, costliest first. */
   rows: UsageRow[]
   totalUsd: number
   /** Nothing ran and nobody chatted in the period. */
