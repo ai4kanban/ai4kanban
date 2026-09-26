@@ -16,7 +16,7 @@ import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
-import { cardWorkflowId, scriptApprovedOn, workflowFor, workflowIssues, workflowKnown } from './workflows'
+import { cardWorkflowId, workflowFor, workflowIssues, workflowKnown } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import { takeChatSession } from './chat'
 import { refusal, type AgentRequest, type RunRecord, type RunRefusal } from './types'
@@ -64,15 +64,9 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
   }
   const flow = workflowFor(id)
   if (!flow) return null
-  // A workflow that finishes in planning builds nothing (#1057), and nothing is produced for it
-  // before the user approved the script as it now reads.
-  if (flow.delivers === 'plan') {
-    if (req.action === 'implement') {
-      return refusal('planDelivered', `#${req.id} is finished during planning, so it is archived rather than built.`, { card: String(req.id) })
-    }
-    if (req.action === 'spec' && !scriptApprovedOn(req.id as number, flow.stages.plan.lead)) {
-      return refusal('scriptUnapproved', `#${req.id}'s script is not approved yet, so nothing is produced for it.`, { card: String(req.id) })
-    }
+  // A workflow that finishes in planning builds nothing (#1057).
+  if (flow.delivers === 'plan' && req.action === 'implement') {
+    return refusal('planDelivered', `#${req.id} is finished during planning, so it is archived rather than built.`, { card: String(req.id) })
   }
   const [problem] = workflowIssues(flow.id)
   if (!problem) return null

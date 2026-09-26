@@ -208,8 +208,7 @@ export interface RemoveOptions {
 }
 
 // Why a card finishing in planning (#1057) is not ready to archive, or null: the same check its
-// Archive button draws from, plus what only this machine can see — an approved script as the
-// card now reads, and the finished file on disk.
+// Archive button draws from, plus what only this machine can see — the finished file on disk.
 function unfinishedDelivery(id: number): string | null {
   const card = findCard(id)
   if (card?.deliversIn !== 'plan') return null
@@ -223,7 +222,6 @@ function unfinishedDelivery(id: number): string | null {
     }[gap]
     return `#${id} is not finished: ${what}.`
   }
-  if (!card.scriptApproved) return `#${id} is not finished: it is not approved as it now reads.`
   const missing = planDeliverables(card.body)
     .filter((src) => src.startsWith('.assets/'))
     .find((src) => !fs.existsSync(path.join(ASSETS, src.slice('.assets/'.length))))

@@ -181,7 +181,7 @@ function afterQa(
   // decider is on (#447), and then one run answers them instead of the user.
   if (openOf(card.questions).length > 0) return decideRunAfter(card.id)
   // A card finishing in planning (#1057) is written up once its film is done. Until then the
-  // user's answer — the script approved, or a change asked for — goes back to its lead, which
+  // user's answer — a review accepted, or a change asked for — goes back to its lead, which
   // asks again or has the film made. A pass that ended without asking anything stops here.
   if (card.deliversIn === 'plan') {
     if (planDeliveryGap(card) === null) return card.status === 'ready' ? null : writingAfter(card, round, flowId, refineEffort)

@@ -59,15 +59,12 @@ export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => ques
 
 // ---- a card that finishes in planning (#1057) -------------------------------
 //
-// A product video or slide deck (#1075) is made while the card is planned: the user approves
-// it, planning produces and checks the file, and the user archives the card to accept it.
+// A product video or slide deck (#1075) is made while the card is planned: the user reviews
+// each step through a `[user]` question and a todo, and archives the card to accept it.
 // Nothing is built.
 
 /** The finished files a card finishing in planning delivers: a video or a PowerPoint deck. */
 export const PLAN_DELIVERABLE = /\.(mp4|webm|mov|m4v|pptx)$/i
-
-/** A question asking the user to approve the script — never answered on their behalf. */
-export const isApprovalQuestion = (q: Question): boolean => !!q.approves
 
 /** What a card finishing in planning still lacks before it can be archived, or null when it
  *  is done: nothing left to answer, a deliverable `<Asset>` in its body, its rebuild command

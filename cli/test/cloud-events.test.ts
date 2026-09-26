@@ -126,7 +126,6 @@ describe('which tasks a board raises an event about', () => {
     const finished = card({
       status: 'ready',
       deliversIn: 'plan',
-      scriptApproved: true,
       body: film,
       todos: { total: 1, done: 1 },
     })
@@ -134,7 +133,6 @@ describe('which tasks a board raises an event about', () => {
     assert.equal(snapshotFor(finished, BOARD)?.decision, 'archive')
 
     assert.equal(actionableKind({ ...finished, body: BODY }, BOARD), null)
-    assert.equal(actionableKind({ ...finished, scriptApproved: false }, BOARD), null)
     assert.equal(actionableKind({ ...finished, todos: { total: 2, done: 1 } }, BOARD), null)
     // A question on it still asks.
     const asking = { ...finished, questions: [asked('[user] Which cut?')] }

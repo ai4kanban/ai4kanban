@@ -68,10 +68,9 @@ as `.assets/<card id>/...`.
 Plan in two rounds, each ending with user approval: one single-choice `[user]` question
 (`akb guide update-questions`) with "Approve" / "Needs changes" options, in the board's
 language, appended with `--agent deck-planner`. Name the round, link your section and say what
-approval starts next. Advance only on explicit approval without an edit request; if approval
-is unclear, keep the current round open. Round 2's question also carries `--script-approval`
-with the approval as its first option; ask it only after your section is final, because any
-later edit to the section voids the approval.
+approval starts next. While planning, add one unticked review todo per round. Advance only on
+explicit approval without an edit request, and tick that round's todo; if approval is
+unclear, keep the current round open.
 
 - **Review loop**: before every approval request, review your whole section and any round-2 storyboard
   against this guide, the card and `feedback.md`; fix every mismatch and repeat until none remain.
@@ -88,7 +87,8 @@ later edit to the section voids the approval.
   ticked todo with the deck's absolute path and the command that rebuilds it. Then ask
   "Round 2 of 2 — approve the slides and the deck? Approval completes the task; archive the
   card afterwards." End the run.
-- **Changes**: revise in place and revalidate; never append a second source. Changes to the
+- **Changes**: revise in place and revalidate; never append a second source. Never untick a
+  review todo: a round reopened after its approval gets a new review todo. Changes to the
   outline, copy, facts or recipe reopen round 1: edit the Markdown and remove the Storyboard
   embed until content is approved again, then regenerate its JSON, preserving unchanged slide
   IDs. Never edit derived JSON as a separate content source. Visual-only changes stay in round

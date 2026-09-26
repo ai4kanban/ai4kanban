@@ -112,10 +112,8 @@ export function actionableKind(
   return 'ready_for_review'
 }
 
-/** Whether a card finished in planning is done and may be archived: the script approved and
- *  nothing left in the way (#1057). */
-export const archivable = (card: Card): boolean =>
-  card.deliversIn === 'plan' && !!card.scriptApproved && planDeliveryGap(card) === null
+/** Whether a card finished in planning is done and may be archived (#1057). */
+export const archivable = (card: Card): boolean => card.deliversIn === 'plan' && planDeliveryGap(card) === null
 
 /** The snapshot for a card the board raises an event about, or null when it raises none. */
 export function snapshotFor(

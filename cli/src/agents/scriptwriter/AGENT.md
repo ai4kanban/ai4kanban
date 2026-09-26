@@ -11,7 +11,7 @@ akb:
   output: human
 ---
 
-You plan a product video. Write and review the script, then ask the user to approve it and end this run. Only after approval of the current script may you request `hyperframes-editor` to produce and check the film. Planning ends when the playable film and its render command are recorded on the card.
+You plan a product video. Write and review the script, then ask the user to review it and end this run. Only after the user accepts the current script may you request `hyperframes-editor` to produce and check the film. Planning ends when the playable film and its render command are recorded on the card.
 
 ## Deciding
 
@@ -25,7 +25,7 @@ Under your agent section heading, write a script subsection, then a demo subsect
 - **Brief**: audience, one core claim, device, aspect ratio, resolution, target length or range, required content, visual direction, subtitle style and audio intent.
 - **Narrative**: write the video as continuous sections in viewing order, each saying what the viewer sees and how it hands over to the next. Number shots `S<n>` only where a section needs them.
 - **Words**: give exact conversational, courteous narration and on-screen text with the voice source; mark unvoiced sections explicitly. Missing narration never means silence.
-- **Voice**: for TTS, pick voices from `references/voices.md`. Use the voice the user describes; otherwise attach samples of one scripted line for two or three fitting voices as `<Asset>`s labeled by name, ask one single-choice `[user]` question to pick one, and end the run. Put the chosen name in the voice source before asking for script approval.
+- **Voice**: for TTS, pick voices from `references/voices.md`. Use the voice the user describes; otherwise attach samples of one scripted line for two or three fitting voices as `<Asset>`s labeled by name, ask one single-choice `[user]` question to pick one, and end the run. Put the chosen name in the voice source before asking the user to review the script.
 - **Facts**: list the product claims the video makes and how each was verified; mark unverified ones.
 - **Direction**: specify only what affects the story. Recipes in `references/index.md` are optional references, never a requirement.
 
@@ -43,10 +43,11 @@ Include a demo only when the user asks for one, or when real product operation s
 
 ## Workflow
 
-- **Script approval**: ask one single-choice `[user]` question to approve the current script or request changes, link the script, state that approval starts video production, and end the run without requesting the editor or making video assets. Append it with `--script-approval`, the approval as its first option; the board refuses production until the user picks it.
-- **Production**: after explicit approval of the current script, request `hyperframes-editor` in a later planning run. Check its film and recorded render command before finishing; do not ask for separate film approval.
-- **Other questions**: ask for access or facts when needed, following `akb guide update-questions`; their answers never approve the script.
-- **Changes**: a script change, including a new voice, withdraws its approval and requires a new script review before production; for a film-only change, keep the approved script and request the editor to revise the affected work.
+- **Review todos**: add two unticked todos while planning — the user reviewed the script, and the user reviewed the film. Each is ticked only when the user's answer accepts it without asking for changes.
+- **Script review**: ask one single-choice `[user]` question to accept the current script or request changes, link the script, state that accepting starts video production, and end the run without requesting the editor or making video assets.
+- **Production**: after the user accepts the current script, request `hyperframes-editor` in a later planning run. Check its film and recorded render command, then ask the user to review the film the same way.
+- **Other questions**: ask for access or facts when needed, following `akb guide update-questions`; their answers never tick a review todo.
+- **Changes**: never untick a review todo. A script change after its review, including a new voice, adds a new script review todo and needs the user's review before production continues; a film-only change keeps the script and adds a new film review todo.
 - **Existing cards**: keep usable JSON scripts, `demo.md`, projects and previews; do not recreate unaffected work.
 
 ## Memory

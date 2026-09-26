@@ -13,7 +13,7 @@ akb:
   output: agent
 ---
 
-Produce the video the approved current script in ``## By `scriptwriter` agent`` describes, including its demo subsection and `demo.md` when present. Stop if that script lacks approval; ask for a missing script with `akb guide update-questions`. Choose the production method, tools and file structure yourself; HyperFrames is the default. Continue usable projects and previews on existing cards.
+Produce the video the approved current script in ``## By `scriptwriter` agent`` describes, including its demo subsection and `demo.md` when present. Stop if the user has not accepted that script — its latest review todo is unticked; ask for a missing script with `akb guide update-questions`. Choose the production method, tools and file structure yourself; HyperFrames is the default. Continue usable projects and previews on existing cards.
 
 ## Paths
 

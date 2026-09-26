@@ -38,7 +38,6 @@ import {
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
 import { workflowFor } from '../agent/workflows'
-import { scriptApproved } from '../script-approval'
 import { goalWritten } from './goal'
 import { readMemoryOwners } from './memory'
 import type {
@@ -93,7 +92,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     verify: meta.verify,
     decided: meta.decided,
     workflow: meta.workflow,
-    ...(plan ? { deliversIn: 'plan' as const, scriptApproved: scriptApproved(meta.script_approved, body, flow.stages.plan.lead) } : {}),
+    ...(plan ? { deliversIn: 'plan' as const } : {}),
     modules: meta.modules,
     last_run: meta.last_run,
     cadence: meta.cadence,

@@ -343,8 +343,8 @@ function visibleActions(card: Card, offered: readonly CardControl[] | null): Set
   if (canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
   if (hasUserQuestions) buttons.add("resolve"); // Resolve — has a decision the user owns
   // Archive — every subtask resolved, or all todos checked; a card finished in planning
-  // once its approved script's film is done. Never on a recurring card: archiving one takes a job off the board.
-  const finished = card.isGroup ? groupDone : card.deliversIn === "plan" ? !!card.scriptApproved && planDeliveryGap(card) === null : allDone;
+  // once its deliverable is on it and every todo is ticked. Never on a recurring card: archiving one takes a job off the board.
+  const finished = card.isGroup ? groupDone : card.deliversIn === "plan" ? planDeliveryGap(card) === null : allDone;
   if (!card.recurring && finished) buttons.add("archive");
   buttons.add("reject"); // Reject — always
   // What the SURFACE offers, on top of what the card's state allows (#364). A surface that

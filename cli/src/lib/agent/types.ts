@@ -349,8 +349,6 @@ export type RunRefusalKind =
   | 'workflowUnknown'
   /** A card whose workflow finishes in planning: it is archived, never built (#1057). */
   | 'planDelivered'
-  /** Production asked for before the user approved the current script (#1057). */
-  | 'scriptUnapproved'
   | 'workflowNoLead'
   | 'workflowLeadMissing'
   | 'workflowLeadStage'

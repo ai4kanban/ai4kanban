@@ -177,7 +177,6 @@ describe('a task edited, resolved or moved after its message was created', () =>
   it('archives a finished product video, and refuses one that is not finished', () => {
     const finished = card({
       deliversIn: 'plan',
-      scriptApproved: true,
       body: '<Asset src="out/film.mp4" />\n\n- [x] Render: `npx hyperframes render`',
       todos: { total: 1, done: 1 },
     })

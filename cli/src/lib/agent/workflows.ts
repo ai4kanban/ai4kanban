@@ -32,7 +32,6 @@ import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
-import { scriptApproved } from '../script-approval'
 import {
   refusal,
   WORKFLOW_STAGES,
@@ -997,21 +996,6 @@ export function cardMeta(id: number): Meta | null {
     return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta
   } catch {
     return null
-  }
-}
-
-/** Whether the user approved a card's script as it now reads (#1057). `lead` is the agent
- *  whose section is the script — its workflow's plan lead. */
-export function scriptApprovedOn(id: number, lead: string): boolean {
-  const meta = cardMeta(id)
-  if (!meta?.script_approved) return false
-  try {
-    const found = locate(id)
-    if (!found) return false
-    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-    return scriptApproved(meta.script_approved, parseFrontmatter(fs.readFileSync(file, 'utf8')).body, lead)
-  } catch {
-    return false
   }
 }
 
