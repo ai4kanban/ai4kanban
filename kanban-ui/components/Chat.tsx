@@ -416,11 +416,9 @@ function Jump({ count, onClick }: { count: number; onClick(): void }) {
   );
 }
 
-/** One message. The user's words sit in a block of their own — paper with an ink hairline,
- *  the surface of the box they were typed in, and inset from the left so they are narrower
- *  than the reply — while the agent's are prose on the rail's own ground, where a `#12` is a
- *  link to that card (components/Markdown.tsx). Two surfaces rather than two tints: a wash a
- *  shade off the rail's own cream read as nothing at all.
+/** One message. The user's words sit in a faint ink bubble, shrunk to the text and held to
+ *  the right — while the agent's are prose on the rail's own ground, where a `#12` is a
+ *  link to that card (components/Markdown.tsx).
  *
  *  The space above a message you sent is what groups an exchange: a reply sits close under
  *  the message it answers, and the next question starts a turn.
@@ -465,8 +463,8 @@ const Said = memo(
         );
       }
       return (
-        <div className="group ml-6 mt-3 first:mt-0">
-          <div className="rounded-[10px] bg-nb-paper p-2.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]">
+        <div className="group ml-6 mt-3 flex flex-col items-end first:mt-0">
+          <div className="max-w-full rounded-[10px] bg-nb-ink/5 p-2.5">
             {/* Above the words, in the order they went into the box. With no words the
                 pictures are the whole message and nothing is held open for text. */}
             {shots.length > 0 && <Pictures names={shots} imageSrc={imageSrc} />}
@@ -639,7 +637,7 @@ function EditSent({
             onCancel();
           }
         }}
-        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none"
+        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-ink/5 px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none"
       />
       <div className="mt-1 flex items-center justify-end gap-1">
         <Button variant="ghost" size="xs" onClick={onCancel}>
