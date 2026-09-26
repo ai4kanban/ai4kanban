@@ -37,6 +37,8 @@ export interface Env {
   LARK_APP_ID?: string
   LARK_APP_SECRET?: string
   LARK_ENCRYPT_KEY?: string
+  /** OpenRouter, for hosted narration (#1054). Optional: without it `/v1/speech` refuses. */
+  OPENROUTER_API_KEY?: string
 }
 
 /** Whether this build can install into a workspace at all. */

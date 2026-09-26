@@ -33,7 +33,7 @@ Use the first available source for each file:
 
 - **Recorder**: obtain your bundled `record.mjs` with `akb raw agent-file hyperframes-editor record.mjs` and keep it in the project. Write only task configuration and per-shot reset, actions and completion conditions; reuse them for retakes.
 - **Capture**: follow the demo procedure; restore and verify the starting state before every take and preserve unrelated work. A result that differs from the script's expected result is a `[user]` question, never a silent change.
-- **Narration**: generate it from the exact scripted lines with the script's voice source. For a human voice, reuse the supplied recording or ask for it; never substitute TTS silently.
+- **Narration**: generate it from the exact scripted lines with the approved voice: the scriptwriter's `scripts/tts.mjs` for a hosted voice, local Kokoro for a Kokoro ID, `af_heart` / `zf_xiaobei` when the source names none. Never switch voice or service silently; regenerate only narration whose voice changed, and record the voice in `media.md`. For a human voice, reuse the supplied recording or ask for it.
 - **Checks**: repository assets are trusted. Check other assets for quality, match with the script and rights; remove secrets, personal data and private paths.
 
 ## Build

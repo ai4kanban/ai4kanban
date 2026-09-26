@@ -141,6 +141,12 @@ chat message carries depends on where the event lives.
 - `GET /card/<board>/<task>` — a Local board's card; the http half of `ai4kanban://card/…`.
 - `GET /card/w/<workspace>/<task>` — a workspace's card on `cloud.ai4kanban.dev`.
 
+## Narration
+
+- `POST /v1/speech` — `{ "voice": "Kore", "text": "…" }`: mp3 of the text in that voice, from
+  `google/gemini-3.8-flash-tts` through OpenRouter. Voices are `VOICES` in `src/speech.ts`; text
+  is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret.
+
 ## Training bookings and contact
 
 The only routes a caller with **no account** reaches. Each answer echoes the site's own origin
@@ -187,5 +193,6 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `training_slot_taken` | That hour is booked or no longer offered. The page keeps the form. |
 | `training_too_many_attempts` | Too many booking submits from one caller. Carries `retry-after`. |
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
+| `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
 | `storage_limit_reached` | The database turned read-only at its size limit. |

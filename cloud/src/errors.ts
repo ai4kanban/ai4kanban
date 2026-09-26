@@ -29,6 +29,8 @@ export type RefusalCode =
   | 'training_slot_taken'
   | 'training_too_many_attempts'
   | 'contact_too_many_attempts'
+  | 'speech_unavailable'
+  | 'speech_failed'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -298,6 +300,14 @@ export const contactTooManyAttempts = () =>
     `Too many messages from here. Try again later, or email us at ${SUPPORT_EMAIL}.`,
     CONTACT_RETRY_AFTER_SECONDS,
   )
+
+/** Hosted narration (#1054): this build carries no key for it, or the provider failed. The
+ *  voice script never falls back to another voice on either. */
+export const speechUnavailable = () =>
+  new Refusal('speech_unavailable', 503, 'Hosted voices are not available right now.')
+
+export const speechFailed = () =>
+  new Refusal('speech_failed', 502, 'The narration could not be generated. Try again shortly.')
 
 const CONTACT_RETRY_AFTER_SECONDS = 30 * 60
 

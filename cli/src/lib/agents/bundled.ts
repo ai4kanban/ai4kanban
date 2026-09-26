@@ -24,6 +24,8 @@ import storyboardContract from '../../agents/scriptwriter/references/storyboard-
 import storyboardExample from '../../agents/scriptwriter/references/storyboard.example.json'
 import storyboardSchema from '../../agents/scriptwriter/references/storyboard.schema.json'
 import storyboardValidator from '../../agents/scriptwriter/scripts/validate-storyboard.mjs' with { type: 'text' }
+import scriptwriterTts from '../../agents/scriptwriter/scripts/tts.mjs' with { type: 'text' }
+import scriptwriterVoices from '../../agents/scriptwriter/references/voices.md'
 import compositionIndex from '../../agents/scriptwriter/references/composition/index.md'
 import compositionProductLaunchFilms from '../../agents/scriptwriter/references/composition/product-launch-films.md'
 import compositionToolingShownWorking from '../../agents/scriptwriter/references/composition/tooling-shown-working.md'
@@ -53,6 +55,8 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/references/storyboard.example.json': storyboardExample as unknown as string,
   'scriptwriter/references/storyboard.schema.json': storyboardSchema as unknown as string,
   'scriptwriter/scripts/validate-storyboard.mjs': storyboardValidator,
+  'scriptwriter/scripts/tts.mjs': scriptwriterTts,
+  'scriptwriter/references/voices.md': scriptwriterVoices,
   'scriptwriter/references/composition/index.md': compositionIndex,
   'scriptwriter/references/composition/product-launch-films.md': compositionProductLaunchFilms,
   'scriptwriter/references/composition/tooling-shown-working.md': compositionToolingShownWorking,

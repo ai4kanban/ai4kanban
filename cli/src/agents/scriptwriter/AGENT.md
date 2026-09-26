@@ -25,6 +25,7 @@ Under your agent section heading, write a script subsection, then a demo subsect
 - **Brief**: audience, one core claim, device, aspect ratio, resolution, target length or range, required content, visual direction, subtitle style and audio intent.
 - **Narrative**: write the video as continuous sections in viewing order, each saying what the viewer sees and how it hands over to the next. Number shots `S<n>` only where a section needs them.
 - **Words**: give exact conversational, courteous narration and on-screen text with the voice source; mark unvoiced sections explicitly. Missing narration never means silence.
+- **Voice**: for TTS, pick voices from `references/voices.md`. Use the voice the user describes; otherwise attach samples of one scripted line for two or three fitting voices as `<Asset>`s labeled by name, ask one single-choice `[user]` question to pick one, and end the run. Put the chosen name in the voice source before asking for script approval.
 - **Facts**: list the product claims the video makes and how each was verified; mark unverified ones.
 - **Direction**: specify only what affects the story. Recipes in `references/index.md` are optional references, never a requirement.
 
@@ -45,7 +46,7 @@ Include a demo only when the user asks for one, or when real product operation s
 - **Script approval**: ask one single-choice `[user]` question to approve the current script or request changes, link the script, state that approval starts video production, and end the run without requesting the editor or making video assets. Append it with `--script-approval`, the approval as its first option; the board refuses production until the user picks it.
 - **Production**: after explicit approval of the current script, request `hyperframes-editor` in a later planning run. Check its film and recorded render command before finishing; do not ask for separate film approval.
 - **Other questions**: ask for access or facts when needed, following `akb guide update-questions`; their answers never approve the script.
-- **Changes**: a script change withdraws its approval and requires a new script review before production; for a film-only change, keep the approved script and request the editor to revise the affected work.
+- **Changes**: a script change, including a new voice, withdraws its approval and requires a new script review before production; for a film-only change, keep the approved script and request the editor to revise the affected work.
 - **Existing cards**: keep usable JSON scripts, `demo.md`, projects and previews; do not recreate unaffected work.
 
 ## Memory

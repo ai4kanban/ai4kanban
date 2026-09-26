@@ -44,6 +44,7 @@ import {
   listServers,
   renewClaim,
 } from './servers.ts'
+import { speak } from './speech.ts'
 import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
 import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
 import { routeWorkspace } from './workspaces.ts'
@@ -346,6 +347,13 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 
   // The site's contact form (#784). No account, like the bookings above.
   if (isContactPath(pathname)) return routeContact(request, env, ctx)
+
+  // Hosted narration for demo videos (#1054).
+  if (pathname === '/v1/speech') {
+    requireMethod(request, 'POST')
+    await requireOwner(request, env)
+    return speak(env, await bodyOf(request))
+  }
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,
   // so a deploy shows the write budget and the read-only refusal working before a client

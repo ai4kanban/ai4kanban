@@ -242,7 +242,8 @@ Only needed once, and again if the project is ever recreated.
    `cli/src/lib/cloud/config.ts`. Neither is secret. The `AI4KANBAN_*` variables in
    [Run it locally](#run-it-locally) override them.
 6. **Worker secrets**: `npx wrangler secret put` each of `SUPABASE_URL`,
-   `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, and the Slack and Lark sets below.
+   `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `OPENROUTER_API_KEY` (hosted narration;
+   optional), and the Slack and Lark sets below.
 7. **Exposed schemas**: in API settings, expose `api` alone. Dropping `public` and
    `graphql_public` closes PostgREST and GraphQL to everyone but the Worker.
 8. **Schema**: `npm run migrate`, then `npm run check:closed`.
