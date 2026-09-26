@@ -154,6 +154,8 @@ const zh: RailCopy = {
       unpriced: (n) => `其中 ${n} 次未报告费用`,
       noModel: "未记录模型",
       unknown: "来源未记录",
+      other: "其他",
+      more: (n) => `另 ${n} 项`,
       empty: "这段时间没有运行或对话。",
     },
   },

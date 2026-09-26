@@ -190,6 +190,8 @@ export type RailCopy = {
       unpriced: (n: number) => string;
       noModel: string;
       unknown: string;
+      other: string;
+      more: (n: number) => string;
       empty: string;
     };
   };

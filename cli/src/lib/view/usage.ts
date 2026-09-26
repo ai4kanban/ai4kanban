@@ -1,6 +1,7 @@
 // The usage ledger (../agent/usage.ts) summed for Insights: one row per connector and model
 // over the last `span` local days that reported a cost or tokens, costliest first.
 
+import { harnessByName } from '../agent/harnesses'
 import { harnessLabel } from '../agent/resolve'
 import { readRuns } from '../agent/store'
 import { loadLedger } from '../agent/usage'
@@ -30,6 +31,7 @@ export function readUsageView(span: number): UsageResult {
       row = {
         harness: e.harness,
         connector: e.harness ? harnessLabel(e.harness) : undefined,
+        icon: e.harness ? harnessByName(e.harness)?.icon : undefined,
         model: e.harness ? e.model : undefined,
         runs: 0,
         turns: 0,

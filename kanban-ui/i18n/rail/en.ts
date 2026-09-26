@@ -158,6 +158,8 @@ const en: RailCopy = {
       unpriced: (n) => `${n} without a reported cost`,
       noModel: "Model not recorded",
       unknown: "Source not recorded",
+      other: "Other",
+      more: (n) => `${n} more`,
       empty: "No runs or chats in this period.",
     },
   },

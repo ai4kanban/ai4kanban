@@ -6,7 +6,7 @@
 //
 // Plain SVG and CSS grids, no charting library.
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { FiChevronRight, FiTrendingUp } from "react-icons/fi";
 import { getMetricsAction, getUsageAction } from "@/app/actions";
 import type { RailCopy } from "@/i18n/rail/types";
@@ -15,6 +15,7 @@ import { usePhone } from "@/lib/media";
 import type { MetricsDay, MetricsResult, UsageResult, UsageRow as Row } from "@/lib/types";
 
 import { formatCost, formatTokens } from "./agent-shared";
+import { AgentMark } from "./Configuration";
 import { PHONE_ROW, TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -121,24 +122,24 @@ function InsightsBody() {
         )}
       </div>
 
-      {!metrics ? (
-        <p className="text-[13px] text-nb-ink-soft">{c.daily.reading}</p>
-      ) : !metrics.ok ? (
-        <Failure text={metrics.error} />
-      ) : metrics.view.empty ? (
-        <p className="text-[13px] text-nb-ink-soft">{c.daily.empty}</p>
-      ) : (
-        <>
-          {view === "trend" ? (
-            <Chart days={metrics.view.days} weekly={PERIODS[period] > 90} />
-          ) : PERIODS[period] > 31 ? (
-            <WeekGrid days={metrics.view.days} />
-          ) : (
-            <DayRow days={metrics.view.days} />
-          )}
-          <Totals totals={metrics.view.totals} />
-        </>
-      )}
+      <Frame>
+        {!metrics ? (
+          <Note text={c.daily.reading} />
+        ) : !metrics.ok ? (
+          <div className="min-h-0 overflow-y-auto">
+            <Failure text={metrics.error} />
+          </div>
+        ) : metrics.view.empty ? (
+          <Note text={c.daily.empty} />
+        ) : view === "trend" ? (
+          <Chart days={metrics.view.days} weekly={PERIODS[period] > 90} />
+        ) : PERIODS[period] > 31 ? (
+          <WeekGrid days={metrics.view.days} />
+        ) : (
+          <DayRow days={metrics.view.days} />
+        )}
+      </Frame>
+      <Totals totals={shown && !shown.empty ? shown.totals : null} />
 
       <Usage result={usage} days={PERIODS[period]} />
     </>
@@ -178,13 +179,48 @@ function Failure({ text }: { text: string }) {
   );
 }
 
-function Totals({ totals }: { totals: Record<SeriesKey, number> }) {
+// Every view, period and state draws in this one height, so nothing below it moves.
+const FRAME_H = 200;
+
+function Frame({ children }: { children: ReactNode }) {
+  const phone = usePhone();
+  return (
+    <figure
+      className={`m-0 flex flex-col rounded-[10px] bg-nb-wash/30 py-3 ${phone ? "px-3" : "px-5"}`}
+      style={{ height: FRAME_H }}
+    >
+      {children}
+    </figure>
+  );
+}
+
+function Note({ text }: { text: string }) {
+  return <p className="m-auto text-[13px] text-nb-ink-soft">{text}</p>;
+}
+
+/** The element's content width in px, kept current — the charts draw at real size. */
+function useWidth<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setWidth(el.clientWidth);
+    const watch = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
+// `null` without data: the same row with dashes, so the usage below doesn't jump.
+function Totals({ totals }: { totals: Record<SeriesKey, number> | null }) {
   const c = useCopy().rail.insights.daily;
   return (
     <dl className="m-0 mt-3 grid grid-cols-3 text-center">
       {SERIES.map((s, i) => (
         <div key={s.key} className={i ? "border-l border-nb-ink/10" : ""}>
-          <dd className="m-0 text-[22px] font-[800] tracking-[-0.02em] text-nb-ink">{totals[s.key]}</dd>
+          <dd className="m-0 text-[22px] font-[800] tracking-[-0.02em] text-nb-ink">{totals ? totals[s.key] : "–"}</dd>
           <dt className="mt-0.5 inline-flex items-center gap-1.5 text-[12px] text-nb-ink-soft">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} aria-hidden />
             {c[s.key]}
@@ -215,9 +251,9 @@ function moveBy(e: KeyboardEvent, at: number, count: number, step: number, row: 
 
 // ---- trend ------------------------------------------------------------------
 
-const W = 720;
-const H = 250;
-const PAD = { t: 16, r: 12, b: 28, l: 34 };
+// The frame less its padding and the legend row.
+const H = FRAME_H - 24 - 26;
+const PAD = { t: 8, r: 8, b: 22, l: 30 };
 
 // A y-axis that fits the data: the smallest of these steps that keeps the axis to four
 // intervals or fewer.
@@ -254,7 +290,7 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
   const c = useCopy().rail.insights;
   const pts = points(c, days, weekly);
   const [at, setAt] = useState<number | null>(null);
-  const svg = useRef<SVGSVGElement>(null);
+  const [plot, W] = useWidth<HTMLDivElement>();
   const max = Math.max(...pts.flatMap((d) => SERIES.map((s) => d[s.key])));
   const { top, ticks } = yAxis(max);
 
@@ -263,17 +299,17 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
   const line = (key: SeriesKey) => pts.map((d, i) => `${x(i)},${y(d[key])}`).join(" ");
 
   const pick = (clientX: number) => {
-    const box = svg.current?.getBoundingClientRect();
-    if (!box) return;
-    const vx = ((clientX - box.left) / box.width) * W;
+    const box = plot.current?.getBoundingClientRect();
+    if (!box || !W) return;
+    const vx = clientX - box.left;
     setAt(Math.min(pts.length - 1, Math.max(0, Math.round(((vx - PAD.l) / (W - PAD.l - PAD.r)) * (pts.length - 1)))));
   };
   const hovered = at === null ? null : pts[at];
-  const left = at === null ? 0 : (x(at) / W) * 100;
+  const left = at === null || !W ? 0 : (x(at) / W) * 100;
 
   return (
-    <figure className="m-0 rounded-[10px] bg-nb-wash/30 px-5 pt-4 pb-3">
-      <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-nb-ink">
+    <>
+      <div className="mb-2 flex h-[18px] items-center gap-x-5 overflow-hidden whitespace-nowrap text-[12px] text-nb-ink">
         {SERIES.map((s) => (
           <span key={s.key} className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} aria-hidden />
@@ -282,7 +318,9 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
         ))}
       </div>
       <div
+        ref={plot}
         className="relative rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
+        style={{ height: H }}
         tabIndex={0}
         role="group"
         aria-label={c.daily.chart(days.length)}
@@ -296,7 +334,8 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
           if (next !== null) setAt(next);
         }}
       >
-        <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="block w-full" aria-hidden>
+        {W > 0 && (
+        <svg width={W} height={H} className="block" aria-hidden>
           {ticks.map((t) => (
             <g key={t}>
               <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)} stroke="var(--color-nb-ink)" strokeOpacity={0.14} strokeWidth={1} />
@@ -309,7 +348,7 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
             <text
               key={i}
               x={x(i)}
-              y={H - PAD.b + 17}
+              y={H - 6}
               textAnchor={i === pts.length - 1 ? "end" : i === 0 ? "start" : "middle"}
               fill="var(--color-nb-ink-soft)"
               className="font-mono"
@@ -330,6 +369,7 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
             </>
           )}
         </svg>
+        )}
         {hovered && (
           <div
             role="status"
@@ -347,7 +387,7 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
           </div>
         )}
       </div>
-    </figure>
+    </>
   );
 }
 
@@ -419,60 +459,72 @@ function useCursor(count: number) {
   return { at, hold, frame };
 }
 
-// Up to a month: one row of days across the width, a phone wraps it in two.
+// Cells grow to CELL and no further; a period too wide for that shrinks them to fit.
+const CELL = 16;
+const GAP = 3;
+const cellFor = (width: number, cols: number) => Math.max(4, Math.min(CELL, Math.floor((width - (cols - 1) * GAP) / cols)));
+
+// Up to a month: one row of days, a phone wraps it in two.
 function DayRow({ days }: { days: MetricsDay[] }) {
   const c = useCopy().rail.insights;
   const phone = usePhone();
+  const [box, width] = useWidth<HTMLDivElement>();
   const perRow = phone ? Math.ceil(days.length / 2) : days.length;
   const max = Math.max(0, ...days.map((d) => d.completed));
   const { at, hold, frame } = useCursor(days.length);
-  const cols = { gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))` };
+  const size = cellFor(width, perRow);
+  const cols = { gridTemplateColumns: `repeat(${perRow}, ${size}px)`, gap: GAP };
   const rows = Array.from({ length: Math.ceil(days.length / perRow) }, (_, r) => r * perRow);
 
   return (
-    <figure className="m-0 rounded-[10px] bg-nb-wash/30 px-5 pt-9 pb-4">
-      <div
-        className="flex flex-col gap-2 rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
-        role="group"
-        aria-label={c.heat.chart}
-        {...frame(1, perRow)}
-      >
-        {rows.map((from) => (
-          <div key={from}>
-            <div className="grid gap-[3px]" style={cols}>
-              {days.slice(from, from + perRow).map((d, j) => (
-                <span key={d.date} {...hold(from + j)}>
-                  <Cell day={d} max={max} on={at === from + j} edge={j < 3 ? "start" : j >= perRow - 3 ? "end" : null} />
-                </span>
-              ))}
+    <>
+      <div ref={box} className="flex min-h-0 flex-1 items-center justify-center">
+        <div
+          className="flex flex-col gap-2 rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
+          role="group"
+          aria-label={c.heat.chart}
+          {...frame(1, perRow)}
+        >
+          {rows.map((from) => (
+            <div key={from}>
+              <div className="grid" style={cols}>
+                {days.slice(from, from + perRow).map((d, j) => (
+                  <span key={d.date} {...hold(from + j)}>
+                    <Cell day={d} max={max} on={at === from + j} edge={j < 3 ? "start" : j >= perRow - 3 ? "end" : null} />
+                  </span>
+                ))}
+              </div>
+              <div className="mt-1 grid" style={cols} aria-hidden>
+                {days.slice(from, from + perRow).map((d) => (
+                  <span key={d.date} className="overflow-visible whitespace-nowrap font-mono text-[10.5px] text-nb-ink-soft">
+                    {toDate(d.date).getDay() === 1 ? d.date.slice(5) : ""}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="mt-1 grid gap-[3px]" style={cols} aria-hidden>
-              {days.slice(from, from + perRow).map((d) => (
-                <span key={d.date} className="overflow-visible whitespace-nowrap font-mono text-[10.5px] text-nb-ink-soft">
-                  {toDate(d.date).getDay() === 1 ? d.date.slice(5) : ""}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       <Legend />
-    </figure>
+    </>
   );
 }
 
-// Longer: Monday-first week columns across the width; a phone scrolls them, opening on the
-// latest week.
+// Longer: Monday-first week columns; a phone scrolls them, opening on the latest week.
 function WeekGrid({ days }: { days: MetricsDay[] }) {
   const c = useCopy().rail.insights;
   const phone = usePhone();
+  const [box, width] = useWidth<HTMLDivElement>();
   const scroller = useRef<HTMLDivElement>(null);
   const max = Math.max(0, ...days.map((d) => d.completed));
   const { at, hold, frame } = useCursor(days.length);
   const lead = (toDate(days[0].date).getDay() + 6) % 7;
   const slots: (number | null)[] = [...Array<null>(lead).fill(null), ...days.map((_, i) => i)];
   const weeks = Array.from({ length: Math.ceil(slots.length / 7) }, (_, w) => slots.slice(w * 7, w * 7 + 7));
-  const cols = { gridTemplateColumns: `repeat(${weeks.length}, ${phone ? "12px" : "minmax(0, 1fr)"})` };
+  // 30px: the weekday column and its gap.
+  const size = phone ? 12 : cellFor(width - 30, weeks.length);
+  const cols = { gridTemplateColumns: `repeat(${weeks.length}, ${size}px)`, gap: GAP };
+  const rows = { gridTemplateRows: `repeat(7, ${size}px)`, gap: GAP };
 
   useEffect(() => {
     const el = scroller.current;
@@ -480,53 +532,55 @@ function WeekGrid({ days }: { days: MetricsDay[] }) {
   }, [phone, days]);
 
   return (
-    <figure className="m-0 rounded-[10px] bg-nb-wash/30 px-5 pt-4 pb-4">
-      <div className="flex gap-2">
-        <div className="grid w-[22px] shrink-0 grid-rows-7 gap-[2px] pt-[42px]" aria-hidden>
-          {c.heat.weekdays.map((d, i) => (
-            <span key={i} className="flex items-center text-[10px] leading-none text-nb-ink-soft">
-              {d}
-            </span>
-          ))}
-        </div>
-        <div ref={scroller} className={`min-w-0 flex-1 pt-6 ${phone ? "overflow-x-auto pb-2" : ""}`}>
-          <div
-            className={`rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40 ${phone ? "w-max" : ""}`}
-            role="group"
-            aria-label={c.heat.chart}
-            {...frame(7, 1)}
-          >
-            <div className="mb-1 grid h-[14px] gap-[2px]" style={cols} aria-hidden>
-              {weeks.map((w, i) => {
-                const first = w.find((s) => s !== null);
-                const d = first == null ? null : toDate(days[first].date);
-                return (
-                  <span key={i} className="overflow-visible whitespace-nowrap text-[10px] text-nb-ink-soft">
-                    {d && d.getDate() <= 7 ? c.heat.month(d.getMonth() + 1) : ""}
-                  </span>
-                );
-              })}
-            </div>
-            <div className="grid gap-[2px]" style={cols}>
-              {weeks.map((w, i) => (
-                <div key={i} className="grid grid-rows-7 gap-[2px]">
-                  {w.map((s, j) =>
-                    s === null ? (
-                      <span key={j} />
-                    ) : (
-                      <span key={j} {...hold(s)}>
-                        <Cell day={days[s]} max={max} on={at === s} edge={i < 3 ? "start" : i >= weeks.length - 3 ? "end" : null} />
-                      </span>
-                    ),
-                  )}
-                </div>
-              ))}
+    <>
+      <div ref={box} className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="flex min-w-0 gap-2">
+          <div className="grid w-[22px] shrink-0 pt-[18px]" style={rows} aria-hidden>
+            {c.heat.weekdays.map((d, i) => (
+              <span key={i} className="flex items-center text-[10px] leading-none text-nb-ink-soft">
+                {d}
+              </span>
+            ))}
+          </div>
+          <div ref={scroller} className={`min-w-0 ${phone ? "overflow-x-auto pb-2" : ""}`}>
+            <div
+              className="w-max rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
+              role="group"
+              aria-label={c.heat.chart}
+              {...frame(7, 1)}
+            >
+              <div className="mb-1 grid h-[14px]" style={cols} aria-hidden>
+                {weeks.map((w, i) => {
+                  const first = w.find((s) => s !== null);
+                  const d = first == null ? null : toDate(days[first].date);
+                  return (
+                    <span key={i} className="overflow-visible whitespace-nowrap text-[10px] text-nb-ink-soft">
+                      {d && d.getDate() <= 7 ? c.heat.month(d.getMonth() + 1) : ""}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="grid" style={cols}>
+                {weeks.map((w, i) => (
+                  <div key={i} className="grid" style={rows}>
+                    {w.map((s, j) =>
+                      s === null ? (
+                        <span key={j} />
+                      ) : (
+                        <span key={j} {...hold(s)}>
+                          <Cell day={days[s]} max={max} on={at === s} edge={i < 3 ? "start" : i >= weeks.length - 3 ? "end" : null} />
+                        </span>
+                      ),
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
       <Legend />
-    </figure>
+    </>
   );
 }
 
@@ -541,22 +595,39 @@ function shortTokens(n: number): string {
 
 const tokenSum = (r: Row) => r.tokens.input + r.tokens.cacheCreation + r.tokens.cacheRead + r.tokens.output;
 
+// At most this many lines; past it the costliest keep theirs and the rest share the last.
+const LINES = 5;
+
 function Usage({ result, days }: { result: UsageResult | null; days: number }) {
   const c = useCopy().rail.insights;
   const u = c.usage;
+  const log = useCopy().runs.log;
   const phone = usePhone();
   const view = result?.ok ? result.view : null;
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - (days - 1));
   const since = view && !view.empty && view.since > start.getTime() ? new Date(view.since) : null;
-  const top = Math.max(0, ...(view?.rows.map((r) => r.costUsd) ?? []));
 
   let body: ReactNode;
   if (!result) body = <p className="m-0 border-t border-nb-ink/12 pt-3 text-[13px] text-nb-ink-soft">{c.daily.reading}</p>;
   else if (!result.ok) body = <Failure text={result.error} />;
   else if (!result.view.rows.length) body = <p className="m-0 border-t border-nb-ink/12 pt-3 text-[13px] text-nb-ink-soft">{u.empty}</p>;
   else {
+    const rows = result.view.rows;
+    const shown = rows.length > LINES ? rows.slice(0, LINES - 1) : rows;
+    const rest = rows.slice(shown.length);
+    const merged = rest.length
+      ? rest.reduce(
+          (sum, r) => {
+            for (const k of ["input", "cacheCreation", "cacheRead", "output"] as const) sum.tokens[k] += r.tokens[k];
+            sum.cost += r.costUsd;
+            sum.priced ||= r.unpriced < r.runs + r.turns;
+            return sum;
+          },
+          { tokens: { input: 0, cacheCreation: 0, cacheRead: 0, output: 0 }, cost: 0, priced: false },
+        )
+      : null;
     body = (
       <div className="border-t border-nb-ink/12">
         {!phone && (
@@ -568,9 +639,37 @@ function Usage({ result, days }: { result: UsageResult | null; days: number }) {
             </span>
           </div>
         )}
-        {result.view.rows.map((r) => (
-          <UsageRow key={`${r.harness ?? ""}\u0000${r.model ?? ""}`} r={r} share={top ? r.costUsd / top : 0} phone={phone} />
-        ))}
+        {shown.map((r) => {
+          const model = r.connector ? (r.model ?? u.noModel) : null;
+          const counts = [r.runs > 0 && u.runs(r.runs), r.turns > 0 && u.turns(r.turns), r.unpriced > 0 && u.unpriced(r.unpriced)]
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <UsageLine
+              key={`${r.harness ?? ""}\u0000${r.model ?? ""}`}
+              icon={r.icon}
+              name={r.connector ?? u.unknown}
+              detail={model}
+              detailClass={r.model ? "font-mono" : "italic"}
+              tip={counts}
+              tokens={tokenSum(r)}
+              breakdown={formatTokens(r.tokens, log)}
+              cost={r.unpriced < r.runs + r.turns ? formatCost(r.costUsd, log) : "—"}
+              phone={phone}
+            />
+          );
+        })}
+        {merged && (
+          <UsageLine
+            name={u.other}
+            detail={u.more(rest.length)}
+            tip={[...new Set(rest.map((r) => r.connector ?? u.unknown))].join(" · ")}
+            tokens={merged.tokens.input + merged.tokens.cacheCreation + merged.tokens.cacheRead + merged.tokens.output}
+            breakdown={formatTokens(merged.tokens, log)}
+            cost={merged.priced ? formatCost(merged.cost, log) : "—"}
+            phone={phone}
+          />
+        )}
       </div>
     );
   }
@@ -595,55 +694,43 @@ function Usage({ result, days }: { result: UsageResult | null; days: number }) {
   );
 }
 
-function UsageRow({ r, share, phone }: { r: Row; share: number; phone: boolean }) {
-  const u = useCopy().rail.insights.usage;
-  const log = useCopy().runs.log;
-  const model = r.connector ? (r.model ?? u.noModel) : null;
-  const cost = r.unpriced < r.runs + r.turns ? formatCost(r.costUsd, log) : "—";
-  const tokens = shortTokens(tokenSum(r));
-  const counts = [r.runs > 0 && u.runs(r.runs), r.turns > 0 && u.turns(r.turns), r.unpriced > 0 && u.unpriced(r.unpriced)]
-    .filter(Boolean)
-    .join(" · ");
-
-  const who = (
-    <div className="min-w-0 flex-1">
-      <div className="flex min-w-0 items-baseline gap-2">
-        <span className="shrink-0 text-[13px] font-[700] text-nb-ink">{r.connector ?? u.unknown}</span>
-        {model && (
-          <span className={`truncate text-[12px] text-nb-ink-soft ${r.model ? "font-mono" : "italic"}`} title={model}>
-            {model}
-          </span>
-        )}
-      </div>
-      <div className="mt-0.5 text-[11.5px] text-nb-ink-soft">{counts}</div>
-      <div className="mt-1.5 h-[4px] w-full max-w-[360px] rounded-full bg-nb-ink/6">
-        <div className="h-full rounded-full bg-nb-accent" style={{ width: `${share * 100}%` }} />
-      </div>
-    </div>
-  );
-  const breakdown = formatTokens(r.tokens, log);
-
-  if (phone) {
-    return (
-      <div className="flex items-start gap-3 border-b border-nb-ink/8 py-3 last:border-b-0">
-        {who}
-        <div className="shrink-0 text-right">
-          <div className="text-[13px] font-[700] text-nb-ink">{cost}</div>
-          <div className="mt-0.5 font-mono text-[11.5px] text-nb-ink-soft" title={breakdown}>
-            {tokens} {u.colTokens.toLowerCase()}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+// One source on one line; the counts behind it are the name's tip.
+function UsageLine({
+  icon,
+  name,
+  detail,
+  detailClass = "",
+  tip,
+  tokens,
+  breakdown,
+  cost,
+  phone,
+}: {
+  icon?: string;
+  name: string;
+  detail: string | null;
+  detailClass?: string;
+  tip: string;
+  tokens: number;
+  breakdown: string;
+  cost: string;
+  phone: boolean;
+}) {
   return (
-    <div className="flex items-start gap-4 border-b border-nb-ink/8 py-2.5 last:border-b-0">
-      {who}
-      <span className="w-[72px] cursor-help pt-px text-right font-mono text-[12.5px] text-nb-ink" title={breakdown}>
-        {tokens}
+    <div className={`flex items-center border-b border-nb-ink/8 py-2 last:border-b-0 ${phone ? "gap-3" : "gap-4"}`}>
+      <div className="flex min-w-0 flex-1 items-center gap-2" title={tip || undefined}>
+        {/* An empty slot on a line with no mark, so every name starts at one edge. */}
+        <span className="flex size-[14px] shrink-0 items-center justify-center">{icon && <AgentMark src={icon} size={14} />}</span>
+        <span className="shrink-0 text-[13px] font-[700] text-nb-ink">{name}</span>
+        {detail && <span className={`truncate text-[12px] text-nb-ink-soft ${detailClass}`}>{detail}</span>}
+      </div>
+      <span
+        className={`shrink-0 cursor-help whitespace-nowrap text-right font-mono text-[12.5px] ${phone ? "w-[44px] text-nb-ink-soft" : "w-[72px] text-nb-ink"}`}
+        title={breakdown}
+      >
+        {shortTokens(tokens)}
       </span>
-      <span className="w-[96px] pt-px text-right text-[13px] font-[700] text-nb-ink">{cost}</span>
+      <span className={`shrink-0 whitespace-nowrap text-right text-[13px] font-[700] text-nb-ink ${phone ? "min-w-[64px]" : "w-[96px]"}`}>{cost}</span>
     </div>
   );
 }

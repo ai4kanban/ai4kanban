@@ -741,6 +741,8 @@ export interface UsageRow {
   harness?: string
   /** The connector's display name. */
   connector?: string
+  /** The connector's mark, e.g. "/agents/claude.svg". */
+  icon?: string
   model?: string
   runs: number
   turns: number
