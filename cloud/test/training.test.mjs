@@ -4,7 +4,7 @@
 // checked against a real Postgres in test/sql/checks.sql.
 
 import assert from 'node:assert/strict'
-import { afterEach, beforeEach, describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { availability, isScheduled, scheduledHours } from '../src/training-schedule.ts'
 import { corsHeaders, routeTraining, sha256Hex } from '../src/training.ts'
@@ -200,10 +200,18 @@ describe('daylight saving is the visitor’s problem, not the schedule’s', () 
   })
 })
 
+// Fix the clock the Sunday before the sample week, so its hours are still ahead.
+const beforeTheSampleWeek = () => {
+  beforeEach(() => mock.timers.enable({ apis: ['Date'], now: new Date('2026-09-13T00:00:00Z') }))
+  afterEach(() => mock.timers.reset())
+}
+
 const localHour = (at, zone) =>
   new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', hour12: false }).format(at)
 
 describe('the availability route', () => {
+  beforeTheSampleWeek()
+
   it('answers a stranger with instants and a session length, and nothing else', async () => {
     answers.training_booked_slots = [WEDNESDAY_22]
 
@@ -242,6 +250,8 @@ describe('the availability route', () => {
 })
 
 describe('booking an hour', () => {
+  beforeTheSampleWeek()
+
   const submit = (overrides = {}) => ({
     opId: 'op-1',
     slotAt: FRIDAY_22,
