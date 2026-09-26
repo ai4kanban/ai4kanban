@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Generate narration in a hosted voice from references/voices.md.
 //
-//   node scripts/tts.mjs --voice <name> --out <file.mp3> "<text>"
+//   node scripts/tts.mjs --voice <name> --out <file.wav> "<text>"
 //
 // Runtime: Node 18 or later, nothing else. Save it from a built-in agent with
 // `akb raw agent-file scriptwriter scripts/tts.mjs > tts.mjs`. It acts as the AI4Kanban Cloud
@@ -54,7 +54,7 @@ function fail(key) {
 }
 
 function usage(problem) {
-  console.error(`${problem}\nusage: node scripts/tts.mjs --voice <name> --out <file.mp3> "<text>"`)
+  console.error(`${problem}\nusage: node scripts/tts.mjs --voice <name> --out <file.wav> "<text>"`)
   process.exit(2)
 }
 

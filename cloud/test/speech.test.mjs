@@ -6,12 +6,12 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
-import { SPEECH_MODEL } from '../src/speech.ts'
+import { SPEECH_MODEL, wav } from '../src/speech.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
 const ENV = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: 'service-role', OPENROUTER_API_KEY: 'or-key' }
 const SUBJECT = '11111111-1111-4111-8111-111111111111'
-const MP3 = new Uint8Array([0xff, 0xfb, 0x90, 0x00])
+const PCM = new Uint8Array([0x01, 0x00, 0xff, 0x7f])
 
 const realFetch = globalThis.fetch
 let keyPair
@@ -24,7 +24,7 @@ beforeEach(async () => {
   keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const jwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey)
   admitted = true
-  provider = () => new Response(MP3, { headers: { 'content-type': 'audio/mpeg' } })
+  provider = () => new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1' } })
   sent = []
   globalThis.fetch = async (url, init) => {
     const address = String(url)
@@ -45,13 +45,16 @@ afterEach(() => {
 })
 
 describe('POST /v1/speech', () => {
-  it('answers mp3 in the named voice, with the key held by the Worker', async () => {
+  it('answers wav in the named voice, with the key held by the Worker', async () => {
     const res = await call({ voice: 'kore', text: '안녕하세요' })
 
     assert.equal(res.status, 200)
-    assert.equal(res.headers.get('content-type'), 'audio/mpeg')
-    assert.deepEqual(new Uint8Array(await res.arrayBuffer()), MP3)
-    assert.deepEqual(sent[0].body, { model: SPEECH_MODEL, input: '안녕하세요', voice: 'Kore', response_format: 'mp3' })
+    assert.equal(res.headers.get('content-type'), 'audio/wav')
+    const body = new Uint8Array(await res.arrayBuffer())
+    assert.deepEqual(body, wav(PCM))
+    assert.equal(new TextDecoder().decode(body.slice(0, 4)), 'RIFF')
+    assert.deepEqual(body.slice(44), PCM)
+    assert.deepEqual(sent[0].body, { model: SPEECH_MODEL, input: '안녕하세요', voice: 'Kore', response_format: 'pcm' })
     assert.equal(sent[0].headers.authorization, 'Bearer or-key')
   })
 

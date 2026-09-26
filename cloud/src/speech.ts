@@ -1,6 +1,6 @@
 /**
  * Hosted narration for demo videos (#1054). The OpenRouter key stays here; a machine sends
- * a voice and a line and gets mp3 back.
+ * a voice and a line and gets wav back — the model only speaks raw 24 kHz mono PCM.
  */
 
 import type { Env } from './env.ts'
@@ -8,6 +8,7 @@ import { badRequest, speechFailed, speechUnavailable } from './errors.ts'
 
 export const SPEECH_MODEL = 'google/gemini-3.8-flash-tts'
 export const MAX_SPEECH_CHARS = 4000
+const PCM_RATE = 24000
 
 /** The model's voices. Each speaks every language it does. Kept in step with
  *  `cli/src/agents/scriptwriter/references/voices.md`. */
@@ -41,7 +42,7 @@ export async function speak(env: Env, body: unknown): Promise<Response> {
         model: SPEECH_MODEL,
         input: text,
         voice: named,
-        response_format: 'mp3',
+        response_format: 'pcm',
       }),
     })
   } catch (e) {
@@ -52,7 +53,29 @@ export async function speak(env: Env, body: unknown): Promise<Response> {
     console.error('cloud: speech refused', answer.status, await answer.text().catch(() => ''))
     throw speechFailed()
   }
-  return new Response(answer.body, {
-    headers: { 'content-type': 'audio/mpeg', 'x-voice': named },
+  const pcm = new Uint8Array(await answer.arrayBuffer())
+  return new Response(wav(pcm), {
+    headers: { 'content-type': 'audio/wav', 'x-voice': named },
   })
+}
+
+/** 16-bit mono PCM behind a RIFF header. */
+export function wav(pcm: Uint8Array): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(44 + pcm.length)
+  const view = new DataView(out.buffer)
+  const ascii = (at: number, text: string) => [...text].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)))
+  ascii(0, 'RIFF')
+  view.setUint32(4, 36 + pcm.length, true)
+  ascii(8, 'WAVEfmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, PCM_RATE, true)
+  view.setUint32(28, PCM_RATE * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  ascii(36, 'data')
+  view.setUint32(40, pcm.length, true)
+  out.set(pcm, 44)
+  return out
 }
