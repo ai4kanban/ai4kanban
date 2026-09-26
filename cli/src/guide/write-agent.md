@@ -129,6 +129,6 @@ how to keep memory, and how to defer to the user.
 - **`akb spec <name> <id> --print`** on a real card prints the whole prompt the agent will get:
   the contract, its instructions, the reference for each chosen setting, its files and its
   memory. Read it, and cut whatever the run does not need.
-- **Assign it**: being on disk is not being on a workflow — `akb spec` refuses the card until
-  a stage has the agent. Assign it in the board UI under Configuration → Workflows. A `plan`
-  agent joins Coding's planning by itself, until that board picks its helpers by hand.
+- **Workflow**: a new agent belongs to the workflow it was created in and starts switched on;
+  `akb spec` refuses it while it is off. Switch it in Configuration → Workflows or with
+  `akb workflow stage`.

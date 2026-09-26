@@ -32,6 +32,7 @@ import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
+import { copyAgent } from '../agents/roster'
 import {
   refusal,
   WORKFLOW_STAGES,
@@ -207,6 +208,7 @@ export const builtinDescription = (id: string): string | undefined => BUILTINS.f
 interface StoredHelper {
   agent: string
   extra?: string
+  off?: boolean
 }
 
 const workflowsBlock = (cfg: Record<string, unknown>): Record<string, unknown> => configBlock(cfg.workflows)
@@ -254,7 +256,7 @@ function readStage(raw: unknown): { lead?: string; helpers?: WorkflowHelper[] } 
       const row = configBlock(entry) as StoredHelper & Record<string, unknown>
       const agent = typeof row.agent === 'string' ? canonicalSpecAgent(row.agent) : ''
       if (!agent || helpers.some((h) => h.agent === agent)) continue
-      helpers.push({ agent, extra: typeof row.extra === 'string' ? row.extra : '' })
+      helpers.push({ agent, extra: typeof row.extra === 'string' ? row.extra : '', ...(row.off === true ? { off: true } : {}) })
     }
     out.helpers = helpers
   }
@@ -561,20 +563,112 @@ function dropRetiredAgents(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
-/** Every workflow this board has, built-ins first and then its own in the order they were
- *  made. */
-export function workflows(): Workflow[] {
+// ---- one workflow per agent (#1095) -------------------------------------------
+//
+// An agent belongs to the one workflow that lists it — as a helper, or as a lead that is not a
+// role. Nothing is shared: a board that shared one gets, once, a copy for every workflow but
+// the first to list it, and Coding's inherited plan helpers are written down so the copy
+// changes nobody's team. `agentsOwned` marks that pass as done.
+
+const OWNED = 'agentsOwned'
+
+const toRow = (h: WorkflowHelper) => ({ agent: h.agent, extra: h.extra, ...(h.off ? { off: true } : {}) })
+
+function splitSharedAgents(cfg: Record<string, unknown>): boolean {
+  const block = workflowsBlock(cfg)
+  if (block[OWNED] === true || !Object.keys(block).length) return false
+  const catalog = specAgentCatalog().agents
+  const specialist = new Set(catalog.map((a) => a.name))
+  const stageOf = new Map<string, WorkflowStage>()
+  for (const agent of catalog) if (agent.stage && !agent.canLead) stageOf.set(agent.name, agent.stage)
+  const seen = new Set<string>()
+  const taken = new Set<string>()
+  const claim = (name: string): string => {
+    if (!specialist.has(name) || !seen.has(name)) {
+      seen.add(name)
+      return name
+    }
+    const copy = copyAgent(name, taken)
+    return copy.ok && copy.agent ? copy.agent : name
+  }
+  const written: Record<string, Record<string, unknown>> = {}
+  for (const id of [...BUILTINS.map((w) => w.id), ...addedRows(cfg).map((r) => r.id)]) {
+    for (const stage of WORKFLOW_STAGES) {
+      const saved = readStage(storedStages(cfg, id)[stage]).helpers !== undefined
+      const before = offeredBefore(cfg, id, stage, stageOf)
+      const lead = before.lead ? claim(before.lead) : ''
+      const helpers = before.helpers.map((h) => ({ ...h, agent: claim(h.agent) }))
+      const moved = lead !== before.lead || helpers.some((h, i) => h.agent !== before.helpers[i]!.agent)
+      if (!moved && (saved || BUILTINS.find((w) => w.id === id)?.stages[stage].helpers !== 'every')) continue
+      written[id] = {
+        ...written[id],
+        [stage]: { ...(isBuiltinWorkflow(id) || stage === REVIEW ? {} : { lead }), helpers: helpers.map(toRow) },
+      }
+    }
+  }
+  const { ok } = writeConfig((raw) => {
+    const box = configBlock(raw.workflows)
+    const stages = configBlock(box.stages)
+    for (const [id, mine] of Object.entries(written)) stages[id] = { ...configBlock(stages[id]), ...mine }
+    if (Object.keys(stages).length) box.stages = stages
+    box[OWNED] = true
+    raw.workflows = box
+  })
+  return ok
+}
+
+// The workflows as written down, every pass above done first.
+function writtenWorkflows(): Workflow[] {
   let cfg = safeConfig()
   if (renameSavedAgents(cfg)) cfg = safeConfig()
   if (dropRetiredAgents(cfg)) cfg = safeConfig()
   if (dropBuiltinLeads(cfg)) cfg = safeConfig()
   if (foldReviewLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
+  if (splitSharedAgents(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
     ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers)),
   ]
 }
+
+// The specialists one workflow lists. Roles are never anybody's.
+const listedBy = (flow: Workflow, specialist: Set<string>): string[] =>
+  WORKFLOW_STAGES.flatMap((stage) => [flow.stages[stage].lead, ...flow.stages[stage].helpers.map((h) => h.agent)]).filter(
+    (name) => specialist.has(name),
+  )
+
+// Every workflow, and which one each listed agent belongs to. A helper no workflow lists sits
+// in Coding, disabled and nobody's — or enabled and Coding's, on a board whose Coding still
+// offers every plan helper it has.
+function resolved(): { flows: Workflow[]; owners: Map<string, string> } {
+  const flows = writtenWorkflows()
+  const catalog = specAgentCatalog().agents
+  const specialist = new Set(catalog.map((a) => a.name))
+  const owners = new Map<string, string>()
+  for (const flow of flows) for (const name of listedBy(flow, specialist)) if (!owners.has(name)) owners.set(name, flow.id)
+  const coding = flows.find((w) => w.id === DEFAULT_WORKFLOW)
+  if (!coding) return { flows, owners }
+  const base = BUILTINS.find((w) => w.id === DEFAULT_WORKFLOW)!
+  for (const stage of WORKFLOW_STAGES) {
+    const setup = coding.stages[stage]
+    const every = !setup.helpersChosen && base.stages[stage].helpers === 'every'
+    const free = catalog
+      .filter((a) => a.stage === stage && !a.canLead && a.name !== setup.lead && !owners.has(a.name))
+      .map((a) => a.name)
+    if (every) for (const name of free) owners.set(name, coding.id)
+    setup.helpers = [...setup.helpers, ...free.map((agent) => ({ agent, extra: '', ...(every ? {} : { off: true }) }))]
+  }
+  return { flows, owners }
+}
+
+/** The workflow an agent belongs to, or empty when none has it — a lead nobody picked, or a
+ *  helper written by hand, which any workflow can take. */
+export const agentWorkflow = (name: string): string => resolved().owners.get(name) ?? ''
+
+/** Every workflow this board has, built-ins first and then its own in the order they were
+ *  made. */
+export const workflows = (): Workflow[] => resolved().flows
 
 /** One workflow by id, or undefined when this board has no such workflow. */
 export const workflowById = (id: string): Workflow | undefined => workflows().find((w) => w.id === id)
@@ -656,43 +750,26 @@ export function workflowIssues(id: string): RunRefusal[] {
   return problems
 }
 
-/** The helpers one stage of one workflow actually offers.
- *
- *  A stage the board has chosen for offers exactly what it was given, minus anything this
- *  board no longer has. One it has NOT chosen for offers the workflow's own default, which
- *  on the coding plan stage is every agent on the board that declares the plan stage — so a
- *  specialist a project adds is offered without anyone having to assign it, exactly as it was
- *  before workflows existed.
- *
- *  Never read from anything that BUILDS the roster: this asks the roster for itself. */
-export function stageHelpers(flow: Workflow, stage: WorkflowStage): WorkflowHelper[] {
-  const roster = agentRoster()
+/** Every helper one stage has, disabled ones included, minus any agent this board no longer
+ *  has. Never read from anything that BUILDS the roster: this asks the roster for itself. */
+export function stageMembers(flow: Workflow, stage: WorkflowStage): WorkflowHelper[] {
   const setup = flow.stages[stage]
-  const inherits = !setup.helpersChosen && BUILTINS.find((w) => w.id === flow.id)?.stages[stage].helpers === 'every'
-  if (inherits) {
-    const others = namedByBuiltins(flow.id)
-    return roster
-      .filter(
-        (entry) =>
-          entry.stage === stage &&
-          !entry.canLead &&
-          entry.name !== setup.lead &&
-          !others.has(entry.name),
-      )
-      .map((entry) => ({ agent: entry.name, extra: '' }))
-  }
-  const names = new Set(roster.filter((entry) => entry.kind !== 'lead').map((entry) => entry.name))
+  const names = new Set(agentRoster().filter((entry) => entry.kind !== 'lead').map((entry) => entry.name))
   // Never the lead as well: a board that had assigned a built-in's lead elsewhere gets its
   // own agent back (#774), and it may be sitting in the helpers it was moved aside for.
   return setup.helpers.filter((h) => names.has(h.agent) && h.agent !== setup.lead)
 }
 
-/** One stage's setup as a run and a freeze read it: its lead exactly as assigned, and the
- *  helpers it actually offers. The lead is never filtered — a lead nobody answers to is an
- *  error somebody has to see, not a stage that quietly runs as somebody else. */
+/** The helpers one stage actually runs — its enabled ones. */
+export const stageHelpers = (flow: Workflow, stage: WorkflowStage): WorkflowHelper[] =>
+  stageMembers(flow, stage).filter((h) => !h.off)
+
+/** One stage's setup as the board reads it: its lead exactly as assigned, and every helper it
+ *  has. The lead is never filtered — a lead nobody answers to is an error somebody has to
+ *  see, not a stage that quietly runs as somebody else. */
 export const liveStage = (flow: Workflow, stage: WorkflowStage): WorkflowStageSetup => ({
   lead: flow.stages[stage].lead,
-  helpers: stageHelpers(flow, stage),
+  helpers: stageMembers(flow, stage),
   helpersChosen: flow.stages[stage].helpersChosen,
 })
 
@@ -703,13 +780,31 @@ export const workflowReviewers = (flow: Workflow): WorkflowHelper[] => stageHelp
 
 type Write = { ok: boolean } & Partial<RunRefusal>
 
-const save = (change: (block: Record<string, unknown>) => void): Write =>
-  writeConfig((cfg) => {
+// Every write also writes down whatever Coding still inherits, so an agent made from here on
+// starts in no workflow rather than joining Coding by itself (#1095).
+const save = (change: (block: Record<string, unknown>) => void): Write => {
+  const coding = workflows().find((w) => w.id === DEFAULT_WORKFLOW)
+  const base = BUILTINS.find((w) => w.id === DEFAULT_WORKFLOW)!
+  const inherited = WORKFLOW_STAGES.filter(
+    (stage) => coding && !coding.stages[stage].helpersChosen && base.stages[stage].helpers === 'every',
+  ).map(
+    (stage) => [stage, coding!.stages[stage].helpers.filter((h) => !h.off).map(toRow)] as const,
+  )
+  return writeConfig((cfg) => {
     const block = configBlock(cfg.workflows)
+    const stages = configBlock(block.stages)
+    const mine = configBlock(stages[DEFAULT_WORKFLOW])
+    for (const [stage, helpers] of inherited) if (!mine[stage]) mine[stage] = { helpers }
+    if (Object.keys(mine).length) block.stages = { ...stages, [DEFAULT_WORKFLOW]: mine }
     change(block)
+    block[OWNED] = true
     if (Object.keys(block).length === 0) delete cfg.workflows
     else cfg.workflows = block
   })
+}
+
+/** Write down what Coding still inherits — before an agent is made, so it starts in none. */
+export const settleWorkflows = (): Write => save(() => {})
 
 const trimmedName = (name: string): string => name.replace(/\s+/g, ' ').trim()
 
@@ -757,8 +852,9 @@ export function createWorkflow(name: string): Write & { id?: string; name?: stri
   return res.ok ? { ok: true, id, name: wanted } : res
 }
 
-/** Copy one workflow, assignments and extra requirements and all, under a free name. The
- *  copy is the board's own whatever it was copied from, so it can be renamed and deleted. */
+/** Copy one workflow under a free name. Every agent in it but a role is copied too (#1095),
+ *  enabled or not and with its extra requirements, so the two never share one. The copy is
+ *  the board's own whatever it was copied from, so it can be renamed and deleted. */
 export function duplicateWorkflow(id: string, called?: string): Write & { id?: string; name?: string } {
   const flow = workflowById(id)
   if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
@@ -768,22 +864,31 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
   const base = trimmedName(called ?? '') || flow.name
   const name = freeName(base, [...workflows().map((w) => w.name), base])
   const copy = freeId(workflows().map((w) => w.id))
+  const specialist = new Set(specAgentCatalog().agents.map((a) => a.name))
+  const taken = new Set<string>()
+  const copied = new Map<string, string>()
+  const own = (agent: string): string => {
+    if (!agent || !specialist.has(agent)) return agent
+    if (!copied.has(agent)) {
+      const made = copyAgent(agent, taken)
+      copied.set(agent, made.ok && made.agent ? made.agent : agent)
+    }
+    return copied.get(agent)!
+  }
+  const stages = Object.fromEntries(
+    WORKFLOW_STAGES.map((stage) => {
+      const setup = liveStage(flow, stage)
+      const helpers = setup.helpers.map((h) => toRow({ ...h, agent: own(h.agent) }))
+      return [stage, stage === REVIEW ? { helpers } : { lead: own(setup.lead), helpers }]
+    }),
+  )
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
     added.push({ id: copy, name, needsArtifact: flow.needsArtifact, ...(flow.delivers === 'plan' ? { delivers: 'plan' } : {}) })
     block.added = added
-    const stages = configBlock(block.stages)
-    // The assignments as they RESOLVE, not as they are saved: a stage still inheriting its
-    // workflow's default has nothing saved, and a copy that took the saved nothing would open
-    // with the helpers its original was offering silently gone.
-    stages[copy] = Object.fromEntries(
-      WORKFLOW_STAGES.map((stage) => {
-        const setup = liveStage(flow, stage)
-        const helpers = setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra }))
-        return [stage, stage === REVIEW ? { helpers } : { lead: setup.lead, helpers }]
-      }),
-    )
-    block.stages = stages
+    // The stages as they RESOLVE, not as they are saved: one still inheriting its workflow's
+    // default has nothing saved.
+    block.stages = { ...configBlock(block.stages), [copy]: stages }
   })
   return res.ok ? { ok: true, id: copy, name } : res
 }
@@ -874,13 +979,15 @@ function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStag
   const movedHelpers =
     before.helpersChosen ||
     setup.helpers.length !== before.helpers.length ||
-    setup.helpers.some((h, i) => h.agent !== before.helpers[i]!.agent || h.extra !== before.helpers[i]!.extra)
+    setup.helpers.some(
+      (h, i) => h.agent !== before.helpers[i]!.agent || h.extra !== before.helpers[i]!.extra || !h.off !== !before.helpers[i]!.off,
+    )
   return save((block) => {
     const stages = configBlock(block.stages)
     const mine = configBlock(stages[id])
     const written = {
       ...(flow.builtIn || stage === REVIEW ? {} : { lead: setup.lead }),
-      ...(movedHelpers ? { helpers: setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra })) } : {}),
+      ...(movedHelpers ? { helpers: setup.helpers.map(toRow) } : {}),
     }
     if (Object.keys(written).length) mine[stage] = written
     else delete mine[stage]
@@ -919,38 +1026,81 @@ export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string)
     if (!found.canLead && owner.stages[stage].lead !== wanted) {
       return { ok: false, ...refusal('agentNotLead', `\`${wanted}\` does not declare \`akb.lead: true\`, so it can only help`, { agent: wanted }) }
     }
+    const refused = elsewhere(wanted, id)
+    if (refused) return refused
   }
   if (owner.stages[stage].helpers.some((h) => h.agent === wanted)) {
-    return { ok: false, ...refusal('agentHelps', `\`${wanted}\` already helps this stage — remove it from the helpers first`, { agent: wanted }) }
+    return { ok: false, ...refusal('agentHelps', `\`${wanted}\` already helps this stage, so it cannot lead it`, { agent: wanted }) }
   }
   return setStage(id, stage, (setup) => {
     setup.lead = wanted
   })
 }
 
-/** Add a helper to one stage. The same agent never leads and helps the same stage. */
-export function addWorkflowHelper(id: string, stage: WorkflowStage, agent: string): Write {
-  const wanted = agent.trim()
-  const found = agentRoster().find((entry) => entry.name === wanted)
-  if (!found) return { ok: false, ...refusal('agentNotFound', `this board has no \`${wanted}\` agent`, { agent: wanted }) }
-  if (found.stage !== stage) return { ok: false, ...refusal('agentCannotHelp', `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}`, { agent: wanted, assigned: found.stage ?? 'board', stage }) }
-  if (found.canLead) {
-    return { ok: false, ...refusal('agentLeadNotHelper', `\`${wanted}\` can lead a stage, so it never helps one — it would run a second full ${stage}`, { agent: wanted, stage }) }
+// Refused when the agent belongs to another workflow (#1095).
+function elsewhere(agent: string, id: string): Write | null {
+  const owner = agentWorkflow(agent)
+  if (!owner || owner === id) return null
+  const name = workflowById(owner)?.name ?? owner
+  return {
+    ok: false,
+    ...refusal('agentOtherWorkflow', `\`${agent}\` belongs to the "${name}" workflow — create a new agent here instead`, {
+      agent,
+      name,
+      workflow: owner,
+    }),
   }
+}
+
+/** Enable or disable one helper of one stage (#1095). An agent no workflow lists is taken
+ *  into this one; one another workflow lists is refused, and a lead is always on. */
+export function switchWorkflowAgent(id: string, stage: WorkflowStage, agent: string, on: boolean): Write {
+  const wanted = canonicalSpecAgent(agent.trim())
   const flow = workflowById(id)
-  if (flow?.stages[stage].lead === wanted) {
-    return { ok: false, ...refusal('agentLeads', `\`${wanted}\` already leads this stage`, { agent: wanted }) }
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+  if (stage !== REVIEW && flow.stages[stage].lead === wanted) {
+    return { ok: false, ...refusal('agentLeads', `\`${wanted}\` leads this stage, so it is always on`, { agent: wanted }) }
+  }
+  // One already here only changes state; one taken in has to be able to help.
+  if (!liveStage(flow, stage).helpers.some((h) => h.agent === wanted)) {
+    const found = agentRoster().find((entry) => entry.name === wanted)
+    if (!found) return { ok: false, ...refusal('agentNotFound', `this board has no \`${wanted}\` agent`, { agent: wanted }) }
+    if (found.stage !== stage) return { ok: false, ...refusal('agentCannotHelp', `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}`, { agent: wanted, assigned: found.stage ?? 'board', stage }) }
+    if (found.canLead) {
+      return { ok: false, ...refusal('agentLeadNotHelper', `\`${wanted}\` can lead a stage, so it never helps one — it would run a second full ${stage}`, { agent: wanted, stage }) }
+    }
+    const refused = elsewhere(wanted, id)
+    if (refused) return refused
   }
   return setStage(id, stage, (setup) => {
-    if (!setup.helpers.some((h) => h.agent === wanted)) setup.helpers.push({ agent: wanted, extra: '' })
+    const one = setup.helpers.find((h) => h.agent === wanted)
+    if (!one) setup.helpers.push({ agent: wanted, extra: '', ...(on ? {} : { off: true }) })
+    else if (on) delete one.off
+    else one.off = true
   })
 }
 
-/** Take a helper off one stage. The agent itself is untouched — this ends an assignment. */
-export const removeWorkflowHelper = (id: string, stage: WorkflowStage, agent: string): Write =>
-  setStage(id, stage, (setup) => {
-    setup.helpers = setup.helpers.filter((h) => h.agent !== agent.trim())
+/** Enable one helper of one stage — what a new agent made in the pane gets. */
+export const addWorkflowHelper = (id: string, stage: WorkflowStage, agent: string): Write =>
+  switchWorkflowAgent(id, stage, agent, true)
+
+/** Drop a deleted agent from every stage that saved it, so a later agent of the same name
+ *  starts in no workflow. */
+export function forgetWorkflowAgent(agent: string): Write {
+  return save((block) => {
+    const all = configBlock(block.stages)
+    for (const [id, flow] of Object.entries(all)) {
+      const mine = configBlock(flow)
+      for (const [stage, value] of Object.entries(mine)) {
+        const one = configBlock(value)
+        if (Array.isArray(one.helpers)) one.helpers = one.helpers.filter((h) => configBlock(h).agent !== agent)
+        mine[stage] = one
+      }
+      all[id] = mine
+    }
+    if (Object.keys(all).length) block.stages = all
   })
+}
 
 /** What this assignment asks of a helper on top of its own instructions. It belongs to the
  *  ASSIGNMENT, so an agent that does not help this stage is refused rather than written down
@@ -1021,10 +1171,10 @@ export function frozenWorkflow(id: string): FrozenWorkflow | undefined {
     name: flow.name,
     needsArtifact: flow.needsArtifact,
     stages: Object.fromEntries(
-      WORKFLOW_STAGES.map((stage) => {
-        const setup = liveStage(flow, stage)
-        return [stage, { lead: setup.lead, helpers: setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra })) }]
-      }),
+      WORKFLOW_STAGES.map((stage) => [
+        stage,
+        { lead: flow.stages[stage].lead, helpers: stageHelpers(flow, stage).map((h) => ({ agent: h.agent, extra: h.extra })) },
+      ]),
     ),
   }
 }
@@ -1060,10 +1210,10 @@ const candidateOf = (entry: RosterEntry): WorkflowCandidate => ({
  *  for the whole pane: the roster is walked once rather than once per stage per workflow. */
 export function workflowViews(): WorkflowView[] {
   const roster = agentRoster()
-  const byStage = new Map<WorkflowStage, WorkflowCandidate[]>(
-    WORKFLOW_STAGES.map((stage) => [stage, roster.filter((e) => e.stage === stage).map(candidateOf)]),
-  )
-  return workflows().map((flow) => ({
+  const { flows, owners } = resolved()
+  const candidates = (stage: WorkflowStage, id: string): WorkflowCandidate[] =>
+    roster.filter((e) => e.stage === stage && [id, ''].includes(owners.get(e.name) ?? '')).map(candidateOf)
+  return flows.map((flow) => ({
     id: flow.id,
     name: flow.name,
     builtIn: flow.builtIn,
@@ -1074,7 +1224,7 @@ export function workflowViews(): WorkflowView[] {
     retiredAssignment: flow.retiredAssignment,
     stages: WORKFLOW_STAGES.map((stage) => {
       const setup = liveStage(flow, stage)
-      return { stage, lead: setup.lead, helpers: setup.helpers, candidates: byStage.get(stage) ?? [] }
+      return { stage, lead: setup.lead, helpers: setup.helpers, candidates: candidates(stage, flow.id) }
     }),
     problems: workflowProblems(flow.id),
   }))

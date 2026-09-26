@@ -153,7 +153,7 @@ export function stageContracts(workflow?: string): StageContract[] {
     // BUILD the roster, so a liveness check here would ask the roster for itself. A helper
     // the board no longer has is dropped where helpers are actually called in
     // (./workflows.ts `liveStage`).
-    return { ...contract, lead: setup.lead || contract.lead, helpers: setup.helpers.map((h) => h.agent) }
+    return { ...contract, lead: setup.lead || contract.lead, helpers: setup.helpers.filter((h) => !h.off).map((h) => h.agent) }
   })
 }
 

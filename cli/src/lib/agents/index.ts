@@ -271,8 +271,8 @@ const hookAgents = (kind: AgentKind): SpecAgent[] =>
  *  workflow assigns to the plan stage, in the board's own order. */
 export const planSpecAgents = (workflow?: string): SpecAgent[] => planHelpers(hookAgents('spec'), workflow)
 
-/** Whether one workflow's plan stage assigns this agent — the one gate `akb spec` and every
- *  ask written mid-run are checked against (#749). */
+/** Whether one workflow's plan stage has this agent enabled — the one gate `akb spec` and
+ *  every ask written mid-run are checked against (#749). */
 export const specAgentAssigned = (name: string, workflow?: string): boolean => {
   const wanted = canonicalSpecAgent(name)
   return planSpecAgents(workflow).some((a) => a.name === wanted)
@@ -347,12 +347,11 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
   if (agent.name === CODE_REVIEWER) {
     return { ok: false, error: `\`${agent.name}\` has no switch — whether a build is reviewed at all is ${AI_REVIEW_HOME}.` }
   }
-  // A workflow agent has no switch (#749). Refused rather than written down: a key nothing
-  // reads would leave the Workflows pane and this saying different things again.
+  // A workflow agent is switched in its workflow, not here (#749).
   if (agent.stage) {
     return {
       ok: false,
-      error: `\`${agent.name}\` is a workflow agent, so it has no switch — ${SPEC_ASSIGN_HOME}.`,
+      error: `\`${agent.name}\` is a workflow agent, so it has no board switch — it runs when ${SPEC_ASSIGN_HOME}.`,
     }
   }
   return setSpecAgentSwitch(agent.name, on, specAgentNames(agent.name).slice(1))
@@ -396,10 +395,9 @@ const notOnHook = (name: string, kind: AgentKind): string => {
 /** Where a switched-off agent goes back on. One place, named the same way everywhere. */
 export const SPEC_SWITCH_HOME = 'the board UI, under Configuration → Board agents'
 
-/** Where an agent is put on a stage, or taken off it — the one answer to whether a workflow
- *  agent runs (#749). Named the same way everywhere, like the switch above it. */
+/** Where a workflow agent is switched on or off — the one answer to whether it runs (#749). */
 export const SPEC_ASSIGN_HOME =
-  'a workflow assigns it, in the board UI under Configuration → Workflows'
+  'it is switched on in its workflow, in the board UI under Configuration → Workflows'
 
 /** The reviewer the built-in workflow ships with (#820). */
 export const CODE_REVIEWER = 'code-reviewer'

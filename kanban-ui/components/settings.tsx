@@ -137,16 +137,11 @@ export function Status({ ready, children }: { ready: boolean; children: React.Re
 
 /** One on/off setting. `on` is null until the board has answered, and the switch stands
  *  down until then. The new side is drawn at once and put back if the save fails — a
- *  switch that silently didn't land is a setting nobody can trust.
- *
- *  `sm` is the one that rides a line of running text — the row under the chat box (#679).
- *  It keeps the full ink outline the way every small control outside the Configuration
- *  dialog does, because at that size a grey track alone would not read as a control. */
+ *  switch that silently didn't land is a setting nobody can trust. */
 export function Switch({
   on,
   label,
   busy,
-  size = "md",
   onFlip,
 }: {
   on: boolean | null;
@@ -154,7 +149,6 @@ export function Switch({
   label: string;
   /** Another save on the same card is in flight. */
   busy?: boolean;
-  size?: "md" | "sm";
   onFlip: (next: boolean) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
@@ -179,27 +173,25 @@ export function Switch({
       onClick={() => void flip()}
       className="inline-flex shrink-0 cursor-pointer rounded-full transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <SwitchTrack on={on === true} size={size} />
+      <SwitchTrack on={on === true} />
     </button>
   );
 }
 
 /** The switch's look alone, for a row that is itself the control — a menu's on/off item.
- *  At full size there is no frame: off is a filled grey track rather than an empty outlined
- *  one, so it still reads on whatever surface it sits on. */
-export function SwitchTrack({ on, size = "md" }: { on: boolean; size?: "md" | "sm" }) {
+ *  As tall as the text beside it (#1095); off is a filled grey track, so it reads on any
+ *  surface. */
+export function SwitchTrack({ on }: { on: boolean }) {
   return (
     <span
       aria-hidden
-      className={`relative inline-flex shrink-0 items-center rounded-full transition-[background-color] duration-150 motion-reduce:transition-none ${
-        size === "sm" ? "h-[15px] w-[26px] border-[1.5px] border-nb-ink" : "h-6 w-11"
-      } ${on ? "bg-nb-accent" : "bg-nb-ink/20"}`}
+      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-[background-color] duration-150 motion-reduce:transition-none ${
+        on ? "bg-nb-accent" : "bg-nb-ink/20"
+      }`}
     >
       <span
-        className={`inline-block rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 motion-reduce:transition-none ${
-          size === "sm"
-            ? `size-[10px] ${on ? "translate-x-[11px]" : "translate-x-px"}`
-            : `size-[18px] ${on ? "translate-x-[21px]" : "translate-x-[3px]"}`
+        className={`inline-block size-3 rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 motion-reduce:transition-none ${
+          on ? "translate-x-[14px]" : "translate-x-[2px]"
         }`}
       />
     </span>

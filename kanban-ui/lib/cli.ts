@@ -298,7 +298,7 @@ export interface BoardRules {
   cardsOnWorkflow?(id: string): number[];
   setWorkflowLead?(id: string, stage: WorkflowStage, agent: string): WriteResult;
   addWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
-  removeWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
+  switchWorkflowAgent?(id: string, stage: WorkflowStage, agent: string, on: boolean): WriteResult;
   setWorkflowHelperExtra?(id: string, stage: WorkflowStage, agent: string, extra: string): WriteResult;
 
   // may the board commit? (#303) The one repository-level setting behind worktrees,

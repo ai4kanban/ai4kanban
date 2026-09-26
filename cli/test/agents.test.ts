@@ -30,7 +30,7 @@ import {
 } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
-import { createWorkflow, removeWorkflowHelper, setWorkflowLead } from '../src/lib/agent/workflows.ts'
+import { createWorkflow, switchWorkflowAgent, setWorkflowLead } from '../src/lib/agent/workflows.ts'
 import { humanSectionFor } from '../src/lib/agent/runner.ts'
 import { move, refuses, run } from './helpers/board.ts'
 
@@ -374,10 +374,10 @@ describe('what a session is shown', () => {
   it('refuses an ask for an agent the card\'s workflow does not assign', async () => {
     card(12)
     board()
-    assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
+    assert.equal(switchWorkflowAgent('coding', 'plan', 'ui-designer', false).ok, true)
     await assert.rejects(
       () => run(root, ['spec', 'ui-designer', '12', 'a note']),
-      /not assigned to the planning of #12/,
+      /is off or not in the workflow of #12/,
     )
   })
 

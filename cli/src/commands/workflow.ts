@@ -3,7 +3,7 @@
 // The workflows this board runs, from a terminal (#715).
 //
 // The board UI writes the same three things: which workflows there are, who leads each of
-// their three stages, and which agents each stage may call in. Everything is checked in one
+// their three stages, and which of their agents are enabled. Everything is checked in one
 // place (lib/agent/workflows.ts), so the terminal and the pane refuse the same moves — a
 // built-in cannot be renamed here either, and an agent cannot lead a stage it does not
 // declare.
@@ -12,17 +12,17 @@ import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import { agentRoster } from '../lib/agent/roles'
 import {
-  addWorkflowHelper,
+  agentWorkflow,
   builtinDescription,
   createWorkflow,
   duplicateWorkflow,
   liveStage,
-  removeWorkflowHelper,
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
   setWorkflowWorktree,
   stageCandidates,
+  switchWorkflowAgent,
   workflowById,
   workflowProblems,
   workflows,
@@ -37,8 +37,8 @@ export interface WorkflowOptions {
   name?: string
   stage?: string
   lead?: string
-  addHelper?: string
-  dropHelper?: string
+  on?: string
+  off?: string
   extra?: string
 }
 
@@ -76,7 +76,7 @@ export function cmdWorkflowList(): MoveResult {
     if (description) say(`  ${description}`)
     for (const stage of WORKFLOW_STAGES) {
       const setup = liveStage(flow, stage)
-      const helpers = setup.helpers.map((h) => titleOf(h.agent)).join(', ')
+      const helpers = setup.helpers.map((h) => `${titleOf(h.agent)}${h.off ? ' (off)' : ''}`).join(', ')
       if (stage === 'review') {
         say(`  ${stage.padEnd(8)}${helpers ? `reviewers: ${helpers}` : 'no reviewers — delivered as built'}`)
         continue
@@ -99,7 +99,7 @@ export function cmdWorkflowNew(name: string): MoveResult {
 export function cmdWorkflowDuplicate(id: string): MoveResult {
   const res = duplicateWorkflow(found(id).id)
   done(res)
-  say(`copied it to "${res.name}" (${res.id}) — its assignments came with it`)
+  say(`copied it to "${res.name}" (${res.id}) — each of its agents was copied with it`)
   return { id: res.id, name: res.name }
 }
 
@@ -144,34 +144,35 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
     done(setWorkflowLead(flow.id, stage, flags.lead))
     changes.push(`lead→${flags.lead.trim() || '(nobody)'}`)
   }
-  if (flags.addHelper !== undefined) {
-    done(addWorkflowHelper(flow.id, stage, flags.addHelper))
-    changes.push(`+${flags.addHelper.trim()}`)
+  if (flags.on !== undefined) {
+    done(switchWorkflowAgent(flow.id, stage, flags.on, true))
+    changes.push(`${flags.on.trim()} on`)
   }
-  if (flags.dropHelper !== undefined) {
-    done(removeWorkflowHelper(flow.id, stage, flags.dropHelper))
-    changes.push(`-${flags.dropHelper.trim()}`)
+  if (flags.off !== undefined) {
+    done(switchWorkflowAgent(flow.id, stage, flags.off, false))
+    changes.push(`${flags.off.trim()} off`)
   }
   if (flags.extra !== undefined) {
-    const who = (flags.addHelper ?? flags.dropHelper ?? '').trim()
-    if (!who) die('--extra says what one helper is asked for here, so name it: --add-helper <agent> --extra "…"')
+    const who = (flags.on ?? flags.off ?? '').trim()
+    if (!who) die('--extra says what one agent is asked for here, so name it: --on <agent> --extra "…"')
     done(setWorkflowHelperExtra(flow.id, stage, who, flags.extra))
     changes.push(`${who}: extra requirements`)
   }
   if (!changes.length) {
-    const all = stageCandidates(stage)
-    const candidates = all.map((a) => a.name)
-    const leads = all.filter((a) => a.canLead).map((a) => a.name)
-    const helpers = all.filter((a) => !a.canLead).map((a) => a.name)
-    say(`${flow.name} · ${stage} — agents that can take it: ${candidates.join(', ') || '(none on this board)'}`)
-    if (stage !== 'review') {
-      say(`  can lead: ${leads.join(', ') || '(none)'}`)
-      say(`  can help: ${helpers.join(', ') || '(none)'} — an agent that can lead never helps`)
-    }
-    // A built-in's lead is the command's, so only the helpers here are open to a change.
-    if (stage === 'review') say('  the review stage has no lead — the agents added to it are its reviewers')
-    else if (flow.builtIn) say(`  its lead is \`${flow.stages[stage].lead}\` and stays that way — duplicate it to pick another`)
-    return { id: flow.id, stage, candidates, leads, helpers }
+    const setup = liveStage(flow, stage)
+    const on = setup.helpers.filter((h) => !h.off).map((h) => h.agent)
+    const off = setup.helpers.filter((h) => h.off).map((h) => h.agent)
+    // The leads it could pick: roles, and agents no other workflow has.
+    const leads = stageCandidates(stage)
+      .filter((a) => a.canLead && [flow.id, ''].includes(agentWorkflow(a.name)))
+      .map((a) => a.name)
+    say(`${flow.name} · ${stage}`)
+    if (stage === 'review') say('  no lead — its agents are the reviewers')
+    else say(`  lead: ${setup.lead || '(nobody)'}${flow.builtIn ? ' — built in; duplicate the workflow to pick another' : ''}`)
+    say(`  on: ${on.join(', ') || '(none)'}`)
+    if (off.length) say(`  off: ${off.join(', ')}`)
+    if (stage !== 'review' && !flow.builtIn) say(`  can lead: ${leads.join(', ') || '(none)'}`)
+    return { id: flow.id, stage, lead: setup.lead, on, off, leads }
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)
   return { id: flow.id, stage, changes }

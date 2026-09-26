@@ -59,6 +59,7 @@ import { CHROME, SegmentDivider } from "./chrome";
 import { Dialog } from "./Dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
+import { Switch } from "./settings";
 import { sayFailure } from "@/lib/start-failure";
 
 // The values the entries that aren't releases carry. `readReleases` cuts a
@@ -883,7 +884,7 @@ function NewReleaseDialog({
 // The goal tab has no switch of its own, because there the goal box already says
 // the release is planned.
 //
-// The switch is the Configuration dialog's, at the dialog's text size.
+// The switch is the shared one (settings.tsx).
 function FillToggle({
   plan,
   on,
@@ -904,24 +905,7 @@ function FillToggle({
     <div className="mt-3">
       <div className="flex items-center justify-between gap-4">
         <span className="text-[13px] leading-relaxed">{line}</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on && active}
-          aria-label={line}
-          disabled={disabled || !active}
-          onClick={onFlip}
-          className={`relative cursor-pointer inline-flex h-6 w-11 shrink-0 items-center rounded-full border-[1.5px] border-nb-ink transition-colors duration-150 disabled:cursor-default disabled:opacity-60 ${
-            on && active ? "bg-nb-accent" : "bg-nb-wash"
-          }`}
-        >
-          <span
-            className={`inline-block size-[16px] rounded-full border border-nb-ink bg-nb-paper transition-transform duration-150 ${
-              on && active ? "translate-x-[22px]" : "translate-x-[3px]"
-            }`}
-            aria-hidden
-          />
-        </button>
+        <Switch on={on && active} label={line} busy={disabled || !active} onFlip={async () => onFlip()} />
       </div>
       {/* What the rule comes to on this board, in one line. The cards left out
           are counted with the reason they share — blocked, or a group root whose

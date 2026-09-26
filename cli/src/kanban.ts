@@ -226,7 +226,7 @@ export {
   DEFAULT_WORKFLOW,
   dismissRetiredAssignment,
   duplicateWorkflow,
-  removeWorkflowHelper,
+  switchWorkflowAgent,
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,

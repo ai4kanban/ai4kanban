@@ -68,13 +68,10 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     return printFlow({ action: 'spec', id, title: titleOf(id), specAgent: name, notes: noteOf(opts.note ?? [], opts.notes) }, program)
   }
 
-  // Not on this card's workflow (#749). A flow naming an agent from memory would otherwise
-  // walk round the assignment, so the ask is refused rather than quietly dropped — and the
-  // refusal says what to do instead, because whoever left it off the stage meant to, and a
-  // flow that stopped over it would turn a choice into a blocker.
+  // Off, or in another workflow (#749): refused, with what to do instead.
   if (!specAgentAssigned(name, cardWorkflowId(id))) {
     die(
-      `the \`${name}\` spec agent is not assigned to the planning of #${id}, so it isn't running. Plan that part of the card yourself and carry on. It joins when ${SPEC_ASSIGN_HOME}.`,
+      `the \`${name}\` spec agent is off or not in the workflow of #${id}, so it isn't running. Plan that part of the card yourself and carry on. It joins when ${SPEC_ASSIGN_HOME}.`,
       { kind: 'spec-agent-off', specAgent: name },
     )
   }

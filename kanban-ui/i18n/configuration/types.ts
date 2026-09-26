@@ -74,17 +74,14 @@ export type ConfigurationCopy = {
     /** In place of the lead, on a stage that cannot start: no lead, a lead this board no
      *  longer has, or a lead that belongs to another stage all read the same. */
     stageProblem: string;
-    /** The agents that stage's lead may call in, the button that adds one, and the line
-     *  drawn when the stage has none. */
+    /** The enabled agents that stage's lead may call in, and the line drawn when it has none. */
     helpers: string;
-    addHelper: string;
     noneInStage: string;
     /** Beside the empty column: what the space to its right is for. */
     emptyPage: string;
-    /** The review stage's list, which has no lead (#820): its caption, its add button, and
-     *  the line drawn when it is empty. */
+    /** The review stage's list, which has no lead (#820): its caption, and the line drawn
+     *  when it is empty. */
     reviewers: string;
-    addReviewer: string;
     noReviewers: string;
     /** The one switch in the more menu (#874, #944): **Use a Git worktree**, what it is
      *  for, a built-in's fixed value, and a failed save. */
@@ -93,30 +90,26 @@ export type ConfigurationCopy = {
     worktreeOn: string;
     worktreeOff: string;
     worktreeSaveFailed: string;
-    /** Taking the selected agent out of this stage. It stays on the board. */
-    dropHelper: string;
+    /** The stage's disabled agents (#1095), and the button on an agent's page that moves it
+     *  there or back. */
+    disabledGroup: (n: number) => string;
+    disable: string;
+    enable: string;
     /** What THIS assignment asks of the selected built-in helper, on top of its own
      *  instructions, and the one line saying how far it reaches. An agent this project
      *  added is told through its own `AGENT.md` instead, so it has no box here. */
     extra: string;
     extraPlaceholder: string;
     extraScope: (flow: string, stage: string) => string;
-    /** Inside the agent picker: the search box, what a list with nothing in it says, and
-     *  the way to an agent this stage does not have yet (#944). */
+    /** Inside the lead picker: the search box and what a list with nothing in it says. */
     find: string;
     noCandidates: string;
+    /** Under a stage's agents: makes one in this workflow and stage, enabled (#1095). */
     newAgent: string;
-    newAgentHint: string;
-    /** Where else the selected agent is used: a chip beside its name, and the tip saying a
-     *  change reaches those workflows too. */
-    sharedWith: (flows: string[]) => string;
-    sharedTip: (flows: string[]) => string;
     /** Above the helpers this project added. */
     yoursDivider: string;
     /** Under a built-in role's line: its brief ships with the command. */
     roleNote: string;
-    /** One more line in the delete confirmation, when workflows still assign it. */
-    deleteUsedBy: (flows: string[]) => string;
     /** The more menu beside the workflow's name (#964), read out with that name. */
     more: (flow: string) => string;
     duplicate: string;

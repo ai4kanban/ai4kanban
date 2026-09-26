@@ -199,7 +199,6 @@ export function ShareRow({ share }: { share: ShareSwitch }) {
         <span className={share.on ? "font-[700] text-nb-accent-deep" : undefined}>{c.name}</span>
         <Switch
           on={share.on}
-          size="sm"
           label={c.label}
           onFlip={async (next) => share.flip(next)}
         />

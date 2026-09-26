@@ -23,6 +23,7 @@ import {
   setWorkflowWorktree,
   workflowById,
 } from '../src/lib/agent/workflows.ts'
+import { copyAgent } from '../src/lib/agents/roster.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 
@@ -81,7 +82,7 @@ const filesFlow = (reviewed = false): string => {
   const made = createWorkflow('Email')
   setWorkflowLead(made.id!, 'plan', 'software-planner')
   setWorkflowLead(made.id!, 'execute', 'builder')
-  if (reviewed) addWorkflowHelper(made.id!, 'review', 'code-reviewer')
+  if (reviewed) addWorkflowHelper(made.id!, 'review', copyAgent('code-reviewer').agent!)
   return made.id!
 }
 

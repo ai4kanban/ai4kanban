@@ -217,7 +217,7 @@ import {
   createWorkflow,
   deleteWorkflow,
   duplicateWorkflow,
-  removeWorkflowHelper,
+  switchWorkflowAgent,
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
@@ -1870,8 +1870,8 @@ export async function cardsOnWorkflowAction(id: string): Promise<{ cards: number
   }
 }
 
-/** Set one stage's lead, add or drop a helper, or write what one assignment asks for. One
- *  action for all four: they are the same write to the same stage, and the pane redraws
+/** Set one stage's lead, add, enable or disable a helper, or write what the workflow asks of
+ *  one. One action for all: they are the same write to the same stage, and the pane redraws
  *  from the board's answer either way. */
 export async function setWorkflowStageAction(
   id: string,
@@ -1879,7 +1879,7 @@ export async function setWorkflowStageAction(
   move:
     | { kind: "lead"; agent: string }
     | { kind: "add-helper"; agent: string }
-    | { kind: "drop-helper"; agent: string }
+    | { kind: "switch"; agent: string; on: boolean }
     | { kind: "extra"; agent: string; extra: string },
 ): Promise<WriteResult> {
   if (typeof id !== "string" || !WORKFLOW_STAGES.includes(stage)) {
@@ -1889,7 +1889,7 @@ export async function setWorkflowStageAction(
   try {
     if (move.kind === "lead") return await setWorkflowLead(id, stage, move.agent);
     if (move.kind === "add-helper") return await addWorkflowHelper(id, stage, move.agent);
-    if (move.kind === "drop-helper") return await removeWorkflowHelper(id, stage, move.agent);
+    if (move.kind === "switch") return await switchWorkflowAgent(id, stage, move.agent, move.on === true);
     return await setWorkflowHelperExtra(id, stage, move.agent, move.extra ?? "");
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };

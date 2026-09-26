@@ -10,22 +10,14 @@
 //
 // The agents themselves are the board's roster (`components/Agents.tsx`), shared with
 // Configuration → Board so an agent reads and writes the same wherever it was reached from.
-// What belongs to the ASSIGNMENT rather than to the agent — the extra requirements, the
-// stage it sits in — is the only thing this pane adds to that page.
+// Each belongs to one workflow (#1095): the column lists the stage's enabled agents, and the
+// rare one not wanted is disabled from its page and waits under **Disabled**.
 //
 // Which agents can take a stage is the board's answer, asked for with the rest; so is every
 // refusal. Nothing here has a copy of those rules.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  FiAlertCircle,
-  FiChevronDown,
-  FiChevronRight,
-  FiLink,
-  FiMoreHorizontal,
-  FiPlus,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiAlertCircle, FiChevronDown, FiChevronRight, FiMoreHorizontal, FiPlus } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -50,7 +42,6 @@ import type {
   WorkflowView,
 } from "@/lib/types";
 import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
-import { ELASTIC_CHIP } from "./chips";
 import { useWorkflowTip } from "./WorkflowTip";
 import {
   ACCENT_BTN,
@@ -72,7 +63,6 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import {
-  POPUP_ROW,
   POPUP_TRIGGER,
   Popover,
   PopoverAnchor,
@@ -149,9 +139,8 @@ export function WorkflowsPanel({
   // same box, on a row the board has already allocated).
   const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
   const [menu, setMenu] = useState(false);
-  // Which layer is open over the column: the workflow list, the lead picker, or the list of
-  // agents this stage could still be given.
-  const [picking, setPicking] = useState<"flow" | "lead" | "helper" | null>(null);
+  // Which layer is open over the column: the workflow list or the lead picker.
+  const [picking, setPicking] = useState<"flow" | "lead" | null>(null);
   const [adding, setAdding] = useState(false);
   // What the extra-requirements box holds right now, by `<workflow>/<stage>/<agent>`, so
   // switching agents never loses an edit that has not been saved yet.
@@ -301,9 +290,8 @@ export function WorkflowsPanel({
     await move(stage, { kind: "extra", agent, extra: text });
   };
 
-  // A new agent is created AND assigned in one press: the button that opened this row was
-  // "add one to this stage", and an agent created but left unassigned would look like the
-  // press did nothing. The template writes a helper, never a lead (#944).
+  // A new agent lands in this workflow and stage, enabled, in one press (#1095). The template
+  // writes a helper, never a lead (#944).
   const createAgent = async (name: string): Promise<string> => {
     const made = await roster.create(name, stage);
     if (made.error || !made.agent) return sayFailure(made, c.saveFailed);
@@ -316,16 +304,6 @@ export function WorkflowsPanel({
     return "";
   };
 
-  // Which workflows assign this agent, anywhere in their three stages — what a shared agent's
-  // page says before its instructions are edited, and what its delete warns about.
-  const usersOf = useCallback(
-    (name: string): WorkflowView[] =>
-      (flows ?? []).filter((f) =>
-        f.stages.some((s) => s.lead === name || s.helpers.some((h) => h.agent === name)),
-      ),
-    [flows],
-  );
-
   const agent = roster.agents?.find((a) => a.name === shown);
   const isYours = (name: string) => !!roster.agents?.find((a) => a.name === name)?.file;
   const helperRows = (helpers: WorkflowHelper[]) =>
@@ -335,10 +313,14 @@ export function WorkflowsPanel({
         name={h.agent}
         agent={setup?.candidates.find((a) => a.name === h.agent)}
         held={shown === h.agent}
+        off={h.off}
         onOpen={() => void select(h.agent)}
       />
     ));
   const isLead = !!setup && !reviewing && shown === setup.lead;
+  const enabled = setup?.helpers.filter((h) => !h.off) ?? [];
+  const disabled = setup?.helpers.filter((h) => h.off) ?? [];
+  const shownOff = !!disabled.find((h) => h.agent === shown);
 
   // Beside the workflow's name, whatever the stage holds and whoever is selected (#964).
   const menuNode = flow ? (
@@ -545,10 +527,10 @@ export function WorkflowsPanel({
 
                 <section className="min-w-0">
                   <Caption>{reviewing ? c.reviewers : c.helpers}</Caption>
-                  {helperRows(setup.helpers.filter((h) => !isYours(h.agent)))}
-                  {setup.helpers.some((h) => isYours(h.agent)) && <YoursDivider label={c.yoursDivider} />}
-                  {helperRows(setup.helpers.filter((h) => isYours(h.agent)))}
-                  {!setup.helpers.length && (
+                  {helperRows(enabled.filter((h) => !isYours(h.agent)))}
+                  {enabled.some((h) => isYours(h.agent)) && <YoursDivider label={c.yoursDivider} />}
+                  {helperRows(enabled.filter((h) => isYours(h.agent)))}
+                  {!enabled.length && (
                     <p className="px-2.5 py-2 text-[11.5px] text-nb-ink-soft">
                       {reviewing ? c.noReviewers : c.noneInStage}
                     </p>
@@ -556,36 +538,22 @@ export function WorkflowsPanel({
                   {adding ? (
                     <NewAgentRow onCreate={createAgent} onCancel={() => setAdding(false)} />
                   ) : (
-                    <Popover open={picking === "helper"} onOpenChange={(open) => setPicking(open ? "helper" : null)}>
-                      <PopoverTrigger asChild>
-                        <button type="button" className={`${QUIET_BTN} ${POPUP_TRIGGER} mt-2.5 w-full justify-center`}>
-                          <FiPlus aria-hidden />
-                          {reviewing ? c.addReviewer : c.addHelper}
-                        </button>
-                      </PopoverTrigger>
-                      {picking === "helper" && (
-                        <AgentPicker
-                          label={reviewing ? c.addReviewer : c.addHelper}
-                          candidates={setup.candidates.filter(
-                            (a) =>
-                              !a.canLead &&
-                              a.name !== setup.lead &&
-                              !setup.helpers.some((h) => h.agent === a.name),
-                          )}
-                          chosen=""
-                          onPick={async (name) => {
-                            setPicking(null);
-                            if (await move(stage, { kind: "add-helper", agent: name })) show(name);
-                          }}
-                          onNew={() => {
-                            setPicking(null);
-                            setAdding(true);
-                          }}
-                        />
-                      )}
-                    </Popover>
+                    <button
+                      type="button"
+                      onClick={() => setAdding(true)}
+                      className={`${QUIET_BTN} mt-2.5 w-full justify-center`}
+                    >
+                      <FiPlus aria-hidden />
+                      {c.newAgent}
+                    </button>
                   )}
                 </section>
+                {disabled.length > 0 && (
+                  <section className="mt-4 min-w-0">
+                    <Caption>{c.disabledGroup(disabled.length)}</Caption>
+                    {helperRows(disabled)}
+                  </section>
+                )}
               </>
             )}
           </div>
@@ -601,23 +569,17 @@ export function WorkflowsPanel({
                 onRuntimes={onRuntimes}
                 onError={onError}
                 scoped
-                tag={<SharedChip here={flow} users={usersOf(agent.name)} />}
                 usage={<Usage agent={agent} />}
-                deleteNote={deleteNote(c, usersOf(agent.name).map(nameOf))}
                 onDeleted={load}
                 actions={
+                  /* A lead has neither: a stage it leads would stop. */
                   !isLead ? (
                     <button
                       type="button"
                       className={QUIET_BTN}
-                      onClick={async () => {
-                        const gone = agent.name;
-                        show("");
-                        await move(stage, { kind: "drop-helper", agent: gone });
-                      }}
+                      onClick={() => void move(stage, { kind: "switch", agent: agent.name, on: shownOff })}
                     >
-                      <FiTrash2 aria-hidden />
-                      {c.dropHelper}
+                      {shownOff ? c.enable : c.disable}
                     </button>
                   ) : undefined
                 }
@@ -719,32 +681,6 @@ function ExtraBox({
   );
 }
 
-/** The workflows besides this one that assign the agent — its instructions are theirs too. */
-const othersOf = (here: WorkflowView, users: WorkflowView[]) => users.filter((f) => f.id !== here.id);
-
-/** Beside a shared agent's name: which workflows share it, and in its tip what that means. */
-function SharedChip({ here, users }: { here: WorkflowView; users: WorkflowView[] }) {
-  const c = useCopy().configuration.workflows;
-  const nameOf = useWorkflowName();
-  const others = othersOf(here, users).map(nameOf);
-  if (!others.length) return null;
-  return (
-    <span
-      tabIndex={0}
-      className="nb-chip nb-tip nb-tip-start min-w-0 self-center"
-      data-tip={c.sharedTip(others)}
-      style={{
-        ...ELASTIC_CHIP,
-        background: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)",
-        color: "var(--color-nb-ink-soft)",
-      }}
-    >
-      <FiLink aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      <span className="truncate">{c.sharedWith(others)}</span>
-    </span>
-  );
-}
-
 /** Between the built-in helpers and the ones this project added. */
 function YoursDivider({ label }: { label: string }) {
   return (
@@ -762,15 +698,6 @@ function Usage({ agent }: { agent: AgentView }) {
   return agent.kind === "role" ? (
     <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink-soft">{c.roleNote}</p>
   ) : null;
-}
-
-/** One more line in the delete confirmation: an agent two workflows assign is about to go
- *  from both, and the confirmation is the last place that can be said. */
-function deleteNote(
-  c: { deleteUsedBy: (flows: string[]) => string },
-  flows: string[],
-): string | undefined {
-  return flows.length ? c.deleteUsedBy(flows) : undefined;
 }
 
 /** What one agent is CALLED here — the one lookup every screen names an agent by
@@ -840,12 +767,14 @@ function StageRow({
   name,
   agent,
   held,
+  off,
   onOpen,
   swap,
 }: {
   name: string;
   agent: WorkflowCandidate | undefined;
   held: boolean;
+  off?: boolean;
   onOpen: () => void;
   /** The label of the chevron that swaps who leads; the row must sit in that Popover. */
   swap?: string;
@@ -863,10 +792,12 @@ function StageRow({
         onClick={onOpen}
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
       >
-        <span className="flex size-[26px] shrink-0 items-end justify-center">
+        <span className={`flex size-[26px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}>
           <Character name={name} size={26} />
         </span>
-        <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700] leading-[16px] text-nb-ink">
+        <span
+          className={`min-w-0 flex-1 truncate text-[12.5px] font-[700] leading-[16px] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}
+        >
           {nameOf(agent, name)}
         </span>
       </button>
@@ -973,21 +904,17 @@ function FlowPicker({
   );
 }
 
-/** One list of agents, searchable. The lead picker and the helper picker are the same list:
- *  both pick ONE agent off the candidates the board offered for this stage. Only the helper
- *  picker can make one — the template writes a helper, never a lead. */
+/** The lead picker: ONE agent off the candidates the board offered for this stage. */
 function AgentPicker({
   label,
   candidates,
   chosen,
   onPick,
-  onNew,
 }: {
   label: string;
   candidates: WorkflowCandidate[];
   chosen: string;
   onPick: (name: string) => void;
-  onNew?: () => void;
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useCandidateName();
@@ -1017,15 +944,6 @@ function AgentPicker({
               </span>
             </PopoverOption>
           ))}
-        </div>
-      )}
-      {onNew && (
-        <div className="mt-1 border-t border-nb-ink/10 pt-1">
-          <button type="button" onClick={onNew} className={`${POPUP_ROW} gap-1.5 text-[12px] font-[700]`}>
-            <FiPlus aria-hidden />
-            {c.newAgent}
-          </button>
-          <span className="block px-2.5 pb-1.5 text-[10.5px] leading-[15px] text-nb-ink-soft">{c.newAgentHint}</span>
         </div>
       )}
     </PopoverContent>

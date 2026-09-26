@@ -377,11 +377,9 @@ export function AgentDetail({
   info,
   scoped,
   inStage,
-  tag,
   usage,
   actions,
   extra,
-  deleteNote,
   onDeleted,
   onRuntimes,
   onError,
@@ -393,8 +391,6 @@ export function AgentDetail({
   scoped?: boolean;
   /** The agent is drawn as one stage's assignment — see `Page`. */
   inStage?: boolean;
-  /** Beside the agent's name, left — which other workflows share it. */
-  tag?: React.ReactNode;
   /** Under the agent's line: where else it is used, and what a role cannot be told. */
   usage?: React.ReactNode;
   /** Actions of this pane's own, beside Delete. */
@@ -402,8 +398,6 @@ export function AgentDetail({
   /** A section between the settings and the instruction box; on a built-in agent in a
    *  `scoped` pane it takes the rule box's place. */
   extra?: React.ReactNode;
-  /** One more line in the delete confirmation — which workflows lose it. */
-  deleteNote?: string;
   /** Run after the agent is gone, for a pane holding something else that named it. */
   onDeleted?: () => void | Promise<void>;
   onRuntimes?: () => void;
@@ -437,11 +431,9 @@ export function AgentDetail({
       busy={(key) => roster.saving.includes(`${agent.name}/${key}`)}
       scoped={scoped}
       inStage={inStage}
-      tag={tag}
       usage={usage}
       actions={actions}
       extra={extra}
-      deleteNote={deleteNote}
     />
   );
 }
@@ -802,11 +794,9 @@ function Page({
   busy,
   scoped,
   inStage,
-  tag,
   usage,
   actions,
   extra,
-  deleteNote,
 }: {
   agent: AgentView;
   info: AgentInfo;
@@ -832,18 +822,15 @@ function Page({
   busySwitch: boolean;
   busy: (key: string) => boolean;
   /** What the pane around this page adds (#944). `scoped` puts `actions` and Delete at the
-   *  name row's right, `tag` sits beside the name, `usage` under its line, `extra` between the
-   *  settings and the instruction box, and `deleteNote` is one more line in the delete
-   *  confirmation. */
+   *  name row's right, `usage` sits under its line, and `extra` between the settings and the
+   *  instruction box. */
   scoped?: boolean;
   /** This pane is one stage's assignment (#944), not the agent's board-wide page: what it is
    *  told for this stage alone is edited here, and who its output is for stays as saved. */
   inStage?: boolean;
-  tag?: React.ReactNode;
   usage?: React.ReactNode;
   actions?: React.ReactNode;
   extra?: React.ReactNode;
-  deleteNote?: string;
 }) {
   const c = useCopy().configuration.agents;
   const box = useRef<HTMLTextAreaElement>(null);
@@ -915,7 +902,7 @@ function Page({
         align="right"
         confirm="filled"
         title={c.deleteTitle(title)}
-        description={deleteNote ? `${deleteNote} ${c.deleteBlurb}` : c.deleteBlurb}
+        description={c.deleteBlurb}
         cancelLabel={c.cancel}
         confirmLabel={c.delete}
         busy={busySwitch}
@@ -941,7 +928,6 @@ function Page({
               <div className="flex min-w-0 items-baseline gap-2">
                 <span className="shrink-0 text-[14px] font-[800] text-nb-ink">{title}</span>
                 {agent.file && !scoped && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
-                {tag}
               </div>
               {scoped && (actions || removal) && (
                 <div className="flex shrink-0 items-center gap-1">

@@ -22,6 +22,7 @@ import {
   workflowById,
   workflowProblems,
 } from '../src/lib/agent/workflows.ts'
+import { copyAgent } from '../src/lib/agents/roster.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { boardText, setBoardRoot } from '../src/lib/paths.ts'
 import type { AgentRequest } from '../src/lib/agent/types.ts'
@@ -79,8 +80,11 @@ describe('a lead agent', () => {
   it('only leads: never a helper, never run by `akb spec`', async () => {
     const mine = createWorkflow('Mine').id!
     assert.match(addWorkflowHelper(mine, 'plan', 'scriptwriter').error!, /can lead a stage, so it never helps/)
-    assert.equal(setWorkflowLead(mine, 'plan', 'scriptwriter').ok, true)
-    assert.match(setWorkflowLead(mine, 'execute', 'scriptwriter').error!, /is a plan agent/)
+    // Product video's own, so another workflow leads with a copy (#1095).
+    assert.match(setWorkflowLead(mine, 'plan', 'scriptwriter').error!, /belongs to the "Product video" workflow/)
+    const lead = copyAgent('scriptwriter').agent!
+    assert.equal(setWorkflowLead(mine, 'plan', lead).ok, true)
+    assert.match(setWorkflowLead(mine, 'execute', lead).error!, /is a plan agent/)
     const id = await videoCard()
     await assert.rejects(() => run(root, ['spec', 'scriptwriter', String(id), '--print']), /not a spec agent/)
   })
@@ -135,9 +139,9 @@ describe('the hyperframes-video workflow', () => {
 
   it("prints the lead's instructions on a board's own workflow too", async () => {
     const mine = createWorkflow('Clips').id!
-    assert.equal(setWorkflowLead(mine, 'plan', 'deck-planner').ok, true)
+    assert.equal(setWorkflowLead(mine, 'plan', copyAgent('deck-planner').agent!).ok, true)
     const id = (await move(root, ['create', '--title', 'A clip', '--workflow', mine])).id as number
-    assert.match(printed('refine', id), /you, the `deck-planner` agent/)
+    assert.match(printed('refine', id), /you, the `deck-planner-2` agent/)
     assert.doesNotMatch(printed('refine', id), /you, the `scriptwriter` agent/)
   })
 })

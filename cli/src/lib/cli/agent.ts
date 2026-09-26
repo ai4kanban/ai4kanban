@@ -413,8 +413,12 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 
   flowWord('duplicate')
     .argument('<id>', 'the workflow to copy, from `workflow list`')
-    .summary('copy one, assignments and extra requirements and all')
-    .description('The copy is this board\'s own whatever it was copied from, so it can be renamed and deleted.')
+    .summary('copy one, with a copy of each of its agents')
+    .description(
+      'The copy is this board\'s own whatever it was copied from, so it can be renamed and deleted. Every agent ' +
+        'in it but a built-in role is copied under a new name — instructions, rule, memory and settings — and ' +
+        'keeps whether it is on, so the two workflows never share one.',
+    )
     .action(async function (this: Command, id: string) {
       await onBoard(this, cli, () => cmdWorkflowDuplicate(id))
     })
@@ -453,14 +457,14 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('<id>', 'the workflow, from `workflow list`')
     .requiredOption('--stage <stage>', `which stage: ${WORKFLOW_STAGES.join(' | ')}`, oneOf(WORKFLOW_STAGES))
     .option('--lead <agent>', 'the one agent that runs this stage; "" leaves it with nobody')
-    .option('--add-helper <agent>', 'an agent this stage\'s lead may call in')
-    .option('--drop-helper <agent>', 'end one helper\'s assignment to this stage')
-    .option('--extra <text>', 'what the --add-helper or --drop-helper named is asked for here, on top of its own instructions')
-    .summary('set one stage\'s lead and helpers')
+    .option('--on <agent>', 'switch one of this workflow\'s agents on for this stage')
+    .option('--off <agent>', 'switch one off; it stays in the workflow')
+    .option('--extra <text>', 'what the --on or --off agent is asked for here, on top of its own instructions')
+    .summary('set one stage\'s lead and switch its agents on or off')
     .description(
-      'With no change asked for, it lists the agents that can take the stage — an agent declares which ' +
-        'stage it belongs to, and no agent leads or helps a stage it did not declare. The same agent ' +
-        'never leads and helps one stage.',
+      'With no change asked for, it lists this workflow\'s agents for the stage and whether each is on. ' +
+        'An agent belongs to the workflow it was created in and is never shared. An off agent ' +
+        'never runs; a lead cannot be switched off.',
     )
     .action(async function (this: Command, id: string) {
       const flags = this.opts() as WorkflowOptions

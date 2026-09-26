@@ -15,14 +15,15 @@ import path from 'node:path'
 import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
-import type { WorkflowStage } from '../agent/workflows'
+import { forgetWorkflowAgent, settleWorkflows, type WorkflowStage } from '../agent/workflows'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
-import { forgetSpecAgent, specAgentEntries, switchedOn } from '../agent/settings'
+import { configBlock, forgetSpecAgent, specAgentEntries, switchedOn, writeConfig } from '../agent/settings'
 import type { AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { signalsAccess } from '../signals/access'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import type { WriteResult } from '../view/types'
+import { BUNDLED_AGENT_FILES } from './bundled'
 import { agentFileReader, specAgentCatalog } from './catalog'
 import { agentSettingsView, specAgentEnabled, specAgentSettings } from './index'
 import { AGENT_NAME, parseSpecAgent } from './parse'
@@ -121,6 +122,8 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
     if (fs.existsSync(dir)) return { ok: false, error: `${rel(dir)}/ is already there. Pick another name.` }
   }
   const file = path.join(AGENTS, name, AGENT_FILE)
+  // So it starts in no workflow, for the one it is made in to take (#1095).
+  settleWorkflows()
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(file, agentTemplate(name, stage))
@@ -155,6 +158,55 @@ function agentTemplate(name: string, stage?: WorkflowStage): string {
   ].join('\n')
 }
 
+// ---- copying one (#1095) ------------------------------------------------------
+
+/** Copy one agent to a free name, as a project agent: its files, rule, memory, settings and
+ *  runtime. A workflow never shares an agent, so a duplicated workflow gets copies. `taken`
+ *  holds names already handed out in the same pass. */
+export function copyAgent(from: string, taken: Set<string> = new Set()): WriteResult & { agent?: string } {
+  const catalog = specAgentCatalog().agents
+  const agent = catalog.find((a) => a.name === from)
+  if (!agent) return { ok: false, error: `"${from}" is not an agent on this board.` }
+  const free = (name: string) =>
+    !taken.has(name) &&
+    !ROLE_NAMES.includes(name) &&
+    !catalog.some((a) => a.name === name) &&
+    ![AGENTS, LEGACY_AGENTS].some((root) => fs.existsSync(path.join(root, name)))
+  const base = from.replace(/-\d+$/, '')
+  let name = ''
+  for (let n = 2; !name; n++) if (free(`${base}-${n}`)) name = `${base}-${n}`
+  taken.add(name)
+  const dir = path.join(AGENTS, name)
+  try {
+    if (agent.dir) fs.cpSync(agent.dir, dir, { recursive: true })
+    else {
+      for (const [key, text] of Object.entries(BUNDLED_AGENT_FILES)) {
+        if (!key.startsWith(`${from}/`)) continue
+        const file = path.join(dir, key.slice(from.length + 1))
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, text)
+      }
+    }
+    const file = path.join(dir, agent.dir ? path.basename(agent.from) : AGENT_FILE)
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/^name:.*$/m, `name: ${name}`))
+    const rule = path.join(RULES, `${from}.md`)
+    if (fs.existsSync(rule)) fs.copyFileSync(rule, path.join(RULES, `${name}.md`))
+    if (fs.existsSync(agentMemoryDir(from))) fs.cpSync(agentMemoryDir(from), agentMemoryDir(name), { recursive: true })
+  } catch (err) {
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+  writeConfig((cfg) => {
+    for (const key of ['specAgents', 'agentRuntime']) {
+      const block = configBlock(cfg[key])
+      if (block[from] === undefined) continue
+      block[name] = structuredClone(block[from])
+      cfg[key] = block
+    }
+  })
+  return { ok: true, agent: name }
+}
+
 // ---- removing one -----------------------------------------------------------
 
 /** Delete one project agent, and everything the board kept for it: its folder, the rule
@@ -187,6 +239,7 @@ export function deleteAgent(name: string): WriteResult & { removed?: string[] } 
   // says, and refusing here would leave the pane reporting a failure it cannot undo.
   forgetSpecAgent(name)
   forgetAgentRuntime(name)
+  forgetWorkflowAgent(name)
   return { ok: true, removed }
 }
 

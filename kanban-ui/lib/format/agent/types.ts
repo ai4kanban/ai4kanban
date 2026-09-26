@@ -382,6 +382,7 @@ export type RunRefusalKind =
   | 'agentCannotHelp'
   | 'agentLeadNotHelper'
   | 'agentLeads'
+  | 'agentOtherWorkflow'
   | 'agentNotHelping'
   | 'minutes'
   | 'fileParse'
@@ -1791,12 +1792,13 @@ export type WorkflowStage = (typeof WORKFLOW_STAGES)[number]
 /** The stage that hands over a workflow's finished work (#1057). */
 export type DeliveryStage = 'plan' | 'execute'
 
-/** One helper assigned to one stage of one workflow, and what that assignment asks of it on
- *  top of the agent's own instructions. The extra belongs to the ASSIGNMENT — the same agent
- *  helping two workflows carries a different one in each. */
+/** One helper of one stage of one workflow, and what the workflow asks of it on top of the
+ *  agent's own instructions. An agent belongs to one workflow (#1095); `off` keeps it there
+ *  without running it. */
 export interface WorkflowHelper {
   agent: string
   extra: string
+  off?: boolean
 }
 
 /** One agent as a workflow picker offers it. The two lines are the roster's own, so the
@@ -1819,8 +1821,9 @@ export interface WorkflowStageView {
   stage: WorkflowStage
   /** The one agent that runs it, or empty when nobody does. */
   lead: string
+  /** Every helper this stage has, the disabled ones included. */
   helpers: WorkflowHelper[]
-  /** Every agent that could take this stage, in the roster's order. */
+  /** Every agent that could take this stage here — none that belongs to another workflow. */
   candidates: WorkflowCandidate[]
 }
 

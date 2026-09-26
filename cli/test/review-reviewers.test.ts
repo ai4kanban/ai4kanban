@@ -28,6 +28,7 @@ import {
   workflowById,
   workflowProblems,
 } from '../src/lib/agent/workflows.ts'
+import { copyAgent } from '../src/lib/agents/roster.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { RULES, setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { run as akb } from './helpers/board.ts'
@@ -165,7 +166,7 @@ describe('a workflow with no reviewers', () => {
     const id = unreviewed()
     card(1, id)
     open('implement', 1)
-    assert.equal(addWorkflowHelper(id, 'review', 'code-reviewer').ok, true)
+    assert.equal(addWorkflowHelper(id, 'review', copyAgent('code-reviewer').agent!).ok, true)
     assert.equal(activeDelivery(1)!.aiReview, false)
     assert.deepEqual(activeDelivery(1)!.workflow!.stages.review!.helpers, [])
   })
@@ -267,20 +268,23 @@ describe('a board saved before reviewers', () => {
     )
     const flow = workflowById('wf-2')!
     assert.equal(flow.stages.review.lead, '')
-    assert.deepEqual(flow.stages.review.helpers.map((h) => h.agent), ['code-reviewer', 'ui-checker'])
+    // Coding reviews with `code-reviewer` too, so this workflow gets its own copy (#1095).
+    assert.deepEqual(flow.stages.review.helpers.map((h) => h.agent), ['code-reviewer-2', 'ui-checker'])
     const saved = JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).workflows.stages['wf-2'].review
     assert.equal('lead' in saved, false)
     assert.deepEqual(saved.helpers, [
-      { agent: 'code-reviewer', extra: '' },
+      { agent: 'code-reviewer-2', extra: '' },
       { agent: 'ui-checker', extra: 'x' },
     ])
   })
 
   it('copies a workflow with its reviewers and never a review lead', () => {
     const copy = duplicateWorkflow('coding')
-    assert.deepEqual(workflowById(copy.id!)!.stages.review.helpers.map((h) => h.agent), ['code-reviewer'])
+    // Every agent is copied, the disabled ones too, and keeps whether it is on (#1095).
+    const reviewers = workflowById(copy.id!)!.stages.review.helpers
+    assert.deepEqual(reviewers.map((h) => [h.agent, !h.off]), [['code-reviewer-2', true], ['ui-checker-2', false]])
     const saved = JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).workflows.stages[copy.id!].review
     assert.equal('lead' in saved, false)
-    assert.match(setWorkflowLead(copy.id!, 'review', 'code-reviewer').error!, /no lead, only reviewers/)
+    assert.match(setWorkflowLead(copy.id!, 'review', 'code-reviewer-2').error!, /no lead, only reviewers/)
   })
 })

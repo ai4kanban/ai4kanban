@@ -35,7 +35,7 @@ export async function createWorkflow(name: string): Promise<WriteResult & { id?:
   return said(await rules.createWorkflow(name));
 }
 
-/** Copy one whole, assignments and extra requirements and all. `called` is what the screen
+/** Copy one whole, with a copy of each of its agents. `called` is what the screen
  *  the copy was asked for calls it — a built-in's name is the English the command ships, and
  *  the copy takes the reader's own words for it. */
 export async function duplicateWorkflow(
@@ -96,11 +96,16 @@ export async function addWorkflowHelper(id: string, stage: WorkflowStage, agent:
   return said(await rules.addWorkflowHelper(id, stage, agent));
 }
 
-/** End one helper's assignment to a stage. The agent itself is untouched. */
-export async function removeWorkflowHelper(id: string, stage: WorkflowStage, agent: string): Promise<WriteResult> {
+/** Enable or disable one of this workflow's agents (#1095). */
+export async function switchWorkflowAgent(
+  id: string,
+  stage: WorkflowStage,
+  agent: string,
+  on: boolean,
+): Promise<WriteResult> {
   const rules = await boardRules();
-  if (!rules.removeWorkflowHelper) return { ok: false, error: await tooOld() };
-  return said(await rules.removeWorkflowHelper(id, stage, agent));
+  if (!rules.switchWorkflowAgent) return { ok: false, error: await tooOld() };
+  return said(await rules.switchWorkflowAgent(id, stage, agent, on));
 }
 
 /** What THIS assignment asks of a helper, on top of its own instructions. */
