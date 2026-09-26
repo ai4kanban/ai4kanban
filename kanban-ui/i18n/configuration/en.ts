@@ -37,7 +37,7 @@ const en: ConfigurationCopy = {
     builtInDescriptions: {
       coding: "Plan, implement, and review software changes.",
       "hyperframes-video": "Approve a script, get a finished product video, and archive it when you are happy.",
-      "slide-deck": "Plan and create an editable PowerPoint presentation.",
+      "slide-deck": "Approve the slides, get an editable PowerPoint deck, and archive it when you are happy.",
     },
     about: (name) => `About ${name}`,
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
@@ -450,8 +450,6 @@ const en: ConfigurationCopy = {
           `Added to the end of every run ${agent} does while a product video is being made — "record every clip at 1920×1080, 30 fps".`,
         "deck-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
-        "deck-builder": () =>
-          'Added to the end of every Implement, Conflict and Run on a slide deck card — "name the file after the event date".',
       },
     },
     saved: "Saved",

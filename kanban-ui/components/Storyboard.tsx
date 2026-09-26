@@ -300,34 +300,12 @@ function Slide({ id, slide, page, current }: { id: string; slide: StoryboardSlid
         <div className="min-w-0 overflow-hidden rounded-[6px]">
           <Frame frame={slide.preview} missing={c.noPreview} />
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
-          {slide.copy.length > 0 && (
-            <div>
-              <div className="mb-1 font-[700]">{c.onSlide}</div>
-              {slide.copy.map((line, k) => (
-                <div key={k}>{line}</div>
-              ))}
-            </div>
-          )}
-          <div>
+        {slide.notes.trim() && (
+          <div className="min-w-0">
             <div className="mb-1 font-[700]">{c.notes}</div>
-            {slide.notes.trim() ? <div>{slide.notes}</div> : <div className="text-nb-ink-soft">{c.noNotes}</div>}
+            <div>{slide.notes}</div>
           </div>
-          <details className="group">
-            <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft focus-visible:outline-2 focus-visible:outline-nb-accent">
-              <FiChevronRight size={13} aria-hidden className="transition-transform group-open:rotate-90" />
-              {c.layout}
-            </summary>
-            <div className="mt-2 text-nb-ink-soft">
-              <div>{slide.layout}</div>
-              {slide.assets.map((asset, k) => (
-                <div key={k} className="break-all">
-                  {asset}
-                </div>
-              ))}
-            </div>
-          </details>
-        </div>
+        )}
       </div>
     </section>
   );

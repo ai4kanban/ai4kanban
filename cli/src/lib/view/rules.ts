@@ -59,22 +59,30 @@ export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => ques
 
 // ---- a card that finishes in planning (#1057) -------------------------------
 //
-// A product video is made while the card is planned: the user approves the script, planning
-// produces and checks the film, and the user archives the card to accept it. Nothing is built.
+// A product video or slide deck (#1075) is made while the card is planned: the user approves
+// it, planning produces and checks the file, and the user archives the card to accept it.
+// Nothing is built.
+
+/** The finished files a card finishing in planning delivers: a video or a PowerPoint deck. */
+export const PLAN_DELIVERABLE = /\.(mp4|webm|mov|m4v|pptx)$/i
 
 /** A question asking the user to approve the script — never answered on their behalf. */
 export const isApprovalQuestion = (q: Question): boolean => !!q.approves
 
 /** What a card finishing in planning still lacks before it can be archived, or null when it
- *  is done: nothing left to answer, a playable video `<Asset>` in its body, its re-render
- *  command in a ticked todo, and every todo ticked. */
-export function planDeliveryGap(card: Pick<Card, 'questions' | 'todos' | 'body'>): 'questions' | 'film' | 'command' | 'todos' | null {
+ *  is done: nothing left to answer, a deliverable `<Asset>` in its body, its rebuild command
+ *  in a ticked todo, and every todo ticked. */
+export function planDeliveryGap(card: Pick<Card, 'questions' | 'todos' | 'body'>): 'questions' | 'deliverable' | 'command' | 'todos' | null {
   if (openOf(card.questions).length > 0) return 'questions'
-  if (!/<Asset\s[^>]*src="[^"]+\.(mp4|webm|mov|m4v)"/i.test(card.body)) return 'film'
+  if (!planDeliverables(card.body).length) return 'deliverable'
   if (!/^[ \t]*[-*]\s+\[[xX]\].*`[^`]+`/m.test(card.body)) return 'command'
   const { total, done } = card.todos
   return total > 0 && done === total ? null : 'todos'
 }
+
+/** The `src` of every deliverable `<Asset>` in a card's body. */
+export const planDeliverables = (body: string): string[] =>
+  [...body.matchAll(/<Asset\s[^>]*src="([^"]+)"/gi)].map((m) => m[1]!).filter((src) => PLAN_DELIVERABLE.test(src))
 
 /** A card finishing in planning with more to do before it is archived. */
 const planUnfinished = (card: Card): boolean => card.deliversIn === 'plan' && planDeliveryGap(card) !== null
@@ -158,7 +166,7 @@ export function byDispatchOrder(a: Card, b: Card): number {
  * A card with no questions at all is refinable, and so is one with a freshly raised,
  * untagged question — that one still needs triage.
  *
- * A card finishing in planning (#1057) stays refinable, `ready` or ticked, until its film
+ * A card finishing in planning (#1057) stays refinable, `ready` or ticked, until its file
  * is done: planning is where it is made.
  *
  * Being blocked is deliberately NOT part of this. The follow-up skips a blocked card

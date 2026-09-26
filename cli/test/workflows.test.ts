@@ -121,7 +121,7 @@ describe('the workflows a board has', () => {
     assert.equal(workflowById('coding')!.name, 'Coding')
     assert.deepEqual(workflowProblems('coding'), [])
     const deck = workflowById('slide-deck')!
-    assert.deepEqual([deck.stages.plan.lead, deck.stages.execute.lead, deck.needsArtifact], ['deck-planner', 'deck-builder', true])
+    assert.deepEqual([deck.stages.plan.lead, deck.stages.execute.lead, deck.needsArtifact, deck.delivers], ['deck-planner', '', true, 'plan'])
     assert.deepEqual(workflowProblems('slide-deck'), [])
     // Nothing was written to make that true: a board that never opened the pane still runs.
     assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
@@ -142,7 +142,7 @@ describe('the workflows a board has', () => {
   })
 
   it('offers a stage only the agents that declare it', () => {
-    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'deck-builder', 'test-writer'])
+    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
@@ -703,7 +703,7 @@ describe('who may lead a stage (#846)', () => {
     assert.deepEqual(leads, ['software-planner', 'deck-planner', 'scriptwriter', 'outliner'])
     assert.deepEqual(
       stageCandidates('execute').filter((a) => a.canLead).map((a) => a.name),
-      ['builder', 'deck-builder', 'test-writer'],
+      ['builder', 'test-writer'],
     )
     assert.match(setWorkflowLead(mine.id!, 'plan', 'ui-designer').error!, /can only help/)
   })

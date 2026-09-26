@@ -30,7 +30,7 @@ const zh: ConfigurationCopy = {
     builtInDescriptions: {
       coding: "规划、实现并审查软件改动。",
       "hyperframes-video": "先确认脚本，再拿到成片，满意即可归档。",
-      "slide-deck": "规划并制作一份可编辑的 PowerPoint 演示文稿。",
+      "slide-deck": "先确认每页内容，再拿到可编辑的 PPT，满意即可归档。",
     },
     about: (name) => `${name}说明`,
     stages: { plan: "规划", execute: "执行", review: "评审" },
@@ -539,7 +539,6 @@ const zh: ConfigurationCopy = {
         scriptwriter: () => "会附加到产品视频卡片每一次新建、澄清和修订运行的末尾——例如「全片不超过 60 秒」。",
         "hyperframes-editor": (agent) => `会附加到制作产品视频时 ${agent} 每次运行的末尾——例如「录屏统一 1920×1080、30 帧」。`,
         "deck-planner": () => "会附加到演示文稿卡片每一次新建、澄清和修订运行的末尾——例如「全套不超过 12 页」。",
-        "deck-builder": () => "会附加到演示文稿卡片每一次开发、解冲突和执行运行的末尾——例如「文件名带上活动日期」。",
       },
     },
     saved: "已保存",

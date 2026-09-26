@@ -312,11 +312,11 @@ describe('archiving', () => {
   })
 
   for (const [what, spoil, words] of [
-    ['an open question', () => askApproval(), /open questions|script as it now reads/],
-    ['the film', () => fs.writeFileSync(file(), text().replace(FILM, '')), /no playable video/],
-    ['the re-render command', () => fs.writeFileSync(file(), text().replace('：`npm run render`', '')), /re-renders it/],
+    ['an open question', () => askApproval(), /open questions|not approved as it now reads/],
+    ['the film', () => fs.writeFileSync(file(), text().replace(FILM, '')), /no finished video or PowerPoint/],
+    ['the re-render command', () => fs.writeFileSync(file(), text().replace('：`npm run render`', '')), /rebuilds it/],
     ['a revision still open', () => fs.writeFileSync(file(), text().replace('## Todo\n', '## Todo\n\n- [ ] 按反馈缩短结尾并重新渲染')), /not every todo is ticked/],
-    ['the approved script', () => fs.writeFileSync(file(), text().replace('三步', '四步')), /script as it now reads is not approved/],
+    ['the approved script', () => fs.writeFileSync(file(), text().replace('三步', '四步')), /not approved as it now reads/],
     ['the file itself', () => fs.rmSync(path.join(ASSETS, '1', 'a-video.mp4')), /is not on this machine/],
   ] as const) {
     it(`is refused without ${what}`, async () => {
@@ -326,6 +326,36 @@ describe('archiving', () => {
       assert.equal(fs.existsSync(file()), true)
     })
   }
+
+  // A slide deck finishes the same way (#1075): the approved slides, the deck on disk.
+  const deck = async (): Promise<void> => {
+    write({ workflow: 'slide-deck', todos: ['- [x] 写好逐页文案', '- [x] 生成演示文稿：`npm run build`'] })
+    fs.writeFileSync(
+      file(),
+      text()
+        .replace('## By `scriptwriter` agent', '## By `deck-planner` agent')
+        .replace('<!-- agent -->', '<Asset src=".assets/1/a-deck.pptx" label="A deck" />\n\n<!-- agent -->'),
+    )
+    await askApproval()
+    await move(root, ['update-questions', '1', '--approve', '1'])
+    fs.mkdirSync(path.join(ASSETS, '1'), { recursive: true })
+    fs.writeFileSync(path.join(ASSETS, '1', 'a-deck.pptx'), 'pptx')
+  }
+
+  it('archives a finished slide deck, never builds it', async () => {
+    await deck()
+    const card = findCard(1)!
+    assert.equal(planDeliveryGap(card), null)
+    assert.equal(canImplement(card), false)
+    await move(root, ['archive', '1'])
+    assert.equal(fs.existsSync(file()), false)
+  })
+
+  it('refuses a slide deck whose .pptx is gone', async () => {
+    await deck()
+    fs.rmSync(path.join(ASSETS, '1', 'a-deck.pptx'))
+    await assert.rejects(() => move(root, ['archive', '1']), /a-deck\.pptx is not on this machine/)
+  })
 
   it('keeps a revision in planning until it is done again', async () => {
     await finished()

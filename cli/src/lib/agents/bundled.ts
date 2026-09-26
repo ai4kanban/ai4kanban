@@ -11,7 +11,6 @@
 
 import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
-import deckBuilder from '../../agents/deck-builder/AGENT.md'
 import deckPlanner from '../../agents/deck-planner/AGENT.md'
 import slidesExample from '../../agents/deck-planner/references/slides.example.json'
 import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
@@ -41,7 +40,6 @@ import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'code-reviewer/AGENT.md': codeReviewer,
   'copywriting/AGENT.md': copywriting,
-  'deck-builder/AGENT.md': deckBuilder,
   'deck-planner/AGENT.md': deckPlanner,
   'deck-planner/references/slides.example.json': slidesExample as unknown as string,
   'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,

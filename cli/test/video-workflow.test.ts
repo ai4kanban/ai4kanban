@@ -135,10 +135,9 @@ describe('the hyperframes-video workflow', () => {
 
   it("prints the lead's instructions on a board's own workflow too", async () => {
     const mine = createWorkflow('Clips').id!
-    assert.equal(setWorkflowLead(mine, 'plan', 'software-planner').ok, true)
-    assert.equal(setWorkflowLead(mine, 'execute', 'deck-builder').ok, true)
+    assert.equal(setWorkflowLead(mine, 'plan', 'deck-planner').ok, true)
     const id = (await move(root, ['create', '--title', 'A clip', '--workflow', mine])).id as number
-    assert.match(printed('implement', id), /you, the `deck-builder` agent/)
+    assert.match(printed('refine', id), /you, the `deck-planner` agent/)
     assert.doesNotMatch(printed('refine', id), /you, the `scriptwriter` agent/)
   })
 })

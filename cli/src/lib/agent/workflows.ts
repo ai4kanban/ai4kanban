@@ -126,9 +126,9 @@ interface BuiltinWorkflow {
 // helpers are the specialists the command ships — each joins only when its own applicability
 // says so, which is why neither is required.
 //
-// `hyperframes-video` is one product video per card (#822, #1057), finished and checked during
-// planning; `slide-deck` one editable `.pptx` (#969). Their leads are `lead` agents the command
-// ships.
+// `hyperframes-video` is one product video per card (#822, #1057) and `slide-deck` one editable
+// `.pptx` (#969, #1075), each finished and checked during planning. Their leads are `lead` agents
+// the command ships.
 const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
@@ -155,11 +155,12 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'slide-deck',
     name: 'Slide deck',
-    description: 'Plan and create an editable PowerPoint presentation.',
+    description: 'Approve the slides, get an editable PowerPoint deck, and archive it when you are happy.',
     needsArtifact: true,
+    delivers: 'plan',
     stages: {
       plan: { lead: 'deck-planner', helpers: [] },
-      execute: { lead: 'deck-builder', helpers: [] },
+      execute: { lead: '', helpers: [] },
       review: { lead: '', helpers: [] },
     },
   },

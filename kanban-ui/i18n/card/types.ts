@@ -314,10 +314,7 @@ export type CardCopy = {
     slidesHeading: string;
     pages: (slides: number) => string;
     slidesTimeline: string;
-    onSlide: string;
     notes: string;
-    noNotes: string;
-    layout: string;
     noPreview: string;
     emptySlides: string;
   };
