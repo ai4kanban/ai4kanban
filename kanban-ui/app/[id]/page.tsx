@@ -1,4 +1,5 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import ArchivePage from "@/app/archive/[id]/page";
 import { CardWindow } from "@/components/CardWindow";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
@@ -38,11 +39,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
   // Off the board is not the same as gone. A delivery that landed archives its card in the
   // same breath (#380), so a bell row saying "Landed" — and every card link beside it —
-  // arrives here for a card whose page is now the archive's. Send it there rather than
-  // showing "no such card" for one the board finished.
+  // arrives here for a card whose page is now the archive's. Draw that page in place:
+  // redirecting there crashes Next's router on the second client visit (#1064).
   if (!screen) {
     const archived = await readArchivedCard(cardId).catch(() => null);
-    if (archived) redirect(`/archive/${cardId}`);
+    if (archived) return <ArchivePage params={params} />;
     notFound();
   }
 
