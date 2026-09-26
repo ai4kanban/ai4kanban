@@ -23,6 +23,8 @@ export type Tier = {
   /** ` / session`, ` / month`. */
   per: string;
   rows: Point[];
+  /** Scrolls to the week with this service chosen on the form. */
+  cta: string;
 };
 
 export type TrainingCopy = {
@@ -31,15 +33,14 @@ export type TrainingCopy = {
     eyebrow: string;
     title: string;
     lead: string;
-    /** The page's one call to action: it scrolls to the week. */
+    /** Scrolls to the week. */
     cta: string;
-    /** The side panel: what the guidance walks through, in order. */
-    stepsTitle: string;
-    steps: string[];
+    /** The board screenshot beside the offer. */
+    shotAlt: string;
   };
-  /** 01 — why a project does not ship. */
+  /** Why a project does not ship. */
   stuck: { heading: Heading; items: Point[] };
-  /** 02 — what the work is aimed at. */
+  /** What the work is aimed at. */
   outcome: {
     heading: Heading;
     lead: string;
@@ -47,11 +48,13 @@ export type TrainingCopy = {
     /** The one case: this project's own development. */
     note: string;
   };
-  /** 03 — what a session covers. */
+  /** What a session covers. */
   guidance: { heading: Heading; points: Point[] };
-  /** 04 — the two services and their prices. */
+  /** Who runs the sessions. `link` goes to /builder, which is English only. */
+  coach: { heading: Heading; body: string; link: string };
+  /** The two services and their prices. */
   tiers: { heading: Heading; lead: string; single: Tier; monthly: Tier };
-  /** 05 — the week, the form, and every state either can be in. */
+  /** The week, the form, and every state either can be in. */
   booking: {
     heading: Heading;
     thisWeek: string;

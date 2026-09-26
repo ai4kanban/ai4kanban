@@ -1,44 +1,70 @@
 import type { ReactNode } from "react";
-import { PixelMark } from "@/components/ui/PixelMark";
 import { Button } from "@/components/ui/Button";
-import { SectionHeading } from "@/components/SectionHeading";
-import { heroTop } from "@/components/styles";
-import type { TrainingCopy } from "@/i18n/training/types";
+import { column, framed, heroTop, panelInset, panelStatic } from "@/components/styles";
+import type { TrainingCopy, Tier } from "@/i18n/training/types";
+import { BUILDER_PATH } from "@/components/social";
+import { BOOKING_ANCHOR, BookButton } from "./BookButton";
 
-// Everything on the training page above the week: the offer, why a project
-// stalls, what the work is aimed at, what a session covers, and the two prices.
-//
-// All of it renders on the server. The booking flow is the one client island on
-// the page (`Booking.tsx`), because it is the only part that needs to know what
-// zone the reader is in.
+// Everything on the training page above the week, server-rendered. The booking
+// flow is the page's one client island (`Booking.tsx`); the price-card buttons
+// reach it through `BookButton`.
 
-export const BOOKING_ANCHOR = "booking";
+/** The apricot the monthly card head and an open hour share. */
+export const apricot = "bg-[#fbe8d3]";
 
-/** The page's one list shape: a bold lead-in, an em dash, the sentence. */
-function Point({ lead, children }: { lead: string; children: ReactNode }) {
+const BOARD_SHOT = "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-board-view.jpg";
+const PORTRAIT = "https://cdn.dist0.com/images/tao.avatar.jpg";
+
+const gap = "mt-20 sm:mt-24";
+
+export function Heading({
+  eyebrow,
+  title,
+  dark = false,
+}: {
+  eyebrow: string;
+  title: string;
+  dark?: boolean;
+}) {
   return (
-    <li className="flex gap-3">
-      <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-      <span>
-        <span className="font-semibold text-ink">{lead}</span>
-        <span className="text-muted"> — {children}</span>
-      </span>
-    </li>
+    <div>
+      <div className="flex items-center gap-3">
+        <span className="h-5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+        <span
+          className={`font-mono text-xs font-semibold uppercase tracking-[0.2em] ${dark ? "text-accent" : "text-accent-deep"}`}
+        >
+          {eyebrow}
+        </span>
+      </div>
+      <h2 className="mt-3 text-[1.7rem] font-bold leading-tight tracking-tight sm:text-3xl">
+        {title}
+      </h2>
+    </div>
   );
 }
 
-/**
- * The opening. The side panel is the shape of the engagement rather than a
- * second pitch: four steps in order, so a reader sees what an hour buys before
- * they read a price.
- *
- * One call to action, and it scrolls to the week. The whole page has exactly one
- * way to book, so there is nothing to choose between before you know what this
- * is.
- */
-function Hero({ t }: { t: TrainingCopy }) {
+/** A full-bleed block with hard edges. */
+export function Banded({
+  dark = false,
+  className = "",
+  children,
+}: {
+  dark?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <section className={`grid items-center gap-10 ${heroTop} lg:grid-cols-[1.5fr_1fr] lg:gap-16`}>
+    <div className={`${dark ? "bg-ink text-elev" : "bg-band"} ${className}`}>
+      <div className={`${column} py-12 sm:py-16`}>{children}</div>
+    </div>
+  );
+}
+
+export function Hero({ t }: { t: TrainingCopy }) {
+  return (
+    <section
+      className={`grid items-center gap-10 ${heroTop} lg:grid-cols-[1fr_1.25fr] lg:gap-14`}
+    >
       <div>
         <p className="font-mono text-xs font-semibold tracking-widest text-accent-deep">
           {t.hero.eyebrow}
@@ -47,151 +73,189 @@ function Hero({ t }: { t: TrainingCopy }) {
           {t.hero.title}
         </h1>
         <p className="mt-6 max-w-xl text-[1.05rem] leading-relaxed text-muted">{t.hero.lead}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="mt-8">
           <Button href={`#${BOOKING_ANCHOR}`} variant="primary">
             {t.hero.cta}
           </Button>
         </div>
       </div>
+      <div className={`${panelInset} p-2`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={BOARD_SHOT}
+          alt={t.hero.shotAlt}
+          loading="eager"
+          fetchPriority="high"
+          className="block w-full rounded-lg"
+        />
+      </div>
+    </section>
+  );
+}
 
-      <div className="rounded-2xl bg-band px-8 py-7">
-        <PixelMark />
-        <p className="mt-5 text-xl font-bold">{t.hero.stepsTitle}</p>
-        <ol className="mt-6 space-y-4">
-          {t.hero.steps.map((step, index) => (
-            <li key={step} className="flex items-center gap-4">
-              <span className="font-mono text-xs text-accent-deep">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span className="text-[0.95rem] text-ink">{step}</span>
-            </li>
+export function Stuck({ t }: { t: TrainingCopy }) {
+  return (
+    <section className={gap}>
+      <Heading {...t.stuck.heading} />
+      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+        {t.stuck.items.map((item) => (
+          <div
+            key={item.lead}
+            className="rounded-xl bg-band px-6 py-6 shadow-[4px_4px_0_0_var(--color-ink)]"
+          >
+            <p className="text-lg font-bold leading-snug text-ink">{item.lead}</p>
+            <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The numbers are goals, and the note under them says whose: this project's own
+ * development, never a customer result.
+ */
+export function Outcome({ t }: { t: TrainingCopy }) {
+  return (
+    <Banded dark className={gap}>
+      <section>
+        <Heading {...t.outcome.heading} dark />
+        <p className="mt-3 text-base text-elev/70">{t.outcome.lead}</p>
+        <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-0 md:divide-x-2 md:divide-elev/15">
+          {t.outcome.metrics.map((metric) => (
+            <div key={metric.unit} className="md:px-8 md:first:pl-0">
+              <p className="flex flex-wrap items-baseline gap-x-2">
+                <span className="text-5xl font-bold tracking-tight text-accent sm:text-6xl">
+                  {metric.value}
+                </span>
+                <span className="text-sm font-semibold text-elev/80">{metric.unit}</span>
+              </p>
+              <p className="mt-3 text-[0.95rem] leading-relaxed text-elev/70">{metric.body}</p>
+            </div>
           ))}
-        </ol>
-      </div>
-    </section>
+        </div>
+        <p className="mt-10 border-t-2 border-elev/15 pt-6 text-[0.95rem] leading-relaxed">
+          {t.outcome.note}
+        </p>
+      </section>
+    </Banded>
   );
 }
 
-/** 01 — the three ways a solo project stops short of shipping. */
-function Stuck({ t }: { t: TrainingCopy }) {
+export function Guidance({ t }: { t: TrainingCopy }) {
   return (
-    <section className="mt-10 pb-8">
-      <SectionHeading num="01" eyebrow={t.stuck.heading.eyebrow} title={t.stuck.heading.title} />
-      <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-        {t.stuck.items.map((item, index) => (
-          <div key={item.lead} className="py-3 pr-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
-              {String(index + 1).padStart(2, "0")}
-            </p>
-            <p className="mt-3 font-semibold text-ink">{item.lead}</p>
-            <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{item.body}</p>
-          </div>
+    <section className={gap}>
+      <Heading {...t.guidance.heading} />
+      <ul className="mt-8 grid grid-cols-1 gap-x-12 gap-y-5 leading-relaxed md:grid-cols-2">
+        {t.guidance.points.map((point) => (
+          <li key={point.lead} className="flex gap-3">
+            <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <span>
+              <span className="font-semibold text-ink">{point.lead}</span>
+              <span className="text-muted"> — {point.body}</span>
+            </span>
+          </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+export function Coach({ t }: { t: TrainingCopy }) {
+  return (
+    <section className={`${gap} sm:grid sm:grid-cols-[174px_1fr] sm:items-center sm:gap-12`}>
+      <div className={`${panelInset} h-28 w-28 overflow-hidden p-2 sm:h-[174px] sm:w-[174px]`}>
+        {/* The portrait /builder uses, at its canonical URL. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={PORTRAIT}
+          alt="Tao Wu"
+          width={174}
+          height={174}
+          loading="lazy"
+          className="block aspect-square h-full w-full rounded-lg object-cover"
+        />
+      </div>
+      <div className="mt-6 sm:mt-0">
+        <Heading {...t.coach.heading} />
+        <p className="mt-4 max-w-2xl leading-relaxed text-muted">{t.coach.body}</p>
+        <a
+          href={BUILDER_PATH}
+          className="mt-5 inline-block font-semibold text-ink underline decoration-accent decoration-2 underline-offset-[3px]"
+        >
+          {t.coach.link}
+        </a>
       </div>
     </section>
   );
 }
 
-/**
- * 02 — what the work is aimed at.
- *
- * The numbers are goals, and the line under the row says whose: this project's
- * own development is the worked example, and nothing here is offered as a
- * customer result or a promise about anybody else's.
- */
-function Outcome({ t }: { t: TrainingCopy }) {
+function Check() {
   return (
-    <section className="mt-8">
-      <SectionHeading
-        num="02"
-        eyebrow={t.outcome.heading.eyebrow}
-        title={t.outcome.heading.title}
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-accent-deep">
+      <path
+        d="M20 6 9 17l-5-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <p className="mt-3 text-base text-muted">{t.outcome.lead}</p>
-      <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-3">
-        {t.outcome.metrics.map((metric) => (
-          <div key={metric.unit} className="py-4 pr-7">
-            <p className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-5xl font-bold tracking-tight text-ink">{metric.value}</span>
-              <span className="text-sm font-semibold text-muted">{metric.unit}</span>
-            </p>
-            <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">{metric.body}</p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-4 text-[0.95rem] leading-relaxed text-ink">{t.outcome.note}</p>
-    </section>
+    </svg>
   );
 }
 
-/**
- * 03 — what a session covers.
- *
- * The number and the H2 sit outside the filled block, left-aligned with every
- * heading above them: the wash carries the four items and nothing else, so the
- * section reads as one more chapter rather than a card that broke the column.
- */
-function Guidance({ t }: { t: TrainingCopy }) {
-  const [first, second] = [t.guidance.points.slice(0, 2), t.guidance.points.slice(2)];
+function TierCard({
+  tier,
+  service,
+}: {
+  tier: Tier;
+  service: "single" | "monthly";
+}) {
+  const monthly = service === "monthly";
   return (
-    <section className="mt-10">
-      <SectionHeading
-        num="03"
-        eyebrow={t.guidance.heading.eyebrow}
-        title={t.guidance.heading.title}
-      />
-      <div className="mt-6 grid grid-cols-1 gap-x-12 gap-y-4 rounded-2xl bg-band px-6 py-6 md:grid-cols-2">
-        {[first, second].map((column, index) => (
-          <ul key={index} className="space-y-4 text-[0.95rem] leading-relaxed">
-            {column.map((point) => (
-              <Point key={point.lead} lead={point.lead}>
-                {point.body}
-              </Point>
-            ))}
-          </ul>
-        ))}
+    <div className={`${panelStatic} ${framed} flex flex-col overflow-hidden`}>
+      <div className={`px-6 py-7 sm:px-8 ${monthly ? apricot : "bg-band"}`}>
+        <p className="font-mono text-xs font-semibold tracking-widest text-accent-deep">
+          {tier.eyebrow}
+        </p>
+        <h3 className="mt-3 text-2xl font-bold tracking-tight">{tier.name}</h3>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{tier.body}</p>
+        <p className="mt-6 flex items-baseline gap-1.5">
+          <span className="text-5xl font-bold tracking-tight">{tier.price}</span>
+          <span className="text-[0.95rem] text-muted">{tier.per.trim()}</span>
+        </p>
       </div>
-    </section>
+      <ul className="flex-1 divide-y divide-ink/10 px-6 py-3 sm:px-8">
+        {tier.rows.map((row) => (
+          <li key={row.lead} className="flex gap-3 py-4">
+            <Check />
+            <div className="min-w-0">
+              <p className="font-semibold">{row.lead}</p>
+              <p className="mt-1 text-[0.95rem] leading-relaxed text-muted">{row.body}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="px-6 pb-8 sm:px-8">
+        <BookButton service={service} variant={monthly ? "primary" : "secondary"}>
+          {tier.cta}
+        </BookButton>
+      </div>
+    </div>
   );
 }
 
-/**
- * 04 — the two services, priced on the page.
- *
- * Neither carries a button. The page has one way to book and it is the week
- * below; which service you are booking is a field on the form, where it can name
- * the hour it is actually taking.
- */
-function Tiers({ t }: { t: TrainingCopy }) {
+export function Tiers({ t }: { t: TrainingCopy }) {
   return (
-    <section className="mt-12 pb-10">
-      <SectionHeading num="04" eyebrow={t.tiers.heading.eyebrow} title={t.tiers.heading.title} />
-      <p className="mt-2 max-w-2xl text-[0.95rem] leading-relaxed text-muted">{t.tiers.lead}</p>
-
-      <div className="mt-8 grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-16">
-        {[t.tiers.single, t.tiers.monthly].map((tier) => (
-          <div key={tier.name} className="py-4">
-            <p className="font-mono text-xs font-semibold tracking-widest text-accent-deep">
-              {tier.eyebrow}
-            </p>
-            <h3 className="mt-4 text-xl font-bold">{tier.name}</h3>
-            <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{tier.body}</p>
-            <p className="mt-5">
-              <span className="text-4xl font-bold tracking-tight text-ink">{tier.price}</span>
-              <span className="text-[0.95rem] text-muted">{tier.per}</span>
-            </p>
-            <ul className="mt-5 space-y-3 text-[0.95rem] leading-relaxed">
-              {tier.rows.map((row) => (
-                <Point key={row.lead} lead={row.lead}>
-                  {row.body}
-                </Point>
-              ))}
-            </ul>
-          </div>
-        ))}
+    <section className={gap}>
+      <Heading {...t.tiers.heading} />
+      <p className="mt-3 max-w-2xl text-[0.95rem] leading-relaxed text-muted">{t.tiers.lead}</p>
+      <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-10">
+        <TierCard tier={t.tiers.single} service="single" />
+        <TierCard tier={t.tiers.monthly} service="monthly" />
       </div>
     </section>
   );
 }
-
-export { Hero, Stuck, Outcome, Guidance, Tiers };

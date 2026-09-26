@@ -51,7 +51,7 @@ export function BookingResult({
       </h2>
       <p className="mt-4 text-muted">{cancelled ? t.result.cancelledLead : t.result.lead}</p>
 
-      <dl className="mt-7 space-y-5 rounded-xl bg-band p-6 text-sm">
+      <dl className="mt-7 space-y-5 rounded-xl bg-elev p-6 text-sm">
         <Row label={t.result.service}>{service.replace("{price}", price)}</Row>
         <Row label={t.result.when}>
           {slotLabel(startsAt, zone, locale)}

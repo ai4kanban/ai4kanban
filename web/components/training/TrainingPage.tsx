@@ -5,7 +5,7 @@ import { getCopy } from "@/i18n";
 import { getTrainingCopy, type TrainingLocale } from "@/i18n/training";
 import { ORG_ID, jsonLd, pageUrl, webPage } from "@/lib/schema";
 import { Booking } from "./Booking";
-import { Guidance, Hero, Outcome, Stuck, Tiers } from "./Sections";
+import { Banded, Coach, Guidance, Hero, Outcome, Stuck, Tiers } from "./Sections";
 
 export const PATH = "/training";
 
@@ -55,11 +55,17 @@ export function TrainingPage({ locale }: { locale: TrainingLocale }) {
         <div className={column}>
           <Hero t={t} />
           <Stuck t={t} />
-          <Outcome t={t} />
-          <Guidance t={t} />
-          <Tiers t={t} />
-          <Booking t={t} locale={locale} />
         </div>
+        <Outcome t={t} />
+        <div className={column}>
+          <Guidance t={t} />
+          <Coach t={t} />
+          <Tiers t={t} />
+        </div>
+        {/* The negative margin cancels the footer's own, so the band meets it. */}
+        <Banded className="mt-20 -mb-28 sm:mt-24">
+          <Booking t={t} locale={locale} />
+        </Banded>
       </main>
       <SiteFooter c={copy} locale={locale} path={PATH} />
     </>

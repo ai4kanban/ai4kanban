@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { TrainingCopy } from "@/i18n/training/types";
+import { apricot } from "./Sections";
 import {
   clock,
   focusHour,
@@ -85,7 +86,7 @@ export function WeekGrid({
     <>
       <div
         ref={scroller}
-        className="mt-3 max-h-[520px] overflow-auto rounded-xl border-2 border-border"
+        className="mt-3 max-h-[520px] overflow-auto rounded-xl border-2 border-border bg-elev"
       >
         <table className="w-full min-w-[720px] table-fixed border-collapse text-center text-xs">
           <caption className="sr-only">{t.booking.gridLabel}</caption>
@@ -136,7 +137,7 @@ export function WeekGrid({
                       {cell.length === 0 ? (
                         <span className="sr-only">{t.booking.unavailable}</span>
                       ) : (
-                        <div className="flex h-8 items-stretch gap-px">
+                        <div className="flex h-8 items-stretch divide-x divide-ink/10">
                           {cell.map((slot) => (
                             <Cell
                               key={slot.at}
@@ -171,15 +172,15 @@ export function WeekGrid({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
         <span className="flex items-center gap-2">
-          <span aria-hidden="true" className="inline-block h-3 w-3 border-2 border-border bg-elev" />
+          <span aria-hidden="true" className={`inline-block h-3 w-3 ${apricot}`} />
           {t.booking.open}
         </span>
         <span className="flex items-center gap-2">
-          <span aria-hidden="true" className="inline-block h-3 w-3 border-2 border-ink/20 bg-code" />
+          <span aria-hidden="true" className="inline-block h-3 w-3 bg-code" />
           {t.booking.booked}
         </span>
         <span className="flex items-center gap-2">
-          <span aria-hidden="true" className="inline-block h-3 w-3 bg-band" />
+          <span aria-hidden="true" className="inline-block h-3 w-3 border border-ink/10 bg-band" />
           {t.booking.unavailable}
         </span>
         <span>{t.booking.legendHint}</span>
@@ -227,7 +228,7 @@ function Cell({
       type="button"
       onClick={() => onPick(slot)}
       aria-label={`${named(t.booking.openAria)}${showOffset ? ` ${slot.offsetLabel}` : ""}`}
-      className="flex flex-1 cursor-pointer items-center justify-center border-2 border-border bg-elev text-[0.7rem] font-semibold text-accent-deep transition-colors hover:bg-accent hover:text-elev focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+      className={`flex flex-1 cursor-pointer items-center justify-center ${apricot} text-[0.7rem] font-semibold text-accent-deep transition-colors hover:bg-accent hover:text-elev focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent`}
     >
       {showOffset ? slot.offsetLabel : t.booking.open}
     </button>

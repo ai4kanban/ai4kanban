@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { SectionHeading } from "@/components/SectionHeading";
 import type { TrainingCopy } from "@/i18n/training/types";
+import { BOOKING_ANCHOR, CHOOSE_SERVICE } from "./BookButton";
 import { BookingForm } from "./BookingForm";
 import { BookingResult } from "./BookingResult";
-import { BOOKING_ANCHOR } from "./Sections";
+import { Heading } from "./Sections";
 import { WeekGrid } from "./WeekGrid";
 import {
   cancelBooking,
@@ -14,7 +14,7 @@ import {
   readBooking,
   submitBooking,
 } from "./api";
-import { initialState, reducer, validate } from "./state";
+import { initialState, reducer, validate, type ServiceId } from "./state";
 import type { PlacedSlot, Slot, Week } from "./week";
 import { browserZone, currentWeek, weekLabel } from "./week";
 
@@ -102,6 +102,14 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
     return () => {
       live = false;
     };
+  }, []);
+
+  // A price card's button chooses the service, before or after an hour is picked.
+  useEffect(() => {
+    const choose = (event: Event) =>
+      dispatch({ type: "edit", patch: { service: (event as CustomEvent<ServiceId>).detail } });
+    window.addEventListener(CHOOSE_SERVICE, choose);
+    return () => window.removeEventListener(CHOOSE_SERVICE, choose);
   }, []);
 
   // 3. Which week is it, here? Rechecked on a timer so a page open across the
@@ -216,12 +224,14 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
   };
 
   return (
-    <section id={BOOKING_ANCHOR} className="mt-14 scroll-mt-24">
-      <SectionHeading num="05" eyebrow={t.booking.heading.eyebrow} title={t.booking.heading.title} />
+    <section id={BOOKING_ANCHOR} className="scroll-mt-24">
+      <div className="mb-8">
+        <Heading {...t.booking.heading} />
+      </div>
 
       {manageState === "loading" && <Placeholder>{t.result.manageLoading}</Placeholder>}
       {manageState === "failed" && (
-        <p role="status" className="mt-4 rounded-lg bg-band px-4 py-3 text-sm">
+        <p role="status" className="mt-4 rounded-lg bg-elev px-4 py-3 text-sm">
           {t.result.manageFailed}
         </p>
       )}
@@ -264,7 +274,7 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
       ) : !zone ? (
         // The browser would not say. Rather than guessing — and drawing a week
         // in the wrong day — the reader picks.
-        <div className="mt-4 max-w-md rounded-xl bg-band px-5 py-4">
+        <div className="mt-4 max-w-md rounded-xl bg-elev px-5 py-4">
           <p className="text-sm">{t.booking.zonePrompt}</p>
           <label className="mt-3 block text-sm font-semibold">
             {t.booking.zoneLabel}
@@ -313,7 +323,7 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
           ) : (
             <>
               {load.slots.every((slot) => slot.state !== "open") && (
-                <p role="status" className="mt-4 rounded-lg bg-band px-4 py-3 text-sm">
+                <p role="status" className="mt-4 rounded-lg bg-elev px-4 py-3 text-sm">
                   {t.booking.empty}
                 </p>
               )}
@@ -339,7 +349,7 @@ function Placeholder({ children }: { children: React.ReactNode }) {
   return (
     <div
       role="status"
-      className="mt-4 flex h-40 items-center justify-center rounded-xl bg-band text-sm text-muted"
+      className="mt-4 flex h-40 items-center justify-center rounded-xl bg-elev text-sm text-muted"
     >
       {children}
     </div>

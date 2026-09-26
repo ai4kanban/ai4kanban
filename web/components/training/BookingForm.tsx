@@ -63,7 +63,7 @@ export function BookingForm({
 
       {/* The hour, restated in the reader's own words. The coach's clock is
           nowhere on this page. */}
-      <div className="mt-5 rounded-xl bg-band px-5 py-4">
+      <div className="mt-5 rounded-xl bg-elev px-5 py-4">
         <p className="font-semibold">{slotLabel(slot.startsAt, zone, locale)}</p>
         <p className="mt-1 text-sm text-muted">{t.booking.zoneNote.replace("{zone}", zone)}</p>
       </div>
