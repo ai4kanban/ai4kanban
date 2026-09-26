@@ -106,7 +106,6 @@
   border: 1.5px solid var(--color-nb-ink);
   border-radius: 12px;
   box-shadow: 3px 3px 0 0 var(--color-nb-ink);
-  overflow-x: auto;
   font-size: 0.86em;
   line-height: 1.6;
 }
@@ -116,14 +115,14 @@
   padding: 0;
   border-radius: 0;
   font-size: inherit;
-  white-space: pre;
+  /* A long line wraps rather than scrolls (#1088); a URL or hash breaks anywhere. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-/* ```diff — the Diff tab's bands; each line runs out to the block's edges however far it scrolls. */
+/* ```diff — the Diff tab's bands; each line's band covers all of its wrapped rows. */
 .nb-md pre code.nb-diff {
   display: block;
-  width: max-content;
-  min-width: 100%;
 }
 .nb-md .nb-diff > span {
   display: block;

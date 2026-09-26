@@ -235,10 +235,7 @@ function Anchor({ href, children, node }: { href?: string; children?: React.Reac
 
 /** A fenced block with a copy button in its corner, for the one place a copy button
  *  belongs: a reply in the chat rail (#269). Everywhere else the same markdown is drawn
- *  without it — a card's body, a memory file and a run's log are read, not lifted.
- *
- *  The button is outside the `pre`, which scrolls sideways, so it stays in the corner
- *  however wide the code is. */
+ *  without it — a card's body, a memory file and a run's log are read, not lifted. */
 function CopyPre({ node, children, ...rest }: React.ComponentProps<"pre"> & ExtraProps) {
   const c = useCopy();
   const { copied, copy } = useCopyText();
