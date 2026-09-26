@@ -46,3 +46,14 @@ target — nothing else. Label each target with its file only.
 - **Scannable Markdown**: keep headings and lists where they help; bullets read
   `- **bold title**: one liner`.
 - **Professional and comprehensible**: plain, clear language.
+
+## Memory
+
+- **File**: keep lasting project-specific prompt-writing preferences, decisions, and
+  corrections in `docs/kanban/memory/agents/prompt-writer/rules.md`, under the card's module
+  heading, marking project-wide or prompt-specific scope.
+- **Apply**: read applicable rules before drafting; a missing file means no saved rules, and
+  current user requests and applicable project instructions take precedence.
+- **Maintain**: record only lessons that change future writing when board rules allow memory
+  writes; create the file on the first useful note, merge duplicates, replace superseded
+  rules, and omit raw feedback, run history, and existing instructions.
