@@ -17,6 +17,7 @@ import type {
   MemoryFile,
   MetricsResult,
   ScreenBoard,
+  UsageResult,
   SetupDraft,
   SetupState,
   SignalInbox,
@@ -284,12 +285,23 @@ export async function readReleases(): Promise<string[]> {
   }
 }
 
-/** The last 30 days of `docs/kanban/metrics.csv`. A failure comes back as `{ ok:false }`
+/** The last `days` of `docs/kanban/metrics.csv`. A failure comes back as `{ ok:false }`
  *  rather than as an empty chart: telling someone with a damaged file that they have no
  *  activity would read as their history being gone. */
-export async function readMetrics(): Promise<MetricsResult> {
+export async function readMetrics(days: number): Promise<MetricsResult> {
   try {
-    return await (await boardRules()).readMetricsView();
+    return await (await boardRules()).readMetricsView(days);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** What runs and chats consumed on this machine over the last `days`, by connector and model. */
+export async function readUsage(days: number): Promise<UsageResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.readUsageView) return { ok: false, error: "This board's akb is too old to report usage." };
+    return rules.readUsageView(days);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

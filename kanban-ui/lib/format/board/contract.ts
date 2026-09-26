@@ -174,7 +174,7 @@ export interface BoardProvider {
   readMemoryOwners(): Promise<MemoryOwner[]>
   readSetupState(): Promise<SetupState | null>
   readSetupDraft(): Promise<SetupDraft>
-  readMetricsView(): Promise<MetricsResult>
+  readMetricsView(days?: number): Promise<MetricsResult>
   fillPlan(): Promise<FillPlan>
   closePlan(id: string): Promise<ClosePlan>
   dropPlan(id: string): Promise<DropPlan>

@@ -268,7 +268,7 @@ export function localBoard(): BoardProvider {
     readMemoryOwners: () => Promise.resolve(readMemoryOwners()),
     readSetupState: () => Promise.resolve(readSetupState()),
     readSetupDraft: () => Promise.resolve(readSetupDraft()),
-    readMetricsView: () => Promise.resolve(readMetricsView()),
+    readMetricsView: (days) => Promise.resolve(readMetricsView(days)),
 
     fillPlan: () =>
       read(

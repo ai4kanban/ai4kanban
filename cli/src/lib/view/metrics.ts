@@ -38,23 +38,25 @@ function count(cell: string | undefined): number {
 }
 
 /** The window, every day at zero. */
-function blankDays(): Map<string, MetricsDay> {
+function blankDays(span: number): Map<string, MetricsDay> {
   const days = new Map<string, MetricsDay>()
-  for (let i = METRICS_WINDOW_DAYS - 1; i >= 0; i--) {
+  for (let i = span - 1; i >= 0; i--) {
     const date = localDay(-i)
     days.set(date, { date, completed: 0, created: 0, rejected: 0 })
   }
   return days
 }
 
-function view(days: Map<string, MetricsDay>, empty: boolean): MetricsResult {
+function view(days: Map<string, MetricsDay>): MetricsResult {
   const list = [...days.values()]
   const totals = { completed: 0, created: 0, rejected: 0 }
   for (const day of list) for (const c of COUNTS) totals[c] += day[c]
-  return { ok: true, view: { days: list, totals, empty } }
+  return { ok: true, view: { days: list, totals, empty: COUNTS.every((c) => totals[c] === 0) } }
 }
 
-export function readMetricsView(): MetricsResult {
+/** The last `span` days, today included. */
+export function readMetricsView(span: number = METRICS_WINDOW_DAYS): MetricsResult {
+  span = Math.min(366, Math.max(1, Math.floor(span) || METRICS_WINDOW_DAYS))
   let text: string
   try {
     text = fs.readFileSync(METRICS, 'utf8')
@@ -62,7 +64,7 @@ export function readMetricsView(): MetricsResult {
     // No file at all is the one honest empty: a board that has never recorded anything. A
     // directory in its place, no permission to read it, bad bytes — those are failures, and
     // the user needs to know which file to look at.
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return view(blankDays(), true)
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return view(blankDays(span))
     const why = e instanceof Error ? e.message : String(e)
     return { ok: false, error: `Could not read ${METRICS} — ${why}` }
   }
@@ -90,7 +92,7 @@ export function readMetricsView(): MetricsResult {
   }
   const dateAt = header.indexOf(DATE)
 
-  const days = blankDays()
+  const days = blankDays(span)
   const body = rows.slice(1)
   for (const line of body) {
     const cells = line.split(',')
@@ -99,7 +101,5 @@ export function readMetricsView(): MetricsResult {
     for (const c of COUNTS) day[c] += count(cells[at[c]])
   }
 
-  // A header alone is a board that has recorded nothing yet — the header is written the
-  // first time anything touches the file.
-  return view(days, body.length === 0)
+  return view(days)
 }

@@ -41,6 +41,7 @@ kept out of git by hand.
   board.json      which board this folder is for
   sessions.json   what is running, and what ran lately
   sessions/       one log per run
+  usage.json      what runs and chats used over the last year — Insights reads it
   chats/          the conversations held on this machine
   mockups/        the drawings a card points at
   comments/       the comment batches waiting for a polish
@@ -54,7 +55,7 @@ old path in its own `board.json`, so bringing the history across is one move you
 
 ```bash
 grep -l /old/path ~/.ai4kanban/projects/*/board.json   # which folder was the old one
-mv ~/.ai4kanban/projects/<old>/sessions* ~/.ai4kanban/projects/<new>/
+mv ~/.ai4kanban/projects/<old>/sessions* ~/.ai4kanban/projects/<old>/usage.json ~/.ai4kanban/projects/<new>/
 mv ~/.ai4kanban/projects/<old>/chats ~/.ai4kanban/projects/<new>/
 ```
 

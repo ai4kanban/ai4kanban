@@ -2,6 +2,8 @@
 // of truth a second language mirrors key for key. Writing rules: `i18n/index.ts`.
 import type { RailCopy } from "./types";
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 const en: RailCopy = {
   search: "Find a card",
   clearSearch: "Clear the search",
@@ -127,10 +129,36 @@ const en: RailCopy = {
       completed: "Completed",
       created: "Created",
       rejected: "Rejected",
-      totals: (days, completed, created, rejected) =>
-        `Last ${days} days — **${completed} completed**, **${created} created**, **${rejected} rejected**.`,
       chart: (days) =>
         `Daily board activity over the last ${days} days: completed, created, and rejected cards.`,
+    },
+    views: { trend: "Trend", activity: "Activity" },
+    periods: { "30d": "Last 30 days", "3m": "Last 3 months", "6m": "Last 6 months", "1y": "Last year" },
+    date: (m, d) => `${MONTHS[m - 1]} ${d}`,
+    week: (from, to) => `${from} – ${to}`,
+    heat: {
+      chart: "Cards completed each day",
+      less: "Less",
+      more: "More",
+      weekdays: ["Mon", "", "Wed", "", "Fri", "", "Sun"],
+      month: (m) => MONTHS[m - 1],
+      tip: (date, n) => `${date} · ${n} completed`,
+    },
+    usage: {
+      title: "Usage",
+      since: (date) => `recorded since ${date}`,
+      total: (usd) => `Total est. $${usd}`,
+      colSource: "Connector and model",
+      colTokens: "Tokens",
+      colCost: "Est. cost",
+      costHint:
+        "Worked out from tokens at list prices — not a bill. On a subscription plan a run isn't charged on its own.",
+      runs: (n) => (n === 1 ? "1 run" : `${n} runs`),
+      turns: (n) => (n === 1 ? "1 chat turn" : `${n} chat turns`),
+      unpriced: (n) => `${n} without a reported cost`,
+      noModel: "Model not recorded",
+      unknown: "Source not recorded",
+      empty: "No runs or chats in this period.",
     },
   },
 };

@@ -24,6 +24,7 @@ import { die, SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { insideRun } from './env'
 import { asContext, asUsage } from './log'
 import { holdsCard } from './types'
+import { appendUsageLocked, runEntry } from './usage'
 import type {
   AgentAction,
   AnswerVerdict,
@@ -780,13 +781,26 @@ export function withStore<T>(fn: (store: Store) => T): T {
   return withLock(SESSIONS_LOCK, "writing this board's run list", () => {
     const store = readStore()
     const before = JSON.stringify(store)
+    const running = new Set(store.runs.filter((r) => r.status === 'running').map((r) => r.sessionId))
     const out = fn(store)
+    const ended = store.runs.filter((r) => running.has(r.sessionId) && r.status !== 'running')
+    if (ended.length) recordRunUsage(ended, store.runs)
     // Only write when something moved. Every read goes through here — a board UI polls it
     // a couple of times a second — and rewriting the same file that often would be a lot
     // of churn for nothing.
     if (JSON.stringify(store) !== before) writeStore(store)
     return out
   })
+}
+
+// Every way a run ends passes through here, so this is where its usage is written down. A
+// ledger that can't be written never stops a run from closing.
+function recordRunUsage(ended: RunRecord[], runs: RunRecord[]): void {
+  try {
+    appendUsageLocked(ended.map(runEntry), runs)
+  } catch {
+    // Insights says the ledger can't be read; the run itself is unaffected.
+  }
 }
 
 /** The runs half of the record, changed under the same lock. */

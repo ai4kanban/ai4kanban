@@ -955,6 +955,10 @@ export interface ChatMessage {
   /** What the turn cost in US dollars, when the connector priced it. The agent's own
    *  arithmetic from tokens at list prices, never a bill. */
   costUsd?: number
+  /** The connector and model that wrote this reply. Absent on a reply written before
+   *  replies named them — never filled in from the conversation's current pick. */
+  harness?: string
+  model?: string
   /** The pictures pasted into this message (#441), in the order they went into the box —
    *  file names inside this conversation's own folder under `chats/`, never paths. A name
    *  whose file has since gone is kept: the message still reads the way it was sent, and

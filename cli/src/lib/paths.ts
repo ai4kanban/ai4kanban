@@ -113,6 +113,9 @@ export let CHATS_DIR = ''
 // pack it built. Machine state like the chats: a pack is this machine's copy of what it
 // posted, and a retry reads it rather than collecting a second time.
 export let CASES = ''
+// What every run and chat reply consumed over the last year (lib/agent/usage.ts) — the run
+// record above keeps only its newest runs, so Insights reads totals from here.
+export let USAGE = ''
 // Held by the one run at a time that may rewrite the board's shared files (next-id,
 // the README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
@@ -282,6 +285,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   SESSIONS_LOCK = path.join(machine, SESSIONS_LOCK_NAME)
   CHATS_DIR = path.join(machine, CHATS_FOLDER)
   CASES = path.join(machine, 'cases')
+  USAGE = path.join(machine, 'usage.json')
   INDEX_LOCK = path.join(machine, INDEX_LOCK_NAME)
   SWEEP_REPORT = path.join(machine, SWEEP_REPORT_FILE)
   DELIVERIES = path.join(KANBAN, 'deliveries')

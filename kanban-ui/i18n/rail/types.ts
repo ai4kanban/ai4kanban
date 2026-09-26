@@ -157,12 +157,40 @@ export type RailCopy = {
     daily: {
       reading: string;
       empty: string;
-      /** The three series, and the summary line over the chart. */
+      /** The three series. */
       completed: string;
       created: string;
       rejected: string;
-      totals: (days: number, completed: number, created: number, rejected: number) => string;
       chart: (days: number) => string;
+    };
+    views: { trend: string; activity: string };
+    periods: { "30d": string; "3m": string; "6m": string; "1y": string };
+    /** A date as `month` and `day` numbers, and a week as its first and last date. */
+    date: (month: number, day: number) => string;
+    week: (from: string, to: string) => string;
+    heat: {
+      chart: string;
+      less: string;
+      more: string;
+      /** Monday first; blanks are rows left unlabelled. */
+      weekdays: string[];
+      month: (month: number) => string;
+      tip: (date: string, completed: number) => string;
+    };
+    usage: {
+      title: string;
+      since: (date: string) => string;
+      total: (usd: string) => string;
+      colSource: string;
+      colTokens: string;
+      colCost: string;
+      costHint: string;
+      runs: (n: number) => string;
+      turns: (n: number) => string;
+      unpriced: (n: number) => string;
+      noModel: string;
+      unknown: string;
+      empty: string;
     };
   };
 };

@@ -659,7 +659,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     readMemoryOwners: () => local.readMemoryOwners(),
     readSetupState: () => local.readSetupState(),
     readSetupDraft: () => local.readSetupDraft(),
-    readMetricsView: () => local.readMetricsView(),
+    readMetricsView: (days) => local.readMetricsView(days),
     fillPlan: () => local.fillPlan(),
 
     // All four read `.archive/` — the one part of the board a snapshot leaves out — so each

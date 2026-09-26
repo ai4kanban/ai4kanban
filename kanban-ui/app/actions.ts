@@ -27,6 +27,7 @@ import {
   refreshBoard,
   readGoalText,
   readMetrics,
+  readUsage,
   readReleases,
   readSetupDraft,
   readSetupState,
@@ -261,6 +262,7 @@ import type {
   SweepReport,
   MemberRoleWire,
   MetricsResult,
+  UsageResult,
   NotificationGroup,
   PlanAnswer,
   SaveProjectResult,
@@ -1119,12 +1121,16 @@ export async function unscheduleCardAction(id: number, expect = ""): Promise<Wri
   return clearSchedule(id, expect);
 }
 
-// The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once
-// each time the view opens; the file changes a few times a day at most, so there's nothing
-// to poll. A file that can't be read comes back as { ok:false, error }, so the message
-// survives to the client instead of becoming a server-render error.
-export async function getMetricsAction(): Promise<MetricsResult> {
-  return readMetrics();
+// Insights (#65, #1067) — the last `days` of docs/kanban/metrics.csv, and what runs and chats
+// consumed over the same days. Read each time the period changes; nothing polls. A file that
+// can't be read comes back as { ok:false, error }, so the message survives to the client
+// instead of becoming a server-render error.
+export async function getMetricsAction(days: number): Promise<MetricsResult> {
+  return readMetrics(Number.isFinite(days) ? days : 30);
+}
+
+export async function getUsageAction(days: number): Promise<UsageResult> {
+  return readUsage(Number.isFinite(days) ? days : 30);
 }
 
 // ---- the agent settings ------------------------------------------------------

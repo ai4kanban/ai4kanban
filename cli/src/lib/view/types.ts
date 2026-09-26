@@ -713,7 +713,7 @@ export interface ArchiveList {
 
 // ---- the daily numbers -----------------------------------------------------
 
-/** How many days a progress view covers, ending today. */
+/** How many days a progress view covers by default, ending today. */
 export const METRICS_WINDOW_DAYS = 30
 
 /** One day in the window. `date` is `YYYY-MM-DD`, UTC — the stamp the board writes. A day
@@ -728,11 +728,37 @@ export interface MetricsDay {
 export interface MetricsView {
   days: MetricsDay[]
   totals: { completed: number; created: number; rejected: number }
-  /** True when the board has no numbers at all — no file, or a header alone. A file whose
-   *  rows all fall outside the window is NOT empty: a board that went quiet is real
-   *  progress, and shows a chart flat at zero. */
+  /** True when nothing was completed, created or rejected in the window. */
   empty: boolean
 }
+
+/** One connector and model's usage over a period. `harness` absent is a reply that never
+ *  named its connector; `model` absent is one that named no model. */
+export interface UsageRow {
+  harness?: string
+  /** The connector's display name. */
+  connector?: string
+  model?: string
+  runs: number
+  turns: number
+  tokens: { input: number; cacheCreation: number; cacheRead: number; output: number }
+  /** The reported part only — a missing cost is never read as zero. */
+  costUsd: number
+  /** Runs and replies in this row that reported no cost. */
+  unpriced: number
+}
+
+export interface UsageView {
+  /** The first moment the ledger has records for (epoch ms). */
+  since: number
+  /** Rows with a reported cost, costliest first. */
+  rows: UsageRow[]
+  totalUsd: number
+  /** Nothing ran and nobody chatted in the period. */
+  empty: boolean
+}
+
+export type UsageResult = { ok: true; view: UsageView } | { ok: false; error: string }
 
 /** What one metrics read gives back. The two outcomes are kept apart on purpose, so a view
  *  can't fall back to the "no activity" note on a failure. */

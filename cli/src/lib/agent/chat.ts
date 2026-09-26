@@ -56,6 +56,7 @@ import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
 import { readRuns, runIsLive } from './store'
+import { recordReplyUsage } from './usage'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
 import type {
   Chat,
@@ -125,6 +126,8 @@ export function readChat(cardId: ChatTarget): Chat | null {
       ms: typeof entry.ms === 'number' ? entry.ms : undefined,
       usage: usageOf(entry.usage),
       costUsd: typeof entry.costUsd === 'number' ? entry.costUsd : undefined,
+      harness: typeof entry.harness === 'string' && entry.harness ? entry.harness : undefined,
+      model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       images: imagesOf(entry.images),
       fromBoard: entry.fromBoard === true ? true : undefined,
     })
@@ -1178,6 +1181,8 @@ export async function sendChatMessage(
       ms: landed - asked,
       usage: spoken.usage,
       costUsd: spoken.costUsd,
+      harness: held.harness,
+      model: spoken.model ?? held.model,
     })
     // The id even on a reply that stopped short: it is what the next message carries on by,
     // and a conversation that produced a word is a conversation worth continuing. Nothing is
@@ -1199,6 +1204,14 @@ export async function sendChatMessage(
     carriedForward(held, readChat(cardId))
     held.updatedAt = Date.now()
     writeChat(held)
+    try {
+      recordReplyUsage(
+        { key: `chat:${keyOf(cardId)}:${landed}`, kind: 'chat', at: landed, harness: held.harness, model: spoken.model ?? held.model, usage: spoken.usage, costUsd: spoken.costUsd },
+        readRuns,
+      )
+    } catch {
+      // The reply is kept either way; Insights says the ledger can't be read.
+    }
     return { text: reply, stoppedWhy, model: spoken.model, chat: held }
   } finally {
     release()

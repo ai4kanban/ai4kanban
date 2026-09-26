@@ -72,6 +72,7 @@ import type {
   MemoryFile,
   MetricsResult,
   SaveProjectResult,
+  UsageResult,
   SetupDraft,
   SetupState,
   SignalInbox,
@@ -596,7 +597,10 @@ export interface BoardRules {
    *  board's rules have no diff to give, and the tab simply doesn't appear. */
   deliveryDiff?(deliveryId: string): Promise<DeliveryDiff | null>;
   readModules(): Promise<string[]>;
-  readMetricsView(): Promise<MetricsResult>;
+  readMetricsView(days?: number): Promise<MetricsResult>;
+  /** What runs and chats consumed over the last `days` (#1067). Optional: older rules keep no
+   *  usage ledger, and Insights then says the usage can't be read. */
+  readUsageView?(days: number): UsageResult;
   readReleases(): Promise<string[]>;
   readGoalText(): Promise<string>;
   /** One memory file, whole — the board's own record, or one an agent keeps when `agent`
