@@ -45,6 +45,7 @@ import {
   listServers,
   renewClaim,
 } from './servers.ts'
+import { generateImage } from './image.ts'
 import { speak } from './speech.ts'
 import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
 import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
@@ -359,6 +360,13 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     requireMethod(request, 'POST')
     const session = await readSession(request, env)
     return speak(env, session.subject, await bodyOf(request))
+  }
+
+  // Generated video covers (#1114), on the same terms as narration.
+  if (pathname === '/v1/image') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    return generateImage(env, session.subject, await bodyOf(request))
   }
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,

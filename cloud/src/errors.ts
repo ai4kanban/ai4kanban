@@ -31,6 +31,8 @@ export type RefusalCode =
   | 'contact_too_many_attempts'
   | 'speech_unavailable'
   | 'speech_failed'
+  | 'image_unavailable'
+  | 'image_failed'
   | 'pro_required'
   | 'credits_used_up'
   | 'billing_unavailable'
@@ -313,8 +315,15 @@ export const speechUnavailable = () =>
 export const speechFailed = () =>
   new Refusal('speech_failed', 502, 'The narration could not be generated. Try again shortly.')
 
-/** Hosted narration is Pro's (#1062), spending its monthly AI credits (#1113). */
-export const proRequired = () => new Refusal('pro_required', 403, 'Hosted voices need Pro.')
+/** Generated covers (#1114): no key in this build, or the provider failed. */
+export const imageUnavailable = () =>
+  new Refusal('image_unavailable', 503, 'Image generation is not available right now.')
+
+export const imageFailed = () =>
+  new Refusal('image_failed', 502, 'The image could not be generated. Try again shortly.')
+
+/** Hosted narration and images are Pro's (#1062), spending its monthly AI credits (#1113). */
+export const proRequired = () => new Refusal('pro_required', 403, 'This needs Pro.')
 
 export const creditsUsedUp = (now = Date.now()) =>
   new Refusal(

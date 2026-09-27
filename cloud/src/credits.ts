@@ -3,8 +3,8 @@
  * capability's rate live here and nowhere else; `cloud.credit_spends` records what was spent.
  *
  * A credit is one second of narration. Another capability is priced by its upstream cost over
- * narration's — a cover image is expected at about 160 (#1114). Nothing carries over: a UTC
- * month starts full, and any credit left lets a use start, so the last one may run over.
+ * narration's. Nothing carries over: a UTC month starts full, and any credit left lets a use
+ * start, so the last one may run over.
  */
 
 import { call } from './db.ts'
@@ -15,6 +15,8 @@ export const MONTHLY_CREDITS = 5000
 export const CREDIT_RATES = {
   /** Per second spoken. */
   speech: 1,
+  /** Per generated cover, a flat price covering its reference images (#1114). */
+  image: 320,
 } as const
 
 export type CreditUse = keyof typeof CREDIT_RATES

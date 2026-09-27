@@ -2731,7 +2731,8 @@ begin
   assert (api.spend_credits(SPEAKER, 'speech', 30))::text::numeric = 42.5, 'a second spend did not add up';
   assert (api.credits_used(SPEAKER))::text::numeric = 42.5, 'the month did not read back';
   assert (api.credits_used(OTHER))::text::numeric = 0, 'one user spent another''s credits';
-  assert (select count(*) from cloud.credit_spends where user_id = SPEAKER) = 2, 'a spend was not its own row';
+  assert (select count(*) from cloud.credit_spends where user_id = SPEAKER and use = 'speech') = 2, 'a spend was not its own row';
+  assert (api.spend_credits(SPEAKER, 'image', 320))::text::numeric = 362.5, 'a generated cover was not spent (#1114)';
   perform pg_temp.refuses($sql$select api.spend_credits('00000000-0000-4000-8000-00000000c001', 'movie', 1)$sql$,
     '23514', 'a spend on no known capability was stored');
 

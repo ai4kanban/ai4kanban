@@ -37,7 +37,8 @@ export interface Env {
   LARK_APP_ID?: string
   LARK_APP_SECRET?: string
   LARK_ENCRYPT_KEY?: string
-  /** OpenRouter, for hosted narration (#1054). Optional: without it `/v1/speech` refuses. */
+  /** OpenRouter, for hosted narration (#1054) and covers (#1114). Optional: without it
+   *  `/v1/speech` and `/v1/image` refuse. */
   OPENROUTER_API_KEY?: string
   /** Creem, for Pro (#1037). Optional: without all four every billing route refuses. The
    *  product ids are `vars` in wrangler.jsonc, not secrets. */

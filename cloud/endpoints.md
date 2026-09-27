@@ -148,6 +148,14 @@ chat message carries depends on where the event lives.
   is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret. Any Pro sign-in, admitted or
   not, spending 1 AI credit per second of generated audio.
 
+## Covers
+
+- `POST /v1/image` — `{ "prompt": "…", "aspect": "16:9", "references": ["data:image/png;base64,…"] }`:
+  one image from `openai/gpt-image-2.5-sunburst` through OpenRouter at medium quality, with its
+  model in `x-model`. `aspect` is one of `ASPECTS` in `src/image.ts`; prompt at most 4000
+  characters; at most 3 PNG, JPEG or WebP references of 8 MB each. Same key and sign-in as
+  narration, spending 320 AI credits per image, only once it is generated.
+
 ## Billing
 
 Pro, sold through Creem (#1037). Open to any verified sign-in, admitted or not: a subscription
@@ -218,7 +226,8 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `training_too_many_attempts` | Too many booking submits from one caller. Carries `retry-after`. |
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
-| `pro_required` | Hosted voices need Pro. |
+| `image_unavailable` / `image_failed` | This build carries no image key, or the provider failed. Retry later. |
+| `pro_required` | Hosted voices and images need Pro. |
 | `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
