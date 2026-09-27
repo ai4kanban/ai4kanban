@@ -638,7 +638,7 @@ function splitSharedAgents(cfg: Record<string, unknown>): boolean {
 // A board that wrote Coding's plan helpers down would get a new built-in there disabled. The
 // ones below join it enabled instead, once: `shipped` records each, so removing one sticks.
 
-const SHIPPED_ON = ['prompt-writer']
+const SHIPPED_ON = ['prompt-writer', 'email-planner']
 const SHIPPED = 'shipped'
 
 const shippedRows = (cfg: Record<string, unknown>): string[] => {

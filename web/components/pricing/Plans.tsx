@@ -248,7 +248,7 @@ export function Plans({
             sub={billing === "yearly" ? t.pro.yearly.sub : ""}
             leadIn={t.pro.leadIn}
             rows={t.pro.rows}
-            flows={["email", "slides", "video"]}
+            flows={["slides", "video"]}
             button={
               <Button href={`${CHECKOUT}${billing}`} variant="primary" className="mt-6 w-full">
                 {t.pro.button}

@@ -132,6 +132,16 @@ describe('`akb raw agent-file`', () => {
     }
   })
 
+  it('ships the email planner with its render script, and refuses a board copy of the same name', async () => {
+    assert.deepEqual(findSpecAgent('email-planner')!.files, ['scripts/render.mjs'])
+    const said = await move(root, ['agent-file', 'email-planner', 'scripts/render.mjs'])
+    assert.match(String(said.text), /plainText: true/)
+    assert.match(buildAsk({ action: 'spec', id: card, specAgent: 'email-planner' }), /agent-file email-planner scripts\/render\.mjs/)
+    agent('email-planner', ['  kind: spec'])
+    assert.match(specAgentCatalog().problems.join('\n'), /an agent named `email-planner` is already on this board/)
+    assert.equal(findSpecAgent('email-planner')!.dir, undefined)
+  })
+
   it('refuses a path that climbs out of the folder, and one the agent does not offer', async () => {
     await refuses(root, ['agent-file', 'sdk-sample', '../api-contract/AGENT.md'], /has no `\.\.\/api-contract\/AGENT\.md`/)
     await refuses(root, ['agent-file', 'sdk-sample', 'AGENT.md'], /has no `AGENT\.md`/)

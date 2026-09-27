@@ -4,7 +4,7 @@ import type { PricingCopy } from "./types";
 const zh: PricingCopy = {
   meta: {
     title: "AI4Kanban 定价 — 免费版、Pro 与种子伙伴",
-    description: "AI4Kanban 免费开源。Pro 增加邮件、演示文稿和产品视频工作流，按年付费折合每月 $10。",
+    description: "AI4Kanban 免费开源。Pro 增加演示文稿和产品视频工作流，按年付费折合每月 $10。",
   },
   hero: {
     eyebrow: "定价",
@@ -18,7 +18,7 @@ const zh: PricingCopy = {
     tagline: "Apache 2.0 开源。",
     rows: [
       "支持 8 种 AI 编码工具",
-      "含 7 个 Agent 的编码工作流",
+      "含 8 个 Agent 的编码工作流",
       "不限同时运行的任务数",
       "无限自定义工作流和 Agent",
       "邮件支持",
@@ -30,7 +30,7 @@ const zh: PricingCopy = {
     yearly: { price: "$120", per: "/ 年", sub: "折合每月 $10，按年收费" },
     monthly: { price: "$15", per: "/ 月" },
     leadIn: "包含免费版全部功能，另加：",
-    rows: ["邮件工作流", "演示文稿工作流", "产品视频工作流", "每月 60 分钟 AI 配音", "优先支持"],
+    rows: ["演示文稿工作流", "产品视频工作流", "每月 60 分钟 AI 配音", "优先支持"],
     button: "购买 Pro",
   },
   board: {

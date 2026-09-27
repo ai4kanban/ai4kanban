@@ -11,6 +11,8 @@
 
 import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
+import emailPlanner from '../../agents/email-planner/AGENT.md'
+import emailRenderer from '../../agents/email-planner/scripts/render.mjs' with { type: 'text' }
 import deckPlanner from '../../agents/deck-planner/AGENT.md'
 import slidesExample from '../../agents/deck-planner/references/slides.example.json'
 import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
@@ -45,6 +47,8 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'deck-planner/references/slides.example.json': slidesExample as unknown as string,
   'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,
   'deck-planner/scripts/validate-storyboard.mjs': slidesValidator,
+  'email-planner/AGENT.md': emailPlanner,
+  'email-planner/scripts/render.mjs': emailRenderer,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'hyperframes-editor/record.mjs': hyperframesRecorder,
   'prompt-writer/AGENT.md': promptWriter,

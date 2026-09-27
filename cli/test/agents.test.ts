@@ -160,7 +160,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['code-reviewer', 'copywriting', 'deck-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
+      ['code-reviewer', 'copywriting', 'deck-planner', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)
@@ -358,6 +358,7 @@ describe('what a session is shown', () => {
   it('says nothing at all when the card\'s workflow assigns no one', () => {
     board({ specAgents: { 'ui-designer': false, 'tech-stack-advisor': false, copywriting: false } })
     assert.equal(switchWorkflowAgent('coding', 'plan', 'prompt-writer', false).ok, true)
+    assert.equal(switchWorkflowAgent('coding', 'plan', 'email-planner', false).ok, true)
     assert.equal(specAgentSelector(12), '')
     assert.equal(specAgentSelector(12), '')
   })
@@ -366,7 +367,7 @@ describe('what a session is shown', () => {
   // them a card may ask for is its own workflow's answer, and the ask is where that is read.
   it('lists every agent on the hook, whatever a workflow assigns', () => {
     board({ specAgents: { 'ui-designer': false } })
-    assert.doesNotMatch(specAgentSelector(12), /ui-designer/)
+    assert.doesNotMatch(specAgentSelector(12), /- `ui-designer`/)
     const listed = specAgentList('akb')
     assert.match(listed, /ui-designer/)
     assert.doesNotMatch(listed, /Switched off/)
