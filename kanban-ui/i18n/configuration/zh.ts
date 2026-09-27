@@ -817,6 +817,7 @@ const zh: ConfigurationCopy = {
       stop: "不迁移了",
     },
     blurb: "一次登录覆盖这台机器上的所有项目。",
+    alpha: "Cloud 目前处于 alpha 阶段，仍在持续开发中。目前对受邀用户免费，未来定价可能调整。",
     checking: "正在检查这台机器…",
     saving: "保存中…",
     unreachable: {

@@ -745,6 +745,8 @@ const en: ConfigurationCopy = {
       stop: "Don't move",
     },
     blurb: "One sign-in covers every project on this machine.",
+    alpha:
+      "Cloud is in alpha and still under development. Access is currently free for invited users; pricing may change in the future.",
     checking: "Checking this machine…",
     saving: "Saving…",
     unreachable: {

@@ -110,6 +110,7 @@ describe('sendPendingMail', () => {
     for (const body of [mail.text, mail.html]) {
       assert.match(body, /https:\/\/ai4kanban\.dev\/cloud/)
       assert.match(body, /Already signed in\?/)
+      assert.match(body, /Cloud is in alpha[^]*Cloud notifies you/)
       assert.doesNotMatch(body, /ai4kanban:\/\/|reply|code|<img/i)
     }
     assert.match(mail.html, />Set up Cloud</)

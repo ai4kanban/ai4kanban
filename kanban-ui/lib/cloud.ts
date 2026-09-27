@@ -37,6 +37,13 @@ const UNKNOWN: CloudAccount = {
   configured: false,
 };
 
+/** The GitHub handles offered "Store this board in Cloud" while the move is too fragile for
+ *  invitees. A board already in Cloud keeps its way back whoever is signed in. */
+export const STORAGE_TESTERS = ["neverchanje"];
+
+export const mayStoreInCloud = (handle: string | null): boolean =>
+  !!handle && STORAGE_TESTERS.includes(handle.toLowerCase());
+
 /** Who this machine is signed in as, asked of Cloud itself. */
 export async function cloudAccount(): Promise<CloudAccount> {
   const rules = await boardRules();

@@ -29,6 +29,7 @@ import {
   setSilencedAction,
   larkChatsAction,
   larkStateAction,
+  mayStoreInCloudAction,
   setLarkChatAction,
   setSlackChannelAction,
   signOutOfCloudAction,
@@ -245,6 +246,7 @@ export function CloudPanel({
 
   return (
     <div className="flex flex-col gap-6">
+      {tab === "cloud" && <Note>{c.alpha}</Note>}
       {!account ? (
         // Nothing to draw yet — and once a read has failed, the band below is what is said.
         !misses && <Loading>{c.checking}</Loading>
@@ -309,7 +311,7 @@ function SignedIn({
         <Note>{c.blurb}</Note>
       </Group>
 
-      <Storage inApp={inApp} />
+      <Storage inApp={inApp} handle={account.handle} />
     </>
   );
 }
@@ -435,15 +437,19 @@ function Silencer() {
 // Nothing here migrates anything. Pressing the confirmation hands the move to
 // components/CloudMigration.tsx and this pane is free to close under it.
 
-function Storage({ inApp }: { inApp: boolean }) {
+function Storage({ inApp, handle }: { inApp: boolean; handle: string | null }) {
   const c = useCopy().configuration.cloud.storage;
   const [state, setState] = useState<CloudStorage | null>(null);
+  const [offered, setOffered] = useState(false);
   // Which way the open confirmation would move the board, or null with none open.
   const [asking, setAsking] = useState<"go" | "leave" | null>(null);
 
   useEffect(() => {
     void cloudStorageAction().then(setState);
   }, []);
+  useEffect(() => {
+    void mayStoreInCloudAction(handle).then(setOffered);
+  }, [handle]);
 
   if (!state) {
     return (
@@ -458,6 +464,8 @@ function Storage({ inApp }: { inApp: boolean }) {
   // stands down under the line that says why.
   const why = state.tooOld ? c.tooOld : !inApp || !canMoveStorage() ? c.needsApp : "";
   const shown = asking ? asking === "go" : state.cloud;
+  // Only testers may move a local board in; a board already in Cloud always keeps its way back.
+  const movable = state.cloud || offered;
 
   return (
     <Group title={c.title}>
@@ -471,30 +479,32 @@ function Storage({ inApp }: { inApp: boolean }) {
             {state.cloud ? (state.workspace ? c.atCloud(state.workspace) : c.atCloudUnnamed) : c.atLocal}
           </Status>
         </Row>
-        <Row
-          icon={<FiUploadCloud size={MARK} className="text-nb-ink-soft" aria-hidden />}
-          label={c.store}
-          hint={c.storeHint}
-          below={
-            asking === "go" ? (
-              <TurnOn project={state.project} onCancel={() => setAsking(null)} />
-            ) : asking === "leave" ? (
-              <TurnOff workspace={state.workspace} onCancel={() => setAsking(null)} />
-            ) : null
-          }
-        >
-          <Switch
-            on={shown}
-            label={c.storeLabel}
-            busy={!!why}
-            // Off the board's own side, so a second press on an open confirmation puts the
-            // switch back rather than asking for the opposite move — a local board has no
-            // workspace to come back from.
-            onFlip={async () => setAsking(asking ? null : state.cloud ? "leave" : "go")}
-          />
-        </Row>
+        {movable && (
+          <Row
+            icon={<FiUploadCloud size={MARK} className="text-nb-ink-soft" aria-hidden />}
+            label={c.store}
+            hint={c.storeHint}
+            below={
+              asking === "go" ? (
+                <TurnOn project={state.project} onCancel={() => setAsking(null)} />
+              ) : asking === "leave" ? (
+                <TurnOff workspace={state.workspace} onCancel={() => setAsking(null)} />
+              ) : null
+            }
+          >
+            <Switch
+              on={shown}
+              label={c.storeLabel}
+              busy={!!why}
+              // Off the board's own side, so a second press on an open confirmation puts the
+              // switch back rather than asking for the opposite move — a local board has no
+              // workspace to come back from.
+              onFlip={async () => setAsking(asking ? null : state.cloud ? "leave" : "go")}
+            />
+          </Row>
+        )}
       </Panel>
-      <Note>{why || c.note}</Note>
+      {movable && <Note>{why || c.note}</Note>}
     </Group>
   );
 }

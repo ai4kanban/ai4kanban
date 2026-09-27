@@ -80,6 +80,7 @@ import {
   finishCloudSignIn,
   larkChats,
   larkState,
+  mayStoreInCloud,
   requestCloudInvite,
   setLarkChat,
   setSlackChannel,
@@ -2091,6 +2092,10 @@ export async function hasWorkspaceAction(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function mayStoreInCloudAction(handle: string | null): Promise<boolean> {
+  return mayStoreInCloud(handle);
 }
 
 /** Where this board's data is kept, and the folder a migration would work on (#614). The

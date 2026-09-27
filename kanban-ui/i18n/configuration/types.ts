@@ -703,6 +703,7 @@ export type ConfigurationCopy = {
       stop: string;
     };
     blurb: string;
+    alpha: string;
     checking: string;
     /** Beside a control whose new value is already drawn but not yet written. */
     saving: string;
