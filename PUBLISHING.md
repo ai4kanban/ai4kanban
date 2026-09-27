@@ -14,6 +14,8 @@ repo directly.
 | Board app | GitHub release for the version tag | `npm run dist` from `desktop/`, then upload |
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
 | Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
+| Cloud | api.ai4kanban.dev (Cloudflare Workers + Supabase) | `npm run migrate` then `npm run deploy` from `cloud/` — every release whose `cloud/` changed, before `npm publish` |
+| Hosted board | cloud.ai4kanban.dev (Cloudflare Workers) | `env -u NODE_ENV npm run deploy` from `cloud-ui/` — together with `cloud/`, whenever `cloud-ui/` or the `kanban-ui/` screens it draws changed; `cloud/` links to its pages, so a stale one breaks them |
 | Usage endpoint | t.ai4kanban.dev (Cloudflare Workers) | `npm run deploy` from `telemetry/` — only when it or `telemetry/contract.ts` changed, and always before the sender that needs it |
 
 The CLI carries the note inside its build: `skill/SKILL.md` is a source file that
@@ -61,7 +63,7 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    typecheck).
 2. `node scripts/sync-version.mjs <new-version>`; commit and `git tag v<new-version>`.
 3. README, `README-zh.md`, and the guides reflect any behavior change.
-4. `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.
+4. If `cloud/` or `cloud-ui/` changed, deploy them (table above). Then `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.
 5. Build the app (below) and check a run works end to end on macOS. Keep one build of this
    code stamped a version *lower* than the release, outside `desktop/dist/` — it is the only
    way to prove the published feed installs (#372), and it cannot be made after the release.
