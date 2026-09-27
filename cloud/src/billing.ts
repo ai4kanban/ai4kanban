@@ -8,6 +8,7 @@
  */
 
 import { CLOUD_UI_ORIGIN } from './config.ts'
+import { creditsOf, creditsUsed } from './credits.ts'
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
 import { badRequest, billingFailed, billingUnavailable, notFound, unauthenticated } from './errors.ts'
@@ -77,7 +78,10 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
 
   if (rest === '') {
     requireMethod(request, 'GET')
-    return json({ billing: await readBilling(env, session.subject) })
+    const billing = await readBilling(env, session.subject)
+    // AI credits are Pro's alone (#1113): nobody else is granted any to show.
+    const credits = billing.plan === 'pro' ? creditsOf(await creditsUsed(env, session.subject)) : null
+    return json({ billing, credits })
   }
 
   if (rest === 'checkout') {

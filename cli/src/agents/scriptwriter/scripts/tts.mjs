@@ -39,9 +39,9 @@ const MESSAGES = {
     zh: '托管声音是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
     en: 'Hosted voices are a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
   },
-  speech_quota_reached: {
-    zh: '本月 60 分钟托管旁白已用完，下月 1 日恢复。',
-    en: 'This month’s 60 minutes of hosted narration are used up. They renew on the 1st of next month.',
+  credits_used_up: {
+    zh: '本月积分已用完，下月 1 日（UTC）重置；可在桌面应用的 Billing 页查看余额。',
+    en: 'This month’s AI credits are used up. They reset on the 1st of next month (UTC); check your balance on the Billing page in the desktop app.',
   },
   failed: {
     zh: '托管声音暂时无法生成旁白，请稍后重试。',
@@ -161,7 +161,7 @@ try {
   if (!res.ok) {
     const { error } = await res.json().catch(() => ({}))
     if (res.status === 401) fail('expired')
-    if (error?.code === 'pro_required' || error?.code === 'speech_quota_reached') fail(error.code)
+    if (error?.code === 'pro_required' || error?.code === 'credits_used_up') fail(error.code)
     if (res.status === 400) usage(error?.message ?? 'The request was refused.')
     fail('failed')
   }

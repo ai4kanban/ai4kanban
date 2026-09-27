@@ -146,7 +146,7 @@ chat message carries depends on where the event lives.
 - `POST /v1/speech` — `{ "voice": "Kore", "text": "…" }`: wav of the text in that voice, from
   `google/gemini-3.8-flash-tts` through OpenRouter. Voices are `VOICES` in `src/speech.ts`; text
   is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret. Any Pro sign-in, admitted or
-  not, up to 60 minutes of audio per UTC month (`cloud.speech_usage`); only generated audio counts.
+  not, spending 1 AI credit per second of generated audio.
 
 ## Billing
 
@@ -158,7 +158,9 @@ carries no `CREEM_API_KEY` / `CREEM_WEBHOOK_SECRET`.
   "canceled" | "pastDue" | "expired", "period": "monthly" | "yearly" | null, "periodEnd" } }`.
   `periodEnd` is the renewal date while `active` or `pastDue`, the end date otherwise. Judged on
   read: `active`, `trialing`, `past_due` are Pro; `scheduled_cancel`, `canceled` until
-  `periodEnd`; the best of several subscriptions wins.
+  `periodEnd`; the best of several subscriptions wins. Also `"credits": { "total", "left",
+  "resetsAt" }` for Pro, `null` otherwise: Pro's AI credits this UTC month (#1113), spent by every
+  hosted capability at the rates in `src/credits.ts` (`cloud.credit_spends`).
 - `POST /v1/billing/checkout` — `{ "period": "monthly" | "yearly" }`: `{ "url" }`, a Creem
   checkout returning to `/settings?checkout=done`, or `/settings` itself for somebody already Pro.
 - `POST /v1/billing/confirm` — `{ "subscriptionId" }` from that return: reads it from Creem,
@@ -217,7 +219,7 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
 | `pro_required` | Hosted voices need Pro. |
-| `speech_quota_reached` | This month's hosted narration is used up. Carries `retry-after` to the next UTC month. |
+| `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
 | `storage_limit_reached` | The database turned read-only at its size limit. |

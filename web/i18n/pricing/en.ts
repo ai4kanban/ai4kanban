@@ -34,7 +34,7 @@ const en: PricingCopy = {
     rows: [
       "Slide deck workflow",
       "Product video workflow",
-      "60 minutes of AI voiceover a month",
+      "5,000 AI credits a month — voiceover uses 1 per second",
       "Priority support",
     ],
     button: "Get Pro",

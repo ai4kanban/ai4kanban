@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import { billingOf, creemBase, isPro, signatureOf } from '../src/billing.ts'
+import { creditsOf, MONTHLY_CREDITS } from '../src/credits.ts'
 import worker from '../src/index.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
@@ -30,6 +31,7 @@ let creemSubs
 let creemCalls
 let creemDown
 let creemTxs
+let spent
 
 beforeEach(async () => {
   resetJwksCache()
@@ -40,6 +42,7 @@ beforeEach(async () => {
   creemCalls = []
   creemDown = false
   creemTxs = []
+  spent = {}
   globalThis.fetch = async (url, init = {}) => {
     const address = String(url)
     const body = init.body ? JSON.parse(init.body) : undefined
@@ -61,6 +64,7 @@ beforeEach(async () => {
       })
       return json({ id: body.p_id, user_id: user })
     }
+    if (address.endsWith('/rest/v1/rpc/credits_used')) return json(spent[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) {
       return json([...rows.values()].filter((r) => r.user_id === body.p_user_id))
     }
@@ -220,6 +224,23 @@ describe('the signed-in billing routes', () => {
     const res = await signedIn('GET', '/v1/billing')
     assert.equal(res.status, 200)
     assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER })
+  })
+
+  it('shows Pro this month\'s credits, and nobody else any', async () => {
+    rows.set('sub_1', { ...row('active'), user_id: SUBJECT })
+    spent[SUBJECT] = 1587.6
+    const { credits } = await (await signedIn('GET', '/v1/billing')).json()
+    assert.equal(credits.total, MONTHLY_CREDITS)
+    assert.equal(credits.left, MONTHLY_CREDITS - 1588)
+
+    rows.clear()
+    assert.equal((await (await signedIn('GET', '/v1/billing')).json()).credits, null)
+  })
+
+  it('never shows fewer than none, and resets on the first of the next UTC month', () => {
+    const late = creditsOf(MONTHLY_CREDITS + 40, Date.parse('2026-12-31T23:30:00Z'))
+    assert.equal(late.left, 0)
+    assert.equal(late.resetsAt, '2027-01-01T00:00:00.000Z')
   })
 
   it('refuses a caller with no sign-in', async () => {

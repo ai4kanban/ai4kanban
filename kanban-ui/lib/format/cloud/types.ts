@@ -166,6 +166,13 @@ export interface CloudBilling {
   periodEnd: string | null
 }
 
+/** Pro's AI credits this UTC month (#1113). `resetsAt` is the next UTC month's first instant. */
+export interface CloudCredits {
+  total: number
+  left: number
+  resetsAt: string
+}
+
 /** One charge on the account. `amount` is in minor units. */
 export interface CloudInvoice {
   id: string
@@ -176,7 +183,7 @@ export interface CloudInvoice {
 }
 
 export type BillingRead =
-  | { state: 'ok'; billing: CloudBilling }
+  | { state: 'ok'; billing: CloudBilling; credits: CloudCredits | null }
   | { state: 'signed-out' }
   | { state: 'unavailable' }
 

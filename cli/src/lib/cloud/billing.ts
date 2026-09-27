@@ -3,9 +3,9 @@
 
 import { cloudConfigured, cloudEndpoints } from './config'
 import { accessToken } from './session'
-import type { BillingLink, BillingRead, CloudBilling, CloudInvoice, InvoicesRead } from './types'
+import type { BillingLink, BillingRead, CloudBilling, CloudCredits, CloudInvoice, InvoicesRead } from './types'
 
-export type { BillingLink, BillingRead, CloudBilling, CloudInvoice, InvoicesRead }
+export type { BillingLink, BillingRead, CloudBilling, CloudCredits, CloudInvoice, InvoicesRead }
 
 const ASK_MS = 10_000
 
@@ -47,7 +47,8 @@ export async function readBilling(): Promise<BillingRead> {
   const asked = await ask('GET', '/v1/billing')
   if (!asked.ok) return { state: asked.signedOut ? 'signed-out' : 'unavailable' }
   const billing = asked.body.billing as CloudBilling | undefined
-  return billing ? { state: 'ok', billing } : { state: 'unavailable' }
+  const credits = (asked.body.credits as CloudCredits | undefined) ?? null
+  return billing ? { state: 'ok', billing, credits } : { state: 'unavailable' }
 }
 
 /** The account's charges, newest first. Never throws. */

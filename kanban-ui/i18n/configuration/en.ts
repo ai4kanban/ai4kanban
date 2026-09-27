@@ -885,7 +885,7 @@ const en: ConfigurationCopy = {
         yearly: { price: "$120", per: "/ year", sub: "$10 a month, billed yearly", was: "$180" },
         monthly: { price: "$15", per: "/ month" },
         leadIn: "Everything in Free, plus:",
-        rows: ["Slide deck workflow", "Product video workflow", "60 minutes of AI voiceover a month", "Priority support"],
+        rows: ["Slide deck workflow", "Product video workflow", "5,000 AI credits a month — voiceover uses 1 per second", "Priority support"],
         button: "Get Pro",
       },
     },
@@ -910,6 +910,13 @@ const en: ConfigurationCopy = {
       opened: "Checkout opened in your browser",
       checkoutFailed: "Checkout could not start. Try again.",
       portalFailed: "Billing could not be opened. Try again.",
+    },
+    credits: {
+      title: "AI credits",
+      left: (total) => `/ ${total} left`,
+      resets: (date) => `Resets on ${date}`,
+      rate: "Voiceover uses 1 credit per second",
+      usedUp: "This month’s credits are used up. Hosted voiceover resumes when they reset.",
     },
     invoices: {
       title: "Invoices",

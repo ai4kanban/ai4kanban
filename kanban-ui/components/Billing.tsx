@@ -14,7 +14,7 @@ import {
 } from "@/app/actions";
 import type { BillingCopy } from "@/i18n/configuration/types";
 import { useCopy } from "@/i18n/use-copy";
-import type { BillingRead, CloudBilling, InvoicesRead } from "@/lib/types";
+import type { BillingRead, CloudBilling, CloudCredits, InvoicesRead } from "@/lib/types";
 import { Button } from "./button";
 import { openLink } from "./desktop";
 import { useLanguage } from "./language";
@@ -131,6 +131,7 @@ export function BillingPanel({
       <Group title={t.plan.title}>
         <Summary t={t} billing={billing} onUpgrade={() => setPage("plans")} />
       </Group>
+      {billing.state === "ok" && billing.credits && <Credits t={t.credits} credits={billing.credits} />}
       <Invoices t={t} invoices={invoices} />
     </div>
   );
@@ -159,7 +160,8 @@ function usePortal() {
   return { busy, failed, open };
 }
 
-function useDay() {
+/** `UTC` for a date Cloud fixes in UTC, so it never reads as the day before west of it. */
+function useDay(timeZone?: "UTC") {
   const language = useLanguage();
   return (iso: string | null) =>
     iso
@@ -167,6 +169,7 @@ function useDay() {
           year: "numeric",
           month: language === "zh" ? "long" : "short",
           day: "numeric",
+          timeZone,
         }).format(new Date(iso))
       : "";
 }
@@ -259,6 +262,46 @@ function Summary({ t, billing, onUpgrade }: { t: BillingCopy; billing: BillingRe
         </p>
       )}
     </div>
+  );
+}
+
+function Credits({ t, credits }: { t: BillingCopy["credits"]; credits: CloudCredits }) {
+  const day = useDay("UTC");
+  const num = (n: number) => new Intl.NumberFormat("en-US").format(n);
+  const out = credits.left === 0;
+  return (
+    <Group title={t.title}>
+      <div className="rounded-[12px] border border-nb-ink/12 bg-nb-paper px-5 py-4">
+        <div className="flex items-baseline justify-between gap-5">
+          <p className="flex min-w-0 items-baseline gap-1.5">
+            <span
+              className={`text-[17px] font-[800] tabular-nums tracking-[-0.01em] ${out ? "text-nb-peach-ink" : "text-nb-ink"}`}
+            >
+              {num(credits.left)}
+            </span>
+            <span className="text-[13px] tabular-nums text-nb-ink-soft">{t.left(num(credits.total))}</span>
+          </p>
+          <p className="shrink-0 text-[13px] text-nb-ink-soft">{t.resets(day(credits.resetsAt))}</p>
+        </div>
+        <div className="mt-3 h-[6px] overflow-hidden rounded-full bg-nb-ink/8">
+          <div
+            className="h-full rounded-full bg-nb-mint"
+            style={{ width: `${Math.min(100, (credits.left / credits.total) * 100)}%` }}
+          />
+        </div>
+        {out ? (
+          <p
+            className="mt-3 flex items-center gap-2 rounded-[10px] bg-nb-peach-soft px-3.5 py-2.5 text-[12.5px] text-nb-ink"
+            role="status"
+          >
+            <FiAlertCircle className="shrink-0 text-nb-peach-ink" size={14} aria-hidden />
+            {t.usedUp}
+          </p>
+        ) : (
+          <p className="mt-2 text-[12px] text-nb-ink-soft">{t.rate}</p>
+        )}
+      </div>
+    </Group>
   );
 }
 

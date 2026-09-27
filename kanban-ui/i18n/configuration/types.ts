@@ -970,6 +970,13 @@ export type BillingCopy = {
     checkoutFailed: string;
     portalFailed: string;
   };
+  credits: {
+    title: string;
+    left: (total: string) => string;
+    resets: (date: string) => string;
+    rate: string;
+    usedUp: string;
+  };
   invoices: {
     title: string;
     empty: string;

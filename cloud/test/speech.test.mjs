@@ -1,4 +1,4 @@
-// Hosted narration (#1054): only a Pro user reaches it, up to 60 minutes a month each (#1062),
+// Hosted narration (#1054): only a Pro user reaches it, spending their AI credits (#1113),
 // the key never leaves the Worker, and a provider failure is a refusal rather than silence.
 
 import assert from 'node:assert/strict'
@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
-import { MONTHLY_SPEECH_SECONDS, SPEECH_MODEL, wav } from '../src/speech.ts'
+import { MONTHLY_CREDITS } from '../src/credits.ts'
+import { SPEECH_MODEL, wav } from '../src/speech.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
 const ENV = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: 'service-role', OPENROUTER_API_KEY: 'or-key' }
@@ -38,12 +39,13 @@ beforeEach(async () => {
     if (address.endsWith('/rest/v1/rpc/account_for_session')) {
       return json({ admitted, handle: 'lin', name: null, avatar_url: null, account_id: admitted ? SUBJECT : null })
     }
-    // What 0030_speech_usage.sql does, which test/sql/checks.sql proves against a real database.
+    // What 0031_credits.sql does, which test/sql/checks.sql proves against a real database.
     const body = init?.body ? JSON.parse(init.body) : {}
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) return json(subscriptions[body.p_user_id] ?? [])
-    if (address.endsWith('/rest/v1/rpc/speech_seconds_used')) return json(used[body.p_user_id] ?? 0)
-    if (address.endsWith('/rest/v1/rpc/record_speech')) {
-      used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_seconds
+    if (address.endsWith('/rest/v1/rpc/credits_used')) return json(used[body.p_user_id] ?? 0)
+    if (address.endsWith('/rest/v1/rpc/spend_credits')) {
+      assert.equal(body.p_use, 'speech')
+      used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_credits
       return json(used[body.p_user_id])
     }
     if (address === 'https://openrouter.ai/api/v1/audio/speech') {
@@ -72,7 +74,7 @@ describe('POST /v1/speech', () => {
     assert.equal(sent[0].headers.authorization, 'Bearer or-key')
   })
 
-  it('counts what was spoken against the month', async () => {
+  it('spends a credit per second spoken', async () => {
     await call({ voice: 'Kore', text: 'Hi' })
     assert.equal(used[SUBJECT], PCM.length / 48000)
   })
@@ -93,20 +95,20 @@ describe('POST /v1/speech', () => {
     assert.equal(sent.length, 0)
   })
 
-  it('stops a user at the month\'s minutes, and only that user', async () => {
-    used[SUBJECT] = MONTHLY_SPEECH_SECONDS
+  it('stops a user whose credits are used up, and only that user', async () => {
+    used[SUBJECT] = MONTHLY_CREDITS
     const res = await call({ voice: 'Kore', text: 'Hi' })
 
     assert.equal(res.status, 429)
-    assert.equal((await res.json()).error.code, 'speech_quota_reached')
+    assert.equal((await res.json()).error.code, 'credits_used_up')
     assert.ok(Number(res.headers.get('retry-after')) > 0)
     assert.equal(sent.length, 0)
 
     assert.equal((await call({ voice: 'Kore', text: 'Hi' }, ENV, OTHER)).status, 200)
   })
 
-  it('lets a line start with any time left', async () => {
-    used[SUBJECT] = MONTHLY_SPEECH_SECONDS - 1
+  it('lets a line start with any credit left', async () => {
+    used[SUBJECT] = MONTHLY_CREDITS - 1
     assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 200)
   })
 

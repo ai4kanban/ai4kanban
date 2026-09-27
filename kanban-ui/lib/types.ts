@@ -167,6 +167,7 @@ export type {
   BillingRead,
   CloudAccount,
   CloudBilling,
+  CloudCredits,
   CloudInvoice,
   CloudMove,
   InvoicesRead,

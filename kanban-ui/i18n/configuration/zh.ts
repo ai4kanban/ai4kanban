@@ -941,7 +941,7 @@ const zh: ConfigurationCopy = {
         yearly: { price: "$120", per: "/ 年", sub: "折合每月 $10，按年收费", was: "$180" },
         monthly: { price: "$15", per: "/ 月" },
         leadIn: "包含免费版全部功能，另加：",
-        rows: ["演示文稿工作流", "产品视频工作流", "每月 60 分钟 AI 配音", "优先支持"],
+        rows: ["演示文稿工作流", "产品视频工作流", "每月 5,000 AI 积分，配音每秒用 1 积分", "优先支持"],
         button: "购买 Pro",
       },
     },
@@ -966,6 +966,13 @@ const zh: ConfigurationCopy = {
       opened: "付款页已在浏览器打开",
       checkoutFailed: "无法开始结账，请重试。",
       portalFailed: "无法打开账单管理，请重试。",
+    },
+    credits: {
+      title: "AI 积分",
+      left: (total) => `/ ${total} 剩余`,
+      resets: (date) => `${date}重置`,
+      rate: "配音每秒用 1 积分",
+      usedUp: "本月积分已用完，托管配音将在积分重置后恢复。",
     },
     invoices: {
       title: "发票",
