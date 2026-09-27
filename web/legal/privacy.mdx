@@ -1,8 +1,8 @@
 ---
 title: "Privacy Policy"
-lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
-description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-16
+lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, turn AI4Kanban Cloud on for a board, and subscribe to Pro."
+description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, the AI4Kanban Cloud preview, and the Pro subscription."
+effective: 2026-09-27
 ---
 
 <TLDR title="The short version">
@@ -17,6 +17,7 @@ effective: 2026-09-16
 - **A workspace can hold more than one person.** An owner adds a teammate by GitHub handle — but only one we have already admitted to the preview. Everyone in a workspace reads the whole board and the whole record of who changed what, including your GitHub handle.
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
+- **Pro is paid through Creem**, the merchant of record, which handles your card and invoice under its own privacy policy. We send it your account id and email address, and never see your card. Pro's voiceover and cover generation send the text, prompts, and screenshots you submit through our servers to OpenRouter to produce the result; we keep none of it, only how many credits each use spent.
 - **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
 - **This site has two forms: booking a training session, and the contact form.** A booking sends us your name, your email address, the hour you picked and whatever you wrote about your project, so we can hold that hour and turn up to it. No account, no cookie, and nothing stored in your browser. You can cancel it yourself from the link in your confirmation, which releases the hour. A contact message sends us what you need help with, your email address and what you wrote, so we can answer you by email.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
@@ -32,7 +33,7 @@ AI4Kanban is operated by **NULLREACH LTD**, a private limited company registered
 
 Use of the Service is also governed by our [Terms of Service](/terms).
 
-The parts of the Service handle data very differently, so the sections that follow answer them one at a time: the site you are reading, the two forms on it, the app you install, and the Cloud preview a board's events can be relayed through. The rights and boilerplate sections after them apply to all of it.
+The parts of the Service handle data very differently, so the sections that follow answer them one at a time: the site you are reading, the two forms on it, the app you install, the Cloud preview a board's events can be relayed through, and the Pro subscription. The rights and boilerplate sections after them apply to all of it.
 
 ## Visiting the site
 
@@ -307,7 +308,7 @@ Cloud relays a board's events. It does not run your project, and the following n
 - **Your model provider keys and accounts.** Your coding agent runs locally, under your own account with your own provider. The board's machine record names which agent and model a computer runs — the names alone, never anything you sign in with.
 - **Agent transcripts and prompts.** A run happens on your machine; Cloud sees the event it produced, not the conversation that produced it.
 
-**No AI model is ever run over your board content.** We do not send an event, or anything else your board publishes, to an AI provider, and we do not use your board content to train any model, ours or anyone else's.
+**No AI model is ever run over your board content.** We do not send an event, or anything else your board publishes, to an AI provider — Pro's voiceover and cover generation send only what you submit to them, described under [Pro](#pro), and we do not use your board content to train any model, ours or anyone else's.
 
 ### What signing in stores about you
 
@@ -347,7 +348,7 @@ That mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is ru
 
 ### Subprocessors
 
-Four subprocessors and one identity provider, across the whole Service — the Cloud preview, and the usage reporting a local install does. There is no separate subprocessors page, because this is the whole list:
+Five subprocessors and one identity provider, across the whole Service — the Cloud preview, Pro, and the usage reporting a local install does. Creem is not in this table: it handles payment as a controller in its own right, described under [Pro](#pro). There is no separate subprocessors page, because this is the whole list:
 
 | Who | What they do | Where |
 | --- | --- | --- |
@@ -355,6 +356,7 @@ Four subprocessors and one identity provider, across the whole Service — the C
 | **Supabase, Inc.** | The database and sign-in | `eu-central-1`, Frankfurt |
 | **Resend (Plus Five Five, Inc.)** | Sending the answer to an invite request, the request notice, and the mail the site's two forms send | United States |
 | **Spacemail (Spaceship, Inc.)** | The mailbox that routing forwards `support@ai4kanban.dev` to — where a data request, a support message, and the preview notice are read and sent | United States |
+| **OpenRouter, Inc.** | Generating Pro voiceovers and covers from what you submit | United States |
 | **GitHub, Inc.** | The identity provider you sign in through | GitHub's own infrastructure |
 
 Each processes data on our behalf under its published data processing agreement. If we add or replace a subprocessor, this table changes with it and the effective date at the top of the page moves.
@@ -401,6 +403,25 @@ The preview keeps no backups of its own, so nothing is restored if a record is l
 
 Write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) for anything in this section: a copy of what Cloud holds about you, a correction, the removal of your records, or a question about how any of it works.
 
+## Pro
+
+Pro is a paid subscription. You buy it signed in with GitHub, the same sign-in Cloud uses, but no Cloud invite is needed. Signing in creates the sign-in record described under [What signing in stores about you](#what-signing-in-stores-about-you), even if you never use Cloud.
+
+### Paying through Creem
+
+**[Creem](https://www.creem.io) is the merchant of record for Pro.** It takes your payment, handles tax, and issues your invoice, and it processes your payment details as an independent controller under [its own privacy policy](https://www.creem.io/privacy), not on our behalf.
+
+- **What we send Creem**: your account id, and the email address GitHub verified for you, so the checkout knows who is buying.
+- **What Creem sends us**: your subscription's id, your Creem customer id, whether you pay monthly or yearly, the subscription's status, and when the current period ends. That is the whole of what we store about a subscription.
+- **Your card never reaches us.** You enter it on Creem's checkout, and we never see or store it.
+- **Your billing history is read live.** The payments listed in the app are fetched from Creem each time you open them, and never stored by us.
+
+### Voiceover and cover generation
+
+Pro's voiceover sends **the text and the voice you chose**; cover generation sends **your prompt, the aspect ratio, and up to three reference screenshots**. Each goes through our servers to **OpenRouter**, which returns the audio or image to you. We do not store what you send or what comes back, and it is not used to train models.
+
+For each use we record **your account id, the month, what it was for, how many credits it spent, and when** — so we can count your monthly allowance.
+
 ## How we use information
 
 We use information to:
@@ -410,6 +431,7 @@ We use information to:
 - **Reproduce and fix what a partner feedback submission reports** — the traces and project files you chose to share, so we can see where a spec misread what you meant and improve how specs are written. We do not use it to identify you.
 - **Understand whether the product works** — count how the app and the `akb` command are used and where they fail, and how many people who reach a page with a download button press it, from the anonymous reports described above, so we can decide what to build and what to fix. We read these as totals, never as one machine's or one visitor's story, and we do not attempt to work out who an install id belongs to.
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
+- **Provide Pro** — record your subscription, count your monthly credits, and generate the voiceovers and covers you ask for.
 - **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
 - **Arrange a training session you booked** — hold the hour, confirm it to you, give the coach what they need to turn up to it, and let you cancel it.
 - **Answer you** — handle a support message, a contact form message, or a data request you send us.
@@ -419,7 +441,7 @@ We do **not** use your information for advertising, profiling, or scoring, and w
 
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
-- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, answering the invite request you made, arranging the training session you booked, and answering a message you sent through the contact form.
+- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, providing the Pro subscription you bought, answering the invite request you made, arranging the training session you booked, and answering a message you sent through the contact form.
 - **Legitimate interests** — keeping the Service secure and working, preventing abuse, including the rate limits on the booking and contact forms, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
 - **Legal obligation** — when a law applies to us.
 
@@ -432,6 +454,7 @@ We do not sell or share your personal information for cross-context behavioral a
 We share information only in these limited cases:
 
 - **Service providers (processors)** — the subprocessors named above, who run parts of the Service on our behalf. They process data only to perform the service we asked for, under written data processing agreements.
+- **Creem** — the merchant of record for Pro, which receives your account id and email address when you buy, as described under [Pro](#pro).
 - **Legal and safety** — when required by law, by valid legal process, or to protect the rights, property, or safety of AI4Kanban, our users, or the public.
 - **Business transfers** — if AI4Kanban is involved in a merger, acquisition, financing, or asset sale, information may form part of that transaction. We will give notice before any personal information becomes subject to a different privacy policy.
 - **With your direction** — when you ask us to send something somewhere, such as the Slack or Lark conversation you connected.
@@ -465,6 +488,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
 - **A training booking** — the fields in the table above, kept for 24 months after the session, so both sides have a record of what was arranged and paid for. Cancelling releases the hour at once and marks the booking cancelled; the row itself stays for the same 24 months and is deleted on request, quoting your booking reference. The rate-limit counter behind a submit is keyed on a salted hash and expires within the hour.
 - **A contact form message** — the fields in the table above, kept until you ask us to delete it. The rate-limit counter behind a submit is keyed on salted hashes and resets on its own.
+- **Your Pro subscription records and credit records** — kept until you ask us to delete your account. Creem keeps its transaction records under its own policy.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 
 We may keep limited information longer where we need it to comply with a legal obligation, resolve a dispute, or enforce our agreements.
@@ -515,9 +539,10 @@ In the past 12 months, the categories of personal information we have collected,
 
 - **Identifiers** — a GitHub username and numeric id, a display name, an avatar URL, and an email address where the sign-in returns one; and, for a board on Cloud, the name of the folder that board sits in, the identifier the computer running it generated for itself, and that computer's hostname.
 - **Internet or network activity** — the site's two counts and the app's anonymous usage reporting, neither of which identifies a person; what our subprocessors log to deliver a request; and the API's own request log described above.
-- **Other information you choose to provide** — the part of a card an event carries (its title, its opening paragraph, its review notes, and its questions), the decisions and answers you record against it, feedback you press send on and anything you chose to attach to it, the traces and project files a partner feedback submission carries, and anything you write to us in an email.
+- **Other information you choose to provide** — the part of a card an event carries (its title, its opening paragraph, its review notes, and its questions), the decisions and answers you record against it, feedback you press send on and anything you chose to attach to it, the traces and project files a partner feedback submission carries, what you submit for a Pro voiceover or cover, and anything you write to us in an email.
+- **Commercial information** — for a Pro subscriber, the subscription records described under [Pro](#pro) and the credits each use spent.
 
-We collect no commercial information, no geolocation, no biometric data, and we draw no inferences about you. We share these categories only with the service providers described above.
+We collect no geolocation, no biometric data, and we draw no inferences about you. We share these categories only with the service providers described above, and with Creem when you buy Pro.
 
 ## International data transfers
 
@@ -526,7 +551,7 @@ An account's Cloud records are stored in **Frankfurt, Germany**, inside the EU. 
 Two transfers can still happen, and we would rather name them than leave them implied:
 
 - **The API runs on Cloudflare's global network.** A request is handled close to where it was made, so an account working outside the EEA has their request processed in that region in transit before it reaches the database in Frankfurt.
-- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, Spaceship, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an answer to an EU address is processed there in transit, and Spaceship processes the `support@ai4kanban.dev` mailbox in the United States, so a data request you send us and a preview notice we send you pass through there too.
+- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, Spaceship, OpenRouter, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an answer to an EU address is processed there in transit, and Spaceship processes the `support@ai4kanban.dev` mailbox in the United States, so a data request you send us and a preview notice we send you pass through there too. What you submit for a Pro voiceover or cover is processed by OpenRouter in the United States.
 
 Where personal information is transferred out of the UK, the EEA, or Switzerland, we rely on the European Commission's Standard Contractual Clauses, the UK's International Data Transfer Agreement or Addendum, the EU–US and UK–US Data Privacy Framework where a recipient is certified, or another safeguard recognized under applicable law. Copies of these safeguards are available on request.
 
@@ -540,7 +565,7 @@ We will update this Policy as the Service evolves. When we do, we will change th
 
 **For a material change we send a notice by hand**, from [support@ai4kanban.dev](mailto:support@ai4kanban.dev) to the email address GitHub verified for your account. That is the route: the preview delivers no notice inside the app and none in a connected Slack or Lark chat. A post on `ai4kanban.dev` may accompany the email, but never stands in for it.
 
-That email reaches Cloud accounts, because a signed-in account is the only address we have. **If you have never signed in to Cloud, this page is your notice** — we hold no way to reach you — so the effective date at the top is what to check. The one thing the app tells you itself is the usage-reporting disclosure, shown once before your first board opens.
+That email reaches Cloud accounts and Pro subscribers, because a signed-in account is the only address we have. **If you have never signed in to Cloud, this page is your notice** — we hold no way to reach you — so the effective date at the top is what to check. The one thing the app tells you itself is the usage-reporting disclosure, shown once before your first board opens.
 
 ## Contact
 
