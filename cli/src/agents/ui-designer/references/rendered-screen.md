@@ -46,6 +46,7 @@ own — a blank line above it and a blank line below:
 
 A tag sharing a line or paragraph with prose is printed as text. `src` is the entry file's name,
 written exactly as above and resolved by the board; `label` is required and is the screen's name
-for a reader, in the board's language. `device` is `mobile` for a 390×844 phone screen or
+for a reader, in the board's language. `device` is `mobile` for a 390×763 phone screen or
 `desktop` for a 1280×800 one; write it on every screen. Use `<Asset>` for mockups; cards also support `<Storyboard>`
 for scripts with storyboard manifests. Inside backticks or a fenced block, either remains text.
+The board's phone frame draws the iOS status bar and home indicator around a mobile screen; never draw them.
