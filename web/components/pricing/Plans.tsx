@@ -29,7 +29,6 @@ const MOTION = `
   .pr-digit { transform: translateY(var(--to)) }
 }`;
 
-// Tag colours match the check squares on the plan rows that offer each workflow.
 const FLOW: Record<Workflow, string> = {
   coding: "bg-[#e4f3ea] text-growth",
   email: "bg-[#f7ddce] text-accent-deep",
@@ -109,22 +108,17 @@ function Odometer({ value }: { value: string }) {
   );
 }
 
-function Rows({ rows, flows = [] }: { rows: string[]; flows?: (Workflow | undefined)[] }) {
+function Rows({ rows }: { rows: string[] }) {
   return (
     <ul className="space-y-3 text-[0.95rem] leading-relaxed text-ink">
-      {rows.map((row, i) => {
-        const flow = flows[i];
-        return (
-          <li key={row} className="flex gap-3">
-            <span
-              className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded ${flow ? FLOW[flow] : "text-accent"}`}
-            >
-              <FiCheck className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
-            </span>
-            <span>{row}</span>
-          </li>
-        );
-      })}
+      {rows.map((row) => (
+        <li key={row} className="flex gap-3">
+          <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center text-accent">
+            <FiCheck className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+          </span>
+          <span>{row}</span>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -144,7 +138,7 @@ function BillingSwitch({
       aria-pressed={billing === value}
       onClick={() => onChange(value)}
       className={`inline-flex cursor-pointer items-center gap-2 rounded-md px-4 py-1.5 text-[0.95rem] font-semibold transition-colors ${focus} ${
-        billing === value ? "bg-ink text-elev" : "text-muted hover:text-ink"
+        billing === value ? "bg-accent/10 text-accent-deep" : "text-muted hover:text-ink"
       }`}
     >
       {label}
@@ -157,7 +151,7 @@ function BillingSwitch({
         "yearly",
         <>
           {t.yearly}
-          <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-elev">{t.save}</span>
+          <span className="rounded bg-accent/15 px-1.5 py-0.5 text-xs font-bold text-accent-deep">{t.save}</span>
         </>,
       )}
     </div>
@@ -172,7 +166,6 @@ function Plan({
   sub,
   leadIn,
   rows,
-  flows,
   button,
 }: {
   name: string;
@@ -182,7 +175,6 @@ function Plan({
   sub: string;
   leadIn?: string;
   rows: string[];
-  flows?: (Workflow | undefined)[];
   button: ReactNode;
 }) {
   return (
@@ -198,7 +190,7 @@ function Plan({
       {button}
       <div className="mt-7 border-t border-ink/10 pt-6">
         {leadIn && <p className="mb-3 text-[0.95rem] font-semibold">{leadIn}</p>}
-        <Rows rows={rows} flows={flows} />
+        <Rows rows={rows} />
       </div>
     </section>
   );
@@ -232,7 +224,6 @@ export function Plans({
             price={<Odometer value={t.free.price} />}
             sub={t.free.tagline}
             rows={t.free.rows}
-            flows={[undefined, "coding"]}
             button={
               <Button href={links.download} className="mt-6 w-full">
                 {t.free.button}
@@ -248,7 +239,6 @@ export function Plans({
             sub={billing === "yearly" ? t.pro.yearly.sub : ""}
             leadIn={t.pro.leadIn}
             rows={t.pro.rows}
-            flows={["slides", "video"]}
             button={
               <Button href={`${CHECKOUT}${billing}`} variant="primary" className="mt-6 w-full">
                 {t.pro.button}
