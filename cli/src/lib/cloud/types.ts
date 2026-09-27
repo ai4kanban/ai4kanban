@@ -149,3 +149,7 @@ export interface LarkChat {
   /** The direct message with whoever connected, rather than a group. */
   direct: boolean
 }
+
+/** Whether this machine's account has Pro (#1038). `unconfirmed`: signed in, but neither Cloud
+ *  nor a recent Pro answer could say. */
+export type ProAccess = 'pro' | 'free' | 'signed-out' | 'unconfirmed'

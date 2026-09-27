@@ -18,7 +18,7 @@ import {
   stopRun,
   titleOf,
 } from '../lib/agent/sessions'
-import { startResume, startRun } from '../lib/agent/start'
+import { proRefusal, startResume, startRun } from '../lib/agent/start'
 import { unstickStop } from '../lib/agent/unstick'
 import { cardCreation } from '../lib/agent/store'
 import type {
@@ -92,6 +92,9 @@ export async function cmdStartRun(
   // run's watcher at the close — in the same flow, so it reads as the next session of the
   // job that handed the card over.
   if (inside && action === 'refine' && !print) return queueRefine(inside, req)
+  // A run the board started passed this at its own start (#1038).
+  const pro = inside ? null : await proRefusal(runnable)
+  if (pro) die(pro.error, { kind: 'run-refused', action, reason: pro.reason })
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(runnable, program)

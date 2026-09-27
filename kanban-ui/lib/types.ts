@@ -171,6 +171,7 @@ export type {
   LarkCloudOffer,
   LarkConnection,
   LarkState,
+  ProAccess,
   SlackConnection,
   SlackConversation,
   SlackState,

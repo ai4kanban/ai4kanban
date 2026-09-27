@@ -74,6 +74,7 @@ import {
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
   cloudAccount,
+  proAccess,
   cloudCardLink,
   disconnectLark,
   disconnectSlack,
@@ -242,6 +243,7 @@ import type {
   CloudEventAnswer,
   CloudMove,
   ClosePlan,
+  ProAccess,
   CommandState,
   ConnectionTest,
   ConversationRow,
@@ -2030,6 +2032,10 @@ export async function sortTriageAction(): Promise<StartResult & { closed?: boole
 
 export async function cloudAccountAction(): Promise<CloudAccount> {
   return cloudAccount();
+}
+
+export async function proAccessAction(): Promise<ProAccess> {
+  return proAccess();
 }
 
 /** The consent screen to open. The app opens it in the user's own browser — a desktop

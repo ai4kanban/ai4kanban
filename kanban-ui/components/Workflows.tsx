@@ -17,7 +17,7 @@
 // refusal. Nothing here has a copy of those rules.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiChevronDown, FiChevronRight, FiMoreHorizontal, FiPlus } from "react-icons/fi";
+import { FiAlertCircle, FiChevronDown, FiChevronRight, FiExternalLink, FiMoreHorizontal, FiPlus } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -43,6 +43,7 @@ import type {
 } from "@/lib/types";
 import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
 import { useWorkflowTip } from "./WorkflowTip";
+import { goPro, ProPill, proLock, useProAccess } from "./pro";
 import {
   ACCENT_BTN,
   CAPTION,
@@ -166,6 +167,10 @@ export function WorkflowsPanel({
   }, [flows, picked]);
 
   const flow = flows?.find((f) => f.id === picked);
+  // A Pro workflow this account cannot use cannot be copied either (#1038).
+  const pro = useCopy().shared.pro;
+  const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
+  const proLocked = !!flow?.pro && !!lock;
   // A workflow finished in planning has no execute or review stage to show (#1057).
   const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
   const stage = stages.includes(tab) ? tab : "plan";
@@ -332,7 +337,12 @@ export function WorkflowsPanel({
       onSaved={load}
       onError={onError}
       items={[
-        { label: c.duplicate, run: () => void duplicate() },
+        proLocked
+          ? { label: c.duplicate, run: () => {}, locked: pro.locked }
+          : { label: c.duplicate, run: () => void duplicate() },
+        ...(proLocked
+          ? [{ label: lock === "upgrade" ? pro.upgrade : pro.signIn, run: () => goPro(lock), accent: true, external: lock === "upgrade" }]
+          : []),
         ...(flow.builtIn
           ? []
           : [
@@ -395,8 +405,13 @@ export function WorkflowsPanel({
                               <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
                                 {nameOf(flow)}
                               </span>
-                              {flow.builtIn && (
-                                <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
+                              {/* Pro outranks Built-in: three marks leave a name no room. */}
+                              {flow.pro ? (
+                                <ProPill />
+                              ) : (
+                                flow.builtIn && (
+                                  <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
+                                )
                               )}
                               {flow.isDefault && <Pill>{c.isDefault}</Pill>}
                               {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
@@ -885,6 +900,7 @@ function FlowPicker({
                 {...tip.rowProps(f, row)}
               >
                 <span className="min-w-0 flex-1 break-words text-[12.5px] font-[700]">{nameOf(f)}</span>
+                {f.pro && <ProPill />}
                 {f.isDefault && <Pill>{c.isDefault}</Pill>}
                 {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
               </PopoverOption>
@@ -965,7 +981,8 @@ function MoreMenu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   label: string;
-  items: { label: string; run: () => void }[];
+  /** `locked`: held back, with why as its tooltip. `accent`: the way to Pro (#1038). */
+  items: { label: string; run: () => void; locked?: string; accent?: boolean; external?: boolean }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
   flow: WorkflowView;
   onSaved: () => Promise<void>;
@@ -1025,8 +1042,17 @@ function MoreMenu({
         className="w-[258px] p-1.5"
       >
         {items.map((item) => (
-          <DropdownMenuItem key={item.label} onSelect={act(item.run)} className={row}>
+          <DropdownMenuItem
+            key={item.label}
+            disabled={!!item.locked}
+            title={item.locked}
+            onSelect={act(item.run)}
+            className={`${row} ${item.locked ? "data-[disabled]:pointer-events-auto cursor-not-allowed" : ""} ${
+              item.accent ? "justify-between font-[700] text-nb-accent-deep" : ""
+            }`}
+          >
             {item.label}
+            {item.external && <FiExternalLink aria-hidden className="text-[12px]" />}
           </DropdownMenuItem>
         ))}
         {danger && !asking && (

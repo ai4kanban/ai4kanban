@@ -33,6 +33,7 @@ import { specAgentCatalog } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
 import { copyAgent } from '../agents/roster'
+import { proGate } from '../cloud/pro'
 import {
   refusal,
   WORKFLOW_STAGES,
@@ -85,6 +86,9 @@ export interface Workflow {
   /** The stage that hands over the finished work (#1057). `plan` means planning produces it
    *  and the user archives it: nothing is built, so the execute stage may stay empty. */
   delivers: DeliveryStage
+  /** Whether only a Pro account may run it (#1038). A copy of one carries it; a copy made
+   *  before #1038 carries nothing and stays free. */
+  pro: boolean
   /** Whether an upgrade took a retired agent off this workflow and the user has not been
    *  told yet (#945). Cleared by `dismissRetiredAssignment`. */
   retiredAssignment: boolean
@@ -119,6 +123,7 @@ interface BuiltinWorkflow {
   description: string
   needsArtifact?: boolean
   delivers?: DeliveryStage
+  pro?: boolean
   stages: Record<WorkflowStage, { lead: string; helpers: BuiltinHelpers }>
 }
 
@@ -146,6 +151,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     description: 'Approve a script, get a finished product video, and archive it when you are happy.',
     needsArtifact: true,
     delivers: 'plan',
+    pro: true,
     stages: {
       plan: { lead: 'scriptwriter', helpers: ['hyperframes-editor'] },
       execute: { lead: '', helpers: [] },
@@ -158,6 +164,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     description: 'Approve the slides, get an editable PowerPoint deck, and archive it when you are happy.',
     needsArtifact: true,
     delivers: 'plan',
+    pro: true,
     stages: {
       plan: { lead: 'deck-planner', helpers: [] },
       execute: { lead: '', helpers: [] },
@@ -218,6 +225,7 @@ interface AddedRow {
   name: string
   needsArtifact: boolean
   delivers: DeliveryStage
+  pro: boolean
 }
 
 const addedRows = (cfg: Record<string, unknown>): AddedRow[] => {
@@ -230,7 +238,13 @@ const addedRows = (cfg: Record<string, unknown>): AddedRow[] => {
     const name = typeof row.name === 'string' ? row.name.trim() : ''
     if (!id || !WORKFLOW_ID.test(id) || isBuiltinWorkflow(id)) continue
     if (rows.some((r) => r.id === id)) continue
-    rows.push({ id, name, needsArtifact: row.needsArtifact === true, delivers: row.delivers === 'plan' ? 'plan' : 'execute' })
+    rows.push({
+      id,
+      name,
+      needsArtifact: row.needsArtifact === true,
+      delivers: row.delivers === 'plan' ? 'plan' : 'execute',
+      pro: row.pro === true,
+    })
   }
   return rows
 }
@@ -270,6 +284,7 @@ function resolveOne(
   builtIn: boolean,
   needsArtifact = false,
   delivers: DeliveryStage = 'execute',
+  pro = false,
 ): Workflow {
   const base = BUILTINS.find((w) => w.id === id)
   const stages = emptyStages()
@@ -295,6 +310,7 @@ function resolveOne(
     builtIn,
     needsArtifact: base?.needsArtifact ?? needsArtifact,
     delivers: base ? (base.delivers ?? 'execute') : delivers,
+    pro: base ? base.pro === true : pro,
     retiredAssignment: retiredRows(cfg).includes(id),
     stages,
   }
@@ -674,7 +690,7 @@ function writtenWorkflows(): Workflow[] {
   if (addShippedAgents(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
-    ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers)),
+    ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers, row.pro)),
   ]
 }
 
@@ -930,13 +946,26 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
   )
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
-    added.push({ id: copy, name, needsArtifact: flow.needsArtifact, ...(flow.delivers === 'plan' ? { delivers: 'plan' } : {}) })
+    added.push({
+      id: copy,
+      name,
+      needsArtifact: flow.needsArtifact,
+      ...(flow.delivers === 'plan' ? { delivers: 'plan' } : {}),
+      ...(flow.pro ? { pro: true } : {}),
+    })
     block.added = added
     // The stages as they RESOLVE, not as they are saved: one still inheriting its workflow's
     // default has nothing saved.
     block.stages = { ...configBlock(block.stages), [copy]: stages }
   })
   return res.ok ? { ok: true, id: copy, name } : res
+}
+
+/** `duplicateWorkflow`, refused for a Pro workflow this account cannot use (#1038). */
+export async function duplicateWorkflowIfAllowed(id: string, called?: string): Promise<Write & { id?: string; name?: string }> {
+  const flow = workflowById(id)
+  const refused = flow ? await proGate(flow) : null
+  return refused ? { ok: false, ...refused } : duplicateWorkflow(id, called)
 }
 
 /** Rename one of the board's own. The id does not move, so every card and every finished
@@ -1267,6 +1296,7 @@ export function workflowViews(): WorkflowView[] {
     isDefault: flow.id === DEFAULT_WORKFLOW,
     needsArtifact: flow.needsArtifact,
     delivers: flow.delivers,
+    pro: flow.pro,
     retiredAssignment: flow.retiredAssignment,
     stages: WORKFLOW_STAGES.map((stage) => {
       const setup = liveStage(flow, stage)

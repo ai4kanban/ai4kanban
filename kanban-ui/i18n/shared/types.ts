@@ -18,4 +18,12 @@ export type SharedCopy = {
    *  this conversation or run has filled, and how big the window is. Both numbers arrive
    *  already shortened — `100k`, `1M`. */
   contextWindow: (used: string, limit: string) => string;
+  /** A Pro workflow (#1038): its mark, and the one way to it for an account without Pro. */
+  pro: {
+    mark: string;
+    upgrade: string;
+    signIn: string;
+    /** Why a Pro row cannot be picked. */
+    locked: string;
+  };
 };

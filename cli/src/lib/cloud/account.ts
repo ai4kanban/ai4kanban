@@ -7,6 +7,7 @@
 
 import { heldAvatar } from './avatar'
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
+import { forgetPro } from './pro'
 import { accessToken, clearSession, readSession, sessionFile } from './session'
 import type { CloudAccount, CloudMove } from './types'
 
@@ -151,6 +152,7 @@ async function post(path: string, body?: unknown): Promise<CloudMove> {
 /** Sign this machine out. Nothing already on any board is touched. */
 export function signOutOfCloud(): { ok: true } {
   clearSession()
+  forgetPro()
   return { ok: true }
 }
 

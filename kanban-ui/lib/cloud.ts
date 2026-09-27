@@ -6,6 +6,7 @@ import {
   type LarkChat,
   type LarkCloud,
   type LarkState,
+  type ProAccess,
   type SlackConversation,
   type SlackState,
 } from "./types";
@@ -48,6 +49,13 @@ export const mayStoreInCloud = (handle: string | null): boolean =>
 export async function cloudAccount(): Promise<CloudAccount> {
   const rules = await boardRules();
   return rules.readCloudAccount ? rules.readCloudAccount() : { ...UNKNOWN, message: await tooOld() };
+}
+
+/** Whether this machine's account has Pro (#1038). Rules older than Pro gate nothing, so
+ *  nothing is locked either. */
+export async function proAccess(): Promise<ProAccess> {
+  const rules = await boardRules();
+  return rules.proAccess ? rules.proAccess() : "pro";
 }
 
 /** The consent screen to open in the user's own browser. The secret half of the sign-in

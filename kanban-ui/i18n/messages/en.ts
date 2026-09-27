@@ -116,6 +116,9 @@ const en: MessagesCopy = {
     workflowLeadMissing: (a) => `${a.name} has ${a.agent} leading its ${a.stage} stage, and this board has no such agent.`,
     workflowLeadStage: (a) =>
       `${a.name} has ${a.agent} leading its ${a.stage} stage, but ${a.agent} is a ${a.assigned} agent.`,
+    proSignIn: (a) => `${a.name} needs Pro. Sign in first.`,
+    proRequired: (a) => `${a.name} needs Pro.`,
+    proUnconfirmed: () => "Couldn't confirm your Pro plan. Reconnect and retry.",
     noReviewers: () => "This delivery's workflow has no reviewers, so it is delivered as built with nothing to review.",
     cloudUnreachable: () =>
       "Cloud could not be reached, so the run was not started. A run works on the workspace, never on the copy left on this computer. Try again once the board is back.",

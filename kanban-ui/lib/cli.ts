@@ -45,6 +45,7 @@ import type {
 import type { CloudEventAnswer, CloudEventDecision, NotificationGroup } from "./format/cloud/events";
 import type {
   CloudAccount,
+  ProAccess,
   CloudMove,
   LarkChat,
   LarkCloud,
@@ -290,7 +291,10 @@ export interface BoardRules {
   // workflows at all, and the pane says so rather than drawing an empty list.
   workflowViews?(): WorkflowView[];
   createWorkflow?(name: string): WriteResult & { id?: string; name?: string };
-  duplicateWorkflow?(id: string, called?: string): WriteResult & { id?: string; name?: string };
+  duplicateWorkflow?(
+    id: string,
+    called?: string,
+  ): (WriteResult & { id?: string; name?: string }) | Promise<WriteResult & { id?: string; name?: string }>;
   renameWorkflow?(id: string, name: string): WriteResult;
   setWorkflowWorktree?(id: string, on: boolean): WriteResult;
   dismissRetiredAssignment?(id: string): WriteResult;
@@ -687,6 +691,8 @@ export interface BoardRules {
   // the moves above: a project can be running rules older than the release that added
   // Cloud, and the section says so rather than the dialog failing to draw.
   readCloudAccount?(): Promise<CloudAccount>;
+  // Whether this machine's account has Pro (#1038).
+  proAccess?(): Promise<ProAccess>;
   startCloudSignIn?(): { ok: true; url: string } | { ok: false; error: string };
   finishCloudSignIn?(callback: string): Promise<{ ok: boolean; error?: string }>;
   signOutOfCloud?(): { ok: true };

@@ -39,6 +39,7 @@ export interface StartAnswer {
   ok: boolean;
   sessionId?: string;
   error?: string;
+  reason?: string;
 }
 
 /** Making a release can also start the run that fills it from its goal (#165). The release

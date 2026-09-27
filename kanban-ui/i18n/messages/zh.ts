@@ -106,6 +106,9 @@ const zh: MessagesCopy = {
     workflowNoLead: (a) => `“${a.name}”的${a.stage}阶段尚无主导 Agent，请先分配再启动。`,
     workflowLeadMissing: (a) => `“${a.name}”的${a.stage}阶段指定了 ${a.agent}，但看板中没有该 Agent。`,
     workflowLeadStage: (a) => `“${a.name}”的${a.stage}阶段指定了 ${a.agent}，但该 Agent 属于${a.assigned}阶段。`,
+    proSignIn: (a) => `“${a.name}”需要 Pro，请先登录。`,
+    proRequired: (a) => `“${a.name}”需要 Pro。`,
+    proUnconfirmed: () => "无法确认 Pro 方案，联网后重试。",
     noReviewers: () => "此交付的工作流未设置评审 Agent，将直接交付构建结果，无需评审。",
     cloudUnreachable: () =>
       "无法连接 Cloud，运行未启动。运行需要访问工作区，不能使用这台电脑上留存的副本；请在看板恢复连接后重试。",

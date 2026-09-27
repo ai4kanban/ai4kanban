@@ -2,7 +2,7 @@
 
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { askForSpec, readRuns } from '../lib/agent/sessions'
-import { startRun } from '../lib/agent/start'
+import { proRefusal, startRun } from '../lib/agent/start'
 import { titleOf } from '../lib/agent/sessions'
 import type { AgentRequest } from '../lib/agent/types'
 import { locate } from '../lib/cards'
@@ -98,6 +98,10 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     return { specAgent: name, cardId: id, queued: false, pending: true }
   }
 
+  if (opts.print === true && !inside) {
+    const pro = await proRefusal(req)
+    if (pro) die(pro.error, { kind: 'run-refused', action: 'spec', reason: pro.reason })
+  }
   if (opts.print === true) return printFlow(req, program)
 
   // Separate requests from a board run start after its parent finishes.

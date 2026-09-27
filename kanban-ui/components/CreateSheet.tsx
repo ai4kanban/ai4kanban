@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiCopy, FiExternalLink, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
@@ -28,6 +28,7 @@ import { Copied, useCopyText } from "./copy";
 import { DiscussFeedbackBlock, ShareRow, useDiscussFeedback, type DiscussFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
 import { useWorkflowName } from "./Workflows";
+import { goPro, ProPill, proLock, useProAccess, type ProLock } from "./pro";
 import { useWorkflowTip } from "./WorkflowTip";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
@@ -138,6 +139,8 @@ function Sheet({
   useEffect(() => {
     void workflowsAction().then((res) => setFlows(res.workflows));
   }, []);
+  // What unlocks the Pro workflows (#1038). A locked pick is kept, never swapped for the default.
+  const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const [sending, setSending] = useState(false);
   // The window's body, when there is one — the sheet fills that rather than the viewport.
   const body = useBodySlot();
@@ -205,6 +208,7 @@ function Sheet({
       failure={failure}
       flows={flows}
       workflow={workflow}
+      lock={lock}
       onWorkflow={(id) => setPicked({ for: pickFor, id })}
       onPlan={() => onPlan(workflow || undefined)}
       onBuild={() => onBuildPlan(workflow || undefined)}
@@ -556,6 +560,7 @@ function Handoff({
   failure,
   flows,
   workflow,
+  lock,
   onWorkflow,
   onPlan,
   onBuild,
@@ -574,11 +579,13 @@ function Handoff({
   /** The board's workflows, or null before they are read or on rules without them. */
   flows: WorkflowView[] | null;
   workflow: string;
+  lock: ProLock;
   onWorkflow(id: string): void;
   onPlan(): void;
   onBuild(): void;
 }) {
   const c = useCopy().board.create.sheet.plan;
+  const pro = useCopy().shared.pro;
   // Whether Build now's "are you sure?" is open, anchored to the answer that was pressed.
   const [guard, setGuard] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -601,6 +608,8 @@ function Handoff({
   const failed = !!read.run && !read.run.running;
   const again = read.run?.answer === "build" ? c.buildAgain : many ? c.tryAgainMany : c.tryAgain;
   const down = held || starting !== null;
+  // The picked workflow is Pro and this account cannot run it: one way to Pro in place of both.
+  const locked = !!lock && !!flows?.find((f) => f.id === workflow)?.pro;
   return (
     <div>
       {/* Several plans go together (#917), so the answer names what it takes. */}
@@ -618,40 +627,49 @@ function Handoff({
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
-        <Button size="xs" disabled={down} title={c.planHint} onClick={onPlan}>
-          {starting === "plan" ? c.starting : c.start}
-        </Button>
-        {/* The panel hangs off this, so it lives inside. */}
-        <span ref={anchor} className="relative flex">
-          <Button
-            size="xs"
-            variant="ghost"
-            className="font-[700]"
-            aria-expanded={guard}
-            disabled={down || many}
-            title={many ? c.buildOnlyOne : c.buildHint}
-            style={{
-              borderColor: "var(--color-nb-accent-deep)",
-              color: "var(--color-nb-accent-deep)",
-            }}
-            onClick={() => setGuard((was) => !was)}
-          >
-            {starting === "build" ? c.starting : c.build}
+        {locked ? (
+          <Button size="xs" onClick={() => goPro(lock)}>
+            {lock === "upgrade" ? pro.upgrade : pro.signIn}
+            {lock === "upgrade" && <FiExternalLink size={12} aria-hidden />}
           </Button>
-          <BuildGuard
-            open={guard}
-            anchorRef={anchor}
-            onDismiss={() => setGuard(false)}
-            onConfirm={() => {
-              setGuard(false);
-              onBuild();
-            }}
-          />
-        </span>
-        {many && <span className="text-[11.5px] text-nb-ink-soft">{c.buildOnlyOne}</span>}
-        {failed && !starting && !failure && !many && <span className="text-[11.5px] text-nb-ink-soft">{again}</span>}
+        ) : (
+          <>
+            <Button size="xs" disabled={down} title={c.planHint} onClick={onPlan}>
+              {starting === "plan" ? c.starting : c.start}
+            </Button>
+            {/* The panel hangs off this, so it lives inside. */}
+            <span ref={anchor} className="relative flex">
+              <Button
+                size="xs"
+                variant="ghost"
+                className="font-[700]"
+                aria-expanded={guard}
+                disabled={down || many}
+                title={many ? c.buildOnlyOne : c.buildHint}
+                style={{
+                  borderColor: "var(--color-nb-accent-deep)",
+                  color: "var(--color-nb-accent-deep)",
+                }}
+                onClick={() => setGuard((was) => !was)}
+              >
+                {starting === "build" ? c.starting : c.build}
+              </Button>
+              <BuildGuard
+                open={guard}
+                anchorRef={anchor}
+                onDismiss={() => setGuard(false)}
+                onConfirm={() => {
+                  setGuard(false);
+                  onBuild();
+                }}
+              />
+            </span>
+          </>
+        )}
+        {many && !locked && <span className="text-[11.5px] text-nb-ink-soft">{c.buildOnlyOne}</span>}
+        {failed && !starting && !failure && !many && !locked && <span className="text-[11.5px] text-nb-ink-soft">{again}</span>}
         {flows && flows.length > 1 && (
-          <WorkflowPick flows={flows} picked={workflow} disabled={down} onPick={onWorkflow} />
+          <WorkflowPick flows={flows} picked={workflow} disabled={down} lock={lock} onPick={onWorkflow} />
         )}
       </div>
       {failed && !starting && !failure && many && (
@@ -687,14 +705,17 @@ function WorkflowPick({
   flows,
   picked,
   disabled,
+  lock,
   onPick,
 }: {
   flows: WorkflowView[];
   picked: string;
   disabled: boolean;
+  lock: ProLock;
   onPick: (id: string) => void;
 }) {
   const c = useCopy().board.create.sheet.workflow;
+  const pro = useCopy().shared.pro;
   const w = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
   const [open, setOpen] = useState(false);
@@ -819,6 +840,7 @@ function WorkflowPick({
         style={{ background: "var(--color-nb-accent-wash)" }}
       >
         <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
+        {mine.pro && <ProPill />}
         <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
       </button>
       {open &&
@@ -844,6 +866,7 @@ function WorkflowPick({
                 {flows.map((f) => {
                   // A workflow that cannot start would only write a card that stops on its first run.
                   const off = f.problems.length > 0;
+                  const shut = off || (!!f.pro && !!lock);
                   const row = () => rows.current.get(f.id) ?? null;
                   const props = tip.rowProps(f, row);
                   return (
@@ -861,21 +884,24 @@ function WorkflowPick({
                         type="button"
                         role="menuitemradio"
                         aria-checked={f.id === mine.id}
-                        aria-disabled={off || undefined}
-                        title={off && !("aria-describedby" in props) ? w.notReadyHint : undefined}
+                        aria-disabled={shut || undefined}
+                        title={
+                          "aria-describedby" in props ? undefined : off ? w.notReadyHint : shut ? pro.locked : undefined
+                        }
                         onClick={() => {
-                          if (off) return;
+                          if (shut) return;
                           tip.clear();
                           onPick(f.id);
                           close(true);
                         }}
                         className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-[7px] px-3 text-left text-[12px] font-[700] outline-none ${
-                          off ? "cursor-not-allowed" : "cursor-pointer hover:bg-nb-wash"
+                          shut ? "cursor-not-allowed" : "cursor-pointer hover:bg-nb-wash"
                         } ${f.id === mine.id ? "hover:bg-transparent focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent-deep)]" : "focus-visible:bg-nb-ink/[0.07]"}`}
                         style={{ minHeight: MENU_ROW }}
                         {...props}
                       >
-                        <span className={`min-w-0 break-words ${off ? "opacity-45" : ""}`}>{nameOf(f)}</span>
+                        <span className={`min-w-0 break-words ${shut ? "opacity-45" : ""}`}>{nameOf(f)}</span>
+                        {f.pro && !off && <ProPill />}
                         {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft opacity-45">{w.notReady}</span>}
                         {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
                       </button>
@@ -901,6 +927,24 @@ function WorkflowPick({
             </div>
             {tip.layer(flows)}
             <div className="mt-1 shrink-0 border-t border-nb-ink/10 pt-1">
+              {lock && flows.some((f) => f.pro) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    close(false);
+                    goPro(lock);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[700] text-nb-accent-deep outline-none focus-visible:bg-nb-ink/[0.07]"
+                >
+                  {lock === "upgrade" ? pro.upgrade : pro.signIn}
+                  {lock === "upgrade" ? (
+                    <FiExternalLink className="text-[12px]" aria-hidden />
+                  ) : (
+                    <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 role="menuitem"

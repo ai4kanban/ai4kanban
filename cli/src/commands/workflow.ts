@@ -15,7 +15,7 @@ import {
   agentWorkflow,
   builtinDescription,
   createWorkflow,
-  duplicateWorkflow,
+  duplicateWorkflowIfAllowed,
   liveStage,
   renameWorkflow,
   setWorkflowHelperExtra,
@@ -30,6 +30,7 @@ import {
   type WorkflowStage,
 } from '../lib/agent/workflows'
 import { removeWorkflow } from '../lib/agent/workflow-cards'
+import { proAccess } from '../lib/cloud/pro'
 import type { MoveResult } from '../lib/types'
 
 /** `akb workflow`, as its command declares it (lib/cli/agent.ts). */
@@ -65,13 +66,17 @@ const done = (res: { ok: boolean; error?: string }): void => {
   if (!res.ok) die(res.error ?? 'the board refused that change')
 }
 
-export function cmdWorkflowList(): MoveResult {
+export async function cmdWorkflowList(): Promise<MoveResult> {
   const rows = workflows()
+  // Asked only on a board with a Pro workflow, so a free board lists offline as before.
+  const access = rows.some((flow) => flow.pro) ? await proAccess() : 'pro'
+  const locked = access === 'free' || access === 'signed-out'
   const roster = agentRoster()
   const titleOf = (name: string) => roster.find((a) => a.name === name)?.name ?? name
   const undeclared = (name: string) => roster.some((a) => a.name === name && !a.canLead)
   for (const flow of rows) {
-    say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}${flow.needsArtifact ? '  (no worktree)' : ''}`)
+    const pro = flow.pro ? (locked ? '  (Pro · locked)' : '  (Pro)') : ''
+    say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}${pro}${flow.needsArtifact ? '  (no worktree)' : ''}`)
     const description = flow.builtIn ? builtinDescription(flow.id) : undefined
     if (description) say(`  ${description}`)
     for (const stage of WORKFLOW_STAGES) {
@@ -86,7 +91,13 @@ export function cmdWorkflowList(): MoveResult {
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
-  return { workflows: rows.map((flow) => (flow.builtIn ? { ...flow, description: builtinDescription(flow.id) } : flow)) }
+  return {
+    workflows: rows.map((flow) => ({
+      ...flow,
+      ...(flow.builtIn ? { description: builtinDescription(flow.id) } : {}),
+      ...(flow.pro ? { locked } : {}),
+    })),
+  }
 }
 
 export function cmdWorkflowNew(name: string): MoveResult {
@@ -96,8 +107,8 @@ export function cmdWorkflowNew(name: string): MoveResult {
   return { id: res.id, name: res.name }
 }
 
-export function cmdWorkflowDuplicate(id: string): MoveResult {
-  const res = duplicateWorkflow(found(id).id)
+export async function cmdWorkflowDuplicate(id: string): Promise<MoveResult> {
+  const res = await duplicateWorkflowIfAllowed(found(id).id)
   done(res)
   say(`copied it to "${res.name}" (${res.id}) — each of its agents was copied with it`)
   return { id: res.id, name: res.name }
