@@ -85,7 +85,7 @@ export async function proAccess(now = Date.now()): Promise<ProAccess> {
     return fallback(held, now)
   }
   const body = (await response.json().catch(() => ({}))) as {
-    billing?: { plan?: string; periodEnd?: string | null }
+    billing?: { plan?: string; periodEnd?: string | null; grantEnd?: string | null }
     error?: { code?: string }
   }
   if (response.ok && body.billing) {
@@ -93,7 +93,9 @@ export async function proAccess(now = Date.now()): Promise<ProAccess> {
       forgetPro()
       return 'free'
     }
-    writeHeld({ subject, checkedAt: now, periodEnd: body.billing.periodEnd ?? null })
+    // Held until whichever runs longer: the subscription, or a seed partner's grant (#1039).
+    const ends = [body.billing.periodEnd, body.billing.grantEnd].filter((d): d is string => !!d).sort()
+    writeHeld({ subject, checkedAt: now, periodEnd: ends.at(-1) ?? null })
     return 'pro'
   }
   if (body.error?.code === 'unauthenticated') return 'signed-out'

@@ -211,7 +211,7 @@ export function Plans({
   links,
 }: {
   t: PricingCopy;
-  links: { download: string; contact: string; training: string };
+  links: { download: string; seed: string; training: string };
 }) {
   const [billing, setBilling] = useState<Billing>("yearly");
   const pro = billing === "yearly" ? t.pro.yearly : t.pro.monthly;
@@ -262,7 +262,7 @@ export function Plans({
         <section>
           <h2 className="text-xl font-bold tracking-tight">{t.seed.name}</h2>
           <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">{t.seed.body}</p>
-          <a href={links.contact} className={link}>
+          <a href={links.seed} className={link}>
             {t.seed.button}
             <FiArrowRight aria-hidden="true" />
           </a>

@@ -23,7 +23,7 @@ const field =
   "mt-2 w-full rounded-lg border-2 border-border bg-elev px-3 py-2 text-sm font-normal " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-const submitClass =
+export const submitClass =
   "inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-border bg-accent px-6 py-3 font-bold text-elev no-underline shadow-[4px_4px_0_0_var(--color-ink)] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-accent-deep hover:shadow-[6px_6px_0_0_var(--color-ink)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0_0_var(--color-ink)] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_var(--color-ink)]";
 
 export function ContactForm({ t }: { t: ContactCopy }) {
@@ -238,7 +238,7 @@ function ReasonOption({
   );
 }
 
-function Field({
+export function Field({
   label,
   hint,
   error,
@@ -261,7 +261,7 @@ function Field({
   );
 }
 
-function WithSupport({ text }: { text: string }) {
+export function WithSupport({ text }: { text: string }) {
   const [before, after] = text.split("{support}");
   if (after === undefined) return <>{text}</>;
   return (

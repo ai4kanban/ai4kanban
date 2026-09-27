@@ -6,9 +6,8 @@
  * nothing: credits are spent only once the image is in hand.
  */
 
-import { billingOf, type SubscriptionRow } from './billing.ts'
+import { readBilling } from './billing.ts'
 import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
-import { call } from './db.ts'
 import type { Env } from './env.ts'
 import { badRequest, creditsUsedUp, imageFailed, imageUnavailable, proRequired } from './errors.ts'
 
@@ -45,11 +44,8 @@ export async function generateImage(env: Env, user: string, body: unknown): Prom
       throw badRequest(`Each reference image must be ${MAX_REFERENCE_BYTES / 1024 / 1024} MB or smaller.`)
     }
   }
-  const [rows, used] = await Promise.all([
-    call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }),
-    creditsUsed(env, user),
-  ])
-  if (billingOf(rows).plan !== 'pro') throw proRequired()
+  const [billing, used] = await Promise.all([readBilling(env, user), creditsUsed(env, user)])
+  if (billing.plan !== 'pro') throw proRequired()
   if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw imageUnavailable()
 

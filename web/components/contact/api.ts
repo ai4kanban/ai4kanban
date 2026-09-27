@@ -2,7 +2,7 @@
 // cross-origin, as the booking form does (`components/training/api.ts`).
 
 import { API_ORIGIN, newOpId } from "@/components/training/api";
-import type { Problem, Values } from "./state";
+import { githubOf, type Problem, type Values } from "./state";
 
 export { newOpId };
 
@@ -26,6 +26,7 @@ export async function submitContact(opId: string, values: Values): Promise<Submi
         email: values.email.trim(),
         message: values.message.trim(),
         workflow: values.reason === "customize" ? values.workflow.trim() : "",
+        github: values.reason === "seed" ? githubOf(values.github) : "",
       }),
     });
     if (response.ok) return { ok: true };

@@ -32,6 +32,7 @@ let creemCalls
 let creemDown
 let creemTxs
 let spent
+let grants
 
 beforeEach(async () => {
   resetJwksCache()
@@ -43,6 +44,7 @@ beforeEach(async () => {
   creemDown = false
   creemTxs = []
   spent = {}
+  grants = {}
   globalThis.fetch = async (url, init = {}) => {
     const address = String(url)
     const body = init.body ? JSON.parse(init.body) : undefined
@@ -65,6 +67,7 @@ beforeEach(async () => {
       return json({ id: body.p_id, user_id: user })
     }
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(spent[body.p_user_id] ?? 0)
+    if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(grants[body.p_user_id] ?? null)
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) {
       return json([...rows.values()].filter((r) => r.user_id === body.p_user_id))
     }
@@ -120,17 +123,34 @@ describe('who is Pro', () => {
   })
 
   it('takes the best of several, and reads a lapsed one as expired', () => {
-    assert.deepEqual(billingOf([], NOW), { plan: 'free', state: 'free', period: null, periodEnd: null })
-    assert.deepEqual(billingOf([row('expired', EARLIER)], NOW), {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: EARLIER,
+    assert.deepEqual(billingOf([], null, NOW), { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null })
+    assert.deepEqual(billingOf([row('expired', EARLIER)], null, NOW), {
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: EARLIER, grantEnd: null,
     })
     const best = billingOf(
       [row('past_due'), row('canceled', LATER, { id: 'sub_2' }), row('active', LATER, { id: 'sub_3', period: 'yearly' })],
+      null,
       NOW,
     )
-    assert.deepEqual(best, { plan: 'pro', state: 'active', period: 'yearly', periodEnd: LATER })
-    assert.equal(billingOf([row('past_due'), row('scheduled_cancel')], NOW).state, 'canceled')
-    assert.equal(billingOf([row('expired'), row('past_due')], NOW).state, 'pastDue')
+    assert.deepEqual(best, { plan: 'pro', state: 'active', period: 'yearly', periodEnd: LATER, grantEnd: null })
+    assert.equal(billingOf([row('past_due'), row('scheduled_cancel')], null, NOW).state, 'canceled')
+    assert.equal(billingOf([row('expired'), row('past_due')], null, NOW).state, 'pastDue')
+  })
+
+  it('makes a seed partner Pro until the grant ends, leaving the subscription’s state its own (#1039)', () => {
+    const grant = { starts_at: EARLIER, ends_at: LATER }
+    assert.deepEqual(billingOf([], grant, NOW), { plan: 'pro', state: 'free', period: null, periodEnd: null, grantEnd: LATER })
+    assert.deepEqual(billingOf([], { starts_at: EARLIER, ends_at: EARLIER }, NOW).plan, 'free')
+
+    // A cancelled subscription that has run out: still Pro on the grant.
+    const lapsed = billingOf([row('canceled', EARLIER)], grant, NOW)
+    assert.equal(lapsed.plan, 'pro')
+    assert.equal(lapsed.state, 'expired')
+    // A grant that has run out: still Pro on the subscription.
+    const paying = billingOf([row('active')], { starts_at: EARLIER, ends_at: EARLIER }, NOW)
+    assert.deepEqual(paying, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    // Both at once.
+    assert.equal(billingOf([row('active')], grant, NOW).grantEnd, LATER)
   })
 
   it('picks the test store only for a test key', () => {
@@ -223,7 +243,7 @@ describe('the signed-in billing routes', () => {
     rows.set('sub_9', { ...row('active'), id: 'sub_9', user_id: OTHER, period: 'yearly' })
     const res = await signedIn('GET', '/v1/billing')
     assert.equal(res.status, 200)
-    assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER })
+    assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
   })
 
   it('shows Pro this month\'s credits, and nobody else any', async () => {
@@ -296,6 +316,17 @@ describe('the signed-in billing routes', () => {
     const res = await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })
     assert.equal((await res.json()).url, 'https://cloud.ai4kanban.dev/settings')
     assert.equal(creemCalls.length, 0)
+  })
+
+  it('lets a seed partner subscribe early, and reports the grant (#1039)', async () => {
+    grants[SUBJECT] = { starts_at: EARLIER, ends_at: '2099-01-01T00:00:00.000Z' }
+    const read = await (await signedIn('GET', '/v1/billing')).json()
+    assert.equal(read.billing.plan, 'pro')
+    assert.equal(read.billing.grantEnd, '2099-01-01T00:00:00.000Z')
+    assert.notEqual(read.credits, null)
+
+    const res = await signedIn('POST', '/v1/billing/checkout', { period: 'yearly' })
+    assert.equal((await res.json()).url, 'https://checkout.creem.io/ch_1')
   })
 
   it('refuses a period Pro does not sell, and says so when Creem fails', async () => {

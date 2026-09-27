@@ -65,6 +65,10 @@ export interface HostedCopy {
   renews: string;
   ends: string;
   ended: string;
+  /** A seed partner's grant (#1039). */
+  seed: string;
+  gifted: string;
+  giftedToo: string;
   paymentFailed: string;
   updatePaymentBody: string;
   updatePayment: string;
@@ -112,6 +116,9 @@ const en: HostedCopy = {
   renews: "Renews on {date}",
   ends: "Ends on {date}. Won't renew.",
   ended: "Your Pro ended on {date}.",
+  seed: "Seed partner",
+  gifted: "Gifted until {date}. No charge afterwards.",
+  giftedToo: "Seed partner Pro until {date}",
   paymentFailed: "Payment failed",
   updatePaymentBody: "Update your payment method to keep Pro.",
   updatePayment: "Update payment",
@@ -157,6 +164,9 @@ const zh: HostedCopy = {
   renews: "{date}自动续费",
   ends: "{date}到期，不再续费。",
   ended: "你的 Pro 已于 {date}到期。",
+  seed: "种子伙伴",
+  gifted: "赠送至 {date}，到期不自动收费。",
+  giftedToo: "种子伙伴赠送至 {date}",
   paymentFailed: "扣款失败",
   updatePaymentBody: "请更新付款方式，以免 Pro 中断。",
   updatePayment: "更新付款方式",

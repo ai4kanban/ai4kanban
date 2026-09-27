@@ -40,6 +40,7 @@ beforeEach(async () => {
     const body = init?.body ? JSON.parse(init.body) : {}
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) return json(subscriptions[body.p_user_id] ?? [])
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(used[body.p_user_id] ?? 0)
+    if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(null)
     if (address.endsWith('/rest/v1/rpc/spend_credits')) {
       assert.equal(body.p_use, 'image')
       used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_credits

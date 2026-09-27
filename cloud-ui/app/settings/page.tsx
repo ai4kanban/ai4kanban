@@ -8,6 +8,7 @@ import {
   confirmCheckout,
   readAccount,
   readBilling,
+  subscribed,
 } from "../../lib/cloud";
 import { getHostedCopy } from "../../lib/copy";
 import { languageFor } from "../../lib/reader";
@@ -40,7 +41,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Que
       ? confirmCheckout(session.accessToken, one("subscription_id"))
       : readBilling(session.accessToken),
   ]);
-  if (returned && billing?.plan === "pro") redirect("/settings");
+  if (returned && billing && subscribed(billing)) redirect("/settings");
   const state: PlanState = !billing ? "failed" : returned ? "confirming" : billing.state;
   const name = account ? accountName(account) : "";
   const address = account ? accountAddress(account) : null;

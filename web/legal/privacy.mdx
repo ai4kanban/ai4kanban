@@ -111,16 +111,17 @@ The coach, and nobody else. Reading the booking records needs an admitted AI4Kan
 
 ## Sending us a message
 
-The contact page at [`/contact`](/contact) takes a support question or a request for custom agents. Like a booking, it needs no account, and what you send is stored on the same servers in Frankfurt, in a table of its own.
+The contact page at [`/contact`](/contact) takes a support question or a request for custom agents, and the seed partner page at [`/seed`](/seed) takes an application. Like a booking, it needs no account, and what you send is stored on the same servers in Frankfurt, in a table of its own.
 
 ### What a message holds
 
 | Field | Why we hold it |
 | --- | --- |
-| What you need | Support or custom agents, so the message reaches the right conversation. |
+| What you need | Support, custom agents, or a seed partner application, so the message reaches the right conversation. |
 | Your email address | Where we reply. It is the only way we can reach you. |
 | What you wrote | The message itself. |
 | Your workflow | Only for custom agents: the description you gave of the workflow you want built. |
+| Your GitHub username | Only for a seed partner application: the account an accepted partner's six months of Pro is granted to. We keep the username and the grant's dates; the grant applies when that account signs in to Cloud. |
 
 A submit is counted against a short-lived rate limit, keyed on two one-way hashes salted with a value only our server holds: one of your IP address and one of your email address. Neither the address nor the email is written into that counter, and it resets on its own.
 

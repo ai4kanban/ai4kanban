@@ -13,6 +13,7 @@ export type PlanState = Billing["state"] | "confirming" | "failed";
 const CAPTION = "text-[11px] font-[700] uppercase leading-[14px] tracking-[0.1em]";
 const CHIP =
   "rounded-[6px] bg-nb-ink/7 px-1.5 py-[3px] text-[10.5px] font-[700] uppercase leading-none tracking-[0.08em] text-nb-ink-soft";
+const SEED_TAG = "rounded-[6px] bg-nb-mint-soft px-1.5 py-[3px] text-[11px] font-[700] leading-none text-nb-mint-ink";
 const QUIET =
   "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-wash px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink";
 
@@ -75,11 +76,12 @@ function Portal({ label, accent }: { label: string; accent?: boolean }) {
   );
 }
 
-function Title({ name, period }: { name: string; period?: string }) {
+function Title({ name, period, seed }: { name: string; period?: string; seed?: string }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span className="text-[18px] font-[800] tracking-[-0.01em] text-nb-ink">{name}</span>
       {period && <span className={CHIP}>{period}</span>}
+      {seed && <span className={SEED_TAG}>{seed}</span>}
     </span>
   );
 }
@@ -107,6 +109,14 @@ export function PlanPanel({
 }) {
   const period = billing?.period ? (billing.period === "yearly" ? copy.yearly : copy.monthly) : undefined;
   const date = planDate(billing?.periodEnd ?? null, language);
+  const grant = planDate(billing?.grantEnd ?? null, language);
+  // Beside a subscription, the grant is one more line; alone, it is the plan.
+  const alsoGifted = grant && (
+    <p className="flex items-center gap-1.5 text-[13px] font-[600] text-nb-mint-ink">
+      <span className="size-1.5 shrink-0 rounded-full bg-nb-mint" aria-hidden />
+      {copy.giftedToo.replace("{date}", grant)}
+    </p>
+  );
   const portalError = portalFailed && (
     <p className="text-[12.5px] font-[700] text-nb-peach-ink" role="alert">
       {copy.portalFailed}
@@ -114,7 +124,18 @@ export function PlanPanel({
   );
 
   let body: ReactNode;
-  switch (state) {
+  switch (grant && (state === "free" || state === "expired") ? "gifted" : state) {
+    case "gifted":
+      body = (
+        <>
+          <div className="flex flex-col gap-1">
+            <Title name={copy.pro} seed={copy.seed} />
+            <Line>{copy.gifted.replace("{date}", grant)}</Line>
+          </div>
+          <Buy copy={copy} failed={checkoutFailed} />
+        </>
+      );
+      break;
     case "free":
       body = (
         <>
@@ -142,6 +163,7 @@ export function PlanPanel({
             <div className="flex min-w-0 flex-col gap-1">
               <Title name={copy.pro} period={period} />
               {date && <Line>{(state === "active" ? copy.renews : copy.ends).replace("{date}", date)}</Line>}
+              {alsoGifted}
             </div>
             <Portal label={copy.manage} />
           </div>
@@ -152,7 +174,10 @@ export function PlanPanel({
     case "pastDue":
       body = (
         <>
-          <Title name={copy.pro} period={period} />
+          <div className="flex flex-col gap-1">
+            <Title name={copy.pro} period={period} />
+            {alsoGifted}
+          </div>
           <div
             className="flex flex-col gap-3 rounded-[10px] bg-nb-peach-soft px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between"
             role="status"

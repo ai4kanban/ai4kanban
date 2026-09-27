@@ -29,7 +29,7 @@ import { MAX_NAME, shortName } from './input.ts'
 import { sendMail } from './mail.ts'
 import { sha256Hex } from './training.ts'
 
-export type ContactReason = 'support' | 'customize'
+export type ContactReason = 'support' | 'customize' | 'seed'
 
 export const isContactPath = (pathname: string) => /^\/v1\/contact\/?$/.test(pathname)
 
@@ -50,12 +50,15 @@ async function submit(env: Env, request: Request, body: unknown): Promise<void> 
   if (!opId) throw badRequest('That submission carries no id, so a retry could not be told apart.')
 
   const reason = held.reason
-  if (reason !== 'support' && reason !== 'customize') throw badRequest('Choose what you are writing about.')
+  if (reason !== 'support' && reason !== 'customize' && reason !== 'seed') {
+    throw badRequest('Choose what you are writing about.')
+  }
 
   const email = emailOf(held.email)
   const message = textOf(held.message, CONTACT_MAX_MESSAGE, 'Write a message.')
   const workflow =
     reason === 'customize' ? textOf(held.workflow, CONTACT_MAX_WORKFLOW, 'Describe the workflow you want.') : ''
+  const github = reason === 'seed' ? githubOf(held.github) : ''
 
   const address = request.headers.get('cf-connecting-ip') ?? ''
   try {
@@ -65,6 +68,7 @@ async function submit(env: Env, request: Request, body: unknown): Promise<void> 
       p_email: email,
       p_message: message,
       p_workflow: workflow,
+      p_github: github,
       // No address, no key: the database skips an empty one, so the email alone counts.
       p_ip_key: address ? await attemptKey('ip', address) : '',
       p_email_key: await attemptKey('email', email.toLowerCase()),
@@ -83,6 +87,13 @@ function emailOf(value: unknown): string {
   if (held.length > MAX_NAME || !/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(held)) {
     throw badRequest('That email address does not look like one. Our reply goes there.')
   }
+  return held
+}
+
+/** A seed partner's GitHub handle, which their grant is later written against. */
+function githubOf(value: unknown): string {
+  const held = typeof value === 'string' ? value.trim().replace(/^@/, '') : ''
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(held)) throw badRequest('That GitHub username does not look like one.')
   return held
 }
 
@@ -106,6 +117,7 @@ interface Queued {
   email: string
   message: string
   workflow: string
+  github: string
   created_at: string
 }
 
@@ -147,11 +159,13 @@ export async function sendPendingContactMail(env: Env): Promise<ContactMailRun> 
 const REASONS: Record<ContactReason, string> = {
   support: 'Support',
   customize: 'Customize agents',
+  seed: 'Seed partner',
 }
 
 function notice(record: Queued) {
   const firstLine = record.message.split('\n')[0]?.trim() ?? ''
-  const subject = firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine
+  const line = firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine
+  const subject = record.github ? `@${record.github} — ${line}` : line
   return {
     from: CONTACT_MAIL_FROM,
     to: SUPPORT_EMAIL,
@@ -159,9 +173,11 @@ function notice(record: Queued) {
     subject: `[${REASONS[record.reason]}] ${subject}`,
     text: [
       `${REASONS[record.reason]} request from ${record.email}`,
+      ...(record.github ? [`GitHub: @${record.github}`] : []),
       '',
       record.message,
       ...(record.workflow ? ['', 'Their workflow:', '', record.workflow] : []),
+      ...(record.github ? ['', `Accept with \`npm run seed grant ${record.github}\` in cloud/.`] : []),
       '',
       'Replying to this message answers them directly.',
     ].join('\n'),

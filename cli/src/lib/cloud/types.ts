@@ -161,6 +161,9 @@ export interface CloudBilling {
   period: 'monthly' | 'yearly' | null
   /** The renewal date while `active` or `pastDue`, the end date otherwise. */
   periodEnd: string | null
+  /** A seed partner's grant (#1039): its end while it runs. `plan` is Pro on it even with no
+   *  subscription; `state`, `period` and `periodEnd` are the subscription's alone. */
+  grantEnd: string | null
 }
 
 /** Pro's AI credits this UTC month (#1113). `resetsAt` is the next UTC month's first instant. */

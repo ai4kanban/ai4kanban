@@ -6,9 +6,8 @@
  * once spoken, so any credit left lets a line start and the last one may run over.
  */
 
-import { billingOf, type SubscriptionRow } from './billing.ts'
+import { readBilling } from './billing.ts'
 import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
-import { call } from './db.ts'
 import type { Env } from './env.ts'
 import { badRequest, creditsUsedUp, proRequired, speechFailed, speechUnavailable } from './errors.ts'
 
@@ -33,11 +32,8 @@ export async function speak(env: Env, user: string, body: unknown): Promise<Resp
   if (text.length > MAX_SPEECH_CHARS) {
     throw badRequest(`That text is too long. Split it into parts of ${MAX_SPEECH_CHARS} characters or fewer.`)
   }
-  const [rows, used] = await Promise.all([
-    call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }),
-    creditsUsed(env, user),
-  ])
-  if (billingOf(rows).plan !== 'pro') throw proRequired()
+  const [billing, used] = await Promise.all([readBilling(env, user), creditsUsed(env, user)])
+  if (billing.plan !== 'pro') throw proRequired()
   if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw speechUnavailable()
 

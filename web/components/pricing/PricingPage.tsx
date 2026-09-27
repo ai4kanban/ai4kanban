@@ -37,7 +37,7 @@ export function PricingPage({ locale }: { locale: PricingLocale }) {
             t={t}
             links={{
               download: localePath(locale, "/download"),
-              contact: localePath(locale, "/contact"),
+              seed: localePath(locale, "/seed"),
               training: localePath(locale, "/training"),
             }}
           />

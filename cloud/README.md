@@ -9,7 +9,7 @@ cloud/
 ├── src/            the Worker — routing in `index.ts`, the admission check in `owner.ts`,
 │                   limits and constants in `config.ts`
 ├── migrations/     the schema, one numbered file per change, applied forward only
-├── scripts/        migrate, invite, redirects, the closed-database check, the schema checks
+├── scripts/        migrate, invite, seed, redirects, the closed-database check, the schema checks
 ├── test/           the Worker's checks; test/sql/ is the schema's, run on a real PostgreSQL
 ├── endpoints.md    every route, its body, and the refusal codes
 └── wrangler.jsonc  the route, the hourly schedule, and nothing secret
@@ -93,6 +93,7 @@ Run these from `cloud/`.
 | `npm run check:closed` | Check the project answers nobody but the Worker. |
 | `npm run deploy` / `npm run rollback` | Deploy the Worker, its route and schedule; return to an earlier version. |
 | `npm run invite` | List, approve and track invite requests (below). |
+| `npm run seed` | List and grant seed partners' Pro (below). |
 | `npm run redirects` | Show the sign-in return addresses; `-- --set` writes them. |
 | `npm run preview:slack` | Render every Slack message shape from real events into `.slack-preview/`. |
 
@@ -201,6 +202,21 @@ delete from cloud.workspace_members
 
 A permitted removal takes the account's memberships and machines; its handle stays on the
 trail.
+
+## Grant a seed partner
+
+An application on the site's `/seed` page arrives at `support@ai4kanban.dev` as a
+`[Seed partner] @<handle>` contact message. Reply by hand; to accept, grant six months of Pro
+on their GitHub handle. It applies from their next Cloud sign-in, needs no admission, and ends
+by itself with no charge. A handle gets one grant, ever.
+
+```sh
+npm run seed                   # every grant, and whether it still runs
+npm run seed grant <handle>    # six months of Pro from now
+```
+
+The same by hand: `select cloud.grant_seed('<handle>');` and
+`select * from cloud.seed_grants order by starts_at desc;`.
 
 ## Limits the preview lives inside
 

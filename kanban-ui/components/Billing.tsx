@@ -41,7 +41,8 @@ const FLAT_PRIMARY =
 const NOTE = "absolute inset-x-0 top-full mt-2 truncate text-center text-[12px] text-nb-ink-soft";
 const FAIL = "text-[12.5px] font-[700] text-nb-peach-ink";
 
-const onPro = (b: CloudBilling) => b.plan === "pro";
+/** Paying for Pro. A seed partner's grant alone is Pro too, but may still buy (#1039). */
+const subscribed = (b: CloudBilling) => b.state === "active" || b.state === "canceled" || b.state === "pastDue";
 
 export function BillingPanel({
   openOn,
@@ -100,13 +101,13 @@ export function BillingPanel({
     if (signedOut) toldSignedOut.current?.();
   }, [signedOut]);
 
-  // Once the account is Pro the purchase has landed: back to the plan and its new invoice.
-  const pro = billing?.state === "ok" && onPro(billing.billing);
+  // Once the subscription is in the purchase has landed: back to the plan and its new invoice.
+  const paid = billing?.state === "ok" && subscribed(billing.billing);
   useEffect(() => {
-    if (!pro || !pollUntil) return;
+    if (!paid || !pollUntil) return;
     setPollUntil(0);
     setPage("billing");
-  }, [pro, pollUntil]);
+  }, [paid, pollUntil]);
 
   useEffect(() => {
     if (!pollUntil) return;
@@ -190,7 +191,28 @@ function Summary({ t, billing, onUpgrade }: { t: BillingCopy; billing: BillingRe
     );
 
   const b = billing.billing;
-  const pro = onPro(b);
+  const gift = b.grantEnd ? day(b.grantEnd) : "";
+
+  // The grant alone: Pro with no price, its end, and a way to subscribe before it ends.
+  if (gift && !subscribed(b))
+    return (
+      <div className="rounded-[12px] border border-nb-ink/12 bg-nb-paper px-5 py-4">
+        <div className="flex items-center justify-between gap-5">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2">
+              <span className="text-[17px] font-[800] tracking-[-0.01em] text-nb-ink">{t.pricing.pro.name}</span>
+              <span className={`${BADGE} ${TONE.mint}`}>{p.seed}</span>
+            </p>
+            <p className="mt-1 text-[13px] text-nb-ink-soft">{p.gifted(gift)}</p>
+          </div>
+          <Button size="sm" onClick={onUpgrade}>
+            {p.upgrade}
+          </Button>
+        </div>
+      </div>
+    );
+
+  const pro = subscribed(b);
   const price = pro
     ? b.period === "monthly"
       ? `${t.pricing.pro.monthly.price} ${t.pricing.pro.monthly.per}`
@@ -253,6 +275,12 @@ function Summary({ t, billing, onUpgrade }: { t: BillingCopy; billing: BillingRe
             <span className="font-[700] tabular-nums text-nb-ink">{price}</span>
             {line && <span> · {line}</span>}
           </p>
+          {gift && (
+            <p className="mt-1 flex items-center gap-1.5 text-[13px] font-[600] text-nb-mint-ink">
+              <span className="size-1.5 shrink-0 rounded-full bg-nb-mint" aria-hidden />
+              {p.giftedToo(gift)}
+            </p>
+          )}
         </div>
         <div className={`flex items-center gap-2.5 ${b.state === "pastDue" ? "min-w-0" : "shrink-0"}`}>{actions}</div>
       </div>
@@ -465,7 +493,8 @@ function Plans({
   const p = t.pricing;
   const pro = period === "yearly" ? p.pro.yearly : p.pro.monthly;
   const known = billing.state === "ok";
-  const onProNow = known && onPro(billing.billing);
+  const onProNow = known && subscribed(billing.billing);
+  const onFree = known && billing.billing.plan === "free";
 
   const buy = async () => {
     if (checkout === "opening") return;
@@ -533,7 +562,7 @@ function Plans({
           name={p.free.name}
           price={p.free.price}
           sub={p.free.tagline}
-          action={known && !onProNow && current}
+          action={onFree && current}
         >
           <Rows rows={p.free.rows} />
         </Card>

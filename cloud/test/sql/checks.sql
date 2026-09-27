@@ -2604,9 +2604,9 @@ declare
   v_first json;
   v_again json;
 begin
-  v_first := api.submit_contact('c-op-1', 'support', 'lin@example.com', 'hello', '',
+  v_first := api.submit_contact('c-op-1', 'support', 'lin@example.com', 'hello', '', '',
                                 'contact:ip-1', 'contact:mail-1', 3600, 2, BUDGET);
-  v_again := api.submit_contact('c-op-1', 'support', 'lin@example.com', 'hello', '',
+  v_again := api.submit_contact('c-op-1', 'support', 'lin@example.com', 'hello', '', '',
                                 'contact:ip-1', 'contact:mail-1', 3600, 2, BUDGET);
   assert (v_first ->> 'id') = (v_again ->> 'id'), 'a retried submit made a second message';
   assert (select count(*) from cloud.contact_messages) = 1, 'a retried submit made a second row';
@@ -2614,25 +2614,25 @@ begin
     'a retried submit was counted again';
 
   -- The address is past its limit; a fresh email does not get it through.
-  perform api.submit_contact('c-op-2', 'support', 'other@example.com', 'hi', '',
+  perform api.submit_contact('c-op-2', 'support', 'other@example.com', 'hi', '', '',
                              'contact:ip-1', 'contact:mail-2', 3600, 2, BUDGET);
   perform pg_temp.refuses(
-    $sql$select api.submit_contact('c-op-3', 'support', 'third@example.com', 'hi', '',
+    $sql$select api.submit_contact('c-op-3', 'support', 'third@example.com', 'hi', '', '',
                                    'contact:ip-1', 'contact:mail-3', 3600, 2, 100000)$sql$,
     'AKB18', 'an address past its limit was not refused');
   assert (select attempts from cloud.training_attempts where fingerprint = 'contact:mail-3') is null,
     'a refused submit still counted its email';
 
   -- The email is past its limit; a fresh address does not get it through.
-  perform api.submit_contact('c-op-4', 'support', 'lin@example.com', 'hi', '',
+  perform api.submit_contact('c-op-4', 'support', 'lin@example.com', 'hi', '', '',
                              'contact:ip-2', 'contact:mail-1', 3600, 2, BUDGET);
   perform pg_temp.refuses(
-    $sql$select api.submit_contact('c-op-5', 'support', 'lin@example.com', 'hi', '',
+    $sql$select api.submit_contact('c-op-5', 'support', 'lin@example.com', 'hi', '', '',
                                    'contact:ip-3', 'contact:mail-1', 3600, 2, 100000)$sql$,
     'AKB18', 'an email past its limit was not refused');
 
   -- No address: the email alone is counted.
-  perform api.submit_contact('c-op-6', 'customize', 'new@example.com', 'hi', 'a workflow',
+  perform api.submit_contact('c-op-6', 'customize', 'new@example.com', 'hi', 'a workflow', '',
                              '', 'contact:mail-4', 3600, 2, BUDGET);
   assert (select count(*) from cloud.training_attempts where fingerprint = '') = 0,
     'an empty address was counted';
@@ -2641,7 +2641,7 @@ begin
     'the workflow was not kept';
 
   perform pg_temp.refuses(
-    $sql$select api.submit_contact('c-op-7', 'sales', 'x@example.com', 'hi', '',
+    $sql$select api.submit_contact('c-op-7', 'sales', 'x@example.com', 'hi', '', '',
                                    '', 'contact:mail-5', 3600, 2, 100000)$sql$,
     '23514', 'a reason the form does not offer was stored');
 
@@ -2660,6 +2660,47 @@ begin
   raise notice 'sql checks: #784 contact checks passed';
 end
 $contact$;
+
+-- ---------------------------------------------------------------------------
+-- A seed partner applies through the contact form and is granted once (#1039)
+-- ---------------------------------------------------------------------------
+
+do $seed$
+declare
+  PARTNER constant uuid := '00000000-0000-4000-8000-00000000d001';
+  STRANGER constant uuid := '00000000-0000-4000-8000-00000000d002';
+  v_grant json;
+begin
+  perform api.submit_contact('s-op-1', 'seed', 'seed@example.com', 'Daily, for a CLI.', '', 'Seedling',
+                             '', 'contact:mail-seed', 3600, 2, 100000);
+  assert (select github from cloud.contact_messages where op_id = 's-op-1') = 'Seedling',
+    'the GitHub username was not kept';
+  assert (select m ->> 'github' from json_array_elements(api.pending_contact_mail(50, 5)) m
+          where m ->> 'email' = 'seed@example.com') = 'Seedling',
+    'the outbox did not carry the GitHub username';
+
+  -- Granted before they ever signed in; matched on the handle GitHub attests, in any case.
+  v_grant := cloud.grant_seed('@seedling');
+  assert (v_grant ->> 'handle') = 'seedling', 'the @ was kept on the handle';
+  assert (select ends_at = starts_at + interval '6 months' from cloud.seed_grants where handle = 'seedling'),
+    'the grant is not six months';
+  insert into auth.identities (user_id, provider, identity_data)
+  values (PARTNER, 'github', '{"user_name":"SeedLing"}'::jsonb),
+         (STRANGER, 'github', '{"user_name":"someone"}'::jsonb);
+  assert api.seed_grant_for(PARTNER) ->> 'ends_at' like '____-__-__T__:__:__.___Z',
+    'the partner did not get their grant back';
+  assert api.seed_grant_for(STRANGER) is null, 'somebody else got the grant';
+
+  -- One grant per handle, ever — lapsed ones too.
+  perform pg_temp.refuses($sql$select cloud.grant_seed('SEEDLING')$sql$, 'P0001', 'a second grant was written');
+  update cloud.seed_grants set starts_at = now() - interval '1 year', ends_at = now() - interval '6 months';
+  perform pg_temp.refuses($sql$select cloud.grant_seed('seedling')$sql$, 'P0001', 'a lapsed handle was granted again');
+  assert api.seed_grant_for(PARTNER) is not null, 'a lapsed grant was not read back for the Worker to judge';
+  perform pg_temp.refuses($sql$select cloud.grant_seed('not a handle')$sql$, 'P0001', 'a non-handle was granted');
+
+  raise notice 'sql checks: #1039 seed partner checks passed';
+end
+$seed$;
 
 -- ---------------------------------------------------------------------------
 -- A subscription is Creem's row, written whole and read unjudged (#1037)

@@ -954,6 +954,10 @@ export type BillingCopy = {
     renews: (date: string) => string;
     ends: (date: string) => string;
     ended: (date: string) => string;
+    /** A seed partner's grant (#1039): the tag, the grant alone, and beside a subscription. */
+    seed: string;
+    gifted: (date: string) => string;
+    giftedToo: (date: string) => string;
     active: string;
     cancelled: string;
     pastDue: string;

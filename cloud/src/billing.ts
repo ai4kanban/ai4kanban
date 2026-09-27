@@ -27,14 +27,27 @@ export interface SubscriptionRow {
   current_period_end: string | null
 }
 
-/** What `/settings` draws and #1038 gates on. */
+/** A seed partner's grant (#1039), as `api.seed_grant_for` returns it. */
+export interface GrantRow {
+  starts_at: string
+  ends_at: string
+}
+
+/** What `/settings` draws and #1038 gates on. `plan` is Pro through a subscription or a grant;
+ *  `state`, `period` and `periodEnd` are the subscription's alone. */
 export interface Billing {
   plan: 'free' | 'pro'
   state: 'free' | 'active' | 'canceled' | 'pastDue' | 'expired'
   period: Period | null
   /** The renewal date while `active` or `pastDue`, the end date otherwise. */
   periodEnd: string | null
+  /** The grant's end, while it lasts. */
+  grantEnd: string | null
 }
+
+/** Whether a subscription is being paid for — what stops a second checkout. */
+export const subscribed = (billing: Billing) =>
+  billing.state === 'active' || billing.state === 'canceled' || billing.state === 'pastDue'
 
 const RENEWING = ['active', 'trialing', 'past_due']
 const ENDING = ['scheduled_cancel', 'canceled']
@@ -52,19 +65,22 @@ const RANK: Record<string, number> = { active: 0, canceled: 1, pastDue: 2 }
 const endOf = (row: SubscriptionRow) => (row.current_period_end ? Date.parse(row.current_period_end) : 0)
 
 /** The best of a user's subscriptions: a renewing one over one ending over one failing to
- *  pay, then the one that runs longest. None Pro reads as expired once any has ended. */
-export function billingOf(rows: SubscriptionRow[], now = Date.now()): Billing {
+ *  pay, then the one that runs longest. None Pro reads as expired once any has ended. A grant
+ *  still running makes the user Pro whatever the subscriptions say. */
+export function billingOf(rows: SubscriptionRow[], grant: GrantRow | null = null, now = Date.now()): Billing {
+  const grantEnd = grant && now < Date.parse(grant.ends_at) ? grant.ends_at : null
   const pro = rows
     .filter((row) => isPro(row, now))
     .sort((a, b) => RANK[stateOf(a)]! - RANK[stateOf(b)]! || endOf(b) - endOf(a))
   const best = pro[0]
   if (best) {
-    return { plan: 'pro', state: stateOf(best), period: best.period, periodEnd: best.current_period_end }
+    return { plan: 'pro', state: stateOf(best), period: best.period, periodEnd: best.current_period_end, grantEnd }
   }
+  const plan = grantEnd ? 'pro' : 'free'
   const last = rows.filter((row) => row.current_period_end).sort((a, b) => endOf(b) - endOf(a))[0]
   return last
-    ? { plan: 'free', state: 'expired', period: last.period, periodEnd: last.current_period_end }
-    : { plan: 'free', state: 'free', period: null, periodEnd: null }
+    ? { plan, state: 'expired', period: last.period, periodEnd: last.current_period_end, grantEnd }
+    : { plan, state: 'free', period: null, periodEnd: null, grantEnd }
 }
 
 /** The routes under `/v1/billing`. */
@@ -88,8 +104,8 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     requireMethod(request, 'POST')
     const { period, source } = ((await bodyOf(request)) ?? {}) as { period?: unknown; source?: unknown }
     if (period !== 'monthly' && period !== 'yearly') throw badRequest('Pick monthly or yearly.')
-    // One subscription per person: somebody already on Pro manages it instead.
-    if ((await readBilling(env, session.subject)).plan === 'pro') {
+    // One subscription per person: a subscriber manages theirs instead. A grant alone may buy.
+    if (subscribed(await readBilling(env, session.subject))) {
       return json({ url: `${CLOUD_UI_ORIGIN}/settings` })
     }
     const checkout = await creem<{ checkout_url?: string }>('POST', '/v1/checkouts', {
@@ -196,8 +212,12 @@ export function invoiceOf(tx: CreemTransaction): Invoice | null {
   }
 }
 
-async function readBilling(env: Env, user: string): Promise<Billing> {
-  return billingOf(await call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }))
+export async function readBilling(env: Env, user: string): Promise<Billing> {
+  const [rows, grant] = await Promise.all([
+    call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }),
+    call<GrantRow | null>(env, 'seed_grant_for', { p_user_id: user }),
+  ])
+  return billingOf(rows, grant)
 }
 
 // ---- Creem ------------------------------------------------------------------

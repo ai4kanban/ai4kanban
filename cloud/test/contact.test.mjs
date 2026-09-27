@@ -91,6 +91,16 @@ describe('taking a message', () => {
     assert.equal(submitArgs().p_workflow, 'Triage, then a PR.')
   })
 
+  it('keeps a GitHub username only for a seed partner application (#1039)', async () => {
+    await routeContact(post(form({ github: 'lin' })), ENV, ctx())
+    assert.equal(submitArgs().p_github, '')
+
+    rpcCalls = []
+    await routeContact(post(form({ reason: 'seed', github: ' @lin-dev ' })), ENV, ctx())
+    assert.equal(submitArgs().p_reason, 'seed')
+    assert.equal(submitArgs().p_github, 'lin-dev')
+  })
+
   for (const [what, overrides] of [
     ['no id', { opId: '' }],
     ['no reason', { reason: undefined }],
@@ -101,6 +111,8 @@ describe('taking a message', () => {
     ['a message past its limit', { message: 'x'.repeat(5001) }],
     ['a customize request with no workflow', { reason: 'customize' }],
     ['a workflow past its limit', { reason: 'customize', workflow: 'x'.repeat(5001) }],
+    ['a seed application with no GitHub username', { reason: 'seed' }],
+    ['a GitHub username that is not one', { reason: 'seed', github: 'lin dev' }],
   ]) {
     it(`refuses ${what} before it reaches the database`, async () => {
       await assert.rejects(routeContact(post(form(overrides)), ENV, ctx()), { code: 'bad_request' })
@@ -246,6 +258,15 @@ describe('the message to support', () => {
       failed: 0,
     })
     assert.equal(sends.length, 0)
+  })
+
+  it('names a seed partner’s GitHub username in the subject and the body', async () => {
+    answers.pending_contact_mail = [queued({ reason: 'seed', workflow: '', github: 'lin-dev', message: 'Daily, for a CLI.' })]
+    await sendPendingContactMail(ENV)
+
+    assert.equal(sends[0].subject, '[Seed partner] @lin-dev — Daily, for a CLI.')
+    assert.match(sends[0].text, /GitHub: @lin-dev/)
+    assert.match(sends[0].text, /npm run seed grant lin-dev/)
   })
 
   it('cuts a long first line in the subject', async () => {

@@ -202,7 +202,13 @@ export interface Billing {
   state: "free" | "active" | "canceled" | "pastDue" | "expired";
   period: "monthly" | "yearly" | null;
   periodEnd: string | null;
+  /** A seed partner's grant (#1039): its end while it runs. */
+  grantEnd: string | null;
 }
+
+/** Paying for Pro, as opposed to Pro on a grant alone. */
+export const subscribed = (billing: Billing) =>
+  billing.state === "active" || billing.state === "canceled" || billing.state === "pastDue";
 
 export async function readBilling(token: string): Promise<Billing | null> {
   const answer = await get<{ billing?: Billing }>("/v1/billing", token);

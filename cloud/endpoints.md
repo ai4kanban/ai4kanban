@@ -163,14 +163,17 @@ belongs to the Supabase user. Every route refuses with `billing_unavailable` whe
 carries no `CREEM_API_KEY` / `CREEM_WEBHOOK_SECRET`.
 
 - `GET /v1/billing` — `{ "billing": { "plan": "free" | "pro", "state": "free" | "active" |
-  "canceled" | "pastDue" | "expired", "period": "monthly" | "yearly" | null, "periodEnd" } }`.
-  `periodEnd` is the renewal date while `active` or `pastDue`, the end date otherwise. Judged on
-  read: `active`, `trialing`, `past_due` are Pro; `scheduled_cancel`, `canceled` until
-  `periodEnd`; the best of several subscriptions wins. Also `"credits": { "total", "left",
+  "canceled" | "pastDue" | "expired", "period": "monthly" | "yearly" | null, "periodEnd",
+  "grantEnd" } }`. `periodEnd` is the renewal date while `active` or `pastDue`, the end date
+  otherwise. Judged on read: `active`, `trialing`, `past_due` are Pro; `scheduled_cancel`,
+  `canceled` until `periodEnd`; the best of several subscriptions wins. A seed partner's grant
+  (#1039) also makes `plan` Pro and sets `grantEnd` while it runs; `state`, `period` and
+  `periodEnd` stay the subscription's. Also `"credits": { "total", "left",
   "resetsAt" }` for Pro, `null` otherwise: Pro's AI credits this UTC month (#1113), spent by every
   hosted capability at the rates in `src/credits.ts` (`cloud.credit_spends`).
 - `POST /v1/billing/checkout` — `{ "period": "monthly" | "yearly" }`: `{ "url" }`, a Creem
-  checkout returning to `/settings?checkout=done`, or `/settings` itself for somebody already Pro.
+  checkout returning to `/settings?checkout=done`, or `/settings` itself for somebody already
+  subscribed (`active`, `canceled` or `pastDue`). A grant alone may buy.
 - `POST /v1/billing/confirm` — `{ "subscriptionId" }` from that return: reads it from Creem,
   writes it when it is the caller's, and answers `billing`.
 - `POST /v1/billing/portal` — `{ "url" }`, the caller's Creem customer portal.
@@ -193,8 +196,9 @@ back and no other.
 - `POST /v1/training/bookings/<reference>/cancel` — `{ "token": "…" }`. Idempotent.
 - `GET /v1/training/records?from=&to=` — every booking in a window. Needs an admitted account
   whose handle is in `TRAINING_OPERATORS` (`src/config.ts`).
-- `POST /v1/contact` — `{ "opId", "reason": "support" | "customize", "email", "message",
-  "workflow" }`; `workflow` is required for `customize`. Stored, then mailed to
+- `POST /v1/contact` — `{ "opId", "reason": "support" | "customize" | "seed", "email",
+  "message", "workflow", "github" }`; `workflow` is required for `customize`, `github` (a GitHub
+  username) for `seed`, the site's seed partner application. Stored, then mailed to
   `support@ai4kanban.dev` with the sender as reply-to. Rate-limited per address and per email
   (`CONTACT_ATTEMPT_*` in `src/config.ts`).
 

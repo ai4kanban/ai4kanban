@@ -37,7 +37,7 @@ const signIn = (subject = '11111111-1111-4111-8111-111111111111'): void =>
   })
 
 /** Cloud answers `/v1/billing` with this, or cannot be reached at all. */
-const billing = (answer: { plan: 'free' | 'pro'; periodEnd?: string | null } | 'offline' | 'unavailable'): void => {
+const billing = (answer: { plan: 'free' | 'pro'; periodEnd?: string | null; grantEnd?: string | null } | 'offline' | 'unavailable'): void => {
   globalThis.fetch = (async () => {
     asked++
     if (answer === 'offline') throw new TypeError('fetch failed')
@@ -146,6 +146,18 @@ describe('the account', () => {
     assert.equal(await proAccess(now + 9 * DAY), 'unconfirmed')
     billing('unavailable')
     assert.equal(await proAccess(now + 7 * DAY), 'pro')
+  })
+
+  it('holds a seed partner offline until seven days past whichever ends later (#1039)', async () => {
+    signIn()
+    const now = Date.now()
+    const lapsed = new Date(now - 30 * DAY).toISOString()
+    const grant = new Date(now + 30 * DAY).toISOString()
+    billing({ plan: 'pro', periodEnd: lapsed, grantEnd: grant })
+    await proAccess(now)
+    billing('offline')
+    assert.equal(await proAccess(now + 36 * DAY), 'pro')
+    assert.equal(await proAccess(now + 38 * DAY), 'unconfirmed')
   })
 
   it('cannot confirm with nothing kept', async () => {

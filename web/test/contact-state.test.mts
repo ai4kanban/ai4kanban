@@ -26,6 +26,13 @@ describe("validate", () => {
     assert.equal(validate({ ...ok, email: `${"a".repeat(195)}@b.dev` }).email, "tooLong");
   });
 
+  it("asks a seed partner for a GitHub username (#1039)", () => {
+    assert.equal(validate({ ...ok, reason: "seed" }).github, "required");
+    assert.equal(validate({ ...ok, reason: "seed", github: "lin dev" }).github, "invalid");
+    assert.deepEqual(validate({ ...ok, reason: "seed", github: " @lin-dev " }), {});
+    assert.equal(validate({ ...ok, github: "lin dev" }).github, undefined);
+  });
+
   it("refuses text past the limit, counted after trimming", () => {
     assert.equal(validate({ ...ok, message: ` ${"x".repeat(MAX_TEXT)} ` }).message, undefined);
     assert.equal(validate({ ...ok, message: "x".repeat(MAX_TEXT + 1) }).message, "tooLong");
