@@ -57,9 +57,8 @@ planning.
 - **Keep it current**: revise a temporary draft, then run `akb raw plan save --path <plan>
   --body-file <temporary-draft>`. Only report it saved after the command confirms; preserve
   the draft and reuse the path on failure.
-- **One plan per subject**: a new version of a plan is saved over it; start another plan only
-  for a separate subject. When a plan is replaced or the user drops it, run
-  `akb raw plan drop --path <plan>` so it is not handed off.
+- **One plan per deliverable**: each plan becomes one card that one workflow ships. Run
+  `akb raw plan drop --path <plan>` when a plan is replaced or dropped.
 - **Pick the workflow**: on `plan new` and `plan save`, add `--workflow <id>` naming the
   workflow from `akb workflow list` that does the work the card will do and delivers what it
   ships — not the one the plan discusses or changes. Among those that fit, prefer one not
