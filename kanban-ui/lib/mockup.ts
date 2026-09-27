@@ -238,7 +238,7 @@ export async function readMockup(src: string, contain = true, defer = false): Pr
     if (ext === "html" && fileName.endsWith(".hf.html")) {
       return { src, code, doc: hyperframeDocument(code), hyperframe: true };
     }
-    const doc = ext === "tsx" ? await drawComponent(file, src, contain, c) : dressPage(code, contain);
+    const doc = ext === "tsx" ? await drawComponent(file, src, contain, c) : dressPage(code, contain, path.dirname(file));
     return { src, code, doc };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
@@ -487,9 +487,30 @@ function page(css: string, markup: string, contain: boolean): string {
   return `<!doctype html><html><head>${head(contain)}<style>${css}</style></head><body>${markup}</body></html>`;
 }
 
+const STYLESHEET_LINK = /<link\b[^>]*>/gi;
+
+/** A `<link rel=stylesheet>` to a `.css` file in the mockup's own folder, swapped for the
+ *  file's text — the sandboxed frame loads nothing by path. Anything else is left as it is. */
+function inlineSheets(html: string, folder: string): string {
+  return html.replace(STYLESHEET_LINK, (tag) => {
+    if (!/\brel\s*=\s*["']?stylesheet\b/i.test(tag)) return tag;
+    const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(tag);
+    const id = href?.[1] ?? href?.[2] ?? href?.[3];
+    if (!id || /^[a-z][a-z0-9+.-]*:|^\/\//i.test(id) || !id.toLowerCase().endsWith(".css")) return tag;
+    const at = path.resolve(folder, id);
+    if (!at.startsWith(folder + path.sep)) return tag;
+    try {
+      return `<style>${fs.readFileSync(at, "utf8").replace(/<\/style/gi, "<\\/style")}</style>`;
+    } catch {
+      return tag;
+    }
+  });
+}
+
 /** An `.html` mockup is a whole page already — it keeps its own markup and its own
  *  styling, and only gets the frame's own two rules put in front of them. */
-function dressPage(html: string, contain: boolean): string {
+function dressPage(raw: string, contain: boolean, folder: string): string {
+  const html = inlineSheets(raw, folder);
   const HEAD = head(contain);
   const found = /<head[^>]*>/i.exec(html);
   if (found) return html.slice(0, found.index + found[0].length) + HEAD + html.slice(found.index + found[0].length);
