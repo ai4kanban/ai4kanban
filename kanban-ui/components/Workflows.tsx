@@ -27,7 +27,6 @@ import {
   renameWorkflowAction,
   setWorkflowStageAction,
   setWorkflowWorktreeAction,
-  workflowsAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
@@ -43,6 +42,7 @@ import type {
 } from "@/lib/types";
 import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
 import { useWorkflowTip } from "./WorkflowTip";
+import { useWorkflows, workflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess } from "./pro";
 import {
   ACCENT_BTN,
@@ -131,9 +131,10 @@ export function WorkflowsPanel({
   const ca = useCopy().configuration.agents;
   const nameOf = useWorkflowName();
   const roster = useAgentRoster(onError);
-  const [flows, setFlows] = useState<WorkflowView[] | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const read = useWorkflows();
+  const flows = read?.workflows ?? null;
+  const loaded = !!read;
+  const loadError = read?.error ?? null;
   const [picked, setPicked] = useState("");
   const [tab, setStage] = useState<WorkflowStage>("plan");
   // The name box, when one is open: which workflow it renames (a workflow just added is the
@@ -147,16 +148,7 @@ export function WorkflowsPanel({
   // switching agents never loses an edit that has not been saved yet.
   const [extras, setExtras] = useState<Record<string, string>>({});
 
-  const load = useCallback(async () => {
-    const res = await workflowsAction();
-    setFlows(res.workflows);
-    setLoadError(res.error ?? null);
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const load = async () => void (await workflows.reload());
 
   // Open on the first workflow, which on every board is the one new cards start on. Runs
   // again when a delete leaves nothing selected.

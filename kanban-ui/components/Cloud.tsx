@@ -18,7 +18,6 @@ import { FiBell, FiBellOff, FiFolder, FiLogOut, FiMail, FiUploadCloud } from "re
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
-  cloudAccountAction,
   cloudStorageAction,
   disconnectLarkAction,
   disconnectSlackAction,
@@ -79,6 +78,7 @@ import {
 } from "./settings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { sayFailure } from "@/lib/start-failure";
+import { accountChanged, cloudAccount } from "@/lib/window-state";
 
 /** The published pages the terms say signing in confirms you have read. */
 const PRIVACY_URL = "https://ai4kanban.dev/privacy";
@@ -120,7 +120,7 @@ export function CloudPanel({
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.cloud;
-  const [account, setAccount] = useState<CloudAccount | null>(null);
+  const account = cloudAccount.use();
   const [busy, setBusy] = useState(false);
   // The sign-in is out in the browser and we are waiting for it to come back.
   const [waiting, setWaiting] = useState(false);
@@ -137,21 +137,14 @@ export function CloudPanel({
   const [away, setAway] = useState(false);
   // Bumped by a reason to ask right now rather than wait out the rest of the delay.
   const [now, setNow] = useState(0);
-  // Every read takes a number; only the newest one is allowed to write what it found, so a
-  // slow answer cannot land on top of a sign-out or a later read.
-  const asked = useRef(0);
   const wait = useRef(0);
 
-  const load = useCallback(async () => {
-    const mine = ++asked.current;
-    let found: CloudAccount | null = null;
-    try {
-      found = await cloudAccountAction();
-    } catch {
-      // The read itself failed. Same band, same retry — never a pane stuck on "Checking…".
-    }
-    if (mine !== asked.current) return;
-    if (found) setAccount(found);
+  // Only the newest read may write (the store numbers them), so a slow answer cannot land on
+  // top of a sign-out or a later read. `changed` is for a move that changed who this is, and
+  // asks for Pro again too.
+  const settle = useCallback(async (read: Promise<{ value?: CloudAccount; latest: boolean }>) => {
+    const { value: found, latest } = await read;
+    if (!latest) return;
     if (found && !found.error) {
       wait.current = 0;
       setMisses(0);
@@ -160,6 +153,8 @@ export function CloudPanel({
     wait.current = Math.min(Math.max(wait.current * 2, FIRST_WAIT), LONGEST_WAIT);
     setMisses((n) => n + 1);
   }, []);
+  const load = useCallback(() => settle(cloudAccount.reload()), [settle]);
+  const changed = useCallback(() => settle(accountChanged()), [settle]);
 
   useEffect(() => {
     void load();
@@ -215,13 +210,13 @@ export function CloudPanel({
         try {
           const done = await finishCloudSignInAction(url);
           if (!done.ok) onError?.(sayFailure(done, c.finishFailed));
-          await load();
+          await changed();
         } finally {
           setBusy(false);
         }
       })();
     });
-  }, [load, onError, c]);
+  }, [changed, onError, c]);
 
   const signIn = async () => {
     const app = bridge();
@@ -244,7 +239,7 @@ export function CloudPanel({
       const done = await signOutOfCloudAction();
       if (!done.ok) onError?.(sayFailure(done, c.signOutFailed));
       setWaiting(false);
-      await load();
+      await changed();
     } finally {
       setBusy(false);
     }
@@ -258,7 +253,7 @@ export function CloudPanel({
         !misses && <Loading>{c.checking}</Loading>
       ) : tab === "billing" && (account.state === "signed-in" || account.state === "not-admitted") ? (
         // Billing belongs to the sign-in, admitted to Cloud or not.
-        <BillingPanel openOn={openOn} onOpened={onOpened} onSignedOut={() => void load()} />
+        <BillingPanel openOn={openOn} onOpened={onOpened} onSignedOut={() => void changed()} />
       ) : account.state === "signed-in" ? (
         tab === "cloud" ? (
           <SignedIn account={account} busy={busy} inApp={inApp} onSignOut={() => void signOut()} />
@@ -269,7 +264,7 @@ export function CloudPanel({
         <NotAdmitted
           account={account}
           busy={busy}
-          onDone={load}
+          onDone={changed}
           onError={onError}
           onSignOut={() => void signOut()}
         />

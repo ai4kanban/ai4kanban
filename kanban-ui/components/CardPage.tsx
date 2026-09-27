@@ -39,9 +39,8 @@ import {
   type DeliveryDiff,
   type ScheduledAction,
   type SessionView,
-  type WorkflowView,
 } from "@/lib/types";
-import { workflowsAction } from "@/app/actions";
+import { useWorkflows } from "@/lib/window-state";
 import type { CardCopy } from "@/i18n/card/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -1285,13 +1284,8 @@ function FinishedBlock({
 function WorkflowItem({ card }: { card: Card }) {
   const c = useCopy().card;
   const nameOf = useWorkflowName();
-  const [flows, setFlows] = useState<WorkflowView[] | null>(null);
-
-  // Asked once, when the page draws. A board with no workflows — older rules — answers none,
-  // and the item is not drawn at all.
-  useEffect(() => {
-    void workflowsAction().then((res) => setFlows(res.workflows));
-  }, []);
+  // A board with no workflows — older rules — answers none, and the item is not drawn at all.
+  const flows = useWorkflows()?.workflows;
 
   if (!flows?.length) return null;
   const mine =

@@ -31,7 +31,6 @@ import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud,
 import {
   hasWorkspaceAction,
   workflowsOfferedAction,
-  installedAgentsAction,
   loggedOutAgentsAction,
   setHarnessAction,
   setHarnessSecretAction,
@@ -74,6 +73,7 @@ import { ACCENT_BTN, CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./s
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { sayFailure } from "@/lib/start-failure";
+import { installedAgents, useInstalledAgents } from "@/lib/window-state";
 
 // Every box, list and small button in here is the settings kit's
 // (components/settings.tsx) — CONTROL is the fill a field wears, FLAT_CONTROL the same one
@@ -604,7 +604,7 @@ export function HarnessPicker({
   // `info` because it is the one part of the setting that changes without anybody saving
   // anything: installing a CLI in a terminal makes an agent runnable, and the picker
   // re-asks each time it opens so that shows up without a reload.
-  const [options, setOptions] = useState(agent.options);
+  const options = useInstalledAgents() ?? agent.options;
   // Which rows their own CLI says nobody is logged into (#392), each with the command that
   // logs it back in. Kept apart from `options` for the same reason they are kept apart from
   // `info`, and one more: this answer costs a spawn per CLI, so it arrives after the grid is
@@ -647,26 +647,6 @@ export function HarnessPicker({
   // was picked, not the new one.
   const [advanced, setAdvanced] = useState<boolean | null>(null);
 
-  // Look again the moment the picker draws — opening the dialog mounts it, and so does the
-  // agent step of the guided first run. The page load already answered this, and that
-  // answer is what the first paint shows, so nothing greys out a moment after the user
-  // sees it; this only catches a CLI installed since. A look that comes back with nothing
-  // (no rules to ask) leaves the page's answer standing.
-  useEffect(() => {
-    let live = true;
-    void installedAgentsAction()
-      .then((fresh) => {
-        if (live && fresh.length > 0) setOptions(fresh);
-      })
-      .catch(() => {
-        // Nothing to say: the agents on screen are still the agents, and the board has
-        // louder ways to report a server it can't reach.
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
-
   // And then the second look, the one that spawns (#392). It runs beside the first rather
   // than after it: the grid is drawn from the page's own answer either way, and a CLI that
   // takes its time to say whether it is logged in must never be what a user waits on.
@@ -693,7 +673,7 @@ export function HarnessPicker({
   // right about what this machine has.
   const settle = (fresh: AgentInfo) => {
     setInfo(fresh);
-    setOptions(fresh.options);
+    installedAgents.set(fresh.options);
     const next = bind ? fresh.runtimes.find((r) => r.id === bind.runtime.id) : undefined;
     const now = seed(fresh, next);
     setActive(now.active);

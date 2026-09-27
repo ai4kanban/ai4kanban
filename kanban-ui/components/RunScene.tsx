@@ -11,10 +11,10 @@
 // Anything that stops the scene being drawn — no GPU, no art, no renderer at all — answers
 // `onUnavailable`, and the dialog goes back to its list-and-log form.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiAlertTriangle } from "react-icons/fi";
 import type { Application, Container, Sprite, Spritesheet, Texture, TilingSprite } from "pixi.js";
-import { installedAgentsAction } from "@/app/actions";
+import { lookForAgent, useInstalledAgents } from "@/lib/window-state";
 import { useCopy } from "@/i18n/use-copy";
 import {
   ART,
@@ -126,7 +126,11 @@ export function RunScene({
   } | null>(null);
   const [cast, setCast] = useState<SceneBot[]>([]);
   const [ready, setReady] = useState(false);
-  const [marks, setMarks] = useState<Map<string, Mark>>(new Map());
+  const agents = useInstalledAgents();
+  const marks = useMemo(
+    () => new Map<string, Mark>((agents ?? []).map((o) => [o.name, { label: o.label, icon: o.icon }])),
+    [agents],
+  );
   const reduced = useReducedMotion();
   // The first draw loads the office as it stands — nobody walks in on opening.
   const opened = useRef(false);
@@ -447,19 +451,11 @@ export function RunScene({
     setCast([...lib.values()].filter((a) => a.bot.room === room).map((a) => a.bot));
   }, [bots, ready, reduced, room]);
 
-  // The connectors this board can run, for the marks the nameplates wear. One read: a scene
-  // that can't get the list falls back to initials rather than waiting on it.
+  // A bot on an agent the list lacks was likely installed since: look again, once per name.
   useEffect(() => {
-    let live = true;
-    void installedAgentsAction()
-      .then((options) => {
-        if (live) setMarks(new Map(options.map((o) => [o.name, { label: o.label, icon: o.icon }])));
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
+    if (!agents) return;
+    for (const bot of bots) if (bot.harness && !marks.has(bot.harness)) lookForAgent(bot.harness);
+  }, [agents, bots, marks]);
 
   const hold = useCallback((id: string, node: HTMLButtonElement | null) => {
     const actor = actors.current.get(id);

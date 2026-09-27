@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
-import { workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { adoptSharedCreateDraft, createDraftKey, useDraft } from "@/lib/draft";
@@ -28,6 +27,7 @@ import { Copied, useCopyText } from "./copy";
 import { DiscussFeedbackBlock, ShareRow, useDiscussFeedback, type DiscussFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
 import { useWorkflowName } from "./Workflows";
+import { useWorkflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess, type ProLock } from "./pro";
 import { useWorkflowTip } from "./WorkflowTip";
 
@@ -126,7 +126,7 @@ function Sheet({
   // The workflow the plans' cards run through (#715): a hand pick holds only for this
   // discussion and these plans; otherwise the agent's pick when every plan names the same one
   // (#847, #917), else the board's default.
-  const [flows, setFlows] = useState<WorkflowView[] | null>(null);
+  const flows = useWorkflows()?.workflows ?? null;
   const pickFor = [discussion ?? "", ...plan.plans.map((p) => p.path)].join("\n");
   const [picked, setPicked] = useState<{ for: string; id: string } | null>(null);
   const usable = (id?: string) => flows?.find((f) => f.id === id && f.problems.length === 0)?.id;
@@ -136,9 +136,6 @@ function Sheet({
     (agreed.size === 1 ? usable(plan.plans[0]?.workflow) : undefined) ??
     flows?.find((f) => f.isDefault)?.id ??
     "";
-  useEffect(() => {
-    void workflowsAction().then((res) => setFlows(res.workflows));
-  }, []);
   // What unlocks the Pro workflows (#1038). A locked pick is kept, never swapped for the default.
   const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const [sending, setSending] = useState(false);
