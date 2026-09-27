@@ -441,6 +441,8 @@ const en: ConfigurationCopy = {
           'Added to the end of every Create, Refine and Revise run on a product video card — "keep the whole video under 60 seconds".',
         "hyperframes-editor": (agent) =>
           `Added to the end of every run ${agent} does while a product video is being made — "record every clip at 1920×1080, 30 fps".`,
+        "cover-designer": (agent) =>
+          `Added to the end of every run ${agent} does while a product video's cover is being made — "set the cover text in the product's main color".`,
         "deck-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
       },

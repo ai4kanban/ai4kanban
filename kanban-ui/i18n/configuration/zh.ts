@@ -535,6 +535,7 @@ const zh: ConfigurationCopy = {
       byAgent: {
         scriptwriter: () => "会附加到产品视频卡片每一次新建、澄清和修订运行的末尾——例如「全片不超过 60 秒」。",
         "hyperframes-editor": (agent) => `会附加到制作产品视频时 ${agent} 每次运行的末尾——例如「录屏统一 1920×1080、30 帧」。`,
+        "cover-designer": (agent) => `会附加到制作产品视频封面时 ${agent} 每次运行的末尾——例如「封面文字用产品主色」。`,
         "deck-planner": () => "会附加到演示文稿卡片每一次新建、澄清和修订运行的末尾——例如「全套不超过 12 页」。",
       },
     },

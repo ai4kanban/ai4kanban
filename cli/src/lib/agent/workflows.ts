@@ -153,7 +153,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     delivers: 'plan',
     pro: true,
     stages: {
-      plan: { lead: 'scriptwriter', helpers: ['hyperframes-editor'] },
+      plan: { lead: 'scriptwriter', helpers: ['hyperframes-editor', 'cover-designer'] },
       execute: { lead: '', helpers: [] },
       review: { lead: '', helpers: [] },
     },
@@ -635,10 +635,15 @@ function splitSharedAgents(cfg: Record<string, unknown>): boolean {
 
 // ---- a newly shipped plan agent starts on (#1099) ------------------------------
 //
-// A board that wrote Coding's plan helpers down would get a new built-in there disabled. The
-// ones below join it enabled instead, once: `shipped` records each, so removing one sticks.
+// A board that wrote a workflow's plan helpers down would get a new built-in there disabled.
+// The ones below join their workflow enabled instead, once: `shipped` records each, so
+// removing one sticks.
 
-const SHIPPED_ON = ['prompt-writer', 'email-planner']
+const SHIPPED_ON: { agent: string; flow: string }[] = [
+  { agent: 'prompt-writer', flow: DEFAULT_WORKFLOW },
+  { agent: 'email-planner', flow: DEFAULT_WORKFLOW },
+  { agent: 'cover-designer', flow: 'hyperframes-video' },
+]
 const SHIPPED = 'shipped'
 
 const shippedRows = (cfg: Record<string, unknown>): string[] => {
@@ -657,22 +662,21 @@ const listedAnywhere = (cfg: Record<string, unknown>, name: string): boolean =>
 function addShippedAgents(cfg: Record<string, unknown>): boolean {
   if (!Object.keys(workflowsBlock(cfg)).length) return false
   const done = shippedRows(cfg)
-  const fresh = SHIPPED_ON.filter((name) => !done.includes(name))
+  const fresh = SHIPPED_ON.filter((s) => !done.includes(s.agent))
   if (!fresh.length) return false
   const { ok } = writeConfig((raw) => {
     const block = configBlock(raw.workflows)
     const all = configBlock(block.stages)
-    const coding = configBlock(all[DEFAULT_WORKFLOW])
-    const plan = { ...configBlock(coding.plan) }
-    if (Array.isArray(plan.helpers)) {
-      const add = fresh.filter((name) => !listedAnywhere(raw, name))
-      if (add.length) {
-        plan.helpers = [...plan.helpers, ...add.map((agent) => ({ agent, extra: '' }))]
-        all[DEFAULT_WORKFLOW] = { ...coding, plan }
-        block.stages = all
-      }
+    const add = fresh.filter((s) => !listedAnywhere(raw, s.agent))
+    for (const { agent, flow } of add) {
+      const stages = configBlock(all[flow])
+      const plan = { ...configBlock(stages.plan) }
+      if (!Array.isArray(plan.helpers)) continue
+      plan.helpers = [...plan.helpers, { agent, extra: '' }]
+      all[flow] = { ...stages, plan }
+      block.stages = all
     }
-    block[SHIPPED] = [...done, ...fresh]
+    block[SHIPPED] = [...done, ...fresh.map((s) => s.agent)]
     raw.workflows = block
   })
   return ok
