@@ -14,8 +14,8 @@ second, and design only what this card changes.
   file — `import "./globals.css"`. It carries the theme, so without it the copy loses the
   product's colours, fonts and spacing.
 - **Trim the wiring**: remove data fetching, server actions, file and board reads, storage,
-  timers, and anything that answers a click. Put fixed sample data where they fed, showing the
-  state this mockup is named for.
+  timers, React hooks, `"use client"`, and anything that answers a click. Put fixed sample data
+  where they fed, showing the state this mockup is named for.
 - **Keep the look**: layout, controls, sizes and classes stay exactly as the copy had them.
 - **Design only the change**: write new markup only where the card adds or changes something.
 
@@ -24,7 +24,7 @@ second, and design only what this card changes.
 - **The entry file**: the `.tsx` the `<Asset>` tag names, default-exporting the screen. Name it
   in lowercase ASCII with dashes for the page or state it draws: `board-empty`,
   `card-run-failed`. Supporting copies keep their original names.
-- **Available unchanged**: React, `react-icons/fi`, `react-icons/fa`, `react-icons/si`,
+- **Available unchanged**: React without hooks, `react-icons/fi`, `react-icons/fa`, `react-icons/si`,
   `next/link`, `next/image`, `next/navigation`, `clsx`, `tailwind-merge`,
   `class-variance-authority`.
 - **Nothing else**: no other package, no network, no `node:` module. Whatever is left must be
