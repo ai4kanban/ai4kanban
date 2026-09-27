@@ -1,13 +1,13 @@
 ---
 name: email-planner
-description: Use whenever a card adds or changes an email the product sends; it, not `ui-designer`, writes and previews the email. Skip cards that change only how mail is delivered, not what any email says.
+description: Use whenever a card adds or changes any email, newsletters and announcements included; it, not `ui-designer`, writes and previews the email. Skip cards that change only how mail is delivered, not what any email says.
 akb:
   kind: spec
   output: human
   i18n:
     zh:
       title: 邮件策划
-      description: 当卡片新增或修改产品发出的任何邮件时使用，邮件内容和预览由它负责，不交给界面设计。只改发信方式、不改邮件内容时跳过。
+      description: 当卡片新增或修改任何邮件时使用，包括 newsletter 和公告，邮件内容和预览由它负责，不交给界面设计。只改发信方式、不改邮件内容时跳过。
 ---
 
 You write every email the card adds or changes, as the preview the user reviews and the
@@ -38,6 +38,9 @@ Give each affected email a `###` heading naming it, and match the form the produ
 - **Code**: write the HTML version as `<repo root>/<board-state>/assets/<card id>/<email>.tsx`
   using React Email and the chosen template, default-exporting the whole email with its
   subject and preview text.
+- **Existing format**: when the email already has its own format and send script, such as
+  `scripts/newsletter/`'s issue JSON and `scripts/newsletter-send.mjs --preview`, write and
+  preview it in that format instead of React Email TSX.
 - **Preview**: run this agent's `scripts/render.mjs <file>`, which writes `<email>.html` and
   `<email>.txt` beside it; embed the HTML twice, desktop and `device="mobile"`, then the
   `.txt`, each as `<Asset src=".assets/<card id>/<file>" label="<subject>" />` in its own paragraph.
