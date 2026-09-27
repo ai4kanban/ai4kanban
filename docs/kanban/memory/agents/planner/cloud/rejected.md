@@ -1,11 +1,7 @@
 # Rejected
 
-Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
-before proposing so you don't re-suggest them.
+Ideas we turned down, one line each with why. Read before proposing.
 
 ## Reaching a board away from your desk
 
-- **A second way onto a phone beside the Cloud URL** — the machine serving its own board
-  over the network or a tunnel, guarded by a per-device approval list. It is a second access
-  path and a second authorization model to build and explain, and Cloud's URL with GitHub
-  sign-in already answers the same need from anywhere.
+- **Serving the board from the machine over the network or a tunnel, with per-device approval** — a second access path and authorization model; Cloud's URL with GitHub sign-in already covers it.

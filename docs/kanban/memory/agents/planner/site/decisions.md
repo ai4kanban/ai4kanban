@@ -1,108 +1,48 @@
 # Decisions
 
-This module's settled answers to cards' open questions, grouped by topic. Keep only
-**user-facing** calls that still guide future planning — what a user can see, do, or
-would care about. Code detail stays on the card. Read before proposing so you don't
-re-ask a settled call.
+Settled user-facing answers for the public site. Read before re-asking a settled call.
 
 ## Translations
 
-- Translate the acquisition surface only — the landing page and the vs pages. The recipes and
-  the plain-Markdown mirrors stay English; they serve AI crawlers and existing users.
-- Never redirect a visitor by browser language. English is always the root, with a visible
-  footer switcher labelling each language in its own name.
-- Language paths are `/zh`, `/es`, `/ja`, `/fr`. Chinese is published as Simplified only, so
-  it is tagged `zh-Hans`.
-- Translations are kept current by hand with `/translate-sync` — the same meaning said the way
-  each language naturally would — with no pre-deploy gate and no native-speaker read blocking
-  publication.
-- Product names, file names, module names, shell commands and the terminal capture stay
-  English in every language: a reader types or sees them on their own screen.
-- A page that exists in only one language shows no switcher, and a path is not automatically
-  four languages — the supported languages are recorded per path, and hreflang, the sitemap
-  and the switcher all read that record.
-- **首页多语言同步**：首页定位类文案改动时，五种语言同批更新，不留某种语言停在旧说法。
-- **文档站界面文字**：文档站只有英文时，新增的文档界面文字只做英文，不单独做中文。
+- **Scope**: translate the landing page, the vs pages, and the training page (English and Chinese only); recipes, Markdown mirrors, blog, docs UI and legal pages stay English.
+- **No auto-redirect**: English is always the root; a visible footer switcher names each language in itself. Chinese is Simplified only.
+- **Per-path languages**: a path is not automatically four languages; its supported languages are recorded, and hreflang, sitemap and switcher read that record. A one-language page shows no switcher.
+- **Upkeep**: by hand with `/translate-sync`, said the way each language naturally would, with no pre-deploy gate or native-speaker blocker. Positioning copy on the home page changes in every language in the same batch.
+- **Never translated**: product, file and module names, shell commands and terminal captures.
 
 ## What the copy promises
 
-- "No dashboard, no separate tool" means no *external* tool — nothing outside your repo to
-  sync with. It never promised the board has no charts, so say "no external tool".
-- The copy does not say a second agent reviews every delivery: review is a detail of how a
-  delivery works, not a selling point.
-- **「3–6×」这类主张拿什么做证据？**：首页里的一段，不单开一页——四个能点回公开源头的数字，配一条
-  每日完成曲线；曲线比纯数字直观。
+- **"No external tool"**: the board has charts; the promise is nothing outside your repo to sync with.
+- **No review claim**: a second agent reviewing each delivery is how delivery works, not a selling point.
+- **「3–6×」的证据**：首页里一段，不单开页——四个能点回公开源头的数字，配一条每日完成曲线。
+- **Plain words**: pricing rows say what a user gets ("Works with 8 coding agents", "No limit on concurrent tasks"), not developer terms.
 
-## The home page's hand-drawn shots
+## The home page
 
-- Each shot draws a page the product really has. When the product moves the page, the shot
-  follows the product and the step's copy is rewritten to match — the shot never keeps an
-  old layout, or mixes two pages, to stay true to the copy.
-
-## The quick start
-
-- The landing page's main button is downloading the app, and the download is the only way in
-  it offers: the app carries `akb` and installs it at first open.
-- The pages are written for the app-first way in. The setup prompt stays linked from the
-  READMEs and the npm page, read by someone already in a terminal, never from the landing page.
+- **Download is the only way in**: the app carries and installs `akb`. The setup prompt is linked from the READMEs and npm, never the landing page.
+- **Shots follow the product**: each draws a real, recognizable page; when the product moves, the shot and its copy follow — never an old layout or a mix of two pages.
+- **Directory badges**: footer of the landing page only, shown even when the score is low — the listing is the claim, not the score.
 
 ## Comparison pages
 
-- Say plainly that Vibe Kanban shut down and its repo is stalled, and don't soften it. Name
-  and link no competitor, alternative or community fork.
-- Linear: AI4Kanban is for solo developers and small teams using an AI coding agent; Linear is
-  a workspace for a team of people and agents, AI4Kanban a repo-local board an agent plans in.
+- **Vibe Kanban**: say plainly it shut down and its repo is stalled; name or link no alternative or fork.
+- **Linear**: Linear is a workspace for teams of people and agents; AI4Kanban is a repo-local board an agent plans in, for solo developers and small teams.
 
 ## The legal pages
 
-- Nullreach Ltd, registered in England and Wales, is on both pages, with English and Welsh law
-  governing the terms. The same company publishes both pages for dist0, so the site's versions
-  adapt those rather than starting from a template.
-- They are not translated: they follow the blog, which is English-only.
-- **收款主体**：收款账户属于厦门宛理之间科技有限公司；条款需要写主体时以 NULLREACH LTD 为网站和 Cloud
-  的主体，不为收款路径另写一段公司关系说明。
-- **培训条款**：厦门宛理之间科技有限公司是培训的销售及开票主体，只写全称；培训同样适用英格兰及威尔士法律；开课前取消全额退款，按月指导退还未上课次，我方取消由客户选改期或退款。
-- `support@ai4kanban.dev`, on the site's own domain, is the address for support and data
-  requests, and any later page needing a contact uses it too.
-- A change to what we collect amends the existing page in place with a new effective date,
-  never a second page, because the sentence promising no collection has to stop being true for
-  existing users as well as new ones.
-- The archived copy of raw events is kept indefinitely, still carrying the install id, and the
-  deletion promise by install id covers it.
-
-## Third-party badges
-
-- A directory badge goes in the landing page's footer only, beside the credit line, at the
-  footer's own visual weight — not in the body and not on the other pages.
-- **徽章上的分数偏低时照样放吗？**：照放，不隐藏数值也不等分数上来再上线。页脚徽章声明的是「被第三方
-  收录并公开评级」，分数本身不是卖点。
+- **Source**: adapt the company's dist0 pages rather than a template.
+- **收款主体**：收款账户属于厦门宛理之间科技有限公司，但条款以 NULLREACH LTD 为网站、Cloud 和 Pro 的主体，不为收款路径另写公司关系说明。
+- **隐私页**：只写 NULLREACH LTD 为数据控制者，不披露培训销售方或向中国传输数据；付款信息由客户通过邮件直接给销售方。
+- **Contact**: `support@ai4kanban.dev` for support and data requests on every page.
+- **Amend in place**: a change to what we collect amends the existing page with a new effective date, never a second page.
 
 ## The training page
 
-- **首版培训服务分几档？**：两档——60 分钟一对一上手指导，加一档按月持续陪跑。不做课程平台、支付或
-  会员体系。
-- **两档卖多少钱？**：99 美元/次与 349 美元/月（每周 1 次共 4 次）。一律美元标价，各语言版本同一个
-  数字，页面直接标金额，不写「面议」。
-- **预约怎么排？**：作者维护 UTC+8 开放小时，访客只看自己当地当前周的小时排期；不宣传名额数量、不展示
-  作者时间。站内选时、填资料、提交并保存真实预约，成功后该小时关闭。
-- **培训页发几种语言？**：只发英文 `/training` 和中文 `/zh/training`——只承诺能交付的语言。
+- **Offer**: two tiers — one-on-one session and monthly coaching — priced in USD, the same number in every language, never "contact us". No course platform, payment or membership.
+- **Booking**: visitors see only open hours in their own time for the current week; never advertise slot counts or the author's schedule.
 
-## The pricing page
+## Planning the site
 
-- **标题**：英文「Free to run. Pro when you need more.」，中文「免费开启，Pro 更进一步」。
-- **功能行用用户的话**：写「Works with 8 coding agents / 支持 8 种 AI 编码工具」「No limit on concurrent
-  tasks / 不限同时运行的任务数」，不用「runtime providers」「parallel runs」这类开发者术语。
-
-## The header and workflow pages
-
-- **页头**：导航链接收进一个展开的大面板，不在一行里平铺。
-- **每个工作流落地页各开一张卡**：每页都要单独精修 UI，不合在一张卡里做。
-
-## The site's look
-
-- **`web/design.md` 只是参考**：页面设计可以突破它的规范。
-
-## The newsletter
-
-- **周报的退订页放在哪里**：放在 ai4kanban.dev 站点上，链接和结果页都用自己的域名，不用邮件平台自带
-  的退订页。站点因此需要一个能写退订状态的接口，不再是一份纯静态导出。
+- **One card per workflow landing page**: each needs its own UI polish.
+- **`web/design.md` is a reference**: a page may break from it.
+- **Newsletter unsubscribe**: lives on ai4kanban.dev, not the mail platform's page, so the site keeps a writable endpoint.

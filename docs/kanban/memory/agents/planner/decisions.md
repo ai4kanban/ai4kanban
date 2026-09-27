@@ -1,107 +1,77 @@
 # Decisions
 
-Settled answers to cards' open questions for the project as a whole — the calls that
-aren't any single module's. A module's own decisions live in its folder beside this file.
-
-Keep only **user-facing** calls that still guide future planning — what a user can see,
-do, or would care about. Code detail stays on the card. Read before proposing so you
-don't re-ask a settled call.
+Settled user-facing answers for the project as a whole; a module's own live in its folder
+beside this file. Read before proposing so you don't re-ask a settled call.
 
 ## Positioning
 
-- 定位是「AI 项目经理替你管理 Agent 团队，只汇报你需要知道的事」，覆盖产品开发到内容营销；看板是载体
-  而非卖点。中英文案、使用位置和主张依据以仓库根目录 `positioning.md` 为准，入口文案引用它，不再单独
-  确认。不承诺「无需写代码」「面向所有人」或无人参与。
-- The role is a middle-manager project manager: clarify the goal, break requirements down,
-  delegate to specialists, and carry the work through acceptance and rework. Which projects
-  to start or stop is the user's. The role is not tied to software — one project manager
-  covers content work on the same board.
-- 10/20/100 个 Agent 与对应倍数是「一个人经营公司」的愿景，不写成容量或效果保证；自有 marketplace
-  是规划，不写成现有能力。
-- The "3–6× faster" claim has no verifiable source and stays anyway: it is the one line that
-  makes the size of the gain land. It is given a footing rather than a citation — this
-  repository's own auditable figures sit beside it.
-- Local-first is a promise about the default backend — markdown in git — not about every
-  backend a user can pick.
+- 定位以仓库根目录 `positioning.md` 为准，入口文案直接引用，不再单独确认；看板是载体而非卖点。
+- The project manager is a middle manager: it clarifies, delegates and carries work through
+  acceptance; which projects to start or stop stays the user's. It is not tied to software.
+- The "3–6× faster" claim stays without a citation, backed by this repository's own auditable
+  figures beside it.
+- Local-first promises the default backend (markdown in git), not every backend a user can pick.
 
 ## How far agents go alone
 
-- There is no single on/off switch for what the board does on its own, and no ladder of
-  levels. Work that needs no user follows whatever caused it, and each further step brings
-  its own setting if it needs one.
-- Nothing today ever decides a card should be rejected; letting the board reject one is a
-  separate feature.
-- A delivery that cannot land does not become a question: the board resolves the conflict and
-  lands it itself, and only asks when the work is genuinely at risk.
-- The only reason to keep a finished delivery's worktree is that the user can really bring it
-  back. Where the UI offers no way to resume, the board cleans up on its own.
+- No global autonomy switch or ladder of levels: each step that needs no user brings its own
+  setting if it needs one.
+- Nothing decides on its own that a card should be rejected; that would be a separate feature.
+- A delivery that cannot land is not a question: the board resolves and lands it, asking only
+  when the work is genuinely at risk.
+- A finished delivery's worktree is kept only when the user can really bring it back.
 
 ## What a card can carry
 
-- A card's assets have one lifecycle: nothing is dropped when the build starts, everything
-  stays readable through it, and it is archived with the card and still shown on the archive
-  page. Screen mockups follow the same path.
-- A card's files, rendered videos included, live in the board's one assets folder under the
-  card's id; no feature adds a folder of its own.
+- A card's files, mockups and rendered videos included, live in the board's one assets folder
+  under its id, stay readable through the build, and are archived and shown with the card.
 
 ## Eval collection
 
-- The partner feedback agent is disabled by default and enabled only after the user agrees to
-  participate. The first collection is for a small group of partners whose code the team may
-  inspect, with no upload preview.
-- Curated cases, rubrics, runners and experiment summaries live in the separate private
-  repository `ai4kanban-evals`. Incoming submissions are reproduced and reviewed before
-  admission; only reproducible cases are admitted.
-- A partner, seed partners included, is promised one page, once, before consent: no payment, the case stays in the
-  closed eval set indefinitely, the analysis may pass through a model provider, and a letter
-  deletes what they submitted. A later use needs consent gathered again.
+- Partner feedback is opt-in and starts with a small group of partners whose code we may
+  inspect; the eval set lives in the private `ai4kanban-evals` repo, admitting only cases we
+  reproduce.
+- Partners, seed partners included, see one page before consenting: no payment, the case stays
+  in the closed set indefinitely, analysis may pass through a model provider, a letter deletes
+  it. Any later use needs fresh consent.
 
 ## Learning from acceptance
 
-- Turning review feedback into reusable SOPs is a recursive-self-improvement problem, not a
-  step bolted onto review. Prove the acceptance judgement is reliable first, then prove a
-  learned SOP improves tasks it has not seen; until both hold, the output is a proposal a
-  human approves rather than a rule the board applies.
+- Review feedback turned into SOPs stays a human-approved proposal until acceptance judgement
+  is proven reliable and a learned SOP is proven to help unseen tasks.
 
 ## Selling a service
 
-- Contact is a form, not a mailto: one form covers support and a customized workflow, and
-  submitting confirms on the page — the human reply is the confirmation.
-- A customized agent workflow is priced per agent, at $15 each. The figure is the same in
-  every language; the quote and the payment are settled by email, and the site takes no
-  payment.
+- Contact is one form for support and custom workflows, confirmed on the page, not a mailto.
+- A custom agent workflow costs $15 per agent in every language; quote and payment go by
+  email, and the site takes no payment.
 
 ## Pricing
 
-- **四档**：Free（Apache 2.0、支持 8 种编码 agent、7 个 agent 组成的编码工作流、不限并发和自定义工作流/agent、邮件支持）；
-  Pro $15/月或 $120/年，默认显示年付（邮件、幻灯片、演示视频工作流与优先支持）；种子伙伴（在保护隐私的
-  前提下分享对话，换 6 个月 Pro，候补加入，内部上限 20 人，满额即暂停，不对外公布）；培训只放一张链接到
-  `/training` 的卡，不写细节。
-- **托管旁白额度**：Pro 每月含 60 分钟托管旁白、不另收费，用尽暂停至下月；成本按满额仍小有盈利来定。
-- **Pro 不只是工作流**：对外说 Pro 时不把差别限定为「更多工作流」。
-- **Creem 只用正式商店**：不建测试商店；计费开发直接用正式密钥与产品，真实付款由用户人工验证后退款。
-
-## Showing our own numbers
-
-- The install badge shows the real count of installs, however far below the download count it
-  sits. The gap is not hidden and the badge does not wait for a better number.
-
-## marketing
-
-- **演示视频的被演示产品**：功能开发演示用专门搭建的独立演示项目，不直接拿 AI4Kanban 自身开发做演示
+- **四档**：Free（Apache 2.0、8 种编码 agent、编码工作流、不限并发和自定义）；Pro $15/月或 $120/年，默认显示年付；种子伙伴（隐私保护下分享对话换 6 个月 Pro，候补加入，内部上限 20 人不对外公布）；培训只放一张链到 `/training` 的卡。
+- **Pro 额度**：每月一笔 credits，托管配音与生图共用，不加购，用尽停到下月；按每月约 10 条带配音和封面的视频定量，满额仍小有盈利；生成一张封面扣 320 积分（中等质量）。
+- **Pro 的卖点**：不把差别说成「更多工作流」；邮件策划对所有人免费，不作 Pro 卖点。
+- **支出上限**：托管服务按用户设额度，不设全平台总上限。
+- **Creem 只用正式商店**：不建测试商店，真实付款由用户人工验证后退款。
+- **桌面端购买 Pro**：在桌面端定价页选月付/年付，用桌面端 Cloud 登录下单，付款页在系统浏览器打开，付完落到无需登录的「请回到 AI4Kanban」页。
 
 ## skill
 
-- **按交付物选工作流**：看卡片最终要交付什么，不看它改动的对象；改视频规则的卡片走编码流程，产品视频流程只用于做视频。指南里的选择规则不举具体工作流名，免得工作流改名或增删后失效。
-- **发版前不做旧数据兼容**：尚未发版的功能改名或改格式时，直接换新，不保留旧字段读取。
+- **按交付物选工作流**：看卡片最终交付什么，不看改动对象；指南里的选择规则不举具体工作流名。
+- **发版前不做旧数据兼容**：未发版功能改名或改格式时直接换新。
+- **Cloud 付费命令归在 `akb cloud` 下**：要登录、扣额度的命令不放顶层。
 
 ## local-ui
 
-- **统计图表时段**：最短 30 天，不做 24 小时或 7 天；趋势图悬停显示各点数值。
+- **统计图表时段**：最短 30 天，不做 24 小时或 7 天。
 
 ## cloud
 
-- **Cloud 发给申请人的邮件语言**：只发英文，不做中英双语。
-- **Cloud 的 alpha 定位**：对外礼貌说明仍在开发中、目前对受邀用户免费、不承诺永久免费。
-- **托管看板暂不对外**：cloud.ai4kanban.dev 目前未向用户开放，面向用户的 Cloud 说明只放桌面应用的 Cloud 设置页和 Cloud 邮件。
-- **「将此看板存储到 Cloud」的开放标准**：修完已知问题、团队在正式环境用真实看板往返一次且数据完整，就一次性对所有受邀用户开放，不做分批名单。
+- **申请人邮件**：只发英文。
+- **alpha 定位**：礼貌说明仍在开发、目前对受邀用户免费、不承诺永久免费。
+- **托管看板暂不对外**：面向用户的 Cloud 说明只放桌面端 Cloud 设置页和 Cloud 邮件。
+- **「将此看板存储到 Cloud」**：修完已知问题、团队用真实看板在正式环境往返一次且数据完整后，一次性对所有受邀用户开放，不分批。
+
+## marketing
+
+- **周报发送**：随版本发布，由用户手动发送；agent 只准备到测试邮件通过为止。

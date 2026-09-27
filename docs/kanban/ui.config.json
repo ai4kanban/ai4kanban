@@ -44,7 +44,7 @@
   "memoryPrune": {
     "enabled": true,
     "cadence": "7d",
-    "lastRun": "2026-09-20 21:29"
+    "lastRun": "2026-09-27 21:33"
   },
   "specAgents": {
     "tech-stack-advisor": {
@@ -86,7 +86,9 @@
     },
     "agentsOwned": true,
     "shipped": [
-      "prompt-writer"
+      "prompt-writer",
+      "email-planner",
+      "cover-designer"
     ]
   }
 }

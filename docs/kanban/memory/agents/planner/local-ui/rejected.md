@@ -1,86 +1,50 @@
 # Rejected
 
-Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
-before proposing so you don't re-suggest them.
+Ideas we turned down, one line each with the reason. Read before proposing.
 
 ## The board
 
-- **The expanded specialist-agent registration form and editor proposal** — rejected as
-  overdesigned.
-- **A file-storage-only switch, or a board-location picker, as the whole collaboration UI** —
-  the app must also show membership, questions, card ownership, shared memory and delivery
-  recovery, which treating Cloud as another file location leaves invisible.
-- **GitHub Projects as the team's board UI** — the shared board lives in Cloud; GitHub Issues
-  supplies proposals and receives progress, never a second place a card can be changed.
-- **Ready-only focus toggle**, and **muting cards you can't start yet** — the board is small
-  enough to scan, and the `ready` label already says what can be started.
-- **Marking the cards that hold up other work** — a "holds up 3" badge says less than the
-  padlock beside it; a card's place in a chain is what a group's map is for.
-- **Switching between projects from the browser UI** — a server serves the board it was
-  started in.
-- **Ticking several cards to move them into a release at once** — a multi-select bar builds
-  the manual path we don't want.
-- **Route every card read and write through the command** — listing cards and writing
-  frontmatter already do, which covers what needs one owner.
-- **Rendering a drawing of a screen inside an open question** — a question lives in
-  frontmatter; the drawing stays in the card body.
-- **Dropping the Edit button from the card page** — the chat rail is folded away by default,
-  so cutting it would leave no visible way in.
-- **Editing a card's title, body and links straight from the card page** — priority, ROI,
-  release and cadence are settings; the rest is the spec a flow wrote and a human approved.
-- **Writing a new hand-check on the card page** — hand-checks come from the spec; a box for
-  typing your own turns a spec line into hand-entered data. Crossing one off stays.
-- **Putting a specialist agent on a card from the card page** — the board asks for one itself
-  while planning, and asking by hand is too rare to buy a control per card.
-- **Working the board from the keyboard** — a shortcut set, its dispatcher and a panel listing
-  it would cost more than the mouse trips they save.
-- **A `#` card picker over the chat box** — pointing at a card is already typing `#12`.
-- **Serving the board to a phone from the user's own machine** — Cloud's URL and sign-in reach
-  a phone from anywhere and work while the machine is asleep.
-- **Kanbo, a desktop pet that speaks the board's notifications** — the system notification
-  center already delivers the same alerts and gets out of the way after.
-- **Laying a card's screens out side by side on a canvas** — it trades scrolling for panning
-  and zooming, and pays a fixed-height viewport and a gesture layer over the iframes for it.
+- **An expanded specialist-agent registration form and editor** — overdesigned.
+- **Cloud collaboration as just a storage switch or board-location picker** — it hides membership, questions, ownership, shared memory and delivery recovery.
+- **GitHub Projects as the team's board** — the shared board lives in Cloud; GitHub Issues only feeds proposals and receives progress.
+- **A ready-only focus toggle, or muting cards you can't start** — the board is small enough to scan and `ready` already says it.
+- **A "holds up N" badge on blocking cards** — the padlock says more; a group's map shows the chain.
+- **Switching projects from the browser UI** — a server serves the board it was started in.
+- **Multi-selecting cards into a release** — it builds the manual path we don't want.
+- **Routing every card read and write through the command** — the reads and writes that need one owner already go through it.
+- **Drawing a screen inside an open question** — questions live in frontmatter; drawings stay in the body.
+- **Dropping the card page's Edit button** — the chat rail is folded by default, so nothing else would be visible.
+- **Editing a card's title, body or links on its page** — only settings are direct; the rest is an approved spec.
+- **Adding your own hand-check on the card page** — hand-checks come from the spec; crossing one off stays.
+- **Assigning a specialist agent from the card page** — planning asks for one itself; too rare for a per-card control.
+- **Keyboard shortcuts for the board** — a shortcut set costs more than the mouse trips it saves.
+- **A `#` card picker in the chat box** — typing `#12` already points at a card.
+- **Serving the board to a phone from the user's machine** — Cloud reaches a phone anywhere, even with the machine asleep.
+- **A desktop pet that speaks notifications** — the system notification center already does it and gets out of the way.
+- **A card's screens side by side on a pan-and-zoom canvas** — trades scrolling for panning at the cost of a fixed viewport and a gesture layer.
 
 ## Runs
 
-- **Human-in-the-loop / mid-run reply to the agent** — the agent raises open questions on the
-  card; watching a run is a read-only tail of its log. A follow-up prompt box on a finished
-  run is the same thing: Resume covers the real need with no typing.
-- **Per-card run history list** — the most recent run's log surviving a restart is enough, and
-  the runs panel covers browsing.
-- **A plain-words reason beside a failed run** — the only reason on offer is the tail of the
-  agent's own output, which the log already shows.
-- **Clicking a run id in a chat reply to open its log** — saves one click and costs link rules
-  for which id-shaped words count.
-- **A read-only view of everything uncommitted in the folder a run worked in** — it could never
-  say "this run changed these files"; the card's diff replaced it.
-- **A switch that lets the board start building a ready card by itself** — anything that starts
-  cards without a click needs limits on concurrent runs, card count and spend first.
-- **Handing a whole group's subtask graph to one long unattended run** — one run implements one
-  approved version of one card, and is reviewed and landed as that card.
+- **Replying to a running agent, or a follow-up box on a finished run** — agents ask through open questions; Resume covers the real need.
+- **A per-card run history** — the latest run's log plus the runs panel is enough.
+- **A plain-words reason on a failed run** — the only reason available is the agent's own output, already in the log.
+- **Clickable run ids in chat replies** — saves one click, costs rules for what counts as an id.
+- **A view of everything uncommitted where a run worked** — it can't say what the run changed; the card's diff does.
+- **Letting the board start ready cards by itself** — needs limits on concurrency, card count and spend first.
+- **One long unattended run over a group's whole subtask graph** — one run builds one approved card and is reviewed and landed as that card.
 
 ## Connectors
 
-- **A Gemini CLI connector** — not an agent we want to reach; anything past the ones we ship
-  waits for users to ask.
-- **A pi connector** — it streams and resumes, but it never asks permission and nothing holds a
-  run to the project, so picking it would hand a run the whole machine.
-- **Offering a list of model ids in the Model field** — a list we keep goes stale, and offering
-  only the ids already used is empty on a fresh board, the one moment it would help.
-- **A login line in the agent dialog** — the board does not set a harness up; Test says whether
-  it connected.
+- **A Gemini CLI connector** — not wanted; more connectors wait for users to ask.
+- **A pi connector** — it never asks permission and nothing confines it to the project.
+- **A list of model ids in the Model field** — a kept list goes stale; used ids are empty on a fresh board.
+- **A login line in the agent dialog** — the board doesn't set up harnesses; Test says whether it connects.
 
 ## Setup
 
-- **An "I'll drive this board from my own coding agent" answer** — the board always has an agent
-  to run, so "none of them" was never a state it could hold.
-- **Requiring a git repo before a folder becomes a project** — builds there already fall back to
-  manual mode and say why, so refusing at the front door shuts AI4Kanban out of every project
-  that is not under git.
+- **An "I'll drive this board from my own coding agent" answer** — the board always has an agent to run.
+- **Requiring git before a folder becomes a project** — non-git builds already fall back to manual mode and say why.
 
 ## Feedback
 
-- **A lasting list of shared feedback numbers in Settings**, and **a details dialog for the
-  install id** — the feedback path is a side channel, not a product surface; reading the id is
-  already served by `akb telemetry status`.
+- **A list of shared feedback numbers in Settings, or an install-id details dialog** — feedback is a side channel; `akb telemetry status` shows the id.
