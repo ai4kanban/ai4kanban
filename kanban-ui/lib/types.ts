@@ -163,8 +163,13 @@ export type {
 } from "./format/skill/types";
 
 export type {
+  BillingLink,
+  BillingRead,
   CloudAccount,
+  CloudBilling,
+  CloudInvoice,
   CloudMove,
+  InvoicesRead,
   CloudState,
   LarkChat,
   LarkCloud,

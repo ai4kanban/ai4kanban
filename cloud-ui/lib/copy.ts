@@ -73,6 +73,9 @@ export interface HostedCopy {
   planUnavailable: string;
   checkoutFailed: string;
   portalFailed: string;
+  /** The public page a desktop checkout lands on (#1109). */
+  checkoutDone: string;
+  checkoutDoneBody: string;
 }
 
 const en: HostedCopy = {
@@ -117,6 +120,8 @@ const en: HostedCopy = {
   planUnavailable: "Your plan could not be read just now. Try again shortly.",
   checkoutFailed: "Checkout could not start. Try again.",
   portalFailed: "Billing could not be opened. Try again.",
+  checkoutDone: "Payment complete",
+  checkoutDoneBody: "Head back to AI4Kanban. Pro unlocks there on its own — no need to sign in again.",
 };
 
 const zh: HostedCopy = {
@@ -160,6 +165,8 @@ const zh: HostedCopy = {
   planUnavailable: "暂时无法读取你的方案，请稍后重试。",
   checkoutFailed: "无法开始结账，请重试。",
   portalFailed: "无法打开账单管理，请重试。",
+  checkoutDone: "付款成功",
+  checkoutDoneBody: "请回到 AI4Kanban，Pro 会自动解锁，无需再次登录。",
 };
 
 export const getHostedCopy = (language: Language): HostedCopy => (language === "zh" ? zh : en);

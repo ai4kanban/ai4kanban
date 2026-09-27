@@ -29,6 +29,7 @@ let rows
 let creemSubs
 let creemCalls
 let creemDown
+let creemTxs
 
 beforeEach(async () => {
   resetJwksCache()
@@ -38,6 +39,7 @@ beforeEach(async () => {
   creemSubs = new Map()
   creemCalls = []
   creemDown = false
+  creemTxs = []
   globalThis.fetch = async (url, init = {}) => {
     const address = String(url)
     const body = init.body ? JSON.parse(init.body) : undefined
@@ -67,6 +69,8 @@ beforeEach(async () => {
       if (creemDown) return json({ message: 'down' }, 500)
       const path = address.slice('https://api.creem.io'.length)
       if (path === '/v1/checkouts') return json({ id: 'ch_1', checkout_url: 'https://checkout.creem.io/ch_1' })
+      const txs = /^\/v1\/transactions\/search\?customer_id=([^&]+)/.exec(path)
+      if (txs) return json({ items: creemTxs.filter((tx) => tx.customer === txs[1]), pagination: {} })
       if (path === '/v1/customers/billing') return json({ customer_portal_link: `https://creem.io/portal/${body.customer_id}` })
       const sub = /^\/v1\/subscriptions\?subscription_id=(.+)$/.exec(path)
       if (sub && creemSubs.has(sub[1])) return json(creemSubs.get(sub[1]))
@@ -234,6 +238,36 @@ describe('the signed-in billing routes', () => {
       customer: { email: 'lin@example.com' },
     })
     assert.equal(creemCalls[0].headers['x-api-key'], 'creem_live_key')
+  })
+
+  it('lands a desktop checkout on the public done page, and any other on settings', async () => {
+    await signedIn('POST', '/v1/billing/checkout', { period: 'monthly', source: 'desktop' })
+    assert.equal(creemCalls[0].body.success_url, 'https://cloud.ai4kanban.dev/billing/done')
+    await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })
+    assert.equal(creemCalls[1].body.success_url, 'https://cloud.ai4kanban.dev/settings?checkout=done')
+  })
+
+  it('lists the caller’s charges newest first, and none with no subscription', async () => {
+    const none = await signedIn('GET', '/v1/billing/invoices')
+    assert.deepEqual((await none.json()).invoices, [])
+    assert.equal(creemCalls.length, 0)
+
+    rows.set('sub_1', { ...row('active'), user_id: SUBJECT })
+    const tx = (id, status, created_at, customer = 'cust_1') => ({ id, customer, amount: 1500, currency: 'USD', status, created_at })
+    creemTxs = [
+      tx('tx_1', 'paid', 1_780_000_000_000),
+      tx('tx_2', 'refunded', 1_790_000_000),
+      tx('tx_3', 'pending', 1_795_000_000_000),
+      tx('tx_4', 'declined', 1_785_000_000_000),
+      tx('tx_9', 'paid', 1_799_000_000_000, 'cust_9'),
+    ]
+    const res = await signedIn('GET', '/v1/billing/invoices')
+    assert.equal(res.status, 200)
+    assert.deepEqual((await res.json()).invoices, [
+      { id: 'tx_2', date: new Date(1_790_000_000_000).toISOString(), amount: 1500, currency: 'USD', status: 'refunded' },
+      { id: 'tx_4', date: new Date(1_785_000_000_000).toISOString(), amount: 1500, currency: 'USD', status: 'failed' },
+      { id: 'tx_1', date: new Date(1_780_000_000_000).toISOString(), amount: 1500, currency: 'USD', status: 'paid' },
+    ])
   })
 
   it('sends somebody already on Pro to settings instead of a second subscription', async () => {

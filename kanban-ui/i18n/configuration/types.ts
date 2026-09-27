@@ -36,6 +36,8 @@ export type ConfigurationCopy = {
     /** The agents that belong to the board rather than to any workflow. */
     upkeep: string;
     cloud: string;
+    /** The plan, its invoices and the plans page behind them (#1109). */
+    billing: string;
     notifications: string;
     /** The workspace a Cloud board lives in (#317). Only ever on a Cloud board. */
     workspace: string;
@@ -846,6 +848,7 @@ export type ConfigurationCopy = {
       saveFailed: string;
     };
   };
+  billing: BillingCopy;
 };
 
 /** The controls an agent that runs on a cadence carries (#514, #119) — Run now, the compact
@@ -927,4 +930,56 @@ export type SweepCopy = {
   stoppedHere: string;
   /** Across to this row's run, while its record and log are still there. */
   openRun: string;
+};
+
+/** The Billing tab (#1109). `pricing` is web/i18n/pricing word for word. */
+export type BillingCopy = {
+  pricing: {
+    monthly: string;
+    yearly: string;
+    save: string;
+    free: { name: string; price: string; tagline: string; rows: string[] };
+    pro: {
+      name: string;
+      yearly: { price: string; per: string; sub: string; was: string };
+      monthly: { price: string; per: string };
+      leadIn: string;
+      rows: string[];
+      button: string;
+    };
+  };
+  plan: {
+    title: string;
+    loading: string;
+    renews: (date: string) => string;
+    ends: (date: string) => string;
+    ended: (date: string) => string;
+    active: string;
+    cancelled: string;
+    pastDue: string;
+    paymentFailed: string;
+    updatePaymentBody: string;
+    updatePayment: string;
+    manage: string;
+    upgrade: string;
+    current: string;
+    unavailable: string;
+    back: string;
+    opening: string;
+    opened: string;
+    checkoutFailed: string;
+    portalFailed: string;
+  };
+  invoices: {
+    title: string;
+    empty: string;
+    failed: string;
+    date: string;
+    amount: string;
+    status: string;
+    receipt: string;
+    paid: string;
+    refunded: string;
+    failedPayment: string;
+  };
 };

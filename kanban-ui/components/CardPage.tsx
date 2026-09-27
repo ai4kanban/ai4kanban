@@ -11,7 +11,6 @@ import {
   FiChevronRight,
   FiCornerLeftUp,
   FiEdit2,
-  FiExternalLink,
   FiFeather,
   FiGitBranch,
   FiGitCommit,
@@ -1897,7 +1896,6 @@ export function CardPage({
                     <Button size="sm" className={ACT} onClick={() => goPro(lock)}>
                       <FiLock className="text-[14px]" aria-hidden />
                       {lock === "upgrade" ? t.shared.pro.upgrade : t.shared.pro.signIn}
-                      {lock === "upgrade" && <FiExternalLink className="text-[12px]" aria-hidden />}
                     </Button>
                   )}
                   {/* Implement — gone while a delivery is in flight, since what ends one is

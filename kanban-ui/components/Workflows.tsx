@@ -17,7 +17,7 @@
 // refusal. Nothing here has a copy of those rules.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiChevronDown, FiChevronRight, FiExternalLink, FiMoreHorizontal, FiPlus } from "react-icons/fi";
+import { FiAlertCircle, FiChevronDown, FiChevronRight, FiMoreHorizontal, FiPlus } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -341,7 +341,7 @@ export function WorkflowsPanel({
           ? { label: c.duplicate, run: () => {}, locked: pro.locked }
           : { label: c.duplicate, run: () => void duplicate() },
         ...(proLocked
-          ? [{ label: lock === "upgrade" ? pro.upgrade : pro.signIn, run: () => goPro(lock), accent: true, external: lock === "upgrade" }]
+          ? [{ label: lock === "upgrade" ? pro.upgrade : pro.signIn, run: () => goPro(lock), accent: true }]
           : []),
         ...(flow.builtIn
           ? []
@@ -982,7 +982,7 @@ function MoreMenu({
   onOpenChange: (open: boolean) => void;
   label: string;
   /** `locked`: held back, with why as its tooltip. `accent`: the way to Pro (#1038). */
-  items: { label: string; run: () => void; locked?: string; accent?: boolean; external?: boolean }[];
+  items: { label: string; run: () => void; locked?: string; accent?: boolean }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
   flow: WorkflowView;
   onSaved: () => Promise<void>;
@@ -1052,7 +1052,6 @@ function MoreMenu({
             }`}
           >
             {item.label}
-            {item.external && <FiExternalLink aria-hidden className="text-[12px]" />}
           </DropdownMenuItem>
         ))}
         {danger && !asking && (

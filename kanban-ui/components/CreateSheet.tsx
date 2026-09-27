@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiCheck, FiChevronDown, FiCopy, FiExternalLink, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
@@ -630,7 +630,6 @@ function Handoff({
         {locked ? (
           <Button size="xs" onClick={() => goPro(lock)}>
             {lock === "upgrade" ? pro.upgrade : pro.signIn}
-            {lock === "upgrade" && <FiExternalLink size={12} aria-hidden />}
           </Button>
         ) : (
           <>
@@ -938,11 +937,7 @@ function WorkflowPick({
                   className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[700] text-nb-accent-deep outline-none focus-visible:bg-nb-ink/[0.07]"
                 >
                   {lock === "upgrade" ? pro.upgrade : pro.signIn}
-                  {lock === "upgrade" ? (
-                    <FiExternalLink className="text-[12px]" aria-hidden />
-                  ) : (
-                    <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
-                  )}
+                  <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
                 </button>
               )}
               <button

@@ -82,7 +82,7 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
 
   if (rest === 'checkout') {
     requireMethod(request, 'POST')
-    const { period } = ((await bodyOf(request)) ?? {}) as { period?: unknown }
+    const { period, source } = ((await bodyOf(request)) ?? {}) as { period?: unknown; source?: unknown }
     if (period !== 'monthly' && period !== 'yearly') throw badRequest('Pick monthly or yearly.')
     // One subscription per person: somebody already on Pro manages it instead.
     if ((await readBilling(env, session.subject)).plan === 'pro') {
@@ -90,7 +90,8 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     }
     const checkout = await creem<{ checkout_url?: string }>('POST', '/v1/checkouts', {
       product_id: period === 'monthly' ? env.CREEM_PRODUCT_MONTHLY : env.CREEM_PRODUCT_YEARLY,
-      success_url: `${CLOUD_UI_ORIGIN}/settings?checkout=done`,
+      // The desktop app has no browser sign-in to return to, so it lands on a public page.
+      success_url: source === 'desktop' ? `${CLOUD_UI_ORIGIN}/billing/done` : `${CLOUD_UI_ORIGIN}/settings?checkout=done`,
       metadata: { userId: session.subject },
       ...(session.email ? { customer: { email: session.email } } : {}),
     })
@@ -112,6 +113,26 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     return json({ billing: await readBilling(env, session.subject) })
   }
 
+  if (rest === 'invoices') {
+    requireMethod(request, 'GET')
+    const rows = await call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: session.subject })
+    const customers = [...new Set(rows.map((row) => row.customer_id))]
+    const pages = await Promise.all(
+      customers.map((customer) =>
+        creem<{ items?: CreemTransaction[] }>(
+          'GET',
+          `/v1/transactions/search?customer_id=${encodeURIComponent(customer)}&page_size=50`,
+        ),
+      ),
+    )
+    const invoices = pages
+      .flatMap((page) => page.items ?? [])
+      .map(invoiceOf)
+      .filter((invoice): invoice is Invoice => !!invoice)
+      .sort((a, b) => b.date.localeCompare(a.date))
+    return json({ invoices })
+  }
+
   if (rest === 'portal') {
     requireMethod(request, 'POST')
     const rows = await call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: session.subject })
@@ -125,6 +146,50 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
   }
 
   throw notFound()
+}
+
+/** One charge, as the desktop Billing tab lists it. Creem gives no per-charge receipt link, so
+ *  a row opens the billing portal. */
+export interface Invoice {
+  id: string
+  date: string
+  /** Minor units, as Creem counts them. */
+  amount: number
+  currency: string
+  status: 'paid' | 'refunded' | 'failed'
+}
+
+interface CreemTransaction {
+  id: string
+  amount: number
+  amount_paid?: number | null
+  currency: string
+  status?: string
+  created_at?: number
+}
+
+const INVOICE_STATUS: Record<string, Invoice['status']> = {
+  paid: 'paid',
+  partialRefund: 'refunded',
+  refunded: 'refunded',
+  chargedBack: 'refunded',
+  declined: 'failed',
+  uncollectible: 'failed',
+}
+
+/** A transaction worth listing, or null for one that never became a charge. */
+export function invoiceOf(tx: CreemTransaction): Invoice | null {
+  const status = INVOICE_STATUS[tx.status ?? '']
+  if (!status || typeof tx.created_at !== 'number') return null
+  // Creem documents a timestamp without its unit; seconds and milliseconds both read right.
+  const ms = tx.created_at < 1e12 ? tx.created_at * 1000 : tx.created_at
+  return {
+    id: tx.id,
+    date: new Date(ms).toISOString(),
+    amount: tx.amount_paid ?? tx.amount,
+    currency: tx.currency,
+    status,
+  }
 }
 
 async function readBilling(env: Env, user: string): Promise<Billing> {

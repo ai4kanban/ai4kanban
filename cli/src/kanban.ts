@@ -255,6 +255,8 @@ export type { BoardEntry } from './lib/boards'
 // there and nowhere else, and the desktop app is only what catches the answer.
 export { readCloudAccount, signOutOfCloud } from './lib/cloud/account'
 export { proAccess } from './lib/cloud/pro'
+// The desktop Billing tab (#1109).
+export { openBillingPortal, readBilling, readInvoices, startCheckout } from './lib/cloud/billing'
 export type { CloudAccount, CloudMove, CloudState } from './lib/cloud/account'
 // The one way out of the not-admitted state (#327, #350): ask us for an invite, and we admit
 // the account when we approve it. Open to a verified sign-in we have not admitted.

@@ -72,6 +72,7 @@ export function TopRow({
   back,
   signedOut,
   readOnly = true,
+  bare,
   children,
 }: {
   workspaceName?: string;
@@ -82,6 +83,8 @@ export function TopRow({
   /** Whether this page really is a read. False on a card the board is raising a decision for
    *  (#364), where the mark would be saying the opposite of the two buttons under it. */
   readOnly?: boolean;
+  /** The logo alone: a page that knows nothing of who is reading it. */
+  bare?: boolean;
   children?: ReactNode;
 }) {
   const copy = useHostedCopy();
@@ -111,7 +114,7 @@ export function TopRow({
       <div className="flex shrink-0 items-center gap-2">
         {children}
         {workspaceName !== undefined && readOnly && <ReadOnlyMark />}
-        {signedOut ? <SignIn /> : <AccountMenu />}
+        {bare ? null : signedOut ? <SignIn /> : <AccountMenu />}
       </div>
     </header>
   );
@@ -328,6 +331,7 @@ export function Page({
   workspaceName,
   back,
   signedOut,
+  bare,
   children,
 }: {
   copy: HostedCopy;
@@ -335,13 +339,14 @@ export function Page({
   workspaceName?: string;
   back?: string;
   signedOut?: boolean;
+  bare?: boolean;
   children: ReactNode;
 }) {
   return (
     <CopyProvider value={copy}>
       <AccountProvider value={account}>
         <div className="flex min-h-dvh flex-col">
-          <TopRow workspaceName={workspaceName} back={back} signedOut={signedOut} />
+          <TopRow workspaceName={workspaceName} back={back} signedOut={signedOut} bare={bare} />
           <main className="mx-auto flex w-full max-w-[52ch] flex-1 flex-col justify-center gap-4 px-6">
             {children}
           </main>

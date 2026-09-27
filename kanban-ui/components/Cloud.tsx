@@ -59,6 +59,7 @@ import {
 } from "@/lib/types";
 import { LarkMark, SlackMark } from "./brands";
 import { canMoveStorage, cloudMigration } from "./CloudMigration";
+import { BillingPanel } from "./Billing";
 import { Button } from "./button";
 import {
   ACCENT_BTN,
@@ -108,9 +109,14 @@ function bridge(): AppBridge | null {
 
 export function CloudPanel({
   tab,
+  openOn,
+  onOpened,
   onError,
 }: {
-  tab: "cloud" | "notifications";
+  tab: "cloud" | "notifications" | "billing";
+  /** The Billing page to open on. */
+  openOn?: string;
+  onOpened?: () => void;
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.cloud;
@@ -250,6 +256,9 @@ export function CloudPanel({
       {!account ? (
         // Nothing to draw yet — and once a read has failed, the band below is what is said.
         !misses && <Loading>{c.checking}</Loading>
+      ) : tab === "billing" && (account.state === "signed-in" || account.state === "not-admitted") ? (
+        // Billing belongs to the sign-in, admitted to Cloud or not.
+        <BillingPanel openOn={openOn} onOpened={onOpened} onSignedOut={() => void load()} />
       ) : account.state === "signed-in" ? (
         tab === "cloud" ? (
           <SignedIn account={account} busy={busy} inApp={inApp} onSignOut={() => void signOut()} />

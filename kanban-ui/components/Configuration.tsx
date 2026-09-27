@@ -27,7 +27,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiCreditCard, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiX, FiZap } from "react-icons/fi";
 import {
   hasWorkspaceAction,
   workflowsOfferedAction,
@@ -131,6 +131,7 @@ type Section =
   | "upkeep"
   | "workspace"
   | "cloud"
+  | "billing"
   | "notifications";
 type NavGroup = "settings" | "customize";
 const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
@@ -144,6 +145,8 @@ const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
   { id: "workspace", group: "settings", icon: FiLayers },
   // The machine's sign-in and this board's storage, then how work reaches you (#326, #886).
   { id: "cloud", group: "settings", icon: FiCloud },
+  // The plan, its invoices, and buying Pro with the sign-in above (#1109).
+  { id: "billing", group: "settings", icon: FiCreditCard },
   { id: "notifications", group: "settings", icon: FiBell },
   // What the user shapes (#715, #944): the workflows a card runs through AND the agents each
   // stage assigns, in the one entry. Only on a board that picks workflows at all — where it
@@ -174,6 +177,7 @@ let closeRequest = 0;
 let takenAt = 0;
 const requestSubs = new Set<() => void>();
 export const configDialog = {
+  /** `agent` names the Board pane's agent, or `"plans"` on Billing. */
   open(section: Section = "general", agent?: string) {
     // A fresh object every time, so asking for the same section twice still
     // reaches a dialog the user closed in between.
@@ -418,8 +422,13 @@ export function Configuration({
             {section === "workspace" && cloudBoard && <WorkspacePanel onError={onError} />}
             {/* Cloud and Notifications (#326, #886). One instance for both, so the account and
                 a sign-in waiting in the browser carry across a switch between them. */}
-            {(section === "cloud" || section === "notifications") && (
-              <CloudPanel tab={section} onError={onError} />
+            {(section === "cloud" || section === "notifications" || section === "billing") && (
+              <CloudPanel
+                tab={section}
+                openOn={pickAgent}
+                onOpened={() => setPickAgent("")}
+                onError={onError}
+              />
             )}
           </div>
         </Dialog>

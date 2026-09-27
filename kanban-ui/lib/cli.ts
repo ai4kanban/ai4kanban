@@ -44,7 +44,10 @@ import type {
 } from "./format/agent/types";
 import type { CloudEventAnswer, CloudEventDecision, NotificationGroup } from "./format/cloud/events";
 import type {
+  BillingLink,
+  BillingRead,
   CloudAccount,
+  InvoicesRead,
   ProAccess,
   CloudMove,
   LarkChat,
@@ -693,6 +696,11 @@ export interface BoardRules {
   readCloudAccount?(): Promise<CloudAccount>;
   // Whether this machine's account has Pro (#1038).
   proAccess?(): Promise<ProAccess>;
+  // The desktop Billing tab (#1109).
+  readBilling?(): Promise<BillingRead>;
+  readInvoices?(): Promise<InvoicesRead>;
+  startCheckout?(period: "monthly" | "yearly"): Promise<BillingLink>;
+  openBillingPortal?(): Promise<BillingLink>;
   startCloudSignIn?(): { ok: true; url: string } | { ok: false; error: string };
   finishCloudSignIn?(callback: string): Promise<{ ok: boolean; error?: string }>;
   signOutOfCloud?(): { ok: true };

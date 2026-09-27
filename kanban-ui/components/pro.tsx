@@ -10,9 +10,6 @@ import { proAccessAction, workflowsAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ProAccess, WorkflowView } from "@/lib/types";
 import { configDialog } from "./Configuration";
-import { openLink } from "./desktop";
-
-const PRO_SETTINGS = "https://cloud.ai4kanban.dev/settings";
 
 /** What unlocks a Pro workflow here, or null when nothing is locked. */
 export type ProLock = "upgrade" | "signIn" | null;
@@ -51,9 +48,9 @@ export function useWorkflowLock(workflow: string | undefined): ProLock {
   return proLock(useProAccess(!!flow?.pro));
 }
 
-/** Buying is on the web; signing in is Configuration → Cloud. */
+/** Buying is Configuration → Billing's plans page; signing in is Configuration → Cloud. */
 export function goPro(lock: ProLock): void {
-  if (lock === "upgrade") openLink(PRO_SETTINGS);
+  if (lock === "upgrade") configDialog.open("billing", "plans");
   else if (lock === "signIn") configDialog.open("cloud");
 }
 

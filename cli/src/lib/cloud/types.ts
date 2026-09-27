@@ -153,3 +153,31 @@ export interface LarkChat {
 /** Whether this machine's account has Pro (#1038). `unconfirmed`: signed in, but neither Cloud
  *  nor a recent Pro answer could say. */
 export type ProAccess = 'pro' | 'free' | 'signed-out' | 'unconfirmed'
+
+/** The account's plan, as Cloud's `GET /v1/billing` answers it. */
+export interface CloudBilling {
+  plan: 'free' | 'pro'
+  state: 'free' | 'active' | 'canceled' | 'pastDue' | 'expired'
+  period: 'monthly' | 'yearly' | null
+  /** The renewal date while `active` or `pastDue`, the end date otherwise. */
+  periodEnd: string | null
+}
+
+/** One charge on the account. `amount` is in minor units. */
+export interface CloudInvoice {
+  id: string
+  date: string
+  amount: number
+  currency: string
+  status: 'paid' | 'refunded' | 'failed'
+}
+
+export type BillingRead =
+  | { state: 'ok'; billing: CloudBilling }
+  | { state: 'signed-out' }
+  | { state: 'unavailable' }
+
+export type InvoicesRead = { ok: true; invoices: CloudInvoice[] } | { ok: false }
+
+/** A page to open in the browser — Creem's checkout or its billing portal. */
+export type BillingLink = { ok: true; url: string } | { ok: false; error: string }

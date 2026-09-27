@@ -74,7 +74,11 @@ import {
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
   cloudAccount,
+  openBillingPortal,
   proAccess,
+  readBilling,
+  readInvoices,
+  startCheckout,
   cloudCardLink,
   disconnectLark,
   disconnectSlack,
@@ -244,6 +248,9 @@ import type {
   CloudMove,
   ClosePlan,
   ProAccess,
+  BillingLink,
+  BillingRead,
+  InvoicesRead,
   CommandState,
   ConnectionTest,
   ConversationRow,
@@ -2036,6 +2043,40 @@ export async function cloudAccountAction(): Promise<CloudAccount> {
 
 export async function proAccessAction(): Promise<ProAccess> {
   return proAccess();
+}
+
+// The Billing tab (#1109). Each answers a failure rather than throwing, so a press can say so.
+
+export async function readBillingAction(): Promise<BillingRead> {
+  try {
+    return await readBilling();
+  } catch {
+    return { state: "unavailable" };
+  }
+}
+
+export async function readInvoicesAction(): Promise<InvoicesRead> {
+  try {
+    return await readInvoices();
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function startCheckoutAction(period: "monthly" | "yearly"): Promise<BillingLink> {
+  try {
+    return await startCheckout(period);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function openBillingPortalAction(): Promise<BillingLink> {
+  try {
+    return await openBillingPortal();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** The consent screen to open. The app opens it in the user's own browser — a desktop

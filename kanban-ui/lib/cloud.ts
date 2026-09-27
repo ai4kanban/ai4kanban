@@ -1,7 +1,10 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
 import {
+  type BillingLink,
+  type BillingRead,
   type CloudAccount,
+  type InvoicesRead,
   type CloudMove,
   type LarkChat,
   type LarkCloud,
@@ -56,6 +59,31 @@ export async function cloudAccount(): Promise<CloudAccount> {
 export async function proAccess(): Promise<ProAccess> {
   const rules = await boardRules();
   return rules.proAccess ? rules.proAccess() : "pro";
+}
+
+// --- the Billing tab (#1109) -------------------------------------------------
+// Rules older than it read as unavailable, so the tab says so rather than failing to draw.
+
+export async function readBilling(): Promise<BillingRead> {
+  const rules = await boardRules();
+  return rules.readBilling ? rules.readBilling() : { state: "unavailable" };
+}
+
+export async function readInvoices(): Promise<InvoicesRead> {
+  const rules = await boardRules();
+  return rules.readInvoices ? rules.readInvoices() : { ok: false };
+}
+
+export async function startCheckout(period: "monthly" | "yearly"): Promise<BillingLink> {
+  const rules = await boardRules();
+  if (!rules.startCheckout) return { ok: false, error: await tooOld() };
+  return rules.startCheckout(period);
+}
+
+export async function openBillingPortal(): Promise<BillingLink> {
+  const rules = await boardRules();
+  if (!rules.openBillingPortal) return { ok: false, error: await tooOld() };
+  return rules.openBillingPortal();
 }
 
 /** The consent screen to open in the user's own browser. The secret half of the sign-in
