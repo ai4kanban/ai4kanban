@@ -1,10 +1,11 @@
 "use client";
 
 // A card's static storyboard (#963): the script a `<Storyboard>` tag points at, read and
-// checked on the server (lib/storyboard.ts). A timeline of equal 120px thumbnails on top,
-// scrolled natively when it overflows; under it every shot, picture left and script right,
-// stacked once the body is narrower than 640px. A slide deck's storyboard (#969) is the same
-// layout with pages instead of shots: a preview per slide and no timing.
+// checked on the server (lib/storyboard.ts). A timeline of thumbnails on top, each in its
+// picture's own shape and scrolled natively when it overflows; under it every shot, picture
+// left and script right, stacked once the body is narrower than 640px. A slide deck's storyboard
+// (#969) is the same layout with pages instead of shots: a preview per slide and no timing. A
+// slide with no notes takes the full width, a tall one capped to fit the screen (#1117).
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -17,6 +18,9 @@ import { ExpandableImage } from "./image-preview";
 import { Markdown } from "./Markdown";
 
 const seconds = (n: number) => String(Number(n.toFixed(2)));
+// A thumbnail fits a 120 × 96 box; a picture with no notes is at most this tall.
+const thumbWidth = (ratio: number) => Math.min(120, 96 * ratio);
+const PAGE_HEIGHT = "min(560px, 70vh)";
 const SOFT_BUTTON =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:outline-2 focus-visible:outline-nb-accent";
 
@@ -42,27 +46,27 @@ function Heading({ title, children }: { title?: string; children?: React.ReactNo
 }
 
 /** A hosted page, which has no file to read. The frame's own Open in app is the way there. */
-export function StoryboardUnavailable() {
+export function StoryboardUnavailable({ label }: { label?: string }) {
   const c = useCopy().card.storyboard;
   return (
     <div className="nb-storyboard min-w-0">
-      <Heading />
+      <Heading title={label} />
       <div className="rounded-[8px] bg-nb-wash px-3 py-2.5 text-[13px] text-nb-ink-soft">{c.unavailable}</div>
     </div>
   );
 }
 
-export function Storyboard({ view }: { view: StoryboardView }) {
-  if (view.slides) return <Slides slides={view.slides} />;
-  return view.shots ? <Shots shots={view.shots} /> : <Broken view={view} />;
+export function Storyboard({ view, label }: { view: StoryboardView; label?: string }) {
+  if (view.slides) return <Slides slides={view.slides} ratio={view.ratio} label={label} />;
+  return view.shots ? <Shots shots={view.shots} ratio={view.ratio} label={label} /> : <Broken view={view} label={label} />;
 }
 
-function Broken({ view }: { view: StoryboardView }) {
+function Broken({ view, label }: { view: StoryboardView; label?: string }) {
   const c = useCopy().card.storyboard;
   const { copied, copy } = useCopyText();
   return (
     <div className="nb-storyboard min-w-0 text-[13px] leading-5">
-      <Heading />
+      <Heading title={label} />
       <div role="alert" className="rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
         <div className="font-[700]">{c.needsFixing}</div>
         <div className="mt-0.5">{c.fixHint}</div>
@@ -92,7 +96,21 @@ function Broken({ view }: { view: StoryboardView }) {
   );
 }
 
-function Shots({ shots }: { shots: StoryboardShotView[] }) {
+/** A timeline thumbnail, in its picture's own shape — the storyboard's when it has none. */
+function Thumb({ frame, ratio, current }: { frame: StoryboardFrameView; ratio: number; current: boolean }) {
+  const shape = frame.ratio ?? ratio;
+  return (
+    <div
+      className={`overflow-hidden rounded-[4px] bg-nb-wash ${current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
+      style={{ width: thumbWidth(shape), aspectRatio: shape }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+      {frame.href && <img className="nb-thumb" src={frame.href} alt="" />}
+    </div>
+  );
+}
+
+function Shots({ shots, ratio, label }: { shots: StoryboardShotView[]; ratio: number; label?: string }) {
   const c = useCopy().card.storyboard;
   const base = useId();
   const [current, setCurrent] = useState(0);
@@ -106,7 +124,7 @@ function Shots({ shots }: { shots: StoryboardShotView[] }) {
 
   return (
     <div className="nb-storyboard @container min-w-0 text-[13px] leading-5">
-      <Heading>
+      <Heading title={label}>
         {shots.length > 0 && <span className="text-nb-ink-soft">{c.summary(shots.length, seconds(total))}</span>}
         <span className="ml-auto text-[11px] text-nb-ink-soft">{c.sketch}</span>
       </Heading>
@@ -123,16 +141,10 @@ function Shots({ shots }: { shots: StoryboardShotView[] }) {
                   onClick={() => go(k)}
                   aria-current={k === current ? "true" : undefined}
                   aria-label={`${shot.id} · ${seconds(shot.end - shot.start)}s`}
-                  className="w-[120px] shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                  className="shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                  style={{ width: thumbWidth(shot.frames[0]?.ratio ?? ratio) }}
                 >
-                  {shot.frames.length > 0 && (
-                    <div
-                      className={`aspect-video overflow-hidden rounded-[4px] bg-nb-wash ${k === current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
-                      {shot.frames[0]?.href && <img className="nb-thumb" src={shot.frames[0].href} alt="" />}
-                    </div>
-                  )}
+                  {shot.frames[0] && <Thumb frame={shot.frames[0]} ratio={ratio} current={k === current} />}
                   <div
                     className={`flex justify-between gap-1 px-1 pt-1 text-[11px] ${shot.frames.length === 0 && k === current ? "text-nb-accent-deep" : ""}`}
                   >
@@ -145,7 +157,7 @@ function Shots({ shots }: { shots: StoryboardShotView[] }) {
           </div>
           <div className="flex flex-col gap-8">
             {shots.map((shot, k) => (
-              <Shot key={shot.id} id={anchor(k)} shot={shot} current={k === current} />
+              <Shot key={shot.id} id={anchor(k)} shot={shot} ratio={ratio} current={k === current} />
             ))}
           </div>
         </>
@@ -154,7 +166,7 @@ function Shots({ shots }: { shots: StoryboardShotView[] }) {
   );
 }
 
-function Shot({ id, shot, current }: { id: string; shot: StoryboardShotView; current: boolean }) {
+function Shot({ id, shot, ratio, current }: { id: string; shot: StoryboardShotView; ratio: number; current: boolean }) {
   const c = useCopy().card.storyboard;
   const pair = shot.frames.length === 2;
   return (
@@ -170,7 +182,7 @@ function Shot({ id, shot, current }: { id: string; shot: StoryboardShotView; cur
             {shot.frames.map((frame, k) => (
               <div key={k}>
                 {pair && <div className="mb-1 text-[11px] font-[700]">{k === 0 ? c.start : c.end}</div>}
-                <Frame frame={frame} />
+                <Frame frame={frame} ratio={ratio} />
               </div>
             ))}
           </div>
@@ -214,7 +226,7 @@ function Shot({ id, shot, current }: { id: string; shot: StoryboardShotView; cur
   );
 }
 
-function Frame({ frame, missing }: { frame: StoryboardFrameView; missing?: string }) {
+function Frame({ frame, ratio, missing }: { frame: StoryboardFrameView; ratio: number; missing?: string }) {
   const c = useCopy().card.storyboard;
   const [failed, setFailed] = useState<string | null>(null);
   if (frame.href && failed !== frame.href) {
@@ -229,14 +241,16 @@ function Frame({ frame, missing }: { frame: StoryboardFrameView; missing?: strin
     );
   }
   return (
-    <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-[6px] border border-dashed border-[color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] bg-nb-wash text-nb-ink-soft">
+    <div
+      style={{ aspectRatio: frame.ratio ?? ratio }}
+      className="flex flex-col items-center justify-center gap-2 rounded-[6px] border border-dashed border-[color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] bg-nb-wash text-nb-ink-soft">
       <span>{missing ?? c.noFrame}</span>
       <Reload />
     </div>
   );
 }
 
-function Slides({ slides }: { slides: StoryboardSlideView[] }) {
+function Slides({ slides, ratio, label }: { slides: StoryboardSlideView[]; ratio: number; label?: string }) {
   const c = useCopy().card.storyboard;
   const base = useId();
   const [current, setCurrent] = useState(0);
@@ -249,7 +263,7 @@ function Slides({ slides }: { slides: StoryboardSlideView[] }) {
 
   return (
     <div className="nb-storyboard @container min-w-0 text-[13px] leading-5">
-      <Heading title={c.slidesHeading}>
+      <Heading title={label ?? c.slidesHeading}>
         {slides.length > 0 && <span className="text-nb-ink-soft">{c.pages(slides.length)}</span>}
       </Heading>
       {slides.length === 0 ? (
@@ -265,14 +279,10 @@ function Slides({ slides }: { slides: StoryboardSlideView[] }) {
                   onClick={() => go(k)}
                   aria-current={k === current ? "true" : undefined}
                   aria-label={`${k + 1} · ${slide.title}`}
-                  className="w-[120px] shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                  className="shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                  style={{ width: thumbWidth(slide.preview.ratio ?? ratio) }}
                 >
-                  <div
-                    className={`aspect-video overflow-hidden rounded-[4px] bg-nb-wash ${k === current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
-                    {slide.preview.href && <img className="nb-thumb" src={slide.preview.href} alt="" />}
-                  </div>
+                  <Thumb frame={slide.preview} ratio={ratio} current={k === current} />
                   <div className="px-1 pt-1 text-[11px] font-[700]">{k + 1}</div>
                 </button>
               ))}
@@ -280,7 +290,7 @@ function Slides({ slides }: { slides: StoryboardSlideView[] }) {
           </div>
           <div className="flex flex-col gap-8">
             {slides.map((slide, k) => (
-              <Slide key={slide.id} id={anchor(k)} slide={slide} page={k + 1} current={k === current} />
+              <Slide key={slide.id} id={anchor(k)} slide={slide} ratio={ratio} page={k + 1} current={k === current} />
             ))}
           </div>
         </>
@@ -289,24 +299,41 @@ function Slides({ slides }: { slides: StoryboardSlideView[] }) {
   );
 }
 
-function Slide({ id, slide, page, current }: { id: string; slide: StoryboardSlideView; page: number; current: boolean }) {
+function Slide({
+  id,
+  slide,
+  ratio,
+  page,
+  current,
+}: {
+  id: string;
+  slide: StoryboardSlideView;
+  ratio: number;
+  page: number;
+  current: boolean;
+}) {
   const c = useCopy().card.storyboard;
+  const notes = slide.notes?.trim();
+  const shape = slide.preview.ratio ?? ratio;
+  const frame = <Frame frame={slide.preview} ratio={ratio} missing={c.noPreview} />;
   return (
     <section id={id} className="scroll-mt-4" aria-current={current ? "true" : undefined}>
       <div className={`mb-2 font-[700] ${current ? "text-nb-accent-deep" : ""}`}>
         {page} · {slide.title}
       </div>
-      <div className="grid grid-cols-2 items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4">
-        <div className="min-w-0 overflow-hidden rounded-[6px]">
-          <Frame frame={slide.preview} missing={c.noPreview} />
-        </div>
-        {slide.notes.trim() && (
+      {notes ? (
+        <div className="grid grid-cols-2 items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4">
+          <div className="min-w-0 overflow-hidden rounded-[6px]">{frame}</div>
           <div className="min-w-0">
             <div className="mb-1 font-[700]">{c.notes}</div>
-            <div>{slide.notes}</div>
+            <div>{notes}</div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="min-w-0 overflow-hidden rounded-[6px]" style={{ width: `min(100%, calc(${PAGE_HEIGHT} * ${shape}))` }}>
+          {frame}
+        </div>
+      )}
     </section>
   );
 }

@@ -117,13 +117,16 @@ afterEach(() => {
 })
 
 describe('the workflows a board has', () => {
-  it('ships three, configured by nobody, with both leads set', () => {
-    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video', 'slide-deck'])
+  it('ships four, configured by nobody, with both leads set', () => {
+    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video', 'slide-deck', 'carousel-post'])
     assert.equal(workflowById('coding')!.name, 'Coding')
     assert.deepEqual(workflowProblems('coding'), [])
     const deck = workflowById('slide-deck')!
     assert.deepEqual([deck.stages.plan.lead, deck.stages.execute.lead, deck.needsArtifact, deck.delivers], ['deck-planner', '', true, 'plan'])
     assert.deepEqual(workflowProblems('slide-deck'), [])
+    const carousel = workflowById('carousel-post')!
+    assert.deepEqual([carousel.stages.plan.lead, carousel.stages.execute.lead, carousel.needsArtifact, carousel.delivers], ['carousel-planner', '', true, 'plan'])
+    assert.deepEqual(workflowProblems('carousel-post'), [])
     // Nothing was written to make that true: a board that never opened the pane still runs.
     assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
   })
@@ -147,7 +150,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'copywriting', 'cover-designer', 'deck-planner', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['software-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {

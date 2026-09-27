@@ -7,6 +7,7 @@ import { cardScreen, readArchivedCard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
 import { readStoryboards } from "@/lib/storyboard";
+import { planLead } from "@/lib/workflows";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { ScreenMachine } from "@/lib/screen";
 import type { CardScreen } from "@/lib/types";
@@ -57,7 +58,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const [agent, mockups, storyboards] = await Promise.all([
     agentInfo().catch(() => NO_AGENT),
     readMockups(screen.card.body),
-    readStoryboards(screen.card.body, cardId),
+    readStoryboards(
+      screen.card.body,
+      cardId,
+      // A storyboard's fix goes to whoever writes it: the lead of a card finishing in planning.
+      screen.card.deliversIn === "plan" ? await planLead(screen.card.workflow).catch(() => "") : "",
+    ),
   ]);
   const machine: ScreenMachine = {
     projectRoot: repoRoot(),

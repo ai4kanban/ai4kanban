@@ -12,6 +12,7 @@ import {
   formatDiagnostics,
   FRAME_TYPES,
   frameProblem,
+  imageSize,
   storyboardOwner,
   type StoryboardDiagnostic,
   type StoryboardFrame,
@@ -19,7 +20,8 @@ import {
   type StoryboardSlide,
 } from "./storyboard-check";
 
-export type StoryboardFrameView = { src: string; alt: string; href: string | null };
+/** `ratio` is the picture's width ÷ height, `null` when it could not be read. */
+export type StoryboardFrameView = { src: string; alt: string; href: string | null; ratio: number | null };
 export type StoryboardShotView = Omit<StoryboardShot, "frames"> & { frames: StoryboardFrameView[] };
 export type StoryboardSlideView = Omit<StoryboardSlide, "preview"> & { preview: StoryboardFrameView };
 
@@ -28,6 +30,8 @@ export type StoryboardSlideView = Omit<StoryboardSlide, "preview"> & { preview: 
  *  file; empty when nothing is wrong. */
 export type StoryboardView = {
   src: string;
+  /** The page shape a missing picture is drawn in: the first readable picture's, else 16:9. */
+  ratio: number;
   shots: StoryboardShotView[] | null;
   slides: StoryboardSlideView[] | null;
   diagnostics: StoryboardDiagnostic[];
@@ -48,7 +52,8 @@ function inside(dir: string, name: string): string | null {
   }
 }
 
-export async function readStoryboards(body: string, cardId: number): Promise<StoryboardSet> {
+/** `lead` is the agent the fix goes back to; empty leaves it to the file's shape. */
+export async function readStoryboards(body: string, cardId: number, lead = ""): Promise<StoryboardSet> {
   const set: StoryboardSet = {};
   const markers = storyboardMarkers(body);
   if (!markers.length) return set;
@@ -64,13 +69,13 @@ export async function readStoryboards(body: string, cardId: number): Promise<Sto
     const named = assetName(src, cardId, ["json"]);
     if (!("name" in named)) {
       const diagnostics = [{ file: src, code: "storyboard-src", pointer: "", ...named }];
-      set[src] = { src, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, "scriptwriter", diagnostics) };
+      set[src] = { src, ratio: 16 / 9, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, lead || "scriptwriter", diagnostics) };
       continue;
     }
     const json = dir ? inside(dir, named.name) : null;
     const file = dir ? shown(path.join(dir, named.name)) : src;
-    // Frames that pass, by name, with the address the page loads them from.
-    const drawn = new Map<string, string>();
+    // Frames that pass, by name, with the address the page loads them from and their shape.
+    const drawn = new Map<string, { href: string; ratio: number | null }>();
     const source = json ? fs.readFileSync(json, "utf8") : null;
     const { storyboard, diagnostics } = checkStoryboard(source, {
       file,
@@ -79,24 +84,31 @@ export async function readStoryboards(body: string, cardId: number): Promise<Sto
         const frame = inside(dir, name);
         const bytes = frame ? fs.readFileSync(frame) : null;
         if (frame && bytes && !frameProblem(bytes)) {
-          drawn.set(name, `${assetImageHref(String(cardId), name)}?v=${Math.floor(fs.statSync(frame).mtimeMs)}`);
+          const size = imageSize(bytes);
+          drawn.set(name, {
+            href: `${assetImageHref(String(cardId), name)}?v=${Math.floor(fs.statSync(frame).mtimeMs)}`,
+            ratio: size && size.height > 0 ? size.width / size.height : null,
+          });
         }
         return bytes;
       },
     });
     const frame = ({ src: frameSrc, alt }: StoryboardFrame, nested = false) => {
       const at = assetName(frameSrc, cardId, FRAME_TYPES, nested);
-      return { src: frameSrc, alt, href: ("name" in at && drawn.get(at.name)) || null };
+      const found = "name" in at ? drawn.get(at.name) : undefined;
+      return { src: frameSrc, alt, href: found?.href ?? null, ratio: found?.ratio ?? null };
     };
     const shots = storyboard && "shots" in storyboard ? storyboard.shots.map((shot) => ({ ...shot, frames: shot.frames.map((f) => frame(f)) })) : null;
     const slides =
       storyboard && "slides" in storyboard ? storyboard.slides.map((slide) => ({ ...slide, preview: frame(slide.preview, true) })) : null;
+    const first = [...(slides?.map((s) => s.preview) ?? []), ...(shots?.flatMap((s) => s.frames) ?? [])].find((f) => f.ratio);
     set[src] = {
       src,
+      ratio: first?.ratio ?? 16 / 9,
       shots,
       slides,
       diagnostics,
-      report: diagnostics.length ? formatDiagnostics(file, storyboardOwner(source), diagnostics) : "",
+      report: diagnostics.length ? formatDiagnostics(file, lead || storyboardOwner(source), diagnostics) : "",
     };
   }
   return set;

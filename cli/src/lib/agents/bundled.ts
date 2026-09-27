@@ -9,6 +9,10 @@
 // project's own agent is read, so adding a built-in agent is adding files and the two lines
 // naming them here.
 
+import carouselPlanner from '../../agents/carousel-planner/AGENT.md'
+import carouselSlidesExample from '../../agents/carousel-planner/references/slides.example.json'
+import carouselSlidesSchema from '../../agents/carousel-planner/references/slides.schema.json'
+import carouselSlidesValidator from '../../agents/carousel-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
 import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
 import coverDesigner from '../../agents/cover-designer/AGENT.md'
@@ -41,6 +45,10 @@ import uiDesignerRendered from '../../agents/ui-designer/references/rendered-scr
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
+  'carousel-planner/AGENT.md': carouselPlanner,
+  'carousel-planner/references/slides.example.json': carouselSlidesExample as unknown as string,
+  'carousel-planner/references/slides.schema.json': carouselSlidesSchema as unknown as string,
+  'carousel-planner/scripts/validate-storyboard.mjs': carouselSlidesValidator,
   'code-reviewer/AGENT.md': codeReviewer,
   'copywriting/AGENT.md': copywriting,
   'cover-designer/AGENT.md': coverDesigner,

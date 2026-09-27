@@ -21,6 +21,12 @@ export async function workflows(): Promise<WorkflowView[] | null> {
   return rules.workflowViews();
 }
 
+/** Who leads a workflow's planning — empty when nobody does or the rules are too old. */
+export async function planLead(id: string): Promise<string> {
+  const flow = (await workflows())?.find((w) => (id ? w.id === id : w.isDefault));
+  return flow?.stages.find((s) => s.stage === "plan")?.lead ?? "";
+}
+
 /** Whether this board picks workflows at all. False on a board whose rules are too old, so
  *  the section is hidden rather than drawn empty. */
 export async function workflowsOffered(): Promise<boolean> {

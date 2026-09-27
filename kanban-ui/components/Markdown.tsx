@@ -24,7 +24,7 @@ import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
-import { storyboardTag } from "@/lib/format/storyboard";
+import { storyboardAttrs } from "@/lib/format/storyboard";
 import { deviceOf, mockupBlock, type MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
@@ -118,13 +118,16 @@ function remarkStoryboards(storyboards: StoryboardSet | null) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     visit(tree as any, "html", (node: any, index: number | undefined, parent: any) => {
       if (index == null || !parent || !/<Storyboard\b/.test(node.value)) return;
-      const src = storyboards && parent.type === "root" ? storyboardTag(node.value) : null;
+      const tag = storyboards && parent.type === "root" ? storyboardAttrs(node.value) : null;
       parent.children.splice(
         index,
         1,
-        src === null
+        tag === null
           ? { type: "text", value: node.value }
-          : { type: "storyboard", data: { hName: "storyboard", hProperties: { "data-src": src }, hChildren: [] } },
+          : {
+              type: "storyboard",
+              data: { hName: "storyboard", hProperties: { "data-src": tag.src, "data-label": tag.label }, hChildren: [] },
+            },
       );
       return [SKIP, index + 1];
     });
@@ -192,7 +195,8 @@ const StoryboardsContext = createContext<StoryboardSet | null>(null);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function StoryboardNode(props: any) {
   const view = useContext(StoryboardsContext)?.[props["data-src"] as string];
-  return view ? <Storyboard view={view} /> : <StoryboardUnavailable />;
+  const label = (props["data-label"] as string | undefined) || undefined;
+  return view ? <Storyboard view={view} label={label} /> : <StoryboardUnavailable label={label} />;
 }
 
 /** The memory file being drawn, so its relative `.md` links open the file they name (#959). */

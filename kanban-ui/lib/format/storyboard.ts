@@ -3,23 +3,33 @@
 
 // ---- a card's storyboard marker (#963) -----------------------------------------------------------
 //
-//   <Storyboard src=".assets/963/storyboard.json" />
+//   <Storyboard src=".assets/963/storyboard.json" label="3:4" />
 //
-// The tag stands alone in its paragraph and points at a JSON file in the card's asset folder.
-// The file's contract is its owner agent's: scriptwriter and deck-planner each ship
-// `scripts/validate-storyboard.mjs` (#992). The board only finds the marker and its path.
+// The tag stands alone in its paragraph and points at a JSON file in the card's asset folder;
+// `label` is an optional heading that tells several on one card apart (#1117).
+// The file's contract is its owner agent's: scriptwriter, deck-planner and carousel-planner each
+// ship `scripts/validate-storyboard.mjs` (#992). The board only finds the marker and its path.
 
 const TAG = /^<Storyboard\b([^<>]*?)\/>$/
-const SRC_ATTR = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')/
+const attr = (name: string) => new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`)
+const SRC_ATTR = attr('src')
+const LABEL_ATTR = attr('label')
 const SEGMENT = /^(?!\.)[^/\\]+$/
 
-/** The `src` of a block that is exactly one `<Storyboard … />` tag — `null` for anything else. */
-export function storyboardTag(raw: string): string | null {
+/** The `src` and `label` of a block that is exactly one `<Storyboard … />` tag — `null` for
+ *  anything else. */
+export function storyboardAttrs(raw: string): { src: string; label?: string } | null {
   const m = TAG.exec(raw.trim())
   if (!m) return null
   const src = SRC_ATTR.exec(m[1]!)
-  return src ? (src[1] ?? src[2])! : null
+  if (!src) return null
+  const label = LABEL_ATTR.exec(m[1]!)
+  const text = label ? (label[1] ?? label[2])!.trim() : ''
+  return { src: (src[1] ?? src[2])!, ...(text ? { label: text } : {}) }
 }
+
+/** The `src` of a block that is exactly one `<Storyboard … />` tag — `null` for anything else. */
+export const storyboardTag = (raw: string): string | null => storyboardAttrs(raw)?.src ?? null
 
 /** Every tag standing alone in its paragraph, outside fenced blocks, with its 1-based line. */
 export function storyboardMarkers(body: string): { src: string; line: number }[] {

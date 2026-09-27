@@ -29,8 +29,8 @@ export interface StoryboardSlide {
   id: string
   title: string
   copy: string[]
-  /** Empty when the slide has no speaker notes. */
-  notes: string
+  /** Absent or empty when the slide has no speaker notes. */
+  notes?: string
   layout: string
   assets: string[]
   preview: StoryboardFrame
@@ -54,18 +54,19 @@ const SHOT_ID = /^S[1-9][0-9]*$/
 const SLIDE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const EPSILON = 1e-9
 
-/** Width in pixels read from a PNG, GIF, JPEG or WebP header — `null` when it is none of them. */
-function imageWidth(b: Uint8Array): number | null {
+/** Size in pixels read from a PNG, GIF, JPEG or WebP header — `null` when it is none of them. */
+export function imageSize(b: Uint8Array): { width: number; height: number } | null {
   const u16be = (i: number) => (b[i]! << 8) | b[i + 1]!
   const u16le = (i: number) => b[i]! | (b[i + 1]! << 8)
+  const u32be = (i: number) => ((b[i]! << 24) >>> 0) + (b[i + 1]! << 16) + (b[i + 2]! << 8) + b[i + 3]!
   const ascii = (i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n))
-  if (b.length >= 24 && b[0] === 0x89 && ascii(1, 3) === 'PNG') return ((b[16]! << 24) >>> 0) + (b[17]! << 16) + (b[18]! << 8) + b[19]!
-  if (b.length >= 10 && ascii(0, 4) === 'GIF8') return u16le(6)
+  if (b.length >= 24 && b[0] === 0x89 && ascii(1, 3) === 'PNG') return { width: u32be(16), height: u32be(20) }
+  if (b.length >= 10 && ascii(0, 4) === 'GIF8') return { width: u16le(6), height: u16le(8) }
   if (b.length >= 30 && ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') {
     const chunk = ascii(12, 4)
-    if (chunk === 'VP8 ') return u16le(26) & 0x3fff
-    if (chunk === 'VP8L') return 1 + (((b[22]! & 0x3f) << 8) | b[21]!)
-    if (chunk === 'VP8X') return 1 + (b[24]! | (b[25]! << 8) | (b[26]! << 16))
+    if (chunk === 'VP8 ') return { width: u16le(26) & 0x3fff, height: u16le(28) & 0x3fff }
+    if (chunk === 'VP8L') return { width: 1 + (((b[22]! & 0x3f) << 8) | b[21]!), height: 1 + (((b[24]! & 0xf) << 10) | (b[23]! << 2) | (b[22]! >> 6)) }
+    if (chunk === 'VP8X') return { width: 1 + (b[24]! | (b[25]! << 8) | (b[26]! << 16)), height: 1 + (b[27]! | (b[28]! << 8) | (b[29]! << 16)) }
     return null
   }
   if (b.length >= 4 && b[0] === 0xff && b[1] === 0xd8) {
@@ -73,12 +74,14 @@ function imageWidth(b: Uint8Array): number | null {
     while (i + 9 < b.length) {
       if (b[i] !== 0xff) return null
       const marker = b[i + 1]!
-      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return u16be(i + 7)
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { width: u16be(i + 7), height: u16be(i + 5) }
       i += 2 + u16be(i + 2)
     }
   }
   return null
 }
+
+const imageWidth = (b: Uint8Array): number | null => imageSize(b)?.width ?? null
 
 /** What is wrong with a frame's bytes — `null` for a readable image no wider than allowed. */
 export function frameProblem(bytes: Uint8Array | null): { code: string; actual: string } | null {
@@ -227,7 +230,7 @@ export function checkStoryboard(
       }
       required(slide, at, 'title', nonblank, text)
       strings(slide, at, 'copy', 'an array of the exact text on the slide, or [] for none')
-      required(slide, at, 'notes', 'the speaker notes, or "" for none', (v) => typeof v === 'string')
+      if (slide.notes !== undefined) required(slide, at, 'notes', 'the speaker notes, or leave the field out', (v) => typeof v === 'string')
       required(slide, at, 'layout', `${nonblank}: the recipe layout this slide uses`, text)
       strings(slide, at, 'assets', 'an array of the images, charts and files the slide uses, or [] for none')
       if (required(slide, at, 'preview', 'an object with src and alt', isObject)) frameAt(slide.preview, `${at}/preview`, true)
@@ -292,7 +295,8 @@ export function formatDiagnostic(d: StoryboardDiagnostic): string {
   return `${where} [${d.code}]: found ${d.actual}; expected ${d.expected}.`
 }
 
-/** The agent that owns a storyboard's contract: deck-planner for slides, scriptwriter for shots. */
+/** The agent that owns a storyboard's contract when the card names none: deck-planner for
+ *  slides, scriptwriter for shots. */
 export function storyboardOwner(source: string | null): string {
   try {
     const data = JSON.parse((source ?? '').replace(/^\uFEFF/, ''))

@@ -59,16 +59,19 @@ export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => ques
 
 // ---- a card that finishes in planning (#1057) -------------------------------
 //
-// A product video or slide deck (#1075) is made while the card is planned: the user reviews
-// each step through a `[user]` question and a todo, and archives the card to accept it.
-// Nothing is built.
+// A product video, slide deck (#1075) or carousel post (#1117) is made while the card is
+// planned: the user reviews each step through a `[user]` question and a todo, and archives the
+// card to accept it. Nothing is built.
 
 /** The finished files a card finishing in planning delivers: a video or a PowerPoint deck. */
 export const PLAN_DELIVERABLE = /\.(mp4|webm|mov|m4v|pptx)$/i
 
+/** A carousel's rendered pages, one storyboard per ratio: `pages-3x4.json`. */
+const PAGES_STORYBOARD = /(^|\/)pages-[^/]*\.json$/i
+
 /** What a card finishing in planning still lacks before it can be archived, or null when it
- *  is done: nothing left to answer, a deliverable `<Asset>` in its body, its rebuild command
- *  in a ticked todo, and every todo ticked. */
+ *  is done: nothing left to answer, a deliverable in its body, its rebuild command in a ticked
+ *  todo, and every todo ticked. */
 export function planDeliveryGap(card: Pick<Card, 'questions' | 'todos' | 'body'>): 'questions' | 'deliverable' | 'command' | 'todos' | null {
   if (openOf(card.questions).length > 0) return 'questions'
   if (!planDeliverables(card.body).length) return 'deliverable'
@@ -77,9 +80,12 @@ export function planDeliveryGap(card: Pick<Card, 'questions' | 'todos' | 'body'>
   return total > 0 && done === total ? null : 'todos'
 }
 
-/** The `src` of every deliverable `<Asset>` in a card's body. */
-export const planDeliverables = (body: string): string[] =>
-  [...body.matchAll(/<Asset\s[^>]*src="([^"]+)"/gi)].map((m) => m[1]!).filter((src) => PLAN_DELIVERABLE.test(src))
+/** The `src` of every deliverable in a card's body: a finished file's `<Asset>`, or a
+ *  `<Storyboard>` of carousel pages. */
+export const planDeliverables = (body: string): string[] => [
+  ...[...body.matchAll(/<Asset\s[^>]*src="([^"]+)"/gi)].map((m) => m[1]!).filter((src) => PLAN_DELIVERABLE.test(src)),
+  ...[...body.matchAll(/<Storyboard\s[^>]*src="([^"]+)"/gi)].map((m) => m[1]!).filter((src) => PAGES_STORYBOARD.test(src)),
+]
 
 /** A card finishing in planning with more to do before it is archived. */
 const planUnfinished = (card: Card): boolean => card.deliversIn === 'plan' && planDeliveryGap(card) !== null

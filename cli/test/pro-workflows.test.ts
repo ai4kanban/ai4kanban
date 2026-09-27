@@ -96,10 +96,10 @@ afterEach(() => {
 })
 
 describe('which workflows are Pro', () => {
-  it('marks the video and deck built-ins, not Coding', () => {
+  it('marks the video, deck and carousel built-ins, not Coding', () => {
     assert.deepEqual(
-      ['coding', 'hyperframes-video', 'slide-deck'].map((id) => workflowById(id)!.pro),
-      [false, true, true],
+      ['coding', 'hyperframes-video', 'slide-deck', 'carousel-post'].map((id) => workflowById(id)!.pro),
+      [false, true, true, true],
     )
   })
 

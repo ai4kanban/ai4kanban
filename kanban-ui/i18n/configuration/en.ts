@@ -30,11 +30,18 @@ const en: ConfigurationCopy = {
     findWorkflow: "Find a workflow…",
     builtIn: "Built-in",
     isDefault: "Default",
-    builtInNames: { coding: "Coding", "hyperframes-video": "Product video", "slide-deck": "Slide deck" },
+    builtInNames: {
+      coding: "Coding",
+      "hyperframes-video": "Product video",
+      "slide-deck": "Slide deck",
+      "carousel-post": "Carousel post",
+    },
     builtInDescriptions: {
       coding: "Plan, implement, and review software changes.",
       "hyperframes-video": "Approve a script, get a finished product video, and archive it when you are happy.",
       "slide-deck": "Approve the slides, get an editable PowerPoint deck, and archive it when you are happy.",
+      "carousel-post":
+        "Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.",
     },
     about: (name) => `About ${name}`,
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
@@ -445,6 +452,8 @@ const en: ConfigurationCopy = {
           `Added to the end of every run ${agent} does while a product video's cover is being made — "set the cover text in the product's main color".`,
         "deck-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
+        "carousel-planner": () =>
+          'Added to the end of every Create, Refine and Revise run on a carousel post card — "keep every post under 9 pages".',
       },
     },
     saved: "Saved",

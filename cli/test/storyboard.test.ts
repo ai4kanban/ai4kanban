@@ -177,9 +177,17 @@ describe("deck-planner's storyboard script", () => {
     assert.deepEqual(codes(slidesExample), [])
   })
 
-  it('keeps the schema to the fields the script enforces', () => {
+  it('keeps the schema to the fields the script enforces, notes optional', () => {
     assert.deepEqual(slidesSchema.required, fieldsOf('deck-planner', 'ROOT_FIELDS'))
-    assert.deepEqual(slidesSchema.$defs.slide.required, fieldsOf('deck-planner', 'SLIDE_FIELDS'))
+    assert.deepEqual(slidesSchema.$defs.slide.required, fieldsOf('deck-planner', 'SLIDE_FIELDS').filter((f) => f !== 'notes'))
+    assert.deepEqual(slideCodes((d) => { delete d.slides[0].notes }), [])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].notes = 3 }), ['/slides/0/notes invalid-value'])
+  })
+
+  it('ships the same files to carousel-planner', () => {
+    for (const file of ['references/slides.example.json', 'references/slides.schema.json', 'scripts/validate-storyboard.mjs']) {
+      assert.equal(BUNDLED_AGENT_FILES[`carousel-planner/${file}`], BUNDLED_AGENT_FILES[`deck-planner/${file}`], file)
+    }
   })
 
   it('refuses shot fields, bad IDs and a missing preview field', () => {
