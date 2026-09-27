@@ -1,0 +1,44 @@
+{
+  "subject": "AI4Kanban 0.9.8 — Product videos, more than code, and Insights",
+  "preheader": "Approve a script and get a finished video, hand the board more than code, and see where your agents' work goes.",
+  "eyebrow": "WHAT'S NEW",
+  "headline": "More than code.",
+  "intro": "Update to 0.9.8 for three things we shipped recently. The release notes have everything else.",
+  "highlights": [
+    {
+      "label": "PRODUCT VIDEO",
+      "title": "Approve a script, get the video",
+      "body": "Ask for a product video, approve its script and pick a voice from a few samples. You get back a finished video with its cover image. The editing agent chooses how to produce each one.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/0.9.8/art-video-v2.jpg",
+        "alt": "A robot at an editing desk between an approved script, a microphone, a film reel and a framed cover."
+      }
+    },
+    {
+      "label": "WORKFLOWS",
+      "title": "Not just code",
+      "body": "Four built-in workflows: Coding, Product video, Slide deck, which you get as an editable PowerPoint file, and Carousel post. Email and copywriting specialists work inside Coding. Each task goes to the workflow that fits it, and you can turn off any helper agent you do not need. Product video, Slide deck and Carousel post come with Pro.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/0.9.8/art-workflows-v2.jpg",
+        "alt": "Four desks side by side, one each for code, video, slides and carousel posts, a robot working at each."
+      }
+    },
+    {
+      "label": "INSIGHTS",
+      "title": "See where the work goes",
+      "body": "Insights shows a heatmap of the cards completed each day, and usage by connector and model. Runs and chats both count, Codex included.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/0.9.8/art-insights-v2.jpg",
+        "alt": "A grid of orange squares, darker on busier days, beside bars split into colored parts."
+      }
+    }
+  ],
+  "cta": {
+    "label": "Get 0.9.8",
+    "href": "https://ai4kanban.dev/download"
+  },
+  "releaseNotes": {
+    "label": "See everything in 0.9.8",
+    "href": "https://github.com/ai4kanban/ai4kanban/releases/tag/v0.9.8"
+  }
+}
