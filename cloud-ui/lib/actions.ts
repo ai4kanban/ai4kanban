@@ -122,16 +122,5 @@ export function hostedActions(press: HostedPress): ScreenActions {
     resumeDelivery: noSuchControl,
     resumeCloudRequest: noSuchControl,
     cancelCloudRequest: noSuchControl,
-    readDrafts: noSuchControl,
-    saveDraft: noSuchControl,
-    repurpose: noSuchControl,
-    setChannelStatus: noSuchControl,
-    setChannels: noSuchControl,
-    newTopic: noSuchControl,
-    discardTopic: noSuchControl,
-    commentOnDraft: noSuchControl,
-    editDraftComment: noSuchControl,
-    dropDraftComment: noSuchControl,
-    polishDraft: noSuchControl,
   };
 }
