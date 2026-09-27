@@ -12,7 +12,6 @@
 import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
 import coverDesigner from '../../agents/cover-designer/AGENT.md'
-import coverDesignerImage from '../../agents/cover-designer/scripts/image.mjs' with { type: 'text' }
 import emailPlanner from '../../agents/email-planner/AGENT.md'
 import emailRenderer from '../../agents/email-planner/scripts/render.mjs' with { type: 'text' }
 import deckPlanner from '../../agents/deck-planner/AGENT.md'
@@ -28,7 +27,6 @@ import storyboardContract from '../../agents/scriptwriter/references/storyboard-
 import storyboardExample from '../../agents/scriptwriter/references/storyboard.example.json'
 import storyboardSchema from '../../agents/scriptwriter/references/storyboard.schema.json'
 import storyboardValidator from '../../agents/scriptwriter/scripts/validate-storyboard.mjs' with { type: 'text' }
-import scriptwriterTts from '../../agents/scriptwriter/scripts/tts.mjs' with { type: 'text' }
 import scriptwriterVoices from '../../agents/scriptwriter/references/voices.md'
 import compositionIndex from '../../agents/scriptwriter/references/composition/index.md'
 import compositionProductLaunchFilms from '../../agents/scriptwriter/references/composition/product-launch-films.md'
@@ -46,7 +44,6 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'code-reviewer/AGENT.md': codeReviewer,
   'copywriting/AGENT.md': copywriting,
   'cover-designer/AGENT.md': coverDesigner,
-  'cover-designer/scripts/image.mjs': coverDesignerImage,
   'deck-planner/AGENT.md': deckPlanner,
   'deck-planner/references/slides.example.json': slidesExample as unknown as string,
   'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,
@@ -63,7 +60,6 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/references/storyboard.example.json': storyboardExample as unknown as string,
   'scriptwriter/references/storyboard.schema.json': storyboardSchema as unknown as string,
   'scriptwriter/scripts/validate-storyboard.mjs': storyboardValidator,
-  'scriptwriter/scripts/tts.mjs': scriptwriterTts,
   'scriptwriter/references/voices.md': scriptwriterVoices,
   'scriptwriter/references/composition/index.md': compositionIndex,
   'scriptwriter/references/composition/product-launch-films.md': compositionProductLaunchFilms,

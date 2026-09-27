@@ -18,8 +18,8 @@ Make one cover image for the video the approved current script in ``## By `scrip
 ## Methods
 
 - **Layout**: compose existing material — product screenshots, frames from the film, interface elements — and render it locally. Choose the material, composition and tools yourself.
-- **Generated**: create the image with this agent's `scripts/image.mjs --aspect <ratio> [--ref <file>]… --out <file> "<prompt>"`, which spends the user's Pro credits per image. Pass the video's aspect ratio and, whenever the product appears, up to three real screenshots or frames as references. Regenerate only for a defect review finds, at most three times per run.
-- **Failure**: when the script fails, put its message in one `[user]` question offering to retry or switch to layout, and stop; once answered, record the chosen method in the Brief.
+- **Generated**: create the image with `akb cloud image --aspect <ratio> [--ref <file>]… --out <file> "<prompt>"`, which spends the user's Pro credits per image. Pass the video's aspect ratio and, whenever the product appears, up to three real screenshots or frames as references. Regenerate only for a defect review finds, at most three times per run.
+- **Failure**: when the command fails, put its message in one `[user]` question offering to retry or switch to layout, and stop; once answered, record the chosen method in the Brief.
 - **No silent switch**: when the named method cannot deliver, ask the user; never use the other method unasked.
 
 ## Design

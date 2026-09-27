@@ -31,7 +31,7 @@ import type { DeliveryRecord } from '../agent/types'
 import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
-import { cmdCloud } from '../../commands/cloud'
+import { cloudImage, cloudTts, cmdCloud } from '../../commands/cloud'
 import { cmdGuide } from '../../commands/guide'
 import {
   cmdWorkflowDelete,
@@ -354,6 +354,30 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [workspace] = positional(vals) as [string]
       await boardless(this, cli, (p) => cmdCloud(['export', workspace, '--to', String(this.opts().to)], p))
+    })
+
+  // Options are read in the handler, not required by Commander, so a missing one exits 2.
+  withShared(cloud.command('image'))
+    .argument('[prompt...]', 'what to draw')
+    .summary('generate an image through Cloud, spending Pro credits')
+    .option('--aspect <ratio>', 'the aspect ratio, e.g. 16:9')
+    .option('--ref <file>', 'a PNG, JPEG or WebP to draw from; repeat for more', (v: string, all: string[]) => [...all, v], [])
+    .option('--out <file>', 'where to write the image')
+    .action(async function (this: Command, prompt: string[]) {
+      const o = this.opts() as { aspect?: string; ref: string[]; out?: string }
+      await boardless(this, cli, (p) =>
+        cloudImage({ aspect: o.aspect, refs: o.ref, out: o.out, prompt: prompt.join(' ') }, p),
+      )
+    })
+
+  withShared(cloud.command('tts'))
+    .argument('[text...]', 'what to say')
+    .summary('generate narration in a hosted voice, spending Pro credits')
+    .option('--voice <name>', 'a hosted voice')
+    .option('--out <file>', 'where to write the audio')
+    .action(async function (this: Command, text: string[]) {
+      const o = this.opts() as { voice?: string; out?: string }
+      await boardless(this, cli, (p) => cloudTts({ voice: o.voice, out: o.out, text: text.join(' ') }, p))
     })
 
   // ---- optional usage reporting ---------------------------------------------

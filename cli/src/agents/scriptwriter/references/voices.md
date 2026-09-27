@@ -1,6 +1,6 @@
 # Narration voices
 
-Generate with this agent's `scripts/tts.mjs --voice <name> --out <file> "<text>"`. Every voice speaks every language; match tone, not language.
+Generate with `akb cloud tts --voice <name> --out <file> "<text>"`. Every voice speaks every language; match tone, not language.
 
 | Voice | Tone |
 | --- | --- |

@@ -263,5 +263,5 @@ export function report(
   } else {
     console.error(err.bare ? err.message : `${program}: ${err.message}`)
   }
-  return 1
+  return err.exitCode
 }

@@ -13,6 +13,7 @@
 export interface BoardErrorOptions {
   kind?: string
   bare?: boolean
+  exitCode?: number
   [detail: string]: unknown
 }
 
@@ -21,16 +22,19 @@ export class BoardError extends Error {
   // unknown-module, …). It is what a caller reads; the exit code stays 1 for every
   // refusal, so nobody has to keep a table of numbers.
   kind: string
+  // Only `cloud image` / `cloud tts` set it: 2 for a usage error, as the scripts they replaced did.
+  exitCode: number
   // `bare` says the message is already the whole thing a person should see — a usage
   // block, say — so the dispatcher prints it without putting the command in front of it.
   bare: boolean
   details: Record<string, unknown>
 
-  constructor(message: string, { kind = 'refused', bare = false, ...details }: BoardErrorOptions = {}) {
+  constructor(message: string, { kind = 'refused', bare = false, exitCode = 1, ...details }: BoardErrorOptions = {}) {
     super(message)
     this.name = 'BoardError'
     this.kind = kind
     this.bare = bare
+    this.exitCode = exitCode
     this.details = details
   }
 }

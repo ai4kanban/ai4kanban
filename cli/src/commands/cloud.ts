@@ -10,10 +10,18 @@
 // Only import needs a board: it reads one. Reporting, signing out and export do not — the
 // sign-in belongs to the machine rather than to any one project, and an export writes a board
 // into the folder it is given.
+//
+// `image` and `tts` generate through Cloud on the user's Pro credits (#1119). Their messages
+// are bilingual because an agent relays them to the user as they are; exit 2 is a usage error.
+
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
 import { readCloudBoards } from '../lib/cloud/boards'
 import { listServers } from '../lib/cloud/client'
+import { cloudEndpoints } from '../lib/cloud/config'
+import { accessToken } from '../lib/cloud/session'
 import { exportBoard, importBoard } from '../lib/cloud/workspace-board'
 import type { CloudServer } from '../lib/cloud/servers'
 import { readLarkState } from '../lib/cloud/lark'
@@ -199,4 +207,151 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
   }
   if (account.error) lines.push(`Cloud could not be reached: ${account.error}`)
   return lines.filter(Boolean)
+}
+
+// ---- generation ---------------------------------------------------------------------
+
+type Said = { zh: string; en: string }
+
+const SAID = {
+  'signed-out': {
+    zh: '未登录 AI4Kanban Cloud。请在 AI4Kanban 应用的“配置 → Cloud”中登录后重试。',
+    en: 'Not signed in to AI4Kanban Cloud. Sign in from Configuration → Cloud in the AI4Kanban app, then try again.',
+  },
+  expired: {
+    zh: 'AI4Kanban Cloud 登录已过期。请在 AI4Kanban 应用的“配置 → Cloud”中重新登录后重试。',
+    en: 'Your AI4Kanban Cloud sign-in has expired. Sign in again from Configuration → Cloud in the AI4Kanban app, then try again.',
+  },
+  unreachable: {
+    zh: '无法连接 AI4Kanban Cloud。请检查网络后重试。',
+    en: 'Could not reach AI4Kanban Cloud. Check your connection and try again.',
+  },
+  credits_used_up: {
+    zh: '本月积分已用完，下月 1 日（UTC）重置；可在桌面应用的 Billing 页查看余额。',
+    en: 'This month’s AI credits are used up. They reset on the 1st of next month (UTC); check your balance on the Billing page in the desktop app.',
+  },
+} satisfies Record<string, Said>
+
+interface Generation {
+  usage: string
+  endpoint: string
+  body: Record<string, unknown>
+  out: string
+  pro_required: Said
+  failed: Said
+  /** The other way to get the same thing, offered with every failure. */
+  fallback: Said
+  /** What the success line names in brackets after the file. */
+  label: (res: Response) => string
+}
+
+const REF_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+}
+
+function usage(problem: string, line: string): never {
+  die(`${problem}\nusage: ${line}`, { kind: 'bad-args', bare: true, exitCode: 2 })
+}
+
+/** `akb cloud image --aspect <ratio> [--ref <file>]… --out <file.png> "<prompt>"` */
+export async function cloudImage(
+  opts: { aspect?: string; refs: string[]; out?: string; prompt: string },
+  program: string,
+): Promise<MoveResult> {
+  const line = `${program} cloud image --aspect <ratio> [--ref <file>]… --out <file.png> "<prompt>"`
+  if (!opts.aspect) usage('Missing --aspect.', line)
+  if (!opts.out) usage('Missing --out.', line)
+  const prompt = opts.prompt.trim()
+  if (!prompt) usage('Missing the prompt.', line)
+  const references = opts.refs.map((file) => {
+    const type = REF_TYPES[path.extname(file).toLowerCase()]
+    if (!type) usage(`--ref ${file}: use a PNG, JPEG or WebP file.`, line)
+    try {
+      return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`
+    } catch (e) {
+      usage(`--ref ${file}: ${e instanceof Error ? e.message : String(e)}`, line)
+    }
+  })
+  return generate({
+    usage: line,
+    endpoint: '/v1/image',
+    body: { prompt, aspect: opts.aspect, references },
+    out: opts.out,
+    pro_required: {
+      zh: '生成封面是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
+      en: 'Generated covers are a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+    },
+    failed: { zh: '封面暂时无法生成，请稍后重试。', en: 'The cover could not be generated right now. Try again later.' },
+    fallback: {
+      zh: '也可以改用素材排版制作封面。',
+      en: 'You can also lay out the cover from existing material instead.',
+    },
+    label: (res) => res.headers.get('x-model') ?? 'unknown model',
+  })
+}
+
+/** `akb cloud tts --voice <name> --out <file.wav> "<text>"` — never falls back to another voice. */
+export async function cloudTts(
+  opts: { voice?: string; out?: string; text: string },
+  program: string,
+): Promise<MoveResult> {
+  const line = `${program} cloud tts --voice <name> --out <file.wav> "<text>"`
+  if (!opts.voice) usage('Missing --voice.', line)
+  if (!opts.out) usage('Missing --out.', line)
+  const text = opts.text.trim()
+  if (!text) usage('Missing the text to speak.', line)
+  const voice = opts.voice
+  return generate({
+    usage: line,
+    endpoint: '/v1/speech',
+    body: { voice, text },
+    out: opts.out,
+    pro_required: {
+      zh: '托管声音是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
+      en: 'Hosted voices are a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+    },
+    failed: {
+      zh: '托管声音暂时无法生成旁白，请稍后重试。',
+      en: 'Hosted voices could not generate the narration right now. Try again later.',
+    },
+    fallback: {
+      zh: '也可以改用本地声音（`npx hyperframes tts --list`）。',
+      en: 'You can also use a local voice instead (`npx hyperframes tts --list`).',
+    },
+    label: (res) => res.headers.get('x-voice') ?? voice,
+  })
+}
+
+function refuse(m: Said, fallback: Said): never {
+  die([m.zh, m.en, fallback.zh, fallback.en].join('\n'), { kind: 'cloud-refused', bare: true })
+}
+
+async function generate(g: Generation): Promise<MoveResult> {
+  const token = await accessToken()
+  if (!token.ok) refuse(SAID[token.reason], g.fallback)
+  let res: Response
+  try {
+    res = await fetch(`${cloudEndpoints().api}${g.endpoint}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify(g.body),
+    })
+  } catch {
+    refuse(SAID.unreachable, g.fallback)
+  }
+  if (!res.ok) {
+    const { error } = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } }
+    if (res.status === 401) refuse(SAID.expired, g.fallback)
+    if (error?.code === 'pro_required') refuse(g.pro_required, g.fallback)
+    if (error?.code === 'credits_used_up') refuse(SAID.credits_used_up, g.fallback)
+    if (res.status === 400) usage(error?.message ?? 'The request was refused.', g.usage)
+    refuse(g.failed, g.fallback)
+  }
+  fs.mkdirSync(path.dirname(path.resolve(g.out)), { recursive: true })
+  fs.writeFileSync(g.out, Buffer.from(await res.arrayBuffer()))
+  say(`${g.out} (${g.label(res)})`)
+  return { out: g.out }
 }
