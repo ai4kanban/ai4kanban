@@ -160,7 +160,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['code-reviewer', 'copywriting', 'deck-planner', 'hyperframes-editor', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
+      ['code-reviewer', 'copywriting', 'deck-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)
@@ -357,6 +357,7 @@ describe('what a session is shown', () => {
   // the selector lists nobody — and it stays that way once the key is gone.
   it('says nothing at all when the card\'s workflow assigns no one', () => {
     board({ specAgents: { 'ui-designer': false, 'tech-stack-advisor': false, copywriting: false } })
+    assert.equal(switchWorkflowAgent('coding', 'plan', 'prompt-writer', false).ok, true)
     assert.equal(specAgentSelector(12), '')
     assert.equal(specAgentSelector(12), '')
   })

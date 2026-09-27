@@ -617,6 +617,51 @@ function splitSharedAgents(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
+// ---- a newly shipped plan agent starts on (#1099) ------------------------------
+//
+// A board that wrote Coding's plan helpers down would get a new built-in there disabled. The
+// ones below join it enabled instead, once: `shipped` records each, so removing one sticks.
+
+const SHIPPED_ON = ['prompt-writer']
+const SHIPPED = 'shipped'
+
+const shippedRows = (cfg: Record<string, unknown>): string[] => {
+  const raw = workflowsBlock(cfg)[SHIPPED]
+  return Array.isArray(raw) ? raw.filter((n): n is string => typeof n === 'string') : []
+}
+
+const listedAnywhere = (cfg: Record<string, unknown>, name: string): boolean =>
+  Object.values(configBlock(workflowsBlock(cfg).stages)).some((flow) =>
+    Object.values(configBlock(flow)).some((raw) => {
+      const stage = readStage(raw)
+      return stage.lead === name || !!stage.helpers?.some((h) => h.agent === name)
+    }),
+  )
+
+function addShippedAgents(cfg: Record<string, unknown>): boolean {
+  if (!Object.keys(workflowsBlock(cfg)).length) return false
+  const done = shippedRows(cfg)
+  const fresh = SHIPPED_ON.filter((name) => !done.includes(name))
+  if (!fresh.length) return false
+  const { ok } = writeConfig((raw) => {
+    const block = configBlock(raw.workflows)
+    const all = configBlock(block.stages)
+    const coding = configBlock(all[DEFAULT_WORKFLOW])
+    const plan = { ...configBlock(coding.plan) }
+    if (Array.isArray(plan.helpers)) {
+      const add = fresh.filter((name) => !listedAnywhere(raw, name))
+      if (add.length) {
+        plan.helpers = [...plan.helpers, ...add.map((agent) => ({ agent, extra: '' }))]
+        all[DEFAULT_WORKFLOW] = { ...coding, plan }
+        block.stages = all
+      }
+    }
+    block[SHIPPED] = [...done, ...fresh]
+    raw.workflows = block
+  })
+  return ok
+}
+
 // The workflows as written down, every pass above done first.
 function writtenWorkflows(): Workflow[] {
   let cfg = safeConfig()
@@ -626,6 +671,7 @@ function writtenWorkflows(): Workflow[] {
   if (foldReviewLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
   if (splitSharedAgents(cfg)) cfg = safeConfig()
+  if (addShippedAgents(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
     ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers)),

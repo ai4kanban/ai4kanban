@@ -80,7 +80,7 @@ const BOARD_STAGES: StageContract[] = [
     output: 'a card someone can build from without asking anything else',
     done: "nothing is left open on it but the calls that are the user's to make",
     lead: 'software-planner',
-    helpers: ['tech-stack-advisor', 'ui-designer'],
+    helpers: ['tech-stack-advisor', 'ui-designer', 'prompt-writer'],
     requires: [],
   },
   {

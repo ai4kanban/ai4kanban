@@ -17,6 +17,7 @@ import slidesSchema from '../../agents/deck-planner/references/slides.schema.jso
 import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import hyperframesRecorder from '../../agents/hyperframes-editor/record.mjs' with { type: 'text' }
+import promptWriter from '../../agents/prompt-writer/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
 import scriptwriterRecipes from '../../agents/scriptwriter/references/index.md'
 import storyboardContract from '../../agents/scriptwriter/references/storyboard-contract.md'
@@ -46,6 +47,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'deck-planner/scripts/validate-storyboard.mjs': slidesValidator,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'hyperframes-editor/record.mjs': hyperframesRecorder,
+  'prompt-writer/AGENT.md': promptWriter,
   'scriptwriter/AGENT.md': scriptwriter,
   'scriptwriter/references/index.md': scriptwriterRecipes,
   'scriptwriter/references/storyboard-contract.md': storyboardContract,
