@@ -14,5 +14,11 @@
   // later cards add their steps to the same run rather than a schedule of their own.
   "triggers": { "crons": ["0 * * * *"] },
 
+  // Pro's two Creem products (#1037). Not secrets; the API key and webhook secret are.
+  "vars": {
+    "CREEM_PRODUCT_MONTHLY": "prod_2rdebOfw9mpmDHjblBV2MM",
+    "CREEM_PRODUCT_YEARLY": "prod_ucjlzfwJe6sIRlbPH6JDT"
+  },
+
   "observability": { "enabled": true }
 }

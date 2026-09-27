@@ -1,3 +1,4 @@
+import { routeBilling } from './billing.ts'
 import { CLOUD_UI_ORIGIN, isLarkCloud } from './config.ts'
 import { isContactPath, routeContact } from './contact.ts'
 import { mutate } from './db.ts'
@@ -118,6 +119,11 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     ctx.waitUntil(sendPendingMail(env).catch((e) => console.error('cloud: mail failed', e)))
     return json({ requestedAt })
   }
+
+  // Pro (#1037). Open to any verified sign-in like the session, and the Creem notification
+  // to nobody signed in: it carries Creem's signature instead.
+  const billing = /^\/v1\/billing(?:\/(.*))?$/.exec(pathname)
+  if (billing) return routeBilling(request, env, (billing[1] ?? '').replace(/\/+$/, ''))
 
   // The Cloud board itself, and everything that hangs off it (#314) — its cards, its
   // execution nodes, its delivery attempts and its trail. One matcher, because the workspace

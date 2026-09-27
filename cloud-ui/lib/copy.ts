@@ -49,6 +49,30 @@ export interface HostedCopy {
   /** The account itself could not be read. Only `/settings` says it — in the top row the
    *  neutral avatar is the whole of the answer. */
   accountUnavailable: string;
+  /** The plan panel under the account (#1037). */
+  plan: string;
+  free: string;
+  pro: string;
+  monthly: string;
+  yearly: string;
+  save: string;
+  perMonth: string;
+  perYear: string;
+  getPro: string;
+  manage: string;
+  /** `{date}` is the plan's date. Strings rather than functions: this copy crosses into the
+   *  client frame, which takes nothing that is not serialisable. */
+  renews: string;
+  ends: string;
+  ended: string;
+  paymentFailed: string;
+  updatePaymentBody: string;
+  updatePayment: string;
+  confirming: string;
+  refresh: string;
+  planUnavailable: string;
+  checkoutFailed: string;
+  portalFailed: string;
 }
 
 const en: HostedCopy = {
@@ -72,6 +96,27 @@ const en: HostedCopy = {
   settings: "Settings",
   settingsInApp: "Board and machine settings live in the AI4Kanban app.",
   accountUnavailable: "Your account could not be read just now. Try again shortly.",
+  plan: "Plan",
+  free: "Free",
+  pro: "Pro",
+  monthly: "Monthly",
+  yearly: "Yearly",
+  save: "Save 33%",
+  perMonth: "/ month",
+  perYear: "/ year",
+  getPro: "Get Pro",
+  manage: "Manage billing",
+  renews: "Renews on {date}",
+  ends: "Ends on {date}. Won't renew.",
+  ended: "Your Pro ended on {date}.",
+  paymentFailed: "Payment failed",
+  updatePaymentBody: "Update your payment method to keep Pro.",
+  updatePayment: "Update payment",
+  confirming: "Confirming your payment…",
+  refresh: "Refresh",
+  planUnavailable: "Your plan could not be read just now. Try again shortly.",
+  checkoutFailed: "Checkout could not start. Try again.",
+  portalFailed: "Billing could not be opened. Try again.",
 };
 
 const zh: HostedCopy = {
@@ -94,6 +139,27 @@ const zh: HostedCopy = {
   settings: "设置",
   settingsInApp: "看板与机器设置在 AI4Kanban 应用中。",
   accountUnavailable: "暂时无法读取账号信息，请稍后重试。",
+  plan: "方案",
+  free: "免费版",
+  pro: "Pro",
+  monthly: "按月",
+  yearly: "按年",
+  save: "省 33%",
+  perMonth: "/ 月",
+  perYear: "/ 年",
+  getPro: "购买 Pro",
+  manage: "管理账单",
+  renews: "{date}自动续费",
+  ends: "{date}到期，不再续费。",
+  ended: "你的 Pro 已于 {date}到期。",
+  paymentFailed: "扣款失败",
+  updatePaymentBody: "请更新付款方式，以免 Pro 中断。",
+  updatePayment: "更新付款方式",
+  confirming: "正在确认付款…",
+  refresh: "刷新",
+  planUnavailable: "暂时无法读取你的方案，请稍后重试。",
+  checkoutFailed: "无法开始结账，请重试。",
+  portalFailed: "无法打开账单管理，请重试。",
 };
 
 export const getHostedCopy = (language: Language): HostedCopy => (language === "zh" ? zh : en);

@@ -19,26 +19,29 @@ export function PricingPage({ locale }: { locale: PricingLocale }) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
       <Header c={copy} locale={locale} />
-      <main className="mx-auto max-w-5xl px-6 pb-20">
-        <section className={`${heroTop} text-center`}>
-          <p className="font-mono text-xs font-semibold tracking-widest text-accent-deep">
-            {t.hero.eyebrow}
-          </p>
-          <h1 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-bold leading-[1.1] tracking-tight lg:text-[3.5rem]">
-            {t.hero.title}
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
-            {t.hero.lead}
-          </p>
-        </section>
-        <Plans
-          t={t}
-          links={{
-            download: localePath(locale, "/download"),
-            contact: localePath(locale, "/contact"),
-            training: localePath(locale, "/training"),
-          }}
-        />
+      {/* Clips the board behind the plans, which runs past the column. */}
+      <main className="overflow-x-clip">
+        <div className="mx-auto max-w-5xl px-6 pb-20">
+          <section className={`${heroTop} text-center`}>
+            <p className="text-sm font-semibold tracking-[0.2em] text-accent-deep">
+              {t.hero.eyebrow}
+            </p>
+            <h1 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-bold leading-[1.1] tracking-tight lg:text-[3.5rem]">
+              {t.hero.title}
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-[1.05rem] leading-relaxed text-muted">
+              {t.hero.lead}
+            </p>
+          </section>
+          <Plans
+            t={t}
+            links={{
+              download: localePath(locale, "/download"),
+              contact: localePath(locale, "/contact"),
+              training: localePath(locale, "/training"),
+            }}
+          />
+        </div>
       </main>
       <SiteFooter c={copy} locale={locale} path={PATH} />
     </>

@@ -31,7 +31,16 @@ const zh: PricingCopy = {
     monthly: { price: "$15", per: "/ 月" },
     leadIn: "包含免费版全部功能，另加：",
     rows: ["邮件工作流", "演示文稿工作流", "产品视频工作流", "优先支持"],
-    button: "即将推出",
+    button: "购买 Pro",
+  },
+  board: {
+    tags: { coding: "编码", email: "邮件", slides: "演示文稿", video: "视频" },
+    tasks: {
+      coding: ["添加深色模式", "修复登录跳转", "导出为 CSV", "加快搜索"],
+      email: ["欢迎邮件", "版本更新邮件"],
+      slides: ["投资人月报", "团建分享稿"],
+      video: ["发布演示视频", "新手引导视频"],
+    },
   },
   seed: {
     name: "种子伙伴",

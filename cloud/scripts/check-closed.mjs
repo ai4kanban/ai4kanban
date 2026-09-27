@@ -76,6 +76,20 @@ const RPCS = [
   // holding no sign-in at all, so they are the ones worth proving nobody else can call.
   ['slack_actor', { p_team_id: 'T0', p_slack_user_id: 'U0' }],
   ['lark_actor', { p_cloud: 'feishu', p_tenant_key: 'T0', p_open_id: 'ou_0' }],
+  // Pro subscriptions (#1037): whoever could write one could make themselves Pro.
+  ['subscriptions_for', { p_user_id: '00000000-0000-4000-8000-000000000000' }],
+  [
+    'record_subscription',
+    {
+      p_id: 'sub_check',
+      p_user_id: '00000000-0000-4000-8000-000000000000',
+      p_customer_id: 'cust_check',
+      p_period: 'monthly',
+      p_status: 'active',
+      p_current_period_end: null,
+      p_daily_write_budget: DAILY_WRITE_BUDGET,
+    },
+  ],
 ]
 
 async function refusesRpc(url, anonKey, caller, fn, args) {

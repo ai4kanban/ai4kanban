@@ -147,6 +147,27 @@ chat message carries depends on where the event lives.
   `google/gemini-3.8-flash-tts` through OpenRouter. Voices are `VOICES` in `src/speech.ts`; text
   is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret.
 
+## Billing
+
+Pro, sold through Creem (#1037). Open to any verified sign-in, admitted or not: a subscription
+belongs to the Supabase user. Every route refuses with `billing_unavailable` when this build
+carries no `CREEM_API_KEY` / `CREEM_WEBHOOK_SECRET`.
+
+- `GET /v1/billing` — `{ "billing": { "plan": "free" | "pro", "state": "free" | "active" |
+  "canceled" | "pastDue" | "expired", "period": "monthly" | "yearly" | null, "periodEnd" } }`.
+  `periodEnd` is the renewal date while `active` or `pastDue`, the end date otherwise. Judged on
+  read: `active`, `trialing`, `past_due` are Pro; `scheduled_cancel`, `canceled` until
+  `periodEnd`; the best of several subscriptions wins.
+- `POST /v1/billing/checkout` — `{ "period": "monthly" | "yearly" }`: `{ "url" }`, a Creem
+  checkout returning to `/settings?checkout=done`, or `/settings` itself for somebody already Pro.
+- `POST /v1/billing/confirm` — `{ "subscriptionId" }` from that return: reads it from Creem,
+  writes it when it is the caller's, and answers `billing`.
+- `POST /v1/billing/portal` — `{ "url" }`, the caller's Creem customer portal.
+- `POST /v1/billing/webhook` — Creem's notification, no sign-in. `creem-signature` must be the
+  HMAC-SHA256 of the raw body under `CREEM_WEBHOOK_SECRET`. The subscription is re-read from
+  Creem and written whole, so replays and out-of-order notifications converge; a failed read is
+  a 5xx for Creem to retry.
+
 ## Training bookings and contact
 
 The only routes a caller with **no account** reaches. Each answer echoes the site's own origin
@@ -194,5 +215,6 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `training_too_many_attempts` | Too many booking submits from one caller. Carries `retry-after`. |
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
+| `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
 | `storage_limit_reached` | The database turned read-only at its size limit. |

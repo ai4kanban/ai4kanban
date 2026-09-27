@@ -39,6 +39,12 @@ export interface Env {
   LARK_ENCRYPT_KEY?: string
   /** OpenRouter, for hosted narration (#1054). Optional: without it `/v1/speech` refuses. */
   OPENROUTER_API_KEY?: string
+  /** Creem, for Pro (#1037). Optional: without all four every billing route refuses. The
+   *  product ids are `vars` in wrangler.jsonc, not secrets. */
+  CREEM_API_KEY?: string
+  CREEM_WEBHOOK_SECRET?: string
+  CREEM_PRODUCT_MONTHLY?: string
+  CREEM_PRODUCT_YEARLY?: string
 }
 
 /** Whether this build can install into a workspace at all. */

@@ -1,0 +1,241 @@
+/**
+ * Pro, sold through Creem (#1037). Creem is called over REST, with no SDK.
+ *
+ * Every route here is open to a verified sign-in, admitted or not: a subscription belongs to
+ * the Supabase user, not to a Cloud account. A row is only ever written with what was just
+ * read back from Creem, so repeated and out-of-order notifications converge on Creem's
+ * current state. Whether a row is Pro is decided when it is read, so expiry needs nothing.
+ */
+
+import { CLOUD_UI_ORIGIN } from './config.ts'
+import { call, mutate } from './db.ts'
+import type { Env } from './env.ts'
+import { badRequest, billingFailed, billingUnavailable, notFound, unauthenticated } from './errors.ts'
+import { bodyOf, json, requireMethod } from './http.ts'
+import { readSession } from './owner.ts'
+import { hex, sameString } from './verify.ts'
+
+export type Period = 'monthly' | 'yearly'
+
+/** A row as `api.subscriptions_for` returns it. */
+export interface SubscriptionRow {
+  id: string
+  customer_id: string
+  period: Period
+  status: string
+  current_period_end: string | null
+}
+
+/** What `/settings` draws and #1038 gates on. */
+export interface Billing {
+  plan: 'free' | 'pro'
+  state: 'free' | 'active' | 'canceled' | 'pastDue' | 'expired'
+  period: Period | null
+  /** The renewal date while `active` or `pastDue`, the end date otherwise. */
+  periodEnd: string | null
+}
+
+const RENEWING = ['active', 'trialing', 'past_due']
+const ENDING = ['scheduled_cancel', 'canceled']
+
+export function isPro(row: SubscriptionRow, now = Date.now()): boolean {
+  if (RENEWING.includes(row.status)) return true
+  if (!ENDING.includes(row.status) || !row.current_period_end) return false
+  return now < Date.parse(row.current_period_end)
+}
+
+const stateOf = (row: SubscriptionRow): Billing['state'] =>
+  row.status === 'past_due' ? 'pastDue' : ENDING.includes(row.status) ? 'canceled' : 'active'
+
+const RANK: Record<string, number> = { active: 0, canceled: 1, pastDue: 2 }
+const endOf = (row: SubscriptionRow) => (row.current_period_end ? Date.parse(row.current_period_end) : 0)
+
+/** The best of a user's subscriptions: a renewing one over one ending over one failing to
+ *  pay, then the one that runs longest. None Pro reads as expired once any has ended. */
+export function billingOf(rows: SubscriptionRow[], now = Date.now()): Billing {
+  const pro = rows
+    .filter((row) => isPro(row, now))
+    .sort((a, b) => RANK[stateOf(a)]! - RANK[stateOf(b)]! || endOf(b) - endOf(a))
+  const best = pro[0]
+  if (best) {
+    return { plan: 'pro', state: stateOf(best), period: best.period, periodEnd: best.current_period_end }
+  }
+  const last = rows.filter((row) => row.current_period_end).sort((a, b) => endOf(b) - endOf(a))[0]
+  return last
+    ? { plan: 'free', state: 'expired', period: last.period, periodEnd: last.current_period_end }
+    : { plan: 'free', state: 'free', period: null, periodEnd: null }
+}
+
+/** The routes under `/v1/billing`. */
+export async function routeBilling(request: Request, env: Env, rest: string): Promise<Response> {
+  if (rest === 'webhook') {
+    requireMethod(request, 'POST')
+    return webhook(request, env)
+  }
+  const creem = creemFor(env)
+  const session = await readSession(request, env)
+
+  if (rest === '') {
+    requireMethod(request, 'GET')
+    return json({ billing: await readBilling(env, session.subject) })
+  }
+
+  if (rest === 'checkout') {
+    requireMethod(request, 'POST')
+    const { period } = ((await bodyOf(request)) ?? {}) as { period?: unknown }
+    if (period !== 'monthly' && period !== 'yearly') throw badRequest('Pick monthly or yearly.')
+    // One subscription per person: somebody already on Pro manages it instead.
+    if ((await readBilling(env, session.subject)).plan === 'pro') {
+      return json({ url: `${CLOUD_UI_ORIGIN}/settings` })
+    }
+    const checkout = await creem<{ checkout_url?: string }>('POST', '/v1/checkouts', {
+      product_id: period === 'monthly' ? env.CREEM_PRODUCT_MONTHLY : env.CREEM_PRODUCT_YEARLY,
+      success_url: `${CLOUD_UI_ORIGIN}/settings?checkout=done`,
+      metadata: { userId: session.subject },
+      ...(session.email ? { customer: { email: session.email } } : {}),
+    })
+    if (!checkout.checkout_url) throw billingFailed()
+    return json({ url: checkout.checkout_url })
+  }
+
+  // The checkout's return. Written only when Creem says the subscription is this user's.
+  if (rest === 'confirm') {
+    requireMethod(request, 'POST')
+    const { subscriptionId } = ((await bodyOf(request)) ?? {}) as { subscriptionId?: unknown }
+    if (typeof subscriptionId !== 'string' || !subscriptionId) throw badRequest('Give the subscription id.')
+    try {
+      const sub = await creem<CreemSubscription>('GET', `/v1/subscriptions?subscription_id=${encodeURIComponent(subscriptionId)}`)
+      if (sub.metadata?.userId === session.subject) await record(env, sub, session.subject)
+    } catch (error) {
+      console.error('cloud: checkout return not confirmed', error)
+    }
+    return json({ billing: await readBilling(env, session.subject) })
+  }
+
+  if (rest === 'portal') {
+    requireMethod(request, 'POST')
+    const rows = await call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: session.subject })
+    const best = rows.find((row) => isPro(row)) ?? rows[0]
+    if (!best) throw notFound('This account has no billing to manage.')
+    const portal = await creem<{ customer_portal_link?: string }>('POST', '/v1/customers/billing', {
+      customer_id: best.customer_id,
+    })
+    if (!portal.customer_portal_link) throw billingFailed()
+    return json({ url: portal.customer_portal_link })
+  }
+
+  throw notFound()
+}
+
+async function readBilling(env: Env, user: string): Promise<Billing> {
+  return billingOf(await call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }))
+}
+
+// ---- Creem ------------------------------------------------------------------
+
+interface CreemSubscription {
+  id: string
+  status: string
+  customer: string | { id: string }
+  product: string | { id: string }
+  current_period_end_date?: string | null
+  metadata?: { userId?: string } | null
+}
+
+type Creem = <T>(method: 'GET' | 'POST', path: string, body?: unknown) => Promise<T>
+
+export const creemBase = (key: string) =>
+  key.startsWith('creem_test_') ? 'https://test-api.creem.io' : 'https://api.creem.io'
+
+/** A caller for this build's Creem store, or a refusal when it carries none. */
+function creemFor(env: Env): Creem {
+  const key = env.CREEM_API_KEY
+  if (!key || !env.CREEM_WEBHOOK_SECRET || !env.CREEM_PRODUCT_MONTHLY || !env.CREEM_PRODUCT_YEARLY) {
+    throw billingUnavailable()
+  }
+  return async <T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> => {
+    let answer: Response
+    try {
+      answer = await fetch(`${creemBase(key)}${path}`, {
+        method,
+        headers: { 'x-api-key': key, 'content-type': 'application/json', accept: 'application/json' },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      })
+    } catch (error) {
+      console.error('cloud: creem unreachable', path, error)
+      throw billingFailed()
+    }
+    if (!answer.ok) {
+      console.error('cloud: creem refused', path, answer.status, await answer.text().catch(() => ''))
+      throw billingFailed()
+    }
+    return (await answer.json()) as T
+  }
+}
+
+const idOf = (value: string | { id: string } | undefined) =>
+  typeof value === 'string' ? value : value?.id
+
+/** Write the row Creem holds. False when there is no user to hang it on, or the product is
+ *  not one of Pro's. */
+async function record(env: Env, sub: CreemSubscription, user: string | undefined): Promise<boolean> {
+  const product = idOf(sub.product)
+  const period =
+    product === env.CREEM_PRODUCT_MONTHLY ? 'monthly' : product === env.CREEM_PRODUCT_YEARLY ? 'yearly' : null
+  const customer = idOf(sub.customer)
+  if (!period || !customer) {
+    console.warn('cloud: subscription is not Pro', sub.id, product)
+    return false
+  }
+  const written = await mutate<{ id: string } | null>(env, 'record_subscription', {
+    p_id: sub.id,
+    p_user_id: user ?? null,
+    p_customer_id: customer,
+    p_period: period,
+    p_status: sub.status,
+    p_current_period_end: sub.current_period_end_date ?? null,
+  })
+  return !!written
+}
+
+// ---- notifications ----------------------------------------------------------
+
+export async function signatureOf(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body)))
+}
+
+/**
+ * A Creem notification. Only its subscription id is trusted, and only once signed: the row is
+ * re-read from Creem, so a failed read is a 5xx for Creem to retry. Nothing to hang it on is
+ * logged and answered 200, since retrying cannot change that.
+ */
+async function webhook(request: Request, env: Env): Promise<Response> {
+  const creem = creemFor(env)
+  const body = await request.text()
+  const signature = request.headers.get('creem-signature') ?? ''
+  if (!sameString(await signatureOf(env.CREEM_WEBHOOK_SECRET!, body), signature)) {
+    throw unauthenticated('That notification is signed wrongly.')
+  }
+
+  const event = JSON.parse(body || '{}') as {
+    eventType?: string
+    object?: { id?: string; object?: string; subscription?: string | { id: string }; metadata?: { userId?: string } }
+  }
+  const object = event.object ?? {}
+  const subscriptionId = object.object === 'subscription' ? object.id : idOf(object.subscription)
+  if (!subscriptionId) return json({ ok: true })
+
+  const sub = await creem<CreemSubscription>('GET', `/v1/subscriptions?subscription_id=${encodeURIComponent(subscriptionId)}`)
+  const user = sub.metadata?.userId ?? object.metadata?.userId
+  if (!(await record(env, sub, user))) {
+    console.warn('cloud: notification not recorded', event.eventType, subscriptionId)
+  }
+  return json({ ok: true })
+}

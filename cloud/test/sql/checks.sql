@@ -2661,4 +2661,60 @@ begin
 end
 $contact$;
 
+-- ---------------------------------------------------------------------------
+-- A subscription is Creem's row, written whole and read unjudged (#1037)
+-- ---------------------------------------------------------------------------
+
+do $billing$
+declare
+  BUDGET constant integer := 100000;
+  BUYER constant uuid := '00000000-0000-4000-8000-00000000b001';
+  OTHER constant uuid := '00000000-0000-4000-8000-00000000b002';
+  END_AT constant timestamptz := '2027-10-03 09:51:47.123+00';
+  v_writes bigint;
+  v_rows json;
+begin
+  perform api.record_subscription('sub_1', BUYER, 'cust_1', 'yearly', 'active', END_AT, BUDGET);
+  select writes into v_writes from cloud.daily_writes where day = (now() at time zone 'utc')::date;
+
+  -- A replayed notification: same row, no second write, no budget spent.
+  perform api.record_subscription('sub_1', BUYER, 'cust_1', 'yearly', 'active', END_AT, BUDGET);
+  assert (select count(*) from cloud.subscriptions) = 1, 'a replay made a second row';
+  assert (select writes from cloud.daily_writes where day = (now() at time zone 'utc')::date) = v_writes,
+    'a replay that changed nothing spent the budget';
+
+  -- Whatever Creem says last is the row, whichever state came before it.
+  perform api.record_subscription('sub_1', BUYER, 'cust_1', 'yearly', 'expired', END_AT, BUDGET);
+  perform api.record_subscription('sub_1', BUYER, 'cust_1', 'yearly', 'active', END_AT + interval '1 year', BUDGET);
+  assert (select status from cloud.subscriptions where id = 'sub_1') = 'active',
+    'the later write did not replace the row';
+
+  -- No user on the call keeps the row's own; no user anywhere writes nothing.
+  perform api.record_subscription('sub_1', null, 'cust_1', 'yearly', 'scheduled_cancel', END_AT, BUDGET);
+  assert (select user_id from cloud.subscriptions where id = 'sub_1') = BUYER,
+    'a write with no user dropped the owner';
+  assert api.record_subscription('sub_x', null, 'cust_x', 'monthly', 'active', END_AT, BUDGET) is null,
+    'a subscription with no user was written';
+  assert (select count(*) from cloud.subscriptions where id = 'sub_x') = 0, 'an ownerless row was kept';
+
+  perform pg_temp.refuses(
+    $sql$select api.record_subscription('sub_y', '00000000-0000-4000-8000-00000000b001', 'c', 'weekly', 'active', null, 100000)$sql$,
+    '23514', 'a period Pro does not sell was stored');
+
+  -- A lapsed row is still read back, with its end to the millisecond: the Worker judges it.
+  perform api.record_subscription('sub_2', BUYER, 'cust_1', 'monthly', 'canceled', END_AT - interval '1 year', BUDGET);
+  perform api.record_subscription('sub_3', OTHER, 'cust_3', 'monthly', 'active', END_AT, BUDGET);
+  v_rows := api.subscriptions_for(BUYER);
+  assert json_array_length(v_rows) = 2, 'a user was not given exactly their own subscriptions';
+  assert (select count(*) from json_array_elements(v_rows) r where r ->> 'id' = 'sub_2') = 1,
+    'a lapsed subscription was filtered out before it was judged';
+  assert (select r ->> 'current_period_end' from json_array_elements(v_rows) r where r ->> 'id' = 'sub_1')
+    = '2027-10-03T09:51:47.123Z', 'the period end did not come back to the millisecond';
+  assert json_array_length(api.subscriptions_for('00000000-0000-4000-8000-00000000b003')) = 0,
+    'a user with none was given some';
+
+  raise notice 'sql checks: #1037 subscription checks passed';
+end
+$billing$;
+
 rollback;

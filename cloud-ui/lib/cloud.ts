@@ -193,3 +193,50 @@ export const accountName = (account: HostedAccount): string =>
  *  with neither a name nor a handle would otherwise be drawn its email twice. */
 export const accountAddress = (account: HostedAccount): string | null =>
   account.email && account.email !== accountName(account) ? account.email : null;
+
+// ---- Pro (#1037) --------------------------------------------------------------
+
+/** `GET /v1/billing`'s answer. */
+export interface Billing {
+  plan: "free" | "pro";
+  state: "free" | "active" | "canceled" | "pastDue" | "expired";
+  period: "monthly" | "yearly" | null;
+  periodEnd: string | null;
+}
+
+export async function readBilling(token: string): Promise<Billing | null> {
+  const answer = await get<{ billing?: Billing }>("/v1/billing", token);
+  return answer.ok ? (answer.value.billing ?? null) : null;
+}
+
+async function post<T>(path: string, token: string, body: unknown = {}): Promise<T | null> {
+  try {
+    const response = await fetch(`${endpoints().api}${path}`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    return response.ok ? ((await response.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The checkout's return: Cloud reads the subscription from Creem before answering. */
+export async function confirmCheckout(token: string, subscriptionId: string): Promise<Billing | null> {
+  return (await post<{ billing?: Billing }>("/v1/billing/confirm", token, { subscriptionId }))?.billing ?? null;
+}
+
+/** Where to send the reader: a Creem checkout, or `/settings` for somebody already on Pro. */
+export async function startCheckout(token: string, period: "monthly" | "yearly"): Promise<string | null> {
+  return (await post<{ url?: string }>("/v1/billing/checkout", token, { period }))?.url ?? null;
+}
+
+export async function openPortal(token: string): Promise<string | null> {
+  return (await post<{ url?: string }>("/v1/billing/portal", token))?.url ?? null;
+}

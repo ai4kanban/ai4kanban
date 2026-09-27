@@ -32,7 +32,16 @@ const en: PricingCopy = {
     monthly: { price: "$15", per: "/ month" },
     leadIn: "Everything in Free, plus:",
     rows: ["Email workflow", "Slide deck workflow", "Product video workflow", "Priority support"],
-    button: "Coming soon",
+    button: "Get Pro",
+  },
+  board: {
+    tags: { coding: "Coding", email: "Email", slides: "Slides", video: "Video" },
+    tasks: {
+      coding: ["Add dark mode", "Fix login redirect", "Export to CSV", "Speed up search"],
+      email: ["Welcome email", "Release notes"],
+      slides: ["Investor update", "Team offsite deck"],
+      video: ["Launch demo", "Onboarding walkthrough"],
+    },
   },
   seed: {
     name: "Seed partner",

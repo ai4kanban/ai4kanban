@@ -243,7 +243,8 @@ Only needed once, and again if the project is ever recreated.
    [Run it locally](#run-it-locally) override them.
 6. **Worker secrets**: `npx wrangler secret put` each of `SUPABASE_URL`,
    `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `OPENROUTER_API_KEY` (hosted narration;
-   optional), and the Slack and Lark sets below.
+   optional), `CREEM_API_KEY` and `CREEM_WEBHOOK_SECRET` (Pro billing; optional), and the
+   Slack and Lark sets below. Creem's webhook points at `https://api.ai4kanban.dev/v1/billing/webhook`.
 7. **Exposed schemas**: in API settings, expose `api` alone. Dropping `public` and
    `graphql_public` closes PostgREST and GraphQL to everyone but the Worker.
 8. **Schema**: `npm run migrate`, then `npm run check:closed`.

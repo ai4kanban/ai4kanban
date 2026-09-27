@@ -20,3 +20,8 @@ FEISHU_ENCRYPT_KEY="<the 飞书 app's Encrypt Key>"
 LARK_APP_ID="<the Lark app's App ID>"
 LARK_APP_SECRET="<the Lark app's App Secret>"
 LARK_ENCRYPT_KEY="<the Lark app's Encrypt Key>"
+# Pro billing through Creem (#1037). Optional as a pair: without them every /v1/billing route
+# refuses. A `creem_test_` key calls Creem's test store. The product ids are `vars` in
+# wrangler.jsonc.
+CREEM_API_KEY="<the Creem store's API key>"
+CREEM_WEBHOOK_SECRET="<the Creem webhook's signing secret>"

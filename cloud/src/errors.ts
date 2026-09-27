@@ -31,6 +31,8 @@ export type RefusalCode =
   | 'contact_too_many_attempts'
   | 'speech_unavailable'
   | 'speech_failed'
+  | 'billing_unavailable'
+  | 'billing_failed'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -308,6 +310,13 @@ export const speechUnavailable = () =>
 
 export const speechFailed = () =>
   new Refusal('speech_failed', 502, 'The narration could not be generated. Try again shortly.')
+
+/** Pro billing (#1037): this build carries no Creem store, or Creem did not answer. */
+export const billingUnavailable = () =>
+  new Refusal('billing_unavailable', 503, 'Billing is not available right now.')
+
+export const billingFailed = () =>
+  new Refusal('billing_failed', 502, 'Billing could not be reached. Try again shortly.')
 
 const CONTACT_RETRY_AFTER_SECONDS = 30 * 60
 
