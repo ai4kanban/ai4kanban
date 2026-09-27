@@ -474,7 +474,8 @@ function ResumeDelivery({
   const actions = useActions();
   const [busy, setBusy] = useState(false);
 
-  const pickUp = session && session.canResume && stoppedShort(session) ? session.sessionId : null;
+  // Same test as `akb run resume`: a run stopped by hand can be picked up too (#1183).
+  const pickUp = session?.canResume ? session.sessionId : null;
   const owed = delivery.next;
 
   const resume = async () => {
