@@ -9,6 +9,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   work; only priority, ROI and a title/body edit are direct.
 - ❌ **A board action stays terminal-only because it feels rare or administrative** → ✅ the
   UI offers what the command offers, with the consequences shown before the user confirms.
+- ❌ **A chart scales with its dialog's width and crowds out the sections below** → ✅ keep
+  section heights balanced: a fixed chart height, and one compact row per list entry.
 - ❌ **A control is hidden when the thing it drives doesn't exist yet** → ✅ the empty state is
   where the UI teaches the feature: keep the control and let it offer the first step.
 - ❌ **A control is kept alive for its leftover cases after the thing it served is replaced**
@@ -43,7 +45,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A row works out where an item came from by matching free text against a table** → ✅ the
   item names a source type from a predefined list and carries the rest as key/value pairs.
 - ❌ **An archived discussion stays open after its rail entry disappears** → ✅ archiving the
-  discussion you are viewing returns you to Create task, and archiving another must not
+  discussion you are viewing returns you to New idea, and archiving another must not
   interrupt the view you are in.
 
 ## Runs and deliveries
@@ -102,13 +104,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Expose every workflow field at once, or create flows on separate pages** → ✅ start with
   usable defaults, keep the rail and the three connected step tabs whatever the flow, name new
   flows and copies inline on blur, and reveal the rest on demand.
-- ❌ **Mix agent creation and runtime settings into a workflow assignment** → ✅ one Select
-  agent control for the lead and only the selected helper's extra requirements; creating one
-  returns you to the selection you came from.
+- ❌ **Mix agent creation and runtime settings into a workflow assignment** → ✅ the stage
+  lists its agents with switches, and only the selected agent shows its extra requirements.
 - ❌ **Repeat a field for an unnamed scope, or the same toggle in list and detail** → ✅ bind
   extra requirements to the selected helper only, and keep each switch in one place.
-- ❌ **Give agents enabled/disabled states inside a workflow** → ✅ workflows add or remove
-  helpers; nothing disables an agent elsewhere, and helpers remain on request.
+- ❌ **Add and remove agents in a workflow, or share one agent across workflows** → ✅ each
+  workflow owns its agents and only switches them on or off; reuse is a copy.
 
 ## Keys
 

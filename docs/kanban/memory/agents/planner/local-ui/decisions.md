@@ -58,10 +58,11 @@ re-ask a settled call.
   even for one flow. Name new flows and copies inline — save on blur, discard empty new
   entries, no confirm or cancel buttons. Built-ins carry a badge and cannot be renamed or
   deleted.
-- **Create agents separately from assigning them**: one lead and existing helpers per step,
-  helpers requested only when needed, and only the selected helper exposes its extra
-  requirements. Return from management to the original selection without assigning
-  automatically.
+- **Agents are switched, never added or removed**: every agent belongs to one workflow and
+  shows there with an on/off switch, the lead included — no agent dropdown and no remove.
+  A new agent is created inside the current workflow; using one in another workflow means
+  copying it, so each copy can be tuned for its workflow; copying a workflow copies each of
+  its agents.
 - **One instructions field**: name, stage, instructions and runtime. The instructions box is
   the whole `AGENT.md`, frontmatter included, so a new `akb:` key needs no new form field.
   Saved agents show the real editable path with a copy action; unsaved and built-in ones show
@@ -70,7 +71,6 @@ re-ask a settled call.
   rules and settings, starts with empty memory, and the stage switches to it at once.
 - **Runtimes is one list you add to**, with the default a position rather than a badge. No
   Computers picker until a board can know a second machine.
-- **共享提示不占整行**：Agent 被多个工作流共用时，只在名称旁放一个「共用 · <工作流名>」小标签，后果写进悬停提示；整句的共享说明信息量低、占地方。
 - **Creating an agent starts from what it should do** — a written need or a skill from the web,
   both typed into one chat box with no separate field for a link. The flow asks how it should
   work where the input leaves that open, and designs its memory and the form of its output
@@ -178,9 +178,15 @@ re-ask a settled call.
 
 ## Chat in the UI
 
-- Create task is an action, not a place: a full-screen sheet over the board that Esc or ✕
-  closes. Its box is **Discuss** only, with no mode switch; a new card's workflow is picked
-  beside the plan's Plan tasks / Start now.
+- **新想法 / New idea** is the board page's one way in: a full-screen sheet over the board
+  that Esc or ✕ closes. It takes a half-formed idea as well as board asks — what's next, move
+  a card, start one — so the user never sorts which kind they have. A new card's workflow is
+  picked beside the plan's Plan tasks / Start now.
+- **讨论 / Discuss** is the card page's chat button and appears only there; the board page has
+  no separate chat entry.
+- **Rewriting a message replaces it**: the session is cut back to before that message and
+  continues from there, so the agent keeps what it read. An agent whose session cannot be cut
+  back offers no rewrite — replaying the transcript into a new session is not a rewrite.
 - After **Plan tasks** or **Start now** the discussion window shows **Starting…** and
   closes itself the moment the run really starts; a refused start stays put with its reason.
 - The chat is a full-height rail down the right, folded away by default so the board stays the

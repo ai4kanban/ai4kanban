@@ -31,6 +31,14 @@
         "provider": "subscription",
         "model": "fable"
       }
+    },
+    {
+      "id": "sol",
+      "name": "Sol",
+      "harness": "codex",
+      "settings": {
+        "model": "gpt-6-sol"
+      }
     }
   ],
   "memoryPrune": {
@@ -45,24 +53,40 @@
   },
   "proposer": true,
   "memoryReview": {
-    "lastRun": "2026-09-26 10:47"
+    "lastRun": "2026-09-27 10:47"
   },
   "workflows": {
-    "added": [
-      {
-        "id": "wf-3",
-        "name": "Email"
-      }
-    ],
     "stages": {
-      "wf-3": {
+      "coding": {
         "plan": {
-          "lead": "email-planner"
-        },
-        "execute": {
-          "lead": "email-builder"
+          "helpers": [
+            {
+              "agent": "copywriting",
+              "extra": ""
+            },
+            {
+              "agent": "tech-stack-advisor",
+              "extra": ""
+            },
+            {
+              "agent": "email-planner",
+              "extra": ""
+            },
+            {
+              "agent": "ui-designer",
+              "extra": ""
+            },
+            {
+              "agent": "prompt-writer",
+              "extra": ""
+            }
+          ]
         }
       }
-    }
+    },
+    "agentsOwned": true,
+    "shipped": [
+      "prompt-writer"
+    ]
   }
 }

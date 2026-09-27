@@ -183,9 +183,9 @@ re-ask a settled call.
   with it; what sits only in a repository skill is material the agent never finds.
 - An agent definition stays minimal: no field that restates the description or the body.
   **新建 agent 的模板**保持最简，只用注释指向 `AGENT.md` 指南。
-- Each card runs one configurable plan → execute → review flow. Each stage selects one lead
-  and existing helpers; helpers run only on request, with no always-call setting. Built-in
-  flows may be configured or copied but not renamed or deleted.
+- Each card runs one configurable plan → execute → review flow. Each workflow owns its
+  agents and only switches them on or off; helpers run only on request, with no always-call
+  setting. Built-in flows may be configured or copied but not renamed or deleted.
 - **spec agent 的先后顺序**只写在 agent 说明里，看板不做启动拦截。
 - An agent that writes text or files hands it over as final and never asks the user to confirm
   it — the user edits its section when they disagree. Copywriting is the one that asks,
@@ -196,6 +196,7 @@ re-ask a settled call.
   whose runtime is "external" — the board runs nothing and records only the paths handed back.
 - A spec agent's `description` names the kinds of work it covers, never repository paths.
 - **内容类工作流用专用代理**：视频、PPT 等工作流各自配规划与制作代理，不复用编码工作流的 `software-planner` 与 `builder`。
+- **演示文稿流程与视频流程一致**：只有规划，没有制作和评审；规划卡里用 Storyboard 逐页预览，成品就在卡上，批准后直接归档。每页旁注精简，没有就留空。
 - **产品视频只维护脚本和记忆**：工作流只规定制作前确认连贯叙事与准确文案、成片后检查、经验沉淀；
   动画配方、技术栈和制作方式由执行代理自定，不写进工作流或卡片。镜头按连续叙事规划，衔接和逐镜一样
   要紧。演示只是可选手段，用到时制作前一并评审演示准备。**视频不进 git**：源文件和渲染脚本与成片一起

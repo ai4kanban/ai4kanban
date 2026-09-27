@@ -5,11 +5,19 @@ covers it, or a plain-words note.
 
 ## skill
 
+- prompt-writer is a built-in specialist in every board's Coding plan stage, on by default:
+  it writes the diff for any card that changes a skill, an agent prompt, or other AI
+  instructions; switch it off under Configuration → Workflows. See the `/docs/agents` page.
 - prompt-writer edits a prompt only when its agent lacks a needed instruction, in the
-  prompt of the task that needs it and within the flows the card names; app-controlled
+  prompt of the task that needs it and within the prompts the card names; app-controlled
   mechanics never become agent duties.
 - prompt-writer remembers this project's lasting prompt-writing corrections in
   `docs/kanban/memory/agents/prompt-writer/rules.md` and applies them before drafting.
+- `akb workflow stage <id> --stage <stage> --on|--off <agent>` enables or disables one of a
+  workflow's agents; `akb workflow duplicate` copies every agent into the new workflow.
+- Video cards track progress as todos: a demo is rehearsed before the script review, and a
+  change that makes a ticked todo stale appends a new unticked one, so the card cannot be
+  archived on a stale film.
 - The scriptwriter writes its section as two subsections, the script then the demo.
 - Screen recordings from `record.mjs` draw a standard macOS arrow pointer whose tip, the
   real click and the click ring all land on the same point.
@@ -117,23 +125,30 @@ covers it, or a plain-words note.
   prompt or akb guide change and waits for your confirmation.
 - Codex 默认以 `--dangerously-bypass-approvals-and-sandbox` 运行，不再因审批、沙箱、启动更新检查
   或「切换低价模型」提示中断，不是 git 仓库的项目也能选用；自己写了同名配置的命令保持不变。
-- 新增内置工作流「演示文稿」（`slide-deck`）：演示文稿策划先交付受众、目标、事实台账、版式方案和逐页文案，批准后再给每页真实预览图，两轮各等你批准；演示文稿制作据此生成可编辑的 `.pptx`，逐页核对预览后在卡片上提供下载：`web/content/docs/agents.mdx`。
+- 新增内置工作流「演示文稿」（`slide-deck`）：演示文稿策划先交付受众、目标、事实台账、版式方案和逐页文案，批准后再给每页真实预览图，两轮各等你批准；第 2 轮每页预览都由可编辑的 `.pptx` 渲染，卡片上同时提供下载，批准后直接归档，不再经过制作和审查：`web/content/docs/agents.mdx`。
 - An agent declares no settings of its own: one agent is one way of working, and two ways is two agents. `ui-designer` always draws a rendered screen — the ASCII drawing is retired, and a board that saved it is told so in the run's log: `akb guide write-agent`.
 - Standard planning QA now checks out the facts a plan turns on instead of handing them to you: it searches for authoritative sources, records the evidence it found, revises the plan when a premise turns out wrong, and stays open — naming the missing evidence — when it cannot settle one. Lightweight planning escalates to standard rather than checking anything itself: `akb guide validate-assumption`.
 - 讨论保存的方案按后续卡片实际要做的工作和交付结果选择工作流，不再按方案讨论或修改的对象归类；没有明确匹配时仍用看板默认工作流。
 - 产品视频的旁白默认用 AI4Kanban Cloud 托管声音（30 个，任意语言，含韩语、粤语）：一句话描述想要的声音，或在审批脚本前试听 2–3 个候选再选；换声音需重新审批脚本，只重新生成旁白。未登录或生成失败时会提示，不会暗中改用本地声音：`web/content/docs/agents.mdx`。
+- Product video and slide deck cards no longer have a script approval: each step the user
+  reviews is a todo on the card, ticked when a `[user]` answer accepts it; the card offers
+  Archive once every todo is ticked and the file is on it.
+- ui-designer names the device on every mockup and draws one mockup per device when a change reaches both the phone and the desktop layout.
 
 ## local-ui
 
 `kanban-ui/README.md` is this module's doc; a line naming no other doc is covered there.
 
+- 对话里自己发的消息改为淡墨色底、无描边的气泡，宽度随文字收缩并靠右，与回复一眼可分又不抢眼。
 - 通知中心每个标签先显示 30 条，列表底部“加载更多”继续查看更早的通知；铃铛数字和“N 条新通知”仍计入全部通知，历史再多也不会拖慢通知中心。
 - 配置和新建任务的工作流下拉框里，悬停或键盘聚焦内置工作流可看它的用途说明，触屏点行旁的信息按钮查看；`akb workflow list` 同样列出内置工作流的说明。
+- 统计弹窗可选最近 30 天、3 个月、6 个月或 1 年，在趋势图与每日完成热力图之间切换，下方显示该时段已完成、已创建、已否决合计，以及本机各连接器与模型的 token 用量和预估费用（按费用从高到低；算不出费用的行照样列出 token，费用显示「—」）。
 - 讨论里点 Plan tasks 时，由原讨论的 agent 会话接着写任务卡，讨论中未写进计划的细节也会带进卡片；创建过程仍在运行列表里，进行中该讨论暂不能发消息。
+- 每个 Agent 只属于一个工作流：环节里只列启用中的 Agent，在 Agent 详情页「停用」后收进环节底部的「已停用」，可随时「启用」；「新建 Agent」直接加入当前环节；复制工作流会把其中的 Agent 各复制一份。设置里的开关缩小到与文字同高。
 - 配置里的工作流/agent 选择器、“…”菜单、定时节奏和模型建议与其他下拉框同一种弹层：悬停和方向键高亮，Esc 或点空白处只关闭弹层，焦点回到按钮。
 - 卡片页上 agent 段落里的每个三级标题都能单独折叠：打开段落后各小节默认展开，可逐节收起；搜索或卡片更新时只展开相关小节。
 - 配置页的云端和通知设置连不上 Cloud 时会自己重试：页面上说明正在自动重试、本地看板不受影响，网络回来后无需重开设置就回到已登录状态。
-- A card's `<Storyboard>` also shows a slide deck: numbered pages with a preview, on-slide text, speaker notes and layout, and a "No preview" placeholder with Reload; an `<Asset>` pointing at a `.pptx` is a download button.
+- A card's `<Storyboard>` also shows a slide deck: numbered pages with a preview and its speaker notes (nothing beside a slide without notes), and a "No preview" placeholder with Reload; an `<Asset>` pointing at a `.pptx` is a download button.
 - The desktop app from `ai4kanban.dev/download` reopens the last repo, finds your coding
   agent, installs `akb` itself and updates in the background; the launcher opens, drops and
   creates projects, one at a time: `desktop/README.md`.
@@ -217,6 +232,10 @@ covers it, or a plain-words note.
 - agent 页面不再有由 agent 自己声明的设置行；**原型样式**已经没有了，界面设计师只画渲染页面，页面上留下的是运行时和这个环节的额外要求。
 - 工作流设置里，自建的辅助 Agent / 评审员排在内置之后，上方有一条“我的”分隔线；详情面板不再显示“Yours”标记和“只有这个工作流在用它”等使用状态文字。
 - 产品视频卡不再提供「开发」：成片、待办和问题都完成后卡片页显示「归档」，托管看板同样可以归档；修订进行中「归档」暂时隐藏。
+- 看板里 Markdown 代码块（含 diff）的长行自动折行，不再横向滚动；缩进保留，增删底色随折行连续。
+- 看板页只留一个「新想法」入口（灯泡）：理想法、问进度、按你明说的要求挪卡、改卡、归档、否决或开工都在这里；「讨论」（双气泡）只在卡片页出现，旧的看板级对话不再显示。
+- 卡片页的界面稿可标注设备：`device="mobile"` 的稿按 390×844 手机屏排版，居中放在手机外框里按 3/4 显示，窄屏时再缩小；点开全尺寸页按 1:1 显示同一外框。不写或写 `desktop` 仍是原来的桌面画布；`akb raw validate` 会指出写错的设备值。
+- 设置 → Cloud 顶部说明 Cloud 处于 alpha 阶段、目前对受邀用户免费；「将此看板存储到 Cloud」只对团队账户显示，已在 Cloud 上的看板仍可搬回本地。
 
 ## site
 
@@ -243,7 +262,8 @@ covers it, or a plain-words note.
   operator and `support@ai4kanban.dev` for support and data requests.
 - [/training](https://ai4kanban.dev/training) sells one-to-one project guidance and takes the
   booking on the page — $99 for one session, $349 a month for four, the visitor's own current
-  week hour by hour. English and Chinese only.
+  week hour by hour. English and Chinese only. It opens on a board screenshot, introduces the
+  coach, and each price card's button jumps to the week with that service already chosen.
 - [/pricing](https://ai4kanban.dev/pricing) lists Free, Pro ($120 a year or $15 a month, not
   yet on sale), the seed-partner waitlist and training; linked from the header and footer.
   English and Chinese only.
@@ -254,6 +274,7 @@ covers it, or a plain-words note.
   厦门宛理之间科技有限公司 sells and invoices training, with payment, cancellation and refund rules;
   the booking form and confirmation email name the seller.
 - 首页、定价页和 `llms.txt` 把内置的演示视频工作流改称「产品视频」。
+- `/pricing` sells Pro: Get Pro follows the monthly / yearly switch into checkout, over a background of task cards at work.
 
 ## docs
 
@@ -275,8 +296,7 @@ covers it, or a plain-words note.
 - **[awesome-agent-kanban](https://github.com/neverchanje/awesome-agent-kanban)** is a public
   directory of tools that put agents to work on tasks, sorted by what the reader wants to hand
   over. English only, CC0, with AI4Kanban listed under the same criteria as everything else.
-- 本项目看板新增「Email」工作流：`email-planner` 写好通知、欢迎邮件或 newsletter 并在卡片里显示
-  HTML 预览，批准后 `email-builder` 把预览发到评审邮箱：`scripts/email/README.md`。
+- 卡片新增或修改产品发出的邮件时，Coding 计划阶段请 `email-planner` 在卡片里写出每封邮件的成稿和预览（纯文本，有 HTML 版的另附渲染结果），builder 原样实现；原「Email」工作流已删除：`scripts/email/README.md`。
 - 演示视频有一套共用的免费素材库（3 段配乐、10 条界面音效、3 张纸张背景，均为 CC0），放在
   `https://cdn.ai4kanban.dev/video/`；清单、来源和许可见 `assets/video/README.md`。
 
@@ -306,6 +326,8 @@ covers it, or a plain-words note.
 - Cloud takes the bookings behind [/training](https://ai4kanban.dev/training).
 - How many accounts the free tier and the day's write budget carry: `cloud/README.md`,
   "Limits the preview lives inside".
+- Pro is sold monthly or yearly through Creem: buy from the pricing page, then see the plan, renewal or end date, and manage billing at `cloud.ai4kanban.dev/settings`; any GitHub sign-in can buy, invited or not.
+- The Cloud invite approval email says Cloud is in alpha, free for invited users for now, and pricing may change.
 
 ## telemetry
 

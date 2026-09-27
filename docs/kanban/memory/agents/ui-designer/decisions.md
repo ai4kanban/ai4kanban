@@ -62,6 +62,7 @@ One line per durable choice the user made about these designs.
 - **定价一律画成具体金额，不留「待定 / 面议」**：档位块直接写出数字和计费周期，占位的价格不算画完
   这一屏。
 - **Usage dashboard**: show production data only; no development data or environment switch.
+- **统计图表的时段最短 30 天**：不画 24 小时或 7 天；趋势图的点可悬停，显示该日期和各条线的数值。
 
 ## Storyboards
 

@@ -51,11 +51,12 @@ Internal detail stays on the card.
 
 ## Email
 
-- **Email agents stay project agents**: `email-planner` → `email-builder` live in this board's
-  `agents/`, not shipped built-in.
+- **邮件策划是项目自己的 agent**：`email-planner` 放在本看板的 `agents/`，不随产品内置；
+  卡片新增或修改产品发出的邮件时，Coding 计划阶段请它写成稿和预览，builder 原样实现。
+  没有单独的 Email 工作流和 `email-builder`，等真要单独群发时再加。
 - **邮件资产位置**：定稿邮件放在看板资产目录的 `assets/email/`，只存本机，任何清理都不能删它。
-- **邮件格式**：用 React Email 写成可直接经 Resend 发送的 TSX，卡片里显示渲染后的 HTML。
-- **邮件 build 后**：默认发一封预览邮件到固定评审邮箱，不发给其他人。
+- **邮件格式**：纯文本版直接写在卡片里；有 HTML 版的用 React Email 写成 TSX，
+  卡片里显示渲染后的 HTML，产品发的就是这份 HTML。
 
 ## The demo video
 
