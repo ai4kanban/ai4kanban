@@ -143,9 +143,10 @@ chat message carries depends on where the event lives.
 
 ## Narration
 
-- `POST /v1/speech` — `{ "voice": "Kore", "text": "…" }`: mp3 of the text in that voice, from
+- `POST /v1/speech` — `{ "voice": "Kore", "text": "…" }`: wav of the text in that voice, from
   `google/gemini-3.8-flash-tts` through OpenRouter. Voices are `VOICES` in `src/speech.ts`; text
-  is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret.
+  is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret. Any Pro sign-in, admitted or
+  not, up to 60 minutes of audio per UTC month (`cloud.speech_usage`); only generated audio counts.
 
 ## Billing
 
@@ -215,6 +216,8 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `training_too_many_attempts` | Too many booking submits from one caller. Carries `retry-after`. |
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
+| `pro_required` | Hosted voices need Pro. |
+| `speech_quota_reached` | This month's hosted narration is used up. Carries `retry-after` to the next UTC month. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
 | `storage_limit_reached` | The database turned read-only at its size limit. |

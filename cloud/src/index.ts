@@ -354,11 +354,11 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   // The site's contact form (#784). No account, like the bookings above.
   if (isContactPath(pathname)) return routeContact(request, env, ctx)
 
-  // Hosted narration for demo videos (#1054).
+  // Hosted narration for demo videos (#1054), for any Pro sign-in (#1062).
   if (pathname === '/v1/speech') {
     requireMethod(request, 'POST')
-    await requireOwner(request, env)
-    return speak(env, await bodyOf(request))
+    const session = await readSession(request, env)
+    return speak(env, session.subject, await bodyOf(request))
   }
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,

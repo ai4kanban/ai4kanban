@@ -30,7 +30,7 @@ const zh: PricingCopy = {
     yearly: { price: "$120", per: "/ 年", sub: "折合每月 $10，按年收费" },
     monthly: { price: "$15", per: "/ 月" },
     leadIn: "包含免费版全部功能，另加：",
-    rows: ["邮件工作流", "演示文稿工作流", "产品视频工作流", "优先支持"],
+    rows: ["邮件工作流", "演示文稿工作流", "产品视频工作流", "每月 60 分钟 AI 配音", "优先支持"],
     button: "购买 Pro",
   },
   board: {

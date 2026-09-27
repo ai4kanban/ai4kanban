@@ -1,13 +1,19 @@
 /**
  * Hosted narration for demo videos (#1054). The OpenRouter key stays here; a machine sends
  * a voice and a line and gets wav back — the model only speaks raw 24 kHz mono PCM.
+ *
+ * Pro only, up to `MONTHLY_SPEECH_SECONDS` a UTC month per user (#1062). The length is known
+ * only once spoken, so any time left lets a line start and the last one may run over.
  */
 
+import { billingOf, type SubscriptionRow } from './billing.ts'
+import { call } from './db.ts'
 import type { Env } from './env.ts'
-import { badRequest, speechFailed, speechUnavailable } from './errors.ts'
+import { badRequest, proRequired, speechFailed, speechQuotaReached, speechUnavailable } from './errors.ts'
 
 export const SPEECH_MODEL = 'google/gemini-3.8-flash-tts'
 export const MAX_SPEECH_CHARS = 4000
+export const MONTHLY_SPEECH_SECONDS = 60 * 60
 const PCM_RATE = 24000
 
 /** The model's voices. Each speaks every language it does. Kept in step with
@@ -19,7 +25,7 @@ export const VOICES = [
   'Achird', 'Zubenelgenubi', 'Vindemiatrix', 'Sadachbia', 'Sadaltager', 'Sulafat',
 ] as const
 
-export async function speak(env: Env, body: unknown): Promise<Response> {
+export async function speak(env: Env, user: string, body: unknown): Promise<Response> {
   const { voice, text } = (body ?? {}) as { voice?: unknown; text?: unknown }
   const named = VOICES.find((v) => typeof voice === 'string' && v.toLowerCase() === voice.toLowerCase())
   if (!named) throw badRequest(`Unknown voice. Pick one of: ${VOICES.join(', ')}.`)
@@ -27,6 +33,12 @@ export async function speak(env: Env, body: unknown): Promise<Response> {
   if (text.length > MAX_SPEECH_CHARS) {
     throw badRequest(`That text is too long. Split it into parts of ${MAX_SPEECH_CHARS} characters or fewer.`)
   }
+  const [rows, used] = await Promise.all([
+    call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }),
+    call<number>(env, 'speech_seconds_used', { p_user_id: user }),
+  ])
+  if (billingOf(rows).plan !== 'pro') throw proRequired()
+  if (used >= MONTHLY_SPEECH_SECONDS) throw speechQuotaReached()
   if (!env.OPENROUTER_API_KEY) throw speechUnavailable()
 
   let answer: Response
@@ -54,6 +66,11 @@ export async function speak(env: Env, body: unknown): Promise<Response> {
     throw speechFailed()
   }
   const pcm = new Uint8Array(await answer.arrayBuffer())
+  try {
+    await call(env, 'record_speech', { p_user_id: user, p_seconds: pcm.length / (PCM_RATE * 2) })
+  } catch (e) {
+    console.error('cloud: speech usage not recorded', user, e)
+  }
   return new Response(wav(pcm), {
     headers: { 'content-type': 'audio/wav', 'x-voice': named },
   })

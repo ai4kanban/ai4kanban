@@ -2717,4 +2717,26 @@ begin
 end
 $billing$;
 
+-- ---------------------------------------------------------------------------
+-- Hosted narration is counted per user and UTC month (#1062)
+-- ---------------------------------------------------------------------------
+
+do $speech$
+declare
+  SPEAKER constant uuid := '00000000-0000-4000-8000-00000000c001';
+  OTHER constant uuid := '00000000-0000-4000-8000-00000000c002';
+begin
+  assert (api.speech_seconds_used(SPEAKER))::text::numeric = 0, 'a new user started with seconds used';
+  perform api.record_speech(SPEAKER, 12.5);
+  assert (api.record_speech(SPEAKER, 30))::text::numeric = 42.5, 'a second line did not add up';
+  assert (api.speech_seconds_used(SPEAKER))::text::numeric = 42.5, 'the month did not read back';
+  assert (api.speech_seconds_used(OTHER))::text::numeric = 0, 'one user spent another''s minutes';
+
+  update cloud.speech_usage set month = (month - interval '1 month')::date where user_id = SPEAKER;
+  assert (api.speech_seconds_used(SPEAKER))::text::numeric = 0, 'last month counted against this one';
+
+  raise notice 'sql checks: #1062 speech usage checks passed';
+end
+$speech$;
+
 rollback;

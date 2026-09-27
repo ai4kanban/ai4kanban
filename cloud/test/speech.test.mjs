@@ -1,21 +1,25 @@
-// Hosted narration (#1054): only an admitted account reaches it, the key never leaves the
-// Worker, and a provider failure is a refusal rather than silence.
+// Hosted narration (#1054): only a Pro user reaches it, up to 60 minutes a month each (#1062),
+// the key never leaves the Worker, and a provider failure is a refusal rather than silence.
 
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
-import { SPEECH_MODEL, wav } from '../src/speech.ts'
+import { MONTHLY_SPEECH_SECONDS, SPEECH_MODEL, wav } from '../src/speech.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
 const ENV = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: 'service-role', OPENROUTER_API_KEY: 'or-key' }
 const SUBJECT = '11111111-1111-4111-8111-111111111111'
+const OTHER = '22222222-2222-4222-8222-222222222222'
 const PCM = new Uint8Array([0x01, 0x00, 0xff, 0x7f])
+const PRO = { id: 'sub_1', customer_id: 'c', period: 'yearly', status: 'active', current_period_end: null }
 
 const realFetch = globalThis.fetch
 let keyPair
 let admitted
+let subscriptions
+let used
 let provider
 let sent
 
@@ -24,6 +28,8 @@ beforeEach(async () => {
   keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const jwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey)
   admitted = true
+  subscriptions = { [SUBJECT]: [PRO], [OTHER]: [PRO] }
+  used = {}
   provider = () => new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1' } })
   sent = []
   globalThis.fetch = async (url, init) => {
@@ -31,6 +37,14 @@ beforeEach(async () => {
     if (address === jwksUrl(SUPABASE_URL)) return json({ keys: [{ ...jwk, kid: 'k', alg: 'ES256' }] })
     if (address.endsWith('/rest/v1/rpc/account_for_session')) {
       return json({ admitted, handle: 'lin', name: null, avatar_url: null, account_id: admitted ? SUBJECT : null })
+    }
+    // What 0030_speech_usage.sql does, which test/sql/checks.sql proves against a real database.
+    const body = init?.body ? JSON.parse(init.body) : {}
+    if (address.endsWith('/rest/v1/rpc/subscriptions_for')) return json(subscriptions[body.p_user_id] ?? [])
+    if (address.endsWith('/rest/v1/rpc/speech_seconds_used')) return json(used[body.p_user_id] ?? 0)
+    if (address.endsWith('/rest/v1/rpc/record_speech')) {
+      used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_seconds
+      return json(used[body.p_user_id])
     }
     if (address === 'https://openrouter.ai/api/v1/audio/speech') {
       sent.push({ headers: init.headers, body: JSON.parse(init.body) })
@@ -58,13 +72,42 @@ describe('POST /v1/speech', () => {
     assert.equal(sent[0].headers.authorization, 'Bearer or-key')
   })
 
-  it('refuses an account not admitted, before reaching the provider', async () => {
+  it('counts what was spoken against the month', async () => {
+    await call({ voice: 'Kore', text: 'Hi' })
+    assert.equal(used[SUBJECT], PCM.length / 48000)
+  })
+
+  it('serves Pro whether or not the account is admitted to Cloud', async () => {
     admitted = false
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 200)
+  })
+
+  it('refuses a free or lapsed user, before reaching the provider', async () => {
+    subscriptions[SUBJECT] = []
+    const free = await call({ voice: 'Kore', text: 'Hi' })
+    assert.equal(free.status, 403)
+    assert.equal((await free.json()).error.code, 'pro_required')
+
+    subscriptions[SUBJECT] = [{ ...PRO, status: 'canceled', current_period_end: '2020-01-01T00:00:00.000Z' }]
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 403)
+    assert.equal(sent.length, 0)
+  })
+
+  it('stops a user at the month\'s minutes, and only that user', async () => {
+    used[SUBJECT] = MONTHLY_SPEECH_SECONDS
     const res = await call({ voice: 'Kore', text: 'Hi' })
 
-    assert.equal(res.status, 403)
-    assert.equal((await res.json()).error.code, 'not_admitted')
+    assert.equal(res.status, 429)
+    assert.equal((await res.json()).error.code, 'speech_quota_reached')
+    assert.ok(Number(res.headers.get('retry-after')) > 0)
     assert.equal(sent.length, 0)
+
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' }, ENV, OTHER)).status, 200)
+  })
+
+  it('lets a line start with any time left', async () => {
+    used[SUBJECT] = MONTHLY_SPEECH_SECONDS - 1
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 200)
   })
 
   it('refuses an unknown voice and an empty line', async () => {
@@ -86,21 +129,22 @@ describe('POST /v1/speech', () => {
 
     assert.equal(res.status, 502)
     assert.equal((await res.json()).error.code, 'speech_failed')
+    assert.equal(used[SUBJECT], undefined)
   })
 })
 
-async function call(body, env = ENV) {
+async function call(body, env = ENV, subject = SUBJECT) {
   const request = new Request('https://api.example/v1/speech', {
     method: 'POST',
-    headers: { authorization: `Bearer ${await token()}`, 'content-type': 'application/json' },
+    headers: { authorization: `Bearer ${await token(subject)}`, 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
   return worker.fetch(request, env, { waitUntil() {} })
 }
 
-async function token() {
+async function token(subject) {
   const now = Math.floor(Date.now() / 1000)
-  const claims = { sub: SUBJECT, iss: issuerFor(SUPABASE_URL), aud: 'authenticated', exp: now + 3600 }
+  const claims = { sub: subject, iss: issuerFor(SUPABASE_URL), aud: 'authenticated', exp: now + 3600 }
   const input = `${b64u(JSON.stringify({ alg: 'ES256', kid: 'k' }))}.${b64u(JSON.stringify(claims))}`
   const signature = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },

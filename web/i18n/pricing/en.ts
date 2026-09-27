@@ -31,7 +31,13 @@ const en: PricingCopy = {
     yearly: { price: "$120", per: "/ year", sub: "$10 a month, billed yearly" },
     monthly: { price: "$15", per: "/ month" },
     leadIn: "Everything in Free, plus:",
-    rows: ["Email workflow", "Slide deck workflow", "Product video workflow", "Priority support"],
+    rows: [
+      "Email workflow",
+      "Slide deck workflow",
+      "Product video workflow",
+      "60 minutes of AI voiceover a month",
+      "Priority support",
+    ],
     button: "Get Pro",
   },
   board: {

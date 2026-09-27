@@ -35,9 +35,13 @@ const MESSAGES = {
     zh: '无法连接 AI4Kanban Cloud。请检查网络后重试。',
     en: 'Could not reach AI4Kanban Cloud. Check your connection and try again.',
   },
-  not_admitted: {
-    zh: '托管声音目前只对已受邀的 AI4Kanban Cloud 用户开放。',
-    en: 'Hosted voices are available to invited AI4Kanban Cloud users only.',
+  pro_required: {
+    zh: '托管声音是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
+    en: 'Hosted voices are a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+  },
+  speech_quota_reached: {
+    zh: '本月 60 分钟托管旁白已用完，下月 1 日恢复。',
+    en: 'This month’s 60 minutes of hosted narration are used up. They renew on the 1st of next month.',
   },
   failed: {
     zh: '托管声音暂时无法生成旁白，请稍后重试。',
@@ -157,7 +161,7 @@ try {
   if (!res.ok) {
     const { error } = await res.json().catch(() => ({}))
     if (res.status === 401) fail('expired')
-    if (error?.code === 'not_admitted') fail('not_admitted')
+    if (error?.code === 'pro_required' || error?.code === 'speech_quota_reached') fail(error.code)
     if (res.status === 400) usage(error?.message ?? 'The request was refused.')
     fail('failed')
   }

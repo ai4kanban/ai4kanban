@@ -31,6 +31,8 @@ export type RefusalCode =
   | 'contact_too_many_attempts'
   | 'speech_unavailable'
   | 'speech_failed'
+  | 'pro_required'
+  | 'speech_quota_reached'
   | 'billing_unavailable'
   | 'billing_failed'
   | 'not_found'
@@ -311,6 +313,17 @@ export const speechUnavailable = () =>
 export const speechFailed = () =>
   new Refusal('speech_failed', 502, 'The narration could not be generated. Try again shortly.')
 
+/** Hosted narration is Pro's, up to its monthly minutes (#1062). */
+export const proRequired = () => new Refusal('pro_required', 403, 'Hosted voices need Pro.')
+
+export const speechQuotaReached = (now = Date.now()) =>
+  new Refusal(
+    'speech_quota_reached',
+    429,
+    'This month’s hosted narration is used up. It resets on the 1st (UTC).',
+    secondsUntilNextUtcMonth(now),
+  )
+
 /** Pro billing (#1037): this build carries no Creem store, or Creem did not answer. */
 export const billingUnavailable = () =>
   new Refusal('billing_unavailable', 503, 'Billing is not available right now.')
@@ -355,4 +368,9 @@ export function storageLimitReached(): Refusal {
 export function secondsUntilNextUtcDay(now = Date.now()): number {
   const day = 24 * 60 * 60 * 1000
   return Math.ceil((day - (now % day)) / 1000)
+}
+
+export function secondsUntilNextUtcMonth(now = Date.now()): number {
+  const at = new Date(now)
+  return Math.ceil((Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + 1, 1) - now) / 1000)
 }
