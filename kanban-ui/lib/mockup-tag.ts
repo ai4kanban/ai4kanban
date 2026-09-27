@@ -15,7 +15,19 @@ export type MockupTag = {
   src: string;
   /** The name on the frame — `A`, `B`, `C`. Empty when the tag carries none. */
   label: string;
+  /** The screen a `.tsx`/`.html` mockup is laid out on (#1097). Anything but `mobile` is desktop. */
+  device: Device;
 };
+
+export type Device = "mobile" | "desktop";
+
+/** The canvas each device's screen is laid out on, before it is scaled. */
+export const SCREENS: Record<Device, { w: number; h: number }> = {
+  desktop: { w: 1280, h: 800 },
+  mobile: { w: 390, h: 844 },
+};
+
+export const deviceOf = (value: string | null | undefined): Device => (value === "mobile" ? "mobile" : "desktop");
 
 /** What the card page draws for one tag: the screen, the drawing, or the note saying why
  *  not. */
@@ -98,7 +110,7 @@ export function mockupTags(raw: string): MockupTag[] {
     for (const a of match[1]!.matchAll(ATTR)) {
       attrs[(a[1] ?? a[3])!] = (a[2] ?? a[4])!;
     }
-    if (attrs.src) found.push({ src: attrs.src, label: attrs.label ?? "" });
+    if (attrs.src) found.push({ src: attrs.src, label: attrs.label ?? "", device: deviceOf(attrs.device) });
   }
   return found;
 }
@@ -113,9 +125,10 @@ export function mockupBlock(raw: string): MockupTag[] | null {
 }
 
 /** The page an asset gets to itself, with no dot segment in the address:
- *  `.assets/803/a.png` is at `/assets/803/a.png`, `.mockups/239/a.tsx` at `/mockups/239/a.tsx`. */
-export function mockupHref(src: string): string {
-  return `/${src.replace(/^\./, "")}`;
+ *  `.assets/803/a.png` is at `/assets/803/a.png`, `.mockups/239/a.tsx` at `/mockups/239/a.tsx`.
+ *  A phone screen carries `?device=mobile`. */
+export function mockupHref(src: string, device: Device = "desktop"): string {
+  return `/${src.replace(/^\./, "")}${device === "mobile" ? "?device=mobile" : ""}`;
 }
 
 /** Where a deferred screen is drawn (#906) — or, with `code`, only the file's text. */

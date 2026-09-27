@@ -10,7 +10,7 @@
 //
 // The mockup keeps the empty sandbox the card page's frame has — nothing runs, nothing
 // loads, nothing in the picture is clickable. It is not scaled here, so a panel narrower
-// than the desktop screen it was drawn on scrolls.
+// than the screen it was drawn on scrolls. A phone screen (#1097) stands in its phone frame.
 //
 // A `.txt` mockup opens here too (#256), in the same monospaced block the card page shows
 // it in and at the size a drawing is read at. It never re-wraps either.
@@ -23,25 +23,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/i18n/use-copy";
-import type { MockupView } from "@/lib/mockup-tag";
+import { SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryOwner } from "@/lib/types";
 import { clock, MediaPlayer, type MediaMeta } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
+import { Phone } from "./Mockup";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { Window } from "./Window";
 
-/** The desktop screen every mockup is drawn on. Shown here at that size, not scaled. */
-const W = 1280;
-const H = 800;
-
 /** The card a mockup belongs to — `.mockups/<card id>/` is where it is filed. */
 export type MockupCard = { id: number; title: string };
 
 export function MockupPage({
   view,
+  device,
   card,
   openIds,
   agent,
@@ -51,6 +49,7 @@ export function MockupPage({
   desktop,
 }: {
   view: MockupView;
+  device: Device;
   /** The card that pointed at this file, when it is still on the board. */
   card: MockupCard | null;
   openIds: number[];
@@ -202,14 +201,26 @@ export function MockupPage({
                 {view.code}
               </pre>
             ) : (
-              view.doc && (
+              view.doc &&
+              (device === "mobile" ? (
+                <span className="mx-auto block w-max">
+                  <Phone scale={1}>
+                    <iframe
+                      sandbox=""
+                      srcDoc={view.doc}
+                      title={view.src}
+                      style={{ width: SCREENS.mobile.w, height: SCREENS.mobile.h, border: 0, display: "block" }}
+                    />
+                  </Phone>
+                </span>
+              ) : (
                 <iframe
                   sandbox=""
                   srcDoc={view.doc}
                   title={view.src}
-                  style={{ width: W, height: H, border: 0, display: "block" }}
+                  style={{ width: SCREENS.desktop.w, height: SCREENS.desktop.h, border: 0, display: "block" }}
                 />
-              )
+              ))
             )}
           </div>
         </div>

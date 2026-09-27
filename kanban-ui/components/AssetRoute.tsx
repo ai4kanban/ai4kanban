@@ -5,6 +5,7 @@ import { agentInfo, NO_AGENT } from "@/lib/agent";
 import { findCard, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockup } from "@/lib/mockup";
+import { deviceOf } from "@/lib/mockup-tag";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { Board, Card } from "@/lib/types";
 
@@ -24,7 +25,16 @@ import type { Board, Card } from "@/lib/types";
 
 /** The page for one asset, under `/assets/...` or `/mockups/...` — `folder` is the dotted
  *  folder the address stands for. */
-export async function AssetRoute({ folder, segments }: { folder: ".assets" | ".mockups"; segments: string[] }) {
+export async function AssetRoute({
+  folder,
+  segments,
+  device,
+}: {
+  folder: ".assets" | ".mockups";
+  segments: string[];
+  /** `?device=` as the card's full-size link wrote it (#1097). */
+  device?: string;
+}) {
   if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} desktop={isDesktop()} />;
 
   const src = [folder, ...segments].join("/");
@@ -52,6 +62,7 @@ export async function AssetRoute({ folder, segments }: { folder: ".assets" | ".m
   return (
     <MockupPage
       view={view}
+      device={deviceOf(device)}
       card={card && { id: card.id, title: card.title }}
       openIds={board.openIds}
       agent={agent}

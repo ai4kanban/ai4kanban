@@ -25,7 +25,7 @@ import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
 import { storyboardTag } from "@/lib/format/storyboard";
-import { mockupBlock, type MockupSet } from "@/lib/mockup-tag";
+import { deviceOf, mockupBlock, type MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
 import { Copied, useCopyText } from "./copy";
@@ -101,7 +101,7 @@ function remarkMockups(mockups: MockupSet | null) {
         type: "mockup",
         data: {
           hName: "mockup",
-          hProperties: { "data-src": tag.src, "data-label": tag.label },
+          hProperties: { "data-src": tag.src, "data-label": tag.label, "data-device": tag.device },
           hChildren: [],
         },
       }));
@@ -182,7 +182,7 @@ const MockupsContext = createContext<MockupSet | null>(null);
 function MockupNode(props: any) {
   const mockups = useContext(MockupsContext);
   const view = mockups?.[props["data-src"] as string];
-  return view ? <Mockup view={view} label={props["data-label"] || ""} /> : null;
+  return view ? <Mockup view={view} label={props["data-label"] || ""} device={deviceOf(props["data-device"])} /> : null;
 }
 
 const StoryboardsContext = createContext<StoryboardSet | null>(null);

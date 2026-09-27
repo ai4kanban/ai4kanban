@@ -8,10 +8,10 @@
 // board's never meet — the board's fonts, colours and layout rules stop at the frame, and
 // a mockup's `<style>` stops there too.
 //
-// Every mockup is drawn on the same desktop screen and scaled down to whatever width the
-// card page gives it, because options only compare when they are the same size on the
-// page. Type too small to read is what the two links on the frame are for: the code
-// behind it, and the mockup on its own at full size.
+// A screen is drawn on its device's canvas — desktop unless the tag says `device="mobile"`
+// (#1097) — and scaled down to whatever width the card page gives it. A phone screen sits in
+// a phone frame at 3/4 size, centered. Type too small to read is what the two links on the
+// frame are for: the code behind it, and the mockup on its own at full size.
 //
 // A `.txt` mockup is not a screen and gets none of that (#256): it is the file's own
 // characters in a monospaced block, at full size, scrolled rather than scaled.
@@ -27,14 +27,44 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiAlertCircle, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { mockupHref, mockupViewHref, type MockupView } from "@/lib/mockup-tag";
+import { mockupHref, mockupViewHref, SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 
-/** The desktop screen every mockup is drawn on, before it is scaled. Every option gets
- *  this same frame — they only compare when they are the same size on the page. */
-const W = 1280;
-const H = 800;
+const { w: W, h: H } = SCREENS.desktop;
+const PHONE = SCREENS.mobile;
+
+/** The phone frame's bezel and corner, at 1:1. */
+const BEZEL = 12;
+const PHONE_W = PHONE.w + 2 * BEZEL;
+const PHONE_H = PHONE.h + 2 * BEZEL;
+/** A phone screen on a card page is never drawn larger than this. */
+const PHONE_SCALE = 0.75;
+/** The band a phone stands in: its vertical padding. */
+const BAND_PAD = 24;
+
+/** A phone around a 390×844 screen, everything drawn at `scale`. */
+export function Phone({ scale, children }: { scale: number; children?: React.ReactNode }) {
+  return (
+    <span
+      className="block shrink-0"
+      style={{
+        width: PHONE_W * scale,
+        height: PHONE_H * scale,
+        padding: BEZEL * scale,
+        borderRadius: 58 * scale,
+        background: "var(--color-nb-ink)",
+      }}
+    >
+      <span
+        className="block overflow-hidden bg-nb-paper"
+        style={{ width: PHONE.w * scale, height: PHONE.h * scale, borderRadius: 47 * scale }}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
 
 /** A missing file, a `src` pointing outside the mockups folder, a file in none of the
  *  three formats, or a `.tsx` the board could not draw. One plain note either way, naming
@@ -90,6 +120,52 @@ function Picture({ image, src, alt }: { image: string; src: string; alt: string 
   );
 }
 
+/** The band a phone screen stands in, centered, so a phone never stretches to the body. */
+function PhoneBand({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex w-full justify-center bg-nb-wash" style={{ padding: `${BAND_PAD}px 12px` }}>
+      {children}
+    </span>
+  );
+}
+
+/** A phone screen at 3/4 size, shrunk further when the body is narrower than that. */
+function PhoneScreen({ doc, title }: { doc: string; title: string }) {
+  const box = useRef<HTMLSpanElement>(null);
+  const [scale, setScale] = useState(PHONE_SCALE);
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => setScale(Math.min(PHONE_SCALE, el.clientWidth / PHONE_W));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <PhoneBand>
+      <span ref={box} className="flex w-full justify-center">
+        <Phone scale={scale}>
+          <iframe
+            sandbox=""
+            srcDoc={doc}
+            title={title}
+            style={{
+              width: PHONE.w,
+              height: PHONE.h,
+              border: 0,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+          />
+        </Phone>
+      </span>
+    </PhoneBand>
+  );
+}
+
 /** The picture: one desktop screen, scaled to the width it is given and never past its
  *  true size. The frame is that scaled height, so the card page reflows around it. */
 function Screen({ doc, title }: { doc: string; title: string }) {
@@ -136,8 +212,27 @@ function Screen({ doc, title }: { doc: string; title: string }) {
 const NEAR = "800px 0px";
 
 /** A screen or its code on its way: the screen's own size and fill, and a breathing mark. */
-function Pending({ hyperframe }: { hyperframe: boolean }) {
+function Pending({ hyperframe, device }: { hyperframe: boolean; device: Device }) {
   const c = useCopy().card.mockup;
+  if (device === "mobile" && !hyperframe)
+    return (
+      <PhoneBand>
+        <span
+          role="status"
+          aria-busy="true"
+          aria-label={c.loadingPreview}
+          className="flex items-center justify-center"
+          style={{
+            width: `min(${PHONE_W * PHONE_SCALE}px, 100%)`,
+            aspectRatio: `${PHONE_W} / ${PHONE_H}`,
+            borderRadius: 58 * PHONE_SCALE,
+            border: `${BEZEL * PHONE_SCALE}px solid var(--color-nb-ink)`,
+          }}
+        >
+          <FiImage aria-hidden className="a4k-breathe text-nb-ink-soft" style={{ width: 22, height: 22 }} />
+        </span>
+      </PhoneBand>
+    );
   return (
     <span
       role="status"
@@ -204,7 +299,7 @@ function useNearFetch<T>(box: React.RefObject<HTMLElement | null>, href: string 
 
 /** One mockup, framed: its label and its file over the screen, and the switch between the
  *  screen and the code the file holds. */
-export function Mockup({ view, label }: { view: MockupView; label: string }) {
+export function Mockup({ view, label, device }: { view: MockupView; label: string; device: Device }) {
   const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
@@ -218,6 +313,9 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
   const noCode = useMemo(() => ({ error: c.previewFailed }), [c]);
   const fetched = useNearFetch<{ code?: string; error?: string }>(box, codeHref, noCode);
   const code = drawn?.code ?? (codeHref ? (fetched ? (fetched.code ?? fetched.error ?? "") : null) : null);
+  // Only a `.tsx`/`.html` screen is laid out on a device.
+  const screen = deferred ? !deferred.hyperframe : view.doc !== undefined && !view.hyperframe;
+  const shown: Device = screen ? device : "desktop";
 
   if (drawn?.error !== undefined) return <Note text={drawn.error} />;
   if (view.file) return <Download file={view.file} label={label} />;
@@ -240,7 +338,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
             where the words in it can be read. It opens in the board, not in a separate
             browser: the desktop app hands any new window to the system browser. */}
         <Link
-          href={mockupHref(view.src)}
+          href={mockupHref(view.src, shown)}
           className="inline-flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-accent-deep"
           title={c.openFull}
         >
@@ -259,7 +357,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
         )}
       </span>
       {drawn === null || (showCode && code === null) ? (
-        <Pending hyperframe={!showCode && !!deferred?.hyperframe} />
+        <Pending hyperframe={!showCode && !!deferred?.hyperframe} device={showCode ? "desktop" : shown} />
       ) : drawn.doc !== undefined && drawn.hyperframe && !showCode ? (
         <span className={deferred ? "a4k-reveal block" : "block"}>
           <HyperframePlayer key={view.src} doc={drawn.doc} title={label || view.src} />
@@ -280,7 +378,11 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
       ) : (
         drawn.doc !== undefined && (
           <span className={deferred ? "a4k-reveal block" : "block"}>
-            <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} />
+            {shown === "mobile" ? (
+              <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} />
+            ) : (
+              <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} />
+            )}
           </span>
         )
       )}

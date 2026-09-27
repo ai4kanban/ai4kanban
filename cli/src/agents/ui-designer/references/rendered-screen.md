@@ -39,12 +39,13 @@ Point at each screen from your section with one `<Asset>` tag standing in a para
 own — a blank line above it and a blank line below:
 
 ```
-<Asset src=".assets/<card id>/board-empty.tsx" label="Board, nothing on it" />
+<Asset src=".assets/<card id>/board-empty.tsx" label="Board, nothing on it" device="desktop" />
 
-<Asset src=".assets/<card id>/card-run-failed.tsx" label="Card page, run failed" />
+<Asset src=".assets/<card id>/board-empty-phone.tsx" label="Board on a phone, nothing on it" device="mobile" />
 ```
 
 A tag sharing a line or paragraph with prose is printed as text. `src` is the entry file's name,
 written exactly as above and resolved by the board; `label` is required and is the screen's name
-for a reader, in the board's language. Use `<Asset>` for mockups; cards also support `<Storyboard>`
+for a reader, in the board's language. `device` is `mobile` for a 390×844 phone screen or
+`desktop` for a 1280×800 one; write it on every screen. Use `<Asset>` for mockups; cards also support `<Storyboard>`
 for scripts with storyboard manifests. Inside backticks or a fenced block, either remains text.

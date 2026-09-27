@@ -106,6 +106,8 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
         add(i + 1, 'mockup-block', 'Put the self-closing <Asset ... /> tag on its own line, with blank lines separating it from prose.')
       }
       if (!/\bsrc="[^"]+"/.test(line) || !/\blabel="[^"]+"/.test(line)) add(i + 1, 'mockup-attributes', 'Add non-empty src="..." and label="..." attributes to the Asset tag.')
+      const device = line.match(/\bdevice="([^"]*)"/)?.[1]
+      if (device !== undefined && device !== 'mobile' && device !== 'desktop') add(i + 1, 'mockup-device', `device="${device}" is not a device. Use device="mobile" or device="desktop".`)
     }
     if (/^\s*<Storyboard\b/.test(line) && (storyboardTag(line) === null || lines[i - 1]?.trim() || lines[i + 1]?.trim())) {
       add(i + 1, 'storyboard-block', 'Put one self-closing <Storyboard src=".assets/<card id>/storyboard.json" /> tag on its own line, with blank lines around it.')

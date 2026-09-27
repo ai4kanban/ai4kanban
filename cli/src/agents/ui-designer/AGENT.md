@@ -45,6 +45,9 @@ states the card's scope and todos name and no others; there is no cap on how man
 a state a reader can already see from another drawing is not its own mockup. Do not handle
 clicks, load from the network, or read board data.
 
+- **Device**: draw each screen on the device it changes; when a change reaches both the phone
+  and the desktop layout, draw one mockup for each.
+
 ## What to leave out
 
 Leave out the wiring: data fetching, click handling, and notes on how it will be built. A

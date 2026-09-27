@@ -89,6 +89,13 @@ describe('the card format contract', () => {
     for (const rule of ['duplicate-section', 'section-half', 'todos', 'mockup-block']) assert.ok(rules.includes(rule), rule)
   })
 
+  it('accepts only mobile or desktop as a mockup device', () => {
+    const tag = (device: string) => valid.replace('- [ ] Implement it.', `- [ ] Implement it.\n\n<Asset src=".assets/1/a.tsx" label="A" ${device}/>\n`)
+    const rules = (device: string) => validateSpec(file, tag(device)).map((e) => e.rule)
+    for (const ok of ['', 'device="mobile" ', 'device="desktop" ']) assert.ok(!rules(ok).includes('mockup-device'), ok)
+    assert.ok(rules('device="phone" ').includes('mockup-device'))
+  })
+
   it('validates specialist sections while ignoring examples inside code fences', () => {
     const example = '\n## By `ui-designer` agent\n\n### Layout\n\n````md\n```\n## Scope\n<!-- agent -->\n<Mockup broken>\n```\n````\n'
     assert.deepEqual(validateSpec(file, valid.replace('## Decided by the agent', example + '\n## Decided by the agent')), [])
