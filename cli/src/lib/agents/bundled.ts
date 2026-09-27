@@ -9,6 +9,8 @@
 // project's own agent is read, so adding a built-in agent is adding files and the two lines
 // naming them here.
 
+import blogIllustrator from '../../agents/blog-illustrator/AGENT.md'
+import blogPlanner from '../../agents/blog-planner/AGENT.md'
 import carouselPlanner from '../../agents/carousel-planner/AGENT.md'
 import carouselSlidesExample from '../../agents/carousel-planner/references/slides.example.json'
 import carouselSlidesSchema from '../../agents/carousel-planner/references/slides.schema.json'
@@ -45,6 +47,8 @@ import uiDesignerRendered from '../../agents/ui-designer/references/rendered-scr
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
+  'blog-illustrator/AGENT.md': blogIllustrator,
+  'blog-planner/AGENT.md': blogPlanner,
   'carousel-planner/AGENT.md': carouselPlanner,
   'carousel-planner/references/slides.example.json': carouselSlidesExample as unknown as string,
   'carousel-planner/references/slides.schema.json': carouselSlidesSchema as unknown as string,

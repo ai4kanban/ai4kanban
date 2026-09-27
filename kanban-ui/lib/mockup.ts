@@ -16,7 +16,7 @@
 //          from app/asset-image, and an `<img>` never runs what an SVG holds.
 //   media  .mp4 .webm .mov, .mp3 .wav .m4a (#872). Not read here either: the page's own
 //          player streams them from app/asset-image.
-//   file   .pptx (#969). A delivered file, offered as a download from app/asset-image.
+//   file   .pptx (#969), .md .mdx (#1126). A delivered file, offered as a download from app/asset-image.
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
 // in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling

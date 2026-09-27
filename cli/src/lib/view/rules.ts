@@ -59,19 +59,20 @@ export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => ques
 
 // ---- a card that finishes in planning (#1057) -------------------------------
 //
-// A product video, slide deck (#1075) or carousel post (#1117) is made while the card is
-// planned: the user reviews each step through a `[user]` question and a todo, and archives the
+// A product video, slide deck (#1075), carousel post (#1117) or blog post (#1126) is made while
+// the card is planned: the user reviews each step through a `[user]` question and a todo, and archives the
 // card to accept it. Nothing is built.
 
-/** The finished files a card finishing in planning delivers: a video or a PowerPoint deck. */
-export const PLAN_DELIVERABLE = /\.(mp4|webm|mov|m4v|pptx)$/i
+/** The finished files a card finishing in planning delivers: a video, a PowerPoint deck or an
+ *  article. */
+export const PLAN_DELIVERABLE = /\.(mp4|webm|mov|m4v|pptx|md|mdx)$/i
 
 /** A carousel's rendered pages, one storyboard per ratio: `pages-3x4.json`. */
 const PAGES_STORYBOARD = /(^|\/)pages-[^/]*\.json$/i
 
 /** What a card finishing in planning still lacks before it can be archived, or null when it
- *  is done: nothing left to answer, a deliverable in its body, its rebuild command in a ticked
- *  todo, and every todo ticked. */
+ *  is done: nothing left to answer, a deliverable in its body, a ticked todo recording where
+ *  it went or the command that rebuilds it, and every todo ticked. */
 export function planDeliveryGap(card: Pick<Card, 'questions' | 'todos' | 'body'>): 'questions' | 'deliverable' | 'command' | 'todos' | null {
   if (openOf(card.questions).length > 0) return 'questions'
   if (!planDeliverables(card.body).length) return 'deliverable'

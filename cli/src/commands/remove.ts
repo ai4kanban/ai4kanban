@@ -216,8 +216,8 @@ function unfinishedDelivery(id: number): string | null {
   if (gap) {
     const what = {
       questions: 'it still has open questions',
-      deliverable: 'no finished video, PowerPoint deck or carousel pages are on the card',
-      command: 'no ticked todo records the command that rebuilds it',
+      deliverable: 'no finished deliverable is on the card',
+      command: 'no ticked todo records where it was delivered or the command that rebuilds it',
       todos: 'not every todo is ticked',
     }[gap]
     return `#${id} is not finished: ${what}.`

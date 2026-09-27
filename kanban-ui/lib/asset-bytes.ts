@@ -29,6 +29,8 @@ export const AUDIO_TYPES: Record<string, string> = {
 // Delivered files (#969): shown as a download, never opened in the board.
 export const FILE_TYPES: Record<string, string> = {
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  md: "text/markdown; charset=utf-8",
+  mdx: "text/markdown; charset=utf-8",
 };
 
 export const ASSET_TYPES: Record<string, string> = { ...IMAGE_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES, ...FILE_TYPES };
