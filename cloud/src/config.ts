@@ -212,6 +212,7 @@ export const TRAINING_MAIL_MAX_ATTEMPTS = 5
 /** Where the training page lives. A manage link is this plus the booking's reference and its
  *  token, so a message can be written from the scheduled run with no request to read it off. */
 export const TRAINING_PAGE_URL = 'https://ai4kanban.dev/training'
+export const TRAINING_TERMS_URL = 'https://ai4kanban.dev/terms#training'
 
 /** The GitHub handles allowed to read the booking records. An admitted Cloud account is not
  *  enough: these rows are other people's names, addresses and project notes, and the preview

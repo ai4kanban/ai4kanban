@@ -161,10 +161,14 @@ export function BookingForm({
               {submitting ? t.form.submitting : t.form.submit}
             </button>
           )}
+          <a href="/terms#training" className="text-xs text-muted underline underline-offset-4">
+            {t.form.terms}
+          </a>
           <a href="/privacy" className="text-xs text-muted underline underline-offset-4">
             {t.form.privacy}
           </a>
         </div>
+        <p className="mt-4 text-xs text-muted">{t.form.seller}</p>
       </form>
     </section>
   );

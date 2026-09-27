@@ -19,6 +19,7 @@ import {
   TRAINING_MAIL_FROM,
   TRAINING_MAIL_MAX_ATTEMPTS,
   TRAINING_PAGE_URL,
+  TRAINING_TERMS_URL,
 } from './config.ts'
 import { call } from './db.ts'
 import type { Env } from './env.ts'
@@ -151,7 +152,10 @@ function confirmation(record: Queued, manageLink?: string) {
       `    When       ${whenLine(record)}`,
       '',
       'Tao will email you before it starts with the meeting link. There is nothing to install',
-      'and nothing to pay online — payment is arranged in that email.',
+      'and nothing to pay online — payment and the invoice are arranged in that email.',
+      '',
+      'Training is sold and invoiced by 厦门宛理之间科技有限公司 (Xiamen, China).',
+      `Terms: ${TRAINING_TERMS_URL}`,
       '',
       ...manage,
       '',

@@ -171,6 +171,9 @@ const en: TrainingCopy = {
     serviceMonthly: "Monthly guidance · {price} / month, 4 sessions",
     submit: "Confirm booking",
     submitting: "Booking…",
+    seller:
+      "Sold and invoiced by 厦门宛理之间科技有限公司 (Xiamen, China). Nothing is charged here — payment and the invoice are arranged by email after you book.",
+    terms: "Terms of service",
     privacy: "Privacy policy",
     nameRequired: "Please enter your name.",
     emailRequired: "Please enter an email address for your booking details.",
@@ -191,7 +194,7 @@ const en: TrainingCopy = {
     service: "Service",
     when: "Date and time",
     reference: "Booking reference",
-    next: "Your booking details are being sent to {email}. Tao will contact you by email with the meeting link.",
+    next: "Your booking details are being sent to {email}. We will contact you by email to arrange payment and the invoice, and send the meeting link.",
     calendar: "Add to calendar",
     cancel: "Cancel this booking",
     cancelWarning: "Cancelling will make this time available to others.",

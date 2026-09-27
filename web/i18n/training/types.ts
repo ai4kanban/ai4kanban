@@ -99,6 +99,9 @@ export type TrainingCopy = {
     serviceMonthly: string;
     submit: string;
     submitting: string;
+    /** Who sells the session and how it is paid, read before the submit. */
+    seller: string;
+    terms: string;
     privacy: string;
     /** Beside the field, when it is empty or malformed. */
     nameRequired: string;
