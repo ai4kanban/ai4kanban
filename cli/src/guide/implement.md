@@ -16,13 +16,13 @@ Build the approved card. Preserve settled decisions and unrelated questions.
 
 ## A build that writes its own card
 
-**Start now** sends a requirement with no card behind it — a typed sentence, or the plan a
-discussion settled. Write the card first, in the same run, then build it. The board points
+**Start now** sends a requirement with no card behind it — a typed sentence, the plan a
+discussion settled, or a triage item. Write the card first, in the same run, then build it. The board points
 the run and its delivery at the card as the create lands, so from there it is an ordinary
 build.
 
-- **Read the plan first**: given a plan's path, that file is the requirement — read it, and
-  everything below reads "the plan" for "the sentence".
+- **Read the plan first**: given a plan's path or a triage item's file, that file is the
+  requirement — read it, and everything below reads "the plan" for "the sentence".
 - **Create it first**: `akb raw create --title ".."`, plus `--release` when the prompt names
   one. The title is one short line read off the sentence, or the plan's own title, in its own
   language — add `--slug <short-english-slug>` when that is not English, because filenames are
@@ -34,6 +34,9 @@ build.
 - **From a plan, name it**: end the card with `## Source` carrying the plan's path from the
   project root, the way a create off a plan writes it — once the discussion has let the plan
   go, that path is the only way back to the file. It is the card's last section.
+- **From a triage item, file it**: `## Source` names the item's source id instead, and
+  `akb triage archive <source-id> --card <id>` runs straight after the create, before any
+  build work.
 - **Leave the rest of the scaffold**: `## Worth noting`, `## Scope`, `## Todo` and
   `## Decided by the agent` stay exactly as `raw create` wrote them.
 - **Then build that card**: the code block is the whole requirement — build exactly it and

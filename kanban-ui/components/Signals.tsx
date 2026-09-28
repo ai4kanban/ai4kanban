@@ -1,8 +1,9 @@
 "use client";
 
-// Triage (#453, #559, #560, #894) — a queue you empty. Every item waiting in
-// `docs/kanban/triage/` leaves it one of two ways: **Make card** starts a create run pointed at
-// the item, and **Ignore** records the user's reason. Items arrive on their own — follow-ups
+// Triage (#453, #559, #560, #894, #1193) — a queue you empty. Every item waiting in
+// `docs/kanban/triage/` leaves it by **Make card** (a create run pointed at the item), **Start
+// now** (a build that writes the card first), or **Ignore** (the user's reason). **Discuss**
+// takes it into a fresh discussion and leaves it waiting. Items arrive on their own — follow-ups
 // from finished cards, and connected sources; a person asking for work uses **New task**.
 //
 // Items are grouped by source: a source type when one was given, otherwise the card an item
@@ -24,6 +25,7 @@ import {
   FiChevronRight,
   FiCornerDownRight,
   FiExternalLink,
+  FiEyeOff,
   FiInbox,
   FiRotateCcw,
   FiSearch,
@@ -37,6 +39,7 @@ import {
   makeCardAction,
   restoreSignalAction,
   sortTriageAction,
+  startTriageItemAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { useLanguage } from "@/components/language";
@@ -51,12 +54,13 @@ import {
 } from "@/lib/types";
 import { Button } from "./button";
 import { CHROME, HAIRLINE } from "./chrome";
+import { ConfirmationPopover } from "./confirm-popover";
 import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
 import { useOverRail } from "@/lib/over-rail";
-import { useSheetUp } from "@/lib/create-open";
+import { createSheet, useSheetUp } from "@/lib/create-open";
 import { SidePane } from "@/lib/side-pane";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { reloadSignalsRow } from "./signals-row";
@@ -69,9 +73,12 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Window } from "./Window";
-import { sayFailure } from "@/lib/start-failure";
+import { sayFailure, type Refused } from "@/lib/start-failure";
 
 type Tab = "pending" | "history";
+
+/** What a run on an item is doing: making its card, or starting it (#1193). */
+type Taking = "make" | "start";
 
 // Radix will not take an empty string as a value, and the empty string is already the key of
 // the group nothing named a source for — so the picker carries two words of its own.
@@ -89,6 +96,7 @@ const GHOST_ACT =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-accent-deep transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:px-3";
 const GHOST_INK =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:text-nb-ink focus-visible:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:px-3";
+const WIDE_TAP = "max-md:px-4 max-md:text-[13px]";
 const LINK =
   "cursor-pointer text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2";
 
@@ -283,19 +291,20 @@ export function SignalsPage({
   const [ignoring, setIgnoring] = useState<Signal | null>(null);
   const ignoreBack = useRef<HTMLElement | null>(null);
 
-  // Make card: pressed and not yet answered, then started and not yet in the poll.
-  const [starting, setStarting] = useState<Set<string>>(new Set());
-  const [started, setStarted] = useState<Record<string, string>>({});
+  // Make card or Start now: pressed and not yet answered, then started and not yet in the poll.
+  const [starting, setStarting] = useState<Record<string, Taking>>({});
+  const [started, setStarted] = useState<Record<string, { sessionId: string; taking: Taking }>>({});
   const [sortStarting, setSortStarting] = useState(false);
   const [sortNote, setSortNote] = useState<"closed" | "refused" | null>(null);
 
   const making = useMemo(() => {
-    const ids = new Set(starting);
+    const ids = new Map<string, Taking>(Object.entries(starting));
     for (const run of sessions) {
-      if (run.status === "running" && run.triage) ids.add(run.triage);
+      if (run.status === "running" && run.triage)
+        ids.set(run.triage, run.action === "implement" ? "start" : "make");
     }
-    for (const [sourceId, sessionId] of Object.entries(started)) {
-      if (!sessions.some((run) => run.sessionId === sessionId)) ids.add(sourceId);
+    for (const [sourceId, { sessionId, taking }] of Object.entries(started)) {
+      if (!sessions.some((run) => run.sessionId === sessionId)) ids.set(sourceId, taking);
     }
     return ids;
   }, [sessions, starting, started]);
@@ -306,7 +315,7 @@ export function SignalsPage({
   useEffect(() => {
     setStarted((was) => {
       const kept = Object.fromEntries(
-        Object.entries(was).filter(([, id]) => !sessions.some((run) => run.sessionId === id)),
+        Object.entries(was).filter(([, { sessionId }]) => !sessions.some((run) => run.sessionId === sessionId)),
       );
       return Object.keys(kept).length === Object.keys(was).length ? was : kept;
     });
@@ -403,29 +412,40 @@ export function SignalsPage({
     setSource(EVERY);
   };
 
-  const makeCard = async (signal: Signal, fromDetail = false) => {
+  /** Make card, or Start now (#1193) — which only the detail offers, and whose refusal says
+   *  why. */
+  const take = async (signal: Signal, taking: Taking, fromDetail = false) => {
     const { sourceId } = signal;
     if (making.has(sourceId) || sorting) return;
     setFailed("");
     setDetailFailed("");
-    setStarting((was) => new Set(was).add(sourceId));
-    const done = await makeCardAction(sourceId).catch(() => ({
-      ok: false,
-      sessionId: undefined,
-    }));
+    setStarting((was) => ({ ...was, [sourceId]: taking }));
+    const done: Refused & { ok: boolean; sessionId?: string } = await (taking === "start" ? startTriageItemAction : makeCardAction)(
+      sourceId,
+    ).catch(() => ({ ok: false }));
     setStarting((was) => {
-      const next = new Set(was);
-      next.delete(sourceId);
+      const next = { ...was };
+      delete next[sourceId];
       return next;
     });
     if (!done.ok || !done.sessionId) {
-      if (fromDetail) setDetailFailed(c.makeFailed);
-      else setFailed(c.makeFailed);
+      const why = taking === "start" ? sayFailure(done, c.startFailed) : c.makeFailed;
+      if (fromDetail) setDetailFailed(why);
+      else setFailed(why);
       return;
     }
-    setStarted((was) => ({ ...was, [sourceId]: done.sessionId! }));
+    setStarted((was) => ({ ...was, [sourceId]: { sessionId: done.sessionId!, taking } }));
     kick();
     if (fromDetail && openNow.current === sourceId) closeDetail();
+  };
+
+  /** Discuss (#1193): a fresh discussion, the item named after its draft, nothing sent. */
+  const discuss = (signal: Signal) => {
+    const card = cardOfGroup(groupOf(signal));
+    createSheet.open(
+      null,
+      `discuss triage ${card === null ? "" : `#${card} `}(${signal.relPath}):\n\n`,
+    );
   };
 
   const askIgnore = (signal: Signal) => {
@@ -569,12 +589,14 @@ export function SignalsPage({
         history={tab === "history"}
         source={detailSource(opened)}
         card={opened.cardId !== null ? inbox.cards[opened.cardId] : undefined}
-        making={making.has(opened.sourceId)}
+        making={making.get(opened.sourceId)}
         sorting={sorting}
         paused={!!ignoring}
         failed={detailFailed}
         onClose={closeDetail}
-        onMake={() => void makeCard(opened, true)}
+        onMake={() => void take(opened, "make", true)}
+        onStart={() => void take(opened, "start", true)}
+        onDiscuss={() => discuss(opened)}
         onIgnore={() => askIgnore(opened)}
         onRestore={() => void restore(opened)}
       />
@@ -730,7 +752,7 @@ export function SignalsPage({
                           signal={signal}
                           selected={open === signal.sourceId}
                           focused={focused === signal.sourceId}
-                          making={making.has(signal.sourceId)}
+                          making={making.get(signal.sourceId)}
                           leaving={leavingIds.has(signal.sourceId)}
                           sorting={sorting}
                           onFocus={() => setFocused(signal.sourceId)}
@@ -738,7 +760,7 @@ export function SignalsPage({
                             setFocused((was) => (was === signal.sourceId ? null : was))
                           }
                           onOpen={() => setOpen(signal.sourceId)}
-                          onMake={() => void makeCard(signal)}
+                          onMake={() => void take(signal, "make")}
                           onIgnore={() => askIgnore(signal)}
                         />
                       )
@@ -1067,7 +1089,7 @@ function QueueCard({
   signal: Signal;
   selected: boolean;
   focused: boolean;
-  making: boolean;
+  making?: Taking;
   leaving: boolean;
   sorting: boolean;
   onFocus: () => void;
@@ -1119,7 +1141,7 @@ function QueueCard({
         <div className={CARD_FOOT}>
           {making ? (
             <span className="truncate px-1.5 text-[12px] font-[600] text-nb-accent-deep">
-              {c.making}
+              {making === "start" ? c.starting : c.making}
             </span>
           ) : act ? (
             <>
@@ -1239,6 +1261,8 @@ function SignalDetail({
   failed,
   onClose,
   onMake,
+  onStart,
+  onDiscuss,
   onIgnore,
   onRestore,
 }: {
@@ -1246,13 +1270,15 @@ function SignalDetail({
   history: boolean;
   source: ReactNode;
   card?: { title: string; archived: boolean };
-  making: boolean;
+  making?: Taking;
   sorting: boolean;
   /** The Ignore dialog is over it and takes Escape. */
   paused: boolean;
   failed: string;
   onClose: () => void;
   onMake: () => void;
+  onStart: () => void;
+  onDiscuss: () => void;
   onIgnore: () => void;
   onRestore: () => void;
 }) {
@@ -1260,19 +1286,23 @@ function SignalDetail({
   const c = copy.rail.signals;
   const language = useLanguage();
   const closer = useRef<HTMLButtonElement>(null);
+  const actsRef = useRef<HTMLSpanElement>(null);
+  const [guard, setGuard] = useState(false);
+  const dropGuard = useCallback(() => setGuard(false), []);
 
   useEffect(() => {
     closer.current?.focus({ preventScroll: true });
+    setGuard(false);
   }, [signal.sourceId]);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || guard) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !e.defaultPrevented) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, paused]);
+  }, [onClose, paused, guard]);
 
   const line = (label: string, said: ReactNode) =>
     said ? (
@@ -1283,7 +1313,7 @@ function SignalDetail({
   const who =
     signal.dismissedBy === "agent" ? c.byAgent : signal.dismissedBy === "user" ? c.byYou : "";
   const restorable = history && signal.cardId === null && signal.contentKept;
-  const acts = !history || restorable || !!signal.url;
+  const acts = !history || restorable;
   const title = signal.contentKept ? signal.title : signal.sourceId;
   const tap = "h-8 max-md:h-11";
   // The source is in the header already.
@@ -1296,7 +1326,19 @@ function SignalDetail({
     <aside aria-label={c.detail} className="flex h-full flex-col bg-nb-cream">
       <div className="flex shrink-0 items-center gap-2 py-2.5 pl-6 pr-4 max-md:pl-4 max-md:pr-2">
         <span className="flex h-8 min-w-0 flex-1 items-center gap-1.5 text-[12px]">
-          {source}
+          {signal.url ? (
+            <a
+              href={signal.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex min-w-0 items-center gap-1 rounded-[6px] underline decoration-nb-ink-soft decoration-1 underline-offset-[3px] hover:decoration-nb-ink"
+            >
+              {source}
+              <FiExternalLink size={11} className="shrink-0 text-nb-ink-soft" aria-hidden />
+            </a>
+          ) : (
+            source
+          )}
           {signal.collectedAt && (
             <span className="shrink-0 tabular-nums text-nb-ink-soft">
               · {when(signal.collectedAt, language)}
@@ -1326,47 +1368,57 @@ function SignalDetail({
           {title}
         </h2>
         {acts && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span ref={actsRef} className="relative mt-3 flex flex-wrap items-center gap-2">
             {history ? (
-              restorable && (
-                <Button size="xs" className={tap} onClick={onRestore}>
-                  <FiRotateCcw size={12} aria-hidden />
-                  {c.restore}
-                </Button>
-              )
+              <Button size="xs" className={tap} onClick={onRestore}>
+                <FiRotateCcw size={12} aria-hidden />
+                {c.restore}
+              </Button>
             ) : making ? (
               <span className={`inline-flex items-center text-[12px] font-[600] text-nb-accent-deep ${tap}`}>
-                {c.making}
+                {making === "start" ? c.starting : c.making}
               </span>
             ) : (
               <>
-                <Button size="xs" className={`${tap} max-md:px-4 max-md:text-[13px]`} disabled={sorting} onClick={onMake}>
+                <Button size="xs" className={`${tap} ${WIDE_TAP}`} disabled={sorting} onClick={onMake}>
                   {c.makeCard}
                 </Button>
-                <button type="button" className={`${GHOST_INK} ${tap}`} onClick={onIgnore}>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className={`${tap} ${WIDE_TAP}`}
+                  disabled={sorting}
+                  aria-expanded={guard}
+                  onClick={() => setGuard((was) => !was)}
+                >
+                  {c.startNow}
+                </Button>
+                <Button variant="ghost" size="xs" className={`${tap} ${WIDE_TAP}`} onClick={onDiscuss}>
+                  {c.discuss}
+                </Button>
+                <button type="button" className={`${GHOST_INK} ${tap} ml-auto`} onClick={onIgnore}>
+                  <FiEyeOff size={12} aria-hidden />
                   {c.ignore}
                 </button>
+                <StartGuard
+                  open={guard}
+                  anchorRef={actsRef}
+                  onDismiss={dropGuard}
+                  onConfirm={() => {
+                    setGuard(false);
+                    onStart();
+                  }}
+                />
               </>
             )}
-            {signal.url && (
-              <a
-                href={signal.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className={`${GHOST_INK} ${tap}`}
-              >
-                <FiExternalLink size={12} aria-hidden />
-                {c.viewOriginal}
-              </a>
-            )}
-          </div>
+          </span>
         )}
         {failed && (
           <p
             role="alert"
-            className="mt-3 flex items-center gap-2 rounded-[9px] bg-nb-peach-soft px-3 py-2 text-[12px] leading-[16px] text-nb-ink"
+            className="mt-3 flex items-start gap-2 whitespace-pre-line rounded-[9px] bg-nb-peach-soft px-3 py-2 text-[12px] leading-[16px] text-nb-ink [overflow-wrap:anywhere]"
           >
-            <FiAlertCircle size={13} className="shrink-0 text-nb-peach-ink" aria-hidden />
+            <FiAlertCircle size={13} className="mt-px shrink-0 text-nb-peach-ink" aria-hidden />
             {failed}
           </p>
         )}
@@ -1406,6 +1458,47 @@ function SignalDetail({
         )}
       </div>
     </aside>
+  );
+}
+
+/** Start now's guard (#1193): the discussion page's, said of this item. Hung off the whole
+ *  action row, since 320px from Start now's own edge runs past the pane. */
+function StartGuard({
+  open,
+  anchorRef,
+  onDismiss,
+  onConfirm,
+}: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLSpanElement | null>;
+  onDismiss: () => void;
+  onConfirm: () => void;
+}) {
+  const copy = useCopy();
+  const c = copy.board.create.sheet.guard;
+  const t = copy.rail.signals;
+  return (
+    <ConfirmationPopover
+      open={open}
+      anchorRef={anchorRef}
+      title={c.title}
+      description={
+        <span className="flex flex-col gap-1">
+          <span>{t.startWrites}</span>
+          {[t.startSkip, ...c.skips.slice(1)].map((line) => (
+            <span key={line} className="flex items-start gap-1.5">
+              <FiX className="mt-[3px] shrink-0 text-[11px] text-nb-peach-ink" aria-hidden />
+              <span>{line}</span>
+            </span>
+          ))}
+        </span>
+      }
+      cancelLabel={c.cancel}
+      confirmLabel={c.confirm}
+      busy={false}
+      onDismiss={onDismiss}
+      onConfirm={onConfirm}
+    />
   );
 }
 

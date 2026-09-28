@@ -35,6 +35,14 @@ export function dropDraft(key: string): void {
   } catch {}
 }
 
+/** Add words to the end of a text draft, one blank line after what is already there. */
+export function appendDraft(key: string, words: string): void {
+  try {
+    const was = window.localStorage.getItem(PREFIX + key)?.trimEnd() ?? "";
+    window.localStorage.setItem(PREFIX + key, was ? `${was}\n\n${words}` : words);
+  } catch {}
+}
+
 /** Take one entry out of a list draft, or put one in, so the entries after it keep lining up
  *  with their questions when one leaves the list or comes back (#831). */
 export function spliceDraft(key: string, at: number, remove: number, insert?: unknown): void {

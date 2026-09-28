@@ -255,10 +255,10 @@ export const runIsLive = (run: RunRecord): boolean =>
   run.status === 'running' &&
   (run.pid ? pidAlive(run.pid) : Date.now() - run.startedAt < PENDING_MS)
 
-/** The triage items a live **Make card** run is writing a card of (#894). A sort leaves them
- *  alone, or one item would become two cards. */
+/** The triage items a live **Make card** or **Start now** run is writing a card of (#894,
+ *  #1193). A sort leaves them alone, or one item would become two cards. */
 export const itemsBeingCarded = (): Set<string> =>
-  new Set(readRuns().flatMap((run) => (run.action === 'create' && run.triage && runIsLive(run) ? [run.triage.sourceId] : [])))
+  new Set(readRuns().flatMap((run) => (run.triage && runIsLive(run) ? [run.triage.sourceId] : [])))
 
 /** The run working this board right now, or nothing when the machine is quiet.
  *

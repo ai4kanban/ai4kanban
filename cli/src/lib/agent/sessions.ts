@@ -21,6 +21,7 @@ import { cardFile } from '../board/revision'
 import { pidAlive } from '../lock'
 import { say } from '../io'
 import { planFromText, planTitle, readPlan } from '../plans'
+import { readInbox } from '../signals/inbox'
 import { tickedSetupSteps } from '../setup'
 import { reportRun } from '../machine/usage'
 import { SKILL_VERSION } from '../../version'
@@ -704,6 +705,12 @@ function approvedDirect(req: AgentRequest): DirectBuild | RunRefusal | undefined
     if (!title) return refusal('planEmpty', `there is nothing written in ${named} yet, so there is nothing to build.`, { path: named })
     return { title, approved: text, plan: named }
   }
+  // A triage item (#1193): its title names the delivery, and its own words bound it.
+  const item = req.triage && readInbox().find((signal) => signal.sourceId === req.triage!.sourceId)
+  if (item) {
+    const title = item.title.trim() || item.sourceId
+    return { title, approved: item.summary.trim() || title }
+  }
   const typed = req.description?.trim()
   return typed ? { title: typed, approved: typed } : undefined
 }
@@ -817,7 +824,7 @@ export function openRun(
     // Which agent this is, on the action that is one — so the run list can name it, and so
     // a resume starts the same agent rather than a different one.
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
-    triage: req.action === 'create' ? req.triage : undefined,
+    triage: req.action === 'create' || (req.action === 'implement' && cardId === null) ? req.triage : undefined,
     setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.

@@ -383,6 +383,19 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // The release the board was showing comes with it, exactly as it does on a create.
     case 'implement':
       if (req.id === undefined) {
+        // **Start now** on a triage item (#1193): the item is the requirement, and it leaves
+        // triage the moment its card exists.
+        if (req.triage) {
+          return [
+            `${kb}. Build the triage item at \`${req.triage.file}\`. Read it first — it is the whole requirement.`,
+            `Follow \`akb guide implement\` — write its card first, from that item, with \`## Source\` naming its source id \`${req.triage.sourceId}\`.`,
+            `Straight after the card is written, run \`${command} triage archive ${req.triage.sourceId} --card <id>\`, then build it.`,
+            createWorkflowNote(req),
+            `Resolve routine choices yourself; record blockers needing user action on the card following \`akb guide update-questions\`.`,
+          ]
+            .filter(Boolean)
+            .join(' ')
+        }
         return [
           req.plan
             ? `${kb}. Build the plan at \`${req.plan}\`. Read it first — it is the whole requirement.`

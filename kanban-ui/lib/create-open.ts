@@ -17,7 +17,11 @@ import type { DiscussionTarget } from "./types";
 //
 // The same shape as the runs panel's and the Configuration dialog's, for the same reason.
 
-let request: { at: number; discussion: DiscussionTarget | null } | null = null;
+/** An ask for the sheet. `prefill` opens a fresh discussion with those words after its draft
+ *  (#1193). */
+type SheetRequest = { at: number; discussion: DiscussionTarget | null; prefill?: string };
+
+let request: SheetRequest | null = null;
 let closing = 0;
 let dropped: { at: number; discussion: DiscussionTarget } | null = null;
 let shown: DiscussionTarget | null = null;
@@ -59,8 +63,8 @@ export const createSheet = {
   /** Open the header's create sheet. A fresh object every time, so asking twice still
    *  reaches a sheet the user closed in between. Told a discussion, it opens on that one;
    *  told none, the press opens a fresh one. */
-  open(discussion: DiscussionTarget | null = null) {
-    request = { at: request ? request.at + 1 : 1, discussion };
+  open(discussion: DiscussionTarget | null = null, prefill?: string) {
+    request = { at: request ? request.at + 1 : 1, discussion, prefill };
     tell();
   },
 
@@ -133,7 +137,7 @@ const subscribe = (fn: () => void) => {
 };
 
 /** The last ask, for whoever draws the sheet. */
-export function useCreateSheetRequest(): { at: number; discussion: DiscussionTarget | null } | null {
+export function useCreateSheetRequest(): SheetRequest | null {
   return useSyncExternalStore(
     subscribe,
     () => request,

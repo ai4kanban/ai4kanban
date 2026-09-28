@@ -106,11 +106,17 @@ export type RailCopy = {
     byAgent: string;
     /** A record carried over from a board that kept only source ids and times (#559). */
     contentGone: string;
-    viewOriginal: string;
-    /** The two ways out of the queue (#894), and the state of an item on its way to a card. */
+    /** The ways out of the queue (#894, #1193), and the state of an item on its way to a card. */
     makeCard: string;
     making: string;
     makeFailed: string;
+    startNow: string;
+    starting: string;
+    startFailed: string;
+    /** Start now's guard: the discussion page's, said of this item rather than a plan. */
+    startWrites: string;
+    startSkip: string;
+    discuss: string;
     ignore: string;
     /** The Ignore dialog: its heading, the optional reason, and a refusal. */
     ignoreTitle: string;

@@ -208,7 +208,8 @@ export interface AgentRequest {
   /** The pictures this run was handed, as paths on this machine — worked out from `box` and
    *  `shots` when the run is written down, so a browser never names one. */
   pictures?: string[]
-  /** create: the triage item this card is made of (#894) — **Make card** on the page. */
+  /** create, and implement with no `id`: the triage item the card is made of — **Make card**
+   *  (#894) and **Start now** (#1193) on the page. */
   triage?: TriageAsk
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** The workflow the card this run is for runs on (#715) — a workflow's stable id, read
@@ -246,7 +247,7 @@ export interface AgentRequest {
   runtime?: string
 }
 
-/** A triage item a create run is making a card of: its source id and file from the repo root. */
+/** A triage item a run is making a card of: its source id and file from the repo root. */
 export interface TriageAsk {
   sourceId: string
   file: string
@@ -523,7 +524,7 @@ export interface RunRecord {
   /** Which agent this run is, on a `spec` run. Kept on the record so the run list can say
    *  which one is working, and so a resume starts the same agent again. */
   specAgent?: string
-  /** The triage item a create run is making a card of (#894). */
+  /** The triage item a create or card-less implement run is making a card of (#894, #1193). */
   triage?: TriageAsk
   /** On a setup run: the checklist boxes already ticked when it started (#909). Absent when
    *  there was no checklist. A resume carries the first run's count on. */

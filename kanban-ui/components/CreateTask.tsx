@@ -37,7 +37,7 @@ import {
   useStarting,
 } from "@/lib/create-open";
 import { failureText, startFailure, type StartFailure } from "@/lib/start-failure";
-import { createDraftKey, dropDraft } from "@/lib/draft";
+import { appendDraft, createDraftKey, dropDraft } from "@/lib/draft";
 import { dropPictures } from "@/lib/picture-box";
 import { usePhone } from "@/lib/media";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
@@ -180,16 +180,18 @@ export function CreateTask({
   // no way back to it. And a fresh one nothing was sent into is still the fresh one (#934):
   // it has no row either, so a new one would lose what was typed into it.
   const phone = usePhone();
-  const openFresh = useCallback(async () => {
+  // Words handed over with the ask (#1193) always go to a fresh one, after its draft.
+  const openFresh = useCallback(async (prefill?: string) => {
     setError(null);
     setFailure(null);
-    if (phone && discussion) return setOpen(true);
+    if (phone && discussion && !prefill) return setOpen(true);
     // Opened after the discussion is in hand, so the sheet never paints a frame of the last
     // subject's exchange on its way to the new one.
     // Null is a board whose rules are older than the list. It holds one conversation, which
     // is exactly what `null` reads as.
     const fresh = heldByButton.unspoken ?? (await startDiscussionAction());
     heldByButton.unspoken = fresh;
+    if (prefill) appendDraft(createDraftKey(fresh), prefill);
     setDiscussion(fresh);
     setOpen(true);
   }, [phone, discussion, setError]);
@@ -239,7 +241,7 @@ export function CreateTask({
       setDiscussion(asked.discussion);
       setOpen(true);
     } else {
-      void openFresh();
+      void openFresh(asked.prefill);
     }
   }, [asked, openFresh, setError]);
 

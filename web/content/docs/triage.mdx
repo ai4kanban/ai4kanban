@@ -17,10 +17,17 @@ Hover, tab to or tap an item for its two actions:
   finds a card that already owns the work, the item is recorded against that card instead.
 - **Ignore**: asks for a one-line reason.
 
-Click an item for the whole thing and the original. Two tabs: **Waiting**, and **History** —
-what became a card or was ignored in the last 30 days. **Restore** puts an ignored item back
-in **Waiting**, and nothing sorts it again by itself. Search and the source picker work on
-both tabs.
+Click an item for the whole thing; its source name links to the original. The detail adds two
+more:
+
+- **Start now**: writes the card from the item and builds it straight away, with no
+  refining or review. The item moves to **History**, linked to the card.
+- **Discuss**: opens a new discussion with the item named in the box, sent only when you
+  send it. The item stays waiting.
+
+Two tabs: **Waiting**, and **History** — what became a card or was ignored in the last 30
+days. **Restore** puts an ignored item back in **Waiting**, and nothing sorts it again by
+itself. Search and the source picker work on both tabs.
 
 Free to invited Cloud accounts while it is a preview. On an account that is signed out or not
 yet invited there is no rail row, and both `akb triage fetch` and `akb triage run` refuse.
@@ -194,7 +201,7 @@ the pull counts it as a failure and names what was missing. Everything else is o
   board does not validate, translate or fill them in, and takes only values a single line
   holds; objects and lists are left out. The page draws the values, never the keys, so write
   values that read on their own.
-- **`url`** is the thing itself, opened by **Open**. **`collected_at`** is when the data
+- **`url`** is the thing itself, opened from the source name in the item's detail. **`collected_at`** is when the data
   platform collected the post, not when your board pulled it; the board records the import
   time itself.
 - **`source_id`** is the signal's identity. The board dedupes on it, against everything

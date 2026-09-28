@@ -240,6 +240,7 @@ import type {
   AgentView,
   ArchivedCard,
   BoardScreen,
+  Signal,
   CardPatch,
   CardRef,
   ChatTarget,
@@ -1994,17 +1995,24 @@ export async function restoreSignalAction(sourceId: string): Promise<{ ok: boole
   }
 }
 
+/** The waiting item a triage button acts on, or null when it is gone or already taken — a
+ *  sort is running, or another run is making a card of it. */
+async function freeTriageItem(sourceId: string): Promise<Signal | null> {
+  if (typeof sourceId !== "string" || !sourceId) return null;
+  const item = (await readSignals()).signals.find((signal) => signal.sourceId === sourceId);
+  if (!item) return null;
+  const live = (await listSessions()).filter((run) => run.status === "running");
+  return live.some((run) => run.action === "triage" || run.triage === sourceId) ? null : item;
+}
+
 /** **Make card** (#894): a create run pointed at one waiting item, which records the card it
  *  became. Refused while a sort runs or another run is already making this item. */
 export async function makeCardAction(sourceId: string): Promise<StartResult> {
   const c = await machineCopy();
   const refused: StartResult = { ok: false, error: c.rail.signals.makeFailed };
-  if (typeof sourceId !== "string" || !sourceId) return refused;
   try {
-    const item = (await readSignals()).signals.find((signal) => signal.sourceId === sourceId);
+    const item = await freeTriageItem(sourceId);
     if (!item) return refused;
-    const live = (await listSessions()).filter((run) => run.status === "running");
-    if (live.some((run) => run.action === "triage" || run.triage === sourceId)) return refused;
     const req: AgentRequest = {
       action: "create",
       description: item.title || item.sourceId,
@@ -2013,6 +2021,24 @@ export async function makeCardAction(sourceId: string): Promise<StartResult> {
     return await startSession(req, await buildPrompt(req));
   } catch {
     return refused;
+  }
+}
+
+/** **Start now** (#1193): a build with no card, pointed at one waiting item. The run writes
+ *  the card, files the item on it, and builds it. Refused as Make card is; a refused start
+ *  says why. */
+export async function startTriageItemAction(sourceId: string): Promise<StartResult> {
+  try {
+    const item = await freeTriageItem(sourceId);
+    if (!item) return { ok: false };
+    const req: AgentRequest = {
+      action: "implement",
+      description: item.title || item.sourceId,
+      triage: { sourceId, file: item.relPath },
+    };
+    return await startSession(req, await buildPrompt(req));
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
