@@ -452,6 +452,8 @@ const en: ConfigurationCopy = {
           `Added to the end of every run ${agent} does while a product video is being made — "record every clip at 1920×1080, 30 fps".`,
         "cover-designer": (agent) =>
           `Added to the end of every run ${agent} does while a product video's cover is being made — "set the cover text in the product's main color".`,
+        "demo-rehearser": (agent) =>
+          `Added to the end of every run ${agent} does while a product video's demo is being rehearsed — "run every demo in a fresh sample project".`,
         "deck-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
         "carousel-planner": () =>

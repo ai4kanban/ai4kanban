@@ -153,7 +153,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     delivers: 'plan',
     pro: true,
     stages: {
-      plan: { lead: 'scriptwriter', helpers: ['hyperframes-editor', 'cover-designer'] },
+      plan: { lead: 'scriptwriter', helpers: ['demo-rehearser', 'hyperframes-editor', 'cover-designer'] },
       execute: { lead: '', helpers: [] },
       review: { lead: '', helpers: [] },
     },
@@ -670,6 +670,7 @@ const SHIPPED_ON: { agent: string; flow: string }[] = [
   { agent: 'prompt-writer', flow: DEFAULT_WORKFLOW },
   { agent: 'email-planner', flow: DEFAULT_WORKFLOW },
   { agent: 'cover-designer', flow: 'hyperframes-video' },
+  { agent: 'demo-rehearser', flow: 'hyperframes-video' },
 ]
 const SHIPPED = 'shipped'
 

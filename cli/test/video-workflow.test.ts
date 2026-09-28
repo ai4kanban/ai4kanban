@@ -91,7 +91,7 @@ describe('a lead agent', () => {
 })
 
 describe('the hyperframes-video workflow', () => {
-  it('plans with its own lead, calls in hyperframes-editor and cover-designer, and builds nothing', () => {
+  it('plans with its own lead, calls in demo-rehearser, hyperframes-editor and cover-designer, and builds nothing', () => {
     const flow = workflowById('hyperframes-video')!
     assert.equal(flow.name, 'Product video')
     assert.equal(flow.builtIn, true)
@@ -99,7 +99,7 @@ describe('the hyperframes-video workflow', () => {
     assert.equal(flow.delivers, 'plan')
     assert.equal(flow.stages.plan.lead, 'scriptwriter')
     assert.equal(flow.stages.execute.lead, '')
-    assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['hyperframes-editor', 'cover-designer'])
+    assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['demo-rehearser', 'hyperframes-editor', 'cover-designer'])
     assert.deepEqual(liveStage(flow, 'execute').helpers, [])
     assert.deepEqual(liveStage(flow, 'review').helpers, [])
     assert.deepEqual(workflowProblems('hyperframes-video'), [])
@@ -107,7 +107,7 @@ describe('the hyperframes-video workflow', () => {
 
   it("keeps its agents off coding's default helpers", () => {
     const helpers = liveStage(workflowById('coding')!, 'plan').helpers.map((h) => h.agent)
-    for (const name of ['scriptwriter', 'hyperframes-editor', 'cover-designer']) assert.ok(!helpers.includes(name), name)
+    for (const name of ['scriptwriter', 'demo-rehearser', 'hyperframes-editor', 'cover-designer']) assert.ok(!helpers.includes(name), name)
     assert.ok(helpers.includes('ui-designer'))
     assert.deepEqual(liveStage(workflowById('coding')!, 'review').helpers.map((h) => h.agent), ['code-reviewer'])
   })

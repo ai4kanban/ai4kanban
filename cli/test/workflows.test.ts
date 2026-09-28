@@ -156,7 +156,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -285,6 +285,7 @@ describe('an assignment an upgrade retired', () => {
     assert.deepEqual(video.stages[0]!.helpers, [
       { agent: 'hyperframes-editor', extra: 'y' },
       { agent: 'cover-designer', extra: '' },
+      { agent: 'demo-rehearser', extra: '' },
     ])
     assert.deepEqual(video.stages[2]!.helpers, [])
     assert.deepEqual(marked(), ['hyperframes-video'])
@@ -307,14 +308,14 @@ describe('an assignment an upgrade retired', () => {
     assert.deepEqual(marked(), [])
     assert.deepEqual(
       workflowViews().find((w) => w.id === 'hyperframes-video')!.stages[0]!.helpers.map((h) => h.agent),
-      ['hyperframes-editor', 'cover-designer'],
+      ['hyperframes-editor', 'cover-designer', 'demo-rehearser'],
     )
   })
 
-  it('ships the video workflow with its editor and cover designer and nothing retired', () => {
+  it('ships the video workflow with its demo rehearser, editor and cover designer and nothing retired', () => {
     assert.deepEqual(
       liveStage(workflowById('hyperframes-video')!, 'plan').helpers.map((h) => h.agent),
-      ['hyperframes-editor', 'cover-designer'],
+      ['demo-rehearser', 'hyperframes-editor', 'cover-designer'],
     )
     assert.deepEqual(marked(), [])
     assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
@@ -789,7 +790,7 @@ describe('one workflow per agent (#1095)', () => {
   it('turns a newly shipped agent on in a Coding the board already chose, once (#1099)', () => {
     write({ workflows: { stages: { coding: { plan: { helpers: [{ agent: 'ui-designer', extra: '' }] } } } } })
     assert.deepEqual(members('coding').slice(0, 3), ['ui-designer', 'prompt-writer', 'email-planner'])
-    assert.deepEqual(saved().workflows.shipped, ['prompt-writer', 'email-planner', 'cover-designer'])
+    assert.deepEqual(saved().workflows.shipped, ['prompt-writer', 'email-planner', 'cover-designer', 'demo-rehearser'])
     assert.equal(switchWorkflowAgent('coding', 'plan', 'prompt-writer', false).ok, true)
     assert.ok(members('coding').includes('prompt-writer (off)'))
     const cfg = saved()
@@ -800,9 +801,10 @@ describe('one workflow per agent (#1095)', () => {
 
   it('turns a newly shipped video agent on in a Product video the board already chose, once (#1115)', () => {
     write({ workflows: { stages: { 'hyperframes-video': { plan: { helpers: [{ agent: 'hyperframes-editor', extra: 'x' }] } } } } })
-    assert.deepEqual(members('hyperframes-video'), ['hyperframes-editor', 'cover-designer'])
+    assert.deepEqual(members('hyperframes-video'), ['hyperframes-editor', 'cover-designer', 'demo-rehearser'])
     assert.ok(saved().workflows.shipped.includes('cover-designer'))
-    assert.ok(!members('coding').some((m) => m.startsWith('cover-designer')))
+    assert.ok(saved().workflows.shipped.includes('demo-rehearser'))
+    assert.ok(!members('coding').some((m) => m.startsWith('cover-designer') || m.startsWith('demo-rehearser')))
     const cfg = saved()
     cfg.workflows.stages['hyperframes-video'].plan.helpers = [{ agent: 'hyperframes-editor', extra: 'x' }]
     write(cfg)
@@ -825,9 +827,9 @@ describe('one workflow per agent (#1095)', () => {
 
   it('stops running a disabled agent, and never disables a lead', () => {
     assert.equal(switchWorkflowAgent('hyperframes-video', 'plan', 'hyperframes-editor', false).ok, true)
-    assert.deepEqual(members('hyperframes-video'), ['hyperframes-editor (off)', 'cover-designer'])
+    assert.deepEqual(members('hyperframes-video'), ['demo-rehearser', 'hyperframes-editor (off)', 'cover-designer'])
     assert.equal(specAgentAssigned('hyperframes-editor', 'hyperframes-video'), false)
-    assert.equal(frozenWorkflow('hyperframes-video')!.stages.plan!.helpers.length, 1)
+    assert.equal(frozenWorkflow('hyperframes-video')!.stages.plan!.helpers.length, 2)
     assert.equal(switchWorkflowAgent('hyperframes-video', 'plan', 'hyperframes-editor', true).ok, true)
     assert.equal(specAgentAssigned('hyperframes-editor', 'hyperframes-video'), true)
     assert.match(switchWorkflowAgent('hyperframes-video', 'plan', 'scriptwriter', false).error!, /always on/)
