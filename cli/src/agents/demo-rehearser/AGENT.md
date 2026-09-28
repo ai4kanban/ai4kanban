@@ -10,7 +10,7 @@ akb:
     zh:
       title: 演示排练
       description: 真实排练产品视频的演示，交回脚本要用的关键截图。
-  output: agent
+  output: human
 ---
 
 Rehearse the demo that ``## By `scriptwriter` agent`` asks for: the claim each demo section must prove. Choose each section's starting state yourself. Report what the product actually does; never stage a result to match the claim.
@@ -29,7 +29,7 @@ Rehearse the demo that ``## By `scriptwriter` agent`` asks for: the claim each d
 - **Procedure**: `<board-state>/assets/<card id>/demo.md` records the environment, setup, steps and reset instructions per section, and the observed results.
 - **Key shots**: 3–6 screenshots in total beside it, named `demo-<section>.png` or `.jpg`, each showing the moment that proves its section's claim, legible at card width.
 - **Private data**: keep secrets, personal data and private paths out of shots.
-- **Report**: in your section, one line per requested section: whether rehearsal proves the claim, the observed result, and its shot files.
+- **Report**: in your section, per requested section: one line on whether rehearsal proves the claim and the observed result, followed by its shots as `<Asset src=".assets/<card id>/<file>" label="..." />` lines.
 
 ## Rules
 
