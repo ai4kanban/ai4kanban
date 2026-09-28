@@ -49,8 +49,13 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
   afterwards), language, length and keywords.
 - **Keywords**: zero or more, the first is the one to win. Ask which one the user wants to
   win; when they give none, leave it empty. No keyword research or rank tracking.
-- **Outline**: title, subtitle and one line per section with its point, the images it needs
-  and the links it cites.
+- **Keyword use**: put the primary keyword naturally in the title, H1 and SEO title, and each
+  supporting keyword only in sections whose topic it matches; never force a keyword into an
+  unrelated section, stuff it, or add a meta keywords tag. Flag a keyword the topic cannot
+  cover. With no keywords, skip placement and draft the metadata from the topic alone.
+- **Outline**: title, subtitle, drafted SEO title and meta description, any other metadata
+  the project requires, and one line per section with its point, images and cited links;
+  review the metadata with the outline.
 - **Links**: internal links go to existing posts or pages; external links go to primary
   sources. Check that every link resolves.
 - **Article**: under `### Article`, the full post in Markdown, each image as a standalone
@@ -78,6 +83,8 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
   blog, add the post's expected URL to `keywords.md`. Append a ticked todo listing every
   delivered path in backticks. Ask the same kind of question to accept the article, stating
   that accepting completes the task and the user archives the card afterwards; end the run.
+- **Keyword changes**: revise the brief and affected titles, metadata and sections together
+  before outline review; revising an unapproved outline does not authorize the article.
 - **Changes**: revise in place and never append a second source or untick a todo. Before
   ending any run, append a new unticked review todo for each ticked one that no longer
   matches, and rewrite every delivered copy to match the article. An outline change makes
