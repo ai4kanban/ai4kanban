@@ -2,8 +2,9 @@
 //
 // The jobs that need no user at all: the cards somebody scheduled, whose last blocker has
 // now left the board, the recurring cards whose cadence has elapsed, the day's review of
-// what the conversations settled, the review of the dismissal reasons, and — on a board
-// that asked for them — the memory pruner's own cadence and the sweep of the stale cards.
+// what the conversations settled, the review of the dismissal reasons, the daily prune of
+// what departed cards left in .akb, and — on a board that asked for them — the memory
+// pruner's own cadence and the sweep of the stale cards.
 // A front end with a timer asks this once a
 // tick and starts whatever comes back — it holds the timer, this holds the rules, so a board
 // driven from a window and a board driven from anywhere else pick the same cards in the same
@@ -19,14 +20,22 @@
 // `dueScheduled`), and the sweep, which starts its own run because its report has to be keyed
 // to it (`../agent/sweep.ts`).
 
-import { formatStamp, nextDue, parseStamp } from '../cadence'
-import { dismissalReview, memoryPrune, memoryReview, memoryReviewerOn } from '../agent/settings'
+import { formatDay, formatStamp, nextDue, parseStamp } from '../cadence'
+import {
+  dismissalReview,
+  leftoverPrune,
+  memoryPrune,
+  memoryReview,
+  memoryReviewerOn,
+  stampLeftoverPrune,
+} from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
 import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { anyChatSince } from '../agent/memory-review'
 import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
+import { pruneLeftovers } from '../leftovers'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
 import { allCards } from './read'
@@ -250,6 +259,15 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
     else await advanceCardSweep()
   } catch {
     // a bad tick must not cost the requests below — the sweep tries again next minute
+  }
+
+  // What cards off the board for a week still hold in .akb (#1177), once a day. Stamped
+  // first, so a prune that throws waits for tomorrow rather than retrying every tick.
+  try {
+    const now = new Date()
+    if (!leftoverPrune().startsWith(formatDay(now)) && stampLeftoverPrune(now)) pruneLeftovers(now.getTime())
+  } catch {
+    // never costs the requests below
   }
 
   // And the day's review of what the conversations settled (#748). A slot of its own for the

@@ -798,6 +798,23 @@ export function stampMemoryReview(when: Date): void {
   })
 }
 
+// ---- the leftover prune's last pass (#1177) ---------------------------------
+//
+//   "leftoverPrune": { "lastRun": "2026-09-28 09:00" }
+
+/** When the leftovers of cards off the board were last pruned, or empty for never. */
+export function leftoverPrune(): string {
+  const block = configBlock(safeConfig().leftoverPrune)
+  return typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+}
+
+/** False when the stamp could not be saved — the prune then waits rather than repeating. */
+export function stampLeftoverPrune(when: Date): boolean {
+  return writeConfig((cfg) => {
+    cfg.leftoverPrune = { ...configBlock(cfg.leftoverPrune), lastRun: formatStamp(when) }
+  }).ok
+}
+
 // ---- the dismissal review's schedule (#929) ---------------------------------
 //
 //   "dismissalReview": { "enabled": false, "cadence": "3d at 08:00", "lastRun": "2026-09-19 08:00" }
