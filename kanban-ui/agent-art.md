@@ -81,6 +81,24 @@ the whole difference, and it has to be readable at 48px.
 - **`review-lead.png`** — picks the reviewers a delivery needs. A **cream checklist** across
   the chest, three boxes with two mint ticks, and an **ember rubber stamp** on a wooden neck
   raised in the free hand.
+- **`blog-planner.png`** — plans long-form posts. Holding a **tall cream manuscript page**
+  across the chest, with a sky title bar and four short black lines.
+- **`blog-illustrator.png`** — illustrates posts. Holding a **peach palette** with mint,
+  sky and lilac paint dabs, and an upright **wooden paintbrush** with ember bristles.
+- **`carousel-planner.png`** — plans carousel posts. Holding **three cream cards fanned out**
+  across the chest, with mint, sky and lilac top bars.
+- **`deck-planner.png`** — plans slide decks. Holding a **cream projection slide** on a grey
+  stand, with a sky title bar and three mint, ember and lilac chart bars.
+- **`cover-designer.png`** — designs covers. Holding a **lilac-framed cover poster** across
+  the chest, a peach circle above a sky landscape block inside the frame.
+- **`demo-rehearser.png`** — rehearses product demos. Holding a **cream stopwatch** with
+  an ember rim and top button, with a bold **sky mouse pointer** beside it.
+- **`email-planner.png`** — plans email campaigns. Holding a **cream envelope** across the
+  chest, with clear diagonal fold lines and an ember seal.
+- **`prompt-writer.png`** — writes reusable prompts. Holding a **dark terminal window**
+  with a sky title bar and a large cream `>_` prompt, the only exception to no text.
+- **`dismissal-reviewer.png`** — reviews dismissed ideas. Holding a **cream card stamped
+  with an ember X** across the chest, and a **peach-rimmed magnifying glass** beside it.
 
 ## Checking a result
 
