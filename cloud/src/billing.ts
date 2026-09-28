@@ -25,6 +25,9 @@ export interface SubscriptionRow {
   period: Period
   status: string
   current_period_end: string | null
+  /** The latest refunded or charged-back period's end (#1188). */
+  refunded_through?: string | null
+  revoked_at?: string | null
 }
 
 /** A seed partner's grant (#1039), as `api.seed_grant_for` returns it. */
@@ -52,7 +55,15 @@ export const subscribed = (billing: Billing) =>
 const RENEWING = ['active', 'trialing', 'past_due']
 const ENDING = ['scheduled_cancel', 'canceled']
 
+const DAY = 24 * 60 * 60 * 1000
+
+/** Whether a refund took back the period the row is in. A renewal after it is a later period. */
+export const revoked = (row: SubscriptionRow) =>
+  !!row.refunded_through &&
+  (!row.current_period_end || Date.parse(row.current_period_end) <= Date.parse(row.refunded_through) + DAY)
+
 export function isPro(row: SubscriptionRow, now = Date.now()): boolean {
+  if (revoked(row)) return false
   if (RENEWING.includes(row.status)) return true
   if (!ENDING.includes(row.status) || !row.current_period_end) return false
   return now < Date.parse(row.current_period_end)
@@ -63,9 +74,12 @@ const stateOf = (row: SubscriptionRow): Billing['state'] =>
 
 const RANK: Record<string, number> = { active: 0, canceled: 1, pastDue: 2 }
 const endOf = (row: SubscriptionRow) => (row.current_period_end ? Date.parse(row.current_period_end) : 0)
+/** When the row stopped being Pro: its revoke, or its period's end. */
+const endedAt = (row: SubscriptionRow) => (revoked(row) ? row.revoked_at ?? null : row.current_period_end)
 
 /** The best of a user's subscriptions: a renewing one over one ending over one failing to
- *  pay, then the one that runs longest. None Pro reads as expired once any has ended. A grant
+ *  pay, then the one that runs longest. None Pro reads as expired once any has ended, a
+ *  refunded one on the day it was revoked. A grant
  *  still running makes the user Pro whatever the subscriptions say. */
 export function billingOf(rows: SubscriptionRow[], grant: GrantRow | null = null, now = Date.now()): Billing {
   const grantEnd = grant && now < Date.parse(grant.ends_at) ? grant.ends_at : null
@@ -77,9 +91,10 @@ export function billingOf(rows: SubscriptionRow[], grant: GrantRow | null = null
     return { plan: 'pro', state: stateOf(best), period: best.period, periodEnd: best.current_period_end, grantEnd }
   }
   const plan = grantEnd ? 'pro' : 'free'
-  const last = rows.filter((row) => row.current_period_end).sort((a, b) => endOf(b) - endOf(a))[0]
+  const ended = (row: SubscriptionRow) => Date.parse(endedAt(row) ?? '') || 0
+  const last = rows.filter(ended).sort((a, b) => ended(b) - ended(a))[0]
   return last
-    ? { plan, state: 'expired', period: last.period, periodEnd: last.current_period_end, grantEnd }
+    ? { plan, state: 'expired', period: last.period, periodEnd: endedAt(last), grantEnd }
     : { plan, state: 'free', period: null, periodEnd: null, grantEnd }
 }
 
@@ -186,6 +201,8 @@ interface CreemTransaction {
   currency: string
   status?: string
   created_at?: number
+  subscription?: string | { id: string } | null
+  period_end?: number | string | null
 }
 
 const INVOICE_STATUS: Record<string, Invoice['status']> = {
@@ -200,16 +217,21 @@ const INVOICE_STATUS: Record<string, Invoice['status']> = {
 /** A transaction worth listing, or null for one that never became a charge. */
 export function invoiceOf(tx: CreemTransaction): Invoice | null {
   const status = INVOICE_STATUS[tx.status ?? '']
-  if (!status || typeof tx.created_at !== 'number') return null
-  // Creem documents a timestamp without its unit; seconds and milliseconds both read right.
-  const ms = tx.created_at < 1e12 ? tx.created_at * 1000 : tx.created_at
+  const date = isoOf(tx.created_at)
+  if (!status || typeof tx.created_at !== 'number' || !date) return null
   return {
     id: tx.id,
-    date: new Date(ms).toISOString(),
+    date,
     amount: tx.amount_paid ?? tx.amount,
     currency: tx.currency,
     status,
   }
+}
+
+// Creem documents a timestamp without its unit; seconds and milliseconds both read right.
+function isoOf(value: number | string | null | undefined): string | null {
+  const ms = typeof value === 'number' ? (value < 1e12 ? value * 1000 : value) : Date.parse(value ?? '')
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null
 }
 
 export async function readBilling(env: Env, user: string): Promise<Billing> {
@@ -228,6 +250,7 @@ interface CreemSubscription {
   customer: string | { id: string }
   product: string | { id: string }
   current_period_end_date?: string | null
+  canceled_at?: string | null
   metadata?: { userId?: string } | null
 }
 
@@ -287,6 +310,34 @@ async function record(env: Env, sub: CreemSubscription, user: string | undefined
   return !!written
 }
 
+// Creem's dispute sample spells a charged-back transaction `chargeback`.
+const REFUNDED = ['refunded', 'partialRefund', 'chargedBack', 'chargeback']
+
+/** Record the latest period of `sub` that was refunded or charged back, reading Creem's
+ *  transactions rather than the notification. A dispute is taken as it opens. */
+async function recordRefunds(env: Env, creem: Creem, sub: CreemSubscription, disputed: string | CreemTransaction | undefined) {
+  const customer = idOf(sub.customer)!
+  const page = await creem<{ items?: CreemTransaction[] }>(
+    'GET',
+    `/v1/transactions/search?customer_id=${encodeURIComponent(customer)}&page_size=50`,
+  )
+  const txs = [...(page.items ?? []), ...(typeof disputed === 'object' ? [disputed] : [])]
+  const disputedId = typeof disputed === 'object' ? disputed.id : disputed
+  const through = txs
+    .filter((tx) => idOf(tx.subscription ?? undefined) === sub.id)
+    .filter((tx) => REFUNDED.includes(tx.status ?? '') || (!!disputedId && tx.id === disputedId))
+    .map((tx) => isoOf(tx.period_end))
+    .filter((end): end is string => !!end)
+    .sort()
+    .at(-1)
+  if (!through) return
+  await mutate(env, 'record_refund', {
+    p_id: sub.id,
+    p_refunded_through: through,
+    p_revoked_at: sub.canceled_at ?? null,
+  })
+}
+
 // ---- notifications ----------------------------------------------------------
 
 export async function signatureOf(secret: string, body: string): Promise<string> {
@@ -315,7 +366,13 @@ async function webhook(request: Request, env: Env): Promise<Response> {
 
   const event = JSON.parse(body || '{}') as {
     eventType?: string
-    object?: { id?: string; object?: string; subscription?: string | { id: string }; metadata?: { userId?: string } }
+    object?: {
+      id?: string
+      object?: string
+      subscription?: string | { id: string }
+      transaction?: string | CreemTransaction
+      metadata?: { userId?: string }
+    }
   }
   const object = event.object ?? {}
   const subscriptionId = object.object === 'subscription' ? object.id : idOf(object.subscription)
@@ -325,6 +382,8 @@ async function webhook(request: Request, env: Env): Promise<Response> {
   const user = sub.metadata?.userId ?? object.metadata?.userId
   if (!(await record(env, sub, user))) {
     console.warn('cloud: notification not recorded', event.eventType, subscriptionId)
+    return json({ ok: true })
   }
+  await recordRefunds(env, creem, sub, event.eventType === 'dispute.created' ? object.transaction : undefined)
   return json({ ok: true })
 }

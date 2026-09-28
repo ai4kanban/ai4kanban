@@ -23,6 +23,9 @@ const OTHER = '22222222-2222-4222-8222-222222222222'
 const NOW = Date.parse('2026-09-27T12:00:00Z')
 const LATER = '2026-10-27T12:00:00.000Z'
 const EARLIER = '2026-09-01T12:00:00.000Z'
+const CANCELED_AT = '2026-09-27T12:05:00.000Z'
+const REVOKED_NOW = '2026-09-27T13:00:00.000Z'
+const NEXT = '2026-11-27T12:00:00.000Z'
 
 const realFetch = globalThis.fetch
 let keyPair
@@ -57,6 +60,7 @@ beforeEach(async () => {
       const user = body.p_user_id ?? rows.get(body.p_id)?.user_id
       if (!user) return json(null)
       rows.set(body.p_id, {
+        ...rows.get(body.p_id),
         id: body.p_id,
         user_id: user,
         customer_id: body.p_customer_id,
@@ -65,6 +69,15 @@ beforeEach(async () => {
         current_period_end: body.p_current_period_end,
       })
       return json({ id: body.p_id, user_id: user })
+    }
+    // What 0034_refund_revocation.sql does: the refund only moves forward.
+    if (address.endsWith('/rest/v1/rpc/record_refund')) {
+      const found = rows.get(body.p_id)
+      if (!found) return json(null)
+      if (!found.refunded_through || body.p_refunded_through > found.refunded_through) {
+        Object.assign(found, { refunded_through: body.p_refunded_through, revoked_at: body.p_revoked_at ?? REVOKED_NOW })
+      }
+      return json({ id: found.id, refunded_through: found.refunded_through })
     }
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(spent[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(grants[body.p_user_id] ?? null)
@@ -151,6 +164,19 @@ describe('who is Pro', () => {
     assert.deepEqual(paying, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
     // Both at once.
     assert.equal(billingOf([row('active')], grant, NOW).grantEnd, LATER)
+  })
+
+  it('ends Pro at once on a refund of the period it is in, and not on a later one', () => {
+    const refunded = { refunded_through: LATER, revoked_at: CANCELED_AT }
+    assert.equal(isPro(row('canceled', LATER, refunded), NOW), false)
+    assert.equal(isPro(row('active', LATER, refunded), NOW), false)
+    // Creem's two timestamps may differ by a little: still that period.
+    assert.equal(isPro(row('canceled', '2026-10-28T11:00:00.000Z', refunded), NOW), false)
+    // A renewal after the refund is a later period.
+    assert.equal(isPro(row('active', NEXT, refunded), NOW), true)
+    assert.deepEqual(billingOf([row('canceled', LATER, refunded)], null, NOW), {
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null,
+    })
   })
 
   it('picks the test store only for a test key', () => {
@@ -354,6 +380,90 @@ describe('the signed-in billing routes', () => {
     rows.set('sub_1', { ...row('past_due'), user_id: SUBJECT })
     const res = await signedIn('POST', '/v1/billing/portal')
     assert.equal((await res.json()).url, 'https://creem.io/portal/cust_1')
+  })
+})
+
+describe('a refund or chargeback', () => {
+  const tx = (id, status, extra = {}) => ({
+    id, customer: 'cust_1', subscription: 'sub_1', amount: 1500, currency: 'USD', status,
+    created_at: 1_790_000_000_000, period_end: Date.parse(LATER), ...extra,
+  })
+  const send = async (body) => {
+    const res = await notify(body, await signatureOf(ENV.CREEM_WEBHOOK_SECRET, body))
+    assert.equal(res.status, 200)
+  }
+  const refundEvent = JSON.stringify({ eventType: 'refund.created', object: { id: 'ref_1', object: 'refund', subscription: { id: 'sub_1' } } })
+  const read = async () => (await signedIn('GET', '/v1/billing')).json()
+
+  beforeEach(() => {
+    creemSubs.set('sub_1', { ...creemSub('canceled'), canceled_at: CANCELED_AT })
+  })
+
+  for (const status of ['refunded', 'partialRefund', 'chargedBack', 'chargeback']) {
+    it(`ends Pro and its credits at once on a ${status} charge`, async () => {
+      creemTxs = [tx('tx_1', status)]
+      await send(refundEvent)
+      const { billing, credits } = await read()
+      assert.deepEqual(billing, { plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null })
+      assert.equal(credits, null)
+    })
+  }
+
+  it('ends Pro as a dispute opens, before the charge reads as charged back', async () => {
+    creemSubs.set('sub_1', creemSub('active'))
+    creemTxs = [tx('tx_1', 'paid')]
+    const body = JSON.stringify({
+      eventType: 'dispute.created',
+      object: { id: 'dp_1', object: 'dispute', subscription: 'sub_1', transaction: tx('tx_1', 'paid') },
+    })
+    await send(body)
+    const { billing } = await read()
+    assert.equal(billing.plan, 'free')
+    assert.equal(billing.periodEnd, REVOKED_NOW)
+  })
+
+  it('keeps a cancel with no refund Pro until its period ends', async () => {
+    creemTxs = [tx('tx_1', 'paid')]
+    await send(refundEvent)
+    const { billing, credits } = await read()
+    assert.deepEqual(billing, { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    assert.notEqual(credits, null)
+  })
+
+  it('ignores a refund of another subscription, or of a period long over', async () => {
+    creemTxs = [tx('tx_1', 'refunded', { subscription: 'sub_9' }), tx('tx_0', 'refunded', { period_end: Date.parse(EARLIER) })]
+    await send(refundEvent)
+    assert.equal((await read()).billing.plan, 'pro')
+  })
+
+  it('makes a renewal after the refund Pro again', async () => {
+    creemTxs = [tx('tx_1', 'refunded')]
+    await send(refundEvent)
+    creemSubs.set('sub_1', creemSub('active', NEXT))
+    creemTxs.push(tx('tx_2', 'paid', { period_end: Date.parse(NEXT) }))
+    await send(JSON.stringify({ eventType: 'subscription.paid', object: { id: 'sub_1', object: 'subscription' } }))
+    const { billing } = await read()
+    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: NEXT, grantEnd: null })
+  })
+
+  it('lets a revoked subscriber buy again', async () => {
+    creemTxs = [tx('tx_1', 'refunded')]
+    await send(refundEvent)
+    const res = await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })
+    assert.equal((await res.json()).url, 'https://checkout.creem.io/ch_1')
+  })
+
+  it('lands on the same row whatever order and however often the notifications come', async () => {
+    creemTxs = [tx('tx_1', 'refunded')]
+    const cancel = JSON.stringify({ eventType: 'subscription.canceled', object: { id: 'sub_1', object: 'subscription' } })
+    await send(refundEvent)
+    const first = { ...rows.get('sub_1') }
+    for (const body of [cancel, refundEvent, cancel]) await send(body)
+    assert.deepEqual(rows.get('sub_1'), first)
+
+    rows.clear()
+    for (const body of [cancel, refundEvent]) await send(body)
+    assert.deepEqual(rows.get('sub_1'), first)
   })
 })
 

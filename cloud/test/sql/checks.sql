@@ -2759,6 +2759,53 @@ end
 $billing$;
 
 -- ---------------------------------------------------------------------------
+-- A refund only ever moves forward, and survives Creem's next write (#1188)
+-- ---------------------------------------------------------------------------
+
+do $refund$
+declare
+  BUDGET constant integer := 100000;
+  BUYER constant uuid := '00000000-0000-4000-8000-00000000b101';
+  END_AT constant timestamptz := '2026-10-27 09:51:47.123+00';
+  CANCELED_AT constant timestamptz := '2026-09-28 10:00:00+00';
+  v_writes bigint;
+  v_row json;
+begin
+  assert api.record_refund('sub_r0', END_AT, CANCELED_AT, BUDGET) is null, 'a refund made a row of its own';
+
+  perform api.record_subscription('sub_r1', BUYER, 'cust_r', 'monthly', 'canceled', END_AT, BUDGET);
+  perform api.record_refund('sub_r1', END_AT, CANCELED_AT, BUDGET);
+  select writes into v_writes from cloud.daily_writes where day = (now() at time zone 'utc')::date;
+
+  -- A replay, and an older period's refund arriving late, change nothing.
+  perform api.record_refund('sub_r1', END_AT, now(), BUDGET);
+  perform api.record_refund('sub_r1', END_AT - interval '1 month', now(), BUDGET);
+  assert (select writes from cloud.daily_writes where day = (now() at time zone 'utc')::date) = v_writes,
+    'a refund that changed nothing spent the budget';
+  assert (select refunded_through from cloud.subscriptions where id = 'sub_r1') = END_AT, 'a refund moved back';
+  assert (select revoked_at from cloud.subscriptions where id = 'sub_r1') = CANCELED_AT, 'a replay moved the revoke time';
+
+  -- Creem's next write of the row keeps the refund.
+  perform api.record_subscription('sub_r1', BUYER, 'cust_r', 'monthly', 'active', END_AT + interval '1 month', BUDGET);
+  v_row := api.subscriptions_for(BUYER) -> 0;
+  assert v_row ->> 'refunded_through' = '2026-10-27T09:51:47.123Z', 'the refund did not come back to the millisecond';
+  assert v_row ->> 'revoked_at' = '2026-09-28T10:00:00.000Z', 'the revoke time did not come back';
+
+  -- A later refund moves both; with no cancel time the revoke is now.
+  perform api.record_refund('sub_r1', END_AT + interval '1 month', null, BUDGET);
+  assert (select refunded_through from cloud.subscriptions where id = 'sub_r1') = END_AT + interval '1 month',
+    'a later refund did not move forward';
+  assert (select revoked_at from cloud.subscriptions where id = 'sub_r1') <> CANCELED_AT, 'a later refund kept the old revoke time';
+
+  perform api.record_subscription('sub_r2', BUYER, 'cust_r', 'monthly', 'active', END_AT, BUDGET);
+  assert (select refunded_through is null and revoked_at is null from cloud.subscriptions where id = 'sub_r2'),
+    'a subscription with no refund read as refunded';
+
+  raise notice 'sql checks: #1188 refund checks passed';
+end
+$refund$;
+
+-- ---------------------------------------------------------------------------
 -- AI credits are spent per user and UTC month (#1113)
 -- ---------------------------------------------------------------------------
 
