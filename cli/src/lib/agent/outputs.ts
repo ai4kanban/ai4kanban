@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { locate } from '../cards'
+import { locate, locateArchived } from '../cards'
 import { ASSETS, REPO_ROOT } from '../paths'
 import type { DeliveryRecord } from './types'
 import { trackedChanges } from './worktree'
@@ -17,7 +17,7 @@ import { trackedChanges } from './worktree'
 const TODO = /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/
 
 function cardBody(cardId: number): string {
-  const found = locate(cardId)
+  const found = locate(cardId) ?? locateArchived(cardId)
   if (!found) return ''
   try {
     return fs.readFileSync(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target, 'utf8')

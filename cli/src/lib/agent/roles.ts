@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
-import { PLANNER, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
+import { PLANNER, PROPOSER_MISSED, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
@@ -163,17 +163,16 @@ const DISMISSAL_REVIEWER: AgentRole = {
 }
 
 // The role that looks back at finished work (#534). Like the gater and the decider it is
-// off until asked for — a board that turns it on spends one run per completion — and like
-// them it owns no memory: what it proposes goes into the inbox to be triaged, and a
-// proposal nobody took up leaves nothing written down. It READS the goal and the planner's
-// memory to judge what is worth proposing; owning neither is the point.
+// off until asked for — a board that turns it on spends one run per completion. What it
+// proposes goes into the inbox to be triaged. It owns one file, the kinds of follow-up it
+// missed, which only the memory review writes when the user points one out (#1211).
 //
 // `reflect` is an event entry rather than a stage (./stages.ts): no flow a person types, and
 // the role's work all the same — a card reaching the archive is what starts one.
 const PROPOSER: AgentRole = {
   name: 'proposer',
   gloss: 'proposes the work a finished card leaves behind',
-  memory: [],
+  memory: [`memory/agents/proposer/${PROPOSER_MISSED}`],
   switch: 'proposer',
 }
 

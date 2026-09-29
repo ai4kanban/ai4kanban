@@ -1,57 +1,41 @@
 # Reflect on a completed card
 
-One card has just been finished. Judge what work should follow from it and write each
-survivor into the inbox. Proposing nothing is a valid, complete result.
+A card has just been finished. Propose the work that should follow it, one inbox item each.
+Proposing nothing is a normal result. Do not read other archived cards, and do not create,
+edit, or archive any card.
 
-The card is the only input. Do not sweep the archive, do not read other completed cards,
-and do not create, edit, or archive a card of any kind.
+## Inputs
 
-## 1. Read what was completed
+What was asked — read in full:
 
-Read the archived card in full — its summary, its scope, what its `## Todo` ticked off, and
-anything its `## Decided by the agent` recorded. That is what shipped.
+- **The card**: what was planned.
+- **The discussion**: the conversation the card came from, when the flow lists one under
+  `discussion`; the user's own words win over the card's.
 
-## 2. Name the follow-ups
+What helps check it — read only as far as it sharpens a candidate:
 
-List the work the completed card leaves behind. Strong candidates only:
+- **What shipped**: what the flow lists under `shipped`.
+- **Past misses**: each kind listed under `missed`; check this card for every one.
 
-- **What the scope deferred**: something the card named as out of scope and left undone.
-- **What the build revealed**: a gap, a rough edge, or a decision the work exposed.
-- **What it now makes possible**: work that was not worth doing until this shipped.
+## Candidates
 
-**Rules**:
+Each must trace to a line in the card or in what shipped:
 
-- **Evidence from this card**: every candidate traces to a line in the card. A general idea
-  the card merely reminded you of is not a follow-up.
-- **Zero is normal**: most completions leave nothing worth proposing. Say so and stop.
+- **Deferred**: work the card left out of scope.
+- **Exposed**: a gap or rough edge the work revealed.
+- **Unbacked**: something the card relies on that nothing shipped or in the project provides.
+  Verify it in the project; never take the card's word.
+- **Unlocked**: work worth doing only now.
 
-## 3. Ground each one
+## Filter
 
-Check `docs/kanban/memory/goal.md` and the planner's memory in
-`docs/kanban/memory/agents/planner/` for the direction, then drop every candidate that is
-already accounted for:
+Drop a candidate that is already on the board (`akb raw list`) or in the inbox
+(`akb triage check <source-id>`), or is in `docs/kanban/memory/agents/planner/rejected.md`.
 
-- `akb raw list` — already on the board, planned or in flight.
-- `akb triage check <source-id>` — already waiting, already made into a card, or ignored before.
-- `docs/kanban/memory/agents/planner/rejected.md` — turned down before.
-
-**Rules**:
-
-- **Direction first**: a follow-up that pulls against the goal is dropped, not proposed.
-- **No near-duplicates**: an existing card that covers the work is a skip. Do not edit it.
-
-## 4. Write the survivors
-
-One inbox item each:
+## Write
 
 ```text
-akb triage add --title "<one line>" --source "#<id>" --text "<why it follows, and the link>"
+akb triage add --title "<one line>" --source "#<id>" --text "<what, why, and docs/kanban/.archive/<file>>"
 ```
 
-The body is two or three sentences: what the work is, why the completed card calls for it,
-and `docs/kanban/.archive/<file>` — the card that prompted it.
-
-## Report
-
-Say what you proposed and what you skipped, with the reason for each skip. An inbox item is
-not a task: nobody has agreed to it, and a person triages it like anything else that arrives.
+Report what you proposed and what you skipped, with a reason for each skip.

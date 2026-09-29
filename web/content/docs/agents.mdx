@@ -60,8 +60,9 @@ of them can be switched off:
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
   default.
 - **Decider** — answers the questions on a card that are waiting on you. Off by default.
-- **Proposer** — reads a card the board has just finished and proposes the work that should follow
-  it. Off by default.
+- **Proposer** — reads a card the board has just finished, with the discussion it came from, and
+  proposes the work that should follow it — including anything the card promised that nothing
+  shipped. It learns from follow-ups you point out it missed. Off by default.
 - **Triage** — sorts what is waiting in Triage into cards and ignores. Switched on, it sorts each
   batch of new items itself and keeps going until nothing is waiting; `akb triage run` sorts either
   way. Off by default. Boards with [Triage](/docs/triage) open only, and it is not on the roster at

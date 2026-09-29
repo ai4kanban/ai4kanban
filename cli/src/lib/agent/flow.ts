@@ -34,7 +34,7 @@ import { findGuide } from '../guide'
 import { findSpecAgent } from '../agents'
 import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
-import { PLANNER, agentMemoryDir, memoryFile, planningMemoryFiles } from '../memory'
+import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, planningMemoryFiles, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { workflowRefusal } from './start'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
@@ -48,7 +48,8 @@ import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { recordedOutputs } from './outputs'
 import { boardCommandFor } from './command'
-import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
+import { activeDelivery, deliveryFor, endedDelivery, withWorkflow } from './deliveries'
+import { chatFile, readChat } from './chat'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { frozenReviewers, NO_REVIEWERS } from './workflows'
 import { field, metaLine, numbered } from './facts'
@@ -94,6 +95,30 @@ interface CardFacts {
   hasProcess: boolean
   /** The card sits in `todo/recurring/`, so it is a job that repeats and never finishes. */
   recurring: boolean
+}
+
+// What a finished card shipped (#1211): its landed commit, the files a `files` delivery
+// recorded, or a way to find either.
+function shippedLines(cardId: number): string[] {
+  const delivery = endedDelivery(`${cardId}`)
+  const commit = delivery?.landing?.commit
+  if (commit) return [`\`git show ${commit.slice(0, 12)}\` — the change that landed`]
+  if (delivery?.commitMode === 'files') {
+    const files = recordedOutputs(delivery)
+    if (files.length) return ['the files it delivered:', ...files.map((file) => `  ${file}`)]
+  }
+  return [`nothing on record — \`git log --grep "(#${cardId})"\`, or check the card against the project as it stands`]
+}
+
+// The discussion a card was written from (#1213), up to the handoff.
+function discussionLine(cardId: number): string | undefined {
+  const from = readChat(cardId)?.from
+  if (!from || !fs.existsSync(chatFile(from.discussion))) return undefined
+  return `${rel(chatFile(from.discussion))} — its first ${from.messages} message${from.messages === 1 ? '' : 's'}, up to the handoff`
+}
+
+function missedLine(): string {
+  return fs.existsSync(agentMemoryFile(PROPOSER, PROPOSER_MISSED)) ? proposerMissedFile() : `${proposerMissedFile()} — none yet`
 }
 
 // Where one flow reads its card. Everything works a card still on the board; a reflection
@@ -1011,6 +1036,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(
         ...field('memory', [
           `${rel(agentMemoryDir(PLANNER))}/ — decisions.md, rejected.md, redesign.md: where a planning note goes`,
+          `${proposerMissedFile()} — a follow-up the user says the proposer missed`,
           `${rel(AGENT_MEMORY)}/<agent>/ — an agent's own files, which its AGENT.md names`,
         ]),
       )
@@ -1045,12 +1071,15 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    // Reflecting on a card that has just completed (#534). The facts are the card as the
-    // archive holds it and the three places a follow-up may already be accounted for; the
-    // close is the one thing it may write, and the permission to write nothing at all.
+    // Reflecting on a card that has just completed (#534). The facts are what it was asked
+    // from, what it shipped and the proposer's past misses (#1211), plus where a follow-up may
+    // already be accounted for; the close is the one thing it may write.
     case 'reflect': {
-      facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', planningMemoryFiles()))
+      const discussion = discussionLine(req.id!)
+      if (discussion) facts.push(...field('discussion', discussion))
+      facts.push(...field('shipped', shippedLines(req.id!)))
+      facts.push(...field('missed', missedLine()))
+      facts.push(...field('rejected', rel(agentMemoryFile(PLANNER, 'rejected.md'))))
       facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
         `${self} triage add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,

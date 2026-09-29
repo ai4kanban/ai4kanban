@@ -29,6 +29,10 @@ whole job.
   corrections (don'ts), retaining their scope; never copy raw reviews. An agent whose instructions
   name no memory gets no new file. Reorganize only within declared split paths, keeping the
   index current and updating existing guidance at its indexed location.
+- **A follow-up the proposer missed**: when the user points out work a finished card left
+  behind that no proposal named, add the kind of miss, not the case, to
+  `docs/kanban/memory/agents/proposer/missed.md` as `- **<kind>**: <what to check> (#<card>)`,
+  creating the file if missing.
 - **Change nothing else**: no card, no open question, no `verify:` line, no code. The memory
   files are the whole of what this run writes.
 - **Say what you wrote**: finish by reporting each conversation you read, and for each the

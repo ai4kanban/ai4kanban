@@ -17,6 +17,8 @@ import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { reflectRunsAfter } from '../src/lib/agent/propose.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
+import { withStore } from '../src/lib/agent/store.ts'
+import { chatFile } from '../src/lib/agent/chat.ts'
 import { proposerOn, setProposer } from '../src/lib/agent/settings.ts'
 import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { cmdTriageAdd } from '../src/commands/triage.ts'
@@ -201,6 +203,78 @@ describe('the flow', () => {
     assert.match(printed, /triage add/)
     // And it is told outright that proposing nothing is a finished job.
     assert.match(printed, /propose nothing at all/)
+  })
+
+  const ended = (extra: Record<string, unknown>): void => {
+    withStore((store) => {
+      store.deliveries.push({
+        deliveryId: 'd1', cardId: 1, title: 'card 1', status: 'finished',
+        startedAt: 1, endedAt: 2, sessions: [], approved: '', steps: [], ...extra,
+      } as never)
+    })
+  }
+  const reflect = (): Promise<string> => said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
+
+  it('points at the commit a delivery landed', async () => {
+    open(1)
+    complete(1)
+    ended({ landing: { status: 'landed', attempts: 1, commit: 'c1e0306d9a8b7c6d5e4f', at: 2 } })
+    const printed = await reflect()
+    assert.match(printed, /shipped +`git show c1e0306d9a8b`/)
+  })
+
+  it('lists the files a files delivery recorded', async () => {
+    open(1)
+    const file = path.join(TODO(), '1-card.md')
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- [x] Build it.', '- [x] Write `notes/plan.md`\n- [x] Draw `art/cover.png`'))
+    complete(1)
+    ended({ commitMode: 'files', planned: [] })
+    const printed = await reflect()
+    assert.match(printed, /the files it delivered:\n.*notes\/plan\.md\n.*art\/cover\.png/)
+  })
+
+  it('falls back to the commits that name a card nothing delivered', async () => {
+    open(1)
+    complete(1)
+    assert.match(await reflect(), /git log --grep "\(#1\)"/)
+  })
+
+  it('names the discussion a card came from, up to the handoff', async () => {
+    open(1)
+    complete(1)
+    const now = Date.now()
+    const said3 = [1, 2, 3].map((n) => ({ role: 'you', text: `line ${n}`, at: now }))
+    fs.mkdirSync(path.dirname(chatFile(1)), { recursive: true })
+    fs.writeFileSync(chatFile('discussion-abc'), JSON.stringify({ cardId: 'discussion-abc', harness: 'claude-code', messages: said3, startedAt: now, updatedAt: now }))
+    fs.writeFileSync(chatFile(1), JSON.stringify({
+      cardId: 1, harness: 'claude-code', messages: [], startedAt: now, updatedAt: now,
+      from: { discussion: 'discussion-abc', resumeId: 'r1', harness: 'claude-code', messages: 2 },
+    }))
+    const printed = await reflect()
+    assert.match(printed, /discussion-abc\.json — its first 2 messages, up to the handoff/)
+  })
+
+  it('names no discussion for a card that came from none', async () => {
+    open(1)
+    complete(1)
+    assert.doesNotMatch(await reflect(), /^ +discussion /m)
+  })
+
+  it('names the misses file whether or not it exists yet', async () => {
+    open(1)
+    complete(1)
+    assert.match(await reflect(), /memory\/agents\/proposer\/missed\.md — none yet/)
+    const missed = path.join(kanban(), 'memory', 'agents', 'proposer', 'missed.md')
+    fs.mkdirSync(path.dirname(missed), { recursive: true })
+    fs.writeFileSync(missed, '- **x**: y (#1)\n')
+    const printed = await reflect()
+    assert.match(printed, /memory\/agents\/proposer\/missed\.md/)
+    assert.doesNotMatch(printed, /none yet/)
+  })
+
+  it('gives the memory review the misses file', async () => {
+    const printed = await said(() => printFlow({ action: 'review-memory' }))
+    assert.match(printed, /memory\/agents\/proposer\/missed\.md — a follow-up the user says the proposer missed/)
   })
 
   it('refuses a card that never reached the archive', () => {

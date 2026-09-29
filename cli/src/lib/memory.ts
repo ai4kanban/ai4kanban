@@ -39,6 +39,11 @@ export const PLANNER = 'planner'
  *  the dismissal review (#929). */
 export const PLANNER_MEMORY_FILES = ['decisions.md', 'rejected.md', 'redesign.md', 'dismissed.md'] as const
 
+/** The proposer's one file: kinds of follow-up it missed, written only by the memory review. */
+export const PROPOSER = 'proposer'
+export const PROPOSER_MISSED = 'missed.md'
+export const proposerMissedFile = (): string => rel(agentMemoryFile(PROPOSER, PROPOSER_MISSED))
+
 /** The board's own record — what it did, and where it is going. Not an agent's. */
 export const BOARD_MEMORY_FILES = ['readme.md', 'goal.md'] as const
 
