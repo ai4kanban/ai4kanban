@@ -266,12 +266,6 @@ export interface BoardRules {
    *  one already cleared up, which is every ending but a stop with a job left to finish. */
   keptCheckout?(deliveryId: string): { worktree: string; branch?: string } | undefined;
   discardCost?(id: string): { deliveryId: string; worktree?: string; branch?: string } | null;
-  /** Sign off the tree a delivery would land (#308), on a board that requires it. `from`
-   *  names where the approval came from and rides into the permanent record. */
-  approveDelivery?(
-    id: string,
-    from?: string,
-  ): Promise<{ ok: true; deliveryId: string; covers: string } | ({ ok: false } & RunRefusal)>;
   /** Deliveries whose worktree or branch has gone missing — reported at startup, never
    *  started over. */
   repairDeliveries?(): string[];
@@ -313,13 +307,7 @@ export interface BoardRules {
   autoCommitAllowed?(): boolean;
   setAutoCommit?(on: boolean): WriteResult;
 
-  // must the tree be approved before it lands? (#308) The other repository-level setting in
-  // the same file, off by default — so rules older than it read as off, which is what they
-  // did.
-  diffApprovalRequired?(): boolean;
-  setDiffApproval?(on: boolean): WriteResult;
-
-  // does a build get an AI review? (#416, #783) The third delivery setting, in the same
+  // does a build get an AI review? (#416, #783) The second delivery setting, in the same
   // file, on by default — so rules older than it read as on, which is what they did. It was
   // the reviewer's own switch on Configuration → Agents until #783.
   aiReviewEnabled?(): boolean;

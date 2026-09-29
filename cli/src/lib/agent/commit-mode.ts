@@ -30,9 +30,9 @@ import {
   REPO_ROOT,
   ROOT_GITIGNORE,
 } from '../paths'
-import { candidateOf, candidateDiff, candidateMark } from './candidate'
+import { candidateOf, candidateDiff } from './candidate'
 import { plannedTodos } from './outputs'
-import { aiReviewEnabled, autoCommitAllowed, diffApprovalRequired } from './settings'
+import { aiReviewEnabled, autoCommitAllowed } from './settings'
 import { readStore } from './store'
 import { cardWorkflow, workflowReviewers, type WorkflowHelper } from './workflows'
 import type { DeliveryPlan } from '../view/types'
@@ -101,10 +101,6 @@ export interface DeliveryStart {
   /** Why it is in manual mode when nothing could have chosen otherwise — no git, no commit
    *  to fork from, or a detached HEAD. Absent when the setting or the dialog's tick chose it. */
   manualWhy?: string
-  /** Whether this delivery has to be approved before it lands (#308), read from the setting
-   *  here and never again. Only ever true in auto commit mode: in manual mode the board
-   *  never commits, so the user's own commit is the approval. */
-  needsApproval?: boolean
   /** Whether a fresh session reviews what this delivery builds (#416), read from the
    *  setting or the dialog's tick here and never again. */
   aiReview: boolean
@@ -143,8 +139,8 @@ function noWorktreeWhy(): string | undefined {
 }
 
 /** What an Implement click would do right now, without doing any of it (#307): both sides of
- *  the dialog's tick at once (#346) — the branch a build with its own worktree would land on
- *  and whether it would wait for approval, and why one without has nothing to land. Read,
+ *  the dialog's tick at once (#346) — the branch a build with its own worktree would land on,
+ *  and why one without has nothing to land. Read,
  *  never written. */
 export function deliveryPlan(cardId?: number): DeliveryPlan {
   const manualWhy = noWorktreeWhy()
@@ -156,7 +152,6 @@ export function deliveryPlan(cardId?: number): DeliveryPlan {
   return {
     commitMode: autoCommitAllowed() ? 'auto' : 'manual',
     branch: currentBranch() ?? undefined,
-    needsApproval: diffApprovalRequired(),
     canChooseWorktree: true,
     // Tracked changes only, the board's own files left out — the same count the worktree
     // path has always read the checkout by. It says nothing about whether the build may
@@ -190,8 +185,8 @@ export function prepareDelivery(
   const deliveryId = newDeliveryId()
   // The other tick (#416), settled here for the same reason and read from the record
   // afterwards — so a resume follows the policy this build started with. A build with no
-  // card is never reviewed and never waits to be approved (#428): those are the checks it
-  // exists to skip, so both are forced off here rather than left to a setting or a caller.
+  // card is never reviewed (#428): that is the check it exists to skip, so it is forced off
+  // here rather than left to a setting or a caller.
   const gated = cardId !== null
   // A workflow with no reviewers is never reviewed, whatever was asked (#820).
   const reviewers = gated ? workflowReviewersOfCard(cardId) : []
@@ -203,7 +198,6 @@ export function prepareDelivery(
         deliveryId,
         commitMode: 'files',
         base: base ?? undefined,
-        needsApproval: false,
         aiReview,
         touched: base ? trackedChanges() : undefined,
         planned: plannedTodos(cardId),
@@ -220,7 +214,7 @@ export function prepareDelivery(
     const refusal = manualRefusal(cardId, !!base)
     if (refusal) return refusal
     return {
-      start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, needsApproval: false, aiReview },
+      start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, aiReview },
     }
   }
 
@@ -248,7 +242,6 @@ export function prepareDelivery(
       targetBranch,
       worktree: made.worktree,
       branch: made.branch,
-      needsApproval: gated && diffApprovalRequired(),
       aiReview,
     },
   }
@@ -379,7 +372,3 @@ export function manualState(delivery: DeliveryRecord): 'waiting' | 'landed' | 'c
   if (dirtyPaths(true).length) return 'waiting'
   return treeMark(delivery.base) === delivery.reviewed.mark ? 'landed' : 'changed'
 }
-
-/** The delivery's current code fingerprint, used by diff approval. */
-export const workMark = (delivery: DeliveryRecord): string | undefined =>
-  candidateMark(candidateOf(delivery)) ?? undefined

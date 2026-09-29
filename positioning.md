@@ -70,8 +70,8 @@ What the copy may say, and what backs it today.
 | Organizes the work | Planning breaks a card into steps and calls in specialist agents |
 | Follows through | Deliveries run in the background and can be resumed when they stop |
 | Checks the results | Agent review on development deliveries; demo video has no agent review |
-| Reports what you need to know | Open questions, manual checks and deliveries waiting for approval |
-| You approve the results | Verification checks left for the user, and deliveries that wait for approval before landing |
+| Reports what you need to know | Open questions and manual checks |
+| You approve the results | Verification checks left for the user |
 
 - **Scale is a vision**: 10×, 20× or 100× refers to project size, productivity or the agent
   team one person can manage, never business growth or success. Do not present these as

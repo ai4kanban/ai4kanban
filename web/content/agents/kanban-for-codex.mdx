@@ -130,13 +130,13 @@ See [What each coding agent can do](/docs/connectors) for the current connector 
 
 Each automatic delivery gets its own branch and Git worktree. Dependencies stop blocked cards from starting too early.
 
-After implementation, a fresh session reviews the card and diff. Approved deliveries enter a queue and land on the target branch one at a time as squash commits. Enable diff approval so each reviewed worktree waits for your approval.
+After implementation, a fresh session reviews the card and diff. Approved deliveries enter a queue and land on the target branch one at a time as squash commits.
 
 <Shot
   src="configuration-v1"
   wash="peachEmber"
-  alt="AI4Kanban settings for isolated worktrees, diff approval, and silent-run handling"
-  caption="Choose whether deliveries use isolated worktrees and whether a reviewed tree must wait for your approval before it lands."
+  alt="AI4Kanban settings for isolated worktrees and silent-run handling"
+  caption="Choose whether deliveries use isolated worktrees."
 />
 
 You can inspect logs, stop without discarding the worktree, and resume the same Codex thread. Disable automatic Git commits to work in your current checkout and commit manually. AI4Kanban never pushes.
@@ -181,7 +181,7 @@ A worktree starts with tracked files only. Add an implementation rule for depend
 
 <FAQItem question="Will Codex ever commit, merge, or push without my approval?">
 
-Card approval authorizes automatic commits and 1 reviewed squash landing. Enable diff approval for a 2nd checkpoint, or use manual commit mode. AI4Kanban never pushes.
+Card approval authorizes automatic commits and 1 reviewed squash landing. Use manual commit mode to manage Git yourself. AI4Kanban never pushes.
 
 </FAQItem>
 

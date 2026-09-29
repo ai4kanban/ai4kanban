@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { deliveryPlan, prepareDelivery, undoPrepared } from '../src/lib/agent/commit-mode.ts'
 import { activeDelivery } from '../src/lib/agent/deliveries.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
-import { setAutoCommit, setDiffApproval } from '../src/lib/agent/settings.ts'
+import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
@@ -67,14 +67,12 @@ afterEach(() => {
 describe('what the dialog is told', () => {
   it('offers the choice, and answers both sides at once', () => {
     setAutoCommit(false)
-    setDiffApproval(true)
     const plan = deliveryPlan()
     assert.equal(plan.canChooseWorktree, true)
     // The setting picks the side the box opens on...
     assert.equal(plan.commitMode, 'manual')
     // ...and the other side is answered all the same, so ticking asks nothing more.
     assert.equal(plan.branch, 'main')
-    assert.equal(plan.needsApproval, true)
     assert.equal(plan.manualWhy, undefined)
     assert.equal(plan.localChanges, false)
   })
@@ -131,14 +129,11 @@ describe('what the tick does', () => {
 
   it('gives this build a worktree where the setting would not have', () => {
     setAutoCommit(false)
-    setDiffApproval(true)
     const got = prepareDelivery(7, 'auto')
     assert.ok('start' in got)
     assert.equal(got.start.commitMode, 'auto')
     assert.ok(got.start.worktree)
     assert.equal(got.start.targetBranch, 'main')
-    // Approval follows the branch, not the commits switch.
-    assert.equal(got.start.needsApproval, true)
     undoPrepared(got.start)
   })
 

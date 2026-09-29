@@ -151,7 +151,6 @@ import {
   autoCommitAllowed,
   canSweep,
   cardSweep,
-  diffApprovalRequired,
   memoryPrune,
   memoryReview,
   dismissalReview,
@@ -159,7 +158,6 @@ import {
   saveCardSweep,
   setAiReview,
   setAutoCommit,
-  setDiffApproval,
   setHarness,
   setHarnessSetting,
   setMemoryPrune,
@@ -188,7 +186,6 @@ import {
   skipQuestion,
 } from "@/lib/edit";
 import {
-  approveDelivery,
   cancelDelivery,
   discardDelivery,
   resumeDelivery,
@@ -524,15 +521,6 @@ export async function discardDeliveryAction(deliveryId: string): Promise<StartRe
 export async function resumeDeliveryAction(deliveryId: string): Promise<StartResult> {
   if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
   return resumeDelivery(deliveryId);
-}
-
-// Approve the tree a delivery would land (#308), on a board that requires it. The base
-// commit and the fingerprint are read here, as the click lands, so what the record says was
-// approved is what was on screen. Named by delivery id, so a stale tab can't approve the
-// delivery that replaced the one it was drawn from.
-export async function approveDeliveryAction(deliveryId: string): Promise<StartResult> {
-  if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
-  return approveDelivery(deliveryId);
 }
 
 // The shared run list, for the UI's poll. Every tab reads the same picture. The UI polls
@@ -1186,23 +1174,8 @@ export async function setAutoCommitAction(on: boolean): Promise<WriteResult> {
   return setAutoCommit(on);
 }
 
-// **Approve diffs before landing** (#308) — read and saved beside it, in the same
-// file. Off by default, so nothing to read reads as off.
-export async function diffApprovalAction(): Promise<{ on: boolean; error?: string }> {
-  try {
-    return { on: await diffApprovalRequired() };
-  } catch (e) {
-    return { on: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function setDiffApprovalAction(on: boolean): Promise<WriteResult> {
-  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
-  return setDiffApproval(on);
-}
-
-// **Review every build** (#416, #783) — the third delivery setting, read and saved beside
-// the two above. On by default, so nothing to read reads as on.
+// **Review every build** (#416, #783) — the second delivery setting, read and saved beside
+// the one above. On by default, so nothing to read reads as on.
 export async function aiReviewAction(): Promise<{ on: boolean; error?: string }> {
   try {
     return { on: await aiReviewEnabled() };

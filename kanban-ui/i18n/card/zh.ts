@@ -73,7 +73,6 @@ const zh: CardCopy = {
     unfold: "展开",
     tabDiff: "差异",
     tabLog: "日志",
-    tabApproval: "批准",
     noLog: "还没有任何会话写下内容——第一个会话正在启动。",
     projectFolder: "项目文件夹",
     projectFolderHint: "改动就在你的项目文件夹里",
@@ -129,16 +128,6 @@ const zh: CardCopy = {
       body: (branch) =>
         `合入期间 ${branch ? `\`${branch}\`` : "目标分支"} 又有了新提交，这次交付会基于新代码重来一次。` +
         "等待期间不占合入位，别的交付照常合入。",
-    },
-    approval: {
-      approved: "已批准——接下来会自动合入。",
-      approvedBody: (covers) =>
-        `你批准了 ${covers}。工作区或它所基于的提交一旦变动，这次批准就会作废，交付重新等待批准。`,
-      required: "这次交付要等你批准之后才会合入。",
-      readDiff: (covers) =>
-        `请先看**差异**页，然后批准 ${covers}。一次批准只覆盖那一份工作区：之后任何改动都会让它作废。`,
-      approve: "批准这份工作区",
-      failed: "未能批准这份工作区",
     },
     working: "运行中…",
   },

@@ -220,7 +220,6 @@ const zh: RunsCopy = {
       title: (id) => `开发 #${id}`,
       autoBranch: (branch) => `自动开发、审查并合入 \`${branch}\`。`,
       autoHere: "自动开发、审查并合入你当前所在的分支。",
-      needsApproval: "合入前由你批准这份改动。",
       manualFolder: "在你的项目目录里开发并审查，由你自己提交。",
       manual: "在你的项目目录里开发并审查。当前是**手动提交模式**，由你自己提交。",
       manualWhy: (why) => `在你的项目目录里开发并审查——${why}。由你自己提交。`,

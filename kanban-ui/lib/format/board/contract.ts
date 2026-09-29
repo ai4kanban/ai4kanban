@@ -260,11 +260,6 @@ export interface BoardProvider {
     env: OpEnvelope,
   ): Promise<OpResult<{ deliveryId?: string; landed?: boolean; carryOn?: DeliveryCarryOn }>>
   discardDelivery(deliveryId: string, env: OpEnvelope): Promise<OpResult<{ deliveryId?: string }>>
-  approveDelivery(
-    deliveryId: string,
-    from: string,
-    env: OpEnvelope,
-  ): Promise<OpResult<{ deliveryId: string; covers: string }>>
 
   // ---- the named `akb raw` moves -----------------------------------------
   /**

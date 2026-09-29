@@ -169,24 +169,6 @@ export interface CardDelivery {
    *  passed it: queued for the repository's one landing slot, holding it, landed, or
    *  stopped on a conflict. */
   landing?: CardLanding
-  /** Whether this delivery has to be approved before it lands, and what an approval covers
-   *  (#308). Absent on a delivery that needs none, and then the block has no **Approval**
-   *  tab. */
-  approval?: CardApproval
-}
-
-/** A delivery's diff approval, as the card page's **Approval** tab draws it (#308). */
-export interface CardApproval {
-  /** This delivery may not land until the user approves the tree. Frozen when it started. */
-  required: boolean
-  /** An approval stands and still covers what would land. */
-  approved: boolean
-  /** What an approval covers, or what the standing one covered: the base commit and the
-   *  candidate's fingerprint, in one line. */
-  covers: string
-  /** Why the last approval stopped counting — the base moved, or the tree did. Absent until
-   *  one has been cancelled. */
-  cancelled?: string
 }
 
 /** Where a delivery stands, as the card page's pill reads it (#307). The stages are the
@@ -196,7 +178,6 @@ export type CardDeliveryStage =
   | 'working'
   | 'stopped'
   | 'held'
-  | 'approval'
   | 'commit'
   | 'rereview'
   | 'refused'
@@ -432,9 +413,6 @@ export interface DeliveryPlan {
   /** Why this build can have no worktree — no git, no commit to fork from, or a detached
    *  HEAD. Absent whenever one is possible, including when the setting is what chose manual. */
   manualWhy?: string
-  /** A build with its own worktree waits for the user to approve the tree before it lands
-   *  (#308). Read from the setting alone, so it holds whichever side the tick picks. */
-  needsApproval?: boolean
   /** Whether the dialog may offer the tick at all (#346): false where no worktree is
    *  possible. Absent on rules older than the choice, and the dialog then offers no box and
    *  says only what `commitMode` alone always said. */

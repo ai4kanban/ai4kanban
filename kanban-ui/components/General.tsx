@@ -3,7 +3,7 @@
 // Configuration → General: the settings groups that never needed a pane each.
 //
 // Setup (#174) is two rows — the skill in this project, the `akb` command on the PATH.
-// Delivery (#303, #308) is two switches. Runs (#394) is the silence limit. Privacy (#293)
+// Delivery (#303, #416) is two switches. Runs (#394) is the silence limit. Privacy (#293)
 // is the usage-reporting switch. Language (#334) is one control. A pane each was a sidebar
 // you had to walk to find anything; one pane shows all of it at a glance, and each group's
 // caption is the whole of its explanation.

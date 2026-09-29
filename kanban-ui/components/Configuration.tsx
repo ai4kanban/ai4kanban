@@ -2,7 +2,7 @@
 
 // The board's one configuration home (#41), opened from a quiet gear button in
 // the header. A sidebar on its left names the sections — General (the coding-agent
-// setup #174, how a delivery is built #303/#308, and the language this machine
+// setup #174, how a delivery is built #303, and the language this machine
 // reads in #334), Runtimes (the list of runtimes the board owns and what each one
 // runs as, #68/#93/#443/#467/#468), Agents (the spec agents that fill part of a card's
 // spec, the connector and model each agent runs #443, the rule each one carries
@@ -372,7 +372,7 @@ export function Configuration({
               a pane taller than it scrolls here. */}
           <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-sm:p-4 max-sm:pb-8">
             {/* What the board is set up with, in three groups on one pane (see General.tsx):
-                the coding-agent setup (#174), how a delivery is built (#303, #308) and the
+                the coding-agent setup (#174), how a delivery is built (#303) and the
                 language this machine reads in (#334). Mounted only while it is the section
                 on screen — the setup group spawns a process to ask what `akb` on the PATH
                 is, and that answer should be the one from a moment ago. */}

@@ -84,7 +84,6 @@ export type {
   ArchivedCardFile,
   Board,
   Card,
-  CardApproval,
   CardCreation,
   CardDecision,
   CardDelivery,

@@ -211,7 +211,6 @@ describe('a build with no card', () => {
     await end(built)
     const live = listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!
     assert.equal(live.aiReview, false, 'the card arriving must not turn review on')
-    assert.equal(live.approval?.required, false)
     assert.equal(live.landing?.status, 'waiting', 'it goes straight to landing, unreviewed')
 
     assert.equal(await advanceLanding(), null)
@@ -228,9 +227,8 @@ describe('a build with no card', () => {
     // Its checkout and its branch are named by the delivery — there is no card number.
     assert.equal(delivery.worktree, `.akb/worktrees/delivery/${delivery.deliveryId}`)
     assert.equal(delivery.branch, `delivery/${delivery.deliveryId}`)
-    // And nothing gates it: no review run reads the code, nothing waits to be approved.
+    // And nothing gates it: no review run reads the code.
     assert.equal(delivery.aiReview, false)
-    assert.equal(delivery.approval?.required, false)
 
     fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
     await end(built)

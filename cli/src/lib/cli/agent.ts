@@ -46,7 +46,6 @@ import {
 import { WORKFLOW_STAGES } from '../agent/workflows'
 import {
   cmdAnswered,
-  cmdApprove,
   cmdCancel,
   cmdDiscard,
   cmdResumeDelivery,
@@ -592,19 +591,6 @@ function declareRunning(run: Command, cli: AgentCliOptions): void {
  *  flows and are declared with the rest of them; these four start nothing. */
 function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
   const verb = (name: string) => withShared(delivery.command(name))
-
-  verb('approve')
-    .argument('<delivery>', DELIVERY)
-    .summary('sign off the tree it would land, on a board that requires it')
-    .description(
-      'The approval covers the delivery’s base commit and the tree built on it as they stand right now, ' +
-        `so read the diff first — \`${cli.program} run log\` and the card page’s Diff tab both show it. ` +
-        'Either one moving afterwards cancels the approval by itself.',
-    )
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [named] = positional(vals) as [string]
-      await onBoard(this, cli, () => cmdApprove(named))
-    })
 
   verb('answered')
     .argument('<delivery>', DELIVERY)

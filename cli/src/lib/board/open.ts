@@ -205,7 +205,6 @@ function refusing(error: string): import('./contract').BoardProvider {
     cancelDelivery: refused,
     resumeDelivery: refused,
     discardDelivery: refused,
-    approveDelivery: refused,
     runMove: refused,
     readMove: no,
   }

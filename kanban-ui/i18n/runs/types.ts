@@ -179,7 +179,6 @@ export type RunsCopy = {
        *  archive, which the reader finds out by watching it happen. */
       autoBranch: (branch: string) => string;
       autoHere: string;
-      needsApproval: string;
       manualFolder: string;
       manual: string;
       manualWhy: (why: string) => string;

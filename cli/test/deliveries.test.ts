@@ -412,19 +412,17 @@ describe('a delivery with no card', () => {
       assert.equal(readAudit(id).cardId, 9)
     })
 
-    it('leaves what was frozen with no card frozen — nothing reviews or approves it', () => {
+    it('leaves what was frozen with no card frozen — nothing reviews it', () => {
       const id = withStore((store) => {
         const run = session({ cardId: null })
         store.runs.push(run)
         const delivery = joinDelivery(store, run, typed, 'implement', undefined, { title: typed, approved: typed })
         delivery.aiReview = false
-        delivery.approval = { required: false, events: [] }
         return delivery.deliveryId
       })
       adoptDirectCard(readStore().runs[0]!.sessionId, 9)
       const delivery = findDelivery(id)!
       assert.equal(delivery.aiReview, false)
-      assert.equal(delivery.approval?.required, false)
       // And the sentence stays the requirement: the card was written from it.
       assert.equal(delivery.approved, typed)
     })

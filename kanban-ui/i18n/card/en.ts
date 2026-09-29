@@ -75,7 +75,6 @@ const en: CardCopy = {
     unfold: "Open this up",
     tabDiff: "Diff",
     tabLog: "Log",
-    tabApproval: "Approval",
     noLog: "No session has written anything yet — the first one is starting.",
     projectFolder: "Project folder",
     projectFolderHint: "Changes are in your project folder",
@@ -132,16 +131,6 @@ const en: CardCopy = {
       body: (branch) =>
         `${branch ? `\`${branch}\`` : "The target branch"} moved on while this was landing, so it starts over on ` +
         "the new code. It holds no landing slot while it waits — another delivery can land.",
-    },
-    approval: {
-      approved: "Approved — it lands from here.",
-      approvedBody: (covers) =>
-        `You approved ${covers}. Change the tree, or the commit it was built on, and this approval is cancelled and the delivery waits again.`,
-      required: "This delivery lands only once you approve it.",
-      readDiff: (covers) =>
-        `Read the **Diff** tab, then approve ${covers}. An approval covers that one tree: anything that moves it afterwards cancels it.`,
-      approve: "Approve this tree",
-      failed: "could not approve this tree",
     },
     working: "Working…",
   },

@@ -583,7 +583,7 @@ export function sweepCheckouts(): string[] {
  *  again.
  *
  *  Everything it learned is kept — the approved copy, the base, the review rounds, the
- *  landing, the approval, the rules and the session history — because a resume carries the
+ *  landing, the rules and the session history — because a resume carries the
  *  delivery ON. Only the ending is undone.
  *
  *  The judgement is made a second time here, under the record's lock: `resumeRefusal` ran
@@ -865,10 +865,6 @@ export function joinDelivery(
       targetBranch: start?.targetBranch,
       worktree: start?.worktree,
       branch: start?.branch,
-      // And whether the user has to approve the tree before it lands (#308). Read from the
-      // setting once, here, so turning the policy on or off changes the next delivery and
-      // never one in flight.
-      approval: { required: !!start?.needsApproval, events: [] },
     }
     store.deliveries.push(delivery)
   }
@@ -891,7 +887,7 @@ export function joinDelivery(
  *  From here the run, the delivery and the card are the ordinary three: Runs names `#id`,
  *  the card page shows the delivery in flight, and landing archives the card.
  *
- *  What was frozen while there was no card stays frozen: `aiReview` and `approval` are off,
+ *  What was frozen while there was no card stays frozen: `aiReview` is off,
  *  and `approved` is still the typed sentence — the card was written from it, not the other
  *  way round.
  *
@@ -1166,8 +1162,8 @@ export function deliveryAcceptsAnswers(cardId: number): boolean {
 
 /** The two stages where a delivery has stopped and only the user's answer moves it: review
  *  sent the work back with a question (`stopped`), and landing waits on the card's open
- *  questions (`held`). Every other pause names something outside the card — an approval, a
- *  commit, a landing refusal — which is not an answer and not what this set is for. */
+ *  questions (`held`). Every other pause names something outside the card — a commit, a
+ *  landing refusal — which is not an answer and not what this set is for. */
 const WAITING_ON_ANSWER: ReadonlySet<DeliveryStage> = new Set<DeliveryStage>(['stopped', 'held'])
 
 /** The cards whose delivery has stopped for an answer only the user can give — after review
@@ -1406,14 +1402,8 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   if (insideDelivery(cardId)) return undefined
   const cmd = program ?? boardCommand()
   const state = deliveryState(delivery, openQuestions(cardId), decidingOn(cardId))
-  // What answers the wait: an approval on an approval hold (#308), the card's own questions
-  // everywhere else. Naming the wrong one is a refusal nobody can act on.
   const answer =
-    state.stage === 'approval'
-      ? `Approve it with \`${cmd} delivery approve ${delivery.deliveryId}\`.`
-      : state.stage === 'refused'
-        ? `Clear that and it lands by itself.`
-        : `Answer it with \`${cmd} card resolve ${cardId}\`.`
+    state.stage === 'refused' ? `Clear that and it lands by itself.` : `Answer it with \`${cmd} card resolve ${cardId}\`.`
   const doing = state.paused
     ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
       `${answer} Or take the card back with `

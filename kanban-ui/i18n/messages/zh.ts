@@ -25,7 +25,6 @@ const zh: MessagesCopy = {
   },
   tooOld: {
     autoDelivery: "这个看板的运行规则早于自动交付——请运行 `npm install -g ai4kanban`。",
-    diffApproval: "这个看板的运行规则早于差异批准——请运行 `npm install -g ai4kanban`。",
     aiReview: "这个看板的运行规则早于交付评审设置——请运行 `npm install -g ai4kanban`。",
     silenceLimit: "这个看板的运行规则早于静默上限——请运行 `npm install -g ai4kanban`。",
     deliveries: "这个看板的运行规则早于交付流程——请运行 `npm install -g ai4kanban`。",
@@ -73,7 +72,6 @@ const zh: MessagesCopy = {
         cancel: "请指定要取消的交付。",
         resume: "请指定要继续的交付。",
         discard: "请指定要丢弃的交付。",
-        approve: "请指定要批准的交付。",
       })[a.action] ?? "请指定交付。",
     deliveryNotFound: (a) => `找不到编号为“${a.id}”的交付。`,
     deliveryActive: (a) => `交付 ${a.id} 尚未结束，仍在处理${spaced(a.task)}。`,
@@ -90,10 +88,6 @@ const zh: MessagesCopy = {
     deliveryTakenOver: (a) => `本次交付结束后，交付 ${a.other} 已接手 #${a.card}，本次交付无法再继续。`,
     deliveryRunGoing: (a) => `交付 ${a.id} 仍有运行尚未结束。`,
     deliveryNone: (a) => `${a.on} 没有进行中的交付，无法执行此操作。`,
-    deliveryEnded: (a) => `交付 ${a.id} 已结束，无需批准。`,
-    deliveryNoApproval: (a) =>
-      `交付 ${a.id} 无需批准：启动时未开启“合入前批准差异”，此设置与提交方式一样，在交付期间保持不变。`,
-    deliveryEndedApproving: (a) => `批准过程中，交付 ${a.id} 已结束。`,
     planEmpty: (a) => `${a.path} 尚未写入内容，无法开始构建。`,
     cardBusy: (a) => `#${a.card} 正在${a.verb}，请等待该运行结束。`,
     cardDiscarded: (a) => `#${a.card} 已丢弃，请勿恢复或重新创建。`,

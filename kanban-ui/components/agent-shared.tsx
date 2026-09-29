@@ -1077,11 +1077,7 @@ export function ActionDialog({
           ) : files ? (
             reviewed ? c.files : c.filesNoReview
           ) : auto ? (
-            <>
-              <Rich code={BRANCH}>{autoIntro}</Rich>
-              {/* The one place the click does NOT carry the card all the way (#308). */}
-              {plan.needsApproval ? c.needsApproval : ""}
-            </>
+            <Rich code={BRANCH}>{autoIntro}</Rich>
           ) : canChoose ? (
             <Rich>{reviewed ? c.manualFolder : c.manualFolderNoReview}</Rich>
           ) : (

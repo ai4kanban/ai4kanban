@@ -821,8 +821,6 @@ function cloudBoard(ctx: Context): BoardProvider {
     cancelDelivery: (deliveryId, env) => through({ board: true }, env, (e) => local.cancelDelivery(deliveryId, e)),
     resumeDelivery: (deliveryId, env) => through({ board: true }, env, (e) => local.resumeDelivery(deliveryId, e)),
     discardDelivery: (deliveryId, env) => through({ board: true }, env, (e) => local.discardDelivery(deliveryId, e)),
-    approveDelivery: (deliveryId, from, env) =>
-      through({ board: true }, env, (e) => local.approveDelivery(deliveryId, from, e)),
 
     // ---- the named `akb raw` moves ----------------------------------------
 

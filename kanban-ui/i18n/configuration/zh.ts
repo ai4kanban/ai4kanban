@@ -575,12 +575,6 @@ const zh: ConfigurationCopy = {
       failedOn: "未能开启自动 Git 提交",
       failedOff: "未能关闭自动 Git 提交",
     },
-    approval: {
-      title: "合入前需要批准差异",
-      body: "评审通过的构建会停在卡片的「批准」页，直到你批准它将要合入的那份工作区。",
-      failedOn: "未能开启差异批准",
-      failedOff: "未能关闭差异批准",
-    },
     review: {
       title: "每次构建都要评审",
       body: "「代码评审」会单独跑一次，读完成的构建并修复发现的问题。关闭后，构建本身就是最后一个读这份代码的 Agent。",

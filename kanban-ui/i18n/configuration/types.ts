@@ -410,7 +410,6 @@ export type ConfigurationCopy = {
      *  and it is read from here so there is one way to say it. */
     frozen: string;
     commits: { title: string; body: string; failedOn: string; failedOff: string };
-    approval: { title: string; body: string; failedOn: string; failedOff: string };
     /** Whether the Code reviewer runs on each build (#416). It was that agent's own switch
      *  on Configuration → Agents until #783, and it belongs here: it is frozen onto a
      *  delivery the way the two above are. */

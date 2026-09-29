@@ -12,7 +12,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { approvalCovers } from '../agent/approval'
 import { cardsDiscussing } from '../agent/chat'
 import { activeDelivery, isResumable, listDeliveries, manualSettled } from '../agent/deliveries'
 import { deliveryState } from '../agent/pause'
@@ -44,7 +43,6 @@ import type {
   ArchiveGroup,
   Board,
   Card,
-  CardApproval,
   CardLandingRetry,
   CardStatus,
   SetupState,
@@ -266,7 +264,6 @@ function attachDelivery(card: Card): void {
       overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
       retry: landingRetry(live.landing),
     },
-    approval: cardApproval(live),
   }
 }
 
@@ -284,27 +281,6 @@ function landingRetry(landing: DeliveryLanding): CardLandingRetry | undefined {
   }
   if (landing.retryAt) return { kind: 'moved', attempt: landing.attempts + 1, at: landing.retryAt }
   return undefined
-}
-
-// This delivery's diff approval, as the block's **Approval** tab draws it (#308). Read from
-// the record and never from git: landing drops an approval the moment it stops covering the
-// tree, so a required approval that isn't there is exactly one still owed.
-function cardApproval(live: DeliveryRecord): CardApproval | undefined {
-  const approval = live.approval
-  if (!approval?.required) return undefined
-  const granted = approval.granted
-  const last = [...approval.events].reverse().find((e) => e.kind === 'cancelled')
-  return {
-    required: true,
-    approved: !!granted,
-    covers: approvalCovers(granted?.base ?? live.base, granted?.mark),
-    cancelled:
-      !granted && last
-        ? last.moved === 'base'
-          ? 'the commit it was built on moved, so your last approval was cancelled'
-          : 'the tree changed, so your last approval was cancelled'
-        : undefined,
-  }
 }
 
 // The delivery this one replaced (#307): the newest ended delivery on this card that the

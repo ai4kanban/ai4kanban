@@ -38,7 +38,7 @@ import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import { creationRefusal, openOf } from '../lib/view/rules'
 import type { MoveResult } from '../lib/types'
-import { approveDelivery, cancelDelivery, discardDelivery, resumeDelivery } from '../lib/view/api'
+import { cancelDelivery, discardDelivery, resumeDelivery } from '../lib/view/api'
 
 // How long a `--follow` waits between reads of a run's log. Short enough that the log
 // reads as it happens, long enough that following a run is not a busy loop.
@@ -347,21 +347,6 @@ const CARRY_ON_NEXT: Record<string, (id: string) => string> = {
   review: (id) => `  it has not been reviewed yet: akb delivery review ${id}`,
   conflict: (id) => `  it stopped on a landing conflict: akb delivery conflict ${id}`,
   landing: () => '  it is back in the landing queue, and lands on its own.',
-}
-
-/** Approve the tree a delivery would land (#308), so it may leave the landing queue's
- *  waiting room. Only a board with **Approve diffs before landing** on has anything
- *  to approve.
- *
- *  The approval covers the delivery's base commit and the tree built on it as they stand
- *  right now, so read the diff first — `akb run log` and the card page's **Diff** tab both show
- *  it. Either one moving afterwards cancels the approval by itself. */
-export async function cmdApprove(named: string): Promise<MoveResult> {
-  const res = await approveDelivery(named, 'akb delivery approve')
-  if (!res.ok) die(res.error ?? 'that delivery could not be approved', { kind: 'run-refused' })
-  say(`delivery ${res.deliveryId} approved — ${res.covers}.`)
-  say('It lands from here. Change the tree or the commit it forked from and the approval is cancelled.')
-  return { deliveryId: res.deliveryId, approved: true }
 }
 
 /** Say what a round of applied answers did to a delivery's requirements (#637).

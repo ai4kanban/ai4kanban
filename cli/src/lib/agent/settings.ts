@@ -93,37 +93,6 @@ export function setAutoCommit(on: boolean): Saved {
   })
 }
 
-// ---- auto-delivery: must the tree be approved before it lands? (#308) ------
-//
-//   "requireDiffApproval": true
-//
-// OFF by default, and only written down when somebody turned it on — requiring it on every
-// card puts the user back in the loop for every change, which is what auto-delivery exists
-// to remove.
-//
-// With it ON every delivery waits, after review has passed it, until the user approves the
-// exact tree it would land. It has nothing to hold in manual commit mode: the board never
-// commits there, so the user's own commit IS the approval.
-
-/** True only when somebody switched diff approval on. A file that won't parse reads as
- *  off: the stricter policy is the deliberate one, and a setting nobody can read is not a
- *  reason to start holding every delivery. */
-export function diffApprovalRequired(): boolean {
-  try {
-    return readConfigRaw().requireDiffApproval === true
-  } catch {
-    return false
-  }
-}
-
-/** Save it. Turning it back off drops the key rather than writing `false`. */
-export function setDiffApproval(on: boolean): Saved {
-  return writeConfig((cfg) => {
-    if (on) cfg.requireDiffApproval = true
-    else delete cfg.requireDiffApproval
-  })
-}
-
 // ---- auto-delivery: does a build get an AI review? (#416) ------------------
 //
 //   "aiReview": false
@@ -133,7 +102,7 @@ export function setDiffApproval(on: boolean): Saved {
 //
 // With it ON every delivery gets a fresh review run after its implementation. With it OFF
 // the implementation is the last agent to read the code: the repository's required checks
-// still run, and the open-question hold and diff approval still gate landing.
+// still run, and the open-question hold still gates landing.
 //
 // It is a DELIVERY setting (#783), answered in Configuration → General → Delivery beside the
 // two above. It was the reviewer's own switch on Configuration → Agents until then, which
@@ -162,9 +131,8 @@ export function setAiReview(on: boolean): Saved {
 //
 //   "readyGate": true
 //
-// OFF by default, and only written down when somebody turned it on — the same call
-// `requireDiffApproval` made, and for the same reason: switching it on is the deliberate
-// act, and a board that says nothing behaves exactly as it always did.
+// OFF by default, and only written down when somebody turned it on: switching it on is the
+// deliberate act, and a board that says nothing behaves exactly as it always did.
 //
 // With it ON every card that reaches `ready` is judged by one `gate` run first. A card it
 // passes goes straight into a delivery, on this board's saved delivery settings; a card it

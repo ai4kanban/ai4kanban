@@ -363,16 +363,14 @@ several sessions under one delivery id, shown on the card and in `akb run list`.
 | --- | --- |
 | **Delivery in progress** | Building or reviewing. Nothing waits on you. |
 | **Held at landing** | Built; waiting for the card's open questions to be answered. |
-| **Waiting for your approval** | Built; waiting for you to approve the tree it would land. |
 | **Waiting for your commit** | Manual commit mode: the commit is yours to make. |
 | **Code changed after review** | You committed something other than what review passed; it is being reviewed again. |
 | **Landed as `abc123`** | Its commit is on your branch and the card is being archived. |
 
-Only **Waiting for your approval** has a button (on the **Approval** tab); the others continue by
-themselves once you answer, resolve or commit. An answer that changes the approved requirements
-starts a fresh delivery.
+Each continues by itself once you answer, resolve or commit. An answer that changes the approved
+requirements starts a fresh delivery.
 
-Below the buttons are **Diff**, **Log** and **Approval** tabs (each only when it has content).
+Below the buttons are **Diff** and **Log** tabs (each only when it has content).
 **Diff** is read-only:
 
 - A size line, a collapsible file tree, sticky file headers, and line numbers on both sides.
@@ -380,17 +378,6 @@ Below the buttons are **Diff**, **Log** and **Approval** tabs (each only when it
   the one to revert if the card has to go. Manual mode: your uncommitted working tree, new files
   included.
 - A long diff is cut off, with the `git diff` command that prints it all.
-
-#### Approving a delivery
-
-**Approve diffs before landing** (Configuration → General, off by default) makes every delivery
-that got its own branch wait after review for **Approve this tree** on the **Approval** tab.
-
-- **An approval covers one tree on one base commit.** A rebase onto a moved branch cancels it and
-  asks again; both are rechecked just before landing.
-- **Waiting takes no landing slot**, so other cards land past it.
-- **The setting is frozen** when a delivery starts; **Discard** is the way out of one waiting.
-- **Terminal**: `akb delivery approve <id>`.
 
 ### Where a delivery's code goes
 
@@ -470,8 +457,7 @@ per-build option. **Start now** is never reviewed.
 - **Frozen per delivery**: the foot of the delivery block reads **No AI review** on one started
   without it.
 - **The build goes straight to landing**; a rebase starts no review either.
-- **What still gates it**: the repository's own checks, the open-question hold, and **Approve
-  diffs before landing**. For a human in the loop without AI review, turn approval on.
+- **What still gates it**: the repository's own checks and the open-question hold.
 - **Manual commit mode**: your commit ends the delivery, whatever it holds.
 - **`akb delivery review <id>`** still runs a review on demand.
 
@@ -587,7 +573,6 @@ starts at all is **Auto-approve builds**, under Agents.
 - **Automatic Git commits** (on): builds get their own branch and worktree and land by themselves.
   Off is [manual commit mode](#manual-commit-mode). The Implement dialog can override it per
   build.
-- **Approve diffs before landing** (off): see [Approving a delivery](#approving-a-delivery).
 - **Review every build** (on): see [Turning AI review off](#turning-ai-review-off).
 
 ### General → Setup: the coding agent skill
@@ -750,7 +735,6 @@ ANTHROPIC_API_KEY=sk-ant-…
 {
   "readyGate": true,
   "autoCommit": false,
-  "requireDiffApproval": true,
   "aiReview": false,
   "runtimes": [
     {
@@ -775,7 +759,6 @@ ANTHROPIC_API_KEY=sk-ant-…
 | --- | --- | --- |
 | `readyGate` | **Auto-approve builds** (Configuration → Board) | off (also if the file won't parse) |
 | `autoCommit` | **Automatic Git commits** | on |
-| `requireDiffApproval` | **Approve diffs before landing** | off |
 | `aiReview` | **Review every build** | on (also if the file won't parse) |
 | `runtimes` | The runtime rows; the first is **Global default** | one Claude Code row |
 | `agentRuntime` | Which runtime each agent runs, by agent name → runtime `id` | **Global default** |

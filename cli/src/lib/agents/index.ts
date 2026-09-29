@@ -403,7 +403,7 @@ export const SPEC_ASSIGN_HOME =
 export const CODE_REVIEWER = 'code-reviewer'
 
 /** Where whether a build is reviewed at all is answered (#783) — a delivery setting, beside
- *  automatic commits and diff approval, not the reviewer's own page. */
+ *  automatic commits, not the reviewer's own page. */
 export const AI_REVIEW_HOME = 'answered in the board UI under Configuration → General → Delivery'
 
 /** Where a project puts an agent of its own. */

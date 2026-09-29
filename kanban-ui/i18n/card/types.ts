@@ -97,7 +97,6 @@ export type CardCopy = {
     unfold: string;
     tabDiff: string;
     tabLog: string;
-    tabApproval: string;
     /** The block before its first session has written anything. */
     noLog: string;
     /** The block's foot: where the code is, and how it commits. */
@@ -168,15 +167,6 @@ export type CardCopy = {
       starting: (attempt: number) => string;
       /** What moved, and that the wait costs no other delivery its turn. */
       body: (branch?: string) => string;
-    };
-    approval: {
-      approved: string;
-      approvedBody: (covers: string) => string;
-      required: string;
-      /** Ends before the Approve button. `covers` is the board's own words. */
-      readDiff: (covers: string) => string;
-      approve: string;
-      failed: string;
     };
     /** The confirm popover's busy label, shared by the controls above. */
     working: string;

@@ -20,9 +20,6 @@ export type DeliveryStage =
   | 'stopped'
   /** Built and reviewed; landing waits until the card's open questions are answered. */
   | 'held'
-  /** Built and reviewed; landing waits until the user approves the tree it would land
-   *  (#308). Only on a board with **Approve diffs before landing** on. */
-  | 'approval'
   /** Manual commit mode: the delivery's own work is finished, and the commit is the user's
    *  to make. */
   | 'commit'
@@ -65,14 +62,12 @@ export interface DeliveryState {
   deciding?: boolean
 }
 
-/** The fixed opening words landing writes on the two holds this file also words itself
- *  (`landing.ts`). They tell one hold from the other without a field of their own, and they
- *  are what keeps a stale `landing.why` from being read back as a refusal. */
+/** The fixed opening words landing writes on the question hold (`landing.ts`). They are
+ *  what keeps a stale `landing.why` from being read back as a refusal. */
 export const HELD_ON_QUESTIONS = 'held on an open question'
-export const HELD_ON_APPROVAL = 'held on your approval'
 
 /** The fixed opening words on a delivery queued behind the one holding the landing slot.
- *  Same trick as the two above: it tells a wait from a refusal without a field of its own,
+ *  Same trick as the one above: it tells a wait from a refusal without a field of its own,
  *  which is what keeps a queued card from wearing the refusal of an earlier pass. */
 export const IN_LINE = 'in line behind'
 
@@ -86,7 +81,7 @@ const upper = (text: string): string => (text ? text[0]!.toUpperCase() + text.sl
 // Landing's refusals are sentences in their own right, and some already end in one.
 const end = (text: string): string => (/[.!?)]$/.test(text) ? text : `${text}.`)
 
-const isHold = (why: string): boolean => why.startsWith(HELD_ON_QUESTIONS) || why.startsWith(HELD_ON_APPROVAL)
+const isHold = (why: string): boolean => why.startsWith(HELD_ON_QUESTIONS)
 
 // The two commands that put a build with no card back in motion, or end it (#428). A carded
 // delivery says the card page's controls instead; this one has no page to say them on.
@@ -120,7 +115,7 @@ export function deliveryState(
   questions: number,
   /** The decider would answer this card's questions (#447) — read by the caller, which is
    *  the side that can. It changes only the two waits it can answer, `stopped` and `held`:
-   *  an approval, a commit and a landing refusal are none of its business. */
+   *  a commit and a landing refusal are none of its business. */
   deciding = false,
 ): DeliveryState {
   const landing = delivery.landing
@@ -207,20 +202,6 @@ export function deliveryState(
       stage: 'held',
       label: 'Held at landing',
       line: `Landing waits on this card's ${count(questions)} — answer ${questions === 1 ? 'it' : 'them'} and it carries on.`,
-      paused: true,
-    }
-  }
-  // Last of the holds, and read from the record rather than from git (#308): the approval
-  // is dropped the moment landing finds it no longer covers the tree, so a delivery that
-  // needs one and has none is exactly a delivery waiting on the user.
-  if (landing && delivery.approval?.required && !delivery.approval.granted) {
-    const again = delivery.approval.events.some((e) => e.kind === 'cancelled')
-    return {
-      stage: 'approval',
-      label: 'Waiting for your approval',
-      line:
-        `Landing waits for your approval — read the tree on \`Diff\`, then \`Approve this tree\`.` +
-        (again ? ` The tree moved, so the last approval was cancelled.` : ''),
       paused: true,
     }
   }

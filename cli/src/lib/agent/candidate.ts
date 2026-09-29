@@ -8,10 +8,6 @@
 // candidate is the working tree, which is also why review is told to check whether anything
 // ELSE is in it.
 
-import crypto from 'node:crypto'
-import fs from 'node:fs'
-import path from 'node:path'
-
 import { KANBAN, rel, REPO_ROOT } from '../paths'
 import type { DeliveryRecord } from './types'
 import { git, gitDiff, outsideBoard, worktreeDir } from './worktree'
@@ -119,23 +115,6 @@ export function candidateStat(candidate: Candidate): string | null {
   const untracked = untrackedFiles(candidate).length
   const changed = stat.trim() || 'no tracked file changed'
   return untracked ? `${changed}, ${untracked} new file${untracked === 1 ? '' : 's'} not yet added` : changed
-}
-
-/** A short fingerprint of the code changes as they stand. */
-export function candidateMark(candidate: Candidate): string | null {
-  const diff = candidateDiff(candidate)
-  if (diff === null) return null
-  const hash = crypto.createHash('sha256').update(diff)
-  // New files count too: approval covers the whole tree, not only tracked files.
-  for (const file of untrackedFiles(candidate)) {
-    hash.update(file)
-    try {
-      hash.update(fs.readFileSync(path.join(candidate.cwd, file)))
-    } catch {
-      // gone between the listing and the read — the next mark will see it either way
-    }
-  }
-  return hash.digest('hex').slice(0, 16)
 }
 
 /** Where the board's own files sit, for a flow that has to say they are not the

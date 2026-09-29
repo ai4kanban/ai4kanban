@@ -28,7 +28,6 @@ import { FaPauseCircle } from "react-icons/fa";
 import {
   NO_RELEASE,
   type Card,
-  type CardApproval,
   type CardDecision,
   type CardDelivery,
   type CardDeliveryStage,
@@ -784,7 +783,6 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   working: "live",
   stopped: "live",
   held: "live",
-  approval: "live",
   commit: "live",
   rereview: "warn",
   refused: "warn",
@@ -797,14 +795,13 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
 // ---- the delivery block (#307) ----------------------------------------------
 //
 // The block that was the session log. It is the delivery's own space on the page: one tab
-// strip over it — Diff, Log, Approval — with the log and the diff in them, and a foot
-// naming the delivery, how it commits, and where its code is.
+// strip over it — Diff, Log — with the log and the diff in them, and a foot naming the
+// delivery, how it commits, and where its code is.
 //
-// A tab appears with the thing it holds: Diff shows once the server has one to draw (#305),
-// and Approval waits on #308. A card with no delivery at all keeps the plain session log it
-// has always had.
-type DeliveryTabKey = "diff" | "log" | "approval";
-type DeliveryTab = { key: DeliveryTabKey; label: string; note?: string };
+// Diff shows once the server has one to draw (#305). A card with no delivery at all keeps
+// the plain session log it has always had.
+type DeliveryTabKey = "diff" | "log";
+type DeliveryTab = { key: DeliveryTabKey; label: string };
 
 function SessionMeta({ session }: { session: SessionView | null }) {
   const c = useCopy().card.delivery;
@@ -903,7 +900,6 @@ function TabStrip({
             }
           >
             {tab.label}
-            {tab.note && <span className="text-[10.5px] font-[600] text-nb-ink-soft">{tab.note}</span>}
           </button>
         );
       })}
@@ -915,69 +911,6 @@ function TabStrip({
     </div>
   );
 }
-
-// ---- the Approval tab (#308) -------------------------------------------------
-//
-// On a board with **Approve diffs before landing** on, nothing lands until the tree
-// has been read and signed off. This is where that is done: one line saying what an approval
-// covers, and one button.
-//
-// It is deliberately next to **Diff** rather than instead of it — the block opens on Diff
-// while a delivery waits, so the tree is the first thing read and this is the second.
-function ApprovalPane({
-  delivery,
-  approval,
-  onApproved,
-  onError,
-}: {
-  delivery: CardDelivery;
-  approval: CardApproval;
-  onApproved: () => void;
-  onError: (why: string) => void;
-}) {
-  const c = useCopy().card.delivery.approval;
-  const actions = useActions();
-  const [busy, setBusy] = useState(false);
-
-  const approve = async () => {
-    if (!actions) return;
-    setBusy(true);
-    const res = await actions.approveDelivery(delivery.id);
-    setBusy(false);
-    if (!res.ok) onError(sayFailure(res, c.failed));
-    else onApproved();
-  };
-
-  return (
-    <div className="bg-nb-paper px-4 py-3.5" style={PART}>
-      {approval.approved ? (
-        <>
-          <p className="flex items-center gap-1.5 text-[13px] font-[700] text-nb-ink">
-            <FiCheckCircle className="shrink-0 text-[15px]" aria-hidden />
-            {c.approved}
-          </p>
-          <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-            {c.approvedBody(approval.covers)}
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="text-[13px] font-[700] text-nb-ink">{c.required}</p>
-          <p className="mt-1.5 max-w-[68ch] text-[12px] leading-relaxed text-nb-ink-soft">
-            {approval.cancelled ? `${upperFirst(approval.cancelled)}. ` : ""}
-            <Rich>{c.readDiff(approval.covers)}</Rich>
-          </p>
-          <Button className="mt-3" size="sm" disabled={busy || !actions} onClick={() => void approve()}>
-            <FiCheckCircle className="text-[15px]" aria-hidden />
-            {c.approve}
-          </Button>
-        </>
-      )}
-    </div>
-  );
-}
-
-const upperFirst = (text: string): string => (text ? text[0]!.toUpperCase() + text.slice(1) : text);
 
 // The block's foot keeps only the useful location and commit behavior visible. Full paths
 // remain in the location tooltip instead of turning the footer into a command line.
@@ -1031,7 +964,6 @@ function DeliveryBlock({
   delivery,
   diff,
   session,
-  onApproved,
   onEnded,
   onResumed,
   onCarryOn,
@@ -1040,21 +972,16 @@ function DeliveryBlock({
   delivery: CardDelivery;
   diff: DeliveryDiff | null;
   session: SessionView | null;
-  onApproved: () => void;
   onEnded: () => void;
   onResumed: (sessionId: string) => void;
   onCarryOn: (action: NonNullable<CardDelivery["next"]>) => void;
   onError: (why: string) => void;
 }) {
   const c = useCopy().card.delivery;
-  const approval = delivery.approval;
-  // A delivery waiting on an approval opens on **Diff** (#308): the tree is the thing to
-  // read, and approving without reading it is the one outcome this policy exists to stop.
-  // Otherwise the log opens first while a delivery is live — it is the thing that moves, and
-  // the diff is not finished being written.
-  const waitingOnApproval = !!approval?.required && !approval.approved;
-  const [tab, setTab] = useState<DeliveryTabKey>(waitingOnApproval && diff ? "diff" : "log");
-  // Open while something is moving, or while a tree is waiting to be read. A run that has
+  // The log opens first: while a delivery is live it is the thing that moves, and the diff
+  // is not finished being written.
+  const [tab, setTab] = useState<DeliveryTabKey>("log");
+  // Open while something is moving. A run that has
   // stopped leaves the block folded to its strip — the state is said beside the title, and
   // the log is there for whoever wants it.
   const live = session?.status === "running";
@@ -1065,30 +992,20 @@ function DeliveryBlock({
   const onRetry = delivery.state.stage === "conflict" || delivery.state.stage === "retry";
   const retry = onRetry ? delivery.landing?.retry : undefined;
   const inRetry = !!retry;
-  const [open, setOpen] = useState(!!live || waitingOnApproval || inRetry);
-  // A delivery that STARTS waiting while the page is open opens on the diff too, and a run
-  // that starts or stops swings the fold with it. Only on the change: whatever the user
-  // picked or folded afterwards is theirs until the delivery moves again.
-  const wasWaiting = useRef(waitingOnApproval);
+  const [open, setOpen] = useState(!!live || inRetry);
+  // A run that starts or stops swings the fold with it. Only on the change: whatever the
+  // user folded afterwards is theirs until the delivery moves again.
   const wasLive = useRef(live);
   const wasRetry = useRef(inRetry);
   useEffect(() => {
-    if (waitingOnApproval && !wasWaiting.current) {
-      setTab("diff");
-      setOpen(true);
-    }
     if (inRetry && !wasRetry.current) setOpen(true);
-    if (live !== wasLive.current) setOpen(!!live || waitingOnApproval || inRetry);
-    wasWaiting.current = waitingOnApproval;
+    if (live !== wasLive.current) setOpen(!!live || inRetry);
     wasLive.current = live;
     wasRetry.current = inRetry;
-  }, [waitingOnApproval, live, inRetry]);
+  }, [live, inRetry]);
   const tabs: DeliveryTab[] = [
     ...(diff ? [{ key: "diff" as const, label: c.tabDiff }] : []),
     { key: "log" as const, label: c.tabLog },
-    ...(approval
-      ? [{ key: "approval" as const, label: c.tabApproval, note: approval.approved ? "✓" : undefined }]
-      : []),
   ];
   // A tab that has gone — the diff a re-read no longer has — falls back to the first one
   // rather than leaving the strip pointing at nothing.
@@ -1142,9 +1059,7 @@ function DeliveryBlock({
       />
       {open && retry && <LandingRetry retry={retry} branch={delivery.targetBranch} />}
       {open &&
-        (current === "approval" && approval ? (
-          <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />
-        ) : current === "diff" && diff ? (
+        (current === "diff" && diff ? (
           <DiffPane diff={diff} />
         ) : session ? (
           <SessionLog session={session} bare warnUnfinished />
@@ -2091,7 +2006,6 @@ export function CardPage({
                 delivery={delivery}
                 diff={diff}
                 session={sessionLog}
-                onApproved={refresh}
                 onEnded={() => {
                   router.refresh();
                   kick();

@@ -152,8 +152,8 @@ names the branch the change will land on.
   the card to accept it.
 - **The review is optional.** It is a separate paid run on every delivery, so
   **Review every build** on Configuration → General → Delivery turns it off for the board. The
-  build then goes straight to landing; your own checks, the open-question hold and
-  **Approve diffs before landing** still gate it.
+  build then goes straight to landing; your own checks and the open-question hold still gate
+  it.
 - **Your own commits on that branch are refused while it lands.** A `pre-commit` hook installed
   beside the skill names the delivery and stops the commit. Commit on another branch, or
   `git commit --no-verify`.

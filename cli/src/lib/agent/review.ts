@@ -4,7 +4,7 @@
 //
 // A delivery can decline that run (#416): with AI review off the implementation is the last
 // agent to read the code, and the delivery goes on to land without one. Every other gate —
-// the repository's own checks, the open-question hold, diff approval — is untouched.
+// the repository's own checks, the open-question hold — is untouched.
 //
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
 // the delivery, and the watcher of the run that just closed starts what it says.

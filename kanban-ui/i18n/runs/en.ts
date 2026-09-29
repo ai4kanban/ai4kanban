@@ -225,7 +225,6 @@ const en: RunsCopy = {
       title: (id) => `Implement #${id}`,
       autoBranch: (branch) => `Build, review, and merge into \`${branch}\` automatically.`,
       autoHere: "Build, review, and merge into the branch you are on automatically.",
-      needsApproval: " You approve the diff before it merges.",
       manualFolder: "Build and review in your project folder. You commit the result.",
       manual:
         "Build and review in your project folder. **Manual commit mode** is on, so you commit the result.",

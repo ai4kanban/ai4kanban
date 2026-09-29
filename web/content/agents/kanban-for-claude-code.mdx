@@ -122,11 +122,10 @@ Worktrees prevent concurrent sessions from overwriting the same checkout. The la
 
 ## Which decisions and approvals pause AI4Kanban?
 
-AI4Kanban pauses for 3 kinds of input:
+AI4Kanban pauses for 2 kinds of input:
 
 1. **A product question:** Claude Code could not settle a choice from repository evidence.
 2. **Permission to implement:** task preparation is complete, but the card does not start coding until you click **Implement**.
-3. **Permission to land, when enabled:** diff approval adds a checkpoint after automated review and before the reviewed change reaches the target branch.
 
 Questions and review requests appear in the app and can be sent to Slack. Running and Landed are status only, so a finished turn is not presented as a request for input. AI4Kanban may commit and clean up a landed worktree after you authorize implementation, but it never pushes.
 
@@ -170,13 +169,13 @@ A worktree created by AI4Kanban begins with tracked files. Add an implementation
 
 <FAQItem question="Who runs tests and decides that a task is done?">
 
-The implementation run follows the card's verification criteria. A fresh Claude Code session then checks the approved requirement and diff, fixes plain mistakes, and reruns focused tests. The approved requirement defines done; tests provide evidence that the implementation meets it. Enable diff approval when you want to inspect the final change yourself.
+The implementation run follows the card's verification criteria. A fresh Claude Code session then checks the approved requirement and diff, fixes plain mistakes, and reruns focused tests. The approved requirement defines done; tests provide evidence that the implementation meets it.
 
 </FAQItem>
 
 <FAQItem question="Will Claude Code commit, merge, push, or delete a worktree without my approval?">
 
-Clicking **Implement** authorizes automatic commits, 1 reviewed squash commit on the target branch, and cleanup of the delivery branch and worktree after landing. Enable diff approval for a second checkpoint, or disable automatic Git commits to manage Git yourself. AI4Kanban never pushes.
+Clicking **Implement** authorizes automatic commits, 1 reviewed squash commit on the target branch, and cleanup of the delivery branch and worktree after landing. Disable automatic Git commits to manage Git yourself. AI4Kanban never pushes.
 
 </FAQItem>
 

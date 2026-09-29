@@ -21,7 +21,6 @@
 
 import fs from 'node:fs'
 
-import { approveDelivery } from '../agent/approval'
 import { deliveryPlan } from '../agent/commit-mode'
 import { activeDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
 import { cancelDelivery, discardDelivery, resumeDelivery } from '../agent/sessions'
@@ -527,13 +526,6 @@ export function localBoard(): BoardProvider {
       if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be discarded'))
       return opOk(boardRevision(), { deliveryId: res.deliveryId })
     },
-
-    approveDelivery: (deliveryId, from, env) =>
-      mutate({ board: true }, env, () => {
-        const res = approveDelivery(deliveryId, from)
-        if (!res.ok) throw new Error(res.error)
-        return { deliveryId: res.deliveryId, covers: res.covers }
-      }),
 
     // ---- the named `akb raw` moves ----------------------------------------
 

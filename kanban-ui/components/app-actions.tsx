@@ -16,7 +16,6 @@
 // pages as well as on the board.
 
 import {
-  approveDeliveryAction,
   cancelCloudRequestAction,
   cardOnBoardAction,
   closeReleaseAction,
@@ -63,7 +62,6 @@ export const appActions: ScreenActions = {
   stopSession: stopSessionAction,
   resumeSession: resumeSessionAction,
 
-  approveDelivery: approveDeliveryAction,
   discardDelivery: discardDeliveryAction,
   resumeDelivery: resumeDeliveryAction,
 

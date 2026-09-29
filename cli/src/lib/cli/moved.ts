@@ -19,7 +19,6 @@ export const MOVED: Record<string, string> = {
   resume: 'run resume',
   cancel: 'delivery cancel',
   discard: 'delivery discard',
-  approve: 'delivery approve',
   board: 'raw',
   // Not part of the regrouping: `version` was a command until the tree became one
   // Commander program, and it is what INSTALL_PROMPT tells a first-time reader to run.

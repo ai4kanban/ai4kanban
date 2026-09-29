@@ -41,5 +41,5 @@ build.
   `## Decided by the agent` stay exactly as `raw create` wrote them.
 - **Then build that card**: the code block is the whole requirement — build exactly it and
   widen it no further. `akb card implement <id> --print` is the flow from here.
-- **Nothing reviews it**: AI review and diff approval are off, so your own commit is the last
-  word before it reaches the branch. Run the repository's checks yourself.
+- **Nothing reviews it**: AI review is off, so your own commit is the last word before it
+  reaches the branch. Run the repository's checks yourself.

@@ -22,7 +22,6 @@ const en: MessagesCopy = {
   },
   tooOld: {
     autoDelivery: "this board's rules are older than auto-delivery — run `npm install -g ai4kanban`.",
-    diffApproval: "this board's rules are older than diff approval — run `npm install -g ai4kanban`.",
     aiReview: "this board's rules are older than the review setting — run `npm install -g ai4kanban`.",
     silenceLimit: "this board's rules are older than the silence limit — run `npm install -g ai4kanban`.",
     deliveries: "this board's rules are older than deliveries — run `npm install -g ai4kanban`.",
@@ -78,7 +77,6 @@ const en: MessagesCopy = {
         cancel: "Name the delivery to cancel.",
         resume: "Name the delivery to carry on.",
         discard: "Name the delivery to discard.",
-        approve: "Name the delivery to approve.",
       })[a.action] ?? "Name the delivery.",
     deliveryNotFound: (a) => `No delivery matches "${a.id}".`,
     deliveryActive: (a) => `Delivery ${a.id} hasn't ended — it is still working on ${a.task}.`,
@@ -98,10 +96,6 @@ const en: MessagesCopy = {
       `Delivery ${a.other} took #${a.card} over after this one ended, so there is nothing left to carry on.`,
     deliveryRunGoing: (a) => `A run of delivery ${a.id} is still going.`,
     deliveryNone: (a) => `Nothing is being delivered on ${a.on}.`,
-    deliveryEnded: (a) => `Delivery ${a.id} has already ended, so there is nothing to approve.`,
-    deliveryNoApproval: (a) =>
-      `Delivery ${a.id} needs no approval. Approve diffs before landing was off when it started, and the setting holds for the whole delivery.`,
-    deliveryEndedApproving: (a) => `Delivery ${a.id} ended while it was being approved.`,
     planEmpty: (a) => `Nothing is written in ${a.path} yet, so there is nothing to build.`,
     cardBusy: (a) => `A run is already ${a.verb} #${a.card}. Wait for it to finish.`,
     cardDiscarded: (a) => `#${a.card} was discarded. Don't restore or recreate it.`,

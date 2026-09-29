@@ -287,8 +287,8 @@ export async function finishSetupStep(name: string, opts?: WriteOptions): Promis
 
 // ---- the delivery lifecycle ------------------------------------------------
 //
-// The card page's Cancel delivery, Discard delivery and Approve this tree. They write the
-// board, so they are the contract's operations like every other write a screen makes.
+// The card page's Cancel delivery and Discard delivery. They write the board, so they are the
+// contract's operations like every other write a screen makes.
 
 export async function cancelDelivery(deliveryId: string): Promise<WriteResult & { deliveryId?: string }> {
   return flat<{ deliveryId?: string }>(
@@ -308,15 +308,6 @@ export async function resumeDelivery(
 export async function discardDelivery(deliveryId: string): Promise<WriteResult & { deliveryId?: string }> {
   return flat<{ deliveryId?: string }>(
     await answering(() => withLease({ board: true }, (env) => board().discardDelivery(deliveryId, env))),
-  )
-}
-
-export async function approveDelivery(
-  deliveryId: string,
-  from = '',
-): Promise<WriteResult & { deliveryId?: string; covers?: string }> {
-  return flat<{ deliveryId: string; covers: string }>(
-    await answering(() => withLease({ board: true }, (env) => board().approveDelivery(deliveryId, from, env))),
   )
 }
 

@@ -494,12 +494,6 @@ const en: ConfigurationCopy = {
       failedOn: "couldn't switch automatic Git commits on",
       failedOff: "couldn't switch automatic Git commits off",
     },
-    approval: {
-      title: "Approve diffs before landing",
-      body: "A reviewed build waits on the card's Approval tab until you approve the exact tree it would land.",
-      failedOn: "couldn't switch diff approval on",
-      failedOff: "couldn't switch diff approval off",
-    },
     review: {
       title: "Review every build",
       body: "The Code reviewer reads each finished build in a run of its own and fixes what it finds. Off, the build itself is the last agent to read the code.",

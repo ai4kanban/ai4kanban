@@ -81,8 +81,6 @@ What a delivery is
   did is said by the run that applied it — \`${program} delivery answered\` — never worked out
   from the card's text; a skipped or deleted question changes nothing.
 
-  Two switches in Configuration change this: **Allow automatic Git commits** off builds in
-  your checkout, one at a time; **Approve diffs before landing** on holds every delivery after
-  review until \`${program} delivery approve\` signs off the tree it would land.
+  **Allow automatic Git commits** off in Configuration builds in your checkout, one at a time.
 `,
 }
