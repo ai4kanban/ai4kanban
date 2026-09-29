@@ -23,7 +23,15 @@ import { archiveInboxItem, dismissInboxItem, readAllDismissed, restoreInboxItem 
 import { checkSource } from '../src/lib/signals/check.ts'
 import { migrateTriage } from '../src/lib/signals/migrate.ts'
 import { matchSourceType } from '../src/lib/signals/sources.ts'
-import { dismissSignal, readSignals, restoreSignal } from '../src/lib/signals/index.ts'
+import {
+  dismissSignal,
+  dismissSignals,
+  readSignals,
+  reasonSignals,
+  restoreSignal,
+  restoreSignals,
+} from '../src/lib/signals/index.ts'
+import { dismissalsToReview } from '../src/lib/agent/dismissal-review.ts'
 import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-signals-'))
@@ -599,6 +607,63 @@ describe('a queue you empty (#894)', () => {
     assert.match(inbox.archived[0]!.archivedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
     assert.deepEqual(inbox.cards[12], { title: 'The new card', archived: false })
     assert.deepEqual(inbox.cards[7], { title: 'An old card', archived: true })
+  })
+})
+
+describe('ignoring many at once (#1196)', () => {
+  const add = (...titles: string[]) => {
+    for (const title of titles) addToInbox({ text: `${title}\n\nWords.` })
+    return readSignals().signals.map((s) => s.sourceId)
+  }
+
+  it('ignores and restores a batch, answering each id on its own', () => {
+    const [a, b] = add('One', 'Two')
+    assert.deepEqual(
+      dismissSignals([a!, 'nobody', b!]).map((one) => [one.sourceId, one.ok]),
+      [
+        [a, true],
+        ['nobody', false],
+        [b, true],
+      ],
+    )
+    assert.deepEqual(readSignals().signals, [])
+    archiveInboxItem(b!, 12)
+    const back = restoreSignals([a!, b!])
+    assert.deepEqual(back[0], { sourceId: a, ok: true })
+    assert.match(back[1]!.error!, /#12/)
+    assert.deepEqual(
+      readSignals().signals.map((s) => s.sourceId),
+      [a],
+    )
+  })
+
+  it('writes a reason onto every ignored record, and only onto ignored ones', () => {
+    const [a, b, c] = add('One', 'Two', 'Three')
+    dismissSignals([a!, b!])
+    const done = reasonSignals([a!, b!, c!], '  not our users  ')
+    assert.deepEqual(
+      done.map((one) => one.ok),
+      [true, true, false],
+    )
+    assert.deepEqual(
+      readAllDismissed().map((s) => s.dismissedReason),
+      ['not our users', 'not our users'],
+    )
+    assert.equal(readSignals().signals[0]!.sourceId, c)
+  })
+
+  it('puts a reason added after the last review in front of the next one', () => {
+    const [a] = add('One')
+    dismissSignals([a!])
+    const file = path.join(dismissed(), fs.readdirSync(dismissed())[0]!)
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/dismissed_at: .*/, `dismissed_at: ${day(3)}`))
+    const lastRun = Date.now() - 24 * 60 * 60 * 1000
+    assert.deepEqual(dismissalsToReview(lastRun), [])
+    reasonSignals([a!], 'too vague')
+    assert.deepEqual(
+      dismissalsToReview(lastRun).map((d) => [d.sourceId, d.reason]),
+      [[a, 'too vague']],
+    )
   })
 })
 

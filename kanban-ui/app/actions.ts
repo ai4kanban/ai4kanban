@@ -35,8 +35,12 @@ import {
   searchCards,
   signalsOpen,
   dismissSignal,
+  dismissSignals,
+  reasonSignals,
   reconcileTriage,
   restoreSignal,
+  restoreSignals,
+  type SignalsDone,
 } from "@/lib/board";
 import {
   dropCase,
@@ -1992,6 +1996,42 @@ export async function restoreSignalAction(sourceId: string): Promise<{ ok: boole
     return await restoreSignal(sourceId);
   } catch {
     return { ok: false, error: c.rail.signals.restoreFailed };
+  }
+}
+
+const sourceIds = (ids: unknown): string[] =>
+  Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string" && id !== "") : [];
+
+/** Ignore items at once, with no reason — the page asks why afterwards (#1196). */
+export async function dismissSignalsAction(ids: string[]): Promise<SignalsDone> {
+  const c = await machineCopy();
+  const named = sourceIds(ids);
+  try {
+    return await dismissSignals(named);
+  } catch {
+    return { failed: named, error: c.rail.signals.dismissFailed };
+  }
+}
+
+/** Undo an ignore: put its items back in the queue. */
+export async function restoreSignalsAction(ids: string[]): Promise<SignalsDone> {
+  const c = await machineCopy();
+  const named = sourceIds(ids);
+  try {
+    return await restoreSignals(named);
+  } catch {
+    return { failed: named, error: c.rail.signals.undoFailed };
+  }
+}
+
+/** Write the reason the user gave after ignoring onto each ignored record. */
+export async function reasonSignalsAction(ids: string[], reason: string): Promise<SignalsDone> {
+  const c = await machineCopy();
+  const named = sourceIds(ids);
+  try {
+    return await reasonSignals(named, typeof reason === "string" ? reason.trim() : "");
+  } catch {
+    return { failed: named, error: c.rail.signals.reasonFailed };
   }
 }
 

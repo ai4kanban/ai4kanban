@@ -1,29 +1,30 @@
 ---
 title: "Triage"
 title_tag: "AI4Kanban triage — pull Reddit, X and Xiaohongshu leads into your board"
-description: "Point the board at a triage endpoint and it pulls what people are saying into a queue beside your cards. What lands there is a lead, not a task: make a card of it, or ignore it with a reason."
+description: "Point the board at a triage endpoint and it pulls what people are saying into a queue beside your cards. What lands there is a lead, not a task: make a card of it, or ignore it."
 lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into Triage, beside your cards. What lands there is a lead, not a task."
-last_updated: "September 19, 2026"
+last_updated: "September 29, 2026"
 nav_label: "Triage"
 icon: "inbox"
 ---
 
 **Triage** sits above **Archive** in the rail, with a count. It is a queue you empty: every
-item leaves as a card or is ignored with a reason. The page groups items by where they came
-from — a source such as Reddit or 小红书, or the finished card whose follow-up it is, linked.
-Hover, tab to or tap an item for its two actions:
+item leaves as a card or is ignored. **Waiting** is a compact list, one row per item, ordered by
+where items came from — a source such as Reddit or 小红书, or the finished card whose follow-up
+it is — with the source written once per run of rows. Hover a row for four actions:
 
 - **Make card**: starts the same run **New task** does, pointed at the item. When the run
   finds a card that already owns the work, the item is recorded against that card instead.
-- **Ignore**: asks for a one-line reason.
-
-Click an item for the whole thing; its source name links to the original. The detail adds two
-more:
-
 - **Start now**: writes the card from the item and builds it straight away, with no
   refining or review. The item moves to **History**, linked to the card.
 - **Discuss**: opens a new discussion with the item named in the box, sent only when you
   send it. The item stays waiting.
+- **Ignore**: takes the item out at once. The toast that follows has **Undo**, and
+  **Record why** for a reason that teaches the board what to send you less of.
+
+Tick rows to ignore several at once; **Select all** takes what search and the source picker
+show. Click a row for the whole item, with the same actions; its source name links to the
+original, and acting on it moves the detail on to the next item.
 
 Two tabs: **Waiting**, and **History** — what became a card or was ignored in the last 30
 days. **Restore** puts an ignored item back in **Waiting**, and nothing sorts it again by

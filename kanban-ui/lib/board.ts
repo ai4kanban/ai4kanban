@@ -1,5 +1,5 @@
 import { machineCopy } from "./language";
-import { boardRules, NoRulesError, type BoardEntry, type BoardState } from "./cli";
+import { boardRules, NoRulesError, type BoardEntry, type BoardRules, type BoardState } from "./cli";
 import { kanbanDir, repoRoot } from "./paths";
 import { LOCAL_STANDING } from "./types";
 import type {
@@ -410,6 +410,46 @@ export async function restoreSignal(sourceId: string): Promise<{ ok: boolean; er
   if (!rules.restoreSignal) return { ok: false, error: c.messages.rules.tooOldForSignals };
   const done = rules.restoreSignal(sourceId);
   return done.ok ? done : { ok: false, error: c.rail.signals.restoreFailed };
+}
+
+/** A batch's answer: the ids that did not go, and why in the page's own copy. */
+export type SignalsDone = { failed: string[]; error?: string };
+
+async function signalBatch(
+  sourceIds: string[],
+  run: (rules: BoardRules) => ((ids: string[]) => { sourceId: string; ok: boolean }[]) | undefined,
+  failure: string,
+): Promise<SignalsDone> {
+  const c = await machineCopy();
+  const rules = await boardRules();
+  const act = run(rules);
+  if (!act) return { failed: sourceIds, error: c.messages.rules.tooOldForSignals };
+  const failed = act(sourceIds)
+    .filter((one) => !one.ok)
+    .map((one) => one.sourceId);
+  return failed.length ? { failed, error: failure } : { failed };
+}
+
+/** Ignore many items at once, with no reason yet (#1196). */
+export async function dismissSignals(sourceIds: string[]): Promise<SignalsDone> {
+  const c = await machineCopy();
+  return signalBatch(sourceIds, (rules) => rules.dismissSignals?.bind(rules), c.rail.signals.dismissFailed);
+}
+
+/** Put many ignored items back at once — an undo. */
+export async function restoreSignals(sourceIds: string[]): Promise<SignalsDone> {
+  const c = await machineCopy();
+  return signalBatch(sourceIds, (rules) => rules.restoreSignals?.bind(rules), c.rail.signals.undoFailed);
+}
+
+/** Write the user's reason onto items already ignored. */
+export async function reasonSignals(sourceIds: string[], reason: string): Promise<SignalsDone> {
+  const c = await machineCopy();
+  return signalBatch(
+    sourceIds,
+    (rules) => rules.reasonSignals && ((ids: string[]) => rules.reasonSignals!(ids, reason)),
+    c.rail.signals.reasonFailed,
+  );
 }
 
 /** Archive every waiting item an open card already names, before a sort judges any. */

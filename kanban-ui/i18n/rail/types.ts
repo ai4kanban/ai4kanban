@@ -118,11 +118,22 @@ export type RailCopy = {
     startSkip: string;
     discuss: string;
     ignore: string;
-    /** The Ignore dialog: its heading, the optional reason, and a refusal. */
-    ignoreTitle: string;
-    why: string;
-    reasonHint: string;
     dismissFailed: string;
+    /** Ticking rows to ignore many at once (#1196). */
+    selected: (n: number) => string;
+    selectAll: (n: number) => string;
+    clearPick: string;
+    ignoreN: (n: number) => string;
+    /** What was just ignored: the way back, and the reason asked for afterwards. */
+    ignoredOne: (title: string) => string;
+    ignoredN: (n: number) => string;
+    undo: string;
+    undoFailed: string;
+    undoPartial: (n: number) => string;
+    addReason: string;
+    reasonHint: string;
+    save: string;
+    reasonFailed: string;
     /** Putting an ignored item back in the queue. */
     restore: string;
     restoreFailed: string;

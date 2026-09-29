@@ -274,9 +274,20 @@ export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME
 // account, what it holds, ignoring one with a reason, and restoring one (#894).
 // `checkSource` is the one duplicate rule all of them read. Pulling is `akb triage fetch`.
 // `addToInbox` and `triageAfterAdding` stay for writers other than the page.
-export { addToInbox, checkSource, dismissSignal, readSignals, reconcileTriage, restoreSignal, signalsAccess } from './lib/signals'
+export {
+  addToInbox,
+  checkSource,
+  dismissSignal,
+  dismissSignals,
+  readSignals,
+  reasonSignals,
+  reconcileTriage,
+  restoreSignal,
+  restoreSignals,
+  signalsAccess,
+} from './lib/signals'
 export { triageAfterAdding } from './lib/agent/auto-triage'
-export type { SignalsAccess, TriageCheck, TriageStatus } from './lib/signals'
+export type { SignalOutcome, SignalsAccess, TriageCheck, TriageStatus } from './lib/signals'
 
 // The Cloud notification center (#319): the events this machine's boards raise, and the bell
 // that carries every one of them. A board turns itself on as soon as this machine is signed

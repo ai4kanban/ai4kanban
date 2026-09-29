@@ -13,12 +13,13 @@ import { unquote } from '../yaml'
 import { signalConfigGaps } from './config'
 import {
   DISMISSED_DAYS,
-  dismissInboxItem,
+  dismissInboxItems,
   latestImport,
+  reasonDismissed,
   readDismissed,
   readInbox,
   readRecentArchived,
-  restoreInboxItem,
+  restoreInboxItems,
   triagePath,
 } from './inbox'
 import { migrateTriage } from './migrate'
@@ -100,19 +101,43 @@ export function readSignals(): SignalInbox {
   }
 }
 
-/** Ignore one item from the page, with the user's optional reason: its file moves into
+/** One item's answer in a batch from the page. */
+export type SignalOutcome = { sourceId: string; ok: boolean; error?: string }
+
+const answers = (done: ReturnType<typeof dismissInboxItems>): SignalOutcome[] =>
+  done.map((one) => (one.ok ? { sourceId: one.sourceId, ok: true } : { sourceId: one.sourceId, ok: false, error: one.error }))
+
+const named = (sourceIds: string[]): string[] => (Array.isArray(sourceIds) ? sourceIds.filter((id) => typeof id === 'string' && id) : [])
+
+/** Ignore items from the page, each answered on its own: a file moves into
  *  `triage/dismissed/`, so no later fetch brings it back. */
+export function dismissSignals(sourceIds: string[], reason = ''): SignalOutcome[] {
+  migrateTriage()
+  return answers(dismissInboxItems(named(sourceIds), 'user', typeof reason === 'string' ? reason : ''))
+}
+
+/** Put ignored items back in the list, each answered on its own. Starts no sort. */
+export function restoreSignals(sourceIds: string[]): SignalOutcome[] {
+  migrateTriage()
+  return answers(restoreInboxItems(named(sourceIds)))
+}
+
+/** Write the user's reason onto items already ignored. */
+export function reasonSignals(sourceIds: string[], reason: string): SignalOutcome[] {
+  migrateTriage()
+  return answers(reasonDismissed(named(sourceIds), typeof reason === 'string' ? reason : ''))
+}
+
+/** Ignore one item from the page, with the user's optional reason. */
 export function dismissSignal(sourceId: string, reason = ''): { ok: boolean; error?: string } {
   if (!sourceId) return { ok: false, error: 'nothing named' }
-  migrateTriage()
-  const done = dismissInboxItem(sourceId, 'user', typeof reason === 'string' ? reason : '')
-  return done.ok ? { ok: true } : { ok: false, error: done.error }
+  const [done] = dismissSignals([sourceId], reason)
+  return done!.ok ? { ok: true } : { ok: false, error: done!.error }
 }
 
 /** Put one ignored item back in the list. Starts no sort. */
 export function restoreSignal(sourceId: string): { ok: boolean; error?: string } {
   if (!sourceId) return { ok: false, error: 'nothing named' }
-  migrateTriage()
-  const done = restoreInboxItem(sourceId)
-  return done.ok ? { ok: true } : { ok: false, error: done.error }
+  const [done] = restoreSignals([sourceId])
+  return done!.ok ? { ok: true } : { ok: false, error: done!.error }
 }

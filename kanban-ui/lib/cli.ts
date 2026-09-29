@@ -593,6 +593,10 @@ export interface BoardRules {
   readSignals?(): SignalInbox;
   dismissSignal?(sourceId: string, reason: string): { ok: boolean; error?: string };
   restoreSignal?(sourceId: string): { ok: boolean; error?: string };
+  /** Batches (#1196), each id answered on its own. */
+  dismissSignals?(sourceIds: string[]): { sourceId: string; ok: boolean }[];
+  restoreSignals?(sourceIds: string[]): { sourceId: string; ok: boolean }[];
+  reasonSignals?(sourceIds: string[], reason: string): { sourceId: string; ok: boolean }[];
   /** Archive every waiting item an open card already names — what a sort does first. */
   reconcileTriage?(): unknown;
   /** What an Implement click would do on this board right now (#307): the branch the change

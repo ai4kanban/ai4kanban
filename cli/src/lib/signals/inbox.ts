@@ -298,18 +298,49 @@ function moveSignal(from: string, into: string, fields: Record<string, string | 
 /** What one move gives back: where the file went, or why it did not go. */
 export type MoveOutcome = { ok: true; relPath: string } | { ok: false; error: string }
 
-/** Ignore one item: its file moves into `dismissed/`, so no later fetch brings it back. Ignoring the same source again keeps the one record, judged afresh. */
-export function dismissInboxItem(sourceId: string, by: 'user' | 'agent', reason = ''): MoveOutcome {
-  const found = readInbox().find((signal) => signal.sourceId === sourceId)
-  if (!found) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
-  const already = readAllDismissed().find((signal) => signal.sourceId === sourceId)
-  if (already) fs.rmSync(path.join(SIGNALS_DISMISSED, path.basename(already.relPath)), { force: true })
-  const at = moveSignal(path.join(TRIAGE, path.basename(found.relPath)), SIGNALS_DISMISSED, {
-    dismissed_at: formatStamp(new Date()),
-    dismissed_by: by,
-    ...(reason.trim() ? { dismissed_reason: reason.trim() } : {}),
+/** One item's outcome in a batch. */
+export type ItemOutcome = { sourceId: string } & MoveOutcome
+
+const bySource = (signals: Signal[]): Map<string, Signal> => new Map(signals.map((signal) => [signal.sourceId, signal]))
+
+/** Ignore items: each file moves into `dismissed/`, so no later fetch brings it back. Ignoring
+ *  the same source again keeps the one record, judged afresh. Each folder is read once. */
+export function dismissInboxItems(sourceIds: string[], by: 'user' | 'agent', reason = ''): ItemOutcome[] {
+  const waiting = bySource(readInbox())
+  const ignored = bySource(readAllDismissed())
+  const why = reason.trim()
+  return [...new Set(sourceIds)].map((sourceId) => {
+    const missing = { sourceId, ok: false as const, error: `nothing waiting in triage is ${sourceId}` }
+    const found = waiting.get(sourceId)
+    if (!found) return missing
+    const already = ignored.get(sourceId)
+    if (already) fs.rmSync(path.join(SIGNALS_DISMISSED, path.basename(already.relPath)), { force: true })
+    const at = moveSignal(path.join(TRIAGE, path.basename(found.relPath)), SIGNALS_DISMISSED, {
+      dismissed_at: formatStamp(new Date()),
+      dismissed_by: by,
+      ...(why ? { dismissed_reason: why } : {}),
+    })
+    return at ? { sourceId, ok: true as const, relPath: at } : missing
   })
-  return at ? { ok: true, relPath: at } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+}
+
+/** Ignore one item — `dismissInboxItems` for one. */
+export function dismissInboxItem(sourceId: string, by: 'user' | 'agent', reason = ''): MoveOutcome {
+  return dismissInboxItems([sourceId], by, reason)[0]!
+}
+
+/** Write a reason onto items already ignored, re-stamping `dismissed_at` so the dismissal
+ *  review, which reads by that stamp, sees a reason added after it last ran. */
+export function reasonDismissed(sourceIds: string[], reason: string): ItemOutcome[] {
+  const ignored = bySource(readAllDismissed())
+  const why = reason.trim()
+  return [...new Set(sourceIds)].map((sourceId) => {
+    const found = ignored.get(sourceId)
+    const file = found && path.join(SIGNALS_DISMISSED, path.basename(found.relPath))
+    if (!file || !fs.existsSync(file)) return { sourceId, ok: false, error: `nothing ignored in triage is ${sourceId}` }
+    stamp(file, { dismissed_at: formatStamp(new Date()), dismissed_reason: why || null })
+    return { sourceId, ok: true, relPath: found.relPath }
+  })
 }
 
 /** Where the record of a card landed: the item moved into `archived/`, or — when the user
@@ -337,22 +368,30 @@ export function archiveInboxItem(sourceId: string, cardId: number): ArchiveOutco
   return at ? { ok: true, relPath: at, where: 'archived' } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
 }
 
-/** Put one ignored item back in the list (#894): its file moves out of `dismissed/` and loses
- *  its dismissal. Refused when a card was already made of it, or the same id is waiting. */
-export function restoreInboxItem(sourceId: string): MoveOutcome {
-  const found = readAllDismissed().find((signal) => signal.sourceId === sourceId)
-  if (!found) return { ok: false, error: `nothing ignored in triage is ${sourceId}` }
-  if (found.cardId !== null) return { ok: false, error: `a card was already made of ${sourceId}: #${found.cardId}` }
-  if (!found.contentKept || !found.title || !found.collectedAt || !found.importedAt) {
-    return { ok: false, error: `${sourceId} was kept without its content, so there is nothing to restore` }
-  }
-  if (readInbox().some((signal) => signal.sourceId === sourceId)) {
-    return { ok: false, error: `${sourceId} is already waiting in triage` }
-  }
-  const at = moveSignal(path.join(SIGNALS_DISMISSED, path.basename(found.relPath)), TRIAGE, {
-    dismissed_at: null,
-    dismissed_by: null,
-    dismissed_reason: null,
+/** Put ignored items back in the list (#894): each file moves out of `dismissed/` and loses its
+ *  dismissal. Refused when a card was already made of it, or the same id is waiting. */
+export function restoreInboxItems(sourceIds: string[]): ItemOutcome[] {
+  const ignored = bySource(readAllDismissed())
+  const waiting = bySource(readInbox())
+  return [...new Set(sourceIds)].map((sourceId) => {
+    const refuse = (error: string): ItemOutcome => ({ sourceId, ok: false, error })
+    const found = ignored.get(sourceId)
+    if (!found) return refuse(`nothing ignored in triage is ${sourceId}`)
+    if (found.cardId !== null) return refuse(`a card was already made of ${sourceId}: #${found.cardId}`)
+    if (!found.contentKept || !found.title || !found.collectedAt || !found.importedAt) {
+      return refuse(`${sourceId} was kept without its content, so there is nothing to restore`)
+    }
+    if (waiting.has(sourceId)) return refuse(`${sourceId} is already waiting in triage`)
+    const at = moveSignal(path.join(SIGNALS_DISMISSED, path.basename(found.relPath)), TRIAGE, {
+      dismissed_at: null,
+      dismissed_by: null,
+      dismissed_reason: null,
+    })
+    return at ? { sourceId, ok: true, relPath: at } : refuse(`nothing ignored in triage is ${sourceId}`)
   })
-  return at ? { ok: true, relPath: at } : { ok: false, error: `nothing ignored in triage is ${sourceId}` }
+}
+
+/** Put one ignored item back — `restoreInboxItems` for one. */
+export function restoreInboxItem(sourceId: string): MoveOutcome {
+  return restoreInboxItems([sourceId])[0]!
 }
