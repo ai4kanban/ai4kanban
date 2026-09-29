@@ -21,11 +21,11 @@ export type MockupTag = {
 
 export type Device = "mobile" | "desktop";
 
-/** The canvas each device's screen is laid out on, before it is scaled. A phone's is the area
- *  between the status bar and home indicator its frame draws (#1121). */
+/** The canvas each device's screen is laid out on, before it is scaled. A phone's is an
+ *  iPhone 16's whole screen, under the status bar and home indicator its frame overlays (#1215). */
 export const SCREENS: Record<Device, { w: number; h: number }> = {
   desktop: { w: 1280, h: 800 },
-  mobile: { w: 390, h: 763 },
+  mobile: { w: 393, h: 852 },
 };
 
 export const deviceOf = (value: string | null | undefined): Device => (value === "mobile" ? "mobile" : "desktop");

@@ -204,14 +204,7 @@ export function MockupPage({
               view.doc &&
               (device === "mobile" ? (
                 <span className="mx-auto block w-max">
-                  <Phone scale={1}>
-                    <iframe
-                      sandbox=""
-                      srcDoc={view.doc}
-                      title={view.src}
-                      style={{ width: SCREENS.mobile.w, height: SCREENS.mobile.h, border: 0, display: "block" }}
-                    />
-                  </Phone>
+                  <Phone scale={1} doc={view.doc} title={view.src} />
                 </span>
               ) : (
                 <iframe

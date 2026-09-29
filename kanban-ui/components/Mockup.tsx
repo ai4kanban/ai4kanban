@@ -9,7 +9,7 @@
 // a mockup's `<style>` stops there too.
 //
 // A screen is drawn on its device's canvas — desktop unless the tag says `device="mobile"`
-// (#1097) — and scaled down to whatever width the card page gives it. A phone screen sits in
+// (#1097) — and scaled down to whatever width the card page gives it. A phone screen fills
 // a phone frame at 3/4 size, centered. Type too small to read is what the two links on the
 // frame are for: the code behind it, and the mockup on its own at full size.
 //
@@ -28,29 +28,28 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FiAlertCircle, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
+import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 
 const { w: W, h: H } = SCREENS.desktop;
 const PHONE = SCREENS.mobile;
 
-/** The phone frame's bezel, status bar and home indicator, at 1:1. */
+/** The phone frame's bezel and the status bar and home indicator it overlays, at 1:1. */
 const BEZEL = 12;
-const STATUS_H = 47;
-const HOME_H = 34;
-const DISPLAY_H = STATUS_H + PHONE.h + HOME_H;
+const STATUS_H = 54;
 const PHONE_W = PHONE.w + 2 * BEZEL;
-const PHONE_H = DISPLAY_H + 2 * BEZEL;
+const PHONE_H = PHONE.h + 2 * BEZEL;
 /** A phone screen on a card page is never drawn larger than this. */
 const PHONE_SCALE = 0.75;
 /** The band a phone stands in: its vertical padding. */
 const BAND_PAD = 24;
 
-function StatusBar() {
+function StatusBar({ ink }: { ink: string }) {
   return (
     <span
-      className="relative flex shrink-0 items-center justify-between bg-white text-black"
-      style={{ height: STATUS_H, padding: "0 30px 0 44px" }}
+      className="absolute inset-x-0 top-0 flex items-center justify-between"
+      style={{ height: STATUS_H, padding: "0 30px 0 44px", color: ink }}
     >
       <span
         style={{
@@ -67,44 +66,47 @@ function StatusBar() {
         style={{ top: 11, width: 126, height: 37 }}
       />
       <span className="flex items-center" style={{ gap: 6 }}>
-        <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden>
-          <rect x="0" y="8" width="3" height="4" rx="1" fill="#000" />
-          <rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#000" />
-          <rect x="10" y="3" width="3" height="9" rx="1" fill="#000" />
-          <rect x="15" y="0" width="3" height="12" rx="1" fill="#000" />
+        <svg width="18" height="12" viewBox="0 0 18 12" fill={ink} aria-hidden>
+          <rect x="0" y="8" width="3" height="4" rx="1" />
+          <rect x="5" y="5.5" width="3" height="6.5" rx="1" />
+          <rect x="10" y="3" width="3" height="9" rx="1" />
+          <rect x="15" y="0" width="3" height="12" rx="1" />
         </svg>
-        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden>
-          <path
-            d="M8 2.2c2.4 0 4.6.9 6.3 2.5l1.2-1.3C13.5 1.5 10.9.4 8 .4S2.5 1.5.5 3.4l1.2 1.3C3.4 3.1 5.6 2.2 8 2.2Z"
-            fill="#000"
-          />
-          <path
-            d="M8 5.6c1.5 0 2.8.6 3.8 1.5l1.2-1.3C11.7 4.6 9.9 3.8 8 3.8s-3.7.8-5 2l1.2 1.3c1-.9 2.3-1.5 3.8-1.5Z"
-            fill="#000"
-          />
-          <path d="M8 9c.6 0 1.1.2 1.5.6L8 11.2 6.5 9.6c.4-.4.9-.6 1.5-.6Z" fill="#000" />
+        <svg width="16" height="12" viewBox="0 0 16 12" fill={ink} aria-hidden>
+          <path d="M8 2.2c2.4 0 4.6.9 6.3 2.5l1.2-1.3C13.5 1.5 10.9.4 8 .4S2.5 1.5.5 3.4l1.2 1.3C3.4 3.1 5.6 2.2 8 2.2Z" />
+          <path d="M8 5.6c1.5 0 2.8.6 3.8 1.5l1.2-1.3C11.7 4.6 9.9 3.8 8 3.8s-3.7.8-5 2l1.2 1.3c1-.9 2.3-1.5 3.8-1.5Z" />
+          <path d="M8 9c.6 0 1.1.2 1.5.6L8 11.2 6.5 9.6c.4-.4.9-.6 1.5-.6Z" />
         </svg>
-        <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden>
-          <rect x="0.5" y="0.5" width="23" height="12" rx="3.8" fill="none" stroke="#000" strokeOpacity="0.35" />
-          <rect x="2" y="2" width="20" height="9" rx="2.5" fill="#000" />
-          <path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" fill="#000" fillOpacity="0.4" />
+        <svg width="27" height="13" viewBox="0 0 27 13" fill={ink} aria-hidden>
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.8" fill="none" stroke={ink} strokeOpacity="0.35" />
+          <rect x="2" y="2" width="20" height="9" rx="2.5" />
+          <path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" fillOpacity="0.4" />
         </svg>
       </span>
     </span>
   );
 }
 
-function HomeIndicator() {
+function HomeIndicator({ ink }: { ink: string }) {
   return (
-    <span className="flex shrink-0 items-end justify-center bg-white" style={{ height: HOME_H, paddingBottom: 8 }}>
-      <span className="block rounded-full bg-black" style={{ width: 134, height: 5 }} />
+    <span
+      className="absolute inset-x-0 bottom-0 flex items-end justify-center"
+      style={{ height: SAFE_AREA.bottom, paddingBottom: 8 }}
+    >
+      <span className="block rounded-full" style={{ width: 134, height: 5, background: ink }} />
     </span>
   );
 }
 
-/** A phone at `scale`: iOS status bar on top, home indicator below, and `children` — a
- *  390×763 screen at 1:1 — in between (#1121). */
-export function Phone({ scale, children }: { scale: number; children?: React.ReactNode }) {
+const frameStyle = { border: 0, display: "block", position: "absolute", left: 0 } as const;
+
+/** A phone at `scale` showing `doc` as an iPhone 16 would (#1215): the page fills the
+ *  393×852 screen, or sits inside its safe areas over its own background, and the status bar
+ *  and home indicator are drawn over it. */
+export function Phone({ scale, doc, title }: { scale: number; doc: string; title: string }) {
+  const screen = useMemo(() => phoneScreen(doc), [doc]);
+  const ink = screen.light ? "#fff" : "#000";
+  const inner = screen.cover ? PHONE.h : PHONE.h - SAFE_AREA.top - SAFE_AREA.bottom;
   return (
     <span
       className="block shrink-0"
@@ -117,18 +119,30 @@ export function Phone({ scale, children }: { scale: number; children?: React.Rea
       }}
     >
       <span
-        className="block overflow-hidden bg-nb-paper"
-        style={{ width: PHONE.w * scale, height: DISPLAY_H * scale, borderRadius: 47 * scale }}
+        className="block overflow-hidden bg-white"
+        style={{ width: PHONE.w * scale, height: PHONE.h * scale, borderRadius: 47 * scale }}
       >
         <span
-          className="flex flex-col"
-          style={{ width: PHONE.w, height: DISPLAY_H, transform: `scale(${scale})`, transformOrigin: "top left" }}
+          className="relative block"
+          style={{ width: PHONE.w, height: PHONE.h, transform: `scale(${scale})`, transformOrigin: "top left" }}
         >
-          <StatusBar />
-          <span className="block shrink-0 overflow-hidden" style={{ height: PHONE.h }}>
-            {children}
-          </span>
-          <HomeIndicator />
+          {screen.backdrop !== null && (
+            <iframe
+              sandbox=""
+              srcDoc={screen.backdrop}
+              aria-hidden
+              tabIndex={-1}
+              style={{ ...frameStyle, top: 0, width: PHONE.w, height: PHONE.h }}
+            />
+          )}
+          <iframe
+            sandbox=""
+            srcDoc={screen.doc}
+            title={title}
+            style={{ ...frameStyle, top: screen.cover ? 0 : SAFE_AREA.top, width: PHONE.w, height: inner }}
+          />
+          <StatusBar ink={ink} />
+          <HomeIndicator ink={ink} />
         </span>
       </span>
     </span>
@@ -216,14 +230,7 @@ function PhoneScreen({ doc, title }: { doc: string; title: string }) {
   return (
     <PhoneBand>
       <span ref={box} className="flex w-full justify-center">
-        <Phone scale={scale}>
-          <iframe
-            sandbox=""
-            srcDoc={doc}
-            title={title}
-            style={{ width: PHONE.w, height: PHONE.h, border: 0, display: "block" }}
-          />
-        </Phone>
+        <Phone scale={scale} doc={doc} title={title} />
       </span>
     </PhoneBand>
   );
