@@ -33,10 +33,11 @@ export type ChatCopy = {
   /** Why a reply stopped, for the seconds this window holds it before the transcript does
    *  — the board's own wording for a reply the user ended. */
   youStopped: string;
-  /** The rail with nothing in it yet: what the chat is for, and what to ask it.
-   *  Tuples, so a language cannot ship a shorter list than English. */
-  emptyCard: (id: number) => string;
-  emptyCardAsks: [string, string, string];
+  /** A card's rail with nothing in it yet: the question put to the user, and the lead-in to
+   *  the sample asks typed under it. A tuple, so a language cannot ship a shorter list. */
+  emptyLead: string;
+  emptyAskLead: string;
+  emptyCardAsks: [string, string, string, string, string];
   /** What you can do with a message without retyping it (#269) — the words on the
    *  buttons, and the fuller labels a screen reader and a tooltip get. */
   copyReply: string;

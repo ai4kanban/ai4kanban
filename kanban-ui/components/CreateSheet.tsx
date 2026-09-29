@@ -33,6 +33,7 @@ import { useWorkflowName } from "./Workflows";
 import { useWorkflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess, type ProLock } from "./pro";
 import { useWorkflowTip } from "./WorkflowTip";
+import { Caret, useTypewriter } from "./typewriter";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
  *  narrows the room the column is centred in, so the transcript and the box below it move
@@ -441,31 +442,7 @@ function Sheet({
 }
 
 function CreateHeadline({ phrases, paused }: { phrases: readonly string[]; paused: boolean }) {
-  const [frame, setFrame] = useState({ index: 0, length: phrases[0].length, deleting: false });
-  const [reducedMotion, setReducedMotion] = useState(true);
-  const phrase = phrases[frame.index];
-
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(preference.matches);
-    update();
-    preference.addEventListener("change", update);
-    return () => preference.removeEventListener("change", update);
-  }, []);
-
-  useEffect(() => {
-    if (paused || reducedMotion) return;
-    const complete = frame.length === phrase.length && !frame.deleting;
-    const timer = window.setTimeout(() => {
-      if (complete) setFrame({ ...frame, deleting: true });
-      else if (frame.deleting && frame.length === 0) {
-        setFrame({ index: (frame.index + 1) % phrases.length, length: 0, deleting: false });
-      } else {
-        setFrame({ ...frame, length: frame.length + (frame.deleting ? -1 : 1) });
-      }
-    }, complete ? 3200 : frame.deleting ? 35 : 85);
-    return () => window.clearTimeout(timer);
-  }, [frame, paused, reducedMotion, phrase, phrases.length]);
+  const { text, typing } = useTypewriter(phrases, paused);
 
   return (
     <h1 className="grid w-full text-center text-[27px] font-[800] leading-[1.2] tracking-[-0.025em] max-md:text-[21px]">
@@ -475,10 +452,8 @@ function CreateHeadline({ phrases, paused }: { phrases: readonly string[]; pause
         <span key={text} aria-hidden className="invisible col-start-1 row-start-1 px-2">{text}</span>
       ))}
       <span aria-hidden className="col-start-1 row-start-1 self-center px-2">
-        {paused || reducedMotion ? phrase : phrase.slice(0, frame.length)}
-        {!paused && !reducedMotion && (
-          <span className="ml-0.5 inline-block h-[0.9em] w-[2px] animate-[nbCaret_1s_step-end_infinite] bg-nb-ink align-[-0.05em] motion-reduce:animate-none" />
-        )}
+        {text}
+        {typing && <Caret className="h-[0.9em] w-[2px] bg-nb-ink align-[-0.05em]" />}
       </span>
     </h1>
   );

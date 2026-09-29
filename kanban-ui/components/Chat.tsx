@@ -56,6 +56,7 @@ import { Copied, useCopyText } from "./copy";
 import { ShareRow } from "./Feedback";
 import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
+import { Caret, useTypewriter } from "./typewriter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1045,9 +1046,9 @@ function Stopped({ why }: { why: string }) {
   );
 }
 
-/** The rail with nothing in it yet: what this chat is for, or the one thing standing in the
- *  way of having one at all. A card's page says what a card's chat is for, and offers the
- *  three questions worth asking about any card before it is built. */
+/** The rail with nothing in it yet: a card's page asks what is on the user's mind and types
+ *  sample asks under it, only to show how to start — or the one thing standing in the way of
+ *  having a chat at all. */
 function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string }) {
   const c = useCopy().chat;
   if (hopeless) {
@@ -1061,17 +1062,21 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
   }
   if (cardId === null) return null;
   return (
-    <div className="px-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
-      <p>{c.emptyCard(cardId)}</p>
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {c.emptyCardAsks.map((line) => (
-          <li key={line} className="flex gap-1.5">
-            <span aria-hidden>·</span>
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="px-0.5 pt-3">
+      <p className="text-[13px] font-[700] leading-snug text-nb-ink">{c.emptyLead}</p>
+      <SampleAsks key={c.emptyCardAsks[0]} lead={c.emptyAskLead} asks={c.emptyCardAsks} />
     </div>
+  );
+}
+
+function SampleAsks({ lead, asks }: { lead: string; asks: readonly string[] }) {
+  const { text, typing } = useTypewriter(asks);
+  return (
+    <p aria-hidden className="mt-3 h-[18px] truncate text-[12px] leading-[18px] text-nb-ink-soft">
+      {lead}
+      {text}
+      {typing && <Caret className="h-[0.95em] w-px bg-nb-ink-soft align-[-0.1em]" />}
+    </p>
   );
 }
 
