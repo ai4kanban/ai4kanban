@@ -75,7 +75,7 @@ const en: ChromeCopy = {
       "Done. Run `akb version` in a terminal — typing `akb` on its own opens this app on the project you are standing in.",
   },
   phone: {
-    tabs: { nav: "Ways into the board", board: "Board", find: "Find", memory: "Memory", more: "More" },
+    tabs: { nav: "Ways into the board", board: "Board", more: "More" },
     more: {
       board: "Board",
       atTheComputer: "At the computer",

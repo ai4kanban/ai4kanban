@@ -79,6 +79,8 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Window } from "./Window";
+import { PhoneFoot } from "./Phone";
+import { usePhone } from "@/lib/media";
 import { sayFailure, type Refused } from "@/lib/start-failure";
 
 type Tab = "pending" | "history";
@@ -321,6 +323,16 @@ export function SignalsPage({
   // Make card pressed in the detail and refused: said there, under its button.
   const [detailFailed, setDetailFailed] = useState("");
   const searchBox = useRef<HTMLInputElement>(null);
+  const phone = usePhone();
+  const [finding, setFinding] = useState(false);
+  const openFind = () => {
+    setFinding(true);
+    requestAnimationFrame(() => searchBox.current?.focus());
+  };
+  const closeFind = () => {
+    setQuery("");
+    setFinding(false);
+  };
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [guardFor, setGuardFor] = useState<string | null>(null);
   const [toast, setToast] = useState<Ignored | null>(null);
@@ -717,7 +729,23 @@ export function SignalsPage({
               {c.hits(narrowed.length, all.length)}
             </span>
           )}
-          <label className="relative ml-auto inline-flex h-7 min-w-0 shrink items-center">
+          {/* On a phone the search folds into a 🔍 at the end of the tab row (#1198). */}
+          {!finding && (
+            <button
+              type="button"
+              onClick={openFind}
+              title={c.search}
+              aria-label={c.search}
+              className="-mr-2 ml-auto grid size-11 shrink-0 cursor-pointer place-items-center rounded-[8px] text-nb-ink-soft md:hidden"
+            >
+              <FiSearch size={17} aria-hidden />
+            </button>
+          )}
+          <label
+            className={`relative ml-auto inline-flex h-7 min-w-0 shrink items-center max-md:h-9 ${
+              finding ? "max-md:flex-1" : "max-md:hidden"
+            }`}
+          >
             <FiSearch size={13} className="absolute left-2.5 text-nb-ink-soft" aria-hidden />
             <input
               ref={searchBox}
@@ -725,9 +753,20 @@ export function SignalsPage({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={c.search}
               aria-label={c.search}
-              className="h-7 w-[180px] min-w-[92px] rounded-[8px] bg-nb-wash pl-7 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none max-md:w-[120px]"
+              className="h-7 w-[180px] min-w-[92px] rounded-[8px] bg-nb-wash pl-7 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none max-md:h-9 max-md:w-full max-md:pr-10 max-md:text-[13px]"
             />
+            <button
+              type="button"
+              onClick={closeFind}
+              title={c.closeSearch}
+              aria-label={c.closeSearch}
+              className="absolute -right-1 grid size-11 cursor-pointer place-items-center text-nb-ink-soft md:hidden"
+            >
+              <FiX size={16} aria-hidden />
+            </button>
           </label>
+          {/* The source filter and Sort all take the next line on a phone. */}
+          <span aria-hidden className="basis-full md:hidden" />
 
           <Select value={source} onValueChange={setSource}>
             <SelectTrigger
@@ -768,7 +807,7 @@ export function SignalsPage({
           {/* The list measures itself, so the rail opening or widening reflows the columns. */}
           <div
             className={`@container flex h-full flex-col overflow-y-auto ${
-              tab === "pending" ? "px-3 pb-6 pt-1 max-md:px-2 max-md:pb-20" : "px-6 pb-6 pt-3 max-md:px-4"
+              tab === "pending" ? "px-3 pb-6 pt-1 max-md:px-2" : "px-6 pb-6 pt-3 max-md:px-4"
             }`}
           >
             {groups.length === 0 ? (
@@ -875,12 +914,11 @@ export function SignalsPage({
               )
             )}
           </div>
-          {chosen.length > 0 && <div className="absolute inset-x-3 bottom-3 z-30 md:hidden">{pickBar(true)}</div>}
+          {chosen.length > 0 && phone && <PhoneFoot>{pickBar(true)}</PhoneFoot>}
           {toast && (
             <IgnoredToast
               key={toast.key}
               ignored={toast}
-              underPick={chosen.length > 0}
               onUndo={() => void undo(toast)}
               onClose={closeToast}
               onSave={(reason) => saveReason(toast, reason)}
@@ -995,7 +1033,7 @@ function SortAll({
   }, [note, onDismissNote]);
 
   return (
-    <span ref={box} className="relative inline-flex shrink-0">
+    <span ref={box} className="relative inline-flex shrink-0 max-md:ml-auto">
       <Button
         size="xs"
         variant="ghost"
@@ -1386,7 +1424,9 @@ function PickBar({
   return (
     <div
       className={`flex items-center ${
-        phone ? "nb-panel-sm h-[52px] gap-2 bg-nb-paper px-3" : "mb-2 h-9 gap-3 rounded-[9px] bg-nb-accent-wash px-3"
+        phone
+          ? "h-[59.5px] gap-2 border-t-[1.5px] border-nb-ink bg-nb-paper px-3"
+          : "mb-2 h-9 gap-3 rounded-[9px] bg-nb-accent-wash px-3"
       }`}
     >
       {!phone && <input type="checkbox" checked onChange={onClear} aria-label={c.clearPick} className={CHECK} />}
@@ -1402,7 +1442,7 @@ function PickBar({
         <button type="button" onClick={onClear} className={GHOST_INK}>
           {c.clearPick}
         </button>
-        <Button size="xs" onClick={onIgnore} className={phone ? "h-9 px-3.5 text-[13px]" : ""}>
+        <Button size="xs" onClick={onIgnore} className={phone ? "h-11 px-4 text-[13px]" : ""}>
           {c.ignoreN(count)}
         </Button>
       </span>
@@ -1414,14 +1454,11 @@ function PickBar({
  *  while untouched, never while the box is open. */
 function IgnoredToast({
   ignored,
-  underPick,
   onUndo,
   onClose,
   onSave,
 }: {
   ignored: Ignored;
-  /** On a phone the pick bar takes the toast's place. */
-  underPick: boolean;
   onUndo: () => void;
   onClose: () => void;
   onSave: (reason: string) => Promise<boolean>;
@@ -1455,9 +1492,7 @@ function IgnoredToast({
       role="status"
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}
-      className={`nb-panel-sm absolute bottom-5 left-1/2 z-30 flex w-[460px] max-w-[calc(100%-24px)] -translate-x-1/2 flex-col gap-2 bg-nb-paper px-3.5 py-2.5 max-md:bottom-3 ${
-        underPick ? "max-md:hidden" : ""
-      }`}
+      className={`nb-panel-sm absolute bottom-5 left-1/2 z-30 flex w-[460px] max-w-[calc(100%-24px)] -translate-x-1/2 flex-col gap-2 bg-nb-paper px-3.5 py-2.5 max-md:bottom-3`}
     >
       <div className="flex h-7 items-center gap-3">
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-[600]">

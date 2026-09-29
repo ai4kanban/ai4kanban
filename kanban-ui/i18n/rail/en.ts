@@ -58,6 +58,7 @@ const en: RailCopy = {
     history: "History",
     window: (days) => `Last ${days} days`,
     search: "Search triage",
+    closeSearch: "Close search",
     allSources: "All sources",
     hits: (shown, total) => `${shown} of ${total}`,
     noSource: "No source given",

@@ -209,14 +209,16 @@ shadow. Shadows never blur or change direction.
 Under `md` (48rem) the board is laid out for a phone. All of it is that width only: at
 window width the rail, the header and the side-by-side columns are unchanged.
 
-- **The rail becomes a bottom tab bar**: Board, Find, Memory, More. It is on every screen
-  the phone reaches and says which of the four you are on.
-- **Find, Memory and More cover the page rather than replacing it**: the page stays
-  mounted, so the board keeps its scroll and a card page its state while the reader looks
-  something up.
-- **The top row holds four controls**: the mark, the release picker, the bell and Create
-  task. The rest of it moves to More — Goal and Insights as rows there — which
-  also names what is done at the computer.
+- **The top row is the card search**: the box in the mark's place, then the release
+  picker, the bell and Create task, on paper with a hairline under it — no cream band, no
+  rounded panel.
+- **The rail becomes a bottom tab bar**: Board and More, on every screen the phone reaches.
+  More holds Goal, Insights and Memory as rows, and names what is done at the computer.
+- **Matches, More and Memory cover the page rather than replacing it**: the page stays
+  mounted, so the board keeps its scroll and a card page its state.
+- **A selection's actions take the tab bar's place** until nothing is picked, rather than
+  floating over the list.
+- **A page's own search folds into a 🔍** at the end of its tab row.
 - **One column at a time, swiped**: full-width scroll-snap pages under a band that names
   the column, carries its count, and shows which of them you are on. Those dots are
   buttons — a swipe is not reachable from a keyboard.

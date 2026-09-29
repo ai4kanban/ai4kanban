@@ -1107,11 +1107,11 @@ export function DesignSystem() {
       <Section
         id="phone"
         title="Phone width"
-        note="Under md the rail goes and a bottom tab bar takes its place: Board, Find, Memory, More, on every screen the phone reaches. The board shows one column at a time under a band that names it, a card's actions become a full-width stack, and a dialog becomes a page with its buttons pinned at the foot. Everything a thumb presses is 44px. The full rules are in kanban-ui/design.md."
+        note="Under md the rail goes: the card search takes the top row, and a bottom tab bar holds Board and More on every screen the phone reaches. The board shows one column at a time under a band that names it, a card's actions become a full-width stack, and a dialog becomes a page with its buttons pinned at the foot. Everything a thumb presses is 44px. The full rules are in kanban-ui/design.md."
       >
         <div className="nb-panel space-y-6 px-5 py-5">
           <div>
-            <Label>the tab bar — the rail&apos;s four ways in, at the foot of the screen</Label>
+            <Label>the tab bar — Board and More, at the foot of the screen</Label>
             {/* The production bar, in a 375px frame so it is read at the width it is
                 drawn at. Everything else on this page is full width; this one is not
                 a component that has a full width. */}

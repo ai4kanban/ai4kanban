@@ -56,6 +56,7 @@ const zh: RailCopy = {
     history: "历史",
     window: (days) => `最近 ${days} 天`,
     search: "搜索待筛选",
+    closeSearch: "收起搜索",
     allSources: "全部来源",
     hits: (shown, total) => `${shown} / ${total}`,
     noSource: "未注明来源",

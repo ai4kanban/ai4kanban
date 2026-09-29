@@ -74,6 +74,7 @@ export type RailCopy = {
     window: (days: number) => string;
     /** The toolbar's search box and source picker, and what the picker calls every source. */
     search: string;
+    closeSearch: string;
     allSources: string;
     /** How many of the total are showing, while a search or a source narrows the page. */
     hits: (shown: number, total: number) => string;

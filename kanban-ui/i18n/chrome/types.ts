@@ -105,7 +105,7 @@ export type ChromeCopy = {
    *  the rest of the top row moved into. None of it is drawn at window width. */
   phone: {
     /** `nav` is only read out loud: the bar's own name. */
-    tabs: { nav: string; board: string; find: string; memory: string; more: string };
+    tabs: { nav: string; board: string; more: string };
     more: {
       /** The heading over the board's own folder. */
       board: string;

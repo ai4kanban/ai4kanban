@@ -75,7 +75,7 @@ const zh: ChromeCopy = {
       "完成。在终端里运行 `akb version`——单独输入 `akb` 会在你当前所在的项目上打开这个应用。",
   },
   phone: {
-    tabs: { nav: "看板导航", board: "看板", find: "查找", memory: "记忆", more: "更多" },
+    tabs: { nav: "看板导航", board: "看板", more: "更多" },
     more: {
       board: "看板",
       atTheComputer: "在电脑上完成",

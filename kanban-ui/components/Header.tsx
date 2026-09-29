@@ -13,6 +13,7 @@ import { Goal, goalShown } from "./Goal";
 import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
 import { BellButton } from "./Notifications";
+import { HeaderFind } from "./Phone";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
 
@@ -55,13 +56,10 @@ import { Sessions } from "./sessions";
 // task goes icon-only. Nothing is removed — every control is still there, just
 // without its label.
 //
-// At phone width (#357) that is no longer enough: nine controls do not fit 375px however
-// small their labels get. So the row holds only what the width is worth spending on — the
-// mark, the release picker, the bell with its count, and Create task — and everything else
-// moves to the More tab (components/Phone.tsx). Which controls those are is said here, in
-// CSS, rather than by drawing a second header: the row is the same row, with the parts a
-// phone has no room for hidden and every remaining control grown to 36px so a thumb can
-// land on it.
+// At phone width (#357, #1198) the row holds the card search in the mark's place, then the
+// release picker, the bell and Create task; everything else moves to the More tab
+// (components/Phone.tsx). It is the same row with the rest hidden in CSS, every control grown
+// to 36px for a thumb.
 //
 // The row is drawn at IDE weight (see app/design/layouts): 44px against the 60
 // it used to be, every control a 28px box, and the saving taken out of the
@@ -189,17 +187,17 @@ export function Header({
         {/* The mark is the way to the board on a window too narrow for the rail;
             where the rail is up, All cards is the row that leads here and this
             is simply which product you are in. */}
-        {/* The mark leads home. At phone width home is the Board tab and the mark is the
-            way back to it from a card page, so it is given a thumb's target around a
-            block that stays the size it is. */}
         <Link
           href="/"
           title={c.chrome.header.home}
           aria-label={c.chrome.header.home}
-          className="a4k-nodrag flex shrink-0 items-center justify-center max-md:size-9 max-md:-ml-1"
+          className="a4k-nodrag flex shrink-0 items-center justify-center max-md:hidden"
         >
           <LogoMark />
         </Link>
+        <span className="a4k-nodrag flex min-w-0 flex-1 md:hidden">
+          <HeaderFind />
+        </span>
         {/* Which board this is. On a phone it is on the More screen instead: the folder
             is context, and context is the first thing a 375px row gives up. */}
         <span className="hidden min-w-0 md:flex">

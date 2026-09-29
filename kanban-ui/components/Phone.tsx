@@ -1,24 +1,18 @@
 "use client";
 
-// The phone shell (#357) — everything the board grows at phone width and nothing it has at
-// window width.
+// The phone shell (#357, #1198) — everything the board grows at phone width and nothing it has
+// at window width.
 //
-// A window keeps its ways into the board down the left, in the rail: the board, the search
-// box, the open cards, the memory panel. A phone has no room for a rail, so those ways in
-// become a bottom tab bar and three screens of their own — Find, Memory and More — drawn
-// over the same body the board and a card page are drawn in. The tab bar says which of the
-// four you are on, and it is on every screen the phone reaches.
+// A phone has no room for the rail, so its ways in move: the card search becomes the top row's
+// box, and the tab bar at the foot holds Board and More. Its matches, More and Memory are drawn
+// over the same body the board and a card page are drawn in, so the page under them keeps its
+// state. Memory is a row on More, as weak an entry as it is on the rail.
 //
-// It is one app, not two: nothing here re-implements a card, a memory file or a search.
-// Find and Memory are the rail's own two panels laid out for the width, and More is where
-// the rest of the top row went — the board's folder, the goal and Insights, plus the plain
-// statement that Runs, diffs, Configuration and chat are done at the computer.
-//
-// Everything you press here is 44px or taller. That is the whole of the sizing rule: a
-// thumb is not a cursor, and this is the one screen with no cursor on it.
+// Everything you press here is 44px or taller: a thumb is not a cursor.
 
 import Link from "next/link";
-import { useRef } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   FiBookOpen,
   FiChevronRight,
@@ -37,7 +31,7 @@ import { LuMessagesSquare } from "react-icons/lu";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { armAgentHalf } from "@/lib/agent-half";
-import { useCardSearch } from "@/lib/card-search";
+import type { useCardSearch } from "@/lib/card-search";
 import { LEAVES_SHEET } from "@/lib/create-open";
 import { memoryKey, memoryAgentOf, memoryTree, useOpenOwners } from "@/lib/memory-panel";
 import { useMemoryOwnerName } from "./memory-owner";
@@ -49,23 +43,18 @@ import { configDialog, PRUNER } from "./Configuration";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
 
-/** Which of the four ways into the board the phone is on. */
-export type PhoneTab = "board" | "find" | "memory" | "more";
+/** Which tab the phone lights: the board, or More — which Memory sits under. */
+export type PhoneTab = "board" | "more";
 
 /** The tab bar's own height, so anything laid over the body (the bell, the chat) can stop
- *  above it rather than covering the way off the screen it opened on. The 58px row plus the
- *  1.5px rule over it — leave that rule out and a cover paints over the line. */
+ *  above it. The 58px row plus the 1.5px rule over it. */
 export const PHONE_TABS_H = 59.5;
 
-/** The bar at the foot of every screen the phone reaches. Buttons rather than links: three
- *  of the four are screens drawn over this page, not pages of their own, and only the one
- *  you are on is marked. */
+/** The bar at the foot of every screen the phone reaches. */
 export function PhoneTabs({ tab, onTab }: { tab: PhoneTab; onTab: (tab: PhoneTab) => void }) {
   const c = useCopy().chrome.phone;
   const tabs = [
     { key: "board", label: c.tabs.board, Icon: FiColumns },
-    { key: "find", label: c.tabs.find, Icon: FiSearch },
-    { key: "memory", label: c.tabs.memory, Icon: FiBookOpen },
     { key: "more", label: c.tabs.more, Icon: FiMoreHorizontal },
   ] as const;
   return (
@@ -96,24 +85,84 @@ export function PhoneTabs({ tab, onTab }: { tab: PhoneTab; onTab: (tab: PhoneTab
   );
 }
 
-/** The board's own screen, for the three the phone adds: a title that stays put, and one
+/** Where a page puts what stands in the tab bar's place — the triage pick bar. */
+const FootSlot = createContext<{ slot: HTMLElement | null; take: (on: boolean) => void } | null>(null);
+export const PhoneFootProvider = FootSlot.Provider;
+
+/** Draws its children where the tab bar was, for as long as it is mounted. */
+export function PhoneFoot({ children }: { children: React.ReactNode }) {
+  const foot = useContext(FootSlot);
+  const take = foot?.take;
+  useEffect(() => {
+    if (!take) return;
+    take(true);
+    return () => take(false);
+  }, [take]);
+  return foot?.slot ? createPortal(children, foot.slot) : null;
+}
+
+/** The card search the top row's box types into, held by the window so its matches can
+ *  cover the page. `onFocus` clears the layers that would hide them. */
+type PhoneFind = ReturnType<typeof useCardSearch> & { onFocus: () => void };
+const FindContext = createContext<PhoneFind | null>(null);
+export const PhoneFindProvider = FindContext.Provider;
+
+/** The top row's box at phone width. Nothing outside a window that holds the search. */
+export function HeaderFind() {
+  const c = useCopy().rail;
+  const find = useContext(FindContext);
+  const box = useRef<HTMLInputElement>(null);
+  if (!find) return null;
+  const { query, setQuery, onFocus } = find;
+  return (
+    <label className="relative flex h-9 min-w-0 flex-1 items-center">
+      <FiSearch
+        size={15}
+        aria-hidden
+        className="pointer-events-none absolute left-3 text-nb-ink-soft"
+      />
+      <input
+        ref={box}
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={onFocus}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setQuery("");
+            box.current?.blur();
+          }
+        }}
+        placeholder={c.search}
+        aria-label={c.search}
+        spellCheck={false}
+        autoComplete="off"
+        className={`h-9 w-full rounded-[10px] bg-nb-paper pl-9 text-[14px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 focus:outline-none ${
+          query ? "pr-9" : "pr-3"
+        } shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]`}
+      />
+      {query && (
+        <button
+          type="button"
+          onClick={() => setQuery("")}
+          title={c.clearSearch}
+          aria-label={c.clearSearch}
+          className="absolute right-0 grid size-9 cursor-pointer place-items-center rounded-[10px] text-nb-ink opacity-60 active:opacity-100"
+        >
+          <FiX size={15} aria-hidden />
+        </button>
+      )}
+    </label>
+  );
+}
+
+/** The board's own screen, for the ones the phone adds: a title that stays put, and one
  *  scrolling column under it. Nothing here scrolls sideways. */
-function Screen({
-  title,
-  head,
-  children,
-}: {
-  title: string;
-  /** Drawn under the title and outside the scroll — the search box, so typing never
-   *  scrolls away from what it found. */
-  head?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function Screen({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-nb-paper">
       <div className="shrink-0 px-4 pb-2 pt-4">
         <h1 className="truncate text-[20px] font-[800] leading-tight tracking-[-0.02em]">{title}</h1>
-        {head}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
     </div>
@@ -134,91 +183,43 @@ function GroupLabel({ text, divider = false }: { text: string; divider?: boolean
   );
 }
 
-/** One card, as a row of a phone list: the id, the title, and the arrow that says the row
- *  opens a page. */
-function CardRow({ id, title, onOpen }: { id: number; title: string; onOpen?: () => void }) {
-  return (
-    <Link href={`/${id}`} onClick={onOpen} className={PHONE_ROW}>
-      <span className="shrink-0 font-mono text-[12px] tabular-nums text-nb-accent-deep">{id}</span>
-      <span className="min-w-0 flex-1 leading-snug">{title}</span>
-      <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
-    </Link>
-  );
-}
-
-/** The rail's search, as a screen (#357). The box is the first thing under the title and
- *  does not scroll; the matches do.
- *
- *  It answers what is typed and nothing else — the screen is the box, and every card on the
- *  board is one word away. */
-export function FindScreen() {
+/** What the top row's box found, drawn over the page. Opening one empties the box. */
+export function FindMatches() {
   const c = useCopy().rail;
-  const { query, setQuery, matches } = useCardSearch();
-  const box = useRef<HTMLInputElement>(null);
-  const searching = query.trim().length > 0;
+  const find = useContext(FindContext);
+  if (!find) return null;
+  const { query, setQuery, matches } = find;
   return (
-    <Screen
-      title={c.search}
-      head={
-        <div className="relative mt-3">
-          <FiSearch
-            size={16}
-            aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-nb-ink-soft"
-          />
-          <input
-            ref={box}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setQuery("");
-            }}
-            placeholder={c.search}
-            aria-label={c.search}
-            spellCheck={false}
-            autoComplete="off"
-            className={`h-11 w-full rounded-[10px] bg-nb-paper pl-10 text-[14px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 focus:outline-none ${
-              query ? "pr-11" : "pr-3"
-            } shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]`}
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                box.current?.focus();
-              }}
-              title={c.clearSearch}
-              aria-label={c.clearSearch}
-              className="absolute right-0 top-0 grid h-11 w-11 cursor-pointer place-items-center rounded-[10px] text-nb-ink opacity-60 active:opacity-100"
-            >
-              <FiX size={16} aria-hidden />
-            </button>
-          )}
-        </div>
-      }
-    >
-      {!searching ? null : matches === null ? null : matches.length === 0 ? (
-        <p className="pt-3 text-[13px] leading-snug text-nb-ink-soft">{c.noMatches}</p>
+    <div className="h-full overflow-y-auto bg-nb-paper px-4 pb-4 pt-3">
+      {matches === null ? null : matches.length === 0 ? (
+        <p className="text-[13px] leading-snug text-nb-ink-soft">{c.noMatches}</p>
       ) : (
         <>
           <GroupLabel text={c.matches} />
           <nav aria-label={c.matching} className="flex flex-col gap-1">
             {matches.map((card) => (
-              // The word that found the card travels with the click, the way it does in the
-              // rail (#262), so a match sitting only in the agent half opens that half.
-              <CardRow
+              // The word that found the card travels with the click (#262), so a match
+              // sitting only in the agent half opens that half.
+              <Link
                 key={card.id}
-                id={card.id}
-                title={card.title}
-                onOpen={() => armAgentHalf(card.id, query)}
-              />
+                href={`/${card.id}`}
+                onClick={() => {
+                  armAgentHalf(card.id, query);
+                  setQuery("");
+                }}
+                className={PHONE_ROW}
+              >
+                <span className="shrink-0 font-mono text-[12px] tabular-nums text-nb-accent-deep">
+                  {card.id}
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">{card.title}</span>
+                <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
+              </Link>
             ))}
           </nav>
         </>
       )}
-    </Screen>
+    </div>
   );
 }
 
@@ -353,6 +354,7 @@ export function MoreScreen({
   goalWritten,
   goalOffered = false,
   onGoalSaved,
+  onMemory,
 }: {
   projectRoot: string;
   goalWritten: boolean;
@@ -361,8 +363,11 @@ export function MoreScreen({
   goalOffered?: boolean;
   /** Re-read the board once a goal written here has saved (#437). */
   onGoalSaved?: () => void;
+  /** Open the Memory screen (#1198). */
+  onMemory: () => void;
 }) {
-  const p = useCopy().chrome.phone;
+  const copy = useCopy();
+  const p = copy.chrome.phone;
   const c = p.more;
   const elsewhere = [
     { label: c.runs, Icon: FiPlay },
@@ -386,6 +391,11 @@ export function MoreScreen({
       <div className="mt-2 flex flex-col gap-1">
         <Goal written={goalWritten} offer={goalOffered} row onSaved={onGoalSaved} />
         <Insights row />
+        <button type="button" onClick={onMemory} className={PHONE_ROW}>
+          <FiBookOpen size={17} className="shrink-0 text-nb-ink-soft" aria-hidden />
+          <span className="min-w-0 flex-1">{copy.rail.memory.heading}</span>
+          <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
+        </button>
       </div>
 
       <GroupLabel text={c.atTheComputer} divider />

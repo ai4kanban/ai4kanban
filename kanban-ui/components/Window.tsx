@@ -14,10 +14,11 @@
 // The whole thing is exactly one screen tall and never scrolls: the body is what
 // scrolls, which is what keeps the rail on screen with the card it opened.
 //
-// At phone width the rail is gone (app/globals.css) and a bottom tab bar takes its place
-// (#357, components/Phone.tsx). The frame is otherwise the same one: Find, Memory and More
-// are drawn over the body rather than instead of it, so the board or the card page under
-// them keeps its state and its scroll while the reader looks something up.
+// At phone width the rail is gone (app/globals.css): the card search is the top row's box and
+// a bottom tab bar holds Board and More (#357, #1198, components/Phone.tsx). The search's
+// matches, More and Memory are drawn over the body rather than instead of it, so the page under
+// them keeps its state and its scroll. The top row and the body share the paper there, split
+// by a hairline.
 //
 // See app/design/layouts for the mockup this is drawn from.
 
@@ -53,11 +54,15 @@ import {
 } from "./desktop";
 import { BellPane } from "./Notifications";
 import { sessionsPanel, useAgentSessions } from "./sessions";
+import { useCardSearch } from "@/lib/card-search";
+import { HAIRLINE } from "./chrome";
 import {
-  FindScreen,
+  FindMatches,
   MemoryScreen,
   MoreScreen,
   PHONE_TABS_H,
+  PhoneFindProvider,
+  PhoneFootProvider,
   PhoneTabs,
   type PhoneTab,
 } from "./Phone";
@@ -294,38 +299,48 @@ export function Window({
     if (chat.open || bell.open) closeSide();
   }, [chat.open, bell.open, closeSide]);
 
-  // The phone shell (#357). Board is a place you go; Find, Memory and More are screens
-  // drawn over whatever page is up. So what is held here is which of those three is
-  // covering the page — `null` is the page itself — and which tab is LIT is worked out
-  // from that plus the page underneath: a memory file is what the Memory tab leads to, and
-  // everything else is the board's.
-  //
-  // Going anywhere uncovers the page, because every row on Find and Memory opens one, and
-  // landing on it still looking at the list you left would be a tap that did nothing.
+  // The phone shell (#357, #1198). Board is a place you go; More and Memory are screens drawn
+  // over whatever page is up, and so are the top row's matches while its box holds a word.
+  // More is lit on either screen and on a memory file. Going anywhere uncovers the page and
+  // empties the box.
   const path = usePathname();
   const onMemory = path.startsWith("/memory/");
-  const [cover, setCover] = useState<PhoneTab | null>(null);
-  useEffect(() => setCover(null), [path]);
-  const tab: PhoneTab = cover ?? (onMemory ? "memory" : "board");
+  const [cover, setCover] = useState<"more" | "memory" | null>(null);
+  const find = useCardSearch();
+  const setQuery = find.setQuery;
+  useEffect(() => {
+    setCover(null);
+    setQuery("");
+  }, [path, setQuery]);
+  const tab: PhoneTab = cover || onMemory ? "more" : "board";
+  const foldLayers = useCallback(() => {
+    foldBell();
+    foldChat();
+    closeSide();
+  }, [foldBell, foldChat, closeSide]);
+  const { query, matches } = find;
+  const phoneFind = useMemo(
+    () => ({ query, setQuery, matches, onFocus: foldLayers }),
+    [query, setQuery, matches, foldLayers],
+  );
   const goTab = useCallback(
     (next: PhoneTab) => {
-      // The bell and the chat lie over the body here, so a tab tapped under one of them
-      // would light up behind it. The tap folds the rail first: the tab bar is the way off
-      // every screen the phone reaches, including those two.
-      foldBell();
-      foldChat();
-      closeSide();
-      // Board is the board — from a card page, from a memory file, from a covered board.
+      // The bell and the chat lie over the body here; the tab bar is the way off them too.
+      foldLayers();
+      setQuery("");
       if (next === "board") {
         setCover(null);
         if (path !== "/") router.push("/");
         return;
       }
-      // Memory from a memory file is the list again, not the file you are already on.
-      setCover(next);
+      setCover("more");
     },
-    [foldBell, foldChat, closeSide, path, router],
+    [foldLayers, setQuery, path, router],
   );
+  // What a page stands in the tab bar's place (#1198) — the triage pick bar.
+  const [footSlot, setFootSlot] = useState<HTMLDivElement | null>(null);
+  const [footTaken, setFootTaken] = useState(false);
+  const phoneFoot = useMemo(() => ({ slot: footSlot, take: setFootTaken }), [footSlot]);
 
   // Beside the body on a wide window, over it on a narrow one — the same rail either way,
   // so what has been typed survives the window being dragged across that line.
@@ -333,15 +348,14 @@ export function Window({
   const chatBeside = chat.open && !chat.overlay && !bell.open && !sideOpen;
   const bellBeside = bell.open && !bell.overlay && !sideOpen;
   const beside = sideBeside || chatBeside || bellBeside;
-  const covered = cover !== null;
+  const finding = phone && query.trim().length > 0;
+  const covered = finding || cover !== null;
   const slot = useMemo(() => ({ show: side.show, covered }), [side.show, covered]);
-  const corners = phone
-    ? "rounded-t-[14px]"
-    : `rounded-tl-[14px] ${beside ? "rounded-tr-[14px]" : ""}`;
-  const phoneScreen =
-    !phone || cover === null ? null : cover === "find" ? (
-      <FindScreen />
-    ) : cover === "memory" ? (
+  // At phone width the paper runs up to the top row, split from it by a hairline.
+  const corners = phone ? "border-t" : `rounded-tl-[14px] ${beside ? "rounded-tr-[14px]" : ""}`;
+  const phoneScreen = !phone ? null : finding ? (
+    <FindMatches />
+  ) : cover === null ? null : cover === "memory" ? (
       <MemoryScreen active={currentMemory} owners={memoryOwners} />
     ) : (
       <MoreScreen
@@ -349,8 +363,10 @@ export function Window({
         goalWritten={goalWritten}
         goalOffered={goalOffered}
         onGoalSaved={onGoalSaved}
+        onMemory={() => setCover("memory")}
       />
     );
+  const footShown = footTaken && !phoneScreen;
   return (
     <BellProvider value={bell}>
     {/* The card page reads the same rows the bell draws (#364), through a context of its
@@ -359,10 +375,12 @@ export function Window({
     <ChatProvider rail={chat} onBoardChanged={onBoardChanged}>
     <BodySlotProvider value={body}>
     <SideSlotProvider value={slot}>
+    <PhoneFindProvider value={phoneFind}>
+    <PhoneFootProvider value={phoneFoot}>
     {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and
         100vh is the tall one — the tab bar at the foot would sit under the bar until the
         page was scrolled. Everywhere else the two are the same number. */}
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-nb-cream">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-nb-cream max-md:bg-nb-paper">
       {header}
       {linkNotice && <LinkNotice words={linkNotice} onClose={() => setLinkNotice(null)} />}
       {/* The rail and the body are a panel group so the rail can be dragged
@@ -413,14 +431,13 @@ export function Window({
             style={PANE_CLIP}
           >
             {/* The paper rounds the corner it turns away from the chrome on. With the chat
-                up there is chrome on the right too, so it rounds that corner as well — and
-                at phone width the chrome is the top row above and the tab bar below, so
-                both top corners turn away from it. */}
-            <div ref={setBody} className={`relative h-full overflow-hidden bg-nb-paper ${corners}`}>
-              {/* Find, Memory and More are drawn OVER the page rather than instead of it:
-                  the page stays mounted, so the board keeps its scroll and a card page
-                  keeps its state while the reader looks something up, and the tab back is
-                  instant rather than a re-read. */}
+                up there is chrome on the right too, so it rounds that corner as well. */}
+            <div
+              ref={setBody}
+              className={`relative h-full overflow-hidden bg-nb-paper ${corners}`}
+              style={phone ? { borderColor: HAIRLINE } : undefined}
+            >
+              {/* The phone's screens are drawn OVER the page, which stays mounted. */}
               {phoneScreen && <div className="h-full">{phoneScreen}</div>}
               <div className={phoneScreen ? "hidden" : "h-full"}>{children}</div>
             </div>
@@ -504,11 +521,13 @@ export function Window({
           </div>
         )
       )}
-      {/* The rail's four ways into the board, at the foot of every screen the phone
-          reaches (#357). Last in the window, so it is drawn over nothing and nothing is
-          drawn over it. */}
-      {phone && <PhoneTabs tab={tab} onTab={goTab} />}
+      {/* The tab bar, or what a page stands in its place. Last in the window, so it is drawn
+          over nothing and nothing is drawn over it. */}
+      {phone && <div ref={setFootSlot} className={footShown ? "shrink-0" : "hidden"} />}
+      {phone && !footShown && <PhoneTabs tab={tab} onTab={goTab} />}
     </div>
+    </PhoneFootProvider>
+    </PhoneFindProvider>
     </SideSlotProvider>
     </BodySlotProvider>
     </ChatProvider>
