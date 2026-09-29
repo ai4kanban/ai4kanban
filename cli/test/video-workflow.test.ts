@@ -70,11 +70,13 @@ describe('a lead agent', () => {
     assert.ok('agent' in read)
     assert.equal(read.agent.kind, 'lead')
     assert.equal(read.agent.stage, 'plan')
-    for (const stage of ['', 'review']) {
-      const bad = parseSpecAgent(lead(stage), 'x', () => null)
-      assert.ok('problem' in bad)
-      assert.match(bad.problem, /`lead` agent — give it `akb.stage: plan`/)
-    }
+    const bad = parseSpecAgent(lead(''), 'x', () => null)
+    assert.ok('problem' in bad)
+    assert.match(bad.problem, /`lead` agent — give it `akb.stage: plan`/)
+    // The review stage is gone (#1203), so an agent still declaring it is a problem of its own.
+    const review = parseSpecAgent(lead('review'), 'x', () => null)
+    assert.ok('problem' in review)
+    assert.match(review.problem, /builds are no longer reviewed/)
   })
 
   it('only leads: never a helper, never run by `akb spec`', async () => {
@@ -101,7 +103,6 @@ describe('the hyperframes-video workflow', () => {
     assert.equal(flow.stages.execute.lead, '')
     assert.deepEqual(liveStage(flow, 'plan').helpers.map((h) => h.agent), ['demo-rehearser', 'hyperframes-editor', 'cover-designer'])
     assert.deepEqual(liveStage(flow, 'execute').helpers, [])
-    assert.deepEqual(liveStage(flow, 'review').helpers, [])
     assert.deepEqual(workflowProblems('hyperframes-video'), [])
   })
 
@@ -109,7 +110,6 @@ describe('the hyperframes-video workflow', () => {
     const helpers = liveStage(workflowById('coding')!, 'plan').helpers.map((h) => h.agent)
     for (const name of ['scriptwriter', 'demo-rehearser', 'hyperframes-editor', 'cover-designer']) assert.ok(!helpers.includes(name), name)
     assert.ok(helpers.includes('ui-designer'))
-    assert.deepEqual(liveStage(workflowById('coding')!, 'review').helpers.map((h) => h.agent), ['code-reviewer'])
   })
 
   it('runs its lead under its own name', async () => {

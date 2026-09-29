@@ -86,11 +86,6 @@ const zh: RunsCopy = {
     clarify: "澄清",
     writing: "澄清",
   },
-  trigger: {
-    conflict: "解决冲突之后",
-    answered: "你回答之后",
-    asked: "你要求的",
-  },
   badge: {
     running: "运行中",
     watch: "查看运行日志",
@@ -218,23 +213,16 @@ const zh: RunsCopy = {
     cancel: "取消",
     implement: {
       title: (id) => `开发 #${id}`,
-      autoBranch: (branch) => `自动开发、审查并合入 \`${branch}\`。`,
-      autoHere: "自动开发、审查并合入你当前所在的分支。",
-      manualFolder: "在你的项目目录里开发并审查，由你自己提交。",
-      manual: "在你的项目目录里开发并审查。当前是**手动提交模式**，由你自己提交。",
-      manualWhy: (why) => `在你的项目目录里开发并审查——${why}。由你自己提交。`,
+      autoBranch: (branch) => `自动开发并合入 \`${branch}\`。`,
+      autoHere: "自动开发并合入你当前所在的分支。",
+      manualFolder: "在你的项目目录里开发，由你自己提交。",
+      manual: "在你的项目目录里开发。当前是**手动提交模式**，由你自己提交。",
+      manualWhy: (why) => `在你的项目目录里开发——${why}。由你自己提交。`,
       ownBranch: "在 git worktree 中开发",
       ownBranchOn: "从当前提交创建独立目录。",
       ownBranchLocal: "从当前提交创建独立目录，未提交的改动不会带入。",
       ownBranchOff: "在你的项目目录里开发，一次只能开一个。",
-      autoBranchNoReview: (branch) => `自动开发并合入 \`${branch}\`，中间没有审查。`,
-      autoHereNoReview: "自动开发并合入你当前所在的分支，中间没有审查。",
-      manualFolderNoReview: "在你的项目目录里开发，没有审查，由你自己提交。",
-      manualNoReview:
-        "在你的项目目录里开发，没有审查。当前是**手动提交模式**，由你自己提交。",
-      manualWhyNoReview: (why) => `在你的项目目录里开发，没有审查——${why}。由你自己提交。`,
-      files: "Agent 制作文件，经 AI 评审通过后归档任务。成品可在任务中查看。",
-      filesNoReview: "Agent 制作文件，完成后归档任务。成品可在任务中查看。",
+      files: "Agent 制作文件，完成后归档任务。成品可在任务中查看。",
       recorded:
         "按下即刻记录。这里不会开始构建：卡片会一直等待机器，由你正在运行的任意一台机器接手，并把它走完。",
       questionsOne:

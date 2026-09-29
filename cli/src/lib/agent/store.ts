@@ -37,7 +37,6 @@ import type {
   LandingStatus,
   LandingWait,
   ReviewStopReason,
-  ReviewTrigger,
   ReviewVerdict,
   RunRecord,
   RunRetry,
@@ -53,11 +52,6 @@ const KEEP_RUNS = 100
 // the live copy, and the permanent one is the file under docs/kanban/deliveries/, which is
 // tracked in git and never pruned.
 const KEEP_DELIVERIES = 30
-
-// The triggers a review's record may carry (#417). A word this build does not know is
-// dropped rather than kept: the panel has nothing to say for it, and a run recorded before
-// triggers existed reads the same way.
-const TRIGGERS: ReadonlySet<ReviewTrigger> = new Set<ReviewTrigger>(['conflict', 'answered', 'asked'])
 
 /** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
@@ -199,13 +193,9 @@ export function readStore(): Store {
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound
           : undefined,
-      refineEffort:
-        entry.refineEffort === 'lightweight' || entry.refineEffort === 'standard'
-          ? entry.refineEffort
-          : undefined,
+      scheduled: entry.scheduled === true ? true : undefined,
       flowId: typeof entry.flowId === 'string' && entry.flowId ? entry.flowId : undefined,
       deliveryId: typeof entry.deliveryId === 'string' && entry.deliveryId ? entry.deliveryId : undefined,
-      trigger: TRIGGERS.has(entry.trigger as ReviewTrigger) ? (entry.trigger as ReviewTrigger) : undefined,
     })
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
@@ -425,7 +415,6 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
     // and a round nothing judged is a round the board will not guess at.
     answers: readAnswers(entry.answers),
     priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
-    next: entry.next === 'review' ? 'review' : undefined,
     // A delivery written down before #303 names no mode. It ran in the user's checkout
     // with no worktree, which is exactly what manual commit mode is — so that is what it
     // reads as, rather than a worktree nothing ever made.
@@ -435,9 +424,6 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
         : undefined,
     touched: readTouched(entry.touched),
     planned: Array.isArray(entry.planned) ? entry.planned.filter((t): t is string => typeof t === 'string') : undefined,
-    // Whether a fresh session reviews what it built (#416). A delivery written down before
-    // the setting existed carries nothing, and every one of those was reviewed.
-    aiReview: entry.aiReview === false ? false : true,
     manualWhy: text(entry.manualWhy),
     targetBranch: text(entry.targetBranch),
     worktree: text(entry.worktree),

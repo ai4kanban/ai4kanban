@@ -9,9 +9,7 @@
 
 import { CADENCE_FORMS } from '../cadence'
 import { insideRun } from '../agent/env'
-import { cardStages, startGateAfter } from '../agent/gate'
 import { recordCards } from '../agent/created-cards'
-import { readyGateOn } from '../agent/settings'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { BoardError, say, warn } from '../io'
@@ -69,13 +67,6 @@ async function dispatch(
     if (!opened.ok) throw new BoardError(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
     sayIfOffline()
     const input = { args, opts }
-    // Where every card stood before this move, on the one move that can settle a plan by
-    // hand (#440). The gate below fires on the card this move took from `todo` to `ready` —
-    // never inside a run, where the run's own close is what notices.
-    const gateFrom =
-      move === 'update' && opts.status === 'ready' && !insideRun() && readyGateOn()
-        ? cardStages()
-        : null
     // A read answers straight off the board. A write is one operation of the contract, under
     // a lease taken for it — whoever typed this never read the card, so the lease is what
     // hands them the revision they write against (lib/board/ops.ts).
@@ -91,11 +82,7 @@ async function dispatch(
     const { output, warnings, ...fields } = data
     if (output) say(output)
     for (const line of (warnings as string[] | undefined) ?? []) warn(line)
-    // …and the ready gate, once the card is written: a card marked ready by hand goes
-    // through the same judge a refine's own card does.
-    const gated = gateFrom ? await startGateAfter(gateFrom) : null
-    if (gated) say(`the ready gate is judging #${gated.cardId} — it starts the build itself if the card passes.`)
-    return { board: KANBAN, ...fields, ...(gated ? { gate: gated.sessionId } : {}) }
+    return { board: KANBAN, ...fields }
   })
   cli.onAnswer?.(data)
 }
@@ -239,25 +226,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--clear', 'remove them all', verifyInOrder('clear'))
     .action(async function (this: Command, id: number) {
       await dispatch('update-verify', this, [String(id)], { ops: verifyOps }, cli)
-    })
-
-  move('update-decided')
-    .argument('<id>', ID, cardId)
-    .summary('record one question the decider answered for the user')
-    .description(
-      'Patch the `decided:` list — what the decider chose on this card, one entry per question it ' +
-        'answered. An entry is the question, the option it picked, and the file it went on; leave ' +
-        '`--from` off when nothing settled it and it took the recommendation. One op per call. It is a ' +
-        'RECORD, not a question: nothing waits on it, and dropping the question it answers is ' +
-        '`update-questions --drop` in the same pass.',
-    )
-    .option('--question <text>', 'the question it answered')
-    .option('--chose <text>', 'the option it picked, or the answer it wrote')
-    .option('--from <file>', 'the board-relative file it went on; left off, it took the recommendation')
-    .option('--drop <positions>', 'remove entries by 1-based position, e.g. 1 or 1,3')
-    .option('--clear', 'remove them all')
-    .action(async function (this: Command, id: number) {
-      await dispatch('update-decided', this, [String(id)], this.opts(), cli)
     })
 
   move('schedule')

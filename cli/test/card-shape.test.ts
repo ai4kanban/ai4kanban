@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { claimChanges, markBoard, refinementAfter } from '../src/lib/agent/refine.ts'
+import { claimChanges, markBoard } from '../src/lib/agent/refine.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { forgetMachineState, move } from './helpers/board.ts'
 
@@ -216,26 +216,13 @@ describe('repairing a card is not a change worth another pass', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(SHAPED.replace('## Worth noting\n- a call a reviewer could refuse\n\n', ''), 'todo')
-    assert.equal(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), null)
+    assert.deepEqual(claimChanges(before, 'resolve-5'), [])
   })
 
   it('still catches a pass that rewords a line', async () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'todo')
-    assert.deepEqual(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), {
-      action: 'clarify',
-      id: 5,
-      title: 'A card',
-      refineRound: 2,
-      refineEffort: 'standard',
-    })
-  })
-
-  it('leaves the status a pass closed on alone', async () => {
-    write(OLD, 'todo')
-    const before = markBoard()
-    write(OLD.replace('- a requirement', '- a different requirement'), 'ready')
-    assert.equal(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), null)
+    assert.deepEqual(claimChanges(before, 'resolve-5'), [5])
   })
 })

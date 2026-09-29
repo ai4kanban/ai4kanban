@@ -56,7 +56,7 @@ resolution. Do not reopen settled decisions or turn agent-resolvable issues into
 
 These sections contain answers, never open questions. Put an answered question in `## Worth
 noting` when it passes the same material-decision test. Use `## Worth noting after
-implementation` instead when implementation or review surfaced and answered it.
+implementation` instead when implementation surfaced and answered it.
 
 Put a necessary lasting answer that fails the test below the human half. Never use `Worth noting
 after implementation` to accept work that contradicts the approved requirements; fix the work

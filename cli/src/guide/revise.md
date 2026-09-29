@@ -1,7 +1,7 @@
 # Revise
 
-Make the requested change, then follow `akb guide qa-lightweight` to validate the updated card in
-this session. Apply answers supported by the project and leave only decisions the user owns.
+Make the requested change and fix what it contradicts in the card. Apply answers supported by
+the project and leave only decisions the user owns.
 
 - **Owned content first**: before changing any part a spec or helper agent owns, identify each
   affected owner and read its AGENT.md, then load only the references its instructions point to
@@ -9,8 +9,9 @@ this session. Apply answers supported by the project and leave only decisions th
   including a rewrite, a removal, or an overrule. When an owner's instructions cannot be found
   or read, surface the gap before changing that content.
 - **Changed outcome**: If the request materially changes what the task delivers, run the
-  affected checks in `akb guide evaluate-task` against the proposed revision before writing
-  it. Ordinary scope and wording changes do not repeat evaluation.
+  affected checks in `akb guide evaluate-task` against the proposed revision, write it, then
+  plan the new card in this session as `akb guide refine` says. Ordinary scope and wording
+  changes need neither.
 - **Superseded decisions**: An entry under `## Decided by the agent`, or a line under the
   human half's `## Worth noting`, that the revision makes invalid is a call the user
   overruled — keep it. Move the line, as it stands, under a `### Overruled by the user`

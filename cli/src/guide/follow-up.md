@@ -1,6 +1,6 @@
 # Handle follow-up work
 
-Use when planning, implementation, or review discovers additional work.
+Use when planning or implementation discovers additional work.
 
 - **Place it**: fix what the current card requires here. Create independent follow-ups
   without asking permission or blocking the original. Never defer a required fix to make

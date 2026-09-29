@@ -5,9 +5,6 @@
 // very same objects, handed over by `akb agent list --json`, so a front end never keeps
 // its own list of agents or of the settings each one takes.
 
-/** How much planning QA one refinement needs. */
-export type RefineEffort = 'lightweight' | 'standard'
-
 /** The tokens one run consumed, as the agent's own closing event counted them. Four
  *  numbers because the API bills them differently: fresh input, input written to the
  *  prompt cache, input read back from it, and output. This run's own numbers alone — the
@@ -49,22 +46,15 @@ export type AgentAction =
    *  needs that the board is missing. It touches no single card, so it carries a release
    *  id instead of a card id. */
   | 'plan-release'
-  /** Work a task's plan over to convergence (`akb guide qa-loop`): settle every gap the
-   *  session can settle itself, and leave only the decisions that are the user's. */
+  /** Plan one card in a single session (`akb guide refine`): settle every gap the session
+   *  can settle itself, and leave only the decisions that are the user's. */
   | 'clarify'
   | 'resolve'
-  /** Improve a settled card's writing and mark it ready. */
+  /** Retired (#1203) with the sessions they were: a planning pass now writes and closes the
+   *  card itself, nothing gates a ready card, and nothing answers for the user. They stay
+   *  here so the runs already recorded still read back as what they were. */
   | 'writing'
-  /** Judge whether a card that has just reached `ready` can be built without asking the
-   *  user anything (#440) — the ready gate. It changes nothing when the answer is yes, and
-   *  the board starts the build; when the answer is no it appends one `[user]` question,
-   *  which takes the card back to `todo`. Only runs while the gate is switched on. */
   | 'gate'
-  /** Answer a card's `[user]` questions in the user's place (#447) — the decider's one
-   *  flow. It reads the project's goal, the modules' `decisions.md` and each question's own
-   *  recommendation, applies its answers to the card exactly as `resolve` does, and records
-   *  what it chose in `decided:`. It never hands the card back and it writes no lasting
-   *  decision. The board starts one only while the decider is switched on. */
   | 'decide'
   /** Finish setting the board up — every step still unticked on
    *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
@@ -79,11 +69,11 @@ export type AgentAction =
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
   | 'changelog'
-  /** Judge and fix a delivery against its approved card in a fresh run (#302). */
+  /** Retired (#1203): nothing reviews a delivery any more. Kept for the runs recorded. */
   | 'review'
   /** Resolve the conflict a landing's rebase stopped on (#304). It may read both cards,
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
-   *  rebase after it. Its resolution gets the focused review an overlap owes (#415). */
+   *  rebase after it. */
   | 'conflict'
   /** Squeeze the memory back down to what helps planning (#514) — the memory pruner's one
    *  flow. It names no card: the memory set is the whole of what it works on, so it is
@@ -142,23 +132,7 @@ export const holdsCard = (action: AgentAction): boolean => !CARD_FREE_ACTIONS.ha
 export const REFINE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'clarify',
   'resolve',
-  'writing',
 ])
-
-/** Why a review after the first one started (#417). The first review after a build is the
- *  default and names none; every one after it does.
- *
- *  It is recorded on the run when it starts, never derived later: a second rebase would
- *  otherwise relabel the review the first one owed. A start site added later names its own
- *  reason here, and the runs panel draws whatever it finds a word for. */
-export type ReviewTrigger =
-  /** A conflict with the target branch was resolved, and the result is code nothing
-   *  has judged. */
-  | 'conflict'
-  /** The user answered the question the review stopped on. */
-  | 'answered'
-  /** The user asked for another look. */
-  | 'asked'
 
 /** Everything one run is asked for. */
 export interface AgentRequest {
@@ -166,8 +140,8 @@ export interface AgentRequest {
   id?: number
   title?: string
   /** The delivery this run is for, when it is not named by a card (#428). A card-less build
-   *  carries none — its delivery is opened as the run is written down — and its review and
-   *  its conflict run carry the delivery the build opened. */
+   *  carries none — its delivery is opened as the run is written down — and its conflict run
+   *  carries the delivery the build opened. */
   deliveryId?: string
   notes?: string // implement, edit, clarify, resolve, archive, run
   reason?: string // reject
@@ -217,16 +191,15 @@ export interface AgentRequest {
   workflow?: string
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** The one QA guide this refinement's clarify session loads. */
-  refineEffort?: RefineEffort
+  /** clarify: the board started it by itself — off the card's schedule, or after another
+   *  run — rather than a person asking, so it plans and stops and never carries on into the
+   *  build (#1203). */
+  scheduled?: boolean
   /** The flow this run belongs to. Absent on the run that opens one — it is given an id
    *  when it is written down, and every session it goes on to start inherits that id. A
    *  run that joins a delivery takes the delivery's id instead, whatever is asked for
    *  here (#417). */
   flowId?: string
-  /** review: why this one started, when it is not the first after a build (#417). Given by
-   *  whoever starts it, never worked out afterwards. */
-  trigger?: ReviewTrigger
   /** spec: which agent this run is — a name from the board's catalog (`lib/agents/`). It
    *  decides the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
@@ -235,9 +208,6 @@ export interface AgentRequest {
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git
    *  commits**. Ignored where no worktree is possible; the build is manual there regardless. */
   commitMode?: DeliveryCommitMode
-  /** implement: whether THIS build is reviewed (#416) — the Implement dialog's other tick.
-   *  Absent on every other way in, and those fall back to **AI review**. */
-  aiReview?: boolean
   /** The runtime THIS run spawns on (#518) — the create sheet's pick, over the runtime its
    *  agent is set to. It applies to the one run and changes nothing in Configuration →
    *  Agents. Absent on every run that named none, which is the agent's own. */
@@ -251,11 +221,19 @@ export interface TriageAsk {
 }
 
 /** Every action a run can still be started with — everything but the retired ones. */
-export type StartableAction = Exclude<AgentAction, 'propose'>
+export type StartableAction = Exclude<AgentAction, RetiredAction>
+
+/** The actions no flow starts any more. */
+export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review'
+
+const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review'])
+
+/** Whether nothing starts this action any more — it only reads back off an old record. */
+export const isRetired = (action: AgentAction): action is RetiredAction => RETIRED.has(action)
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec'>
+  | Exclude<StartableAction, 'clarify' | 'spec'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -354,9 +332,11 @@ export type RunRefusalKind =
   | 'proSignIn'
   | 'proRequired'
   | 'proUnconfirmed'
-  | 'noReviewers'
   | 'cloudUnreachable'
   | 'cardHeld'
+  /** A planning run tried to carry on into its card's build while something still waits on
+   *  the user (#1203). Said to the agent inside the run, never on a screen. */
+  | 'buildWaits'
   // Runtimes, workflows and settings the Configuration dialog saves.
   | 'runtimeUnnamed'
   | 'runtimeTaken'
@@ -373,7 +353,6 @@ export type RunRefusalKind =
   | 'workflowBuiltInChange'
   | 'workflowBuiltInDelete'
   | 'workflowBuiltInLeads'
-  | 'reviewNoLead'
   | 'agentNotFound'
   | 'agentCannotLead'
   | 'agentNotLead'
@@ -529,8 +508,8 @@ export interface RunRecord {
   tickedNothing?: boolean
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** The QA guide this refinement uses across its sessions and resume. */
-  refineEffort?: RefineEffort
+  /** The board started it by itself rather than a person asking (#1203). */
+  scheduled?: boolean
   /** The FLOW this run is one session of — the id shared by the command a user typed and
    *  every session it went on to start: a refinement's passes, the spec agents a create
    *  asked for, the review that follows a build. It is what lets the runs panel show one
@@ -544,9 +523,6 @@ export interface RunRecord {
   /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
    *  does today; a refine or a resolve stands alone and carries none. */
   deliveryId?: string
-  /** On a review after the first: why it started (#417). Written when the run is written
-   *  down, carried through a resume, and kept on the delivery's permanent record. */
-  trigger?: ReviewTrigger
 }
 
 // ---- a delivery: everything one Implement click starts ---------------------
@@ -586,7 +562,7 @@ export interface ReviewRound {
   at: number
 }
 
-/** Why review stopped for the user. Historical reasons remain readable. */
+/** Why a delivery stopped for the user. Historical reasons remain readable. */
 export type ReviewStopReason =
   | 'ask'
   | 'repeat'
@@ -647,14 +623,13 @@ export interface AnswerVerdict {
 
 /** Where a delivery stands on landing.
  *
- *  `waiting` — reviewed and ready, queued for the repository's one landing slot, or put
+ *  `waiting` — built and ready, queued for the repository's one landing slot, or put
  *  back in the queue because the checkout was not clean. `landing` — it holds the slot.
  *  `landed` — its commit is on the target branch. `conflict` — a conflict it could not
  *  resolve stopped it, and the card carries the question. */
 export type LandingStatus = 'waiting' | 'landing' | 'landed' | 'conflict'
 
-/** One check a landing ran, and what it said. With no review rule (#306) the re-review is
- *  the whole gate, so that is what this records. */
+/** One check a landing ran, and what it said — the build that authorized it. */
 export interface LandingCheck {
   name: string
   ok: boolean
@@ -690,7 +665,7 @@ export interface DeliveryLanding {
   rebasedFrom?: string
   /** What the last rebase turned out to be: `disjoint` shares no file with the delivery,
    *  `overlap` shares one, `conflict` was resolved by an agent. A record of the replay, not
-   *  a gate — only `conflict` owes a review (#665). */
+   *  a gate (#665). */
   rebaseKind?: 'disjoint' | 'overlap' | 'conflict'
   /** The squash commit that landed. */
   commit?: string
@@ -756,25 +731,20 @@ export interface DeliveryRecord {
   /** The steps this delivery entered, in order. */
   steps: DeliveryStep[]
   /** The commit the candidate is compared against — the repository's HEAD when the
-   *  delivery started. Review reads `git diff <base>`, so the diff is everything this
-   *  delivery changed and nothing that was already there. Absent outside a git
-   *  repository, and review says so rather than guessing at a base. */
+   *  delivery started, so `git diff <base>` is everything this delivery changed and nothing
+   *  that was already there. Absent outside a git repository. */
   base?: string
-  /** What each completed review concluded (#302). */
+  /** Why the delivery stopped, and what each review before #1203 concluded (#302). */
   review?: DeliveryReview
   /** What each round of applied answers concluded about these requirements (#637), oldest
    *  first. The run that writes the answers onto the card is the one that can tell, so it
-   *  says so with `delivery answered` before it drops the questions — and the review an
-   *  answer resumes and the landing queue both read THIS rather than comparing card text. */
+   *  says so with `delivery answered` before it drops the questions — and the landing queue
+   *  reads THIS rather than comparing card text. */
   answers?: AnswerVerdict[]
   /** The card's stage the instant before the delivery's FIRST run overwrote it with
    *  `implementing`, so the end of the delivery puts back what was there — not the
    *  `implementing` its own second run would otherwise have found and saved. */
   priorStatus?: string
-  /** The run this delivery is due to start next, written the moment the one before it
-   *  closed. The watcher reads it and clears it; it survives a watcher that died between
-   *  the two, so the delivery still says what it was about to do. */
-  next?: 'review'
   /** How this delivery commits, decided when it started and never afterwards (#303).
    *  `auto` builds on its own branch in its own worktree; `manual` works in the user's
    *  checkout and waits for them to commit; `files` (#874) works in the project, commits
@@ -787,10 +757,6 @@ export interface DeliveryRecord {
   /** `files` only: the todos the card had not ticked when it started. Ticking one of these
    *  is progress, not a record of an output file. */
   planned?: string[]
-  /** Whether a fresh session reviews what this delivery built (#416), frozen the same way.
-   *  `false` and the implementation is the last agent to read the code. Absent on a
-   *  delivery recorded before the setting existed, which reads as review on. */
-  aiReview?: boolean
   /** Why this delivery is in manual commit mode when the setting did not ask for it —
    *  no git, or no commit to fork from. The card page says it in these words. */
   manualWhy?: string
@@ -803,12 +769,10 @@ export interface DeliveryRecord {
   worktree?: string
   /** The branch that worktree builds on — `card/<card>/<delivery>`. */
   branch?: string
-  /** What review passed, in manual commit mode: the fingerprint of the code as it stood
-   *  when review finished, and where the diff of it was written. The user's own commit
-   *  is matched against this — the same code committed reads as the same fingerprint, and
-   *  anything else goes back through review. */
+  /** What the build left, in manual commit mode: the fingerprint of the code as it stood
+   *  when the build finished, and where the diff of it was written. */
   reviewed?: { mark: string; diff?: string; at: number }
-  /** Where this delivery stands on landing (#304). Absent until review has passed it in
+  /** Where this delivery stands on landing (#304). Absent until its build is done in
    *  auto commit mode; manual commit mode never lands, because the commit is the user's. */
   landing?: DeliveryLanding
   /** The rules this delivery froze when it started (#306), keyed by agent (#420) — the
@@ -848,7 +812,7 @@ export type DeliveryCommitMode = 'auto' | 'manual' | 'files'
 
 /** Where a resumed delivery picks back up (#639) — the step it stopped at, never one it
  *  has already done. */
-export type DeliveryCarryOn = 'review' | 'landing' | 'conflict'
+export type DeliveryCarryOn = 'build' | 'landing' | 'conflict'
 
 /** One ask for a spec agent, as the run that wanted it wrote it down.
  *
@@ -865,7 +829,6 @@ export interface SpecAsk {
   /** What the flow wants looked at, in a line or two. Everything else the agent is given
    *  is the card itself: the conversation that asked is deliberately not passed on. */
   notes?: string
-  refineEffort?: RefineEffort
 }
 
 /** One ask for a refinement, written down by the run that asked for it with
@@ -875,7 +838,6 @@ export interface SpecAsk {
 export interface RefineAsk {
   cardId: number
   notes?: string
-  effort?: RefineEffort
 }
 
 /** One run as a reader is told about it — the record, plus the few things worked out
@@ -1615,9 +1577,9 @@ export interface AgentView {
    *  siblings, and `AgentKind` lives beside the catalog that reads an `AGENT.md`. */
   kind: 'role' | 'spec' | 'lead'
   /** The workflow stage this agent can be assigned to (#715), or absent on a BOARD agent —
-   *  the discussion, the gate, the decider, the pruner — which no workflow assigns and every
-   *  workflow gets. Spelled out for the same reason `kind` is. */
-  stage?: 'plan' | 'execute' | 'review'
+   *  the discussion, the pruner — which no workflow assigns and every workflow gets. Spelled
+   *  out for the same reason `kind` is. */
+  stage?: WorkflowStage
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** Whether it may be switched off. A role runs the board's own flows, so it never is, and
@@ -1625,7 +1587,7 @@ export interface AgentView {
    *  beside that assignment is a second answer to one question. */
   switchable: boolean
   /** The direction its switch asks in, when it asks at all (#562, #748). `on` is an agent
-   *  that starts spending runs the moment it goes on — the decider, the triager. `off` is
+   *  that starts spending runs the moment it goes on — the triager. `off` is
    *  the one whose cost lands when it STOPS: the memory reviewer is what turns a
    *  conversation into a note, so switching it off is what loses something. Absent on every
    *  agent whose switch goes straight through either way. The role says so itself, so a
@@ -1766,10 +1728,10 @@ export interface SetupProposal {
 // board UI keeps a copy of — the pane names them without a second set of shapes to keep in
 // step. What they MEAN, and every rule about them, is `agent/workflows.ts`.
 
-/** The three stages every workflow has, in the order a card goes through them. */
-export const WORKFLOW_STAGES = ['plan', 'execute', 'review'] as const
+/** The two stages every workflow has, in the order a card goes through them. */
+export const WORKFLOW_STAGES = ['plan', 'execute'] as const
 
-/** One of the three. */
+/** One of the two. */
 export type WorkflowStage = (typeof WORKFLOW_STAGES)[number]
 
 /** The stage that hands over a workflow's finished work (#1057). */

@@ -65,12 +65,10 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       ...(entry.stage ? { stage: entry.stage } : {}),
       builtIn: entry.builtIn,
       // A role runs the board's own flows, so there is normally nothing to switch off: a
-      // board without a planner plans nothing. The gater, the decider, the proposer, the
-      // triager and the memory reviewer are the exceptions (#447, #493, #534, #562, #748) —
-      // each reads its own key in the board's settings rather than a `specAgents` entry, and
-      // its own default with it. No WORKFLOW agent has a switch, the reviewer included
-      // (#749, #783): its stage assignment is the answer, and whether a delivery is reviewed
-      // is a delivery setting.
+      // board without a planner plans nothing. The proposer, the triager and the memory
+      // reviewer are the exceptions (#534, #562, #748) — each reads its own key in the board's
+      // settings rather than a `specAgents` entry, and its own default with it. No WORKFLOW
+      // agent has a switch (#749): its stage assignment is the answer.
       switchable: entry.switchable,
       confirm: entry.confirm,
       // An entry with no switch is on, whatever a key left over from an earlier release
@@ -140,7 +138,7 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
 // none, it falls back to `spec` — a specialist that fills part of a card's spec.
 //
 // Every other key is one line pointing at `akb guide write-agent` (#935): the constraints —
-// that a `review` agent cannot lead, what a `reference` has to be — belong in the guide, not
+// what a `reference` has to be — belong in the guide, not
 // in a template nobody has read yet.
 function agentTemplate(name: string, stage?: WorkflowStage): string {
   return [

@@ -74,8 +74,8 @@ export type CardCopy = {
      *  control the hold turns off says on hover. */
     discussing: string;
     discussingWhy: string;
-    reviewAgain: string;
-    reviewAgainHint: string;
+    buildAgain: string;
+    buildAgainHint: string;
     archive: string;
     reject: string;
     startFailed: string;
@@ -104,9 +104,6 @@ export type CardCopy = {
     projectFolderHint: string;
     autoCommit: string;
     manualCommits: string;
-    /** Only said when this delivery froze AI review OFF (#416) — the default needs no line. */
-    noReview: string;
-    noReviewHint: string;
     landedAs: string;
     finished: string;
     /** What a session's own line says once it is not running. */
@@ -128,7 +125,6 @@ export type CardCopy = {
       resuming: string;
       /** A dead conversation to pick back up, and a run that never started. */
       pickUpHint: string;
-      startHint: string;
       failed: string;
       /** The same word for a delivery that ENDED (#639): the toolbar's control beside
        *  Discard, which finishes the job rather than throwing its work away. */

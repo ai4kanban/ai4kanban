@@ -84,7 +84,7 @@ afterEach(() => {
 describe('a board where no agent picked a runtime', () => {
   it('runs every flow on Global default', () => {
     config({ runtimes: [runtime('global', 'codex', { model: 'gpt-5.1-codex' })] })
-    for (const action of ['implement', 'review', 'clarify', 'setup', 'create'] as const) {
+    for (const action of ['implement', 'clarify', 'setup', 'create'] as const) {
       const run = plan({ action })
       assert.equal(run.harness, 'codex')
       assert.equal(run.runtime, 'global')
@@ -127,15 +127,14 @@ describe('an agent with a runtime of its own', () => {
   })
 
   it('leaves every other agent on Global default', () => {
-    const run = plan({ action: 'review' })
-    // A review runs as its first reviewer (#820).
-    assert.equal(run.agent, 'code-reviewer')
+    const run = plan({ action: 'clarify', refineRound: 1 })
+    assert.equal(run.agent, 'software-planner')
     assert.equal(run.runtime, 'global')
     assert.equal(run.harness, 'claude-code')
   })
 
   it('runs the passes a refine spawns as the planner, like refine itself', () => {
-    for (const action of ['clarify', 'resolve', 'writing'] as const) {
+    for (const action of ['clarify', 'resolve', 'edit'] as const) {
       assert.equal(agentForRun({ action, refineRound: 1 }), 'software-planner')
     }
     assert.ok(plan({ action: 'clarify', refineRound: 1 }).argv.includes('claude-opus-5'))
@@ -158,14 +157,15 @@ describe('an agent with a runtime of its own', () => {
 
   it('calls the skill the way that row’s CLI expects', () => {
     assert.equal(skillCall(agentForRun({ action: 'implement' })), '$kanban')
-    assert.equal(skillCall(agentForRun({ action: 'review' })), '/kanban')
+    assert.equal(skillCall(agentForRun({ action: 'clarify' })), '/kanban')
   })
 
   it('says which agent runs each flow, for a front end that keeps no list', () => {
     const info = agentInfo()
     const flow = (command: string) => info.flows.find((f) => f.command === command)
     assert.deepEqual([flow('implement')?.agent, flow('implement')?.harness], ['builder', 'codex'])
-    assert.deepEqual([flow('review')?.agent, flow('review')?.harness], ['code-reviewer', 'claude-code'])
+    assert.deepEqual([flow('refine')?.agent, flow('refine')?.harness], ['software-planner', 'claude-code'])
+    assert.equal(flow('review'), undefined)
   })
 
   it('falls back and says so when the pick is a row the board no longer has', () => {
@@ -190,11 +190,11 @@ describe('two runtimes on one harness', () => {
   })
 
   it('sit on two gateways and sign with two keys, with nothing inherited between them', () => {
-    const reviewer = openPlan(plan({ action: 'review' }))
+    const planner = openPlan(plan({ action: 'clarify' }))
     const builder = openPlan(plan({ action: 'implement' }))
-    assert.equal(reviewer.env.ANTHROPIC_BASE_URL, 'https://one.example')
+    assert.equal(planner.env.ANTHROPIC_BASE_URL, 'https://one.example')
     assert.equal(builder.env.ANTHROPIC_BASE_URL, 'https://two.example')
-    assert.equal(reviewer.env.ANTHROPIC_AUTH_TOKEN, 'sk-one')
+    assert.equal(planner.env.ANTHROPIC_AUTH_TOKEN, 'sk-one')
     assert.equal(builder.env.ANTHROPIC_AUTH_TOKEN, 'sk-two')
   })
 
@@ -424,7 +424,7 @@ describe('turning an older board into runtimes', () => {
     // provider Codex was set to, and the hand-edited command Global default ran.
     assert.equal(readRuntimes().find((r) => r.harness === 'codex')?.settings.provider, 'api')
     assert.deepEqual(readRuntimes()[0]!.settings, { baseUrl: 'https://gw.example', command: 'claude -p' })
-    assert.deepEqual(plan({ action: 'review' }).argv.slice(0, 2), ['claude', '-p'])
+    assert.deepEqual(plan({ action: 'clarify' }).argv.slice(0, 2), ['claude', '-p'])
   })
 
   it('moves once, so a second update finds nothing', () => {

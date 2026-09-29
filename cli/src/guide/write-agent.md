@@ -17,10 +17,10 @@ name: ux-writer
 description: Use whenever a card changes what the product says to the user. Follows `ui-designer`.
 # Required.
 akb:
-  # plan | execute | review; its workflow stage.
+  # plan | execute; its workflow stage.
   stage: plan
   # Optional below; declaring stage is enough for a new agent.
-  # Default spec: fills a spec section or reviews a delivery.
+  # Default spec: fills a spec section.
   # lead: runs a whole stage; requires plan or execute.
   kind: spec
   # Default false; true lets a spec agent lead plan or execute.

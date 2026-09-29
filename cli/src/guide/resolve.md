@@ -43,8 +43,7 @@ akb delivery answered <delivery> --changed "<why>"
 ```
 
 - **Record it before you drop the questions**: dropping the last one is what puts the board
-  back in motion, and until the conclusion is written the build neither goes back through
-  review nor lands.
+  back in motion, and until the conclusion is written the build does not land.
 - **Judge the meaning, not the words**: confirming an option that is already built, writing
   down a decision the card already carries, and tidying prose are all `--unchanged`.
   Adding, dropping or changing a requirement is `--changed`.
@@ -76,6 +75,3 @@ unchanged and keep the question open.
 
 Where the answer lands on a spec agent's section, also record it in that agent's memory —
 "An agent's memory" in `akb guide update-questions`.
-
-After applying the supplied answers, follow `akb guide qa-lightweight` to validate the updated card
-and every question still open.

@@ -147,7 +147,6 @@ import {
   type NotificationCenter,
 } from "@/lib/notifications";
 import {
-  aiReviewEnabled,
   autoCommitAllowed,
   canSweep,
   cardSweep,
@@ -156,7 +155,6 @@ import {
   dismissalReview,
   setDismissalReview,
   saveCardSweep,
-  setAiReview,
   setAutoCommit,
   setHarness,
   setHarnessSetting,
@@ -350,9 +348,6 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
-  // The review run after a build (#302). **Review again** starts one when a delivery has
-  // stopped and its question has been answered.
-  "review",
   // One pass of a recurring card (#64) — the Run button that stands in for Implement on a
   // card under todo/recurring/.
   "run",
@@ -409,9 +404,6 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
     throw new Error("a changelog needs a version id");
   }
   const { cloudRevision, cloudAnswers, ...request } = req;
-  // **Review again** is the one review a person clicks for, so it says so (#417). Every
-  // other review a delivery takes is started by the board, never through here.
-  if (request.action === "review") request.trigger = "asked";
   // The card page acts on the spot, exactly as it always has, and the same durable action
   // is recorded against this card's live Cloud event (#319) — so every other surface
   // showing that event stops offering it. It never waits: the board's outbox retries it,
@@ -1172,21 +1164,6 @@ export async function autoCommitAction(): Promise<{ on: boolean; error?: string 
 export async function setAutoCommitAction(on: boolean): Promise<WriteResult> {
   if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
   return setAutoCommit(on);
-}
-
-// **Review every build** (#416, #783) — the second delivery setting, read and saved beside
-// the one above. On by default, so nothing to read reads as on.
-export async function aiReviewAction(): Promise<{ on: boolean; error?: string }> {
-  try {
-    return { on: await aiReviewEnabled() };
-  } catch (e) {
-    return { on: true, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function setAiReviewAction(on: boolean): Promise<WriteResult> {
-  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
-  return setAiReview(on);
 }
 
 // **End a silent run after** (#394) — how many minutes a run may say nothing before the

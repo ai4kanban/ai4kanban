@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 27, 2026"
+last_updated: "September 29, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -11,7 +11,7 @@ icon: "layers"
 Every flow the board starts is run by a named **agent**, and each one has a page: its rule, what
 it remembers, its settings, and — for one you added — its own instructions. Where you reach that
 page says who assigns the agent. **Configuration → Workflows** picks a workflow, steps through its
-plan, execute and review stages, and lists the agents each stage assigns. **Configuration → Board**
+plan and execute stages, and lists the agents each stage assigns. **Configuration → Board**
 lists the agents the board runs itself, which no workflow assigns and every workflow gets.
 
 Product video, Slide deck, Carousel post and Blog post, and copies of them, need a Pro plan: sign in under
@@ -57,9 +57,6 @@ of them can be switched off:
   once and remembers.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
   stands today, or discards it. `akb card unstick <id>` runs it on one card.
-- **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
-  default.
-- **Decider** — answers the questions on a card that are waiting on you. Off by default.
 - **Proposer** — reads a card the board has just finished, with the discussion it came from, and
   proposes the work that should follow it — including anything the card promised that nothing
   shipped. It learns from follow-ups you point out it missed. Off by default.
@@ -72,7 +69,7 @@ of them can be switched off:
 - **Review chat memory** — reads back over the conversations that said something new and writes
   down what they settled. On by default, once a day.
 
-The Gater, the Decider, the Proposer and the Triage agent are the four that are off until you ask:
+The Proposer and the Triage agent are the two that are off until you ask:
 none of them does a flow's work, each spends a run you never asked for, and each reads the whole
 board — the goal, and the planner's `decisions.md` and `rejected.md` — on top of the card. Review
 chat memory is the one switch that goes the other way, and the one that asks before it goes **off**
@@ -131,15 +128,7 @@ card is added, after a refine or revise that moved the screen or the library, an
 release plan (each card's own refine asks instead). A card that needs neither a
 screen nor a library goes through all of those without a spec run, and nothing tells you it did.
 
-**Reviewers** check what a build delivered. A workflow's review stage is a list of reviewers
-with no lead: after each build, the board reads the diff, picks every reviewer whose description
-matches what it touches — the first on the list when none does — and reviews as each of them in
-one run. The board ships **`code-reviewer`**, which reviews any delivery that changes code and is
-the Coding workflow's reviewer. Add your own under **Configuration → Workflows**, in the review
-stage. A workflow with no reviewers delivers a finished build as is, and **Review every build**
-under **General → Delivery** turns review off for every workflow.
-
-A Product video has no build and no review: the card shows **Archive** once the film is ready,
+A Product video has no build: the card shows **Archive** once the film is ready,
 and archiving it is how you accept it. **Revise** changes it instead — a script change needs your
 approval again, a film-only change keeps the script and renders again — and Archive returns when
 the revision is done.
@@ -149,35 +138,6 @@ it joins a card's planning at all is its workflow's plan stage, under **Configur
 add it there and it is offered, remove it and nothing asks for it. Setting what it produces is on
 its page, beside that same list. A role is always on except the ones above, because a board without
 nobody plans anything.
-
-## Let the Decider answer for you
-
-A card that reaches the end of its planning with nothing but `[user]` questions on it stops and
-waits for you. So does a delivery a review sends back with a question. **Decider** is the switch
-that removes both waits: it answers those questions in your place and the card carries on.
-
-Switch it on in **Configuration → Board**, in the **Automatic** group. It asks once before it goes
-on, because it is the most expensive switch on the board:
-
-> **While this is on, nothing stops for you.** An idea runs all the way to landed without asking
-> you — a wrong direction included. What it chose, you read afterwards on the card.
-
-It answers from the project's goal, the planner's `decisions.md`, and the
-recommendation each question carries — in that order. When none of those settles a question it
-takes the recommendation anyway: every recommended option on a multi-choice question, the first
-option when nothing is recommended, and its own answer on a question with no options. It never
-hands a card back.
-
-What it chose stays on the card, in a `decided:` list — the question, the option it took, and the
-file it went on. The board marks such a card and **What Decider chose for you** on the card page
-lists them one by one, with the ones it took blind called out. None of it becomes a lasting
-decision: planning's `decisions.md` holds answers *you* gave, and the Decider writes to none
-of it.
-
-Switching it off puts every card still carrying questions back to waiting on you. A card it
-already answered and the board already built does not come back. Switching it on changes nothing
-that is already stopped — those cards move on their next refine, or when you type
-`akb card decide <id>`, which runs it on one card whether or not the switch is on.
 
 ## Let the Proposer look back
 
@@ -215,9 +175,8 @@ starts the next until nothing is waiting.
 - **Each card it writes carries a refine.** That is what it costs beyond the sort itself, and the
   reason the switch asks once before it goes on.
 
-Running it alongside the Gater and the Decider is not recommended, and the board does not stop you:
-with all three on, an item somebody outside your team wrote can go from Triage to built without one
-human confirmation. [Triage](/docs/triage) has the whole of what a sort does.
+That refine plans the card and stops; it never builds by itself.
+[Triage](/docs/triage) has the whole of what a sort does.
 
 ## Let the memory review remember for you
 
@@ -255,7 +214,7 @@ after everything the board writes into it. Write it in the box on the agent's pa
 you leave the box.
 
 - **It is plain words, not a command the board runs.** What it actually causes is up to the agent
-  reading it. On the Code reviewer, a check your rule asks for is one of the repository's checks.
+  reading it.
 - **It belongs to the agent, not to one flow.** One rule on the Builder reaches implement, conflict
   and run alike, so a convention you write once is followed everywhere that agent works.
 - **It lives in your board**, at `docs/kanban/rules/<agent>.md`, tracked in git — so a team shares
@@ -273,7 +232,7 @@ agent's page lists the files it has, read-only:
 
 - **Planning** keeps three files in `docs/kanban/memory/agents/planner/`: `decisions.md`,
   `rejected.md` and `redesign.md`. Whoever leads a plan stage writes them;
-  the Gate, the Decider and the Proposer read them and write none. No other role owns a file.
+  the Proposer reads them and writes none. No other role owns a file.
 - An **agent** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
   files it keeps there and what each holds.
   `ui-designer` keeps `redesign.md` and `decisions.md`, `copywriting` keeps `writing.md`, and

@@ -38,8 +38,6 @@ the whole difference, and it has to be readable at 48px.
   chest, its columns mint, ember and sky, each with a couple of cards in it.
 - **`builder.png`** — builds cards and lands them. Holding an **ember hammer** upright on a
   wooden handle, head above the shoulder.
-- **`code-reviewer.png`** — checks what was built. Holding a **peach-rimmed magnifying glass** up
-  beside the head so the lens breaks the body's outline; a small sky mark inside the lens.
 - **`writer.png`** — writes the drafts and repurposes them (marketing boards). Holding a
   **yellow pencil** with a pink eraser, angled nib-down, over a ruled sheet of paper held
   against the chest.
@@ -50,12 +48,6 @@ the whole difference, and it has to be readable at 48px.
   interlocking puzzle pieces**, one sky and one mint, meeting in front of the body.
 - **`copywriting.png`** — writes the promotional copy a card changes. Holding a **megaphone**,
   its bell ember and its handle cream, pointed up and away from the head.
-- **`gater.png`** — says whether a settled card may build unwatched. A **striped boom
-  barrier** raised beside the body, its arm banded ember and cream on a grey post, and a
-  **clipboard** across the chest with one green tick on it.
-- **`decider.png`** — answers a card's `[user]` questions the way you would. A **two-way
-  signpost** held beside the body on a grey post: a mint arrow pointing forward and a grey
-  one pointing back.
 - **`scriptwriter.png`** — scripts a product video. Holding a **storyboard sheet** across the
   chest: a cream page with an ember title bar and two rows, each a small sky or mint shot
   frame beside two black caption lines.
@@ -78,9 +70,6 @@ the whole difference, and it has to be readable at 48px.
   ember rays around it.
 - **`triage.png`** — sorts what is waiting in triage into cards. Holding a **grey tray with
   three compartments** across the chest, a mint, an ember and a sky card standing up in them.
-- **`review-lead.png`** — picks the reviewers a delivery needs. A **cream checklist** across
-  the chest, three boxes with two mint ticks, and an **ember rubber stamp** on a wooden neck
-  raised in the free hand.
 - **`blog-planner.png`** — plans long-form posts. Holding a **tall cream manuscript page**
   across the chest, with a sky title bar and four short black lines.
 - **`blog-illustrator.png`** — illustrates posts. Holding a **peach palette** with mint,

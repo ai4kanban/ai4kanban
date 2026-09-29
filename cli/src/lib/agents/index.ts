@@ -294,7 +294,7 @@ export const specAgentSelector = (id: number | string, workflow?: string): strin
   selector(planSpecAgents(workflow), {
     tag: 'spec-agents',
     lead: "Specialist agents this board has, each filling one part of a card's spec:",
-    ask: `Command: \`akb spec <agent> ${id} <short note> [--print]\`.`,
+    ask: `Command: \`akb spec <agent> ${id} <short note> --print\` — run it in this session.`,
   })
 
 function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: string }): string {
@@ -334,8 +334,7 @@ export function readSpecAgents(): SpecAgentView[] {
 export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; error?: string } {
   // A switchable ROLE keeps its answer in the board's own settings rather than in
   // `specAgents` (#447) — it is not a file this project added, so there is no entry to write.
-  // Each has a key of its own (#493, #534), so the gater, the decider and the proposer are
-  // switched separately.
+  // Each has a key of its own (#534), so each role is switched separately.
   const role = roleNamed(name)
   if (role) {
     if (role.switch) return setSwitch(role.switch, on)
@@ -343,10 +342,6 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
   }
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
-  // Its switch moved rather than never existing (#783), so the refusal says where it went.
-  if (agent.name === CODE_REVIEWER) {
-    return { ok: false, error: `\`${agent.name}\` has no switch — whether a build is reviewed at all is ${AI_REVIEW_HOME}.` }
-  }
   // A workflow agent is switched in its workflow, not here (#749).
   if (agent.stage) {
     return {
@@ -398,13 +393,6 @@ export const SPEC_SWITCH_HOME = 'the board UI, under Configuration → Board age
 /** Where a workflow agent is switched on or off — the one answer to whether it runs (#749). */
 export const SPEC_ASSIGN_HOME =
   'it is switched on in its workflow, in the board UI under Configuration → Workflows'
-
-/** The reviewer the built-in workflow ships with (#820). */
-export const CODE_REVIEWER = 'code-reviewer'
-
-/** Where whether a build is reviewed at all is answered (#783) — a delivery setting, beside
- *  automatic commits, not the reviewer's own page. */
-export const AI_REVIEW_HOME = 'answered in the board UI under Configuration → General → Delivery'
 
 /** Where a project puts an agent of its own. */
 export const SPEC_AGENT_HOME = 'docs/kanban/agents/<name>/AGENT.md'

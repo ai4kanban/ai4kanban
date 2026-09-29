@@ -224,9 +224,8 @@ export function findCard(id: number): Card | null {
 // and calls board moves, and a card can be read with the board's own lock already held.
 function attachDelivery(card: Card): void {
   const delivery = activeDelivery(card.id)
-  // In manual commit mode a passed review leaves the commit to the user, and this read is
-  // where that is noticed (#303): they committed what review passed and the delivery ends
-  // here, they committed something else and it goes back through review, or it is still
+  // In manual commit mode a finished build leaves the commit to the user, and this read is
+  // where that is noticed (#303): they committed and the delivery ends here, or it is still
   // waiting and the sentence below says so.
   const awaitingCommit = delivery ? manualSettled(delivery) : undefined
   // Read again when that settled it: a delivery that just finished is no longer in flight,
@@ -242,7 +241,6 @@ function attachDelivery(card: Card): void {
     startedAt: live.startedAt,
     state: deliveryState(live, openOf(card.questions).length),
     commitMode: live.commitMode === 'auto' || live.commitMode === 'files' ? live.commitMode : 'manual',
-    aiReview: live.aiReview !== false,
     supersedes: supersededBy(card.id, live),
     sessionId: session?.sessionId,
     waiting: live.review?.stopped?.why,
@@ -250,7 +248,6 @@ function attachDelivery(card: Card): void {
       live.review?.stopped?.reason === 'outside' || live.review?.stopped?.reason === 'output'
         ? { reason: live.review.stopped.reason, paths: live.review.stopped.paths ?? [] }
         : undefined,
-    next: live.next,
     worktree: live.worktree,
     branch: live.branch,
     targetBranch: live.targetBranch,

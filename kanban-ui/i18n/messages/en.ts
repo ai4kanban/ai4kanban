@@ -22,7 +22,6 @@ const en: MessagesCopy = {
   },
   tooOld: {
     autoDelivery: "this board's rules are older than auto-delivery — run `npm install -g ai4kanban`.",
-    aiReview: "this board's rules are older than the review setting — run `npm install -g ai4kanban`.",
     silenceLimit: "this board's rules are older than the silence limit — run `npm install -g ai4kanban`.",
     deliveries: "this board's rules are older than deliveries — run `npm install -g ai4kanban`.",
     worktrees:
@@ -113,7 +112,7 @@ const en: MessagesCopy = {
     proSignIn: (a) => `${a.name} needs Pro. Sign in first.`,
     proRequired: (a) => `${a.name} needs Pro.`,
     proUnconfirmed: () => "Couldn't confirm your Pro plan. Reconnect and retry.",
-    noReviewers: () => "This delivery's workflow has no reviewers, so it is delivered as built with nothing to review.",
+    buildWaits: () => "Something on this card still needs you, so it waits for you before it is built.",
     cloudUnreachable: () =>
       "Cloud could not be reached, so the run was not started. A run works on the workspace, never on the copy left on this computer. Try again once the board is back.",
     cardHeld: (a) => `${a.details} Wait for that hold to end, or work on another card.`,
@@ -135,7 +134,6 @@ const en: MessagesCopy = {
     workflowBuiltInChange: (a) => `${a.name} is built in. Duplicate it to get one you can change.`,
     workflowBuiltInDelete: (a) => `${a.name} is built in and can't be deleted.`,
     workflowBuiltInLeads: (a) => `${a.name} is built in, so its lead agents are fixed. Duplicate it to get one you can reassign.`,
-    reviewNoLead: () => "The review stage has reviewers, not a lead.",
     agentNotFound: (a) => `This board has no ${a.agent} agent.`,
     agentCannotLead: (a) => `${a.agent} is a ${a.assigned} agent and can't lead ${a.stage}.`,
     agentNotLead: (a) => `${a.agent} can only help — it isn't declared as a lead.`,

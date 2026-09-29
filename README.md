@@ -36,7 +36,7 @@ Our early adopters report 3–6× higher development productivity.
 
 4. The agent tests the plan by asking questions, much like [grill-me](https://github.com/mattpocock/skills) or [wayfinder](https://github.com/mattpocock/skills). It raises questions, finds answers, and repeats until it sees no major gaps. Decisions about taste, product direction, or business priorities come back to you.
 
-5. Agents work out most product details themselves, usually leaving just 2–3 questions for you per task. If the request itself is clear enough, they may not need to ask you anything.
+5. Agents work out most product details themselves, usually leaving just 2–3 questions for you per task. If the request itself is clear enough, they ask nothing and build it in the same session; otherwise your answers start one more session that builds it.
 
 6. Each card has two parts: a human brief with only what needs your attention, and an agent execution plan.
 
@@ -46,11 +46,7 @@ Our early adopters report 3–6× higher development productivity.
 
 ## A fully automated coding factory (experimental)
 
-You can delegate the remaining human decisions to AI, too.
-
-- For decisions about taste and business direction, configure a Decider Agent with your most capable model—such as Claude Fable or GPT-6 xhigh—to make the call for you.
-
-- A Gater Agent reviews ready cards for potential problems and overlooked details, then decides whether implementation can begin.
+You can let agents find the next work, too.
 
 - Enable reflection to have agents review completed work and suggest other product improvements, including ideas outside the original task’s scope.
 

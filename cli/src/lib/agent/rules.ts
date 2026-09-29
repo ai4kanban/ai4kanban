@@ -28,7 +28,7 @@ import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import { agentNames, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
 import { workflowForRun } from './runner'
-import { DEFAULT_WORKFLOW, workflowFor, workflowReviewers } from './workflows'
+import { DEFAULT_WORKFLOW, workflowFor } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentRequest } from './types'
 
@@ -88,12 +88,6 @@ export function deliveryRules(workflow?: string): Record<string, string> {
     if (!role || rules[role.name] !== undefined) continue
     const rule = ruleFile(role.name)
     if (rule) rules[role.name] = rule
-  }
-  // And the reviewers', which review prints inside its own run (#820).
-  const flow = workflowFor(workflow)
-  for (const { agent } of flow ? workflowReviewers(flow) : []) {
-    const rule = ruleFile(agent)
-    if (rule) rules[agent] = rule
   }
   return rules
 }
@@ -206,12 +200,8 @@ export function migrateFlowRules(): string[] {
   // The DEFAULT workflow's flows alone (#715). This is a one-time fold of rules a board
   // wrote before #420, when it had one path through a card and the coding agents ran it —
   // so `implement.md` belongs to the builder, and never also to whoever leads `execute` in
-  // a workflow that did not exist when the file was written. `review.md` was the reviewer's,
-  // which is the `code-reviewer` agent now (#820).
-  const owners = [
-    ...roles().map((role) => ({ name: role.name, flows: roleFlowsInOrder(role.name, DEFAULT_WORKFLOW) })),
-    { name: canonicalSpecAgent('reviewer'), flows: ['review'] },
-  ]
+  // a workflow that did not exist when the file was written.
+  const owners = roles().map((role) => ({ name: role.name, flows: roleFlowsInOrder(role.name, DEFAULT_WORKFLOW) }))
   for (const owner of owners) {
     const from = owner.flows.filter((flow) => flow !== owner.name && here.has(`${flow}.md`))
     if (!from.length) continue

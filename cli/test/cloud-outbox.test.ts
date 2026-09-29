@@ -17,7 +17,6 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { board, setBoardProvider } from '../src/lib/board/index.ts'
 import { closeRelease, dropRelease } from '../src/lib/releases.ts'
-import { setDecider } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { DeliveryRecord, RunRecord } from '../src/lib/agent/types.ts'
 import {
@@ -1101,16 +1100,6 @@ describe('a delivery stopped for an answer', () => {
     await recordBoardEvents()
 
     assert.equal(queued(), undefined)
-  })
-
-  it('stays quiet while the decider is answering for the user', async () => {
-    setDecider(true)
-    stopped(afterReview())
-
-    await recordBoardEvents()
-
-    assert.equal(queued(), undefined)
-    setDecider(false)
   })
 })
 

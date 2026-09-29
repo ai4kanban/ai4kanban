@@ -15,7 +15,7 @@ import { flowByAction } from './flows'
 import { readStore } from './store'
 import { stageOfFlow, type Stage, type StageContract } from './stages'
 import { cardWorkflowId } from './workflows'
-import type { AgentAction, AgentRequest, RefineEffort } from './types'
+import type { AgentAction, AgentRequest } from './types'
 
 /** A stage that cannot end: the helpers it requires that have written nothing, and that
  *  asking again would not fix. */
@@ -39,7 +39,7 @@ export const missingRequired = (contract: StageContract, card: Card): string[] =
   contract.requires.filter((name) => !card.body.includes(specHeading(name)))
 
 /** Where the stage stands, and what would move it on. `card` is the card as it is now. */
-export function endOfStage(contract: StageContract, card: Card, refineEffort?: RefineEffort): StageEnd {
+export function endOfStage(contract: StageContract, card: Card): StageEnd {
   const missing = missingRequired(contract, card)
   if (!missing.length) return { done: true }
   const askable = missing.find(
@@ -47,13 +47,7 @@ export function endOfStage(contract: StageContract, card: Card, refineEffort?: R
   )
   if (!askable) return { stage: contract.stage, missing }
   return {
-    ask: {
-      action: 'spec',
-      id: card.id,
-      title: card.title,
-      specAgent: askable,
-      ...(refineEffort ? { refineEffort } : {}),
-    },
+    ask: { action: 'spec', id: card.id, title: card.title, specAgent: askable },
   }
 }
 

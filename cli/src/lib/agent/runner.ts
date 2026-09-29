@@ -13,7 +13,7 @@ import { flowByAction } from './flows'
 import { agentImageView } from './resolve'
 import { roleForFlow } from './roles'
 import { deliveryFor } from './deliveries'
-import { cardWorkflowId, frozenReviewers } from './workflows'
+import { cardWorkflowId } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentAction, CreateImageAgents } from './types'
 
@@ -48,16 +48,11 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
   if (!action) return undefined
   // A specialist runs as itself, whichever hook it is on.
   if (SPECIALIST_ACTIONS.has(action)) return specAgent
-  // A review runs on its first reviewer's runtime: the hidden lead has none (#820).
-  if (action === 'review') {
-    const first = frozenReviewers(deliveryFor({ action, id: ask.id, deliveryId: ask.deliveryId })?.workflow)[0]
-    if (first) return first.agent
-  }
   return roleForFlow(flowOf(ask, action), workflowForRun(ask))?.name
 }
 
 /** The agent of this run when its output is the user's to review (#868), and whether the run
- *  is one it leads — only then must it write its section. A reviewer never leads. */
+ *  is one it leads — only then must it write its section. */
 export function humanSectionFor(ask: RunAsk): { agent: string; required: boolean } | null {
   const name = agentForRun(ask)
   const agent = name ? findSpecAgent(name) : null
@@ -67,7 +62,7 @@ export function humanSectionFor(ask: RunAsk): { agent: string; required: boolean
 
 // The flow this run belongs to. A pass belongs to the flow that spawned it, never to a flow
 // of its own name: `resolve` is both a pass of a refine and a command a user types, and only
-// the round tells them apart. `clarify` and `writing` are passes either way, which is what
+// the round tells them apart. `clarify` is a pass either way, which is what
 // `flowByAction` already says.
 function flowOf(ask: RunAsk, action: AgentAction): string {
   if (ask.refineRound !== undefined && REFINE_ACTIONS.has(action)) return 'refine'

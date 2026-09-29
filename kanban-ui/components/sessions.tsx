@@ -34,7 +34,6 @@ import {
   flowSaid,
   runFlows,
   stepLabel,
-  triggerLabel,
   unfinishedFlows,
   unhandledByCard,
   unhandledFlows,
@@ -471,7 +470,7 @@ function FlowRow({
             const active = s.sessionId === selectedId;
             const last = i === steps.length - 1;
             // Resume carried the one before it on: the row above is where it came from.
-            const why = s.resumedFrom ? c.resumedSession : triggerLabel(s.trigger, t.runs);
+            const why = s.resumedFrom ? c.resumedSession : "";
             return (
               <button
                 key={s.sessionId}
@@ -496,9 +495,7 @@ function FlowRow({
                 <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
                   {stepLabel(s.action, t.runs)}
                 </span>
-                {/* Why this review is happening, when it isn't the first after a build
-                    (#417). The step keeps its own label and this sits beside it, so the row
-                    reads as one sentence instead of saying "review" twice. */}
+                {/* A resumed session says so beside its step label. */}
                 {!!why && <span className="text-[10.5px] text-nb-ink-soft">· {why}</span>}
                 {/* A job can range over several cards — a create writes three and refines
                     each. The step says which one, when it isn't the job's own. */}

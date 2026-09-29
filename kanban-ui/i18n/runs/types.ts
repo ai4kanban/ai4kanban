@@ -1,4 +1,4 @@
-import type { AgentAction, ReviewTrigger, SessionView } from "@/lib/types";
+import type { AgentAction, SessionView } from "@/lib/types";
 
 /** Agent runs: the badge a busy card wears, the run log, the runs panel, and the
  *  dialogs that start a run. */
@@ -13,9 +13,6 @@ export type RunsCopy = {
   /** The whole job's name, where it differs from the step's: a refine's steps are
    *  `clarify` and `writing`, but the job a person started is "Refine". */
   flow: Partial<Record<AgentAction, string>>;
-  /** Why a review after the first one started (#417), beside that step's own label. Keyed
-   *  by the trigger the run records; a trigger with no word here shows nothing. */
-  trigger: Partial<Record<ReviewTrigger, string>>;
   badge: {
     running: string;
     watch: string;
@@ -190,16 +187,8 @@ export type RunsCopy = {
       ownBranchOn: string;
       ownBranchLocal: string;
       ownBranchOff: string;
-      /** The same five sentences with **AI review** off (#416): no review step, and the
-       *  commit is matched against what the build left rather than what review passed. */
-      autoBranchNoReview: (branch: string) => string;
-      autoHereNoReview: string;
-      manualFolderNoReview: string;
-      manualNoReview: string;
-      manualWhyNoReview: (why: string) => string;
       /** A card whose workflow makes files (#874): no branch, no commit, and nothing to pick. */
       files: string;
-      filesNoReview: string;
       /** What the press does on a surface that starts no run of its own (#364): the browser
        *  records it, and one of the workspace's machines builds it when one is running. It
        *  replaces the five sentences above, which describe a checkout a reader has none of. */

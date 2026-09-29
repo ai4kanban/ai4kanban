@@ -45,18 +45,16 @@ export interface AgentRole {
   /** The key in `ui.config.json` this role is switched on under, when it can be switched
    *  off at all (#447, #493, #534, #562, #748). Most cannot: a board without a planner plans
    *  nothing, and no WORKFLOW agent has one at all (#749, #783) — a stage assigns it or does
-   *  not. Five can, and none of them belongs to a workflow. Four spend a run the user never
-   *  asked for — the gater judges a card the way you would, the decider answers what you
-   *  would have answered, the proposer reflects on what you just finished, the triager judges
-   *  what just arrived — so each is off until you ask for it. One ships on: the memory
+   *  not. Three can, and none of them belongs to a workflow. Two spend a run the user never
+   *  asked for — the proposer reflects on what you just finished, the triager judges what
+   *  just arrived — so each is off until you ask for it. One ships on: the memory
    *  reviewer, because nothing else writes down what a conversation settled. Each reads its
    *  own key. */
   switch?: RoleSwitch
   /** The direction this role's switch asks in, when it asks at all (#447, #562, #748). A
    *  property of the role rather than a name a screen keeps. `on` is the usual way round —
-   *  the decider stops the board asking you anything, the triager turns items into cards
-   *  with a refine each — and going back off never asks. `off` is the memory reviewer, the
-   *  one whose cost lands when it stops: it is what turns a conversation into a note, so
+   *  the triager turns items into cards with a refine each — and going back off never asks.
+   *  `off` is the memory reviewer, the one whose cost lands when it stops: it is what turns a conversation into a note, so
    *  going ON is free and going off is what loses something. */
   confirm?: 'on' | 'off'
   /** What has to be open on this board for this role to be on its roster at all (#562).
@@ -65,48 +63,14 @@ export interface AgentRole {
   needs?: 'triage'
   /** The workflow stage this agent may be assigned to (#715). A role with one is a
    *  WORKFLOW agent: it can lead or help that stage of any workflow on the board. A role
-   *  without one is a BOARD agent — the discussion, the gate, the decider, the pruner and
-   *  the rest — which no workflow assigns and every workflow gets. */
+   *  without one is a BOARD agent — the discussion, the pruner and the rest — which no workflow assigns and every workflow gets. */
   stage?: WorkflowStage
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
   /** The memory files it owns, board-relative — the files its own flows read and write,
    *  listed so a roster can say what a role remembers (#805). Empty on every role that only
-   *  reads: the gater and the decider judge off the planner's memory and write none of it,
-   *  and the builder never opened one at all. */
+   *  reads: the builder never opened one at all. */
   memory: string[]
-}
-
-// The two roles the board ships switched OFF (#447, #493). Neither does a flow's work: each
-// stands in for the user, so each is off until asked for and each owns no memory — what
-// either judged or chose stays on the card it was judging, never in a `decisions.md`.
-//
-// The gater runs `gate`, the verdict on whether a settled card may build unwatched. It was
-// the planner's flow until #493, which cost it a switch and a connector of its own.
-const GATER: AgentRole = {
-  name: 'gater',
-  gloss: 'judges whether a card can build unwatched',
-  memory: [],
-  switch: 'readyGate',
-}
-
-// And the decider runs `decide` — the flow that answers a card's `[user]` questions instead
-// of stopping for them.
-const DECIDER: AgentRole = {
-  name: 'decider',
-  gloss: 'answers the questions waiting on you',
-  memory: [],
-  switch: 'decider',
-  confirm: 'on',
-}
-
-// The review stage's hidden lead (#820). A workflow names its reviewers and nothing leads
-// them; this role reads the diff, picks the reviewers it needs and reviews as each of them.
-// Off the roster: no page, no runtime, no memory, no switch.
-const REVIEW_LEAD_ROLE: AgentRole = {
-  name: 'review-lead',
-  gloss: 'picks the reviewers a delivery needs',
-  memory: [],
 }
 
 // The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss. It
@@ -162,10 +126,10 @@ const DISMISSAL_REVIEWER: AgentRole = {
   memory: [PLANNER_DISMISSED],
 }
 
-// The role that looks back at finished work (#534). Like the gater and the decider it is
-// off until asked for — a board that turns it on spends one run per completion. What it
-// proposes goes into the inbox to be triaged. It owns one file, the kinds of follow-up it
-// missed, which only the memory review writes when the user points one out (#1211).
+// The role that looks back at finished work (#534). It is off until asked for — a board
+// that turns it on spends one run per completion. What it proposes goes into the inbox to be
+// triaged. It owns one file, the kinds of follow-up it missed, which only the memory review
+// writes when the user points one out (#1211).
 //
 // `reflect` is an event entry rather than a stage (./stages.ts): no flow a person types, and
 // the role's work all the same — a card reaching the archive is what starts one.
@@ -242,8 +206,6 @@ const BOARD_ROLES: AgentRole[] = [
   SWEEPER,
   DISMISSAL_REVIEWER,
   FEEDBACK,
-  GATER,
-  DECIDER,
   PROPOSER,
   TRIAGER,
 ]
@@ -257,13 +219,10 @@ export const DISCUSSION_ROLE = DISCUSSION_HELPER.name
  *  conversation, answered by a different agent's rule and brief. */
 export const FEEDBACK_ROLE = FEEDBACK.name
 
-/** The review stage's hidden lead (#820). */
-export const REVIEW_LEAD = REVIEW_LEAD_ROLE.name
-
 /** Every role name the board ships. Reserved: a rule is keyed by the agent's name, so a
  *  project agent taking one would share that role's rule file (../agents/catalog.ts refuses
  *  it). `planner` too: the Software planner's old name, and planning memory's folder (#858). */
-export const ROLE_NAMES: string[] = [...[...BOARD_ROLES, REVIEW_LEAD_ROLE].map((r) => r.name), PLANNER]
+export const ROLE_NAMES: string[] = [...BOARD_ROLES.map((r) => r.name), PLANNER]
 
 /** This board's roles, in the order a roster draws them. */
 export const roles = (): AgentRole[] => BOARD_ROLES
@@ -295,8 +254,7 @@ function leadRole(name: string): AgentRole | undefined {
 }
 
 /** The role of a given name. */
-export const roleNamed = (name: string): AgentRole | undefined =>
-  name === REVIEW_LEAD ? REVIEW_LEAD_ROLE : roles().find((role) => role.name === name)
+export const roleNamed = (name: string): AgentRole | undefined => roles().find((role) => role.name === name)
 
 /** The flows an agent runs, in the order the board declares them (./flows.ts). What the
  *  one-time rule migration concatenates in. */
@@ -308,7 +266,7 @@ export function roleFlowsInOrder(name: string, workflow?: string): string[] {
 /** Every reason one of this board's contracts names an agent it does not have (./stages.ts).
  *  Read beside the agents' own problems, so a lead nobody answers to is said out loud rather
  *  than found out as a flow with nobody to run it. */
-export const stageContractProblems = (): string[] => contractProblems([...agentNames(), REVIEW_LEAD])
+export const stageContractProblems = (): string[] => contractProblems(agentNames())
 
 // ---- the roster ------------------------------------------------------------
 
@@ -333,7 +291,7 @@ export interface RosterEntry {
   /** Whether this entry can be switched off. A workflow agent cannot (#749): a stage of a
    *  workflow assigns it or does not, and a second switch beside that assignment is two
    *  answers to one question. So: a specialist that declares no stage, and, of the roles,
-   *  the gater, the decider (#447, #493), the proposer (#534) and the triager (#562). */
+   *  the proposer (#534) and the triager (#562). */
   switchable: boolean
   /** The direction its switch asks in — the role's own `confirm`. Absent on every
    *  specialist: one fills a section of a card and starts nothing on its own. */

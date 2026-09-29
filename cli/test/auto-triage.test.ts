@@ -155,7 +155,6 @@ describe('the switch', () => {
       agentRoster().filter((entry) => entry.confirm).map((entry) => [entry.name, entry.confirm]),
       [
         ['memory-reviewer', 'off'],
-        ['decider', 'on'],
         ['triage', 'on'],
       ],
     )

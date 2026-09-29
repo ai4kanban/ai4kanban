@@ -60,13 +60,9 @@ setup, fill only the opening paragraph—the background refinement completes the
 
 Carry the request's constraints into refinement; a memory opt-out does not waive planning.
 
-- **Lightweight**: use only when the source already supplies a concrete outcome, boundaries,
-  and build steps. Run `akb card refine <id> --effort lightweight --print` and continue inline;
-  it verifies the build scope and switches to standard QA if the plan is less settled than
-  it appeared.
-- **Standard**: use for ordinary user requests and whenever scope, evidence, or decisions
-  remain vague. Run `akb card refine <id> --effort standard` to start a separate session.
+- **Inline**: when the source already supplies a concrete outcome, boundaries, and build
+  steps, run `akb card refine <id> --print` and continue in this session.
+- **Separate session**: otherwise, or when the user asks for background work, run
+  `akb card refine <id>`.
 
-Choose standard unless the source makes lightweight clearly sufficient. If the user asks for
-background work, omit `--print` for lightweight. During setup, start neither; the setup
-watcher starts refinement after setup exits.
+During setup, start neither; the setup watcher starts refinement after setup exits.

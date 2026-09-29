@@ -10,7 +10,6 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { completeCard } from '../src/lib/agent/complete.ts'
-import { askUser } from '../src/lib/agent/review.ts'
 import {
   board,
   envelope,
@@ -231,10 +230,6 @@ describe('a board that will not grant a lease', () => {
     const res = await saveProject('A project', '')
     assert.equal(res.ok, false)
     assert.match(res.error ?? '', /writing this board/)
-  })
-
-  it("leaves a run's question unwritten rather than ending the run", async () => {
-    await assert.doesNotReject(() => askUser(1, { text: 'is this still silent?', options: ['yes', 'no'] }))
   })
 
   it('says how to archive the card by hand rather than ending the landing', async () => {

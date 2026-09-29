@@ -1,6 +1,6 @@
-// The four stages a card goes through, and the flows that are not one of them (#714).
+// The three stages a card goes through, and the flows that are not one of them (#714, #1203).
 //
-// Discussion, planning, execution and review used to be four words in the prose and
+// Discussion, planning and execution used to be words in the prose and
 // nothing in the program: which agent ran a flow was a list on the ROLE (./roles.ts), so
 // the only thing the code knew about a stage was who happened to run it.
 //
@@ -14,17 +14,16 @@
 // The contract sits ON TOP of the roles rather than replacing them. A lead is a name off the
 // roster, and rules, runtimes and switches all still resolve by agent name.
 //
-// Everything else the board can start is a shared node: a DECISION the board makes in the
-// user's place (the gate, the decider), or an EVENT entry something on the board starts (a
-// sort, a sweep, a reflection, a complaint, a prune). Neither belongs to a stage and neither
-// is open to be hooked — they are listed here so the classification is a total one: every
-// flow this board has is a stage's, a decision or an event, and never two of them.
+// Everything else the board can start is a shared node: an EVENT entry something on the
+// board starts (a sort, a sweep, a reflection, a complaint, a prune). None belongs to a stage
+// and none is open to be hooked — they are listed here so the classification is a total one:
+// every flow this board has is a stage's or an event, and never both.
 
 import { workflowFor, workflows, type WorkflowStage } from './workflows'
 
-export const STAGES = ['discuss', 'plan', 'build', 'review'] as const
+export const STAGES = ['discuss', 'plan', 'build'] as const
 
-/** One of the four stages. */
+/** One of the three stages. */
 export type Stage = (typeof STAGES)[number]
 
 /** What one stage is answerable for. */
@@ -50,9 +49,9 @@ export interface StageContract {
   requires: string[]
 }
 
-/** What a flow that is no stage's is. A `decision` is the board choosing in the user's
- *  place; an `event` is work something on the board starts rather than a stage. */
-export type NodeKind = 'decision' | 'event'
+/** What a flow that is no stage's is: work something on the board starts rather than a
+ *  stage. */
+export type NodeKind = 'event'
 
 /** One shared node: a flow, what kind it is, and the agent that runs it. */
 export interface FlowNode {
@@ -93,36 +92,17 @@ const BOARD_STAGES: StageContract[] = [
     helpers: [],
     requires: [],
   },
-  {
-    stage: 'review',
-    flows: ['review'],
-    input: "the delivery's diff and the card it was approved to build",
-    output: 'a verdict, with the plain mistakes fixed in the same session',
-    done: 'the diff answers the card, or the user has been asked the one thing that stops it',
-    // Hidden: it picks among the workflow's reviewers, which are this stage's helpers (#820).
-    lead: 'review-lead',
-    helpers: [],
-    requires: [],
-  },
 ]
 
 // The contracts a workflow's assignments are laid over. `lead` and `helpers` are the two
 // fields a workflow owns; everything else on a contract — what the stage is handed, what it
 // leaves behind, when it is over — is the kernel's and the same whoever runs it.
 
-// The nodes that are no stage's work.
-//
-// The two DECISIONS stand in for the user: the gate says whether a settled card may build
-// unwatched, and the decider answers the questions that were waiting on them. Calling them
-// decisions is not a promise about them — both keep the switch and the agent they have
-// today, and neither is open to be hooked.
-//
-// The six EVENTS are started by something happening rather than by a stage reaching them:
-// a card finishing, a batch of items arriving, a card going stale, a user saying the spec
-// missed, a cadence coming round, a day passing over conversations that said something new.
+// The nodes that are no stage's work, started by something happening rather than by a
+// stage reaching them: a card finishing, a batch of items arriving, a card going stale, a
+// user saying the spec missed, a cadence coming round, a day passing over conversations
+// that said something new.
 const BOARD_NODES: FlowNode[] = [
-  { flow: 'gate', kind: 'decision', agent: 'gater' },
-  { flow: 'decide', kind: 'decision', agent: 'decider' },
   { flow: 'reflect', kind: 'event', agent: 'proposer' },
   { flow: 'triage', kind: 'event', agent: 'triage' },
   { flow: 'unstick', kind: 'event', agent: 'sweeper' },
@@ -132,12 +112,12 @@ const BOARD_NODES: FlowNode[] = [
   { flow: 'review-dismissals', kind: 'event', agent: 'dismissal-reviewer' },
 ]
 
-/** Which of the three configurable stages a kernel stage is (#715). `discuss` is none of
+/** Which of the two configurable stages a kernel stage is (#715). `discuss` is none of
  *  them: a conversation belongs to the board rather than to a card's workflow, so no
  *  workflow assigns it and every card gets the same discussion helper. */
-const CONFIGURED: Partial<Record<Stage, WorkflowStage>> = { plan: 'plan', build: 'execute', review: 'review' }
+const CONFIGURED: Partial<Record<Stage, WorkflowStage>> = { plan: 'plan', build: 'execute' }
 
-/** The four stage contracts one card runs under, in the order it goes through them.
+/** The three stage contracts one card runs under, in the order it goes through them.
  *
  *  `workflow` is the card's own (./workflows.ts). Left off, the board's default workflow is
  *  used — what every flow that names no card reads, and what a board with no workflows at

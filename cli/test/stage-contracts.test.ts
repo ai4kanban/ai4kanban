@@ -110,11 +110,9 @@ describe('the classification', () => {
     assert.equal(flowNodes().find((n) => n.flow === 'feedback')?.kind, 'event')
   })
 
-  it('calls the gate and the decider decisions, and the entries events', () => {
+  it('calls the entries events', () => {
     const kinds = Object.fromEntries(flowNodes().map((n) => [n.flow, n.kind]))
     assert.deepEqual(kinds, {
-      gate: 'decision',
-      decide: 'decision',
       reflect: 'event',
       triage: 'event',
       unstick: 'event',
@@ -123,7 +121,7 @@ describe('the classification', () => {
       'review-memory': 'event',
       'review-dismissals': 'event',
     })
-    // Neither kind belongs to a stage, so neither shows up in one.
+    // No event belongs to a stage, so none shows up in one.
     for (const flow of Object.keys(kinds)) assert.equal(stageOfFlow(flow), undefined, flow)
   })
 
@@ -154,14 +152,11 @@ describe('the lead a contract names', () => {
     implement: 'builder',
     conflict: 'builder',
     run: 'builder',
-    review: 'review-lead',
     'prune-memory': 'memory-pruner',
     'review-memory': 'memory-reviewer',
     'review-dismissals': 'dismissal-reviewer',
     unstick: 'sweeper',
     feedback: 'feedback',
-    gate: 'gater',
-    decide: 'decider',
     reflect: 'proposer',
     triage: 'triage',
   }
@@ -175,8 +170,7 @@ describe('the lead a contract names', () => {
 
   it('is what a role reads its own flows back off', () => {
     assert.deepEqual(flowsOfAgent('builder'), ['implement', 'conflict', 'run'])
-    assert.deepEqual(flowsOfAgent('gater'), ['gate'])
-    assert.deepEqual(flowsOfAgent('review-lead'), ['review'])
+    assert.deepEqual(flowsOfAgent('proposer'), ['reflect'])
   })
 })
 
@@ -225,13 +219,11 @@ describe('the completion check', () => {
     assert.deepEqual(endOfStage(contract, findCard(1)!), { done: true })
   })
 
-  it('puts a spec run in the planning stage, and a decision in no stage at all', () => {
+  it('puts a spec run in the planning stage, and an event in no stage at all', () => {
     assert.equal(stageOfAction('spec'), 'plan')
     assert.equal(stageOfAction('clarify'), 'plan')
     assert.equal(stageOfAction('implement'), 'build')
-    assert.equal(stageOfAction('review'), 'review')
-    assert.equal(stageOfAction('decide'), undefined)
-    assert.equal(stageOfAction('gate'), undefined)
+    assert.equal(stageOfAction('reflect'), undefined)
   })
 
   // A stage nothing on this board requires anything of can never hold a card up — whatever
@@ -254,19 +246,14 @@ describe('the completion check', () => {
 })
 
 describe('the helpers, one at a time', () => {
-  // What the card asks for: helpers run in turn and the lead comes back once the LAST of
-  // them is done, so one agent at a time is writing the conclusion.
-  it('holds the lead back while another helper is still queued', () => {
+  // Helpers run in turn, and planning is one session (#1203): the last helper's close starts
+  // no second planning pass.
+  it('starts no planning pass after a helper', () => {
     writeCard(1)
     const before = markBoard()
     const spec = aRun({ sessionId: 's1', action: 'spec', cardId: 1, specAgent: 'ui-designer' })
-    // This helper's close still carries the ask for the next one.
     assert.deepEqual(refinementRunsAfter(spec, [], before, true).runs, [])
-    // The last one carries none, and the lead resumes to fold the sections into one plan.
-    assert.deepEqual(
-      refinementRunsAfter(spec, [], before, false).runs.map((r) => [r.action, r.id]),
-      [['clarify', 1]],
-    )
+    assert.deepEqual(refinementRunsAfter(spec, [], before, false).runs, [])
   })
 })
 
@@ -274,11 +261,7 @@ describe('the rules a delivery freezes', () => {
   it('keys them by the agent, and still reads one an older delivery keyed by flow', () => {
     fs.mkdirSync(RULES, { recursive: true })
     fs.writeFileSync(path.join(RULES, 'builder.md'), 'Install dependencies first.\n')
-    fs.writeFileSync(path.join(RULES, 'code-reviewer.md'), 'Run the smoke tests.\n')
-    assert.deepEqual(deliveryRules(), {
-      builder: 'Install dependencies first.',
-      'code-reviewer': 'Run the smoke tests.',
-    })
+    assert.deepEqual(deliveryRules(), { builder: 'Install dependencies first.' })
     // A delivery frozen before rules moved onto the agents holds them under the FLOW name,
     // and that key is untouched by the contracts (#420, #714).
     const frozen = { implement: 'The rule as it was frozen.' }

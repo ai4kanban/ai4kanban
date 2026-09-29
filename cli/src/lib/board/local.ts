@@ -29,7 +29,6 @@ import {
   cmdSchedule,
   cmdTag,
   cmdUpdate,
-  cmdUpdateDecided,
   cmdUpdateQuestions,
   cmdUpdateVerify,
   type CreateOptions,
@@ -39,7 +38,6 @@ import {
   type VerifyOpsInput,
 } from '../../commands/card'
 import { cmdInit } from '../../commands/init'
-import type { DecidedInput } from '../decided'
 import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
@@ -129,7 +127,6 @@ const MOVES: Record<string, RunMove> = {
   update: ({ args, opts }) => cmdUpdate(Number(args[0]), as<UpdateOptions>(opts)),
   'update-questions': ({ args, opts }) => cmdUpdateQuestions(Number(args[0]), as<QuestionOpsInput>(opts)),
   'update-verify': ({ args, opts }) => cmdUpdateVerify(Number(args[0]), as<VerifyOpsInput>(opts)),
-  'update-decided': ({ args, opts }) => cmdUpdateDecided(Number(args[0]), as<DecidedInput>(opts)),
   schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
   tag: ({ args }) => cmdTag(Number(args[0]), args[1] ?? '', args[2] ?? ''),
   list: ({ opts }) => cmdList(as<ListOptions>(opts)),

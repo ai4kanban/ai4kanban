@@ -160,7 +160,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['blog-illustrator', 'blog-planner', 'carousel-planner', 'code-reviewer', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
+      ['blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)
@@ -301,12 +301,12 @@ describe('an agent nobody can read', () => {
     const lead = (extra: string[]) =>
       ['---', 'name: outliner', 'description: d', 'akb:', ...extra, '---', '', 'Body.'].join('\n')
     assert.match(problemFor({ 'AGENT.md': lead(['  stage: plan', '  lead: yes']) }), /`true` or `false`/)
-    assert.match(problemFor({ 'AGENT.md': lead(['  stage: review', '  lead: true']) }), /only a plan or execute agent/)
+    assert.match(problemFor({ 'AGENT.md': lead(['  stage: review', '  lead: true']) }), /builds are no longer reviewed/)
     const canLead = (name: string) => specAgentCatalog().agents.find((a) => a.name === name)?.canLead
     project('outliner', { 'AGENT.md': lead(['  stage: plan', '  lead: true']) })
     assert.equal(canLead('outliner'), true)
     assert.equal(canLead('scriptwriter'), true)
-    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'hyperframes-editor', 'code-reviewer']) {
+    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'hyperframes-editor']) {
       assert.equal(canLead(helper), false, helper)
     }
   })
@@ -341,10 +341,9 @@ describe('what a session is shown', () => {
     assert.ok(specAgentList('akb').includes(trigger))
   })
 
-  it('includes trigger checks for standard and lightweight refinement, resolve and revise', () => {
+  it('includes trigger checks for refinement, resolve and revise', () => {
     for (const req of [
-      { action: 'clarify', id: 426, refineEffort: 'standard' },
-      { action: 'clarify', id: 426, refineEffort: 'lightweight' },
+      { action: 'clarify', id: 426 },
       { action: 'resolve', id: 426 },
       { action: 'edit', id: 426 },
     ] as const) {
@@ -489,14 +488,6 @@ describe("an agent's memory folder", () => {
     const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'tech-stack-advisor' })
     assert.match(prompt, /Your memory folder is `docs\/kanban\/memory\/agents\/tech-stack-advisor\/`\. Nothing is in it yet\./)
     assert.doesNotMatch(prompt, /### `/)
-  })
-
-  it('hands a reviewer its files and points it at the same rule', () => {
-    wrote('code-reviewer', 'habits.md', '- Flag every swallowed error.\n')
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'code-reviewer' })
-    assert.match(prompt, /Keep your memory as \*\*Memory\*\* in `akb guide spec-agent` says\./)
-    assert.match(prompt, /### `habits\.md`\n\n- Flag every swallowed error\./)
-    assert.doesNotMatch(prompt, /——— how a spec agent works ———/)
   })
 
   // A board written before the split kept one file. It is moved in on the first read, so the
@@ -707,12 +698,11 @@ describe("a lead agent's output", () => {
     assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 13 }), /Your output is set to be reviewed by me/)
   })
 
-  it('checks where a spec or review run puts its section, and never asks it for one', () => {
+  it('checks where a spec run puts its section, and never asks it for one', () => {
     card(12)
     assert.deepEqual(humanSectionFor({ action: 'spec', id: 12, specAgent: 'ui-designer' }), { agent: 'ui-designer', required: false })
+    // A retired review on an old record puts nothing anywhere (#1203).
     assert.equal(humanSectionFor({ action: 'review', id: 12 }), null)
-    board({ specAgents: { 'code-reviewer': { output: 'human' } } })
-    assert.deepEqual(humanSectionFor({ action: 'review', id: 12 }), { agent: 'code-reviewer', required: false })
   })
 })
 

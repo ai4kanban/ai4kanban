@@ -125,16 +125,13 @@ export interface CardDelivery {
   id: string
   startedAt: number
   /** Where this delivery has got to, and what it waits on (#307). Worked out on every read
-   *  from the card's open questions and the delivery's own review, landing and commit
+   *  from the card's open questions and the delivery's own stop, landing and commit
    *  records — never stored, so it can't go stale. */
   state: CardDeliveryState
   /** How it commits (#303): `auto` builds on a branch of its own and the board lands it,
-   *  `manual` works in the user's checkout and stops after review for their own commit,
+   *  `manual` works in the user's checkout and stops after the build for their own commit,
    *  `files` makes files in the project and commits nothing (#874). */
   commitMode: 'auto' | 'manual' | 'files'
-  /** Whether a fresh session reviews what it built (#416), frozen the same way. False and
-   *  the block's foot says so — the default needs no line. */
-  aiReview: boolean
   /** The delivery this one replaced, when the card's approved requirements changed while
    *  the last one was paused (#307). It ended, and this one is building the card as it now
    *  reads. Absent on a delivery that replaced nothing. */
@@ -142,18 +139,13 @@ export interface CardDelivery {
   /** The run working right now, when one is. A delivery between runs — its last one
    *  failed or was cut off — has none, and still holds the card. */
   sessionId?: string
-  /** Why the delivery's review stopped and is waiting on the user, in one plain sentence
-   *  (#302). It has put an open question on this card, so the card page says so and lets
-   *  Resolve through the hold — answering is the way on. */
+  /** Why the delivery stopped and is waiting on the user, in one plain sentence (#302).
+   *  Building again is the way on. */
   waiting?: string
   /** A `files` delivery stopped on what it made (#874): tracked files it changed outside the
    *  board, or recorded output files that are missing (none recorded when empty). The card
    *  page words it in the reader's language. */
   filesStop?: { reason: 'outside' | 'output'; paths: string[] }
-  /** The run the delivery is due to start next and has not (#302). It is normally
-   *  gone in the same instant the watcher takes it; one that is still here belongs to a
-   *  delivery whose watcher died in between, and the card page offers to start it. */
-  next?: 'review'
   /** Where this delivery's code is: its own worktree, repo-relative (#303). Absent in
    *  manual commit mode, where the code is in the project itself. */
   worktree?: string
@@ -182,7 +174,6 @@ export type CardDeliveryStage =
   | 'stopped'
   | 'held'
   | 'commit'
-  | 'rereview'
   | 'refused'
   | 'conflict'
   | 'retry'
@@ -200,10 +191,6 @@ export interface CardDeliveryState {
    *  answer, the resolve or the commit — so the card page says so, and Resolve stays live
    *  while every other held control is off. */
   paused: boolean
-  /** The decider is answering these questions instead of the user (#447). The questions are
-   *  still open and answering one by hand still works — nothing is being ASKED of the user,
-   *  which is why `paused` is false while this is true. */
-  deciding?: boolean
 }
 
 /** A delivery's landing, as the card page reads it (#304). The states are the delivery
@@ -424,10 +411,6 @@ export interface DeliveryPlan {
    *  tick's line just adds that they stay behind. Only ever true where a worktree is
    *  possible: with the build working in the folder itself there is nothing to leave. */
   localChanges?: boolean
-  /** Which side the dialog's AI review tick starts on (#416), read from the setting.
-   *  Absent on rules older than it, and the dialog then offers no box — every delivery
-   *  those rules start is reviewed. */
-  aiReview?: boolean
 }
 
 /** One band of the board: a module from `docs/kanban/modules.md` and the cards whose

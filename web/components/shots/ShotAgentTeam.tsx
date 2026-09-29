@@ -9,10 +9,10 @@ import { HAIR, NB, Shot, em } from "./nb";
 // the page for the row that is held.
 //
 // Drawn from kanban-ui/components/Agents.tsx with `scope` = board, and every
-// word taken from kanban-ui/i18n/configuration/en.ts: two group captions, eight
+// word taken from kanban-ui/i18n/configuration/en.ts: two group captions, six
 // names that say the JOB, and the few words under each that say what starts it.
 //
-// Auto-sort Triage is the ninth row the product can draw and is left out on
+// Auto-sort Triage is the seventh row the product can draw and is left out on
 // purpose: it only appears for an invited Cloud account, so drawing it would put
 // back the thing this shot exists to fix — a page most readers cannot find.
 //
@@ -39,15 +39,13 @@ const MANUAL: [name: string, label: string, trigger: string][] = [
 const AUTOMATIC: [name: string, label: string, trigger: string, on: boolean][] =
   [
     ["memory-reviewer", "Review chat memory", "Daily", true],
-    ["gater", "Auto-approve builds", "When a card turns ready", false],
-    ["decider", "Auto-answer questions", "When questions wait", false],
     ["proposer", "Suggest follow-up work", "After a card is archived", false],
   ];
 
 /** The names with a PNG in `public/agent-art/`. The real pane discovers this by
  *  letting the image fail; a drawing captured server-side cannot wait for that,
  *  so the set is written down. */
-const HAS_ART = new Set(["discussion-helper", "gater", "decider"]);
+const HAS_ART = new Set(["discussion-helper"]);
 
 /** `Agents.tsx`'s `Character` — pixel art, bottom-aligned in a square box. A
  *  paused agent keeps its character, greyed. */

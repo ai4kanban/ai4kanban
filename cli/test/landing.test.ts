@@ -1,4 +1,4 @@
-// Landing a reviewed delivery on the target branch (#304).
+// Landing a built delivery on the target branch (#304).
 //
 // The board here is a real git repository with real worktrees, because every question this
 // file asks is a git question: what the target branch ends up holding, whether the user's
@@ -99,19 +99,12 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
   await closeRun(sessionId, { status, ok: status === 'done', code: 0 })
 }
 
-async function passReview(id: number, title: string): Promise<string> {
-  const review = run('review', id, title)
-  await end(review)
-  return review
-}
-
-// Build a card and pass its review: everything that happens before a landing.
-async function reviewed(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
-  const built = run('implement', id, title)
+// Build a card: everything that happens before a landing.
+async function builtCard(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
+  const session = run('implement', id, title)
   const delivery = activeDelivery(id)!
   fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), file), text)
-  await end(built)
-  await passReview(id, title)
+  await end(session)
   return delivery
 }
 
@@ -194,7 +187,7 @@ describe('a build with no card', () => {
 
   // And the ordinary way round: the run writes its card first, so the delivery lands on a
   // card and archives it — still with nothing reviewing or approving the work (#470).
-  it('archives the card its run wrote, and is reviewed by nothing on the way', async () => {
+  it('archives the card its run wrote, and is approved by nothing on the way', async () => {
     const opened = openRun({ action: 'implement', description: typed }, 'prompt', [])
     assert.ok(!('error' in opened), 'a card-less build should start')
     const built = (opened as { run: { sessionId: string } }).run.sessionId
@@ -210,8 +203,7 @@ describe('a build with no card', () => {
     fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
     await end(built)
     const live = listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!
-    assert.equal(live.aiReview, false, 'the card arriving must not turn review on')
-    assert.equal(live.landing?.status, 'waiting', 'it goes straight to landing, unreviewed')
+    assert.equal(live.landing?.status, 'waiting', 'it goes straight to landing')
 
     assert.equal(await advanceLanding(), null)
     assert.equal(statusOf(delivery.deliveryId), 'finished')
@@ -227,12 +219,10 @@ describe('a build with no card', () => {
     // Its checkout and its branch are named by the delivery — there is no card number.
     assert.equal(delivery.worktree, `.akb/worktrees/delivery/${delivery.deliveryId}`)
     assert.equal(delivery.branch, `delivery/${delivery.deliveryId}`)
-    // And nothing gates it: no review run reads the code.
-    assert.equal(delivery.aiReview, false)
 
     fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
     await end(built)
-    // The build itself finishes the delivery's work — it queues to land with no review.
+    // The build itself finishes the delivery's work — it queues to land.
     assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
 
     assert.equal(await advanceLanding(), null)
@@ -247,35 +237,11 @@ describe('a build with no card', () => {
       ['1-card.md', '2-card.md'],
     )
   })
-
-  it('is reviewed and landed by its own id when a landing has to be put back in motion', async () => {
-    const opened = openRun({ action: 'implement', description: typed }, 'prompt', [])
-    const built = (opened as { run: { sessionId: string } }).run.sessionId
-    const delivery = listDeliveries().find((d) => d.cardId === null && d.status === 'active')!
-    fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
-    await end(built)
-
-    // What `akb delivery review <delivery>` opens: a review run named by the delivery,
-    // never by a card there is none of.
-    const review = openRun(
-      { action: 'review', deliveryId: delivery.deliveryId, title: typed },
-      'prompt',
-      [],
-    )
-    assert.ok(!('error' in review), 'the review should join the delivery it names')
-    assert.equal(
-      listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!.sessions.length,
-      2,
-    )
-    await end((review as { run: { sessionId: string } }).run.sessionId)
-    assert.equal(await advanceLanding(), null)
-    assert.equal(statusOf(delivery.deliveryId), 'finished')
-  })
 })
 
 describe('one card at a time', () => {
   it('lands as one squash commit and takes the delivery with it', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
 
     assert.equal(await advanceLanding(), null)
@@ -295,7 +261,7 @@ describe('one card at a time', () => {
   })
 
   it('records the commit, the base it landed against and the check that let it', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     const before = git(['rev-parse', 'main'])
     await advanceLanding()
     const landing = landingOf(delivery.deliveryId)!
@@ -309,7 +275,7 @@ describe('one card at a time', () => {
   // straight past changes on paths the landed commit does not touch, and stops only where
   // it would write over one. Nothing here is ever committed, stashed or discarded for them.
   it('lands past the user\'s staged, unstaged and untracked work on other paths', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
+    const first = await builtCard(1, 'card one', 'one\n')
     fs.writeFileSync(path.join(root, 'staged.txt'), 'staged\n')
     git(['add', 'staged.txt'])
     fs.writeFileSync(path.join(root, 'mergeable.txt'), 'unstaged\n')
@@ -332,7 +298,7 @@ describe('one card at a time', () => {
   })
 
   it('waits, holding no slot, when landing would overwrite a change of the user\'s', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
+    const first = await builtCard(1, 'card one', 'one\n')
     fs.writeFileSync(path.join(root, 'shared.txt'), 'mine\n')
 
     assert.equal(await advanceLanding(), null)
@@ -345,7 +311,7 @@ describe('one card at a time', () => {
     assert.equal(git(['stash', 'list']), '')
 
     // Stashed, and the next pass lands it. (Committing instead moves the target branch, so
-    // that path rebases and reviews again — "a target branch that moved" below.)
+    // that path rebases first — "a target branch that moved" below.)
     git(['checkout', '--quiet', '--', 'shared.txt'])
     await advanceLanding()
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
@@ -354,7 +320,7 @@ describe('one card at a time', () => {
   })
 
   it('waits when the landed commit adds a path the user already has a file on', async () => {
-    const first = await reviewed(1, 'card one', 'one\n', 'fresh.txt')
+    const first = await builtCard(1, 'card one', 'one\n', 'fresh.txt')
     fs.writeFileSync(path.join(root, 'fresh.txt'), 'mine\n')
 
     assert.equal(await advanceLanding(), null)
@@ -378,7 +344,6 @@ describe('one card at a time', () => {
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n')
     fs.writeFileSync(path.join(dir, 'fresh.txt'), 'added\n')
     await end(built)
-    await passReview(1, 'card one')
     fs.writeFileSync(path.join(root, 'shared.txt'), 'mine\n')
     fs.writeFileSync(path.join(root, 'fresh.txt'), 'mine too\n')
 
@@ -401,7 +366,6 @@ describe('one card at a time', () => {
     fs.writeFileSync(path.join(dir, 'secret.env'), 'from the build\n')
     git(['add', '-f', 'secret.env'], dir)
     await end(built)
-    await passReview(1, 'card one')
     fs.writeFileSync(path.join(root, 'secret.env'), 'mine\n')
 
     assert.equal(await advanceLanding(), null)
@@ -421,7 +385,7 @@ describe('one card at a time', () => {
   // closes the config on the command, so their setting cannot reach their files.
   it('leaves the checkout alone even with merge.autoStash on', async () => {
     git(['config', 'merge.autoStash', 'true'])
-    const first = await reviewed(1, 'card one', 'one\n')
+    const first = await builtCard(1, 'card one', 'one\n')
     fs.writeFileSync(path.join(root, 'shared.txt'), 'mine\n')
 
     assert.equal(await advanceLanding(), null)
@@ -435,7 +399,7 @@ describe('one card at a time', () => {
   // would leave that working tree reading as a checkout full of changes nobody made, so the
   // fast-forward is run there instead — the same move, in the checkout it belongs to.
   it('fast-forwards the worktree the target branch is checked out in', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-elsewhere-'))
     git(['checkout', '--quiet', '-b', 'scratch'])
     git(['worktree', 'add', '--quiet', elsewhere, 'main'])
@@ -449,7 +413,7 @@ describe('one card at a time', () => {
   })
 
   it('lands over the board\'s own staged files, which never land themselves', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
+    const first = await builtCard(1, 'card one', 'one\n')
     git(['add', path.join('docs', 'kanban')])
     assert.notEqual(git(['diff', '--cached', '--name-only']), '')
 
@@ -461,7 +425,7 @@ describe('one card at a time', () => {
   })
 
   it('leaves the user\'s own checkout alone when the target is not the branch they have out', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     git(['checkout', '--quiet', '-b', 'scratch'])
 
     await advanceLanding()
@@ -475,8 +439,8 @@ describe('one card at a time', () => {
 
 describe('a target branch that moved', () => {
   it('warns about overlap, lands the first, and rebases the second', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    const first = await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     assert.equal(first.base, second.base)
 
     const wants = await advanceLanding()
@@ -490,43 +454,42 @@ describe('a target branch that moved', () => {
     assert.equal(wants?.id, 2)
   })
 
-  it('lands with no review when a clean rebase touches different files', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
+  it('rebases, then lands on the next pass, when a clean rebase touches different files', async () => {
+    const first = await builtCard(1, 'card one', 'one\n')
     // A second card that touches a different file rebases cleanly.
     const built = run('implement', 2, 'card two')
     const second = activeDelivery(2)!
     fs.writeFileSync(path.join(worktreeDir(second.worktree!), 'other.txt'), 'two\n')
     await end(built)
-    const review = run('review', 2, 'card two')
-    await end(review)
 
-    // Nothing the target brought in is a file this delivery changes, so the verdict it
-    // already has still covers the tree — one pass rebases and lands it.
+    // The pass that lands the first rebases the second, keeping the slot; the next lands it.
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.equal(landingOf(second.deliveryId)?.status, 'landing')
+    assert.equal(await advanceLanding(), null)
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.status, 'landed')
     assert.equal(landing.attempts, 1)
     assert.equal(landing.rebaseKind, 'disjoint')
     assert.equal(landing.rebasedFrom, first.base)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
-    // The one review it ever needed is the one it passed in its worktree.
+    // The one check it ever needed is the build it finished in its worktree.
     assert.equal(landing.checks?.length, 1)
   })
 
-  it('lands with no review when a clean rebase touches the same file', async () => {
+  it('rebases and lands, asking nothing, when a clean rebase touches the same file', async () => {
     const base = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`)
     const firstText = [...base]
     firstText[1] = 'first changed this'
     const secondText = [...base]
     secondText[18] = 'second changed this'
-    const first = await reviewed(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
-    const second = await reviewed(2, 'card two', `${secondText.join('\n')}\n`, 'mergeable.txt')
+    const first = await builtCard(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
+    const second = await builtCard(2, 'card two', `${secondText.join('\n')}\n`, 'mergeable.txt')
 
-    // Git composed both edits by itself, so the verdict this delivery already has still
-    // covers the tree — sharing a file is no longer a reason to judge it again (#665).
+    // Git composed both edits by itself, so sharing a file is no reason to stop (#665).
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.equal(await advanceLanding(), null)
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.status, 'landed')
     assert.equal(landing.attempts, 1)
@@ -534,17 +497,16 @@ describe('a target branch that moved', () => {
     assert.equal(landing.rebaseKind, 'overlap')
     assert.equal(landing.rebasedFrom, first.base)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
-    // The one review it ever needed is the one it passed in its worktree.
+    // The one check it ever needed is the build it finished in its worktree.
     assert.equal(landing.checks?.length, 1)
   })
 
   it('lands even when the file comparison cannot be read', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
+    const first = await builtCard(1, 'card one', 'one\n')
     const built = run('implement', 2, 'card two')
     const second = activeDelivery(2)!
     fs.writeFileSync(path.join(worktreeDir(second.worktree!), 'other.txt'), 'two\n')
     await end(built)
-    await passReview(2, 'card two')
     // Git cannot say which files either side changed, because the ref the comparison names
     // is not there.
     withStore((store) => {
@@ -555,12 +517,13 @@ describe('a target branch that moved', () => {
     // made — and the rebase git composed without a conflict lands all the same (#665).
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
-    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
     assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'overlap')
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
   })
 
   it('waits and retries, rather than asking, when the target moves under the move', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     // Off main, so the landing moves the ref rather than fast-forwarding a checkout — and
     // the ref move is the write that loses the race.
     git(['checkout', '--quiet', '-b', 'scratch'])
@@ -580,41 +543,42 @@ describe('a target branch that moved', () => {
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
 
-    // The wait is over: it replays onto the new tip and lands, with no review in between.
+    // The wait is over: it replays onto the new tip, and the next pass lands it.
     retryOver(delivery.deliveryId)
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landing')
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
     assert.equal(landingOf(delivery.deliveryId)?.retryAt, undefined)
     assert.deepEqual(log(), ['card one (#1)', 'someone else', 'start'])
   })
 
-  it('waits rather than rebasing twice in one pass', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+  it('rebases once per pass, and replays again when the target moved in between', async () => {
+    const delivery = await builtCard(1, 'card one', 'one\n')
     // Someone else commits first, so this pass has to rebase — and main moves again the
-    // moment that rebase finishes, so the pass's second look finds the target gone once more.
+    // moment that rebase finishes.
     fs.writeFileSync(path.join(root, 'other.txt'), 'someone else\n')
     git(['add', '-A'])
     git(['commit', '--quiet', '-m', 'someone else'])
     raceOn('--onto', 'after')
 
     assert.equal(await advanceLanding(), null)
-    const landing = landingOf(delivery.deliveryId)!
-    assert.equal(landing.status, 'waiting')
-    assert.equal(landing.attempts, 1, 'one rebase per pass, and the next one is a wait away')
-    assert.ok(landing.retryAt! > Date.now())
-    assert.equal(stageOf(delivery.deliveryId), 'retry')
+    assert.equal(landingOf(delivery.deliveryId)?.attempts, 1, 'one rebase per pass')
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landing')
 
-    retryOver(delivery.deliveryId)
+    // The next pass finds the target gone again, replays once more, and the one after lands.
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.attempts, 2)
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
   })
 })
 
 describe('queued behind the slot', () => {
-  // The slot's holder, stopped for the review its overlapping rebase owes — so it keeps the
-  // slot across every pass, which is exactly when a waiter is never looked at.
+  // The slot's holder, stopped on a conflict an agent is resolving — so it keeps the slot
+  // across every pass, which is exactly when a waiter is never looked at.
   async function holdTheSlot(): Promise<{ first: DeliveryRecord; session: string }> {
-    const first = await reviewed(1, 'card one', 'card one\n')
+    const first = await builtCard(1, 'card one', 'card one\n')
     // Someone else changed the same lines, so the rebase stops on a conflict and an agent
     // opens on it — a run of its own, which holds the slot across every pass.
     fs.writeFileSync(path.join(root, 'shared.txt'), 'someone else\n')
@@ -631,7 +595,6 @@ describe('queued behind the slot', () => {
     const second = activeDelivery(2)!
     fs.writeFileSync(path.join(worktreeDir(second.worktree!), 'other.txt'), 'two\n')
     await end(built)
-    await passReview(2, 'card two')
     return second
   }
 
@@ -669,9 +632,8 @@ describe('queued behind the slot', () => {
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'someone else\ncard one\n')
     git(['add', 'shared.txt'], dir)
     await end(session)
-    assert.equal((await advanceLanding())?.action, 'review')
-    await passReview(1, 'card one')
-    await advanceLanding()
+    assert.equal(await advanceLanding(), null)
+    assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
     assert.doesNotMatch(landingOf(second.deliveryId)?.why ?? '', /^in line behind/)
   })
@@ -693,16 +655,16 @@ describe('queued behind the slot', () => {
 
 describe('a conflict', () => {
   it('allows only one concurrent landing pass in this process', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    await builtCard(2, 'card two', 'two\n')
     const requests = await Promise.all([advanceLanding(), advanceLanding()])
     assert.equal(requests.filter((r) => r?.action === 'conflict').length, 1)
     assert.equal(requests.filter((r) => r === null).length, 1)
   })
 
   it('leaves another process’s rebase alone, including during startup recovery', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     await advanceLanding()
     const dir = worktreeDir(second.worktree!)
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\ntwo\n')
@@ -729,17 +691,18 @@ describe('a conflict', () => {
       child.kill()
       await exited
     }
-    // The dead owner leaves its lock behind; the next pass recovers it.
-    assert.equal((await advanceLanding())?.action, 'review')
+    // The dead owner leaves its lock behind; the next pass recovers it and finishes the
+    // rebase, and the one after lands.
+    assert.equal(await advanceLanding(), null)
     assert.equal(fs.existsSync(lock), false)
-    await passReview(2, 'card two')
-    await advanceLanding()
+    assert.equal(rebaseInProgress(dir), false)
+    assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(second.deliveryId)?.status, 'landed')
   })
 
-  it('is resolved by a session and reviewed again before landing', async () => {
-    const first = await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+  it('is resolved by a session, and the next pass lands it', async () => {
+    const first = await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     assert.equal((await advanceLanding())?.action, 'conflict')
 
     const dir = worktreeDir(second.worktree!)
@@ -748,39 +711,13 @@ describe('a conflict', () => {
     git(['add', 'shared.txt'], dir)
     await end(session)
 
-    // The board finishes the rebase, then reviews the composed tree before landing it. A
-    // resolved conflict names itself rather than reading as an ordinary rebase (#417).
-    const wants = await advanceLanding()
-    assert.equal(wants?.action, 'review')
-    assert.equal(wants?.id, 2)
-    assert.equal(wants?.trigger, 'conflict')
+    // The board finishes the rebase, holding the slot, and the next pass lands the composed
+    // tree — nothing reviews it first (#1203).
+    assert.equal(await advanceLanding(), null)
     assert.equal(rebaseInProgress(dir), false)
-
-    // And that review is briefed on the intersection, not on the delivery all over again.
-    const sink = startCollecting()
-    try {
-      printFlow({ action: 'review', id: 2, title: 'card two' })
-    } finally {
-      stopCollecting()
-    }
-    const brief = sink.out.join('\n')
-    assert.match(brief, /focused post-rebase review after a conflict an agent resolved/)
-    assert.match(brief, /shared paths?: shared\.txt/)
-    assert.match(brief, /target delta: `git diff /)
-    assert.match(brief, /patch omitted for this focused rebase review/)
-    assert.doesNotMatch(brief, /build THIS, not the card file/)
-    // And so is the ask: it never claims the print carries the approved requirements.
-    assert.match(brief, /Judge only how those changes interact/)
-    assert.doesNotMatch(brief, /supplies the approved requirements/)
-
-    // If the caller dies before starting that review, another landing tick cannot reuse the
-    // verdict from before the rebase.
-    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'conflict')
     assert.equal(landingOf(second.deliveryId)?.status, 'landing')
-    await passReview(2, 'card two')
     assert.equal(await advanceLanding(), null)
-
-
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\ntwo\n')
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
@@ -788,8 +725,8 @@ describe('a conflict', () => {
   })
 
   it('waits before reopening an unresolved conflict, and never asks the user', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     await advanceLanding()
 
     await end(run('conflict', 2, 'card two'), 'error')
@@ -822,9 +759,9 @@ describe('a conflict', () => {
 
   it('gives the landing slot up while it waits, and says so rather than "in line"', async () => {
     write(3, 'card three')
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
-    const third = await reviewed(3, 'card three', 'three\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
+    const third = await builtCard(3, 'card three', 'three\n')
     await advanceLanding()
     await end(run('conflict', 2, 'card two'), 'error')
 
@@ -851,12 +788,14 @@ describe('a conflict', () => {
 
   it('lets a disjoint delivery land while a conflict waits', async () => {
     write(3, 'card three')
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
-    const third = await reviewed(3, 'card three', 'three\n', 'mergeable.txt')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
+    const third = await builtCard(3, 'card three', 'three\n', 'mergeable.txt')
     await advanceLanding()
     await end(run('conflict', 2, 'card two'), 'error')
 
+    // The third rebases past the waiting conflict, and lands on the pass after.
+    assert.equal(await advanceLanding(), null)
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(third.deliveryId)?.status, 'landed')
     assert.equal(landingOf(second.deliveryId)?.status, 'waiting')
@@ -864,8 +803,8 @@ describe('a conflict', () => {
   })
 
   it('clears the wait and the failure count once the rebase goes through', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     await advanceLanding()
     await end(run('conflict', 2, 'card two'), 'error')
     assert.equal(await advanceLanding(), null)
@@ -878,19 +817,18 @@ describe('a conflict', () => {
     git(['add', 'shared.txt'], dir)
     await end(session)
 
-    assert.equal((await advanceLanding())?.action, 'review')
+    assert.equal(await advanceLanding(), null)
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.conflictFails, undefined)
     assert.equal(landing.conflictAt, undefined)
     assert.equal(landing.conflictFiles, undefined)
-    await passReview(2, 'card two')
-    await advanceLanding()
+    assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(second.deliveryId)?.status, 'landed')
   })
 
   it('leaves a rebase between two attempts alone as the board comes up', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     await advanceLanding()
     const dir = worktreeDir(second.worktree!)
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n<<<<<<< still conflicted\n')
@@ -902,9 +840,9 @@ describe('a conflict', () => {
     assert.equal(landingOf(second.deliveryId)?.conflictFails, 1)
   })
 
-  it('hands damaged rebase state back to the agent and reviews after recovery', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+  it('hands damaged rebase state back to the agent and lands after recovery', async () => {
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     await advanceLanding()
     const dir = worktreeDir(second.worktree!)
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\ntwo\n')
@@ -928,9 +866,8 @@ describe('a conflict', () => {
     }
     assert.match(sink.out.join('\n'), /head-name/)
     fs.writeFileSync(headName, saved)
-    assert.equal((await advanceLanding())?.action, 'review')
-    await passReview(2, 'card two')
-    await advanceLanding()
+    assert.equal(await advanceLanding(), null)
+    assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(second.deliveryId)?.status, 'landed')
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\ntwo\n')
   })
@@ -938,8 +875,8 @@ describe('a conflict', () => {
 
 describe('picking up after a crash', () => {
   it('puts an interrupted rebase back and lets the landing try again', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     await advanceLanding()
     const dir = worktreeDir(second.worktree!)
     assert.equal(rebaseInProgress(dir), true)
@@ -969,7 +906,7 @@ describe('work that is already on the target branch', () => {
   }
 
   it('ends the delivery on the commit that carries it, and lands nothing', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     const carrier = alsoOnMain('one\n')
 
     assert.equal(await advanceLanding(), null)
@@ -986,7 +923,7 @@ describe('work that is already on the target branch', () => {
   })
 
   it('archives the card and clears the checkout up after it (#720)', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     alsoOnMain('one\n')
     await advanceLanding()
     assert.equal(fs.existsSync(cardPath(1)), false, 'the card is archived')
@@ -997,8 +934,8 @@ describe('work that is already on the target branch', () => {
   })
 
   it('settles a delivery stopped on a landing conflict instead of resolving it again', async () => {
-    await reviewed(1, 'card one', 'one\n')
-    const second = await reviewed(2, 'card two', 'two\n')
+    await builtCard(1, 'card one', 'one\n')
+    const second = await builtCard(2, 'card two', 'two\n')
     // The first lands, so the second meets a conflict on the same file.
     await advanceLanding()
     assert.equal(rebaseInProgress(worktreeDir(second.worktree!)), true)
@@ -1016,10 +953,11 @@ describe('work that is already on the target branch', () => {
   })
 
   it('lands the ordinary way when what the delivery built is not there', async () => {
-    const delivery = await reviewed(1, 'card one', 'one\n')
+    const delivery = await builtCard(1, 'card one', 'one\n')
     // Main moved on, but not to what this delivery built — so the check must not hold.
     alsoOnMain('a line of its own\n', 'mergeable.txt')
 
+    assert.equal(await advanceLanding(), null)
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\n')

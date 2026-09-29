@@ -25,7 +25,6 @@ const zh: MessagesCopy = {
   },
   tooOld: {
     autoDelivery: "这个看板的运行规则早于自动交付——请运行 `npm install -g ai4kanban`。",
-    aiReview: "这个看板的运行规则早于交付评审设置——请运行 `npm install -g ai4kanban`。",
     silenceLimit: "这个看板的运行规则早于静默上限——请运行 `npm install -g ai4kanban`。",
     deliveries: "这个看板的运行规则早于交付流程——请运行 `npm install -g ai4kanban`。",
     worktrees: "这个看板的运行规则早于交付 worktree——请运行 `npm install -g ai4kanban`。",
@@ -103,7 +102,7 @@ const zh: MessagesCopy = {
     proSignIn: (a) => `“${a.name}”需要 Pro，请先登录。`,
     proRequired: (a) => `“${a.name}”需要 Pro。`,
     proUnconfirmed: () => "无法确认 Pro 方案，联网后重试。",
-    noReviewers: () => "此交付的工作流未设置评审 Agent，将直接交付构建结果，无需评审。",
+    buildWaits: () => "这张卡片还有事情需要你处理，处理完再开始构建。",
     cloudUnreachable: () =>
       "无法连接 Cloud，运行未启动。运行需要访问工作区，不能使用这台电脑上留存的副本；请在看板恢复连接后重试。",
     cardHeld: (a) => `${a.details} 请等待占用结束，或先处理其他卡片。`,
@@ -126,7 +125,6 @@ const zh: MessagesCopy = {
     workflowBuiltInChange: (a) => `“${a.name}”是内置工作流，请先复制，再进行修改。`,
     workflowBuiltInDelete: (a) => `“${a.name}”是内置工作流，不能删除。`,
     workflowBuiltInLeads: (a) => `“${a.name}”是内置工作流，主导 Agent 不可更改。请先复制，再重新分配。`,
-    reviewNoLead: () => "评审阶段只设置评审 Agent，不设置主导 Agent。",
     agentNotFound: (a) => `看板中没有 ${a.agent} Agent。`,
     agentCannotLead: (a) => `${a.agent} 属于${a.assigned}阶段，不能主导${a.stage}阶段。`,
     agentNotLead: (a) => `${a.agent} 仅支持协助，不能主导阶段。`,

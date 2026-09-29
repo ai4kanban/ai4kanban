@@ -21,18 +21,17 @@ import {
 } from '../agents'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery, deliveryFor, findDelivery, withWorkflow } from './deliveries'
-import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
-import { DEFAULT_WORKFLOW, frozenReviewers, liveStage, workflowById, workflowFor } from './workflows'
+import { DEFAULT_WORKFLOW, liveStage, workflowById, workflowFor } from './workflows'
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
 import { migrateFlowRules, ruleBlock } from './rules'
 import type { AgentAction, AgentRequest } from './types'
-import { SPECIALIST_ACTIONS } from './types'
+import { isRetired, SPECIALIST_ACTIONS } from './types'
 
 // What a resumed run says. The coding agent's own session is already there — the card, the
 // work done, the error it died on — so this is the "continue" you would type in the
@@ -62,7 +61,7 @@ const DELIVERY_RESUME_CARD = `Build the card as the delivery holds it, not as th
 /** Resume the same action; only implementation receives build requirements. */
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null, action: AgentAction): string {
   if (!deliveryId) return RESUME_PROMPT
-  if (action === 'review' || action === 'conflict') {
+  if (action === 'conflict') {
     return `${RESUME_PROMPT} Continue with \`${boardCommandFor(cardId ?? undefined)} delivery ${action} ${deliveryId} --print\`.`
   }
   if (action !== 'implement') return RESUME_PROMPT
@@ -104,11 +103,8 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'run',
   'clarify',
   'resolve',
-  'decide',
-  'writing',
   'archive',
   'spec',
-  'review',
   'conflict',
 ])
 
@@ -193,7 +189,6 @@ function helperExtra(req: AgentRequest): string {
 const WORKFLOW_OF_STAGE: Partial<Record<Stage, WorkflowStage>> = {
   plan: 'plan',
   build: 'execute',
-  review: 'review',
 }
 
 // The `--workflow` a create is told to pass. Nothing on the default: a card written without
@@ -260,9 +255,6 @@ function pictureNote(req: AgentRequest): string {
  *  this run is not part of one. A delivery's runs work to the rules it started with, the
  *  way they build the card it started with. */
 export function frozenRules(req: AgentRequest): Record<string, string> | undefined {
-  if (req.action === 'spec' && req.id !== undefined && findSpecAgent(req.specAgent ?? '')?.stage === 'review') {
-    return activeDelivery(req.id)?.rules
-  }
   return deliveryFor(req)?.rules
 }
 
@@ -279,9 +271,8 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 // It goes after everything else because it is a block and the rest is prose.
 const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
 
-// What the gater and the decider are given on top of the card (#493). Both stand in for the
-// user rather than writing one card, so both read the whole board — the goal, and every
-// module's decisions and rejections — and neither writes a line of it back.
+// What a reflection judges against on top of the card (#534): the whole board's goal and
+// every module's decisions and rejections, none of which it writes back.
 const boardMemory = (): string => [rel(GOAL), ...planningMemoryFiles()].join(', ')
 
 // Where a completed card is now (#534). Named outright rather than left to a search: the
@@ -311,34 +302,7 @@ export function buildRun(req: AgentRequest): { prompt: string; notes: string[] }
   return { prompt: buildPrompt(req, notes), notes }
 }
 
-// One reviewer, printed inside the review that picked it (#820): its instructions, and what
-// the delivery's workflow asks of it on top.
-function reviewerPrompt(req: AgentRequest, agent: SpecAgent, kb: string, named: string, notes: string[]): string {
-  const own = specAgentInstructions(agent)
-  notes.push(...own.notes)
-  const memory = agentMemoryBlock(agent)
-  const delivery = req.id === undefined ? undefined : activeDelivery(req.id)
-  const extra = frozenReviewers(delivery?.workflow).find((h) => h.agent === agent.name)?.extra.trim()
-  return [
-    [
-      `${kb}. You are the \`${agent.name}\` reviewer on the delivery in flight on task ${req.id} ${named}.`,
-      `Review it by your instructions below, in the review run that picked you, and give your verdict before the next reviewer starts.`,
-      `Keep your memory as **Memory** in \`akb guide spec-agent\` says.`,
-      req.notes ? `What the review wants looked at: ${req.notes}` : '',
-      `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
-    ]
-      .filter(Boolean)
-      .join(' '),
-    `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}`,
-    own.files ? `——— your own files ———\n\n${own.files}` : '',
-    memory ? `——— what you remember ———\n\n${memory}` : '',
-    extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-}
-
-/** What a review or a conflict run is aimed at, and what its flow is typed with: the card
+/** What a conflict run is aimed at, and what its flow is typed with: the card
  *  where there is one, the delivery itself where there is not (#428). */
 function deliveryAim(
   req: AgentRequest,
@@ -373,8 +337,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   const kb = skillCall(agentForRun(req), req.runtime)
   const tag = req.id ? `#${req.id}` : ''
   const named = req.title ? `${tag} ("${req.title}")` : tag
-  // Retired (#438): nothing starts a propose any more, so there is no ask left to write.
-  if (req.action === 'propose') return ''
+  // Retired (#438, #1203): nothing starts these any more, so there is no ask left to write.
+  if (isRetired(req.action)) return ''
   switch (req.action) {
     // A build that writes its own card (#470): the typed sentence IS the requirement, so it
     // is quoted here rather than pointed at, and the run's first act is the card it holds.
@@ -454,7 +418,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'edit':
       return [
         `${kb}. Revise task ${req.id} ${named}: "${req.notes || ''}" ${NO_IMPLEMENT}`,
-        `Apply the requested change following \`akb guide revise\`, then validate the updated plan following \`akb guide qa-lightweight\`.`,
+        `Apply the requested change following \`akb guide revise\`.`,
         `You can create new subtasks if it's a group task and the intent is to do so.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
@@ -508,9 +472,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'clarify': {
-      const qaGuide = req.refineEffort === 'lightweight' ? 'qa-lightweight' : 'qa-loop'
       return [
-        `${kb}. Finish planning QA for task ${req.id} ${named} following \`akb guide ${qaGuide}\`.`,
+        `${kb}. Plan task ${req.id} ${named} in this one session following \`akb guide refine\`.`,
         // A refine has no note box of its own, but one SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user
         // wanted it to wait — so it has to reach the run when it finally fires.
@@ -589,7 +552,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // Inject the shared contract, specialty instructions, and selected references.
     case 'spec': {
       const agent = findSpecAgent(req.specAgent ?? '')
-      if (agent?.stage === 'review') return reviewerPrompt(req, agent, kb, named, notes)
       const found = req.id === undefined ? null : locate(req.id)
       const cardFile = found ? rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target) : `task #${req.id}`
       // The one read of what this agent is set to, taken as the run starts and frozen for it
@@ -636,46 +598,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         .filter(Boolean)
         .join('\n\n')
     }
-    // Judging a delivery's work (#302). Nothing here says what the card wants or what the
-    // diff holds: both are on the board, the flow prints them, and a copy pasted in here
-    // would be this file's reading of them. What it DOES say is the one rule a fresh run
-    // cannot work out for itself — you did not build this, so do not go looking for the
-    // run that did.
-    case 'review':
-      // A rebase put the target's own changes beside work that already passed (#415). The
-      // ask has to say so, or the run goes looking for approved requirements the flow
-      // deliberately leaves out and judges the delivery a second time.
-    {
-      // What this review is aimed at. A build with no card is named by its delivery — the
-      // only name it has — and has no card to append a question to (#428), so it says what
-      // to do instead of naming one.
-      const delivery = deliveryFor(req)
-      const aim = deliveryAim(req, delivery)
-      // A files delivery (#874) lands nothing: it is done once its recorded files pass.
-      const files = delivery?.commitMode === 'files'
-      const blocks = files ? 'blocks completion' : 'blocks landing'
-      const defer = req.id === undefined
-        ? `If a genuine user decision still ${blocks}, say so in your last message and stop; there is no card to write it on.`
-        : `If a genuine user decision still ${blocks}, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`
-      if (owesFocusedReview(delivery)) {
-        return [
-          `${kb}. ${aim.subject} is landing, and an agent resolved a conflict between it and the target branch — a composed result nothing has judged, on a delivery that already passed review.`,
-          `\`${command} delivery review ${aim.arg} --print\` names the target delta and the paths both changed.`,
-          `You did not build this. Do not read the run that wrote it.`,
-          `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Pick the reviewers those paths need and review as each of them. ${defer}`,
-          `Don't ask me questions with human-in-the-loop.`,
-        ].join(' ')
-      }
-      return [
-        `${kb}. Review ${aim.subject} — judge what the delivery in flight on it has built against what it was approved to build, following \`akb guide review\`.`,
-        files
-          ? `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, the output files the card records and the reviewers.`
-          : `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, changed-file summary, small diff and the reviewers.`,
-        `You did not build this. Do not read the run that wrote it.`,
-        `Pick the reviewers ${files ? 'these files need' : 'this diff needs'} and review as each of them. ${defer}`,
-        `Don't ask me questions with human-in-the-loop.`,
-      ].join(' ')
-    }
     // The flow supplies conflict facts; the guide owns the procedure.
     case 'conflict': {
       const aim = deliveryAim(req, deliveryFor(req))
@@ -687,41 +609,15 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     }
     case 'resolve':
       return [
-        `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`, then validate the updated plan following \`akb guide qa-lightweight\`.`,
+        `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,
         answeredNote(req.id, command),
         req.notes ? `Extra notes: ${req.notes}` : '',
         req.andImplement
-          ? `Continue into implementation only if applying the answers leaves no open question.`
+          ? `Then build it in this session, as the flow's handover says — only if applying the answers leaves no open question.`
           : '',
       ]
         .filter(Boolean)
         .join(' ')
-    // The decider answering for the user (#447). It is `resolve` with the choosing done
-    // here, so the ask names the same job and adds the two rules that make it a decide: it
-    // never hands the card back, and nothing it chooses becomes a lasting decision.
-    case 'decide':
-      return [
-        `${kb}. Answer the open questions on task ${req.id} ${named} in my place, following \`akb guide decide\`.`,
-        answeredNote(req.id, command),
-        `You are standing in for me: leave no \`[user]\` question open, and do not hand the card back.`,
-        `Choose from ${boardMemory()}, and from each question's own options and recommendation on the card.`,
-        `Record every choice with \`${command} raw update-decided\`, and write no lasting decision anywhere.`,
-        `Don't ask me questions with human-in-the-loop, and raise no new question.`,
-      ]
-        .filter(Boolean)
-        .join(' ')
-    // The gater's verdict (#440, #493). It is a verdict, not a pass over the card: the whole
-    // of what it may write is one `[user]` question, and finishing with the card untouched IS
-    // the other answer. Nothing here says what the card should say — that is `akb guide
-    // writing`, which it is sent to read — and nothing here says to start the build: the
-    // board does that, so a gate that judged well cannot also start the wrong thing.
-    case 'gate':
-      return [
-        `${kb}. Judge task ${req.id} ${named} following \`akb guide gate\` — is it clear enough to build with nobody watching?`,
-        `Judge it as I would: on top of the card, read ${boardMemory()}, and \`akb guide writing\` — the bar the card is held to.`,
-        `Change nothing else: you are not refining this card, you write no memory, and a clean finish is how you say "build it".`,
-        `Don't ask me questions with human-in-the-loop — the one question you append to the card is how you defer to me.`,
-      ].join(' ')
     // Settling a card that sat too long (#118). It is a verdict on one card, so the ask says
     // the two ways to give one and the line that separates this from a refine: what it may
     // not do is research the card into a better plan or hand it on to anybody.
@@ -731,14 +627,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Judge how much of it is already done and whether the rest is still worth the effort, then keep it — rewritten for the project as it stands today, under a dated ## By \`sweeper\` agent note — or discard it with \`${command} raw reject ${req.id} --discard\`.`,
         `Change only what you can show is out of date: this is not a refine, so run no planning QA, touch no \`- [x]\` todo, and set no status by hand.`,
         `Don't ask me questions with human-in-the-loop, and raise no new question — the verdict is the whole of what you leave behind.`,
-      ].join(' ')
-    case 'writing':
-      return [
-        `${kb}. Improve the writing of task ${req.id} ${named} following \`akb guide writing\`.`,
-        `This is already the writing session: do not start \`revise\` or \`refine\`, and do not change the card's status. The board marks it ready when this session succeeds.`,
-        `Preserve the settled plan exactly. Do not research, replan, or raise questions.`,
-        NO_IMPLEMENT,
-        `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
   }
 }

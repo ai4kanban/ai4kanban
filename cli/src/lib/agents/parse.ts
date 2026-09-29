@@ -104,6 +104,9 @@ export function parseSpecAgent(
   // in for the other — so a new agent says one thing and no file already on a board has to
   // be edited.
   const declaredStage = str(akb.stage)
+  if (declaredStage === 'review') {
+    return bad(`\`${name}\` declares \`akb.stage: review\`, and builds are no longer reviewed — delete this agent or give it another stage`)
+  }
   if (declaredStage && !isStage(declaredStage)) {
     return bad(`\`${name}\` declares \`akb.stage: ${declaredStage}\` — a stage is \`${WORKFLOW_STAGES.join('` or `')}\``)
   }

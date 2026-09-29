@@ -143,7 +143,7 @@ describe("a human-facing agent's own section (#868)", () => {
   })
 })
 
-async function fakeRun(repairable: boolean, action: AgentAction = 'writing') {
+async function fakeRun(repairable: boolean, action: AgentAction = 'clarify') {
   const script = path.join(root, 'fake-agent.cjs')
   fs.writeFileSync(script, `
     const fs = require('node:fs');
@@ -182,13 +182,13 @@ async function watchWithResume(id: string): Promise<string> {
 }
 
 describe('run completion validation', () => {
-  it('returns errors to the agent and only marks writing ready after a successful repair', async () => {
+  it('returns errors to the agent, and a repaired run finishes', async () => {
     const id = await fakeRun(true)
     const last = await watchWithResume(id)
     const prompts = fs.readFileSync(path.join(root, 'prompts.log'), 'utf8').trim().split('\n').map((line) => JSON.parse(line) as string)
     assert.equal(prompts.length, 2)
     assert.match(prompts[1]!, /1-feature.md:\d+ \[section-name\]/)
-    assert.match(fs.readFileSync(file, 'utf8'), /status: ready/)
+    assert.match(fs.readFileSync(file, 'utf8'), /## Scope/)
     assert.equal(peekRun(last)?.status, 'done')
     assert.equal(peekRun(last)?.costUsd, 0.1)
     assert.equal(peekRun(last)?.usage?.input, 10)

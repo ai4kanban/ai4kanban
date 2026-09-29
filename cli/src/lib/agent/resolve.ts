@@ -880,8 +880,7 @@ export function agentInfo(): AgentInfo {
     // Which agent runs each flow, and what that agent runs here — worked out once so no
     // screen and no second command keeps a list that could say something else.
     flows: FLOWS.map((flow) => {
-      // A review spawns as its first reviewer; the lead that picks them is hidden (#820).
-      const agent = (flow.action === 'review' ? agentForRun({ action: 'review' }) : roleForFlow(flow.command)?.name) ?? ''
+      const agent = roleForFlow(flow.command)?.name ?? ''
       return { command: flow.command, path: flowPath(flow), agent, harness: harnessOf(agent) }
     }),
     unknownName,

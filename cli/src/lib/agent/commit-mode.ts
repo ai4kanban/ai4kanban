@@ -1,9 +1,9 @@
 // How a delivery commits, and everything that follows from it (#303, #346).
 //
 // With a worktree of its own a delivery builds on a branch of its own, several run at once,
-// and the board commits each session's work so review reads a settled tree. Without one it
+// and the board commits each session's work so what lands is a settled tree. Without one it
 // takes MANUAL COMMIT MODE: it works in the user's own checkout, one delivery at a time, and
-// the user commits after review has passed.
+// the user commits once the build is done.
 //
 // The Implement dialog's tick picks the side, one build at a time (#346). **Allow automatic
 // Git commits** is the repository-level default the tick starts from and what a request that
@@ -32,9 +32,9 @@ import {
 } from '../paths'
 import { candidateOf, candidateDiff } from './candidate'
 import { plannedTodos } from './outputs'
-import { aiReviewEnabled, autoCommitAllowed } from './settings'
+import { autoCommitAllowed } from './settings'
 import { readStore } from './store'
-import { cardWorkflow, workflowReviewers, type WorkflowHelper } from './workflows'
+import { cardWorkflow } from './workflows'
 import type { DeliveryPlan } from '../view/types'
 import type { DeliveryCommitMode, DeliveryRecord, RunRefusal } from './types'
 import {
@@ -101,9 +101,6 @@ export interface DeliveryStart {
   /** Why it is in manual mode when nothing could have chosen otherwise — no git, no commit
    *  to fork from, or a detached HEAD. Absent when the setting or the dialog's tick chose it. */
   manualWhy?: string
-  /** Whether a fresh session reviews what this delivery builds (#416), read from the
-   *  setting or the dialog's tick here and never again. */
-  aiReview: boolean
   /** `files` only: what was already changed, and planned, when it started. */
   touched?: Record<string, string>
   planned?: string[]
@@ -144,11 +141,10 @@ function noWorktreeWhy(): string | undefined {
  *  never written. */
 export function deliveryPlan(cardId?: number): DeliveryPlan {
   const manualWhy = noWorktreeWhy()
-  const aiReview = aiReviewEnabled() && (cardId === undefined || workflowReviewersOfCard(cardId).length > 0)
   if (cardId !== undefined && cardWorkflow(cardId)?.needsArtifact) {
-    return { commitMode: 'files', canChooseWorktree: false, aiReview }
+    return { commitMode: 'files', canChooseWorktree: false }
   }
-  if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false, aiReview }
+  if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false }
   return {
     commitMode: autoCommitAllowed() ? 'auto' : 'manual',
     branch: currentBranch() ?? undefined,
@@ -157,22 +153,15 @@ export function deliveryPlan(cardId?: number): DeliveryPlan {
     // path has always read the checkout by. It says nothing about whether the build may
     // start (#958); it is only what the dialog adds a clause for.
     localChanges: dirtyPaths(false).length > 0,
-    aiReview,
   }
-}
-
-const workflowReviewersOfCard = (cardId: number): WorkflowHelper[] => {
-  const flow = cardWorkflow(cardId)
-  return flow ? workflowReviewers(flow) : []
 }
 
 /** Get a delivery ready to start on this card: decide the mode, refuse what can't start,
  *  and make its worktree.
  *
- *  `wants` and `wantsReview` are the Implement dialog's two ticks — this one build's
- *  answers (#346, #416). A request that says nothing falls back to **Automatic Git commits**
- *  and **AI review**, which is every other way in: a terminal `akb card implement`, a queued
- *  build, a resolve that carries on.
+ *  `wants` is the Implement dialog's tick — this one build's answer (#346). A request that
+ *  says nothing falls back to **Automatic Git commits**, which is every other way in: a
+ *  terminal `akb card implement`, a queued build, a planning run that carries on.
  *
  *  Called before the record is written and before anything spawns, so a refusal costs
  *  nothing and a delivery is never written down half-made. Whatever it made is undone by
@@ -180,17 +169,9 @@ const workflowReviewersOfCard = (cardId: number): WorkflowHelper[] => {
 export function prepareDelivery(
   cardId: number | null,
   wants?: DeliveryCommitMode,
-  wantsReview?: boolean,
 ): { start: DeliveryStart } | RunRefusal {
   const deliveryId = newDeliveryId()
-  // The other tick (#416), settled here for the same reason and read from the record
-  // afterwards — so a resume follows the policy this build started with. A build with no
-  // card is never reviewed (#428): that is the check it exists to skip, so it is forced off
-  // here rather than left to a setting or a caller.
   const gated = cardId !== null
-  // A workflow with no reviewers is never reviewed, whatever was asked (#820).
-  const reviewers = gated ? workflowReviewersOfCard(cardId) : []
-  const aiReview = gated && reviewers.length > 0 ? wantsReview ?? aiReviewEnabled() : false
   const base = inGitRepo() ? headCommit() : null
   if (gated && cardWorkflow(cardId)?.needsArtifact) {
     return {
@@ -198,7 +179,6 @@ export function prepareDelivery(
         deliveryId,
         commitMode: 'files',
         base: base ?? undefined,
-        aiReview,
         touched: base ? trackedChanges() : undefined,
         planned: plannedTodos(cardId),
       },
@@ -214,7 +194,7 @@ export function prepareDelivery(
     const refusal = manualRefusal(cardId, !!base)
     if (refusal) return refusal
     return {
-      start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, aiReview },
+      start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy },
     }
   }
 
@@ -242,7 +222,6 @@ export function prepareDelivery(
       targetBranch,
       worktree: made.worktree,
       branch: made.branch,
-      aiReview,
     },
   }
 }
@@ -270,7 +249,7 @@ function manualRefusal(cardId: number | null, hasBase: boolean): RunRefusal | un
   }
   if (!hasBase) return undefined
   // Untracked files count here, unlike a delivery bound for a worktree: this one works in
-  // the very checkout review reads, so a file already sitting there would be read as the
+  // the very checkout the build writes, so a file already sitting there would be read as the
   // delivery's own work.
   const dirty = dirtyPaths(true)
   if (dirty.length) return dirtyRefusal(dirty)
@@ -319,12 +298,12 @@ function subject(title: string): string {
  *  Nothing to do in manual commit mode: there the commit is the user's, which is the whole
  *  of what the mode means. Returns the reason when the work could not be committed — a
  *  change that reached the board's own files, or a git that refused — and the caller stops
- *  the delivery on it rather than reviewing a tree nobody settled. */
+ *  the delivery on it rather than landing a tree nobody settled. */
 export function commitDeliveryWork(delivery: DeliveryRecord): { ok: true } | { ok: false; why: string } {
   if (!delivery.worktree) return { ok: true }
   const dir = worktreeDir(delivery.worktree)
   if (!fs.existsSync(dir)) {
-    return { ok: false, why: `its worktree ${delivery.worktree} is gone, so there is nothing to review` }
+    return { ok: false, why: `its worktree ${delivery.worktree} is gone, so there is nothing to land` }
   }
   const done = commitWork(delivery.worktree, deliveryMessage(delivery))
   if (!done.ok) return { ok: false, why: done.error }
@@ -333,15 +312,14 @@ export function commitDeliveryWork(delivery: DeliveryRecord): { ok: true } | { o
 
 // ---- manual commit mode: waiting for the user's commit ----------------------
 
-/** Where a passed manual review's diff is kept — beside the worktrees, never in git: it is
+/** Where a finished manual build's diff is kept — beside the worktrees, never in git: it is
  *  a copy of code the repository is about to hold anyway. */
 const reviewedDiffPath = (deliveryId: string): string =>
   path.join(AKB_DIR, 'reviewed', `${deliveryId}.diff`)
 
-/** Take the snapshot a passed manual review is remembered by: the fingerprint of the code
+/** Take the snapshot a finished manual build is remembered by: the fingerprint of the code
  *  as it stands, and the diff itself written beside it. The fingerprint is taken from the
- *  working TREE, so committing it does not change the answer — which is exactly how "you
- *  committed what review passed" is told from "you committed something else". */
+ *  working TREE, so committing it does not change the answer. */
 export function snapshotReviewed(delivery: DeliveryRecord): DeliveryRecord['reviewed'] {
   if (!delivery.base) return undefined
   const mark = treeMark(delivery.base)
@@ -360,12 +338,11 @@ export function snapshotReviewed(delivery: DeliveryRecord): DeliveryRecord['revi
   return { mark, diff: where, at: Date.now() }
 }
 
-/** What the user has done with a manual delivery that review passed and that is waiting on
- *  their commit.
+/** What the user has done with a finished manual delivery that is waiting on their commit.
  *
  *  `waiting` — the code is still sitting uncommitted in their checkout.
- *  `landed`  — they committed exactly what review passed; the delivery is done.
- *  `changed` — they committed something else, so it goes back through review. */
+ *  `landed`  — they committed exactly what was built.
+ *  `changed` — they committed something else; their commit is the last word. */
 export function manualState(delivery: DeliveryRecord): 'waiting' | 'landed' | 'changed' {
   if (!delivery.base || !delivery.reviewed) return 'waiting'
   // Still uncommitted work outside the board's own files: they have not finished.

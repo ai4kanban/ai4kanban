@@ -29,7 +29,6 @@ export type MessagesCopy = {
    *  what is missing and the command that fixes it. */
   tooOld: {
     autoDelivery: string;
-    aiReview: string;
     silenceLimit: string;
     deliveries: string;
     worktrees: string;

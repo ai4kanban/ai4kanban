@@ -72,8 +72,8 @@ export function safeConfig(): Record<string, unknown> {
 // `true` mean the same thing, and only one of them reads as deliberate.
 //
 // With it ON a delivery builds on its own branch in its own worktree, so several can run at
-// once and what review passed is exactly what lands. With it OFF a delivery works in the
-// user's own checkout, one at a time, and they commit after review.
+// once and what was built is exactly what lands. With it OFF a delivery works in the
+// user's own checkout, one at a time, and they commit after the build.
 
 /** True unless somebody switched automatic commits off. A file that won't parse reads as
  *  on: a setting nobody can read is not a reason to change how every delivery works. */
@@ -93,88 +93,11 @@ export function setAutoCommit(on: boolean): Saved {
   })
 }
 
-// ---- auto-delivery: does a build get an AI review? (#416) ------------------
-//
-//   "aiReview": false
-//
-// On by default, and only written down when somebody turned it off — the same call
-// `autoCommit` made, and for the same reason.
-//
-// With it ON every delivery gets a fresh review run after its implementation. With it OFF
-// the implementation is the last agent to read the code: the repository's required checks
-// still run, and the open-question hold still gates landing.
-//
-// It is a DELIVERY setting (#783), answered in Configuration → General → Delivery beside the
-// two above. It was the reviewer's own switch on Configuration → Agents until then, which
-// left one workflow agent carrying a second answer to a question its stage assignment
-// already asks (#749). The key is the one it was always written under, so a board that
-// turned review off keeps its answer.
-
-/** True unless somebody switched AI review off. */
-export function aiReviewEnabled(): boolean {
-  try {
-    return readConfigRaw().aiReview !== false
-  } catch {
-    return true
-  }
-}
-
-/** Save it. Turning it back on drops the key rather than writing `true`. */
-export function setAiReview(on: boolean): Saved {
-  return writeConfig((cfg) => {
-    if (on) delete cfg.aiReview
-    else cfg.aiReview = false
-  })
-}
-
-// ---- auto-delivery: does a ready card start its own build? (#440) ----------
-//
-//   "readyGate": true
-//
-// OFF by default, and only written down when somebody turned it on: switching it on is the
-// deliberate act, and a board that says nothing behaves exactly as it always did.
-//
-// With it ON every card that reaches `ready` is judged by one `gate` run first. A card it
-// passes goes straight into a delivery, on this board's saved delivery settings; a card it
-// fails gets one `[user]` question, which takes it back to `todo` for the user to answer.
-//
-// It is the gater's switch (#493), turned on in Configuration → Board. The key is the one
-// it was written under, so a board that turned the gate on before the split keeps it.
-
-/** True only when somebody switched the ready gate on. A file that won't parse reads as
- *  off: a setting nobody can read is not a reason to start spending runs and building
- *  cards by itself. */
-export const readyGateOn = (): boolean => switchedOn('readyGate')
-
-/** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setReadyGate = (on: boolean): Saved => setSwitch('readyGate', on)
-
-// ---- the decider: does the board answer your questions for you? (#447) ------
-//
-//   "decider": true
-//
-// OFF by default, and only written down when somebody turned it on — the same call the
-// ready gate made, and for a stronger version of the same reason: this is the most expensive
-// switch on the board.
-//
-// With it ON, a card left with nothing but `[user]` questions is answered by one `decide`
-// run instead of waiting for the user — after QA converges, and after a review sends a
-// delivery back. Nothing stops for the user any more: a wrong direction is built and landed
-// just the same, and what it chose is read afterwards on the card.
-
-/** True only when somebody switched the decider on. A file that won't parse reads as off: a
- *  setting nobody can read is not a reason to start answering for the user. */
-export const deciderOn = (): boolean => switchedOn('decider')
-
-/** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setDecider = (on: boolean): Saved => setSwitch('decider', on)
-
 // ---- the proposer: does a finished card propose what comes next? (#534) -----
 //
 //   "proposer": true
 //
-// OFF by default, and only written down when somebody turned it on — the same call the
-// ready gate and the decider made. With it ON, every card that reaches the archive starts
+// OFF by default, and only written down when somebody turned it on. With it ON, every card that reaches the archive starts
 // one `reflect` run over that card alone, which is a paid run per completion.
 //
 // What it writes lands in `docs/kanban/triage/`, never on the board: a proposal is
@@ -205,7 +128,7 @@ export const setProposer = (on: boolean): Saved => setSwitch('proposer', on)
 export const autoTriageOn = (): boolean => switchedOn('autoTriage')
 
 /** True unless somebody switched the daily memory review off (#748). It ships ON, unlike
- *  the four above: it takes over what a chat used to do on every turn, so a board that had
+ *  the two above: it takes over what a chat used to do on every turn, so a board that had
  *  to ask for it would be a board that quietly stopped remembering anything said in a
  *  conversation. */
 export const memoryReviewerOn = (): boolean => switchedOn('memoryReviewer')
@@ -215,22 +138,20 @@ export const setAutoTriage = (on: boolean): Saved => setSwitch('autoTriage', on)
 
 // ---- a switchable role's own key (#493, #534, #748, #783) ------------------
 //
-// Five of the switches above are roles that can be switched off: the gater runs the ready
-// gate, the decider answers for the user, the proposer reflects on what was finished, the
-// triager sorts what is waiting, the memory reviewer reads the conversations. None of them
+// Three of the switches above are roles that can be switched off: the proposer reflects on
+// what was finished, the triager sorts what is waiting, the memory reviewer reads the
+// conversations. None of them
 // belongs to a workflow — a workflow agent's stage assignment is its only answer (#749,
 // #783). The ones that predate the split keep the key they have always had, so a board that
 // already answered any of them keeps its answer, and the roster reads a role through its own
 // key rather than asking one role's question of them all.
 //
-// They do not all ship the same way round. The four that spend a run the user never asked
+// They do not all ship the same way round. The two that spend a run the user never asked
 // for are off until asked for; the memory reviewer ships on. Either way the file records
 // only what somebody changed.
 
 /** The keys a switchable role is saved under (./roles.ts). */
 export type RoleSwitch =
-  | 'readyGate'
-  | 'decider'
   | 'proposer'
   | 'autoTriage'
   | 'memoryReviewer'

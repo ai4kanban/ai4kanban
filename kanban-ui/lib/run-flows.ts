@@ -2,7 +2,7 @@
 //
 // Most things the board does take more than one session: a refine is a question audit and a
 // writing pass, a create is the cards plus a refinement of each, a revise hands its card to
-// a refinement when it is done, a build is followed by its review. Each session is an
+// a refinement when it is done. Each session is an
 // ordinary run with its own log — right for the record, wrong for the panel, where six rows
 // about one job read as six unrelated jobs. The record ties them together with `flowId`;
 // this groups by it.
@@ -17,7 +17,7 @@
 // record being rewritten.
 
 import type { RunsCopy } from "@/i18n/runs/types";
-import type { AgentAction, ReviewTrigger, SessionView } from "./types";
+import type { AgentAction, SessionView } from "./types";
 
 export interface RunFlow {
   /** The flow's id — the delivery's when its sessions belong to one, the stored flow id
@@ -128,7 +128,7 @@ export function unhandledByCard(flows: RunFlow[]): Map<number, RunFlow> {
 export const endedAt = (flow: RunFlow): number => flow.latest.endedAt ?? flow.latest.startedAt;
 
 /** The words the labels below are said in — `runs` out of the copy module. */
-export type RunLabels = Pick<RunsCopy, "step" | "flow" | "trigger">;
+export type RunLabels = Pick<RunsCopy, "step" | "flow">;
 
 /** The flow one session belongs to. */
 export function flowOf(flows: RunFlow[], sessionId: string | null): RunFlow | null {
@@ -142,11 +142,6 @@ export function stepLabel(action: AgentAction, copy: RunLabels): string {
   return copy.step[action];
 }
 
-/** Why a review after the first one started (#417), in words — nothing for the first
- *  review after a build, which is the default, and nothing for a trigger this build has no
- *  word for: a start site shipped later says its own reason without touching the display. */
-export const triggerLabel = (trigger: ReviewTrigger | undefined, copy: RunLabels): string =>
-  (trigger && copy.trigger[trigger]) || "";
 
 /** The flow's own name — the command a user would have typed for it, which is the session
  *  it opened with. What came after is what the job went on to do, not what it is. */

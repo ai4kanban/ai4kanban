@@ -1,7 +1,7 @@
 // The refinement state machine. Agent sessions decide what a card should say; this file
 // decides which run comes next and when the loop stops.
 //
-// A run that ends can also leave OTHER cards worth refining — a review that writes a
+// A run that ends can also leave OTHER cards worth refining — a build that writes a
 // follow-up card, a release plan that writes several. Which ones those are is settled by
 // `claimChanges` and nothing else, under one rule: a change belongs to exactly one run.
 // Several runs are up at once on this board, and their windows overlap, so a run that
@@ -12,7 +12,6 @@ import { createHash } from 'node:crypto'
 
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
-import { decideRunAfter } from './decide'
 import { byDispatchOrder, canRefine, openOf, parseQuestion, planDeliveryGap } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
@@ -20,9 +19,9 @@ import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-e
 import { stageContract } from './stages'
 import { withStore } from './store'
 import { holdsCard } from './types'
-import type { AgentAction, AgentRequest, CommandRequest, RefineEffort, RunRecord } from './types'
+import type { AgentAction, AgentRequest, CommandRequest, RunRecord } from './types'
 
-export type RefinementStep = 'clarify' | 'writing' | 'done'
+export type RefinementStep = 'clarify' | 'done'
 
 export type BoardMarks = Map<number, string>
 
@@ -152,14 +151,7 @@ export function refinementRequest(req: CommandRequest): AgentRequest | { error: 
   if (!card) return { error: `task #${req.id} does not exist` }
   const step = refinementStep(card)
   if (step === 'done') return { error: `a refine would not move #${card.id}` }
-  return {
-    action: step,
-    id: card.id,
-    title: card.title,
-    notes: req.notes,
-    refineRound: 1,
-    refineEffort: req.refineEffort ?? 'standard',
-  }
+  return { action: step, id: card.id, title: card.title, notes: req.notes, refineRound: 1 }
 }
 
 export async function startRefinement(
@@ -169,75 +161,21 @@ export async function startRefinement(
   return 'error' in next ? next : await startRun(next)
 }
 
-function afterQa(
-  card: Card | undefined,
-  round: number,
-  flowId?: string,
-  refineEffort: RefineEffort = 'standard',
-): AgentRequest | 'incomplete' | null {
-  if (!card || card.openBlockers.length > 0) return null
-  if (openOf(card.questions).some((q) => parseQuestion(q.text).tag !== 'user')) return 'incomplete'
-  // QA converged and left only the user's calls. That is where the card stops — unless the
-  // decider is on (#447), and then one run answers them instead of the user.
-  if (openOf(card.questions).length > 0) return decideRunAfter(card.id)
-  // A card finishing in planning (#1057) is written up once its film is done. Until then the
-  // user's answer — a review accepted, or a change asked for — goes back to its lead, which
-  // asks again or has the film made. A pass that ended without asking anything stops here.
-  if (card.deliversIn === 'plan') {
-    if (planDeliveryGap(card) === null) return card.status === 'ready' ? null : writingAfter(card, round, flowId, refineEffort)
-    if (round > 0) return null
-    return { action: 'clarify', id: card.id, title: card.title, refineRound: 1, refineEffort, ...(flowId ? { flowId } : {}) }
-  }
-  if (refinementStep(card) === 'done') return null
-  return writingAfter(card, round, flowId, refineEffort)
-}
-
-function writingAfter(card: Card, round: number, flowId: string | undefined, refineEffort: RefineEffort): AgentRequest {
-  return {
-    action: 'writing',
-    id: card.id,
-    title: card.title,
-    refineRound: round + 1,
-    refineEffort,
-    ...(flowId ? { flowId } : {}),
-  }
-}
-
-/** The next pass after one exhaustive QA session. `flowId` joins the writing pass to it. */
+/** What follows one planning pass (#1203). Planning is one session, so a coding card is done
+ *  here either way. A card finishing in planning (#1057) is the one exception: until its
+ *  deliverable is made, the user's answer goes back to its lead, which asks again or makes it. */
 export function refinementAfter(
   action: AgentAction,
   cardId: number,
-  round: number | undefined,
-  changed: readonly number[],
   flowId?: string,
-  refineEffort: RefineEffort = 'standard',
 ): AgentRequest | 'incomplete' | null {
-  if (
-    round === undefined ||
-    (action !== 'clarify' && action !== 'resolve' && action !== 'writing')
-  ) {
-    return null
-  }
   const card = currentCard(cardId)
-  if (!card || action === 'writing') return null
-  // A pass that put work in the card's way stops here. The card now carries the one-shot
-  // refine schedule written with that blocker, so continuing this loop would do the work
-  // early and start it again when the blocker clears.
-  if (card.openBlockers.length > 0) return null
-  // Old in-flight flows may still finish with a separate resolver. Give a resolver that
-  // changed the card one exhaustive QA pass; new flows start with that pass directly.
-  if (action === 'resolve') {
-    if (!changed.includes(card.id) || refinementStep(card) === 'done') return null
-    return {
-      action: 'clarify',
-      id: card.id,
-      title: card.title,
-      refineRound: round + 1,
-      refineEffort,
-      ...(flowId ? { flowId } : {}),
-    }
-  }
-  return afterQa(card, round, flowId, refineEffort)
+  if (!card || card.openBlockers.length > 0) return null
+  const open = openOf(card.questions)
+  if (open.some((q) => parseQuestion(q.text).tag !== 'user')) return action === 'clarify' ? 'incomplete' : null
+  if (open.length > 0 || action === 'clarify' || card.deliversIn !== 'plan') return null
+  if (planDeliveryGap(card) === null) return null
+  return { action: 'clarify', id: card.id, title: card.title, refineRound: 1, ...(flowId ? { flowId } : {}) }
 }
 
 // Actions that follow only the cards they CREATED. Each of them just exercised its own
@@ -247,20 +185,13 @@ export function refinementAfter(
 // newborn card, and nothing else comes for it.
 const FOLLOWS_CREATED = new Set<AgentAction>([
   'implement',
-  // A gate judges the card and writes at most one `[user]` question on it — which is already
-  // a card no refine would move. It creates nothing, so it follows nothing.
-  'gate',
   'edit',
   'clarify',
   'resolve',
-  // A decide is a resolve with the choosing done for the user (#447): it settled the card's
-  // questions in its own session, so the card it answered is not one to refine again.
-  'decide',
   // An unstick is a verdict, not a refine (#118). It rewrites the card it keeps for the
   // project as it stands today and raises no question, so refining that card afterwards
   // would re-plan a card the sweeper just settled.
   'unstick',
-  'writing',
   'spec',
 ])
 
@@ -293,9 +224,7 @@ function refinesAfter(
     .sort(byDispatchOrder)
     .flatMap((card) => {
       const action = refinementStep(card)
-      return action === 'done' || action === 'writing'
-        ? []
-        : [{ action, id: card.id, title: card.title, refineRound: 1, refineEffort: 'standard' }]
+      return action === 'done' ? [] : [{ action, id: card.id, title: card.title, refineRound: 1, scheduled: true }]
     })
 }
 
@@ -334,21 +263,7 @@ function planStageEnd(run: RunRecord): ReturnType<typeof endOfStage> | null {
   const card = currentCard(run.cardId)
   if (!card || card.openBlockers.length > 0 || openOf(card.questions).length > 0 || card.schedule) return null
   if (refinementStep(card) !== 'done') return null
-  return endOfStage(stageContract('plan'), card, run.refineEffort)
-}
-
-function qaAfterSpec(run: RunRecord): AgentRequest | null {
-  if (run.action !== 'spec' || run.cardId === null) return null
-  const card = currentCard(run.cardId)
-  if (!card || card.openBlockers.length > 0 || card.schedule || refinementStep(card) === 'done') return null
-  return {
-    action: 'clarify',
-    id: card.id,
-    title: card.title,
-    refineRound: 1,
-    refineEffort: run.refineEffort ?? 'standard',
-    ...(run.flowId ? { flowId: run.flowId } : {}),
-  }
+  return endOfStage(stageContract('plan'), card)
 }
 
 export function refinementRunsAfter(
@@ -362,24 +277,16 @@ export function refinementRunsAfter(
     scheduleRefineOnBlock(id)
   }
   const next =
-    waitingForSpec || run.cardId === null
+    waitingForSpec || run.cardId === null || !['clarify', 'resolve', 'edit'].includes(run.action)
       ? null
-      : (run.action === 'resolve' || run.action === 'edit' || run.action === 'decide') &&
-          run.refineRound === undefined
-        ? afterQa(currentCard(run.cardId), 0, run.flowId, run.refineEffort)
-        : run.refineRound === undefined
-          ? null
-          : refinementAfter(run.action, run.cardId, run.refineRound, changed, run.flowId, run.refineEffort)
+      : refinementAfter(run.action, run.cardId, run.flowId)
   const starts = refinesAfter(run.action, changed, before).filter(
     (req) =>
       req.id !== run.cardId || (run.refineRound === undefined && run.action !== 'spec'),
   )
-  // The lead resumes only once the LAST helper is done (#714): while this run still carries
-  // asks for the next one, the card is another agent's to write.
-  const resumedQa = waitingForSpec ? null : qaAfterSpec(run)
   // A helper that would not start is the planner's to ask for again.
   const refusedNote = waitingForSpec || !refused.length ? '' : `Spec agents not started: ${refused.join(' ')}`
-  const plain = resumedQa ?? (typeof next === 'object' && next ? next : null)
+  const plain = typeof next === 'object' && next ? next : null
   const carryOn = plain && refusedNote
     ? { ...plain, notes: [plain.notes, refusedNote].filter(Boolean).join('\n\n') }
     : plain

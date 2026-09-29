@@ -86,11 +86,6 @@ const en: RunsCopy = {
     clarify: "Refine",
     writing: "Refine",
   },
-  trigger: {
-    conflict: "after a conflict",
-    answered: "after your answer",
-    asked: "you asked",
-  },
   badge: {
     running: "running",
     watch: "watch the run log",
@@ -223,30 +218,17 @@ const en: RunsCopy = {
     cancel: "Cancel",
     implement: {
       title: (id) => `Implement #${id}`,
-      autoBranch: (branch) => `Build, review, and merge into \`${branch}\` automatically.`,
-      autoHere: "Build, review, and merge into the branch you are on automatically.",
-      manualFolder: "Build and review in your project folder. You commit the result.",
-      manual:
-        "Build and review in your project folder. **Manual commit mode** is on, so you commit the result.",
-      manualWhy: (why) => `Build and review in your project folder — ${why}. You commit the result.`,
+      autoBranch: (branch) => `Build and merge into \`${branch}\` automatically.`,
+      autoHere: "Build and merge into the branch you are on automatically.",
+      manualFolder: "Build in your project folder. You commit the result.",
+      manual: "Build in your project folder. **Manual commit mode** is on, so you commit the result.",
+      manualWhy: (why) => `Build in your project folder — ${why}. You commit the result.`,
       ownBranch: "Develop in a git worktree",
       ownBranchOn: "Creates a separate directory from the current commit.",
       ownBranchLocal:
         "Creates a separate directory from the current commit, without your uncommitted changes.",
       ownBranchOff: "Develops in your project folder, one build at a time.",
-      autoBranchNoReview: (branch) =>
-        `Build and merge into \`${branch}\` automatically. Nothing reviews it in between.`,
-      autoHereNoReview:
-        "Build and merge into the branch you are on automatically. Nothing reviews it in between.",
-      manualFolderNoReview:
-        "Build in your project folder, with no review. You commit the result.",
-      manualNoReview:
-        "Build in your project folder, with no review. **Manual commit mode** is on, so you commit the result.",
-      manualWhyNoReview: (why) =>
-        `Build in your project folder, with no review — ${why}. You commit the result.`,
-      files:
-        "The agent creates the files. After AI review passes, the task is archived. View the finished files on the task.",
-      filesNoReview: "The agent creates the files and archives the task when done. View the finished files on the task.",
+      files: "The agent creates the files and archives the task when done. View the finished files on the task.",
       recorded:
         "This is recorded the moment you press it. Nothing builds here — the card waits for a machine, and whichever of yours is running picks it up and carries it all the way.",
       questionsOne:

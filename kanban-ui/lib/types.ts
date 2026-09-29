@@ -21,7 +21,7 @@
 // no use for and holds its log under another name, and lib/registry.ts is where one becomes
 // the other.
 
-import type { AgentAction, ContextWindow, DeliveryStatus, ExecutionBlocker, ReviewTrigger, RunRetry, TokenUsage } from "./format/agent/types";
+import type { AgentAction, ContextWindow, DeliveryStatus, ExecutionBlocker, RunRetry, TokenUsage } from "./format/agent/types";
 import type { CardDeliveryState } from "./format/view/types";
 
 export type {
@@ -58,7 +58,6 @@ export type {
   RuntimeView,
   ModelChange,
   Provider,
-  ReviewTrigger,
   RunPick,
   HarnessRun,
   RunRetry,
@@ -342,10 +341,6 @@ export interface SessionView {
    *  still in the live record (#417). It is what the panel groups a job by, so a run whose
    *  stored flow disagrees is drawn where it belongs without any record being rewritten. */
   deliveryId?: string;
-  /** On a review after the first: why it started (#417). Absent on the first review after
-   *  a build — that is the default — and on every review recorded before triggers existed,
-   *  and the step row says nothing extra for either. */
-  trigger?: ReviewTrigger;
 }
 
 // ---- feedback (#603) --------------------------------------------------------

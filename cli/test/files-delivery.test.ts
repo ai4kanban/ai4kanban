@@ -16,14 +16,12 @@ import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import {
-  addWorkflowHelper,
   createWorkflow,
   duplicateWorkflow,
   setWorkflowLead,
   setWorkflowWorktree,
   workflowById,
 } from '../src/lib/agent/workflows.ts'
-import { copyAgent } from '../src/lib/agents/roster.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 
@@ -78,11 +76,10 @@ const write = (file: string, text = 'x\n'): void => {
 }
 
 // A board workflow of its own, left at its default.
-const filesFlow = (reviewed = false): string => {
+const filesFlow = (): string => {
   const made = createWorkflow('Email')
   setWorkflowLead(made.id!, 'plan', 'software-planner')
   setWorkflowLead(made.id!, 'execute', 'builder')
-  if (reviewed) addWorkflowHelper(made.id!, 'review', copyAgent('code-reviewer').agent!)
   return made.id!
 }
 
@@ -98,7 +95,7 @@ async function end(sessionId: string): Promise<void> {
   await closeRun(sessionId, { status: 'done', ok: true, code: 0 })
 }
 
-const flow = (action: 'implement' | 'review', id: number): string => {
+const flow = (action: 'implement', id: number): string => {
   const sink = startCollecting()
   try {
     printFlow({ action, id })
@@ -235,19 +232,14 @@ describe('a files delivery', () => {
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'changed by the run\n')
   })
 
-  it('reviews the recorded files rather than a diff, and asks for no commit or landing', async () => {
-    card(1, filesFlow(true))
-    const session = open(1)
+  it('asks the build for recorded files, and for no commit or landing', () => {
+    card(1, filesFlow())
+    open(1)
     const build = flow('implement', 1)
     assert.match(build, /record each output file on the card by its path/)
     assert.match(build, /do not create a branch or worktree, commit, or merge/)
-    assert.doesNotMatch(build, /leave your work uncommitted|once the delivery has landed/)
-    write('out/email.html')
-    record(1, 'out/email.html')
-    await end(session)
-    const review = flow('review', 1)
-    assert.match(review, /review the output files recorded on the card[\s\S]*out\/email\.html/)
-    assert.doesNotMatch(review, /once the work has landed|blocks landing|diff:/)
+    assert.match(build, /The board archives it after the output files pass the delivery checks/)
+    assert.doesNotMatch(build, /leave your work uncommitted|once the delivery has landed|Review comes next/)
   })
 
   it('leaves a coding card on its own branch', () => {

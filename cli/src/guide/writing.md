@@ -12,7 +12,7 @@ Every flow writes a card in this order:
 ## Worth noting after implementation
 - **<question the decision settles>**: <answer>
                              <- answered material decisions building turned up; written
-                                by review, omit when empty. Never approved delivery scope
+                                by the build, omit when empty. Never approved delivery scope
 
 ## By `<name>` agent         <- here when that agent's output is set to human review, or
                                 while a [user] question points at one set to agent use
@@ -49,7 +49,7 @@ Every flow writes a card in this order:
 - **Exclude work logs**: never put diagnostics, run history, check results, suggestions,
   or unresolved questions here.
 - **Never approve a deviation here**: work that contradicts the approved requirements must
-  be fixed or sent to the user by review.
+  be fixed or sent to the user by the build.
 
 ## `Today`
 

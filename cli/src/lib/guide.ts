@@ -23,14 +23,12 @@ import board from '../guide/board.md'
 import cardChat from '../guide/card-chat.md'
 import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
-import decide from '../guide/decide.md'
 import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
 import extractIdeas from '../guide/extract-ideas.md'
 import feedback from '../guide/feedback.md'
 import followUp from '../guide/follow-up.md'
-import gate from '../guide/gate.md'
 import implement from '../guide/implement.md'
 import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
@@ -39,12 +37,10 @@ import planRelease from '../guide/plan-release.md'
 import pruneMemory from '../guide/prune-memory.md'
 import reviewMemory from '../guide/review-memory.md'
 import reviewDismissals from '../guide/review-dismissals.md'
-import qaLightweight from '../guide/qa-lightweight.md'
-import qaLoop from '../guide/qa-loop.md'
 import recurringTask from '../guide/recurring-task.md'
+import refine from '../guide/refine.md'
 import reflect from '../guide/reflect.md'
 import reject from '../guide/reject.md'
-import review from '../guide/review.md'
 import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
@@ -54,7 +50,6 @@ import triage from '../guide/triage.md'
 import unstick from '../guide/unstick.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
-import validateAssumption from '../guide/validate-assumption.md'
 import writeAgent from '../guide/write-agent.md'
 import writing from '../guide/writing.md'
 
@@ -81,15 +76,10 @@ export const GUIDES: Guide[] = [
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'update-questions', when: 'classify open questions, answered decisions, and human checks', text: updateQuestions },
-  { name: 'gate', when: 'judge whether a settled card can be built with nobody watching', text: gate },
-  { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
-  { name: 'qa-lightweight', when: 'check one clear, localized task with a short evidence walk', text: qaLightweight },
-  { name: 'validate-assumption', when: 'settle a factual premise the plan turns on, before it reaches the build', text: validateAssumption },
+  { name: 'refine', when: 'plan one card until it can be built, in one session', text: refine },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
-  { name: 'decide', when: "answer a card's open questions in the user's place", text: decide },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
-  { name: 'review', when: "review and fix a delivery against the approved requirements", text: review },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },
   { name: 'recurring-task', when: 'run one pass of a job we repeat', text: recurringTask },
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },

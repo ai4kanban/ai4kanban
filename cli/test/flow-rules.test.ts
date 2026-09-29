@@ -35,8 +35,6 @@ let root = ''
 // here, so the developer's own pick can never change what a prompt says.
 let home = ''
 
-const reviewerText = (): string => findSpecAgent('code-reviewer')!.body
-
 const card = (id: number, title: string): string =>
   [
     '---',
@@ -78,7 +76,7 @@ afterEach(() => {
 })
 
 // One session, opened and closed the way the command and the watcher do.
-function run(action: 'implement' | 'review', id: number): string {
+function run(action: 'implement', id: number): string {
   const opened = openRun({ action, id, title: 'card one' }, 'prompt', [])
   if ('error' in opened) throw new Error(opened.error)
   return opened.run.sessionId
@@ -173,33 +171,28 @@ describe('the files', () => {
 })
 
 describe('the prompt', () => {
-  it('leaves QA requirements in the guide', () => {
+  it('leaves planning requirements in the guide', () => {
     const prompt = buildPrompt({ action: 'clarify', id: 1, refineRound: 1 })
-    assert.match(prompt, /akb guide qa-loop/)
+    assert.match(prompt, /Plan task 1 .*in this one session following `akb guide refine`/)
     assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
   })
 
-  it('has add-task choose standard unless the source is concrete', () => {
+  it('has add-task refine inline only when the source is concrete', () => {
     const guide = findGuide('add-task')!.text
     assert.match(guide, /Repeating work[\s\S]*akb guide recurring-task/)
     assert.match(guide, /open question[\s\S]*akb guide update-questions/)
-    assert.doesNotMatch(guide, /Parallel/)
-    assert.match(guide, /akb card refine <id> --effort lightweight --print/)
-    assert.match(guide, /Lightweight[\s\S]*source already supplies[\s\S]*build scope/)
-    assert.match(guide, /Standard[\s\S]*ordinary user requests[\s\S]*separate session/)
-    assert.match(guide, /Choose standard unless/)
+    assert.doesNotMatch(guide, /Parallel|--effort/)
+    assert.match(guide, /Inline[\s\S]*source already supplies[\s\S]*akb card refine <id> --print/)
+    assert.match(guide, /Separate session[\s\S]*akb card refine <id>`/)
   })
 
   it('keeps the question format in one guide', () => {
     assert.match(findGuide('update-questions')!.text, /--recommended-option[\s\S]*--option/)
-    for (const name of ['add-task', 'qa-lightweight', 'qa-loop', 'recurring-task', 'reject', 'setup', 'spec-agent']) {
+    for (const name of ['add-task', 'refine', 'recurring-task', 'reject', 'setup', 'spec-agent']) {
       const guide = findGuide(name)!.text
       assert.match(guide, /akb guide\s+update-questions/, name)
       assert.doesNotMatch(guide, /--recommended-option|--mode multi/, name)
     }
-    // Review's own steps are the code reviewer's now (#820).
-    assert.match(reviewerText(), /akb guide\s+update-questions/)
-    assert.doesNotMatch(reviewerText(), /--recommended-option|--mode multi/)
   })
 
   it('keeps recurring state on the card and cadence opt-in', () => {
@@ -218,60 +211,41 @@ describe('the prompt', () => {
     }
   })
 
-  it('loads only the QA guide selected for the clarify session', () => {
-    for (const [effort, guide, extra] of [
-      ['lightweight', 'qa-lightweight', []],
-      ['standard', 'qa-loop', ['validate-assumption']],
-    ] as const) {
-      const req = { action: 'clarify' as const, id: 1, refineRound: 1, refineEffort: effort }
-      assert.match(buildPrompt(req), new RegExp(`akb guide ${guide}`))
-      startCollecting()
-      try {
-        assert.deepEqual(printFlow(req).guides, ['writing', 'update-questions', guide, ...extra])
-      } finally {
-        stopCollecting()
-      }
+  it('plans in one clarify session under the refine guide', () => {
+    const req = { action: 'clarify' as const, id: 1, refineRound: 1 }
+    assert.match(buildPrompt(req), /akb guide refine/)
+    startCollecting()
+    try {
+      assert.deepEqual(printFlow(req).guides, ['refine', 'writing', 'update-questions'])
+    } finally {
+      stopCollecting()
     }
-    assert.equal(findGuide('qa-parallel'), null)
-    assert.doesNotMatch(findGuide('qa-loop')!.text, /Choose the QA effort|Parallel QA handed off/)
+    for (const gone of ['qa-parallel', 'qa-loop', 'qa-lightweight', 'validate-assumption', 'decide', 'gate', 'review']) {
+      assert.equal(findGuide(gone), null, gone)
+    }
   })
 
-  it('accepts the effort on the refine command and prints that guide', async () => {
+  it('takes no effort on the refine command', async () => {
     fs.writeFileSync(
       path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'),
       card(1, 'card one').replace('status: ready', 'status: todo'),
     )
     startCollecting()
     try {
-      const flow = await cmdStartRun('refine', [1], { effort: 'lightweight', print: true })
-      assert.deepEqual(flow.guides, ['writing', 'update-questions', 'qa-lightweight'])
+      const flow = await cmdStartRun('refine', [1], { print: true })
+      assert.deepEqual(flow.guides, ['refine', 'writing', 'update-questions'])
     } finally {
       stopCollecting()
     }
+    await assert.rejects(() => akb(root, ['card', 'refine', '1', '--effort', 'standard', '--print']))
   })
 
-  it('rejects the removed parallel effort', async () => {
-    fs.writeFileSync(
-      path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'),
-      card(1, 'card one').replace('status: ready', 'status: todo'),
-    )
-    // The command declares the two it takes, so the refusal comes from the parse.
-    await assert.rejects(
-      () => akb(root, ['card', 'refine', '1', '--effort', 'parallel', '--print']),
-      /--effort .*lightweight \| standard/,
-    )
-  })
-
-  it('lets lightweight QA settle the plan automatically without a checklist', () => {
-    const qa = findGuide('qa-lightweight')!.text
-    assert.match(qa, /Refine the card automatically/)
-    assert.match(qa, /settle implementation details/)
-    assert.match(qa, /Do not run or retain a question checklist/)
-    assert.doesNotMatch(qa, /Use this only|5–10|What observable result/)
+  it('has the build run its own checks, since nothing reviews it', () => {
     const build = findGuide('implement')!.text
     assert.match(build, /printed, interactive implementation may stay uncommitted/)
-    assert.match(build, /Background runs[\s\S]*delivery and review path/)
-    assert.match(build, /focused checks[\s\S]*repository-required check/)
+    assert.match(build, /Background runs always keep their delivery\s+path/)
+    assert.match(build, /nothing reviews the build after you[\s\S]*repository-required check/)
+    assert.doesNotMatch(build, /review path/)
   })
 
   it('routes implementation blockers through card questions', () => {
@@ -287,10 +261,11 @@ describe('the prompt', () => {
     assert.match(findGuide('update-questions')!.text, /### Implementation blockers/)
     const build = buildPrompt({ action: 'implement', description: 'Build a widget' })
     assert.match(build, /blockers needing user action[\s\S]*akb guide update-questions/)
-    assert.doesNotMatch(guide, /Worth noting after implementation/)
+    // Nothing reviews the build, so the build records what it decided (#1203).
+    assert.match(guide, /Decisions made while building[\s\S]*Worth noting after implementation/)
   })
 
-  it('loads writing upfront for planning and on demand for review', () => {
+  it('loads writing upfront for planning and not for a build', () => {
     for (const action of ['clarify', 'resolve', 'edit'] as const) {
       startCollecting()
       try {
@@ -304,8 +279,6 @@ describe('the prompt', () => {
     try {
       const flow = printFlow({ action: 'implement', id: 1, title: 'card one' })
       assert.equal((flow.guides as string[]).includes('writing'), false)
-      const review = printFlow({ action: 'review', id: 1, title: 'card one' })
-      assert.deepEqual(review.guides, ['review'])
     } finally {
       stopCollecting()
     }
@@ -318,11 +291,10 @@ describe('the prompt', () => {
     assert.match(guide, /Never approve a deviation here/)
   })
 
-  it('routes independent review follow-ups without a user placement decision', () => {
+  it('routes independent follow-ups without a user placement decision', () => {
     for (const name of ['implement', 'update-questions']) {
       assert.match(findGuide(name)!.text, /`akb guide follow-up`/)
     }
-    assert.match(reviewerText(), /`akb guide follow-up`/)
     assert.match(findGuide('update-questions')!.text, /Never ask whether to fix work here or create a card/)
     const followUp = findGuide('follow-up')!.text
     assert.match(followUp, /without asking permission or blocking the original/)
@@ -331,19 +303,12 @@ describe('the prompt', () => {
     assert.match(followUp, /`akb guide add-task`/)
   })
 
-  it('makes the latest target authoritative in a conflict and reviews the result', () => {
+  it('makes the latest target authoritative in a conflict', () => {
     const guide = findGuide('conflict')!.text
     assert.match(guide, /target branch as the authoritative current implementation/)
     assert.match(guide, /Do not create or update cards/)
-    assert.match(guide, /Review follows the completed rebase/)
+    assert.doesNotMatch(guide, /Review follows/)
     assert.match(buildPrompt({ action: 'conflict', id: 1, title: 'card one' }), /Follow `akb guide conflict`/)
-  })
-
-  it('gives review a scope step for a focused post-rebase pass', () => {
-    const guide = findGuide('review')!.text
-    assert.match(guide, /focused post-rebase review/)
-    assert.match(guide, /only the named target delta[\s\S]*shared paths/)
-    assert.match(reviewerText(), /rerun only the checks those paths affect/)
   })
 
   // Applying answers is the one thing that moves a card under a build, so the pass that does
@@ -356,34 +321,30 @@ describe('the prompt', () => {
     assert.match(resolve, /Judge the meaning, not the words/)
     // Confirming work that contradicts what was approved is a change, however finished.
     assert.match(resolve, /A wrong implementation confirmed is still a change/)
-    // And the decider owes the same conclusion: it answers in the user's place, so it moves
-    // the card in the user's place too.
-    assert.match(findGuide('decide')!.text, /is not left out/)
     // Nothing here asks anyone to compare the card's text against the approved copy.
     assert.doesNotMatch(resolve, /compare[\s\S]{0,40}approved copy/)
   })
 
-  it('starts resolve and revise with lightweight QA in the same session', () => {
+  it('starts resolve and revise on their own guide, with no QA pass after', () => {
     for (const [action, guide] of [['resolve', 'resolve'], ['edit', 'revise']] as const) {
       const req = { action, id: 1, notes: 'Use A.' }
       const prompt = buildPrompt(req)
       assert.match(prompt, new RegExp(`akb guide ${guide}`))
-      assert.match(prompt, /akb guide qa-lightweight/)
-      assert.doesNotMatch(prompt, /akb guide qa-loop/)
+      assert.doesNotMatch(prompt, /qa-lightweight|qa-loop/)
       startCollecting()
       try {
         const guides = printFlow(req).guides as string[]
-        assert.ok(guides.includes('qa-lightweight'))
-        assert.ok(!guides.includes('qa-loop'))
+        assert.ok(guides.includes(guide), action)
+        assert.ok(!guides.some((g) => g.startsWith('qa-')), action)
       } finally {
         stopCollecting()
       }
-      assert.match(findGuide(guide)!.text, /akb guide qa-lightweight/)
     }
-    assert.match(findGuide('qa-lightweight')!.text, /broader or more[\s\S]*uncertain[\s\S]*akb guide qa-loop/)
+    // A revise that changes what the card delivers plans it again, in the same session.
+    assert.match(findGuide('revise')!.text, /akb guide refine/)
   })
 
-  it('shows the spec-agent catalog to every QA-carrying session and to no spec run', () => {
+  it('shows the spec-agent catalog to every planning session and to no spec run', () => {
     for (const action of ['clarify', 'resolve', 'edit'] as const) {
       const prompt = buildPrompt({ action, id: 1 })
       assert.match(prompt, /<spec-agents>/)
@@ -429,52 +390,25 @@ describe('the prompt', () => {
     }
   })
 
-  it('lets a printed clarify finish the card inline', () => {
+  it('lets a printed clarify hand straight over to the build', () => {
     startCollecting()
     try {
-      const flow = printFlow({
-        action: 'clarify',
-        id: 1,
-        refineRound: 1,
-        refineEffort: 'lightweight',
-      })
-      assert.deepEqual(flow.next, [])
+      const flow = printFlow({ action: 'clarify', id: 1, refineRound: 1 })
       assert.match((flow.close as string[]).join('\n'), /update 1 --status ready/)
+      assert.match((flow.next as string[]).join('\n'), /card implement 1 --print — build it in this session/)
+      // A refine the board started off a schedule stops at the plan.
+      const scheduled = printFlow({ action: 'clarify', id: 1, refineRound: 1, scheduled: true })
+      assert.deepEqual(scheduled.next, [])
     } finally {
       stopCollecting()
     }
   })
 
-  it('keeps the split gate and its handoff in the QA guide', () => {
-    const guide = findGuide('qa-loop')!.text
-    assert.match(guide, /Check task boundaries/)
-    assert.match(guide, /decide whether the card is one coherent task/)
-    assert.match(guide, /Split only when/)
-    assert.match(guide, /multiple independently refinable areas/)
-    assert.match(guide, /at least one is still materially vague/)
-    assert.match(guide, /some areas may already be clear/)
-    assert.match(guide, /akb guide add-task/)
-    assert.match(guide, /akb raw create[\s\S]*--related <root-id> --schedule refine/)
-    assert.match(guide, /After creating the group, exit/)
-    assert.doesNotMatch(guide, /\*\*Split\*\*:/)
-    assert.doesNotMatch(guide, /200 lines|12 todo items/)
-  })
-
-  it('separates agent tests from a reproducible human test plan', () => {
-    const guide = findGuide('qa-loop')!.text
-    assert.match(guide, /## Plan verification/)
-    assert.match(guide, /Put checks the implementation agent can run in `## Todo`/)
-    assert.match(guide, /Reserve `verify:` for post-build checks/)
-    assert.match(guide, /reproducible setup, human action, and expected result/)
-    assert.match(guide, /old build without the behavior under test is not one/)
-    assert.match(guide, /test seams, fixtures, or recipes to `## Todo`/)
-  })
-
-  it('keeps lifecycle bookkeeping out of the writing agent', () => {
-    const prompt = buildPrompt({ action: 'writing', id: 1, refineRound: 2 })
-    assert.match(prompt, /akb guide writing/)
-    assert.match(prompt, /board marks it ready/)
-    assert.doesNotMatch(prompt, /akb guide board/)
+  it('keeps the split and its handoff in the refine guide', () => {
+    const guide = findGuide('refine')!.text
+    assert.match(guide, /\*\*Split\*\*: only when the card holds independently plannable areas and one is still vague/)
+    assert.match(guide, /akb guide add-task[\s\S]*--schedule refine[\s\S]*stop/)
+    assert.match(guide, /akb raw validate <id>/)
   })
 
   it('ends on the rule, after everything the board writes', async () => {
@@ -490,10 +424,8 @@ describe('the prompt', () => {
   })
 
   it("reads only its own agent's rule", async () => {
-    setAgentRule('code-reviewer', 'Run the smoke tests.')
-    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /smoke tests/)
-    // The review lead has none of its own; the reviewer's rule is printed with the reviewer (#820).
-    assert.doesNotMatch(buildPrompt({ action: 'review', id: 1 }), /smoke tests/)
+    setAgentRule('ui-designer', 'Keep to the existing palette.')
+    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /existing palette/)
   })
 
   it('reaches every flow its agent runs, the refinement passes included', async () => {
@@ -502,7 +434,6 @@ describe('the prompt', () => {
     // One planner, so the composite refine and the standalone resolve read the same words.
     for (const req of [
       { action: 'clarify' as const, id: 1, refineRound: 2 },
-      { action: 'writing' as const, id: 1, refineRound: 2 },
       { action: 'resolve' as const, id: 1 },
       { action: 'edit' as const, id: 1, notes: 'Use A.' },
       { action: 'create' as const, description: 'a new card' },
@@ -542,25 +473,21 @@ describe('the prompt', () => {
 describe('a delivery', () => {
   it('freezes the rules of the agents it is built by, keyed by agent', async () => {
     setAgentRule('builder', 'Install dependencies first.')
-    setAgentRule('code-reviewer', 'Run the smoke tests.')
     setAgentRule('software-planner', 'Stay small.')
     const built = run('implement', 1)
     const delivery = activeDelivery(1)!
-    assert.deepEqual(delivery.rules, {
-      builder: 'Install dependencies first.',
-      'code-reviewer': 'Run the smoke tests.',
-    })
+    assert.deepEqual(delivery.rules, { builder: 'Install dependencies first.' })
     await end(built)
   })
 
   it('gives its later sessions the rules it started with, not the files as they read now', async () => {
-    setAgentRule('code-reviewer', 'Run the smoke tests.')
+    setAgentRule('builder', 'Run the smoke tests.')
     const built = run('implement', 1)
-    await end(built)
-    setAgentRule('code-reviewer', 'Something else entirely.')
-    const prompt = buildPrompt({ action: 'spec', id: 1, title: 'card one', specAgent: 'code-reviewer' })
+    setAgentRule('builder', 'Something else entirely.')
+    const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.match(prompt, /smoke tests/)
     assert.doesNotMatch(prompt, /Something else entirely/)
+    await end(built)
   })
 
   it('reads a delivery frozen before the rules were keyed by agent', async () => {
@@ -589,7 +516,7 @@ describe("the board's language", () => {
     setLanguage('zh')
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.match(prompt, /Write this board's prose in 中文/)
-    // The boundary rides in the ask itself: `writing`, `qa-loop`, `revise`, `spec-agent`
+    // The boundary rides in the ask itself: `writing`, `refine`, `revise`, `spec-agent`
     // and `changelog` are never given `akb guide board`.
     assert.match(prompt, /section headings/)
     assert.match(prompt, /--slug/)
@@ -616,7 +543,7 @@ describe("the board's language", () => {
   })
 
   it('says nothing at all on an English machine', () => {
-    for (const action of ['implement', 'review', 'create', 'changelog'] as const) {
+    for (const action of ['implement', 'create', 'changelog'] as const) {
       assert.doesNotMatch(buildPrompt({ action, id: 1, title: 'card one', release: '0.1.0' }), /board's prose/)
     }
     assert.doesNotMatch(chatPrompt(1, 'and the other one?', { resuming: true }), /board's prose/)

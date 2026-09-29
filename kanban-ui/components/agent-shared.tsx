@@ -1050,36 +1050,20 @@ export function ActionDialog({
     // A workflow that makes files (#874): no branch to pick and nothing to commit.
     const files = plan.commitMode === "files";
     const auto = canChoose ? ownBranch : plan.commitMode === "auto";
-    // Whether a second agent reviews this build is the board's own **AI review** setting
-    // (#416) and nothing this dialog asks; rules older than it say nothing, and every build
-    // they start is reviewed. The paragraph reads from it.
-    const reviewed = plan.aiReview !== false;
-    // The opening sentence, in the shape the two ticks and the checkout put it in.
-    const autoIntro = plan.branch
-      ? reviewed
-        ? c.autoBranch(plan.branch)
-        : c.autoBranchNoReview(plan.branch)
-      : reviewed
-        ? c.autoHere
-        : c.autoHereNoReview;
-    const manualIntro = plan.manualWhy
-      ? reviewed
-        ? c.manualWhy(plan.manualWhy)
-        : c.manualWhyNoReview(plan.manualWhy)
-      : reviewed
-        ? c.manual
-        : c.manualNoReview;
+    // The opening sentence, in the shape the tick and the checkout put it in.
+    const autoIntro = plan.branch ? c.autoBranch(plan.branch) : c.autoHere;
+    const manualIntro = plan.manualWhy ? c.manualWhy(plan.manualWhy) : c.manual;
     return (
       <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>
           {recorded ? (
             <Rich>{c.recorded}</Rich>
           ) : files ? (
-            reviewed ? c.files : c.filesNoReview
+            c.files
           ) : auto ? (
             <Rich code={BRANCH}>{autoIntro}</Rich>
           ) : canChoose ? (
-            <Rich>{reviewed ? c.manualFolder : c.manualFolderNoReview}</Rich>
+            <Rich>{c.manualFolder}</Rich>
           ) : (
             <Rich>{manualIntro}</Rich>
           )}

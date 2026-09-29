@@ -12,6 +12,7 @@ import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
 import {
   askForRefine,
+  carryIntoBuild,
   discardCost,
   getRun,
   listRuns,
@@ -27,7 +28,6 @@ import type {
   CommandAction,
   CommandRequest,
   DeliveryRecord,
-  RefineEffort,
   RunView,
 } from '../lib/agent/types'
 import { say } from '../lib/io'
@@ -95,6 +95,13 @@ export async function cmdStartRun(
   // A run the board started passed this at its own start (#1038).
   const pro = inside ? null : await proRefusal(runnable)
   if (pro) die(pro.error, { kind: 'run-refused', action, reason: pro.reason })
+  // A planning run printing its own card's build carries straight on into it (#1203): the
+  // delivery opens around this session, and the flow printed next is the build's.
+  if (inside && action === 'implement' && req.id !== undefined) {
+    const carried = await carryIntoBuild(inside, req.id)
+    if (carried && 'error' in carried) die(carried.error, { kind: 'run-refused', action, reason: carried.reason })
+    if (carried) say(`run ${short(inside)} is now the build of #${req.id}, in delivery ${carried.deliveryId}.`)
+  }
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(runnable, program)
@@ -124,7 +131,7 @@ export async function cmdStartRun(
 function queueRefine(inside: string, req: CommandRequest): MoveResult {
   // A delivery holds its card here even against its own runs, which the hold usually lets
   // through: what is being written down is a session that starts AFTER this one, and the
-  // delivery will still be in flight — reviewing what it built — when it does.
+  // delivery will still be in flight when it does.
   const held = activeDelivery(req.id as number)
   if (held) {
     die(`delivery ${held.deliveryId} is in flight on #${req.id}, so it is not a card to hand over.`, {
@@ -135,7 +142,6 @@ function queueRefine(inside: string, req: CommandRequest): MoveResult {
   const queued = askForRefine(inside, {
     cardId: req.id as number,
     notes: req.notes,
-    effort: req.refineEffort,
   })
   if (queued === 'no-run') {
     die(`run ${short(inside)} is not on this board's list, so the ask has nowhere to be written down`, {
@@ -159,19 +165,14 @@ function queueRefine(inside: string, req: CommandRequest): MoveResult {
 //
 // The hold is the board's, not one screen's: the card page turns the same five controls off
 // (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
-const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'decide', 'reject', 'archive'])
-
-// The two that answer a delivery's own question rather than rewriting the card under it.
-const ANSWERS_THE_HOLD = new Set<CommandAction>(['resolve', 'decide'])
+const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'reject', 'archive'])
 
 function sayIfHeld(req: CommandRequest, program: string): void {
   if (!HELD_BY_DELIVERY.has(req.action) || req.id === undefined) return
-  // One way through: a delivery whose review stopped is waiting on a question it put on
-  // this card, so answering that question is the very thing the hold would otherwise
-  // block. Resolve rewrites questions and never the approved copy, so the delivery is
-  // building exactly what it was building before (#302) — and a decide is the same move
-  // with the choosing done for the user (#447), so it takes the same way through.
-  if (ANSWERS_THE_HOLD.has(req.action) && deliveryAcceptsAnswers(req.id)) return
+  // One way through: a delivery held on this card's questions is waiting on exactly the
+  // answer the hold would otherwise block. Resolve rewrites questions and never the approved
+  // copy, so the delivery is building exactly what it was building before (#302).
+  if (req.action === 'resolve' && deliveryAcceptsAnswers(req.id)) return
   const held = heldByDelivery(req.id, program)
   if (held) die(held, { kind: 'run-refused', action: req.action })
 }
@@ -182,7 +183,7 @@ function sayIfHeld(req: CommandRequest, program: string): void {
 // Only building counts: refining a card before its blocker clears is ordinary work.
 //
 // An open question is warned about the same way (#307), and for the same reason: the
-// delivery is started, builds and is reviewed, and then holds at landing until the question
+// delivery is started and builds, and then holds at landing until the question
 // is answered. The card page's Implement dialog says exactly this; the terminal was the
 // only side of the click missing it.
 function sayBeforeStart(req: CommandRequest, program: string): void {
@@ -196,7 +197,7 @@ function sayBeforeStart(req: CommandRequest, program: string): void {
   const asked = openOf(card?.questions ?? []).length
   if (req.action === 'implement' && asked) {
     say(
-      `#${req.id} has ${asked} open question${asked === 1 ? '' : 's'} — it is built and reviewed, then holds at landing ` +
+      `#${req.id} has ${asked} open question${asked === 1 ? '' : 's'} — it is built, then holds at landing ` +
         `until ${asked === 1 ? 'it is' : 'they are'} answered. Answer first with \`${program} card resolve ${req.id}\`.`,
     )
   }
@@ -208,7 +209,6 @@ export interface StartOptions {
   print?: boolean
   follow?: boolean
   release?: string
-  effort?: RefineEffort
   andImplement?: boolean
   /** The runtime this one run spawns on (#518), on the two flows that take one. */
   runtime?: string
@@ -257,18 +257,10 @@ function readRequest(
   // A delivery verb is aimed at the delivery its command already looked up (#428) — never
   // at a card id, because a build with no card has none. It carries both: the card where
   // there is one, so every flow that names one still does, and the delivery always.
-  if (action === 'review' || action === 'conflict') {
+  if (action === 'conflict') {
     const delivery = args[0] as DeliveryRecord
     return {
-      req: {
-        action,
-        id: delivery.cardId ?? undefined,
-        deliveryId: delivery.deliveryId,
-        title: delivery.title,
-        // A review typed by hand is one the user asked for (#417) — including the one that
-        // restarts a delivery whose watcher died, which they still asked for by typing it.
-        ...(action === 'review' ? { trigger: 'asked' as const } : {}),
-      },
+      req: { action, id: delivery.cardId ?? undefined, deliveryId: delivery.deliveryId, title: delivery.title },
       follow,
       print,
     }
@@ -287,7 +279,6 @@ function readRequest(
   // The one run's own runtime (#518) — declared by `implement` alone among these, so
   // nothing else can be given one.
   if (action === 'implement') req.runtime = opts.runtime
-  if (action === 'refine') req.refineEffort = opts.effort
   if (action === 'resolve' && opts.andImplement === true) req.andImplement = true
   return { req, follow, print }
 }
@@ -324,7 +315,7 @@ export async function cmdCancel(named: string): Promise<MoveResult> {
 
 /** Carry an ended delivery on from where it stopped (#639): one that failed or was
  *  cancelled with its worktree and branch still here goes back to `active`, takes its card
- *  back, and finishes the job — checks, review, landing and archive — without rebuilding
+ *  back, and finishes the job — checks, landing and archive — without rebuilding
  *  anything.
  *
  *  It looks before it carries on: work that has already reached the target branch under
@@ -344,7 +335,7 @@ export async function cmdResumeDelivery(named: string): Promise<MoveResult> {
 // What moves it on from here. The board picks the landing queue back up by itself; the two
 // that need a run say which command starts it, because a resume starts none.
 const CARRY_ON_NEXT: Record<string, (id: string) => string> = {
-  review: (id) => `  it has not been reviewed yet: akb delivery review ${id}`,
+  build: () => '  its build has not finished: press Implement on the card, or `akb run resume` the build that stopped.',
   conflict: (id) => `  it stopped on a landing conflict: akb delivery conflict ${id}`,
   landing: () => '  it is back in the landing queue, and lands on its own.',
 }
@@ -353,8 +344,7 @@ const CARRY_ON_NEXT: Record<string, (id: string) => string> = {
  *
  *  Written by the run that put the answers on the card, before it drops the questions — it
  *  read both the question and what it wrote, so it is the one thing that can tell a
- *  confirmation from a change. The review an answer resumes and the landing queue read this
- *  and never the card's text: a tidied sentence is not a changed requirement.
+ *  confirmation from a change. The landing queue reads this and never the card's text: a tidied sentence is not a changed requirement.
  *
  *  `--unchanged` carries the delivery on; `--changed` ends it and opens a fresh one on the
  *  card as it then reads. Exactly one of them, each with its own one-line reason. */

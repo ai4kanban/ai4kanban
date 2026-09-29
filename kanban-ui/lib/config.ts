@@ -43,23 +43,6 @@ export async function setAutoCommit(on: boolean): Promise<{ ok: boolean; error?:
   return said(await rules.setAutoCommit(on));
 }
 
-// --- AI review (#416, #783) ---------------------------------------------------
-// **Review every build** — the second repository-level answer in the same file. On by
-// default, so rules from before it existed read as on, which is what they did.
-
-export async function aiReviewEnabled(): Promise<boolean> {
-  const rules = await boardRules();
-  return rules.aiReviewEnabled ? rules.aiReviewEnabled() : true;
-}
-
-export async function setAiReview(on: boolean): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.setAiReview) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.aiReview };
-  }
-  return said(await rules.setAiReview(on));
-}
-
 // --- the silence limit (#394) -------------------------------------------------
 // **End a silent run after** — how many minutes a run may produce nothing before the board
 // ends it as a failure. Repository-level, in the same file as the two above.

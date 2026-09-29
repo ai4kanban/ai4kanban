@@ -21,7 +21,6 @@
 // The field is written only when a card carries an entry, so a board the decider has never
 // run on reads exactly as it did.
 
-import { die } from './paths'
 import { yamlScalar, unquote } from './yaml'
 import type { CardDecision } from './view/types'
 
@@ -84,47 +83,4 @@ export function serializeDecided(decided: CardDecision[] | undefined): string[] 
     if (d.from) out.push(`    from: ${yamlScalar(d.from)}`)
   }
   return out
-}
-
-/** One op of `update-decided`. */
-export type DecidedOp =
-  | { kind: 'append'; entry: CardDecision }
-  | { kind: 'drop'; ns: number[] }
-  | { kind: 'clear' }
-
-/** What `update-decided` was asked for. One op per call: an entry is three fields that only
- *  mean anything together, so there is no list of them to apply in the order typed. */
-export interface DecidedInput {
-  question?: string
-  chose?: string
-  from?: string
-  drop?: string
-  clear?: boolean
-}
-
-/** The one op of `update-decided`, checked against what the card has. */
-export function readDecidedOp(opts: DecidedInput, count: number): DecidedOp {
-  if (opts.clear === true) return { kind: 'clear' }
-  if (opts.drop !== undefined) return { kind: 'drop', ns: parseDecidedPositions(opts.drop, count) }
-  const question = text(opts.question)
-  const chose = text(opts.chose)
-  if (!question || !chose) {
-    die('update-decided needs --question ".." --chose ".." [--from ".."], or --drop n[,n...] | --clear')
-  }
-  return { kind: 'append', entry: { question, chose, from: text(opts.from) } }
-}
-
-/** One or more 1-based positions (`1` or `1,3`), validated against what the card has. */
-export function parseDecidedPositions(raw: unknown, count: number): number[] {
-  const ns = String(raw)
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .map(Number)
-  if (ns.length === 0 || ns.some((n) => !Number.isInteger(n) || n < 1)) {
-    die('--drop needs one or more 1-based positions (e.g. 1 or 1,3)')
-  }
-  const over = ns.find((n) => n > count)
-  if (over !== undefined) die(`the card has ${count} decision(s) — there's no entry ${over}`)
-  return ns
 }

@@ -447,26 +447,16 @@ function StopRun({ session, onError }: { session: SessionView; onError: (why: st
   );
 }
 
-// Resume: the one way on when a delivery has stopped (#179, #302). Two different things can
-// leave one stopped — a run that died mid-conversation, and a run that ended fine whose
-// successor never started because the watcher died — and the way out of both is the same
-// sentence: carry this delivery on. So it is one control with one name, and which of the two
-// happened is the board's business, not the user's.
-//
-// Picking a dead conversation up is preferred whenever one is there: it keeps the turn the
-// agent already spent. Either way the delivery is the same one — a resume re-joins it and
+// Resume: the way on when a delivery's run died mid-conversation (#179, #302). Picking it up
+// keeps the turn the agent already spent, and the resume re-joins the same delivery and
 // re-enters the flow, so finished steps are not redone.
 function ResumeDelivery({
-  delivery,
   session,
   onResumed,
-  onCarryOn,
   onError,
 }: {
-  delivery: CardDelivery;
   session: SessionView | null;
   onResumed: (sessionId: string) => void;
-  onCarryOn: (action: NonNullable<CardDelivery["next"]>) => void;
   onError: (why: string) => void;
 }) {
   const c = useCopy().card.delivery.resume;
@@ -475,14 +465,9 @@ function ResumeDelivery({
 
   // Same test as `akb run resume`: a run stopped by hand can be picked up too (#1183).
   const pickUp = session?.canResume ? session.sessionId : null;
-  const owed = delivery.next;
 
   const resume = async () => {
-    if (!actions) return;
-    if (!pickUp) {
-      if (owed) onCarryOn(owed);
-      return;
-    }
+    if (!actions || !pickUp) return;
     setBusy(true);
     const res = await actions.resumeSession(pickUp);
     setBusy(false);
@@ -492,13 +477,13 @@ function ResumeDelivery({
     else onError(sayFailure(res, c.failed));
   };
 
-  if (!actions || (!pickUp && !owed)) return null;
+  if (!actions || !pickUp) return null;
   return (
     <PanelAction
       icon={<FiPlay className="text-[12px]" aria-hidden />}
       label={busy ? c.resuming : c.label}
       disabled={busy}
-      title={pickUp ? c.pickUpHint : c.startHint}
+      title={c.pickUpHint}
       onClick={() => void resume()}
     />
   );
@@ -784,7 +769,6 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   stopped: "live",
   held: "live",
   commit: "live",
-  rereview: "warn",
   refused: "warn",
   conflict: "live",
   retry: "warn",
@@ -966,7 +950,6 @@ function DeliveryBlock({
   session,
   onEnded,
   onResumed,
-  onCarryOn,
   onError,
 }: {
   delivery: CardDelivery;
@@ -974,7 +957,6 @@ function DeliveryBlock({
   session: SessionView | null;
   onEnded: () => void;
   onResumed: (sessionId: string) => void;
-  onCarryOn: (action: NonNullable<CardDelivery["next"]>) => void;
   onError: (why: string) => void;
 }) {
   const c = useCopy().card.delivery;
@@ -1038,10 +1020,8 @@ function DeliveryBlock({
           ) : (
             <>
               <ResumeDelivery
-                delivery={delivery}
                 session={session}
                 onResumed={onResumed}
-                onCarryOn={onCarryOn}
                 onError={onError}
               />
               <DiscardDelivery
@@ -1086,13 +1066,6 @@ function DeliveryBlock({
             )}
           </span>
           <span className="flex items-center gap-2.5">
-            {/* Only when it is off (#416): the default is what every delivery did before the
-                setting existed, and a line saying so would be noise on every card. */}
-            {!delivery.aiReview && (
-              <span className={CAP} title={c.noReviewHint}>
-                {c.noReview}
-              </span>
-            )}
             {delivery.commitMode !== "files" && (
               <span className={CAP} title={delivery.manualWhy}>
                 {delivery.commitMode === "auto" ? c.autoCommit : c.manualCommits}
@@ -1406,16 +1379,13 @@ export function CardPage({
   const delivery = card.delivery;
   const held = !!delivery;
   const heldWhy = delivery ? heldNote(delivery, c) : "";
-  // A delivery whose review stopped is waiting on the question it left here (#302).
-  // Review again is what judges the same work once it is answered.
+  // A delivery that stopped on something only the user can sort out (#302, #1203). Build
+  // again carries it on once they have.
   const waiting = delivery?.waiting;
-  // Another review, once the question this delivery is waiting on has been answered. A
-  // delivery that stopped rather than asked is Resume's business, in the block below.
-  const carryOn = waiting ? ("review" as const) : null;
   // Resolve stays live whenever the delivery is waiting on the user (#307) — a hold nothing
   // lets you answer is a dead end — while every other held control is off. The CLI makes
   // exactly the same exception.
-  const answerable = !!delivery?.state.paused || !!delivery?.state.deciding;
+  const answerable = !!delivery?.state.paused;
   // A delivery that is only building — waiting on nothing, holding nothing up. The one stage
   // with nothing to say beyond the pill already saying it.
   const justBuilding = delivery?.state.stage === "working" || !delivery?.state.line;
@@ -1479,8 +1449,8 @@ export function CardPage({
     hasExtra ||
     (buttons.has("run") && !delivery) ||
     (buttons.has("refine") && !delivery) ||
-    !!(waiting && carryOn);
-  const toolbar = !!actions && (!delivery || !!carryOn) && anyAction;
+    !!waiting;
+  const toolbar = !!actions && (!delivery || !!waiting) && anyAction;
 
   // This card's live Cloud event (#319). Two things read it: the title band's one mark, for
   // the states no local mark has words for, and the Implement and Resolve clicks —
@@ -1944,22 +1914,20 @@ export function CardPage({
                   )}
                   {/* No Resolve button: the questions panel below is the control, and a
                       decision is made against the question it is about. */}
-                  {/* Review again (#302) — offered while a delivery is waiting on the question
-                      its review left. Answer it, or write the exception you are approving under
-                      ## Worth noting after implementation, and this judges the same work afresh.
-                      A delivery that merely STOPPED is not this: Resume in the block below
-                      carries it on, and the user never has to tell the two kinds of stop apart. */}
-                  {waiting && carryOn && delivery.aiReview && (
+                  {/* Build again (#1203) — offered while a delivery has stopped on something the
+                      user sorts out. The build joins the same delivery and its close decides
+                      again. */}
+                  {waiting && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className={ACT}
                       disabled={busy}
-                      title={c.toolbar.reviewAgainHint}
-                      onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
+                      title={c.toolbar.buildAgainHint}
+                      onClick={() => void runAgent({ action: "implement", id: card.id }, "implement")}
                     >
-                      <FiCheckCircle className="text-[15px]" aria-hidden />
-                      {c.toolbar.reviewAgain}
+                      <FiPlay className="text-[15px]" aria-hidden />
+                      {c.toolbar.buildAgain}
                     </Button>
                   )}
                   {buttons.has("archive") && !delivery && (
@@ -2011,7 +1979,6 @@ export function CardPage({
                   kick();
                 }}
                 onResumed={onResumed}
-                onCarryOn={(action) => void runAgent({ action, id: card.id }, action)}
                 onError={setError}
               />
             ) : finishedBlock && card.finished && diff ? (

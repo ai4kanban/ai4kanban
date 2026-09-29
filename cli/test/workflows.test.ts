@@ -84,7 +84,7 @@ const artifactWorkflow = (): string => {
     JSON.stringify({
       workflows: {
         added: [{ id: 'wf-9', name: 'Video', needsArtifact: true }],
-        stages: { 'wf-9': { plan: { lead: 'software-planner' }, execute: { lead: 'test-writer' }, review: { lead: 'test-checker' } } },
+        stages: { 'wf-9': { plan: { lead: 'software-planner' }, execute: { lead: 'test-writer' } } },
       },
     }),
   )
@@ -109,7 +109,6 @@ beforeEach(() => {
   setBoardRoot(root)
   solution('product')
   stageAgent('test-writer', 'execute', true)
-  stageAgent('test-checker', 'review')
 })
 
 afterEach(() => {
@@ -143,17 +142,14 @@ describe('the workflows a board has', () => {
     assert.equal(stageContract('build', mine).lead, 'test-writer')
     assert.equal(agentForFlow('implement', 'coding'), 'builder')
     assert.equal(agentForFlow('implement', mine), 'test-writer')
-    // Review is led by the hidden lead; the saved lead became the first reviewer (#820).
-    assert.equal(agentForFlow('review', mine), 'review-lead')
-    assert.deepEqual(workflowById(mine)!.stages.review.helpers.map((h) => h.agent), ['test-checker'])
+    // Two stages, and nothing reviews (#1203).
+    assert.deepEqual(Object.keys(workflowById(mine)!.stages), ['plan', 'execute'])
     // A flow no workflow assigns is the board's whichever workflow asks.
     assert.equal(agentForFlow('chat', mine), 'discussion-helper')
-    assert.equal(agentForFlow('decide', mine), 'decider')
   })
 
   it('offers a stage only the agents that declare it', () => {
     assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
-    assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
     assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
@@ -202,12 +198,9 @@ describe('the leads of a workflow the command ships', () => {
 
   it('still takes helpers, and writes no lead beside them', () => {
     const helpers = (stage: number) => workflowViews()[0]!.stages[stage]!.helpers.filter((h) => !h.off).map((h) => h.agent)
-    assert.equal(addWorkflowHelper('coding', 'review', 'test-checker').ok, true)
-    assert.deepEqual(helpers(2), ['code-reviewer', 'test-checker'])
     assert.equal(switchWorkflowAgent('coding', 'plan', 'ui-designer', false).ok, true)
     assert.deepEqual(helpers(0), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor'])
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
-    assert.equal(config().workflows.stages.coding.review.lead, undefined)
   })
 
   it('runs the command’s agent again on a board that had changed one, and drops the key', () => {
@@ -287,7 +280,7 @@ describe('an assignment an upgrade retired', () => {
       { agent: 'cover-designer', extra: '' },
       { agent: 'demo-rehearser', extra: '' },
     ])
-    assert.deepEqual(video.stages[2]!.helpers, [])
+    assert.equal(video.stages.length, 2, 'the saved review stage is not read at all')
     assert.deepEqual(marked(), ['hyperframes-video'])
     assert.deepEqual(config().workflows.retired, ['hyperframes-video'])
   })
@@ -387,13 +380,12 @@ describe('a switch a board saved before the assignment was the answer', () => {
 })
 
 describe('a workflow the board adds', () => {
-  it('starts with all three stages empty, and says so rather than starting a card', () => {
+  it('starts with both stages empty, and says so rather than starting a card', () => {
     const made = createWorkflow('Weekly newsletter')
     assert.ok(made.ok)
     const mine = workflowById(made.id!)!
     assert.equal(mine.builtIn, false)
-    assert.deepEqual(Object.values(mine.stages).map((s) => s.lead), ['', '', ''])
-    // Review has no lead to miss (#820).
+    assert.deepEqual(Object.values(mine.stages).map((s) => s.lead), ['', ''])
     assert.equal(workflowProblems(mine.id).length, 2)
     assert.match(workflowProblems(mine.id)[0]!, /no agent leading its plan stage/)
   })
@@ -409,7 +401,6 @@ describe('a workflow the board adds', () => {
     // Including the helpers the original was OFFERING, each copied so the two share none (#1095).
     assert.deepEqual(mine.stages.plan.helpers.map((h) => h.agent), ['copywriting-2', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2'])
     assert.ok(fs.existsSync(path.join(kanban(), 'agents', 'ui-designer-2', 'AGENT.md')))
-    assert.deepEqual(mine.stages.review.helpers.filter((h) => !h.off).map((h) => h.agent), ['code-reviewer-2'])
     // Its own configuration from here: changing the copy leaves the built-in alone.
     assert.equal(setWorkflowLead(copy.id!, 'execute', 'test-writer').ok, true)
     assert.equal(workflowById(copy.id!)!.stages.execute.lead, 'test-writer')
@@ -586,13 +577,12 @@ describe('starting a run on an unfinished workflow', () => {
     // Nothing was written down: a refused run leaves no record and no card lock behind.
     assert.deepEqual(readStore().runs, [])
 
-    // With plan and execute led it starts like any other card — review needs nobody (#820).
+    // With plan and execute led it starts like any other card.
     stageAgent('outliner', 'plan', true)
     for (const [stage, agent] of [['plan', 'outliner'], ['execute', 'test-writer']] as const) {
       assert.equal(setWorkflowLead(made.id!, stage, agent).ok, true)
     }
     assert.deepEqual(workflowProblems(made.id!), [])
-    assert.match(setWorkflowLead(made.id!, 'review', 'test-checker').error!, /no lead, only reviewers/)
   })
 
   it('is refused outright on a card naming a workflow this board no longer has', async () => {
@@ -616,12 +606,10 @@ describe('starting a run on an unfinished workflow', () => {
     assert.equal(cardWorkflow(id)!.id, DEFAULT_WORKFLOW)
     const frozen = frozenWorkflow(cardWorkflowId(id))!
     assert.deepEqual(
-      ['plan', 'execute', 'review'].map((stage) => frozen.stages[stage as 'plan']!.lead),
-      ['software-planner', 'builder', ''],
+      (['plan', 'execute'] as const).map((stage) => frozen.stages[stage]!.lead),
+      ['software-planner', 'builder'],
     )
-    assert.deepEqual(frozen.stages.review!.helpers.map((h) => h.agent), ['code-reviewer'])
     assert.equal(agentForFlow('implement', 'content'), 'builder')
-    assert.equal(agentForFlow('review', 'content'), 'review-lead')
   })
 })
 
@@ -776,7 +764,7 @@ describe('one workflow per agent (#1095)', () => {
   const saved = (): Record<string, any> => JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
   const write = (cfg: Record<string, unknown>): void =>
     fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg))
-  const members = (id: string, stage: 'plan' | 'review' = 'plan') =>
+  const members = (id: string, stage: 'plan' | 'execute' = 'plan') =>
     liveStage(workflowById(id)!, stage).helpers.map((h) => `${h.agent}${h.off ? ' (off)' : ''}`)
 
   it('keeps who runs where, and puts an agent nobody listed in Coding, disabled', () => {

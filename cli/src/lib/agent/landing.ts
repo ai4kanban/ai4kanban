@@ -1,11 +1,9 @@
-// Landing: putting a delivery's reviewed code on the target branch (#304).
+// Landing: putting a delivery's built code on the target branch (#304).
 //
-// Review passes and the work is still on the delivery's own branch. Landing is the last
+// The build is done and the work is still on the delivery's own branch. Landing is the last
 // step, and it is the BOARD's own work — no run does it. The branch is squashed to one
 // commit, rebased onto the target branch's tip when that has moved, and the target branch
-// is moved to it. A rebase that goes through without a conflict keeps the verdict the
-// delivery already has, whichever files it touched; a conflict is resolved by an agent, and
-// that resolution — code no review has seen — is reviewed before it lands.
+// is moved to it. A conflict is resolved by an agent, and the next pass lands the result.
 //
 // A target branch that moves again under the landing is not handed back: the landing gives
 // its slot up, waits, and replays onto the new tip, for as long as it takes (#665).
@@ -36,7 +34,6 @@ import {
   wantsLanding,
 } from './deliveries'
 import { HELD_ON_QUESTIONS, IN_LINE } from './pause'
-import { aiReviewOn, reviewOf } from './review'
 import { backoffMs } from './retry'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord, LandingWait } from './types'
@@ -88,7 +85,7 @@ function waitingOut(delivery: DeliveryRecord, now: number = Date.now()): boolean
 }
 
 // The delivery to work on this pass: the one already holding the slot when nothing of its
-// own is running, or — when the slot is free — the oldest waiter. A waiter whose review has
+// own is running, or — when the slot is free — the oldest waiter. A waiter that has
 // stopped is passed over: it is waiting on a person, not on the queue. So is one held on
 // its card's open questions (#307), for the same reason.
 function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefined {
@@ -97,11 +94,9 @@ function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefi
     const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
     if (holder) {
       if (skip.has(holder.deliveryId) || held.has(holder.deliveryId) || holder.review?.stopped) return undefined
-      // Its own run is working — a re-review, or the agent resolving a conflict. The
-      // landing carries on when that run ends.
+      // Its own run is working — the agent resolving a conflict. The landing carries on
+      // when that run ends.
       if (store.runs.some((r) => r.status === 'running' && r.deliveryId === holder.deliveryId)) return undefined
-      // It has a run written down and not yet started; whoever starts it carries on.
-      if (holder.next) return undefined
       return { ...holder }
     }
     const waiter = store.deliveries.find(
@@ -183,7 +178,7 @@ const questionWhy = (cardId: number, asked: number): string =>
 // they are in.
 const wasHeldOnQuestions = (delivery: DeliveryRecord): boolean => !!delivery.landing?.why?.startsWith(HELD_ON_QUESTIONS)
 
-/** The deliveries whose card still has an open question. They are built and reviewed, and
+/** The deliveries whose card still has an open question. They are built, and
  *  landing is the step that waits for the answer — so one holding the slot gives it back
  *  and every other card can land while it waits.
  *
@@ -209,11 +204,11 @@ function holdForQuestions(): Set<string> {
   return held
 }
 
-/** This delivery's round of answers is in: it was waiting on the card's questions — at
- *  landing, or at the stop its own review left — and the card has none left. */
+/** This delivery's round of answers is in: it was held at landing on the card's questions,
+ *  and the card has none left. */
 function answersAreIn(delivery: DeliveryRecord): boolean {
   if (delivery.cardId === null || openQuestions(delivery.cardId) > 0) return false
-  return delivery.review?.stopped?.reason === 'ask' || wasHeldOnQuestions(delivery)
+  return wasHeldOnQuestions(delivery)
 }
 
 // ---- an answer that changed the plan (#307) ---------------------------------
@@ -237,8 +232,7 @@ const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
  *  conclusion is TAKEN as it is acted on, so one supersede is one supersede however many
  *  passes look at it.
  *
- *  Both waits count: a review that stopped to ask, and a landing held on the card's
- *  questions. They are the same wait on the same answers.
+ *  The wait is a landing held on the card's questions.
  *
  *  The card is handed back as it goes. The delivery put `implementing` there and nothing
  *  else takes it off, so a card whose replacement does not start would otherwise rest at a
@@ -340,7 +334,7 @@ const inLineWhy = (holder: DeliveryRecord): string =>
  *  user cleaned up an hour ago, still on the card page as the thing in its way. The queue is
  *  the honest answer, and it is the one nothing else was writing down.
  *
- *  The two holds and a stopped review are left out: those wait on a person whether or not
+ *  The two holds and a stopped delivery are left out: those wait on a person whether or not
  *  the slot is free, which is the same reason `takeSlot` passes them over. */
 function noteQueue(held: Set<string>): void {
   const store = readStore()
@@ -364,7 +358,7 @@ function noteQueue(held: Set<string>): void {
 // ---- one pass ---------------------------------------------------------------
 
 /** Move the landing queue on by one step, and hand back the run it wants started — the
- *  agent that resolves a conflict, and the focused review an overlapping rebase owes.
+ *  agent that resolves a conflict.
  *
  *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
@@ -470,7 +464,7 @@ async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step
 // ---- before it lands --------------------------------------------------------
 
 // Why this delivery can't land right this moment, or nothing when it may. Everything here
-// is about the USER's checkout: the delivery's own branch was settled by review.
+// is about the USER's checkout: the delivery's own branch was settled by its build.
 //
 // These are read on the card page as much as in the terminal, so each is ONE line: the thing
 // in the way, and the move that clears it. Nothing explains why landing cares — the reader
@@ -532,9 +526,7 @@ function warnOverlap(delivery: DeliveryRecord): void {
 // untangled first. The comparison is by file: what the target brought in since this
 // delivery's base, against what the delivery itself changes.
 //
-// It is a note on the landing record and nothing more (#665): a rebase git composed without
-// a conflict keeps the delivery's verdict whichever files it touched, so nothing here
-// decides whether a review runs. Git failing to answer reads as `overlap`, the honest
+// It is a note on the landing record and nothing more (#665). Git failing to answer reads as `overlap`, the honest
 // answer when the comparison could not be made.
 function rebaseKind(delivery: DeliveryRecord, dir: string, target: string): 'disjoint' | 'overlap' {
   const mine = changedPaths(delivery.base!, delivery.branch!, dir)
@@ -544,11 +536,8 @@ function rebaseKind(delivery: DeliveryRecord, dir: string, target: string): 'dis
   return theirs.some((file) => ours.has(file)) ? 'overlap' : 'disjoint'
 }
 
-// Rebase the one squash commit onto the target's new tip. A replay git composed by itself
-// cannot alter the tree review passed, so it carries that verdict on and lands — however
-// many files the two sides share (#665). Only a conflict owes a review: its resolution is
-// code no review has seen. A delivery with AI review off (#416) has no verdict to carry
-// over either way — `afterRebase`.
+// Rebase the one squash commit onto the target's new tip, and land it on the next pass —
+// however many files the two sides share (#665).
 //
 // Unbounded, and it never asks: a target branch that keeps moving is a race between two of
 // the board's own deliveries, and the user has nothing to decide about it.
@@ -563,25 +552,15 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
   return await afterRebase(delivery, target, kind)
 }
 
-// The rebase completed. Its target becomes the delivery's base — the same field, so review
-// sees everything this delivery changes against the current implementation — and the
-// record keeps the base it came from and which kind of rebase it was.
-//
-// A rebase git composed by itself carries the same landing pass straight on to the branch
-// move (#665). A resolved conflict holds the slot behind a stop while a focused review
-// judges the composed result; opening that run clears the stop, so a watcher that dies in
-// between cannot land the verdict from before the rebase.
-//
-// With AI review off there is no such run and nothing is stopped (#416), whatever kind the
-// rebase was: the delivery keeps the slot, and the next landing pass carries on against the
-// new base.
+// The rebase completed. Its target becomes the delivery's base, and the record keeps the
+// base it came from and which kind of rebase it was. The delivery keeps the slot, and the
+// next landing pass lands it.
 async function afterRebase(
   delivery: DeliveryRecord,
   target: string,
   kind: NonNullable<DeliveryLanding['rebaseKind']>,
 ): Promise<Step> {
   const at = Date.now()
-  const reviews = aiReviewOn(delivery)
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
     if (!live || live.status !== 'active') return
@@ -599,28 +578,12 @@ async function afterRebase(
     landing.conflictAt = undefined
     landing.retryAt = undefined
     landing.at = at
-    if (reviews && kind === 'conflict') {
-      reviewOf(live).stopped = { reason: 'landing', why: rebaseWhy(delivery), at }
-    }
   })
   syncAudit(delivery.deliveryId)
   const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
   if (!live || live.status !== 'active') return { done: true }
-  if (!reviews) return {}
-  if (kind !== 'conflict') return await landStep(live, true)
-  return {
-    start: {
-      action: 'review',
-      id: live.cardId ?? undefined,
-      deliveryId: live.deliveryId,
-      title: live.title,
-      trigger: 'conflict',
-    },
-  }
+  return {}
 }
-
-const rebaseWhy = (delivery: DeliveryRecord): string =>
-  `a conflict with ${delivery.targetBranch} was resolved, so the composed result must be reviewed before it lands`
 
 // The target branch moved under this landing. The slot goes back and the next attempt opens
 // after a wait — the same curve a conflict retry borrows, and unbounded for the same reason
@@ -683,8 +646,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
   if (done.ok && !rebaseInProgress(dir)) {
     // Always `conflict`, and never a comparison of its own: a conflicted file is one both
-    // sides changed, so a resolved conflict is an overlap by definition — and the
-    // resolution itself is code no review has seen.
+    // sides changed, so a resolved conflict is an overlap by definition.
     return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
   }
   const fails = (delivery.landing?.conflictFails ?? 0) + 1

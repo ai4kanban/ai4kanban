@@ -142,8 +142,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     delivery: noun(
       'delivery',
       'the build in flight on a card',
-      'Each verb takes the delivery, or the card it is on. The board runs `review` and `conflict` ' +
-        'itself; the rest are yours.',
+      'Each verb takes the delivery, or the card it is on. The board runs `conflict` itself; the ' +
+        'rest are yours.',
     ),
     run: noun(
       'run',
@@ -410,7 +410,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   const workflow = withShared(program.command('workflow'))
     .summary('the workflows this board runs, and who runs each of their stages')
     .description(
-      'Every card runs through one workflow: `plan → execute → review`, each stage led by one agent and ' +
+      'Every card runs through one workflow: `plan → execute`, each stage led by one agent and ' +
         'able to call in helpers. `coding`, `hyperframes-video`, `slide-deck`, `carousel-post` and `blog-post` ship with the command: their leads are ' +
         'fixed, their helpers can be changed, and they can be copied but not renamed or deleted. A card names its workflow in its own frontmatter ' +
         '(`akb raw create --workflow`), and a delivery freezes the one it started with.',
@@ -587,8 +587,8 @@ function declareRunning(run: Command, cli: AgentCliOptions): void {
 
 // ---- akb delivery <verb> --------------------------------------------------------------
 
-/** What you do to a build in flight, or to one that stopped. `review` and `conflict` are
- *  flows and are declared with the rest of them; these four start nothing. */
+/** What you do to a build in flight, or to one that stopped. `conflict` is a flow and is
+ *  declared with the rest of them; these start nothing. */
 function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
   const verb = (name: string) => withShared(delivery.command(name))
 
@@ -598,7 +598,7 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
     .description(
       'Written by the run that put the answers on the card, before it drops the questions — it read both the ' +
         'question and what it wrote, so it is the one thing that can tell a confirmation from a change. The ' +
-        'review an answer resumes and the landing queue read this and never the card’s text. Exactly one of ' +
+        'landing queue reads this and never the card’s text. Exactly one of ' +
         'the two flags, each with its own one-line reason.',
     )
     .addOption(
@@ -628,7 +628,7 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
     .argument('<delivery>', DELIVERY)
     .summary('carry one on that stopped short, from where it stopped')
     .description(
-      'Its worktree, branch, approved requirements and review all stay as they are — finished steps are ' +
+      'Its worktree, branch and approved requirements all stay as they are — finished steps are ' +
         'never redone. Work that has already reached the target branch under another commit ends the ' +
         'delivery on that commit instead of landing it twice.',
     )
@@ -681,7 +681,7 @@ function declareFlow(parent: Command, flow: Flow, cli: AgentCliOptions): void {
 
 /** The delivery a `delivery` verb was aimed at — named by its own id, by a prefix of one, or
  *  by the card it is on. The run carries the delivery from here, so a build with no card
- *  (#428) reaches its review and its conflict run exactly as a carded one does. */
+ *  (#428) reaches its conflict run exactly as a carded one does. */
 function deliveryOf(named: string): DeliveryRecord {
   const delivery = namedDelivery(named)
   if (!delivery) throw new BoardError(`no delivery here answers to "${named}"`, { kind: 'unknown-delivery' })

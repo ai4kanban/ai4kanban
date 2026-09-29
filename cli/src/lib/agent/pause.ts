@@ -1,33 +1,29 @@
 // Where a delivery has got to, and what it is waiting for (#307).
 //
 // A delivery pauses in a few places, and every one of them is already written down
-// somewhere else: the card's open questions, the delivery's own review and landing
-// records, and its commit mode. So nothing here is stored — it is worked out on each
+// somewhere else: the card's open questions, the delivery's own stop and landing records,
+// and its commit mode. So nothing here is stored — it is worked out on each
 // read, and a state can never go stale against the thing it describes.
 //
 // One answer, read three ways: the card page's pill and the line under it, the sentence a
 // refused board move gives, and the hold that lets Resolve through while a delivery waits.
 
 import { boardCommand } from './command'
-import { aiReviewOn } from './review'
 import type { DeliveryRecord } from './types'
 
 /** Where a delivery stands. Three of these are pauses: nothing moves until the user acts. */
 export type DeliveryStage =
-  /** Building or reviewing — the board's own work is in flight. */
+  /** Building — the board's own work is in flight. */
   | 'working'
-  /** Review stopped and put a question on the card (#302), and it is still open. */
+  /** The delivery stopped on something only the user can clear: work nobody could commit,
+   *  files outside the board, or a question a review asked before #1203. */
   | 'stopped'
-  /** Built and reviewed; landing waits until the card's open questions are answered. */
+  /** Built; landing waits until the card's open questions are answered. */
   | 'held'
   /** Manual commit mode: the delivery's own work is finished, and the commit is the user's
    *  to make. */
   | 'commit'
-  /** The whole candidate goes back through review before anything else happens: its
-   *  question has been answered, or — in manual commit mode — they committed something
-   *  other than what review passed. */
-  | 'rereview'
-  /** Reviewed and queued, and landing refused it — a dirty checkout, a target branch that
+  /** Queued, and landing refused it — a dirty checkout, a target branch that
    *  is gone. The refusal already says what clears it, and the next pass tries again. */
   | 'refused'
   /** An agent is resolving a conflict with the target branch, in the delivery's own
@@ -37,7 +33,7 @@ export type DeliveryStage =
    *  resolve it (#595), or a target branch that moved under the landing (#665). It holds no
    *  landing slot while it waits, so another delivery lands. */
   | 'retry'
-  /** Reviewed and queued behind the card that holds the landing slot. Nothing is asked of
+  /** Queued behind the card that holds the landing slot. Nothing is asked of
    *  the user: it moves the moment the one in front of it lands. */
   | 'queued'
   /** Its commit is on the target branch, and the board is completing the card. */
@@ -56,10 +52,6 @@ export interface DeliveryState {
   /** True while it waits on the user. There is nothing to press — what continues it is the
    *  answer, the commit, or the resolve. */
   paused: boolean
-  /** The decider is answering these questions instead of the user (#447), so nothing is
-   *  being asked of them and `paused` is false. The questions are still open, and answering
-   *  one by hand still works — which is why the hold lets a resolve through on this too. */
-  deciding?: boolean
 }
 
 /** The fixed opening words landing writes on the question hold (`landing.ts`). They are
@@ -83,41 +75,16 @@ const end = (text: string): string => (/[.!?)]$/.test(text) ? text : `${text}.`)
 
 const isHold = (why: string): boolean => why.startsWith(HELD_ON_QUESTIONS)
 
-// The two commands that put a build with no card back in motion, or end it (#428). A carded
-// delivery says the card page's controls instead; this one has no page to say them on.
-const backInMotion = (delivery: DeliveryRecord): string => {
-  const cmd = boardCommand()
-  return (
-    `\`${cmd} delivery review ${delivery.deliveryId}\` tries it again, ` +
-    `\`${cmd} delivery cancel ${delivery.deliveryId}\` ends it and leaves the branch.`
-  )
-}
-
-/** True when a review's stop is over: it stopped to ask, and the card has no question
- *  left. The questions ARE that stop, so answering ends it — nothing has to be pressed.
- *
- *  Only `ask`. Every other reason names something outside the card — a tree nobody could
- *  commit, for one — and the question each one leaves already says what puts the delivery
- *  back in motion.
- *
- *  The stop itself is left standing until the review run starts and clears it
- *  (`joinActive`), so this is derived on every read the way everything else here is. */
-export function answeredStop(delivery: DeliveryRecord, questions: number): boolean {
-  return delivery.review?.stopped?.reason === 'ask' && questions === 0
-}
+// The command that ends a stopped build with no card (#428). A carded delivery says the card
+// page's controls instead; this one has no page to say them on.
+const backInMotion = (delivery: DeliveryRecord): string =>
+  `\`${boardCommand()} delivery cancel ${delivery.deliveryId}\` ends it and leaves the branch.`
 
 /** Where this delivery stands, given how many open questions its card carries.
  *
  *  The questions are passed in rather than read here: this file is asked from inside the
  *  record's lock as well as from a card read, and reading a card file is the caller's job. */
-export function deliveryState(
-  delivery: DeliveryRecord,
-  questions: number,
-  /** The decider would answer this card's questions (#447) — read by the caller, which is
-   *  the side that can. It changes only the two waits it can answer, `stopped` and `held`:
-   *  a commit and a landing refusal are none of its business. */
-  deciding = false,
-): DeliveryState {
+export function deliveryState(delivery: DeliveryRecord, questions: number): DeliveryState {
   const landing = delivery.landing
   if (landing?.status === 'landed') {
     const commit = landing.commit?.slice(0, 7)
@@ -132,72 +99,31 @@ export function deliveryState(
     }
   }
   const stopped = delivery.review?.stopped
-  const answered = answeredStop(delivery, questions)
-  if (stopped && !answered) {
-    // The decider is answering it, so nobody is being asked anything: the label, the line
-    // and `paused` all say the board is still moving (#447).
-    if (deciding && questions && delivery.cardId !== null) {
-      return {
-        stage: 'stopped',
-        label: 'Decider is answering',
-        line: `${upper(end(stopped.why))} Decider is answering it for you, and the work goes back through review once it has.`,
-        paused: false,
-        deciding: true,
-      }
-    }
+  if (stopped) {
     return {
       stage: 'stopped',
       label: 'Waiting on you',
-      // With no card there is no page to answer on and no `Review again` to press, so the
-      // line names the two commands that are the whole way out (#428).
+      // With no card there is no page to build again from, so the line names the command
+      // that is the way out (#428).
       line: delivery.cardId === null
         ? `${upper(end(stopped.why))} ${backInMotion(delivery)}`
-        : questions
-          ? `${upper(end(stopped.why))} Answer it on this card, then \`Review again\`.`
-          : `${upper(end(stopped.why))} Fix it, then \`Review again\`.`,
+        : `${upper(end(stopped.why))} Fix it, then \`Build again\`.`,
       paused: true,
     }
   }
   if (delivery.commitMode !== 'auto' && delivery.commitMode !== 'files') {
     if (delivery.reviewed) {
-      // Nothing read this code but the build and the repository's own checks when AI review
-      // is off (#416), so the line says the build is done rather than that a review passed.
       return {
         stage: 'commit',
         label: 'Waiting for your commit',
-        line: aiReviewOn(delivery)
-          ? 'Review passed — commit these changes yourself, and the delivery carries on.'
-          : 'The build is done — commit these changes yourself, and the delivery carries on.',
+        line: 'The build is done — commit these changes yourself, and the delivery carries on.',
         paused: true,
       }
     }
-    if (delivery.next === 'review' && delivery.review?.rounds.length) {
-      return {
-        stage: 'rereview',
-        label: 'Code changed after review',
-        line: 'Your commit is not the tree that was reviewed, so the whole candidate goes back through review.',
-        paused: false,
-      }
-    }
   }
-  // The question is answered, so what happens next is the look it asked for: the board
-  // hands that review back on the tick after the answer (`answeredWork`), and the run
-  // clears the stop as it starts. Nothing is asked of the user in between, so this is not a
-  // pause — and without it an answered delivery would read as one that is building. The
-  // label says it all, so there is no line (#831).
-  if (answered) return { stage: 'rereview', label: 'Reviewing again', line: '', paused: false }
-  // A delivery only holds at landing once it has one: review has passed it and it has
-  // queued. Before that the questions are a warning the user already answered for.
+  // A delivery only holds at landing once it has one: the build is done and it has queued.
+  // Before that the questions are a warning the user already answered for.
   if (questions > 0 && landing) {
-    if (deciding) {
-      return {
-        stage: 'held',
-        label: 'Decider is answering',
-        line: `Landing waits on this card's ${count(questions)} — Decider is answering ${questions === 1 ? 'it' : 'them'} for you, and it carries on.`,
-        paused: false,
-        deciding: true,
-      }
-    }
     return {
       stage: 'held',
       label: 'Held at landing',

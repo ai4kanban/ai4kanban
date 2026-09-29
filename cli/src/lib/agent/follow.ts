@@ -44,7 +44,6 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
       title: card.title,
       specAgent: agent.name,
       notes: ask.notes,
-      refineEffort: ask.refineEffort,
     }]
   })
 }
@@ -62,8 +61,7 @@ export function refineRunsAfter(asks: RefineAsk[]): AgentRequest[] {
       action: 'refine',
       id: ask.cardId,
       notes: ask.notes,
-      refineEffort: ask.effort,
     })
-    return 'error' in next ? [] : [next]
+    return 'error' in next ? [] : [{ ...next, scheduled: true }]
   })
 }

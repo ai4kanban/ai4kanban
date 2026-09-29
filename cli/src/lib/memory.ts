@@ -270,8 +270,8 @@ export function memoryTarget(name: string): MemoryTarget {
 }
 
 /** The planner's `decisions.md` and `rejected.md`, board-relative — what a run standing in
- *  for the user is given (#493): the gater and the decider judge for the whole board rather
- *  than write one card. Read-only, so nothing is scaffolded. */
+ *  back on the whole board is given (#493, #534): a reflection or a sweep judges for the whole
+ *  board rather than writes one card. Read-only, so nothing is scaffolded. */
 export const planningMemoryFiles = (): string[] =>
   ['decisions.md', 'rejected.md'].map((name) => rel(agentMemoryFile(PLANNER, name)))
 

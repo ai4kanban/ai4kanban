@@ -30,7 +30,6 @@ import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
 import { answerOutcome } from './answers'
 import { candidateBase } from './candidate'
-import { decideRunAfter, decidingOn } from './decide'
 import { boardCommand } from './command'
 import {
   commitDeliveryWork,
@@ -43,17 +42,12 @@ import { completeCard } from './complete'
 import { filesStop } from './outputs'
 import { insideRun } from './env'
 import { DELIVERY_FLOWS } from './flows'
-import { answeredStop, deliveryState, type DeliveryStage, type DeliveryState } from './pause'
+import { deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
 import { openOf } from '../view/rules'
 import { cardWorkflowId, frozenWorkflow } from './workflows'
-import {
-  aiReviewOn,
-  lastRound,
-  nextAfterSession,
-  reviewOf,
-} from './review'
+import { nextAfterSession, reviewOf } from './review'
 import { readDeliveryRow, readStore, runIsLive, withStore, type Store } from './store'
 import {
   refusal,
@@ -117,7 +111,6 @@ export function writeAudit(delivery: DeliveryRecord, runs: RunRecord[]): void {
         model: run.model,
         costUsd: run.costUsd,
         resumedFrom: run.resumedFrom,
-        trigger: run.trigger,
         log: rel(run.logPath),
       },
     ]
@@ -627,12 +620,9 @@ export function resumeRecord(id: string): { ok: true; delivery: DeliveryRecord }
  *
  *  A landing conflict keeps its whole record: the rebase and the resolutions staged in the
  *  worktree are untouched, and `akb delivery conflict` is what carries them through.
- *  Anything the queue already holds goes back into it, and everything else owes a review.
- *
- *  The landing record is what tells the two apart, because `queueLanding` is the only thing
- *  that writes one and it writes it exactly when the gate passed. A review ROUND is not that
- *  test: a round whose verdict was `ask` is a review that stopped, and putting that in the
- *  queue would land work review never passed.
+ *  Anything the queue already holds goes back into it, and everything else still owes its
+ *  build. The landing record is what tells the two apart, because `queueLanding` is the only
+ *  thing that writes one and it writes it exactly when the build finished.
  *
  *  Asked only after the work has been checked against the target branch, because a delivery
  *  whose change is already in has no step left to take. */
@@ -641,10 +631,7 @@ export function carryOnFrom(deliveryId: string): DeliveryCarryOn {
     const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
     if (!delivery || delivery.status !== 'active') return 'landing'
     if (delivery.landing?.status === 'conflict') return 'conflict'
-    if (!delivery.landing) {
-      delivery.next = 'review'
-      return 'review'
-    }
+    if (!delivery.landing) return 'build'
     delivery.landing = { ...delivery.landing, status: 'waiting', why: undefined, at: Date.now() }
     return 'landing'
   })
@@ -833,12 +820,10 @@ export function joinDelivery(
       // …and, where that was a plan, the file it was read from (#481) — the one way back to
       // it once the panel has let the plan go.
       plan: cardId === null ? direct?.plan : undefined,
-      // Existing questions predate review. Review waits only on a decision it adds itself;
-      // these keep waiting at landing as before.
       initialQuestions: cardId === null ? 0 : openQuestions(cardId),
       steps: [],
       // And the one read of where the code stood before it started. Everything the
-      // delivery writes is the difference from here, which is the diff review judges.
+      // delivery writes is the difference from here.
       base: start ? start.base : (candidateBase() ?? undefined),
       // The stage to put back when the whole delivery ends. Read here, from the first
       // run, because every run after this one would read `implementing` — the
@@ -847,9 +832,6 @@ export function joinDelivery(
       // How it commits, and where. Written now and never again: flipping the setting
       // changes the next delivery, not this one.
       commitMode: start?.commitMode ?? 'manual',
-      // And whether a fresh session reviews what it builds (#416). Frozen here too, so a
-      // resume and every later session follow the policy this build started with.
-      aiReview: start ? start.aiReview : true,
       manualWhy: start?.manualWhy,
       touched: start?.touched,
       planned: start?.planned,
@@ -867,6 +849,10 @@ export function joinDelivery(
       branch: start?.branch,
     }
     store.deliveries.push(delivery)
+  } else if (step === 'implement' && delivery.review?.stopped) {
+    // Building again is how a stopped delivery carries on (#1203): the build looks at what
+    // stopped it, and its close decides again.
+    delivery.review.stopped = undefined
   }
   delivery.sessions.push(run.sessionId)
   delivery.steps.push({ step, at: run.startedAt })
@@ -887,8 +873,8 @@ export function joinDelivery(
  *  From here the run, the delivery and the card are the ordinary three: Runs names `#id`,
  *  the card page shows the delivery in flight, and landing archives the card.
  *
- *  What was frozen while there was no card stays frozen: `aiReview` is off,
- *  and `approved` is still the typed sentence — the card was written from it, not the other
+ *  What was frozen while there was no card stays frozen: `approved` is still the typed
+ *  sentence — the card was written from it, not the other
  *  way round.
  *
  *  Only a card-less build, which **Build now** is the one way into. An Add task run creates
@@ -919,15 +905,9 @@ export function adoptDirectCard(sessionId: string, cardId: number): boolean {
   })
 }
 
-/** Put a review run into the delivery already in flight on its card.
- *
- *  Unlike `joinDelivery` it opens nothing: there is no delivery to review when nobody has
- *  built anything, and a run that quietly started one would review an empty diff
- *  against a card it had just captured. Undefined when the card has no active delivery,
- *  and the caller refuses.
- *
- *  Starting one also clears the stop it may be waiting at: the user has answered, approved
- *  an exception, or asked for another look, and this run is that look. */
+/** Put a conflict run into the delivery already in flight on its card. Unlike
+ *  `joinDelivery` it opens nothing: undefined when the card has no active delivery, and the
+ *  caller refuses. Starting one also clears the stop it may be waiting at. */
 export function joinActive(
   store: Store,
   run: RunRecord,
@@ -1001,64 +981,51 @@ const DELIVERY_OUTCOME: Record<Exclude<DeliveryStatus, 'active'>, CloudEventStat
 
 /** What a run's ending means for the delivery it belonged to.
  *
- *  A delivery is implementation, then a review that fixes plain mistakes itself. The
- *  delivery finishes only when review passes it, or stops with a question when review
- *  needs the user. A run that failed or was cut off mid-build leaves it ACTIVE and unfinished,
- *  with the card still held, until Resume carries it on or Discard ends it. A
- *  run somebody stopped is the same: stopping a run is not ending the job. */
+ *  A finished build finishes the delivery's work: it lands, waits for the user's commit, or
+ *  stops on what it could not settle. A run that failed or was cut off mid-build leaves it
+ *  ACTIVE and unfinished, with the card still held, until Resume carries it on or Discard
+ *  ends it. A run somebody stopped is the same: stopping a run is not ending the job. */
 export async function settleDelivery(run: RunRecord): Promise<void> {
   if (!run.deliveryId) return
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
   if (!before) return
   type Settled = { end: 'finished'; complete?: boolean }
-  const questions = before.cardId === null ? 0 : openQuestions(before.cardId)
-  const raisedQuestions = Math.max(0, questions - (before.initialQuestions ?? 0))
 
   // Everything that has to run git happens here, before the record's lock — every process
   // on this board waits on that lock, and a git command is not what it should be waiting
   // for.
   //
-  // First the run's work, committed onto the delivery's branch. Review may fix plain
-  // mistakes itself, so its changes are committed before its pass can land.
-  const built = run.status === 'done' && (run.action === 'implement' || run.action === 'review')
+  // First the run's work, committed onto the delivery's branch.
+  const built = run.status === 'done' && run.action === 'implement'
   const commit = built && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
   const uncommitted = commit.ok ? undefined : commit.why
-  // And, in manual commit mode, the snapshot the finished work leaves for the user's own
-  // commit to be matched against. It comes from the run that ends the delivery's own work:
-  // a review that passed, or — with AI review off (#416) — the implementation itself. A
-  // review asked for by hand on a review-off delivery is still a review, and still the run
-  // that ends its work; without this the delivery would finish on it and take the card with
-  // it, leaving the user's checkout uncommitted.
-  const finishing =
-    run.action === 'review' ? raisedQuestions === 0 : run.action === 'implement' && !aiReviewOn(before)
+  // And, in manual commit mode, the snapshot the finished build leaves for the user's own
+  // commit to be matched against.
   //
   // A build with no card takes no snapshot (#428): nothing is waiting for the user's commit,
   // because the wait is read on a card page and there is none — the delivery finishes with
   // its run and leaves the change where it is.
   const reviewed =
-    !uncommitted && before.commitMode === 'manual' && before.cardId !== null && run.status === 'done' && finishing
+    !uncommitted && before.commitMode === 'manual' && before.cardId !== null && built
       ? snapshotReviewed(before)
       : undefined
   // A `files` delivery ends on what it made (#874): the files its card records, and nothing
   // changed outside the board.
-  const files = built && before.commitMode === 'files' && finishing ? filesStop(before) : undefined
+  const files = built && before.commitMode === 'files' ? filesStop(before) : undefined
 
   const settled = withStore<Settled | null>((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)
     if (!delivery) return null
-    // Work nobody could commit is work nobody can review: the tree that would be judged is
-    // not the tree that would land.
+    // Work nobody could commit cannot land: the tree that would land is not the one built.
     if (uncommitted && delivery.status === 'active') {
       const review = reviewOf(delivery)
       review.stopped = { reason: 'uncommitted', why: uncommitted, at: Date.now() }
-      delivery.next = undefined
       releaseLanding(delivery)
       return null
     }
-    const next = nextAfterSession(delivery, run, raisedQuestions)
+    const next = nextAfterSession(delivery, run)
     if ('hold' in next) return null
     if ('finish' in next) {
-      delivery.next = undefined
       // In manual commit mode a pass is not the end: the code is sitting in the user's own
       // checkout and only they can commit it. The delivery stays ACTIVE, holding the card,
       // with what the board built written down — and the card page is where the wait is
@@ -1081,23 +1048,10 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       }
       return { end: 'finished' }
     }
-    if ('stop' in next) {
-      const review = reviewOf(delivery)
-      const at = Date.now()
-      review.stopped = { reason: next.stop, why: next.why, at }
-      // A fresh round of questions starts here, so a round before it that moved nothing is
-      // finished with (#637) — an old conclusion must never stand in for one nobody wrote.
-      // A `changed` stays: the supersede it asks for is still owed.
-      for (const answer of delivery.answers ?? []) {
-        if (!answer.actedAt && answer.outcome === 'unchanged') answer.actedAt = at
-      }
-      delivery.next = undefined
-      // A re-review that stops waits on a person, and a landing queue that waits with it
-      // stops every other card on the board — so the slot goes back (#304).
-      releaseLanding(delivery)
-      return null
-    }
-    delivery.next = next.start
+    reviewOf(delivery).stopped = { reason: next.stop, why: next.why, at: Date.now() }
+    // A stop waits on a person, and a landing queue that waits with it stops every other
+    // card on the board — so the slot goes back (#304).
+    releaseLanding(delivery)
     return null
   })
   if (settled && 'end' in settled) {
@@ -1109,133 +1063,32 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   syncAudit(run.deliveryId, run)
 }
 
-/** The run this delivery starts next, now that one of its own has closed — and it is
- *  taken as it is read, so nothing starts it twice.
- *
- *  Called by the watcher of the run that just closed, which is the one process that
- *  can start it: a run never starts another. A watcher that dies in between leaves
- *  `next` on the record, so the delivery still says what it was about to do and
- *  `akb delivery review <id>` puts it back in motion. */
-export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
-  if (run.deliveryId) return takeNext(run.deliveryId) ?? decideAfterDelivery(run.cardId)
-  // A run that is not the delivery's own can still be the thing it was waiting for:
-  // `resolve` is how the question a stopped review left gets answered, and the hold lets it
-  // through for exactly that (`heldByDelivery`). It joins no delivery, so nothing here was
-  // taken — the answer itself is what the review follows.
-  //
-  // How that run ENDED is not asked, and deliberately: the card is the whole of this stop
-  // (`answeredStop`), so a run that dropped the last question answered it whether or not it
-  // went on to fail. The tick reads it that way already (`answeredWork`), and asking the run
-  // here as well made the two disagree — the watcher holds the row it claimed the card with,
-  // written before the run spawned and never written back into, so its `status` still reads
-  // `running` at the moment it asks. The delivery then carried on nothing, and the card sat
-  // at its stop until a tick happened to pick it up.
-  //
-  // A run with no card answers no stop either: a card-less delivery has no questions to
-  // settle, and its own `next` is taken above.
-  return run.cardId === null ? null : (answeredReview(run.cardId) ?? decideAfterDelivery(run.cardId))
-}
-
-/** The decide run this close owes, when it left a delivery waiting on the card's `[user]`
- *  questions and the decider is switched on (#447) — the second of the decider's two
- *  triggers, the other being QA converging (`refine.ts`).
- *
- *  Both holds count and for one reason: a review that sent the delivery back and a landing
- *  that will not go until the questions are answered are the same wait, and the decider is
- *  what answers it. It joins no delivery — once its answers clear the card, `answeredReview`
- *  at ITS close is what hands the delivery on. */
-function decideAfterDelivery(cardId: number | null): AgentRequest | null {
-  if (cardId === null) return null
-  const state = deliveryStateOf(cardId)
-  if (!state || (state.stage !== 'stopped' && state.stage !== 'held')) return null
-  return decideRunAfter(cardId)
-}
-
-/** True while the delivery on this card is stopped on questions somebody may still answer —
- *  the user, or the decider on their behalf. What the hold lets `resolve` and `decide`
- *  through on: both rewrite questions and never the approved copy, so the delivery is
- *  building exactly what it was building before. */
+/** True while the delivery on this card is stopped on questions only the user can answer.
+ *  What the hold lets `resolve` through on: it rewrites questions and never the approved
+ *  copy, so the delivery is building exactly what it was building before. */
 export function deliveryAcceptsAnswers(cardId: number): boolean {
-  const state = deliveryStateOf(cardId)
-  return !!state && (state.paused || state.deciding === true)
+  return !!deliveryStateOf(cardId)?.paused
 }
 
-/** The two stages where a delivery has stopped and only the user's answer moves it: review
- *  sent the work back with a question (`stopped`), and landing waits on the card's open
- *  questions (`held`). Every other pause names something outside the card — a commit, a
- *  landing refusal — which is not an answer and not what this set is for. */
+/** The stages where a delivery has stopped and only the user's answer moves it: landing
+ *  waits on the card's open questions (`held`), or a delivery from before #1203 was sent back
+ *  by review with a question (`stopped`). */
 const WAITING_ON_ANSWER: ReadonlySet<DeliveryStage> = new Set<DeliveryStage>(['stopped', 'held'])
 
-/** The cards whose delivery has stopped for an answer only the user can give — after review
- *  (#646) or before landing (#565). Nothing is being built, and nothing will be until they
- *  answer.
+/** The cards whose delivery has stopped for an answer only the user can give (#565, #646).
+ *  Nothing is being built, and nothing will be until they answer.
  *
  *  A delivery holds the card, so everything that asks what the board is working on counts
  *  these as busy. They are the one exception, which is why Cloud raises them
- *  (cloud/publish.ts). A card the decider is answering is not one of them: `paused` is what
- *  says the user is being asked. */
+ *  (cloud/publish.ts). */
 export function cardsAwaitingAnswer(): Set<number> {
   const waiting = new Set<number>()
   for (const delivery of readStore().deliveries) {
     if (delivery.status !== 'active' || delivery.cardId === null) continue
-    const state = deliveryState(delivery, openQuestions(delivery.cardId), decidingOn(delivery.cardId))
+    const state = deliveryState(delivery, openQuestions(delivery.cardId))
     if (WAITING_ON_ANSWER.has(state.stage) && state.paused) waiting.add(delivery.cardId)
   }
   return waiting
-}
-
-/** The review this card's delivery is owed now that its question has been answered — or
- *  nothing, which is every card that is not waiting at one.
- *
- *  Derived, never stored (`pause.ts`): the card's questions are the whole of that stop, so
- *  a card with none left is a delivery whose next step is another look. Nothing is written
- *  here — the run that starts clears the stop and takes the conclusion with it (`joinActive`),
- *  and until one does, every read of this says the same thing.
- *
- *  Owed only when the answers left the requirements alone (#637). Answers that CHANGED them
- *  are not something to review this build against — the landing pass ends the delivery and
- *  opens a fresh one. A round nothing judged changed nothing (#831).
- *
- *  Manual commit mode is the exception, and only because the supersede lives in the landing
- *  pass a manual delivery never enters (`wantsLanding`): there a change has nothing to act
- *  on it, so the answered review is still what comes next rather than a wait for a supersede
- *  nobody can make. */
-export function answeredReview(cardId: number): AgentRequest | null {
-  const delivery = activeDelivery(cardId)
-  if (!delivery || delivery.next) return null
-  if (!answeredStop(delivery, openQuestions(cardId))) return null
-  if (answerOutcome(delivery) === 'changed' && wantsLanding(delivery)) return null
-  return { action: 'review', id: cardId, deliveryId: delivery.deliveryId, title: delivery.title, trigger: 'answered' }
-}
-
-/** The same for every delivery on the board, which is what the tick asks (`view/dispatch`).
- *
- *  The run that answered hands its card on as it closes, so this is what picks up the one
- *  nothing handed off: `resolve` may have run in another process, or days ago, and no
- *  watcher was ever left holding this delivery. A card with a run already on it is left for
- *  the next pass — a second run on it would be refused anyway. */
-export function answeredWork(busy: Set<number> = new Set()): AgentRequest[] {
-  const work: AgentRequest[] = []
-  for (const delivery of readStore().deliveries) {
-    // A card-less delivery has no questions and so no stop to be answered (#428).
-    if (delivery.status !== 'active' || delivery.cardId === null || busy.has(delivery.cardId)) continue
-    const request = answeredReview(delivery.cardId)
-    if (request) work.push(request)
-  }
-  return work
-}
-
-/** The same, by delivery id. */
-export function takeNext(deliveryId: string): AgentRequest | null {
-  const taken = withStore((store) => {
-    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
-    if (!delivery || delivery.status !== 'active' || !delivery.next) return null
-    const action = delivery.next
-    delivery.next = undefined
-    return { action, cardId: delivery.cardId, title: delivery.title }
-  })
-  if (!taken) return null
-  return { action: taken.action, id: taken.cardId ?? undefined, deliveryId, title: taken.title }
 }
 
 // ---- landing: the queue a passed delivery joins (#304) ----------------------
@@ -1247,12 +1100,9 @@ export function takeNext(deliveryId: string): AgentRequest | null {
 export const wantsLanding = (delivery: DeliveryRecord): boolean =>
   delivery.commitMode === 'auto' && !!delivery.worktree && !!delivery.branch && !!delivery.targetBranch
 
-// Queue it for the repository's one landing slot, and record the run that authorized the
-// landing as the check that ran — with no review rule (#306) the re-review IS the gate, so
-// it is the only check there is to record. The check is named for the run that actually
-// ran, which with AI review off is the implementation (#416).
+// Queue it for the repository's one landing slot, and record the build that authorized the
+// landing as the check that ran.
 function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
-  const round = lastRound(delivery)
   const landing = delivery.landing ?? { status: 'waiting' as const, attempts: 0, at: Date.now() }
   delivery.landing = {
     ...landing,
@@ -1260,7 +1110,7 @@ function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
     why: undefined,
     checks: [
       ...(landing.checks ?? []),
-      { name: `${run.action} ${run.sessionId.slice(0, 8)}`, ok: true, at: round?.at ?? Date.now() },
+      { name: `${run.action} ${run.sessionId.slice(0, 8)}`, ok: true, at: Date.now() },
     ],
     at: Date.now(),
   }
@@ -1274,8 +1124,8 @@ function releaseLanding(delivery: DeliveryRecord): void {
 
 // ---- manual commit mode: the user's own commit (#303) -----------------------
 
-// A manual delivery that review has passed, or nothing when this card has no such
-// delivery waiting on the user's commit.
+// A manual delivery whose build is done, or nothing when this card has no such delivery
+// waiting on the user's commit.
 //
 // A build with no card never waits (#428): the wait is read on a card page, there is none,
 // and there is no card to archive at the end of it — so the delivery finishes when its run
@@ -1289,10 +1139,9 @@ function awaitingCommit(delivery: DeliveryRecord | undefined): DeliveryRecord | 
  *  to commit — and act on it if they have.
  *
  *  Nothing watches git for this: it is asked when the card page is read, which is the
- *  moment somebody wants to know. They committed exactly what the board built and the
- *  delivery is done; they committed something else and a fresh review judges it — or, with
- *  AI review off, the delivery ends on that commit too (#416); or the code is still sitting
- *  there uncommitted and the delivery waits.
+ *  moment somebody wants to know. They committed anything and the delivery is done — their
+ *  commit is the last word; or the code is still sitting there uncommitted and the delivery
+ *  waits.
  *
  *  Reports what it found. Ending a finished delivery is `settleManualCommit`, which the
  *  Local board's `readCard` awaits before this is asked.
@@ -1302,33 +1151,14 @@ function awaitingCommit(delivery: DeliveryRecord | undefined): DeliveryRecord | 
 export function manualSettled(delivery: DeliveryRecord): string | undefined {
   if (!awaitingCommit(delivery)) return undefined
   const state = manualState(delivery)
-  if (state === 'waiting') {
-    return aiReviewOn(delivery)
-      ? `review passed — commit the change in your own checkout and this delivery is done`
-      : `the build is done — commit the change in your own checkout and this delivery is done`
-  }
-  if (state === 'landed') return undefined
-  // They committed something other than what the board built. With AI review off there is
-  // no reviewer to judge the difference, so their commit is the last word and
-  // `settleManualCommit` has already ended the delivery on it (#416).
-  if (!aiReviewOn(delivery)) return undefined
-  // Otherwise the whole candidate goes back through review. The snapshot is dropped first,
-  // so a second read of the card page can't ask for a second review of the same commit.
-  withStore((store) => {
-    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-    if (!live || live.status !== 'active' || !live.reviewed) return
-    live.reviewed = undefined
-    live.next = 'review'
-  })
-  syncAudit(delivery.deliveryId)
-  return undefined
+  return state === 'waiting'
+    ? `the build is done — commit the change in your own checkout and this delivery is done`
+    : undefined
 }
 
 /** End the delivery on this card and archive it, when the user has committed what the
- *  board built (#303) — and do nothing at all otherwise.
- *
- *  With AI review off a commit that differs ends it too (#416): the board has no reviewer
- *  to judge one, so whatever they committed is the last word.
+ *  board built, or anything else (#303, #416) — and do nothing at all while it is still
+ *  uncommitted.
  *
  *  Reading a card must not write the board, so this is the awaited step that comes first:
  *  the Local board's `readCard` calls it, and the read that follows finds a card the
@@ -1341,7 +1171,7 @@ export async function settleManualCommit(cardId: number): Promise<void> {
   const delivery = awaitingCommit(activeDelivery(cardId))
   if (!delivery) return
   const state = manualState(delivery)
-  if (state !== 'landed' && !(state === 'changed' && !aiReviewOn(delivery))) return
+  if (state === 'waiting') return
   endDelivery(delivery.deliveryId, 'finished')
   await completeCard(delivery.cardId as number, delivery.deliveryId)
   await reflectOnCompletion(delivery.cardId as number)
@@ -1366,7 +1196,7 @@ export function insideDelivery(cardId: number): boolean {
  *  free. Derived on every read from the card's questions and the delivery's own records. */
 export function deliveryStateOf(cardId: number): DeliveryState | undefined {
   const delivery = activeDelivery(cardId)
-  return delivery && deliveryState(delivery, openQuestions(cardId), decidingOn(cardId))
+  return delivery && deliveryState(delivery, openQuestions(cardId))
 }
 
 /** The same by delivery id — what a build with no card is read by (#428). Its flow in Runs
@@ -1375,8 +1205,8 @@ export function deliveryPause(deliveryId: string): DeliveryState | undefined {
   const delivery = findDelivery(deliveryId)
   if (!delivery) return undefined
   return delivery.cardId === null
-    ? deliveryState(delivery, 0, false)
-    : deliveryState(delivery, openQuestions(delivery.cardId), decidingOn(delivery.cardId))
+    ? deliveryState(delivery, 0)
+    : deliveryState(delivery, openQuestions(delivery.cardId))
 }
 
 /** The one line saying what the delivery in flight is waiting on, while it waits on the
@@ -1401,18 +1231,13 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   if (!delivery) return undefined
   if (insideDelivery(cardId)) return undefined
   const cmd = program ?? boardCommand()
-  const state = deliveryState(delivery, openQuestions(cardId), decidingOn(cardId))
+  const state = deliveryState(delivery, openQuestions(cardId))
   const answer =
     state.stage === 'refused' ? `Clear that and it lands by itself.` : `Answer it with \`${cmd} card resolve ${cardId}\`.`
   const doing = state.paused
     ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
       `${answer} Or take the card back with `
-    : state.deciding
-      ? // The decider is answering its questions (#447), so nothing is asked of the user —
-        // but the card is no more this move's to rewrite than it was before.
-        `is waiting on an answer on #${cardId} — ${state.line} — so the board won't change the card. ` +
-        `Take the card back with `
-      : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
+    : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
         `so the board won't change it. Take the card back with `
   // Two ways out, and neither keeps the work: giving a delivery up takes its checkout with
   // it (#720).

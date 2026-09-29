@@ -15,9 +15,8 @@
 // the bell interrupts anybody over, because it is the one moment the board has finished and
 // the user has not. Two things bend that rule in opposite directions:
 //
-//   • a delivery STOPPED FOR AN ANSWER holds a card without working it — sent back by
-//     review (#646) or held at landing (#565), waiting on the card's own questions either
-//     way, so the card is raised as if nothing held it, and
+//   • a delivery STOPPED FOR AN ANSWER holds a card without working it — held at landing
+//     (#565) on the card's own questions, so the card is raised as if nothing held it, and
 //   • a live run that merely NAMES a card puts it down even when it holds nothing (#568),
 //     because the card page turns its controls off for one either way.
 //
@@ -219,7 +218,7 @@ const sleep = (ms: number) =>
   })
 
 /** The cards that raise nothing: every one a delivery is carrying but a delivery stopped for
- *  an answer — sent back by review (#646) or held at landing (#565) — which has nothing left
+ *  an answer — held at landing (#565) — which has nothing left
  *  but the card's open questions, so its card is raised as if nothing held it. `cardsAtWork`
  *  itself is left whole: a delivery is still carrying these cards, which is what
  *  `writeOffAbandoned` asks. Every reader of the actionable set goes through here, so a
@@ -706,8 +705,7 @@ export function reportCloudRunStart(cardId: number | null): Promise<void> {
  * write that left it `ready` raised nothing — this is where it is raised.
  *
  * "Ended" means the whole chain, not one agent (#611). The watcher calls this once every
- * follow-up this close starts — the retry, the format repair, the delivery's next step, the
- * landing, the gate, the reflections, the next sort — is written down, so a card handed on
+ * follow-up this close starts — the retry, the format repair, the landing, the reflections, the next sort — is written down, so a card handed on
  * is still at work when the pass reads it and the handoff raises nothing. A follow-up that
  * would not start leaves nothing holding the card, and the card is raised as it stands.
  */

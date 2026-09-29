@@ -7,12 +7,14 @@ Build the approved card. Preserve settled decisions and unrelated questions.
   after the user resolves the question. Settle routine technical choices yourself.
 - Do not replace or contradict what the card says.
 - **Follow-ups**: follow `akb guide follow-up` for additional work.
+- **Decisions made while building**: record an answered material decision the user could
+  reasonably reverse under `## Worth noting after implementation`.
 - A printed, interactive implementation may stay uncommitted in the target checkout only
-  when the card is still clear and localized under "Choose its refine effort" in
-  `akb guide add-task`. Otherwise use the tracked implementation path. Background runs
-  always keep their delivery and review path.
-- On an eligible interactive change, run focused checks for the affected path plus every
-  repository-required check.
+  when the card still qualifies as "Inline" under "Refine" in `akb guide add-task`.
+  Otherwise use the tracked implementation path. Background runs always keep their delivery
+  path.
+- **Checks**: nothing reviews the build after you; run focused checks for the affected path
+  plus every repository-required check.
 
 ## A build that writes its own card
 
@@ -41,5 +43,3 @@ build.
   `## Decided by the agent` stay exactly as `raw create` wrote them.
 - **Then build that card**: the code block is the whole requirement — build exactly it and
   widen it no further. `akb card implement <id> --print` is the flow from here.
-- **Nothing reviews it**: AI review is off, so your own commit is the last word before it
-  reaches the branch. Run the repository's checks yourself.

@@ -22,9 +22,9 @@ const en: CardCopy = {
     "Earlier approved work no longer matched this card, so this run started fresh from the current version.",
   waitingOnYou: "waiting on you",
   filesOutside: (paths) =>
-    `Files outside the board changed during the run: ${paths}. Nothing was reverted. Sort them out, then review again.`,
-  filesMissing: (paths) => `These finished files are missing: ${paths}. Make them, then review again.`,
-  filesNone: "The task lists no finished files. Add them, then review again.",
+    `Files outside the board changed during the run: ${paths}. Nothing was reverted. Sort them out, then build again.`,
+  filesMissing: (paths) => `These finished files are missing: ${paths}. Make them, then build again.`,
+  filesNone: "The task lists no finished files. Add them, then build again.",
   landWait: {
     overwrite: (files) =>
       files.length === 1
@@ -57,8 +57,8 @@ const en: CardCopy = {
     editHint: "Open this card's chat — say what to change, and the agent rewrites the card",
     discussing: "Discussing",
     discussingWhy: "Its chat is writing a reply. It frees itself the moment that reply lands.",
-    reviewAgain: "Review again",
-    reviewAgainHint: "Judge what this delivery built again, now that you have answered",
+    buildAgain: "Build again",
+    buildAgainHint: "Build this card again in the same delivery, once what stopped it is sorted out",
     archive: "Archive",
     reject: "Reject",
     startFailed: "could not start the agent",
@@ -80,8 +80,6 @@ const en: CardCopy = {
     projectFolderHint: "Changes are in your project folder",
     autoCommit: "Auto-commit",
     manualCommits: "Manual commits",
-    noReview: "No AI review",
-    noReviewHint: "This delivery started with AI review off, and keeps that whatever the setting says now",
     landedAs: "Landed",
     finished: "Finished",
     stopped: "stopped",
@@ -102,7 +100,6 @@ const en: CardCopy = {
       resuming: "Resuming…",
       pickUpHint:
         "Carry this delivery on from where it stopped — the agent picks its own session back up",
-      startHint: "Start the run this delivery never got to",
       failed: "could not resume that run",
       carryOnHint: "Finish this delivery from where it stopped — its work is kept, nothing is rebuilt",
       carryOnFailed: "could not carry that delivery on",

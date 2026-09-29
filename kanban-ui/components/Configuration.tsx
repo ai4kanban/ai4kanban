@@ -404,7 +404,7 @@ export function Configuration({
               />
             )}
             {/* The agents that belong to the BOARD rather than to any workflow — the
-                discussion, the gate, the decider, material triage, follow-up suggestions,
+                discussion, material triage, follow-up suggestions,
                 parked tasks, feedback and the memory pruner. Each keeps the agent, the
                 runtime, the rule, the trigger and the switch it has always had. */}
             {section === "upkeep" && (

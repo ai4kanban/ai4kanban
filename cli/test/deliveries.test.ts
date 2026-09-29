@@ -163,12 +163,12 @@ describe('one delivery, several sessions', () => {
 })
 
 describe('ending one', () => {
-  it('does not end when the build finished — review comes next (#302)', async () => {
+  // Nothing reviews the build (#1203), and outside git there is no commit to wait for.
+  it('ends when the build finished outside a git repository', async () => {
     const id = start(session())
     await settleDelivery({ ...readStore().runs[0]!, status: 'done' })
-    assert.equal(activeDelivery(5)?.deliveryId, id)
-    assert.equal(activeDelivery(5)?.next, 'review')
-    assert.equal(readAudit(id).status, 'active')
+    assert.equal(activeDelivery(5), undefined)
+    assert.equal(readAudit(id).status, 'finished')
   })
 
   it('leaves it active and unfinished when its session was cut off', async () => {
@@ -417,12 +417,10 @@ describe('a delivery with no card', () => {
         const run = session({ cardId: null })
         store.runs.push(run)
         const delivery = joinDelivery(store, run, typed, 'implement', undefined, { title: typed, approved: typed })
-        delivery.aiReview = false
         return delivery.deliveryId
       })
       adoptDirectCard(readStore().runs[0]!.sessionId, 9)
       const delivery = findDelivery(id)!
-      assert.equal(delivery.aiReview, false)
       // And the sentence stays the requirement: the card was written from it.
       assert.equal(delivery.approved, typed)
     })
@@ -459,7 +457,6 @@ describe('a delivery with no card', () => {
     withStore((store) => {
       const live = store.deliveries.find((d) => d.deliveryId === id)!
       live.commitMode = 'manual'
-      live.aiReview = false
     })
     await settleDelivery({ ...readStore().runs[0]!, status: 'done' })
     const ended = readStore().deliveries.find((d) => d.deliveryId === id)!
@@ -582,12 +579,11 @@ describe('a delivery the live record lost', () => {
   // in rather than being failed by the thousand.
   it('puts a delivery whose last session ended back into the live record', async () => {
     atImplementing()
-    resting('rest1111', { next: 'review' })
+    resting('rest1111')
     assert.deepEqual(await recoverOrphanedDeliveries(), [])
     const row = rowOf('rest1111')
     assert.equal(row?.status, 'active')
     assert.equal(row?.cardId, 5)
-    assert.equal(row?.next, 'review')
     assert.deepEqual(row?.sessions, ['rest1111-1'])
     assert.equal(row?.worktree, path.join('.akb', 'worktrees', '5', 'rest1111'))
   })
@@ -884,27 +880,11 @@ describe('carrying an ended delivery on', () => {
     assert.equal(rowOf('carry555')?.landing?.status, 'conflict')
   })
 
-  it('sends a build nothing has reviewed to review', async () => {
+  it('sends a delivery that never queued back to its build', async () => {
     stopped('carry666')
     const res = await resumeDelivery('carry666')
-    assert.equal(res.carryOn, 'review')
-    assert.equal(rowOf('carry666')?.next, 'review')
-  })
-
-  // A review that ASKED is a review that stopped, not one that passed: it never queued, so
-  // carrying the delivery on owes it another review. Putting it in the queue would land work
-  // review never passed, the moment anything cleared the stop.
-  it('sends one whose review asked a question to review, not to the landing queue', async () => {
-    stopped('carry000', {
-      review: {
-        rounds: [{ sessionId: 'carry000-2', verdict: 'ask', findings: [], at: 1_700 }],
-        stopped: { reason: 'ask', why: 'review left 1 open decision for you', at: 1_700 },
-      },
-    })
-    const res = await resumeDelivery('carry000')
-    assert.equal(res.carryOn, 'review')
-    assert.equal(rowOf('carry000')?.next, 'review')
-    assert.equal(rowOf('carry000')?.landing, undefined, 'nothing put it in the queue')
+    assert.equal(res.carryOn, 'build')
+    assert.equal(rowOf('carry666')?.landing, undefined, 'nothing put it in the queue')
   })
 
   it('refuses one whose worktree is gone, and says which one', async () => {

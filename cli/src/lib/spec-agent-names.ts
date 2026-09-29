@@ -8,8 +8,6 @@ const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'recommend-tech-stack': 'tech-stack-advisor',
   'technology-selection': 'tech-stack-advisor',
   'ui-design': 'ui-designer',
-  // A board role until #820.
-  reviewer: 'code-reviewer',
   // Renamed in #858; its planning memory stays in `memory/agents/planner/`.
   planner: 'software-planner',
   // Renamed in #945 and folded into the editor in #1057; its asset memory stays in

@@ -32,6 +32,7 @@ import {
   endDelivery,
   findDelivery,
   joinActive,
+  activeIn,
   joinDelivery,
   listDeliveries,
   namedDelivery,
@@ -46,7 +47,6 @@ import {
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
-import { frozenReviewers, NO_REVIEWERS } from './workflows'
 import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
@@ -56,7 +56,9 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { stampDismissalReview, stampMemoryPrune, stampMemoryReview } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
-import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
+import { canImplement, creationRefusal, discussingRefusal, openOf } from '../view/rules'
+import { findCard } from '../view/read'
+import type { Card } from '../view/types'
 import { cardsDiscussing, holdChat, repointChatRuns } from './chat'
 import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
@@ -66,7 +68,6 @@ import type {
   DeliveryRecord,
   DirectBuild,
   RefineAsk,
-  RefineEffort,
   RunRecord,
   RunRefusal,
   RunRefusalKind,
@@ -150,10 +151,9 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a
 // delivery's own runs set one — the rest either refine the card or touch no resting
-// card. Review is the delivery still working, so the card reads the same through both.
+// card.
 const RUN_STATUS: Partial<Record<AgentAction, string>> = {
   implement: 'implementing',
-  review: 'implementing',
   conflict: 'implementing',
 }
 
@@ -251,14 +251,6 @@ export async function setCardStatus(cardId: number, status: string): Promise<voi
   } catch {
     // the board would not take the write — leave the stage as it is
   }
-}
-
-/** A successful writing session completes refinement. The watcher owns this transition;
- *  prose agents do not have to remember lifecycle bookkeeping. */
-export async function finishWriting(cardId: number): Promise<void> {
-  const result = await setCardStatusOn(cardId, 'ready')
-  if (!result.ok) throw new Error(result.error)
-  if (result.card?.status !== 'ready') throw new Error(`#${cardId} did not reach ready`)
 }
 
 /** The card's stage and whether it has open questions, or null when there is no such card.
@@ -564,25 +556,22 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
 
 // The actions a card's own chat holds its card against (#633). Each one either builds the
 // card as it reads right now or takes it off the board — and the reply being written is about
-// to rewrite it, so none of them is a move on a settled card. `decide` is here with
-// `resolve`: it is the same answer with the choosing done for the user. Everything else goes
-// through — a review, a landing and a delivery's own work are not judgments about what the
+// to rewrite it, so none of them is a move on a settled card. Everything else goes
+// through — a landing and a delivery's own work are not judgments about what the
 // card should say, and neither is a specialist filling one section in.
 const HELD_BY_DISCUSSION = new Set<AgentAction>([
   'implement',
   'clarify',
-  'writing',
   'resolve',
-  'decide',
   'archive',
   'reject',
   // An unstick is both at once (#118): it rewrites the card or discards it.
   'unstick',
 ])
 
-// `clarify` and `writing` are refine's own two passes — the user asked for a refine, so that
-// is what the refusal names.
-const REFINE_PASS = new Set<AgentAction>(['clarify', 'writing'])
+// `clarify` is refine's own pass — the user asked for a refine, so that is what the refusal
+// names.
+const REFINE_PASS = new Set<AgentAction>(['clarify'])
 
 // The locks every new run passes, whether it's a fresh action or a resumed one: one live
 // run per card, and one live plan-release across the whole board. Checked
@@ -745,9 +734,8 @@ export function openRun(
   // A build with no delivery on its card opens one, and a delivery is got ready before
   // anything is written down (#303): the commit mode is decided, the checkout is checked,
   // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
-  // below if the run is refused after it. `req.commitMode` and `req.aiReview` are the
-  // Implement dialog's ticks, this one build's answers (#346, #416); without them the
-  // repository settings decide.
+  // below if the run is refused after it. `req.commitMode` is the Implement dialog's tick,
+  // this one build's answer (#346); without it the repository setting decides.
   //
   // A build with no card yet is the third way in (#428): **Build now** sends the typed
   // sentence straight here, so there is no card to look a delivery up by and one is always
@@ -763,7 +751,7 @@ export function openRun(
   const cardless = !!direct
   let start: DeliveryStart | undefined
   if (req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
-    const prepared = prepareDelivery(cardId, req.commitMode, req.aiReview)
+    const prepared = prepareDelivery(cardId, req.commitMode)
     // Whole, kind and paths included (#706): a screen that says this in its own language
     // reads the kind, and losing it here would leave every refusal generic.
     if ('error' in prepared) return prepared
@@ -778,9 +766,6 @@ export function openRun(
         ? activeDelivery(cardId)
         : undefined
     : undefined
-  if (req.action === 'review' && joining && !frozenReviewers(joining.workflow).length) {
-    return refusal('noReviewers', NO_REVIEWERS)
-  }
   const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
@@ -827,19 +812,16 @@ export function openRun(
     triage: req.action === 'create' || (req.action === 'implement' && cardId === null) ? req.triage : undefined,
     setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
     // Internal refinement sessions name their position in the request. A standalone
-    // resolve carries no round: it already applies the answers and runs QA in this session.
+    // resolve carries no round.
     refineRound: req.refineRound,
-    refineEffort: req.refineEffort,
+    scheduled: req.scheduled,
     // And the flow it belongs to. A run started by a person opens one here; the watcher
     // copies the id onto every session that run goes on to start — a refinement's passes,
-    // the spec agents it asked for, the review after a build. So one job is one thing in
+    // the spec agents it asked for. So one job is one thing in
     // the record however many sessions it takes, and a second run on the same card is
     // never mistaken for a continuation of the first. A run that joins a delivery below
     // takes the delivery's id over this one (#417).
     flowId: req.flowId ?? randomUUID(),
-    // Why this review is happening, when whoever started it said (#417). The first review
-    // after a build names none: it is the default, and the row says so by saying nothing.
-    trigger: req.action === 'review' ? req.trigger : undefined,
   }
   const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release, false, req.discard)
@@ -880,6 +862,59 @@ export function openRun(
   // And the card is at work again, so a row Cloud is still holding about it comes down (#611).
   void reportCloudRunStart(cardId)
   return { run: record, spec }
+}
+
+/** The planning runs that may carry straight on into the build of their own card (#1203). */
+const PLANNING = new Set<AgentAction>(['clarify', 'resolve'])
+
+// A spec agent whose output is for the user to see put its section above the boundary: the
+// user looks before anything is built, so planning stops there.
+const awaitsUserReview = (body: string): boolean => {
+  const human = body.split(/^<!--\s*agent\s*-->\s*$/m)[0] ?? ''
+  return /^## By `[^`]+` agent\s*$/m.test(human)
+}
+
+/** Why the planning run this build was printed inside may not become it, or nothing when it
+ *  may. Undefined `run` means the print did not come from a planning run at all. */
+function buildRefusal(run: RunRecord, card: Card | null): string | undefined {
+  if (!card) return `#${run.cardId} is gone`
+  if (run.scheduled) return 'the board started this planning by itself, and nobody asked for a build'
+  if (!canImplement(card)) return `#${card.id} is not a card to build`
+  if (openOf(card.questions).length) return `#${card.id} has an open question, and it is the user's to answer`
+  if (card.openBlockers.length) return `#${card.id} is blocked by ${card.openBlockers.map((b) => `#${b.id}`).join(', ')}`
+  if (run.action === 'clarify' && awaitsUserReview(card.body)) return `#${card.id} has a section waiting for the user to look at`
+  if (activeDelivery(card.id)) return `a delivery is already building #${card.id}`
+  return undefined
+}
+
+/** Carry the planning run `sessionId` straight on into the build of its own card (#1203): the
+ *  same session, now the card's build. A delivery opens around it exactly as an Implement
+ *  click would, and the run's close lands it.
+ *
+ *  Undefined when this is not a planning run of that card, so the caller prints the flow as
+ *  it always has. A refusal says why the build must wait for the user. */
+export async function carryIntoBuild(sessionId: string, cardId: number): Promise<{ deliveryId: string } | RunRefusal | undefined> {
+  const run = readRuns().find((r) => r.sessionId === sessionId && r.status === 'running')
+  if (!run || run.cardId !== cardId || !PLANNING.has(run.action)) return undefined
+  const why = buildRefusal(run, findCard(cardId))
+  if (why) return refusal('buildWaits', `${why} — stop here; the build starts once the user is done.`)
+  const prepared = prepareDelivery(cardId)
+  if ('error' in prepared) return prepared
+  const joined = withStore((store) => {
+    const live = store.runs.find((r) => r.sessionId === sessionId && r.status === 'running')
+    if (!live || activeIn(store, cardId)) return undefined
+    live.action = 'implement'
+    live.refineRound = undefined
+    const claim = claimCard(live)
+    const delivery = joinDelivery(store, live, cardNow(cardId)?.title ?? '', 'implement', prepared.start)
+    return { deliveryId: delivery.deliveryId, claim }
+  })
+  if (!joined) {
+    undoPrepared(prepared.start)
+    return refusal('buildWaits', `the build of #${cardId} could not start here — stop; the user starts it from the card.`)
+  }
+  if (joined.claim) await setCardStatus(joined.claim.cardId, joined.claim.status)
+  return { deliveryId: joined.deliveryId }
 }
 
 /** Write a resumed run down: one more turn of a conversation that already happened, on the
@@ -976,13 +1011,10 @@ async function resumeHeld(
     specAgent: prev.specAgent,
     setupTicked: prev.setupTicked,
     refineRound: prev.refineRound,
-    refineEffort: prev.refineEffort,
+    scheduled: prev.scheduled,
     // The same refinement carried on, not a second one — the way a resume re-joins the
     // delivery it continues rather than opening another.
     flowId: prev.flowId,
-    // And the same review, so resuming one does not turn it into a review with no reason
-    // for existing (#417).
-    trigger: prev.trigger,
   }
   const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
     const all = store.runs
@@ -1065,7 +1097,7 @@ export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already
   if (!run) return 'no-run'
   const file = readAsks(sessionId)
   if (file.asks.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
-  file.asks.push({ ...ask, refineEffort: ask.refineEffort ?? run.refineEffort })
+  file.asks.push(ask)
   writeAsks(sessionId, file)
   return 'queued'
 }
@@ -1129,31 +1161,24 @@ function readAsks(sessionId: string): AsksFile {
   const asks = (Array.isArray(raw.asks) ? raw.asks : []).flatMap((entry) => {
     const a = entry as Partial<SpecAsk>
     if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
-    const refineEffort = validRefineEffort(a.refineEffort)
     return [{
       specAgent: a.specAgent,
       cardId: a.cardId as number,
       notes: typeof a.notes === 'string' ? a.notes : undefined,
-      ...(refineEffort ? { refineEffort } : {}),
     }]
   })
   const refines = (Array.isArray(raw.refines) ? raw.refines : []).flatMap((entry) => {
     const a = entry as Partial<RefineAsk>
     if (!a || !Number.isInteger(a.cardId)) return []
-    const effort = validRefineEffort(a.effort)
     return [{
       cardId: a.cardId as number,
       notes: typeof a.notes === 'string' ? a.notes : undefined,
-      ...(effort ? { effort } : {}),
     }]
   })
   const refused = (Array.isArray(raw.refused) ? raw.refused : []).filter((line): line is string => typeof line === 'string')
   const discarded = new Set(peekRun(sessionId)?.discardedCards?.map((c) => c.id) ?? [])
   return { asks: asks.filter((a) => !discarded.has(a.cardId)), refines: refines.filter((a) => !discarded.has(a.cardId)), refused }
 }
-
-const validRefineEffort = (value: unknown): RefineEffort | undefined =>
-  value === 'lightweight' || value === 'standard' ? value : undefined
 
 function writeAsks(sessionId: string, file: AsksFile): void {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })

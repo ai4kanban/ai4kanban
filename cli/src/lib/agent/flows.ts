@@ -28,7 +28,7 @@ import type { AgentAction, CommandAction } from './types'
 export type FlowGroup = 'card' | 'delivery' | 'release' | 'triage'
 
 /** One option a flow takes, as its command declares it. `flags` is Commander's own
- *  notation, so `--effort <level>` takes a value and `--and-implement` does not. */
+ *  notation, so `--release <version>` takes a value and `--and-implement` does not. */
 export interface FlowOption {
   flags: string
   description: string
@@ -82,20 +82,12 @@ export const FLOWS: Flow[] = [
     options: [RUNTIME_OPTION],
   },
   {
-    command: 'review',
-    group: 'delivery',
-    action: 'review',
-    argument: '<id>',
-    gloss: 'review and fix what the delivery built against the approved card',
-    more: ['The board runs this itself after a build; type it to look again after answering its question.'],
-  },
-  {
     command: 'conflict',
     group: 'delivery',
     action: 'conflict',
     argument: '<id>',
     gloss: "resolve the conflict its landing's rebase stopped on",
-    more: ['The board runs this itself; the resolution is reviewed before it lands.'],
+    more: ['The board runs this itself; the resolution lands on the next landing pass.'],
   },
   {
     command: 'run',
@@ -110,26 +102,7 @@ export const FLOWS: Flow[] = [
     group: 'card',
     action: 'refine',
     argument: '<id>',
-    gloss: 'sharpen the card until it is ready to build',
-    options: [
-      {
-        flags: '--effort <level>',
-        description: 'how hard to look: lightweight | standard',
-        choices: ['lightweight', 'standard'],
-      },
-    ],
-  },
-  {
-    command: 'gate',
-    group: 'card',
-    action: 'gate',
-    argument: '<id>',
-    gloss: 'judge whether a ready card is clear enough to build unattended',
-    more: [
-      'The board runs this itself on each card that reaches `ready`, when the gater is switched on ' +
-        '(Configuration → Board). It passes the card straight into a delivery, or appends ' +
-        'the one question that stops it.',
-    ],
+    gloss: 'plan the card in one session, and build it straight after when nothing waits on you',
   },
   {
     command: 'resolve',
@@ -139,20 +112,6 @@ export const FLOWS: Flow[] = [
     argumentNote: NOTE,
     gloss: "apply the user's answers to its open questions",
     options: [{ flags: '--and-implement', description: 'carry straight on into the build' }],
-  },
-  // The decider's one flow (#447). It is `resolve` with the choosing done for the user, so
-  // it takes the same argument and no options of its own — what it may write is the answers
-  // and nothing else.
-  {
-    command: 'decide',
-    group: 'card',
-    action: 'decide',
-    argument: '<id>',
-    gloss: "answer the card's open questions for the user",
-    more: [
-      'The board runs this itself when the decider is switched on (Configuration → Board); type it to ' +
-        'have it answer one card whether or not the switch is on.',
-    ],
   },
   {
     command: 'revise',
@@ -305,11 +264,11 @@ export const flowByCommand = (command: string): Flow | undefined =>
   FLOWS.find((flow) => flow.command === command)
 
 export const flowByAction = (action: AgentAction): Flow | undefined => {
-  if (action === 'clarify' || action === 'writing') return flowByCommand('refine')
+  if (action === 'clarify') return flowByCommand('refine')
   return FLOWS.find((flow) => flow.action === action)
 }
 
 /** The delivery flows. Their rules are frozen with the card the delivery
  *  was approved to build, and their runs are the ones that may not be working in the
  *  project folder. */
-export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'review', 'conflict'])
+export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'conflict'])

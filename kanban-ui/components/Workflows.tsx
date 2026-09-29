@@ -2,10 +2,9 @@
 
 // Configuration → Workflows (#715, #944).
 //
-// Every card on this board goes through one workflow: `plan → execute → review`. A workflow
-// says WHO runs each of the three and who they may call in. This pane is the one place both
-// halves of that answer live: pick a workflow at the top of the middle column, step through
-// its three stages, and the agent you select there opens its own page — its brief, its
+// Every card on this board goes through one workflow: `plan → execute`. A workflow says WHO
+// runs each of its stages and who they may call in. This pane is the one place both halves of
+// that answer live: pick a workflow at the top of the middle column, step through its stages, and the agent you select there opens its own page — its brief, its
 // instructions, what it runs on — beside the list.
 //
 // The agents themselves are the board's roster (`components/Agents.tsx`), shared with
@@ -87,10 +86,9 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
 
 /** Whether one stage cannot start. No lead, a lead this board no longer has, and a lead that
  *  belongs to another stage all read the same to the user, and all three fall out of the
- *  candidates the board already sent: those are exactly the agents that may take this stage.
- *  Review has no lead, only reviewers, and is never blocked (#820). */
+ *  candidates the board already sent: those are exactly the agents that may take this stage. */
 export const stageBlocked = (setup: WorkflowStageView): boolean =>
-  setup.stage !== "review" && (!setup.lead || !setup.candidates.some((a) => a.name === setup.lead));
+  !setup.lead || !setup.candidates.some((a) => a.name === setup.lead);
 
 /** Whether a stage runs on a lead picked before agents declared whether they may lead (#846).
  *  It still runs; the pane only says so. */
@@ -163,20 +161,18 @@ export function WorkflowsPanel({
   const pro = useCopy().shared.pro;
   const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const proLocked = !!flow?.pro && !!lock;
-  // A workflow finished in planning has no execute or review stage to show (#1057).
+  // A workflow finished in planning has no execute stage to show (#1057).
   const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
   const stage = stages.includes(tab) ? tab : "plan";
   const setup = flow?.stages.find((s) => s.stage === stage);
-  // The review stage has reviewers and no lead (#820).
-  const reviewing = stage === "review";
-  // Which of the three cannot start, so the tabs can say which one to fix.
+  // Which stage cannot start, so the tabs can say which one to fix.
   const blocked = new Set(
     (flow?.stages ?? []).filter((s) => stages.includes(s.stage) && stageBlocked(s)).map((s) => s.stage),
   );
   // Every agent this stage has, in the order the column draws them.
   const assigned = useMemo(
-    () => (setup ? [...(reviewing || !setup.lead ? [] : [setup.lead]), ...setup.helpers.map((h) => h.agent)] : []),
-    [setup, reviewing],
+    () => (setup ? [...(!setup.lead ? [] : [setup.lead]), ...setup.helpers.map((h) => h.agent)] : []),
+    [setup],
   );
 
   // Always land on an agent of this stage that the board still has: a page beside an empty
@@ -314,7 +310,7 @@ export function WorkflowsPanel({
         onOpen={() => void select(h.agent)}
       />
     ));
-  const isLead = !!setup && !reviewing && shown === setup.lead;
+  const isLead = !!setup && shown === setup.lead;
   const enabled = setup?.helpers.filter((h) => !h.off) ?? [];
   const disabled = setup?.helpers.filter((h) => h.off) ?? [];
   const shownOff = !!disabled.find((h) => h.agent === shown);
@@ -443,7 +439,7 @@ export function WorkflowsPanel({
               )}
 
               {/* The arrows between them are the order a card actually goes through, which is
-                  the one thing three same-looking tabs don't say. */}
+                  the one thing same-looking tabs don't say. */}
               <div className="flex shrink-0 items-center gap-1">
                 {stages.map((name, i) => (
                   <div key={name} className="flex items-center gap-1">
@@ -485,61 +481,59 @@ export function WorkflowsPanel({
                 {/* A built-in's lead is what its name promises, so it is shown and not
                     offered (#774). On a workflow of this board's own the chevron beside it
                     is what swaps it. */}
-                {!reviewing && (
-                  <section className="mb-4">
-                    <Caption>{c.lead}</Caption>
-                    <Popover open={picking === "lead"} onOpenChange={(open) => setPicking(open ? "lead" : null)}>
-                      <PopoverAnchor asChild>
-                        <div>
-                          {setup.lead ? (
-                            <StageRow
-                              name={setup.lead}
-                              agent={setup.candidates.find((a) => a.name === setup.lead)}
-                              held={shown === setup.lead}
-                              onOpen={() => void select(setup.lead)}
-                              swap={flow.builtIn ? undefined : c.pickLead}
-                            />
-                          ) : (
-                            <PopoverTrigger asChild>
-                              <button
-                                type="button"
-                                className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[36px] w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700]`}
-                              >
-                                {c.pickLead}
-                                <FiChevronDown aria-hidden />
-                              </button>
-                            </PopoverTrigger>
-                          )}
-                        </div>
-                      </PopoverAnchor>
-                      {picking === "lead" && (
-                        <AgentPicker
-                          label={c.pickLead}
-                          candidates={setup.candidates.filter(
-                            (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
-                          )}
-                          chosen={setup.lead}
-                          onPick={async (name) => {
-                            setPicking(null);
-                            if (await move(stage, { kind: "lead", agent: name })) show(name);
-                          }}
-                        />
-                      )}
-                    </Popover>
-                    {leadUndeclared(setup) && (
-                      <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
+                <section className="mb-4">
+                  <Caption>{c.lead}</Caption>
+                  <Popover open={picking === "lead"} onOpenChange={(open) => setPicking(open ? "lead" : null)}>
+                    <PopoverAnchor asChild>
+                      <div>
+                        {setup.lead ? (
+                          <StageRow
+                            name={setup.lead}
+                            agent={setup.candidates.find((a) => a.name === setup.lead)}
+                            held={shown === setup.lead}
+                            onOpen={() => void select(setup.lead)}
+                            swap={flow.builtIn ? undefined : c.pickLead}
+                          />
+                        ) : (
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[36px] w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700]`}
+                            >
+                              {c.pickLead}
+                              <FiChevronDown aria-hidden />
+                            </button>
+                          </PopoverTrigger>
+                        )}
+                      </div>
+                    </PopoverAnchor>
+                    {picking === "lead" && (
+                      <AgentPicker
+                        label={c.pickLead}
+                        candidates={setup.candidates.filter(
+                          (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
+                        )}
+                        chosen={setup.lead}
+                        onPick={async (name) => {
+                          setPicking(null);
+                          if (await move(stage, { kind: "lead", agent: name })) show(name);
+                        }}
+                      />
                     )}
-                  </section>
-                )}
+                  </Popover>
+                  {leadUndeclared(setup) && (
+                    <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
+                  )}
+                </section>
 
                 <section className="min-w-0">
-                  <Caption>{reviewing ? c.reviewers : c.helpers}</Caption>
+                  <Caption>{c.helpers}</Caption>
                   {helperRows(enabled.filter((h) => !isYours(h.agent)))}
                   {enabled.some((h) => isYours(h.agent)) && <YoursDivider label={c.yoursDivider} />}
                   {helperRows(enabled.filter((h) => isYours(h.agent)))}
                   {!enabled.length && (
                     <p className="px-2.5 py-2 text-[11.5px] text-nb-ink-soft">
-                      {reviewing ? c.noReviewers : c.noneInStage}
+                      {c.noneInStage}
                     </p>
                   )}
                   {adding ? (

@@ -7,7 +7,7 @@ laptop, a phone.
 Every page is member-only. There is no public board and no unauthenticated route.
 
 The board page is a read. A card page carries the card's TWO decisions and no third (#364) —
-approve a delivery for review, and answer the questions the user owns — because those are what
+approve a delivery, and answer the questions the user owns — because those are what
 a member away from their machine is blocked on. A card's fields, its body and its delivery all
 stay in the app.
 

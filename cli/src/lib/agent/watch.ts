@@ -24,9 +24,7 @@ import { cleanupDiscardedCards } from '../../commands/remove'
 import { discardedCardsPrompt } from './prompts'
 import { contextLimit, refreshCatalog } from './catalog'
 import { boardCommand } from './command'
-import { deliveryRunAfter } from './deliveries'
-import { buildAfterGate, cardStages, gateRunAfter } from './gate'
-import { readyGateOn, silenceMinutes } from './settings'
+import { silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter } from './follow'
@@ -56,7 +54,6 @@ import {
   claimCard,
   clearAsks,
   closeRun,
-  finishWriting,
   leftBoardOnLanding,
   needsIndexLock,
   patch,
@@ -187,12 +184,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // really is its own — and not a neighbouring run's — is settled at the close by
   // `claimChanges`, and that is what earns a card the refine that follows.
   const before = markBoard()
-  // And every card's stage, when the ready gate is on (#440). The gate below fires on the
-  // one move that means a plan has settled — `todo` → `ready` — so it needs where each card
-  // stood before this run, not just which ones are ready now. Nothing is read while the gate
-  // is off, which is also what stops a gate switched on MID-run from reading the whole
-  // backlog as newly settled: this run watches nothing, and the next one watches properly.
-  const stagesBefore = readyGateOn() ? cardStages() : null
   // And, on a sort, the items it was handed (#562). A sort reads the list once at its spawn,
   // so the close compares this against what is waiting then: a sort that judged none of them
   // starts no other, and anything that arrived while it went is what the next one is for.
@@ -388,7 +379,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // the ask, not the code it died with, names the outcome.
       // An implementation may exit cleanly after recording that it cannot continue. The
       // blocker, not its shell code, makes that run unfinished and keeps the delivery ready
-      // for Resume rather than sending incomplete work to review.
+      // for Resume rather than landing incomplete work.
       const blocker = peekRun(sessionId)?.blocker
       // And the same for a CLI that reports a failure on its stream and still exits 0.
       // Only Claude Code does (agent/wire/stream.ts) — read after the flush above, so the
@@ -509,7 +500,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (contractError) {
         log.write(`\n[validation] ${contractError}\n`)
         if (status === 'done') status = 'error'
-        if (record.cardId !== null && !record.deliveryId) await setCardStatus(record.cardId, 'todo')
+        // A planning run carried into the build (#1203) joined its delivery after `record` was read.
+        if (record.cardId !== null && !(peekRun(sessionId)?.deliveryId ?? record.deliveryId)) await setCardStatus(record.cardId, 'todo')
       }
       // A setup run exists to tick boxes and never stops to ask (#909), so a clean exit that
       // ticked none did nothing. The last tick deletes the checklist, which reads as progress.
@@ -518,16 +510,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (tickedNothing) {
         status = 'error'
         log.write(`\n[board] ${tickedNothingSaid}\n`)
-      }
-      // Writing is the last refinement session. A clean exit is its verdict; lifecycle
-      // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
-      // the card at todo if questions appeared or refuses the transition for another reason.
-      if (status === 'done' && record.action === 'writing' && record.cardId !== null) {
-        try {
-          await finishWriting(record.cardId)
-        } catch {
-          // The refinement state below reports the card still at todo.
-        }
       }
       // What this run changed, taken now and taken once (agent/refine.ts). Every ending
       // claims, a failure included: a half-written card is not a card to refine, but leaving
@@ -633,18 +615,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           const next = await resume(sessionId)
           if ('error' in next) patch(sessionId, (r) => { r.error = joinNotes(r.error, `Could not try again: ${next.error}`) })
         }
-        // The delivery's own next run first, when it has one — the review after a build. It is
-        // read from the record the close just wrote, so it is taken once and started once.
-        const carryOn = status === 'done' ? deliveryRunAfter(record) : null
-        // Then the landing queue (#304): a delivery review has just passed takes the slot and
+        // The landing queue (#304): a delivery whose build has just finished takes the slot and
         // lands here, and what it hands back is the run that landing wants — conflict
-        // resolution, or the focused review an overlapping rebase owes.
+        // resolution.
         const landing = status === 'done' ? await advanceLanding() : null
-        // And the ready gate (#440): the build a gate this run WAS has just let through, or a
-        // gate on the card this run took to `ready`. Never both — a gate run's own card was
-        // already ready when it started, so it is not a card that entered.
-        const gate =
-          status === 'done' ? (buildAfterGate(record) ?? (stagesBefore && gateRunAfter(stagesBefore))) : null
         // And the proposer (#534): every card that reached the archive while this run was up —
         // the one it archived itself, the one its landing completed, a group closed by either.
         // `before` is the board as it stood at the spawn, which is the only record of what was
@@ -665,7 +639,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             // the item stays waiting, and the next sort reconciles it
           }
         }
-        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect, sortOn)
+        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, reflect, sortOn)
       } finally {
         releaseCardAtWork(record.cardId)
         await reportRunEnded(sessionId, record.cardId, status)
@@ -877,9 +851,7 @@ async function followUp(
   sessionId: string,
   flowId: string | undefined,
   runs: AgentRequest[],
-  carryOn: AgentRequest | null,
   landing: AgentRequest | null = null,
-  gate: AgentRequest | null = null,
   reflect: AgentRequest[] = [],
   sortOn: AgentRequest | null = null,
 ): Promise<void> {
@@ -896,13 +868,9 @@ async function followUp(
     ]
     for (const req of asked) await startRun(join(req))
     clearAsks(sessionId)
-    if (carryOn) await startRun(join(carryOn))
     if (landing) await startRun(join(landing))
     for (const req of runs) await startRun(join(req))
-    // Last: the gate reads the board as this close left it, so it picks its card after the
-    // refinements above have taken theirs.
-    if (gate) await startRun(join(gate))
-    // And after it, the reflections — they read the open cards and the inbox to decide what
+    // Then the reflections — they read the open cards and the inbox to decide what
     // is worth proposing, so they run once everything this close starts is on the board.
     for (const req of reflect) await startRun(join(req))
     // Last, the next sort (#562), and NOT joined: what starts it is a list of items rather
@@ -945,7 +913,6 @@ async function startHelpersInTurn(
         specAgent: req.specAgent ?? '',
         cardId: req.id as number,
         ...(req.notes ? { notes: req.notes } : {}),
-        ...(req.refineEffort ? { refineEffort: req.refineEffort } : {}),
       })
     }
     return
@@ -995,7 +962,7 @@ function requestOf(record: RunRecord): AgentRequest {
     specAgent: record.specAgent,
     triage: record.triage,
     refineRound: record.refineRound,
-    refineEffort: record.refineEffort,
+    scheduled: record.scheduled,
     flowId: record.flowId,
     pictures: record.pictures,
   }

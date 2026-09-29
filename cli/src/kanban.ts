@@ -160,13 +160,11 @@ export { agentInfo, activeSettings, setupInstruction, settingSaveError } from '.
 // opening with a form. Both are the PATH read `agentInfo` already makes, so they spawn nothing.
 export { runnableAgents, runnableHarnesses } from './lib/agent/resolve'
 export {
-  aiReviewEnabled,
   autoCommitAllowed,
   cardSweep,
   dismissalReview,
   memoryPrune,
   memoryReview,
-  setAiReview,
   setAutoCommit,
   setDismissalReview,
   setMemoryPrune,

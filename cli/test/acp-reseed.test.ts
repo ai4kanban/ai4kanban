@@ -182,11 +182,9 @@ describe('the prompt a restarted run is given', () => {
     assert.match(prompt ?? '', /implement 12 --print/)
   })
 
-  it('restarts a review of that same delivery as a review, not as a build', () => {
-    const prompt = restartPrompt({ action: 'review', id: 12 }, 'abc123')
-    assert.match(prompt ?? '', /akb guide review/)
-    assert.match(prompt ?? '', /review 12 --print/)
-    assert.doesNotMatch(prompt ?? '', /implement 12 --print/)
+  // Retired (#1203): an old record's review restarts as nothing.
+  it('restarts no review run', () => {
+    assert.equal(restartPrompt({ action: 'review', id: 12 }, 'abc123'), undefined)
   })
 
   it("restarts a landing's conflict run as a conflict run", () => {
@@ -195,13 +193,11 @@ describe('the prompt a restarted run is given', () => {
     assert.doesNotMatch(prompt ?? '', /implement 12 --print/)
   })
 
-  it('resumes review and conflict on their own flows, with or without a card', () => {
-    for (const action of ['review', 'conflict'] as const) {
-      for (const cardId of [12, null]) {
-        const prompt = resumePrompt('abc123', cardId, action)
-        assert.match(prompt, new RegExp(`delivery ${action} abc123 --print`))
-        assert.doesNotMatch(prompt, /implement|Build the card|write it from/)
-      }
+  it('resumes conflict on its own flow, with or without a card', () => {
+    for (const cardId of [12, null]) {
+      const prompt = resumePrompt('abc123', cardId, 'conflict')
+      assert.match(prompt, /delivery conflict abc123 --print/)
+      assert.doesNotMatch(prompt, /implement|Build the card|write it from/)
     }
   })
 

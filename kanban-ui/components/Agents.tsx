@@ -110,15 +110,8 @@ import {
 import { POPUP_ROW, POPUP_TRIGGER, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
 import { sayFailure } from "@/lib/start-failure";
 
-// The one agent on this board whose switch stops the board asking you anything (#447). Its
-// page carries the only red strip in this dialog. Named here because there is exactly one.
-// Asking before a switch goes on used to be named the same way; a second agent wanted it
-// (#562), so it became a property of the role instead — `AgentView.confirm`.
-const COSTLY = "decider";
-
-// The one agent whose page carries the review action (#748). Named here for the same
-// reason as the one above: there is exactly one, and its page is the only place Review now
-// belongs.
+// The one agent whose page carries the review action (#748). Named here because there is
+// exactly one, and its page is the only place Review now belongs.
 const REVIEWER_OF_MEMORY = "memory-reviewer";
 
 // The dismissal reviewer (#929): the pruner's controls, on by default.
@@ -438,8 +431,8 @@ export function AgentDetail({
   );
 }
 
-/** Configuration → Board: the agents the board runs itself (#742) — the discussion, the gate,
- *  the decider, the pruner. No workflow assigns them and every workflow gets them, so they
+/** Configuration → Board: the agents the board runs itself (#742) — the discussion, the
+ *  pruner, the triager. No workflow assigns them and every workflow gets them, so they
  *  are read by what STARTS each one: the ones you call, then the ones the board starts. */
 export function AgentsPanel({
   info,
@@ -966,20 +959,6 @@ function Page({
 
       <hr className="shrink-0 border-nb-ink/10" />
 
-      {/* The one switch that stops nothing for you (#447), so its page says what that costs
-          before the box that trains it — the only peach strip in this dialog. */}
-      {agent.name === COSTLY && (
-        <p className="flex shrink-0 items-start gap-2.5 rounded-[10px] bg-nb-peach-soft px-3.5 py-3">
-          <FiAlertCircle className="mt-[2px] shrink-0 text-nb-peach-ink" aria-hidden />
-          <span className="min-w-0">
-            <span className="block text-[12.5px] font-[800] text-nb-peach-ink">
-              {c.decider.costTitle}
-            </span>
-            <span className="mt-1 block text-[12px] leading-relaxed">{c.decider.cost}</span>
-          </span>
-        </p>
-      )}
-
       {/* Everything this agent is set to, as rows: what the setting is on the left, its
           control on the right, and under the control the value in effect — what the runtime
           resolves to, what the pick costs. The runtime row is absent on rules older than the
@@ -1102,10 +1081,8 @@ function Page({
         </section>
       )}
 
-      {/* What this role has left to say — how the decider chooses (#447), what the triager
-          costs beside the other two switches (#562), what the memory review rewrites rather
-          than repeats (#748), where turning review off is actually answered (#783). Its own
-          copy, so another role saying something here adds no branch. */}
+      {/* What this role has left to say — what the memory review rewrites rather than
+          repeats (#748). Its own copy, so another role saying something here adds no branch. */}
       {role?.note && (
         <p className="max-w-[74ch] shrink-0 text-[11.5px] leading-relaxed text-nb-ink-soft">
           {role.note}

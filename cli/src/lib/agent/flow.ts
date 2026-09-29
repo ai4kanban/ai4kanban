@@ -50,8 +50,6 @@ import { recordedOutputs } from './outputs'
 import { boardCommandFor } from './command'
 import { activeDelivery, deliveryFor, endedDelivery, withWorkflow } from './deliveries'
 import { chatFile, readChat } from './chat'
-import { aiReviewOn, owesFocusedReview } from './review'
-import { frozenReviewers, NO_REVIEWERS } from './workflows'
 import { field, metaLine, numbered } from './facts'
 import { chatsToReview } from './memory-review'
 import { dismissalReview, memoryReview } from './settings'
@@ -61,7 +59,9 @@ import { buildAsk, frozenRules, leadBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { openOf } from '../view/rules'
 import { setupInstruction } from './resolve'
-import type { AgentAction, AgentRequest, DeliveryRecord, StartableAction } from './types'
+import { isRetired, type AgentAction, type AgentRequest, type DeliveryRecord, type StartableAction } from './types'
+import { insideRun } from './env'
+import { cardWorkflow } from './workflows'
 
 // The run id an agent works under. It lives in agent/env.ts, which imports nothing, so
 // the delivery lock can ask the same question without pulling this module in behind it.
@@ -73,8 +73,8 @@ export { insideRun, runEnv, RUN_ENV } from './env'
 const MAX_STEPS = 12
 
 // Small candidates arrive inline. Large ones get a complete per-file summary without
-// spending the review's context on a patch it can open selectively.
-const MAX_REVIEW_DIFF = 40_000
+// spending the run's context on a patch it can open selectively.
+const MAX_DIFF = 40_000
 
 // ---- what the board says right now -----------------------------------------
 
@@ -288,10 +288,8 @@ function approvedField(delivery: DeliveryRecord | undefined): string[] {
 }
 
 // The code a delivery has built so far. A small patch is printed in full; a large one gets
-// every changed file and its line counts so review can open only what needs inspection.
-// A focused post-rebase review takes the file list without the patch: what it judges is the
-// intersection named beside it, not the delivery it has already passed.
-function candidateField(delivery: DeliveryRecord | undefined, includePatch = true): string[] {
+// every changed file and its line counts so the run can open only what it needs.
+function candidateField(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
   if (!delivery.base) {
     return field('changes', [
@@ -302,17 +300,15 @@ function candidateField(delivery: DeliveryRecord | undefined, includePatch = tru
   const candidate = candidateOf(delivery)
   const stat = candidateStat(candidate)
   const files = candidateFileStats(candidate)
-  const patch = includePatch ? candidatePatch(candidate) : ''
+  const patch = candidatePatch(candidate)
   const command =
     delivery.worktree && delivery.branch
       ? `git diff ${delivery.base.slice(0, 12)} ${delivery.branch}`
       : `git diff ${delivery.base.slice(0, 12)}`
   const shown = files?.length ? ['changed files:', ...files.map((file) => `  ${file}`)] : ['no file changed']
   let diff: string[] = []
-  if (!includePatch) {
-    diff = ['', `patch omitted for this focused rebase review; open \`${command}\` only where the target changes interact.`]
-  } else if (patch === null) diff = ['', 'the diff could not be read']
-  else if (patch.length > MAX_REVIEW_DIFF) {
+  if (patch === null) diff = ['', 'the diff could not be read']
+  else if (patch.length > MAX_DIFF) {
     const where = delivery.worktree
       ? `the full patch is \`${command}\``
       : `the tracked patch is \`${command}\`; new files are listed above`
@@ -323,56 +319,6 @@ function candidateField(delivery: DeliveryRecord | undefined, includePatch = tru
     ...shown,
     ...diff,
     ...(!delivery.worktree ? ['this is the shared working tree; report changes that do not belong to the delivery.'] : []),
-  ])
-}
-
-// What a `files` delivery made (#874): the files its card records, in place of a diff.
-function outputsField(delivery: DeliveryRecord): string[] {
-  const files = recordedOutputs(delivery)
-  return field('output', [
-    'review the output files recorded on the card against its approved requirements. Check that each file exists and meets those requirements.',
-    ...(files.length ? files.map((file) => `  ${file}`) : ['the card records no output file yet']),
-  ])
-}
-
-// Who may review this delivery (#820): its frozen reviewers, with what each one checks.
-function reviewersField(delivery: DeliveryRecord | undefined): string[] {
-  const lines = frozenReviewers(delivery?.workflow).flatMap((h) => {
-    const agent = findSpecAgent(h.agent)
-    if (!agent) return []
-    return [
-      `- \`${agent.name}\``,
-      `  ${agent.description}`,
-      ...(h.extra.trim() ? [`  this workflow also asks: ${h.extra.trim().replace(/\s*\n\s*/g, ' ')}`] : []),
-    ]
-  })
-  return field('reviewers', ['<reviewers>', ...lines, '</reviewers>'])
-}
-
-// A conflict with the target branch that an agent resolved (#415). The delivery itself
-// already passed, so the job is how the two sides interact — and nothing here repeats the
-// approved requirements, the card's steps or its questions.
-//
-// Empty for a rebase git composed by itself, which starts no review at all (#665), and for
-// a review that has already passed since the rebase — that one is the ordinary full pass.
-function rebaseReviewField(delivery: DeliveryRecord | undefined): string[] {
-  const landing = delivery?.landing
-  if (!delivery?.base || !delivery.branch || !delivery.worktree || !landing?.rebasedFrom || !owesFocusedReview(delivery)) {
-    return []
-  }
-  const dir = worktreeDir(delivery.worktree)
-  const arrived = changedPaths(landing.rebasedFrom, delivery.base, dir)
-  const ours = changedPaths(delivery.base, delivery.branch, dir)
-  const theirs = new Set(arrived ?? [])
-  const shared = arrived && ours ? ours.filter((file) => theirs.has(file)) : null
-  return field('scope', [
-    `focused post-rebase review after a conflict an agent resolved — this delivery already passed, and that verdict stands.`,
-    `judge how ${delivery.targetBranch} changed since ${landing.rebasedFrom.slice(0, 12)} and how that interacts with the delivery — not the delivery's own design.`,
-    `target delta: \`git diff ${landing.rebasedFrom.slice(0, 12)} ${delivery.base.slice(0, 12)}\`.`,
-    shared?.length
-      ? `shared path${shared.length === 1 ? '' : 's'}: ${shared.join(', ')}.`
-      : 'shared paths could not be read — inspect both diffs.',
-    'rerun only the checks these paths affect; rely on the previous pass for everything else.',
   ])
 }
 
@@ -392,7 +338,10 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery?.worktree) return []
   return field('workspace', [
     `write code in ${delivery.worktree} — this delivery's own worktree, on branch ${delivery.branch}.`,
-    `it is your working folder already; the board's own files are NOT in it and never go on that branch.`,
+    // A planning run carried on into the build (#1203) is still standing in the project.
+    path.resolve(process.cwd()).startsWith(worktreeDir(delivery.worktree))
+      ? `it is your working folder already; the board's own files are NOT in it and never go on that branch.`
+      : `cd into it first — you are in the project checkout, and code written here is not part of this build. The board's own files are NOT in it and never go on that branch.`,
     `every board command names the project's own copy: \`${boardCommandFor()} <command>\`.`,
     `${rel(REPO_ROOT)} is the project — the card, the memory files and the docs are changed there, not here.`,
   ])
@@ -404,17 +353,6 @@ const EDITABLE_FIELDS = '--title|--priority|--roi|--release|--modules|--blocked-
 // What to do with the body a card was created with.
 const bodyScaffoldClose = (lead = 'fill the existing'): string[] =>
   [`${lead} body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place`]
-
-// Where review stands on this delivery.
-function reviewField(delivery: DeliveryRecord | undefined): string[] {
-  const review = delivery?.review
-  if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
-  const rounds = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
-  return field('review', [
-    `${review.rounds.length} review${review.rounds.length === 1 ? '' : 's'} so far:`,
-    ...rounds.map((line) => `  ${line}`),
-  ])
-}
 
 // The conflict a landing's rebase stopped on: the files, the branch it clashed with, and
 // the cards on the other side — everything the run needs to see both intentions rather
@@ -477,7 +415,7 @@ const answeredClose = (delivery: DeliveryRecord, self: string): string =>
 
 // The card's post-implementation notes as they read right now — NOT part of the approved
 // copy, and the one place the user records an exception they have approved for this exact
-// candidate. A reviewer that never reads them re-raises what has already been settled.
+// candidate. A build that never reads them reopens what has already been settled.
 function notesLines(card: CardFacts): string[] {
   const lines: string[] = []
   let inside = false
@@ -530,11 +468,10 @@ function verifyField(meta: Meta): string[] {
 // the board commits the whole change onto the delivery's branch as the run closes — so the
 // one thing asked of the run is to leave nothing of the board's own in there, which
 // is what a commit would be refused for. In manual commit mode nothing is committed at all:
-// the code stays in the user's checkout and the commit is theirs. What comes next is a
-// review, or — with AI review off (#416) — the landing itself.
+// the code stays in the user's checkout and the commit is theirs. What comes next is the
+// landing itself.
 function committingClose(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
-  const reviewed = aiReviewOn(delivery)
   if (delivery.commitMode === 'files') {
     return [
       'record each output file on the card by its path — a ticked `## Todo` line naming it in backticks; a missing record or file means not delivered',
@@ -544,12 +481,12 @@ function committingClose(delivery: DeliveryRecord | undefined): string[] {
   }
   if (delivery.worktree) {
     return [
-      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this run ends, and ${reviewed ? 'review reads' : 'the landing takes'} that branch`,
+      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this run ends, and the landing takes that branch`,
       `never write the board's own files into the worktree: a commit that reaches one is refused, and the delivery stops`,
     ]
   }
   return [
-    `leave your work uncommitted — this build has no branch of its own, so the user commits it themselves once ${reviewed ? 'review passes' : 'this run ends'}`,
+    `leave your work uncommitted — this build has no branch of its own, so the user commits it themselves once this run ends`,
   ]
 }
 
@@ -572,26 +509,12 @@ interface Flow {
 /** Guides supplied upfront, general rules before the action's own flow. */
 const GUIDES_FOR: Record<StartableAction, string[]> = {
   implement: ['board', 'implement', 'document-feature'],
-  review: ['review'],
   conflict: ['conflict'],
   run: ['board', 'recurring-task'],
-  // QA edits decision prose as it settles and prunes the plan.
-  clarify: ['writing', 'update-questions', 'qa-loop'],
-  // Apply the user's answers first, then validate the resulting plan to convergence in the
-  // same session. The watcher may start writing afterwards, but never another QA session.
-  resolve: ['board', 'writing', 'resolve', 'update-questions', 'qa-lightweight'],
-  // The decider does `resolve`'s job with the choosing done for the user (#447), so it gets
-  // `resolve`'s own set — plus the page that says how it chooses and what it must not write.
-  decide: ['board', 'writing', 'resolve', 'decide', 'update-questions', 'qa-lightweight'],
-  // The dedicated writing pass gets that guide alone: it writes a body and nothing else.
-  writing: ['writing'],
-  // The ready gate judges a card against the standard it was written to, so it reads that
-  // standard and the bar a refine converges on — and `update-questions`, which is the whole
-  // of what it may write. Not `board`: it writes no card and closes none.
-  gate: ['writing', 'qa-loop', 'update-questions', 'gate'],
-  // Apply the requested correction first, then validate the resulting plan to convergence
-  // in the same session. Writing may follow, but never another QA session.
-  edit: ['writing', 'revise', 'update-questions', 'qa-lightweight'],
+  // One planning session (#1203): the page that plans, and the two it writes the card by.
+  clarify: ['refine', 'writing', 'update-questions'],
+  resolve: ['board', 'writing', 'resolve', 'update-questions'],
+  edit: ['writing', 'revise', 'update-questions'],
   create: ['board', 'evaluate-task', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
   // A changelog run gets its own flow and NOT `board`: it writes no card, so the card
@@ -624,17 +547,9 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   spec: ['spec-agent'],
 }
 
-const guidesFor = (req: AgentRequest): string[] => {
-  // A retired action is only ever read back off an old record (#438) — nothing starts one,
-  // and there is no flow left to print for it.
-  if (req.action === 'propose') return []
-  if (req.action === 'spec' && findSpecAgent(req.specAgent ?? '')?.stage === 'review') return []
-  if (req.action !== 'clarify') return GUIDES_FOR[req.action]
-  // Standard QA validates the premises the plan turns on, so it gets that flow up front;
-  // lightweight QA never runs one and escalates instead, so its list is unchanged.
-  if (req.refineEffort === 'lightweight') return ['writing', 'update-questions', 'qa-lightweight']
-  return ['writing', 'update-questions', 'qa-loop', 'validate-assumption']
-}
+// A retired action is only ever read back off an old record (#438, #1203) — nothing starts
+// one, and there is no flow left to print for it.
+const guidesFor = (req: AgentRequest): string[] => (isRetired(req.action) ? [] : GUIDES_FOR[req.action as StartableAction])
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
  *  program the caller was typed as, so what is printed can be pasted back. */
@@ -653,8 +568,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // The refine a job hands over to. A run starts each follow-up refine as its own run,
   // never inside the job that wrote the card — so the handover says fresh run, or an
   // agent reading the flow refines right here, in a context already full of the writing.
-  const refineNext = (target: number | '<id>', when: string, effort?: string) =>
-    `${self} card refine ${target === '<id>' ? target : String(target)}${effort ? ` --effort ${effort}` : ''} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
+  const refineNext = (target: number | '<id>', when: string) =>
+    `${self} card refine ${target} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
@@ -685,13 +600,9 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       if (card.meta.questions.length) facts.push(...questionsField(card.meta))
       facts.push(...verifyField(card.meta))
       facts.push(...field('memory', memoryLines(card.meta.modules, 'readme.md')))
-      // Inside a delivery the build is not the end of the job: a fresh run reviews what
-      // it made against the approved copy, the board lands it, and the board archives the
-      // card once it has landed (#302, #307). With AI review off there is no such run
-      // (#416) — the build goes straight to landing, and the card is still not this run's
-      // to close. Outside a delivery — a card built by hand from a printed flow — the build
-      // closes the card exactly as it always has.
-      const reviewed = !!delivery && aiReviewOn(delivery)
+      // Inside a delivery the build is not the end of the job: the board lands it, and
+      // archives the card once it has landed (#304, #307). Outside a delivery — a card built
+      // by hand from a printed flow — the build closes the card exactly as it always has.
       close.push(
         ...committingClose(delivery),
         ...(settled
@@ -701,65 +612,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         delivery?.commitMode === 'files'
-          ? reviewed
-            ? 'leave the card on the board. Review comes next; the board archives it after the files pass review and the delivery checks'
-            : 'leave the card on the board. The board archives it after the output files pass the delivery checks'
+          ? 'leave the card on the board. The board archives it after the output files pass the delivery checks'
           : delivery
-            ? reviewed
-              ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
-              : `leave the card on the board — the board archives the card itself once the delivery has landed`
+            ? `leave the card on the board — the board archives the card itself once the delivery has landed`
             : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (openOf(card.meta.questions).length) {
         next.push(
           `${self} card resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
-        )
-      }
-      if (reviewed) {
-        next.push(
-          `${self} delivery review ${req.id} --print — the review this delivery makes next. A run the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh run`,
-        )
-      }
-      break
-    }
-    // Judging a delivery's work against the card it was approved to build (#302). The
-    // approved copy and the diff are the whole of what a reviewer is given — never the
-    // run that wrote it, because a reviewer that reads the implementer's reasoning
-    // agrees with it.
-    case 'review': {
-      if (delivery && !frozenReviewers(delivery.workflow).length) die(NO_REVIEWERS, { kind: 'no-reviewers' })
-      const focused = rebaseReviewField(delivery)
-      if (focused.length) {
-        facts.push(...workspaceField(delivery))
-        facts.push(...focused)
-        facts.push(...candidateField(delivery, false))
-        facts.push(...reviewField(delivery))
-      } else {
-        facts.push(...approvedField(delivery))
-        facts.push(...workspaceField(delivery))
-        facts.push(...(delivery?.commitMode === 'files' ? outputsField(delivery) : candidateField(delivery)))
-        facts.push(...reviewField(delivery))
-        if (card) {
-          facts.push(...stepsField(card))
-          facts.push(...notesField(card))
-          facts.push(...questionsField(card.meta))
-        }
-      }
-      facts.push(...reviewersField(delivery))
-      const files = delivery?.commitMode === 'files'
-      close.push(`finish successfully with no new question when the work is ready — that passes review`)
-      // A delivery without a card reports its blocking decision in the final message.
-      close.push(
-        card
-          ? `append a question to #${req.id} by \`akb guide update-questions\` only when a ${files ? 'user-owned decision blocks completion' : 'genuine user-owned decision blocks landing'}; then stop`
-          : `there is no card to append a question to — say a blocking decision in your last message and stop`,
-      )
-      if (card) {
-        close.push(
-          'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself and settle facts',
-          files
-            ? 'leave the card on the board. The board archives it after the recorded files pass review and the delivery checks'
-            : `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
         )
       }
       break
@@ -773,10 +633,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...candidateField(delivery))
       close.push(
         'treat the target branch as the current implementation; preserve it and replay only what the approved copy above requires',
-        'repair Git state failures while preserving the delivery; `git add` each file you resolved, then stop: the board runs `git rebase --continue`' +
-          (aiReviewOn(delivery ?? {})
-            ? ', then reviews the composed result before it lands'
-            : ' and lands the composed result — this delivery has AI review off'),
+        'repair Git state failures while preserving the delivery; `git add` each file you resolved, then stop: the board runs `git rebase --continue` and lands the composed result',
         'change nothing the conflict does not name, change nothing on the board, and create no cards or follow-up tasks',
       )
       break
@@ -796,10 +653,16 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'clarify': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       close.push(
-        'settle the plan automatically with the selected QA guide; leave only genuine user-owned questions',
-        'after the selected QA guide converges with no user question remaining, improve the body according to `akb guide writing`',
-        `${raw} update ${req.id} --status ready — after the plan is compact, clear, and internally consistent`,
+        'settle and write the card as `akb guide refine` says; leave only `[user]` questions',
+        `${raw} update ${req.id} --status ready — once the card validates`,
       )
+      // Planning carries straight on into the build when nothing waits on the user (#1203).
+      // A refine the board started by itself stops at the plan: nobody asked for a build.
+      if (!req.scheduled && cardWorkflow(req.id!)?.delivers !== 'plan') {
+        next.push(
+          `${self} card implement ${req.id} --print — build it in this session once it is ready with no open question. The board refuses while something still waits on the user; then stop`,
+        )
+      }
       break
     }
     case 'resolve': {
@@ -812,64 +675,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       facts.push(...field('memory', memoryLines(card!.meta.modules, 'decisions.md')))
       if (building) close.push(answeredClose(building, self))
-      next.push(
-        req.refineRound !== undefined
-          ? refineNext(req.id!, 'continue the programmatic refinement flow')
-          : req.andImplement
-            ? `${self} card implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
-            : `${self} card implement ${req.id} --print — once every question is settled`,
-      )
-      break
-    }
-    // The decider answering in the user's place (#447). It reads the same two things a
-    // resolve does — the questions, and the decisions already made — but the memory is what
-    // it CHOOSES from rather than what it writes to, and the close says so. It stands in for
-    // the user rather than writing one card, so the memory is the whole board's (#493).
-    case 'decide': {
-      facts.push(...questionsField(card!.meta))
-      const decidingOnBuild = activeDelivery(req.id!)
-      if (decidingOnBuild) {
-        facts.push(...answeringField(decidingOnBuild, self))
-        facts.push(...notesField(card!))
+      if (req.andImplement) {
+        next.push(`${self} card implement ${req.id} --print — carry straight on in this session, but only if nothing is left for the user`)
+      } else if (!insideRun()) {
+        next.push(`${self} card implement ${req.id} --print — once every question is settled`)
       }
-      facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', planningMemoryFiles()))
-      close.push(
-        ...(decidingOnBuild ? [answeredClose(decidingOnBuild, self)] : []),
-        `${raw} update-decided ${req.id} --question ".." --chose ".." [--from ".."] — one call per question, before you drop it`,
-        `${raw} update-questions ${req.id} --drop <n> — every \`[user]\` question goes, and the card leaves this run with none`,
-        'write no lasting decision: nothing you chose belongs in a `decisions.md` or in a spec agent\'s memory',
-      )
-      next.push(
-        `${self} card implement ${req.id} --print — once every question is answered`,
-      )
-      break
-    }
-    // The gater's verdict (#440, #493) — so the close is the two ways to give one and
-    // nothing else. No handover: a card it passes is built by the board, not by whoever
-    // read this. Like the decider it judges for the whole board, so it is given the goal and
-    // the planner's memory on top of the card, and writes none of it.
-    case 'gate': {
-      facts.push(...stepsField(card!), ...questionsField(card!.meta), ...verifyField(card!.meta))
-      facts.push(
-        ...field('blockers', card!.meta.blocked_by.map((n) => `#${n}`).join(', ') || 'none'),
-      )
-      facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', planningMemoryFiles()))
-      close.push(
-        'it passes: change nothing at all and finish successfully — a clean finish IS the verdict, and the board opens the delivery itself',
-        `it does not: \`${raw} update-questions ${req.id} --append ".."\` — exactly one \`[user]\` question naming what blocks the build, which takes the card back to todo by itself`,
-        'never set the status by hand, never edit the body, and never start the build yourself',
-      )
-      break
-    }
-    case 'writing': {
-      facts.push(...stepsField(card!), ...questionsField(card!.meta))
-      close.push(
-        'improve only the card body\'s writing according to `akb guide writing` — preserve every settled requirement, checked todo, and spec-agent section, and merge decisions that repeat each other rather than dropping either',
-        `do not research, change the plan, raise or resolve questions, touch another card, or edit project code`,
-        `${raw} update ${req.id} --status ready — after the body is compact, clear, and internally consistent`,
-      )
       break
     }
     case 'edit': {
@@ -925,10 +735,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // left rather than a card's steps — and the flow's own last tick is what closes the
     // job, which is why nothing here names a command that finishes it.
     case 'spec': {
-      if (findSpecAgent(req.specAgent ?? '')?.stage === 'review') {
-        next.push('Return to the review that picked this reviewer and continue with the next one it chose.')
-        break
-      }
       next.push('Return to the workflow that requested this spec and continue it in this session. No background follow-up is scheduled.')
       break
     }
@@ -1124,8 +930,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     // Settling a card that sat too long (#118). The facts are what the verdict is made of:
     // how long it sat, what the plan still claims, and the direction to judge the rest
-    // against — so it is given the goal and the planner's memory, like the gater, and
-    // writes none of it. The close is the two verdicts and the rule that separates them
+    // against — so it is given the goal and the planner's memory, and writes none of it. The close is the two verdicts and the rule that separates them
     // from a refine.
     case 'unstick': {
       const age = cardAges()?.get(path.resolve(REPO_ROOT, card!.file))

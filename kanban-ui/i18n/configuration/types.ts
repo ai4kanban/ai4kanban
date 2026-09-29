@@ -10,9 +10,6 @@ export type AgentRoleName =
   | "discussion-helper"
   | "software-planner"
   | "builder"
-  | "code-reviewer"
-  | "gater"
-  | "decider"
   | "proposer"
   | "memory-pruner"
   | "memory-reviewer"
@@ -62,8 +59,8 @@ export type ConfigurationCopy = {
     builtInDescriptions: Record<"coding" | "hyperframes-video" | "slide-deck" | "carousel-post" | "blog-post", string>;
     /** The touch-screen button that shows a workflow's description. */
     about: (name: string) => string;
-    /** The three stages, in the order a card goes through them. */
-    stages: { plan: string; execute: string; review: string };
+    /** The two stages, in the order a card goes through them. */
+    stages: { plan: string; execute: string };
     /** The one agent that runs the selected stage, and the picker when nobody does. */
     lead: string;
     pickLead: string;
@@ -81,10 +78,6 @@ export type ConfigurationCopy = {
     noneInStage: string;
     /** Beside the empty column: what the space to its right is for. */
     emptyPage: string;
-    /** The review stage's list, which has no lead (#820): its caption, and the line drawn
-     *  when it is empty. */
-    reviewers: string;
-    noReviewers: string;
     /** The one switch in the more menu (#874, #944): **Use a Git worktree**, what it is
      *  for, a built-in's fixed value, and a failed save. */
     worktree: string;
@@ -310,9 +303,8 @@ export type ConfigurationCopy = {
      *  ships the roles, so the pane can carry their words; a specialist says both in its
      *  own `AGENT.md`, which is the only place a project can write them.
      *
-     *  `when` only on a role something other than a flow starts: the gater, the decider
-     *  (#493), the proposer (#534) and the triager (#562) are started by something you can
-     *  point at, the discussion helper by you talking to it (#502), and every other role is
+     *  `when` only on a role something other than a flow starts: the proposer (#534) and the
+     *  triager (#562) are started by something you can point at, the discussion helper by you talking to it (#502), and every other role is
      *  called by its flows.
      *
      *  `confirm` only on a role whose switch asks before it moves — the board says which
@@ -337,13 +329,6 @@ export type ConfigurationCopy = {
         note?: string;
       }
     >;
-    /** The decider (#447) — the one switch on this board that stops nothing for you, so its
-     *  page carries what that costs in a strip nothing else draws. */
-    decider: {
-      /** The red strip: what it costs while it is on. */
-      costTitle: string;
-      cost: string;
-    };
     /** The memory pruner (#514) — one of the agents whose page carries an action rather
      *  than only settings: it prunes when you press Run now, and on the cadence you opt into. */
     pruner: CadenceCopy;
@@ -405,15 +390,9 @@ export type ConfigurationCopy = {
     deleteFailed: (agent: string) => string;
   };
   delivery: {
-    /** A change only reaches deliveries started afterwards. Said once under both switches,
-     *  and again on the Reviewer's page (#509) — its switch is the third delivery setting,
-     *  and it is read from here so there is one way to say it. */
+    /** A change only reaches deliveries started afterwards. Said once under both switches. */
     frozen: string;
     commits: { title: string; body: string; failedOn: string; failedOff: string };
-    /** Whether the Code reviewer runs on each build (#416). It was that agent's own switch
-     *  on Configuration → Agents until #783, and it belongs here: it is frozen onto a
-     *  delivery the way the two above are. */
-    review: { title: string; body: string; failedOn: string; failedOff: string };
     /** Only read out loud: one setting's switch. */
     switchOn: (setting: string) => string;
     switchOff: (setting: string) => string;

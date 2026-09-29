@@ -32,7 +32,6 @@ import {
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
 import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { anyChatSince } from '../agent/memory-review'
-import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
 import { pruneLeftovers } from '../leftovers'
@@ -152,7 +151,7 @@ const scheduledRequest = (card: Card): AgentRequest => ({
   id: card.id,
   title: card.title,
   notes: card.schedule!.notes || undefined,
-  ...(card.schedule!.action === 'refine' ? { refineRound: 1 } : {}),
+  ...(card.schedule!.action === 'refine' ? { refineRound: 1, scheduled: true } : {}),
 })
 
 /**
@@ -275,16 +274,11 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
   if (dismissalReviewDue(runs)) work.push({ action: 'review-dismissals' })
 
-  // The deliveries whose question has been answered (#302). Not gated on the slots above
-  // for the same reason landing isn't: another look at work already built is that
-  // delivery's own next run, not new work the board went looking for.
-  for (const answered of answeredWork(busy)) work.push(answered)
-
   // And the landing queue (#304). A landing is normally moved on by the watcher of the
-  // run that just passed review; this is what picks up a waiter nothing handed off to,
+  // build that just finished; this is what picks up a waiter nothing handed off to,
   // because that process died between the two. `advanceLanding` does the git work itself
   // and hands back only the run it wants started, which is why it isn't gated on the
-  // slots above: a re-review inside a landing is that delivery's own next run.
+  // slots above: a conflict run inside a landing is that delivery's own next run.
   const landing = await advanceLanding()
   if (landing) work.push(landing)
   return work

@@ -84,7 +84,7 @@ It never shows in **Runs**.
 - **Plan tasks** starts the run that writes the cards, in the release on screen, each citing
   the plan in `## Source`.
 - **Start now** asks first, then one run writes a single card from the plan and builds it — no
-  refine, no review.
+  refine.
 - **Not yet** leaves it. You can also type any of the three.
 - **Board requests**: it answers how things are going from the board as it is. Asked plainly, it
   moves, rewords, archives, rejects or starts an existing card — a build as a run in **Runs** —
@@ -325,7 +325,7 @@ running badge and a read-only live log.
 | **Refine** | While a refine would still move the card. |
 | **Revise** | Always. Opens the card's chat; say what to change. |
 | **Resolve** | When the card has open questions, including while a delivery waits on you. |
-| **Review again** | While a stopped delivery waits on the question its review left. |
+| **Build again** | While a delivery has stopped, e.g. on work it could not commit or files changed outside the board. |
 | **Continue delivery** | When a delivery's next session never started. |
 | **Archive** | Once every todo is checked (a group root: every subtask resolved). Never on a recurring card. |
 | **Reject** | Always. **Just discard** drops the card without writing memory. |
@@ -335,7 +335,7 @@ commit yourself.
 
 ### Delivery
 
-**Implement** starts a **delivery**: build, review, land and archive, in one click. It runs
+**Implement** starts a **delivery**: build, land and archive, in one click. It runs
 several sessions under one delivery id, shown on the card and in `akb run list`.
 
 - **What you approve is the card**, not the diff. The dialog lists the steps and the target
@@ -350,9 +350,9 @@ several sessions under one delivery id, shown on the card and in `akb run list`.
   (after naming them).
 - **A failed session doesn't end the delivery**: **Resume** picks it up under the same id.
 - **Record**: every delivery leaves a JSON file in `docs/kanban/deliveries/` — the approved card,
-  each session, review verdicts, landing and outcome. It is tracked in git.
+  each session, landing and outcome. It is tracked in git.
 - **Blocked or open questions**: the dialog warns and you can go ahead. A card with open
-  questions is built and reviewed, then held at landing until they are answered, without taking
+  questions is built, then held at landing until they are answered, without taking
   a landing slot.
 - **Terminal**: `akb card implement <id>` starts it; `akb delivery discard <id> --yes` discards;
   `akb delivery cancel <id>` ends it but keeps the worktree and branch for salvage.
@@ -361,10 +361,9 @@ several sessions under one delivery id, shown on the card and in `akb run list`.
 
 | Pill | Meaning |
 | --- | --- |
-| **Delivery in progress** | Building or reviewing. Nothing waits on you. |
+| **Delivery in progress** | Building. Nothing waits on you. |
 | **Held at landing** | Built; waiting for the card's open questions to be answered. |
 | **Waiting for your commit** | Manual commit mode: the commit is yours to make. |
-| **Code changed after review** | You committed something other than what review passed; it is being reviewed again. |
 | **Landed as `abc123`** | Its commit is on your branch and the card is being archived. |
 
 Each continues by itself once you answer, resolve or commit. An answer that changes the approved
@@ -394,13 +393,13 @@ Ticked, the delivery builds in a git worktree, `.akb/worktrees/<card>/<delivery>
   Changes to the board's own files don't count.
 - **Board files stay out**: `docs/kanban/` and `.akb/` are not in the worktree; card and delivery
   records change in your project folder.
-- **Each session's work is committed** to the delivery branch, so review reads a settled tree.
+- **Each session's work is committed** to the delivery branch, so what lands is a settled tree.
 - **A missing worktree or branch** is reported on the card; discard and start again.
 - **No git, no commit or a detached HEAD**: no tick is offered, and the build uses manual mode.
 
 #### Landing on your branch
 
-After review passes, the board **lands** the delivery: one squash commit, named after the card, on
+Once the build is done, the board **lands** the delivery: one squash commit, named after the card, on
 the branch you were on when you pressed Implement. Nothing is pushed.
 
 - **One card lands at a time**; the wait shows on the card.
@@ -408,10 +407,9 @@ the branch you were on when you pressed Implement. Nothing is pushed.
   and lands by itself once you commit or stash.
 - **Your checkout follows**: if the target branch is checked out, it is fast-forwarded like
   `git pull`; otherwise only the branch moves.
-- **A moved target branch is rebased onto**, retried without limit; the card counts attempts. A
-  clean rebase keeps the review verdict.
+- **A moved target branch is rebased onto**, retried without limit; the card counts attempts.
 - **Overlapping cards** are a warning, recorded on the delivery. A real conflict is resolved by an
-  agent and gets a focused review.
+  agent, then lands.
 - **After landing**, the worktree and branch are removed and the card is archived. The record
   keeps the commit, base, checks and any overlap.
 
@@ -420,53 +418,29 @@ the branch you were on when you pressed Implement. Nothing is pushed.
 Untick the box, or turn **Automatic Git commits** off (saved in `docs/kanban/ui.config.json`, so
 the team shares it), and the delivery works in your project folder:
 
-- **One delivery at a time**, from a clean tree — an untracked file blocks the start, since review
-  would read it as the delivery's work.
-- **You commit after review passes.** Commit what review passed and the card is archived. Commit
-  something else and it is reviewed again (**Code changed after review**).
+- **One delivery at a time**, from a clean tree — an untracked file blocks the start, since it
+  would read as the delivery's work.
+- **You commit after the build.** Your commit ends the delivery and archives the card.
 - **Nothing lands** for you.
 
-### Review
+### When a delivery stops
 
-A **fresh session** judges the build against the approved card and the diff. It never sees the
-building session. It runs the repository's own tests, linter and type check, fixes plain mistakes
-in the same worktree, and gives one of two answers:
+A delivery stops when its work can't go on unattended — for example work it could not commit, or
+files changed outside the board during the run. The card reads **delivery … waiting on you**;
+sort out what it names, then press **Build again**. Changed requirements need a new delivery:
+**Discard** and implement again.
 
-- **Pass**: the work goes on to land.
-- **Needs you**: a fix is unclear, unsafe or yours to decide. It leaves **one open question** on
-  the card and the delivery stops, still holding it. A failed or silent review also stops.
+There is no AI review: the repository's own checks and the open-question hold are what gate a
+build. **Suggest follow-up work** proposes what a build missed, after the card is archived.
 
-Review doesn't promise defect-free code or judge whether the card was a good idea: a card that
-says the wrong thing produces work that passes.
-
-When it stops, the card reads **delivery … waiting on you**. Answer the question — or write the
-exception you accept under **Worth noting after implementation** — then press **Review again**.
-Changed requirements need a new delivery: **Discard** and implement again.
-
-**Worth noting after implementation** is where review records what needs no decision: a surprise,
-a check that was already failing, a split worth making. It blocks nothing.
-
-**Terminal**: `akb delivery review <id>` reviews again, `akb delivery conflict <id>` resolves a
-stopped rebase, `akb guide review` prints the flow.
-
-#### Turning AI review off
-
-**Review every build** (Configuration → General → Delivery) is the only switch; there is no
-per-build option. **Start now** is never reviewed.
-
-- **Frozen per delivery**: the foot of the delivery block reads **No AI review** on one started
-  without it.
-- **The build goes straight to landing**; a rebase starts no review either.
-- **What still gates it**: the repository's own checks and the open-question hold.
-- **Manual commit mode**: your commit ends the delivery, whatever it holds.
-- **`akb delivery review <id>`** still runs a review on demand.
+**Terminal**: `akb delivery conflict <id>` resolves a stopped rebase.
 
 ### Open questions
 
 Click the **open questions** panel (or **Resolve**) and every question you own becomes an answer
 box — or a tick list with the agent's picks pre-ticked, plus **Something else** for your own
-words. Leave a question untouched and the agent researches it. **Resolve** sends the answers; the
-agent folds them into the plan and settles what it can.
+words. Leave a question untouched and the agent researches it. **Resolve** sends the answers; one
+session folds them into the plan and builds the card.
 
 ### Schedule it instead
 
@@ -485,13 +459,17 @@ rejected.
 
 ### Refine
 
-**Refine** runs one refine on the card now. It shows only while a refine would still move the
-card: not once it is **ready**, all todos are checked, every open question is yours (use
+**Refine** plans the card in one session, spec agents included. When nothing waits on you — no
+open question, nothing such as a mockup to look at first — the same session builds it; otherwise
+it stops for **Resolve**, which applies your answers and builds.
+
+It shows only while a refine would still move the card: not once it is **ready**, all todos are checked, every open question is yours (use
 **Resolve**), or a refine is already scheduled. On a blocked card the dialog offers **Refine
 anyway** or **Schedule**.
 
 The board also refines by itself, as a separate run, after any run that wrote or changed a card —
-one refine per card touched. It skips blocked, ready, recurring and fully ticked cards, and cards
+one refine per card touched. A refine the board starts itself — after a run, or off a card's
+schedule — plans only and never builds. It skips blocked, ready, recurring and fully ticked cards, and cards
 whose open questions are all yours. A subtask finishing doesn't refine its group root. Nothing
 scans the backlog: a card written by hand in your editor needs **Refine**.
 
@@ -567,13 +545,11 @@ Settings are saved in `docs/kanban/ui.config.json`, shared through git. Exceptio
 
 ### General → Delivery
 
-Repository-level switches; a change applies to deliveries started afterwards. Whether a delivery
-starts at all is **Auto-approve builds**, under Agents.
+Repository-level switches; a change applies to deliveries started afterwards.
 
 - **Automatic Git commits** (on): builds get their own branch and worktree and land by themselves.
   Off is [manual commit mode](#manual-commit-mode). The Implement dialog can override it per
   build.
-- **Review every build** (on): see [Turning AI review off](#turning-ai-review-off).
 
 ### General → Setup: the coding agent skill
 
@@ -733,9 +709,7 @@ ANTHROPIC_API_KEY=sk-ant-…
 
 ```json
 {
-  "readyGate": true,
   "autoCommit": false,
-  "aiReview": false,
   "runtimes": [
     {
       "id": "global",
@@ -757,12 +731,12 @@ ANTHROPIC_API_KEY=sk-ant-…
 
 | Key | Meaning | Missing means |
 | --- | --- | --- |
-| `readyGate` | **Auto-approve builds** (Configuration → Board) | off (also if the file won't parse) |
 | `autoCommit` | **Automatic Git commits** | on |
-| `aiReview` | **Review every build** | on (also if the file won't parse) |
 | `runtimes` | The runtime rows; the first is **Global default** | one Claude Code row |
 | `agentRuntime` | Which runtime each agent runs, by agent name → runtime `id` | **Global default** |
 | `specAgents` | Per-agent changes: `enabled: false`, or a non-default `output` | on, with defaults |
+
+Older keys `readyGate`, `decider` and `aiReview` are ignored.
 
 Inside a runtime row:
 
@@ -796,15 +770,15 @@ match.
 "agentRuntime": { "builder": "cheap", "ui-designer": "cheap" }
 ```
 
-It covers the shipped roles (`discussion-helper`, `builder`, `software-planner`, `code-reviewer`,
-`writer`, `gater`, `decider`) and every agent in `docs/kanban/agents/`, and it travels with the
+It covers the shipped roles (`discussion-helper`, `software-planner`, `builder`, `proposer`,
+`triage` and the rest `akb agent` lists) and every agent in `docs/kanban/agents/`, and it travels with the
 repository — so the planner can run on a stronger model than the builder on every checkout. Keys
 stay per machine. An unknown `id` falls back to **Global default** with a note in the log; a tool
 that isn't installed fails with its install command.
 
-Every flow is run by its role: refine, clarify and `akb card resolve` by the software planner;
-New idea, card discussions and `akb chat` by the discussion helper; a `spec` or `write` pass by the
-specialist it names.
+Every flow is run by its role: refine and `akb card resolve` by the software planner;
+New idea, card discussions and `akb chat` by the discussion helper; a `spec` run by the specialist
+it names.
 
 **Terminal**: `akb agent` lists everything; `akb agent runtime add|rename|delete` edits rows;
 `akb agent set --runtime <id> <key> <value>` sets a value; `akb agent bind <agent> <id>` points an
@@ -818,11 +792,7 @@ then the **specialists** the command ships, then the ones this project added. Se
 its page: runtime, rule, memory, settings and, for one you added, its `AGENT.md`.
 
 - **Roles**: **Discuss an idea** (the one you talk to), **Planner** (plans and refines cards),
-  **Builder** (builds and lands; a marketing board has a **Writer** instead) and **Code reviewer**
-  (judges a build; switched by **Review every build**). Two stand in for you, off by default and
-  on product boards only: **Auto-approve builds** judges whether a ready card may build unwatched,
-  and **Auto-answer questions** answers questions waiting on you, both from the goal and every
-  module's `decisions.md` and `rejected.md`.
+  **Builder** (builds and lands).
 - **Board** pane: agents split into **Manual** (what you start yourself) and **Automatic** (what
   the board may start on its own); the switch says whether it may.
 - **Specialists** fill one part of a card's spec while it is planned, never while it is built:

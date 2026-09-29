@@ -94,14 +94,6 @@ describe('what a run is told', () => {
     assert.doesNotMatch(prompt, /Cut on the beat/)
   })
 
-  it('names them on a review run too', () => {
-    agent('contract-reviewer', ['  kind: spec', '  stage: review'], { 'checklist.md': 'Every endpoint has an error case.' })
-    const ask = helperAsk('contract-reviewer')
-    assert.match(ask, /`contract-reviewer` reviewer/)
-    assert.match(ask, /——— your own files ———[\s\S]*docs\/kanban\/agents\/contract-reviewer\/checklist\.md/)
-    assert.doesNotMatch(ask, /Every endpoint has an error case/)
-  })
-
   it('says nothing at all when the agent has no other file', () => {
     assert.doesNotMatch(helperAsk('api-contract'), /your own files/)
   })
