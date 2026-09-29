@@ -189,6 +189,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
         // last one's messages on the spot, and the invitation before the read would be a
         // beat of "nothing has been said" on a card that has plenty.
         empty={read ? <Empty cardId={cardOf(rail)} hopeless={hopeless ? blocked : undefined} /> : null}
+        before={read?.discussion?.length ? <FromDiscussion messages={read.discussion} cardId={cardOf(rail)} /> : null}
       />
       {trouble && !(hopeless && messages.length === 0) && (
         <p
@@ -200,6 +201,50 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
       )}
       <Composer rail={rail} disabled={!read || !!blocked} answering={answering} ours={ours} />
     </section>
+  );
+}
+
+/** The discussion a card was written from (#1213), folded to one row above the card's own chat. */
+function FromDiscussion({ messages, cardId }: { messages: ChatMessage[]; cardId: number | null }) {
+  const c = useCopy().chat;
+  const [open, setOpen] = useState(false);
+  const Icon = open ? FiChevronDown : FiChevronRight;
+  return (
+    <div className="flex flex-col gap-2 pb-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+        className="flex h-[30px] w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-ink/5 px-2 text-left text-[12px] font-[600] text-nb-ink-soft hover:bg-nb-ink/10"
+      >
+        <Icon size={13} className="shrink-0" aria-hidden />
+        <LuMessagesSquare size={12} className="shrink-0" aria-hidden />
+        <span className="truncate">{c.fromDiscussion(messages.length)}</span>
+      </button>
+      {open && (
+        <>
+          <div className="flex flex-col gap-2 pt-1">
+            {messages.map((m, i) => (
+              <Said key={i} message={{ ...m, images: undefined }} sent={null} canSend={false} onResend={noResend} imageSrc={noImage} />
+            ))}
+          </div>
+          {cardId !== null && <Became>{`${c.became} #${cardId}`}</Became>}
+        </>
+      )}
+    </div>
+  );
+}
+
+const noResend = () => {};
+const noImage = () => "";
+
+function Became({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="h-px flex-1" style={{ background: HAIRLINE }} />
+      <span className="shrink-0 text-[11px] text-nb-ink-soft">{children}</span>
+      <span className="h-px flex-1" style={{ background: HAIRLINE }} />
+    </div>
   );
 }
 
@@ -301,6 +346,7 @@ export function Transcript({
   onResend,
   imageSrc,
   empty,
+  before,
   after,
 }: {
   messages: ChatMessage[];
@@ -320,6 +366,8 @@ export function Transcript({
   /** Where one of this conversation's pictures is served from (#441). */
   imageSrc(name: string): string;
   empty: React.ReactNode;
+  /** Drawn above everything, the empty state included — a card chat's folded discussion (#1213). */
+  before?: React.ReactNode;
   /** Drawn under the newest line, inside the scroller — the Discuss screen's two answers
    *  (#427), which stand under the message that asked. */
   after?: React.ReactNode;
@@ -372,6 +420,7 @@ export function Transcript({
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
     <div ref={box} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2.5">
+      {before}
       {nothing ? (
         empty
       ) : (

@@ -50,6 +50,10 @@ export const CLAUDE_CODE: Harness = {
     return extra
   },
 
+  forkArgs(argv, resumeId, sessionId) {
+    return [...claudeStreamArgs(argv), '--resume', resumeId, '--fork-session', '--session-id', sessionId]
+  },
+
   // What Claude Code takes: who pays for the run, where that run goes, a model id, and how
   // hard that model thinks. The provider comes first because it decides the rest — which
   // of the boxes below apply at all, and the whole environment a run starts under.

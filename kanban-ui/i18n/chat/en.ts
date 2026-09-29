@@ -36,6 +36,8 @@ const en: ChatCopy = {
   copyReply: "Copy this reply",
   copyCode: "Copy this code",
   copyChat: "Copy the conversation",
+  fromDiscussion: (count) => `From discussion · ${count} ${count === 1 ? "message" : "messages"}`,
+  became: "→ Became",
   again: "Send again",
   againHint: "Send this message again",
   reword: "Reword",

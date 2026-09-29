@@ -137,6 +137,9 @@ export type BoardCopy = {
         buildOnlyOne: string;
         tryAgainMany: string;
         planningMany: (count: number) => string;
+        /** The cards the run wrote (#1213): one line each, and the box, closed, below them. */
+        became: string;
+        closed: string;
         /** The answer that was pressed, while its run is being asked for (#706). The other
          *  two are down beside it and the box sends nothing. */
         starting: string;

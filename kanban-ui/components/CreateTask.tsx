@@ -40,6 +40,7 @@ import { failureText, startFailure, type StartFailure } from "@/lib/start-failur
 import { appendDraft, createDraftKey, dropDraft } from "@/lib/draft";
 import { dropPictures } from "@/lib/picture-box";
 import { usePhone } from "@/lib/media";
+import { cardChat } from "@/lib/chat-open";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import { Button } from "./button";
@@ -248,9 +249,12 @@ export function CreateTask({
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
   // (on the board; harmless on a card page).
+  // Plan tasks keeps the discussion up and lands on the cards itself (#1213), so its run
+  // never opens the panel.
+  const quiet = useRef(new Set<string>());
   const onFinish = useCallback(
     (session: SessionView) => {
-      sessionsPanel.open(session.sessionId);
+      if (!quiet.current.has(session.sessionId)) sessionsPanel.open(session.sessionId);
       router.refresh();
     },
     [router],
@@ -285,6 +289,13 @@ export function CreateTask({
       createSheet.starting(key, null);
       // A run needs an id to be watched and tailed, so a yes with none is a start that did not
       // happen — said as one rather than leaving the window on "Starting…".
+      if (res.ok && res.sessionId && answer === "plan") {
+        // The discussion stays up, shut, while its cards are written (#1213).
+        if (held.current !== on) forget(on);
+        quiet.current.add(res.sessionId);
+        watch(res.sessionId, "Plan tasks");
+        return;
+      }
       if (res.ok && res.sessionId) {
         // The run is going, which is where the board archives the discussion it was handed
         // (#551) — so the screen lets go of it too (#610). Unless the reader has picked up
@@ -293,7 +304,7 @@ export function CreateTask({
         else forget(on);
         // The server started it, so it is `watch` and not `start` that takes it on — otherwise
         // the card it writes would not reach the board until something else re-read it.
-        watch(res.sessionId, answer === "build" ? "Start now" : "Plan tasks");
+        watch(res.sessionId, "Start now");
         sessionsPanel.open(res.sessionId);
         return;
       }
@@ -306,6 +317,16 @@ export function CreateTask({
       else setError(failureText(why));
     },
     [release, discussion, watch, freshen, phone, plan, setError],
+  );
+
+  // One card written (#1213): the discussion is over, and its card's chat carries it on.
+  const becameCard = useCallback(
+    (cardId: number) => {
+      freshen();
+      cardChat.open(cardId);
+      router.push(`/${cardId}`);
+    },
+    [freshen, router],
   );
 
   // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
@@ -350,6 +371,7 @@ export function CreateTask({
           failure={failure}
           onPlan={(workflow) => void startFromPlan("plan", workflow)}
           onBuildPlan={(workflow) => void startFromPlan("build", workflow)}
+          onBecame={becameCard}
         />
       )}
     </div>

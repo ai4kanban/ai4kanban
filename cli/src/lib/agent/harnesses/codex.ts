@@ -264,6 +264,10 @@ export const CODEX: Harness = {
     return [...codexExtraArgs(argv, cwd), 'resume', resumeId]
   },
 
+  forkArgs(argv, resumeId, _sessionId, cwd) {
+    return [...codexExtraArgs(argv, cwd), 'fork', resumeId]
+  },
+
   // What Codex takes, in the order Claude Code's dialog draws the same four: who pays for
   // the run and where it goes, that endpoint's address, the key, a model, and how hard that
   // model thinks. Everything but the key reaches Codex through its own `-c key=value`

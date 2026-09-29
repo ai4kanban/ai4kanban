@@ -153,6 +153,7 @@ const zh: MessagesCopy = {
     skillNotInstalled: () => "未能安装 kanban skill。",
     chatForeign: (a) => `${a.agent} 无法继续由 ${a.previous} 开始的对话，请清空后重新开始。`,
     chatNoSession: () => "这段讨论没有可继续的会话，请继续讨论后再试。",
+    chatClosed: () => "这段讨论已写成卡片，请到卡片里接着聊。",
     planNotFound: (a) => `${a.path} 不是本看板的方案。`,
   },
   theBuild: "本次构建",

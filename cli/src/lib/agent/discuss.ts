@@ -9,8 +9,8 @@
 import path from 'node:path'
 import fs from 'node:fs'
 
-import { listRuns, peekRun } from './sessions'
-import { openPlans, readChat, returnChatPlan, clearChatPlan, setChatArchived, setChatPlanRun } from './chat'
+import { listRuns, peekRun, titleOf } from './sessions'
+import { becameCards, openPlans, readChat, returnChatPlan, clearChatPlan, setChatArchived, setChatPlanRun } from './chat'
 import { locate, locateArchived } from '../cards'
 import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
 import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
@@ -29,7 +29,7 @@ export type RunLook = (sessionId: string) => { live: boolean; cards: number[] } 
  * screen can offer them again.
  */
 export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRead> {
-  if (!openPlans(readChat(target)).length) return NOTHING
+  if (!openPlans(readChat(target)).length) return became(target)
   const runs = await listRuns()
   settlePlans(target, (id) => {
     const run = runs.find((r) => r.sessionId === id)
@@ -37,7 +37,7 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
   })
   const open = openPlans(readChat(target))
   const plans = open.map(shown).filter((p): p is DiscussPlan => p !== null)
-  if (!plans.length) return NOTHING
+  if (!plans.length) return became(target)
   const running = (p: ChatPlan) => runs.find((r) => r.sessionId === p.run)?.status === 'running'
   const handed = open.find(running) ?? open.find((p) => p.run)
   return {
@@ -45,6 +45,12 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
     plans,
     run: handed?.run ? { sessionId: handed.run, running: running(handed), answer: handed.answer ?? 'plan' } : null,
   }
+}
+
+// A discussion with no plan open: the cards it became, if it became any (#1213).
+function became(target: ChatTarget): DiscussRead {
+  const cards = becameCards(readChat(target))
+  return cards.length ? { ...NOTHING, became: cards.map((id) => ({ id, title: titleOf(id) ?? '' })) } : NOTHING
 }
 
 // One plan as the screen draws it — spelled from the project root, the way a card's
@@ -112,7 +118,7 @@ export function settlePlans(target: ChatTarget, look: RunLook): void {
       }
       const moved = archivePlan(plan.path)
       if (moved && moved !== plan.path) for (const id of naming) repointSource(id, plan.path, moved)
-      clearChatPlan(target, plan.path)
+      clearChatPlan(target, plan.path, naming)
     }
   }
 }

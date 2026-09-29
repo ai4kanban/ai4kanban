@@ -37,7 +37,7 @@ import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './l
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
 import { openPlan } from './resolve'
-import { chatOfKey, chatRunEnded } from './chat'
+import { chatOfKey, chatRunEnded, handOffToCards } from './chat'
 import { shareOnEnd } from './share'
 import { humanSectionFor } from './runner'
 import { planRetry, retryLine } from './retry'
@@ -675,6 +675,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       const left = record.chat ? peekRun(sessionId) : undefined
       if (record.chat && left) {
         chatRunEnded(record.chat, left.resumeId)
+        handOffToCards(record.chat, left.createdCardIds ?? [])
         const target = chatOfKey(record.chat)
         if (target !== undefined) await shareOnEnd(target).catch(() => {})
       }

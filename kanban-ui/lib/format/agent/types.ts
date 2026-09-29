@@ -403,6 +403,7 @@ export type RunRefusalKind =
   | 'skillNotInstalled'
   | 'chatForeign'
   | 'chatNoSession'
+  | 'chatClosed'
   | 'planNotFound'
 
 /** The values a refusal's sentence names — ids, names, paths, commands — for a screen that
@@ -1045,9 +1046,23 @@ export interface Chat {
    *  which card the submission is about. A card's own conversation carries none: it is that
    *  card's. */
   linkedCard?: number
+  /** On a card's conversation: the discussion this card was written from (#1213). */
+  from?: ChatHandoff
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
+}
+
+/** Where a card's conversation picks a discussion up (#1213), written when the Plan tasks run
+ *  that wrote the card ends. */
+export interface ChatHandoff {
+  discussion: DiscussionTarget
+  /** The discussion's session as that run left it — what the first message forks. */
+  resumeId: string
+  harness: string
+  runtime?: string
+  /** How many of the discussion's messages came before the handoff. */
+  messages: number
 }
 
 /** The plan one conversation is writing (#427). */
@@ -1067,6 +1082,8 @@ export interface ChatPlan {
   title?: string
   /** The workflow the discussion agent judged the plan fits (#847). */
   workflow?: string
+  /** The cards its run wrote from it (#1213). */
+  cards?: number[]
 }
 
 /** What the handoff was answered with: Start planning, which writes the cards, or Build
@@ -1198,6 +1215,9 @@ export interface ChatView {
   blockedRefusal?: RunRefusal
   /** What this conversation runs on, and what it could run on instead (#272). */
   pick: ChatPick
+  /** On a card's conversation: the discussion it continues, up to the handoff (#1213). Absent
+   *  once that discussion is gone. */
+  discussion?: ChatMessage[]
 }
 
 /** One plan as the Discuss screen draws it: its path from the project root, its text, how
@@ -1226,6 +1246,8 @@ export interface DiscussRead {
    *  be started again. `answer` is which answer started it, so the line under the plan names
    *  a build rather than a planning pass (#481). Null when none has been started. */
   run: { sessionId: string; running: boolean; answer: PlanAnswer } | null
+  /** The cards this discussion became (#1213). The discussion is closed once it has any. */
+  became?: { id: number; title: string }[]
 }
 
 /** What sending one message came back with. */

@@ -41,6 +41,7 @@ import {
   harnessImages,
   harnessLabel,
   openPlan,
+  planFork,
   planResume,
   planRun,
   runtimeModel,
@@ -60,6 +61,7 @@ import { recordReplyUsage } from './usage'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
 import type {
   Chat,
+  ChatHandoff,
   ChatMessage,
   ChatPick,
   ChatPlan,
@@ -150,9 +152,23 @@ export function readChat(cardId: ChatTarget): Chat | null {
     archivedBy: raw.archived === true && raw.archivedBy === 'board' ? 'board' : undefined,
     shareOnEnd: raw.shareOnEnd === true,
     linkedCard: Number.isInteger(raw.linkedCard) && (raw.linkedCard as number) > 0 ? raw.linkedCard : undefined,
+    from: typeof cardId === 'number' ? handoffOf(raw.from) : undefined,
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
+  }
+}
+
+function handoffOf(value: unknown): ChatHandoff | undefined {
+  const h = value as Partial<ChatHandoff> | undefined
+  if (!h || typeof h.discussion !== 'string' || !isDiscussion(h.discussion)) return undefined
+  if (typeof h.resumeId !== 'string' || !h.resumeId || typeof h.harness !== 'string' || !h.harness) return undefined
+  return {
+    discussion: h.discussion,
+    resumeId: h.resumeId,
+    harness: h.harness,
+    runtime: typeof h.runtime === 'string' && h.runtime ? h.runtime : undefined,
+    messages: Number.isInteger(h.messages) && (h.messages as number) > 0 ? (h.messages as number) : 0,
   }
 }
 
@@ -187,6 +203,7 @@ function planOf(value: unknown): ChatPlan | undefined {
     done: p.done === true ? true : undefined,
     title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,
     workflow: typeof p.workflow === 'string' && p.workflow ? p.workflow : undefined,
+    cards: Array.isArray(p.cards) && p.cards.length ? p.cards.filter((id) => Number.isInteger(id) && id > 0) : undefined,
   }
 }
 
@@ -391,15 +408,20 @@ export function returnChatPlan(cardId: ChatTarget, planPath: string): void {
 
 /** Let one plan go — its cards are written, or it was withdrawn. It stays on the list: the
  *  discussion wrote it, and that does not stop being true. With no path, the live one. */
-export function clearChatPlan(cardId: ChatTarget, planPath?: string): boolean {
+export function clearChatPlan(cardId: ChatTarget, planPath?: string, cards?: number[]): boolean {
   const chat = readChat(cardId)
   const gone = planPath ?? chatPlan(chat)?.path
   if (!gone || !openPlans(chat).some((p) => p.path === gone)) return false
   writePlans(
     cardId,
-    (chat?.plans ?? []).map((p) => (p.path === gone ? { ...p, done: true } : p)),
+    (chat?.plans ?? []).map((p) => (p.path === gone ? { ...p, done: true, cards: cards?.length ? cards : undefined } : p)),
   )
   return true
+}
+
+/** The cards a discussion became (#1213), oldest first. Once it has any it is closed. */
+export function becameCards(chat: Chat | null): number[] {
+  return [...new Set((chat?.plans ?? []).flatMap((p) => p.cards ?? []))]
 }
 
 /** A resume replaced run `from` with `to`: every plan handed to `from` now names `to`, or a
@@ -534,7 +556,11 @@ export function noteChatMessage(cardId: ChatTarget, text: string): void {
 // one that picked its own goes on running that, and one already spoken to goes on running the
 // CLI that opened it. So the only conversation turned away is one whose CLI this board has no
 // runtime for at all — there is nothing left that could pick its session up.
-function blockedBy(cardId: ChatTarget, chat: Chat | null): RunRefusal | undefined {
+function blockedBy(cardId: ChatTarget, chat: Chat | null, fromBoard = false): RunRefusal | undefined {
+  // The board's own turn (the submission an end makes) still lands in a closed discussion.
+  if (!fromBoard && isDiscussion(cardId) && becameCards(chat).length) {
+    return refusal('chatClosed', 'this discussion became cards. Carry on in one of them.')
+  }
   const agent = chatAgent(runtimeOf(chat))
   if (!agent.canChat) {
     const agents = agent.able.join(', ')
@@ -597,6 +623,7 @@ export function readChatView(cardId: ChatTarget): ChatView {
     answering: answeringOn(cardId),
     ...blockedView(blockedBy(cardId, chat)),
     pick: pickOf(chat),
+    discussion: chat?.from ? handedMessages(chat.from) : undefined,
   }
 }
 
@@ -625,10 +652,17 @@ function runtimeOf(chat: Chat | null): string {
   // A pick still spawning the CLI the transcript belongs to is the whole answer. One that no
   // longer does was re-pointed in Configuration, and the transcript outranks it.
   if (chat.runtime && chatAgent(chat.runtime).name === chat.harness) return chat.runtime
-  // Nothing said yet, so the transcript belongs to nobody and there is nothing to hold to.
-  if (!chat.messages.length) return chat.runtime ?? board.runtime
+  // Nothing said yet, so the transcript belongs to nobody — a card's goes on the discussion's
+  // agent where it can (#1213).
+  if (!chat.messages.length) return chat.runtime ?? handedRuntime(chat.from) ?? board.runtime
   if (chat.harness === board.name) return board.runtime
   return readRuntimes().find((r) => r.harness === chat.harness)?.id ?? board.runtime
+}
+
+function handedRuntime(from: ChatHandoff | undefined): string | undefined {
+  if (!from) return undefined
+  const runtime = from.runtime ?? readRuntimes().find((r) => r.harness === from.harness)?.id
+  return runtime && chatAgent(runtime).name === from.harness ? runtime : undefined
 }
 
 function pickOf(chat: Chat | null): ChatPick {
@@ -684,7 +718,8 @@ export function pickChatRuntime(
   if (answeringOn(cardId)) return chatBusy()
 
   const chat = readChat(cardId)
-  const own = runtime === null ? undefined : want
+  // A card that came from a discussion otherwise goes back to that discussion's agent (#1213).
+  const own = runtime === null && !chat?.from ? undefined : want
   const before = runtimeOf(chat)
   // Nothing to throw away where the CLI does not actually change — another runtime on the
   // same harness carries the session on, and only what it runs as moves.
@@ -703,11 +738,11 @@ export function pickChatRuntime(
   }
   const had = Boolean(chat?.messages.length)
   clearChat(cardId)
-  // Nothing of the old conversation carries over: an id is one CLI's vocabulary, and it would
-  // mean nothing to the one being switched to.
+  // Nothing of the old session carries over: an id is one CLI's vocabulary, and it would mean
+  // nothing to the one being switched to. The discussion a card came from does (#1213).
   if (own) {
     const now = Date.now()
-    writeChat({ cardId, harness: chatAgent(want).name, runtime: own, messages: [], startedAt: now, updatedAt: now })
+    writeChat({ cardId, harness: chatAgent(want).name, runtime: own, from: chat?.from, messages: [], startedAt: now, updatedAt: now })
   }
   // `cleared` is what there was to lose; `restarted` is that the conversation was thrown
   // away at all. They differ on one that had never been spoken to and yet held a pasted
@@ -861,6 +896,59 @@ export function chatRunEnded(key: string, resumeId: string | undefined): void {
   writeChat(chat)
 }
 
+// ---- a card picking its discussion up (#1213) -------------------------------
+
+/** Heads the discussion transcript that opens a card chat which could not fork. */
+const DISCUSSION_HEADING = `The discussion this card was written from, up to the handoff:`
+
+/** Point each card a Plan tasks run wrote at the discussion it was said into. A card whose own
+ *  chat has already started keeps it. */
+export function handOffToCards(key: string, cards: number[]): void {
+  const target = chatOfKey(key)
+  if (!target || !isDiscussion(target) || !cards.length) return
+  const discussion = readChat(target)
+  if (!discussion?.resumeId) return
+  const from: ChatHandoff = {
+    discussion: target,
+    resumeId: discussion.resumeId,
+    harness: discussion.harness,
+    runtime: runtimeOf(discussion),
+    messages: discussion.messages.length,
+  }
+  for (const id of cards) {
+    const had = readChat(id)
+    if (had?.messages.length || answeringOn(id)) continue
+    const now = Date.now()
+    writeChat({ ...(had ?? { cardId: id, harness: from.harness, messages: [], startedAt: now }), from, updatedAt: now })
+  }
+}
+
+/** The discussion as it stood at the handoff, or nothing once it is gone. */
+function handedMessages(from: ChatHandoff): ChatMessage[] | undefined {
+  const said = readChat(from.discussion)
+    ?.messages.slice(0, from.messages)
+    .filter((m) => !m.fromBoard && m.text.trim())
+  return said?.length ? said : undefined
+}
+
+// The discussion in words, for a session that cannot fork it: what was said, without the CLI's
+// notes and tool calls.
+function handedTranscript(from: ChatHandoff): string {
+  const said = handedMessages(from)
+  if (!said) return ''
+  const lines = said
+    .map((m) => {
+      const text = m.text
+        .split('\n')
+        .filter((line) => !line.startsWith(NOTE) && !line.startsWith(LOOKED))
+        .join('\n')
+        .trim()
+      return text && `${m.role === 'you' ? 'Me' : 'You'}: ${text}`
+    })
+    .filter(Boolean)
+  return lines.length ? [DISCUSSION_HEADING, ...lines].join('\n\n') : ''
+}
+
 // ---- sending one message ---------------------------------------------------
 
 export interface SendOptions {
@@ -930,6 +1018,10 @@ export function chatPrompt(
     role?: string
     /** What the complaint is about, when it is one. */
     feedback?: { cardId: number; share: boolean }
+    /** A card's chat that continues the discussion it was written from (#1213), and that
+     *  discussion in words where the session could not fork it. */
+    continues?: boolean
+    transcript?: string
   } = {},
 ): string {
   const language = languageNote()
@@ -950,10 +1042,13 @@ export function chatPrompt(
       : cardId === null || isDiscussion(cardId)
         ? `This is a chat about this project's board.`
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
+          (opts.continues
+            ? `It continues the discussion this card was written from; where the two differ, the card as it is now wins. `
+            : '') +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
   return skillPrompt(
-    [subject, flow, language, rule, shots, complaint, message].filter(Boolean).join('\n\n'),
+    [subject, opts.transcript, flow, language, rule, shots, complaint, message].filter(Boolean).join('\n\n'),
     opts.harness,
   )
 }
@@ -1027,7 +1122,7 @@ export async function sendChatMessage(
 ): Promise<ChatReply | RunRefusal> {
   const text = message.trim()
   const chat = readChat(cardId)
-  const blocked = blockedBy(cardId, chat)
+  const blocked = blockedBy(cardId, chat, options.fromBoard)
   if (blocked) return blocked
   // The pictures this turn really has (#441): the ones still on this machine, in the order
   // they went into the box. A resend sends the same files again rather than saving a second
@@ -1099,10 +1194,16 @@ export async function sendChatMessage(
     // The one runtime this turn runs as, which carries the whole of what it spawns: the
     // conversation's own pick, the CLI that opened it, or the discussion helper's.
     const own = { pin }
+    // A card's first message picks up the discussion it came from (#1213): a fork of that
+    // session where its CLI can, else a fresh one opened with the discussion in words.
+    const from = held.resumeId ? undefined : held.from
+    const fork = from && agent.name === from.harness ? planFork(from.harness, from.resumeId, REPO_ROOT, CHAT_AGENT, own) : null
     // A fresh session, or one more turn into the session the last message left open.
-    const plan = held.resumeId
-      ? planResume(held.harness, held.resumeId, REPO_ROOT, CHAT_AGENT, own)
-      : planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own)
+    const plan =
+      fork ??
+      (held.resumeId
+        ? planResume(held.harness, held.resumeId, REPO_ROOT, CHAT_AGENT, own)
+        : planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own))
     if (!plan) {
       const previous = harnessLabel(held.harness)
       return refusal('chatForeign', `${agent.label} can't carry on a ${previous} conversation. Clear it to start fresh.`, {
@@ -1130,7 +1231,12 @@ export async function sendChatMessage(
       feedback: complaint,
       pictures: takes?.as === 'message' ? files : [],
     }
-    const prompt = chatPrompt(cardId, text, { ...say, resuming: Boolean(held.resumeId) })
+    // A fresh session with no discussion left to open it with continues nothing.
+    const opening = (words: boolean) => {
+      const transcript = from && words ? handedTranscript(from) : ''
+      return from && (!words || transcript) ? { continues: true, transcript: transcript || undefined } : {}
+    }
+    const prompt = chatPrompt(cardId, text, { ...say, ...opening(!fork), resuming: Boolean(held.resumeId) })
     // And what to say if that session turns out to be gone (#395): the opening prompt, which
     // carries the skill and what this conversation is about. Without it the thread keeps a
     // dead id and fails every message after it until someone clears it.
@@ -1142,20 +1248,40 @@ export async function sendChatMessage(
     void refreshCatalog()
 
     const asked = Date.now()
-    const spoken = await speak({
-      plan,
-      prompt,
-      restart,
-      continuing: held.resumeId,
-      pictures: files,
-      // The discussion this turn is answering (#496), so `akb raw plan new` called from
-      // inside it lands on this discussion rather than on the board's one conversation.
-      discussion: isDiscussion(cardId) ? cardId : undefined,
-      // And the submission it is collecting for, on the one turn that collects (#679).
-      caseKey: complaint?.share ? keyOf(cardId) : undefined,
-      onText: options.onText ?? (() => {}),
-      onOpen: options.onOpen,
-    })
+    const onText = options.onText ?? (() => {})
+    const turn = (as: RunPlan, words: string, write: (chunk: string) => void) =>
+      speak({
+        plan: as,
+        prompt: words,
+        restart,
+        continuing: held.resumeId,
+        pictures: files,
+        // The discussion this turn is answering (#496), so `akb raw plan new` called from
+        // inside it lands on this discussion rather than on the board's one conversation.
+        discussion: isDiscussion(cardId) ? cardId : undefined,
+        // And the submission it is collecting for, on the one turn that collects (#679).
+        caseKey: complaint?.share ? keyOf(cardId) : undefined,
+        onText: write,
+        onOpen: options.onOpen,
+      })
+    let spoken: Spoken
+    if (fork) {
+      // The CLI's own complaint about a session it could not fork is held back until the
+      // agent says something, so a fork that fails falls back without a word on screen.
+      let quiet: string[] | null = []
+      spoken = await turn(fork, prompt, (chunk) => {
+        if (quiet && !hasWords(chunk)) return void quiet.push(chunk)
+        quiet?.forEach(onText)
+        quiet = null
+        onText(chunk)
+      })
+      if (!spoken.ok && !spoken.stopped && !hasWords(spoken.text)) {
+        const fresh = planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own)
+        spoken = await turn(fresh, chatPrompt(cardId, text, { ...say, ...opening(true) }), onText)
+      }
+    } else {
+      spoken = await turn(plan, prompt, onText)
+    }
 
     // The reply as the user saw it: the agent's words, its thinking and the tool calls it
     // made, in the order they went past. The closing message stands in only for an agent
@@ -1246,6 +1372,8 @@ interface Spoken {
    *  That id names a session the agent really holds, so the thread keeps it even after a
    *  turn that then said nothing — the alternative is holding the dead id one turn longer. */
   reseeded?: boolean
+  /** The user ended it. */
+  stopped?: boolean
 }
 
 // How long a stopped reply is given to end on its own before the turn is declared over
@@ -1272,6 +1400,8 @@ const SILENCE_SAID = `the agent said nothing for ${SILENCE_MS / 60_000} minutes,
 /** The mark in front of a line the CLI itself printed, which the chat rail folds away
  *  (kanban-ui/components/Chat.tsx). */
 const NOTE = '⚠ '
+/** And the mark in front of a tool call. */
+const LOOKED = '⏺ '
 
 // The CLI's own lines, marked as the CLI's. Unmarked, the rail reads a line as the agent's
 // words: a stray MCP trace or a startup notice opened the reply as prose. Marked, it folds
@@ -1280,6 +1410,9 @@ const NOTE = '⚠ '
 // Its own mark rather than the tool-call one, because a note is not a step: it must not
 // count as the last thing the agent did, or a trace printed on the way out would push the
 // answer itself into the fold.
+// Whether any of this is the agent's own words rather than the CLI's notes.
+const hasWords = (text: string): boolean => text.split('\n').some((line) => line.trim() && !line.startsWith(NOTE))
+
 function noted(text: string): string {
   return text
     .split('\n')
@@ -1418,6 +1551,7 @@ async function speak(io: {
         context,
         resumeId,
         reseeded,
+        stopped,
       })
     }
 

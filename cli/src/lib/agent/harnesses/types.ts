@@ -98,6 +98,10 @@ export interface Harness
    *  appended, because pinning a new session id and resuming an old one are
    *  contradictory instructions. Only called when `resumes`. */
   resumeArgs(argv: string[], resumeId: string, cwd: string): string[]
+  /** The flags that open a new session copied from the one `resumeId` names (#1213), so a
+   *  card's chat starts with everything the discussion it came from knew. `sessionId` is the
+   *  new session's id, for a harness that `adoptsSessionId`. Left out by a CLI that can't. */
+  forkArgs?(argv: string[], resumeId: string, sessionId: string, cwd: string): string[]
   /** The settings this harness takes, in the order a dialog draws them. This list is the
    *  whole of its configuration: a run appends the ones that carry a flag, and the file
    *  keeps them in this harness's own block under `harnessSettings`. */

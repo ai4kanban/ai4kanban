@@ -51,6 +51,10 @@ export const OPENCODE: Harness = {
     return [...opencodeExtraArgs(argv, cwd), '--session', resumeId]
   },
 
+  forkArgs(argv, resumeId, _sessionId, cwd) {
+    return [...opencodeExtraArgs(argv, cwd), '--session', resumeId, '--fork']
+  },
+
   // What OpenCode takes. A model — `provider/model`, because OpenCode reaches every
   // provider and the name alone wouldn't say which — and the level the model thinks at.
   //

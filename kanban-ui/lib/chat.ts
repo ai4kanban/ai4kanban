@@ -1,7 +1,7 @@
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
 import { machineCopy, said } from "./language";
-import { type Chat, type ChatPick, type ChatTarget } from "./types";
+import { type Chat, type ChatMessage, type ChatPick, type ChatTarget } from "./types";
 
 // --- the conversation, through the CLI (#242) --------------------------------
 // The chat itself is the command's (cli/src/lib/agent/chat.ts): the transcript file, the
@@ -67,6 +67,8 @@ export interface ChatRead {
   /** What this conversation runs on and what it could run on instead (#272). Null on rules
    *  too old to answer, and the rail then draws no picker. */
   pick: ChatPick | null;
+  /** On a card's conversation: the discussion it continues, up to the handoff (#1213). */
+  discussion?: ChatMessage[];
 }
 
 /** The chat a window is showing: the board's, one card's, the first run's (#280) or one
@@ -174,6 +176,7 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     failed: failed.get(keyOf(cardId)),
     // Absent on rules older than the pick — the rail then draws the box it always drew.
     pick: view.pick ?? null,
+    discussion: view.discussion,
   };
 }
 

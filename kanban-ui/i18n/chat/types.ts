@@ -42,6 +42,9 @@ export type ChatCopy = {
   copyReply: string;
   copyCode: string;
   copyChat: string;
+  /** The discussion a card's chat continues (#1213), folded above it. */
+  fromDiscussion: (count: number) => string;
+  became: string;
   again: string;
   againHint: string;
   reword: string;

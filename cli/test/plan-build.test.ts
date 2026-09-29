@@ -154,7 +154,7 @@ describe('what the plan panel does with the run it started', () => {
 
   it('lets the plan go once the run has written a card, however that run then ended', async () => {
     hold({ status: 'error', ok: false, endedAt: Date.now(), createdCardIds: [9] })
-    assert.deepEqual(await readDiscuss(), { plan: null, plans: [], run: null })
+    assert.deepEqual(await readDiscuss(), { plan: null, plans: [], run: null, became: [{ id: 9, title: '' }] })
   })
 
   it('holds the plan while that run is still working, card or no card', async () => {

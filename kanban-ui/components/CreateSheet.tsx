@@ -4,6 +4,7 @@
 // picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { useBodySlot } from "@/lib/body-slot";
@@ -67,6 +68,8 @@ interface Props {
   /** Why the last start on THIS discussion never came up (#706) — said under the answers, in
    *  the app's own language, with the paths the board named under it. */
   failure: StartFailure | null;
+  /** The discussion became one card (#1213): the screen hands the reader to its page. */
+  onBecame(cardId: number): void;
 }
 
 // Discuss is one DISCUSSION's conversation (#427, #496), never the window's rail: the rail
@@ -105,6 +108,7 @@ function Sheet({
   onSent,
   onPlan,
   onBuildPlan,
+  onBecame,
   starting,
   failure,
   rail,
@@ -174,6 +178,18 @@ function Sheet({
   // Discuss. The box stays down then, with the rail's own reason above it.
   const settled = !!read && !!plan.read;
   const discussing = settled && plan.supported && read?.canChat !== false;
+  // Plan tasks is writing the cards, or has written them (#1213): nothing more goes in.
+  const writing = plan.read?.run?.running === true && plan.read.run.answer === "plan";
+  const became = plan.read?.became ?? [];
+  const only = became.length === 1 ? became[0].id : null;
+  useEffect(() => {
+    if (only !== null) onBecame(only);
+  }, [only, onBecame]);
+  // A run just started: read its state now rather than on the next tick.
+  const refresh = plan.refresh;
+  useEffect(() => {
+    if (starting === null) refresh();
+  }, [starting, refresh]);
 
   if (!mounted) return null;
 
@@ -250,7 +266,9 @@ function Sheet({
       discussing={discussing}
       // A plan answer starting counts as a send in flight (#706): the run archives this
       // discussion the moment it is up, so a message typed behind it has nowhere to land.
-      sending={sending || starting !== null}
+      sending={sending || starting !== null || writing || became.length > 0}
+      closed={became.length > 0}
+      shut={writing || became.length > 0}
       rail={rail}
       pictures={pictures}
       text={text}
@@ -352,7 +370,7 @@ function Sheet({
             {/* Too narrow to stand beside: the plan and its answers are pinned between the
                 conversation and the box, both at their own fixed height, so the transcript
                 keeps every pixel left over and still scrolls to the last reply. */}
-            {!plan.beside && plan.open && (
+            {!plan.beside && (plan.open || became.length > 1) && (
               <div className={`flex shrink-0 justify-center pt-3 ${GUTTER}`}>
                 <div className={COLUMN}>
                   {collapsed && <PlanRow plan={plan} />}
@@ -449,7 +467,13 @@ function Composer({
   talking,
   onSend,
   partner,
+  closed,
+  shut,
 }: {
+  /** The discussion became cards (#1213); the box says so. */
+  closed: boolean;
+  /** Plan tasks is writing the cards or has written them: the box takes nothing. */
+  shut: boolean;
   /** The conversation can answer — both reads are in and this board can hold one. */
   discussing: boolean;
   /** A message, or a plan answer's run, is on its way; the corner button stays down. */
@@ -507,8 +531,9 @@ function Composer({
             : undefined
         }
         head={<Pasted box={pictures} />}
-        placeholder={talking ? c.answer : c.placeholder}
-        label={talking ? c.answer : c.placeholder}
+        disabled={shut}
+        placeholder={closed ? c.plan.closed : talking ? c.answer : c.placeholder}
+        label={closed ? c.plan.closed : talking ? c.answer : c.placeholder}
         sendLabel={c.send}
         stop={ours ? { label: chat.stop, onStop: () => void rail.stop() } : undefined}
         // Who answers, hard against Send (components/Chat.tsx).
@@ -589,6 +614,20 @@ function Handoff({
   const read = plan.read;
   const count = plan.plans.length;
   const many = count > 1;
+  // Several cards (#1213): one line each. A single one has already taken the reader to its page.
+  if (read?.became && read.became.length > 1) {
+    return (
+      <div className="flex flex-col">
+        {read.became.map((card) => (
+          <Link key={card.id} href={`/${card.id}`} className="flex min-w-0 items-center gap-1.5 px-2.5 pt-2 text-[12.5px] hover:underline">
+            <span className="shrink-0 text-nb-ink-soft">{c.became}</span>
+            <span className="shrink-0 font-[700]" style={{ color: "var(--color-nb-accent-deep)" }}>#{card.id}</span>
+            <span className="truncate font-[600]" style={{ color: "var(--color-nb-accent-deep)" }}>{card.title}</span>
+          </Link>
+        ))}
+      </div>
+    );
+  }
   if (!read || !count) return null;
   if (read.run?.running) {
     return (

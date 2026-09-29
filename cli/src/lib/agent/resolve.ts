@@ -6,6 +6,7 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 
 import { machineName } from '../machine/identity'
@@ -544,6 +545,32 @@ export function planResume(
     // The resumed turn runs under the id it resumed, so this run can be resumed again by
     // the same id — a failure two turns deep is still recoverable.
     resumeId,
+    install: harness.install,
+    cwd,
+  }
+}
+
+/** A new session copied from `resumeId` (#1213), on the harness that holds it. Null when that
+ *  harness can't fork, or isn't the one `own` would run. */
+export function planFork(
+  harnessName: string,
+  resumeId: string,
+  cwd = REPO_ROOT,
+  agent?: string,
+  own: Omit<HarnessAsk, 'agent' | 'harness'> = {},
+): RunPlan | null {
+  if (!harnessByName(harnessName)) return null
+  const resolved = resolveHarness({ agent, ...own, harness: harnessName })
+  const { harness, command, runtime } = resolved
+  if (!harness.forkArgs || harness.name !== harnessName) return null
+  const argv = splitCommand(command)
+  const sessionId = randomUUID()
+  return {
+    harness: harness.name,
+    runtime: runtime.id,
+    ...(agent ? { agent } : {}),
+    argv: [...argv, ...settingArgs(resolved), ...harness.forkArgs(argv, resumeId, sessionId, cwd)],
+    resumeId: harness.adoptsSessionId ? sessionId : null,
     install: harness.install,
     cwd,
   }
