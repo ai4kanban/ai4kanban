@@ -26,7 +26,7 @@ import {
   leftoverPrune,
   memoryPrune,
   memoryReview,
-  memoryReviewerOn,
+  scheduleClock,
   stampLeftoverPrune,
 } from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
@@ -84,16 +84,14 @@ function dueRecurring(cards: Card[], runs: RunView[], busy: Set<number>): Card[]
     .sort(byDispatchOrder)
 }
 
-// Whether the memory pruner is due right now (#514). The same three rules the recurring
-// cards above run on, read out of the board's settings instead of a card's frontmatter:
-// the schedule has to be explicitly ON with a cadence the board can parse, that cadence
-// has to have elapsed since the last pass that PASSED, and a run started for this very
-// window means the last attempt failed — starting it again is then a person's call, not a
-// loop the tick reopens every minute.
+// Whether the memory pruner is due right now (#514). The recurring cards' rules, read out of
+// the board's settings: the cadence has elapsed since the last pass that PASSED — or since
+// the scheduler first looked (#1208) — and a run started for this very window means the last
+// attempt failed, so starting it again is a person's call, not a loop every tick reopens.
 function pruneDue(runs: RunView[]): boolean {
-  const prune = memoryPrune()
-  if (!prune.enabled) return false
-  const due = nextDue(prune.lastRun, prune.cadence)
+  const from = scheduleClock('memoryPrune')
+  if (!from) return false
+  const due = nextDue(from, memoryPrune().cadence)
   if (!due || due.getTime() > Date.now()) return false
   const passes = runs.filter((r) => r.action === 'prune-memory')
   if (passes.some((r) => r.status === 'running')) return false
@@ -103,11 +101,9 @@ function pruneDue(runs: RunView[]): boolean {
 // How long the memory review waits between passes (#748) — one day, and nothing to set.
 const REVIEW_INTERVAL = 24 * 60 * 60_000
 
-// Whether the daily memory review is due right now (#748). Four questions, and the last one
+// Whether the daily memory review is due right now (#748). Three questions, and the last one
 // is the cheap one it usually stops on:
 //
-//   • the agent is on. It ships on, unlike the four that spend a run you never asked for —
-//     switching it off is what stops a conversation reaching memory at all.
 //   • nothing of its own is going. One review at a time, like a prune.
 //   • a day has passed. Counted from the later of the newest review run's START and the
 //     stamp of the last one that PASSED — the run record is what holds a FAILED review off
@@ -118,7 +114,6 @@ const REVIEW_INTERVAL = 24 * 60 * 60_000
 //     through are still in it tomorrow. And this is the only question asked on most ticks:
 //     it is the files' modification times, with nothing parsed and no board walked.
 function memoryReviewDue(runs: RunView[]): boolean {
-  if (!memoryReviewerOn()) return false
   const passes = runs.filter((r) => r.action === 'review-memory')
   if (passes.some((r) => r.status === 'running')) return false
   const since = parseStamp(memoryReview().lastRun)?.getTime() ?? 0
@@ -127,13 +122,12 @@ function memoryReviewDue(runs: RunView[]): boolean {
   return anyChatSince(since)
 }
 
-// Whether the dismissal review is due (#929). On, none of its own going, its cadence elapsed
+// Whether the dismissal review is due (#929). None of its own going, its cadence elapsed
 // since the later of the newest attempt's start and the last pass — so a failed review waits
 // a whole cadence rather than retrying every tick — and something to read. The window is the
 // last pass, so what a failed one missed is still in it next time.
 function dismissalReviewDue(runs: RunView[]): boolean {
   const review = dismissalReview()
-  if (!review.enabled) return false
   const passes = runs.filter((r) => r.action === 'review-dismissals')
   if (passes.some((r) => r.status === 'running')) return false
   const since = parseStamp(review.lastRun)?.getTime() ?? 0

@@ -76,7 +76,6 @@ import type {
   Language,
   CadenceSchedule,
   WorkflowStage,
-  MemoryPruneSchedule,
   MemoryReviewState,
   SpecAgentSettingView,
   SweepReport,
@@ -91,7 +90,6 @@ import { sessionsPanel } from "./sessions";
 import { ConfirmationPopover } from "./confirm-popover";
 import { useCopyText } from "./copy";
 import {
-  ACCENT_BTN,
   CAPTION,
   DANGER_BTN,
   FLAT_CONTROL,
@@ -107,18 +105,55 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { POPUP_ROW, POPUP_TRIGGER, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
+import { POPUP_ROW, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
 import { sayFailure } from "@/lib/start-failure";
 
 // The one agent whose page carries the review action (#748). Named here because there is
 // exactly one, and its page is the only place Review now belongs.
 const REVIEWER_OF_MEMORY = "memory-reviewer";
 
-// The dismissal reviewer (#929): the pruner's controls, on by default.
+// The dismissal reviewer (#929): the pruner's controls.
 const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
+
+// Configuration → Board's groups, by what starts each agent (#1208). Anything not named here
+// — the discussion, the feedback agent, an agent this project added — is one you start.
+// Literals rather than PRUNER / SWEEPER: Configuration imports this file, so its exports are
+// not initialised yet when these are.
+const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", "sweeper", REVIEWER_OF_DISMISSALS];
+const ON_AN_EVENT = ["proposer", "triage"];
+
+/** The three scheduled agents' cadences, for the column's rows. `reload` after a save. */
+function useCadences(onError?: (msg: string) => void) {
+  const [cadences, setCadences] = useState<Record<string, CadenceSchedule | null>>({});
+  const reload = useCallback(async () => {
+    const [prune, sweep, dismissals] = await Promise.all([
+      memoryPruneAction(),
+      cardSweepAction(),
+      dismissalReviewAction(),
+    ]);
+    const error = prune.error || sweep.error || dismissals.error;
+    if (error) onError?.(error);
+    setCadences({
+      [PRUNER]: prune.schedule,
+      [SWEEPER]: sweep.schedule,
+      [REVIEWER_OF_DISMISSALS]: dismissals.schedule,
+    });
+  }, [onError]);
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+  return { cadences, reload };
+}
 
 // The board's own "who is the output for" row, on every spec agent (#445).
 const OUTPUT_KEY = "output";
+
+// Which copy says a scheduled agent's cadence.
+const CADENCE_COPY: Record<string, "pruner" | "sweeper" | "dismissalReviewer" | undefined> = {
+  "memory-pruner": "pruner",
+  sweeper: "sweeper",
+  [REVIEWER_OF_DISMISSALS]: "dismissalReviewer",
+};
 
 /** The roster, and every write that touches it — read once and shared by the two panes that
  *  draw an agent (#944). Configuration → Board lists the agents the board runs itself;
@@ -374,6 +409,7 @@ export function AgentDetail({
   actions,
   extra,
   onDeleted,
+  onCadence,
   onRuntimes,
   onError,
 }: {
@@ -393,11 +429,14 @@ export function AgentDetail({
   extra?: React.ReactNode;
   /** Run after the agent is gone, for a pane holding something else that named it. */
   onDeleted?: () => void | Promise<void>;
+  /** Run after a scheduled agent's cadence is saved. */
+  onCadence?: () => void;
   onRuntimes?: () => void;
   onError?: (msg: string) => void;
 }) {
   return (
     <Page
+      onCadence={onCadence}
       agent={agent}
       rule={roster.rules[agent.name] ?? ""}
       file={roster.files[agent.name]}
@@ -456,6 +495,7 @@ export function AgentsPanel({
   const c = useCopy().configuration.agents;
   const roster = useAgentRoster(onError);
   const { agents, picked, setPicked, select, saving } = roster;
+  const { cadences, reload: reloadCadences } = useCadences(onError);
 
   // The agent a deep link named (#514) — Prune memory in the rail opens this pane on the
   // pruner's page. It selects the row rather than scrolling to it: the page sits beside the
@@ -467,33 +507,41 @@ export function AgentsPanel({
     onPicked?.();
   }, [openOn, agents, onPicked, setPicked]);
 
-  // The pane opens on the first **Always on** agent — entering this pane lands you on a page
-  // you did not ask for, which is the price of never drawing the column beside an empty
-  // half. Runs again when a delete leaves nothing selected.
-  useEffect(() => {
-    if (!agents?.length) return;
-    const here = agents.filter((a) => !a.stage);
-    if (picked && here.some((a) => a.name === picked)) return;
-    if (openOn && here.some((a) => a.name === openOn)) return;
-    setPicked(here.length ? (here.find((a) => !a.switchable) ?? here[0]!).name : "");
-  }, [agents, picked, openOn, setPicked]);
-
   // Which agents this pane is answerable for: a board agent declares no stage.
   const mine = agents?.filter((a) => !a.stage) ?? null;
   const agent = mine?.find((a) => a.name === picked);
-  // The two halves of the roster, named for how each agent starts (#742). Automatic is the
-  // closed set of roles the board may start on its own — a switch there says whether it may,
-  // not whether the agent is available. Everything else is Manual: the roles you call
-  // yourself, which is only ever by name.
-  const automatic = (mine ?? []).filter((a) => a.kind === "role" && a.switchable);
-  const manual = (mine ?? []).filter((a) => !(a.kind === "role" && a.switchable));
+  const inGroup = (names: string[]) =>
+    (mine ?? [])
+      .filter((a) => a.kind === "role" && names.includes(a.name))
+      .sort((a, b) => names.indexOf(a.name) - names.indexOf(b.name));
+  const groups = [
+    {
+      id: "you" as const,
+      rows: (mine ?? []).filter(
+        (a) => !(a.kind === "role" && [...ON_A_SCHEDULE, ...ON_AN_EVENT].includes(a.name)),
+      ),
+    },
+    { id: "schedule" as const, rows: inGroup(ON_A_SCHEDULE) },
+    { id: "event" as const, rows: inGroup(ON_AN_EVENT) },
+  ].filter((group) => group.rows.length > 0);
+
+  // The pane opens on the first row — entering this pane lands you on a page you did not
+  // ask for, which is the price of never drawing the column beside an empty half. Runs again
+  // when a delete leaves nothing selected.
+  const first = groups[0]?.rows[0]?.name ?? "";
+  useEffect(() => {
+    if (!mine) return;
+    if (picked && mine.some((a) => a.name === picked)) return;
+    if (openOn && mine.some((a) => a.name === openOn)) return;
+    setPicked(first);
+  }, [mine, first, picked, openOn, setPicked]);
 
   const row = (a: AgentView) => (
     <PickRow
       key={a.name}
       agent={a}
       held={a.name === picked}
-      confirm={c.roles[a.name as keyof typeof c.roles]?.confirm}
+      cadence={cadences[a.name]}
       busy={saving.includes(a.name)}
       onOpen={() => void select(a.name)}
       onFlip={(next) => roster.flip(a, next)}
@@ -511,29 +559,17 @@ export function AgentsPanel({
       {agents && (
         <>
           <div className="flex flex-1 items-stretch gap-6 max-sm:flex-col max-sm:gap-4">
-            {/* The whole roster in one narrow column, split the way the two halves start:
-                the agents you call yourself, then the ones the board may start on its own.
-                A row says what the agent does, what starts it and whether it is on; the page
-                beside it is where anything is actually changed. The rule down its right edge
-                is what separates the two, the way the sidebar is separated from both.
-
-                Wide enough for a name that says the JOB (#742) — longer than one that says
-                what the agent is called, and a truncated job is no name at all. */}
+            {/* The whole roster in one narrow column, grouped by what starts each agent
+                (#1208). A row says what the agent does and what starts it; the page beside it
+                is where anything is changed. Wide enough for a name that says the JOB (#742). */}
             <div className="w-[292px] shrink-0 border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
-              {manual.length > 0 && (
-                <Roster title={c.manual}>
-                  <div className="flex flex-col">{manual.map(row)}</div>
-                </Roster>
-              )}
-              {/* A board that runs no automatic role has nothing under this caption, so
-                  neither the caption nor its rule is drawn. */}
-              {automatic.length > 0 && (
-                <div className={manual.length > 0 ? "mt-4 border-t border-nb-ink/10 pt-4" : ""}>
-                  <Roster title={c.automatic}>
-                    <div className="flex flex-col">{automatic.map(row)}</div>
+              {groups.map((group, i) => (
+                <div key={group.id} className={i > 0 ? "mt-4 border-t border-nb-ink/10 pt-4" : ""}>
+                  <Roster title={c.groups[group.id]}>
+                    <div className="flex flex-col">{group.rows.map(row)}</div>
                   </Roster>
                 </div>
-              )}
+              ))}
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col">
@@ -542,6 +578,7 @@ export function AgentsPanel({
                   roster={roster}
                   agent={agent}
                   info={info}
+                  onCadence={() => void reloadCadences()}
                   onRuntimes={onRuntimes}
                   onError={onError}
                 />
@@ -578,32 +615,34 @@ function Roster({ title, children }: { title: string; children: React.ReactNode 
   );
 }
 
-// The character, the name and whether the agent is on. The state is read here and flipped
-// on the page beside it, so selecting an agent and switching it are never the same press.
-// A paused agent keeps its character, greyed, and keeps its page.
+// The character, the name, what starts it, and — on an agent this project added — whether
+// it is on. A paused agent keeps its character, greyed, and keeps its page.
 function PickRow({
   agent,
   held,
-  confirm,
+  cadence,
   busy,
   onOpen,
   onFlip,
 }: {
   agent: AgentView;
   held: boolean;
-  /** What this agent asks before its switch moves, in the reader's language. Absent on
-   *  every agent that asks nothing. */
-  confirm?: { title: string; body: string; action: string };
+  /** A scheduled agent's cadence, which is what starts it (#1208). */
+  cadence?: CadenceSchedule | null;
   busy: boolean;
   onOpen: () => void;
   onFlip: (next: boolean) => Promise<void>;
 }) {
   const c = useCopy().configuration.agents;
   const title = useAgentTitle()(agent);
-  // What starts this agent, in four or five words (#742) — the one thing a name saying the
-  // job still cannot say. Only the board's own roles carry it; an agent this project added
-  // is called by name and has nothing to add, so its row stays a single line.
-  const trigger = c.roles[agent.name as keyof typeof c.roles]?.trigger ?? "";
+  // What starts this agent, in four or five words (#742). Only the board's own roles carry
+  // it; an agent this project added is called by name, so its row stays a single line.
+  const saved = parseCadence(cadence?.cadence ?? "");
+  const cadenceCopy = CADENCE_COPY[agent.name] && c[CADENCE_COPY[agent.name]!];
+  const trigger =
+    saved && cadenceCopy
+      ? cadenceCopy.cadenceLabel(saved.n, saved.unit, saved.at)
+      : (c.roles[agent.name as keyof typeof c.roles]?.trigger ?? "");
   const off = !agent.enabled;
   return (
     // A row, not a button: the switch lives in it (#715), and a control inside a button is
@@ -648,9 +687,7 @@ function PickRow({
       {/* Read and flipped in the one place (#715). Only where there is a state at all: an
           always-on agent has nothing to switch, and a column of identical switches says
           nothing the caption above it hasn't. */}
-      {agent.switchable && (
-        <EnabledSwitch agent={agent} confirm={confirm} busy={busy} onFlip={onFlip} bare />
-      )}
+      {agent.switchable && <EnabledSwitch agent={agent} busy={busy} onFlip={onFlip} bare />}
     </div>
   );
 }
@@ -768,6 +805,7 @@ export function NewAgentRow({
 // setting in this dialog already behaves.
 function Page({
   agent,
+  onCadence,
   info,
   rule,
   file,
@@ -792,6 +830,7 @@ function Page({
   extra,
 }: {
   agent: AgentView;
+  onCadence?: () => void;
   info: AgentInfo;
   rule: string;
   file: string | undefined;
@@ -831,7 +870,7 @@ function Page({
   const anchor = useRef<HTMLSpanElement>(null);
   // The sweeper's own state (#119). One read for the whole page: its controls sit in the
   // header and its summary below the settings, and two copies would poll the board twice.
-  const sweep = useCardSweep(agent.name === SWEEPER, onError);
+  const sweep = useCardSweep(agent.name === SWEEPER, onError, onCadence);
   // The sweep report takes this pane while it is open, with the roster and the selection
   // left where they are — going back is the same agent's settings, not a fresh pick.
   const [report, setReport] = useState(false);
@@ -850,7 +889,6 @@ function Page({
         gloss: string;
         rule: string;
         when?: string;
-        confirm?: { title: string; body: string; action: string };
         note?: string;
       }
     | undefined;
@@ -905,56 +943,52 @@ function Page({
     </span>
   ) : null;
 
+  // The board's own controls — the three scheduled agents' cadence and Run now, the memory
+  // review's Run now — or, in a `scoped` pane (#944), that pane's actions. Either way on the
+  // name row, so the description below keeps the full width.
+  const controls = scoped ? (
+    actions
+  ) : agent.name === PRUNER ? (
+    <PruneControls onSaved={onCadence} onError={onError} />
+  ) : agent.name === REVIEWER_OF_DISMISSALS ? (
+    <DismissalControls onSaved={onCadence} onError={onError} />
+  ) : agent.name === SWEEPER ? (
+    <SweepControls sweep={sweep} />
+  ) : agent.name === REVIEWER_OF_MEMORY ? (
+    <ReviewControls onError={onError} />
+  ) : null;
+
   return (
     <div className="flex min-h-full flex-col gap-4">
-      {/* Narrow, the switch and the action drop under the name rather than squeezing it to
-          one word a line. */}
-      <div className="flex items-start justify-between gap-4 max-sm:flex-col max-sm:gap-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <span
-            className={`flex size-[44px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}
-          >
-            <Character name={agent.name} size={44} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-baseline gap-2">
-                <span className="shrink-0 text-[14px] font-[800] text-nb-ink">{title}</span>
-                {agent.file && !scoped && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
-              </div>
-              {scoped && (actions || removal) && (
-                <div className="flex shrink-0 items-center gap-1">
-                  {actions}
-                  {removal}
-                </div>
-              )}
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          className={`flex size-[44px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}
+        >
+          <Character name={agent.name} size={44} />
+        </span>
+        <div className="min-w-0 flex-1">
+          {/* Narrow, the controls drop under the name rather than squeezing it. */}
+          <div className="flex min-h-[24px] items-center justify-between gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span className="shrink-0 text-[14px] font-[800] text-nb-ink">{title}</span>
+              {agent.file && !scoped && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
             </div>
-            {/* A specialist's description is a paragraph at times, and a paragraph in a
-                header is read by nobody, so all but its first sentence opens. A role says when
-                it runs only in its own copy (#493, #502). */}
-            <p className="mt-0.5 max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft">
-              {role ? role.gloss : <Clipped text={sentence(agent.gloss)} />}
-            </p>
-            {role?.when && <Trigger text={role.when} />}
-            {usage}
+            {(controls || removal) && (
+              <div className="flex shrink-0 items-center gap-1.5">
+                {controls}
+                {removal}
+              </div>
+            )}
           </div>
+          {/* A specialist's description is a paragraph at times, and a paragraph in a
+              header is read by nobody, so all but its first sentence opens. A role says when
+              it runs only in its own copy (#493, #502). */}
+          <p className="mt-0.5 max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft">
+            {role ? role.gloss : <Clipped text={sentence(agent.gloss)} />}
+          </p>
+          {role?.when && <Trigger text={role.when} />}
+          {usage}
         </div>
-
-        {/* Whether the agent is on is read and flipped in ONE place — its row in the column
-            (#715). A second switch here, beside the first, is two controls for one answer.
-            What is left is the three agents whose page carries an action of its own — the
-            pruner (#514), the sweeper (#119) and the memory reviewer (#748) — and an added
-            agent's Delete, each keeping the place it already had. A `scoped` pane (#944) draws
-            the Delete beside its own actions. */}
-        {!scoped && (
-          <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
-            {agent.name === PRUNER && <PruneControls onError={onError} />}
-            {agent.name === REVIEWER_OF_DISMISSALS && <DismissalControls onError={onError} />}
-            {agent.name === SWEEPER && <SweepControls sweep={sweep} />}
-            {agent.name === REVIEWER_OF_MEMORY && <ReviewControls off={off} onError={onError} />}
-            {removal}
-          </div>
-        )}
       </div>
 
       <hr className="shrink-0 border-nb-ink/10" />
@@ -1092,25 +1126,14 @@ function Page({
   );
 }
 
-// The agent's switch, in the page header. A switch the BOARD says asks (#447, #562, #748)
-// asks once, in the one direction it names: on the way ON for an agent that starts spending
-// runs the moment it goes on, and on the way OFF for the one whose cost lands when it stops
-// (the memory review is what turns a conversation into a note). The other direction, and
-// every other switch either way, goes straight through. Which agents those are and which way
-// round is the roster's answer, and the words are that role's own, so none of it is a name
-// written down here.
+// An added agent's switch (#715). No board agent has one (#1208).
 function EnabledSwitch({
   agent,
-  confirm,
   busy,
   bare,
   onFlip,
 }: {
   agent: AgentView;
-  /** What this role asks, in the reader's language. Absent on every role that asks nothing,
-   *  and on a role this copy has never heard of — which switches straight through rather
-   *  than opening a popover with no words in it. */
-  confirm?: { title: string; body: string; action: string };
   busy: boolean;
   /** Drawn in a column row (#715): the switch alone. The word beside it is what a page
    *  header needs, and a column of the same word down a narrow list is noise. */
@@ -1119,21 +1142,13 @@ function EnabledSwitch({
 }) {
   const c = useCopy().configuration.agents;
   const title = useAgentTitle()(agent);
-  const anchor = useRef<HTMLSpanElement>(null);
-  const [asking, setAsking] = useState(false);
-  // The move that asks, as `true`/`false` rather than as a word, so one comparison against
-  // the press decides. Null on every agent that asks nothing.
-  const asks = confirm && agent.confirm ? agent.confirm === "on" : null;
   return (
-    <span ref={anchor} className="relative flex shrink-0 items-center gap-2">
+    <span className="relative flex shrink-0 items-center gap-2">
       <Switch
         on={agent.enabled}
         busy={busy}
         label={(agent.enabled ? c.switchOn : c.switchOff)(title)}
-        onFlip={async (next) => {
-          if (next !== asks) return onFlip(next);
-          setAsking(true);
-        }}
+        onFlip={onFlip}
       />
       {!bare && (
         <span
@@ -1141,24 +1156,6 @@ function EnabledSwitch({
         >
           {c.enabled}
         </span>
-      )}
-      {asks !== null && (
-        <ConfirmationPopover
-          open={asking}
-          anchorRef={anchor}
-          align="right"
-          confirm="filled"
-          title={confirm!.title}
-          description={confirm!.body}
-          cancelLabel={c.cancel}
-          confirmLabel={confirm!.action}
-          busy={busy}
-          onDismiss={() => setAsking(false)}
-          onConfirm={() => {
-            setAsking(false);
-            void onFlip(asks);
-          }}
-        />
       )}
     </span>
   );
@@ -1309,27 +1306,14 @@ function SettingPick({
 
 // --- the controls an agent that runs on a cadence carries (#514, #119) -------
 
-// One pass, and the schedule that repeats it.
-//
-// Two agents reach the board this way and nothing else on it does: the memory pruner
-// squeezes the memory back down, the sweeper settles the cards that have sat too long.
-// Neither is asked for by any card, so this is the whole of how either is reached —
-// **Run now** starts one, and the chip under it opens the opt-in that makes the board start
-// one by itself. The chip is compact and closed by default — a standing switch row would
-// give a setting that is off on almost every board the width of the page — and it says the
-// cadence once one is running, which is the only state worth reading at a glance. Stacked
-// rather than side by side (#569): the two are the same one column wide, and the header's
-// name and gloss get the width back.
-//
-// Recurrence is OFF until it is asked for, and opening the popover enables nothing: a prune
-// rewrites every memory file, and a sweep can discard a card without asking.
-//
-// The quiet line under the group is the last one that PASSED. One that failed or was stopped
-// leaves it exactly where it was and says so on that same line, so a schedule that is not
-// getting through is visible without opening Runs.
-//
-// What each agent owns is its data and its words; this owns the layout, so the two pages
-// cannot drift apart.
+// Compact, on the name row: the cadence chip, then Run now (#1208). Always on, so the chip
+// is neutral and the accent is Run now's alone. The last run is the foot of the chip's list;
+// only a failed one is said out here, beside the controls.
+const COMPACT_BTN =
+  "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-[7px] px-2 text-[11.5px] font-[700] transition-[background-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+
+// What each agent owns is its data and its words; this owns the layout, so the pages cannot
+// drift apart.
 function CadenceControls({
   copy,
   icon,
@@ -1348,59 +1332,40 @@ function CadenceControls({
   schedule: CadenceSchedule | null;
   tooOld: boolean;
   running: boolean;
-  /** The newest finished one did not get through. Only ever drawn beside the button — the
-   *  last-run line below is the record of what passed, and a failure must not move it. */
+  /** The newest finished one did not get through. */
   failed: boolean;
-  /** There is nothing on this board for the agent to work on at all — the sweeper's case,
-   *  on a project git cannot date. Run now is off and no chip is drawn: there is nothing to
-   *  schedule. WHY is said once, where the agent's state is read, not twice. */
+  /** There is nothing on this board for the agent to work on — the sweeper's case, on a
+   *  project git cannot date. Run now is off and no chip is drawn; WHY is said below. */
   blocked?: boolean;
   onStart: () => void;
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
-
-  // The cadence the board is really on. A schedule can only be enabled with one the parser
-  // reads, so `on` and a null `saved` cannot happen together — a cadence nothing recognises
-  // arrives here as no schedule at all, and the list starts empty.
   const saved = parseCadence(schedule?.cadence ?? "");
-  const on = schedule?.enabled ?? false;
-  const state = on && saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
+  const state = saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1.5">
-      <button
-        type="button"
-        className={ACCENT_BTN}
-        disabled={running || blocked}
-        onClick={() => void onStart()}
-      >
-        {icon}
-        {running ? copy.running : copy.run}
-      </button>
-      {!tooOld && !blocked && (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {tooOld && <span className="text-[11px] text-nb-ink-soft">{copy.tooOld}</span>}
+      {failed && !running && <span className="text-[11px] text-nb-peach-ink">{copy.failed}</span>}
+      {!tooOld && !blocked && state && (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              title={copy.chipLabel(state || copy.off)}
-              aria-label={copy.chipLabel(state || copy.off)}
-              // Neutral while off, ember once it is running: the closed chip's whole job is
-              // to say whether anything starts by itself, and what. Running, the cadence
-              // alone is the whole answer; off, it takes the setting's name to mean anything.
-              className={`${POPUP_TRIGGER} flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] ${
-                state ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
-              }`}
+              title={copy.chipLabel(state)}
+              aria-label={copy.chipLabel(state)}
+              className={`${COMPACT_BTN} bg-nb-ink/[0.08] text-nb-ink hover:bg-nb-ink/[0.12]`}
             >
-              <FiClock size={12} aria-hidden />
-              {state || copy.chipLabel(copy.off)}
-              <FiChevronDown size={11} aria-hidden />
+              <FiClock size={11} aria-hidden className="text-nb-ink-soft" />
+              {state}
+              <FiChevronDown size={10} aria-hidden className="text-nb-ink-soft" />
             </button>
           </PopoverTrigger>
           {open && (
             <CadenceMenu
               saved={saved}
-              enabled={on}
+              lastRun={schedule?.lastRun ?? ""}
               copy={copy}
               onDismiss={() => setOpen(false)}
               onSave={onSave}
@@ -1408,23 +1373,28 @@ function CadenceControls({
           )}
         </Popover>
       )}
-      <span className="text-[11px] text-nb-ink-soft">
-        {failed && !running ? `${copy.failed} · ` : ""}
-        {schedule?.lastRun ? copy.lastRun(schedule.lastRun) : copy.neverRun}
-      </span>
-      {tooOld && <span className="text-[11px] text-nb-ink-soft">{copy.tooOld}</span>}
+      <button
+        type="button"
+        className={`${COMPACT_BTN} bg-nb-accent-soft text-nb-accent-deep hover:bg-nb-accent/28`}
+        disabled={running || blocked}
+        onClick={() => void onStart()}
+      >
+        {icon}
+        {running ? copy.running : copy.run}
+      </button>
     </div>
   );
 }
 
 // --- the memory pruner's own controls (#514) ---------------------------------
 
-function PruneControls({ onError }: { onError?: (msg: string) => void }) {
+function PruneControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
   const c = useCopy().configuration.agents.pruner;
   return (
     <ScheduledControls
       copy={c}
-      icon={<FiScissors aria-hidden />}
+      icon={<FiScissors size={11} aria-hidden />}
+      onSaved={onSaved}
       action="prune-memory"
       read={memoryPruneAction}
       save={setMemoryPruneAction}
@@ -1436,12 +1406,13 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
 
 // --- the dismissal reviewer's own controls (#929) ----------------------------
 
-function DismissalControls({ onError }: { onError?: (msg: string) => void }) {
+function DismissalControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
   const c = useCopy().configuration.agents.dismissalReviewer;
   return (
     <ScheduledControls
       copy={c}
-      icon={<FiRotateCcw aria-hidden />}
+      icon={<FiRotateCcw size={11} aria-hidden />}
+      onSaved={onSaved}
       action="review-dismissals"
       read={dismissalReviewAction}
       save={setDismissalReviewAction}
@@ -1460,17 +1431,19 @@ function ScheduledControls({
   read,
   save: write,
   start: begin,
+  onSaved,
   onError,
 }: {
   copy: CadenceCopy;
   icon: React.ReactNode;
+  onSaved?: () => void;
   action: AgentAction;
   read: () => Promise<{ schedule: CadenceSchedule | null; error?: string }>;
   save: (next: { enabled: boolean; cadence: string }) => Promise<{ ok: boolean; error?: string }>;
   start: () => Promise<{ ok: boolean; error?: string }>;
   onError?: (msg: string) => void;
 }) {
-  const [schedule, setSchedule] = useState<MemoryPruneSchedule | null>(null);
+  const [schedule, setSchedule] = useState<CadenceSchedule | null>(null);
   const [tooOld, setTooOld] = useState(false);
   const [running, setRunning] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -1535,6 +1508,7 @@ function ScheduledControls({
     const res = await write(next);
     if (!res.ok) return false;
     await readSchedule();
+    onSaved?.();
     return true;
   };
 
@@ -1558,7 +1532,7 @@ function ScheduledControls({
  *  the current or latest sweep. Polled, because it is the one thing on this pane that moves
  *  by itself — a sweep advances one card per dispatcher tick, and the cadence can open one
  *  with nobody pressing anything. */
-function useCardSweep(active: boolean, onError?: (msg: string) => void) {
+function useCardSweep(active: boolean, onError?: (msg: string) => void, onSaved?: () => void) {
   const c = useCopy().configuration.agents.sweeper;
   const [schedule, setSchedule] = useState<CadenceSchedule | null>(null);
   const [report, setReport] = useState<SweepReport | null>(null);
@@ -1601,12 +1575,11 @@ function useCardSweep(active: boolean, onError?: (msg: string) => void) {
     void read();
   };
 
-  // Switching the cadence off stops the sweep already running, so the report is read back
-  // here like the schedule is.
   const save = async (next: { enabled: boolean; cadence: string }) => {
     const res = await setCardSweepAction(next);
     if (!res.ok) return false;
     await read();
+    onSaved?.();
     return true;
   };
 
@@ -1615,16 +1588,15 @@ function useCardSweep(active: boolean, onError?: (msg: string) => void) {
 
 type Sweep = ReturnType<typeof useCardSweep>;
 
-// The sweeper's half of the page header: the same control stack the pruner has, with its own
-// words and its own action. Outside a git repository nothing can be dated, so there is no
-// sweep to offer — the button is off and no cadence chip is drawn. Why is said once, in the
-// summary below, where the sweep's state is read.
+// The sweeper's controls: the pruner's, with its own words and action. Outside a git
+// repository nothing can be dated, so Run now is off and no chip is drawn; the summary below
+// says why.
 function SweepControls({ sweep }: { sweep: Sweep }) {
   const c = useCopy().configuration.agents.sweeper;
   return (
     <CadenceControls
       copy={c}
-      icon={<FiWind aria-hidden />}
+      icon={<FiWind size={11} aria-hidden />}
       schedule={sweep.schedule}
       tooOld={sweep.tooOld}
       running={sweep.running}
@@ -1687,7 +1659,7 @@ function SweepSummary({ sweep, onOpen }: { sweep: Sweep; onOpen: () => void }) {
         <div className="mt-1 flex items-baseline justify-between gap-3">
           <p className="min-w-0 text-[12px] leading-snug text-nb-ink-soft">
             {sweepTime(report!.startedAt, language)}
-            {report!.end ? ` · ${c.ended[report!.end === "switched-off" ? "switchedOff" : report!.end]}` : ""}
+            {report!.end && report!.end !== "switched-off" ? ` · ${c.ended[report!.end]}` : ""}
           </p>
           <button
             type="button"
@@ -1735,7 +1707,7 @@ function SweepReportView({ sweep, onBack }: { sweep: Sweep; onBack: () => void }
       <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-nb-ink/10 pb-2.5">
         <span className="min-w-0 text-[12px] text-nb-ink-soft">
           {report ? sweepTime(report.startedAt, language) : c.neverSwept}
-          {report?.end ? ` · ${c.ended[report.end === "switched-off" ? "switchedOff" : report.end]}` : ""}
+          {report?.end && report.end !== "switched-off" ? ` · ${c.ended[report.end]}` : ""}
         </span>
         <span className="shrink-0 text-[11.5px] text-nb-ink-soft">{c.counts(looked, kept, discarded)}</span>
       </div>
@@ -1835,24 +1807,9 @@ function SweepRowLine({ row, first, openable }: { row: SweepRow; first: boolean;
 
 // --- the memory reviewer's one action (#748) ----------------------------------
 
-// One review, and nothing else.
-//
-// It is the pruner's group above with the cadence chip taken out: the review is daily, so
-// there is nothing to set and a chip that could only ever read "daily" is a control with no
-// answer in it. What is left is **Review now** and the quiet line under it.
-//
-// The button works with the agent switched off — a board that stopped the daily pass can
-// still ask for one — so the line under it is where "off" is said: it is the one control
-// still live on a page whose switch is off.
-function ReviewControls({
-  off,
-  onError,
-}: {
-  /** The agent is switched off. Said on the line under the button, because Review now is
-   *  still the control that works. */
-  off: boolean;
-  onError?: (msg: string) => void;
-}) {
+// The pruner's controls with the cadence chip taken out: the review is daily, so there is
+// nothing to set. Review now, and the last review beside it.
+function ReviewControls({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.agents.memoryReviewer;
   const [review, setReview] = useState<MemoryReviewState | null>(null);
   const [running, setRunning] = useState(false);
@@ -1906,30 +1863,33 @@ function ReviewControls({
     void readRuns();
   };
 
-  const last = review?.lastRun ? c.lastRun(review.lastRun) : c.neverRun;
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1.5">
-      <button type="button" className={ACCENT_BTN} disabled={running} onClick={() => void start()}>
-        <FiRotateCcw aria-hidden />
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span className="text-[11px] text-nb-ink-soft">{review?.lastRun ? c.lastRun(review.lastRun) : c.neverRun}</span>
+      <button
+        type="button"
+        className={`${COMPACT_BTN} bg-nb-accent-soft text-nb-accent-deep hover:bg-nb-accent/28`}
+        disabled={running}
+        onClick={() => void start()}
+      >
+        <FiRotateCcw size={11} aria-hidden />
         {running ? c.running : c.run}
       </button>
-      <span className="text-[11px] text-nb-ink-soft">{off ? `${c.off} · ${last}` : last}</span>
     </div>
   );
 }
 
-// The cadence list, in order. Off first, three common cadences, then the one row that opens
-// anything — `6h` / `1d` / `7d` are the cadences themselves, so a preset row needs no table
+// The cadence list, in order: three common cadences, then the one row that opens anything — `6h` / `1d` / `7d` are the cadences themselves, so a preset row needs no table
 // of its own beyond the number and unit its words are read off.
 type Preset = "6h" | "1d" | "7d";
-type Pick = "off" | Preset | "custom";
+type Pick = Preset | "custom";
 const PRESETS = ["6h", "1d", "7d"] as const;
 const PRESETS_AT: Record<Preset, { n: number; unit: CadenceUnit }> = {
   "6h": { n: 6, unit: "h" },
   "1d": { n: 1, unit: "d" },
   "7d": { n: 7, unit: "d" },
 };
-const ROWS: Pick[] = ["off", ...PRESETS, "custom"];
+const ROWS: Pick[] = [...PRESETS, "custom"];
 
 // What the pickers will offer per unit. A ceiling as much as a floor: a prune rewrites every
 // memory file, so minutes below five is a job that never finishes before the next one starts,
@@ -1962,15 +1922,14 @@ const write = (n: number, unit: CadenceUnit, at: string | null): string =>
 // parser's, with the tick still on the cadence that is really running.
 function CadenceMenu({
   saved,
-  enabled,
+  lastRun,
   copy,
   onDismiss,
   onSave,
 }: {
-  /** The cadence in the config, whether or not it is switched on — a schedule that was
-   *  switched off keeps it, and Custom offers it back. */
   saved: Cadence | null;
-  enabled: boolean;
+  /** The last pass that passed, for the list's foot. */
+  lastRun: string;
   copy: CadenceCopy;
   onDismiss: () => void;
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
@@ -1978,8 +1937,6 @@ function CadenceMenu({
   const [busy, setBusy] = useState<Pick | null>(null);
   const [failed, setFailed] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
-  // Off on a schedule that ships on asks first, at the list's foot (#929).
-  const [askingOff, setAskingOff] = useState(false);
   const list = useRef<HTMLDivElement>(null);
 
   const presetOf = (c: Cadence | null): Preset | null => {
@@ -1987,19 +1944,17 @@ function CadenceMenu({
     const id = `${c.n}${c.unit}`;
     return (PRESETS as readonly string[]).includes(id) ? (id as Preset) : null;
   };
-  const picked: Pick = !enabled ? "off" : (presetOf(saved) ?? "custom");
+  const picked: Pick = presetOf(saved) ?? "custom";
   const label = (id: Pick) =>
-    id === "off" ? copy.off : id === "custom" ? copy.custom : copy.cadenceLabel(PRESETS_AT[id].n, PRESETS_AT[id].unit, "");
-  // Custom's right end: the cadence it would come back with — the saved one when it is no
-  // preset, or the one a switched-off schedule is keeping.
-  const note = saved && (picked === "custom" || !enabled) ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : undefined;
+    id === "custom" ? copy.custom : copy.cadenceLabel(PRESETS_AT[id].n, PRESETS_AT[id].unit, "");
+  // Custom's right end: the saved cadence, when it is no preset.
+  const note = saved && picked === "custom" ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : undefined;
 
   // Leaving never writes. A draft only exists until something is pressed, so there is
   // nothing here to lose that the user did not already decide to lose.
 
-  const pick = async (id: Pick, confirmed = false) => {
+  const pick = async (id: Pick) => {
     if (busy) return;
-    setAskingOff(false);
     if (id === "custom") {
       setFailed("");
       setDraft(
@@ -2013,18 +1968,10 @@ function CadenceMenu({
     // Already what is saved: there is nothing to write, and writing anyway would restate a
     // cadence the parser never recognised.
     if (id === picked) return onDismiss();
-    if (id === "off" && copy.confirmOff && !confirmed) {
-      setFailed("");
-      setAskingOff(true);
-      return;
-    }
     setFailed("");
     setBusy(id);
-    // Switching off keeps the cadence, so the same one comes back when it is switched on.
-    const ok = await onSave({
-      enabled: id !== "off",
-      cadence: id === "off" ? (saved ? formatCadence(saved) : "") : id,
-    });
+    // `enabled` for rules older than #1208, which still read it.
+    const ok = await onSave({ enabled: true, cadence: id });
     setBusy(null);
     if (ok) onDismiss();
     else setFailed(copy.presetFailed(label(id)));
@@ -2050,7 +1997,7 @@ function CadenceMenu({
             aria-selected={picked === id}
             disabled={!!busy}
             onClick={() => void pick(id)}
-            data-active={(id === "custom" && !!draft) || (id === "off" && askingOff)}
+            data-active={id === "custom" && !!draft}
             className={`${POPUP_ROW} gap-3 pr-8`}
           >
             {label(id)}
@@ -2088,26 +2035,15 @@ function CadenceMenu({
         />
       )}
 
-      {askingOff && copy.confirmOff && (
-        <div className="mt-1 border-t border-nb-ink/12 px-1.5 pb-1.5 pt-2.5">
-          <p className="text-[13px] font-[700] text-nb-ink">{copy.confirmOff.title}</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">{copy.confirmOff.body}</p>
-          <div className="mt-2.5 flex items-center justify-end gap-2">
-            <Button variant="ghost" size="xs" onClick={() => setAskingOff(false)}>
-              {copy.cancel}
-            </Button>
-            <Button variant="accent" size="xs" onClick={() => void pick("off", true)}>
-              {copy.confirmOff.action}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {!draft && failed && (
         <p className="m-1 rounded-[8px] bg-nb-peach-soft px-2.5 py-[6px] text-[11.5px] leading-[16px] text-nb-peach-ink">
           {failed}
         </p>
       )}
+
+      <p className="mt-1 border-t border-nb-ink/10 px-2.5 pt-1.5 pb-0.5 text-[11px] text-nb-ink-soft">
+        {lastRun ? copy.lastRun(lastRun) : copy.neverRun}
+      </p>
     </PopoverContent>
   );
 }

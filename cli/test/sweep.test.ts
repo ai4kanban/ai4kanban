@@ -91,8 +91,8 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe("the sweeper's cadence", () => {
-  it('is off with no cadence until somebody asks for one', () => {
-    assert.deepEqual(cardSweep(), { enabled: false, cadence: '', lastRun: '' })
+  it('runs every 7 days until somebody sets a cadence, and writes nothing down', () => {
+    assert.deepEqual(cardSweep(), { enabled: true, cadence: '7d', lastRun: '' })
     assert.equal(fs.existsSync(UI_CONFIG), false)
   })
 
@@ -103,10 +103,12 @@ describe("the sweeper's cadence", () => {
     assert.deepEqual(cardSweep(), { enabled: true, cadence: '7d at 09:00', lastRun: '' })
   })
 
-  it('starts nothing while no cadence is saved, and opens one once it is due', () => {
-    assert.equal(sweepDue(), false)
-    setCardSweep({ enabled: true, cadence: '30m' })
-    assert.equal(sweepDue(), true)
+  it('opens none on its first look, and one once a cadence has passed since (#1208)', () => {
+    const now = Date.now()
+    assert.equal(sweepDue(now), false)
+    assert.equal(cardSweep().lastRun, '')
+    assert.equal(sweepDue(now + 6 * 24 * 60 * 60_000), false)
+    assert.equal(sweepDue(now + 8 * 24 * 60 * 60_000), true)
   })
 
   it('waits out the interval after a sweep that finished its work', () => {
@@ -117,6 +119,7 @@ describe("the sweeper's cadence", () => {
 
   it('opens no second sweep in the window the last one opened in', () => {
     setCardSweep({ enabled: true, cadence: '30m' })
+    stampCardSweep(new Date(Date.now() - 60 * 60_000))
     // A sweep cut short leaves the stamp where it was, so the cadence is due again at once.
     // Its own opening stamp is what stops the next tick reopening it.
     fs.mkdirSync(path.dirname(SWEEP_REPORT), { recursive: true })
@@ -143,6 +146,7 @@ describe("the sweeper's cadence", () => {
 
   it('opens no second sweep while one is still going', () => {
     setCardSweep({ enabled: true, cadence: '30m' })
+    stampCardSweep(new Date(Date.now() - 60 * 60_000))
     openSweep([], 'run-1')
     assert.equal(sweepDue(), false)
   })
@@ -215,20 +219,11 @@ describe('when a sweep ends', () => {
     assert.notEqual(cardSweep().lastRun, '')
   })
 
-  it('stops the sweep that is running when the cadence is switched off', () => {
-    setCardSweep({ enabled: true, cadence: '30m' })
+  it('keeps the sweep going when an older screen asks for Off', () => {
     openSweep([judged(1), { id: 2, title: 'Card 2', days: 31, runId: 'run-1' }], 'run-1')
-
-    assert.equal(saveCardSweep({ enabled: false, cadence: '30m' }).ok, true)
-
-    const report = sweepReport()!
-    assert.equal(report.status, 'done')
-    assert.equal(report.end, 'switched-off')
-    // What it did reach is kept; the card it was on says the sweep stopped there.
-    assert.equal(report.rows[0]!.verdict, 'kept')
-    assert.equal(report.rows[1]!.unfinished, true)
-    assert.equal(report.rows[1]!.verdict, undefined)
-    assert.equal(cardSweep().lastRun, '')
+    assert.equal(saveCardSweep({ enabled: false, cadence: '1d' }).ok, true)
+    assert.equal(sweepReport()!.status, 'running')
+    assert.deepEqual(cardSweep(), { enabled: true, cadence: '1d', lastRun: '' })
   })
 
   it('keeps the report a refused start never replaced', async () => {

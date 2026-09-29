@@ -18,10 +18,10 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { chatsToReview } from '../src/lib/agent/memory-review.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
-import { memoryReview, memoryReviewerOn, setSwitch, stampMemoryReview } from '../src/lib/agent/settings.ts'
+import { memoryReview, stampMemoryReview } from '../src/lib/agent/settings.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { CHATS_DIR, setBoardRoot, SESSIONS } from '../src/lib/paths.ts'
+import { CHATS_DIR, setBoardRoot, SESSIONS, UI_CONFIG } from '../src/lib/paths.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
 import { forgetMachineState } from './helpers/board.ts'
 
@@ -134,8 +134,7 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe('the review the board starts on its own', () => {
-  it('ships on, and starts nothing while no conversation has said anything', async () => {
-    assert.equal(memoryReviewerOn(), true)
+  it('starts nothing while no conversation has said anything', async () => {
     assert.deepEqual(await work(), [])
   })
 
@@ -145,12 +144,11 @@ describe('the review the board starts on its own', () => {
     assert.deepEqual(await work(), [{ action: 'review-memory' }])
   })
 
-  it('starts nothing while the agent is switched off', async () => {
+  it('starts one even where an earlier release switched it off (#1208)', async () => {
     card(1, [])
     chat('card-1', Date.now())
-    setSwitch('memoryReviewer', false)
-    assert.equal(memoryReviewerOn(), false)
-    assert.deepEqual(await work(), [])
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryReviewer: false }))
+    assert.deepEqual(await work(), [{ action: 'review-memory' }])
   })
 
   it('waits out the day after a review that passed', async () => {

@@ -33,7 +33,7 @@ import path from 'node:path'
 
 import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
-import { refusal, type CadenceSchedule, type MemoryPruneSchedule, type MemoryReviewState, type Saved } from './types'
+import { refusal, type CadenceSchedule, type MemoryReviewState, type Saved } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
 
@@ -90,91 +90,6 @@ export function setAutoCommit(on: boolean): Saved {
   return writeConfig((cfg) => {
     if (on) delete cfg.autoCommit
     else cfg.autoCommit = false
-  })
-}
-
-// ---- the proposer: does a finished card propose what comes next? (#534) -----
-//
-//   "proposer": true
-//
-// OFF by default, and only written down when somebody turned it on. With it ON, every card that reaches the archive starts
-// one `reflect` run over that card alone, which is a paid run per completion.
-//
-// What it writes lands in `docs/kanban/triage/`, never on the board: a proposal is
-// triaged like anything else that arrives there, so a weak one costs a dismissal. Turning
-// it off again leaves nothing behind — there is no state but this key.
-
-/** True only when somebody switched the proposer on. A file that won't parse reads as off:
- *  a setting nobody can read is not a reason to start spending a run per completion. */
-export const proposerOn = (): boolean => switchedOn('proposer')
-
-/** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setProposer = (on: boolean): Saved => setSwitch('proposer', on)
-
-// ---- auto triage: does a new item get judged by itself? (#562) --------------
-//
-//   "autoTriage": true
-//
-// OFF by default, and only written down when somebody turned it on. With it ON, a batch of
-// items landing in `triage/` starts one `triage` run, and that run's close starts the next
-// while it keeps judging things down — so the list empties itself.
-//
-// It costs more than the sort: every card the sort writes carries a refine, so a run that
-// cards three items is four runs. Turning it off again leaves nothing behind — there is no
-// state but this key, and what was already judged stays judged.
-
-/** True only when somebody switched auto triage on. A file that won't parse reads as off:
- *  a setting nobody can read is not a reason to start judging items unasked. */
-export const autoTriageOn = (): boolean => switchedOn('autoTriage')
-
-/** True unless somebody switched the daily memory review off (#748). It ships ON, unlike
- *  the two above: it takes over what a chat used to do on every turn, so a board that had
- *  to ask for it would be a board that quietly stopped remembering anything said in a
- *  conversation. */
-export const memoryReviewerOn = (): boolean => switchedOn('memoryReviewer')
-
-/** Save it. Turning it back off drops the key rather than writing `false`. */
-export const setAutoTriage = (on: boolean): Saved => setSwitch('autoTriage', on)
-
-// ---- a switchable role's own key (#493, #534, #748, #783) ------------------
-//
-// Three of the switches above are roles that can be switched off: the proposer reflects on
-// what was finished, the triager sorts what is waiting, the memory reviewer reads the
-// conversations. None of them
-// belongs to a workflow — a workflow agent's stage assignment is its only answer (#749,
-// #783). The ones that predate the split keep the key they have always had, so a board that
-// already answered any of them keeps its answer, and the roster reads a role through its own
-// key rather than asking one role's question of them all.
-//
-// They do not all ship the same way round. The two that spend a run the user never asked
-// for are off until asked for; the memory reviewer ships on. Either way the file records
-// only what somebody changed.
-
-/** The keys a switchable role is saved under (./roles.ts). */
-export type RoleSwitch =
-  | 'proposer'
-  | 'autoTriage'
-  | 'memoryReviewer'
-
-/** The keys whose role ships ON, so only switching it OFF is written down. */
-const ON_BY_DEFAULT = new Set<RoleSwitch>(['memoryReviewer'])
-
-/** Whether the role behind this key is on. A file that won't parse reads as the default: a
- *  setting nobody can read is not a reason to change what the board does. */
-export function switchedOn(key: RoleSwitch): boolean {
-  const shipsOn = ON_BY_DEFAULT.has(key)
-  try {
-    return shipsOn ? readConfigRaw()[key] !== false : readConfigRaw()[key] === true
-  } catch {
-    return shipsOn
-  }
-}
-
-/** Save it. Back at the default drops the key rather than writing it down. */
-export function setSwitch(key: RoleSwitch, on: boolean): Saved {
-  return writeConfig((cfg) => {
-    if (on === ON_BY_DEFAULT.has(key)) delete cfg[key]
-    else cfg[key] = on
   })
 }
 
@@ -521,133 +436,100 @@ export function setSecret(name: string, value: string): Saved {
   }
 }
 
-// ---- the memory pruner's schedule (#514) ------------------------------------
+// ---- the scheduled agents' cadences (#514, #119, #929, #1208) ---------------
 //
-//   "memoryPrune": { "enabled": true, "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
+//   "memoryPrune":     { "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
+//   "cardSweep":       { "cadence": "3d", "since": "2026-09-30 10:00" }
+//   "dismissalReview": { "lastRun": "2026-09-19 08:00" }
 //
-// Pruning used to be a recurring card. It is an agent now (`agent/roles.ts`), so what a card
-// carried in its frontmatter — the cadence, the last pass — is kept here instead, in the
-// board's own settings file rather than a state file of its own.
+// All three always run (#1208): only the cadence is the user's, and only one other than the
+// default is written down. An `enabled` key an earlier release wrote is ignored, and dropped
+// on the next save.
 //
-// Recurrence is OFF until somebody asks for it, migration included: a pass rewrites every
-// memory file, and a job that started itself the day a board upgraded is not one anybody
-// chose. A cadence with `enabled` false is a preference the board holds and never acts on.
-//
-// `lastRun` moves only on a pass that PASSED, which is what stops a failing prune from
-// firing again every tick.
+// `lastRun` moves only on a pass that PASSED, which is what stops a failing one firing again
+// every tick. `since` is where a cadence that never ran counts from: the scheduler writes it
+// on its first look, so a board's first prune or sweep lands a whole cadence after upgrade
+// rather than the minute it does.
 
-const NO_PRUNE: MemoryPruneSchedule = { enabled: false, cadence: '', lastRun: '' }
+export type ScheduleKey = 'memoryPrune' | 'cardSweep' | 'dismissalReview'
 
-/** What the file says about the pruner. A file that won't parse, or a block written by
- *  hand into some other shape, reads as nothing scheduled: a setting nobody can read is
- *  not a reason to start rewriting the memory. */
-export function memoryPrune(): MemoryPruneSchedule {
-  let cfg: Record<string, unknown>
-  try {
-    cfg = readConfigRaw()
-  } catch {
-    return NO_PRUNE
-  }
-  const block = configBlock(cfg.memoryPrune)
-  const cadence = typeof block.cadence === 'string' ? block.cadence.trim() : ''
-  const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
-  // A schedule can only be on with a cadence the board can act on, whatever the file says:
-  // `enabled: true` beside a cadence nothing parses would be a switch that starts nothing.
-  return { enabled: block.enabled === true && parseCadence(cadence) !== null, cadence, lastRun }
+/** The cadence a board that never set one runs each on. */
+export const DEFAULT_CADENCE: Record<ScheduleKey, string> = {
+  memoryPrune: '7d',
+  cardSweep: '7d',
+  dismissalReview: '1d',
 }
 
-/** Save the opt-in and the cadence, keeping the last run. Switching it on needs a cadence
- *  the board can read — an invalid one can never activate a schedule. */
-export function setMemoryPrune(next: { enabled: boolean; cadence: string }): Saved {
-  const cadence = next.cadence.trim()
-  if ((next.enabled || cadence) && parseCadence(cadence) === null) {
-    return { ok: false, ...badCadence(cadence) }
+const stringIn = (block: Record<string, unknown>, key: string): string =>
+  typeof block[key] === 'string' ? (block[key] as string).trim() : ''
+
+/** What the file says about one schedule. A cadence nothing parses, or a file that won't,
+ *  reads as the default. */
+function readSchedule(key: ScheduleKey): CadenceSchedule {
+  const block = configBlock(safeConfig()[key])
+  const saved = stringIn(block, 'cadence')
+  return {
+    enabled: true,
+    cadence: saved && parseCadence(saved) ? saved : DEFAULT_CADENCE[key],
+    lastRun: stringIn(block, 'lastRun'),
+    ...(stringIn(block, 'since') ? { since: stringIn(block, 'since') } : {}),
   }
+}
+
+/** Save the cadence, keeping `lastRun` and `since`. `enabled` is ignored: none can be
+ *  switched off, so an older screen asking for Off saves only its cadence. */
+function saveSchedule(key: ScheduleKey, next: { enabled?: boolean; cadence: string }): Saved {
+  const cadence = next.cadence.trim() || DEFAULT_CADENCE[key]
+  if (parseCadence(cadence) === null) return { ok: false, ...badCadence(cadence) }
   return writeConfig((cfg) => {
-    const block = configBlock(cfg.memoryPrune)
-    const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+    const block = configBlock(cfg[key])
     const body = {
-      ...(next.enabled ? { enabled: true } : {}),
-      ...(cadence ? { cadence } : {}),
-      ...(lastRun ? { lastRun } : {}),
+      ...(cadence !== DEFAULT_CADENCE[key] ? { cadence } : {}),
+      ...(stringIn(block, 'lastRun') ? { lastRun: stringIn(block, 'lastRun') } : {}),
+      ...(stringIn(block, 'since') ? { since: stringIn(block, 'since') } : {}),
     }
-    if (Object.keys(body).length) cfg.memoryPrune = body
-    else delete cfg.memoryPrune
+    if (Object.keys(body).length) cfg[key] = body
+    else delete cfg[key]
   })
 }
 
-/** Record a prune that passed. The switch and the cadence are left exactly as they are —
- *  this is the stamp the cadence counts from, not an answer about whether to run. */
-export function stampMemoryPrune(when: Date = new Date()): void {
-  writeConfig((cfg) => {
-    cfg.memoryPrune = { ...configBlock(cfg.memoryPrune), lastRun: formatStamp(when) }
-  })
+function stampSchedule(key: ScheduleKey, when: Date): boolean {
+  return writeConfig((cfg) => {
+    cfg[key] = { ...configBlock(cfg[key]), lastRun: formatStamp(when) }
+  }).ok
 }
 
-/** Carry an old prune card's cadence over as a preference, once (#514). It never switches
- *  recurrence on, and it never overwrites a cadence somebody has already saved here. */
+/** The stamp a schedule's cadence counts from: its last pass, or the moment the scheduler
+ *  first looked at it. The first look writes `since` — empty when that write failed, so the
+ *  caller waits rather than running at once. */
+export function scheduleClock(key: ScheduleKey, now: Date = new Date()): string {
+  const schedule = readSchedule(key)
+  if (schedule.lastRun || schedule.since) return schedule.lastRun || schedule.since!
+  const since = formatStamp(now)
+  const saved = writeConfig((cfg) => {
+    cfg[key] = { ...configBlock(cfg[key]), since }
+  })
+  return saved.ok ? since : ''
+}
+
+export const memoryPrune = (): CadenceSchedule => readSchedule('memoryPrune')
+export const setMemoryPrune = (next: { enabled?: boolean; cadence: string }): Saved => saveSchedule('memoryPrune', next)
+export const stampMemoryPrune = (when: Date = new Date()): void => void stampSchedule('memoryPrune', when)
+
+/** Carry an old prune card's cadence over, once (#514), never over one already saved. */
 export function adoptMemoryPruneCadence(cadence: string): void {
   const next = cadence.trim()
   if (!next || parseCadence(next) === null) return
-  if (memoryPrune().cadence) return
+  if (stringIn(configBlock(safeConfig().memoryPrune), 'cadence')) return
   writeConfig((cfg) => {
     cfg.memoryPrune = { ...configBlock(cfg.memoryPrune), cadence: next }
   })
 }
 
-// ---- the card sweep's schedule (#119) ---------------------------------------
-//
-//   "cardSweep": { "enabled": true, "cadence": "7d at 09:00", "lastRun": "2026-09-08 09:00" }
-//
-// The sweeper's cadence, beside the pruner's above and on the same three terms: recurrence
-// is OFF until somebody asks for it, a schedule can only be on with a cadence the board can
-// read, and `lastRun` moves only on a sweep that finished its work.
-//
-// The cadence is the WHOLE opt-in here: the sweeper has no switch of its own, and a sweep
-// discards cards without asking, so a board with nothing saved here sweeps nothing.
-
-const NO_SWEEP: CadenceSchedule = { enabled: false, cadence: '', lastRun: '' }
-
-/** What the file says about the sweeper. Unreadable reads as nothing scheduled. */
-export function cardSweep(): CadenceSchedule {
-  let cfg: Record<string, unknown>
-  try {
-    cfg = readConfigRaw()
-  } catch {
-    return NO_SWEEP
-  }
-  const block = configBlock(cfg.cardSweep)
-  const cadence = typeof block.cadence === 'string' ? block.cadence.trim() : ''
-  const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
-  return { enabled: block.enabled === true && parseCadence(cadence) !== null, cadence, lastRun }
-}
-
-/** Save the opt-in and the cadence, keeping the last sweep. */
-export function setCardSweep(next: { enabled: boolean; cadence: string }): Saved {
-  const cadence = next.cadence.trim()
-  if ((next.enabled || cadence) && parseCadence(cadence) === null) {
-    return { ok: false, ...badCadence(cadence) }
-  }
-  return writeConfig((cfg) => {
-    const block = configBlock(cfg.cardSweep)
-    const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
-    const body = {
-      ...(next.enabled ? { enabled: true } : {}),
-      ...(cadence ? { cadence } : {}),
-      ...(lastRun ? { lastRun } : {}),
-    }
-    if (Object.keys(body).length) cfg.cardSweep = body
-    else delete cfg.cardSweep
-  })
-}
-
-/** Record a sweep that finished its work — one that found nothing to judge included. A sweep
- *  cut short leaves the stamp where it was. */
-export function stampCardSweep(when: Date = new Date()): void {
-  writeConfig((cfg) => {
-    cfg.cardSweep = { ...configBlock(cfg.cardSweep), lastRun: formatStamp(when) }
-  })
-}
+export const cardSweep = (): CadenceSchedule => readSchedule('cardSweep')
+export const setCardSweep = (next: { enabled?: boolean; cadence: string }): Saved => saveSchedule('cardSweep', next)
+/** Record a sweep that finished its work — one that found nothing to judge included. */
+export const stampCardSweep = (when: Date = new Date()): void => void stampSchedule('cardSweep', when)
 
 // ---- the memory reviewer's window (#748) ------------------------------------
 //
@@ -704,54 +586,10 @@ export function stampLeftoverPrune(when: Date): boolean {
   }).ok
 }
 
-// ---- the dismissal review's schedule (#929) ---------------------------------
-//
-//   "dismissalReview": { "enabled": false, "cadence": "3d at 08:00", "lastRun": "2026-09-19 08:00" }
-//
-// The pruner's three fields, the other way round: it ships ON and daily, so only switching it
-// off and a cadence other than the default are written down. Off keeps the cadence.
-//
-// `lastRun` is the window: when the last review that PASSED began, so a reason written while
-// it was reading is still new to the next one.
-
-/** The cadence a board that never set one reviews on. */
-export const DISMISSAL_REVIEW_CADENCE = '1d'
-
-/** What the file says about the dismissal review. A cadence nothing parses reads as off. */
-export function dismissalReview(): CadenceSchedule {
-  let block: Record<string, unknown> = {}
-  try {
-    block = configBlock(readConfigRaw().dismissalReview)
-  } catch {
-    // unreadable reads as the default
-  }
-  const cadence = (typeof block.cadence === 'string' && block.cadence.trim()) || DISMISSAL_REVIEW_CADENCE
-  const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
-  return { enabled: block.enabled !== false && parseCadence(cadence) !== null, cadence, lastRun }
-}
-
-/** Save the switch and the cadence, keeping the window. An invalid cadence saves nothing. */
-export function setDismissalReview(next: { enabled: boolean; cadence: string }): Saved {
-  const cadence = next.cadence.trim() || DISMISSAL_REVIEW_CADENCE
-  if (parseCadence(cadence) === null) {
-    return { ok: false, ...badCadence(cadence) }
-  }
-  return writeConfig((cfg) => {
-    const block = configBlock(cfg.dismissalReview)
-    const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
-    const body = {
-      ...(next.enabled ? {} : { enabled: false }),
-      ...(cadence !== DISMISSAL_REVIEW_CADENCE ? { cadence } : {}),
-      ...(lastRun ? { lastRun } : {}),
-    }
-    if (Object.keys(body).length) cfg.dismissalReview = body
-    else delete cfg.dismissalReview
-  })
-}
-
+// `dismissalReview`'s `lastRun` is also its window: when the last review that PASSED began, so
+// a reason written while it was reading is still new to the next one.
+export const dismissalReview = (): CadenceSchedule => readSchedule('dismissalReview')
+export const setDismissalReview = (next: { enabled?: boolean; cadence: string }): Saved =>
+  saveSchedule('dismissalReview', next)
 /** Move the window to a review that passed, stamped with when that review STARTED. */
-export function stampDismissalReview(when: Date): void {
-  writeConfig((cfg) => {
-    cfg.dismissalReview = { ...configBlock(cfg.dismissalReview), lastRun: formatStamp(when) }
-  })
-}
+export const stampDismissalReview = (when: Date): void => void stampSchedule('dismissalReview', when)

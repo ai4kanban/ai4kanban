@@ -22,7 +22,7 @@ import { SWEEP_REPORT, TODO } from '../paths'
 import { allCards, findCard } from '../view/read'
 import type { Card } from '../view/types'
 import { listRuns } from './sessions'
-import { cardSweep, setCardSweep, stampCardSweep } from './settings'
+import { cardSweep, scheduleClock, setCardSweep, stampCardSweep } from './settings'
 import { startRun } from './start'
 import type { RunView, SweepEnd, SweepReport, SweepRow } from './types'
 
@@ -248,26 +248,19 @@ export const canSweep = (): boolean => cardsDatable()
  *  from exactly where it was, so the window that stamp names never moves — reading the last
  *  sweep's opening against it alone would take the cadence off for good after one failure. */
 export function sweepDue(now = Date.now()): boolean {
-  const schedule = cardSweep()
-  if (!schedule.enabled) return false
-  const due = nextDue(schedule.lastRun, schedule.cadence)
+  const from = scheduleClock('cardSweep', new Date(now))
+  if (!from) return false
+  const cadence = cardSweep().cadence
+  const due = nextDue(from, cadence)
   if (!due || due.getTime() > now) return false
   const report = sweepReport()
   if (openSweep(report)) return false
   if (!report || report.startedAt < due.getTime()) return true
-  const again = nextDue(formatStamp(new Date(report.startedAt)), schedule.cadence)
+  const again = nextDue(formatStamp(new Date(report.startedAt)), cadence)
   return !!again && again.getTime() <= now
 }
 
-/** Save the cadence. Switching it off is the whole opt-in going away, so it stops the sweep
- *  already running — at the cost of that sweep losing the cards it had not reached. */
-export function saveCardSweep(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
-  const res = setCardSweep(next)
-  if (!res.ok || next.enabled) return res
-  const open = openSweep(sweepReport())
-  if (open) {
-    const rows = open.rows.map((row) => (row.runId === open.activeRunId ? { ...row, unfinished: true as const } : row))
-    close({ ...open, rows }, 'switched-off')
-  }
-  return res
-}
+/** Save the cadence. The sweep always runs (#1208), so an Off from an older screen saves
+ *  only its cadence. */
+export const saveCardSweep = (next: { enabled?: boolean; cadence: string }): { ok: boolean; error?: string } =>
+  setCardSweep(next)

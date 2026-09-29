@@ -1589,13 +1589,6 @@ export interface AgentView {
    *  neither does a WORKFLOW agent (#749) — a stage assigns it or does not, and a switch
    *  beside that assignment is a second answer to one question. */
   switchable: boolean
-  /** The direction its switch asks in, when it asks at all (#562, #748). `on` is an agent
-   *  that starts spending runs the moment it goes on — the triager. `off` is
-   *  the one whose cost lands when it STOPS: the memory reviewer is what turns a
-   *  conversation into a note, so switching it off is what loses something. Absent on every
-   *  agent whose switch goes straight through either way. The role says so itself, so a
-   *  screen never keeps a list of names. */
-  confirm?: 'on' | 'off'
   /** Whether it is on. Always true where `switchable` is false — there is nothing to be off. */
   enabled: boolean
   /** The rule it carries, in the user's own words, or empty when it has none. */
@@ -1622,22 +1615,20 @@ export interface MemoryReviewState {
   lastRun: string
 }
 
-/** The memory pruner's schedule (#514), as every reader takes it. It lives beside the
- *  board's other settings in `docs/kanban/ui.config.json`; `agent/settings.ts` owns the
- *  reading and the writing, and this is the shape the pruner's page draws from. */
-export interface MemoryPruneSchedule {
-  /** Whether the board may start a prune on its own. Off until the user asks. */
+/** One scheduled agent's cadence (#514, #119, #929) — the pruner, the sweeper and the
+ *  dismissal review. `agent/settings.ts` owns the reading and the writing. */
+export interface CadenceSchedule {
+  /** Always true since #1208 — none can be switched off. Kept for screens that read it. */
   enabled: boolean
-  /** How often, in the recurring cards' own grammar (`../cadence.ts`), or empty. */
+  /** How often, in the recurring cards' own grammar (`../cadence.ts`). */
   cadence: string
   /** The last pass that PASSED, as a minute stamp, or empty for "never run". */
   lastRun: string
+  /** Where a cadence that never ran counts from — written by the scheduler's first look. */
+  since?: string
 }
 
-/** The same three fields, under the name a second scheduled agent reads them by (#119): the
- *  sweeper's cadence sits beside the pruner's in the same file and answers the same
- *  questions. One shape, so one set of controls draws both. */
-export type CadenceSchedule = MemoryPruneSchedule
+export type MemoryPruneSchedule = CadenceSchedule
 
 /** How a sweep of the stale cards ended (#119). `cap` and `nothing` are a sweep that
  *  finished its work, and only those two stamp the cadence. */

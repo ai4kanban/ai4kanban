@@ -44,18 +44,6 @@ Our early adopters report 3–6× higher development productivity.
 
 ![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v4.png)
 
-## A fully automated coding factory (experimental)
-
-You can let agents find the next work, too.
-
-- Enable reflection to have agents review completed work and suggest other product improvements, including ideas outside the original task’s scope.
-
-- You can even automate requirements gathering. Have agents pull feature requests from Reddit threads, competitor analyses, market reports, team discussions, and meeting notes into the triage inbox. Agents review these ideas and add the most promising ones to the board.
-
-![From external inputs to release iterations](https://cdn.ai4kanban.dev/readme/automation-inputs-v1.png)
-
-**Warning:** Bad decisions can become part of project memory and lead to more bad decisions. For production software, we recommend keeping human approval at critical steps.
-
 ## Your team’s shared brain
 
 - Every decision is saved in project memory. Planning agents read it as needed.

@@ -1,10 +1,9 @@
 // Auto triage (#562): when the board sorts what is waiting without being asked.
 //
 // The judgement itself is an agent's and cannot be asserted here. What can, and what this
-// covers, is exactly the decision to start a run: the switch is off until somebody asks for
-// it and asks once before it goes on, a batch of nothing starts nothing, the switch and
-// Cloud are read again at the moment a run would start, and the sort that follows a sort
-// carries on only where the last one actually judged something.
+// covers, is exactly the decision to start a run: it always runs (#1208), a batch of nothing
+// starts nothing, Cloud is read again at the moment a run would start, and the sort that
+// follows a sort carries on only where the last one actually judged something.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -13,8 +12,6 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { triageAfterAdding, triageRunAfter, triageWaiting } from '../src/lib/agent/auto-triage.ts'
-import { agentRoster } from '../src/lib/agent/roles.ts'
-import { autoTriageOn, setAutoTriage } from '../src/lib/agent/settings.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { cmdTriageAdd, cmdTriageArchive, cmdTriageDismiss } from '../src/commands/triage.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
@@ -43,17 +40,17 @@ const admitted = (yes: boolean) => {
     })) as typeof fetch
 }
 
-/** One item waiting to be sorted, and the source id it was given. The switch is held off
+/** One item waiting to be sorted, and the source id it was given. Cloud is held closed
  *  across the add, so seeding a list never spawns the very run under test. */
 async function waiting(title: string): Promise<string> {
-  const was = autoTriageOn()
-  setAutoTriage(false)
+  const was = globalThis.fetch
+  admitted(false)
   startCollecting()
   try {
     await cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` })
   } finally {
     stopCollecting()
-    setAutoTriage(was)
+    globalThis.fetch = was
   }
   return readInbox().find((item) => item.title === title)!.sourceId
 }
@@ -131,35 +128,7 @@ afterEach(() => {
   delete process.env.AI4KANBAN_CLOUD_URL
 })
 
-describe('the switch', () => {
-  it('is off until it is turned on, and only writes itself down when it is', () => {
-    assert.equal(autoTriageOn(), false)
-
-    assert.equal(setAutoTriage(true).ok, true)
-    assert.equal(autoTriageOn(), true)
-    assert.match(fs.readFileSync(UI_CONFIG, 'utf8'), /"autoTriage": true/)
-
-    assert.equal(setAutoTriage(false).ok, true)
-    assert.equal(autoTriageOn(), false)
-    assert.doesNotMatch(fs.readFileSync(UI_CONFIG, 'utf8'), /autoTriage/)
-  })
-
-  it('is the triager’s own key, and asking before it goes on is the role’s own property', () => {
-    const role = agentRoster().find((entry) => entry.name === 'triage')!
-    assert.equal(role.setting, 'autoTriage')
-    assert.equal(role.confirm, 'on')
-    // Every switch that asks, and the direction it asks in — so no screen has to keep a
-    // list of names. The memory reviewer is the one that asks on the way OFF (#748): it is
-    // what turns a conversation into a note, so stopping it is the move worth a question.
-    assert.deepEqual(
-      agentRoster().filter((entry) => entry.confirm).map((entry) => [entry.name, entry.confirm]),
-      [
-        ['memory-reviewer', 'off'],
-        ['triage', 'on'],
-      ],
-    )
-  })
-
+describe('the roster', () => {
   it('is on the roster where triage is open, and off it where triage is not', async () => {
     const named = async (): Promise<string[]> => (await readAgents()).agents.map((a) => a.name)
     assert.ok((await named()).includes('triage'))
@@ -176,19 +145,12 @@ describe('the switch', () => {
 })
 
 describe('the sort a batch of new items starts', () => {
-  it('starts none while the switch is off', async () => {
-    await triageAfterAdding(1)
-    assert.deepEqual(readRuns(), [])
-  })
-
   it('starts none for a pull that brought nothing new', async () => {
-    setAutoTriage(true)
     await triageAfterAdding(0)
     assert.deepEqual(readRuns(), [])
   })
 
   it('starts none where Cloud no longer says this account is admitted', async () => {
-    setAutoTriage(true)
     admitted(false)
     await triageAfterAdding(1)
     assert.deepEqual(readRuns(), [])
@@ -196,7 +158,6 @@ describe('the sort a batch of new items starts', () => {
 
   // The add is the move; the sort is a best effort on top of it.
   it('leaves the item added when no sort could be started', async () => {
-    setAutoTriage(true)
     admitted(false)
     startCollecting()
     try {
@@ -211,16 +172,6 @@ describe('the sort a batch of new items starts', () => {
 })
 
 describe('the sort that follows a sort', () => {
-  beforeEach(() => setAutoTriage(true))
-
-  it('starts none while the switch is off', async () => {
-    const given = [await waiting('Something new')]
-    quiet(() => cmdTriageDismiss(given[0]!, 'too small'))
-    await waiting('And another')
-    setAutoTriage(false)
-    assert.equal(await triageRunAfter(given), null)
-  })
-
   it('starts none when Cloud stops saying this account is admitted', async () => {
     const given = [await waiting('Something new')]
     quiet(() => cmdTriageDismiss(given[0]!, 'too small'))
@@ -273,8 +224,6 @@ describe('the sort that follows a sort', () => {
 })
 
 describe('a judgement that landed', () => {
-  beforeEach(() => setAutoTriage(true))
-
   it('counts as movement whichever way it went', async () => {
     const carded = await waiting('Worth a card')
     const given = [carded, await waiting('Left for the next one')]

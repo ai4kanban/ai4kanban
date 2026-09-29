@@ -23,7 +23,6 @@ import { PLANNER, PROPOSER_MISSED, agentMemoryFile, agentMemoryFiles, memoryName
 import { KANBAN, rel } from '../paths'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
-import type { RoleSwitch } from './settings'
 import type { WorkflowStage } from './workflows'
 import type { AgentKind } from '../agents/parse'
 
@@ -42,21 +41,6 @@ const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN, PLANNER_DISMISSED]
 export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
-  /** The key in `ui.config.json` this role is switched on under, when it can be switched
-   *  off at all (#447, #493, #534, #562, #748). Most cannot: a board without a planner plans
-   *  nothing, and no WORKFLOW agent has one at all (#749, #783) — a stage assigns it or does
-   *  not. Three can, and none of them belongs to a workflow. Two spend a run the user never
-   *  asked for — the proposer reflects on what you just finished, the triager judges what
-   *  just arrived — so each is off until you ask for it. One ships on: the memory
-   *  reviewer, because nothing else writes down what a conversation settled. Each reads its
-   *  own key. */
-  switch?: RoleSwitch
-  /** The direction this role's switch asks in, when it asks at all (#447, #562, #748). A
-   *  property of the role rather than a name a screen keeps. `on` is the usual way round —
-   *  the triager turns items into cards with a refine each — and going back off never asks.
-   *  `off` is the memory reviewer, the one whose cost lands when it stops: it is what turns a conversation into a note, so
-   *  going ON is free and going off is what loses something. */
-  confirm?: 'on' | 'off'
   /** What has to be open on this board for this role to be on its roster at all (#562).
    *  `triage` is `signalsAccess()` — the answer the Triage rail row and `akb triage fetch`
    *  read. Absent on every role that works wherever its board does. */
@@ -84,10 +68,9 @@ const DISCUSSION_HELPER: AgentRole = {
   memory: [],
 }
 
-// The role that keeps the memory readable (#514). It has no switch for the same reason the
-// planner has none: a board without it simply never prunes, and Run now on its page is the
-// switch — nothing it does happens unasked until a cadence is turned on there. It owns no
-// memory file: it rewrites every one of them, and a list of all of them says nothing.
+// The role that keeps the memory readable (#514), on its cadence (./settings.ts) or Run now.
+// It owns no memory file: it rewrites every one of them, and a list of all of them says
+// nothing.
 const MEMORY_PRUNER: AgentRole = {
   name: 'memory-pruner',
   gloss: 'squeezes the memory back down to what helps planning',
@@ -100,10 +83,6 @@ const MEMORY_PRUNER: AgentRole = {
 // from the whole exchange rather than from one turn — which is how a "what if" thrown out
 // and taken back stops becoming a decision.
 //
-// It is the one role that ships ON and asks on the way OFF. Both follow from what it
-// replaced: switching it off is the only way a board stops remembering what it decided in a
-// conversation, and that is worth one question.
-//
 // It owns no memory file: it writes into the set the conversation's own card points at — a
 // module's, the project's, or a spec agent's own — so a list of all of them says nothing.
 //
@@ -113,22 +92,18 @@ const MEMORY_REVIEWER: AgentRole = {
   name: 'memory-reviewer',
   gloss: 'reads back over your conversations and writes down what they settled',
   memory: [],
-  switch: 'memoryReviewer',
-  confirm: 'off',
 }
 
-// The role that learns triage taste from dismissal reasons (#929). No roster switch: like
-// the pruner it is started by its cadence, and Off in that cadence's menu is the switch. It
-// ships on, daily (./settings.ts). It writes the planner's `dismissed.md` and nothing else.
+// The role that learns triage taste from dismissal reasons (#929), on its cadence
+// (./settings.ts). It writes the planner's `dismissed.md` and nothing else.
 const DISMISSAL_REVIEWER: AgentRole = {
   name: 'dismissal-reviewer',
   gloss: 'learns your triage preferences from the reasons you give for dismissing items',
   memory: [PLANNER_DISMISSED],
 }
 
-// The role that looks back at finished work (#534). It is off until asked for — a board
-// that turns it on spends one run per completion. What it proposes goes into the inbox to be
-// triaged. It owns one file, the kinds of follow-up it missed, which only the memory review
+// The role that looks back at finished work (#534), one run per completion. What it
+// proposes goes into the inbox to be triaged. It owns one file, the kinds of follow-up it missed, which only the memory review
 // writes when the user points one out (#1211).
 //
 // `reflect` is an event entry rather than a stage (./stages.ts): no flow a person types, and
@@ -137,28 +112,22 @@ const PROPOSER: AgentRole = {
   name: 'proposer',
   gloss: 'proposes the work a finished card leaves behind',
   memory: [`memory/agents/proposer/${PROPOSER_MISSED}`],
-  switch: 'proposer',
 }
 
 // The role that sorts what is waiting in triage (#561, #562). It owns no memory — what it
 // judged is on the card it wrote or in the `dismissed/` record that says why it did not.
 //
-// Its switch is not whether it runs: `akb triage run` is typed by hand whatever the switch
-// says. It is whether a batch of new items starts one by ITSELF, which is why turning it on
-// asks first — a sort that runs unasked writes cards unasked, and each of those carries a
-// refine. And it is on the roster only where triage is open at all (./access), so a board
-// that has no Triage row has no agent for it either.
+// A batch of new items starts one by itself; `akb triage run` starts one by hand. It is on
+// the roster only where triage is open at all (./access).
 const TRIAGER: AgentRole = {
   name: 'triage',
   gloss: 'sorts what is waiting in triage into cards and ignores',
   memory: [],
-  switch: 'autoTriage',
-  confirm: 'on',
   needs: 'triage',
 }
 
 // The role that hears a complaint about a spec (#628). Its `feedback` is an event entry,
-// no flow anyone types, and it has no switch: a user saying "this is not what I meant" in Discuss is what starts it, and
+// no flow anyone types: a user saying "this is not what I meant" in Discuss is what starts it, and
 // a board that never hears one never runs it. Partner feedback's own switch is a privacy
 // answer about the MACHINE (Configuration -> General), not a roster entry — this agent
 // understands the problem either way, and only the collecting is gated on it.
@@ -288,17 +257,9 @@ export interface RosterEntry {
   canLead: boolean
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** Whether this entry can be switched off. A workflow agent cannot (#749): a stage of a
-   *  workflow assigns it or does not, and a second switch beside that assignment is two
-   *  answers to one question. So: a specialist that declares no stage, and, of the roles,
-   *  the proposer (#534) and the triager (#562). */
+  /** Whether this entry can be switched off: only a specialist that declares no stage. A
+   *  workflow agent's stage assignment is its answer (#749), and no role has one (#1208). */
   switchable: boolean
-  /** The direction its switch asks in — the role's own `confirm`. Absent on every
-   *  specialist: one fills a section of a card and starts nothing on its own. */
-  confirm?: 'on' | 'off'
-  /** A switchable role's own key in `ui.config.json` — what says whether it is on. Absent
-   *  on every other entry: a specialist's switch is its `specAgents` entry. */
-  setting?: RoleSwitch
   /** What has to be open on this board for this entry to be offered — a role's own `needs`
    *  (#562). Absent on every entry that works wherever its board does. */
   needs?: 'triage'
@@ -355,9 +316,7 @@ export function agentRoster(): RosterEntry[] {
       canLead: role.stage !== undefined,
       ...(role.stage ? { stage: role.stage } : {}),
       builtIn: true,
-      switchable: role.switch !== undefined,
-      ...(role.confirm ? { confirm: role.confirm } : {}),
-      ...(role.switch ? { setting: role.switch } : {}),
+      switchable: false,
       ...(role.needs ? { needs: role.needs } : {}),
       flows: flowsOfAgent(role.name),
       memory: memoryOf(role),

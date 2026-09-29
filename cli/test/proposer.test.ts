@@ -19,8 +19,7 @@ import { reflectRunsAfter } from '../src/lib/agent/propose.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { chatFile } from '../src/lib/agent/chat.ts'
-import { proposerOn, setProposer } from '../src/lib/agent/settings.ts'
-import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
+import { setBoardRoot } from '../src/lib/paths.ts'
 import { cmdTriageAdd } from '../src/commands/triage.ts'
 import { readSignals } from '../src/lib/signals/index.ts'
 
@@ -100,30 +99,7 @@ afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true })
 })
 
-describe('the switch', () => {
-  it('is off until it is turned on, and only writes itself down when it is', () => {
-    assert.equal(proposerOn(), false)
-
-    assert.equal(setProposer(true).ok, true)
-    assert.equal(proposerOn(), true)
-    assert.match(fs.readFileSync(UI_CONFIG, 'utf8'), /"proposer": true/)
-
-    assert.equal(setProposer(false).ok, true)
-    assert.equal(proposerOn(), false)
-    assert.doesNotMatch(fs.readFileSync(UI_CONFIG, 'utf8'), /proposer/)
-  })
-
-  it('reflects on nothing while it is off', () => {
-    open(1)
-    const before = openNow()
-    complete(1)
-    assert.deepEqual(reflectRunsAfter(before), [])
-  })
-})
-
 describe('what archiving hands over', () => {
-  beforeEach(() => setProposer(true))
-
   it('reflects on the card that reached the archive', () => {
     open(1)
     const before = openNow()
@@ -177,13 +153,6 @@ describe('what archiving hands over', () => {
     assert.deepEqual(reflectRunsAfter([2]), [])
   })
 
-  it('reflects on nothing after the switch went off mid-run', () => {
-    open(1)
-    const before = openNow()
-    complete(1)
-    setProposer(false)
-    assert.deepEqual(reflectRunsAfter(before), [])
-  })
 })
 
 describe('the flow', () => {

@@ -271,8 +271,7 @@ const zh: ConfigurationCopy = {
     },
   },
   agents: {
-    manual: "手动",
-    automatic: "自动",
+    groups: { you: "你发起", schedule: "定期运行", event: "随事件运行" },
     back: "返回",
     copyPath: "复制路径",
     rowOn: "启用",
@@ -328,14 +327,14 @@ const zh: ConfigurationCopy = {
       "memory-pruner": {
         name: "整理记忆",
         gloss: "把记忆压回到对下一步规划真正有用的内容。",
-        trigger: "手动或定期",
+        trigger: "每 7 天",
         rule: "会附加到每次整理记忆的末尾——例如「付费客户相关的记录一律保留」。",
-        when: "你按下「立即整理」，以及你在这里开启的周期到点时。除此之外没有别的触发。",
+        when: "你按下「立即整理」时，以及每到这里设的周期。",
       },
       "dismissal-reviewer": {
         name: "回顾忽略记录",
         gloss: "从你写下的忽略原因里总结筛选偏好，供自动处理待筛选参考。",
-        trigger: "手动或定期",
+        trigger: "每天",
         when: "按所设周期，只在有新的忽略原因或恢复的条目时才跑。只读你本人写的原因。",
         rule: "会附加到每次回顾忽略记录的末尾——例如「和定价有关的原因一律不记」。",
         note: "恢复一个条目后，只靠它得出的偏好会被撤下。总结出的偏好在「记忆」里，可以随时修改或删除。",
@@ -343,41 +342,32 @@ const zh: ConfigurationCopy = {
       "memory-reviewer": {
         name: "回顾对话记忆",
         gloss: "回看有新内容的对话，把定下的事写进记忆。",
-        trigger: "每天一次",
+        trigger: "每天",
         rule: "会附加到每次回顾对话记忆的末尾——例如「只记跟发布流程有关的决定」。",
         when: "每天一次，只在有新对话时才跑。聊天本身不写记忆，写什么由这一次回顾读完整条对话之后决定。",
-        confirm: {
-          title: "关掉「回顾对话记忆」？",
-          body: "关掉之后，聊天里定下的事不再进记忆——聊天本来就不写，没人回顾就等于不记。已经记下的还留着，需要时仍可按「立即回顾」。",
-          action: "关掉",
-        },
         note: "读的是整条对话，所以前几天记下、今天被推翻的，这次直接改掉。记在哪一份，看对话挂的那张卡片。",
       },
       sweeper: {
         name: "整理搁置卡片",
         gloss: "了结那些搁置太久的卡片。",
-        trigger: "手动或定期",
+        trigger: "每 7 天",
         rule: "会附加到它每次判定的末尾——例如「当前版本里的卡片一律不要丢」。",
-        when: "你按下「立即整理」，以及你在这里开启的周期到点时。每轮最多处理 5 张搁置最久的卡片，一次一张：要么按项目今天的样子重写，要么直接下板。",
+        when: "你按下「立即整理」时，以及每到这里设的周期。每轮最多处理 5 张搁置最久的卡片，一次一张：要么按项目今天的样子重写，要么直接下板。",
         note: "一轮最多判 5 张搁置卡片，其中不值得再做的会直接下板，不会来问你。",
       },
       feedback: {
         name: "纠正方案偏差",
         gloss: "找出方案理解有误的地方，并整理相关反馈材料。",
-        trigger: "你指出偏差时",
+        trigger: "讨论中指出方案理解错时",
         rule: "会附加到它每次整理反馈的末尾——例如「务必引用方案里理解错的那句话」。",
+        when: "你在讨论里「关联之前的卡片」，并指出它的方案理解错了。它先和你确认错在哪里；对话结束时若选了「结束时分享给团队」，再把这次规划的记录整理给 AI4Kanban 团队。",
       },
       triage: {
         name: "自动处理待筛选",
         gloss: "把待筛选里的条目分成卡片和忽略两堆。",
         trigger: "新条目进来时",
         rule: "会附加到每次筛选的末尾——例如「只有一个人提过的需求一律不建卡」。",
-        when: "打开后，新条目进来它自己判一次，一直判到待筛选空了为止。每条要么建成卡片并排上一次细化，要么记下原因移进已忽略。`akb triage run` 开着关着都能手动运行。",
-        confirm: {
-          title: "打开「自动处理待筛选」？",
-          body: "从现在起，新条目不等你看就被判掉：值得做的自己建成卡片，每张新卡再花一次细化 run。随时可以关掉。",
-          action: "打开",
-        },
+        when: "新条目进来时，它自己判一次，一直判到待筛选空了为止。每条要么建成卡片并排上一次细化，要么记下原因移进已忽略。",
       },
     },
     pruner: {
@@ -385,7 +375,6 @@ const zh: ConfigurationCopy = {
       running: "整理中…",
       recurring: "定期整理",
       chipLabel: (state) => `定期整理：${state}`,
-      off: "关闭",
       cadenceLabel: (n, unit, at) => {
         const head = n === 1 ? `每${PRUNE_UNITS[unit]}` : `每 ${n} ${PRUNE_UNITS[unit]}`;
         return at ? `${head} ${at}` : head;
@@ -404,7 +393,7 @@ const zh: ConfigurationCopy = {
       presetFailed: (cadence) => `「${cadence}」保存失败，再选一次重试。`,
       neverRun: "尚未运行",
       lastRun: (when) => `上次运行 ${when}`,
-      failed: "上次运行未完成",
+      failed: "上次失败",
       saveFailed: "整理周期保存失败",
       tooOld: "这个看板的运行规则早于定期整理记忆。",
     },
@@ -413,7 +402,6 @@ const zh: ConfigurationCopy = {
       running: "整理中…",
       recurring: "定期整理搁置卡片",
       chipLabel: (state) => `定期整理：${state}`,
-      off: "关闭",
       cadenceLabel: (n, unit, at) => {
         const head = n === 1 ? `每${PRUNE_UNITS[unit]}` : `每 ${n} ${PRUNE_UNITS[unit]}`;
         return at ? `${head} ${at}` : head;
@@ -432,7 +420,7 @@ const zh: ConfigurationCopy = {
       presetFailed: (cadence) => `「${cadence}」保存失败，再选一次重试。`,
       neverRun: "尚未整理",
       lastRun: (when) => `上次整理 ${when}`,
-      failed: "上次整理未完成",
+      failed: "上次失败",
       saveFailed: "整理周期保存失败",
       tooOld: "这个看板的运行规则早于定期整理搁置卡片。",
       sweeping: "正在整理",
@@ -441,14 +429,13 @@ const zh: ConfigurationCopy = {
       viewReport: "查看报告",
       reportTitle: "整理报告",
       back: "返回",
-      neverSwept: "还没整理过——设置周期，或点「立即整理」。",
+      neverSwept: "还没整理过。",
       nothingStale: "没有需要整理的卡片：没有卡片搁置这么久，或者搁置的卡片都在等别的东西。",
       noGit: "这个项目不在 Git 仓库里，无法判断卡片搁置了多久。",
       ended: {
         cap: "已判 5 张，其余留到下一轮。",
         nothing: "没有可判的卡片了。",
         failed: "有一次运行没跑完，整理就停在了那里。",
-        switchedOff: "周期被关掉了，整理就停在了那里。",
       },
       kept: "保留",
       discarded: "下板",
@@ -463,7 +450,6 @@ const zh: ConfigurationCopy = {
       running: "回顾中…",
       recurring: "定期回顾",
       chipLabel: (state) => `定期回顾：${state}`,
-      off: "关闭",
       cadenceLabel: (n, unit, at) => {
         const head = n === 1 ? `每${PRUNE_UNITS[unit]}` : `每 ${n} ${PRUNE_UNITS[unit]}`;
         return at ? `${head} ${at}` : head;
@@ -482,21 +468,15 @@ const zh: ConfigurationCopy = {
       presetFailed: (cadence) => `「${cadence}」保存失败，再选一次重试。`,
       neverRun: "尚未回顾",
       lastRun: (when) => `上次回顾 ${when}`,
-      failed: "上次回顾未完成",
+      failed: "上次失败",
       saveFailed: "回顾周期保存失败",
       tooOld: "这个看板的运行规则早于回顾忽略记录。",
-      confirmOff: {
-        title: "关闭定期回顾？",
-        body: "新的忽略原因不再自动总结成偏好。已记下的偏好仍会被自动处理待筛选参考，周期也会保留；需要时仍可按「立即回顾」。",
-        action: "关闭",
-      },
     },
     memoryReviewer: {
       run: "立即回顾",
       running: "回顾中…",
       lastRun: (when) => `上次回顾 ${when}`,
       neverRun: "尚未回顾",
-      off: "已关闭",
       startFailed: "回顾启动失败",
     },
     specialistRule: {

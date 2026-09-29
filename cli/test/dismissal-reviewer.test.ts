@@ -162,11 +162,11 @@ describe('the review the board starts on its own', () => {
     assert.deepEqual(await work(), ['review-dismissals'])
   })
 
-  it('starts nothing once switched off, and keeps the cadence', async () => {
+  it('still starts one where an older screen asked for Off, and keeps the cadence (#1208)', async () => {
     item('mine', 'dismissed', { reason: 'not for us' })
     assert.deepEqual(setDismissalReview({ enabled: false, cadence: '3d' }), { ok: true })
-    assert.deepEqual(dismissalReview(), { enabled: false, cadence: '3d', lastRun: '' })
-    assert.deepEqual(await work(), [])
+    assert.deepEqual(dismissalReview(), { enabled: true, cadence: '3d', lastRun: '' })
+    assert.deepEqual(await work(), ['review-dismissals'])
   })
 
   it('keeps a changed cadence across a reload, and is due on it', async () => {

@@ -169,7 +169,7 @@ export const FLOWS: Flow[] = [
     gloss: 'squeeze the memory back down to what helps planning',
     more: [
       'The project, the modules and the agents, in one run. Configuration → Board → Memory pruner is ' +
-        'where it is started and where a recurring pass is switched on.',
+        'where it is started and where its cadence is set.',
     ],
   },
   // The memory reviewer's one flow (#748). Typed bare, beside the prune: it acts on the
@@ -182,7 +182,7 @@ export const FLOWS: Flow[] = [
     more: [
       'Chats write no memory themselves — this is what does. Daily, over every conversation with ' +
         'new messages since the last review that passed; Configuration → Board → Review chat memory ' +
-        'is where it is switched off and where Review now is.',
+        'is where Review now is.',
     ],
   },
   // The dismissal reviewer's one flow (#929). Typed bare: it acts on the dismissals.

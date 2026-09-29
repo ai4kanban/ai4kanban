@@ -17,7 +17,6 @@
 // nothing is watching that write, and somebody is standing there anyway.
 
 import { readArchive } from '../view/archive'
-import { proposerOn } from './settings'
 import { startRun } from './start'
 import { withStore } from './store'
 import type { AgentRequest } from './types'
@@ -26,13 +25,9 @@ import type { AgentRequest } from './types'
  *  up. `openBefore` is every card that was still on the board when the caller started
  *  watching; a card that was there then and is in the archive now has just completed.
  *
- *  Empty when the proposer is switched off — read here, as the runs would start, so
- *  switching it off stops what an archiving run had lined up.
- *
  *  A card that already has a reflect run is skipped. Two runs' windows overlap all the
  *  time, and both would otherwise see the same completion and reflect on it twice. */
 export function reflectRunsAfter(openBefore: Iterable<number>): AgentRequest[] {
-  if (!proposerOn()) return []
   const before = new Set(openBefore)
   if (!before.size) return []
   let done: { id: number; title: string }[]

@@ -18,7 +18,6 @@ import { agentForFlow } from '../src/lib/agent/stages.ts'
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
 import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
-import { memoryReviewerOn, proposerOn } from '../src/lib/agent/settings.ts'
 import { RULES, setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { move, refuses } from './helpers/board.ts'
 
@@ -179,62 +178,30 @@ describe('the roles', () => {
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
     assert.deepEqual(agentRoster()[10]!.flows, [])
-    // Three roles can be switched off, each under a key of its own (#534, #562, #748). None
-    // belongs to a workflow: an agent a stage assigns has no switch (#749).
-    assert.deepEqual(
-      agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
-      [
-        ['memory-reviewer', 'memoryReviewer'],
-        ['proposer', 'proposer'],
-        ['triage', 'autoTriage'],
-      ],
-    )
-    // And no agent carrying a stage carries a switch.
+    // No role has a switch (#1208), and no agent carrying a stage does (#749).
+    assert.deepEqual(agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => a.name), [])
     assert.deepEqual(agentRoster().filter((a) => a.stage && a.switchable).map((a) => a.name), [])
-    // And two of them ask before their switch moves — the direction included, and a
-    // property of the role, so no screen keeps a list of names (#562, #748).
-    assert.deepEqual(
-      agentRoster().filter((a) => a.confirm).map((a) => [a.name, a.confirm]),
-      [
-        ['memory-reviewer', 'off'],
-        ['triage', 'on'],
-      ],
-    )
   })
 })
 
-// The proposer (#534), the triager (#562) and the memory reviewer (#748) — three board
-// agents, three switches, three keys.
-describe('the roles that can be switched off', () => {
+// The proposer, the triager and the memory reviewer used to have switches (#534, #562, #748).
+describe('the board helpers are always on (#1208)', () => {
   const on = async (name: string): Promise<boolean> =>
     (await readAgents()).agents.find((a) => a.name === name)!.enabled
 
-  it('starts on the side its role ships, and every role that has no switch stays on', async () => {
-    assert.equal(await on('proposer'), false)
-    // The one switchable role that ships ON: a conversation is remembered unless you say
-    // otherwise.
-    assert.equal(await on('memory-reviewer'), true)
-    for (const always of ['discussion-helper', 'software-planner', 'builder']) {
-      assert.equal(await on(always), true, always)
+  it('reads a key an earlier release wrote to switch one off as on', async () => {
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ proposer: false, autoTriage: false, memoryReviewer: false }))
+    for (const name of ['proposer', 'memory-reviewer', 'discussion-helper', 'software-planner', 'builder']) {
+      assert.equal(await on(name), true, name)
     }
   })
 
-  it('reads the key the board already wrote', async () => {
-    fs.writeFileSync(UI_CONFIG, JSON.stringify({ proposer: true }))
-    assert.equal(await on('proposer'), true)
-    // The memory reviewer the other way round: its key is only ever written to turn it off.
-    fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryReviewer: false }))
-    assert.equal(await on('memory-reviewer'), false)
-  })
-
-  it('switches one without touching the other, each under its own key', async () => {
-    assert.equal(setSpecAgentEnabled('proposer', true).ok, true)
-    assert.equal(proposerOn(), true)
-    assert.equal(memoryReviewerOn(), true)
-
-    assert.equal(setSpecAgentEnabled('memory-reviewer', false).ok, true)
-    assert.equal(proposerOn(), true)
-    assert.equal(memoryReviewerOn(), false)
+  it('refuses to switch one off, the way every other role refuses', () => {
+    for (const name of ['proposer', 'triage', 'memory-reviewer']) {
+      const res = setSpecAgentEnabled(name, false)
+      assert.equal(res.ok, false, name)
+      assert.match(res.error!, /can't be switched off/)
+    }
   })
 
   // The retired roles are gone: nothing answers to their names.

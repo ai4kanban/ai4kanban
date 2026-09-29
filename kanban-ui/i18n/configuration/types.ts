@@ -247,10 +247,9 @@ export type ConfigurationCopy = {
    *  under Configuration → Board: its rule, what it remembers, its settings, and a project
    *  agent's own `AGENT.md`. */
   agents: {
-    /** The two groups Configuration → Board's column is split into (#742), named for what
-     *  starts an agent: the ones you call yourself, and the ones the board may start. */
-    manual: string;
-    automatic: string;
+    /** The three groups Configuration → Board's column is split into (#742, #1208), named for
+     *  what starts an agent: you, a schedule, or an event. */
+    groups: { you: string; schedule: string; event: string };
     /** The way back out of the sweep report (#119). */
     back: string;
     /** The one press beside a project agent's file path. */
@@ -307,10 +306,6 @@ export type ConfigurationCopy = {
      *  triager (#562) are started by something you can point at, the discussion helper by you talking to it (#502), and every other role is
      *  called by its flows.
      *
-     *  `confirm` only on a role whose switch asks before it moves — the board says which
-     *  ones and in which direction (`AgentView.confirm`), and these are the words it asks
-     *  in. `action` is the label on the button that does the move, so it reads "Turn on" on
-     *  a role that asks on the way on and "Turn off" on the one that asks on the way off.
      *  `note` is the quiet line under the instructions box, on a role with something left to
      *  say there.
      *
@@ -325,32 +320,25 @@ export type ConfigurationCopy = {
         rule: string;
         when?: string;
         trigger?: string;
-        confirm?: { title: string; body: string; action: string };
         note?: string;
       }
     >;
-    /** The memory pruner (#514) — one of the agents whose page carries an action rather
-     *  than only settings: it prunes when you press Run now, and on the cadence you opt into. */
+    /** The memory pruner (#514) — it prunes when you press Run now, and on its cadence. */
     pruner: CadenceCopy;
     /** The sweeper (#119) — the same controls as the pruner's, plus the report of the sweep
-     *  they start. The cadence is its whole opt-in: it sweeps nothing until one is saved. */
+     *  they start. */
     sweeper: CadenceCopy & SweepCopy;
-    /** The dismissal reviewer (#929) — the pruner's controls; Off in its menu asks first. */
+    /** The dismissal reviewer (#929) — the pruner's controls. */
     dismissalReviewer: CadenceCopy;
     /** The memory reviewer (#748) — another agent whose page carries an action: it reads
-     *  the conversations every day, and **Review now** asks for one whatever the switch
-     *  says. No cadence beside it, so the quiet line under the button is the whole of what
-     *  the group reports. */
+     *  the conversations every day, and **Review now** asks for one. */
     memoryReviewer: {
       /** The action, and what it reads while a review is going. */
       run: string;
       running: string;
-      /** The quiet line: the last review that passed, or that there has never been one.
-       *  `off` goes in front of either while the agent is switched off — Review now still
-       *  works, so the one control left is where that is said. */
+      /** The last review that passed, or that there has never been one. */
       lastRun: (when: string) => string;
       neverRun: string;
-      off: string;
       /** A review the board refused to start. */
       startFailed: string;
     };
@@ -839,8 +827,6 @@ export type CadenceCopy = {
   /** The compact schedule chip beside it, and the name of the cadence list it opens. */
   recurring: string;
   chipLabel: (state: string) => string;
-  /** The list's first cadence, and what the chip says while nothing repeats. */
-  off: string;
   /** A cadence in the reader's own words — what the chip, the ticked row and every
    *  accessible name say in place of `6h` or `1d at 09:30`. `at` is empty when the
    *  cadence names no time of day. */
@@ -861,16 +847,14 @@ export type CadenceCopy = {
   outOfRange: (unit: string, min: number, max: number) => string;
   /** A preset the board refused, said at the foot of the list it was pressed in. */
   presetFailed: (cadence: string) => string;
-  /** The quiet line under the action group. */
+  /** The last line of the cadence list. */
   neverRun: string;
   lastRun: (when: string) => string;
-  /** Beside Run now when the last one did not finish. */
+  /** Beside the controls when the last one did not finish. */
   failed: string;
   /** A save the board refused, and rules that predate this schedule. */
   saveFailed: string;
   tooOld: string;
-  /** Asked at the list's foot before Off saves — only on a schedule that ships on. */
-  confirmOff?: { title: string; body: string; action: string };
 };
 
 /** What the sweeper's page says beyond its controls (#119): the compact summary under the
@@ -896,7 +880,6 @@ export type SweepCopy = {
     cap: string;
     nothing: string;
     failed: string;
-    switchedOff: string;
   };
   /** One row: its verdict, how long the card had sat, and the two rows that carry none. */
   kept: string;

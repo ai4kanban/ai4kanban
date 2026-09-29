@@ -22,17 +22,14 @@ import { reconcileTriage } from '../signals/carded'
 import { readInbox } from '../signals/inbox'
 import { migrateTriage } from '../signals/migrate'
 import { signalsAccess } from '../signals/access'
-import { autoTriageOn } from './settings'
 import { startRun } from './start'
 import { itemsBeingCarded } from './store'
 import type { AgentRequest } from './types'
 
-/** Whether the board may start a sort by itself right now. Read at the moment a run would
- *  start, never earlier: switching the key off, or Cloud going quiet, stops the sort a
- *  write or a close had lined up. Cloud that cannot be reached reads as closed — the same
+/** Whether the board may start a sort by itself right now — read as a run would start, so
+ *  Cloud going quiet stops a sort already lined up. Unreachable reads as closed, the same
  *  answer the Triage row and a fetch take. */
 async function mayStart(): Promise<boolean> {
-  if (!autoTriageOn()) return false
   try {
     return (await signalsAccess()).open
   } catch {

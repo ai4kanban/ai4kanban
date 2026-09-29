@@ -179,8 +179,7 @@ const en: ConfigurationCopy = {
     },
   },
   agents: {
-    manual: "Manual",
-    automatic: "Automatic",
+    groups: { you: "You start", schedule: "On a schedule", event: "On an event" },
     back: "Back",
     copyPath: "Copy path",
     rowOn: "On",
@@ -237,14 +236,14 @@ const en: ConfigurationCopy = {
       "memory-pruner": {
         name: "Tidy memory",
         gloss: "Squeezes the memory back down to what helps planning.",
-        trigger: "By hand or on a cadence",
+        trigger: "Every 7 days",
         rule: 'Added to the end of every prune — "never drop a line about a paying customer".',
-        when: "you press Run now, and on the cadence you opt into here. Nothing else starts it.",
+        when: "you press Run now, and on the schedule set here.",
       },
       "dismissal-reviewer": {
         name: "Learn from dismissals",
         gloss: "Turns the reasons you give for dismissing items into preferences Auto-sort Triage follows.",
-        trigger: "By hand or on a cadence",
+        trigger: "Every day",
         when: "on your schedule, if there are new dismissal reasons or restored items. Only reasons you wrote count.",
         rule: 'Added to the end of every review — "skip reasons about pricing".',
         note: "Restoring an item withdraws any preference that rested on it alone. Learned preferences are in Memory, where you can edit or delete them.",
@@ -252,41 +251,32 @@ const en: ConfigurationCopy = {
       "memory-reviewer": {
         name: "Review chat memory",
         gloss: "Saves decisions from your chats to memory.",
-        trigger: "Daily",
+        trigger: "Every day",
         rule: 'Added to the end of every review — "only remember release decisions".',
         when: "there are chats with new messages. Chats save nothing themselves — this reads each one right through and decides from the whole conversation.",
-        confirm: {
-          title: "Turn off daily review?",
-          body: "Chat decisions will no longer be saved automatically. Existing memory stays. You can still use Review now.",
-          action: "Turn off",
-        },
         note: "It reads whole conversations, so a decision you have since changed is corrected instead of saved twice. Which memory it goes in follows the card the chat is on.",
       },
       sweeper: {
         name: "Tidy stalled cards",
         gloss: "Settles the cards that have sat too long.",
-        trigger: "By hand or on a cadence",
+        trigger: "Every 7 days",
         rule: 'Added to the end of every verdict it gives — "never discard a card in the current release".',
-        when: "you press Run now, and on the cadence you opt into here. One sweep takes up to five of the longest-sitting cards, one at a time: each is either rewritten for the project as it is today, or discarded.",
+        when: "you press Run now, and on the schedule set here. One sweep takes up to five of the longest-sitting cards, one at a time: each is either rewritten for the project as it is today, or discarded.",
         note: "A sweep judges at most five stalled cards, and discards the ones no longer worth doing without asking you.",
       },
       feedback: {
         name: "Fix a plan that missed",
         gloss: "Finds where a plan misread you, and packs the feedback together.",
-        trigger: "When you say it missed",
+        trigger: "When you say a plan misread you",
         rule: 'Added to the end of every feedback it packs — "always quote the line of the plan that missed it".',
+        when: "you link an earlier card in a discussion and say its plan misread you. It first confirms with you where it went wrong; if you chose to share with the team when the chat ends, it packs that planning's record for the AI4Kanban team.",
       },
       triage: {
         name: "Auto-sort Triage",
         gloss: "Sorts what is waiting in Triage into cards and ignores.",
         trigger: "When new items arrive",
         rule: 'Added to the end of every sort — "never card anything that only one person asked for".',
-        when: "this is on and new items arrive — it sorts them itself, and keeps going until nothing is waiting. Each item becomes a card with a refine scheduled on it, or is ignored with the reason. `akb triage run` sorts whether it is on or off.",
-        confirm: {
-          title: 'Turn on "Auto-sort Triage"?',
-          body: "From now on a new item is judged before you see it: the ones worth doing become cards by themselves, each costing one more refine run. Switch it off whenever you like.",
-          action: "Turn on",
-        },
+        when: "new items arrive — it sorts them itself, and keeps going until nothing is waiting. Each item becomes a card with a refine scheduled on it, or is ignored with the reason.",
       },
     },
     pruner: {
@@ -294,7 +284,6 @@ const en: ConfigurationCopy = {
       running: "Running…",
       recurring: "Recurring pruning",
       chipLabel: (state) => `Recurring pruning: ${state}`,
-      off: "Off",
       cadenceLabel: (n, unit, at) => {
         const head = n === 1 ? `Every ${PRUNE_UNIT_ONE[unit]}` : `Every ${n} ${PRUNE_UNITS[unit].toLowerCase()}`;
         return at ? `${head} at ${at}` : head;
@@ -313,7 +302,7 @@ const en: ConfigurationCopy = {
       presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
       neverRun: "Never run",
       lastRun: (when) => `Last run ${when}`,
-      failed: "Last run did not finish",
+      failed: "Last run failed",
       saveFailed: "Couldn't save the prune schedule.",
       tooOld: "This board's rules are older than scheduled pruning.",
     },
@@ -322,7 +311,6 @@ const en: ConfigurationCopy = {
       running: "Sweeping…",
       recurring: "Recurring sweep",
       chipLabel: (state) => `Recurring sweep: ${state}`,
-      off: "Off",
       cadenceLabel: (n, unit, at) => {
         const head = n === 1 ? `Every ${PRUNE_UNIT_ONE[unit]}` : `Every ${n} ${PRUNE_UNITS[unit].toLowerCase()}`;
         return at ? `${head} at ${at}` : head;
@@ -341,7 +329,7 @@ const en: ConfigurationCopy = {
       presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
       neverRun: "Never swept",
       lastRun: (when) => `Last swept ${when}`,
-      failed: "Last sweep did not finish",
+      failed: "Last run failed",
       saveFailed: "Couldn't save the sweep schedule.",
       tooOld: "This board's rules are older than scheduled sweeping.",
       sweeping: "Sweeping now",
@@ -351,7 +339,7 @@ const en: ConfigurationCopy = {
       viewReport: "View report",
       reportTitle: "Sweep report",
       back: "Back",
-      neverSwept: "Nothing swept yet — set a cadence, or press Run now.",
+      neverSwept: "Nothing swept yet.",
       nothingStale:
         "Nothing to sweep: no card has sat that long, or every stalled card is waiting on something else.",
       noGit: "This project is not in a Git repository, so nothing here can tell how long a card has sat.",
@@ -359,7 +347,6 @@ const en: ConfigurationCopy = {
         cap: "Five cards judged. The rest wait for the next sweep.",
         nothing: "Nothing left to judge.",
         failed: "A run did not finish, so the sweep stopped there.",
-        switchedOff: "The cadence was switched off, so the sweep stopped there.",
       },
       kept: "Kept",
       discarded: "Discarded",
@@ -374,7 +361,6 @@ const en: ConfigurationCopy = {
       running: "Reviewing…",
       recurring: "Recurring review",
       chipLabel: (state) => `Recurring review: ${state}`,
-      off: "Off",
       cadenceLabel: (n, unit, at) => {
         const head = n === 1 ? `Every ${PRUNE_UNIT_ONE[unit]}` : `Every ${n} ${PRUNE_UNITS[unit].toLowerCase()}`;
         return at ? `${head} at ${at}` : head;
@@ -393,21 +379,15 @@ const en: ConfigurationCopy = {
       presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
       neverRun: "Never reviewed",
       lastRun: (when) => `Last review ${when}`,
-      failed: "Last review did not finish",
+      failed: "Last run failed",
       saveFailed: "Couldn't save the review schedule.",
       tooOld: "This board's rules are older than learning from dismissals.",
-      confirmOff: {
-        title: "Turn off recurring review?",
-        body: "New dismissal reasons will no longer become preferences on their own. Learned ones stay in use by Auto-sort Triage and the schedule is kept. Review now still works.",
-        action: "Turn off",
-      },
     },
     memoryReviewer: {
       run: "Review now",
       running: "Reviewing…",
       lastRun: (when) => `Last review ${when}`,
       neverRun: "Never reviewed",
-      off: "Off",
       startFailed: "Couldn't start the review.",
     },
     specialistRule: {

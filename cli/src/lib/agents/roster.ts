@@ -17,7 +17,7 @@ import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
 import { forgetWorkflowAgent, settleWorkflows, type WorkflowStage } from '../agent/workflows'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
-import { configBlock, forgetSpecAgent, specAgentEntries, switchedOn, writeConfig } from '../agent/settings'
+import { configBlock, forgetSpecAgent, specAgentEntries, writeConfig } from '../agent/settings'
 import type { AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { signalsAccess } from '../signals/access'
@@ -64,20 +64,10 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       kind: entry.kind,
       ...(entry.stage ? { stage: entry.stage } : {}),
       builtIn: entry.builtIn,
-      // A role runs the board's own flows, so there is normally nothing to switch off: a
-      // board without a planner plans nothing. The proposer, the triager and the memory
-      // reviewer are the exceptions (#534, #562, #748) — each reads its own key in the board's
-      // settings rather than a `specAgents` entry, and its own default with it. No WORKFLOW
-      // agent has a switch (#749): its stage assignment is the answer.
+      // No role has a switch (#1208), and no workflow agent (#749) — only a specialist no
+      // workflow reaches. An entry with no switch is on, whatever an older key still says.
       switchable: entry.switchable,
-      confirm: entry.confirm,
-      // An entry with no switch is on, whatever a key left over from an earlier release
-      // still says (#749) — a workflow agent runs when a stage assigns it.
-      enabled: !entry.switchable
-        ? true
-        : entry.kind === 'role'
-          ? !entry.setting || switchedOn(entry.setting)
-          : specAgentEnabled(entry.name, entries),
+      enabled: !entry.switchable || specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),
       memory: entry.memory,
       settings: agent ? agentSettingsView(agent) : [],

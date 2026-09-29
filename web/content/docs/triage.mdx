@@ -39,7 +39,7 @@ Triage is deliberately outside `todo/`. An item is never scheduled, never ranked
 counted in your board numbers — it is somebody else's sentence, waiting for a decision about
 whether there is work in it. Cards are what has been decided. Who decides is yours to pick:
 you, by reading the list, or the **Triage** agent, which judges each item and cards what
-survives. It is off until you switch it on.
+survives as it arrives.
 
 Items arrive by themselves — from an endpoint, from the **Proposer**, from `akb triage add`.
 To ask for work yourself, use **New task**. Ignoring an item moves its file to
@@ -53,8 +53,7 @@ akb triage run
 ```
 
 **Sort all** on the page starts the same run. One run judges every item waiting, one at a time. What survives becomes a card; everything
-else moves to `dismissed/` with the reason. This command works whether or not the switch
-below is on.
+else moves to `dismissed/` with the reason.
 
 Each item is judged twice over: first for duplicates — already supported, already covered by
 an open card, or turned down before — then for whether it would actually improve the product.
@@ -72,14 +71,10 @@ whichever lands first wins, and the other side skips that item.
 
 ### Let it sort by itself
 
-**Configuration → Board → Triage** carries the switch. Off by default, and it asks once
-before it goes on, because what it turns on is the board judging an item before you have
-seen it:
+A new item is judged before you see it: the ones worth doing become cards by themselves,
+each costing one more refine run.
 
-> **From now on a new item is judged before you see it.** The ones worth doing become cards
-> by themselves, each costing one more refine run.
-
-With it on, every batch of new items starts one sort — a pull and `akb triage add` alike, so an item the **Proposer** writes is judged like any other. A pull
+Every batch of new items starts one sort — a pull and `akb triage add` alike, so an item the **Proposer** writes is judged like any other. A pull
 that brought nothing new starts nothing.
 
 A sort reads the list once, when it starts, so anything that arrives while it goes is unseen.
@@ -90,12 +85,7 @@ waiting. Three things stop the chain, and each waits for the next batch of items
 - **A sort that judged nothing.** One item no sort can get through would otherwise start
   sorts forever.
 - **A sort that failed or was stopped.** Neither is a judgement; the items stay where they are.
-- **The switch going off, or Triage closing.** Both are read again each time a sort would
-  start. A sort already going finishes.
-
-Switching it on does not sweep what is already waiting — a setting change is not a reason to
-spend a backlog's worth of runs. Those items go with the next batch, or with a
-`akb triage run` you type.
+- **Triage closing.** Read again each time a sort would start. A sort already going finishes.
 
 ### What a card it wrote says
 
@@ -245,8 +235,7 @@ when it is longer than a line or two. Neither needs an endpoint or a Cloud accou
 already waiting, or already made into a card, is refused and told where it is; one only
 ignored is taken.
 
-This is also where the board's own **Proposer** writes: with it switched on, every card you
-archive is reflected on and what should follow it lands here, carrying the card that prompted
-it. See [Agents](/docs/agents). With **Triage** on as well, what it proposes is sorted
-without being read — the board's own follow-ups become cards the same way an outside item
+This is also where the board's own **Proposer** writes: every card you archive is reflected on
+and what should follow it lands here, carrying the card that prompted it. See
+[Agents](/docs/agents). What it proposes is sorted by **Triage** without being read — the board's own follow-ups become cards the same way an outside item
 does.

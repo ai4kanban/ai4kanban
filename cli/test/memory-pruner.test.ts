@@ -1,10 +1,10 @@
 // Pruning as an agent rather than a card (#514).
 //
-// What is asked here: the schedule is off until somebody asks for it and an invalid cadence
-// can never turn it on, the board starts a prune only when an enabled schedule is due, a
-// pass that failed does not fire again on the next tick, and a board still carrying the old
-// "Prune the memory" card is migrated once — the card goes, its cadence stays, and
-// recurrence stays off across a restart.
+// What is asked here: the schedule always runs, every 7 days unless somebody sets another
+// cadence (#1208); an invalid cadence is refused; the first prune lands a whole cadence after
+// the board first looks; a pass that failed does not fire again on the next tick; and a board
+// still carrying the old "Prune the memory" card is migrated once — the card goes, its
+// cadence stays.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -84,10 +84,8 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe("the pruner's schedule", () => {
-  it('is off with no cadence until somebody asks for one', () => {
-    assert.deepEqual(memoryPrune(), { enabled: false, cadence: '', lastRun: '' })
-    // Nothing is written down until there is something to write: the file records what
-    // somebody changed, never the default.
+  it('runs every 7 days until somebody sets a cadence, and writes nothing down', () => {
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '7d', lastRun: '' })
     assert.equal(fs.existsSync(UI_CONFIG), false)
   })
 
@@ -99,30 +97,44 @@ describe("the pruner's schedule", () => {
     assert.deepEqual(memoryPrune(), { enabled: true, cadence: '1d at 09:30', lastRun: '' })
   })
 
-  it('reads a hand-written switch with no usable cadence as off', () => {
+  it('reads a hand-written cadence nothing parses as the default', () => {
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { enabled: true, cadence: 'soon' } }))
-    assert.equal(memoryPrune().enabled, false)
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '7d', lastRun: '' })
   })
 
-  it('keeps the last pass when the switch is turned off, and turning it off drops the key', () => {
-    setMemoryPrune({ enabled: true, cadence: '30m' })
-    stampMemoryPrune(new Date(2026, 8, 8, 9, 30))
-    assert.equal(memoryPrune().lastRun, '2026-09-08 09:30')
+  it('reads a schedule an earlier release switched off as on, at its saved cadence', () => {
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { enabled: false, cadence: '3d' } }))
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '3d', lastRun: '' })
+  })
 
-    setMemoryPrune({ enabled: false, cadence: '30m' })
-    assert.deepEqual(memoryPrune(), { enabled: false, cadence: '30m', lastRun: '2026-09-08 09:30' })
+  it('ignores Off from an older screen, saving only the cadence and keeping the stamps', () => {
+    stampMemoryPrune(new Date(2026, 8, 8, 9, 30))
+    assert.equal(setMemoryPrune({ enabled: false, cadence: '1d' }).ok, true)
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '1d', lastRun: '2026-09-08 09:30' })
     assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryPrune.enabled, undefined)
   })
 })
 
 describe('the prune the board starts on its own', () => {
-  it('starts nothing while recurrence is off, whatever cadence is saved', async () => {
-    setMemoryPrune({ enabled: false, cadence: '30m' })
+  it('starts none on its first look, and counts the cadence from that look', async () => {
+    assert.deepEqual(await work(), [])
+    const since = JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryPrune.since
+    assert.match(since, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+    // Never run is still what the page says, and a cadence change keeps the start.
+    assert.equal(memoryPrune().lastRun, '')
+    setMemoryPrune({ enabled: true, cadence: '6h' })
+    assert.equal(memoryPrune().since, since)
     assert.deepEqual(await work(), [])
   })
 
-  it('starts one once an enabled schedule is due', async () => {
+  it('starts one once a cadence has passed since that look', async () => {
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { since: '2026-01-01 09:00' } }))
+    assert.deepEqual(await work(), [{ action: 'prune-memory' }])
+  })
+
+  it('starts one once the cadence has passed since the last pass', async () => {
     setMemoryPrune({ enabled: true, cadence: '30m' })
+    stampMemoryPrune(new Date(Date.now() - 60 * 60_000))
     assert.deepEqual(await work(), [{ action: 'prune-memory' }])
   })
 
@@ -134,12 +146,14 @@ describe('the prune the board starts on its own', () => {
 
   it('does not fire again after a pass that failed in the same window', async () => {
     setMemoryPrune({ enabled: true, cadence: '30m' })
+    stampMemoryPrune(new Date(Date.now() - 60 * 60_000))
     pastRun('error', Date.now() - 1000)
     assert.deepEqual(await work(), [])
   })
 
   it('starts nothing while a pass is going', async () => {
     setMemoryPrune({ enabled: true, cadence: '30m' })
+    stampMemoryPrune(new Date(Date.now() - 60 * 60_000))
     pastRun('running', Date.now() - 1000)
     assert.deepEqual(await work(), [])
   })
@@ -155,15 +169,14 @@ describe('the prune the board starts on its own', () => {
 })
 
 describe('a board still carrying the prune card', () => {
-  it('loses the card once and keeps its cadence, switched off', () => {
+  it('loses the card once and keeps its cadence', () => {
     pruneCard('1d at 09:30')
     const removed = migratePruneMemoryCard()
     assert.match(removed!, /9-prune-the-memory\.md$/)
-    assert.deepEqual(memoryPrune(), { enabled: false, cadence: '1d at 09:30', lastRun: '' })
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '1d at 09:30', lastRun: '' })
     assert.deepEqual(fs.readdirSync(path.join(kanban(), 'todo', 'recurring')), [])
     // And a second pass finds nothing to do, so re-running the repair is free.
     assert.equal(migratePruneMemoryCard(), null)
-    assert.equal(memoryPrune().enabled, false)
   })
 
   it('never overwrites a cadence already set on the agent', () => {
@@ -176,14 +189,6 @@ describe('a board still carrying the prune card', () => {
   it('takes a card with no cadence off without writing a preference', () => {
     pruneCard('')
     assert.ok(migratePruneMemoryCard())
-    assert.deepEqual(memoryPrune(), { enabled: false, cadence: '', lastRun: '' })
-  })
-
-  it('stays off after a restart', async () => {
-    pruneCard('30m')
-    migratePruneMemoryCard()
-    setBoardRoot(root) // the next process opens the same board
-    assert.equal(memoryPrune().enabled, false)
-    assert.deepEqual(await work(), [])
+    assert.equal(fs.existsSync(UI_CONFIG), false)
   })
 })
