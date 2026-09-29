@@ -94,6 +94,11 @@ export type BoardCopy = {
       send: string;
       /** Esc keeps a discussion rather than throwing it away, so it says so. */
       keysDiscuss: string;
+      /** An existing discussion before its first read lands (#1217) — read aloud only. */
+      opening: string;
+      /** …and when that read failed, or found the discussion gone. */
+      openFailed: string;
+      retry: string;
       /** The guard Build now opens under the plan. Nothing starts until it is confirmed. */
       guard: {
         title: string;

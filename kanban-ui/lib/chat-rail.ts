@@ -97,6 +97,10 @@ export interface ChatRail {
   unread: boolean;
   /** The conversation as the server last read it — null until the first read lands. */
   read: ChatRead | null;
+  /** The last read threw before any read of this conversation landed (#1217). */
+  readFailed: boolean;
+  /** Read again now, after a failed first read. */
+  retry(): void;
   /** The reply being written this second, as far as it has got — this server's own, so it
    *  is also the one that can be stopped. Null from the moment it is stopped. */
   live: string | null;
@@ -219,6 +223,7 @@ export function useChatRail({
   const openRef = useRef(open);
   openRef.current = open;
   const [read, setRead] = useState<ChatRead | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
   const [draft, setDraft] = useDraft(projectRoot, cardId);
   const [error, setError] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
@@ -250,6 +255,7 @@ export function useChatRail({
   if (showing !== cardId) {
     setShowing(cardId);
     setRead(null);
+    setReadFailed(false);
     setError(null);
     setHeld(null);
     setWalked(null);
@@ -345,6 +351,7 @@ export function useChatRail({
         if (!alive) return;
         answeringNow = next.live !== null || next.answering;
         setRead(next);
+        setReadFailed(false);
         // The first read only takes the fingerprint down — there is nothing to compare it
         // against yet, and firing on it would re-read a page that had only just rendered.
         let moved = false;
@@ -358,7 +365,8 @@ export function useChatRail({
         }
         if (moved) changedRef.current?.({ cardGone: next.cardGone });
       } catch {
-        // transient — the next tick tries again
+        // transient — the next tick tries again; a conversation never read says so
+        if (alive) setReadFailed(true);
       } finally {
         inFlight = false;
       }
@@ -386,6 +394,11 @@ export function useChatRail({
     // `anyFlight` restarts the loop when a reply starts or ends, so the cadence follows it
     // rather than waiting out a slow tick to notice.
   }, [cardId, open, anyFlight]);
+
+  const retry = useCallback(() => {
+    setReadFailed(false);
+    kickRef.current();
+  }, []);
 
   // Reading is what marks a reply read: the rail is up and the words are on screen. A
   // conversation this window has never looked at is adopted as read instead — one held in a
@@ -814,6 +827,8 @@ export function useChatRail({
     overlay,
     unread,
     read: shown,
+    readFailed: readFailed && read === null,
+    retry,
     live,
     answering,
     stopped,

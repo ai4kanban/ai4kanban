@@ -71,6 +71,9 @@ const zh: BoardCopy = {
       workflow: { label: "工作流", manage: "管理工作流" },
       send: "发送",
       keysDiscuss: "Esc 关闭并保留这次讨论",
+      opening: "正在载入讨论…",
+      openFailed: "讨论载入失败。",
+      retry: "重试",
       guard: {
         title: "写一张卡片，立即开始？",
         writes: "先写一张卡片：标题自动生成，正文就是这份方案。",

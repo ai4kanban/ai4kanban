@@ -16,23 +16,38 @@ import { Window } from "./Window";
 /** How long a read may take before its skeleton shows, so a quick card never flashes one. */
 const SKELETON_MS = 300;
 
-function Skeleton() {
-  const c = useCopy().card.opening;
+/** Also the discussion sheet's, while an existing discussion is read (#1217). */
+export function Skeleton({ label, onShown }: { label: string; onShown?(shown: boolean): void }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
-    cardOpen.setSkeleton(false);
+    onShown?.(false);
     const t = setTimeout(() => {
       setShown(true);
-      cardOpen.setSkeleton(true);
+      onShown?.(true);
     }, SKELETON_MS);
     return () => clearTimeout(t);
-  }, []);
+  }, [onShown]);
   return (
-    <div role="status" aria-busy="true" aria-label={c.reading} className="flex flex-col gap-3 pt-1">
+    <div role="status" aria-busy="true" aria-label={label} className="flex flex-col gap-3 pt-1">
       {shown &&
         ["92%", "100%", "64%"].map((w) => (
           <span key={w} aria-hidden className="a4k-skel block h-3 rounded-full" style={{ width: w }} />
         ))}
+    </div>
+  );
+}
+
+export function OpenFailed({ text, retry, onRetry }: { text: string; retry: string; onRetry?: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="nb-section flex items-center gap-3 bg-nb-peach-soft py-2.5 pl-3.5 pr-2.5 text-[13px] text-nb-peach-ink"
+    >
+      <span className="min-w-0 flex-1">{text}</span>
+      <Button variant="ghost" size="sm" onClick={onRetry}>
+        <FiRotateCw className="text-[15px]" aria-hidden />
+        {retry}
+      </Button>
     </div>
   );
 }
@@ -53,18 +68,9 @@ export function CardOpening({ id, failed = false, onRetry }: { id: number; faile
           )}
         </div>
         {failed ? (
-          <div
-            role="alert"
-            className="nb-section flex items-center gap-3 bg-nb-peach-soft py-2.5 pl-3.5 pr-2.5 text-[13px] text-nb-peach-ink"
-          >
-            <span className="min-w-0 flex-1">{c.failed}</span>
-            <Button variant="ghost" size="sm" onClick={onRetry}>
-              <FiRotateCw className="text-[15px]" aria-hidden />
-              {c.retry}
-            </Button>
-          </div>
+          <OpenFailed text={c.failed} retry={c.retry} onRetry={onRetry} />
         ) : (
-          <Skeleton />
+          <Skeleton label={c.reading} onShown={cardOpen.setSkeleton} />
         )}
       </main>
     </div>

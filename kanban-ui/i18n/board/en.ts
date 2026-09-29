@@ -81,6 +81,9 @@ const en: BoardCopy = {
       workflow: { label: "Workflow", manage: "Manage workflows" },
       send: "Send",
       keysDiscuss: "Esc closes and keeps the discussion",
+      opening: "Opening the discussion…",
+      openFailed: "The discussion could not be loaded.",
+      retry: "Retry",
       guard: {
         title: "Write a card and start it now?",
         writes: "It writes a card first — a generated title, the plan as its whole summary.",

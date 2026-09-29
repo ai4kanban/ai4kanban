@@ -14,11 +14,13 @@ import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
+import { heldByButton } from "@/lib/create-open";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
 import type { DiscussionTarget, WorkflowView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import type { StartFailure } from "@/lib/start-failure";
 import { Button } from "./button";
+import { OpenFailed, Skeleton } from "./CardOpening";
 import { Transcript, Pasted, Pick, useBoardChanged } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
@@ -121,6 +123,10 @@ function Sheet({
   useState(() => adoptSharedCreateDraft(discussion));
   const [text, setText, clearDraft] = useDraft(createDraftKey(discussion));
   const [headlineStopped, setHeadlineStopped] = useState(false);
+  // A fresh discussion has nothing to read and shows its empty screen at once; any other one
+  // is read before anything of it is drawn (#1217). Judged once: the first message sent
+  // clears `unspoken`, and that must not turn it into one being opened.
+  const [opened, setOpened] = useState(() => discussion !== null && discussion === heldByButton.unspoken);
   const [mounted, setMounted] = useState(false);
   // The pictures this screen was pasted into (#517, #530), judged by the conversation's agent.
   const chatImages = rail.read
@@ -178,6 +184,11 @@ function Sheet({
   // Discuss. The box stays down then, with the rail's own reason above it.
   const settled = !!read && !!plan.read;
   const discussing = settled && plan.supported && read?.canChat !== false;
+  // The rail lists only discussions with a file, so one that reads back empty is gone.
+  const gone = discussion !== null && read !== null && read.chat === null;
+  const openFailed = !opened && (rail.readFailed || gone);
+  if (!opened && settled && !openFailed) setOpened(true);
+  const opening = !opened;
   // Plan tasks is writing the cards, or has written them (#1213): nothing more goes in.
   const writing = plan.read?.run?.running === true && plan.read.run.answer === "plan";
   const became = plan.read?.became ?? [];
@@ -232,7 +243,7 @@ function Sheet({
 
   const send = async () => {
     const words = text.trim();
-    if (sending || !discussing || pictures.refused) return;
+    if (sending || opening || !discussing || pictures.refused) return;
     if (!words && pasted === 0) return;
     setSending(true);
     // The screen's own box goes with the words (#530): the send moves its pictures beside the
@@ -266,9 +277,9 @@ function Sheet({
       discussing={discussing}
       // A plan answer starting counts as a send in flight (#706): the run archives this
       // discussion the moment it is up, so a message typed behind it has nowhere to land.
-      sending={sending || starting !== null || writing || became.length > 0}
+      sending={sending || opening || starting !== null || writing || became.length > 0}
       closed={became.length > 0}
-      shut={writing || became.length > 0}
+      shut={opening || writing || became.length > 0}
       rail={rail}
       pictures={pictures}
       text={text}
@@ -279,7 +290,7 @@ function Sheet({
         // box does this from the keystroke too (lib/chat-rail.ts).
         pictures.clearNote();
       }}
-      talking={talking}
+      talking={talking || opening}
       onSend={() => void send()}
       partner={rail.share.on ? partner : null}
     />
@@ -336,7 +347,7 @@ function Sheet({
         </button>
       </div>
 
-      {talking ? (
+      {talking || opening ? (
         <div className="relative min-h-0 flex-1">
           {/* Beside the card the conversation gives up the room the card stands in — the
               transcript and the box both, so the two keep the one centre line they had
@@ -347,20 +358,37 @@ function Sheet({
           >
             <div className={`relative flex min-h-0 flex-1 justify-center ${GUTTER_HALF}`}>
               <div className={`flex min-h-0 flex-col ${COLUMN}`}>
-                <Transcript
-                  messages={messages}
-                  changes={read?.chat?.modelChanges}
-                  live={rail.live}
-                  liveSince={read?.liveSince ?? null}
-                  stopped={rail.stopped}
-                  canSend={!!read && !read.blocked && !rail.answering}
-                  onResend={sayInDiscussion}
-                  // The same conversation the rail draws, so a message pasted into on one
-                  // screen reads the same on the other (#441).
-                  imageSrc={rail.imageSrc}
-                  empty={null}
-                  after={plan.beside ? handoff : null}
-                />
+                {opening ? (
+                  <div className="min-h-0 flex-1 overflow-y-auto px-2.5">
+                    {openFailed ? (
+                      <OpenFailed
+                        text={c.openFailed}
+                        retry={c.retry}
+                        onRetry={() => {
+                          rail.retry();
+                          plan.refresh();
+                        }}
+                      />
+                    ) : (
+                      <Skeleton label={c.opening} />
+                    )}
+                  </div>
+                ) : (
+                  <Transcript
+                    messages={messages}
+                    changes={read?.chat?.modelChanges}
+                    live={rail.live}
+                    liveSince={read?.liveSince ?? null}
+                    stopped={rail.stopped}
+                    canSend={!!read && !read.blocked && !rail.answering}
+                    onResend={sayInDiscussion}
+                    // The same conversation the rail draws, so a message pasted into on one
+                    // screen reads the same on the other (#441).
+                    imageSrc={rail.imageSrc}
+                    empty={null}
+                    after={plan.beside ? handoff : null}
+                  />
+                )}
               </div>
               {/* Over the exchange, the card stops at the box — enlarged too: this screen is
                   a conversation being answered, and a card that took the box away would make
