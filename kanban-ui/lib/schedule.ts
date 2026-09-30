@@ -15,10 +15,11 @@ export type { CardSchedule, ScheduledAction } from "./format/view/types";
 
 /** The same line as `scheduleLabel`, in the interface language (#956). The CLI keeps the
  *  English one; the screens draw this. Card numbers and the `·` separator read the same in
- *  every language. */
-export function scheduleMark(card: Card, copy: ChipsCopy): string {
+ *  every language. A schedule waiting on Pro (#1281) names only its action. */
+export function scheduleMark(card: Card, copy: ChipsCopy, locked = false): string {
   if (!card.schedule) return "";
   const action = copy.schedule.action[card.schedule.action];
+  if (locked) return action;
   const waiting = card.openBlockers.map((b) => `#${b.id}`).join(", ");
   return waiting ? copy.schedule.waiting(action, waiting) : copy.schedule.queued(action);
 }

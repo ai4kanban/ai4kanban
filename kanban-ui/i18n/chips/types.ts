@@ -23,6 +23,9 @@ export type ChipsCopy = {
     waiting: (action: string, ids: string) => string;
     queued: (action: string) => string;
   };
+  /** A schedule waiting on Pro (#1281) — the chip, and what its hover says per way to Pro. */
+  needsPro: string;
+  needsProHint: { upgrade: (action: string) => string; signIn: (action: string) => string };
   /** A card whose own chat is writing a reply (#633) — the chip, and what its hover says. */
   discussing: string;
   discussingHint: string;

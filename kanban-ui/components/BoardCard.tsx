@@ -12,6 +12,7 @@ import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { sessionsPanel } from "./sessions";
 import { Button } from "./button";
+import { useWorkflowLock } from "./pro";
 import { Dialog } from "./Dialog";
 import { BoardRefreshContext } from "@/lib/board-refresh";
 import { cardOpen } from "@/lib/card-open";
@@ -73,6 +74,7 @@ export function BoardCard({
   const t = useCopy();
   const c = t.board.card;
   const cardHref = useCardHref();
+  const lock = useWorkflowLock(card.workflow);
   const isGroup = card.isGroup;
   // Not finished being created (#564): a different card entirely, and the branch is taken
   // before anything below reads a field the creator has not written yet.
@@ -136,7 +138,12 @@ export function BoardCard({
             // Something is queued to run on this card the moment its blockers clear (#140).
             // It stands in for the status pill — one mark per card — and the card keeps its
             // place in the column: it is the same card, just not startable yet.
-            <PendingPill label={scheduleMark(card, t.chips)} />
+            // Waiting on Pro (#1281): the board keeps it queued until the account can run it.
+            lock ? (
+              <PendingPill label={t.chips.needsProHint[lock](scheduleMark(card, t.chips, true))} locked />
+            ) : (
+              <PendingPill label={scheduleMark(card, t.chips)} />
+            )
           ) : (
             <StatusPill status={card.status} />
           )}

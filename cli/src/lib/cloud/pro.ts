@@ -109,9 +109,12 @@ export async function proAccess(now = Date.now()): Promise<ProAccess> {
 }
 
 /** Whether this account may use a Pro workflow — run it, or duplicate it. */
-export async function proGate(flow: { id: string; name: string; pro: boolean }): Promise<RunRefusal | null> {
+export async function proGate(
+  flow: { id: string; name: string; pro: boolean },
+  ask: () => Promise<ProAccess> = proAccess,
+): Promise<RunRefusal | null> {
   if (!flow.pro) return null
-  const access = await proAccess()
+  const access = await ask()
   const args = { workflow: flow.id, name: flow.name }
   if (access === 'pro') return null
   if (access === 'signed-out') return refusal('proSignIn', `${flow.name} needs Pro. Sign in first.`, args)

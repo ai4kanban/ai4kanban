@@ -1662,7 +1662,7 @@ export function CardPage({
                   // the session and hide what happened. One word for both ways out: the record
                   // spells them the same, and which one it was changes nothing from here.
                   <DeliveryPill label={c.ended} tone="ended" />
-                ) : card.schedule ? (
+                ) : card.schedule && !locked ? (
                   // Waiting on its blockers, with a run already queued (#140) — the mark
                   // stands in for the stage, and says what will run and what it waits for.
                   <PendingPill label={scheduleMark(card, t.chips)} detailed />
@@ -2081,7 +2081,7 @@ export function CardPage({
                       color: "var(--color-nb-peach-ink)",
                     }}
                   >
-                    {scheduleMark(card, t.chips)}
+                    {scheduleMark(card, t.chips, locked)}
                   </span>
                   {fieldWrites && (
                     <button

@@ -37,6 +37,8 @@ import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { anyChatSince } from '../agent/memory-review'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
+import { proRefusal } from '../agent/start'
+import { proAccess, type ProAccess } from '../cloud/pro'
 import { pruneLeftovers } from '../leftovers'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
@@ -186,16 +188,22 @@ const scheduledRequest = (card: Card): AgentRequest => ({
  * A schedule whose action would no longer do anything — a refine on a card someone already
  * took to `ready` — is dropped in the same pass rather than started, and dropping one is not
  * a start, so it never uses up the tick.
+ *
+ * A card whose Pro workflow this account cannot run keeps its mark and is passed over (#1281),
+ * so it starts on the first tick after Pro is on. Cloud is asked at most once per pass.
  */
 async function dueScheduled(cards: Card[], busy: Set<number>, clearMark: ClearMark): Promise<AgentRequest | null> {
   const ready = cards.filter((c) => c.schedule && !busy.has(c.id) && c.openBlockers.length === 0)
   if (ready.length === 0) return null
+  let asked: Promise<ProAccess> | undefined
+  const ask = () => (asked ??= proAccess())
   let request: AgentRequest | null = null
   for (const card of ready.sort(byDispatchOrder)) {
     const stale = scheduleWouldDoNothing(card)
     // One start per tick. Everything after it keeps its mark — except a stale one, which
     // is dropped whenever we meet it, since no later tick would do anything else with it.
     if (!stale && request) continue
+    if (!stale && (await proRefusal(scheduledRequest(card), ask))) continue
     // The card moved or went away between the read and this write — leave it be.
     if (!(await clearMark(card.id))) continue
     if (!stale) request = scheduledRequest(card)

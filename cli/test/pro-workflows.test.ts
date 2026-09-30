@@ -12,6 +12,7 @@ import { signOutOfCloud } from '../src/lib/cloud/account.ts'
 import { proAccess } from '../src/lib/cloud/pro.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { nextWork } from '../src/lib/view/dispatch.ts'
 import { restoreMachineHome, uiConfigOf } from './helpers/board.ts'
 
 const SUPABASE = 'https://project.supabase.co'
@@ -48,7 +49,7 @@ const billing = (answer: { plan: 'free' | 'pro'; periodEnd?: string | null; gran
   }) as typeof fetch
 }
 
-const card = (id: number, workflow: string): void => {
+const card = (id: number, workflow: string, schedule?: 'refine' | 'implement'): void => {
   fs.writeFileSync(
     path.join(kanban(), 'todo', `${id}-card.md`),
     [
@@ -63,6 +64,7 @@ const card = (id: number, workflow: string): void => {
       'modules: []',
       'questions: []',
       `workflow: ${workflow}`,
+      ...(schedule ? [`schedule: ${schedule}`] : []),
       '---',
       '',
       'What this card is for.',
@@ -223,5 +225,38 @@ describe('copying a Pro workflow', () => {
     signOutOfCloud()
     card(3, copy.id!)
     assert.equal((await proRefusal({ action: 'clarify', id: 3 }))?.reason, 'proSignIn')
+  })
+})
+
+describe('a scheduled Pro card', () => {
+  // Only the scheduled runs are read back.
+  const tick = async (cleared: number[]) =>
+    (await nextWork((id) => (cleared.push(id), Promise.resolve(true)))).filter((w) => w.id !== undefined)
+
+  it('keeps its mark without Pro, and lets a free card take the tick', async () => {
+    signIn()
+    billing({ plan: 'free' })
+    card(1, 'slide-deck', 'refine')
+    card(2, 'hyperframes-video', 'refine')
+    card(3, 'coding', 'implement')
+    const cleared: number[] = []
+    const work = await tick(cleared)
+    assert.deepEqual(work.map((w) => w.id), [3])
+    assert.deepEqual(cleared, [3])
+    assert.equal(asked, 1, 'Cloud is asked once for both Pro cards')
+  })
+
+  it('waits while signed out or offline, and starts once Pro is on', async () => {
+    card(1, 'slide-deck', 'refine')
+    const cleared: number[] = []
+    assert.deepEqual(await tick(cleared), [])
+    signIn()
+    billing('offline')
+    assert.deepEqual(await tick(cleared), [])
+    assert.deepEqual(cleared, [])
+    billing({ plan: 'pro' })
+    const work = await tick(cleared)
+    assert.deepEqual(work.map((w) => [w.action, w.id]), [['clarify', 1]])
+    assert.deepEqual(cleared, [1])
   })
 })

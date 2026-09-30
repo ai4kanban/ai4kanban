@@ -17,6 +17,11 @@ const en: ChipsCopy = {
     waiting: (action, ids) => `${action} · waiting on ${ids}`,
     queued: (action) => `${action} · queued`,
   },
+  needsPro: "needs Pro",
+  needsProHint: {
+    upgrade: (action) => `${action[0]!.toUpperCase()}${action.slice(1)} is queued and starts once you upgrade to Pro`,
+    signIn: (action) => `${action[0]!.toUpperCase()}${action.slice(1)} is queued and starts once you sign in with Pro`,
+  },
   discussing: "discussing",
   discussingHint: "Its chat is writing a reply — the card is held until that reply lands.",
   failed: "unfinished",

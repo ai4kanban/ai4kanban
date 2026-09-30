@@ -17,6 +17,11 @@ const zh: ChipsCopy = {
     waiting: (action, ids) => `${action} · 等待 ${ids}`,
     queued: (action) => `${action} · 排队中`,
   },
+  needsPro: "需要 Pro",
+  needsProHint: {
+    upgrade: (action) => `${action}已排队，升级到 Pro 后自动开始`,
+    signIn: (action) => `${action}已排队，登录 Pro 账号后自动开始`,
+  },
   discussing: "讨论中",
   discussingHint: "聊天正在回话——这一轮回话结束前卡片冻结。",
   failed: "未完成",

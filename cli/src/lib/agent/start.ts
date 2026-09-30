@@ -16,7 +16,7 @@ import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
-import { proGate } from '../cloud/pro'
+import { proAccess, proGate, type ProAccess } from '../cloud/pro'
 import { cardWorkflowId, workflowFor, workflowIssues, workflows } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import { takeChatSession } from './chat'
@@ -80,10 +80,10 @@ const FREE_ACTIONS = ['archive', 'reject']
 
 /** Why this card's run needs Pro this account cannot show (#1038). Skipped where
  *  `workflowRefusal` skips, so a delivery already under way finishes on the plan it began on. */
-export async function proRefusal(req: AgentRequest): Promise<RunRefusal | null> {
+export async function proRefusal(req: AgentRequest, ask: () => Promise<ProAccess> = proAccess): Promise<RunRefusal | null> {
   if (!Number.isInteger(req.id) || FREE_ACTIONS.includes(req.action) || deliveryFor(req)) return null
   const flow = workflowFor(cardWorkflowId(req.id as number))
-  return flow?.pro ? proGate(flow) : null
+  return flow?.pro ? proGate(flow, ask) : null
 }
 
 /** The same, from inside a board move — where the board's own lock is held and nothing may be
