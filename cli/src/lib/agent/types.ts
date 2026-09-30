@@ -165,6 +165,8 @@ export interface AgentRequest {
   /** create: the conversation whose own agent session writes the cards (#1026), as its
    *  transcript key — a discussion's Plan tasks. */
   chat?: string
+  /** create: the session the command was typed in (#1222). */
+  origin?: ChatHandoff
   /** create, and implement with no `id`: the version the new card(s) ship in — a
    *  **Build now** writes one card and it ships in the release on screen like any other
    *  (#470). plan-release: the version being planned, and changelog: the version being
@@ -412,6 +414,8 @@ export interface RunRecord {
   /** Cards this run created through `akb raw create`. A cardless creation run holds these
    *  until it closes, so an overlapping run cannot adopt and refine its half-written cards. */
   createdCardIds?: number[]
+  /** create: the session `akb create` was typed in (#1222), handed to every card it writes. */
+  origin?: ChatHandoff
   discard?: boolean
   discardedCards?: { id: number; path: string; pending?: boolean }[]
   action: AgentAction
@@ -1005,23 +1009,31 @@ export interface Chat {
    *  which card the submission is about. A card's own conversation carries none: it is that
    *  card's. */
   linkedCard?: number
-  /** On a card's conversation: the discussion this card was written from (#1213). */
+  /** On a card's conversation: the session this card was created in (#1213, #1222). */
   from?: ChatHandoff
+  /** On a discussion: cards created during a turn that had no session id yet (#1222), handed
+   *  it when the turn ends. */
+  pendingCards?: number[]
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
 }
 
-/** Where a card's conversation picks a discussion up (#1213), written when the Plan tasks run
- *  that wrote the card ends. */
-export interface ChatHandoff {
-  discussion: DiscussionTarget
-  /** The discussion's session as that run left it — what the first message forks. */
-  resumeId: string
+/** One agent session, as a CLI would resume it (#1222). */
+export interface AgentSession {
   harness: string
   runtime?: string
+  resumeId: string
+  cwd?: string
+}
+
+/** The session a card was created in (#1213, #1222) — a discussion, or an agent in a terminal.
+ *  `resumeId` is missing only while the discussion turn that created the card has none yet. */
+export interface ChatHandoff extends Omit<AgentSession, 'resumeId'> {
+  resumeId?: string
+  discussion?: DiscussionTarget
   /** How many of the discussion's messages came before the handoff. */
-  messages: number
+  messages?: number
 }
 
 /** The plan one conversation is writing (#427). */

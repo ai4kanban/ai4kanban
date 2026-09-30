@@ -1,4 +1,5 @@
-// A card's chat picks up the discussion it was written from (#1213).
+// A card's chat picks up the session it was created in: a discussion (#1213), or an agent in a
+// terminal (#1222).
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -7,14 +8,20 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import {
+  chatRunEnded,
   clearChat,
+  handOff,
   handOffToCards,
   pickChatRuntime,
   readChat,
   readChatView,
   sendChatMessage,
 } from '../src/lib/agent/chat.ts'
+import { DISCUSSION_ENV, RUN_ENV } from '../src/lib/agent/env.ts'
+import { agentOf, currentSession, opencodeSessionOf, probes, terminalSession } from '../src/lib/agent/origin.ts'
+import { withStore } from '../src/lib/agent/store.ts'
 import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { move } from './helpers/board.ts'
 
 const DISCUSSION = 'discussion-00000000-0000-0000-0000-000000000001'
 
@@ -22,6 +29,9 @@ let root = ''
 let home = ''
 let realHome: string | undefined
 let calls = ''
+const SESSION_VARS = ['CLAUDE_CODE_SESSION_ID', 'CODEX_THREAD_ID', RUN_ENV, DISCUSSION_ENV]
+const realEnv: Record<string, string | undefined> = {}
+const realProbes = { ...probes }
 
 // A stand-in CLI: writes down every command line it was given, and fails a fork when told to.
 function board(harness = 'claude-code', failFork = false): void {
@@ -77,6 +87,12 @@ beforeEach(() => {
   realHome = process.env.HOME
   process.env.HOME = home
   calls = path.join(root, 'calls.jsonl')
+  for (const name of SESSION_VARS) {
+    realEnv[name] = process.env[name]
+    delete process.env[name]
+  }
+  probes.chain = () => ['-zsh']
+  probes.opencode = () => undefined
 })
 
 afterEach(() => {
@@ -84,6 +100,11 @@ afterEach(() => {
   else process.env.HOME = realHome
   fs.rmSync(root, { recursive: true, force: true })
   fs.rmSync(home, { recursive: true, force: true })
+  for (const name of SESSION_VARS) {
+    if (realEnv[name] === undefined) delete process.env[name]
+    else process.env[name] = realEnv[name]
+  }
+  Object.assign(probes, realProbes)
 })
 
 describe('the handoff', () => {
@@ -100,6 +121,7 @@ describe('the handoff', () => {
       resumeId: 'handoff-session',
       harness: 'claude-code',
       runtime: 'global',
+      cwd: root,
       messages: 2,
     })
     assert.equal(readChat(8)?.from, undefined)
@@ -122,7 +144,7 @@ describe("a card chat's first message", () => {
     const [args] = said()
     assert.ok(args.includes('--fork-session'))
     assert.equal(args[args.indexOf('--resume') + 1], 'handoff-session')
-    assert.match(args.at(-1)!, /continues the discussion this card was written from/)
+    assert.match(args.at(-1)!, /continues the conversation this card was created in/)
     assert.doesNotMatch(args.at(-1)!, /up to the handoff/)
   })
 
@@ -157,7 +179,7 @@ describe("a card chat's first message", () => {
     clearChat(DISCUSSION)
     await sendChatMessage(7, 'go on')
     const [args] = said()
-    assert.doesNotMatch(args.at(-1)!, /continues the discussion|up to the handoff/)
+    assert.doesNotMatch(args.at(-1)!, /continues the conversation|up to the handoff/)
   })
 
   it('forgets the discussion when the chat is cleared', () => {
@@ -166,5 +188,157 @@ describe("a card chat's first message", () => {
     handOffToCards(DISCUSSION, [7])
     clearChat(7)
     assert.equal(readChatView(7).discussion, undefined)
+  })
+})
+
+// A terminal where Claude Code is the nearest agent, in session `terminal-session`.
+function inClaude(): void {
+  process.env.CLAUDE_CODE_SESSION_ID = 'terminal-session'
+  probes.chain = () => ['/bin/zsh -c akb raw create', 'claude --dangerously-skip-permissions', 'iTerm2']
+}
+
+describe('the session a card is created in', () => {
+  it('knows each agent by the name it was started under', () => {
+    assert.equal(agentOf('claude -p'), 'claude-code')
+    assert.equal(agentOf('node /usr/lib/node_modules/@anthropic-ai/claude-code/cli.js'), 'claude-code')
+    assert.equal(agentOf('/opt/homebrew/bin/codex'), 'codex')
+    assert.equal(agentOf('node /x/bin/codex.js exec'), 'codex')
+    assert.equal(agentOf('cursor-agent'), 'cursor')
+    assert.equal(agentOf('/bin/zsh'), undefined)
+  })
+
+  it('reads the nearest agent only', () => {
+    const env = { CLAUDE_CODE_SESSION_ID: 'outer', CODEX_THREAD_ID: 'thread-1' }
+    const none = () => undefined
+    assert.deepEqual(terminalSession(['zsh', 'codex', 'claude'], env, none, '/p'), { harness: 'codex', resumeId: 'thread-1', cwd: '/p' })
+    assert.equal(terminalSession(['zsh', 'cursor-agent -p', 'claude'], env, none, '/p'), undefined)
+    assert.equal(terminalSession(['zsh', 'login'], env, none, '/p'), undefined)
+    assert.equal(terminalSession(['claude'], {}, none, '/p'), undefined)
+  })
+
+  it("asks OpenCode for this folder's latest session", () => {
+    const out = JSON.stringify([{ id: 'ses_1', directory: '/p', updated: 2 }])
+    assert.equal(opencodeSessionOf(out), 'ses_1')
+    assert.equal(opencodeSessionOf('[]'), undefined)
+    assert.equal(opencodeSessionOf('not json'), undefined)
+    assert.deepEqual(terminalSession(['opencode'], {}, () => opencodeSessionOf(out), '/p'), {
+      harness: 'opencode',
+      resumeId: 'ses_1',
+      cwd: '/p',
+    })
+  })
+
+  it("takes a board run's recorded origin, never the run's own session", () => {
+    board()
+    inClaude()
+    process.env[RUN_ENV] = 'run-1'
+    const run = { sessionId: 'run-1', cardId: null, action: 'create' as const, status: 'running' as const, startedAt: 1, harness: 'claude-code', logPath: '' }
+    withStore((s) => void s.runs.push(run))
+    assert.equal(currentSession(), undefined)
+    withStore((s) => void (s.runs[0]!.origin = { harness: 'codex', resumeId: 'typed-in' }))
+    assert.equal(currentSession()?.resumeId, 'typed-in')
+  })
+
+  it('takes the discussion over the terminal the board was started from', () => {
+    board()
+    discussion()
+    inClaude()
+    process.env[DISCUSSION_ENV] = DISCUSSION
+    assert.equal(currentSession()?.discussion, DISCUSSION)
+    assert.equal(currentSession()?.resumeId, 'handoff-session')
+  })
+
+  it('hands every card `raw create` writes the session it was typed in', async () => {
+    board()
+    fs.mkdirSync(path.join(root, 'docs', 'kanban', 'todo'), { recursive: true })
+    fs.writeFileSync(path.join(root, 'docs', 'kanban', 'next-id'), '7\n')
+    inClaude()
+    await move(root, ['create', '--title', 'From the terminal'])
+    assert.equal(readChat(7)?.from?.resumeId, 'terminal-session')
+  })
+})
+
+describe('a card created in a discussion turn', () => {
+  it('forks the discussion, and falls back to it in words up to the card', async () => {
+    board('claude-code', true)
+    discussion()
+    const file = path.join(CHATS_DIR, `${DISCUSSION}.json`)
+    const chat = JSON.parse(fs.readFileSync(file, 'utf8'))
+    chat.messages.push({ role: 'you', text: 'make a card for it', at: 3 })
+    fs.writeFileSync(file, JSON.stringify(chat))
+    process.env[DISCUSSION_ENV] = DISCUSSION
+    handOff(currentSession()!, [7])
+    chat.messages.push({ role: 'agent', text: 'made #7', at: 4 }, { role: 'you', text: 'something later', at: 5 })
+    fs.writeFileSync(file, JSON.stringify(chat))
+    await sendChatMessage(7, 'go on')
+    const [fork, fresh] = said()
+    assert.equal(fork[fork.indexOf('--resume') + 1], 'handoff-session')
+    assert.match(fresh.at(-1)!, /Me: make a card for it/)
+    assert.doesNotMatch(fresh.at(-1)!, /something later|made #7/)
+  })
+
+  it('gets the session once the first turn that made it ends', () => {
+    board()
+    discussion({ resumeId: undefined })
+    process.env[DISCUSSION_ENV] = DISCUSSION
+    handOff(currentSession()!, [7])
+    assert.equal(readChat(7)?.from?.resumeId, undefined)
+    assert.deepEqual(readChat(DISCUSSION)?.pendingCards, [7])
+    chatRunEnded(DISCUSSION, 'first-turn')
+    assert.equal(readChat(7)?.from?.resumeId, 'first-turn')
+    assert.equal(readChat(DISCUSSION)?.pendingCards, undefined)
+  })
+})
+
+describe('a card created in a terminal', () => {
+  it("forks that agent's session", async () => {
+    board()
+    inClaude()
+    handOff(currentSession()!, [7])
+    await sendChatMessage(7, 'go on')
+    const [args] = said()
+    assert.ok(args.includes('--fork-session'))
+    assert.equal(args[args.indexOf('--resume') + 1], 'terminal-session')
+    assert.match(args.at(-1)!, /continues the conversation this card was created in/)
+    assert.equal(readChatView(7).discussion, undefined)
+  })
+
+  it('opens a plain fresh session when the fork fails', async () => {
+    board('claude-code', true)
+    inClaude()
+    handOff(currentSession()!, [7])
+    const reply = await sendChatMessage(7, 'go on')
+    const [, fresh] = said()
+    assert.ok(!fresh.includes('--resume'))
+    assert.doesNotMatch(fresh.at(-1)!, /continues the conversation|up to the handoff/)
+    assert.ok('text' in reply && !reply.text.includes('No conversation found'))
+  })
+
+  it("opens a plain fresh session on the board's agent when this board cannot run the terminal's", async () => {
+    board()
+    handOff({ harness: 'opencode', resumeId: 'ses_1', cwd: root }, [7])
+    await sendChatMessage(7, 'go on')
+    const [args] = said()
+    assert.ok(!args.includes('--resume') && !args.includes('--fork-session'))
+    assert.doesNotMatch(args.at(-1)!, /continues the conversation/)
+  })
+
+  it('leaves a card chat already going alone', () => {
+    board()
+    fs.mkdirSync(CHATS_DIR, { recursive: true })
+    fs.writeFileSync(
+      path.join(CHATS_DIR, 'card-7.json'),
+      JSON.stringify({ cardId: 7, harness: 'claude-code', resumeId: 'own', messages: [{ role: 'you', text: 'hi', at: 3 }] }),
+    )
+    inClaude()
+    handOff(currentSession()!, [7])
+    assert.equal(readChat(7)?.from, undefined)
+  })
+
+  it('links nothing when the nearest agent cannot fork', () => {
+    board()
+    process.env.CLAUDE_CODE_SESSION_ID = 'outer'
+    probes.chain = () => ['zsh', 'cursor-agent', 'claude']
+    assert.equal(currentSession(), undefined)
   })
 })

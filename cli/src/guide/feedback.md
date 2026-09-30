@@ -30,7 +30,8 @@ the clues for each of its runs. Pick the one the conversation is about.
 Each clue carries `harness`, `sessionId`, `resumeId`, `cwd`, `argv` and `version`. Use them to
 find that CLI's own store of the run and read it there — the board keeps only a display log,
 and the run's prompt file is deleted when the run ends, so the raw trace is the only place the
-original input survives.
+original input survives. `createdIn`, when present, is the session the card was created in —
+where the user first asked for it.
 
 - **Whatever the harness**: the clues are the whole input. Find that tool's own session store
   yourself; there is no path table here to fall back on.

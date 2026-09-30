@@ -56,7 +56,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
-import { readRuns, runIsLive } from './store'
+import { handoffOf, readRuns, runIsLive } from './store'
 import { recordReplyUsage } from './usage'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
 import type {
@@ -153,23 +153,16 @@ export function readChat(cardId: ChatTarget): Chat | null {
     shareOnEnd: raw.shareOnEnd === true,
     linkedCard: Number.isInteger(raw.linkedCard) && (raw.linkedCard as number) > 0 ? raw.linkedCard : undefined,
     from: typeof cardId === 'number' ? handoffOf(raw.from) : undefined,
+    pendingCards: isDiscussion(cardId) ? idsOf(raw.pendingCards) : undefined,
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
   }
 }
 
-function handoffOf(value: unknown): ChatHandoff | undefined {
-  const h = value as Partial<ChatHandoff> | undefined
-  if (!h || typeof h.discussion !== 'string' || !isDiscussion(h.discussion)) return undefined
-  if (typeof h.resumeId !== 'string' || !h.resumeId || typeof h.harness !== 'string' || !h.harness) return undefined
-  return {
-    discussion: h.discussion,
-    resumeId: h.resumeId,
-    harness: h.harness,
-    runtime: typeof h.runtime === 'string' && h.runtime ? h.runtime : undefined,
-    messages: Number.isInteger(h.messages) && (h.messages as number) > 0 ? (h.messages as number) : 0,
-  }
+function idsOf(value: unknown): number[] | undefined {
+  const ids = Array.isArray(value) ? value.filter((id): id is number => Number.isInteger(id) && id > 0) : []
+  return ids.length ? [...new Set(ids)] : undefined
 }
 
 // What this conversation pins, as the transcript holds it: a runtime id, or the harness one
@@ -532,6 +525,7 @@ export function carriedForward(held: Chat, since: Chat | null): Chat {
   held.linkedCard = since.linkedCard
   held.archived = since.archived
   held.archivedBy = since.archivedBy
+  held.pendingCards = since.pendingCards
   return held
 }
 
@@ -876,7 +870,7 @@ export function takeChatSession(key: string): { plan: RunPlan; runtime: string; 
   if (blocked) return blocked
   if (!chat?.resumeId) return noSession()
   const runtime = runtimeOf(chat)
-  const plan = planResume(chat.harness, chat.resumeId, REPO_ROOT, CHAT_AGENT, { pin: runtime })
+  const plan = planResume({ harness: chat.harness, resumeId: chat.resumeId, cwd: REPO_ROOT }, CHAT_AGENT, { pin: runtime })
   if (!plan) {
     const agent = chatAgent(runtime).label
     const previous = harnessLabel(chat.harness)
@@ -891,40 +885,82 @@ export function chatRunEnded(key: string, resumeId: string | undefined): void {
   const target = chatOfKey(key)
   if (target === undefined || !resumeId) return
   const chat = readChat(target)
-  if (!chat || chat.resumeId === resumeId) return
-  chat.resumeId = resumeId
-  writeChat(chat)
+  if (!chat) return
+  if (chat.resumeId !== resumeId) {
+    chat.resumeId = resumeId
+    writeChat(chat)
+  }
+  settleHandoffs(chat)
 }
 
-// ---- a card picking its discussion up (#1213) -------------------------------
+// ---- a card picking up the session it was created in (#1213, #1222) ---------
 
 /** Heads the discussion transcript that opens a card chat which could not fork. */
 const DISCUSSION_HEADING = `The discussion this card was written from, up to the handoff:`
 
-/** Point each card a Plan tasks run wrote at the discussion it was said into. A card whose own
- *  chat has already started keeps it. */
+/** A discussion as a card created in it right now would pick it up: up to and including the
+ *  message being answered. */
+export function discussionSession(target: DiscussionTarget): ChatHandoff | undefined {
+  const chat = readChat(target)
+  if (!chat) return undefined
+  return {
+    harness: chat.harness,
+    runtime: runtimeOf(chat),
+    resumeId: chat.resumeId,
+    cwd: REPO_ROOT,
+    discussion: target,
+    messages: chat.messages.length,
+  }
+}
+
+/** Point each card a Plan tasks run wrote at the discussion it was said into. */
 export function handOffToCards(key: string, cards: number[]): void {
   const target = chatOfKey(key)
-  if (!target || !isDiscussion(target) || !cards.length) return
-  const discussion = readChat(target)
-  if (!discussion?.resumeId) return
-  const from: ChatHandoff = {
-    discussion: target,
-    resumeId: discussion.resumeId,
-    harness: discussion.harness,
-    runtime: runtimeOf(discussion),
-    messages: discussion.messages.length,
-  }
+  if (!target || !isDiscussion(target)) return
+  const from = discussionSession(target)
+  if (from?.resumeId) handOff(from, cards)
+}
+
+/** Point each card at the session it was created in. A card whose own chat has already
+ *  started keeps it. A discussion turn with no session id yet leaves its cards waiting on the
+ *  discussion, for `settleHandoffs` to finish when the turn ends. */
+export function handOff(from: ChatHandoff, cards: number[]): void {
+  if (!cards.length) return
+  const discussion = from.discussion ? readChat(from.discussion) : null
+  if (from.discussion && !discussion) return
+  const resumeId = from.resumeId ?? discussion?.resumeId
+  const handed: ChatHandoff = { ...from, resumeId }
+  const took: number[] = []
   for (const id of cards) {
     const had = readChat(id)
     if (had?.messages.length || answeringOn(id)) continue
     const now = Date.now()
-    writeChat({ ...(had ?? { cardId: id, harness: from.harness, messages: [], startedAt: now }), from, updatedAt: now })
+    writeChat({ ...(had ?? { cardId: id, harness: from.harness, messages: [], startedAt: now }), from: handed, updatedAt: now })
+    took.push(id)
   }
+  if (discussion && !resumeId && took.length) {
+    discussion.pendingCards = [...new Set([...(discussion.pendingCards ?? []), ...took])]
+    writeChat(discussion)
+  }
+}
+
+// Hand a discussion's session id to the cards created before it had one.
+function settleHandoffs(discussion: Chat): void {
+  const target = discussion.cardId
+  if (!discussion.resumeId || !discussion.pendingCards?.length || !isDiscussion(target)) return
+  for (const id of discussion.pendingCards) {
+    const card = readChat(id)
+    if (!card?.from || card.from.discussion !== target || card.from.resumeId || card.messages.length) continue
+    card.from = { ...card.from, resumeId: discussion.resumeId, harness: discussion.harness, runtime: runtimeOf(discussion) }
+    writeChat(card)
+  }
+  discussion.pendingCards = undefined
+  writeChat(discussion)
 }
 
 /** The discussion as it stood at the handoff, or nothing once it is gone. */
 function handedMessages(from: ChatHandoff): ChatMessage[] | undefined {
+  if (!from.discussion) return undefined
   const said = readChat(from.discussion)
     ?.messages.slice(0, from.messages)
     .filter((m) => !m.fromBoard && m.text.trim())
@@ -1043,7 +1079,7 @@ export function chatPrompt(
         ? `This is a chat about this project's board.`
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           (opts.continues
-            ? `It continues the discussion this card was written from; where the two differ, the card as it is now wins. `
+            ? `It continues the conversation this card was created in; where the two differ, the card as it is now wins. `
             : '') +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
@@ -1197,12 +1233,12 @@ export async function sendChatMessage(
     // A card's first message picks up the discussion it came from (#1213): a fork of that
     // session where its CLI can, else a fresh one opened with the discussion in words.
     const from = held.resumeId ? undefined : held.from
-    const fork = from && agent.name === from.harness ? planFork(from.harness, from.resumeId, REPO_ROOT, CHAT_AGENT, own) : null
+    const fork = from?.resumeId && agent.name === from.harness ? planFork({ ...from, resumeId: from.resumeId, cwd: REPO_ROOT }, CHAT_AGENT, own) : null
     // A fresh session, or one more turn into the session the last message left open.
     const plan =
       fork ??
       (held.resumeId
-        ? planResume(held.harness, held.resumeId, REPO_ROOT, CHAT_AGENT, own)
+        ? planResume({ harness: held.harness, resumeId: held.resumeId, cwd: REPO_ROOT }, CHAT_AGENT, own)
         : planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own))
     if (!plan) {
       const previous = harnessLabel(held.harness)
@@ -1330,6 +1366,7 @@ export async function sendChatMessage(
     carriedForward(held, readChat(cardId))
     held.updatedAt = Date.now()
     writeChat(held)
+    settleHandoffs(held)
     try {
       recordReplyUsage(
         { key: `chat:${keyOf(cardId)}:${landed}`, kind: 'chat', at: landed, harness: held.harness, model: spoken.model ?? held.model, usage: spoken.usage, costUsd: spoken.costUsd },

@@ -8,6 +8,7 @@
 import fs from 'node:fs'
 
 import { insideCase } from '../lib/agent/env'
+import { readChat } from '../lib/agent/chat'
 import { caseOffered, readCase, refinesOf, submitCase, type CaseFindings } from '../lib/case'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
@@ -30,10 +31,12 @@ export async function cmdCase(args: string[], opts: CaseOptions): Promise<MoveRe
     const cardId = Number(args[1])
     if (!Number.isInteger(cardId) || cardId <= 0) die('Give the card id: case refines <card-id>.')
     const refines = refinesOf(cardId)
+    // And the session the card was created in (#1222), where the user's own words are.
+    const createdIn = readChat(cardId)?.from
     // Printed as JSON, because what follows it is reading fields and not prose: the clues are
     // the whole input to finding that harness's own trace.
-    say(JSON.stringify({ card: cardId, refines }, null, 2))
-    return { card: cardId, refines }
+    say(JSON.stringify({ card: cardId, createdIn, refines }, null, 2))
+    return { card: cardId, createdIn, refines }
   }
 
   if (!caseOffered()) die('Partner feedback is switched off on this machine, so nothing may be collected.')

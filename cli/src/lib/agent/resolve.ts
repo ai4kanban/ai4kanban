@@ -28,6 +28,7 @@ import {
   namesFlag,
   uniqueIds,
 } from './harnesses'
+import { SESSION_VARS } from './env'
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
 import { DISCUSSION_ROLE, roleForFlow } from './roles'
@@ -55,6 +56,7 @@ import {
 } from './runtimes'
 import type {
   AgentInfo,
+  AgentSession,
   ChatAgent,
   ChatRuntime,
   HarnessSetting,
@@ -394,6 +396,7 @@ function runEnv(resolved: ResolvedHarness, cwd = REPO_ROOT): NodeJS.ProcessEnv {
   const picked = activeProviderOf(resolved)
   const env: NodeJS.ProcessEnv = { ...harness.env() }
   for (const name of ownedVars(harness)) delete env[name]
+  for (const name of Object.values(SESSION_VARS)) delete env[name]
 
   const file = readEnvFile()
   for (const setting of harness.settings) {
@@ -525,13 +528,12 @@ export function planRun(
  *  the model are the ones it went on. Null when that harness is one this build doesn't run,
  *  or can't resume. */
 export function planResume(
-  harnessName: string,
-  resumeId: string,
-  cwd = REPO_ROOT,
+  session: AgentSession,
   agent?: string,
   /** The runtime the run pinned, or a conversation's own pick (#272). */
   own: Omit<HarnessAsk, 'agent' | 'harness'> = {},
 ): RunPlan | null {
+  const { harness: harnessName, resumeId, cwd = REPO_ROOT } = session
   if (!harnessByName(harnessName)) return null
   const resolved = resolveHarness({ agent, ...own, harness: harnessName })
   const { harness, command, runtime } = resolved
@@ -553,12 +555,11 @@ export function planResume(
 /** A new session copied from `resumeId` (#1213), on the harness that holds it. Null when that
  *  harness can't fork, or isn't the one `own` would run. */
 export function planFork(
-  harnessName: string,
-  resumeId: string,
-  cwd = REPO_ROOT,
+  session: AgentSession,
   agent?: string,
   own: Omit<HarnessAsk, 'agent' | 'harness'> = {},
 ): RunPlan | null {
+  const { harness: harnessName, resumeId, cwd = REPO_ROOT } = session
   if (!harnessByName(harnessName)) return null
   const resolved = resolveHarness({ agent, ...own, harness: harnessName })
   const { harness, command, runtime } = resolved

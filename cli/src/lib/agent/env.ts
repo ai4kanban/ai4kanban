@@ -61,3 +61,10 @@ export function insideCase(): string | null {
 export function caseEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
   return { ...env, [CASE_ENV]: value }
 }
+
+/** The variable each CLI puts its own session id in for the commands it runs (#1222). The
+ *  board drops them from every agent it spawns, so one never reads a session it inherited. */
+export const SESSION_VARS: Record<string, string> = {
+  'claude-code': 'CLAUDE_CODE_SESSION_ID',
+  codex: 'CODEX_THREAD_ID',
+}

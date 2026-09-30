@@ -18,7 +18,7 @@ import type { SentCase, SentCaseFile, SentCaseRun } from '../../../../telemetry/
 import { SKILL_VERSION } from '../../version'
 import { git } from '../agent/worktree'
 import { readRuns } from '../agent/store'
-import type { AgentAction, RunRecord } from '../agent/types'
+import type { AgentAction, AgentSession, RunRecord } from '../agent/types'
 import { usageDay, usageSurface } from '../machine/usage'
 import { ENV_FILE, REPO_ROOT } from '../paths'
 import type { CaseRecord } from './state'
@@ -30,16 +30,13 @@ const REFINE_ACTIONS = new Set<AgentAction>(['clarify', 'spec', 'writing'])
 
 /** One run of a refine, with everything the agent needs to find that harness's own trace of
  *  it. Every field here is the board's own record of the run — nothing is guessed. */
-export interface CaseClue {
+export interface CaseClue extends Omit<AgentSession, 'resumeId'> {
   sessionId: string
   action: AgentAction
   startedAt: number
   endedAt?: number
   status: string
-  harness: string
-  runtime?: string
   resumeId?: string
-  cwd?: string
   argv?: string[]
   version?: string
   input?: string

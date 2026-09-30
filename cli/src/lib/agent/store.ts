@@ -23,11 +23,12 @@ import { pidAlive, withLock } from '../lock'
 import { die, SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { insideRun } from './env'
 import { asContext, asUsage } from './log'
-import { holdsCard } from './types'
+import { holdsCard, isDiscussion } from './types'
 import { appendUsageLocked, runEntry } from './usage'
 import type {
   AgentAction,
   AnswerVerdict,
+  ChatHandoff,
   DeliveryLanding,
   DeliveryRecord,
   DeliveryReview,
@@ -132,6 +133,7 @@ export function readStore(): Store {
       createdCardIds: Array.isArray(entry.createdCardIds)
         ? [...new Set(entry.createdCardIds.filter((id): id is number => Number.isInteger(id) && id > 0))]
         : undefined,
+      origin: handoffOf(entry.origin),
       discard: entry.discard === true || undefined,
       discardedCards: Array.isArray(entry.discardedCards) ? entry.discardedCards.filter((c) => Number.isInteger(c?.id) && typeof c.path === 'string').map((c) => ({ id: c.id, path: c.path, ...(c.pending ? { pending: true } : {}) })) : undefined,
       action: readAction(entry.action),
@@ -768,4 +770,23 @@ export function recordCreatedCards(sessionId: string, ids: readonly number[]): b
     run.createdCardIds = [...new Set([...(run.createdCardIds ?? []), ...valid])]
     return true
   })
+}
+
+/** A card's creating session (#1222) as a file holds it, or nothing when it names none. */
+export function handoffOf(value: unknown): ChatHandoff | undefined {
+  const h = value as Partial<ChatHandoff> | undefined
+  if (!h || typeof h.harness !== 'string' || !h.harness) return undefined
+  const discussion = typeof h.discussion === 'string' && isDiscussion(h.discussion) ? h.discussion : undefined
+  const resumeId = typeof h.resumeId === 'string' && h.resumeId ? h.resumeId : undefined
+  // Only a discussion's handoff may wait for its id: a terminal session with none is nothing.
+  if (!resumeId && !discussion) return undefined
+  return {
+    harness: h.harness,
+    runtime: typeof h.runtime === 'string' && h.runtime ? h.runtime : undefined,
+    resumeId,
+    cwd: typeof h.cwd === 'string' && h.cwd ? h.cwd : undefined,
+    ...(discussion
+      ? { discussion, messages: Number.isInteger(h.messages) && (h.messages as number) > 0 ? (h.messages as number) : 0 }
+      : {}),
+  }
 }

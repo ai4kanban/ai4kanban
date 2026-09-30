@@ -333,7 +333,7 @@ describe('a resume', () => {
     })
     // The builder runs Codex now; this run went on Claude Code, and picking it up spawns
     // Claude Code — the conversation belongs to the CLI that opened it.
-    const picked = planResume('claude-code', 'abc', root, 'builder')
+    const picked = planResume({ harness: 'claude-code', resumeId: 'abc', cwd: root }, 'builder')
     assert.equal(picked?.harness, 'claude-code')
     assert.equal(picked?.runtime, 'global')
     assert.ok(picked?.argv.includes('--resume'))
@@ -341,7 +341,7 @@ describe('a resume', () => {
 
   it('is refused for a CLI this version doesn’t run', () => {
     config({ runtimes: [runtime('global', 'claude-code')] })
-    assert.equal(planResume('some-tool-from-the-future', 'abc', root, 'builder'), null)
+    assert.equal(planResume({ harness: 'some-tool-from-the-future', resumeId: 'abc', cwd: root }, 'builder'), null)
   })
 
   it('resolves the row the run pinned, inside that CLI', () => {
@@ -351,14 +351,14 @@ describe('a resume', () => {
         runtime('strong', 'claude-code', { model: 'b' }),
       ],
     })
-    const picked = planResume('claude-code', 'abc', root, 'planner', { pin: 'strong' })
+    const picked = planResume({ harness: 'claude-code', resumeId: 'abc', cwd: root }, 'planner', { pin: 'strong' })
     assert.equal(picked?.runtime, 'strong')
     assert.ok(picked?.argv.includes('b'))
   })
 
   it('reads a pin written before runtimes as the row that harness’s block became', () => {
     config({ harness: 'claude-code', harnessSettings: { codex: { model: 'gpt-5.1-codex' } } })
-    const picked = planResume('codex', 'abc', root, 'builder', { pin: 'codex' })
+    const picked = planResume({ harness: 'codex', resumeId: 'abc', cwd: root }, 'builder', { pin: 'codex' })
     assert.equal(picked?.harness, 'codex')
     assert.ok(picked?.argv.includes('gpt-5.1-codex'))
   })

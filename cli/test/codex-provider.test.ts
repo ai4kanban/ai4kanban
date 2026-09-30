@@ -157,7 +157,7 @@ describe('the reasoning effort', () => {
 describe('the sandbox', () => {
   it('is bypassed by default, on fresh and resumed runs alike', () => {
     board()
-    for (const run of [planRun('s1', root), planResume('codex', 's1', root)]) {
+    for (const run of [planRun('s1', root), planResume({ harness: 'codex', resumeId: 's1', cwd: root })]) {
       assert.ok(run)
       assert.ok(run.argv.includes('--dangerously-bypass-approvals-and-sandbox'), run.argv.join(' '))
       assert.ok(!run.argv.includes('workspace-write'), run.argv.join(' '))
@@ -190,7 +190,7 @@ describe('the sandbox', () => {
 describe('the startup prompts', () => {
   it('are turned off on fresh and resumed runs alike', () => {
     board()
-    for (const run of [planRun('s1', root), planResume('codex', 's1', root)]) {
+    for (const run of [planRun('s1', root), planResume({ harness: 'codex', resumeId: 's1', cwd: root })]) {
       assert.ok(run)
       for (const config of QUIET) {
         assert.equal(run.argv[run.argv.indexOf(config) - 1], '-c', run.argv.join(' '))
@@ -221,7 +221,7 @@ describe('checkout-local state from a delivery worktree', () => {
   it('allows the owning board and local state to a workspace-write run, fresh or resumed', () => {
     board({ command: 'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=false' })
     const cwd = path.join(root, '.akb/worktrees/delivery')
-    for (const run of [planRun('s1', cwd), planResume('codex', 's1', cwd)]) {
+    for (const run of [planRun('s1', cwd), planResume({ harness: 'codex', resumeId: 's1', cwd })]) {
       assert.ok(run)
       const dirs = run.argv.flatMap((arg, i) => arg === '--add-dir' ? [run.argv[i + 1]] : [])
       assert.deepEqual(dirs, [path.join(root, 'docs/kanban'), path.join(root, '.akb')])

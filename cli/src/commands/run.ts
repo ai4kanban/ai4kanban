@@ -19,6 +19,7 @@ import {
   stopRun,
   titleOf,
 } from '../lib/agent/sessions'
+import { currentSession } from '../lib/agent/origin'
 import { proRefusal, startResume, startRun } from '../lib/agent/start'
 import { unstickStop } from '../lib/agent/unstick'
 import { cardCreation } from '../lib/agent/store'
@@ -236,7 +237,7 @@ function readRequest(
   // The four actions that name no card. Two name nothing at all; planning a release and
   // writing one up each name a version.
   if (action === 'create') {
-    return { req: { action, description: words(0)!, release: opts.release, runtime: opts.runtime }, follow, print }
+    return { req: { action, description: words(0)!, release: opts.release, runtime: opts.runtime, origin: currentSession() }, follow, print }
   }
   if (action === 'plan-release') {
     return { req: { action, release: words(0)! }, follow, print }

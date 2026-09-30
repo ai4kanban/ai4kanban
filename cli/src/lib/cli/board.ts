@@ -9,7 +9,9 @@
 
 import { CADENCE_FORMS } from '../cadence'
 import { insideRun } from '../agent/env'
+import { handOff } from '../agent/chat'
 import { recordCards } from '../agent/created-cards'
+import { currentSession } from '../agent/origin'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { BoardError, say, warn } from '../io'
@@ -74,8 +76,17 @@ async function dispatch(
     const data = READ_ONLY_MOVES.has(move)
       ? await board().readMove(move, input)
       : unwrap(await withLease(moveTarget(move, args), (env) => board().runMove(move, input, env)))
-    if (inRun && Array.isArray(data.ids)) {
-      await recordCards(insideRun()!, data.ids.filter((id): id is number => Number.isInteger(id)))
+    const created = move === 'create' && Array.isArray(data.ids) ? data.ids.filter((id): id is number => Number.isInteger(id)) : []
+    if (inRun) await recordCards(insideRun()!, created)
+    // Each new card picks up the session it was created in (#1222). Best effort: a card is
+    // created whether or not one is found.
+    if (created.length) {
+      try {
+        const from = currentSession()
+        if (from) handOff(from, created)
+      } catch {
+        // no session to hand over
+      }
     }
     // A board that ran the move somewhere else sends its prose back rather than printing it;
     // Local printed as it went and has none to add.

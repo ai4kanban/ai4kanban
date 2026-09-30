@@ -112,9 +112,9 @@ function shippedLines(cardId: number): string[] {
 
 // The discussion a card was written from (#1213), up to the handoff.
 function discussionLine(cardId: number): string | undefined {
-  const from = readChat(cardId)?.from
-  if (!from || !fs.existsSync(chatFile(from.discussion))) return undefined
-  return `${rel(chatFile(from.discussion))} — its first ${from.messages} message${from.messages === 1 ? '' : 's'}, up to the handoff`
+  const { discussion, messages = 0 } = readChat(cardId)?.from ?? {}
+  if (!discussion || !fs.existsSync(chatFile(discussion))) return undefined
+  return `${rel(chatFile(discussion))} — its first ${messages} message${messages === 1 ? '' : 's'}, up to the handoff`
 }
 
 function missedLine(): string {

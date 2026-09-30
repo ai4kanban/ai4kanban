@@ -322,7 +322,7 @@ describe('the pick reaching the spawn', () => {
     assert.equal(run.runtime, 'cheap')
     // And a turn into the session it already opened stays on it, rather than being refused
     // for not matching the board.
-    assert.equal(planResume('codex', 'session-1', root, undefined, { pin: 'cheap' })?.harness, 'codex')
+    assert.equal(planResume({ harness: 'codex', resumeId: 'session-1', cwd: root }, undefined, { pin: 'cheap' })?.harness, 'codex')
   })
 
   it('hands the same model to a connector opened with its settings', () => {

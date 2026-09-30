@@ -785,6 +785,7 @@ export function openRun(
     sessionId,
     cardId,
     action: req.action,
+    origin: req.action === 'create' ? req.origin : undefined,
     discard: req.discard,
     status: 'running',
     startedAt: Date.now(),
@@ -949,9 +950,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   // runtime it went on inside that connector (#518), so a run started on a picked runtime
   // carries on as what it was rather than falling back to its agent's own.
   const plan = planResume(
-    prev.harness,
-    resumeId,
-    deliveryCwd(resuming ?? {}),
+    { harness: prev.harness, resumeId, cwd: deliveryCwd(resuming ?? {}) },
     prev.agent,
     prev.runtime ? { pin: prev.runtime } : {},
   )
@@ -985,6 +984,7 @@ async function resumeHeld(
     sessionId,
     cardId: prev.cardId,
     createdCardIds: prev.createdCardIds,
+    origin: prev.origin,
     discard: prev.discard,
     discardedCards: prev.discardedCards,
     action: prev.action,
