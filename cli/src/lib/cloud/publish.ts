@@ -462,17 +462,36 @@ function reconcileAgainstCloud(
 ): void {
   for (const event of onCloud) {
     if (!inHome(event, home)) continue
-    if (event.state === 'accepted') {
-      if (writeOffAbandoned(event, atWork)) event.state = 'interrupted'
-      continue
-    }
-    if (event.state !== 'actionable') continue
+    if (event.state === 'accepted' && writeOffAbandoned(event, atWork)) event.state = 'interrupted'
+  }
+  retireUnneeded(onCloud, home, actionable)
+  dropSwept(onCloud, actionable)
+}
+
+/** Retire every unacted row on Cloud whose card the board no longer holds a decision for —
+ *  including one this board has no record of (#1272). Marked `stale` on `onCloud` so the
+ *  bell reads where Cloud is about to be. */
+function retireUnneeded(onCloud: CloudEvent[], home: EventHome, actionable: ReadonlySet<number>): void {
+  for (const event of onCloud) {
+    if (!inHome(event, home) || event.state !== 'actionable' || event.acted) continue
     if (actionable.has(event.taskId)) continue
-    if (event.acted) continue
+    traceCloud(`retire #${event.taskId} queued: event ${event.id} asks about a card that needs nobody`)
     queue({ opId: newOpId(), kind: 'retire', attempts: 0, eventId: event.id, state: 'stale' })
     event.state = 'stale'
   }
-  dropSwept(onCloud, actionable)
+}
+
+/**
+ * The periodic half of the start-up reconciliation (#1272): retire what Cloud still shows
+ * as waiting on a card that needs nobody. Only that — writing off and dropping records stay
+ * with the start. A board that reads as empty or not at all retires nothing.
+ */
+export async function retireStaleOnCloud(onCloud: CloudEvent[]): Promise<void> {
+  const enabled = cloudBoardFor(KANBAN)
+  if (!enabled || !readSession()) return
+  const now = await boardNow()
+  if (!now.read) return
+  retireUnneeded(onCloud, eventHome(enabled), now.needed)
 }
 
 /**
@@ -883,7 +902,8 @@ async function run(): Promise<void> {
  * by another surface or by a retry this board lost track of: the row is somebody's to report
  * against, so Cloud's state is written back and the delivery goes on reporting against it.
  * `stale_revision` means the card moved between the click and the send, and nothing was
- * recorded: that click is gone, and so is anything queued to report against it.
+ * recorded: that click is gone, and so is anything queued to report against it. Either way
+ * the record takes Cloud's state.
  *
  * A read that cannot be made changes nothing. The next reconciliation is what closes it.
  */
@@ -895,16 +915,17 @@ async function actionRefused(eventId: string, code?: string): Promise<string[]> 
   }
   const event = answer.value.event
   traceCloud(`action ${eventId} refused as ${code ?? 'terminal'}: Cloud holds it ${event.state}`)
-  if (event.acted) {
-    noteEventState(eventId, event.state)
-    return []
-  }
-  return abandonAction(eventId)
+  noteEventState(eventId, event.state)
+  if (event.acted) return []
+  // Nothing was recorded, so the row is back to what Cloud holds and the record stays: the
+  // next board write refreshes it or, for a card that needs nobody, retires it (#1272).
+  traceCloud(`action ${eventId} not recorded: its outcomes go, the record reads ${event.state}`)
+  return dropQueuedFor(eventId, ['outcome'])
 }
 
-/** A click Cloud has no action for, and never will. What was queued to report against it has
- *  nowhere to land, and the record naming it would keep the card off every later pass — so
- *  both go. The row itself is left to the reconciliation, which retires it as `stale`.
+/** A click that never reached Cloud. What was queued to report against it has nowhere to
+ *  land, and the record naming it would keep the card off every later pass — so both go.
+ *  The row itself is left to the reconciliation, which retires it as `stale`.
  *
  *  Answers which queued items went, because the pass holding this one read the queue before
  *  it. */

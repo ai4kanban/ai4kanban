@@ -54,7 +54,7 @@ import { eventHome, inHome, type EventHome } from './home'
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
 import { unsentToCloud } from './outbox'
-import { flushCloudOutbox, reconcileBoard, takeWatchFill } from './publish'
+import { flushCloudOutbox, reconcileBoard, retireStaleOnCloud, takeWatchFill } from './publish'
 import { readSession } from './session'
 
 /** One row of the rail. The card's number and title, the event's name under it, and nothing
@@ -315,7 +315,8 @@ export function stopCloudCenter(): void {
  *
  *  The first one also reconciles the board against the same read (#1245), and the bell takes
  *  what the reconciliation made of it: a row it retired reads `stale`, and one it wrote off is
- *  `interrupted` already, so the change coming back as a hint raises nobody.
+ *  `interrupted` already, so the change coming back as a hint raises nobody. Every later one
+ *  retires what still waits on a card that needs nobody (#1272).
  *
  *  It sends as well as reads, last: a reconnect is the first moment a machine that was asleep
  *  or offline knows Cloud is reachable, and the outbox it filled while it was not is what
@@ -328,6 +329,7 @@ async function catchUp(firstTime: boolean): Promise<void> {
   const answer = await listOpenEvents()
   if (held.epoch !== epoch) return
   if (first) await reconcileBoard(answer.ok ? answer.value.events : undefined).catch(() => {})
+  else if (answer.ok) await retireStaleOnCloud(answer.value.events).catch(() => {})
   held.loaded = true
   if (answer.ok) {
     held.error = undefined

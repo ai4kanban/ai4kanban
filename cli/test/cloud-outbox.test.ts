@@ -567,7 +567,18 @@ describe('an action Cloud refuses for good', () => {
 
     assert.ok(!seen.some((at) => at.endsWith('/v1/events/e-1/outcome')), 'a state was reported anyway')
     assert.equal(readOutbox().pending.filter((p) => p.kind === 'outcome').length, 0)
-    assert.equal(publishedFor(12), undefined, 'a record naming that event would keep the card off every pass')
+    assert.equal(publishedFor(12)?.state, 'actionable', 'the record reads what Cloud holds (#1272)')
+  })
+
+  it('retires the row once the card is archived, though the click was refused (#1272)', async () => {
+    await refused('stale_revision', { state: 'actionable', acted: false })
+    // Another card keeps the board from reading as empty.
+    writeCard(13, '0.8.0')
+    fs.rmSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '12-a-task.md'))
+
+    await recordBoardEvents()
+
+    assert.ok(readOutbox().pending.some((p) => p.kind === 'retire' && p.eventId === 'e-1'))
   })
 
   it('leaves the row for the reconciliation, which retires it as stale', async () => {

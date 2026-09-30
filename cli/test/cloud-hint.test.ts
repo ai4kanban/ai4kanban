@@ -338,6 +338,63 @@ describe('the start read (#1245)', () => {
   })
 })
 
+describe('the periodic read retires what nobody waits on (#1272)', () => {
+  /** A board holding card 99 alone, joined against an empty Cloud; `later` is what the next
+   *  five-minute read finds. Answers every call it made. */
+  async function readLater(later: (boardId: string) => CloudEvent, withCard = true): Promise<string[]> {
+    const boardId = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES).id
+    if (withCard) {
+      const dir = path.join(root, 'docs', 'kanban', 'todo')
+      fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(
+        path.join(dir, '99-other.md'),
+        '---\ntitle: Other\npriority: high\nroi: high\nstatus: todo\nrelease: ""\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n---\n\nSomething else.\n',
+      )
+    }
+    const open: CloudEvent[] = []
+    const calls = fakeCloud((url) => {
+      if (url.includes('/v1/events?')) return ok({ events: open, next: null })
+      return ok({ event: open[0] })
+    })
+    mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() })
+    await join()
+    open.push(later(boardId))
+    mock.timers.tick(5 * 60_000 + 1)
+    startCloudCenter(true)
+    await settle()
+    return calls
+  }
+
+  const retired = (calls: string[]) => calls.some((c) => c.endsWith('/v1/events/e-1/retire'))
+
+  it('retires a row this board holds no record of, and the bell reads it stale', async () => {
+    const calls = await readLater((boardId) => event('e-1', { boardId }))
+    assert.ok(retired(calls))
+    assert.deepEqual(readCloudCenter().alerts.map((a) => a.eventId), [])
+  })
+
+  it('leaves a row somebody acted on, another board’s row, and an empty board alone', async () => {
+    assert.ok(!retired(await readLater((boardId) => event('e-1', { boardId, acted: true }))))
+    mock.restoreAll()
+    mock.timers.reset()
+    stopCloudCenter()
+    assert.ok(!retired(await readLater(() => event('e-1', { boardId: 'another-board' }))))
+    mock.restoreAll()
+    mock.timers.reset()
+    stopCloudCenter()
+    fs.rmSync(path.join(root, 'docs', 'kanban', 'todo', '99-other.md'))
+    assert.ok(!retired(await readLater((boardId) => event('e-1', { boardId }), false)))
+  })
+
+  it('writes off nothing — that stays with the start', async () => {
+    notePublication(12, 'e-1', 'accepted')
+    const calls = await readLater((boardId) =>
+      event('e-1', { boardId, state: 'accepted', acted: true, changedAt: new Date(Date.now() - 60 * 60_000).toISOString() }),
+    )
+    assert.ok(!calls.some((c) => c.endsWith('/v1/events/e-1/outcome')))
+  })
+})
+
 // ---- the fake socket --------------------------------------------------------
 
 class FakeSocket {
