@@ -163,7 +163,7 @@ export interface AgentRequest {
    *  from the project root. One plan goes as `plan`. */
   plans?: string[]
   /** create: the conversation whose own agent session writes the cards (#1026), as its
-   *  transcript key — a discussion's Plan tasks. */
+   *  transcript key — a discussion's Plan tasks. implement: the one Start now forks (#1246). */
   chat?: string
   /** create: the session the command was typed in (#1222). */
   origin?: ChatHandoff
@@ -381,6 +381,7 @@ export type RunRefusalKind =
   | 'skillNotInstalled'
   | 'chatForeign'
   | 'chatNoSession'
+  | 'chatNoFork'
   | 'chatClosed'
   | 'planNotFound'
 

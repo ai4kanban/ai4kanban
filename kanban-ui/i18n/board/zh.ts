@@ -103,6 +103,7 @@ const zh: BoardCopy = {
         became: "→ 已写成",
         closed: "这段讨论已写成卡片，点上面的卡片接着聊",
         starting: "启动中…",
+        rerouted: "无法带着讨论直接开工，已改为规划任务",
         failed: {
           other: "没能启动",
         },

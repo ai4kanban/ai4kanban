@@ -113,6 +113,7 @@ const en: BoardCopy = {
         became: "→ Became",
         closed: "This discussion became cards. Carry on in one above.",
         starting: "Starting…",
+        rerouted: "Couldn't start with this discussion — planning tasks instead",
         failed: {
           other: "It did not start",
         },

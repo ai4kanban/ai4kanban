@@ -101,6 +101,8 @@ export function CreateTask({
   // Why the last start on the discussion the sheet is holding never came up. It lives here
   // rather than in the sheet so an answer pressed on one discussion cannot say it on another.
   const [failure, setFailure] = useState<StartFailure | null>(null);
+  // The discussion whose Start now went through Plan tasks instead.
+  const [rerouted, setRerouted] = useState<string | null>(null);
 
   // The discussion this screen is holding, readable after an await — a rail row may have
   // handed over another one while a run was starting (#610).
@@ -282,9 +284,16 @@ export function CreateTask({
       asking.add(key);
       createSheet.starting(key, answer);
       setFailure(null);
+      setRerouted(null);
       createSheet.startCleared(on);
       const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
-      const res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start, workflow);
+      let res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start, workflow);
+      // A connector that can't take the discussion into the build plans it instead (#1246).
+      if (answer === "build" && res.reason === "chatNoFork") {
+        answer = "plan";
+        setRerouted(key);
+        res = await startPlanningAction(release ?? undefined, on, plan.start, workflow);
+      }
       asking.delete(key);
       createSheet.starting(key, null);
       // A run needs an id to be watched and tailed, so a yes with none is a start that did not
@@ -369,6 +378,7 @@ export function CreateTask({
           }}
           starting={starting[askedOn(discussion)] ?? null}
           failure={failure}
+          rerouted={rerouted === askedOn(discussion)}
           onPlan={(workflow) => void startFromPlan("plan", workflow)}
           onBuildPlan={(workflow) => void startFromPlan("build", workflow)}
           onBecame={becameCard}

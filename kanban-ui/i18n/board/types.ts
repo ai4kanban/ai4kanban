@@ -146,6 +146,8 @@ export type BoardCopy = {
         /** The answer that was pressed, while its run is being asked for (#706). The other
          *  two are down beside it and the box sends nothing. */
         starting: string;
+        /** Start now went through Plan tasks: the connector can't take the discussion into a build (#1246). */
+        rerouted: string;
         /** Why the run never started, when the refusal has no sentence of its own (#706). Said
          *  under the three answers, which are live again — pressing the same one is the retry. */
         failed: {

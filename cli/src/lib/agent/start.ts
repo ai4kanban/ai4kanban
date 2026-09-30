@@ -116,8 +116,10 @@ export function runAsk(req: AgentRequest, sessionId: string): AgentRequest {
 function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: boolean } | RunRefusal {
   // A run refused below gives its pictures back — the sheet is still up with its words.
   const ask = runAsk(req, sessionId)
-  // Plan tasks is said into the discussion's own session (#1026), held until it is written down.
-  const said = ask.action === 'create' && ask.chat ? takeChatSession(ask.chat) : undefined
+  // Plan tasks is said into the discussion's own session (#1026), and a discussion's Start now
+  // forks it (#1246) — held until the run is written down.
+  const fromChat = ask.action === 'create' || ask.action === 'implement' ? ask.chat : undefined
+  const said = fromChat ? takeChatSession(fromChat, ask.action === 'implement') : undefined
   if (said && 'error' in said) {
     returnRunPictures(sessionId, req.box)
     return said
@@ -126,7 +128,7 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
   try {
     // The skill is called the way the conversation's own CLI takes it.
     const { prompt, notes } = buildRun(said ? { ...ask, runtime: said.runtime } : ask)
-    opened = openRun(ask, prompt, notes, sessionId, said?.plan)
+    opened = openRun(ask, prompt, notes, sessionId, said)
   } finally {
     said?.release()
   }

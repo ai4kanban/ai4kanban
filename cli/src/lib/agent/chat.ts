@@ -860,9 +860,20 @@ export function holdChat(key: string): (() => void) | RunRefusal {
   return startAnswering(target) ?? chatBusy()
 }
 
-/** How a run resumes this conversation's session, held. Refused rather than opening a fresh
- *  session: the point of the run is what that session already holds. */
-export function takeChatSession(key: string): { plan: RunPlan; runtime: string; release(): void } | RunRefusal {
+/** A run on this conversation's session: said into it, or forked off it (#1246). */
+export interface ChatSession {
+  plan(cwd: string, sessionId: string): RunPlan
+  fork: boolean
+  runtime: string
+  /** fork: the discussion as it stood, for the card the run writes. */
+  origin?: ChatHandoff
+  release(): void
+}
+
+/** How a run resumes this conversation's session — or, with `fork`, starts a copy of it in
+ *  another folder — held. Refused rather than opening a fresh session: the point of the run
+ *  is what that session already holds. */
+export function takeChatSession(key: string, fork = false): ChatSession | RunRefusal {
   const target = chatOfKey(key)
   if (target === undefined) return noSession()
   const chat = readChat(target)
@@ -870,14 +881,23 @@ export function takeChatSession(key: string): { plan: RunPlan; runtime: string; 
   if (blocked) return blocked
   if (!chat?.resumeId) return noSession()
   const runtime = runtimeOf(chat)
-  const plan = planResume({ harness: chat.harness, resumeId: chat.resumeId, cwd: REPO_ROOT }, CHAT_AGENT, { pin: runtime })
-  if (!plan) {
-    const agent = chatAgent(runtime).label
-    const previous = harnessLabel(chat.harness)
+  const session = { harness: chat.harness, resumeId: chat.resumeId }
+  const plan = (cwd: string, sessionId: string) =>
+    fork
+      ? planFork({ ...session, cwd }, CHAT_AGENT, { pin: runtime }, sessionId)
+      : planResume({ ...session, cwd }, CHAT_AGENT, { pin: runtime })
+  const agent = chatAgent(runtime).label
+  const previous = harnessLabel(chat.harness)
+  if (!planResume({ ...session, cwd: REPO_ROOT }, CHAT_AGENT, { pin: runtime })) {
     return refusal('chatForeign', `${agent} can't carry on a ${previous} conversation. Clear it to start fresh.`, { agent, previous })
   }
+  if (fork && !plan(REPO_ROOT, randomUUID())) {
+    return refusal('chatNoFork', `${previous} can't start from this discussion. Use Plan tasks instead.`, { agent: previous })
+  }
   const release = holdChat(key)
-  return typeof release === 'function' ? { plan, runtime, release } : release
+  if (typeof release !== 'function') return release
+  const origin = fork && isDiscussion(target) ? discussionSession(target) : undefined
+  return { plan: (cwd, sessionId) => plan(cwd, sessionId)!, fork, runtime, origin, release }
 }
 
 /** A run said into this conversation has ended: the conversation carries on by the id it left. */

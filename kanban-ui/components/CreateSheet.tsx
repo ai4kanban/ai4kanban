@@ -71,6 +71,8 @@ interface Props {
   /** Why the last start on THIS discussion never came up (#706) — said under the answers, in
    *  the app's own language, with the paths the board named under it. */
   failure: StartFailure | null;
+  /** Start now could not take this discussion along and went through Plan tasks (#1246). */
+  rerouted?: boolean;
   /** The discussion became one card (#1213): the screen hands the reader to its page. */
   onBecame(cardId: number): void;
 }
@@ -114,6 +116,7 @@ function Sheet({
   onBecame,
   starting,
   failure,
+  rerouted,
   rail,
   partner,
 }: Props & { rail: ChatRail; partner: DiscussFeedback }) {
@@ -231,6 +234,7 @@ function Sheet({
       held={endHeld}
       starting={starting}
       failure={failure}
+      rerouted={rerouted}
       flows={flows}
       workflow={workflow}
       lock={lock}
@@ -583,6 +587,7 @@ function Handoff({
   held,
   starting,
   failure,
+  rerouted,
   flows,
   workflow,
   lock,
@@ -601,6 +606,7 @@ function Handoff({
   starting: PlanAnswer | null;
   /** Why the last one never came up (#706), said in the row's own space below. */
   failure: StartFailure | null;
+  rerouted?: boolean;
   /** The board's workflows, or null before they are read or on rules without them. */
   flows: WorkflowView[] | null;
   workflow: string;
@@ -634,7 +640,10 @@ function Handoff({
   if (!read || !count) return null;
   if (read.run?.running) {
     return (
-      <Working label={read.run.answer === "build" ? c.building : many ? c.planningMany(count) : c.planning} />
+      <>
+        {rerouted && read.run.answer === "plan" && <p className="px-2.5 pt-2 text-[12px] text-nb-ink-soft">{c.rerouted}</p>}
+        <Working label={read.run.answer === "build" ? c.building : many ? c.planningMany(count) : c.planning} />
+      </>
     );
   }
   // A file that has been written at least once — a plan named a second ago has nothing in it

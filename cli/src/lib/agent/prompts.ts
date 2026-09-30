@@ -361,7 +361,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         }
         return [
           req.plan
-            ? `${kb}. Build the plan at \`${req.plan}\`. Read it first — it is the whole requirement.`
+            ? `${kb}. Build the plan at \`${req.plan}\`, written in this conversation. The plan is the contract; use what was said here only to clarify its intent.`
             : `${kb}. Build this: "${req.description?.trim() ?? ''}".`,
           req.plan
             ? `Follow \`akb guide implement\` — write its card first, from that plan, then build it.`

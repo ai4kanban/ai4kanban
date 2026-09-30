@@ -558,6 +558,8 @@ export function planFork(
   session: AgentSession,
   agent?: string,
   own: Omit<HarnessAsk, 'agent' | 'harness'> = {},
+  /** The new session's id, where the harness adopts ours. */
+  sessionId: string = randomUUID(),
 ): RunPlan | null {
   const { harness: harnessName, resumeId, cwd = REPO_ROOT } = session
   if (!harnessByName(harnessName)) return null
@@ -565,7 +567,6 @@ export function planFork(
   const { harness, command, runtime } = resolved
   if (!harness.forkArgs || harness.name !== harnessName) return null
   const argv = splitCommand(command)
-  const sessionId = randomUUID()
   return {
     harness: harness.name,
     runtime: runtime.id,

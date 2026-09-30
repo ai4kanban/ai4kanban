@@ -59,7 +59,7 @@ import { withCreationLock } from './creation-lock'
 import { canImplement, creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { findCard } from '../view/read'
 import type { Card } from '../view/types'
-import { cardsDiscussing, holdChat, repointChatRuns } from './chat'
+import { cardsDiscussing, holdChat, repointChatRuns, type ChatSession } from './chat'
 import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
@@ -715,8 +715,8 @@ export function openRun(
   prompt: string,
   notes: string[] = [],
   sessionId: string = randomUUID(),
-  /** The conversation session this run carries on (#1026), in place of a fresh one. */
-  said?: RunPlan,
+  /** The conversation session this run carries on (#1026) or forks (#1246), in place of a fresh one. */
+  said?: Pick<ChatSession, 'plan' | 'fork' | 'origin'>,
 ): { run: RunRecord; spec: RunSpec } | RunRefusal {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   // The runtime this one run was asked for (#518). Refused here rather than resolved away:
@@ -776,7 +776,7 @@ export function openRun(
   // and not this one.
   // …and on the runtime this run was started with, when it named one (#518) — over the one
   // its agent is set to, and for this run alone.
-  const plan = said ? { ...said, note: null } : planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
+  const plan = said ? { ...said.plan(cwd, sessionId), note: null } : planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
   // What that agent resolved to, when the board names a connector this version can't run. It
   // goes in the log rather than being swallowed: a run on another tool than the one asked
   // for is the first thing to check when its output looks wrong.
@@ -785,7 +785,7 @@ export function openRun(
     sessionId,
     cardId,
     action: req.action,
-    origin: req.action === 'create' ? req.origin : undefined,
+    origin: said?.fork ? said.origin : req.action === 'create' ? req.origin : undefined,
     discard: req.discard,
     status: 'running',
     startedAt: Date.now(),
@@ -804,8 +804,8 @@ export function openRun(
     argv: plan.argv,
     // No `resumeId` on a fresh run: one under an agent that takes our id needs none, and one
     // that mints its own has nothing to record yet. A run said into a conversation carries
-    // that conversation's.
-    ...(said ? { chat: req.chat, resumeId: said.resumeId ?? undefined } : {}),
+    // that conversation's; a fork is a fresh session of its own.
+    ...(said && !said.fork ? { chat: req.chat, resumeId: plan.resumeId ?? undefined } : {}),
     logPath: logPathOf(sessionId),
     // Which agent this is, on the action that is one — so the run list can name it, and so
     // a resume starts the same agent rather than a different one.
