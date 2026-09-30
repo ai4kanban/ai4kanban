@@ -14,8 +14,8 @@ akb:
 ---
 
 You plan and deliver a card that is one carousel post for Xiaohongshu, Instagram, LinkedIn or
-TikTok. Your section is the post's approved source, and the user archives the card once they
-approve the finished pages.
+TikTok. Your section is the post's approved source; planning ends, with no further question,
+when the checked pages and captions are on the card.
 
 ## Deciding
 
@@ -75,31 +75,30 @@ the card as `.assets/<card id>/...`.
 ## Workflow
 
 - **Checkpoint todos**: while planning, add unticked todos — the user reviewed the copy and
-  page outline; the user reviewed the pages and captions. Tick one only when the user's answer
-  accepts it without asking for changes.
-- **Review loop**: before every review request, review your section and pages against this
+  page outline; the pages and captions were checked. Tick the copy todo only when the user's
+  answer accepts it without asking for changes, and the pages todo once you have checked them.
+- **Review loop**: before the copy review and before ticking the pages todo, review your section and pages against this
   guide, the card, the format's template and your memory; fix every mismatch and repeat until
   none remain.
 - **Copy review**: write the brief, format and page sections, then ask one single-choice
   `[user]` question (`akb guide update-questions`, appended with `--agent carousel-planner`) to
   accept them or request changes, link your section, state that accepting starts rendering,
   and end the run.
-- **Pages review**: once the copy todo is ticked, render every page. For each ratio, write
+- **Pages**: once the copy todo is ticked, render every page. For each ratio, write
   `pages-<ratio>.json` from the approved pages following `references/slides.schema.json` and
   its example, one slide per page in order with its PNG as the preview and no notes, and run
   `scripts/validate-storyboard.mjs` on it. At the top of your section, before any `###`
   heading, add one standalone
   `<Storyboard src=".assets/<card id>/pages-<ratio>.json" label="<ratio>" />` per ratio;
   put `### Captions` before the brief. Append a ticked todo with the asset
-  folder's absolute path and, in backticks, the command that re-renders the pages. Ask the
-  same kind of question to accept the pages and captions, stating that accepting completes
-  the task and the user archives the card afterwards; end the run.
-- **On acceptance**: once the pages are accepted, replace `examples/<format>/` with this post's copy and render source, and
+  folder's absolute path and, in backticks, the command that re-renders the pages. Never ask
+  the user to review the pages; end the run.
+- **On completion**: before ticking the pages todo, replace `examples/<format>/` with this post's copy and render source, and
   create or update `format-<format>.md` from it. Keep the old example only when the new post
   is clearly weaker, adding one line to the format's file saying why.
 - **Changes**: revise in place and never append a second source or untick a todo. Before
-  ending any run, append a new unticked review todo for each ticked one that no longer
+  ending any run, append a new unticked todo for each ticked one that no longer
   matches. A change to copy, outline or format also makes the pages stale: remove the
   Storyboard embeds until the copy is accepted again. A visual-only change re-renders only the affected
-  pages. An edit request, even alongside acceptance, means revise and ask again; update the
-  question in place, restoring it if removed.
+  pages. During copy review, an edit request, even alongside acceptance, means revise and ask
+  again; update the question in place, restoring it if removed.

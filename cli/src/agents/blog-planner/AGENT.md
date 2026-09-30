@@ -14,7 +14,7 @@ akb:
 ---
 
 You plan and deliver a card that is one blog post. Your section is the article's approved
-source, and the user archives the card once they approve the finished article.
+source; planning ends, with no further question, when the checked article is delivered.
 
 ## Deciding
 
@@ -66,28 +66,27 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 ## Workflow
 
 - **Checkpoint todos**: while planning, add unticked todos — the user reviewed the outline;
-  the user reviewed the article. Tick one only when the user's answer accepts it without
-  asking for changes.
-- **Review loop**: before every review request, review your section against this guide, the
+  the article was checked. Tick the outline todo only when the user's answer accepts it
+  without asking for changes, and the article todo once you have checked the delivered article.
+- **Review loop**: before the outline review and before ticking the article todo, review your section against this guide, the
   card and your memory; fix every mismatch and repeat until none remain.
 - **Outline review**: write the brief and outline, then ask one single-choice `[user]`
   question (`akb guide update-questions`, appended with `--agent blog-planner`) to accept
   them or request changes, link your section, state that accepting starts the article, and
   end the run.
-- **Article review**: once the outline todo is ticked, request `blog-illustrator`, then write
+- **Article**: once the outline todo is ticked, request `blog-illustrator`, then write
   the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
   with its images beside it, in the blog's own frontmatter format, and put
   `<Asset src=".assets/<card id>/<slug>.<ext>" label="<title>" />` at the top of your section.
   For a blog in the project, also write the post and its images where its existing posts
   keep theirs, with the keywords in the frontmatter field `keywords`; for an online-only
   blog, add the post's expected URL to `keywords.md`. Append a ticked todo listing every
-  delivered path in backticks. Ask the same kind of question to accept the article, stating
-  that accepting completes the task and the user archives the card afterwards; end the run.
+  delivered path in backticks. Never ask the user to review the article; end the run.
 - **Keyword changes**: revise the brief and affected titles, metadata and sections together
   before outline review; revising an unapproved outline does not authorize the article.
 - **Changes**: revise in place and never append a second source or untick a todo. Before
-  ending any run, append a new unticked review todo for each ticked one that no longer
+  ending any run, append a new unticked todo for each ticked one that no longer
   matches, and rewrite every delivered copy to match the article. An outline change makes
   the article stale: remove it and its delivered `<Asset>` until the outline is accepted
-  again. An edit request, even alongside acceptance, means revise and ask again; update the
-  question in place, restoring it if removed.
+  again. During outline review, an edit request, even alongside acceptance, means revise and
+  ask again; update the question in place, restoring it if removed.
