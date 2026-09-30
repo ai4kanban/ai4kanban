@@ -16,5 +16,6 @@ Plan one card in this session until it can be built. Change no project code.
 - **Write**: shape the card as `akb guide writing` says, then run `akb raw validate <id>` and
   fix every reported line.
 
-Follow the flow's closing steps. When no `[user]` question is open and the handover names the
+Follow the flow's closing steps. Inside a board run, stop once the card is ready — the board
+starts the build. Otherwise, when no `[user]` question is open and the handover names the
 build, build the card in this session; otherwise stop.

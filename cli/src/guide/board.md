@@ -53,6 +53,11 @@ the metadata: title, priority, roi, status, release, blocked_by, related, module
 questions, verify, and schedule. Edit only the card's **body** by hand. `akb raw help`
 lists all operations; `akb raw help <move>` explains one operation.
 
+## Inside a board run
+
+A board run carries `KANBAN_RUN` in its environment. Never unset or bypass it (for example
+`env -u KANBAN_RUN`): when a command only prints a flow, follow the printed flow.
+
 ## The board's language
 
 A run is told which language to write the board's prose in; told nothing, write English.
