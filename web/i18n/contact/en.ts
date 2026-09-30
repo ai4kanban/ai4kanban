@@ -4,7 +4,7 @@ import type { ContactCopy } from "./types";
 
 const en: ContactCopy = {
   meta: {
-    title: "Contact AI4Kanban — support and custom agents",
+    title: "Contact AI4Kanban — get help or have agents built for you",
     description:
       "Get help with AI4Kanban, or have agent workflows built around how you work. One form, answered by email.",
     socialTitle: "Contact AI4Kanban",
@@ -18,7 +18,7 @@ const en: ContactCopy = {
     body: "Bugs, setup, or questions. Include your version and logs.",
   },
   customize: {
-    name: "Customize agents",
+    name: "Done-for-you agents",
     body: "Agent workflows tailored to how you work.",
     price: "$15",
     per: " / agent",

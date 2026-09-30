@@ -54,10 +54,10 @@ const en: PricingCopy = {
     button: "Join the waitlist",
   },
   custom: {
-    name: "Custom agents",
+    name: "Done-for-you agents",
     price: "$15",
     per: "/ agent",
-    body: "Hand your workflow to agents built for it.",
+    body: "Tell us your workflow. We build the agents for it.",
     button: "Describe your workflow",
   },
   training: { name: "Training", button: "See training" },
