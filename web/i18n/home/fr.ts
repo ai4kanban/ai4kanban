@@ -52,8 +52,8 @@ const fr: HomeCopy = {
         body: "La plupart des détails sont réglés à partir du code et des décisions passées. Le travail avance en arrière-plan ; les choix produit et les livraisons à valider vous parviennent dans l’application ou sur Slack.",
       },
       {
-        title: "Vous décidez de ce qui tourne sans vous.",
-        body: "Certaines tâches, c’est vous qui les lancez : discuter d’une idée, ranger le tableau, corriger un plan à côté du sujet. La relecture de la mémoire des conversations est activée dès le départ et tourne chaque jour. Les autres attendent que vous les activiez : valider les livraisons, répondre aux questions en attente, proposer la suite. Chacune reçoit l’outil d’exécution, le modèle et les instructions que vous lui donnez.",
+        title: "Confiez la gestion de votre tableau aux agents.",
+        body: "Avec les outils kanban traditionnels, vous devez tout mettre à jour à la main : un travail fastidieux qui prend du temps. Dans AI4Kanban, les agents gèrent votre tableau : ils gardent en mémoire les décisions prises dans vos conversations, font régulièrement le tri dans les informations mémorisées devenues obsolètes et les cartes laissées de côté, et proposent des tâches de suivi lorsqu’une carte est terminée. Vous n’avez plus qu’à valider les points importants et à prendre les décisions. Vous pouvez adapter chaque agent à votre façon de travailler.",
       },
     ],
   },

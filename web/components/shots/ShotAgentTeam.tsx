@@ -4,60 +4,42 @@ import { FiChevronDown } from "react-icons/fi";
 import { HAIR, NB, Shot, em } from "./nb";
 
 // Step 06 — Configuration → Board, the pane every board opens on. The roster in
-// the narrow column is the WHOLE of that page: the agents you call yourself,
-// then the ones the board may start on its own. Everything right of the rule is
-// the page for the row that is held.
+// the narrow column is the whole of that page, in its three groups; everything
+// right of the rule is the page for the held row.
 //
-// Drawn from kanban-ui/components/Agents.tsx with `scope` = board, and every
-// word taken from kanban-ui/i18n/configuration/en.ts: two group captions, six
-// names that say the JOB, and the few words under each that say what starts it.
+// Drawn from kanban-ui/components/Agents.tsx with `scope` = board; every word is
+// from kanban-ui/i18n/configuration/en.ts, triggers at the default cadence.
+// Auto-sort Triage is left out: it only appears for an invited Cloud account.
 //
-// Auto-sort Triage is the seventh row the product can draw and is left out on
-// purpose: it only appears for an invited Cloud account, so drawing it would put
-// back the thing this shot exists to fix — a page most readers cannot find.
-//
-// Only the roster's own column is fixed; the page beside it fills the rest, and
-// the instructions box inside it takes whatever the page's fixed rows leave —
-// the same growth the real pane has, so the drawing bottoms out level.
-//
-// Static, unlike the other shots in the Loop. The one motion this pane could
-// honestly show is a row being selected, and the page beside it would have to
-// change with it; a wash sliding down a list while the page holds still draws a
-// board that does not exist.
+// Only the roster's column is fixed; the instructions box takes whatever height
+// is left, as in the real pane, so the drawing bottoms out level.
 
-/** The agents you call yourself: no switch, because there is nothing to be off. */
-const MANUAL: [name: string, label: string, trigger: string][] = [
-  ["discussion-helper", "Discuss an idea", "When you chat"],
-  ["memory-pruner", "Tidy memory", "By hand or on a cadence"],
-  ["sweeper", "Tidy stalled cards", "When you sweep one"],
-  ["feedback", "Fix a plan that missed", "When you say it missed"],
-];
-
-/** The ones the board may start by itself, in the roster's own order. Review chat
- *  memory is the one that ships ON, so the column carries a live switch without
- *  any row having to be drawn against its default. */
-const AUTOMATIC: [name: string, label: string, trigger: string, on: boolean][] =
+const GROUPS: [title: string, rows: [name: string, label: string, trigger: string][]][] =
   [
-    ["memory-reviewer", "Review chat memory", "Daily", true],
-    ["proposer", "Suggest follow-up work", "After a card is archived", false],
+    [
+      "You start",
+      [
+        ["discussion-helper", "Discuss an idea", "When you chat"],
+        ["feedback", "Fix a plan that missed", "When you say a plan misread you"],
+      ],
+    ],
+    [
+      "On a schedule",
+      [
+        ["memory-reviewer", "Review chat memory", "Every day"],
+        ["memory-pruner", "Tidy memory", "Every 7 days"],
+        ["sweeper", "Tidy stalled cards", "Every 7 days"],
+        ["dismissal-reviewer", "Learn from dismissals", "Every day"],
+      ],
+    ],
+    [
+      "On an event",
+      [["proposer", "Suggest follow-up work", "After a card is archived"]],
+    ],
   ];
 
-/** The names with a PNG in `public/agent-art/`. The real pane discovers this by
- *  letting the image fail; a drawing captured server-side cannot wait for that,
- *  so the set is written down. */
-const HAS_ART = new Set(["discussion-helper"]);
-
-/** `Agents.tsx`'s `Character` — pixel art, bottom-aligned in a square box. A
- *  paused agent keeps its character, greyed. */
-function Character({
-  name,
-  size,
-  off,
-}: {
-  name: string;
-  size: number;
-  off?: boolean;
-}) {
+/** `Agents.tsx`'s `Character` — pixel art, bottom-aligned in a square box. */
+function Character({ name, size }: { name: string; size: number }) {
   return (
     <span
       style={{
@@ -67,68 +49,10 @@ function Character({
         width: em(size),
         height: em(size),
         flexShrink: 0,
-        opacity: off ? 0.3 : 1,
-        filter: off ? "grayscale(1)" : undefined,
-      }}
-    >
-      {HAS_ART.has(name) ? (
-        <Image
-          src={`/agent-art/${name}.png`}
-          alt=""
-          width={size * 2}
-          height={size * 2}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            imageRendering: "pixelated",
-          }}
-        />
-      ) : (
-        <Lettered name={name} size={size} />
-      )}
-    </span>
-  );
-}
-
-/** The palette's five inks, picked by the agent's name — `Agents.tsx`'s own
- *  rule, collisions included. Three of the five art-less rows land on peach, and
- *  the two memory agents land on the same letter as well, so their characters are
- *  identical here exactly as they are in the product. The names beside them are
- *  what tells the rows apart. */
-const INKS = [NB.skyInk, NB.lilacInk, NB.mintInk, NB.peachInk, NB.accentDeep];
-
-/** A 5x7 letter on the character's own pixel grid. Only the initials this pane
- *  draws — the product carries the whole alphabet because an agent you add can
- *  be called anything. */
-const GLYPHS: Record<string, string> = {
-  f: "11111 10000 10000 11110 10000 10000 10000",
-  m: "10001 11011 11111 10101 10001 10001 10001",
-  p: "11110 10001 10001 11110 10000 10000 10000",
-  s: "01111 10000 10000 01110 00001 00001 11110",
-};
-
-/** The character with no prop, holding a card with the agent's initial — the
- *  card in the agent's own ink, the letter in the visor's cream. The rectangles
- *  are in the PNG's own 96x96 coordinates, where every bundled character carries
- *  its prop. */
-function Lettered({ name, size }: { name: string; size: number }) {
-  const rows = (GLYPHS[name[0]!.toLowerCase()] ?? GLYPHS.m!).split(" ");
-  const ink =
-    INKS[
-      [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % INKS.length
-    ]!;
-  return (
-    <span
-      style={{
-        position: "relative",
-        display: "block",
-        width: "100%",
-        height: "100%",
       }}
     >
       <Image
-        src="/agent-art/base.png"
+        src={`/agent-art/${name}.png`}
         alt=""
         width={size * 2}
         height={size * 2}
@@ -139,82 +63,23 @@ function Lettered({ name, size }: { name: string; size: number }) {
           imageRendering: "pixelated",
         }}
       />
-      <svg
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        viewBox="0 0 96 96"
-        shapeRendering="crispEdges"
-        aria-hidden
-      >
-        <rect x={22} y={48} width={35} height={37} fill="#12130f" />
-        <rect x={25} y={51} width={29} height={31} fill={ink} />
-        {rows.map((row, y) =>
-          [...row].map((on, x) =>
-            on === "1" ? (
-              <rect
-                key={`${x}-${y}`}
-                x={29 + x * 4}
-                y={52 + y * 4}
-                width={4}
-                height={4}
-                fill="#fcf8ea"
-              />
-            ) : null,
-          ),
-        )}
-      </svg>
     </span>
   );
 }
 
-/** `settings.tsx`'s `Switch` at its full size — a filled track either way, so it
- *  reads on the row's own ground, and no word beside it: the caption above the
- *  group already says which half of the roster this is. */
-function Toggle({ on }: { on: boolean }) {
-  return (
-    <span
-      style={{
-        position: "relative",
-        display: "inline-flex",
-        flexShrink: 0,
-        alignItems: "center",
-        width: em(44),
-        height: em(24),
-        borderRadius: em(999),
-        background: on ? NB.accent : "rgba(36,35,31,0.2)",
-      }}
-    >
-      <span
-        style={{
-          width: em(18),
-          height: em(18),
-          marginLeft: on ? em(23) : em(3),
-          borderRadius: em(999),
-          background: NB.paper,
-          boxShadow: `0 ${em(1)} ${em(2)} rgba(36,35,31,0.28)`,
-        }}
-      />
-    </span>
-  );
-}
-
-/** One row: the character, what the agent does, what starts it, and — only in
- *  the automatic half — whether it may. `held` is the ember wash, which is the
- *  whole of which row the page beside the column belongs to. */
+/** One row: the character, what the agent does, and what starts it. `held` is
+ *  the ember wash marking the row the page beside the column belongs to. */
 function PickRow({
   name,
   label,
   trigger,
-  on,
   held,
 }: {
   name: string;
   label: string;
   trigger: string;
-  /** Omitted on a row that cannot be switched. */
-  on?: boolean;
   held?: boolean;
 }) {
-  const off = on === false;
   return (
     <div
       style={{
@@ -226,7 +91,7 @@ function PickRow({
         background: held ? NB.accentSoft : undefined,
       }}
     >
-      <Character name={name} size={26} off={off} />
+      <Character name={name} size={26} />
       <span style={{ minWidth: 0, flex: 1 }}>
         <span
           style={{
@@ -237,7 +102,7 @@ function PickRow({
             fontSize: em(12.5),
             fontWeight: 700,
             lineHeight: 16 / 12.5,
-            color: off ? NB.inkSoft : NB.ink,
+            color: NB.ink,
           }}
         >
           {label}
@@ -257,14 +122,12 @@ function PickRow({
           {trigger}
         </span>
       </span>
-      {on !== undefined && <Toggle on={on} />}
     </div>
   );
 }
 
-/** A half of the roster under its own name. Sentence case and soft ink: the
- *  column is a list of agents, and a caption shouting over each half would
- *  compete with the names. */
+/** A group of the roster under its own name, in soft ink so it does not compete
+ *  with the names. */
 function Roster({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
@@ -330,52 +193,41 @@ export function ShotAgentTeam() {
             gap: em(16),
           }}
         >
-          {/* The whole roster in one narrow column, split the way the two halves
-              start: the ones you call yourself, then the ones the board may
-              start on its own. */}
           <div
             style={{
-              // 292, the pane's own column: a name that says the JOB plus the
-              // switch beside it needs every unit of it, and the type renders
-              // relatively wider at the phone's floor — a column with no slack
-              // clips there first.
+              // 292, the pane's own column.
               width: em(292),
               flexShrink: 0,
               borderRight: `1px solid ${HAIR}`,
               paddingRight: em(16),
             }}
           >
-            <Roster title="Manual">
-              {MANUAL.map(([name, label, trigger]) => (
-                <PickRow
-                  key={name}
-                  name={name}
-                  label={label}
-                  trigger={trigger}
-                  held={name === "discussion-helper"}
-                />
-              ))}
-            </Roster>
-
-            <div
-              style={{
-                marginTop: em(16),
-                paddingTop: em(16),
-                borderTop: `1px solid ${HAIR}`,
-              }}
-            >
-              <Roster title="Automatic">
-                {AUTOMATIC.map(([name, label, trigger, on]) => (
-                  <PickRow
-                    key={name}
-                    name={name}
-                    label={label}
-                    trigger={trigger}
-                    on={on}
-                  />
-                ))}
-              </Roster>
-            </div>
+            {GROUPS.map(([title, rows], i) => (
+              <div
+                key={title}
+                style={
+                  i > 0
+                    ? {
+                        marginTop: em(16),
+                        paddingTop: em(16),
+                        borderTop: `1px solid ${HAIR}`,
+                      }
+                    : undefined
+                }
+              >
+                <Roster title={title}>
+                  {rows.map(([name, label, trigger]) => (
+                    <PickRow
+                      key={name}
+                      name={name}
+                      label={label}
+                      trigger={trigger}
+                      held={name === "discussion-helper"}
+                    />
+                  ))}
+                </Roster>
+              </div>
+            ))}
           </div>
 
           {/* The page for the held row. Everything above the box is
@@ -420,7 +272,7 @@ export function ShotAgentTeam() {
                   }}
                 >
                   <span style={{ fontWeight: 600 }}>Runs when</span> you talk to
-                  it — Discuss, or the chat beside a card.
+                  it — New idea, or Discuss on a card.
                   <span
                     style={{
                       marginLeft: em(6, 11.5),

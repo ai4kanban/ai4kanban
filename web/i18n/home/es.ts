@@ -55,8 +55,8 @@ const es: HomeCopy = {
         body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano y recibes las decisiones de producto y las entregas pendientes de aprobación en la aplicación o en Slack.",
       },
       {
-        title: "Tú decides qué funciona sin ti.",
-        body: "Algunas tareas las inicias tú: hablar de una idea, ordenar el tablero, corregir un plan que no acertó. Repasar la memoria de las conversaciones viene activado y se ejecuta a diario. El resto espera a que lo actives: aprobar entregas, responder preguntas pendientes, proponer el siguiente paso. Cada una usa la herramienta de ejecución, el modelo y las instrucciones que le des.",
+        title: "Deja que los agentes se encarguen de tu tablero.",
+        body: "Con las herramientas kanban tradicionales, tienes que actualizarlo todo a mano: un trabajo tedioso que lleva tiempo. En AI4Kanban, los agentes se encargan de tu tablero: guardan en la memoria las decisiones de tus conversaciones, depuran periódicamente la memoria desactualizada y las tarjetas que han quedado sin atender, y proponen nuevas tareas cuando se completa una tarjeta. Tú solo tienes que aprobar lo importante y tomar decisiones. Puedes ajustar cada agente a tu forma de trabajar.",
       },
     ],
   },

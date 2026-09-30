@@ -49,8 +49,8 @@ const en: HomeCopy = {
         body: "Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.",
       },
       {
-        title: "Decide what runs without you.",
-        body: "Some jobs you start yourself: talk an idea through, tidy the board, correct a plan that missed. Reviewing chat memory is on from the start and runs daily. The rest wait until you switch them on — approving builds, answering open questions, suggesting what comes next. Each one takes the runtime, model, and instructions you give it.",
+        title: "Let agents take care of your board.",
+        body: "With traditional kanban tools, you have to update everything by hand — tedious, time-consuming work. In AI4Kanban, agents take care of your board: they remember decisions from your conversations, regularly clear out outdated memory and neglected cards, and suggest follow-up tasks when a card is completed. You just handle the important approvals and decisions. You can adjust each agent to suit the way you work.",
       },
     ],
   },
