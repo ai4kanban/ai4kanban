@@ -34,7 +34,7 @@ function sourceSection(text: string): string {
   const at = text.search(/^## Source\s*$/m)
   if (at < 0) return ''
   const rest = text.slice(at)
-  const next = rest.slice(1).search(/^## /m)
+  const next = rest.slice(1).search(/^## |^<!--\s*agent\s*-->/m)
   return next < 0 ? rest : rest.slice(0, next + 1)
 }
 

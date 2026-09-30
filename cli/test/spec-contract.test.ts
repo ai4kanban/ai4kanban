@@ -117,6 +117,15 @@ describe('the card format contract', () => {
     for (const rule of ['duplicate-section', 'section-half', 'todos', 'mockup-block']) assert.ok(rules.includes(rule), rule)
   })
 
+  it('places ## Source after Worth noting, and still accepts it last', () => {
+    const source = '## Source\n- plans/1-a.md\n\n'
+    const human = valid.replace('<!-- agent -->', source + '## By `ui-designer` agent\n\n<!-- agent -->')
+    assert.deepEqual(validateSpec(file, human), [])
+    assert.deepEqual(validateSpec(file, valid + '\n' + source), [])
+    const late = valid.replace('<!-- agent -->', '## By `ui-designer` agent\n\n' + source + '<!-- agent -->')
+    assert.deepEqual(validateSpec(file, late).map((e) => e.rule), ['section-order'])
+  })
+
   it('accepts only mobile or desktop as a mockup device', () => {
     const tag = (device: string) => valid.replace('- [ ] Implement it.', `- [ ] Implement it.\n\n<Asset src=".assets/1/a.tsx" label="A" ${device}/>\n`)
     const rules = (device: string) => validateSpec(file, tag(device)).map((e) => e.rule)

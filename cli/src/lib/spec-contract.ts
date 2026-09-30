@@ -135,8 +135,8 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
   const recurring = file.split(path.sep).includes('recurring')
   const required = recurring ? ['Process'] : ['Worth noting', 'Scope', 'Todo', 'Decided by the agent']
   const human = ['Worth noting', 'Worth noting after implementation']
-  const agent = ['Today', 'Scope', 'Scope out', 'Todo', 'Decided by the agent', 'Source']
-  const allowed = recurring ? ['Run state', 'Process', 'Source'] : [...human, ...agent]
+  const agent = ['Today', 'Scope', 'Scope out', 'Todo', 'Decided by the agent']
+  const allowed = recurring ? ['Run state', 'Process', 'Source'] : [...human, ...agent, 'Source']
   const seen = new Set<string>()
   let lastOrder = -1
   for (const heading of headings) {
@@ -148,8 +148,9 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
       const before = heading.line < markers[0]!
       if ((human.includes(heading.title) && !before) || (agent.includes(heading.title) && before)) add(heading.line, 'section-half', `Move ## ${heading.title} ${human.includes(heading.title) ? 'above' : 'below'} <!-- agent -->.`)
       const order = human.includes(heading.title) ? human.indexOf(heading.title) : specialist ? (before ? 2 : 8) : agent.includes(heading.title) ? 3 + agent.indexOf(heading.title) : -1
-      // Specialist sections belong between Todo and Decided by the agent.
-      const rank = heading.title === 'Decided by the agent' ? 9 : heading.title === 'Source' ? 10 : order
+      // Specialist sections belong between Todo and Decided by the agent. Source sits after the
+      // Worth noting sections; cards written before #1286 keep it last, below the boundary.
+      const rank = heading.title === 'Decided by the agent' ? 9 : heading.title === 'Source' ? (before ? 1.5 : 10) : order
       if (rank >= 0 && rank < lastOrder) add(heading.line, 'section-order', `## ${heading.title} is out of order. Follow the section order in akb guide writing.`)
       lastOrder = Math.max(lastOrder, rank)
     }

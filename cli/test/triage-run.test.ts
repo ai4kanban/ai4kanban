@@ -201,6 +201,16 @@ describe('the reconciliation a run starts with', () => {
     assert.equal(readInbox().length, 1)
   })
 
+  it('reads a ## Source in the human half only up to the agent boundary', async () => {
+    const id = await waiting('Named below')
+    fs.writeFileSync(
+      path.join(todo(), '7-human-source.md'),
+      `---\ntitle: Human source\n---\n\nWords.\n\n## Worth noting\n\n## Source\n- #12\n\n<!-- agent -->\nSomebody said ${id} once.\n\n## Scope\n- Words.\n`,
+    )
+    assert.deepEqual(reconcileTriage(), [])
+    assert.equal(readInbox().length, 1)
+  })
+
   it('does not take a longer id for a shorter one', async () => {
     const long = await waiting('Longer')
     fs.writeFileSync(

@@ -154,10 +154,18 @@ function cardFile(id: number): string | null {
   return found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
 }
 
-// A card's `## Source` section — the card's last, so from the heading to the end.
+// Where a card's `## Source` section sits: up to the next section or the agent boundary, as it
+// may sit in either half.
+function sourceSpan(text: string): { start: number; end: number } | null {
+  const start = text.search(/^## Source\s*$/m)
+  if (start < 0) return null
+  const next = text.slice(start + 1).search(/^## |^<!--\s*agent\s*-->/m)
+  return { start, end: next < 0 ? text.length : start + 1 + next }
+}
+
 function sourceOf(text: string): string {
-  const at = text.search(/^## Source\s*$/m)
-  return at < 0 ? '' : text.slice(at)
+  const span = sourceSpan(text)
+  return span ? text.slice(span.start, span.end) : ''
 }
 
 // Whether a card's `## Source` names this plan, however it was spelled — by its id, the one
@@ -186,15 +194,15 @@ function repointSource(id: number, from: string, to: string): void {
   } catch {
     return
   }
-  const was = sourceOf(text)
-  if (!was) return
+  const span = sourceSpan(text)
+  if (!span) return
+  const was = text.slice(span.start, span.end)
   // Both spellings are replaced: the path from the project root, which is what a card
   // carries, and the board-relative one in case something wrote that instead.
-  const head = text.slice(0, text.length - was.length)
   const source = was.replaceAll(planPathInText(from), planPathInText(to)).replaceAll(from, to)
   if (source === was) return
   try {
-    fs.writeFileSync(file, head + source)
+    fs.writeFileSync(file, text.slice(0, span.start) + source + text.slice(span.end))
   } catch {
     // The card goes on naming a path that still reads — `readPlan` follows the plan by its
     // id into either folder.

@@ -33,9 +33,10 @@ build.
   sentence, or the plan's whole text, verbatim, in a fenced code block. Open the fence with
   more backticks than the longest run inside it, or the card fails validation on an unclosed
   fence.
-- **From a plan, name it**: end the card with `## Source` carrying the plan's path from the
-  project root, the way a create off a plan writes it — once the discussion has let the plan
-  go, that path is the only way back to the file. It is the card's last section.
+- **From a plan, name it**: add `## Source` carrying the plan's path from the project root,
+  the way a create off a plan writes it — once the discussion has let the plan go, that path
+  is the only way back to the file. It follows the `Worth noting` sections, above any
+  `## By` agent section.
 - **From a triage item, file it**: `## Source` names the item's source id instead, and
   `akb triage archive <source-id> --card <id>` runs straight after the create, before any
   build work.

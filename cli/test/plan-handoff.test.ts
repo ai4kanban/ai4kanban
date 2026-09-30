@@ -312,6 +312,20 @@ describe('several plans in one discussion (#917)', () => {
     assert.match(fs.readFileSync(first, 'utf8'), new RegExp(FILED_REL))
   })
 
+  it('reads and repoints a ## Source in the human half, leaving the agent half alone', () => {
+    const target = twoPlans()
+    const file = path.join(TODO, '9-a-card.md')
+    const agentHalf = `<!-- agent -->\nCompare \`${planPathInText(OTHER_REL)}\`.\n\n## Scope\n- Words.\n`
+    fs.writeFileSync(file, `---\ntitle: A card\n---\nThe requirement.\n\n## Worth noting\n\n## Source\n\n- \`${planPathInText(PLAN_REL)}\`\n\n${agentHalf}`)
+    startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9] }), 'plan', target)
+
+    listDiscussions()
+    assert.deepEqual(openPaths(target), [OTHER_REL])
+    const written = fs.readFileSync(file, 'utf8')
+    assert.match(written, new RegExp(`## Source\\n\\n- \`${planPathInText(FILED_REL)}\``))
+    assert.ok(written.endsWith(agentHalf))
+  })
+
   it('hands back a plan no card names, and brings the discussion back', async () => {
     const target = twoPlans()
     cardFrom(9, PLAN_REL)

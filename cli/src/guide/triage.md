@@ -39,7 +39,7 @@ akb triage archive <source-id> --card <id>
 - **Workflow**: the one from `akb workflow list` that does the card's work; prefer one not
   marked `Pro`, but take a `Pro` one when only it fits. Omit the flag when unsure; when no
   workflow can do the work, dismiss the item instead.
-- **Body**: the full skeleton of `akb guide writing`, ending with `## Source`: the source id,
+- **Body**: the full skeleton of `akb guide writing`, with `## Source` holding the source id,
   its landing path `docs/kanban/triage/archived/<file>`, source type, `meta:` values and
   original link.
 - **Start nothing**: the scheduled refine runs itself and raises its own questions.
