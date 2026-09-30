@@ -51,6 +51,24 @@ export type RunsCopy = {
     /** A run that ended without finishing, and the half-sentence Resume adds. */
     stoppedShort: string;
     stoppedShortResume: string;
+    /** `stoppedShort` after a failure reason, which says the run stopped itself (#1241). */
+    stoppedShortAfter: string;
+    /** What the board said about how a run ended (#1241), keyed by its kind. */
+    reason: {
+      resumeUnstarted: string;
+      silent: (minutes: string) => string;
+      takenOver: string;
+      notInstalled: (cmd: string, install: string) => string;
+      format: string;
+      repairUnstarted: (reason: string) => string;
+      retryUnstarted: (reason: string) => string;
+      broken: (n: number) => string;
+      brokenMore: (n: string) => string;
+      unsent: (why: string) => string;
+      qaUnfinished: (card: string) => string;
+      stageShort: (stage: string, card: string, agents: string) => string;
+      specRefused: (reasons: string) => string;
+    };
     /** In place of `stoppedShort` on a setup run that ticked nothing. */
     tickedNothing: string;
     blocker: {

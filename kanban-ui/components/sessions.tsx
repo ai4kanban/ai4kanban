@@ -51,6 +51,7 @@ import {
 } from "@/lib/run-scene";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import {
+  BoardNote,
   cardlessTitle,
   EmptyRunBar,
   RunBar,
@@ -63,7 +64,7 @@ import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { Copied, useCopyText } from "./copy";
 import { botTargetId, RunScene } from "./RunScene";
-import { sayFailure } from "@/lib/start-failure";
+import { noteParts, sayFailure } from "@/lib/start-failure";
 
 const POLL_MS = 1500; // while a run is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -516,13 +517,11 @@ function FlowRow({
 // run's footnote — here it is what it actually is, how the JOB ended, and so it is shown
 // whichever step is open. The session that carries it prints it itself, under its log.
 function FlowEnding({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
+  const t = useCopy();
   const last = flow.latest;
-  if (selectedId === last.sessionId || !last.note) return null;
-  return (
-    <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
-      {last.note}
-    </p>
-  );
+  const parts = noteParts(last.note, last.noteWhy, t);
+  if (selectedId === last.sessionId || !parts.length) return null;
+  return <BoardNote parts={parts} className="mb-3" />;
 }
 
 // Where a card-less delivery stands, drawn on the flow that belongs to it (#428).

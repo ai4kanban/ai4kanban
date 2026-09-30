@@ -68,6 +68,7 @@ import type {
   DeliveryRecord,
   DirectBuild,
   RefineAsk,
+  RunReason,
   RunRecord,
   RunRefusal,
   RunRefusalKind,
@@ -1120,13 +1121,13 @@ export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'alr
 export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
 
 /** Why helpers of this round would not start — carried to the planner when the round ends. */
-export const readSpecRefusals = (sessionId: string): string[] => readAsks(sessionId).refused
+export const readSpecRefusals = (sessionId: string): RunRefusal[] => readAsks(sessionId).refused
 
 /** Hand the round's refusals to the helper that runs next. */
-export function noteSpecRefusals(sessionId: string, refused: string[]): void {
+export function noteSpecRefusals(sessionId: string, refused: RunRefusal[]): void {
   if (!refused.length) return
   const file = readAsks(sessionId)
-  file.refused.push(...refused.filter((line) => !file.refused.includes(line)))
+  file.refused.push(...refused.filter((r) => !file.refused.some((had) => had.error === r.error)))
   writeAsks(sessionId, file)
 }
 
@@ -1148,7 +1149,7 @@ export function clearAsks(sessionId: string): void {
  *
  *  Empty rather than thrown when the file is damaged: a run's own ending must not fail on
  *  the follow-up it was going to start. A malformed entry is dropped rather than started. */
-type AsksFile = { asks: SpecAsk[]; refines: RefineAsk[]; refused: string[] }
+type AsksFile = { asks: SpecAsk[]; refines: RefineAsk[]; refused: RunRefusal[] }
 
 function readAsks(sessionId: string): AsksFile {
   let data: unknown
@@ -1175,7 +1176,11 @@ function readAsks(sessionId: string): AsksFile {
       notes: typeof a.notes === 'string' ? a.notes : undefined,
     }]
   })
-  const refused = (Array.isArray(raw.refused) ? raw.refused : []).filter((line): line is string => typeof line === 'string')
+  // A plain string is a refusal written before its kind was kept (#1241).
+  const refused = (Array.isArray(raw.refused) ? raw.refused : []).flatMap((r): RunRefusal[] =>
+    typeof r === 'string' ? [{ error: r }]
+    : r && typeof r.error === 'string' ? [{ error: r.error, ...(typeof r.reason === 'string' ? { reason: r.reason } : {}), ...(r.args && typeof r.args === 'object' ? { args: r.args } : {}) }]
+    : [])
   const discarded = new Set(peekRun(sessionId)?.discardedCards?.map((c) => c.id) ?? [])
   return { asks: asks.filter((a) => !discarded.has(a.cardId)), refines: refines.filter((a) => !discarded.has(a.cardId)), refused }
 }
@@ -1224,6 +1229,8 @@ export async function closeRun(
     code?: number | null
     error?: string
     note?: string
+    errorWhy?: RunReason[]
+    noteWhy?: RunReason[]
     endedAt?: number
     tickedNothing?: boolean
   },
@@ -1237,6 +1244,8 @@ export async function closeRun(
     run.code = res.code ?? null
     if (res.error) run.error = res.error
     if (res.note) run.note = res.note
+    if (res.errorWhy?.length) run.errorWhy = res.errorWhy
+    if (res.noteWhy?.length) run.noteWhy = res.noteWhy
     if (res.tickedNothing) run.tickedNothing = true
     run.endedAt = res.endedAt ?? Date.now()
     run.pid = undefined

@@ -120,6 +120,24 @@ const zh: RunsCopy = {
     tokensHint: "本次运行的 token 数，来自 Agent 自己的报告：新增输入、提示缓存的写入与读取，以及输出。",
     stoppedShort: "这次运行中途停止，卡片可能只做了一半——它写下的内容都留在你的工作区里。",
     stoppedShortResume: "「继续」会从停下的地方接着做。",
+    stoppedShortAfter: "卡片可能只做了一半——它写下的内容都留在你的工作区里。",
+    reason: {
+      resumeUnstarted: "没能继续这次运行。",
+      silent: (n) => `Agent 连续 ${n} 分钟没有输出，运行已结束。`,
+      takenOver: "另一台机器接手了这张卡片，运行已结束。它写到看板上的内容已丢弃，项目里的改动保持原样。",
+      notInstalled: (cmd, install) => `找不到 ${cmd}：可能没有安装，或不在这次运行的 PATH 中。安装命令：${install}`,
+      format: "卡片格式未通过校验。",
+      repairUnstarted: (reason) => `没能开始修复格式：${reason}`,
+      retryUnstarted: (reason) => `没能重试：${reason}`,
+      broken: (n) => `工作已完成，但这次运行让看板出现了 ${n} 处不一致，需要修正：`,
+      brokenMore: (n) => `…还有 ${n} 处`,
+      unsent: (why) => `这次运行对看板的改动没能同步到工作区（${why}）。它们只在本机，下次同步时会被覆盖——请先复制出需要保留的内容。`,
+      qaUnfinished: (card) =>
+        `质检在 ${card} 上留下了未标明归属的问题，因此没有完成。${card} 仍在待办——请重新规划，或手动标记为就绪。`,
+      stageShort: (stage, card, agents) =>
+        `${card} 的${stage}阶段未完成：${agents} 必须在这里写入，但没有写。请手动运行、从该阶段去掉这项要求，或自己补写这部分。`,
+      specRefused: (reasons) => `规格 Agent 未启动：${reasons}`,
+    },
     tickedNothing: "这次设置运行正常结束，但设置清单上没有勾掉任何一步。原因见下方 Agent 的回复。",
     blocker: {
       heading: "开发受阻",

@@ -143,7 +143,7 @@ function settleRow(report: SweepReport, run: RunView | undefined): SweepReport |
   const rows = now.rows.map((row) =>
     row.runId === now.activeRunId
       ? passed
-        ? { ...row, verdict: verdictOf(row.id), note: noteOf(run!) }
+        ? { ...row, verdict: verdictOf(row.id), note: noteOf(run!), ...(!run!.result?.trim() && run!.noteWhy ? { noteWhy: run!.noteWhy } : {}) }
         : { ...row, unfinished: true as const }
       : row,
   )

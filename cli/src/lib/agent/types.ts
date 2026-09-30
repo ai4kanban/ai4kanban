@@ -405,6 +405,33 @@ export type Saved = { ok: boolean } & Partial<RunRefusal>
 export const refusal = (reason: RunRefusalKind, error: string, args?: RefusalArgs): RunRefusal =>
   args ? { error, reason, args } : { error, reason }
 
+/** A sentence the board wrote into a run's `error` or `note` (#1241), by kind, so a screen
+ *  can say it in the user's language. The English stays in the record for the CLI. */
+export type RunReasonKind =
+  | 'resumeUnstarted'
+  | 'silent'
+  | 'takenOver'
+  | 'notInstalled'
+  | 'format'
+  | 'repairUnstarted'
+  | 'retryUnstarted'
+  | 'broken'
+  | 'unsent'
+  | 'qaUnfinished'
+  | 'stageShort'
+  | 'specRefused'
+
+/** One part of a run's `error` or `note`. No `kind` is a part the board has no sentence for,
+ *  kept as `text`. `lines` are quoted as they are; `refusals` are nested ones, said through
+ *  their own kinds. */
+export interface RunReason {
+  kind?: RunReasonKind
+  args?: RefusalArgs
+  lines?: string[]
+  refusals?: RunRefusal[]
+  text?: string
+}
+
 /** One run, as the shared record holds it. Every process reads and writes this same
  *  shape — the record is the only thing that knows what is running. */
 export interface RunRecord {
@@ -451,6 +478,9 @@ export interface RunRecord {
    *  run left disagreeing with itself. Kept apart from `result` so the two voices are never
    *  mixed. Several of them are one string, a blank line between each. */
   note?: string
+  /** `error` and `note` by kind (#1241), one entry per part. Absent on older runs. */
+  errorWhy?: RunReason[]
+  noteWhy?: RunReason[]
   /** The harness this run ran under, recorded when it starts, so a finished run keeps
    *  showing the agent that ran IT — changing the setting later can't rewrite history. */
   harness: string
@@ -1660,6 +1690,8 @@ export interface SweepRow {
   verdict?: 'kept' | 'discarded'
   /** The line that run ended with. */
   note?: string
+  /** `note` by kind, when it is the board's rather than the agent's (#1241). */
+  noteWhy?: RunReason[]
   /** The sweep stopped here: no verdict, and not counted among the cards it looked at. */
   unfinished?: boolean
 }

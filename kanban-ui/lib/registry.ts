@@ -101,6 +101,7 @@ function toView(
     ok: run.ok,
     code: run.code,
     error: run.error,
+    errorWhy: run.errorWhy,
     blocker: run.blocker,
     // The retry this run is part of (#525). Kept on a live run too — unlike the numbers
     // above, which only arrive at the close: a run WAITING for its next attempt is the one
@@ -108,6 +109,7 @@ function toView(
     retry: run.retry,
     result: run.status !== "running" ? run.result : undefined,
     note: run.status !== "running" ? run.note : undefined,
+    noteWhy: run.status !== "running" ? run.noteWhy : undefined,
     tail: run.tail,
     // The JOB this session is one part of. Every session one command goes on to start
     // carries the same id, so the panel can show the job rather than its sessions. A run

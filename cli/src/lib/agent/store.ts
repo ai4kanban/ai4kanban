@@ -39,7 +39,11 @@ import type {
   LandingWait,
   ReviewStopReason,
   ReviewVerdict,
+  RunReason,
+  RunReasonKind,
   RunRecord,
+  RunRefusal,
+  RunRefusalKind,
   RunRetry,
   RunStatus,
 } from './types'
@@ -156,6 +160,8 @@ export function readStore(): Store {
       model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       result: typeof entry.result === 'string' ? entry.result : undefined,
       note: typeof entry.note === 'string' && entry.note ? entry.note : undefined,
+      errorWhy: readReasons(entry.errorWhy),
+      noteWhy: readReasons(entry.noteWhy),
       // A run written down before the agent was recorded carries no name, so it gets no
       // resume: every agent resumes differently, and the one thing worse than a missing
       // offer is a command for the wrong agent.
@@ -202,6 +208,40 @@ export function readStore(): Store {
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
   return { runs, deliveries: readDeliveryRows(box?.deliveries), marks: readMarks(box?.marks) }
+}
+
+const strings = (raw: unknown): string[] | undefined =>
+  Array.isArray(raw) && raw.every((x) => typeof x === 'string') ? raw : undefined
+
+const stringRecord = (raw: unknown): Record<string, string> | undefined =>
+  raw && typeof raw === 'object' && !Array.isArray(raw) && Object.values(raw).every((v) => typeof v === 'string')
+    ? raw as Record<string, string>
+    : undefined
+
+// A run's `error` and `note` by kind (#1241). A malformed part is dropped; the English stands.
+function readReasons(raw: unknown): RunReason[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const reasons = raw.flatMap((entry): RunReason[] => {
+    if (!entry || typeof entry !== 'object') return []
+    const r = entry as Record<string, unknown>
+    const refusals = Array.isArray(r.refusals)
+      ? r.refusals.flatMap((x): RunRefusal[] => {
+          const f = x as Partial<RunRefusal> | null
+          if (!f || typeof f.error !== 'string') return []
+          const args = stringRecord(f.args)
+          return [{ error: f.error, ...(typeof f.reason === 'string' ? { reason: f.reason as RunRefusalKind } : {}), ...(args ? { args } : {}) }]
+        })
+      : undefined
+    const out: RunReason = {
+      ...(typeof r.kind === 'string' ? { kind: r.kind as RunReasonKind } : {}),
+      ...(stringRecord(r.args) ? { args: stringRecord(r.args) } : {}),
+      ...(strings(r.lines) ? { lines: strings(r.lines) } : {}),
+      ...(refusals ? { refusals } : {}),
+      ...(typeof r.text === 'string' ? { text: r.text } : {}),
+    }
+    return out.kind || out.text ? [out] : []
+  })
+  return reasons.length ? reasons : undefined
 }
 
 // The retry a run is part of (#525). All four numbers or nothing: a half-written one would

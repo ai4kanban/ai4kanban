@@ -148,6 +148,6 @@ export async function startResume(id: string): Promise<{ run: RunRecord; spawned
   if ('error' in opened) return opened
   const pid = spawnWatcher(opened.run.sessionId)
   markSpawned(opened.run.sessionId, pid)
-  if (pid === undefined) await closeRun(opened.run.sessionId, { status: 'error', code: null, error: 'Could not start the resumed run watcher.' })
+  if (pid === undefined) await closeRun(opened.run.sessionId, { status: 'error', code: null, error: 'Could not start the resumed run watcher.', errorWhy: [{ kind: 'resumeUnstarted' }] })
   return { run: opened.run, spawned: pid !== undefined }
 }

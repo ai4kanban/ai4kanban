@@ -106,7 +106,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { POPUP_ROW, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
-import { sayFailure } from "@/lib/start-failure";
+import { noteParts, sayFailure } from "@/lib/start-failure";
 
 // The one agent whose page carries the review action (#748). Named here because there is
 // exactly one, and its page is the only place Review now belongs.
@@ -1761,7 +1761,11 @@ function useKeptRuns(report: SweepReport | null): ReadonlySet<string> {
 // One card the sweep looked at. The verdict is the badge; the note is whatever its run ended
 // with, wrapped rather than cut.
 function SweepRowLine({ row, first, openable }: { row: SweepRow; first: boolean; openable: boolean }) {
-  const c = useCopy().configuration.agents.sweeper;
+  const t = useCopy();
+  const c = t.configuration.agents.sweeper;
+  const note = noteParts(row.note, row.noteWhy, t)
+    .map((p) => [p.line, ...(p.lines ?? [])].join("\n"))
+    .join("\n\n");
   const badge = row.verdict === "kept" ? c.kept : row.verdict === "discarded" ? c.discarded : row.unfinished ? c.unfinished : c.judging;
   const tone =
     row.verdict === "kept"
@@ -1779,9 +1783,9 @@ function SweepRowLine({ row, first, openable }: { row: SweepRow; first: boolean;
           <span className="min-w-0 text-[12.5px] font-[700] text-nb-ink">{row.title}</span>
           <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.sat(row.days)}</span>
         </div>
-        {(row.note || row.unfinished) && (
+        {(note || row.unfinished) && (
           <p className="mt-0.5 whitespace-pre-wrap text-[11.5px] leading-relaxed text-nb-ink-soft">
-            {row.unfinished ? c.stoppedHere : row.note}
+            {row.unfinished ? c.stoppedHere : note}
           </p>
         )}
         {/* Across to the run itself, while its record and its log are still there. The

@@ -71,7 +71,7 @@ import { holdCardAtWork, releaseCardAtWork } from '../cloud/publish'
 import { startResume, startRun } from './start'
 import type { TurnEnd } from './wire'
 import { holdsCard } from './types'
-import type { AgentRequest, ContextWindow, RunRecord, RunStatus } from './types'
+import type { AgentRequest, ContextWindow, RunReason, RunRecord, RunStatus } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
 // outright.
@@ -319,14 +319,16 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   })
 
   let spawnError: string | undefined
+  let spawnWhy: RunReason | undefined
   child.on('error', (err) => {
     // The one failure worth saying in our own words: the agent's binary isn't on this
     // machine — or isn't on the PATH this run started with. "spawn claude ENOENT" tells a
     // user nothing.
-    spawnError =
-      (err as NodeJS.ErrnoException)?.code === 'ENOENT'
-        ? `${cmd} isn't installed, or isn't on this run's PATH. Install it with: ${active.install}`
-        : String(err)
+    const missing = (err as NodeJS.ErrnoException)?.code === 'ENOENT'
+    spawnError = missing
+      ? `${cmd} isn't installed, or isn't on this run's PATH. Install it with: ${active.install}`
+      : String(err)
+    spawnWhy = missing ? { kind: 'notInstalled', args: { cmd, install: active.install } } : undefined
     log.write(`\n[error] ${spawnError}`)
   })
 
@@ -527,6 +529,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // the workspace would take them away. The one exception is the run whose card was taken
       // over: what it wrote was never the workspace's to keep (#398).
       let carried: string | null = null
+      let carriedWhy: RunReason | undefined
       if (takenOver) {
         await rereadRunCard(record.cardId)
       } else {
@@ -538,6 +541,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             await rereadRunCard(record.cardId)
           } else {
             carried = UNSENT(sent.error)
+            carriedWhy = { kind: 'unsent', args: { why: sent.error } }
           }
         }
       }
@@ -572,10 +576,24 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // Worked out BEFORE the record closes, so anything watching for the run to end sees
       // the note it ended with rather than catching the record a beat too early.
       const settled = status === 'done' ? settleBoard(record, changed, original) : null
+      const broke = status === 'done' ? brokeBoard(wasBroken) : null
       const note = joinNotes(
-        status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined,
+        status === 'done' ? joinNotes(settled?.stalled, broke?.note) : undefined,
         carried ?? undefined,
       )
+      const noteWhy: RunReason[] = [
+        ...(status === 'done' ? settled?.stalledWhy ?? [] : []),
+        ...(broke ? [broke.why] : []),
+        ...(carriedWhy ? [carriedWhy] : []),
+      ]
+      // Only what the board said in its own words has a kind; an agent's own error has none,
+      // and a screen shows nothing for it (#1241).
+      const saidOurs = !asked && silent && !spawnError
+      const errorWhy: RunReason[] = takenOver ? [{ kind: 'takenOver' }] : [
+        ...(contractError ? [{ kind: 'format' as const }] : []),
+        ...(spawnWhy ? [spawnWhy] : []),
+        ...(saidOurs ? [{ kind: 'silent' as const, args: { n: String(silenceFor) } }] : []),
+      ]
       // The close and every follow-up it starts go inside the try, and Cloud is told the
       // card stopped being worked in the finally (#611). The card is held at work for all
       // of it: the close writes the board itself — the stage put back, a recurring card
@@ -598,6 +616,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             : joinNotes(contractError, tickedNothingSaid, spawnError ??
               (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
           note,
+          errorWhy,
+          noteWhy,
           endedAt,
           tickedNothing,
         }, { reportEnd: false })
@@ -605,7 +625,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         if (contractError && repairable && !takenOver && !carried
           && (record.formatRepair?.attempt ?? 0) < MAX_FORMAT_REPAIRS) {
           const next = await resume(sessionId)
-          if ('error' in next) patch(sessionId, (r) => { r.error = `${contractError}\nCannot resume format repair: ${next.error}` })
+          if ('error' in next) patch(sessionId, (r) => {
+            r.error = `${contractError}\nCannot resume format repair: ${next.error}`
+            r.errorWhy = [{ kind: 'format' }, { kind: 'repairUnstarted', refusals: [next] }]
+          })
         }
         // The next attempt (#525), started the instant the failed one is written down — the
         // same handoff a format repair makes, so the card is between runs for as long as one
@@ -613,7 +636,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         // follows a run that finished, and this one failed.
         if (retrying) {
           const next = await resume(sessionId)
-          if ('error' in next) patch(sessionId, (r) => { r.error = joinNotes(r.error, `Could not try again: ${next.error}`) })
+          if ('error' in next) patch(sessionId, (r) => {
+            r.error = joinNotes(r.error, `Could not try again: ${next.error}`)
+            r.errorWhy = [...r.errorWhy ?? [], { kind: 'retryUnstarted', refusals: [next] }]
+          })
         }
         // The landing queue (#304): a delivery whose build has just finished takes the slot and
         // lands here, and what it hands back is the run that landing wants — conflict
@@ -794,17 +820,18 @@ const MAX_BROKEN = 5
 // more. Nothing else notices — the moves that check for it are the ones the agent skipped —
 // so a run that finished a card by deleting the file reads as a clean `✓ done` and the
 // board goes on quietly disagreeing with itself. Null when it came out whole.
-function brokeBoard(wasBroken: Set<string>): string | null {
+function brokeBoard(wasBroken: Set<string>): { note: string; why: RunReason } | null {
   const broke = boardComplaints().filter((line) => !wasBroken.has(line))
   if (!broke.length) return null
   const shown = broke.slice(0, MAX_BROKEN)
   const rest = broke.length - shown.length
-  return [
+  const why: RunReason = { kind: 'broken', args: { n: String(broke.length), more: String(rest) }, lines: shown }
+  return { why, note: [
     `the work is done, but the board came out of this run inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
     ...shown.map((line) => `  ${line}`),
     ...(rest ? [`  … and ${rest} more`] : []),
     `a card is taken off the board with \`${boardCommand()} raw archive <id>\` or \`${boardCommand()} raw reject <id>\`, never by deleting its file.`,
-  ].join('\n')
+  ].join('\n') }
 }
 
 // A setup run that started with a checklist and ended with it still there, no box further on.
@@ -903,7 +930,7 @@ async function startHelpersInTurn(
     const [next, ...rest] = queue
     const started = await startRun(join(next!))
     if ('error' in started) {
-      refused.push(started.error)
+      refused.push({ error: started.error, ...(started.reason ? { reason: started.reason } : {}), ...(started.args ? { args: started.args } : {}) })
       queue = rest
       continue
     }

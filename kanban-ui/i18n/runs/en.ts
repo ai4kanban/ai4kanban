@@ -122,6 +122,27 @@ const en: RunsCopy = {
     stoppedShort:
       "This run stopped short, so the card may be part-built — whatever it wrote is sitting in your working tree.",
     stoppedShortResume: " Resume carries it on from where it stopped.",
+    stoppedShortAfter: "The card may be part-built — whatever it wrote is sitting in your working tree.",
+    reason: {
+      resumeUnstarted: "The run could not be picked up again.",
+      silent: (n) => `The agent said nothing for ${n} minutes, so the run was ended.`,
+      takenOver:
+        "Another machine took over this card, so the run was ended. What it wrote to the board was dropped; its changes in the project are kept.",
+      notInstalled: (cmd, install) => `${cmd} isn't installed, or this run can't find it. Install it with: ${install}`,
+      format: "The card's format didn't pass the check.",
+      repairUnstarted: (reason) => `The format fix could not start: ${reason}`,
+      retryUnstarted: (reason) => `Could not try again: ${reason}`,
+      broken: (n) =>
+        `The work is done, but this run left the board inconsistent — ${n} ${n === 1 ? "thing" : "things"} to put right:`,
+      brokenMore: (n) => `… and ${n} more`,
+      unsent: (why) =>
+        `This run's board changes didn't reach the workspace (${why}). They're only on this machine, and the next sync replaces them — copy out anything worth keeping.`,
+      qaUnfinished: (card) =>
+        `QA left questions on ${card} without saying whose call they are, so it didn't finish. ${card} stays in To do — refine it again, or mark it ready yourself.`,
+      stageShort: (stage, card, agents) =>
+        `The ${stage} stage of ${card} isn't finished: ${agents} must write here and wrote nothing. Run them yourself, drop the requirement from the stage, or write that part by hand.`,
+      specRefused: (reasons) => `Spec agents not started: ${reasons}`,
+    },
     tickedNothing:
       "This setup run ended normally but checked off no step on the setup checklist. The agent's reply below says why.",
     blocker: {

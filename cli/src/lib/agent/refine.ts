@@ -19,7 +19,7 @@ import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-e
 import { stageContract } from './stages'
 import { withStore } from './store'
 import { holdsCard } from './types'
-import type { AgentAction, AgentRequest, CommandRequest, RunRecord } from './types'
+import type { AgentAction, AgentRequest, CommandRequest, RunReason, RunRecord, RunRefusal } from './types'
 
 export type RefinementStep = 'clarify' | 'done'
 
@@ -249,6 +249,8 @@ export interface RefinementFollowUp {
   /** One plain line for a loop that ended without settling its card — unrefined, or short of
    *  a helper the planning stage's contract requires (#714). */
   stalled?: string
+  /** `stalled` by kind (#1241). */
+  stalledWhy?: RunReason[]
 }
 
 // The planning stage's own completion check (#714). It runs when a planning run closes and
@@ -271,7 +273,7 @@ export function refinementRunsAfter(
   changed: readonly number[],
   before: BoardMarks,
   waitingForSpec = false,
-  refused: string[] = [],
+  refused: RunRefusal[] = [],
 ): RefinementFollowUp {
   for (const id of new Set([...changed, ...(run.cardId === null ? [] : [run.cardId])])) {
     scheduleRefineOnBlock(id)
@@ -285,7 +287,7 @@ export function refinementRunsAfter(
       req.id !== run.cardId || (run.refineRound === undefined && run.action !== 'spec'),
   )
   // A helper that would not start is the planner's to ask for again.
-  const refusedNote = waitingForSpec || !refused.length ? '' : `Spec agents not started: ${refused.join(' ')}`
+  const refusedNote = waitingForSpec || !refused.length ? '' : `Spec agents not started: ${refused.map((r) => r.error).join(' ')}`
   const plain = typeof next === 'object' && next ? next : null
   const carryOn = plain && refusedNote
     ? { ...plain, notes: [plain.notes, refusedNote].filter(Boolean).join('\n\n') }
@@ -303,8 +305,16 @@ export function refinementRunsAfter(
       : ((run.refineRound !== undefined || next === 'incomplete') &&
           stalledLine(run.cardId, next)) ||
         undefined)
+  const stalledWhy: RunReason[] = [
+    ...(refusedNote ? [{ kind: 'specRefused' as const, refusals: refused }] : []),
+    ...(!stalled ? []
+      : short ? [{ kind: 'stageShort' as const, args: { stage: short.stage, card: String(run.cardId), agents: short.missing.join(', ') } }]
+      : next === 'incomplete' ? [{ kind: 'qaUnfinished' as const, args: { card: String(run.cardId) } }]
+      : [{ text: stalled }]),
+  ]
   return {
     runs: [...starts, ...(carryOn ? [carryOn] : []), ...(end && 'ask' in end ? [end.ask] : [])],
     stalled: [refusedNote, stalled].filter(Boolean).join('\n') || undefined,
+    ...(stalledWhy.length ? { stalledWhy } : {}),
   }
 }

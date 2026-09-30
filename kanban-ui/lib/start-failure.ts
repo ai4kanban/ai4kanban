@@ -1,5 +1,5 @@
 import type { UiCopy } from "@/i18n/types";
-import type { RefusalArgs, RunRefusalKind } from "./format/agent/types";
+import type { RefusalArgs, RunReason, RunRefusal, RunRefusalKind } from "./format/agent/types";
 
 // --- a refusal, in the user's language (#706, #955) ------------------------------
 //
@@ -67,3 +67,70 @@ export const sayFailure = (res: Refused, fallback: string): string => failureTex
 /** A start that did not start. A result that came back ok with no run id is a start that did
  *  not happen either, and reads as `other`. */
 export const startFailure = (res: Refused, c: { other: string }): StartFailure => failure(res, c.other);
+
+// --- how a run ended, in the user's language (#1241) -----------------------------
+//
+// The board writes a run's `error` and `note` in English and keeps each part's kind beside
+// them. A part with no kind, and a record older than kinds, is shown as the board wrote it.
+
+/** One part of the board's word on a run: a sentence, and the lines it quotes as they are. */
+export interface ReasonPart {
+  line: string;
+  lines?: string[];
+}
+
+const nested = (refusals: RunRefusal[] | undefined, t: UiCopy) =>
+  (refusals ?? []).map((r) => refusalLine(r, t) ?? r.error).join(" ");
+
+/** One part in the reader's language, or undefined when the copy has no sentence for it. */
+export function reasonPart(r: RunReason, t: UiCopy): ReasonPart | undefined {
+  const c = t.runs.log.reason;
+  const a = r.args ?? {};
+  const card = `#${a.card}`;
+  switch (r.kind) {
+    case "resumeUnstarted":
+      return { line: c.resumeUnstarted };
+    case "silent":
+      return { line: c.silent(a.n ?? "") };
+    case "takenOver":
+      return { line: c.takenOver };
+    case "notInstalled":
+      return { line: c.notInstalled(a.cmd ?? "", a.install ?? "") };
+    case "format":
+      return { line: c.format };
+    case "repairUnstarted":
+      return { line: c.repairUnstarted(nested(r.refusals, t)) };
+    case "retryUnstarted":
+      return { line: c.retryUnstarted(nested(r.refusals, t)) };
+    case "broken": {
+      const more = Number(a.more) || 0;
+      return { line: c.broken(Number(a.n) || 0), lines: [...(r.lines ?? []), ...(more ? [c.brokenMore(String(more))] : [])] };
+    }
+    case "unsent":
+      return { line: c.unsent(a.why ?? "") };
+    case "qaUnfinished":
+      return { line: c.qaUnfinished(card) };
+    case "stageShort": {
+      const stage = t.configuration.workflows.stages[a.stage as "plan"] ?? a.stage ?? "";
+      return { line: c.stageShort(stage, card, a.agents ?? "") };
+    }
+    case "specRefused":
+      return { line: c.specRefused(nested(r.refusals, t)) };
+    default:
+      return r.text ? { line: r.text } : undefined;
+  }
+}
+
+/** Why a run failed, as the board knows it — only the parts it said itself. */
+export function failureReason(errorWhy: RunReason[] | undefined, t: UiCopy): string | undefined {
+  const lines = (errorWhy ?? []).flatMap((r) => (r.kind ? reasonPart(r, t)?.line ?? [] : []));
+  return lines.length ? lines.join(" ") : undefined;
+}
+
+/** The board's closing note, part by part; the raw note when it carries no kinds. */
+export function noteParts(note: string | undefined, noteWhy: RunReason[] | undefined, t: UiCopy): ReasonPart[] {
+  const parts = (noteWhy ?? []).map((r) => reasonPart(r, t));
+  if (parts.length && parts.every(Boolean)) return parts as ReasonPart[];
+  const raw = (note ?? "").trim();
+  return raw ? [{ line: raw }] : [];
+}

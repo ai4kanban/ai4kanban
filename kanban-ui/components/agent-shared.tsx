@@ -33,7 +33,7 @@ import { PULSE_DOT, PULSE_DOT_INK } from "./chrome";
 import { ContextRing } from "./context-ring";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
-import { sayFailure } from "@/lib/start-failure";
+import { failureReason, noteParts, sayFailure, type ReasonPart } from "@/lib/start-failure";
 
 // Run-log chrome as Tailwind utilities, colocated with the markup that uses it.
 // The pulse dot the running badge and the live title bar wear is the board's
@@ -307,6 +307,29 @@ function RunIndicator({ session, ink }: { session: SessionView; ink?: boolean })
 // back. Once the run ends with a parsed final message, the view leads with
 // that message and the intermediate events fold into a collapsed row above it.
 // `session` is the polled SessionView (see useSessionLog); null renders nothing.
+/** The board's own word on how a run ended (#1241): each part a sentence, the lines it
+ *  quotes under it as written. */
+export function BoardNote({ parts, className = "" }: { parts: ReasonPart[]; className?: string }) {
+  return (
+    <div
+      className={`whitespace-pre-wrap rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink ${className}`}
+    >
+      {parts.map((p, i) => (
+        <div key={i} className={i ? "mt-2" : ""}>
+          <p className="m-0">{p.line}</p>
+          {p.lines?.length ? (
+            <ul className="m-0 mt-1 list-none p-0" style={MONO_TEXT}>
+              {p.lines.map((l, j) => (
+                <li key={j}>{l}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function SessionLog({
   session,
   collapsed = false,
@@ -343,7 +366,7 @@ export function SessionLog({
   const pinned = useRef(true);
   const tail = (session?.tail || "").trim();
   const result = (session?.result || "").trim();
-  const note = (session?.note || "").trim();
+  const note = noteParts(session?.note, session?.noteWhy, t);
   const blocker = session?.blocker;
   // The wait between retry attempts (#525): a live run whose next attempt is still ahead.
   // A run already ON its next attempt carries the same record and draws nothing — it is
@@ -421,12 +444,25 @@ export function SessionLog({
   // the run's own window rather than on the card: it is one run's outcome, and it
   // goes when a newer run replaces it.
   // A setup run that ticked nothing says why everywhere, the runs panel included (#909).
+  const reason = failureReason(session.errorWhy, t);
   const unfinishedLine = (warnUnfinished || session.tickedNothing) && unfinished && !blocker && (
     <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      {session.tickedNothing ? c.tickedNothing : <>{c.stoppedShort}{resumable ? c.stoppedShortResume : ""}</>}
+      {session.tickedNothing ? (
+        c.tickedNothing
+      ) : reason ? (
+        <>
+          <strong className="font-[700]">{reason}</strong> {c.stoppedShortAfter}
+          {resumable ? c.stoppedShortResume : ""}
+        </>
+      ) : (
+        <>
+          {c.stoppedShort}
+          {resumable ? c.stoppedShortResume : ""}
+        </>
+      )}
     </p>
   );
 
@@ -453,11 +489,7 @@ export function SessionLog({
       {blockerPanel}
       {unfinishedLine}
       {message}
-      {note && (
-        <p className="mt-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
-          {note}
-        </p>
-      )}
+      {note.length > 0 && <BoardNote parts={note} className="mt-3" />}
     </>
   );
 

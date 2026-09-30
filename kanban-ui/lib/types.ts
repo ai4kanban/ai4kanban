@@ -21,7 +21,7 @@
 // no use for and holds its log under another name, and lib/registry.ts is where one becomes
 // the other.
 
-import type { AgentAction, ContextWindow, DeliveryStatus, ExecutionBlocker, RunRetry, TokenUsage } from "./format/agent/types";
+import type { AgentAction, ContextWindow, DeliveryStatus, ExecutionBlocker, RunReason, RunRetry, TokenUsage } from "./format/agent/types";
 import type { CardDeliveryState } from "./format/view/types";
 
 export type {
@@ -54,6 +54,7 @@ export type {
   MemoryReviewState,
   SweepReport,
   SweepRow,
+  RunReason,
   PlanAnswer,
   RuntimeView,
   ModelChange,
@@ -279,6 +280,8 @@ export interface SessionView {
   code?: number | null;
   /** Spawn/child error message, if any. */
   error?: string;
+  /** `error` by kind (#1241) — only the parts the board said itself. */
+  errorWhy?: RunReason[];
   /** The one concrete interruption to clear before this implementation resumes. */
   blocker?: ExecutionBlocker;
   /** The automatic retry this run is part of (#525) — what the provider said, when the next
@@ -293,6 +296,8 @@ export interface SessionView {
    *  refinement loop that ended with its card still unsettled. Shown under the final
    *  message, marked as the board's, never folded into it. */
   note?: string;
+  /** `note` by kind (#1241), one entry per part. */
+  noteWhy?: RunReason[];
   /** This run ended before finishing — it failed, was interrupted or was stopped — AND can
    *  be picked up again: the agent that ran it can continue a conversation, it has told us
    *  the id to continue by, and it is still the agent the board runs. The Resume button
