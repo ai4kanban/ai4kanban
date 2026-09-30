@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { idPrefix, walkMd } from './cards'
+import { enclosingGroupRoot, idPrefix, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { ASSETS, rel, TODO } from './paths'
 import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
@@ -31,8 +31,19 @@ export function snapshotSpecs(): SpecSnapshot {
   return out
 }
 
-/** Format only: semantic planning decisions remain the agent's responsibility. With `id`, a
- *  storyboard the card points at must be a file in its asset folder. */
+// The ids of every group `file` sits inside, nearest first.
+function enclosingGroups(file: string): number[] {
+  const ids: number[] = []
+  for (let root = enclosingGroupRoot(file); root; root = enclosingGroupRoot(root)) {
+    const id = idPrefix(path.basename(path.dirname(root)))
+    if (id !== null) ids.push(id)
+  }
+  return ids
+}
+
+/** Format, plus a dependency on the card's own group; other semantic planning decisions remain
+ *  the agent's responsibility. With `id`, a storyboard the card points at must be a file in
+ *  its asset folder. */
 export function validateSpec(file: string, text: string, id?: number): ContractError[] {
   const errors: ContractError[] = []
   const add = (line: number, rule: string, message: string) => errors.push({ file: rel(file), line, rule, message })
@@ -77,6 +88,12 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
     if (key === 'blocked_by' || key === 'related') {
       const values = field.value.replace(/^\[|\]$/g, '').split(',').map((s) => s.trim()).filter(Boolean)
       if (values.some((s) => !/^[1-9]\d*$/.test(s))) add(field.line, 'task-ids', `${key} must contain positive numeric task IDs, such as [12, 34].`)
+      if (key === 'blocked_by') {
+        const own = enclosingGroups(file).filter((g) => values.includes(String(g)))
+        for (const g of own) {
+          add(field.line, 'dependency-cycle', `blocked_by names #${g}, a group this card is in; the group waits for this card, so neither can finish. Remove it with akb raw update.`)
+        }
+      }
     }
   }
 

@@ -24,7 +24,7 @@ beforeEach(() => {
 
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
-function writeCard(id: number, meta: Partial<Meta> = {}): void {
+function writeCard(id: number, meta: Partial<Meta> = {}, at = `${id}-card-${id}.md`): void {
   const full: Partial<Meta> = {
     title: `Card ${id}`,
     priority: 'med',
@@ -37,7 +37,8 @@ function writeCard(id: number, meta: Partial<Meta> = {}): void {
     questions: [],
     ...meta,
   }
-  fs.writeFileSync(path.join(todo, `${id}-card-${id}.md`), `${serializeFrontmatter(full)}\n\nA card.\n\n## Todo\n\n- [ ] Build it.\n`)
+  fs.mkdirSync(path.dirname(path.join(todo, at)), { recursive: true })
+  fs.writeFileSync(path.join(todo, at), `${serializeFrontmatter(full)}\n\nA card.\n\n## Todo\n\n- [ ] Build it.\n`)
 }
 
 function metaOf(id: number): Meta {
@@ -110,5 +111,37 @@ describe('raw update refuses self and circular dependencies', () => {
 
     await move(root, ['update', '2', '--add-blocked-by', '4'])
     assert.deepEqual(metaOf(2).blocked_by, [3, 4])
+  })
+})
+
+describe('raw update refuses a card blocked by its own group', () => {
+  // Group 6 holds card 7 and group 8, which holds card 9.
+  beforeEach(() => {
+    writeCard(6, {}, '6-outer/root.md')
+    writeCard(7, {}, '6-outer/7-card-7.md')
+    writeCard(8, {}, '6-outer/8-inner/root.md')
+    writeCard(9, {}, '6-outer/8-inner/9-card-9.md')
+  })
+  const blockedBy = (at: string) => parseFrontmatter(fs.readFileSync(path.join(todo, at), 'utf8')).meta!.blocked_by
+
+  it('refuses a card blocked by the group it is in', async () => {
+    await refuses(root, ['update', '7', '--add-blocked-by', '6'], /#7 → #6 → #7/)
+    assert.deepEqual(blockedBy('6-outer/7-card-7.md'), [])
+  })
+
+  it('refuses a card blocked by an outer group', async () => {
+    await refuses(root, ['update', '9', '--add-blocked-by', '6'], /#9 → #6 → .*#9/)
+    assert.deepEqual(blockedBy('6-outer/8-inner/9-card-9.md'), [])
+  })
+
+  it('refuses a card blocked by its group through another card', async () => {
+    writeCard(3, { blocked_by: [8] })
+
+    await refuses(root, ['update', '9', '--add-blocked-by', '3'], /#9 → #3 → #8 → #9/)
+  })
+
+  it('accepts a group blocked by a card inside it', async () => {
+    await move(root, ['update', '6', '--add-blocked-by', '7'])
+    assert.deepEqual(blockedBy('6-outer/root.md'), [7])
   })
 })

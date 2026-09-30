@@ -76,6 +76,18 @@ describe('the card format contract', () => {
     assert.equal(fs.readFileSync(file, 'utf8'), broken)
   })
 
+  it('reports a card blocked by a group it is in', async () => {
+    const dir = path.join(path.dirname(file), '5-outer')
+    fs.mkdirSync(path.join(dir, '6-inner'), { recursive: true })
+    fs.writeFileSync(path.join(dir, 'root.md'), valid)
+    fs.writeFileSync(path.join(dir, '6-inner/root.md'), valid)
+    const blocked = valid.replace('blocked_by: []', 'blocked_by: [1, 5]')
+    const errors = validateSpec(path.join(dir, '6-inner/7-part.md'), blocked)
+    assert.deepEqual(errors.map((e) => [e.rule, e.line]), [['dependency-cycle', 7]])
+    assert.match(errors[0]!.message, /#5, a group this card is in/)
+    assert.deepEqual(validateSpec(path.join(dir, 'root.md'), valid.replace('blocked_by: []', 'blocked_by: [6]')), [])
+  })
+
   it('checks all requested cards through the CLI', async () => {
     assert.equal((await move(root, ['validate', '1'])).valid, true)
     fs.writeFileSync(path.join(path.dirname(file), '2-feature.md'), valid.replace('<!-- agent -->', ''))

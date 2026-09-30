@@ -10,7 +10,7 @@ import path from 'node:path'
 
 import { die, warn, rel, MODULES_MD } from './paths'
 import { moduleNamesFrom } from './board/assemble'
-import { locate } from './cards'
+import { idPrefix, locate, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 
 export function slugify(s: unknown): string {
@@ -104,7 +104,8 @@ export function parseIdList(raw: string[], name: string, ceiling: number): numbe
 }
 
 // The path `id → dep → … → id` that making `id` wait on `dep` would close, or null.
-// Follows open cards only: a closed card no longer blocks anything.
+// Follows open cards only: a closed card no longer blocks anything. A group also waits on
+// every card inside it, since it closes only once they do.
 export function dependencyCycle(id: number, dep: number): number[] | null {
   const seen = new Set<number>()
   const walk = (at: number): number[] | null => {
@@ -114,7 +115,9 @@ export function dependencyCycle(id: number, dep: number): number[] | null {
     const found = locate(at)
     if (!found) return null
     const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-    for (const next of parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.blocked_by ?? []) {
+    const nexts = parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.blocked_by ?? []
+    if (found.kind === 'group') nexts.push(...groupMembers(found.target))
+    for (const next of nexts) {
       const rest = walk(next)
       if (rest) return [at, ...rest]
     }
@@ -122,6 +125,13 @@ export function dependencyCycle(id: number, dep: number): number[] | null {
   }
   const rest = walk(dep)
   return rest && [id, ...rest]
+}
+
+function groupMembers(dir: string): number[] {
+  return walkMd(dir)
+    .filter((f) => f !== path.join(dir, 'root.md'))
+    .map((f) => idPrefix(path.basename(path.basename(f) === 'root.md' ? path.dirname(f) : f)))
+    .filter((n): n is number => n !== null)
 }
 
 // A module name doubles as a folder name under memory/, so it's held to a folder's shape.
