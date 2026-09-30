@@ -225,7 +225,9 @@ function codexBundled(): string[] {
     ...(process.platform === 'win32'
       ? codexOnWindows()
       : [
-          // macOS, where Codex now lives in the merged app…
+          // macOS, where Codex now lives in the merged app — `codex-cli/bin/` since 26.928…
+          '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex',
+          home('Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex'),
           '/Applications/ChatGPT.app/Contents/Resources/codex',
           home('Applications/ChatGPT.app/Contents/Resources/codex'),
           // …and where it lived before the merge, for an install that hasn't moved yet.

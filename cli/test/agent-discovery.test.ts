@@ -37,6 +37,7 @@ const held = {
   USERPROFILE: process.env.USERPROFILE,
   ProgramFiles: process.env.ProgramFiles,
   CODEX_CLI_PATH: process.env.CODEX_CLI_PATH,
+  HOME: process.env.HOME,
 }
 
 /** A file, with every folder above it. `at` sets its modification time, so the cache's own
@@ -179,6 +180,33 @@ describe('the Windows scan', () => {
     assert.deepEqual(discovered(), [first])
     fs.rmSync(path.dirname(first), { recursive: true, force: true })
     assert.deepEqual(discovered(), [])
+  })
+})
+
+describe('the macOS layouts', { skip: process.platform === 'win32' }, () => {
+  /** The first of the user's own ~/Applications candidates that exists — the system-wide
+   *  /Applications ones are this machine's, not the fixture's. */
+  function found(): string | undefined {
+    const home = path.join(root, 'mac')
+    process.env.HOME = home
+    return CODEX.bundled!().find((one) => one.startsWith(home) && fs.existsSync(one))
+  }
+  const resources = (app: string) => path.join(root, 'mac', 'Applications', app, 'Contents', 'Resources')
+
+  beforeEach(() => fs.rmSync(path.join(root, 'mac'), { recursive: true, force: true }))
+
+  it('finds ChatGPT.app 26.928 and later, ahead of the older layout', () => {
+    const current = file(path.join(resources('ChatGPT.app'), 'codex-cli', 'bin', 'codex'))
+    file(path.join(resources('ChatGPT.app'), 'codex'))
+    assert.equal(found(), current)
+  })
+
+  it('still finds an older ChatGPT.app, and Codex.app', () => {
+    const older = file(path.join(resources('ChatGPT.app'), 'codex'))
+    assert.equal(found(), older)
+    fs.rmSync(older)
+    const merged = file(path.join(resources('Codex.app'), 'codex'))
+    assert.equal(found(), merged)
   })
 })
 
