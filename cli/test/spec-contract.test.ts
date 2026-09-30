@@ -88,6 +88,32 @@ describe('the card format contract', () => {
     assert.deepEqual(validateSpec(path.join(dir, 'root.md'), valid.replace('blocked_by: []', 'blocked_by: [6]')), [])
   })
 
+  it('reports a cycle a group member closes through other cards', () => {
+    const todo = path.dirname(file)
+    const card = (at: string, blockedBy: string) => {
+      const text = valid.replace('blocked_by: []', `blocked_by: [${blockedBy}]`)
+      fs.mkdirSync(path.dirname(path.join(todo, at)), { recursive: true })
+      fs.writeFileSync(path.join(todo, at), text)
+      return text
+    }
+    card('5-outer/root.md', '')
+    card('8-x.md', '5')
+    const member = card('5-outer/7-m.md', '8')
+    const errors = validateSpec(path.join(todo, '5-outer/7-m.md'), member, 7)
+    assert.deepEqual(errors.map((e) => [e.rule, e.line]), [['dependency-cycle', 7]])
+    assert.match(errors[0]!.message, /#7 → #8 → #5 → #7/)
+
+    const inner = card('5-outer/6-inner/root.md', '8')
+    assert.match(validateSpec(path.join(todo, '5-outer/6-inner/root.md'), inner, 6)[0]!.message, /#6 → #8 → #5 → #6/)
+
+    const direct = card('5-outer/7-m.md', '5')
+    assert.equal(validateSpec(path.join(todo, '5-outer/7-m.md'), direct, 7).length, 1)
+
+    card('8-x.md', '')
+    fs.rmSync(path.join(todo, '5-outer/6-inner'), { recursive: true })
+    assert.deepEqual(validateSpec(path.join(todo, '5-outer/7-m.md'), member, 7), [])
+  })
+
   it('checks all requested cards through the CLI', async () => {
     assert.equal((await move(root, ['validate', '1'])).valid, true)
     fs.writeFileSync(path.join(path.dirname(file), '2-feature.md'), valid.replace('<!-- agent -->', ''))

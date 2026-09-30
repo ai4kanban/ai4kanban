@@ -5,7 +5,7 @@ import { enclosingGroupRoot, idPrefix, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { ASSETS, rel, TODO } from './paths'
 import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
-import { LEVELS, STATUSES } from './validate'
+import { dependencyCycle, LEVELS, STATUSES } from './validate'
 
 export interface ContractError {
   file: string
@@ -41,7 +41,7 @@ function enclosingGroups(file: string): number[] {
   return ids
 }
 
-/** Format, plus a dependency on the card's own group; other semantic planning decisions remain
+/** Format, plus a dependency cycle through the card's own group; other semantic planning decisions remain
  *  the agent's responsibility. With `id`, a storyboard the card points at must be a file in
  *  its asset folder. */
 export function validateSpec(file: string, text: string, id?: number): ContractError[] {
@@ -89,9 +89,16 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
       const values = field.value.replace(/^\[|\]$/g, '').split(',').map((s) => s.trim()).filter(Boolean)
       if (values.some((s) => !/^[1-9]\d*$/.test(s))) add(field.line, 'task-ids', `${key} must contain positive numeric task IDs, such as [12, 34].`)
       if (key === 'blocked_by') {
-        const own = enclosingGroups(file).filter((g) => values.includes(String(g)))
-        for (const g of own) {
+        const groups = enclosingGroups(file)
+        for (const g of groups.filter((g) => values.includes(String(g)))) {
           add(field.line, 'dependency-cycle', `blocked_by names #${g}, a group this card is in; the group waits for this card, so neither can finish. Remove it with akb raw update.`)
+        }
+        // Moving a card into a group can close a cycle through other cards that no update checked.
+        if (id !== undefined && groups.length) {
+          for (const dep of values.filter((v) => /^\d+$/.test(v) && !groups.includes(Number(v))).map(Number)) {
+            const cycle = dependencyCycle(id, dep)
+            if (cycle) add(field.line, 'dependency-cycle', `blocked_by #${dep} makes a cycle: ${cycle.map((n) => `#${n}`).join(' → ')}. Drop one link with akb raw update <id> --blocked-by.`)
+          }
         }
       }
     }
