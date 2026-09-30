@@ -41,6 +41,8 @@ const TONE = {
 
 const RULE = "color-mix(in srgb, var(--color-nb-ink) 12%, transparent)";
 const MONO = { fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.55 } as const;
+// A long line wraps rather than scrolls (#1247); a URL or hash breaks anywhere.
+const WRAP = { whiteSpace: "pre-wrap", overflowWrap: "anywhere", tabSize: 4 } as const;
 
 /** What a file's header says about it when it is not a plain edit — its colours
  *  here, its word in `i18n/card`. */
@@ -72,6 +74,11 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
       pane.scrollTop = row.offsetTop + row.offsetHeight - pane.clientHeight;
     }
   }, [active]);
+
+  // Below `md` a wrapped listing needs the width more than the tree does.
+  useEffect(() => {
+    if (!matchMedia("(min-width: 768px)").matches) setShowTree(false);
+  }, []);
 
   // A tree earns its width from the second file onwards.
   const withTree = showTree && files.length > 1;
@@ -150,7 +157,7 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
         // Nothing parsed: either there is no diff at all, or it is in a shape this
         // does not read. Git's own text beats an empty frame.
         diff.diff ? (
-          <pre className="m-0 max-h-[420px] overflow-auto px-4 py-3 text-nb-ink-soft" style={MONO}>
+          <pre className="m-0 max-h-[420px] overflow-y-auto px-4 py-3 text-nb-ink-soft" style={{ ...MONO, ...WRAP }}>
             {diff.diff}
           </pre>
         ) : null
@@ -332,14 +339,10 @@ function FileSection({
         ) : file.rows.length === 0 ? (
           <p className="px-4 py-2 text-[11.5px] text-nb-ink-soft">{copy.noLines}</p>
         ) : (
-          // The scroller is the file, not the pane: a long line slides under a file
-          // header that stays put, and the numbers stay pinned to the left edge.
-          <div className="overflow-x-auto" style={MONO}>
-            <div style={{ width: "max-content", minWidth: "100%" }}>
-              {file.rows.map((row, i) => (
-                <Line key={i} copy={copy} row={row} cell={cell} />
-              ))}
-            </div>
+          <div style={MONO}>
+            {file.rows.map((row, i) => (
+              <Line key={i} copy={copy} row={row} cell={cell} />
+            ))}
           </div>
         ))}
     </section>
@@ -351,18 +354,21 @@ function Line({ copy, row, cell }: { copy: CardCopy["diff"]; row: DiffRow; cell:
     return (
       <div
         className="w-full bg-nb-wash px-3 py-[3px]"
-        style={{ color: "var(--color-nb-sky-ink)", borderBlock: `1px solid ${RULE}` }}
+        style={{ color: "var(--color-nb-sky-ink)", borderBlock: `1px solid ${RULE}`, ...WRAP }}
       >
-        <span className="sticky left-3 whitespace-pre">{row.text}</span>
+        {row.text}
       </div>
     );
   }
   const tone = row.kind === "add" ? TONE.add : row.kind === "del" ? TONE.del : null;
+  // Wrapped rows hang under the line's first non-blank character; the gutter
+  // stretches down all of them, numbered on the first only.
+  const hang = Math.min(indent(row.text), 40);
   return (
     <div className="flex w-full" style={{ background: tone?.band }}>
       <span
         aria-hidden
-        className="sticky left-0 z-[1] flex shrink-0 select-none"
+        className="flex shrink-0 items-start select-none"
         style={{ background: tone?.gutter ?? "var(--color-nb-paper)" }}
       >
         <span className="pr-1.5 pl-2 text-right text-nb-ink-soft" style={{ width: cell }}>
@@ -377,12 +383,26 @@ function Line({ copy, row, cell }: { copy: CardCopy["diff"]; row: DiffRow; cell:
       </span>
       {/* The gutter is hidden from a reader that cannot see it — two line numbers
           per row is noise — so the sign it carries is said in a word instead. */}
-      <span className="whitespace-pre pr-3 pl-2 text-nb-ink">
+      <span
+        className="min-w-0 flex-1 pr-3 text-nb-ink"
+        style={{ ...WRAP, paddingLeft: `calc(8px + ${hang}ch)`, textIndent: `-${hang}ch` }}
+      >
         {tone && <span className="sr-only">{row.kind === "add" ? copy.lineAdded : copy.lineRemoved}</span>}
         {row.text || " "}
       </span>
     </div>
   );
+}
+
+/** Leading indent in columns, a tab counting four. */
+function indent(text: string): number {
+  let n = 0;
+  for (const ch of text) {
+    if (ch === " ") n += 1;
+    else if (ch === "\t") n += 4;
+    else break;
+  }
+  return n;
 }
 
 /** The highest line number a file reaches, for sizing its number columns. */
