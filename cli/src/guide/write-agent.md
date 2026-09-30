@@ -7,8 +7,6 @@ board's roles, an agent the command ships, or a folder already in `docs/kanban/a
 
 ## The file
 
-Every comment sits on its own line: the board reads one after a value as part of the value.
-
 ```yaml
 ---
 # Required; matches the folder name.

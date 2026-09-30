@@ -446,6 +446,55 @@ describe("the YAML an agent's frontmatter is written in", () => {
       },
     )
   })
+
+  it('drops a trailing comment as YAML does, and keeps a `#` that is not one', () => {
+    assert.deepEqual(
+      parseYamlBlock(
+        [
+          'name: x  # the folder name',
+          'empty: # nothing yet',
+          'hash: a#b',
+          'lang: C#',
+          'double: "a # b"',
+          "single: 'a # b'  # quoted",
+          'escaped: "say \\"#\\"" # tail',
+          'list:',
+          '  - one # first',
+          '  - "two # kept"',
+          '  - key: v\t# tab',
+          '    other: "w # kept"',
+        ].join('\n'),
+      ),
+      {
+        name: 'x',
+        empty: '',
+        hash: 'a#b',
+        lang: 'C#',
+        double: 'a # b',
+        single: 'a # b',
+        escaped: 'say "#"',
+        list: ['one', 'two # kept', { key: 'v', other: 'w # kept' }],
+      },
+    )
+  })
+
+  it('accepts a fixed value with a comment after it', () => {
+    project('outliner', {
+      'AGENT.md': [
+        '---',
+        'name: outliner  # me',
+        'description: d',
+        'akb:',
+        '  stage: plan  # its stage',
+        '  lead: true # yes',
+        '---',
+        '',
+        'Body.',
+      ].join('\n'),
+    })
+    assert.deepEqual(specAgentCatalog().problems, [])
+    assert.equal(specAgentCatalog().agents.find((a) => a.name === 'outliner')?.canLead, true)
+  })
 })
 
 // An agent's memory (#421, #473, #833): a folder the board hands to every run, holding

@@ -18,6 +18,25 @@ interface Line {
   text: string
 }
 
+// A `#` at the value's start or after a space or tab opens a comment, as in YAML. A quoted
+// scalar's `#` is part of it; the comment can only follow its closing quote.
+function stripComment(value: string): string {
+  let from = 0
+  const quote = value[0]
+  if (quote === '"' || quote === "'") {
+    let i = 1
+    while (i < value.length) {
+      if (quote === '"' && value[i] === '\\') i += 2
+      else if (value[i] === quote && quote === "'" && value[i + 1] === "'") i += 2
+      else if (value[i] === quote) break
+      else i++
+    }
+    from = i + 1
+  }
+  const hash = value.slice(from).search(/(^|[ \t])#/)
+  return hash < 0 ? value : value.slice(0, from + hash).trim()
+}
+
 const readLines = (text: string): Line[] =>
   text
     .split('\n')
@@ -49,7 +68,7 @@ function readMap(lines: Line[], start: number, indent: number): [Record<string, 
       continue
     }
     const key = match[1]!.trim()
-    const inline = match[2]!.trim()
+    const inline = stripComment(match[2]!.trim())
     i++
     if (inline) {
       out[key] = unquote(inline)
@@ -80,7 +99,7 @@ function readList(lines: Line[], start: number, indent: number): [YamlValue[], n
     // Where the item's own keys sit: past the `- ` that opened it.
     const keyIndent = indent + (line.text.length - rest.length)
     i++
-    if (!rest) {
+    if (!stripComment(rest)) {
       const [value, next] = readBlock(lines, i, indent)
       out.push(value)
       i = next
@@ -88,11 +107,11 @@ function readList(lines: Line[], start: number, indent: number): [YamlValue[], n
     }
     const match = rest.match(/^([^:]+):\s*(.*)$/)
     if (!match) {
-      out.push(unquote(rest))
+      out.push(unquote(stripComment(rest)))
       continue
     }
     const item: Record<string, YamlValue> = {}
-    const inline = match[2]!.trim()
+    const inline = stripComment(match[2]!.trim())
     if (inline) item[match[1]!.trim()] = unquote(inline)
     else {
       const [value, next] = readBlock(lines, i, keyIndent)
