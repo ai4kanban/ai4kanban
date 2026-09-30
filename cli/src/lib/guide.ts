@@ -23,6 +23,7 @@ import board from '../guide/board.md'
 import cardChat from '../guide/card-chat.md'
 import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
+import describeProduct from '../guide/describe-product.md'
 import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
@@ -86,6 +87,7 @@ export const GUIDES: Guide[] = [
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'review-memory', when: 'read what the conversations settled, and write it into memory', text: reviewMemory },
+  { name: 'describe-product', when: 'rewrite the description of what the product is today', text: describeProduct },
   { name: 'review-dismissals', when: "learn the user's triage preferences from their dismissal reasons", text: reviewDismissals },
   { name: 'reflect', when: 'propose the work a just-completed card leaves behind', text: reflect },
   { name: 'triage', when: 'judge what is waiting in triage: card the worthwhile, ignore the rest', text: triage },

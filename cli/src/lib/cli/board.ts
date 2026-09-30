@@ -531,7 +531,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     })
 
   move('setup-done')
-    .argument('<step>', 'install | config | goal | decisions | modules | tasks')
+    .argument('<step>', 'install | config | decisions | modules | tasks')
     .summary('tick one setup step; the tick that closes the last one ends setup')
     .description(
       'Tick one box on docs/kanban/setup-checklist.md as that setup step finishes. The tick that closes ' +

@@ -10,7 +10,7 @@ moved somewhere else, or nobody ever really wanted it.
 ## What you are given
 
 - **The card**, and the project evidence it names.
-- **`docs/kanban/memory/goal.md`** — what this project is for.
+- **`docs/kanban/memory/product.md`** — what the product is today.
 - **The planner's `decisions.md` and `rejected.md`**, in `docs/kanban/memory/agents/planner/`
   — the calls already made.
 
@@ -25,7 +25,7 @@ refine to work it out later.
 - **How much is already done.** Walk the card's `## Scope` and `## Todo` against the code
   and the docs as they are now. A step someone else's card delivered is done, whatever the
   checkbox says.
-- **Whether the rest is still worth the effort.** Judge what is left against the goal and
+- **Whether the rest is still worth the effort.** Judge what is left against the product and
   the decisions since. Work the project has moved past is not worth doing because it was
   once agreed.
 

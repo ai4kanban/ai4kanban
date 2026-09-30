@@ -54,11 +54,9 @@ export interface TickResult {
 
 // The steps, in the order setup runs them. `owner` says who does the step — `script` is
 // already done by the time the file is written, `agent` needs a run that reads the repo and
-// thinks, `you` is the user's own. The three `you` steps come first and in one block: they
-// are what only the user knows, and the local UI settles them on its guided first run — the
-// agent picked, then a conversation, then the goal (#172, #280) — where leaving the goal
-// for later is an answer, and ticks the box on an empty `goal.md` (#437). It reads the
-// owner to decide whether it can ask for a step itself or has to hand it to a coding
+// thinks, `you` is the user's own. The `you` steps come first and in one block: they are
+// what only the user knows, and the local UI settles them on its guided first run — the
+// agent picked, then a conversation (#172, #280). It reads the owner to decide whether it can ask for a step itself or has to hand it to a coding
 // agent; it never learns the names of the steps.
 //
 // `agent` is a step because a board that ticked every box without one can't run anything:
@@ -67,7 +65,6 @@ export const SETUP_STEPS: SetupStep[] = [
   { name: 'install', owner: 'script', text: 'Install the `akb` command and scaffold the board.' },
   { name: 'config', owner: 'script', text: 'Seed the board with practical default settings.' },
   { name: 'project', owner: 'you', text: 'Say what this project is, in `docs/kanban/config.md`.' },
-  { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'agent', owner: 'you', text: 'Pick the agent that runs this board, and give it a key.' },
   { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/agents/planner/decisions.md` from what the repository shows.' },
   { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md`, then file each settled call under its module\'s topic.' },
@@ -77,6 +74,10 @@ export const SETUP_STEPS: SetupStep[] = [
 // The boxes install itself finishes. They are written ticked, so a user who installs and
 // stops there opens the UI onto a bar that says what is actually left.
 const DONE_AT_INSTALL = ['install', 'config']
+
+// Steps an older checklist may still hold that no longer exist: read past, so an unticked
+// one never holds setup open (#1268).
+const RETIRED_STEPS = ['goal']
 
 const HEADER = `# Setup checklist
 
@@ -106,7 +107,7 @@ export function readSetupChecklist(): ChecklistStep[] | null {
   const steps: ChecklistStep[] = []
   for (const raw of fs.readFileSync(SETUP_CHECKLIST, 'utf8').split('\n')) {
     const m = raw.match(LINE_RE)
-    if (m) steps.push({ done: m[1] !== ' ', name: m[2]!, owner: m[3] as StepOwner, text: m[4]! })
+    if (m && !RETIRED_STEPS.includes(m[2]!)) steps.push({ done: m[1] !== ' ', name: m[2]!, owner: m[3] as StepOwner, text: m[4]! })
   }
   return steps
 }
@@ -139,7 +140,7 @@ export function tickSetupStep(name: string): TickResult {
   let found: { index: number; done: boolean } | null = null
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i]!.match(LINE_RE)
-    if (!m || m[2] !== name) continue
+    if (!m || m[2] !== name || RETIRED_STEPS.includes(name)) continue
     found = { index: i, done: m[1] !== ' ' }
     break
   }
@@ -178,7 +179,7 @@ function swapConfigGateForDone(): void {
 
 // ---- the setup questions card ----------------------------------------------
 //
-// Setup never stops to ask the user anything, the goal included (#437). Every call it
+// Setup never stops to ask the user anything (#437). Every call it
 // can't settle is appended, the moment it comes up, to one card the scaffold creates
 // alongside the checklist — created first so it takes the board's first id and sorts on
 // top. The tick that finishes setup removes the card again if nothing ever landed on it.

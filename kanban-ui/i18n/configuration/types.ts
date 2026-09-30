@@ -14,6 +14,7 @@ export type AgentRoleName =
   | "memory-pruner"
   | "memory-reviewer"
   | "dismissal-reviewer"
+  | "product-writer"
   | "sweeper"
   | "feedback"
   | "triage";
@@ -330,6 +331,8 @@ export type ConfigurationCopy = {
     sweeper: CadenceCopy & SweepCopy;
     /** The dismissal reviewer (#929) — the pruner's controls. */
     dismissalReviewer: CadenceCopy;
+    /** The product writer (#1268) — the same controls. */
+    productWriter: CadenceCopy;
     /** The memory reviewer (#748) — another agent whose page carries an action: it reads
      *  the conversations every day, and **Review now** asks for one. */
     memoryReviewer: {

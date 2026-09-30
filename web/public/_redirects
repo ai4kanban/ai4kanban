@@ -9,3 +9,6 @@
 
 # `/docs/spec-skills` became `/docs/agents` when a spec skill became a spec agent.
 /docs/spec-skills /docs/agents 301
+
+# `goal.md` gave way to `product.md`, which the board writes itself.
+/docs/what-makes-a-good-goal /docs 301

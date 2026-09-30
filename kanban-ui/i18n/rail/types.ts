@@ -1,5 +1,5 @@
-/** The rail down the left of the window, the memory pages it opens, the goal
- *  behind the header's star, and the Insights charts. */
+/** The rail down the left of the window, the memory pages it opens, and the Insights
+ *  charts. */
 export type RailCopy = {
   search: string;
   clearSearch: string;
@@ -42,7 +42,7 @@ export type RailCopy = {
     /** An agent that keeps memory and has written none yet. */
     empty: string;
     /** The memory files, keyed by the name the board's rules give each one. */
-    files: { readme: string; goal: string; decisions: string; redesign: string; rejected: string; dismissed: string; feedback: string };
+    files: { readme: string; product: string; decisions: string; redesign: string; rejected: string; dismissed: string; feedback: string };
     /** The button over them (#514): it opens the pruner's page in Configuration,
      *  which is where a pass is started and a cadence is set. */
     prune: string;
@@ -155,19 +155,6 @@ export type RailCopy = {
     copied: (what: string) => string;
     path: string;
     relativePath: string;
-  };
-  goal: {
-    open: string;
-    openHint: string;
-    /** The same control on an empty goal: the offer to write one, and never a demand. */
-    write: string;
-    writeHint: string;
-    title: string;
-    reading: string;
-    editTitle: string;
-    guideTitle: string;
-    guideLine: string;
-    saveFailed: string;
   };
   insights: {
     open: string;

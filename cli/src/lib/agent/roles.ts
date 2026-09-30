@@ -102,6 +102,14 @@ const DISMISSAL_REVIEWER: AgentRole = {
   memory: [PLANNER_DISMISSED],
 }
 
+// The role that keeps `memory/product.md` — what the product is today (#1268), on its
+// cadence (./settings.ts). It writes that file and nothing else.
+const PRODUCT_WRITER: AgentRole = {
+  name: 'product-writer',
+  gloss: 'describes what the product is today, for planning and triage to follow',
+  memory: ['memory/product.md'],
+}
+
 // The role that looks back at finished work (#534), one run per completion. What it
 // proposes goes into the inbox to be triaged. It owns one file, the kinds of follow-up it missed, which only the memory review
 // writes when the user points one out (#1211).
@@ -174,6 +182,7 @@ const BOARD_ROLES: AgentRole[] = [
   MEMORY_REVIEWER,
   SWEEPER,
   DISMISSAL_REVIEWER,
+  PRODUCT_WRITER,
   FEEDBACK,
   PROPOSER,
   TRIAGER,

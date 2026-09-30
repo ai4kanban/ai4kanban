@@ -39,6 +39,7 @@ const zh: MessagesCopy = {
     memoryPruner: "这个看板的运行规则早于记忆整理 Agent——请运行 `npm install -g ai4kanban`。",
     cardSweeper: "这个看板的运行规则早于定期整理搁置卡片——请运行 `npm install -g ai4kanban`。",
     dismissalReviewer: "这个看板的运行规则早于回顾忽略记录——请运行 `npm install -g ai4kanban`。",
+    productWriter: "这个看板的运行规则早于产品描述——请运行 `npm install -g ai4kanban`。",
   },
   actions: {
     noSuchCard: "这不是本看板上的卡片。",

@@ -4,10 +4,10 @@ Judge every item waiting in `docs/kanban/triage/`. What is worth building become
 with a refine scheduled on it; everything else moves to `dismissed/` with the reason. Judging
 nothing worth a card is a complete result.
 
-Read only: the waiting items, `docs/kanban/memory/goal.md`, the planner's memory in
+Read only: the waiting items, `docs/kanban/memory/product.md`, the planner's memory in
 `docs/kanban/memory/agents/planner/` (its `rejected.md` and `dismissed.md` included),
 `docs/kanban/modules.md`, and the open cards. `dismissed.md` is the user's triage taste
-learned from past dismissals: weigh it against the goal, and let the goal and any
+learned from past dismissals: weigh it against the product, and let the product and any
 instruction given with this run win over it. Change nothing but the cards you create and the
 items you land.
 
@@ -20,7 +20,7 @@ Take the items one at a time, in the order the flow lists them. For each:
 2. **Check for duplicates** with `akb guide evaluate-task`: skip anything already supported,
    already covered by an open card, or turned down before.
 3. **Judge its worth**: would it improve the user's experience, the product's performance, or
-   some other product outcome? Weigh it against the goal, not against how loudly it is said.
+   some other product outcome? Weigh it against the product, not against how loudly it is said.
 
 **Rules**:
 

@@ -74,7 +74,6 @@ import { addVerifyLine, dropVerifyLine, patchCard as patchCardWrite, setCardSche
 import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '../view/first-run'
 import { deliveryRules, setAgentRule } from '../agent/rules'
 import { createAgent, deleteAgent, readAgents, saveAgentFile } from '../agents/roster'
-import { readGoalText, writeGoalText } from '../view/goal'
 import { readMemoryFile, readMemoryOwners, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
 import { allCards, findCard, readBoard, readSetupState } from '../view/read'
@@ -259,7 +258,6 @@ export function localBoard(): BoardProvider {
     readArchivedCard: (id) => Promise.resolve(readArchivedCard(id)),
     readReleases: () => read(readReleases, []),
     readModules: () => Promise.resolve(readModules()),
-    readGoalText: () => Promise.resolve(readGoalText()),
     readMemoryFile: (name, agent = '') => Promise.resolve(readMemoryFile(name, agent)),
     readMemoryOwners: () => Promise.resolve(readMemoryOwners()),
     readSetupState: () => Promise.resolve(readSetupState()),
@@ -398,20 +396,7 @@ export function localBoard(): BoardProvider {
         return {}
       }),
 
-    // ---- memory, the goal and setup -----------------------------------------
-
-    saveGoal(text: string, env: OpEnvelope) {
-      if (typeof text !== 'string' || !text.trim()) {
-        return Promise.resolve(opRefused(new Error('the goal must not be empty')))
-      }
-      return mutate({ board: true }, env, () => {
-        writeGoalText(text)
-        // Writing the goal IS setup's goal step. On a board with no checklist this is a
-        // no-op, which is the whole of the "a goal judged weak long after setup" case.
-        tickSetupStep('goal')
-        return {}
-      })
-    },
+    // ---- memory and setup ---------------------------------------------------
 
     async saveProject(
       name: string,

@@ -75,7 +75,7 @@ const BOARD_STAGES: StageContract[] = [
   {
     stage: 'plan',
     flows: ['create', 'refine', 'resolve', 'revise', 'plan-release', 'changelog', 'archive', 'reject', 'setup'],
-    input: 'the card as it stands, the board goal, and what planning remembers',
+    input: 'the card as it stands, the product description, and what planning remembers',
     output: 'a card someone can build from without asking anything else',
     done: "nothing is left open on it but the calls that are the user's to make",
     lead: 'software-planner',
@@ -110,6 +110,7 @@ const BOARD_NODES: FlowNode[] = [
   { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
   { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
   { flow: 'review-dismissals', kind: 'event', agent: 'dismissal-reviewer' },
+  { flow: 'describe-product', kind: 'event', agent: 'product-writer' },
 ]
 
 /** Which of the two configurable stages a kernel stage is (#715). `discuss` is none of

@@ -2,7 +2,8 @@
 //
 // The jobs that need no user at all: the cards somebody scheduled, whose last blocker has
 // now left the board, the recurring cards whose cadence has elapsed, the day's review of
-// what the conversations settled, the review of the dismissal reasons, the daily prune of
+// what the conversations settled, the review of the dismissal reasons, the product
+// description once new commits land, the daily prune of
 // what departed cards left in .akb, and — on a board that asked for them — the memory
 // pruner's own cadence and the sweep of the stale cards.
 // A front end with a timer asks this once a
@@ -26,10 +27,12 @@ import {
   leftoverPrune,
   memoryPrune,
   memoryReview,
+  productDescription,
   scheduleClock,
   stampLeftoverPrune,
 } from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
+import { commitsSince, productDescribed } from '../agent/product'
 import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { anyChatSince } from '../agent/memory-review'
 import { advanceLanding } from '../agent/landing'
@@ -135,6 +138,19 @@ function dismissalReviewDue(runs: RunView[]): boolean {
   const due = last ? nextDue(formatStamp(new Date(last)), review.cadence) : new Date(0)
   if (!due || due.getTime() > Date.now()) return false
   return dismissalWorkWaiting(since)
+}
+
+// Whether the product description is due (#1268). Timed like the dismissal review; then only
+// while `product.md` has no description, or when the branch has commits since the last pass.
+function productDescriptionDue(runs: RunView[]): boolean {
+  const schedule = productDescription()
+  const passes = runs.filter((r) => r.action === 'describe-product')
+  if (passes.some((r) => r.status === 'running')) return false
+  const since = parseStamp(schedule.lastRun)?.getTime() ?? 0
+  const last = Math.max(since, ...passes.map((r) => r.startedAt))
+  const due = last ? nextDue(formatStamp(new Date(last)), schedule.cadence) : new Date(0)
+  if (!due || due.getTime() > Date.now()) return false
+  return !productDescribed() || commitsSince(since) === true
 }
 
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
@@ -267,6 +283,7 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // same reason: it touches no card, so nothing it does can queue behind a card's run.
   if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
   if (dismissalReviewDue(runs)) work.push({ action: 'review-dismissals' })
+  if (productDescriptionDue(runs)) work.push({ action: 'describe-product' })
 
   // And the landing queue (#304). A landing is normally moved on by the watcher of the
   // build that just finished; this is what picks up a waiter nothing handed off to,

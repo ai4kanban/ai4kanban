@@ -448,13 +448,14 @@ export function setSecret(name: string, value: string): Saved {
   }
 }
 
-// ---- the scheduled agents' cadences (#514, #119, #929, #1208) ---------------
+// ---- the scheduled agents' cadences (#514, #119, #929, #1208, #1268) --------
 //
-//   "memoryPrune":     { "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
-//   "cardSweep":       { "cadence": "3d", "since": "2026-09-30 10:00" }
-//   "dismissalReview": { "lastRun": "2026-09-19 08:00" }
+//   "memoryPrune":        { "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
+//   "cardSweep":          { "cadence": "3d", "since": "2026-09-30 10:00" }
+//   "dismissalReview":    { "lastRun": "2026-09-19 08:00" }
+//   "productDescription": { "lastRun": "2026-09-30 08:00" }
 //
-// All three always run (#1208): only the cadence is the user's, and only one other than the
+// All of them always run (#1208): only the cadence is the user's, and only one other than the
 // default is written down. An `enabled` key an earlier release wrote is ignored, and dropped
 // on the next save.
 //
@@ -463,13 +464,14 @@ export function setSecret(name: string, value: string): Saved {
 // on its first look, so a board's first prune or sweep lands a whole cadence after upgrade
 // rather than the minute it does.
 
-export type ScheduleKey = 'memoryPrune' | 'cardSweep' | 'dismissalReview'
+export type ScheduleKey = 'memoryPrune' | 'cardSweep' | 'dismissalReview' | 'productDescription'
 
 /** The cadence a board that never set one runs each on. */
 export const DEFAULT_CADENCE: Record<ScheduleKey, string> = {
   memoryPrune: '7d',
   cardSweep: '7d',
   dismissalReview: '1d',
+  productDescription: '1d',
 }
 
 const stringIn = (block: Record<string, unknown>, key: string): string =>
@@ -605,3 +607,10 @@ export const setDismissalReview = (next: { enabled?: boolean; cadence: string })
   saveSchedule('dismissalReview', next)
 /** Move the window to a review that passed, stamped with when that review STARTED. */
 export const stampDismissalReview = (when: Date): void => void stampSchedule('dismissalReview', when)
+
+// `productDescription`'s `lastRun` is its window too: commits since the last pass began are
+// what makes the next one due (#1268).
+export const productDescription = (): CadenceSchedule => readSchedule('productDescription')
+export const setProductDescription = (next: { enabled?: boolean; cadence: string }): Saved =>
+  saveSchedule('productDescription', next)
+export const stampProductDescription = (when: Date): void => void stampSchedule('productDescription', when)

@@ -13,7 +13,7 @@ import type {
 
 // --- writing the board, through the CLI (#169) -------------------------------
 // Every change a button makes: a card's fields and body, a
-// release opened, given a goal, closed or dropped, the project goal, the project and its
+// release opened, given a goal, closed or dropped, the project and its
 // tracks, a setup box ticked. Each one is the CLI's own move — the same code `akb` runs —
 // so a card edited from a screen and a card edited from a terminal come out identical.
 //
@@ -149,15 +149,6 @@ export async function closeRelease(id: string): Promise<WriteResult & { shipped?
 export async function dropRelease(id: string): Promise<WriteResult> {
   try {
     return await (await boardRules()).dropRelease(id);
-  } catch (e) {
-    return refused(e);
-  }
-}
-
-/** Save the project goal, which is also setup's goal step. */
-export async function saveGoal(text: string): Promise<WriteResult> {
-  try {
-    return await (await boardRules()).saveGoal(text);
   } catch (e) {
     return refused(e);
   }

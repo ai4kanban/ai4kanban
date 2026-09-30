@@ -67,7 +67,6 @@ export async function AssetRoute({
       openIds={board.openIds}
       agent={agent}
       projectRoot={repoRoot()}
-      goalWritten={board.goalWritten}
       memoryOwners={board.memoryOwners}
       desktop={isDesktop()}
     />

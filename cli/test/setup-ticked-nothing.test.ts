@@ -56,7 +56,7 @@ beforeEach(() => {
   fs.writeFileSync(path.join(root, 'docs/kanban/next-id'), '1\n')
   fs.writeFileSync(path.join(root, 'docs/kanban/todo/README.md'), '# Tasks\n')
   writeSetupChecklist()
-  for (const step of ['project', 'goal', 'agent']) tickSetupStep(step)
+  for (const step of ['project', 'agent']) tickSetupStep(step)
 })
 
 afterEach(() => {

@@ -5,13 +5,12 @@ import type { SetupCopy } from "./types";
 const en: SetupCopy = {
   rail: {
     title: "Set up this board",
-    blurb: "Answer three questions. The remaining setup is based on your repository.",
+    blurb: "Answer two questions. The remaining setup is based on your repository.",
     steps: "Setup steps",
     exit: "Go to the board",
     projectSettled: (name) => name,
-    goalWritten: "Completed",
   },
-  stepTitles: { project: "Project", goal: "Goal", agent: "Agent" },
+  stepTitles: { project: "Project", agent: "Agent" },
   reading: "Reading the board…",
   privacy: {
     title: "Help improve AI4Kanban",
@@ -30,7 +29,6 @@ const en: SetupCopy = {
     step: (at, total) => `${at} of ${total}`,
     byHand: "Enter details manually",
     toBoard: "Go to the board",
-    yourWords: "Enter your response",
     agent: {
       ask: "Choose an agent",
       blurb:
@@ -61,14 +59,6 @@ const en: SetupCopy = {
         go: "Continue",
       },
     },
-    goal: {
-      ask: "What is the project goal?",
-      blurb:
-        "This cannot be inferred from the repository. In your own words, describe what you want to achieve and what should come next. A brief outline is enough.",
-      guide: "How to write a useful goal",
-      save: "Save and finish",
-      later: "Skip for now",
-    },
     failed: {
       noAnswer: "The agent did not return a response.",
       nothingWritten: "No changes were saved.",
@@ -84,16 +74,6 @@ const en: SetupCopy = {
     whatPlaceholder: "A Markdown-based project management board.",
     saveFailed: "Could not save the project details",
     continue: "Continue",
-  },
-  goal: {
-    title: "Project goal",
-    blurb:
-      "Describe the long-term outcome and the general order of priorities. The agent uses this goal to evaluate proposed work. You can update it at any time.",
-    placeholder: "For example: First complete…, then…",
-    guideTitle: "How to write a useful goal",
-    guideLine: "Enter the project goal in your own words.",
-    skip: "Skip for now",
-    saveFailed: "Could not save the project goal",
   },
   agent: {
     title: "Choose an agent",

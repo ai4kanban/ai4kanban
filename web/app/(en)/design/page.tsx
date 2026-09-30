@@ -584,7 +584,7 @@ export default function DesignPage() {
               <Label>chip · neutral / solid</Label>
               <div className="flex flex-wrap items-center gap-2.5">
                 <Chip>Node.js 18+</Chip>
-                <Chip>Just provide the project goal</Chip>
+                <Chip>Just open a project</Chip>
                 <Chip tone="solid">Markdown</Chip>
               </div>
             </div>

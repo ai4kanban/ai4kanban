@@ -438,10 +438,9 @@ export interface SetupState {
  *  own, in the checklist's names. The agent comes first (#280): the run talks its way
  *  through the other two, and nothing may be spent on an agent nobody chose. A board whose
  *  checklist predates these names simply has fewer of them. */
-export const GUIDED_STEPS = ['agent', 'project', 'goal'] as const
+export const GUIDED_STEPS = ['agent', 'project'] as const
 
-/** The boxes that say the first run is over. The goal is not among them — it can be left
- *  for later, and a run that reopened on it would make "later" mean nothing. */
+/** The boxes that say the first run is over. */
 export const FIRST_RUN_DONE = ['agent', 'project'] as const
 
 /** What a guided first run opens with — the board's own answers as they stand, so every
@@ -450,8 +449,6 @@ export interface SetupDraft {
   /** The project's name and the one line saying what it is, from `docs/kanban/config.md`.
    *  The name falls back to the repo's folder name; the line to empty. */
   project: { name: string; description: string }
-  /** The goal as it stands, for the flow's goal box (empty on a fresh board). */
-  goal: string
 }
 
 /** Everything one board read hands back. */
@@ -471,10 +468,6 @@ export interface Board {
    *  cards in no release. Counted over every open card — subtasks answer for themselves —
    *  so it is the number `release list` prints. A release with nothing open is absent. */
   releaseCounts: Record<string, number>
-  /** True when `memory/goal.md` holds the user's own words, so a goal button has something
-   *  to open. False offers an empty box instead — the goal is optional, and nothing on the
-   *  board asks for one (#437). */
-  goalWritten: boolean
   /** What the memory panel draws (#130, #805): the board's own record, then every agent
    *  that keeps memory. Never empty — the board's own group is always first. */
   memoryOwners: MemoryOwner[]
@@ -580,10 +573,10 @@ export interface MemoryRef {
 }
 
 /** Every memory file there is, in the order a panel lists them: the board's own record
- *  first — what shipped, where the project is going — then the ones the planner learns. */
+ *  first — what shipped, what the product is — then the ones the planner learns. */
 export const MEMORY_FILES: readonly MemoryRef[] = [
   { name: 'readme', label: 'What shipped' },
-  { name: 'goal', label: 'The goal' },
+  { name: 'product', label: 'The product' },
   { name: 'decisions', label: 'Settled decisions' },
   { name: 'rejected', label: 'Rejected ideas' },
   { name: 'redesign', label: 'Design mistakes' },

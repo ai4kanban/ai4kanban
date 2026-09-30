@@ -223,7 +223,6 @@ function SignalsFrame({
   projectRoot,
   openIds,
   agent,
-  goalWritten,
   memoryOwners,
   desktop,
   sessions,
@@ -232,7 +231,6 @@ function SignalsFrame({
   projectRoot: string;
   openIds: number[];
   agent: AgentInfo;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
   sessions: SessionView[];
@@ -245,13 +243,11 @@ function SignalsFrame({
         openIds={openIds}
         currentSignals
         memoryOwners={memoryOwners}
-        goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
           <Header
             agent={agent}
             projectRoot={projectRoot}
-            goalWritten={goalWritten}
             desktop={desktop}
           />
         }
@@ -267,7 +263,6 @@ export function SignalsPage({
   openIds,
   agent,
   projectRoot,
-  goalWritten,
   memoryOwners,
   desktop,
 }: {
@@ -275,7 +270,6 @@ export function SignalsPage({
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
@@ -695,7 +689,6 @@ export function SignalsPage({
       projectRoot={projectRoot}
       openIds={openIds}
       agent={agent}
-      goalWritten={goalWritten}
       memoryOwners={memoryOwners}
       desktop={desktop}
       sessions={sessions}

@@ -1,4 +1,4 @@
-// 简体中文 —— the rail, the memory pages, the goal and Insights, mirroring `en.ts`
+// 简体中文 —— the rail, the memory pages and Insights, mirroring `en.ts`
 // key for key. Writing rules: `i18n/index.ts`.
 import type { RailCopy } from "./types";
 
@@ -30,7 +30,7 @@ const zh: RailCopy = {
     empty: "还没有记下任何内容。",
     files: {
       readme: "已交付的能力",
-      goal: "目标",
+      product: "产品描述",
       decisions: "已定下的决策",
       redesign: "设计上的教训",
       rejected: "被否决的想法",
@@ -120,19 +120,6 @@ const zh: RailCopy = {
     copied: (what) => `${what}已复制`,
     path: "路径",
     relativePath: "相对路径",
-  },
-  goal: {
-    open: "目标",
-    openHint: "这个看板是为什么而存在的",
-    write: "写下目标",
-    writeHint: "写下这个看板为什么而存在——可选，随时可补",
-    title: "目标",
-    reading: "载入中…",
-    editTitle: "填写目标",
-    guideTitle: "什么样的目标是好目标",
-    guideLine:
-      "用你自己的话写项目要去往何处：你想要什么、大致多久、接下来大概做什么。写得粗略、简短都没关系，之后也可以改——Agent 绝不会替你起草目标。",
-    saveFailed: "目标保存失败",
   },
   insights: {
     open: "统计",

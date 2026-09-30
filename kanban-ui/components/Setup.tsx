@@ -5,7 +5,7 @@
 //
 // Setting a board up used to mean copying a line into a coding agent and hoping.
 // The board asks for what only the user knows itself — which agent does the work,
-// what the project is, and the goal. Everything else setup does
+// and what the project is. Everything else setup does
 // reads the repo and thinks, so it is an agent's job — and the board starts that
 // agent itself when asked (#173): one ordinary run, in the runs panel, doing every
 // step still unticked. The line to paste into a coding agent stays beside the
@@ -15,7 +15,7 @@
 //
 //   • the conversation (#280, components/FirstRun.tsx) — the default. One full
 //     window per step: the agent picker, then the agent saying what it thinks the
-//     project is, then the goal.
+//     project is.
 //   • the screens (below) — a rail and a form per step. Reached by "I'll fill it
 //     in myself", and by a board whose agent cannot hold a conversation at all.
 //     They are also where the run ends: the closing screen is the same either way.
@@ -26,9 +26,7 @@
 //     board has a way back in, so leaving is never losing.
 //   • Every answer starts on something sensible — what the agent read off the
 //     repo — so someone in a hurry
-//     can press through and still end up with a working board. The goal is the
-//     exception: it is asked, never drafted — and Skip for now is a real answer
-//     (#437), which ticks its box and leaves `goal.md` empty.
+//     can press through and still end up with a working board.
 //   • The agent step can't be pressed past. Setup says it is finished by deleting
 //     its checklist, and the steps after this flow are agent runs, so a board that
 //     finished setup without an agent was never set up. That step ends on one
@@ -43,9 +41,7 @@ import { FiCheck, FiChevronUp, FiCopy, FiPlay, FiSettings, FiTerminal } from "re
 import {
   finishSetupAgentStepAction,
   getSetupDraftAction,
-  saveGoalAction,
   saveSetupProjectAction,
-  skipSetupGoalAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -63,7 +59,6 @@ import { Button } from "./button";
 import { configDialog, HarnessPicker } from "./Configuration";
 import { DiscardNewBoard } from "./desktop";
 import { FirstRun } from "./FirstRun";
-import { GuideDrawer } from "./Guide";
 import { Header } from "./Header";
 import { type SetupFailure } from "./agent-shared";
 import { sessionsPanel } from "./sessions";
@@ -86,10 +81,8 @@ function guidedSteps(setup: SetupState): SetupStep[] {
 }
 
 /** Should the board open on the guided run? Yes until the agent is picked and the project
- *  is written (#280) — the two boxes that say a board was set up. Tested on those rather
- *  than on all of them, because the goal can be left for later: a user who walked past it
- *  has been through the flow, and being asked again on every load would make "later" mean
- *  nothing. A checklist too old to hold one of them is judged on what it does hold. */
+ *  is written (#280) — the two boxes that say a board was set up. A checklist too old to
+ *  hold one of them is judged on what it does hold. */
 export function needsFirstRun(setup: SetupState | null): boolean {
   if (!setup) return false;
   const steps = guidedSteps(setup);
@@ -98,11 +91,7 @@ export function needsFirstRun(setup: SetupState | null): boolean {
   return closing.some((s) => !s.done);
 }
 
-/** Is there anything in the run still worth reopening it for? Any unanswered
- *  step — which is why this is a different question from the one above, which stops
- *  opening the run ITSELF once the agent is picked and the project is written.
- *  Skipping the goal answers its step (#437), so it is not one of these: the way back
- *  to the goal is the header's own entry, on the board, from then on. */
+/** Is there anything in the run still worth reopening it for? Any unanswered step. */
 export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
   return Boolean(setup) && guidedSteps(setup as SetupState).some((s) => !s.done);
 }
@@ -116,8 +105,7 @@ export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
 // of it.
 //
 // One thing stands in for the offer: a run already going — one at a time, so the
-// second press has nothing to do but watch the first. A goal nobody wrote does not
-// (#437); the steps that are left read the repository.
+// second press has nothing to do but watch the first.
 
 /** Start the setup run, holding what the press is doing and what it answered. The
  *  two screens share it because they are the same press in two places. */
@@ -220,7 +208,6 @@ export function SetupFlow({
   setup,
   agent,
   projectRoot,
-  goalWritten,
   desktop,
   setupInstruction,
   skillInstalled,
@@ -238,8 +225,6 @@ export function SetupFlow({
    *  sit in it and it is what the window is dragged by — so a screen drawn
    *  without it is a window with lights over its content and nothing to hold. */
   projectRoot: string;
-  /** Whether `memory/goal.md` holds the user's words — the header's goal chip. */
-  goalWritten: boolean;
   /** Running inside the desktop app (#175), for the header's folder badge. */
   desktop: boolean;
   /** The line to paste into a coding agent, for the user who would rather finish
@@ -324,17 +309,6 @@ export function SetupFlow({
       .catch(() => {});
     advance();
   }, [onSaved, advance]);
-  // Skip for now is an answer (#437): the box is ticked and `goal.md` is left empty, so the
-  // run that finishes setup starts straight away and nothing comes back to ask again. The
-  // tick lands before the screen moves — the closing screen starts that run on arrival, and
-  // it must not go out on a checklist whose first unticked step is the one just answered.
-  // A tick that failed is bookkeeping, not a reason to hold the user on a question they
-  // have answered, so the screen moves on either way.
-  const skipGoal = useCallback(async () => {
-    await skipSetupGoalAction().catch(() => {});
-    onSaved();
-    advance();
-  }, [advance, onSaved]);
   const backToAgent = useCallback(() => {
     const at = steps.findIndex((s) => s.name === "agent");
     if (at >= 0) setIndex(at);
@@ -361,7 +335,6 @@ export function SetupFlow({
         agent={agent}
         projectRoot={projectRoot}
         onError={setChromeError}
-        goalWritten={goalWritten}
         desktop={desktop}
       />
       {talking ? (
@@ -380,7 +353,6 @@ export function SetupFlow({
               agent={agent}
               onAgentChanged={onAgentChanged}
               onSaved={savedAndOn}
-              onSkipGoal={skipGoal}
               onNoTalk={noTalk}
               onBackToAgent={backToAgent}
               onByHand={fillItIn}
@@ -421,18 +393,6 @@ export function SetupFlow({
                   draft={draft}
                   onChange={setDraft}
                   onSaved={() => {
-                    onSaved();
-                    advance();
-                  }}
-                />
-              )}
-
-              {draft && step?.name === "goal" && (
-                <GoalStep
-                  initial={draft.goal}
-                  onSkip={skipGoal}
-                  onSaved={(text) => {
-                    setDraft({ ...draft, goal: text });
                     onSaved();
                     advance();
                   }}
@@ -480,7 +440,7 @@ export function SetupFlow({
 //
 // Every step is reachable, the ones ahead included (#280). The agent comes first now, and
 // it is the one step that can't be pressed past — so a machine with no working agent would
-// otherwise reach neither the project nor the goal, and those two read nothing off it. The
+// otherwise never reach the project, which reads nothing off it. The
 // gate is still there: the run isn't over until an agent has answered a test.
 function StepRail({
   steps,
@@ -509,10 +469,6 @@ function StepRail({
     if (name === "project") {
       return draft.project.name ? c.rail.projectSettled(draft.project.name) : "";
     }
-    // A skipped goal ticks its box and says nothing beside it (#437): a step answered by
-    // choosing not to is still answered, and a word for it here would be the flow marking
-    // the user down.
-    if (name === "goal") return draft.goal.trim() ? c.rail.goalWritten : "";
     if (name === "agent") {
       return agent.options.find((o) => o.name === agent.name)?.label ?? agent.name;
     }
@@ -651,67 +607,7 @@ function ProjectStep({
   );
 }
 
-// ---- step 2: the goal ------------------------------------------------------
-
-function GoalStep({
-  initial,
-  onSkip,
-  onSaved,
-}: {
-  initial: string;
-  onSkip: () => void;
-  onSaved: (text: string) => void;
-}) {
-  const t = useCopy();
-  const c = t.setup.goal;
-  const [text, setText] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    const res = await saveGoalAction(text);
-    setSaving(false);
-    if (!res.ok) {
-      setError(sayFailure(res, c.saveFailed));
-      return;
-    }
-    onSaved(text);
-  };
-
-  return (
-    <StepBody title={c.title} blurb={c.blurb}>
-      <textarea
-        className={cn(INPUT, "min-h-[220px] resize-y font-mono leading-relaxed")}
-        value={text}
-        autoFocus
-        placeholder={c.placeholder}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <GuideDrawer
-        guide="what-makes-a-good-goal"
-        title={c.guideTitle}
-        className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft"
-      >
-        {c.guideLine}
-      </GuideDrawer>
-
-      {error && <div className="mt-4"><Failure text={error} /></div>}
-
-      <StepButtons>
-        <Button variant="ghost" size="sm" disabled={saving} onClick={onSkip}>
-          {c.skip}
-        </Button>
-        <Button size="sm" disabled={saving || !text.trim()} onClick={save}>
-          {saving ? t.shared.saving : t.setup.project.continue}
-        </Button>
-      </StepButtons>
-    </StepBody>
-  );
-}
-
-// ---- step 3: the harness ----------------------------------------------------
+// ---- step 2: the harness ----------------------------------------------------
 
 // The one step that can't be pressed past. It is the Configuration dialog's own
 // Harness pane — the same picker, the same settings, the same Test — because this
@@ -789,8 +685,7 @@ function AgentStep({
 // the run works down them, and the way to watch it or leave it going.
 //
 // It starts once. A run that stopped short says so and offers the press again — a screen
-// that restarted a failing run by itself would loop. Nothing else holds it: a goal left for
-// later is an answer (#437), and the steps that are left read the repository.
+// that restarted a failing run by itself would loop.
 //
 // The line to paste into a coding agent is not here: the frame's own fold at the foot of
 // every setup screen carries it, and it was the same two elements twice.

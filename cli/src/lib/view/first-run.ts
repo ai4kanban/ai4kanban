@@ -10,7 +10,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { die, CONFIG, MODULES_MD, REPO_ROOT } from '../paths'
-import { readGoalText } from './goal'
 import type { SaveProjectResult, SetupDraft } from './types'
 
 // ---- reading ---------------------------------------------------------------
@@ -54,7 +53,7 @@ export function readProject(): { name: string; description: string } {
 
 /** Everything a guided first run opens with, in one read. */
 export function readSetupDraft(): SetupDraft {
-  return { project: readProject(), goal: readGoalText() }
+  return { project: readProject() }
 }
 
 /** The module names from `docs/kanban/modules.md` — the bolded name at the front of each

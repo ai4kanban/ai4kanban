@@ -35,7 +35,7 @@ import { findSpecAgent } from '../agents'
 import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
 import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, planningMemoryFiles, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
-import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
+import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PRODUCT, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { workflowRefusal } from './start'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
@@ -531,6 +531,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // no card at all.
   'review-memory': ['board', 'review-memory'],
   'review-dismissals': ['review-dismissals'],
+  'describe-product': ['describe-product'],
   // A reflection gets its own flow and `evaluate-task`, the bar an idea is held to before
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
   // format and the memory set are a page about work it may not do.
@@ -753,7 +754,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           ...numbered(left.map((s) => `\`${s.name}\` (${s.owner}) — ${s.text}`)).map((s) => `  ${s}`),
         ]),
       )
-      facts.push(...field('goal', rel(GOAL)))
       const questions = findSetupQuestionsCard()
       facts.push(
         ...field(
@@ -810,7 +810,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         'rewrite the files above in place — that is the whole job',
         'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
-        'change nothing else — not a card, not the goal, not the code',
+        'change nothing else — not a card, not the product description, not the code',
       )
       break
     }
@@ -850,7 +850,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'write the notes into the memory files named above — that is the whole job',
         'rewrite or delete a note an earlier review wrote that a conversation has since overturned, rather than adding a second one',
         'writing nothing at all is a complete result, and most conversations earn it',
-        'change nothing else — not a card, not the goal, not the code',
+        'change nothing else — not a card, not the product description, not the code',
       )
       break
     }
@@ -875,6 +875,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `write ${dismissedMemoryPath()} and nothing else — writing nothing is a complete result`,
         'raise nothing for anyone: there is no card to question',
       )
+      break
+    }
+    // The product description (#1268): the file is the whole job, and the one thing it writes.
+    case 'describe-product': {
+      facts.push(...field('product', rel(PRODUCT)))
+      close.push(`rewrite ${rel(PRODUCT)} and nothing else`, 'raise nothing for anyone: there is no card to question')
       break
     }
     // Reflecting on a card that has just completed (#534). The facts are what it was asked
@@ -912,7 +918,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
               ],
         ),
       )
-      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('product', rel(PRODUCT)))
       facts.push(...field('memory', planningMemoryFiles()))
       facts.push(...field('modules', rel(MODULES_MD)))
       if (waiting.length === 0) {
@@ -930,7 +936,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     // Settling a card that sat too long (#118). The facts are what the verdict is made of:
     // how long it sat, what the plan still claims, and the direction to judge the rest
-    // against — so it is given the goal and the planner's memory, and writes none of it. The close is the two verdicts and the rule that separates them
+    // against — so it is given the product description and the planner's memory, and writes none of it. The close is the two verdicts and the rule that separates them
     // from a refine.
     case 'unstick': {
       const age = cardAges()?.get(path.resolve(REPO_ROOT, card!.file))
@@ -943,7 +949,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ),
       )
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
-      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('product', rel(PRODUCT)))
       facts.push(...field('memory', planningMemoryFiles()))
       close.push(
         'keep it: rewrite the body for the project as it stands today, and rewrite its ## By `sweeper` agent section whole — still worth doing, what must change first, and the date',

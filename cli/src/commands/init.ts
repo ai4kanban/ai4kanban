@@ -5,13 +5,12 @@
 
 import fs from 'node:fs'
 
-import { warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
+import { warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
 import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
-import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { writeReleasesIfMissing } from '../lib/releases'
-import { migrateMemory, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import { migrateMemory, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { migratePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
@@ -158,21 +157,20 @@ export function cmdInit(): MoveResult {
     const movedMemory = migrateMemory()
     const project = scaffoldProjectMemory()
     if (project) scaffolded.push(project)
-    // A goal written by an older version: the seeded text goes, and a goal with words in
-    // it stops reading as one nobody wrote.
-    const goalRepaired = repairGoal()
+    // `goal.md` is retired (#1268): what the user wrote moves into the planner's decisions.
+    const goalRetired = retireGoal()
     const prunedCard = migratePruneMemoryCard()
     say(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
-        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRepaired ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (movedMemory.length) {
       say(`  memory now belongs to whoever writes it — merged ${movedMemory.length} file${movedMemory.length === 1 ? '' : 's'} away: ${movedMemory.join(', ')}`)
       say(`  a module's entries are a \`## <module>\` topic in the file they moved into`)
     }
-    if (goalRepaired) say(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
+    if (goalRetired) say(`  docs/kanban/memory/goal.md is retired: ${goalRetired}`)
     if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Board); its cadence is kept there, switched off`)
     if (added.includes(rel(MODULES_MD))) {
       say(`  next: fill in ${rel(MODULES_MD)} (see "The module map")`)
@@ -200,35 +198,4 @@ export function cmdInit(): MoveResult {
   const next = nextSetupStep()
   if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
   return { board: rel(KANBAN), created: true, next: next?.name ?? null }
-}
-
-// ---- goal review -----------------------------------------------------------
-//
-// `goal.md` carries one machine-readable field — `reviewed:` — and reading it, writing it,
-// and telling a seeded body from a real goal all live in `lib/view/goal.ts`, next to the
-// goal reader every front end uses. What is left here is the repair itself.
-
-// Bring an older board's `goal.md` up to date, without ever touching a goal the user
-// wrote. Three repairs, all mechanical:
-//
-//   - a body that is still the seeded block is emptied — it was never a goal, and it is
-//     text the user would have to delete before writing their own,
-//   - a goal with words in it gets `reviewed: pending` unless the agent already judged it
-//     `good` or `strong`, so an upgrade never leaves an already-written goal asking to be
-//     written. The next run to read the goal re-judges it,
-//   - a goal with nothing in it gets `reviewed: weak`, which is what a missing field
-//     already reads as.
-//
-// Returns what it did, for `init` to report; null when there was nothing to repair.
-function repairGoal(): string | null {
-  if (!fs.existsSync(GOAL)) return null
-  const text = fs.readFileSync(GOAL, 'utf8')
-  const { body, seeded, written } = readGoalBody(text)
-  const current = readGoalReviewFrom(text)
-  const value = written ? (current === 'good' || current === 'strong' ? current : 'pending') : 'weak'
-  if (!seeded && value === current) return null
-  const kept = seeded ? text.slice(0, text.length - body.length) : text
-  fs.writeFileSync(GOAL, writeGoalReviewInto(kept, value))
-  if (seeded) return 'cleared the seeded text — the goal starts empty, in the user\'s own words'
-  return `set \`reviewed: ${value}\``
 }

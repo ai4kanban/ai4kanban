@@ -57,7 +57,6 @@ questions and buttons.
 
 The header carries:
 
-- **The goal** (compass) — see [The goal](#the-goal).
 - **The release dropdown** — see [Releases](#releases).
 - **New idea** (bulb) — a full-screen sheet: share an idea, ask how things are going, or ask it
   to move or start a card. Sending always starts a [discussion](#new-idea). An unsent draft is kept; Esc or ✕ returns to the board. To
@@ -138,7 +137,7 @@ has no Find, so use the box.
 
 **Discuss** in the header of a card's page opens a rail on the right, about that card. It
 remembers whether it was open, and keeps one conversation per card; walking to another card leaves
-nothing of the last one behind. It answers from the goal, module map, open cards, memory and
+nothing of the last one behind. It answers from the product description, module map, open cards, memory and
 settings, and a card it names is a link.
 
 - **It changes the board**: once a change is settled it writes, rewords, answers, moves, archives
@@ -178,22 +177,14 @@ settings, and a card it names is a link.
 On a narrow window the chat covers the board. With no coding agent set up, it points at
 Configuration.
 
-### The goal
-
-`memory/goal.md` is where the project is headed, in your words; every proposal is judged against
-it. The compass opens it in full, and **Edit** saves your words back.
-
-Saving marks it `reviewed: pending`. The agent grades it `strong`, `good` or `weak` at setup and
-on every proposal; only `weak` or an empty file makes the board ask for a goal. The compass shows
-only when the file has content.
-
 ### The board's memory
 
 **Memory**, at the foot of the rail, is what the agent remembers about this project — read-only,
 so reading it starts no run. Rows are grouped by owner:
 
-- **Board**: **What shipped** (`docs/kanban/memory/readme.md`) and **The goal**
-  (`docs/kanban/memory/goal.md`).
+- **Board**: **What shipped** (`docs/kanban/memory/readme.md`) and **The product**
+  (`docs/kanban/memory/product.md`, rewritten by **Describe the product** in Configuration →
+  Board).
 - **Each agent that keeps memory**: e.g. the Planner's **Settled decisions**, **Rejected ideas**
   and **Design mistakes** in `docs/kanban/memory/agents/planner/`. A module is a `## <module>`
   topic inside those files.
@@ -283,16 +274,14 @@ A board with unfinished setup opens on a guided run, one step per screen:
 2. **The project** — the agent reads your repo and proposes one sentence saying what the project
    is. **Yes, that's it** writes it; a correction sends it back to read again. Nothing is written
    before Yes.
-3. **The goal** — an empty box for `memory/goal.md`, in your own words; the agent never drafts it.
-   **I'll write it later** skips it.
 
 These steps are a conversation, not a run: nothing in **Runs**, no log. A failed turn shows the
 agent's words and **Nothing was written**; **Try again** restarts it. **I'll fill it in myself**,
-on every screen, switches to plain boxes for the project and goal.
+on every screen, switches to plain boxes for the project.
 
 The closing screen offers **Finish setup**: one run that works through every unticked step in
 `setup-checklist.md`. It shows in **Runs**, can be stopped, and restarts from the first unfinished
-step. If the goal is empty it asks for it first. A failed run shows **The last setup run stopped
+step. A failed run shows **The last setup run stopped
 short** with a link to its log; press **Finish setup** again to retry.
 
 To finish from your coding agent instead, paste the line shown under **Rather set this up from
@@ -309,9 +298,6 @@ coding agent skill in the repo; if it is missing, the screen offers
 **Go to the board** leaves at any step; a strip with **Continue setup** stays until setup is done.
 Until then the skill creates no cards. The last step creates three initial cards, deletes the
 checklist, and starts a refine for each.
-
-Later, if the goal is empty or judged weak, a notice with **Write the goal** comes back. ✕ hides
-it for the session.
 
 ## A card's buttons
 
@@ -811,7 +797,7 @@ rule slows every card. It is plain words, not a command; clearing it deletes the
 no rules.
 
 **Memory**: the page lists the files the agent owns, read-only. A role remembers in its flows'
-files (the Planner: `memory/decisions.md`, `memory/rejected.md`, `memory/goal.md`; the Builder:
+files (the Planner: `memory/decisions.md`, `memory/rejected.md`; the Builder:
 `memory/readme.md`, `memory/redesign.md`, `modules.md`). A specialist owns
 `docs/kanban/memory/agents/<name>/`, as its `AGENT.md` says. How the product looks lives in the
 app's `design.md`, not in memory.

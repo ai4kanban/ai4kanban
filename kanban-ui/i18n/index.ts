@@ -21,7 +21,7 @@
 // - Product names, file names, paths, module names, shell commands and URLs are not
 //   copy. They stay in the component, and stay English in every language.
 // - Punctuation follows the target language: full-width ，。；：？（） in Chinese.
-// - Chinese wording follows docs/kanban/memory/goal.md: 自主拆解、循环澄清、需求、
+// - Chinese wording follows docs/kanban/memory/product.md: 自主拆解、循环澄清、需求、
 //   决策可追溯、自进化、交付闭环。书面语，不用口语化的说法。
 // - Structure that isn't language — icons, colours, order — stays in the component
 //   and is joined to this copy by key.

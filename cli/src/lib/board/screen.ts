@@ -82,13 +82,12 @@ export interface CardHold {
 }
 
 /** Everything a card page draws. The board fields beside the card are the ones the page
- *  itself needs — the ids it may link to, the releases its picker offers, whether the goal
- *  is written, the modules memory is kept for. */
+ *  itself needs — the ids it may link to, the releases its picker offers, the modules
+ *  memory is kept for. */
 export interface CardScreen extends ScreenBoard {
   card: Card
   openIds: number[]
   releases: string[]
-  goalWritten: boolean
   memoryOwners: MemoryOwner[]
   /** What an Implement click would do from here (#307) — the branch it lands on. */
   plan: DeliveryPlan

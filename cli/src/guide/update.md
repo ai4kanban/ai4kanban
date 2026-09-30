@@ -32,10 +32,10 @@ Run it from the project root. It does the whole mechanical part:
   adds a folder that isn't there: the skill is an extra a project opts into, so a project
   without one is not broken, and `akb skill install` is how it is added,
 - adds what an older version never wrote: `config.md`, `modules.md`, `releases.md` (empty —
-  the board never guesses a ship order), the planner's memory folder, the goal's `reviewed:`
-  field,
-- clears the paragraph older versions seeded into `docs/kanban/memory/goal.md` — the file
-  starts empty now — and never leaves a goal that is already written asking to be written,
+  the board never guesses a ship order), the planner's memory folder,
+  an empty `docs/kanban/memory/product.md`,
+- moves a goal the user wrote in `docs/kanban/memory/goal.md` to the top of the planner's
+  `decisions.md` and deletes the file,
 - moves a memory set still sitting at the board root into `docs/kanban/memory/`,
 - moves the memory onto whoever writes it: `decisions.md`, `rejected.md` and `redesign.md`
   merge into `docs/kanban/memory/agents/planner/`, each module's `readme.md` merges into
@@ -59,8 +59,8 @@ yours to finish:
   only for the new value. Leave the rest of the config alone.
 - **A blank `docs/kanban/modules.md`.** Write it per `akb guide module-map`, then run
   `akb update` again so every module gets a memory path.
-- **A per-module `goal.md` that says something the root goal doesn't.** Fold that line into
-  `docs/kanban/memory/goal.md`, then delete the module copy.
+- **A per-module `goal.md`.** Fold what it says into the planner's `decisions.md` under that
+  module's topic, then delete it.
 - **A `docs/kanban/config.from-skill.md`.** An old skill folder held a config that differs
   from the board's. Fold anything worth keeping into `docs/kanban/config.md`, then delete it.
 - **A missing agent folder.** Only one of the two is here, or neither. `akb skill install`

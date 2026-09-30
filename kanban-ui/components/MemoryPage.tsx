@@ -41,7 +41,6 @@ export function MemoryPage({
   openIds,
   agent,
   projectRoot,
-  goalWritten,
   memoryOwners,
   desktop,
 }: {
@@ -49,7 +48,6 @@ export function MemoryPage({
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
@@ -96,14 +94,12 @@ export function MemoryPage({
         openIds={openIds}
         currentMemory={memoryKey(file.agent, file.name)}
         memoryOwners={memoryOwners}
-        goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
           <Header
             agent={agent}
             projectRoot={projectRoot}
             onError={setError}
-            goalWritten={goalWritten}
             desktop={desktop}
           />
         }

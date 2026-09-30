@@ -36,6 +36,7 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiClock,
+  FiFileText,
   FiPlus,
   FiRotateCcw,
   FiScissors,
@@ -64,6 +65,9 @@ import {
   dismissalReviewAction,
   setDismissalReviewAction,
   startReviewDismissalsAction,
+  productDescriptionAction,
+  setProductDescriptionAction,
+  startDescribeProductAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
@@ -115,28 +119,33 @@ const REVIEWER_OF_MEMORY = "memory-reviewer";
 // The dismissal reviewer (#929): the pruner's controls.
 const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
 
+// The product writer (#1268): the same controls.
+const PRODUCT_WRITER = "product-writer";
+
 // Configuration → Board's groups, by what starts each agent (#1208). Anything not named here
 // — the discussion, the feedback agent, an agent this project added — is one you start.
 // Literals rather than PRUNER / SWEEPER: Configuration imports this file, so its exports are
 // not initialised yet when these are.
-const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", "sweeper", REVIEWER_OF_DISMISSALS];
+const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", "sweeper", REVIEWER_OF_DISMISSALS, PRODUCT_WRITER];
 const ON_AN_EVENT = ["proposer", "triage"];
 
-/** The three scheduled agents' cadences, for the column's rows. `reload` after a save. */
+/** The scheduled agents' cadences, for the column's rows. `reload` after a save. */
 function useCadences(onError?: (msg: string) => void) {
   const [cadences, setCadences] = useState<Record<string, CadenceSchedule | null>>({});
   const reload = useCallback(async () => {
-    const [prune, sweep, dismissals] = await Promise.all([
+    const [prune, sweep, dismissals, product] = await Promise.all([
       memoryPruneAction(),
       cardSweepAction(),
       dismissalReviewAction(),
+      productDescriptionAction(),
     ]);
-    const error = prune.error || sweep.error || dismissals.error;
+    const error = prune.error || sweep.error || dismissals.error || product.error;
     if (error) onError?.(error);
     setCadences({
       [PRUNER]: prune.schedule,
       [SWEEPER]: sweep.schedule,
       [REVIEWER_OF_DISMISSALS]: dismissals.schedule,
+      [PRODUCT_WRITER]: product.schedule,
     });
   }, [onError]);
   useEffect(() => {
@@ -149,10 +158,11 @@ function useCadences(onError?: (msg: string) => void) {
 const OUTPUT_KEY = "output";
 
 // Which copy says a scheduled agent's cadence.
-const CADENCE_COPY: Record<string, "pruner" | "sweeper" | "dismissalReviewer" | undefined> = {
+const CADENCE_COPY: Record<string, "pruner" | "sweeper" | "dismissalReviewer" | "productWriter" | undefined> = {
   "memory-pruner": "pruner",
   sweeper: "sweeper",
   [REVIEWER_OF_DISMISSALS]: "dismissalReviewer",
+  [PRODUCT_WRITER]: "productWriter",
 };
 
 /** The roster, and every write that touches it — read once and shared by the two panes that
@@ -943,7 +953,7 @@ function Page({
     </span>
   ) : null;
 
-  // The board's own controls — the three scheduled agents' cadence and Run now, the memory
+  // The board's own controls — the scheduled agents' cadence and Run now, the memory
   // review's Run now — or, in a `scoped` pane (#944), that pane's actions. Either way on the
   // name row, so the description below keeps the full width.
   const controls = scoped ? (
@@ -952,6 +962,8 @@ function Page({
     <PruneControls onSaved={onCadence} onError={onError} />
   ) : agent.name === REVIEWER_OF_DISMISSALS ? (
     <DismissalControls onSaved={onCadence} onError={onError} />
+  ) : agent.name === PRODUCT_WRITER ? (
+    <ProductControls onSaved={onCadence} onError={onError} />
   ) : agent.name === SWEEPER ? (
     <SweepControls sweep={sweep} />
   ) : agent.name === REVIEWER_OF_MEMORY ? (
@@ -1417,6 +1429,24 @@ function DismissalControls({ onSaved, onError }: { onSaved?: () => void; onError
       read={dismissalReviewAction}
       save={setDismissalReviewAction}
       start={startReviewDismissalsAction}
+      onError={onError}
+    />
+  );
+}
+
+// --- the product writer's own controls (#1268) -------------------------------
+
+function ProductControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.agents.productWriter;
+  return (
+    <ScheduledControls
+      copy={c}
+      icon={<FiFileText size={11} aria-hidden />}
+      onSaved={onSaved}
+      action="describe-product"
+      read={productDescriptionAction}
+      save={setProductDescriptionAction}
+      start={startDescribeProductAction}
       onError={onError}
     />
   );

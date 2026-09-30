@@ -40,7 +40,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, PHONE_ROW, SPINE } from "./chrome";
 import { configDialog, PRUNER } from "./Configuration";
-import { Goal } from "./Goal";
 import { Insights } from "./Insights";
 
 /** Which tab the phone lights: the board, or More — which Memory sits under. */
@@ -351,18 +350,9 @@ function MemoryRows({
  *  a row that opened one of them on a phone would be a promise the screen can't keep. */
 export function MoreScreen({
   projectRoot,
-  goalWritten,
-  goalOffered = false,
-  onGoalSaved,
   onMemory,
 }: {
   projectRoot: string;
-  goalWritten: boolean;
-  /** Whether this row offers to write a goal that isn't there — the board's own screen
-   *  does, and no other one (#437). */
-  goalOffered?: boolean;
-  /** Re-read the board once a goal written here has saved (#437). */
-  onGoalSaved?: () => void;
   /** Open the Memory screen (#1198). */
   onMemory: () => void;
 }) {
@@ -385,11 +375,9 @@ export function MoreScreen({
         </span>
       </div>
 
-      {/* The things from the top row that a phone can still do: read what the board is
-          for — or write it, when it is empty (#437) — and read how it is going. Both open
-          the very dialogs the window opens. */}
+      {/* The things from the top row that a phone can still do: read how the board is
+          going, in the very dialog the window opens. */}
       <div className="mt-2 flex flex-col gap-1">
-        <Goal written={goalWritten} offer={goalOffered} row onSaved={onGoalSaved} />
         <Insights row />
         <button type="button" onClick={onMemory} className={PHONE_ROW}>
           <FiBookOpen size={17} className="shrink-0 text-nb-ink-soft" aria-hidden />

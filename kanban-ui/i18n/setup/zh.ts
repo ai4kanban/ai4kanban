@@ -5,13 +5,12 @@ import type { SetupCopy } from "./types";
 const zh: SetupCopy = {
   rail: {
     title: "设置看板",
-    blurb: "只需回答三个问题。其余设置将根据仓库内容自动完成。",
+    blurb: "只需回答两个问题。其余设置将根据仓库内容自动完成。",
     steps: "设置步骤",
     exit: "进入看板",
     projectSettled: (name) => name,
-    goalWritten: "已填写",
   },
-  stepTitles: { project: "项目", goal: "目标", agent: "Agent" },
+  stepTitles: { project: "项目", agent: "Agent" },
   reading: "正在读取看板…",
   privacy: {
     title: "帮助改进 AI4Kanban",
@@ -29,7 +28,6 @@ const zh: SetupCopy = {
     step: (at, total) => `第 ${at} 步 / 共 ${total} 步`,
     byHand: "手动填写",
     toBoard: "进入看板",
-    yourWords: "请填写",
     agent: {
       ask: "选择 Agent",
       blurb: "Agent 将读取仓库并完成后续设置。选择前不会运行。",
@@ -58,13 +56,6 @@ const zh: SetupCopy = {
         go: "继续",
       },
     },
-    goal: {
-      ask: "项目目标是什么？",
-      blurb: "简要说明长期目标和优先顺序。",
-      guide: "如何填写目标",
-      save: "保存并完成设置",
-      later: "稍后填写",
-    },
     failed: {
       noAnswer: "Agent 未返回结果。",
       nothingWritten: "未保存任何内容。",
@@ -80,16 +71,6 @@ const zh: SetupCopy = {
     whatPlaceholder: "一个基于 Markdown 的看板。",
     saveFailed: "项目信息保存失败",
     continue: "继续",
-  },
-  goal: {
-    title: "项目目标",
-    blurb:
-      "简要说明长期目标和优先顺序。Agent 将据此规划工作，你可以随时修改。",
-    placeholder: "例如：先完成……，再……",
-    guideTitle: "如何填写目标",
-    guideLine: "请自行填写项目目标。",
-    skip: "暂时跳过",
-    saveFailed: "目标保存失败",
   },
   agent: {
     title: "选择执行工作的 Agent",

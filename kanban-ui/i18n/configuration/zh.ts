@@ -339,6 +339,14 @@ const zh: ConfigurationCopy = {
         rule: "会附加到每次回顾忽略记录的末尾——例如「和定价有关的原因一律不记」。",
         note: "恢复一个条目后，只靠它得出的偏好会被撤下。总结出的偏好在「记忆」里，可以随时修改或删除。",
       },
+      "product-writer": {
+        name: "更新产品描述",
+        gloss: "从用户视角写清产品现在是什么、给谁用、能做什么，供规划和分拣参考。",
+        trigger: "每天",
+        when: "按所设周期，只在项目有新改动或还没有产品描述时才跑。每次读项目本身，整篇重写，只写已经上线的功能。",
+        rule: "会附加到每次更新产品描述的末尾——例如「不写内部工具」。",
+        note: "产品描述在「记忆」里，由它维护。",
+      },
       "memory-reviewer": {
         name: "回顾对话记忆",
         gloss: "回看有新内容的对话，把定下的事写进记忆。",
@@ -471,6 +479,33 @@ const zh: ConfigurationCopy = {
       failed: "上次失败",
       saveFailed: "回顾周期保存失败",
       tooOld: "这个看板的运行规则早于回顾忽略记录。",
+    },
+    productWriter: {
+      run: "立即更新",
+      running: "更新中…",
+      recurring: "定期更新",
+      chipLabel: (state) => `定期更新：${state}`,
+      cadenceLabel: (n, unit, at) => {
+        const head = n === 1 ? `每${PRUNE_UNITS[unit]}` : `每 ${n} ${PRUNE_UNITS[unit]}`;
+        return at ? `${head} ${at}` : head;
+      },
+      custom: "自定义",
+      every: "每",
+      unit: "单位",
+      units: PRUNE_UNITS,
+      atTime: "指定时间",
+      addTime: "指定时间",
+      dropTime: "不指定时间",
+      save: "保存",
+      saving: "保存中…",
+      cancel: "取消",
+      outOfRange: (unit, min, max) => `${unit}需在 ${min} 到 ${max} 之间。`,
+      presetFailed: (cadence) => `「${cadence}」保存失败，再选一次重试。`,
+      neverRun: "尚未更新",
+      lastRun: (when) => `上次更新 ${when}`,
+      failed: "上次失败",
+      saveFailed: "更新周期保存失败",
+      tooOld: "这个看板的运行规则早于产品描述。",
     },
     memoryReviewer: {
       run: "立即回顾",

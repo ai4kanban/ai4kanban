@@ -9,7 +9,7 @@ import { Figure } from "./kit";
 // that copy is translated and a post is not.
 
 const NOTES = {
-  goal: "Project goal",
+  product: "What the product is",
   planner: "The planner's memory",
   readme: "Shipped features",
   decisions: "Product decisions",

@@ -79,7 +79,7 @@ execution** — it exists so the past can be replayed.
 
 **AI4Kanban — remembers conclusions, forgets the rest.** A handful of small
 files, pruned on purpose, in two layers. The board keeps its own record —
-`readme.md` (what shipped) and `goal.md` (where the project is headed) — and
+`readme.md` (what shipped) and `product.md` (what the product is) — and
 every agent that remembers has a folder of its own: the planner's holds
 `decisions.md` (the calls that were settled, and why), `rejected.md` (what we
 turned down, and why) and `redesign.md` (design mistakes not to repeat). A

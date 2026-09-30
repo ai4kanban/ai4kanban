@@ -84,12 +84,10 @@ export function CardOpening({ id, failed = false, onRetry }: { id: number; faile
       currentId={id}
       currentTitle={title}
       memoryOwners={frame.memoryOwners}
-      goalWritten={frame.goalWritten}
       header={
         <Header
           agent={frame.agent}
           projectRoot={frame.projectRoot}
-          goalWritten={frame.goalWritten}
           desktop={frame.desktop}
         />
       }

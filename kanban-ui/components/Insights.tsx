@@ -166,8 +166,7 @@ function Tab({ label, on, onPick }: { label: string; on: boolean; onPick: () => 
   );
 }
 
-// The same peach panel the goal editor reports a failed save in. It carries a file path, so
-// it wraps rather than pushing the dialog wide.
+// A peach failure panel. It carries a file path, so it wraps rather than pushing the dialog wide.
 function Failure({ text }: { text: string }) {
   return (
     <div

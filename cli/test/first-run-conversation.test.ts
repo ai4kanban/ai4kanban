@@ -50,10 +50,6 @@ describe('what the conversation opens with', () => {
     assert.match(prompt, /unsure/)
   })
 
-  it('never asks for the goal — that has a screen of its own', () => {
-    assert.match(chatPrompt('setup', setupOpening()), /Never ask for the goal/)
-  })
-
   it('is not the board conversation, and not a card one', () => {
     const prompt = chatPrompt('setup', 'go')
     assert.doesNotMatch(prompt, /chat about this project's board/)

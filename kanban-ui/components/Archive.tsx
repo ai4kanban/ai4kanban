@@ -34,7 +34,6 @@ function ArchiveFrame({
   projectRoot,
   openIds,
   agent,
-  goalWritten,
   memoryOwners,
   desktop,
   children,
@@ -42,7 +41,6 @@ function ArchiveFrame({
   projectRoot: string;
   openIds: number[];
   agent: AgentInfo;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
   children: React.ReactNode;
@@ -70,13 +68,11 @@ function ArchiveFrame({
         openIds={openIds}
         currentArchive
         memoryOwners={memoryOwners}
-        goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
           <Header
             agent={agent}
             projectRoot={projectRoot}
-            goalWritten={goalWritten}
             desktop={desktop}
           />
         }
@@ -110,7 +106,6 @@ export function ArchivePage({
   openIds,
   agent,
   projectRoot,
-  goalWritten,
   memoryOwners,
   desktop,
 }: {
@@ -118,7 +113,6 @@ export function ArchivePage({
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
@@ -132,7 +126,6 @@ export function ArchivePage({
       projectRoot={projectRoot}
       openIds={openIds}
       agent={agent}
-      goalWritten={goalWritten}
       memoryOwners={memoryOwners}
       desktop={desktop}
     >
@@ -236,7 +229,6 @@ export function ArchivedCardPage({
   openIds,
   agent,
   projectRoot,
-  goalWritten,
   memoryOwners,
   desktop,
 }: {
@@ -246,7 +238,6 @@ export function ArchivedCardPage({
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
@@ -256,7 +247,6 @@ export function ArchivedCardPage({
       projectRoot={projectRoot}
       openIds={openIds}
       agent={agent}
-      goalWritten={goalWritten}
       memoryOwners={memoryOwners}
       desktop={desktop}
     >

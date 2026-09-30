@@ -2,9 +2,9 @@
 
 // The first run, as a conversation (#280).
 //
-// It used to be three screens of boxes. The product's promise is that you hand it something
+// It used to be screens of boxes. The product's promise is that you hand it something
 // vague and it works the rest out, and a form does the opposite — so one screen is kept, the
-// agent picker, and the other two are talked through.
+// agent picker, and the project is talked through.
 //
 // One full window per step, one thing asked in each. No step rail, no board behind it, no
 // transcript to scroll and no list of what the agent opened: the view IS the turn, so the
@@ -16,7 +16,6 @@
 //                   is settled, which is the whole reason it goes first
 //   2 · the project the agent reads the repo and says what it thinks this is; the user
 //                   agrees or says what is wrong. Nothing reaches disk before the press.
-//   3 · the goal    asked on its own, always in the user's own words, never drafted
 //
 // The conversation is not a run: it is the chat the board already holds with its agent
 // (lib/setup-chat.ts), so it takes no place in the runs panel and writes no run log. What
@@ -28,7 +27,6 @@ import {
   finishSetupAgentStepAction,
   openSetupChatAction,
   readSetupChatAction,
-  saveGoalAction,
   saveSetupProjectAction,
   saySetupChatAction,
 } from "@/app/actions";
@@ -40,7 +38,6 @@ import { AgentProbeView, useAgentProbe } from "./AgentProbe";
 import { Button } from "./button";
 import { HarnessPicker, TestResult, type RunTest } from "./Configuration";
 import { DiscardNewBoard } from "./desktop";
-import { GuideDrawer } from "./Guide";
 import { sayFailure } from "@/lib/start-failure";
 
 // How often the conversation is re-read: fast while a turn is out, so the waiting view
@@ -56,14 +53,13 @@ export function FirstRun({
   agent,
   onAgentChanged,
   onSaved,
-  onSkipGoal,
   onNoTalk,
   onBackToAgent,
   onByHand,
   onExit,
   canDiscard,
 }: {
-  /** The run's steps, in the order it asks them — agent, project, goal. */
+  /** The run's steps, in the order it asks them — agent, project. */
   steps: SetupStep[];
   /** Which of them is being asked. */
   index: number;
@@ -74,9 +70,6 @@ export function FirstRun({
   onAgentChanged: (agent: AgentInfo) => void;
   /** A box was ticked: re-read the board, and move on. */
   onSaved: () => void;
-  /** The goal is being left for later — an answer (#437): it ticks the step, leaves
-   *  `goal.md` empty, and the run moves on. */
-  onSkipGoal: () => void;
   /** This board cannot hold the conversation — rules too old, or an agent that can't
    *  resume a session. The project screen that exists today takes over. */
   onNoTalk: () => void;
@@ -162,9 +155,6 @@ export function FirstRun({
                 onProposal={remember}
                 onBackToAgent={onBackToAgent}
               />
-            )}
-            {step?.name === "goal" && (
-              <GoalTurn initial={draft.goal} onSaved={onSaved} onSkip={onSkipGoal} />
             )}
           </div>
         </div>
@@ -547,69 +537,6 @@ function ProjectTurn({
   );
 }
 
-// ---- 3 · the goal -----------------------------------------------------------
-
-// The one answer nothing can settle for the user, so it gets a view of its own and an empty
-// box: no draft, and nothing read off the repo. Text the user did not write is no goal.
-function GoalTurn({
-  initial,
-  onSaved,
-  onSkip,
-}: {
-  initial: string;
-  onSaved: () => void;
-  onSkip: () => void;
-}) {
-  const t = useCopy();
-  const c = t.setup.firstRun.goal;
-  const [text, setText] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    const res = await saveGoalAction(text);
-    setSaving(false);
-    if (!res.ok) {
-      setError(sayFailure(res, t.setup.goal.saveFailed));
-      return;
-    }
-    onSaved();
-  };
-
-  return (
-    <>
-      <Ask>{c.ask}</Ask>
-      <Under>{c.blurb}</Under>
-      {/* The link alone: the drawer puts its `children` in front of the trigger, and this
-          view has nothing to say in front of it. */}
-      <GuideDrawer
-        guide="what-makes-a-good-goal"
-        title={c.guide}
-        className="mt-3 text-[13px] font-[700] text-nb-accent-deep"
-      >
-        {""}
-      </GuideDrawer>
-      <Box value={text} onChange={setText} hint={t.setup.firstRun.yourWords} rows={6} autoFocus />
-      {error && <Failure text={error} />}
-      <div className="mt-5 flex flex-wrap items-center gap-4">
-        <Button disabled={saving || !text.trim()} onClick={save}>
-          {saving ? t.shared.saving : c.save}
-        </Button>
-        <button
-          type="button"
-          disabled={saving}
-          className="cursor-pointer text-[13px] font-[700] text-nb-ink-soft underline-offset-2 hover:text-nb-ink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={onSkip}
-        >
-          {c.later}
-        </button>
-      </div>
-    </>
-  );
-}
-
 // ---- the pieces every view is made of ---------------------------------------
 
 function Ask({ children }: { children: React.ReactNode }) {
@@ -640,13 +567,11 @@ function Box({
   onChange,
   hint,
   rows,
-  autoFocus,
 }: {
   value: string;
   onChange: (v: string) => void;
   hint: string;
   rows: number;
-  autoFocus?: boolean;
 }) {
   return (
     <textarea
@@ -657,7 +582,6 @@ function Box({
       )}
       rows={rows}
       value={value}
-      autoFocus={autoFocus}
       placeholder={hint}
       onChange={(e) => onChange(e.target.value)}
     />

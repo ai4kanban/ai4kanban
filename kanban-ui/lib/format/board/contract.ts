@@ -168,7 +168,6 @@ export interface BoardProvider {
   readArchivedCard(id: number): Promise<ArchivedCardFile | null>
   readReleases(): Promise<string[]>
   readModules(): Promise<string[]>
-  readGoalText(): Promise<string>
   readMemoryFile(name: string, agent?: string): Promise<MemoryFile | null>
   /** What the memory panel draws: the board's own record, then every agent that keeps memory. */
   readMemoryOwners(): Promise<MemoryOwner[]>
@@ -208,8 +207,7 @@ export interface BoardProvider {
   closeRelease(id: string, env: OpEnvelope): Promise<OpResult<{ shipped: number }>>
   dropRelease(id: string, env: OpEnvelope): Promise<OpResult>
 
-  // ---- memory, the goal and setup ------------------------------------------
-  saveGoal(text: string, env: OpEnvelope): Promise<OpResult>
+  // ---- memory and setup ----------------------------------------------------
   saveProject(name: string, description: string, env: OpEnvelope): Promise<SaveProjectResult>
   finishSetupStep(name: string, env: OpEnvelope): Promise<OpResult>
   /** One memory file, written whole — the board's own record, or one an agent keeps when

@@ -17,7 +17,7 @@ const OURS: Line[] = [
   { text: "skill/", depth: 2 },
   { text: "151-two-runs-at-once.md", depth: 3, strong: true },
   { text: "memory/", depth: 1 },
-  { text: "goal.md", depth: 2 },
+  { text: "product.md", depth: 2 },
   { text: "agents/planner/decisions.md", depth: 2 },
 ];
 

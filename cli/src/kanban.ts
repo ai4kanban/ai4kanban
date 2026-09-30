@@ -165,8 +165,10 @@ export {
   dismissalReview,
   memoryPrune,
   memoryReview,
+  productDescription,
   setAutoCommit,
   setDismissalReview,
+  setProductDescription,
   setMemoryPrune,
   setSecret,
   setSilenceMinutes,
@@ -467,7 +469,7 @@ export {
 export type * from './lib/agent/types'
 
 // …and the board itself: the columns, one card in full, the archive, the releases, the
-// metrics, the setup checklist, the goal, the board's memory (its own record and each agent's) — plus every write a screen makes and the
+// metrics, the setup checklist, the board's memory (its own record and each agent's) — plus every write a screen makes and the
 // question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
 // run, so a button and a command can never disagree about what a card says.
 export {
@@ -491,7 +493,6 @@ export {
   readArchive,
   readArchivedCard,
   readBoard,
-  readGoalText,
   readMemoryFile,
   readMemoryOwners,
   readMetricsView,
@@ -499,7 +500,6 @@ export {
   readReleases,
   readSetupDraft,
   readSetupState,
-  saveGoal,
   saveProject,
   setReleaseGoal,
   setSchedule,

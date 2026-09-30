@@ -1,8 +1,8 @@
 // ---- the board's memory ----------------------------------------------------
 //
 // Memory belongs to whoever reads and writes it (#805). `docs/kanban/memory/` itself holds
-// the board's own RECORD — `readme.md`, what shipped, and `goal.md`, where the project is
-// going. Neither is anybody's taste, so neither is an agent's. Everything a run LEARNED is
+// the board's own RECORD — `readme.md`, what shipped, and `product.md`, what the product is
+// today. Neither is anybody's taste, so neither is an agent's. Everything a run LEARNED is
 // an agent's, under `memory/agents/<agent>/`: the planner's `decisions.md`, `rejected.md`
 // and `redesign.md`, and whatever a spec agent's own prompt says to keep. Modules are a
 // `## <module>` topic inside a file, never a folder.
@@ -44,8 +44,8 @@ export const PROPOSER = 'proposer'
 export const PROPOSER_MISSED = 'missed.md'
 export const proposerMissedFile = (): string => rel(agentMemoryFile(PROPOSER, PROPOSER_MISSED))
 
-/** The board's own record — what it did, and where it is going. Not an agent's. */
-export const BOARD_MEMORY_FILES = ['readme.md', 'goal.md'] as const
+/** The board's own record — what it did, and what the product is. Not an agent's. */
+export const BOARD_MEMORY_FILES = ['readme.md', 'product.md'] as const
 
 // Each starter is a short header telling the next reader what the file is for; the flows
 // fill in the rest over time. Plain language, to match the skill.
@@ -79,13 +79,11 @@ What the user's dismissal reasons say about which triage items are worth a card,
 by module. One line each, ending in the source ids it rests on. Written by the dismissal
 review; a line with no source id is the user's own.
 `,
-  // The goal starts with the `reviewed:` line and nothing else: the file is the user's own
-  // words, and anything seeded above them is text they have to delete first. What belongs in
-  // a goal is said where the user is asked for it — the setup step and the local UI's goal
-  // box — not in the file.
-  'goal.md': `---
-reviewed: weak
----
+  // Only a header: `describe-product` writes the body, and runs while there is none (#1268).
+  'product.md': `# Product
+
+What the product is today, from its users' side. Rewritten whole by \`akb describe-product\`;
+edits here do not last.
 `,
 }
 
@@ -384,4 +382,51 @@ function dropIfEmpty(dir: string): void {
   } catch {
     // Something else is in there — a file nothing on the board writes. Leave it alone.
   }
+}
+
+// ---- retiring the goal (#1268) ----------------------------------------------
+//
+// `memory/goal.md` was the user's own direction. `product.md` replaced it, and a flow no
+// longer reads it, so what the user wrote there moves to the top of the planner's
+// `decisions.md` — above every topic, where cross-module calls already sit — and the file
+// goes. A goal holding nothing but its `reviewed:` field or text an older version seeded is
+// just deleted.
+
+// Paragraphs older versions seeded into a fresh goal. Not the user's words wherever they sit.
+const SEEDED_GOAL_PARAGRAPHS = new Set(
+  [
+    '# Goal',
+    "Where this is headed, in the user's own words: the long-term goal, the horizon it aims at, and the roadmap of what comes next, roughly in order. Not this week's work — that's the cards on the board. The user owns this file; the agent seeds it but does not invent the goal.",
+    "The direction, in the user's own words — where this is headed. One short statement. The user owns this file; the agent seeds it but does not invent the goal.",
+    '_(not filled in yet — the user writes this.)_',
+  ].map((p) => p.replace(/\s+/g, ' ')),
+)
+
+/** What the user wrote in a goal file: the frontmatter and seeded paragraphs dropped. */
+export function goalWords(text: string): string {
+  return text
+    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+    .split(/\r?\n\s*\r?\n/)
+    .filter((p) => !SEEDED_GOAL_PARAGRAPHS.has(p.trim().replace(/\s+/g, ' ')))
+    .join('\n\n')
+    .trim()
+}
+
+/** Move `memory/goal.md` into the planner's `decisions.md` and delete it. Answers what it
+ *  did, for `init` to report; null when there was no goal file. */
+export function retireGoal(): string | null {
+  const goal = path.join(MEMORY, 'goal.md')
+  if (!fs.existsSync(goal)) return null
+  const words = goalWords(fs.readFileSync(goal, 'utf8'))
+  if (words) {
+    scaffoldProjectMemory()
+    const file = agentMemoryFile(PLANNER, 'decisions.md')
+    const text = fs.readFileSync(file, 'utf8')
+    const at = text.search(/^## /m)
+    const head = (at < 0 ? text : text.slice(0, at)).replace(/\s+$/, '')
+    const rest = at < 0 ? '' : `\n${text.slice(at)}`
+    fs.writeFileSync(file, `${head ? `${head}\n\n` : ''}${words}\n${rest}`)
+  }
+  fs.rmSync(goal, { force: true })
+  return words ? `moved the goal to the top of ${rel(agentMemoryFile(PLANNER, 'decisions.md'))}` : 'removed the empty goal'
 }

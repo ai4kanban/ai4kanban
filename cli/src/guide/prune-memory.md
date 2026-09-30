@@ -2,7 +2,7 @@
 
 Prune the board's own record in `docs/kanban/memory/` and every agent's memory beside it in
 `docs/kanban/memory/agents/<agent>/` — the planner's three among them (see "Who owns a memory
-file" in `akb guide board`). `goal.md` is the user's: leave it alone.
+file" in `akb guide board`). `product.md` is rewritten on its own schedule: leave it alone.
 
 One principle for all files: they exist to stop us re-proposing work, re-making a
 design mistake, or re-asking a settled question. Rewrite each as **topics** (h2 title) —

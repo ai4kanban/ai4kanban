@@ -654,7 +654,6 @@ function cloudBoard(ctx: Context): BoardProvider {
     readCards: async () => (await tryLive(), local.readCards()),
     readReleases: () => local.readReleases(),
     readModules: () => local.readModules(),
-    readGoalText: () => local.readGoalText(),
     readMemoryFile: (name, agent) => local.readMemoryFile(name, agent),
     readMemoryOwners: () => local.readMemoryOwners(),
     readSetupState: () => local.readSetupState(),
@@ -774,9 +773,8 @@ function cloudBoard(ctx: Context): BoardProvider {
       return through({ board: true }, env, (e) => local.dropRelease(id, e))
     },
 
-    // ---- memory, the goal and setup -----------------------------------------
+    // ---- memory and setup ---------------------------------------------------
 
-    saveGoal: (text, env) => through({ board: true }, env, (e) => local.saveGoal(text, e)),
 
     /** The one write whose Local half answers `{ ok, error }` rather than an operation
      *  result, so it is turned into one on the way in and back on the way out. */

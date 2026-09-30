@@ -12,17 +12,15 @@ setup is finished.
 ## Working rules
 
 - Ticked steps are settled. Do not ask for them again.
-- Read the repository once: config, goal, memory, module map, README or package file,
+- Read the repository once: config, memory, module map, README or package file,
   top-level tree, and configured planning sources. Skip dependencies and generated files.
 - Reuse that scan. Setup is a bootstrap, not a repository audit.
 - Only the final `tasks` step may create cards while setup is unfinished.
 - If an older checklist still has an unticked `config` step, keep the scaffolded defaults
   unless the project clearly requires a change, then tick it.
-- Never stop for an answer, the goal included. Classify any blocking decision with
+- Never stop for an answer. Classify any blocking decision with
   `akb guide update-questions` and put a resulting `[user]` question on the setup questions
   card; `setup-status` prints its id.
-- A missing or empty goal is not a blocker. The steps after it read the repository instead,
-  and none of them writes a goal the user did not give.
 
 ## The first-run conversation
 
@@ -44,18 +42,11 @@ nothing.
 - If the repository is unclear, set `unsure: true`, keep `summary` to one sentence, and put
   one short question in `ask` — it is shown as the hint of the description field. Do not
   guess.
-- A correction returns the same JSON shape. Never ask for the goal here.
+- A correction returns the same JSON shape.
 
 ## `project`
 
 Fill the project name and description in `docs/kanban/config.md`. Then `setup-done project`.
-
-## `goal`
-
-The board app normally completes this step. From a coding agent, ask once for the
-long-term outcome and broad priority order, and save the answer in
-`docs/kanban/memory/goal.md`. Then `setup-done goal` either way — no answer ticks the box
-too, and `goal.md` is left empty. Never write a goal the user did not give.
 
 ## `agent`
 
@@ -66,8 +57,8 @@ the app can select its own Agent later.
 
 Write at most five high-level planning decisions to
 `docs/kanban/memory/agents/planner/decisions.md` as `**<key>**: <decision>`. Take them from
-the repository scan — README, package files, folder structure — and from the goal when there
-is one. Write only what the scan supports;
+the repository scan — README, package files, folder structure. Write only what the scan
+supports;
 a repository that shows nothing gets no decisions. Ignore non-blocking content
 discrepancies. Then `setup-done decisions`.
 
@@ -82,7 +73,7 @@ above the topics. Then `setup-done modules`.
 ## `tasks`
 
 Choose exactly three clear, non-duplicate foundational tasks from the repository scan, the
-decisions, the modules, and the goal when there is one. Read `akb guide add-task` once and
+decisions and the modules. Read `akb guide add-task` once and
 create each as a seed card: metadata plus one short opening paragraph. Do not write
 `## Scope` or `## Todo`, and do not start refinement. Then `setup-done tasks`.
 

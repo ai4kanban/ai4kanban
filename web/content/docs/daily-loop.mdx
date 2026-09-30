@@ -45,19 +45,9 @@ release, so the pick can be work the release you're shipping doesn't contain. No
 written, so "not that one" costs you nothing. When nothing qualifies it says what's in the way
 — "4 cards wait on another card, 12 still need refining" — rather than an empty answer.
 
-Every card the skill writes is judged against `memory/goal.md` — the direction in your own
-words. The file starts empty and stays optional: nothing on the board waits on it, and the skill never
-writes the goal for you. It only marks how clear the goal looks in that file's `reviewed:`
-field:
-
-- `strong` / `good` — clear enough to plan from.
-- `pending` — you just wrote or edited the goal and nothing has read it yet. Written by the
-  board itself when the goal is saved, so it never asks you for work you just did.
-- `weak` — missing, empty, or too vague to plan from.
-
-The board never asks you for a goal. Write one whenever you like, from the star in the top
-row — with one, the cards it writes are judged against your direction; without one, they are
-judged against the repository.
+Every card the skill writes is judged against `memory/product.md` — what the product is, who it
+is for, and what it does. You don't write it: the board rewrites it whenever new commits land. To
+steer direction, edit the Planner's `decisions.md` in **Memory**, or add a rule to an agent.
 
 Not every answer is a job. To think out loud instead — what a card means, whether two cards
 are the same card — open a [chat](/docs/chat).

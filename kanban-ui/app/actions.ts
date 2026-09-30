@@ -25,7 +25,6 @@ import {
   boardsHere,
   cardStillThere,
   refreshBoard,
-  readGoalText,
   readMetrics,
   readUsage,
   readReleases,
@@ -154,6 +153,8 @@ import {
   memoryReview,
   dismissalReview,
   setDismissalReview,
+  productDescription,
+  setProductDescription,
   saveCardSweep,
   setAutoCommit,
   setHarness,
@@ -177,7 +178,6 @@ import {
   finishSetupStep,
   newRelease,
   patchCard,
-  saveGoal,
   saveProject,
   setReleaseGoal,
   setSchedule,
@@ -865,34 +865,11 @@ export async function saySetupChatAction(text: string): Promise<{ ok: boolean; e
   return saySetupChat(text.trim());
 }
 
-// ---- the goal ---------------------------------------------------------------
-
-// The goal editor — the first run's goal step, and the board's goal notice long after
-// setup (#53, #85, #172). Reading returns the user's words (an empty box when goal.md
-// doesn't exist yet); saving writes them back, marks the goal `reviewed: pending`, and
-// ticks setup's goal box, all of which is one move in the CLI.
-export async function getGoalAction(): Promise<string> {
-  return readGoalText();
-}
-
-export async function saveGoalAction(text: string): Promise<WriteResult> {
-  if (typeof text !== "string") return { ok: false, error: "the goal is saved as text" };
-  return saveGoal(text);
-}
-
-// Leaving the goal for later IS an answer to setup's goal step (#437): the box is ticked and
-// `goal.md` stays empty. Nothing after the goal is planned from it any more, so a step left
-// open would only park the flow on a screen the user has already walked past — and hold up
-// the run that finishes setup.
-export async function skipSetupGoalAction(): Promise<WriteResult> {
-  return finishSetupStep("goal");
-}
-
 // ---- the guided first run (#172) --------------------------------------------
 //
-// Three of setup's steps are the user's own — which agent runs the board, what the project
-// is and its tracks, and the goal. The flow settles them one view at a time, the middle one
-// by talking (#280); these are what it reads and writes. Everything else setup does reads
+// Two of setup's steps are the user's own — which agent runs the board, and what the
+// project is and its tracks. The flow settles them one view at a time, the second by
+// talking (#280); these are what it reads and writes. Everything else setup does reads
 // the repo and thinks, and is an agent's job.
 
 /** What the flow opens with: the board's answers as they stand today. */
@@ -931,10 +908,9 @@ export async function finishSetupAgentStepAction(): Promise<WriteResult & { agen
 // so a run started again after a failure carries on rather than redoing what finished.
 //
 // One refusal, and it is here rather than in the button, which is drawn from a board read
-// that can be a poll behind: a board someone else has already finished setting up. An
-// unwritten goal is no longer a second one (#437) — the steps left read the repository, so
-// a board whose goal nobody wrote finishes setup like any other. The board being busy with
-// another setup run is the CLI's refusal, in the one place that sees every run.
+// that can be a poll behind: a board someone else has already finished setting up. The
+// board being busy with another setup run is the CLI's refusal, in the one place that sees
+// every run.
 export async function startSetupRunAction(): Promise<StartResult> {
   let setup: Awaited<ReturnType<typeof readSetupState>>;
   try {
@@ -1333,6 +1309,41 @@ export async function setDismissalReviewAction(next: {
  *  record's rule. */
 export async function startReviewDismissalsAction(): Promise<StartResult> {
   const req: AgentRequest = { action: "review-dismissals" };
+  return startSession(req, await buildPrompt(req));
+}
+
+// --- the product writer (#1268) ----------------------------------------------
+// Its schedule — Off in the cadence menu is its switch — and Update now.
+
+export async function productDescriptionAction(): Promise<{
+  schedule: CadenceSchedule | null;
+  error?: string;
+}> {
+  try {
+    return { schedule: await productDescription() };
+  } catch (e) {
+    return { schedule: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setProductDescriptionAction(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<WriteResult> {
+  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
+    return { ok: false, error: "an update schedule is saved as an opt-in and a cadence" };
+  }
+  try {
+    return await setProductDescription(next);
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
+  }
+}
+
+/** Start one update by hand — works with the schedule off; one at a time is the run
+ *  record's rule. */
+export async function startDescribeProductAction(): Promise<StartResult> {
+  const req: AgentRequest = { action: "describe-product" };
   return startSession(req, await buildPrompt(req));
 }
 

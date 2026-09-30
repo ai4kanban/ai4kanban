@@ -2,12 +2,12 @@
 
 // The one way out of the app in the top row: AI4Kanban's own repository.
 //
-// It is the header's ordinary control — the same press-down block as Goal and
-// Chat beside it (components/button.tsx, ghost at `xs`), so the row stays one
+// It is the header's ordinary control — the same press-down block as Chat
+// beside it (components/button.tsx, ghost at `xs`), so the row stays one
 // family of objects rather than a run of stickers with a flat icon leaning
 // against it.
 //
-// Icon-only, where Goal and Chat carry a word. That is the whole of the
+// Icon-only, where Chat carries a word. That is the whole of the
 // difference in weight it needs: it is the same object, saying less. A "GitHub"
 // label would spend the rail's width on the one control in the row that does
 // nothing to this board.

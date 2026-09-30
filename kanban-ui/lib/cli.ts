@@ -111,7 +111,7 @@ import type {
  *  at. A write against a revision that has moved comes back as a conflict and writes
  *  nothing, so the page re-reads that one card and repeats the change on what it says now.
  *
- *  Card writes pass it; board-level ones (a release, the goal, a memory file) deliberately
+ *  Card writes pass it; board-level ones (a release, a memory file) deliberately
  *  do not — the board's own revision moves whenever ANY card does, so a screen writing
  *  against the one it read would conflict with work it has nothing to do with. Those write
  *  against the revision their writer lease hands them. */
@@ -335,6 +335,10 @@ export interface BoardRules {
   // the dismissal review's schedule (#929). Optional like the ones above.
   dismissalReview?(): CadenceSchedule;
   setDismissalReview?(next: { enabled: boolean; cadence: string }): WriteResult;
+
+  // the product description's schedule (#1268). Optional like the ones above.
+  productDescription?(): CadenceSchedule;
+  setProductDescription?(next: { enabled: boolean; cadence: string }): WriteResult;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the
@@ -597,7 +601,6 @@ export interface BoardRules {
    *  usage ledger, and Insights then says the usage can't be read. */
   readUsageView?(days: number): UsageResult;
   readReleases(): Promise<string[]>;
-  readGoalText(): Promise<string>;
   /** One memory file, whole — the board's own record, or one an agent keeps when `agent`
    *  names one that holds it (#129, #130, #805). Optional: a board can be running rules older
    *  than the release that added it, and the memory page then says so rather than the whole
@@ -628,7 +631,6 @@ export interface BoardRules {
   // run has anything to write (#232). Absent on a copy of the rules that predates it.
   closeRelease(id: string): Promise<WriteResult & { shipped?: number }>;
   dropRelease(id: string): Promise<WriteResult>;
-  saveGoal(text: string): Promise<WriteResult>;
   saveProject(name: string, description: string): Promise<SaveProjectResult>;
   finishSetupStep(name: string): Promise<WriteResult>;
 

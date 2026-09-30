@@ -144,7 +144,6 @@ describe('a board, assembled from one Cloud read', () => {
     assert.deepEqual(screen.board!.archive, [])
     assert.deepEqual(screen.board!.memoryOwners, [])
     assert.equal(screen.board!.setup, null)
-    assert.equal(screen.board!.goalWritten, false)
     assert.equal(screen.error, null)
     // The workspace, live — there is no copy here to be out of date.
     assert.equal(screen.id, 'ws-1')
@@ -231,7 +230,6 @@ describe('one card, assembled from the same read', () => {
     assert.deepEqual(screen.openIds, [10, 11])
     assert.deepEqual(screen.releases, ['0.9.0', '1.0.0'])
     assert.deepEqual(screen.memoryOwners, [])
-    assert.equal(screen.goalWritten, false)
     assert.equal(screen.diff, null)
     assert.deepEqual(screen.plan, { commitMode: 'manual' })
   })

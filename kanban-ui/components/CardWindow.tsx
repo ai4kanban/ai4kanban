@@ -26,13 +26,13 @@ export function CardWindow({ screen, machine }: { screen: CardScreen; machine: S
  *  which is also the way back out. */
 function CardShell({ screen, running, onBoardChanged, onError, children }: CardChrome & { children: ReactNode }) {
   const machine = useMachine()!;
-  const { card, openIds, memoryOwners, goalWritten } = screen;
+  const { card, openIds, memoryOwners } = screen;
   // What the next card's opening screen draws before its card is read (#906).
   useEffect(() => {
-    cardOpen.rememberFrame({ projectRoot: machine.projectRoot, openIds, memoryOwners, goalWritten, agent: machine.agent, desktop: machine.desktop });
+    cardOpen.rememberFrame({ projectRoot: machine.projectRoot, openIds, memoryOwners, agent: machine.agent, desktop: machine.desktop });
     cardOpen.rememberTitle(card.id, card.title);
     for (const s of card.subtasks ?? []) cardOpen.rememberTitle(s.id, s.title);
-  }, [machine, openIds, memoryOwners, goalWritten, card]);
+  }, [machine, openIds, memoryOwners, card]);
   // Faded in over a skeleton that was seen; a quick read just appears.
   const [reveal] = useState(cardOpen.skeletonSeen);
   useEffect(() => cardOpen.setSkeleton(false), []);
@@ -43,7 +43,6 @@ function CardShell({ screen, running, onBoardChanged, onError, children }: CardC
       currentId={card.id}
       currentTitle={card.title}
       memoryOwners={memoryOwners}
-      goalWritten={goalWritten}
       running={running}
       onBoardChanged={onBoardChanged}
       header={
@@ -51,7 +50,6 @@ function CardShell({ screen, running, onBoardChanged, onError, children }: CardC
           agent={machine.agent}
           projectRoot={machine.projectRoot}
           onError={onError}
-          goalWritten={goalWritten}
           desktop={machine.desktop}
         />
       }

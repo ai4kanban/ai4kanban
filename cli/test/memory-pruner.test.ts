@@ -78,6 +78,9 @@ beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-pruner-'))
   fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'next-id'), '1\n')
+  // A described product, so the product writer (#1268) is not due alongside.
+  fs.mkdirSync(path.join(kanban(), 'memory'), { recursive: true })
+  fs.writeFileSync(path.join(kanban(), 'memory', 'product.md'), '# Product\n\n## What it is\n')
   setBoardRoot(root)
 })
 

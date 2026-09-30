@@ -74,14 +74,14 @@ export let BOARD_STATE = ''
 // Where assets were kept before #803, still read and still cleaned up.
 export let MOCKUPS = ''
 // All memory lives under docs/kanban/memory/. This folder itself holds the board's own
-// record — `readme.md` and `goal.md` — and nothing else; everything a run learned is an
+// record — `readme.md` and `product.md` — and nothing else; everything a run learned is an
 // agent's, under `agents/` (#805).
 export let MEMORY = ''
 // One folder per agent that keeps memory, named after it (#421, #473, #805): the planner's
 // `decisions.md`, `rejected.md` and `redesign.md`, and a spec agent's own two.
 export let AGENT_MEMORY = ''
-// The one goal file — board root only, never an agent's (see BOARD_MEMORY_SET).
-export let GOAL = ''
+// What the product is today (#1268) — board root only, written by `describe-product`.
+export let PRODUCT = ''
 // The lock every writing move takes, so two of them never hand out the same id (lock.ts).
 // Inside the project, under `.akb/` and named after the board: it guards the board's own
 // files, and a run whose sandbox allows only the project must still be able to take it
@@ -271,7 +271,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   LEGACY_AGENTS = path.join(KANBAN, 'skills')
   MEMORY = path.join(KANBAN, 'memory')
   AGENT_MEMORY = path.join(MEMORY, 'agents')
-  GOAL = path.join(MEMORY, 'goal.md')
+  PRODUCT = path.join(MEMORY, 'product.md')
   LEGACY_UI_CONFIG = path.join(KANBAN, UI_CONFIG_FILE)
   LOCAL_CONFIG = path.join(KANBAN, '.local.json')
   ENV_FILE = path.join(KANBAN, '.env')

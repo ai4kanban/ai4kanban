@@ -79,7 +79,7 @@ const es: HomeCopy = {
       },
     ],
     tree: {
-      goal: "Objetivo del proyecto",
+      product: "Qué es el producto",
       planner: "La memoria del planificador",
       readme: "Funciones entregadas",
       decisions: "Decisiones de producto",
@@ -111,7 +111,7 @@ const es: HomeCopy = {
 
   start: {
     title: "Empieza con la aplicación de escritorio",
-    lead: "Descarga la aplicación, abre un proyecto y responde tres preguntas. Lee el código, escribe el objetivo del proyecto y la memoria del planificador, y propone las primeras tareas.",
+    lead: "Descarga la aplicación, abre un proyecto y responde dos preguntas. Lee el código, describe el producto, escribe la memoria del planificador, y propone las primeras tareas.",
     notes: [
       "Planificación autónoma",
       "Local primero",

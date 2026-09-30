@@ -9,11 +9,9 @@ earlier in the same flow.
    existing module now contains independently developed parts. Never ask the user to categorize the task.
 2. **State the need.** Identify the observable result and the current behavior or constraint
    it changes. If either is unclear, the idea is not ready to become a card.
-3. **Check direction and evidence.** Read `docs/kanban/memory/goal.md`, the resolved modules'
-   memory, and relevant sources. If the goal is missing, empty, unchanged from the template
-   or unreadable, use memory and repository context to assess value and feasibility.
-   Assess the idea independently if neither provides guidance. Never ask the user to write
-   a goal. If value or feasibility remains unclear, or evidence rules the idea out, stop
+3. **Check direction and evidence.** Read `docs/kanban/memory/product.md`, the resolved
+   modules' memory, and relevant sources. Assess the idea independently if none provides
+   guidance. If value or feasibility remains unclear, or evidence rules the idea out, stop
    and explain before creating a card.
 4. **Check existing work once.** Search the relevant code and docs, then run
    `akb raw list --module <module>` for each resolved module. Skip work already supported

@@ -8,7 +8,6 @@ export type CardFrame = {
   projectRoot: string;
   openIds: number[];
   memoryOwners: MemoryOwner[];
-  goalWritten: boolean;
   agent: AgentInfo;
   desktop: boolean;
 };

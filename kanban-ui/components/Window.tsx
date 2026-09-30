@@ -115,9 +115,6 @@ export function Window({
   currentArchive = false,
   currentSignals = false,
   memoryOwners = [],
-  goalWritten = false,
-  goalOffered = false,
-  onGoalSaved,
   running,
   onBoardChanged,
   children,
@@ -140,15 +137,6 @@ export function Window({
   /** The modules the rail's Memory panel offers, from the board read every page already
    *  does (#130). Empty on a board whose map names none. */
   memoryOwners?: MemoryOwner[];
-  /** Whether `memory/goal.md` holds the user's own words — the phone's More screen offers
-   *  the goal the top row offers at window width (#357), in the same two states: what is
-   *  written, or the quiet offer to write it (#437). */
-  goalWritten?: boolean;
-  /** Whether that row offers to write a goal that isn't there — the board's own screen
-   *  does, and no other one (#437). */
-  goalOffered?: boolean;
-  /** Re-read the board once a goal written from that row has saved. */
-  onGoalSaved?: () => void;
   /** The cards an agent is inside, for the rail's pulsing rows. Handed down
    *  rather than polled for here: both pages already watch the registry, and a
    *  fourth poll for one dot would be a poll to say nothing new. */
@@ -360,9 +348,6 @@ export function Window({
     ) : (
       <MoreScreen
         projectRoot={projectRoot}
-        goalWritten={goalWritten}
-        goalOffered={goalOffered}
-        onGoalSaved={onGoalSaved}
         onMemory={() => setCover("memory")}
       />
     );

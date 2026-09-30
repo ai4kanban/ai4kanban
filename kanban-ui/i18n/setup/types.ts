@@ -8,11 +8,10 @@ export type SetupCopy = {
     exit: string;
     /** What each step has settled, under its name in the rail. */
     projectSettled: (name: string) => string;
-    goalWritten: string;
   };
   /** The rail's short name for each step. The checklist's own names are the
    *  script's and stay as they are. */
-  stepTitles: { project: string; goal: string; agent: string };
+  stepTitles: { project: string; agent: string };
   reading: string;
   /** The one step nothing gets past (#293), shown once per machine before the board and
    *  before the guided run. It is not a checklist box: the answer belongs to the machine,
@@ -36,8 +35,6 @@ export type SetupCopy = {
     step: (at: number, total: number) => string;
     byHand: string;
     toBoard: string;
-    /** The empty box's hint, wherever the answer has to be the user's own. */
-    yourWords: string;
     agent: {
       ask: string;
       blurb: string;
@@ -73,16 +70,9 @@ export type SetupCopy = {
         /** The label over the description, and its hint when the agent asked nothing. */
         what: string;
         whatHint: string;
-        /** The way on: save the name and description, go to the goal. */
+        /** The way on: save the name and description. */
         go: string;
       };
-    };
-    goal: {
-      ask: string;
-      blurb: string;
-      guide: string;
-      save: string;
-      later: string;
     };
     failed: {
       /** The agent ended its turn with nothing this could be read from. */
@@ -101,15 +91,6 @@ export type SetupCopy = {
     whatPlaceholder: string;
     saveFailed: string;
     continue: string;
-  };
-  goal: {
-    title: string;
-    blurb: string;
-    placeholder: string;
-    guideTitle: string;
-    guideLine: string;
-    skip: string;
-    saveFailed: string;
   };
   agent: {
     title: string;

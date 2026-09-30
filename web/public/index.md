@@ -59,8 +59,8 @@ deliver product improvements and release iterations.
 
 ## Start with the desktop app
 
-Download the app, open a project, and answer three questions. It reads the codebase,
-writes the project goal and the planner's memory, and proposes the first tasks.
+Download the app, open a project, and answer two questions. It reads the codebase,
+describes the product, writes the planner's memory, and proposes the first tasks.
 
 Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`,
 then click through the warning. The download page has the full steps for macOS,

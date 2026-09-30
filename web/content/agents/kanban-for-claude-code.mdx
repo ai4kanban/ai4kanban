@@ -37,7 +37,7 @@ An AI4Kanban card is 1 repository-backed task. It remains on the board when a Cl
 
 ## How does AI4Kanban prepare Claude Code before coding?
 
-AI4Kanban uses Claude Code to refine a rough request into a build-ready task. Refinement happens before implementation: Claude reads the repository, project goal, related tasks, and previous product decisions, then writes the missing detail onto the card.
+AI4Kanban uses Claude Code to refine a rough request into a build-ready task. Refinement happens before implementation: Claude reads the repository, product description, related tasks, and previous product decisions, then writes the missing detail onto the card.
 
 Claude Code is expected to settle factual questions itself. It inspects the code, checks existing behavior, and chooses a safe answer when the repository provides one. AI4Kanban stops only when the remaining choice changes product behavior, scope, privacy, compatibility, risk, or ongoing cost.
 
@@ -61,7 +61,7 @@ AI4Kanban preserves 2 kinds of context: state for each task and shared memory th
 | File | Kept by | What future Claude Code tasks learn from it |
 | --- | --- | --- |
 | `readme.md` | The board | User-facing behavior already shipped |
-| `goal.md` | The board | Where the project is headed |
+| `product.md` | The board | What the product is and who it is for |
 | `decisions.md` | The planner | Product decisions that still apply |
 | `rejected.md` | The planner | Ideas that should not be proposed again |
 | `redesign.md` | The planner | Design mistakes future work should avoid |

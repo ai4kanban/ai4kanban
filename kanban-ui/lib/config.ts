@@ -147,3 +147,21 @@ export async function setDismissalReview(next: {
   }
   return said(await rules.setDismissalReview(next));
 }
+
+// --- the product description's schedule (#1268) -----------------------------
+
+export async function productDescription(): Promise<CadenceSchedule | null> {
+  const rules = await boardRules();
+  return rules.productDescription ? rules.productDescription() : null;
+}
+
+export async function setProductDescription(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setProductDescription) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.productWriter };
+  }
+  return said(await rules.setProductDescription(next));
+}

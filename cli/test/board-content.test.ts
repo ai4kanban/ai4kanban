@@ -111,9 +111,8 @@ describe('memory, as a contract write (#805)', () => {
       ['readme', 'planner'],
       // An agent that keeps no memory at all.
       ['decisions', 'builder'],
-      // The goal is the user's own words under a field the board keeps, so `saveGoal`
-      // writes it and this never does.
-      ['goal', ''],
+      // The product description is rewritten whole by its own agent.
+      ['product', ''],
     ] as const) {
       const res = await onBoard((env) => board().saveMemoryFile(name, 'x', agent, env))
       assert.equal(res.ok, false, `${name} / ${agent || '(board)'}`)
@@ -137,7 +136,7 @@ describe('memory, as a contract write (#805)', () => {
   // them, and never one that keeps none.
   it('lists the board first, then the agents that remember', async () => {
     const owners = await board().readMemoryOwners()
-    assert.deepEqual(owners[0], { agent: '', title: '', files: ['readme', 'goal'] })
+    assert.deepEqual(owners[0], { agent: '', title: '', files: ['readme', 'product'] })
     const agents = owners.slice(1).map((o) => o.agent)
     assert.ok(agents.includes('planner'))
     assert.ok(!agents.includes('builder'))

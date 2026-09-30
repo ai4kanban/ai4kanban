@@ -213,7 +213,7 @@ window width the rail, the header and the side-by-side columns are unchanged.
   picker, the bell and Create task, on paper with a hairline under it — no cream band, no
   rounded panel.
 - **The rail becomes a bottom tab bar**: Board and More, on every screen the phone reaches.
-  More holds Goal, Insights and Memory as rows, and names what is done at the computer.
+  More holds Insights and Memory as rows, and names what is done at the computer.
 - **Matches, More and Memory cover the page rather than replacing it**: the page stays
   mounted, so the board keeps its scroll and a card page its state.
 - **A selection's actions take the tab bar's place** until nothing is picked, rather than

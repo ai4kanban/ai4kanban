@@ -39,7 +39,7 @@ import type {
 // that is better than a dialog that won't open.
 
 /** The whole board: the columns, the archive notes, the releases and what each is for, how
- *  far setup got, whether the goal needs writing. */
+ *  far setup got. */
 export async function readBoard(): Promise<Board> {
   return (await boardRules()).readBoard();
 }
@@ -121,7 +121,6 @@ export async function cardScreen(id: number): Promise<CardScreen | null> {
     card,
     openIds: board.openIds,
     releases: board.releases,
-    goalWritten: board.goalWritten,
     memoryOwners: board.memoryOwners,
     plan,
     diff,
@@ -307,16 +306,6 @@ export async function readUsage(days: number): Promise<UsageResult> {
   }
 }
 
-/** The goal in the user's own words, for the editor — an empty box on a board that has
- *  none, and on one with no rules to read it with: the save is what says why. */
-export async function readGoalText(): Promise<string> {
-  try {
-    return await (await boardRules()).readGoalText();
-  } catch {
-    return "";
-  }
-}
-
 /** One memory file, whole (#129, #805) — the board's own record, or one an agent keeps when
  *  `agent` names one. `null` for a file that owner does not hold, and for an agent that
  *  keeps no memory (#130).
@@ -458,8 +447,7 @@ export async function reconcileTriage(): Promise<void> {
   rules.reconcileTriage?.();
 }
 
-/** What the guided first run opens with — the project, its tracks, and the goal as they
- *  stand. */
+/** What the guided first run opens with — the project as it stands. */
 export async function readSetupDraft(): Promise<SetupDraft> {
   return (await boardRules()).readSetupDraft();
 }

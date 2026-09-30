@@ -44,7 +44,6 @@ export function MockupPage({
   openIds,
   agent,
   projectRoot,
-  goalWritten,
   memoryOwners,
   desktop,
 }: {
@@ -55,7 +54,6 @@ export function MockupPage({
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
-  goalWritten: boolean;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
@@ -95,14 +93,12 @@ export function MockupPage({
         currentId={card?.id ?? null}
         currentTitle={card?.title ?? ""}
         memoryOwners={memoryOwners}
-        goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
           <Header
             agent={agent}
             projectRoot={projectRoot}
             onError={setError}
-            goalWritten={goalWritten}
             desktop={desktop}
           />
         }

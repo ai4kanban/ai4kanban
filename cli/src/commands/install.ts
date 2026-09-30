@@ -24,7 +24,7 @@ import { runBoard } from '../lib/board-cli'
 import { missingConfigKeys } from '../lib/config-template'
 import { BoardError, say } from '../lib/io'
 import { setBoardRoot } from '../lib/paths'
-import { readGoalBody } from '../lib/view/goal'
+import { goalWords } from '../lib/memory'
 import { installSkill, readCommandState, readSkillState } from '../lib/skill/install'
 import { readCommitHook, sayCommitHook } from '../lib/skill/hook'
 import type { SkillFolder } from '../lib/skill/types'
@@ -434,10 +434,9 @@ export function dropRecordFile(board: string): string | null {
   return 'removed docs/kanban/record.csv (the planning scores it fed are gone)'
 }
 
-// `goal.md` lives at the board root of `memory/` only. An older layout gave every module a
-// copy; drop the ones that say nothing the root one doesn't, and report the rest. A copy
-// holding nothing but the `reviewed:` field is one of those — `init` seeded every module one,
-// and a folder kept for it is a folder the memory migration then cannot clear (#805).
+// An older layout gave every module a `goal.md`. `goal.md` is retired (#1268): drop the copies
+// that say nothing of their own, and report the rest for the agent to fold into the planner's
+// decisions. A folder kept for one is a folder the memory migration then cannot clear (#805).
 function dropModuleGoals(board: string, report: Report): void {
   const memory = path.join(board, 'memory')
   if (!fs.existsSync(memory)) return
@@ -448,17 +447,17 @@ function dropModuleGoals(board: string, report: Report): void {
     const file = path.join(memory, entry.name, 'goal.md')
     const text = read(file)
     if (text === null) continue
-    if (text === root || text.includes(UNFILLED) || !readGoalBody(text).written) {
+    if (text === root || text.includes(UNFILLED) || !goalWords(text)) {
       fs.rmSync(file)
       dropped++
     } else {
       report.notes.push(
-        `docs/kanban/memory/${entry.name}/goal.md says something the root goal doesn't —` +
-          ' fold that into docs/kanban/memory/goal.md, then delete it',
+        `docs/kanban/memory/${entry.name}/goal.md — fold what it says into` +
+          ` docs/kanban/memory/agents/planner/decisions.md under \`## ${entry.name}\`, then delete it`,
       )
     }
   }
-  if (dropped) report.did.push(`removed ${dropped} leftover per-module goal.md (the goal lives at docs/kanban/memory/goal.md)`)
+  if (dropped) report.did.push(`removed ${dropped} leftover per-module goal.md`)
 }
 
 // A setting this release ships that the user's config has never heard of. Naming it is all a

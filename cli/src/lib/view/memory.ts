@@ -1,11 +1,11 @@
 // ---- the board's memory, read -----------------------------------------------
 //
-// What shipped, where the project is going, what was settled, what design mistakes to avoid,
+// What shipped, what the product is, what was settled, what design mistakes to avoid,
 // what was turned down. Every proposal is judged against them and every answer a run settles
 // by itself leans on them, so a screen has to be able to show them.
 //
 // Memory is grouped by WHO owns it (#805): `docs/kanban/memory/` holds the board's own
-// record — `readme.md` and `goal.md` — and each agent that keeps memory has a folder of its
+// record — `readme.md` and `product.md` — and each agent that keeps memory has a folder of its
 // own beside them. A module is a `## <module>` topic inside a file, so there is nothing here
 // that opens one.
 //
@@ -18,7 +18,6 @@ import path from 'node:path'
 import { agentRoster } from '../agent/roles'
 import { BOARD_MEMORY_FILES, PLANNER, agentMemoryDir, memoryNamesOf, migrateMemory } from '../memory'
 import { MEMORY, rel } from '../paths'
-import { readGoalBody } from './goal'
 import { MEMORY_FILES, type MemoryFile, type MemoryName, type MemoryOwner } from './types'
 
 // `agentMemoryDir`, never the name itself: an agent renamed between releases may keep its
@@ -110,9 +109,6 @@ export function readMemoryFile(name: string, agent = ''): MemoryFile | null {
   } catch {
     // Not there yet. The row stays and says so; every board then reads the same shape.
   }
-  // The goal's `reviewed:` field is the agent's own bookkeeping, and a file holding nothing
-  // but it is a goal nobody has written — the same test the header's star reads.
-  const goal = name === 'goal' ? readGoalBody(text) : null
   return {
     ...ref,
     agent,
@@ -120,8 +116,8 @@ export function readMemoryFile(name: string, agent = ''): MemoryFile | null {
     // Repo-relative and always with forward slashes: this is the form pasted to an agent
     // working in the repo, and a Windows board's backslashes would not be that form.
     relPath: rel(file).split(path.sep).join('/'),
-    text: goal ? goal.body.replace(/^\n+/, '') : text,
-    written: goal ? goal.written : text.trim() !== '',
+    text,
+    written: text.trim() !== '',
   }
 }
 
@@ -139,9 +135,8 @@ export function readMemoryFile(name: string, agent = ''): MemoryFile | null {
 export function writeMemoryFile(name: string, text: string, agent = ''): MemoryFile | null {
   migrateMemory()
   if (!openable(name, agent)) return null
-  // Never the goal: it is the user's own words under a field the board keeps, and `saveGoal`
-  // is what writes one without losing either.
-  if (name === 'goal') return null
+  // Never the product description: `describe-product` rewrites it whole (#1268).
+  if (name === 'product') return null
   const file = memoryPath(name, agent)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text.endsWith('\n') || text === '' ? text : `${text}\n`)

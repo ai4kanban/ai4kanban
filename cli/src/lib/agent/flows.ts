@@ -197,6 +197,18 @@ export const FLOWS: Flow[] = [
         'an item since restored. Configuration → Board → Learn from dismissals sets its cadence.',
     ],
   },
+  // The product writer's one flow (#1268). Typed bare: it acts on the project.
+  {
+    command: 'describe-product',
+    action: 'describe-product',
+    argument: '',
+    gloss: 'rewrite the product description the planning flows read',
+    more: [
+      'Rewrites docs/kanban/memory/product.md from the README, the docs and the code. On its cadence it ' +
+        'runs only after new commits, or while the file is still empty; Configuration → Board → ' +
+        'Describe the product sets the cadence.',
+    ],
+  },
   // The triager's one flow (#561). Typed under `triage`, beside the words that put items
   // there: it acts on what is waiting rather than on a card, so it names nothing.
   {

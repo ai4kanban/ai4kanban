@@ -2,8 +2,7 @@
 //
 // One pass over `docs/kanban/todo/` that gives back every open card, the columns they fall
 // into, and the handful of board-wide facts a screen draws around them — the releases and
-// what each is for, the archive's topics, how far setup got, whether the goal needs
-// writing.
+// what each is for, the archive's topics, how far setup got.
 //
 // This is the reading half of what the writing commands own. It is the ONE reader: a board
 // UI asks for this rather than walking the files itself, so a card can never say one thing
@@ -37,7 +36,6 @@ import {
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
 import { workflowFor } from '../agent/workflows'
-import { goalWritten } from './goal'
 import { readMemoryOwners } from './memory'
 import type {
   ArchiveGroup,
@@ -402,7 +400,6 @@ export function readBoard(): Board {
     releases: entries.map((e) => e.id),
     releaseGoals,
     releaseCounts: countByRelease(every),
-    goalWritten: goalWritten(),
     memoryOwners: readMemoryOwners(),
     setup: readSetupState(),
   }

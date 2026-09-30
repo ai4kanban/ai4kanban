@@ -52,7 +52,6 @@ export const readSetupDraft = () => board().readSetupDraft()
 export const readModules = () => board().readModules()
 export const readMetricsView = (days?: number) => board().readMetricsView(days)
 export const readReleases = () => board().readReleases()
-export const readGoalText = () => board().readGoalText()
 export const readMemoryFile = (name: string, agent = '') => board().readMemoryFile(name, agent)
 export const readMemoryOwners = () => board().readMemoryOwners()
 export const readAgents = () => board().readAgents()
@@ -250,18 +249,7 @@ export async function deleteAgent(name: string, opts?: WriteOptions): Promise<Wr
   return flat<{ removed: string[] }>(await envelopeFor({ board: true }, opts, (env) => board().deleteAgent(name, env)))
 }
 
-// ---- the goal and setup ----------------------------------------------------
-
-/**
- * Save the project goal in the user's own words.
- *
- * Writing the goal IS setup's goal step, so a save ticks that box — one of the three the
- * board finishes itself. On a board with no checklist the tick is a no-op, which is the
- * whole of the "a goal judged weak long after setup" case.
- */
-export async function saveGoal(text: string, opts?: WriteOptions): Promise<WriteResult> {
-  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveGoal(text, env)))
-}
+// ---- setup ------------------------------------------------------------------
 
 /** Save what the project is, and tick setup's `project` box. */
 export async function saveProject(name: string, description: string): Promise<SaveProjectResult> {

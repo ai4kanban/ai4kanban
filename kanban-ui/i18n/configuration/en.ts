@@ -248,6 +248,14 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every review — "skip reasons about pricing".',
         note: "Restoring an item withdraws any preference that rested on it alone. Learned preferences are in Memory, where you can edit or delete them.",
       },
+      "product-writer": {
+        name: "Describe the product",
+        gloss: "Describes what the product is today — who it's for and what it does — for planning and triage to follow.",
+        trigger: "Every day",
+        when: "on your schedule, only if the project has changed or has no description yet. Each run reads the project itself and rewrites the whole description, covering only what has shipped.",
+        rule: 'Added to the end of every update — "leave out internal tools".',
+        note: "The description is in Memory and kept up to date for you.",
+      },
       "memory-reviewer": {
         name: "Review chat memory",
         gloss: "Saves decisions from your chats to memory.",
@@ -382,6 +390,33 @@ const en: ConfigurationCopy = {
       failed: "Last run failed",
       saveFailed: "Couldn't save the review schedule.",
       tooOld: "This board's rules are older than learning from dismissals.",
+    },
+    productWriter: {
+      run: "Update now",
+      running: "Updating…",
+      recurring: "Recurring update",
+      chipLabel: (state) => `Recurring update: ${state}`,
+      cadenceLabel: (n, unit, at) => {
+        const head = n === 1 ? `Every ${PRUNE_UNIT_ONE[unit]}` : `Every ${n} ${PRUNE_UNITS[unit].toLowerCase()}`;
+        return at ? `${head} at ${at}` : head;
+      },
+      custom: "Custom",
+      every: "Every",
+      unit: "Unit",
+      units: PRUNE_UNITS,
+      atTime: "At",
+      addTime: "Set a time",
+      dropTime: "No set time",
+      save: "Save",
+      saving: "Saving…",
+      cancel: "Cancel",
+      outOfRange: (unit, min, max) => `${unit} must be between ${min} and ${max}.`,
+      presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
+      neverRun: "Never updated",
+      lastRun: (when) => `Last update ${when}`,
+      failed: "Last run failed",
+      saveFailed: "Couldn't save the update schedule.",
+      tooOld: "This board's rules are older than product descriptions.",
     },
     memoryReviewer: {
       run: "Review now",

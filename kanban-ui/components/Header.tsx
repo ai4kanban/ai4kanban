@@ -9,7 +9,6 @@ import { Configuration, ConfigurationButton } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath, UpdateChip } from "./desktop";
 import { GitHubLink } from "./GitHubLink";
-import { Goal, goalShown } from "./Goal";
 import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
 import { BellButton } from "./Notifications";
@@ -70,16 +69,13 @@ import { Sessions } from "./sessions";
 //     board, and a third label saying the product again is the width the rail
 //     needs. The mark still leads home, which is the whole of the way back on a
 //     window too narrow for the rail.
-//   - The goal, progress, runs and settings share one frame with hairlines between them.
+//   - Progress, runs and settings share one frame with hairlines between them.
 //     They are all "look at the board's machinery" and none of them is a primary
 //     action, so they get one sticker between them instead of four hard shadows
 //     sitting a few pixels apart.
 //
 // The left is identity and nothing else — the mark, then the board it names — so
-// everything pressable is on the right and the eye has one place to go. The goal
-// (#128) moved over with them and is now the cluster's first segment (#807): it is read
-// rather than pressed, which is what the rest of that cluster is. Unwritten it widens to
-// carry the offer to write one, the way the bell's segment used to widen for a count.
+// everything pressable is on the right and the eye has one place to go.
 //
 // Padding is 7 above and 8 below: a sticker's shadow falls 2px past its box
 // while the badge has none, so the odd pixel splits the difference and both
@@ -99,9 +95,6 @@ export function Header({
   onCloseRelease,
   onSetReleaseGoal,
   createRelease = null,
-  goalWritten = false,
-  goalOffered = false,
-  onGoalSaved,
   desktop = false,
 }: {
   agent: AgentInfo;
@@ -143,19 +136,6 @@ export function Header({
    *  when the whole board is showing and the new card lands wherever the agent
    *  puts it. A card page passes nothing: it shows one card, not a release. */
   createRelease?: string | null;
-  /** Whether `memory/goal.md` holds the user's own words. False — the file is
-   *  missing or empty — turns the same control into the quiet offer to write one where
-   *  `goalOffered` stands, and takes it off the row where it does not (#437); it is never
-   *  a demand, and nothing else on the board asks. */
-  goalWritten?: boolean;
-  /** Whether this screen offers to write a goal that isn't there (#437). The board's own
-   *  top row does. A card page, the archive and the guided first run — which is asking for
-   *  it a screen away, and would be two boxes for one answer — leave the offer alone and
-   *  draw the star only when the file holds something. */
-  goalOffered?: boolean;
-  /** Re-read the board once that box has saved, so the control turns back into Goal.
-   *  Absent on a screen that would not notice. */
-  onGoalSaved?: () => void;
   /** Whether this board is running inside the desktop app (#175). All it changes
    *  here is the folder badge: in the app it opens another project, since there
    *  is no terminal to restart the board from. */
@@ -217,7 +197,7 @@ export function Header({
             rest of the time. */}
         <span className="hidden items-center gap-2 md:flex">
           <UpdateChip />
-          {/* The repository leads the group: the same ghost block as Goal and
+          {/* The repository leads the group: the same ghost block as
               Discuss, icon-only, since it is the one control here that acts on
               nothing on this board. */}
           <GitHubLink />
@@ -238,13 +218,6 @@ export function Header({
         )}
         <span className="hidden items-center gap-2 md:flex">
           <ToolCluster>
-            {/* The goal leads the cluster (#807), in the place the bell had. Asked here
-                rather than left to render nothing: a tool that draws no element would leave
-                the cluster with a hairline against its own frame and the next segment's
-                corner unrounded. */}
-            {goalShown(goalWritten, goalOffered) && (
-              <Goal written={goalWritten} offer={goalOffered} onSaved={onGoalSaved} />
-            )}
             <Insights />
             <Sessions />
             <ConfigurationButton />
@@ -254,7 +227,7 @@ export function Header({
           <ChatButton />
         </span>
         {/* The phone's row is untouched by that move (#807): the bell was already on its
-            own there and the goal was already a row on More. It keeps the cluster's frame
+            own there. It keeps the cluster's frame
             rather than becoming a bare icon — a lone segment is still the same object. */}
         <span className="md:hidden">
           <ToolCluster>

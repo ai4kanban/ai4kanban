@@ -3,7 +3,7 @@
   "groups": [
     {
       "label": "Start here",
-      "items": ["index", "what-makes-a-good-goal"]
+      "items": ["index"]
     },
     {
       "label": "Using the board",

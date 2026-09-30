@@ -124,7 +124,6 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
       projectRoot: machine.projectRoot,
       openIds: board?.openIds ?? [],
       memoryOwners: board?.memoryOwners ?? [],
-      goalWritten: board?.goalWritten ?? false,
       agent,
       desktop: machine.desktop,
     });
@@ -142,7 +141,6 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
         setup={board.setup}
         agent={agent}
         projectRoot={machine.projectRoot}
-        goalWritten={board.goalWritten ?? false}
         desktop={machine.desktop}
         setupInstruction={machine.setupInstruction ?? ""}
         skillInstalled={machine.skillInstalled ?? false}
@@ -165,9 +163,6 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
       projectRoot={machine.projectRoot}
       openIds={board?.openIds ?? []}
       memoryOwners={board?.memoryOwners ?? []}
-      goalWritten={board?.goalWritten ?? false}
-      goalOffered
-      onGoalSaved={chrome.refresh}
       running={chrome.running}
       onBoardChanged={boardChanged}
       header={
@@ -187,9 +182,6 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
           onSetReleaseGoal={chrome.onSetReleaseGoal}
           // A card written while a version is on screen ships in that version.
           createRelease={chrome.release}
-          goalWritten={board?.goalWritten ?? false}
-          goalOffered
-          onGoalSaved={chrome.refresh}
           desktop={machine.desktop}
         />
       }

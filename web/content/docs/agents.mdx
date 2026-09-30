@@ -67,6 +67,10 @@ can be switched off:
   default; **Run now** on its page starts one.
 - **Review chat memory** — reads back over the conversations that said something new and writes
   down what they settled. Once a day.
+- **Describe the product** — keeps `docs/kanban/memory/product.md` up to date: what the product is,
+  who it is for, the problems it solves and its features, from the users' point of view. Checks
+  once a day and rewrites the file only when new commits have landed. Planning reads it for
+  direction.
 
 **Configuration → Board** groups them by what starts each one: **You start**, **On a schedule** and
 **On an event**. A scheduled agent's page sets its cadence; the first scheduled pass lands one
@@ -144,7 +148,7 @@ Nothing on the board looks at finished work. A follow-up surfaces only when a bu
 notices one mid-task, and **Triage** reads outside sources — never your own history.
 
 **Proposer** closes that gap. Every card that reaches the archive starts one reflection over
-that card alone: it reads what shipped, judges what work follows from it against your goal and the
+that card alone: it reads what shipped, judges what work follows from it against `product.md` and the
 planning memory, and puts each survivor in **Triage**.
 
 - **Archiving is the only trigger.** A card completing is what starts a reflection. Nothing sweeps
@@ -235,7 +239,7 @@ agent's page lists the files it has, read-only:
   into `feedback/<topic>.md`; the Memory panel lists those files under **Feedback**, and the
   index in `feedback.md` links to them.
 - **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
-  and `goal.md` are facts rather than taste, so they sit outside every agent's folder.
+  and `product.md` are facts rather than taste, so they sit outside every agent's folder.
 - **How the product looks is not memory.** Colours, dimensions and component detail are read from
   the app's own `design.md`, so memory says which doc to read rather than repeating it.
 - The runs write these themselves — the flow that hears your answer records what was taken or sent

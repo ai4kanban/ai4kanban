@@ -49,7 +49,6 @@ export default async function Page({ params }: { params: Promise<{ name: string[
       openIds={board.openIds}
       agent={agent}
       projectRoot={repoRoot()}
-      goalWritten={board.goalWritten}
       memoryOwners={board.memoryOwners}
       desktop={isDesktop()}
     />

@@ -1,4 +1,4 @@
-// English copy for the rail, the memory pages, the goal and Insights — the source
+// English copy for the rail, the memory pages and Insights — the source
 // of truth a second language mirrors key for key. Writing rules: `i18n/index.ts`.
 import type { RailCopy } from "./types";
 
@@ -32,7 +32,7 @@ const en: RailCopy = {
     empty: "Nothing remembered yet.",
     files: {
       readme: "What shipped",
-      goal: "The goal",
+      product: "The product",
       decisions: "Settled decisions",
       redesign: "Design mistakes",
       rejected: "Rejected ideas",
@@ -122,19 +122,6 @@ const en: RailCopy = {
     copied: (what) => `${what} copied`,
     path: "Path",
     relativePath: "Relative path",
-  },
-  goal: {
-    open: "Goal",
-    openHint: "What this board is for",
-    write: "Add goal",
-    writeHint: "Say what this board is for — optional, and you can add it any time",
-    title: "Goal",
-    reading: "Loading…",
-    editTitle: "Write the goal",
-    guideTitle: "What makes a good goal",
-    guideLine:
-      "Where the project is headed, in your own words: what you want, how far out, and roughly what comes next. Rough and short is fine, and you can change it later — the agent never drafts the goal for you.",
-    saveFailed: "could not save the goal",
   },
   insights: {
     open: "Insights",
