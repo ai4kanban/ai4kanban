@@ -1,7 +1,6 @@
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { FiChevronDown } from "react-icons/fi";
-import { HAIR, NB, Shot, em } from "./nb";
+import { Character, HAIR, NB, Shot, em } from "./nb";
 
 // Step 06 — Configuration → Board, the pane every board opens on. The roster in
 // the narrow column is the whole of that page, in its three groups; everything
@@ -37,35 +36,6 @@ const GROUPS: [title: string, rows: [name: string, label: string, trigger: strin
       [["proposer", "Suggest follow-up work", "After a card is archived"]],
     ],
   ];
-
-/** `Agents.tsx`'s `Character` — pixel art, bottom-aligned in a square box. */
-function Character({ name, size }: { name: string; size: number }) {
-  return (
-    <span
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        width: em(size),
-        height: em(size),
-        flexShrink: 0,
-      }}
-    >
-      <Image
-        src={`/agent-art/${name}.png`}
-        alt=""
-        width={size * 2}
-        height={size * 2}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          imageRendering: "pixelated",
-        }}
-      />
-    </span>
-  );
-}
 
 /** One row: the character, what the agent does, and what starts it. `held` is
  *  the ember wash marking the row the page beside the column belongs to. */

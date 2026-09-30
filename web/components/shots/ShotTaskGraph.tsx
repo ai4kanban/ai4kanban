@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { FiCheckCircle, FiChevronRight, FiTag } from "react-icons/fi";
+import { FiCheckCircle, FiChevronRight, FiGitCommit, FiTag } from "react-icons/fi";
 import {
   CROP,
   Chip,
@@ -175,8 +175,39 @@ export function ShotTaskGraph() {
   return (
     <Shot crop={CROP}>
       <div style={{ padding: em(20) }}>
-        {/* head — the mark, then the goal in words */}
-        <div style={{ marginBottom: em(22) }}>
+        {/* head — the goal in words, its mark riding beside the title */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            columnGap: em(10),
+            rowGap: em(8),
+            marginBottom: em(22),
+          }}
+        >
+          <span
+            style={{
+              fontSize: em(20),
+              fontWeight: 800,
+              lineHeight: 1.15,
+              color: NB.accentDeep,
+            }}
+          >
+            #311
+          </span>
+          <h1
+            style={{
+              margin: 0,
+              minWidth: 0,
+              fontSize: em(20),
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.15,
+            }}
+          >
+            Bring team collaboration to AI4Kanban Cloud
+          </h1>
           <Chip
             bg={NB.mintSoft}
             ink={NB.mintInk}
@@ -188,38 +219,6 @@ export function ShotTaskGraph() {
           >
             Ready to implement
           </Chip>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              columnGap: em(10),
-              marginTop: em(10),
-            }}
-          >
-            <span
-              style={{
-                fontSize: em(20),
-                fontWeight: 800,
-                lineHeight: 1.15,
-                color: NB.accentDeep,
-              }}
-            >
-              #311
-            </span>
-            <h1
-              style={{
-                margin: 0,
-                flex: "1 1 0",
-                minWidth: 0,
-                fontSize: em(20),
-                fontWeight: 800,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.15,
-              }}
-            >
-              Bring team collaboration to AI4Kanban Cloud
-            </h1>
-          </div>
         </div>
 
         {/* meta band — where the card sits and how it was ranked */}
@@ -228,12 +227,19 @@ export function ShotTaskGraph() {
             display: "flex",
             flexWrap: "wrap",
             alignItems: "flex-start",
-            columnGap: em(24),
+            columnGap: em(20),
             rowGap: em(12),
             padding: `${em(12)} ${em(16)}`,
             marginBottom: em(14),
           }}
         >
+          <MetaItem label="Workflow">
+            {/* CardPage's WorkflowItem: ink and an icon, in chip type */}
+            <Chip bg="transparent" ink={NB.ink}>
+              <FiGitCommit aria-hidden style={{ width: em(10, 10), height: em(10, 10) }} />
+              Coding
+            </Chip>
+          </MetaItem>
           <MetaItem label="Modules">
             <Chip bg={NB.mintSoft} ink={NB.mintInk}>
               cloud
@@ -261,6 +267,11 @@ export function ShotTaskGraph() {
               high
             </Chip>
           </MetaItem>
+          <MetaItem label="ROI">
+            <Chip bg={NB.skySoft} ink={NB.skyInk} chevron>
+              med
+            </Chip>
+          </MetaItem>
           <MetaItem label="Todos">
             <Todos done={3} total={8} width={70} />
           </MetaItem>
@@ -276,7 +287,6 @@ export function ShotTaskGraph() {
             style={{
               position: "relative",
               height: em(MAP_H),
-              borderBottom: `1px solid ${HAIR}`,
             }}
           >
             <svg
@@ -320,12 +330,30 @@ export function ShotTaskGraph() {
             <MapChip id={328} left={COL[3]} top={ROW2} at={nodeAt(3)} />
           </div>
 
+          {/* the fold: the count sits in the hairline, open */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: em(10),
+              padding: `${em(6)} 0`,
+              color: NB.inkSoft,
+            }}
+          >
+            <span style={{ flex: 1, height: 1, background: HAIR }} />
+            <span style={{ display: "flex", alignItems: "center", gap: em(4), fontSize: em(12), fontWeight: 700 }}>
+              <FiChevronRight aria-hidden style={{ width: em(13, 12), height: em(13, 12), transform: "rotate(90deg)" }} />
+              {SUBTASKS.length} cards
+            </span>
+            <span style={{ flex: 1, height: 1, background: HAIR }} />
+          </div>
+
           <ul
             style={{
               display: "flex",
               flexDirection: "column",
               gap: em(4),
-              margin: `${em(10)} 0 0`,
+              margin: `${em(6)} 0 0`,
               padding: 0,
               listStyle: "none",
             }}

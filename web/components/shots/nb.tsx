@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
 
 // Hand-drawn stand-ins for the local board UI (kanban-ui/), used as the artwork
@@ -489,6 +490,37 @@ export function Code({ children }: { children: ReactNode }) {
     >
       {children}
     </code>
+  );
+}
+
+/** `Agents.tsx`'s `Character` — pixel art, bottom-aligned in a square box. */
+export function Character({ name, size }: { name: string; size: number }) {
+  return (
+    <span
+      style={{
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        width: em(size),
+        height: em(size),
+        flexShrink: 0,
+      }}
+    >
+      <Image
+        src={`/agent-art/${name}.png`}
+        alt=""
+        width={size * 2}
+        height={size * 2}
+        // a lazy image is still blank when capture-shots.mjs clips the frame
+        loading="eager"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          imageRendering: "pixelated",
+        }}
+      />
+    </span>
   );
 }
 

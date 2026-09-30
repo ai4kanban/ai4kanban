@@ -27,7 +27,7 @@ Want a technical comparison or a working UI mockup before committing to a direct
 
 ### Agents handle the details. You sign off.
 
-Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.
+Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and the go-ahead to build waiting for you in the app or Slack.
 
 ### An agent team, working together.
 

@@ -19,7 +19,7 @@ import { Btn, CROP, ChipIcon, HAIR, NB, Section, Shot, Tag, em } from "./nb";
 // The panel IS the control on the real card, so the drawing shows it being
 // used: pointed at, it takes the double offset shadow and the DECIDE way in;
 // clicked, every choice becomes a tick — the recommended one already on — with
-// Resolve under the list. That is why the toolbar here has no Resolve button:
+// Skip beside the question and Resolve under the list. That is why the toolbar here has no Resolve button:
 // there isn't one any more.
 //
 // Nothing is framed. The panel is a `.nb-section` on the ember wash, which is one
@@ -78,7 +78,7 @@ const back = `${pct(T.close + SWAP)}, 100%`;
 // answer leaves under it once the panel has come up the page.
 const FROM = { x: 610, y: 430 };
 const OVER = { x: 300, y: 205 };
-const ONTO = { x: 556, y: 243 };
+const ONTO = { x: 593, y: 243 };
 const at = (p: { x: number; y: number }) => `translate(${em(p.x)}, ${em(p.y)})`;
 
 const F = 12.5; // an option row's own type size — its paddings are `em` of this
@@ -127,6 +127,11 @@ const MOTION = `
   ${wide} { color: ${NB.inkSoft} }
   ${back} { color: inherit }
 }
+@keyframes q-skip {
+  ${shut} { opacity: 0 }
+  ${wide} { opacity: 1 }
+  ${back} { opacity: 0 }
+}
 @keyframes q-foot {
   ${shut} { height: 0; opacity: 0 }
   ${wide} { height: ${em(59)}; opacity: 1 }
@@ -153,6 +158,7 @@ const MOTION = `
   .q-pill { animation: q-pill ${CYCLE}s ease-in-out infinite both }
   .q-bold { animation: q-bold ${CYCLE}s ease-in-out infinite both }
   .q-rec { animation: q-rec ${CYCLE}s ease-in-out infinite both }
+  .q-skip { animation: q-skip ${CYCLE}s ease-in-out infinite both }
   .q-foot { animation: q-foot ${CYCLE}s ease-in-out infinite both }
   .q-cursor { animation: q-cursor ${CYCLE}s ease-out infinite both }
   .q-ring { animation: q-ring ${CYCLE}s ease-out infinite both }
@@ -369,7 +375,7 @@ export function ShotCardQuestions() {
             <Btn variant="accent" icon={<FiPlay style={{ width: "100%", height: "100%" }} />}>
               Implement
             </Btn>
-            <Btn icon={<FiEdit2 style={{ width: "100%", height: "100%" }} />}>Edit</Btn>
+            <Btn icon={<FiEdit2 style={{ width: "100%", height: "100%" }} />}>Revise</Btn>
             <Btn
               ink={NB.accentDeep}
               style={{ marginLeft: "auto" }}
@@ -423,14 +429,30 @@ export function ShotCardQuestions() {
               </span>
             </div>
             <div style={{ fontSize: em(13), lineHeight: em(19, 13) }}>
-              <span className="q-bold" style={{ display: "block" }}>
-                <NeedsYou />
-                {QUESTION.text}
-              </span>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: em(8) }}>
+                <span className="q-bold" style={{ display: "block", flex: 1, minWidth: 0 }}>
+                  <NeedsYou />
+                  {QUESTION.text}
+                </span>
+                <span
+                  className="q-skip"
+                  style={{
+                    flex: "0 0 auto",
+                    padding: `0 ${em(6, 11.5)}`,
+                    fontSize: em(11.5, 13),
+                    fontWeight: 700,
+                    lineHeight: em(19, 11.5),
+                    color: NB.inkSoft,
+                    opacity: 0,
+                  }}
+                >
+                  Skip
+                </span>
+              </div>
               <Options />
             </div>
-            {/* Resolve, or resolve and keep going into implement in the same
-                session. Closed, the row isn't there at all. */}
+            {/* Close keeps the ticks as a draft; Resolve sends them. Closed, the
+                row isn't there at all. */}
             <div
               className="q-foot"
               style={{ height: 0, opacity: 0, overflow: "hidden" }}
@@ -447,8 +469,7 @@ export function ShotCardQuestions() {
                 }}
               >
                 <Btn>Close</Btn>
-                <Btn>Resolve</Btn>
-                <Btn variant="accent">Resolve &amp; implement</Btn>
+                <Btn variant="accent">Resolve</Btn>
               </div>
             </div>
           </Section>

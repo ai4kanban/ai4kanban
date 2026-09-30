@@ -52,7 +52,7 @@ const es: HomeCopy = {
       },
       {
         title: "Los agentes resuelven los detalles. Tú apruebas.",
-        body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano y recibes las decisiones de producto y las entregas pendientes de aprobación en la aplicación o en Slack.",
+        body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano; las decisiones de producto y el visto bueno para empezar a construir te esperan en la aplicación o en Slack.",
       },
       {
         title: "Deja que los agentes se encarguen de tu tablero.",

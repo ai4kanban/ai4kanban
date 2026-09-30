@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { FiMaximize2 } from "react-icons/fi";
-import { Btn, CROP, Code, MONO, NB, Shot, em } from "./nb";
+import { FiChevronRight, FiMaximize2 } from "react-icons/fi";
+import { Btn, CROP, Character, Chip, HAIR, MONO, NB, Shot, em } from "./nb";
 
 // Step 04 Plan the way you think. — what the ui-designer agent leaves on the
-// card: one proposal, one file per screen, drawn the way a card page frames a
-// mockup (kanban-ui/components/Mockup.tsx) — the screen's name, the file behind
-// it, the switch to its code, and no frame around the picture.
+// card, in its open fold (CardBody.tsx's `AgentSection`): one proposal, one file
+// per screen, drawn the way a card page frames a mockup
+// (kanban-ui/components/Mockup.tsx) — the screen's name, the file behind it, the
+// switch to its code, and no frame around the picture.
 //
 // Drawn legible, not as grey blocks: at this size the point is that these are
 // real screens of one product, so the title, the primary button and the usage
@@ -19,13 +20,15 @@ function Head({ name, file }: { name: string; file: string }) {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: em(11, F),
+        gap: em(10, F),
         height: em(22, F),
         fontSize: em(F),
         color: NB.inkSoft,
       }}
     >
-      <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{name}</span>
+      <Chip bg={NB.accentSoft} ink={NB.accentDeep}>
+        {name}
+      </Chip>
       <span
         style={{
           display: "inline-flex",
@@ -180,12 +183,27 @@ function Toggle() {
 export function ShotSpecAgents() {
   return (
     <Shot crop={CROP}>
-      <div style={{ padding: em(20) }}>
-        <h2 style={{ margin: 0, fontSize: em(16), fontWeight: 800 }}>
-          By <Code>ui-designer</Code> agent
-        </h2>
+      {/* the agent's fold, open */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: em(8),
+          marginTop: em(12),
+          padding: `${em(8)} ${em(20)}`,
+          borderTop: `1px solid ${HAIR}`,
+        }}
+      >
+        <FiChevronRight
+          aria-hidden
+          style={{ width: em(13), height: em(13), flex: "0 0 auto", color: NB.inkSoft, transform: "rotate(90deg)" }}
+        />
+        <Character name="ui-designer" size={22} />
+        <span style={{ fontSize: em(13.5), fontWeight: 700 }}>UI designer</span>
+      </div>
 
-        <div style={{ marginTop: em(8) }}>
+      <div style={{ padding: `${em(4)} ${em(20)} ${em(20)}` }}>
+        <div>
           <Head name="First run" file=".mockups/293/first-run.tsx" />
           <Screen height={154} active="Welcome">
             <h3

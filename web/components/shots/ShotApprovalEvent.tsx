@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CROP, HAIR, MONO, NB, Shot, em } from "./nb";
 
-// Step 06 仅在必要时请求审批 — the card notification as it arrives in Slack, from
+// Step 05 仅在必要时请求审批 — the card notification as it arrives in Slack, from
 // screenshots/slack-notification.png: the card, the state it reached, what it
 // asks for, and the two buttons that answer it from the phone in your hand.
 //

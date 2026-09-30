@@ -49,7 +49,7 @@ const fr: HomeCopy = {
       },
       {
         title: "Les agents règlent les détails. Vous validez.",
-        body: "La plupart des détails sont réglés à partir du code et des décisions passées. Le travail avance en arrière-plan ; les choix produit et les livraisons à valider vous parviennent dans l’application ou sur Slack.",
+        body: "La plupart des détails sont réglés à partir du code et des décisions passées. Le travail avance en arrière-plan ; les choix produit et le feu vert pour lancer la réalisation vous attendent dans l’application ou sur Slack.",
       },
       {
         title: "Confiez la gestion de votre tableau aux agents.",
