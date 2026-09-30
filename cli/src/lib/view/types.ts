@@ -745,9 +745,21 @@ export interface Signal {
    *  time and nothing else. The page draws such an item as the stub it is rather than as an
    *  item with an empty title. */
   contentKept: boolean
+  /** What Jev judged of it (#1221), kept through every move. Empty when it was never judged. */
+  verdict: TriageVerdict | ''
+  /** Why, as a fixed label the page words in its own language. Empty with no verdict. */
+  verdictReason: TriageReason | ''
+  /** The open card it duplicates, when the reason is `duplicate` and one was named. */
+  verdictCard: number | null
   /** The path from the repo root, forward slashes. */
   relPath: string
 }
+
+/** The four ends of a judged item (#1221). */
+export type TriageVerdict = 'plan' | 'plan-without-refine' | 'skip' | 'human-review'
+
+/** The label a verdict carries: the option Jev picked, or `unsure` when its confidence was low. */
+export type TriageReason = 'supported' | 'rejected' | 'duplicate' | 'low-value' | 'needs-user' | 'unsure' | 'small' | 'plan'
 
 /** A card triage points at: its title, and whether it has left the board. */
 export interface SignalCardRef {

@@ -105,6 +105,14 @@ export type RailCopy = {
     /** Who ignored an item, on History. */
     byYou: string;
     byAgent: string;
+    /** What a Pro sort judged of an item (#1221): held for the user, the two kinds of card,
+     *  and the fixed reason each verdict carries. `duplicateOf` fills `{id}`. */
+    review: string;
+    plan: string;
+    direct: string;
+    verdict: string;
+    reasons: Record<"supported" | "rejected" | "duplicate" | "low-value" | "needs-user" | "unsure" | "small" | "plan", string>;
+    duplicateOf: (id: number) => string;
     /** A record carried over from a board that kept only source ids and times (#559). */
     contentGone: string;
     /** The ways out of the queue (#894, #1193), and the state of an item on its way to a card. */

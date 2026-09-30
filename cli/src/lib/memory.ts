@@ -87,6 +87,9 @@ edits here do not last.
 `,
 }
 
+/** Whether a memory file says nothing beyond the header it was seeded with. */
+export const onlyStarter = (name: string, text: string): boolean => !text.trim() || text.trim() === STARTERS[name]?.trim()
+
 const setOf = (names: readonly string[]): Record<string, string> =>
   Object.fromEntries(names.map((name) => [name, STARTERS[name]!]))
 

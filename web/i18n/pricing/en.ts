@@ -34,6 +34,7 @@ const en: PricingCopy = {
     rows: [
       "Slide deck workflow",
       "Product video workflow",
+      "Auto-screened ideas — you decide only the unclear ones",
       "5,000 AI credits a month — voiceover uses 1 per second, a generated cover 320",
       "Priority support",
     ],

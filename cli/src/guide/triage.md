@@ -11,6 +11,11 @@ learned from past dismissals: weigh it against the product, and let the product 
 instruction given with this run win over it. Change nothing but the cards you create and the
 items you land.
 
+When the flow names `akb triage judge`, run it for each item instead of step 1, passing any
+open card whose title suggests it may already own the item, and do what it prints. An item
+the flow lists with a verdict is already judged. When the command fails, leave the item
+waiting.
+
 ## 1. Judge one item
 
 Take the items one at a time, in the order the flow lists them. For each:

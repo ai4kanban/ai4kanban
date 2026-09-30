@@ -39,12 +39,22 @@ import { DERIVED } from './identity'
 import { matchSourceType, readSourceType } from './sources'
 import { SIGNALS_ARCHIVED, SIGNALS_DISMISSED, TRIAGE, rel } from '../paths'
 import { unquote, yamlScalar } from '../yaml'
-import type { Signal, SignalMeta } from '../view/types'
+import type { Signal, SignalMeta, TriageReason, TriageVerdict } from '../view/types'
 
 /** An item as it arrives, before the board stamps its import. */
 export type IncomingSignal = Omit<
   Signal,
-  'importedAt' | 'relPath' | 'dismissedAt' | 'dismissedBy' | 'dismissedReason' | 'cardId' | 'archivedAt' | 'contentKept'
+  | 'importedAt'
+  | 'relPath'
+  | 'dismissedAt'
+  | 'dismissedBy'
+  | 'dismissedReason'
+  | 'cardId'
+  | 'archivedAt'
+  | 'contentKept'
+  | 'verdict'
+  | 'verdictReason'
+  | 'verdictCard'
 >
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
@@ -54,6 +64,9 @@ const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
 export const triagePath = (): string => boardRel(TRIAGE)
 
 // ---- one file -------------------------------------------------------------
+
+const VERDICTS: TriageVerdict[] = ['plan', 'plan-without-refine', 'skip', 'human-review']
+const REASONS: TriageReason[] = ['supported', 'rejected', 'duplicate', 'low-value', 'needs-user', 'unsure', 'small', 'plan']
 
 // What an item waiting to be sorted carries, whatever wrote it. Everything else is optional.
 const FIELDS = ['source_id', 'title', 'collected_at', 'imported_at'] as const
@@ -154,6 +167,9 @@ export function parse(file: string, lenient = false): Signal | null {
     cardId: /^\d+$/.test(held.card_id ?? '') ? Number(held.card_id) : null,
     archivedAt: held.archived_at || '',
     contentKept: held.content_kept !== 'false',
+    verdict: VERDICTS.includes(held.verdict as TriageVerdict) ? (held.verdict as TriageVerdict) : '',
+    verdictReason: REASONS.includes(held.verdict_reason as TriageReason) ? (held.verdict_reason as TriageReason) : '',
+    verdictCard: /^\d+$/.test(held.verdict_card ?? '') ? Number(held.verdict_card) : null,
     relPath: boardRel(file),
   }
 }
@@ -262,6 +278,9 @@ export function writeSignal(incoming: IncomingSignal, importedAt: string): Signa
     cardId: null,
     archivedAt: '',
     contentKept: true,
+    verdict: '',
+    verdictReason: '',
+    verdictCard: null,
     relPath: '',
   }
   const file = path.join(TRIAGE, freeName(TRIAGE, fileName(signal)))
@@ -282,6 +301,25 @@ function stamp(file: string, fields: Record<string, string | null>): void {
   })
   const added = Object.entries(fields).flatMap(([key, value]) => (value === null ? [] : [`${key}: ${yamlScalar(value)}`]))
   fs.writeFileSync(file, ['---', ...kept, ...added, ...lines.slice(close)].join('\n'))
+}
+
+/** Write Jev's verdict onto a waiting item (#1221). Every move keeps it, restore included, so
+ *  an item is judged once. */
+export function recordVerdict(
+  sourceId: string,
+  verdict: { verdict: TriageVerdict; reason: TriageReason; card: number | null; confidence: number },
+): MoveOutcome {
+  const found = readInbox().find((signal) => signal.sourceId === sourceId)
+  const file = found && path.join(TRIAGE, path.basename(found.relPath))
+  if (!file || !fs.existsSync(file)) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+  stamp(file, {
+    verdict: verdict.verdict,
+    verdict_reason: verdict.reason,
+    verdict_card: verdict.card === null ? null : String(verdict.card),
+    verdict_confidence: verdict.confidence.toFixed(2),
+    judged_at: formatStamp(new Date()),
+  })
+  return { ok: true, relPath: found.relPath }
 }
 
 /** Move one item file into a folder beside it, stamping what the move means onto it. The

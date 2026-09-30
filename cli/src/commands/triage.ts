@@ -40,6 +40,7 @@ import {
   signalsAccess,
 } from '../lib/signals'
 import { signalEndpoint } from '../lib/signals/config'
+import { judgeItem, reasonWords } from '../lib/signals/judge'
 import { say } from '../lib/io'
 import { withBoardLock } from '../lib/lock'
 import { die, rel, TRIAGE } from '../lib/paths'
@@ -169,6 +170,25 @@ export function cmdTriageDismiss(sourceId: string, reason: string): MoveResult {
   if (!done.ok) die(done.error, { kind: 'triage-item-gone' })
   say(`${said} — ignored: ${done.relPath}`)
   return { source_id: said, reason: why, file: done.relPath }
+}
+
+/** `akb triage judge` — Jev's verdict on one waiting item, for Pro (#1221). Prints one line:
+ *  the verdict, its reason and the command that lands it; lands nothing itself. */
+export async function cmdTriageJudge(sourceId: string, files: string[], program = 'akb'): Promise<MoveResult> {
+  const said = sourceId.trim()
+  if (!said) die('say which one: `judge <source-id> [--files <paths>]`', { kind: 'needs-input' })
+  migrateTriage()
+  const { verdict, next, trimmed } = await judgeItem(said, files, program)
+  say(`${said} — ${verdict.verdict}: ${reasonWords(verdict)} (confidence ${verdict.confidence.toFixed(2)}) — next: ${next}`)
+  return {
+    source_id: said,
+    verdict: verdict.verdict,
+    reason: verdict.reason,
+    card: verdict.card,
+    confidence: verdict.confidence,
+    next,
+    trimmed,
+  }
 }
 
 /** `akb triage restore` — put one ignored item back in the list. Starts no sort: an item

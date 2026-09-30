@@ -63,6 +63,12 @@ const fallback = (held: HeldPro | null, now: number): ProAccess => {
   return now < (Number.isFinite(end) ? end : held.checkedAt) + GRACE_MS ? 'pro' : 'unconfirmed'
 }
 
+/** Whether the Pro answer this machine last kept still stands, read without reaching Cloud —
+ *  for a flow printed where nothing may be awaited. `proAccess` is what refreshes it. */
+export function heldPro(now = Date.now()): boolean {
+  return fallback(readHeld(readSession()?.subject), now) === 'pro'
+}
+
 /** Ask whether this machine's account has Pro. Never throws. */
 export async function proAccess(now = Date.now()): Promise<ProAccess> {
   if (!cloudConfigured()) return 'signed-out'

@@ -33,6 +33,8 @@ export type RefusalCode =
   | 'speech_failed'
   | 'image_unavailable'
   | 'image_failed'
+  | 'judge_unavailable'
+  | 'judge_failed'
   | 'pro_required'
   | 'credits_used_up'
   | 'billing_unavailable'
@@ -321,6 +323,13 @@ export const imageUnavailable = () =>
 
 export const imageFailed = () =>
   new Refusal('image_failed', 502, 'The image could not be generated. Try again shortly.')
+
+/** Judging a triage item (#1221): no key in this build, or the provider failed. */
+export const judgeUnavailable = () =>
+  new Refusal('judge_unavailable', 503, 'Judging triage items is not available right now.')
+
+export const judgeFailed = () =>
+  new Refusal('judge_failed', 502, 'The item could not be judged. Try again shortly.')
 
 /** Hosted narration and images are Pro's (#1062), spending its monthly AI credits (#1113). */
 export const proRequired = () => new Refusal('pro_required', 403, 'This needs Pro.')

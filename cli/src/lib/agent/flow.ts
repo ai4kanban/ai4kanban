@@ -44,6 +44,9 @@ import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { itemsBeingCarded } from './store'
 import { readInbox } from '../signals/inbox'
+import { awaitsCard, awaitsJudging, openCards, sortable } from '../signals/judge'
+import { heldPro } from '../cloud/pro'
+import type { Signal } from '../view/types'
 import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { recordedOutputs } from './outputs'
@@ -906,27 +909,57 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'triage': {
       migrateTriage()
       const carding = itemsBeingCarded()
-      const waiting = readInbox().filter((item) => !carding.has(item.sourceId))
+      const pro = heldPro()
+      // For Pro (#1221) Jev judges each item once: what it judged worth a card is listed to be
+      // carded, and what it held or skipped is the user's.
+      const waiting = readInbox().filter((item) => !carding.has(item.sourceId) && sortable(item))
+      const toJudge = pro ? waiting.filter(awaitsJudging) : waiting
+      const toCard = pro ? waiting.filter(awaitsCard) : []
+      const line = (item: Signal) => `  ${item.sourceId} — ${item.title}${item.sourceType ? ` (${item.sourceType})` : ''} — ${item.relPath}`
       facts.push(
         ...field(
           'waiting',
-          waiting.length === 0
+          toJudge.length === 0
             ? `(nothing) — ${rel(TRIAGE)}/ holds no item to judge`
-            : [
-                `${waiting.length} in ${rel(TRIAGE)}/, judge each one:`,
-                ...waiting.map((item) => `  ${item.sourceId} — ${item.title}${item.sourceType ? ` (${item.sourceType})` : ''} — ${item.relPath}`),
-              ],
+            : [`${toJudge.length} in ${rel(TRIAGE)}/, judge each one:`, ...toJudge.map(line)],
         ),
       )
+      if (toCard.length) {
+        facts.push(
+          ...field('judged', [
+            `${toCard.length} already judged worth a card — card each one, judge none again:`,
+            ...toCard.map((item) => `${line(item)} — ${item.verdict}`),
+          ]),
+        )
+      }
+      if (pro) {
+        facts.push(...field('judge', `${self} triage judge <source-id> [--files <paths>] — once per item to judge; do what it prints`))
+        const cards = openCards()
+        facts.push(
+          ...field(
+            'cards',
+            cards.length === 0
+              ? '(none open)'
+              : [`${cards.length} open — pass any that may already own an item to --files:`, ...cards.map((card) => `  #${card.id} ${card.title} — ${rel(card.file)}`)],
+          ),
+        )
+      }
       facts.push(...field('product', rel(PRODUCT)))
-      facts.push(...field('memory', planningMemoryFiles()))
+      if (!pro) facts.push(...field('memory', planningMemoryFiles()))
       facts.push(...field('modules', rel(MODULES_MD)))
-      if (waiting.length === 0) {
+      if (toJudge.length === 0 && toCard.length === 0) {
         close.push('write nothing — there is nothing waiting, and that is a complete result')
         break
       }
       close.push(
         `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --schedule refine --body-file <path> — one call per survivor, body written first`,
+      )
+      if (pro) {
+        close.push(
+          `${raw} create ... --body-file <path> with no --schedule, then ${raw} update <id> --status ready — for plan-without-refine, its body ready to build`,
+        )
+      }
+      close.push(
         `${self} triage archive <source-id> --card <id> — straight after the card it became`,
         `${self} triage dismiss <source-id> --reason ".." — everything else, in one clause each`,
         'change nothing else — no existing card is edited, no question answered, and no build started',

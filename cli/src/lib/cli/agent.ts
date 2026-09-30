@@ -61,6 +61,7 @@ import {
   cmdTriageArchive,
   cmdTriageCheck,
   cmdTriageDismiss,
+  cmdTriageJudge,
   cmdTriageFetch,
   cmdTriageRestore,
 } from '../../commands/triage'
@@ -283,6 +284,21 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .requiredOption('--card <id>', 'the card it became', cardId)
     .action(async function (this: Command, sourceId: string) {
       await onBoard(this, cli, () => cmdTriageArchive(sourceId, Number(this.opts().card)))
+    })
+
+  withShared(triage.command('judge'))
+    .summary("Jev's verdict on one waiting item — Pro")
+    .description(
+      'Reads the item, the product description, the planner\'s decisions, every rejected.md and ' +
+        'dismissed.md, plus each card named in `--files`, and asks Jev through Cloud what should become ' +
+        'of it: plan, plan-without-refine, skip or human-review. Records the verdict on the item and ' +
+        'prints one line with the command that lands it; creates and ignores nothing itself. An item is ' +
+        'judged once. Fails, recording nothing, when Cloud or Jev cannot answer.',
+    )
+    .argument('<source-id>', 'the waiting item to judge')
+    .option('--files <paths...>', 'open cards that may already own the item, under the board folder')
+    .action(async function (this: Command, sourceId: string) {
+      await onBoard(this, cli, (p) => cmdTriageJudge(sourceId, (this.opts().files as string[] | undefined) ?? [], p))
     })
 
   withShared(triage.command('dismiss'))

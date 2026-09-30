@@ -20,6 +20,7 @@
 
 import { reconcileTriage } from '../signals/carded'
 import { readInbox } from '../signals/inbox'
+import { sortable } from '../signals/judge'
 import { migrateTriage } from '../signals/migrate'
 import { signalsAccess } from '../signals/access'
 import { startRun } from './start'
@@ -42,15 +43,16 @@ async function mayStart(): Promise<boolean> {
 // fetch's bill on the pull card.
 const SORT: AgentRequest = { action: 'triage' }
 
-/** The items waiting to be judged, by source id. What a sort is given at its spawn, and what
+/** The items waiting to be judged, by source id — never one Jev held for the user or one
+ *  the user restored (#1221). What a sort is given at its spawn, and what
  *  its close is measured against. */
 export function triageWaiting(): string[] {
   try {
     migrateTriage()
     const carding = itemsBeingCarded()
     return readInbox()
+      .filter((item) => sortable(item) && !carding.has(item.sourceId))
       .map((item) => item.sourceId)
-      .filter((sourceId) => !carding.has(sourceId))
   } catch {
     return []
   }

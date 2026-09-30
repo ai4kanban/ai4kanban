@@ -877,7 +877,7 @@ const en: ConfigurationCopy = {
         yearly: { price: "$120", per: "/ year", sub: "$10 a month, billed yearly", was: "$180" },
         monthly: { price: "$15", per: "/ month" },
         leadIn: "Everything in Free, plus:",
-        rows: ["Slide deck workflow", "Product video workflow", "5,000 AI credits a month — voiceover uses 1 per second, a generated cover 320", "Priority support"],
+        rows: ["Slide deck workflow", "Product video workflow", "Auto-screened ideas — you decide only the unclear ones", "5,000 AI credits a month — voiceover uses 1 per second, a generated cover 320", "Priority support"],
         button: "Get Pro",
       },
     },

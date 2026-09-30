@@ -139,6 +139,53 @@ function order(stamp: string): number {
 /** When an item was judged: made into a card, or ignored. */
 const judgedAt = (signal: Signal): string => signal.archivedAt || signal.dismissedAt;
 
+type SignalsCopy = ReturnType<typeof useCopy>["rail"]["signals"];
+
+/** Held for the user by a Pro sort (#1221). */
+const heldForYou = (signal: Signal): boolean => signal.verdict === "human-review";
+
+/** What a sort still has to do something with: never judged, or judged worth a card not yet made. */
+const sortable = (signal: Signal): boolean =>
+  !signal.verdict || signal.verdict === "plan" || signal.verdict === "plan-without-refine";
+
+/** A verdict's reason, in the page's language. */
+function verdictReason(signal: Signal, c: SignalsCopy): string {
+  if (!signal.verdictReason) return "";
+  if (signal.verdictReason === "duplicate" && signal.verdictCard !== null) return c.duplicateOf(signal.verdictCard);
+  return c.reasons[signal.verdictReason];
+}
+
+/** Why an item was ignored: the verdict's own label when a sort ignored it on one. */
+const whyIgnored = (signal: Signal, c: SignalsCopy): string =>
+  signal.dismissedBy === "agent" && signal.verdict === "skip" ? verdictReason(signal, c) : signal.dismissedReason;
+
+/** "Needs you", leading a held item's reason in the text flow. */
+function HeldPill() {
+  const c = useCopy().rail.signals;
+  return (
+    <span className="nb-chip mr-1.5 -translate-y-px rounded-full bg-nb-peach-soft px-2 align-middle text-nb-peach-ink">
+      {c.review}
+    </span>
+  );
+}
+
+/** The kind of card a sort made of an item. Its reason is its tip. */
+function VerdictChip({ signal }: { signal: Signal }) {
+  const c = useCopy().rail.signals;
+  if (signal.verdict !== "plan" && signal.verdict !== "plan-without-refine") return null;
+  const direct = signal.verdict === "plan-without-refine";
+  return (
+    <span
+      data-tip={verdictReason(signal, c)}
+      className={`nb-chip nb-tip shrink-0 whitespace-nowrap ${
+        direct ? "bg-nb-mint-soft text-nb-mint-ink" : "bg-nb-sky-soft text-nb-sky-ink"
+      }`}
+    >
+      {direct ? c.direct : c.plan}
+    </span>
+  );
+}
+
 /** The card an item names as its source — `meta.source: "#706"` — or null. */
 function sourceCard(signal: Signal): number | null {
   const said = signal.meta.find((pair) => pair.key === "source")?.value.trim() ?? "";
@@ -423,10 +470,12 @@ export function SignalsPage({
     () => groupBySource(narrowed, inbox.sourceTypes),
     [narrowed, inbox.sourceTypes],
   );
-  const rows = useMemo(
-    () => (tab === "pending" ? groups.flatMap((group) => group.items) : []),
-    [tab, groups],
-  );
+  // Items held for the user come first, whatever their source.
+  const rows = useMemo(() => {
+    if (tab !== "pending") return [];
+    const flat = groups.flatMap((group) => group.items);
+    return [...flat.filter(heldForYou), ...flat.filter((signal) => !heldForYou(signal))];
+  }, [tab, groups]);
   const sources = useMemo(
     () => groupBySource(all, inbox.sourceTypes).map((group) => group.key),
     [all, inbox.sourceTypes],
@@ -781,6 +830,7 @@ export function SignalsPage({
 
           {tab === "pending" && waiting.length > 0 && (
             <SortAll
+              idle={!waiting.some(sortable)}
               sorting={sorting}
               note={sortNote}
               onSort={() => void sortAll()}
@@ -835,11 +885,13 @@ export function SignalsPage({
                   {rows.map((signal, i) => {
                     const key = groupOf(signal);
                     const card = cardOfGroup(key);
+                    const prev = rows[i - 1];
                     return (
                       <QueueRow
                         key={signal.sourceId}
                         signal={signal}
-                        first={i === 0 || groupOf(rows[i - 1]!) !== key}
+                        first={!prev || heldForYou(prev) !== heldForYou(signal) || groupOf(prev) !== key}
+                        showSource={!prev || heldForYou(signal) || heldForYou(prev) || groupOf(prev) !== key}
                         top={i === 0}
                         source={
                           <RowSource
@@ -998,11 +1050,14 @@ function TabButton({
 
 /** **Sort all**, and — under it — why a sort would not start. */
 function SortAll({
+  idle,
   sorting,
   note,
   onSort,
   onDismissNote,
 }: {
+  /** Nothing left the sort would take: every waiting item is the user's. */
+  idle: boolean;
   sorting: boolean;
   note: "closed" | "refused" | null;
   onSort: () => void;
@@ -1031,7 +1086,7 @@ function SortAll({
       <Button
         size="xs"
         variant="ghost"
-        disabled={sorting}
+        disabled={sorting || idle}
         onClick={onSort}
         className="disabled:opacity-70"
       >
@@ -1249,6 +1304,7 @@ const ICON_BTN =
 function QueueRow({
   signal,
   first,
+  showSource,
   top,
   source,
   selected,
@@ -1267,6 +1323,8 @@ function QueueRow({
 }: {
   signal: Signal;
   first: boolean;
+  /** Whether the source column is drawn: the first row of a run, and every held row. */
+  showSource: boolean;
   /** The list's first row: tips open downwards, or the list's edge cuts them. */
   top: boolean;
   source: ReactNode;
@@ -1288,6 +1346,7 @@ function QueueRow({
   const language = useLanguage();
   const actsRef = useRef<HTMLSpanElement>(null);
   const still = !!making || leaving;
+  const held = heldForYou(signal);
   const pinned = !still && (checked || guard);
   const tone = selected
     ? "bg-nb-accent-soft shadow-[inset_2px_0_0_0_var(--color-nb-accent-deep)]"
@@ -1332,7 +1391,22 @@ function QueueRow({
             className={`${CHECK} mt-[2px]`}
           />
         )}
-        <span className="flex h-[18px] w-[84px] shrink-0 items-center max-md:w-[46px]">{first && source}</span>
+        <span className="flex h-[18px] w-[84px] shrink-0 items-center max-md:w-[46px]">{showSource && source}</span>
+        {held ? (
+          <button
+            type="button"
+            id={`signal-${signal.sourceId}`}
+            aria-current={selected || undefined}
+            onClick={onOpen}
+            className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 text-left focus-visible:outline-none max-md:gap-1"
+          >
+            <span className="min-w-0 text-[13px] font-[600] text-nb-ink [overflow-wrap:anywhere]">{titleOf(signal)}</span>
+            <span className="line-clamp-1 text-[12px] text-nb-ink-soft max-md:line-clamp-2">
+              <HeldPill />
+              {verdictReason(signal, c)}
+            </span>
+          </button>
+        ) : (
         <button
           type="button"
           id={`signal-${signal.sourceId}`}
@@ -1353,6 +1427,7 @@ function QueueRow({
             </span>
           )}
         </button>
+        )}
         <span className="relative -my-[3px] flex h-6 w-[108px] shrink-0 items-center justify-end max-md:hidden">
           <span
             className={`text-[11.5px] tabular-nums text-nb-ink-soft ${
@@ -1609,14 +1684,19 @@ function HistoryCard({
               <FiCornerDownRight size={12} className="shrink-0" aria-hidden />#{signal.cardId}
             </p>
           ) : (
-            signal.dismissedReason && (
+            whyIgnored(signal, c) && (
               <p className="mt-0.5 truncate text-[12px] leading-[18px] text-nb-ink">
-                {signal.dismissedReason}
+                {whyIgnored(signal, c)}
               </p>
             )
           )}
         </div>
         <div className={CARD_FOOT}>
+          {became && signal.verdict && (
+            <span className="pl-1.5">
+              <VerdictChip signal={signal} />
+            </span>
+          )}
           <span className="min-w-0 truncate pl-1.5 text-[11px] tabular-nums text-nb-ink-soft">
             {[became ? "" : who, at].filter(Boolean).join(" · ")}
           </span>
@@ -1748,6 +1828,12 @@ function SignalDetail({
         >
           {title}
         </h2>
+        {!history && heldForYou(signal) && (
+          <p className="mt-2 text-[13px] leading-[20px] text-nb-ink-soft">
+            <HeldPill />
+            {verdictReason(signal, c)}
+          </p>
+        )}
         {acts && (
           <span ref={actsRef} className="relative mt-3 flex flex-wrap items-center gap-2">
             {history ? (
@@ -1834,7 +1920,10 @@ function SignalDetail({
               c.dismissedAt,
               signal.dismissedAt ? [when(signal.dismissedAt, language), who].filter(Boolean).join(" · ") : "",
             )}
-            {line(c.dismissedWhy, signal.dismissedAt ? signal.dismissedReason : "")}
+            {signal.cardId !== null &&
+              (signal.verdict === "plan" || signal.verdict === "plan-without-refine") &&
+              line(c.verdict, <VerdictChip signal={signal} />)}
+            {line(c.dismissedWhy, signal.dismissedAt ? whyIgnored(signal, c) : verdictReason(signal, c))}
           </div>
         )}
       </div>

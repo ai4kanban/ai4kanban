@@ -156,6 +156,15 @@ chat message carries depends on where the event lives.
   characters; at most 3 PNG, JPEG or WebP references of 8 MB each. Same key and sign-in as
   narration, spending 320 AI credits per image, only once it is generated.
 
+## Triage
+
+- `POST /v1/judge` — `{ "state": {…}, "questions": { "<name>": { "type": "choice", "instructions": "…", "criteria": { "<option>": "…" } } } }`:
+  forwarded to `typesafe/jev-1.13` through OpenRouter's Decisions API; answers
+  `{ "answers": { "<name>": { "choice", "probabilities", "confidence" } }, "model" }`. Choice
+  questions only, at most 4 of them with 2–500 options each, 200,000 characters in all. Same key
+  as narration. Any Pro sign-in; free — it spends no credits, and each answer's `usage.cost` is
+  logged.
+
 ## Billing
 
 Pro, sold through Creem (#1037). Open to any verified sign-in, admitted or not: a subscription
@@ -231,7 +240,8 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
 | `image_unavailable` / `image_failed` | This build carries no image key, or the provider failed. Retry later. |
-| `pro_required` | Hosted voices and images need Pro. |
+| `judge_unavailable` / `judge_failed` | This build carries no key for judging, or the provider failed. Retry later. |
+| `pro_required` | Hosted voices, images and judging triage items need Pro. |
 | `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |

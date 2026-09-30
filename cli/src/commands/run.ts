@@ -21,6 +21,7 @@ import {
 } from '../lib/agent/sessions'
 import { currentSession } from '../lib/agent/origin'
 import { proRefusal, startResume, startRun } from '../lib/agent/start'
+import { proAccess } from '../lib/cloud/pro'
 import { unstickStop } from '../lib/agent/unstick'
 import { knownWorkflow } from '../lib/agent/workflows'
 import { cardCreation } from '../lib/agent/store'
@@ -65,6 +66,8 @@ export async function cmdStartRun(
   if (action === 'triage') {
     const access = await signalsAccess()
     if (!access.open) die(access.why, { kind: 'triage-closed' })
+    // Refreshes the Pro answer the flow reads (#1221): a sort for Pro judges with Jev.
+    await proAccess()
   }
   const { req, follow, print } = readRequest(action, args, opts)
   // A card its creator has not finished writing takes no flow (#564) — printed here, or
