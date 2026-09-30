@@ -53,6 +53,13 @@ const en: PricingCopy = {
     body: "Share redacted sessions with us to improve AI4Kanban. Accepted partners get 6 months of Pro, with no charge afterwards.",
     button: "Join the waitlist",
   },
+  custom: {
+    name: "Custom agents",
+    price: "$15",
+    per: "/ agent",
+    body: "Hand your workflow to agents built for it.",
+    button: "Describe your workflow",
+  },
   training: { name: "Training", button: "See training" },
 };
 

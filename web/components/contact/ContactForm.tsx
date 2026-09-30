@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { framed, panelStatic } from "@/components/styles";
 import type { ContactCopy } from "@/i18n/contact/types";
 import { newOpId, submitContact } from "./api";
@@ -33,6 +33,12 @@ export function ContactForm({ t }: { t: ContactCopy }) {
   const [problem, setProblem] = useState<Problem>();
   const [submitting, setSubmitting] = useState(false);
   const [sentTo, setSentTo] = useState<string>();
+
+  // The pricing page links here with `?reason=customize`. Read after mount so the static page hydrates cleanly.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reason") === "customize")
+      setValues((v) => ({ ...v, reason: "customize" }));
+  }, []);
 
   // Any edit is a new message, so it gets a new id.
   const edit = (patch: Partial<Values>) => {

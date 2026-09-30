@@ -19,5 +19,6 @@ export type PricingCopy = {
   /** The decorative board behind the plans: workflow tag labels and sample task names. */
   board: { tags: Record<Workflow, string>; tasks: Record<Workflow, string[]> };
   seed: { name: string; body: string; button: string };
+  custom: { name: string; price: string; per: string; body: string; button: string };
   training: { name: string; button: string };
 };

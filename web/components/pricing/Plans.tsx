@@ -203,7 +203,7 @@ export function Plans({
   links,
 }: {
   t: PricingCopy;
-  links: { download: string; seed: string; training: string };
+  links: { download: string; seed: string; custom: string; training: string };
 }) {
   const [billing, setBilling] = useState<Billing>("yearly");
   const pro = billing === "yearly" ? t.pro.yearly : t.pro.monthly;
@@ -248,12 +248,24 @@ export function Plans({
         </div>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-4xl gap-8 md:grid-cols-[2fr_1fr] md:gap-20">
+      <div className="mx-auto mt-16 grid max-w-4xl gap-10 md:grid-cols-3 md:gap-12">
         <section>
           <h2 className="text-xl font-bold tracking-tight">{t.seed.name}</h2>
           <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">{t.seed.body}</p>
           <a href={links.seed} className={link}>
             {t.seed.button}
+            <FiArrowRight aria-hidden="true" />
+          </a>
+        </section>
+        <section>
+          <h2 className="text-xl font-bold tracking-tight">{t.custom.name}</h2>
+          <p className="mt-3 flex items-baseline gap-1">
+            <span className="text-2xl font-bold tracking-tight">{t.custom.price}</span>
+            <span className="text-[0.95rem] text-muted">{t.custom.per}</span>
+          </p>
+          <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{t.custom.body}</p>
+          <a href={links.custom} className={link}>
+            {t.custom.button}
             <FiArrowRight aria-hidden="true" />
           </a>
         </section>

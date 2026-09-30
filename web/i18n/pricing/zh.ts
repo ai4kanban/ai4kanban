@@ -47,6 +47,13 @@ const zh: PricingCopy = {
     body: "与我们分享经你脱敏的会话，帮助改进 AI4Kanban。获得接纳后享 6 个月 Pro，到期不自动收费。",
     button: "加入候补名单",
   },
+  custom: {
+    name: "定制 Agent",
+    price: "$15",
+    per: "/ 个 Agent",
+    body: "把你的流程交给为它量身定制的 Agent。",
+    button: "描述你的流程",
+  },
   training: { name: "培训", button: "了解培训" },
 };
 
