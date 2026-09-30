@@ -121,6 +121,10 @@ export type ConfigurationCopy = {
      *  when open cards still run on it. */
     confirmDelete: (name: string) => string;
     inUse: (n: number) => string;
+    /** Over the confirm button: the agents the delete takes with it (#1248), and the ones a
+     *  delete could not remove. */
+    ownAgents: (n: number) => string;
+    agentsLeft: (names: string[]) => string;
     /** Under the name of a workflow an upgrade took an assignment off (#945): what took the
      *  work over, and the word that clears the line for good. */
     retired: string;

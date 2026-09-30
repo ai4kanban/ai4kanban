@@ -219,6 +219,7 @@ import {
 import {
   addWorkflowHelper,
   cardsOnWorkflow,
+  workflowOwnAgents,
   createWorkflow,
   deleteWorkflow,
   duplicateWorkflow,
@@ -1826,9 +1827,9 @@ export async function dismissRetiredAssignmentAction(id: string): Promise<WriteR
   }
 }
 
-/** Drop one this board added. Refused while an open card still runs on it — the pane asks
- *  `cardsOnWorkflowAction` first so it can say which cards those are before offering it. */
-export async function deleteWorkflowAction(id: string): Promise<WriteResult> {
+/** Drop one this board added, with the agents it owns. Refused while an open card still runs
+ *  on it — the pane asks `cardsOnWorkflowAction` first so it can say so before offering it. */
+export async function deleteWorkflowAction(id: string): Promise<WriteResult & { failed?: string[] }> {
   if (typeof id !== "string") return { ok: false, error: "a workflow is deleted by id" };
   try {
     return await deleteWorkflow(id);
@@ -1837,13 +1838,15 @@ export async function deleteWorkflowAction(id: string): Promise<WriteResult> {
   }
 }
 
-/** The open cards still running on one workflow. */
-export async function cardsOnWorkflowAction(id: string): Promise<{ cards: number[] }> {
-  if (typeof id !== "string") return { cards: [] };
+/** What deleting one workflow meets: the open cards still running on it, and the agents it
+ *  would take with it. */
+export async function cardsOnWorkflowAction(id: string): Promise<{ cards: number[]; agents: string[] }> {
+  if (typeof id !== "string") return { cards: [], agents: [] };
   try {
-    return { cards: await cardsOnWorkflow(id) };
+    const [cards, agents] = await Promise.all([cardsOnWorkflow(id), workflowOwnAgents(id)]);
+    return { cards, agents };
   } catch {
-    return { cards: [] };
+    return { cards: [], agents: [] };
   }
 }
 

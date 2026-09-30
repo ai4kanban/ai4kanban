@@ -82,6 +82,11 @@ const en: ConfigurationCopy = {
     confirmDelete: (name) => `Delete "${name}"`,
     inUse: (n) =>
       `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Finish or drop ${n === 1 ? "it" : "them"} first.`,
+    ownAgents: (n) =>
+      n === 1
+        ? "Its agent is deleted with it, including your instructions for it and what it remembered."
+        : `Its ${n} agents are deleted with it, including your instructions for them and what they remembered.`,
+    agentsLeft: (names) => `Workflow deleted, but these agents couldn't be: ${names.join(", ")}`,
     retired: "Some agents this workflow used are no longer available, so they were removed from it.",
     retiredSeen: "Got it",
     loading: "Loading workflows…",

@@ -140,7 +140,9 @@ export function cmdWorkflowDelete(id: string): MoveResult {
   }
   done(res)
   say(`deleted the "${flow.name}" workflow`)
-  return { id: flow.id }
+  for (const name of res.agents ?? []) say(`deleted its agent ${name}`)
+  for (const name of res.failed ?? []) say(`couldn't delete its agent ${name} — its files are still in the project`)
+  return { id: flow.id, agents: res.agents ?? [], ...(res.failed ? { failed: res.failed } : {}) }
 }
 
 export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult {

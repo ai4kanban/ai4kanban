@@ -34,6 +34,7 @@ import {
   setWorkflowLead,
   stageCandidates,
   workflowById,
+  workflowOwnAgents,
   workflowProblems,
   workflows,
   workflowViews,
@@ -43,7 +44,8 @@ import { setSpecAgentEnabled, specAgentAssigned } from '../src/lib/agents/index.
 import { createAgent } from '../src/lib/agents/roster.ts'
 import { cmdWorkflowDelete } from '../src/commands/workflow.ts'
 import { startRun, workflowRefusal } from '../src/lib/agent/start.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { agentMemoryDir } from '../src/lib/memory.ts'
+import { RULES, setBoardRoot } from '../src/lib/paths.ts'
 import { patchCard } from '../src/lib/view/edit.ts'
 import type { CardPatch } from '../src/lib/view/types.ts'
 import { move, refuses, run, uiConfigOf } from './helpers/board.ts'
@@ -575,6 +577,36 @@ describe('an agent a workflow no longer has', () => {
     await move(root, ['archive', String(made.id)])
     assert.equal(removeWorkflow(copy.id!).ok, true)
     assert.equal(workflowById(copy.id!), undefined)
+  })
+})
+
+describe('deleting a workflow with its own agents (#1248)', () => {
+  it('deletes the copies it owns and keeps every other agent', () => {
+    const copy = duplicateWorkflow('coding')
+    const other = duplicateWorkflow('coding')
+    const own = workflowOwnAgents(copy.id!)
+    assert.ok(own.includes('ui-designer-2'))
+    assert.ok(!own.some((name) => name.endsWith('-3')), 'the other copy owns its own agents')
+    fs.mkdirSync(RULES, { recursive: true })
+    fs.writeFileSync(path.join(RULES, 'ui-designer-2.md'), 'Be brief.\n')
+    fs.mkdirSync(agentMemoryDir('ui-designer-2'), { recursive: true })
+    fs.writeFileSync(path.join(agentMemoryDir('ui-designer-2'), 'notes.md'), '- one\n')
+
+    assert.deepEqual(cmdWorkflowDelete(copy.id!).agents, own)
+    for (const gone of [path.join(kanban(), 'agents', 'ui-designer-2'), path.join(RULES, 'ui-designer-2.md'), agentMemoryDir('ui-designer-2')]) {
+      assert.equal(fs.existsSync(gone), false, gone)
+    }
+    assert.doesNotMatch(fs.readFileSync(uiConfigOf(kanban()), 'utf8'), /ui-designer-2/)
+    // Another workflow's copies, the bundled originals and a project agent it never had stay.
+    assert.ok(fs.existsSync(path.join(kanban(), 'agents', 'ui-designer-3')))
+    assert.ok(workflowById(other.id!)!.stages.plan.helpers.some((h) => h.agent === 'ui-designer-3'))
+    assert.ok(workflowById('coding')!.stages.plan.helpers.some((h) => h.agent === 'ui-designer'))
+    assert.ok(fs.existsSync(path.join(kanban(), 'agents', 'test-writer')))
+  })
+
+  it('owns nothing on a built-in or a workflow with no agents', () => {
+    assert.deepEqual(workflowOwnAgents('coding'), [])
+    assert.deepEqual(workflowOwnAgents(createWorkflow('Empty').id!), [])
   })
 })
 

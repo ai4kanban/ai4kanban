@@ -128,6 +128,7 @@ export function WorkflowsPanel({
   const c = useCopy().configuration.workflows;
   const ca = useCopy().configuration.agents;
   const nameOf = useWorkflowName();
+  const agentName = useAgentName();
   const roster = useAgentRoster(onError);
   const read = useWorkflows();
   const flows = read?.workflows ?? null;
@@ -263,12 +264,15 @@ export function WorkflowsPanel({
     await load();
   };
 
+  // The roster is read again before the selection moves, so a page on a deleted agent has
+  // nothing to save back into its folder.
   const remove = async () => {
     setMenu(false);
     const gone = await deleteWorkflowAction(picked);
     if (refused(gone)) return;
+    if (gone.failed?.length) onError?.(c.agentsLeft(gone.failed.map((n) => agentName(n))));
+    await Promise.all([load(), roster.load()]);
     setPicked("");
-    await load();
   };
 
   const extraKey = (agent: string) => `${picked}/${stage}/${agent}`;
@@ -978,6 +982,9 @@ function MoreMenu({
   // How many open cards the delete would strand, asked as the menu opens so the confirm step
   // can SAY it — a delete that fails after the click is a rule the user learns by hitting it.
   const [held, setHeld] = useState<number | null>(null);
+  // The agents the delete takes with it (#1248), listed only once Delete is pressed.
+  const [own, setOwn] = useState<string[]>([]);
+  const agentName = useAgentName();
   const [asking, setAsking] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [flipping, setFlipping] = useState(false);
@@ -993,7 +1000,10 @@ function MoreMenu({
     }
     acted.current = false;
     if (!danger) return;
-    void cardsOnWorkflowAction(danger.id).then((res) => setHeld(res.cards.length));
+    void cardsOnWorkflowAction(danger.id).then((res) => {
+      setHeld(res.cards.length);
+      setOwn(res.agents);
+    });
   }, [open, danger]);
   const act = (run: () => void) => () => {
     acted.current = true;
@@ -1056,12 +1066,29 @@ function MoreMenu({
             {held > 0 ? (
               <p className="text-[11.5px] text-nb-ink-soft">{danger.inUse(held)}</p>
             ) : (
-              <DropdownMenuItem
-                onSelect={act(danger.run)}
-                className="justify-center gap-1.5 bg-nb-peach-soft text-[12px] font-[700] text-nb-peach-ink [overflow-wrap:anywhere] data-[highlighted]:bg-nb-peach/45 hover:bg-nb-peach/45"
-              >
-                {danger.confirm}
-              </DropdownMenuItem>
+              <>
+                {own.length > 0 && (
+                  <>
+                    <p className="text-[11.5px] leading-[16px] text-nb-ink-soft">{c.ownAgents(own.length)}</p>
+                    <ul className="mt-2 mb-2.5 flex flex-col gap-1">
+                      {own.map((name) => (
+                        <li key={name} className="flex items-center gap-2">
+                          <span className="flex size-[20px] shrink-0 items-end justify-center">
+                            <Character name={name} size={20} />
+                          </span>
+                          <span className="min-w-0 truncate text-[12px] font-[700]">{agentName(name)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <DropdownMenuItem
+                  onSelect={act(danger.run)}
+                  className="justify-center gap-1.5 bg-nb-peach-soft text-[12px] font-[700] text-nb-peach-ink [overflow-wrap:anywhere] data-[highlighted]:bg-nb-peach/45 hover:bg-nb-peach/45"
+                >
+                  {danger.confirm}
+                </DropdownMenuItem>
+              </>
             )}
           </div>
         )}

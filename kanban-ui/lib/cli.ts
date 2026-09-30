@@ -295,8 +295,9 @@ export interface BoardRules {
   renameWorkflow?(id: string, name: string): WriteResult;
   setWorkflowWorktree?(id: string, on: boolean): WriteResult;
   dismissRetiredAssignment?(id: string): WriteResult;
-  deleteWorkflow?(id: string): WriteResult;
+  deleteWorkflow?(id: string): WriteResult & { agents?: string[]; failed?: string[] };
   cardsOnWorkflow?(id: string): number[];
+  workflowOwnAgents?(id: string): string[];
   setWorkflowLead?(id: string, stage: WorkflowStage, agent: string): WriteResult;
   addWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
   switchWorkflowAgent?(id: string, stage: WorkflowStage, agent: string, on: boolean): WriteResult;

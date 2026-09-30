@@ -11,7 +11,8 @@ import { walkMd } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { idPrefix } from '../board/assemble'
 import { TODO } from '../paths'
-import { deleteWorkflow, DEFAULT_WORKFLOW } from './workflows'
+import { deleteAgent } from '../agents/roster'
+import { deleteWorkflow, DEFAULT_WORKFLOW, workflowOwnAgents } from './workflows'
 
 /** The ids of the open cards that run on one workflow, lowest first. A card carrying no
  *  `workflow:` key counts as the default one — which is what every flow reading it does. */
@@ -42,12 +43,20 @@ export function cardsOnWorkflow(id: string): number[] {
   return [...new Set(ids)].sort((a, b) => a - b)
 }
 
-/** Drop one of the board's own, refused while an open card still runs on it — a card left
- *  naming a workflow nobody has is a card that cannot start (agent/start.ts). A card's
- *  workflow is fixed once it is created (#744), so the way through is to finish or drop
- *  those cards. The one place that rule lives, so the pane and `akb workflow delete` turn
- *  down the same delete. */
-export function removeWorkflow(id: string): { ok: boolean; error?: string; cards?: number[] } {
+/** Drop one of the board's own, with the agents it owns (#1248), refused while an open card
+ *  still runs on it — a card left naming a workflow nobody has is a card that cannot start
+ *  (agent/start.ts). A card's workflow is fixed once it is created (#744), so the way through
+ *  is to finish or drop those cards. The one place that rule lives, so the pane and
+ *  `akb workflow delete` turn down the same delete.
+ *
+ *  An agent that fails to go leaves the workflow deleted and is named in `failed`. */
+export function removeWorkflow(id: string): {
+  ok: boolean
+  error?: string
+  cards?: number[]
+  agents?: string[]
+  failed?: string[]
+} {
   const held = cardsOnWorkflow(id)
   if (held.length) {
     return {
@@ -58,5 +67,12 @@ export function removeWorkflow(id: string): { ok: boolean; error?: string; cards
         `still ${held.length === 1 ? 'runs' : 'run'} on this workflow — finish or drop ${held.length === 1 ? 'it' : 'them'} first.`,
     }
   }
-  return deleteWorkflow(id)
+  // Read before the workflow goes: ownership goes with it.
+  const own = workflowOwnAgents(id)
+  const res = deleteWorkflow(id)
+  if (!res.ok) return res
+  const agents: string[] = []
+  const failed: string[] = []
+  for (const name of own) (deleteAgent(name).ok ? agents : failed).push(name)
+  return { ok: true, agents, ...(failed.length ? { failed } : {}) }
 }

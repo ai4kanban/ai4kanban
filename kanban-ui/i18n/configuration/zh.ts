@@ -71,6 +71,8 @@ const zh: ConfigurationCopy = {
     namePlaceholder: "工作流名称",
     confirmDelete: (name) => `删除「${name}」`,
     inUse: (n) => `还有 ${n} 张未归档卡片在用它，请先完成或删除这些卡片。`,
+    ownAgents: (n) => `它的 ${n} 个 Agent 会一并删除，包括你为它们写的要求和它们记下的内容。`,
+    agentsLeft: (names) => `工作流已删除，但这些 Agent 未能删除：${names.join("、")}`,
     retired: "此工作流用到的部分 Agent 已不再提供，已从中移除。",
     retiredSeen: "知道了",
     loading: "正在加载工作流…",

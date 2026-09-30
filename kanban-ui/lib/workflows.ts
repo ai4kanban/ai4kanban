@@ -75,8 +75,9 @@ export async function dismissRetiredAssignment(id: string): Promise<WriteResult>
   return said(await rules.dismissRetiredAssignment(id));
 }
 
-/** Drop one this board added, once no open card still runs on it. */
-export async function deleteWorkflow(id: string): Promise<WriteResult> {
+/** Drop one this board added, with the agents it owns, once no open card still runs on it.
+ *  `failed` names the agents that could not go; the workflow is gone regardless. */
+export async function deleteWorkflow(id: string): Promise<WriteResult & { failed?: string[] }> {
   const rules = await boardRules();
   if (!rules.deleteWorkflow) return { ok: false, error: await tooOld() };
   return said(await rules.deleteWorkflow(id));
@@ -86,6 +87,12 @@ export async function deleteWorkflow(id: string): Promise<WriteResult> {
 export async function cardsOnWorkflow(id: string): Promise<number[]> {
   const rules = await boardRules();
   return rules.cardsOnWorkflow ? rules.cardsOnWorkflow(id) : [];
+}
+
+/** The project agents a delete takes with it (#1248). */
+export async function workflowOwnAgents(id: string): Promise<string[]> {
+  const rules = await boardRules();
+  return rules.workflowOwnAgents ? rules.workflowOwnAgents(id) : [];
 }
 
 /** The one agent that runs a stage, or empty to leave it with nobody. */

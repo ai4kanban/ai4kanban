@@ -746,6 +746,17 @@ export function workflowFor(id: string | undefined): Workflow | undefined {
  *  was deleted — the card still builds, on the default, and whoever asked is told. */
 export const workflowKnown = (id: string): boolean => !id || workflows().some((w) => w.id === id)
 
+/** The project agents one of the board's own workflows owns — what deleting it deletes
+ *  (#1248). Never a role, a bundled agent, or one another workflow owns. */
+export function workflowOwnAgents(id: string): string[] {
+  const { flows, owners } = resolved()
+  const flow = flows.find((w) => w.id === id)
+  if (!flow || flow.builtIn) return []
+  const catalog = specAgentCatalog().agents
+  const own = new Set(catalog.filter((a) => !a.builtIn && a.dir).map((a) => a.name))
+  return [...new Set(listedBy(flow, own))].filter((name) => owners.get(name) === id)
+}
+
 // ---- who may take a stage --------------------------------------------------
 
 /** The agents that may lead or help one stage — every agent on the roster that declares this
@@ -922,6 +933,8 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
   const base = trimmedName(called ?? '') || flow.name
   const name = freeName(base, [...workflows().map((w) => w.name), base])
   const copy = freeId(workflows().map((w) => w.id))
+  // So Coding does not take the copies in as helpers it inherits.
+  settleWorkflows()
   const specialist = new Set(specAgentCatalog().agents.map((a) => a.name))
   const taken = new Set<string>()
   const copied = new Map<string, string>()
