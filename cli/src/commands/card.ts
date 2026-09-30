@@ -9,7 +9,7 @@ import path from 'node:path'
 import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
+import { slugify, validModules, parseIdList, normalizeRelease, dependencyCycle } from '../lib/validate'
 import { DEFAULT_WORKFLOW, knownWorkflow } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
@@ -276,6 +276,7 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     changes.push(`release→${meta.release || '(none)'}`)
   }
   const ceiling = readNextId()
+  const hadBlockedBy = meta.blocked_by
   if (flags.blockedBy !== undefined) {
     meta.blocked_by = parseIdList(flags.blockedBy, 'blocked-by', ceiling)
     changes.push('blocked_by')
@@ -288,6 +289,12 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.addBlockedBy !== undefined) {
     meta.blocked_by = appendIds(meta.blocked_by, parseIdList(flags.addBlockedBy, 'add-blocked-by', ceiling))
     changes.push('blocked_by')
+  }
+  // Only new edges are checked, so a cycle already on the board can still be edited apart.
+  for (const dep of meta.blocked_by.filter((d) => !hadBlockedBy.includes(d))) {
+    if (dep === id) die(`#${id} cannot be blocked by itself.`, { kind: 'dependency-cycle', cycle: [id, id] })
+    const cycle = dependencyCycle(id, dep)
+    if (cycle) die(`#${id} blocked by #${dep} makes a cycle: ${cycle.map((n) => `#${n}`).join(' → ')}`, { kind: 'dependency-cycle', cycle })
   }
   if (flags.addRelated !== undefined) {
     meta.related = appendIds(meta.related, parseIdList(flags.addRelated, 'add-related', ceiling))

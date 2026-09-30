@@ -6,10 +6,12 @@
 // hallucinated one is a hard error rather than a silently written field.
 
 import fs from 'node:fs'
+import path from 'node:path'
 
 import { die, warn, rel, MODULES_MD } from './paths'
 import { moduleNamesFrom } from './board/assemble'
 import { locate } from './cards'
+import { parseFrontmatter } from './frontmatter'
 
 export function slugify(s: unknown): string {
   const out = String(s)
@@ -99,6 +101,27 @@ export function parseIdList(raw: string[], name: string, ceiling: number): numbe
     if (!locate(n)) die(`--${name} points at #${n}, which is not an open card.`)
     return n
   })
+}
+
+// The path `id → dep → … → id` that making `id` wait on `dep` would close, or null.
+// Follows open cards only: a closed card no longer blocks anything.
+export function dependencyCycle(id: number, dep: number): number[] | null {
+  const seen = new Set<number>()
+  const walk = (at: number): number[] | null => {
+    if (at === id) return [id]
+    if (seen.has(at)) return null
+    seen.add(at)
+    const found = locate(at)
+    if (!found) return null
+    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    for (const next of parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.blocked_by ?? []) {
+      const rest = walk(next)
+      if (rest) return [at, ...rest]
+    }
+    return null
+  }
+  const rest = walk(dep)
+  return rest && [id, ...rest]
 }
 
 // A module name doubles as a folder name under memory/, so it's held to a folder's shape.
