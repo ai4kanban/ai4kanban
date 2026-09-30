@@ -37,10 +37,9 @@ docs/kanban/
 
 ## Configuration
 
-**Read `docs/kanban/config.md` before proposing or adding tasks, and when a question audit
-needs planning sources or reference docs.** It defines the project name, planning sources,
-and reference docs. Board updates leave it unchanged. References to "your planning sources"
-or "your reference docs" mean the values in this file.
+**Read `docs/kanban/config.md` before adding tasks.** It holds the project name, the planning
+sources setup reads, and the reference docs. Board updates leave it unchanged. "Your planning
+sources" or "your reference docs" mean the values in this file.
 
 ## Task ID
 

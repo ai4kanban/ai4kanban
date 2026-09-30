@@ -18,9 +18,8 @@ by upstream, so an update overwrites it wholesale; this file is never touched. S
   _(default: this repository; its goal is whatever the README states.)_
 - **Stale after** — 30 days
   _(how long a card may sit untouched before `akb raw list --stale` calls it stuck.)_
-- **Planning sources** — what to read when proposing new work:
+- **Planning sources** — what setup reads once to propose the board's first tasks:
   the README and package manifests, the codebase, project documentation, and board memory.
 - **Reference docs** — optional files the flows read when they exist:
   - roadmap / direction: none
   - user-facing docs the work should keep in sync: `docs/` when it contains project docs
-  - anything else worth scanning each loop: none
