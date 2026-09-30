@@ -132,6 +132,7 @@ describe('Use a Git worktree', () => {
     assert.equal(workflowById(id)!.needsArtifact, true)
     const cfg = JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8'))
     cfg.workflows.added.push({ id: 'wf-9', name: 'Old' })
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify(cfg))
     assert.equal(workflowById('wf-9')!.needsArtifact, false)
   })

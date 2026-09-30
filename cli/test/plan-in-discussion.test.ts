@@ -16,7 +16,7 @@ import { answeringOn, chatRunEnded, readChat, sendChatMessage, takeChatSession }
 import { closeRun, openResume, openRun, resumeSessionId } from '../src/lib/agent/sessions.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
 import { CHATS_DIR, PLANS, setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, uiConfigOf } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-plan-chat-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -34,7 +34,7 @@ beforeEach(() => {
   fs.mkdirSync(path.join(kanban, 'todo'), { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
   fs.writeFileSync(
-    path.join(kanban, 'ui.config.json'),
+    uiConfigOf(kanban),
     JSON.stringify({
       runtimes: [
         { id: 'global', name: 'Global default', harness: 'claude-code', settings: {} },

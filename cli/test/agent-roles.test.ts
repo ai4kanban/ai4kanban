@@ -190,6 +190,7 @@ describe('the board helpers are always on (#1208)', () => {
     (await readAgents()).agents.find((a) => a.name === name)!.enabled
 
   it('reads a key an earlier release wrote to switch one off as on', async () => {
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ proposer: false, autoTriage: false, memoryReviewer: false }))
     for (const name of ['proposer', 'memory-reviewer', 'discussion-helper', 'software-planner', 'builder']) {
       assert.equal(await on(name), true, name)

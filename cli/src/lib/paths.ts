@@ -14,6 +14,7 @@ import {
   SESSIONS_FOLDER,
   SESSIONS_LOCK as SESSIONS_LOCK_NAME,
   SWEEP_REPORT_FILE,
+  UI_CONFIG_FILE,
   ensureProjectState,
   projectStateDir,
 } from './machine/project'
@@ -87,12 +88,11 @@ export let GOAL = ''
 // (#622).
 export let LOCK = ''
 // Which agent runs the board, what it is set to, and whether refining happens on its own.
-// The local UI has written this file since it existed; the CLI reads and writes the same
-// one, because renaming it would break every board that has one for nothing a user sees.
+// Each person's own, in the board's machine state: never committed, never uploaded (#1271).
 export let UI_CONFIG = ''
-// What each agent runs its model as, on THIS computer (#443). The harness an agent runs is
-// the board's, in ui.config.json; the model and the reasoning level under it are this
-// machine's, so a checkout on another computer picks its own. Dotted and ignored, the same
+// Where it was committed before #1271. Read once into UI_CONFIG, then deleted (settings.ts).
+export let LEGACY_UI_CONFIG = ''
+// What each agent runs its model as, on THIS computer (#443). Dotted and ignored, the same
 // treatment .env gets.
 export let LOCAL_CONFIG = ''
 // The board's one place for API keys. Kept out of git by the board's own .gitignore.
@@ -272,12 +272,13 @@ function setBoard(kanban: string, root: string, flag: string): string {
   MEMORY = path.join(KANBAN, 'memory')
   AGENT_MEMORY = path.join(MEMORY, 'agents')
   GOAL = path.join(MEMORY, 'goal.md')
-  UI_CONFIG = path.join(KANBAN, 'ui.config.json')
+  LEGACY_UI_CONFIG = path.join(KANBAN, UI_CONFIG_FILE)
   LOCAL_CONFIG = path.join(KANBAN, '.local.json')
   ENV_FILE = path.join(KANBAN, '.env')
   // Local state stays in the checkout and is shared with sandboxed agents.
   const machine = projectStateDir(KANBAN, REPO_ROOT)
   BOARD_STATE = machine
+  UI_CONFIG = path.join(machine, UI_CONFIG_FILE)
   ASSETS = path.join(machine, ASSETS_FOLDER)
   MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
   SESSIONS = path.join(machine, SESSIONS_FILE)

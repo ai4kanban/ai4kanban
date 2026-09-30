@@ -388,13 +388,13 @@ function moveRuntimes(root: string, board: string, report: Report): void {
     // `akb update --dir X` repairs a board this process did not resolve on its own, and the
     // roster follows the board's own `agents/` folder.
     setBoardRoot(root)
-    const line = migrateRuntimes(board, agentNames(), takeLocalModels(board))
+    const line = migrateRuntimes(agentNames(), takeLocalModels(board))
     if (line) report.did.push(line)
     const keys = repairEnvFile()
     if (keys) report.did.push(keys)
   } catch (err) {
     report.notes.push(
-      `couldn't turn docs/kanban/ui.config.json's connector settings into runtimes (${err instanceof Error ? err.message : String(err)}) —` +
+      `couldn't turn this board's connector settings into runtimes (${err instanceof Error ? err.message : String(err)}) —` +
         ' set them up in Configuration → Runtimes',
     )
   }

@@ -8,9 +8,8 @@ import type {
 } from "./types";
 
 // --- the settings, through the CLI (#168) ------------------------------------
-// docs/kanban/ui.config.json is still the file, and it still holds which agent runs, with
-// every agent's own settings beside it. What changed is who reads and writes it — the CLI
-// does, so `akb agent` and this dialog are one writer with one set of rules.
+// ui.config.json holds which agent runs, with every agent's own settings beside it. The CLI
+// reads and writes it, so `akb agent` and this dialog are one writer with one set of rules.
 
 export async function setHarness(name: string): Promise<{ ok: boolean; error?: string }> {
   return said(await (await boardRules()).setHarness(name));
@@ -25,8 +24,7 @@ export async function setHarnessSetting(
 }
 
 // --- auto-delivery (#303) ----------------------------------------------------
-// **Automatic Git commits** — one repository-level setting, saved in the same file,
-// so a team shares one answer rather than each machine keeping its own.
+// **Automatic Git commits** — saved in the same file as the other board settings.
 
 export async function autoCommitAllowed(): Promise<boolean> {
   const rules = await boardRules();

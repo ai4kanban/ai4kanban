@@ -1,13 +1,11 @@
 // The board's agent settings, and the one place keys live.
 //
-// Two files, both beside the board:
+// Two files, both kept out of git:
 //
-//   docs/kanban/ui.config.json  which agent runs, and what each one is set to.
-//   docs/kanban/.env            every key the board uses, and nowhere else — never in
-//                               ui.config.json, never in a shell profile.
-//
-// The local UI has written both since they existed and the CLI writes the same two.
-// Renaming either would break every board that has one, for nothing a user would notice.
+//   <board-state>/ui.config.json  which agent runs, and what each one is set to — each
+//                                 person's own (#1271).
+//   docs/kanban/.env              every key the board uses, and nowhere else — never in
+//                                 ui.config.json, never in a shell profile.
 //
 // ui.config.json reads:
 //
@@ -24,6 +22,7 @@
 // What a run runs as is one runtime, and all of it — harness, provider, endpoint, key, model
 // id, reasoning, extra arguments — is that one row (./runtimes.ts). This file owns the reading
 // and writing of `ui.config.json` itself, the spec agents' entries, and `docs/kanban/.env`.
+// A board that still has the committed `docs/kanban/ui.config.json` is moved on first read.
 //
 // A key no setting declares is left exactly where it is: this is the user's file, and
 // nothing here rewrites a line they wrote.
@@ -32,7 +31,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
-import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
+import { ENV_FILE, KANBAN_GITIGNORE, LEGACY_UI_CONFIG, UI_CONFIG } from '../paths'
 import { refusal, type CadenceSchedule, type MemoryReviewState, type Saved } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
@@ -48,8 +47,21 @@ export function configBlock(value: unknown): Record<string, unknown> {
 /** Read and parse the whole config object. Throws on a malformed file so a writer never
  *  clobbers a user's settings; a missing file is an empty object. */
 export function readConfigRaw(): Record<string, unknown> {
+  adoptLegacyConfig()
   if (!fs.existsSync(UI_CONFIG)) return {}
   return JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8'))
+}
+
+/** Move the committed `docs/kanban/ui.config.json` into this person's state. Its content is
+ *  taken only when there is no file of their own yet — a pulled copy never overwrites their
+ *  settings — and it is deleted either way. */
+export function adoptLegacyConfig(): void {
+  if (!LEGACY_UI_CONFIG || !fs.existsSync(LEGACY_UI_CONFIG)) return
+  if (!fs.existsSync(UI_CONFIG)) {
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
+    fs.copyFileSync(LEGACY_UI_CONFIG, UI_CONFIG)
+  }
+  fs.rmSync(LEGACY_UI_CONFIG, { force: true })
 }
 
 /** The config as a reader takes it: an unreadable or malformed file holds nothing, so a

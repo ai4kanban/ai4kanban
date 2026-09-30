@@ -486,7 +486,7 @@ function useRulesText() {
 // The harness picker: one square card per agent we can run, the active one
 // framed in ember, and under them the settings that agent declares (#93) — for
 // Claude Code, the model it runs with (#71). Clicking a card saves
-// that harness's name to docs/kanban/ui.config.json — nothing else changes, and
+// that harness's name to ui.config.json — nothing else changes, and
 // a run in flight keeps the harness it started under. Selecting optimistically
 // and reverting on a failed save.
 //

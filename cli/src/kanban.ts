@@ -200,8 +200,7 @@ export { testConnection } from './lib/agent/test'
 // starts.
 export { loggedOutAgents } from './lib/agent/login'
 
-// Which runtime each agent runs (#467). The pick is the board's, in
-// docs/kanban/ui.config.json, so every checkout runs each agent as the same thing.
+// Which runtime each agent runs (#467), saved in this person's ui.config.json.
 // `readAgents` already carries it for every agent, so a screen keeps no list of its own —
 // this is only the writer.
 export { setAgentRuntime } from './lib/agent/runtimes'

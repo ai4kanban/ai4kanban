@@ -35,6 +35,7 @@ import { readEnvFile } from '../src/lib/agent/settings.ts'
 import { specAgentEntries } from '../src/lib/agent/settings.ts'
 import { readSpecAgents } from '../src/lib/agents/index.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 
@@ -42,7 +43,7 @@ const kanban = (): string => path.join(root, 'docs', 'kanban')
 
 const config = (cfg: Record<string, unknown>): void => {
   fs.mkdirSync(kanban(), { recursive: true })
-  fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
+  fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify(cfg, null, 2))
   setBoardRoot(root)
 }
 
@@ -57,7 +58,7 @@ const env = (text: string): void => {
 }
 
 const held = (): Record<string, unknown> =>
-  JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+  JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
 
 const heldLocal = (): Record<string, unknown> =>
   JSON.parse(fs.readFileSync(path.join(kanban(), '.local.json'), 'utf8'))
@@ -379,7 +380,7 @@ describe('turning an older board into runtimes', () => {
   )
 
   it('writes one row per block, with the board’s own first', () => {
-    const line = migrateRuntimes(kanban(), ['planner', 'builder'], takeLocalModels(kanban()))
+    const line = migrateRuntimes(['planner', 'builder'], takeLocalModels(kanban()))
     assert.match(line ?? '', /runtimes/)
     assert.deepEqual(
       readRuntimes().map((r) => [r.id, r.harness]),
@@ -402,7 +403,7 @@ describe('turning an older board into runtimes', () => {
         reviewer: { 'claude-code': {} },
       },
     })
-    migrateRuntimes(kanban(), ['planner', 'builder', 'reviewer'], takeLocalModels(kanban()))
+    migrateRuntimes(['planner', 'builder', 'reviewer'], takeLocalModels(kanban()))
     assert.deepEqual(
       readRuntimes().map((r) => r.id),
       ['global', 'codex', 'planner', 'builder'],
@@ -416,7 +417,7 @@ describe('turning an older board into runtimes', () => {
 
   it('runs what this computer ran before the move — the block and the model together', () => {
     local({ agents: { builder: { codex: { model: 'gpt-5.1-codex' } } } })
-    migrateRuntimes(kanban(), ['planner', 'builder', 'reviewer'], takeLocalModels(kanban()))
+    migrateRuntimes(['planner', 'builder', 'reviewer'], takeLocalModels(kanban()))
     setBoardRoot(root)
     const run = openPlan(plan({ action: 'implement' }))
     assert.ok(run.argv.includes('gpt-5.1-codex'))
@@ -428,8 +429,8 @@ describe('turning an older board into runtimes', () => {
   })
 
   it('moves once, so a second update finds nothing', () => {
-    migrateRuntimes(kanban(), ['builder'], takeLocalModels(kanban()))
-    assert.equal(migrateRuntimes(kanban(), ['builder'], takeLocalModels(kanban())), null)
+    migrateRuntimes(['builder'], takeLocalModels(kanban()))
+    assert.equal(migrateRuntimes(['builder'], takeLocalModels(kanban())), null)
   })
 
   it('discards a pre-#443 `runtimes` block rather than reading it under the new rules', () => {

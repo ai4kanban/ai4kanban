@@ -12,14 +12,14 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { SILENCE_MINUTES, setSilenceMinutes, silenceMinutes } from '../src/lib/agent/settings.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, uiConfigOf } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-silence-'))
 const kanban = path.join(root, 'docs', 'kanban')
-const config = path.join(kanban, 'ui.config.json')
+const config = uiConfigOf(kanban)
 
 const write = (text: string): void => {
-  fs.mkdirSync(kanban, { recursive: true })
+  fs.mkdirSync(path.dirname(config), { recursive: true })
   fs.writeFileSync(config, text)
 }
 

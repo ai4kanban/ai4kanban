@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { agentInfo, openPlan, planRun } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 
@@ -23,7 +24,7 @@ function board(settings: Record<string, unknown> = {}, env = ''): void {
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
   fs.writeFileSync(
-    path.join(kanban, 'ui.config.json'),
+    uiConfigOf(kanban),
     JSON.stringify({
       runtimes: [{ id: 'global', name: 'Global default', harness: 'claude-code', settings }],
     }),

@@ -21,7 +21,7 @@ import { DISCUSSION_ENV, RUN_ENV } from '../src/lib/agent/env.ts'
 import { agentOf, currentSession, opencodeSessionOf, probes, terminalSession } from '../src/lib/agent/origin.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
-import { move } from './helpers/board.ts'
+import { move, uiConfigOf } from './helpers/board.ts'
 
 const DISCUSSION = 'discussion-00000000-0000-0000-0000-000000000001'
 
@@ -48,7 +48,7 @@ if (${failFork} && forking) { process.stderr.write('No conversation found\\n'); 
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
   fs.writeFileSync(
-    path.join(kanban, 'ui.config.json'),
+    uiConfigOf(kanban),
     JSON.stringify({
       runtimes: [
         { id: 'global', name: 'Global default', harness, settings: { command: `node ${file}` } },

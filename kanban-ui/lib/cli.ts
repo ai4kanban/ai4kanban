@@ -514,8 +514,7 @@ export interface BoardRules {
   /** That row's key, under its own id-scoped line in docs/kanban/.env. */
   setRuntimeSecret?(id: string, settingKey: string, value: string): WriteResult;
 
-  // which runtime each agent runs (#467). The pick is the board's, in
-  // docs/kanban/ui.config.json, so every checkout runs each agent as the same thing.
+  // which runtime each agent runs (#467), saved in ui.config.json.
   // Optional: a project can be running rules older than the release that added them, and
   // an agent's page then draws no runtime row.
   /** Point one agent at a runtime, or back at Global default with "". */

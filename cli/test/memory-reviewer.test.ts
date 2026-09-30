@@ -147,6 +147,7 @@ describe('the review the board starts on its own', () => {
   it('starts one even where an earlier release switched it off (#1208)', async () => {
     card(1, [])
     chat('card-1', Date.now())
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryReviewer: false }))
     assert.deepEqual(await work(), [{ action: 'review-memory' }])
   })

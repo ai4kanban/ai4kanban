@@ -1467,9 +1467,8 @@ export async function testConnectionAction(harness?: string): Promise<Connection
 }
 
 // --- which connector each agent runs (#443) -----------------------------------
-// An agent's own page. The PICK is the board's, in docs/kanban/ui.config.json, so every
-// checkout runs each agent on the same tool; the MODEL under it is this computer's, in
-// docs/kanban/.local.json. Every write goes through the CLI, so a terminal `akb agent` and
+// An agent's own page. The PICK is in ui.config.json; the MODEL under it is this computer's,
+// in docs/kanban/.local.json. Every write goes through the CLI, so a terminal `akb agent` and
 // this pane are one writer with one set of rules.
 
 /** Point one agent at a runtime, or back at Global default with "". The id is checked against

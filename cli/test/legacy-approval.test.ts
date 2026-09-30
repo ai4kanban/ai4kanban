@@ -108,6 +108,7 @@ describe('left over from diff approval', () => {
   it('lands a delivery that was waiting on the approval, whatever the config says', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')
     const config = JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')) as Record<string, unknown>
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ ...config, requireDiffApproval: true }))
     const store = JSON.parse(fs.readFileSync(SESSIONS, 'utf8')) as { deliveries: Record<string, unknown>[] }
     const row = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)!

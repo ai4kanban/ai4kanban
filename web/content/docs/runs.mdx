@@ -97,10 +97,11 @@ akb agent bind builder my_gateway            # give one agent a runtime of its o
 The first row is **Global default** — what an agent naming no runtime runs. It is the default
 because it is first, not because anything marks it, and it can be neither renamed nor deleted.
 
-A runtime's SHAPE travels with the repository, in `docs/kanban/ui.config.json`, so every checkout
-runs each agent as the same thing. Its **API key** does not: it is one line per runtime in
-`docs/kanban/.env`, which git does not carry. Clone the repo somewhere else and every runtime is
-there, each waiting for its own key.
+Runtimes, like the rest of the board's settings, are yours alone: they live in
+`.akb/boards/<board>/ui.config.json`, which git does not carry and a Cloud workspace does not
+share. Each **API key** is one line per runtime in `docs/kanban/.env`, also kept out of git.
+A board that still commits `docs/kanban/ui.config.json` moves it there the first time it reads
+its settings.
 
 On screen, an agent's own page — under **Configuration → Workflows** or **Configuration → Board** —
 is where it picks its runtime, and

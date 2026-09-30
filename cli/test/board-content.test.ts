@@ -17,7 +17,7 @@ import { board, withLease, type OpEnvelope, type OpResult } from '../src/lib/boa
 import { boardFingerprint, clearBoardCopy, packBoard, portableDelivery, unpackBoard } from '../src/lib/board/transfer.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { readAgentMemory } from '../src/lib/memory.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import type { DeliveryRecord } from '../src/lib/agent/types.ts'
 import type { Meta } from '../src/lib/types.ts'
 import { forgetMachineState } from './helpers/board.ts'
@@ -413,6 +413,20 @@ describe('packing a board', () => {
     assert.equal(read('.sessions/r1.log'), 'what the agent said\n')
     // …while the committed half is gone, which is what clearing is for.
     assert.equal(fs.existsSync(path.join(kanban, 'todo')), false)
+  })
+
+  it("keeps this person's board settings through a workspace round trip (#1271)", () => {
+    const settings = '{"runtimes":[{"id":"global","harness":"codex"}]}\n'
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
+    fs.writeFileSync(UI_CONFIG, settings)
+
+    const payload = packBoard()
+    assert.ok(!JSON.stringify(payload).includes('codex'), 'the settings left the machine')
+    clearBoardCopy()
+    unpackBoard(payload, root)
+
+    assert.equal(fs.readFileSync(UI_CONFIG, 'utf8'), settings)
+    assert.equal(fs.existsSync(path.join(kanban, 'ui.config.json')), false)
   })
 
   it('says which committed files neither half recognised', () => {

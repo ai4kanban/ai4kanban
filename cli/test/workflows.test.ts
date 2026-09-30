@@ -46,7 +46,7 @@ import { startRun, workflowRefusal } from '../src/lib/agent/start.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { patchCard } from '../src/lib/view/edit.ts'
 import type { CardPatch } from '../src/lib/view/types.ts'
-import { move, refuses, run } from './helpers/board.ts'
+import { move, refuses, run, uiConfigOf } from './helpers/board.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 
 let root = ''
@@ -81,7 +81,7 @@ const stageAgent = (name: string, stage: string, lead = false): void => {
 // A workflow of the board's own that owes a file, the way a board-added one is saved.
 const artifactWorkflow = (): string => {
   fs.writeFileSync(
-    path.join(kanban(), 'ui.config.json'),
+    uiConfigOf(kanban()),
     JSON.stringify({
       workflows: {
         added: [{ id: 'wf-9', name: 'Video', needsArtifact: true }],
@@ -134,7 +134,7 @@ describe('the workflows a board has', () => {
     // The illustrator is the blog's own, never one of Coding's specialists.
     assert.ok(!workflowById('coding')!.stages.plan.helpers.some((h) => h.agent === 'blog-illustrator'))
     // Nothing was written to make that true: a board that never opened the pane still runs.
-    assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
+    assert.equal(fs.existsSync(uiConfigOf(kanban())), false)
   })
 
   it('leads each stage with the agents that workflow assigns, not with the board’s one answer', () => {
@@ -187,14 +187,14 @@ describe('the workflows a board has', () => {
 // while it was still a picker gets the command's agent back.
 describe('the leads of a workflow the command ships', () => {
   const config = (): Record<string, any> =>
-    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+    JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
 
   it('refuses the change and says where a workflow of your own comes from', () => {
     const res = setWorkflowLead('coding', 'plan', 'ui-designer')
     assert.equal(res.ok, false)
     assert.match(res.error!, /built in .* fixed\. Duplicate it/)
     assert.equal(workflowById('coding')!.stages.plan.lead, 'software-planner')
-    assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
+    assert.equal(fs.existsSync(uiConfigOf(kanban())), false)
   })
 
   it('still takes helpers, and writes no lead beside them', () => {
@@ -206,7 +206,7 @@ describe('the leads of a workflow the command ships', () => {
 
   it('runs the command’s agent again on a board that had changed one, and drops the key', () => {
     fs.writeFileSync(
-      path.join(kanban(), 'ui.config.json'),
+      uiConfigOf(kanban()),
       JSON.stringify({
         workflows: {
           stages: {
@@ -248,10 +248,10 @@ describe('the leads of a workflow the command ships', () => {
 // off say so once.
 describe('an assignment an upgrade retired', () => {
   const config = (): Record<string, any> =>
-    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+    JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
 
   const saveConfig = (cfg: Record<string, unknown>): void =>
-    fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
+    fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify(cfg, null, 2))
 
   const marked = (): string[] => workflowViews().filter((w) => w.retiredAssignment).map((w) => w.id)
 
@@ -312,7 +312,7 @@ describe('an assignment an upgrade retired', () => {
       ['demo-rehearser', 'hyperframes-editor', 'cover-designer'],
     )
     assert.deepEqual(marked(), [])
-    assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
+    assert.equal(fs.existsSync(uiConfigOf(kanban())), false)
   })
 })
 
@@ -321,10 +321,10 @@ describe('an assignment an upgrade retired', () => {
 // goes — and an agent switched off then must not come back on the upgrade.
 describe('a switch a board saved before the assignment was the answer', () => {
   const config = (): Record<string, any> =>
-    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+    JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
 
   const saveConfig = (cfg: Record<string, unknown>): void =>
-    fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
+    fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify(cfg, null, 2))
 
   // What the stage OFFERS, which is what a run is handed — an inherited stage has nothing
   // saved in it.
@@ -680,7 +680,7 @@ describe('a card a delivery is already building', () => {
 
 describe('an agent that can lead never helps (#858)', () => {
   const config = (): Record<string, any> =>
-    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+    JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
   const planView = (id: string) => workflowViews().find((w) => w.id === id)!.stages[0]!
 
   it('refuses it as a helper with a reason, and leaves it out of every inherited stage', () => {
@@ -700,7 +700,7 @@ describe('an agent that can lead never helps (#858)', () => {
   it('keeps a helper saved before the rule until it is removed', () => {
     stageAgent('outliner', 'plan', true)
     fs.writeFileSync(
-      path.join(kanban(), 'ui.config.json'),
+      uiConfigOf(kanban()),
       JSON.stringify({
         workflows: {
           added: [{ id: 'wf-5', name: 'Old' }],
@@ -715,7 +715,7 @@ describe('an agent that can lead never helps (#858)', () => {
 
   it('moves a workflow saved under `planner` onto `software-planner`, once', () => {
     fs.writeFileSync(
-      path.join(kanban(), 'ui.config.json'),
+      uiConfigOf(kanban()),
       JSON.stringify({
         workflows: {
           agentsOwned: true,
@@ -751,7 +751,7 @@ describe('who may lead a stage (#846)', () => {
 
   it('keeps running a lead saved before the declaration, and says so', () => {
     fs.writeFileSync(
-      path.join(kanban(), 'ui.config.json'),
+      uiConfigOf(kanban()),
       JSON.stringify({
         workflows: {
           agentsOwned: true,
@@ -771,7 +771,7 @@ describe('who may lead a stage (#846)', () => {
   it('gives a declared lead its own instructions when leading, and never when helping', () => {
     stageAgent('outliner', 'plan', true)
     fs.writeFileSync(
-      path.join(kanban(), 'ui.config.json'),
+      uiConfigOf(kanban()),
       JSON.stringify({
         workflows: {
           added: [{ id: 'wf-6', name: 'Outline' }],
@@ -785,9 +785,9 @@ describe('who may lead a stage (#846)', () => {
 })
 
 describe('one workflow per agent (#1095)', () => {
-  const saved = (): Record<string, any> => JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+  const saved = (): Record<string, any> => JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
   const write = (cfg: Record<string, unknown>): void =>
-    fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg))
+    fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify(cfg))
   const members = (id: string, stage: 'plan' | 'execute' = 'plan') =>
     liveStage(workflowById(id)!, stage).helpers.map((h) => `${h.agent}${h.off ? ' (off)' : ''}`)
 

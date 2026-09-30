@@ -172,8 +172,8 @@ GLM Coding Plan.
 - **Getting the command**: `npm install -g zcode-app-cli` puts `zcode` on your PATH. It is
   a community package, not Z.ai's — it lifts the agent out of ZCode Desktop, and its own
   README says its right to republish that runtime is unconfirmed. If you would rather not
-  rely on it, install ZCode Desktop and point this agent's `command` in
-  `docs/kanban/ui.config.json` at the `zcode` inside it, followed by `app-server`.
+  rely on it, install ZCode Desktop and point this agent's `command` in the board's
+  `ui.config.json` (under `.akb/boards/`) at the `zcode` inside it, followed by `app-server`.
 - **Signing in**: paste a Coding Plan key into **Z.AI Coding Plan key** — from Z.ai, or
   from BigModel for the same plan bought in mainland China. It is the only way in.
   A `zcode login` credential belongs to a provider `zcode`'s own config never points at,
@@ -242,5 +242,5 @@ Grok Build is xAI's own coding agent, and the way to run this board on Grok.
 Press **Test** (or run `akb agent test`) to send one small message through the setup, so a
 bad login turns up here rather than on your next card.
 
-A `command` you write into `docs/kanban/ui.config.json` overrides these fields — the board
+A `command` you write into the board's `ui.config.json` overrides these fields — the board
 never replaces a flag you set yourself, and says so on any field it affects.

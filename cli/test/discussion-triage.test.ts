@@ -13,7 +13,7 @@ import { probes } from '../src/lib/agent/origin.ts'
 import { CHATS_DIR, KANBAN, setBoardRoot } from '../src/lib/paths.ts'
 import { checkSource } from '../src/lib/signals/check.ts'
 import { dismissInboxItem } from '../src/lib/signals/inbox.ts'
-import { move } from './helpers/board.ts'
+import { move, uiConfigOf } from './helpers/board.ts'
 
 const DISCUSSION = 'discussion-00000000-0000-0000-0000-000000001252'
 const ITEM = 'item-1252'
@@ -32,7 +32,7 @@ function board(): void {
   fs.mkdirSync(path.join(kanban, 'triage'), { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '7\n')
   fs.writeFileSync(
-    path.join(kanban, 'ui.config.json'),
+    uiConfigOf(kanban),
     JSON.stringify({ runtimes: [{ id: 'global', name: 'Global default', harness: 'claude-code', settings: { command: `node ${agent}` } }] }),
   )
   setBoardRoot(root)

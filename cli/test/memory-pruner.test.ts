@@ -98,11 +98,13 @@ describe("the pruner's schedule", () => {
   })
 
   it('reads a hand-written cadence nothing parses as the default', () => {
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { enabled: true, cadence: 'soon' } }))
     assert.deepEqual(memoryPrune(), { enabled: true, cadence: '7d', lastRun: '' })
   })
 
   it('reads a schedule an earlier release switched off as on, at its saved cadence', () => {
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { enabled: false, cadence: '3d' } }))
     assert.deepEqual(memoryPrune(), { enabled: true, cadence: '3d', lastRun: '' })
   })
@@ -128,6 +130,7 @@ describe('the prune the board starts on its own', () => {
   })
 
   it('starts one once a cadence has passed since that look', async () => {
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { since: '2026-01-01 09:00' } }))
     assert.deepEqual(await work(), [{ action: 'prune-memory' }])
   })

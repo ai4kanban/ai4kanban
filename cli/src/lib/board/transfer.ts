@@ -6,9 +6,9 @@
 // (#315).
 //
 // What travels is what the board COMMITS, and nothing else. This machine's own files —
-// `.env`, `.local.json` and `ui.config.json`, its answer to which coding agent runs the
-// board — stay where they are, and so does whatever a board written before #590 still holds
-// beside them. `docs/kanban/.gitignore` is the list, and `KEPT_LOCAL` below is that list
+// `.env` and `.local.json` — stay where they are, and so does whatever an older board still
+// holds beside them. The board settings are each person's and live under `.akb/`, so they
+// never travel at all (#1271). `docs/kanban/.gitignore` is the list, and `KEPT_LOCAL` below is that list
 // read as code.
 //
 // Two rules the shapes here exist to keep:
@@ -82,15 +82,14 @@ export interface BoardPayload {
 }
 
 /**
- * What a board keeps out of git, and therefore out of a workspace: the API keys, the model
- * each agent runs on this computer, and this machine's own answer to which coding agent runs
- * the board.
+ * What a board keeps out of git, and therefore out of a workspace: the API keys and the model
+ * each agent runs on this computer.
  *
- * The rest of the list is what a board written before #590 left behind — the run record and
- * its logs, the conversations, the drawings, the comment batches, the locks. Nothing writes
- * or reads those any more, and they stay here for exactly that reason: they are still on the
- * machine, still the user's to delete, and an import that uploaded one or a hydrate that
- * deleted one would be doing it to a file nobody asked about.
+ * The rest of the list is what an older board left behind: `ui.config.json` until its first
+ * read moves it under `.akb/` (#1271), and from before #590 the run record and its logs, the
+ * conversations, the drawings, the comment batches, the locks. They stay here because an
+ * import that uploaded one or a hydrate that deleted one would be doing it to a file nobody
+ * asked about.
  *
  * Names relative to `docs/kanban/`, matched at the top level. It is
  * `docs/kanban/.gitignore` read as code, which is deliberate: a board that uploaded the

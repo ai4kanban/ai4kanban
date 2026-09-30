@@ -15,13 +15,14 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { pickChatRuntime, readChat, readChatView, sendChatMessage } from '../src/lib/agent/chat.ts'
 import { openPlan, planResume, planRun } from '../src/lib/agent/resolve.ts'
 import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 
 const config = (cfg: Record<string, unknown>): void => {
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
-  fs.writeFileSync(path.join(kanban, 'ui.config.json'), JSON.stringify(cfg, null, 2))
+  fs.writeFileSync(uiConfigOf(kanban), JSON.stringify(cfg, null, 2))
   setBoardRoot(root)
 }
 
@@ -62,7 +63,7 @@ const said = (harness = 'claude-code', extra: Record<string, unknown> = {}): voi
 }
 
 const held = (): Record<string, unknown> =>
-  JSON.parse(fs.readFileSync(path.join(root, 'docs', 'kanban', 'ui.config.json'), 'utf8'))
+  JSON.parse(fs.readFileSync(uiConfigOf(root, 'docs', 'kanban'), 'utf8'))
 
 // The model list a row offers is partly read off the agent CLIs' own files under $HOME
 // (agent/harnesses/models.ts), so the home is a scratch one too — otherwise what this asserts

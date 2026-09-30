@@ -11,7 +11,7 @@ import { migratePlans } from '../src/lib/agent/migrate-plans.ts'
 import { savePlan } from '../src/lib/agent/save-plan.ts'
 import { CHATS_DIR, KANBAN, PLANS, setBoardRoot, setBoardDir } from '../src/lib/paths.ts'
 import { archivePlan, planFile, planFromText, readPlan } from '../src/lib/plans.ts'
-import { restoreMachineHome } from './helpers/board.ts'
+import { restoreMachineHome, uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 let home = ''
@@ -95,7 +95,7 @@ it('retains a child-written plan when the host finishes the chat transcript', as
     fs.writeFileSync(chats, JSON.stringify(chat));
     console.log(JSON.stringify({type:'result', subtype:'success', result:'Saved'}));
   `)
-  fs.writeFileSync(path.join(KANBAN, 'ui.config.json'), JSON.stringify({
+  fs.writeFileSync(uiConfigOf(KANBAN), JSON.stringify({
     harness: 'claude-code', harnessSettings: { 'claude-code': { command: `node ${agent}` } },
   }))
   const reply = await sendChatMessage(target, 'Save this outcome')

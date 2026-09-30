@@ -12,7 +12,7 @@ import { formatDay } from '../src/lib/cadence.ts'
 import { pruneLeftovers } from '../src/lib/leftovers.ts'
 import { AKB_DIR, ASSETS, CHATS_DIR, DELIVERIES, KANBAN, MEMORY, MOCKUPS, TODO, setBoardRoot } from '../src/lib/paths.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, uiConfigOf } from './helpers/board.ts'
 
 const DAY = 24 * 60 * 60_000
 let root = ''
@@ -217,6 +217,6 @@ describe('the prune on the dispatch tick', () => {
     write(asset(31, 'a.png'))
     await nextWork(() => Promise.resolve(true))
     assert.equal(fs.existsSync(asset(31, 'a.png')), true)
-    assert.match(fs.readFileSync(path.join(KANBAN, 'ui.config.json'), 'utf8'), new RegExp(`"leftoverPrune"[^}]*${formatDay()}`))
+    assert.match(fs.readFileSync(uiConfigOf(KANBAN), 'utf8'), new RegExp(`"leftoverPrune"[^}]*${formatDay()}`))
   })
 })

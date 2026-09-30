@@ -12,7 +12,7 @@ import { signOutOfCloud } from '../src/lib/cloud/account.ts'
 import { proAccess } from '../src/lib/cloud/pro.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { restoreMachineHome } from './helpers/board.ts'
+import { restoreMachineHome, uiConfigOf } from './helpers/board.ts'
 
 const SUPABASE = 'https://project.supabase.co'
 const API = 'https://api.example.test'
@@ -105,7 +105,7 @@ describe('which workflows are Pro', () => {
 
   it('leaves a copy made before Pro existed free', () => {
     fs.writeFileSync(
-      path.join(kanban(), 'ui.config.json'),
+      uiConfigOf(kanban()),
       JSON.stringify({ workflows: { added: [{ id: 'wf-2', name: 'Video 2', needsArtifact: true, delivers: 'plan' }] } }),
     )
     assert.equal(workflowById('wf-2')!.pro, false)

@@ -17,6 +17,7 @@ import { harnessByName } from '../src/lib/agent/harnesses/index.ts'
 import { ask, readLogin, type Ask } from '../src/lib/agent/login.ts'
 import { commandOf, planRun } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { uiConfigOf } from './helpers/board.ts'
 
 const CODEX = harnessByName('codex')!
 
@@ -216,7 +217,7 @@ describe('what the command ends up being', () => {
     const kanban = path.join(root, 'docs', 'kanban')
     fs.mkdirSync(kanban, { recursive: true })
     fs.writeFileSync(
-      path.join(kanban, 'ui.config.json'),
+      uiConfigOf(kanban),
       JSON.stringify({
         runtimes: [{ id: 'global', name: 'Global default', harness: 'codex', settings: {} }],
       }),

@@ -145,11 +145,8 @@ export function archiveDir(): string {
 export function releaseSummariesDir(): string {
   return path.join(kanbanDir(), ".release-summaries");
 }
-export function uiConfigPath(): string {
-  return path.join(kanbanDir(), "ui.config.json");
-}
-// The board's one place for API keys (#94), beside ui.config.json. Kept out of
-// git by the .gitignore below, which the board writes whenever it writes a key.
+// The board's one place for API keys (#94). Kept out of git by the .gitignore below,
+// which the board writes whenever it writes a key.
 export function envFilePath(): string {
   return path.join(kanbanDir(), ".env");
 }

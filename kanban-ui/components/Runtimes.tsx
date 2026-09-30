@@ -7,10 +7,10 @@
 // not a catalogue of the CLIs we ship — that catalogue is the card grid inside a row.
 //
 // One row is the whole answer to what a run runs as (#467): its CLI, how to reach it, its
-// key and its model, with nothing inherited from anywhere. So the row's SHAPE is the board's,
-// in docs/kanban/ui.config.json, and travels in git; what is this computer's is its key, in
-// docs/kanban/.env under the row's own id, and the verdict beside it — whether that CLI is
-// here, whether it would start, and whether anybody is logged into it.
+// key and its model, with nothing inherited from anywhere. The row's SHAPE is in
+// ui.config.json; its key is in docs/kanban/.env under the row's own id, and beside it is the
+// verdict — whether that CLI is here, whether it would start, and whether anybody is logged
+// into it.
 //
 // The default is a POSITION, not a badge: the first row is it, so there is no control
 // anywhere that moves it.
@@ -529,7 +529,7 @@ function NewRow({
   const [refusal, setRefusal] = useState("");
   const [busy, setBusy] = useState(false);
   // What the fields hold, waiting for a name. Two of them because they go to two files under
-  // the id the name mints: the settings to docs/kanban/ui.config.json, the keys to
+  // the id the name mints: the settings to ui.config.json, the keys to
   // docs/kanban/.env. A key sits here only for as long as the row is unnamed — nothing else
   // holds one, and dropping the row drops it with everything else.
   const [values, setValues] = useState<Record<string, string>>({});

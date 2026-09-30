@@ -7,11 +7,10 @@
 //
 // Two files, and the split is the whole idea (#467):
 //
-//   docs/kanban/ui.config.json  the board's — every runtime's shape, and which one each agent
-//                               runs. It travels with the repository, so a fresh clone runs
-//                               every agent on the same thing.
-//   docs/kanban/.env            this computer's — one key line per runtime, named after that
-//                               runtime's id. git never carries it.
+//   <board-state>/ui.config.json  every runtime's shape, and which one each agent runs —
+//                                 this person's, never committed (#1271).
+//   docs/kanban/.env              one key line per runtime, named after that runtime's id.
+//                                 git never carries it.
 //
 // `akb agent runtime` adds, renames and deletes rows; `akb agent set` writes one row's
 // settings and its key; `akb agent bind` points an agent at a row; `akb agent use` moves
@@ -340,8 +339,7 @@ function checkSetting(setting: HarnessSetting, value: string, ask?: HarnessAsk):
 
 // ---- what one agent runs (#467) --------------------------------------------
 
-/** Point one agent at a runtime of its own, or back at **Global default** with "-". The pick is
- *  the board's, so every checkout runs that agent as the same thing. */
+/** Point one agent at a runtime of its own, or back at **Global default** with "-". */
 function bindAgent(args: string[]): MoveResult {
   const agent = args[0]?.trim() ?? ''
   if (!agent) die(`name an agent: akb agent bind <agent> <runtime>. This board has: ${agentNames().join(', ')}.`, { kind: 'needs-input' })

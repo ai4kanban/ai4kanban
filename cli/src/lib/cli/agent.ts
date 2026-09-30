@@ -713,10 +713,9 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
     .summary('what runs the board, and how it is set up')
     .description(
       'A RUNTIME is the whole answer to what a run runs as — harness, provider, endpoint, key, model id, ' +
-        "reasoning and extra arguments. Every runtime's shape is the BOARD's, in docs/kanban/ui.config.json, " +
-        'so it travels with the repository; its key is THIS COMPUTER\'s, one line per runtime in ' +
-        "docs/kanban/.env, which git never carries. A run never reads the terminal's environment for any " +
-        'of it.',
+        "reasoning and extra arguments. Every runtime's shape is YOURS, in the board's ui.config.json under " +
+        ".akb/boards/; its key is one line per runtime in docs/kanban/.env. git carries neither. A run never " +
+        "reads the terminal's environment for any of it.",
     )
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdAgent(['show']))
@@ -779,7 +778,7 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
     .argument('<agent>', 'one of this board’s agents — `agent` lists them')
     .argument('<runtime>', 'a runtime id from `agent`; "-" puts it back on Global default')
     .summary('give one agent a runtime of its own')
-    .description('The pick is the board’s, so every checkout runs that agent as the same thing.')
+    .description('The pick is yours, saved with your other board settings.')
     .action(async function (this: Command, name: string, id: string) {
       await onBoard(this, cli, () => cmdAgent(['bind', name, id]))
     })

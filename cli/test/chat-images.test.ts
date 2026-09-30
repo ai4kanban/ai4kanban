@@ -25,7 +25,7 @@ import {
 } from '../src/lib/agent/chat.ts'
 import { addRunPicture, pictureBox, runPictureFile } from '../src/lib/agent/pictures.ts'
 import { CHATS_DIR, setBoardRoot, SESSIONS_DIR } from '../src/lib/paths.ts'
-import { restoreMachineHome } from './helpers/board.ts'
+import { restoreMachineHome, uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 let home = ''
@@ -42,7 +42,7 @@ const config = (harness: string, settings: Record<string, unknown> = {}): void =
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
   fs.writeFileSync(
-    path.join(kanban, 'ui.config.json'),
+    uiConfigOf(kanban),
     JSON.stringify({ harness, harnessSettings: { [harness]: settings } }, null, 2),
   )
   setBoardRoot(root)
@@ -249,7 +249,7 @@ describe('how one reaches the agent', () => {
         `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify(process.argv.slice(2)))\n`,
     )
     fs.writeFileSync(
-      path.join(root, 'docs', 'kanban', 'ui.config.json'),
+      uiConfigOf(root, 'docs', 'kanban'),
       JSON.stringify({
         harness: 'codex',
         agentHarness: { 'discussion-helper': 'claude-code' },

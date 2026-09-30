@@ -1403,8 +1403,8 @@ export interface HarnessOption {
 }
 
 /** One runtime as a screen draws it (#467) — the whole answer to what a run runs as, in one
- *  row. Its shape is the board's and travels in git; its key and whether the CLI is here are
- *  this computer's. */
+ *  row. Its shape is in ui.config.json, its key in `.env`; whether the CLI is here is this
+ *  computer's. */
 export interface RuntimeView {
   /** Stable, environment-safe, and what everything keys by: the agents' picks, a chat's pin,
    *  a run's record and the row's own key line in docs/kanban/.env. */
@@ -1480,7 +1480,7 @@ export interface LoggedOutAgent {
 }
 
 /** What one agent runs (#467): the runtime it names, and enough of that row to say what it
- *  is. All of it is the board's, out of docs/kanban/ui.config.json. */
+ *  is, out of ui.config.json. */
 export interface HarnessRun {
   /** The runtime it runs — its own pick, or **Global default** when it named none. */
   runtime: string
@@ -1650,7 +1650,7 @@ export interface AgentView {
 
 /** What the memory reviewer's page reads (#748). It carries no cadence: the review is
  *  daily, so there is nothing to set — the one thing worth reading is the last review that
- *  passed. It lives beside the pruner's block in `docs/kanban/ui.config.json`. */
+ *  passed. It lives beside the pruner's block in `ui.config.json`. */
 export interface MemoryReviewState {
   /** When the last review that PASSED began, as a minute stamp, or empty for "never
    *  reviewed". The START, not the end: a conversation spoken to while the review was

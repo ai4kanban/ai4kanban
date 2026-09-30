@@ -17,6 +17,13 @@ import { projectStateDir } from '../../src/lib/machine/project.ts'
 // test after it at the real `~/.ai4kanban/` (#590).
 const SHARED_HOME = process.env.AI4KANBAN_HOME
 
+/** Where a board keeps this person's settings (#1271), its folder made so a test can write it. */
+export function uiConfigOf(...board: string[]): string {
+  const dir = projectStateDir(path.join(...board))
+  fs.mkdirSync(dir, { recursive: true })
+  return path.join(dir, 'ui.config.json')
+}
+
 /** Put the run's own machine home back, after a test set one of its own. */
 export function restoreMachineHome(): void {
   if (SHARED_HOME === undefined) delete process.env.AI4KANBAN_HOME

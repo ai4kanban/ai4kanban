@@ -16,6 +16,7 @@ import { openRun } from '../src/lib/agent/sessions.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
 import type { AgentRequest } from '../src/lib/agent/types.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 
@@ -40,12 +41,12 @@ const BOARD = {
 const config = (cfg: Record<string, unknown>): void => {
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
-  fs.writeFileSync(path.join(kanban, 'ui.config.json'), JSON.stringify(cfg, null, 2))
+  fs.writeFileSync(uiConfigOf(kanban), JSON.stringify(cfg, null, 2))
   setBoardRoot(root)
 }
 
 const held = (): Record<string, unknown> =>
-  JSON.parse(fs.readFileSync(path.join(root, 'docs', 'kanban', 'ui.config.json'), 'utf8'))
+  JSON.parse(fs.readFileSync(uiConfigOf(root, 'docs', 'kanban'), 'utf8'))
 
 // A create names no card and opens no delivery, so it is the one run this file can start
 // without a git repository under it.

@@ -12,7 +12,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { agentInfo, openPlan, planRun } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, uiConfigOf } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-run-env-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -20,7 +20,7 @@ const kanban = path.join(root, 'docs', 'kanban')
 function board(env: string): void {
   fs.mkdirSync(kanban, { recursive: true })
   fs.writeFileSync(
-    path.join(kanban, 'ui.config.json'),
+    uiConfigOf(kanban),
     JSON.stringify({ runtimes: [{ id: 'global', name: 'Global default', harness: 'zcode', settings: {} }] }),
   )
   fs.writeFileSync(path.join(kanban, '.env'), env)

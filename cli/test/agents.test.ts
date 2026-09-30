@@ -32,7 +32,7 @@ import { readAgents } from '../src/lib/agents/roster.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
 import { createWorkflow, switchWorkflowAgent, setWorkflowLead } from '../src/lib/agent/workflows.ts'
 import { humanSectionFor } from '../src/lib/agent/runner.ts'
-import { move, refuses, run } from './helpers/board.ts'
+import { move, refuses, run, uiConfigOf } from './helpers/board.ts'
 
 let root = ''
 
@@ -40,7 +40,7 @@ const kanban = (): string => path.join(root, 'docs', 'kanban')
 
 const board = (cfg: Record<string, unknown> = {}): void => {
   fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
-  fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
+  fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify(cfg, null, 2))
   setBoardRoot(root)
 }
 
@@ -582,12 +582,12 @@ describe("an agent's memory folder", () => {
   // name wins where both are there — neither is overwritten.
   it('reads a setting saved under the name it had before, new name first', () => {
     const setting = (cfg: Record<string, unknown>): void =>
-      fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify({ specAgents: cfg }))
+      fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify({ specAgents: cfg }))
     setting({ 'video-assets': { output: 'human' } })
     assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), /reviewed by me/)
     setting({ 'video-assets': { output: 'human' }, 'hyperframes-editor': { output: 'agent' } })
     assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), /read by the agent that builds this/)
-    assert.match(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'), /video-assets/)
+    assert.match(fs.readFileSync(uiConfigOf(kanban()), 'utf8'), /video-assets/)
   })
 
   it('is no longer written by `spec-write`', async () => {
@@ -613,7 +613,7 @@ describe("an agent's memory folder", () => {
 // saved beside `enabled` and `runtime`, and since #1003 the only row on its page.
 describe("who a spec agent's output is for", () => {
   const saved = (): Record<string, Record<string, unknown>> =>
-    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8')).specAgents
+    JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8')).specAgents
 
   it('is the first row on every spec agent, whoever wrote it', () => {
     project('api-contract', { 'AGENT.md': AGENT })

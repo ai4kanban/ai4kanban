@@ -14,7 +14,7 @@ import { HARNESSES } from '../src/lib/agent/harnesses/index.ts'
 import { commandBinary } from '../src/lib/agent/installed.ts'
 import { runnableAgents, runnableHarnesses } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, uiConfigOf } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-runnable-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -23,7 +23,7 @@ const PATH = process.env.PATH
 
 function board(config: Record<string, unknown>, env = ''): void {
   fs.mkdirSync(kanban, { recursive: true })
-  fs.writeFileSync(path.join(kanban, 'ui.config.json'), JSON.stringify(config))
+  fs.writeFileSync(uiConfigOf(kanban), JSON.stringify(config))
   fs.writeFileSync(path.join(kanban, '.env'), env)
   setBoardRoot(root)
 }

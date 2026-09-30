@@ -4,7 +4,7 @@
 // one list, and nothing inherits from anything: reading a runtime tells the whole truth
 // about a run. "Harness" goes back to meaning the CLI itself.
 //
-//   docs/kanban/ui.config.json      the board's, and it travels in git
+//   <board-state>/ui.config.json    this person's, never committed
 //   "runtimes": [
 //     { "id": "global", "name": "Global default", "harness": "claude-code",
 //       "settings": { "provider": "subscription", "model": "claude-opus-5" } },
@@ -20,7 +20,7 @@
 // and every agent naming no runtime runs it. The default is a POSITION on the list, never a
 // badge that moves.
 //
-// The shape is the board's and the key is one computer's, so the id — never the name — keys
+// The shape and the key are both this person's, but in separate files, so the id — never the name — keys
 // everything: the agents' picks, a chat's pin, a run's record and the key's own line in
 // `.env`. A name is free text and a rename moves nothing.
 
@@ -28,7 +28,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { DEFAULT_HARNESS, HARNESSES, MODEL_KEY, harnessByName } from './harnesses'
-import { configBlock, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
+import { LEGACY_UI_CONFIG, UI_CONFIG } from '../paths'
+import { configBlock, readConfigRaw, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
 import { specAgentNames } from '../spec-agent-names'
 import type { Harness } from './harnesses'
 import { refusal, type RunRefusal, type Saved } from './types'
@@ -410,22 +411,19 @@ function freeId(name: string, taken: Set<string>): string {
 // every block becomes a row, the one `harness` named becomes **Global default**, and each
 // agent whose model differed gets a row of its own. A board then runs exactly what it ran.
 //
-// It works on an explicit board folder because `akb update` repairs the board it was pointed
-// at rather than the one this process resolved (commands/install.ts).
 
 /** Write the runtimes a pre-#467 board reads as, and clear what they replace. Returns the line
  *  an update reports, or null when the board is already on runtimes. */
 export function migrateRuntimes(
-  board: string,
   agents: string[],
   /** Each agent's model settings on this computer, by agent and then by harness — what
    *  `.local.json` held (agent/local.ts). */
   localModels: Record<string, Record<string, Record<string, string>>>,
 ): string | null {
-  const file = path.join(board, 'ui.config.json')
   let cfg: Record<string, unknown>
   try {
-    cfg = configBlock(JSON.parse(fs.readFileSync(file, 'utf8')) as unknown)
+    if (!fs.existsSync(UI_CONFIG) && !fs.existsSync(LEGACY_UI_CONFIG)) return null
+    cfg = configBlock(readConfigRaw())
   } catch {
     return null // no config, or one nothing can read — an update never rewrites either
   }
@@ -457,7 +455,7 @@ export function migrateRuntimes(
   delete cfg.harness
   delete cfg.harnessSettings
   delete cfg.agentHarness
-  fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + '\n')
+  fs.writeFileSync(UI_CONFIG, JSON.stringify(cfg, null, 2) + '\n')
   const minted = list.length - 1
   return `turned this board's connector settings into ${list.length} runtime${list.length === 1 ? '' : 's'}${
     minted ? ` — ${GLOBAL_NAME} and ${minted} more` : ''
