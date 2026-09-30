@@ -192,11 +192,14 @@ const scheduledRequest = (card: Card): AgentRequest => ({
  * A card whose Pro workflow this account cannot run keeps its mark and is passed over (#1281),
  * so it starts on the first tick after Pro is on. Cloud is asked at most once per pass.
  */
-async function dueScheduled(cards: Card[], busy: Set<number>, clearMark: ClearMark): Promise<AgentRequest | null> {
+async function dueScheduled(
+  cards: Card[],
+  busy: Set<number>,
+  clearMark: ClearMark,
+  ask: () => Promise<ProAccess>,
+): Promise<AgentRequest | null> {
   const ready = cards.filter((c) => c.schedule && !busy.has(c.id) && c.openBlockers.length === 0)
   if (ready.length === 0) return null
-  let asked: Promise<ProAccess> | undefined
-  const ask = () => (asked ??= proAccess())
   let request: AgentRequest | null = null
   for (const card of ready.sort(byDispatchOrder)) {
     const stale = scheduleWouldDoNothing(card)
@@ -244,10 +247,14 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // being rewritten, and a schedule taken off in this pass would be lost to a refused start.
   for (const c of cards) if (c.discussing) busy.add(c.id)
 
+  // Cloud is asked at most once per pass, and only when a due card needs Pro (#1281, #1293).
+  let asked: Promise<ProAccess> | undefined
+  const ask = () => (asked ??= proAccess())
+
   const work: AgentRequest[] = []
   let scheduled: AgentRequest | null = null
   try {
-    scheduled = await dueScheduled(cards, busy, clearMark)
+    scheduled = await dueScheduled(cards, busy, clearMark, ask)
   } catch {
     // The board was busy being written, or a card wouldn't take the write. Every card keeps
     // its mark, and the next tick tries again.
@@ -258,8 +265,14 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   }
 
   if (!runs.some((r) => r.status === 'running' && r.action === 'run')) {
-    const card = dueRecurring(cards, runs, busy)[0]
-    if (card) work.push({ action: 'run', id: card.id, title: card.title })
+    // A card whose Pro workflow this account cannot run is passed over (#1293): no run is
+    // recorded, so it starts on the first tick after Pro is on.
+    for (const card of dueRecurring(cards, runs, busy)) {
+      const request: AgentRequest = { action: 'run', id: card.id, title: card.title }
+      if (await proRefusal(request, ask)) continue
+      work.push(request)
+      break
+    }
   }
 
   // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two

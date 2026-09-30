@@ -260,3 +260,56 @@ describe('a scheduled Pro card', () => {
     assert.deepEqual(cleared, [1])
   })
 })
+
+describe('a recurring Pro card', () => {
+  const recurring = (id: number, workflow: string, priority: string): void => {
+    fs.mkdirSync(path.join(kanban(), 'todo', 'recurring'), { recursive: true })
+    fs.writeFileSync(
+      path.join(kanban(), 'todo', 'recurring', `${id}-job.md`),
+      [
+        '---',
+        `title: job ${id}`,
+        `priority: ${priority}`,
+        'roi: med',
+        'status: todo',
+        'release: ""',
+        'blocked_by: []',
+        'related: []',
+        'modules: []',
+        'questions: []',
+        `workflow: ${workflow}`,
+        'cadence: 7d',
+        '---',
+        '',
+        'What this job is for.',
+        '',
+      ].join('\n'),
+    )
+  }
+  const tick = async () => (await nextWork(() => Promise.resolve(true))).filter((w) => w.action === 'run').map((w) => w.id)
+
+  it('is passed over without Pro, and the next due card runs', async () => {
+    signIn()
+    billing({ plan: 'free' })
+    recurring(1, 'slide-deck', 'high')
+    recurring(2, 'hyperframes-video', 'high')
+    recurring(3, 'coding', 'low')
+    assert.deepEqual(await tick(), [3])
+    assert.equal(asked, 1, 'Cloud is asked once for both Pro cards')
+  })
+
+  it('asks Cloud only when a Pro card is due', async () => {
+    recurring(1, 'coding', 'med')
+    assert.deepEqual(await tick(), [1])
+    assert.equal(asked, 0)
+  })
+
+  it('runs on the first tick after Pro is on', async () => {
+    signIn()
+    billing({ plan: 'free' })
+    recurring(1, 'slide-deck', 'med')
+    assert.deepEqual(await tick(), [])
+    billing({ plan: 'pro' })
+    assert.deepEqual(await tick(), [1])
+  })
+})

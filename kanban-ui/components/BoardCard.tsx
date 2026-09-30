@@ -144,6 +144,9 @@ export function BoardCard({
             ) : (
               <PendingPill label={scheduleMark(card, t.chips)} />
             )
+          ) : card.recurring && card.nextRun === "Due now" && lock ? (
+            // Due, but the board passes it over until the account can run it (#1293).
+            <PendingPill label={t.chips.needsProHint[lock](t.runs.action.run)} locked />
           ) : (
             <StatusPill status={card.status} />
           )}
