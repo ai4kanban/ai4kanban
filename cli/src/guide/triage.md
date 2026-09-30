@@ -1,93 +1,66 @@
 # Sort what is waiting in triage
 
-Judge every item waiting in `docs/kanban/triage/`. What is worth building becomes one card
-with a refine scheduled on it; everything else moves to `dismissed/` with the reason. Judging
-nothing worth a card is a complete result.
+Judge every item in `docs/kanban/triage/`: what is worth building becomes one card with a
+refine scheduled, the rest is dismissed with a reason. Finding nothing worth a card is a
+complete result.
 
-Read only: the waiting items, `docs/kanban/memory/product.md`, the planner's memory in
-`docs/kanban/memory/agents/planner/` (its `rejected.md` and `dismissed.md` included),
-`docs/kanban/modules.md`, and the open cards. `dismissed.md` is the user's triage taste
-learned from past dismissals: weigh it against the product, and let the product and any
-instruction given with this run win over it. Change nothing but the cards you create and the
-items you land.
+- **Read only**: the waiting items, `docs/kanban/memory/product.md`, the planner's memory in
+  `docs/kanban/memory/agents/planner/`, `docs/kanban/modules.md`, `akb workflow list`, and
+  the open cards.
+- **Taste**: the planner's `dismissed.md` holds the user's past dismissals; the product and
+  this run's instruction outrank it.
+- **Write only**: the cards you create and the items you land.
+- **`akb triage judge`**: when the flow names it, run it per item instead of step 1, passing
+  any open card that may own the item, and do what it prints. An item listed with a verdict
+  is already judged; when the command fails, leave the item waiting.
 
-When the flow names `akb triage judge`, run it for each item instead of step 1, passing any
-open card whose title suggests it may already own the item, and do what it prints. An item
-the flow lists with a verdict is already judged. When the command fails, leave the item
-waiting.
+## 1. Judge each item
 
-## 1. Judge one item
+One at a time, in the flow's order; land each before judging the next.
 
-Take the items one at a time, in the order the flow lists them. For each:
-
-1. **Read it in full** — its own words, its source type, the values under `meta:`, and the
-   link. The file is the whole of what is known about it.
-2. **Check for duplicates** with `akb guide evaluate-task`: skip anything already supported,
-   already covered by an open card, or turned down before.
-3. **Judge its worth**: would it improve the user's experience, the product's performance, or
-   some other product outcome? Weigh it against the product, not against how loudly it is said.
-
-**Rules**:
-
-- **Never adopt an existing card**: an item that lands on work a card already owns is
-  ignored, not merged into that card. `evaluate-task`'s "update the card that already owns
-  it" branch does not apply here.
-- **Modules come from the map**: pick from `modules.md` as it stands. Never add one.
-- **One item, one judgement**: decide, land it, then move to the next. Do not judge the whole
-  list first.
+- **Read it in full**: its text, source type, `meta:` values and link are all that is known.
+- **Duplicates**: by `akb guide evaluate-task`, drop what is already supported, on an open
+  card, or turned down before. Never update the card that already owns it.
+- **Worth**: keep it only if it improves a product outcome, weighed against the product, not
+  how loudly it is said.
 
 ## 2. Card what survives
 
-Write the body to a file first, then create the card in one call — a card is never left
-scaffolded with a refine already scheduled on it:
+Write the body to a file, then create the card in one call and archive the item onto it:
 
 ```text
 akb raw create --title "<one line>" --slug <short-english-slug> \
   --modules <modules> --priority <low|med|high> --roi <low|med|high> \
-  --schedule refine --body-file <path>
-```
-
-Write the body by `akb guide writing` — the whole skeleton, not a summary: the opening
-paragraph, `## Worth noting`, the `<!-- agent -->` boundary, `## Scope`, `## Todo` with real
-steps, and `## Decided by the agent`. A body missing one of them fails `akb raw validate`.
-
-End it with `## Source`:
-
-- the item's source id and the path it lands at — `docs/kanban/triage/archived/<file>`,
-- its source type and the values its `meta:` carried,
-- the original link.
-
-Then record what it became, straight after the create:
-
-```text
+  --workflow <id> --schedule refine --body-file <path>
 akb triage archive <source-id> --card <id>
 ```
 
-The refine runs itself: the board starts one scheduled run per tick. Start nothing — no
-delivery, no second run — and answer no question the refine will raise.
+- **Modules**: from `modules.md` as it stands; never add one.
+- **Workflow**: the one from `akb workflow list` that does the card's work; prefer one not
+  marked `Pro`, but take a `Pro` one when only it fits. Omit the flag when unsure; when no
+  workflow can do the work, dismiss the item instead.
+- **Body**: the full skeleton of `akb guide writing`, ending with `## Source`: the source id,
+  its landing path `docs/kanban/triage/archived/<file>`, source type, `meta:` values and
+  original link.
+- **Start nothing**: the scheduled refine runs itself and raises its own questions.
 
-## 3. Ignore the rest
+## 3. Dismiss the rest
 
 ```text
 akb triage dismiss <source-id> --reason "<why, in one clause>"
 ```
 
-The reason is the whole record of that judgement: say which check it failed — already
-supported, already on `#<id>`, turned down before, or too little worth — plainly enough that
-a reader a month from now agrees or disagrees with it.
+Name the failed check — already supported, already on `#<id>`, turned down before, too
+little worth, or no workflow does it — clearly enough to judge a month later.
 
 ## When a command refuses
 
-- **"nothing waiting in triage is `<source-id>`"** — somebody landed that item while you were
-  judging it. Skip it and carry on; it is not a failure of this run.
-- **An item already ignored, after its card was written** — `akb triage archive` records the
-  card id onto the `dismissed/` record and leaves it there. That is correct: the card exists,
-  and the item stays ignored.
-- **A run that stopped between the create and the archive** — leave it. The next run
-  reconciles: an item whose source id is already on an open card's `## Source` is archived
-  onto that card before anything judges it again.
+- **"nothing waiting in triage is `<source-id>`"**: someone landed it meanwhile; skip it.
+- **Archiving an item already dismissed**: the card id is recorded on the dismissed record;
+  that is correct.
+- **A run stopped between create and archive**: leave it; the next run archives the item
+  onto the card whose `## Source` names it.
 
 ## Report
 
-Say how many items you judged, each new card by id and title, and how many you ignored. One
-line per ignore with its reason.
+Items judged, each new card by id and title, and one line per dismissal with its reason.
