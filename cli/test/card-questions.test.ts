@@ -138,7 +138,6 @@ describe('a question the user skipped', () => {
     const res = await questions(['--skip', '1'])
     assert.equal(res.open, 0)
     assert.match(card(), /- question: "?\[user\] Which region\?"?\n    mode: single\n    options:\n      - a — why\n      - b — why\n    recommend: \[1\]\n    skipped: true/)
-    assert.doesNotMatch(card(), /^decided:/m)
     await move(root, ['update', '1', '--status', 'ready'])
     assert.match(card(), /status: ready/)
   })

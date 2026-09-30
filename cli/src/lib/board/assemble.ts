@@ -19,7 +19,6 @@ import { byPickOrder } from '../view/rules'
 import type {
   Board,
   Card,
-  CardDecision,
   CardSchedule,
   CardStatus,
   Column,
@@ -227,19 +226,6 @@ const ids = (value: unknown): number[] =>
 const lines = (value: unknown): string[] =>
   Array.isArray(value) ? value.map((v) => text(v)).filter(Boolean) : []
 
-// What the decider answered for the user (#447) — half an entry is dropped, since a
-// question with no choice says nothing anyone can read. Read here rather than through
-// `lib/decided.ts`, for the reason above.
-const decided = (value: unknown): CardDecision[] =>
-  Array.isArray(value)
-    ? value.flatMap((v) => {
-        const held = (v ?? {}) as Record<string, unknown>
-        const question = text(held.question)
-        const chose = text(held.chose)
-        return question && chose ? [{ question, chose, from: text(held.from) }] : []
-      })
-    : []
-
 /** A card's stored `data`, read as the fields a screen draws. Anything missing reads as
  *  empty: a screen drawing a card with no priority is better than one that will not draw. */
 function fieldsOf(data: unknown): { path: string; body: string; meta: Record<string, unknown> } {
@@ -271,7 +257,6 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     related: ids(meta.related),
     questions: (Array.isArray(meta.questions) ? meta.questions : []) as Question[],
     verify: lines(meta.verify),
-    decided: decided(meta.decided),
     workflow: text(meta.workflow),
     modules: lines(meta.modules),
     last_run: lastRun,

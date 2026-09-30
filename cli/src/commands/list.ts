@@ -39,7 +39,6 @@ interface Row {
   cadence: string
   questions: Question[]
   verify: string[]
-  decided: number
   summary: string
   // `--stale` only: when git last saw the card, and how long ago that was.
   lastTouched?: string
@@ -92,7 +91,6 @@ function openRows(): Row[] {
       cadence: (meta && meta.cadence) || '',
       questions: (meta && meta.questions) || [],
       verify: (meta && meta.verify) || [],
-      decided: (meta && meta.decided.length) || 0,
       summary: summaryLine(body),
     })
   }
@@ -182,7 +180,6 @@ export function cmdList(opts: ListOptions): MoveResult {
     const open = openOf(r.questions).length
     if (open) meta.push(plural(open, 'open question'))
     if (r.verify.length) meta.push(`${r.verify.length} to check by hand`)
-    if (r.decided) meta.push(`${r.decided} answered for you`)
     say('')
     say(`#${r.id} ${r.title}  (${rel(r.file)})`)
     say(`    ${meta.join(' · ')}`)

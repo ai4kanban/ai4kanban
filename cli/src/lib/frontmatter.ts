@@ -7,7 +7,6 @@ import { STATUSES, normalizeRelease } from './validate'
 import { yamlScalar, unquote } from './yaml'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
 import { normalizeVerify } from './verify'
-import { normalizeDecided, parseDecidedBlock, serializeDecided } from './decided'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
 import type { Meta, Question } from './types'
 
@@ -71,9 +70,6 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
     out.push('verify:')
     for (const line of m.verify) out.push(`  - ${yamlScalar(line)}`)
   }
-  // What the decider answered for the user (./decided.ts). Written only when it has answered
-  // something, so every card it never ran on keeps the frontmatter it always had.
-  out.push(...serializeDecided(m.decided))
   out.push('---')
   return out.join('\n')
 }
@@ -107,21 +103,6 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
         meta.questions = parseQuestionsBlock(block)
       } else {
         meta.questions = val.trim() === '[]' ? [] : [normalizeQuestion(unquote(val))]
-      }
-      continue
-    }
-    // `decided:` is a block of its own too — one entry per question the decider answered,
-    // each carrying the question, the choice and what it went on.
-    if (key === 'decided') {
-      if (val === '') {
-        const block: string[] = []
-        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
-          block.push(fm[j + 1]!)
-          j++
-        }
-        meta.decided = parseDecidedBlock(block)
-      } else {
-        meta.decided = []
       }
       continue
     }
@@ -169,9 +150,6 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The hand-checks, as plain lines. A card written before this field has none, and a line
   // blanked by hand drops out rather than showing as an empty bullet.
   meta.verify = normalizeVerify(meta.verify)
-  // What the decider answered for the user. A card written before this field has none, and a
-  // half-written entry drops out rather than reading as a choice.
-  meta.decided = normalizeDecided(meta.decided)
   // The release the card ships in. Missing, empty or damaged reads as no release, so a
   // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)
@@ -182,9 +160,10 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   }
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
-  // `channels:` was a retired marketing board's field (#718). A card still carrying one is
-  // read as the ordinary card it now is, and the dead field drops out on the next rewrite.
+  // Retired fields: `channels:` (#718) and `decided:` (#1255). A card still
+  // carrying one reads as the ordinary card it now is, and the field drops out on the next rewrite.
   delete meta.channels
+  delete meta.decided
   // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''

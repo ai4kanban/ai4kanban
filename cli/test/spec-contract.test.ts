@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { setBoardRoot, SESSIONS_DIR } from '../src/lib/paths'
+import { parseFrontmatter } from '../src/lib/frontmatter'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs, validateSpec } from '../src/lib/spec-contract'
 import { openRun, openResume, patch, peekRun } from '../src/lib/agent/sessions'
 import { setBoardProvider } from '../src/lib/board'
@@ -80,6 +81,21 @@ describe('the card format contract', () => {
     fs.writeFileSync(path.join(path.dirname(file), '2-feature.md'), valid.replace('<!-- agent -->', ''))
     await refuses(root, ['validate'], /2-feature.md.*\[boundary\]/)
     await refuses(root, ['validate', '999'], /no task with id 999/)
+  })
+
+  it('reads, validates and rewrites a card still carrying the retired decided: block', async () => {
+    const old = valid.replace('questions: []\n', 'questions: []\ndecided:\n  - question: "Which region?"\n    chose: "eu"\n    from: memory/goal.md\n')
+    fs.writeFileSync(file, old)
+    const { meta } = parseFrontmatter(old)
+    assert.equal(meta!.title, 'A feature')
+    assert.equal(meta!.status, 'todo')
+    assert.deepEqual(meta!.questions, [])
+    assert.ok(!('decided' in meta!))
+    assert.equal((await move(root, ['validate', '1'])).valid, true)
+    await move(root, ['update', '1', '--priority', 'high'])
+    const written = fs.readFileSync(file, 'utf8')
+    assert.match(written, /priority: high/)
+    assert.doesNotMatch(written, /decided:|chose:/)
   })
 
   it('detects duplicate sections, misplaced sections, missing todos and mockup formatting', () => {

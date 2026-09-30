@@ -84,7 +84,6 @@ export type {
   Board,
   Card,
   CardCreation,
-  CardDecision,
   CardDelivery,
   CardDeliveryStage,
   CardDeliveryState,

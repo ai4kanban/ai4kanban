@@ -165,12 +165,6 @@ const zh: CardCopy = {
     undo: "撤销",
     skipFailed: "未能更新这个问题",
   },
-  decided: {
-    heading: "替你做的选择",
-    note: "这些答案只作用于这张卡片。",
-    from: "依据",
-    blind: "没有依据——取了推荐项",
-  },
   handChecks: {
     heading: "人工验收",
     crossOff: "标记完成",

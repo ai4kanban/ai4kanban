@@ -168,12 +168,6 @@ const en: CardCopy = {
     undo: "Undo",
     skipFailed: "Couldn't update this question",
   },
-  decided: {
-    heading: "what was chosen for you",
-    note: "These answers apply to this card only.",
-    from: "From",
-    blind: "Nothing to go on — took the recommendation",
-  },
   handChecks: {
     heading: "check by hand",
     crossOff: "Cross it off",

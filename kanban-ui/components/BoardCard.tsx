@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useContext, useEffect, useRef, useState } from "react";
-import { FiClipboard, FiHelpCircle, FiPlay, FiSkipForward, FiTrash2 } from "react-icons/fi";
+import { FiClipboard, FiHelpCircle, FiPlay, FiTrash2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
@@ -179,20 +179,6 @@ export function BoardCard({
               verify line waits on nobody — the card is done, this is what to look
               at before accepting it. Its own mark, so it can't be read as one more
               open question. */}
-          {/* What the decider answered here in your place (#447). Sky, beside the clipboard
-              and never the accent: nothing on this card is waiting on you — this is what
-              was chosen while you were not asked. Its own mark, with the count in the
-              hover, so it can't be read as an open question. */}
-          {card.decided.length > 0 && (
-            <span
-              tabIndex={0}
-              className="nb-tip inline-flex shrink-0"
-              data-tip={c.decided(card.decided.length)}
-              style={{ color: "var(--color-nb-sky-ink)" }}
-            >
-              <FiSkipForward aria-hidden style={{ width: 12.5, height: 12.5 }} />
-            </span>
-          )}
           {card.verify.length > 0 && (
             <span
               tabIndex={0}

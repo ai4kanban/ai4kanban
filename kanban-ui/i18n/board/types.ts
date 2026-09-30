@@ -54,8 +54,6 @@ export type BoardCopy = {
     needsYouMany: (n: number) => string;
     /** Things the build left for the user to check by hand. */
     verify: (n: number) => string;
-    /** Questions the decider answered in the user's place (#447). */
-    decided: (n: number) => string;
     /** A card its creator has not finished writing (#564). It stands in for the status
      *  pill, and the card does nothing when clicked. */
     creating: {
