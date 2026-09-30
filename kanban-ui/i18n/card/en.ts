@@ -133,6 +133,9 @@ const en: CardCopy = {
   },
   meta: {
     workflow: "Workflow",
+    noLead: (stages) => `No available lead agent: ${stages.join(", ")}`,
+    deletedWorkflow: "Deleted workflow",
+    deletedHint: "This workflow was deleted, so the task can't start",
     modules: "Modules",
     release: "Release",
     priority: "Priority",

@@ -52,8 +52,8 @@ Inside a column, cards are banded by module, and the best card to start comes fi
 card sinks, a blocker rises. A blocked card carries a **lock** marker — hover it for the cards in
 the way. Nothing is hidden or gated by it. Columns are a fixed width and the row scrolls sideways.
 
-Click a card to open it: the body, its meta (modules, release, priority, ROI, blockers), open
-questions and buttons.
+Click a card to open it: the body, its meta (workflow, modules, release, priority, ROI, blockers),
+open questions and buttons.
 
 The header carries:
 
@@ -114,6 +114,11 @@ A card has two halves. The top is for you: what the task does and what is worth 
 refusing. Below it, folded under **what the agent worked out**, is the builder's half: scope,
 todos and the calls the agent made. It opens shut on every visit; one click opens it in place.
 Older cards without the boundary show their whole body.
+
+**Unavailable workflow**: when the card's workflow can no longer start — a stage has no lead
+agent it can use, or the workflow was deleted — an **Unavailable** pill sits beside its name.
+Hover it for the reason; click it to open **Configuration → Workflows**. A deleted workflow
+reads **Deleted workflow** and cannot be fixed from here.
 
 **Check by hand**: things only you can confirm after a build appear in a panel above the body, and
 the board card counts them. Cross one off with **✕** (it asks twice; there is no undo). You cannot

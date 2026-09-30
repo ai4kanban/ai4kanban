@@ -17,10 +17,10 @@ import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
 import { proGate } from '../cloud/pro'
-import { cardWorkflowId, workflowFor, workflowIssues, workflowKnown } from './workflows'
+import { cardWorkflowId, workflowFor, workflowIssues, workflows } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import { takeChatSession } from './chat'
-import { refusal, type AgentRequest, type RunRecord, type RunRefusal } from './types'
+import { refusal, workflowDeleted, type AgentRequest, type RunRecord, type RunRefusal } from './types'
 
 /** Open a run and spawn its watcher. `spawned` false means nothing is watching it — the
  *  record is there but no process will ever report on it, which is the caller's to raise. */
@@ -36,10 +36,6 @@ export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spa
   if ('error' in opened) await dropRunCard(sessionId)
   return opened
 }
-
-// Built-in workflows the command no longer ships (#821). A card still naming one runs on the
-// default instead of being refused — it cannot be moved to another workflow.
-const RETIRED_WORKFLOWS = ['content']
 
 // Why this run's card cannot start on the workflow it names (#715): a stage with no lead, or
 // one led by an agent this board no longer has. It is read before the card lock is taken, so
@@ -57,7 +53,7 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
   // A card naming a workflow this board no longer has RESOLVES to the default, so that the
   // card is still readable — but it does not run: `workflowFor` never answers nothing here,
   // and a card quietly built by agents nobody assigned it is worse than a card that stops.
-  if (!workflowKnown(id) && !RETIRED_WORKFLOWS.includes(id)) {
+  if (workflowDeleted(id, workflows().map((w) => w.id))) {
     return refusal('workflowUnknown', `#${req.id} names the "${id}" workflow, and this board has no such workflow.`, {
       card: String(req.id),
       workflow: id,

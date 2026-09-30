@@ -172,6 +172,11 @@ export type CardCopy = {
      *  decides who plans, who builds and who reviews this card. Read-only: a card's
      *  workflow is fixed when it is created (#744). */
     workflow: string;
+    /** Why the card's workflow cannot start: the stages that have no lead agent it can use. */
+    noLead: (stages: string[]) => string;
+    /** Stands in for the name of a workflow the board has deleted. */
+    deletedWorkflow: string;
+    deletedHint: string;
     modules: string;
     release: string;
     priority: string;

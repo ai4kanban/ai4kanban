@@ -736,15 +736,11 @@ export function knownWorkflow(asked: string): string {
 
 /** The workflow a card runs on, from the id it carries. A card with no id, and one naming a
  *  workflow this board no longer has, both run on the default — a card is never left without
- *  a workflow, and `workflowKnown` is what a caller asks when the difference matters. */
+ *  a workflow, and `workflowDeleted` is what a caller asks when the difference matters. */
 export function workflowFor(id: string | undefined): Workflow | undefined {
   const wanted = (id ?? '').trim()
   return (wanted ? workflowById(wanted) : undefined) ?? workflowById(DEFAULT_WORKFLOW)
 }
-
-/** Whether this board has the workflow a card names. False on a card pointing at one that
- *  was deleted — the card still builds, on the default, and whoever asked is told. */
-export const workflowKnown = (id: string): boolean => !id || workflows().some((w) => w.id === id)
 
 /** The project agents one of the board's own workflows owns — what deleting it deletes
  *  (#1248). Never a role, a bundled agent, or one another workflow owns. */

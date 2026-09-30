@@ -1779,6 +1779,15 @@ export type WorkflowStage = (typeof WORKFLOW_STAGES)[number]
 /** The stage that hands over a workflow's finished work (#1057). */
 export type DeliveryStage = 'plan' | 'execute'
 
+// Built-in workflows the command no longer ships (#821). A card still naming one runs on the
+// default instead of being refused — it cannot be moved to another workflow.
+const RETIRED_WORKFLOWS: readonly string[] = ['content']
+
+/** Whether a card naming `id` points at a workflow this board deleted — one it refuses to
+ *  start. `known` is every workflow id the board has. */
+export const workflowDeleted = (id: string, known: readonly string[]): boolean =>
+  !!id && !known.includes(id) && !RETIRED_WORKFLOWS.includes(id)
+
 /** One helper of one stage of one workflow, and what the workflow asks of it on top of the
  *  agent's own instructions. An agent belongs to one workflow (#1095); `off` keeps it there
  *  without running it. */

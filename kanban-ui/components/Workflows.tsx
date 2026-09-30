@@ -96,8 +96,8 @@ const leadUndeclared = (setup: WorkflowStageView): boolean =>
   setup.candidates.some((a) => a.name === setup.lead && !a.canLead);
 
 /** A quiet chip — **Built-in**, **Default**. Peach is the palette's attention hue and is all
- *  that separates **Not ready** from the other two. */
-function Pill({ children, tone = "wash" }: { children: string; tone?: "wash" | "peach" }) {
+ *  that separates **Unavailable** from the other two. */
+export function Pill({ children, tone = "wash" }: { children: string; tone?: "wash" | "peach" }) {
   return (
     <span
       className={`shrink-0 rounded-[5px] px-1.5 py-0.5 text-[10px] font-[700] ${

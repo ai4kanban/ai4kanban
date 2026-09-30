@@ -130,6 +130,9 @@ const zh: CardCopy = {
   },
   meta: {
     workflow: "工作流",
+    noLead: (stages) => `没有可用的负责 Agent：${stages.join("、")}`,
+    deletedWorkflow: "已删除的工作流",
+    deletedHint: "这个工作流已被删除，任务无法开始",
     modules: "模块",
     release: "版本",
     priority: "优先级",

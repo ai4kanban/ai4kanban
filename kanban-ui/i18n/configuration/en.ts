@@ -50,7 +50,7 @@ const en: ConfigurationCopy = {
     lead: "Lead agent",
     pickLead: "Select agent",
     leadUndeclared: "This agent isn't declared as a lead.",
-    notReady: "Not ready",
+    notReady: "Unavailable",
     notReadyHint: "This stage cannot start yet",
     stageProblem: "This stage has no agent that can lead it. Assign one before it can start.",
     helpers: "Helpers",

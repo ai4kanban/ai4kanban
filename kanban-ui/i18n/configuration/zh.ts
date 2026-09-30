@@ -40,7 +40,7 @@ const zh: ConfigurationCopy = {
     lead: "负责 Agent",
     pickLead: "选择 Agent",
     leadUndeclared: "此 Agent 未声明可担任负责人。",
-    notReady: "未就绪",
+    notReady: "不可用",
     notReadyHint: "这个环节还不能开始",
     stageProblem: "这个环节还没有可用的负责人，指定一个之后才能开始。",
     helpers: "辅助 Agent",

@@ -64,7 +64,7 @@ import { usePhone } from "@/lib/media";
 import { useActions, useControls, useMachine, type CardControl, type StripPlace } from "@/lib/screen";
 import { cn } from "@/lib/utils";
 import { openOf, parseQuestion } from "@/lib/questions";
-import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
+import { bandLabel, CARD_BAND_STATES, workflowDeleted, type CloudEventState } from "@/lib/types";
 import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
 import { useOnHistoryRestore } from "@/lib/history-restore";
@@ -79,7 +79,8 @@ import { goPro, useWorkflowLock } from "./pro";
 import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { columnOf } from "./Queue";
-import { useWorkflowName } from "./Workflows";
+import { configDialog } from "./Configuration";
+import { Pill, stageBlocked, useWorkflowName } from "./Workflows";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -1111,13 +1112,22 @@ function FinishedBlock({
 // label, and the taller line box dropped it off the baseline the other five share.
 function WorkflowItem({ card }: { card: Card }) {
   const c = useCopy().card;
+  const w = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
   // A board with no workflows — older rules — answers none, and the item is not drawn at all.
   const flows = useWorkflows()?.workflows;
 
   if (!flows?.length) return null;
+  const deleted = workflowDeleted(card.workflow || "", flows.map((f) => f.id));
   const mine =
     flows.find((f) => f.id === (card.workflow || "")) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+  // The stages a start would be refused over (#1227). A workflow finished in planning needs no
+  // execute lead, the same exception the board's own check makes.
+  const blocked = mine.stages
+    .filter((s) => stageBlocked(s) && !(s.stage === "execute" && mine.delivers === "plan" && !s.lead))
+    .map((s) => w.stages[s.stage]);
+  const unavailable = deleted || mine.problems.length > 0;
+  const tip = deleted ? c.meta.deletedHint : c.meta.noLead(blocked);
 
   return (
     <MetaItem label={c.meta.workflow}>
@@ -1126,8 +1136,24 @@ function WorkflowItem({ card }: { card: Card }) {
         style={{ color: "var(--color-nb-ink)" }}
       >
         <FiGitCommit aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-        {nameOf(mine)}
+        {deleted ? c.meta.deletedWorkflow : nameOf(mine)}
       </span>
+      {unavailable &&
+        (deleted ? (
+          <span tabIndex={0} role="note" data-tip={tip} aria-label={tip} className="nb-tip nb-tip-start inline-flex rounded-[5px]">
+            <Pill tone="peach">{w.notReady}</Pill>
+          </span>
+        ) : (
+          <button
+            type="button"
+            data-tip={tip}
+            aria-label={tip}
+            onClick={() => configDialog.open("workflows")}
+            className="nb-tip nb-tip-start inline-flex cursor-pointer rounded-[5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+          >
+            <Pill tone="peach">{w.notReady}</Pill>
+          </button>
+        ))}
     </MetaItem>
   );
 }

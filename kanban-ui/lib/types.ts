@@ -75,7 +75,7 @@ export type {
   TokenUsage,
 } from "./format/agent/types";
 export type { DeliveryCommitMode, DeliveryRecord, DeliveryStatus, DeliveryStep } from "./format/agent/types";
-export { discussionTarget, isDiscussion, WORKFLOW_STAGES } from "./format/agent/types";
+export { discussionTarget, isDiscussion, WORKFLOW_STAGES, workflowDeleted } from "./format/agent/types";
 
 export type {
   ArchiveGroup,
