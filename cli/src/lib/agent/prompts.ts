@@ -25,7 +25,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
-import { DEFAULT_WORKFLOW, liveStage, workflowById, workflowFor } from './workflows'
+import { liveStage, workflowById, workflowFor } from './workflows'
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
@@ -191,11 +191,10 @@ const WORKFLOW_OF_STAGE: Partial<Record<Stage, WorkflowStage>> = {
   build: 'execute',
 }
 
-// The `--workflow` a create is told to pass. Nothing on the default: a card written without
-// the key runs on the default anyway, and a flag that changes nothing is a flag to get wrong.
+// The `--workflow` a create is told to pass — the default too, so add-task never picks another.
 function createWorkflowNote(req: AgentRequest): string {
   const id = (req.workflow ?? '').trim()
-  if (!id || id === DEFAULT_WORKFLOW) return ''
+  if (!id) return ''
   const flow = workflowById(id)
   if (!flow) return ''
   return `Put the new card(s) on the "${flow.name}" workflow: \`--workflow ${flow.id}\`.`

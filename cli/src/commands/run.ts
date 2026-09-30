@@ -22,6 +22,7 @@ import {
 import { currentSession } from '../lib/agent/origin'
 import { proRefusal, startResume, startRun } from '../lib/agent/start'
 import { unstickStop } from '../lib/agent/unstick'
+import { knownWorkflow } from '../lib/agent/workflows'
 import { cardCreation } from '../lib/agent/store'
 import type {
   AgentRequest,
@@ -210,6 +211,8 @@ export interface StartOptions {
   print?: boolean
   follow?: boolean
   release?: string
+  /** create: the workflow the new cards run on. */
+  workflow?: string
   andImplement?: boolean
   /** The runtime this one run spawns on (#518), on the two flows that take one. */
   runtime?: string
@@ -237,7 +240,12 @@ function readRequest(
   // The four actions that name no card. Two name nothing at all; planning a release and
   // writing one up each name a version.
   if (action === 'create') {
-    return { req: { action, description: words(0)!, release: opts.release, runtime: opts.runtime, origin: currentSession() }, follow, print }
+    const workflow = opts.workflow === undefined ? undefined : knownWorkflow(opts.workflow)
+    return {
+      req: { action, description: words(0)!, release: opts.release, workflow, runtime: opts.runtime, origin: currentSession() },
+      follow,
+      print,
+    }
   }
   if (action === 'plan-release') {
     return { req: { action, release: words(0)! }, follow, print }

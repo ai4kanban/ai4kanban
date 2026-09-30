@@ -30,6 +30,10 @@ If the card needs an open question, create the card first, then classify and wri
 Add `--blocked-by` or `--related` when needed. Non-English titles also need
 `--slug <short-english-slug>`.
 
+Add `--workflow <id>` naming the workflow from `akb workflow list` that does the work the
+card will do, unless the request already names one; prefer one not marked `Pro · locked`,
+then the board's own. Omit it when none clearly fits.
+
 Representative examples:
 
 ```text

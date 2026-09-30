@@ -46,7 +46,8 @@ import { startRun, workflowRefusal } from '../src/lib/agent/start.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { patchCard } from '../src/lib/view/edit.ts'
 import type { CardPatch } from '../src/lib/view/types.ts'
-import { move, refuses } from './helpers/board.ts'
+import { move, refuses, run } from './helpers/board.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 
 let root = ''
 
@@ -488,6 +489,29 @@ describe('the workflow a card carries', () => {
     // And neither does the direct edit a screen makes.
     patchCard(id, { workflow: other } as unknown as CardPatch)
     assert.equal(cardWorkflowId(id), '')
+  })
+})
+
+describe('the workflow `akb create` hands its run', () => {
+  const printed = async (argv: string[]): Promise<string> => {
+    const sink = startCollecting()
+    try {
+      await run(root, argv)
+    } finally {
+      stopCollecting()
+    }
+    return sink.out.join('\n')
+  }
+
+  it('tells the run to pass the named workflow, the default too', async () => {
+    const mine = createWorkflow('Newsletter').id!
+    assert.match(await printed(['create', 'a launch note', '--workflow', mine, '--print']), new RegExp(`--workflow ${mine}\``))
+    assert.match(await printed(['create', 'fix the header', '--workflow', DEFAULT_WORKFLOW, '--print']), /`--workflow coding`/)
+    assert.doesNotMatch(await printed(['create', 'fix the header', '--print']), /Put the new card/)
+  })
+
+  it('refuses a workflow this board does not have before anything starts', async () => {
+    await assert.rejects(() => run(root, ['create', 'a note', '--workflow', 'nonesuch', '--print']), /no workflow called "nonesuch"/)
   })
 })
 

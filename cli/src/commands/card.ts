@@ -10,7 +10,7 @@ import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
-import { DEFAULT_WORKFLOW, workflowById, workflows } from '../lib/agent/workflows'
+import { DEFAULT_WORKFLOW, knownWorkflow } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
@@ -224,21 +224,11 @@ export interface UpdateOptions {
 }
 
 // Which workflow a card runs on. Empty means the board's default and is written as no key at
-// all, so a board that never picked a workflow keeps the frontmatter it always had. A name
-// this board does not have is refused rather than saved: a card pointing at a workflow
-// nobody has is a card whose stages nothing can resolve.
+// all, so a board that never picked a workflow keeps the frontmatter it always had.
 function workflowFlag(asked: string | undefined): string {
-  if (asked === undefined) return ''
-  const wanted = asked.trim()
+  const wanted = (asked ?? '').trim()
   if (!wanted || wanted === DEFAULT_WORKFLOW) return ''
-  const flow = workflowById(wanted)
-  if (!flow) {
-    die(`no workflow called "${wanted}" on this board. It has: ${workflows().map((w) => w.id).join(', ')}.`, {
-      kind: 'no-such-workflow',
-      workflow: wanted,
-    })
-  }
-  return flow!.id
+  return knownWorkflow(wanted)
 }
 
 export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {

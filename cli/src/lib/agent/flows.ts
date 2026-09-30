@@ -129,6 +129,7 @@ export const FLOWS: Flow[] = [
     gloss: 'write the card(s) for it',
     options: [
       { flags: '--release <version>', description: 'the version the new cards ship in' },
+      { flags: '--workflow <id>', description: 'the workflow the new cards run on' },
       RUNTIME_OPTION,
     ],
   },

@@ -26,6 +26,7 @@ import path from 'node:path'
 
 import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
+import { die } from '../paths'
 import type { Meta } from '../types'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog } from '../agents/catalog'
@@ -719,6 +720,19 @@ export const workflows = (): Workflow[] => resolved().flows
 
 /** One workflow by id, or undefined when this board has no such workflow. */
 export const workflowById = (id: string): Workflow | undefined => workflows().find((w) => w.id === id)
+
+/** The workflow id a command line named, refused when this board has no such workflow: a card
+ *  pointing at a workflow nobody has is a card whose stages nothing can resolve. */
+export function knownWorkflow(asked: string): string {
+  const flow = workflowById(asked.trim())
+  if (!flow) {
+    die(`no workflow called "${asked.trim()}" on this board. It has: ${workflows().map((w) => w.id).join(', ')}.`, {
+      kind: 'no-such-workflow',
+      workflow: asked.trim(),
+    })
+  }
+  return flow!.id
+}
 
 /** The workflow a card runs on, from the id it carries. A card with no id, and one naming a
  *  workflow this board no longer has, both run on the default — a card is never left without
