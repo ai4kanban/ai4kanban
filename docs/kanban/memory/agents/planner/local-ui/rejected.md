@@ -31,7 +31,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Clickable run ids in chat replies** — saves one click, costs rules for what counts as an id.
 - **A view of everything uncommitted where a run worked** — it can't say what the run changed; the card's diff does.
 - **Letting the board start ready cards by itself** — needs limits on concurrency, card count and spend first.
-- **One long unattended run over a group's whole subtask graph** — one run builds one approved card and is reviewed and landed as that card.
+- **One long unattended run over a group's whole subtask graph** — one run builds one approved card and lands it; unattended work is not the product.
 
 ## Connectors
 
@@ -39,6 +39,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **A pi connector** — it never asks permission and nothing confines it to the project.
 - **A list of model ids in the Model field** — a kept list goes stale; used ids are empty on a fresh board.
 - **A login line in the agent dialog** — the board doesn't set up harnesses; Test says whether it connects.
+- **Naming the broken file, bundled copy and fix when an agent CLI won't start** — users get a minimal, Apple-like UI; file paths and exit-code diagnostics are internal detail.
 
 ## Setup
 

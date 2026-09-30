@@ -9,6 +9,8 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 - Configuration settles the board; machine-level settings come after the board's own, set apart.
 - **The Chinese UI calls a workflow 工作流 everywhere**, never 流程.
 - `kanban-ui/README.md` is the user guide; any card changing visible UI behavior updates it.
+- Memory stays out of users' way: one small entry on desktop, never a slot in the phone's bottom bar.
+- The phone header is the card search, with no logo; a search box searches the same thing on every page.
 
 ## Getting the board
 
@@ -87,7 +89,7 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 ## Background agents
 
 - Prune cadence bounds (5–1440 minutes, 1–720 hours, 1–365 days) apply only in the control; a shorter value already in config keeps running.
-- The daily chat-memory review is its own agent page: one switch, on by default, no cadence.
+- The daily chat-memory review is its own agent page: always on, no switch, no cadence.
 
 ## Feedback
 

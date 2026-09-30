@@ -24,17 +24,14 @@ the parts nobody said. Put one step in front of the card writing — turn the ma
 short brief first, and plan from the brief.
 
 ## Worth noting
-- **`akb guide extract-ideas` does not already cover this**: it reads an article as evidence
-  and may rightly come back with nothing, while a request the user is making must produce
-  cards and say what the material left unsaid, so the brief stays a step of its own.
 
 <!-- agent -->
 
 ## Scope
 - One step in front of the card writing, for a task idea the user gave in their own words —
   typed, in a file (#252), or spoken (#253).
-- An article, a complaint or a write-up skips it. `akb guide extract-ideas` reads a source
-  as it does today.
+- An article, a complaint or a write-up skips it. It has no board flow; the agent runtime
+  answers it as it would any request.
 - A plan the user already wrote skips it. The agent reads the spec directly and follows
   `akb guide add-task`.
 - `akb guide add-task` says which of the three readings a request gets.
@@ -42,8 +39,7 @@ short brief first, and plan from the brief.
 - What comes out is a short brief with a fixed shape: what is wanted, why it matters, what
   is explicitly out, and what the material never says.
 - The brief carries only what the material says.
-- The brief's reading rules are the ones `akb guide extract-ideas` already states — read the
-  whole material, treat a suggested solution as an idea to test — pointed at, not restated.
+- The brief reads the whole material and treats a suggested solution as an idea to test.
 - Anything the material never says is listed as unknown, never filled in.
 - Every line of the brief can be traced back to the material it came from.
 - Long material is read whole. Nothing is dropped for being far down the file.
@@ -64,8 +60,7 @@ short brief first, and plan from the brief.
 - [ ] Say the size at which it kicks in, so a one-line idea skips it.
 - [ ] Carry what the material leaves open into the new cards as open questions.
 - [ ] Split several unrelated requests in one piece of material into separate briefs.
-- [ ] Write the routing rule into `akb guide add-task`: a task idea gets the brief, a source
-      goes to extract-ideas, a written plan goes directly to card creation.
+- [ ] Write the routing rule into `akb guide add-task`: a task idea gets the brief, a written plan goes directly to card creation.
 - [ ] Show the brief before the cards are written.
 - [ ] Keep the brief in the run's own folder beside its log.
 - [ ] Say in the daily-loop guide that a typed or spoken idea now goes through a brief, and
@@ -80,15 +75,5 @@ short brief first, and plan from the brief.
   run, not a card.
 - **Why a fixed shape**: "unknown" has to be a place the brief must fill in, or the run
   quietly answers it instead of admitting it.
-- **Why a source and a written plan skip it**: extract-ideas reads a source as evidence and
-  quotes its own words back into each card's `## Source`; a written plan already states
-  the requested work. A short reading in front of either thins what it has to judge.
-- **Where `extract-ideas` stops**: `akb guide add-task` routes a direct task idea past it,
-  and its "strong signal only, zero candidates is valid" rule discards weak material — right
-  for an article, wrong for work the user is asking for.
-- **What `extract-ideas` never produces**: it names nothing the material leaves unsaid and
-  leaves no artifact between the material and the cards, which are the two things the brief
-  exists to give.
-- **Provenance differs too**: extract-ideas creates cards with `--proposed` and a `## Source`,
-  marking work the board found; a card written from the user's own words was asked for and
-  has no source to cite.
+- **Why a source and a written plan skip it**: a source is not a request, so the board gives
+  it no flow; a written plan already states the requested work.

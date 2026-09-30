@@ -26,7 +26,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Grouping the cards a release plan writes** — the release is already the group.
 - **`propose`, finding new work from the board alone** — produced untraceable cards.
 - **Hand-editing a card's spec instead of asking a flow** — the next refine rewrites it.
-- **A per-card acceptance check before closing** — review already judges against the card, and a human gate stalls the board.
+- **A per-card acceptance check before closing** — acceptance comes first, in planning, and a human gate stalls the board.
 - **Scoring how right a release plan turned out** — nothing runs when a plan finishes to compare against.
 - **A screen drawing inside an open question** — questions stay one frontmatter line pointing at the body.
 

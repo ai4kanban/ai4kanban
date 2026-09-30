@@ -36,7 +36,8 @@ its own subtask in this folder.
   already short and clear.
 - A plan the user already wrote is read directly by the agent and follows
   `akb guide add-task`.
-- An article, a complaint or a write-up goes to `akb guide extract-ideas`, as it does today.
+- An article, a complaint or a write-up has no board flow; the agent runtime answers it as it
+  would any request.
 - What the user brought in — the document, the transcript, word for word — never travels
   inside the words a run is started with. The run is given a path and opens it.
 - What the material leaves open becomes an open question on a card.
@@ -82,7 +83,7 @@ its own subtask in this folder.
   to turn speech into text that the board does not have today. If only one piece ships, it
   should be the file.
 - **The file picker does not wait for the brief**: a file holding a plan goes directly to card creation and a
-  file holding an article goes to extract-ideas, so #252 is useful on its own. Voice still
+  file holding an article is left to the agent runtime, so #252 is useful on its own. Voice still
   waits — a two-minute ramble is exactly what the brief is there to catch.
 
 ### Overruled by the user

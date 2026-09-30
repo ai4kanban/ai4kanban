@@ -6,6 +6,7 @@ One line per durable choice the user made about these designs.
 
 - **布局要平衡**：内容短时把操作放到详情对侧或提示条内，不让右侧空出一大片。
 - **整行说明太占地方**：「与 X 共用」这类后果说明收成名称旁的小标签，细节放悬停提示，腾出的行给操作。
+- **示例问题只作启发**：一行小号灰字打字机轮播，不做成可点的按钮。
 
 ## Runtimes
 
@@ -22,7 +23,7 @@ One line per durable choice the user made about these designs.
 
 - **Background work gets no control**: show a chip only once an update is ready or failed;
   nothing while checking or downloading.
-- **定期整理是「立即整理」旁的小控件**：点开才设周期；单一菜单含关闭和预设，选中即保存，自定义才展开
+- **定期整理是「立即整理」旁的小控件**：点开才设周期；单一菜单只含预设（助手不能关闭），选中即保存，自定义才展开
   数值、单位和时间。
 - **自建 Agent 只填名称、阶段、指令、运行时**：名称可用中文，内部标识自动生成；指令框就是整份 AGENT.md，
   新增键不加表单字段。

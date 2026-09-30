@@ -60,6 +60,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 
 ## Triage and feedback
 
+- ❌ **A heading per source card over the triage items** (most sources yield one) → ✅ a compact list with a detail pane, built for clearing hundreds of alike items fast.
 - ❌ **One board-wide endpoint form instead of source selection** → ✅ independent optional sources with attribution; collection controls stay with the collection agent.
 - ❌ **Reporting a problem means picking internal runs or reading infrastructure** → ✅ start from Discuss, optionally link an earlier card, and name only team, sharing scope and outcome; the card picker appears only while sharing is on.
 - ❌ **Feedback results shown in a chat that ending clears** → ✅ submit on end, with no sent/failed/retry states.

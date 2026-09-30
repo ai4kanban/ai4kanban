@@ -10,3 +10,7 @@ file. Read before proposing.
 ## Distribution
 
 - **Skill-marketplace listings** — AI4Kanban no longer ships as a skill.
+
+## Marketing
+
+- **Single-feature blog posts** — one small feature (e.g. a release's Insights view) is too thin for a post; it belongs in the release newsletter.

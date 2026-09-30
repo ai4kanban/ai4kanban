@@ -13,7 +13,7 @@ Settled user-facing answers for the public site. Read before re-asking a settled
 ## What the copy promises
 
 - **"No external tool"**: the board has charts; the promise is nothing outside your repo to sync with.
-- **No review claim**: a second agent reviewing each delivery is how delivery works, not a selling point.
+- **No review claim**: coding deliveries get no second-agent review; the copy never promises one.
 - **「3–6×」的证据**：首页里一段，不单开页——四个能点回公开源头的数字，配一条每日完成曲线。
 - **Plain words**: pricing rows say what a user gets ("Works with 8 coding agents", "No limit on concurrent tasks"), not developer terms.
 

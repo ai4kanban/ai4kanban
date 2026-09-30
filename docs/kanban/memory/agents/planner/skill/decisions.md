@@ -20,13 +20,16 @@ settled call.
 - Creation distils the request into a self-contained card; refinement starts fresh and tests it alone. Lost context is a creation defect.
 - A card is refined when a run creates it, never because a run edited it.
 - Turning the gate on applies only to cards that reach `ready` afterwards.
+- The coding workflow is judged on cost and time alone, never plan quality: planning takes one session and coding as few as possible, and trimming sessions trims their prompts too.
+- Coding has no review stage: what a build missed becomes cards the post-archive follow-up suggests.
+- **Material pasted to make cards from**: an article, research or feedback gets no board flow or instruction; the agent runtime answers it as it would any request.
 
 ## Implementation runs
 
 - Every agent's runs reach the network and no shell is fenced to the project folder; the fence stays available in Extra arguments.
 - A project that is not a git repo runs on every agent; the board passes what each needs instead of telling the user to `git init`.
 - A connector may ship before any card ran on it, with the docs saying so; the first real card's surprises become a new card.
-- A conflict-free rebase is never re-reviewed, with no switch to change that; only a resolved conflict takes a review.
+- A rebase is never re-reviewed: a conflict gets one session to resolve it and no review after.
 - A landing conflict is retried forever on the run-retry curve (capped at two minutes) and never handed back.
 - A delivery that ended abnormally is carried on by hand, never restarted for you; it may finish without rebuilding only on evidence its change is already on the target.
 - Run retry ships only on harnesses whose failure signals are proven, and gives up after 3 attempts or 15 minutes.
@@ -36,7 +39,7 @@ settled call.
 ## Recurring and background work
 
 - A built-in background job ships as a seeded recurring card run on a cadence the user sets (`30m`, `1d at 09:30`), never a separate switch; deleting the card opts out.
-- Exceptions: memory pruning is an opt-in agent with a cadence; the daily chat-memory review is on by default, has no cadence, and skips days with no conversation.
+- Exceptions: memory pruning is an always-on agent whose cadence the user sets; the daily chat-memory review is always on, has no cadence, and skips days with no conversation.
 - A recurring card holds only the repeating batch; a one-off change to how it works is an ordinary card.
 - Turning one agent on never flips another's switch; a page may warn and leaves both as set.
 - The board's own background agents have an on/off switch; an agent inside a workflow has none — its stage assignment decides.
@@ -92,8 +95,9 @@ settled call.
 - 自建工作流是否开分支由用户在工作流设置里选，开启后不开分支、不提交。
 - 项目内的运镜配方反馈只留在该项目的看板记忆，不改写随命令分发的配方。
 - 构图与动画选用索引随 akb 发布给脚本作者，不放官网；维护者用的盘点清单留在仓库。
-- `scriptwriter` owns the storyboard, motion references and demo preparation within its first round; there is no separate storyboard agent or round. Recipes are named for what they do, never "demo".
+- `scriptwriter` owns the storyboard and motion references within its first round, with no separate storyboard agent or round; demo rehearsal belongs to the `demo-rehearser` helper. Recipes are named for what they do, never "demo".
 - 审批轮次越少越好（每轮都冷启动新会话）；每轮提问写明第几轮、批准后发生什么。
+- 产品视频成片做好后不再提问（不问是否定稿）；不满意由用户在卡片对话里提。
 
 ## Mockups
 
@@ -102,6 +106,7 @@ settled call.
 - 只产出渲染页面，不做字符草图，也不另建字符草图 agent，等真有人要再说。
 - The Resolve dialog does not show mockups; options name the labels and the user opens the card page.
 - One design system per app, picked from the card's module.
+- 手机设计稿的外框负责 iOS 真机布局（状态栏、灵动岛、Home 条、安全区），规划和 ui-designer 不用管这些细节。
 
 ## Chat
 

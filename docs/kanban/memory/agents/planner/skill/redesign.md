@@ -23,7 +23,6 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 
 ## Idea intake
 
-- ❌ **An article or complaint sent straight to add-task** → ✅ extract the user problems and check them against shipped, planned, rejected and remembered work first.
 - ❌ **A plan split that adds a limit nobody asked for and parks the rest in a recurring card** → ✅ batching splits the work, never the result.
 - ❌ **A discussion plan leaving proposable decisions open** → ✅ choose and justify; ask only for indispensable user input, with a recommendation.
 - ❌ **Making users locate a session before reporting a bad result** → ✅ start from their complaint and linked card and find the evidence.
@@ -57,8 +56,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 ## Deliveries
 
 - ❌ **Treating text differences as changed requirements** → ✅ the agent applying an answer judges it; delivery control consumes that.
-- ❌ **Turning a detail found in review into a card** → ✅ review fixes in-scope mistakes and drops the rest; discovery is planning's job.
-- ❌ **Keeping a review verdict after a conflict rebase** → ✅ review the composed tree, so the reviewed tree is the one that lands.
+- ❌ **Planning out everything a build might miss before it starts** → ✅ build the card; what it missed becomes follow-up cards after archive.
 
 ## UI design
 
