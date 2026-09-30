@@ -190,7 +190,7 @@ function Sheet({
   const discussing = settled && plan.supported && read?.canChat !== false;
   // The rail lists only discussions with a file, so one that reads back empty is gone.
   const gone = discussion !== null && read !== null && read.chat === null;
-  const openFailed = !opened && (rail.readFailed || gone);
+  const openFailed = !opened && (rail.readFailed || plan.readFailed || gone);
   if (!opened && settled && !openFailed) setOpened(true);
   const opening = !opened;
   // Plan tasks is writing the cards, or has written them (#1213): nothing more goes in.
@@ -373,7 +373,7 @@ function Sheet({
                         retry={c.retry}
                         onRetry={() => {
                           rail.retry();
-                          plan.refresh();
+                          plan.retry();
                         }}
                       />
                     ) : (

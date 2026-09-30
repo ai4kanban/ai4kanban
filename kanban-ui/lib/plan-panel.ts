@@ -92,6 +92,9 @@ export interface PlanPanel {
   measure(el: HTMLElement | null): void;
   /** Re-read now rather than waiting out the tick — after a send, or after an answer. */
   refresh(): void;
+  /** The last read threw and none has landed yet — the chat rail's own `readFailed`. */
+  readFailed: boolean;
+  retry(): void;
 }
 
 /** `discussion` is which discussion's plan this panel draws (#496) — the one the sheet is
@@ -99,6 +102,7 @@ export interface PlanPanel {
  *  discussions still has. */
 export function usePlanPanel(discussion: string | null = null): PlanPanel {
   const [read, setRead] = useState<DiscussRead | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
   const [supported, setSupported] = useState(false);
   // The last words read for the file on screen, and which file they are. A rewrite empties
   // the file for an instant; keeping both is what lets the card say so and go on showing
@@ -111,6 +115,7 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
   if (showing !== discussion) {
     setShowing(discussion);
     setRead(null);
+    setReadFailed(false);
     setHeld({});
     setPicked(null);
   }
@@ -131,6 +136,7 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
         if (!alive) return;
         setSupported(next.supported);
         setRead(next);
+        setReadFailed(false);
         // Only real words are held. An empty read is a file mid-rewrite, and forgetting it
         // here is exactly the blank the card must never show.
         setHeld((was) => {
@@ -142,7 +148,8 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
           return now;
         });
       } catch {
-        // transient — the next tick tries again
+        // transient — the next tick tries again; a plan never read says so
+        if (alive) setReadFailed(true);
       } finally {
         inFlight = false;
       }
@@ -174,6 +181,10 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
   const text = plan?.text.trim() ? plan.text : words;
   const shown = !!plan && !!text;
   const refresh = useCallback(() => kickRef.current(), []);
+  const retry = useCallback(() => {
+    setReadFailed(false);
+    kickRef.current();
+  }, []);
   const toggle = useCallback(() => setHidden((was) => !was), []);
   const toggleFull = useCallback(() => setFull((was) => !was), []);
 
@@ -198,6 +209,8 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
     space: card + PLAN_GAP + PLAN_INSET,
     measure,
     refresh,
+    readFailed: readFailed && read === null,
+    retry,
   };
 }
 
