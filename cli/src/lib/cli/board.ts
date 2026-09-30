@@ -186,6 +186,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--release <version>', 'the version it ships in; "" takes it back out of one')
     .option('--blocked-by <ids>', 'ids of open cards this one waits on', collectList)
     .option('--related <ids>', 'ids of open cards this one relates to', collectList)
+    .option('--add-blocked-by <ids>', 'append ids to blocked_by, keeping the ids already there', collectList)
+    .option('--add-related <ids>', 'append ids to related, keeping the ids already there', collectList)
     .option('--modules <names>', 'the parts of the project it touches', collectList)
     .option('--slug <slug>', 'rename the file')
     .option('--cadence <cadence>', `how often it repeats: ${CADENCE_FORMS}. "" clears it. Recurring cards only`)

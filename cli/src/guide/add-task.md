@@ -25,8 +25,8 @@ If the card needs an open question, create the card first, then classify and wri
 `akb guide update-questions`.
 
 Record each dependency on the card that waits: `--blocked-by` on the new card, or
-`akb raw update <id> --blocked-by <ids>` on an existing card needing its output, keeping its
-current ids — the flag replaces the list. `--related` marks cards that only relate.
+`akb raw update <id> --add-blocked-by <ids>` on an existing card needing its output.
+`--related` (or `--add-related` on an existing card) marks cards that only relate.
 Non-English titles also need `--slug <short-english-slug>`.
 
 Add `--workflow <id>` from `akb workflow list` that fits the card's work, unless the request

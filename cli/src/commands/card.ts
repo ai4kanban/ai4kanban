@@ -218,6 +218,8 @@ export interface UpdateOptions {
   release?: string
   blockedBy?: string[]
   related?: string[]
+  addBlockedBy?: string[]
+  addRelated?: string[]
   modules?: string[]
   slug?: string
   cadence?: string
@@ -231,6 +233,10 @@ function workflowFlag(asked: string | undefined): string {
   return knownWorkflow(wanted)
 }
 
+function appendIds(have: number[], added: number[]): number[] {
+  return [...new Set([...have, ...added])]
+}
+
 export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   // The terminal's spelling of the edit `patchCard` refuses (#564): one card, one answer,
   // whichever door the write comes through. The creator itself is let past — this is what it
@@ -242,6 +248,8 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
+  if (flags.blockedBy !== undefined && flags.addBlockedBy !== undefined) die('--blocked-by replaces the list and --add-blocked-by appends to it — pass one')
+  if (flags.related !== undefined && flags.addRelated !== undefined) die('--related replaces the list and --add-related appends to it — pass one')
 
   const changes: string[] = []
   if (flags.title !== undefined) {
@@ -274,6 +282,15 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   }
   if (flags.related !== undefined) {
     meta.related = parseIdList(flags.related, 'related', ceiling)
+    changes.push('related')
+  }
+  // Only the new ids are checked: one already listed stays even if its card has since closed.
+  if (flags.addBlockedBy !== undefined) {
+    meta.blocked_by = appendIds(meta.blocked_by, parseIdList(flags.addBlockedBy, 'add-blocked-by', ceiling))
+    changes.push('blocked_by')
+  }
+  if (flags.addRelated !== undefined) {
+    meta.related = appendIds(meta.related, parseIdList(flags.addRelated, 'add-related', ceiling))
     changes.push('related')
   }
   if (flags.modules !== undefined) {
