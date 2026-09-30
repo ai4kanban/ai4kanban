@@ -825,6 +825,7 @@ export function openRun(
     // a resume starts the same agent rather than a different one.
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
     triage: req.action === 'create' || (req.action === 'implement' && cardId === null) ? req.triage : undefined,
+    fromCard: req.action === 'create' ? req.fromCard : undefined,
     setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round.
@@ -1023,6 +1024,7 @@ async function resumeHeld(
     retry: prev.retry,
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
+    fromCard: prev.fromCard,
     setupTicked: prev.setupTicked,
     refineRound: prev.refineRound,
     scheduled: prev.scheduled,

@@ -989,6 +989,7 @@ function requestOf(record: RunRecord): AgentRequest {
     runtime: record.runtime,
     specAgent: record.specAgent,
     triage: record.triage,
+    fromCard: record.fromCard,
     refineRound: record.refineRound,
     scheduled: record.scheduled,
     flowId: record.flowId,

@@ -170,6 +170,9 @@ export interface AgentRequest {
   chat?: string
   /** create: the session the command was typed in (#1222). */
   origin?: ChatHandoff
+  /** create: the card this came up on (#1273), whose dependency on the new card(s) the run
+   *  records. */
+  fromCard?: number
   /** create, and implement with no `id`: the version the new card(s) ship in — a
    *  **Build now** writes one card and it ships in the release on screen like any other
    *  (#470). plan-release: the version being planned, and changelog: the version being
@@ -538,6 +541,8 @@ export interface RunRecord {
   specAgent?: string
   /** The triage item a create or card-less implement run is making a card of (#894, #1193). */
   triage?: TriageAsk
+  /** A create's `--from-card` (#1273), kept so a resumed prompt still names it. */
+  fromCard?: number
   /** On a setup run: the checklist boxes already ticked when it started (#909). Absent when
    *  there was no checklist. A resume carries the first run's count on. */
   setupTicked?: number

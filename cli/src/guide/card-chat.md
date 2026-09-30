@@ -24,9 +24,8 @@ This is the conversation on one card. Answer what the user asked, and act on wha
   change the edit; settle the details you can judge yourself.
 - **Route by outcome**: a new rule for the same outcome, or a rethought outcome for this card,
   is a revision of it; the revision re-evaluates a changed outcome. A different outcome, or a
-  job this card does not cover, goes to `akb create "<what they said, in their words>"` and runs
-  on its own — it does the duplicate check this conversation cannot. Do not write the new card
-  here; tell them it went to the board.
+  job this card does not cover, goes to `akb create --from-card <id> "<their own words>"`, which
+  checks duplicates and links it here. Do not write it yourself; say it went to the board.
 - **Another card**: change it only through its own `akb card revise <other-id> --print`, and
   name that card in the reply.
 - **Write no memory**: not here, and not in the flows this conversation starts, whatever their

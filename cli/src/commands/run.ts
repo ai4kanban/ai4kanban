@@ -221,6 +221,8 @@ export interface StartOptions {
   runtime?: string
   /** reject: drop the card without writing any memory (#601). */
   discard?: boolean
+  /** create: the card this came up on (#1273). */
+  fromCard?: string
 }
 
 // Turn what was typed into the request the run is started from. The command line has been
@@ -244,8 +246,12 @@ function readRequest(
   // writing one up each name a version.
   if (action === 'create') {
     const workflow = opts.workflow === undefined ? undefined : knownWorkflow(opts.workflow)
+    const fromCard = opts.fromCard === undefined ? undefined : Number(opts.fromCard)
+    if (fromCard !== undefined && !(Number.isInteger(fromCard) && findCard(fromCard))) {
+      die(`--from-card: no open card #${opts.fromCard}`, { kind: 'card-not-found', id: opts.fromCard })
+    }
     return {
-      req: { action, description: words(0)!, release: opts.release, workflow, runtime: opts.runtime, origin: currentSession() },
+      req: { action, description: words(0)!, release: opts.release, workflow, runtime: opts.runtime, origin: currentSession(), fromCard },
       follow,
       print,
     }

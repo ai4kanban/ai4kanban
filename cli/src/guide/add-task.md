@@ -24,12 +24,13 @@ akb raw create --title "..." --modules <modules> \
 If the card needs an open question, create the card first, then classify and write it by
 `akb guide update-questions`.
 
-Add `--blocked-by` or `--related` when needed. Non-English titles also need
-`--slug <short-english-slug>`.
+Record each dependency on the card that waits: `--blocked-by` on the new card, or
+`akb raw update <id> --blocked-by <ids>` on an existing card needing its output, keeping its
+current ids — the flag replaces the list. `--related` marks cards that only relate.
+Non-English titles also need `--slug <short-english-slug>`.
 
-Add `--workflow <id>` naming the workflow from `akb workflow list` that does the work the
-card will do, unless the request already names one; prefer one not marked `Pro · locked`,
-then the board's own. Omit it when none clearly fits.
+Add `--workflow <id>` from `akb workflow list` that fits the card's work, unless the request
+names one; prefer one not `Pro · locked`, then the board's own. Omit it when none fits.
 
 Representative examples:
 

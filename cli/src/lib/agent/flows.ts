@@ -130,6 +130,7 @@ export const FLOWS: Flow[] = [
     options: [
       { flags: '--release <version>', description: 'the version the new cards ship in' },
       { flags: '--workflow <id>', description: 'the workflow the new cards run on' },
+      { flags: '--from-card <id>', description: 'the card this came up on, to link the new cards to' },
       RUNTIME_OPTION,
     ],
   },

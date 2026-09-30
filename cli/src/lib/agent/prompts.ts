@@ -434,6 +434,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
             ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, and write \`## Source\` naming its source id \`${req.triage.sourceId}\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`
             : `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
+        req.fromCard ? `This came up on card #${req.fromCard}; record its dependency on the new card(s) as add-task says.` : '',
         "Cover what the requests asks for, DONT OVER DESIGN IT.",
         // The board was showing one release when this was asked for, so the card ships in
         // it — otherwise it would land in no release, off the screen of the person who

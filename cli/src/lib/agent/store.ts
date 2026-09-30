@@ -195,6 +195,7 @@ export function readStore(): Store {
         entry.triage && typeof entry.triage.sourceId === 'string' && typeof entry.triage.file === 'string'
           ? { sourceId: entry.triage.sourceId, file: entry.triage.file }
           : undefined,
+      fromCard: Number.isInteger(entry.fromCard) && entry.fromCard! > 0 ? entry.fromCard : undefined,
       setupTicked: Number.isInteger(entry.setupTicked) && entry.setupTicked! >= 0 ? entry.setupTicked : undefined,
       tickedNothing: entry.tickedNothing === true ? true : undefined,
       refineRound:
