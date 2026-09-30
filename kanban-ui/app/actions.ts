@@ -591,7 +591,7 @@ export async function sendChatAction(
   /** What this message says about team feedback: the card a discussion linked (#628), and
    *  where the switch under the box stands as it goes (#679). The switch rides on the message
    *  because a conversation nobody has spoken into yet has no file to write it to. */
-  feedback?: { cardId?: number; share?: boolean },
+  feedback?: { cardId?: number; share?: boolean; triage?: string },
 ): Promise<{ ok: boolean; error?: string }> {
   const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -612,6 +612,8 @@ export async function sendChatAction(
     box: names.length && typeof box === "string" ? box : undefined,
     feedback: complaint,
     share: feedback ? feedback.share === true : undefined,
+    // The triage item a discussion was opened from (#1252).
+    triage: typeof feedback?.triage === "string" && isDiscussion(target) ? feedback.triage : undefined,
   });
 }
 

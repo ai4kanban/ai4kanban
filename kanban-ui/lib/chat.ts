@@ -250,6 +250,8 @@ export async function sendChat(
     /** Where the switch under the box stands as this goes (#679) — carried on the message
      *  because a conversation nobody has spoken into yet has no file to write it to. */
     share?: boolean;
+    /** The triage item a discussion was opened from (#1252). */
+    triage?: string;
   } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   let rules;
@@ -298,6 +300,7 @@ export async function sendChat(
     guide: opts.guide,
     feedback: opts.feedback,
     share: opts.share,
+    triage: opts.triage,
     images,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the

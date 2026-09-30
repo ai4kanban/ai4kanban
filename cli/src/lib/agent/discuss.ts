@@ -10,9 +10,19 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 import { listRuns, peekRun, titleOf } from './sessions'
-import { becameCards, openPlans, readChat, returnChatPlan, clearChatPlan, setChatArchived, setChatPlanRun } from './chat'
+import {
+  becameCards,
+  clearChatPlan,
+  clearChatTriage,
+  openPlans,
+  readChat,
+  returnChatPlan,
+  setChatArchived,
+  setChatPlanRun,
+} from './chat'
 import { locate, locateArchived } from '../cards'
 import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
+import { archiveInboxItem } from '../signals/inbox'
 import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
 import { isDiscussion, type ChatPlan, type ChatTarget, type DiscussPlan, type DiscussRead, type PlanAnswer } from './types'
 
@@ -119,7 +129,21 @@ export function settlePlans(target: ChatTarget, look: RunLook): void {
       const moved = archivePlan(plan.path)
       if (moved && moved !== plan.path) for (const id of naming) repointSource(id, plan.path, moved)
       clearChatPlan(target, plan.path, naming)
+      archiveDiscussionTriage(target, naming[0]!)
     }
+  }
+}
+
+/** File the triage item a discussion was started from under the first card it wrote
+ *  (#1252). Once only, and never in the way of the card. */
+export function archiveDiscussionTriage(target: ChatTarget, cardId: number): void {
+  const sourceId = readChat(target)?.triage
+  if (!sourceId) return
+  try {
+    archiveInboxItem(sourceId, cardId)
+    clearChatTriage(target)
+  } catch {
+    // left for the next card
   }
 }
 

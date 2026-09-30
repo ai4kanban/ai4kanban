@@ -14,7 +14,7 @@ import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
-import { heldByButton } from "@/lib/create-open";
+import { discussionTriage, heldByButton } from "@/lib/create-open";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
 import type { DiscussionTarget, WorkflowView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
@@ -265,12 +265,14 @@ function Sheet({
       // The card this discussion is about (#628), which hands the turn to the `feedback`
       // agent. Sharing is the switch under the box, and the rail carries that itself.
       feedback: partner.sending,
+      triage: discussion ? discussionTriage.get(discussion) : undefined,
     });
     setSending(false);
     if (!went) {
       pictures.takeBack();
       return;
     }
+    if (discussion) discussionTriage.delete(discussion);
     clearDraft();
     onSent();
     pictures.sent();

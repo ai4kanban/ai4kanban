@@ -33,6 +33,7 @@ import {
   useArchivedDiscussion,
   useButtonError,
   useCloseSheetRequest,
+  discussionTriage,
   useCreateSheetRequest,
   useStarting,
 } from "@/lib/create-open";
@@ -66,6 +67,7 @@ const PRESSABLE = "a[href], button, select, summary, [role=button], [role=link],
 /** Throw away what one discussion was holding unsent — it is over. */
 function forget(discussion: DiscussionTarget | null) {
   if (heldByButton.unspoken === discussion) heldByButton.unspoken = null;
+  if (discussion) discussionTriage.delete(discussion);
   dropDraft(createDraftKey(discussion));
   dropPictures(askedOn(discussion));
 }
@@ -184,7 +186,7 @@ export function CreateTask({
   // it has no row either, so a new one would lose what was typed into it.
   const phone = usePhone();
   // Words handed over with the ask (#1193) always go to a fresh one, after its draft.
-  const openFresh = useCallback(async (prefill?: string) => {
+  const openFresh = useCallback(async (prefill?: string, triage?: string) => {
     setError(null);
     setFailure(null);
     if (phone && discussion && !prefill) return setOpen(true);
@@ -195,6 +197,7 @@ export function CreateTask({
     const fresh = heldByButton.unspoken ?? (await startDiscussionAction());
     heldByButton.unspoken = fresh;
     if (prefill) appendDraft(createDraftKey(fresh), prefill);
+    if (fresh && triage) discussionTriage.set(fresh, triage);
     setDiscussion(fresh);
     setOpen(true);
   }, [phone, discussion, setError]);
@@ -244,7 +247,7 @@ export function CreateTask({
       setDiscussion(asked.discussion);
       setOpen(true);
     } else {
-      void openFresh(asked.prefill);
+      void openFresh(asked.prefill, asked.triage);
     }
   }, [asked, openFresh, setError]);
 

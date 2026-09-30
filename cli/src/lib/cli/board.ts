@@ -12,6 +12,7 @@ import { insideRun } from '../agent/env'
 import { handOff } from '../agent/chat'
 import { recordCards } from '../agent/created-cards'
 import { currentSession } from '../agent/origin'
+import { archiveDiscussionTriage } from '../agent/discuss'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { BoardError, say, warn } from '../io'
@@ -84,6 +85,7 @@ async function dispatch(
       try {
         const from = currentSession()
         if (from) handOff(from, created)
+        if (from?.discussion) archiveDiscussionTriage(from.discussion, created[0]!)
       } catch {
         // no session to hand over
       }

@@ -160,6 +160,8 @@ export interface ChatRail {
       box?: string;
       /** The card this message is a complaint about (#628). Only Discuss sends one. */
       feedback?: { cardId: number };
+      /** The triage item a fresh discussion was opened from (#1252). */
+      triage?: string;
     },
   ): Promise<boolean>;
   /** Run this conversation on another runtime (#272, #467), or on the board's again with
@@ -716,7 +718,7 @@ export function useChatRail({
       discuss = false,
       images: string[] = [],
       box?: string,
-      feedback?: { cardId?: number },
+      feedback?: { cardId?: number; triage?: string },
     ) => {
       setError(null);
       setHeld(null);
@@ -762,8 +764,9 @@ export function useChatRail({
         images?: string[];
         box?: string;
         feedback?: { cardId: number };
+        triage?: string;
       } = {},
-    ) => post(text, opts.discuss, opts.images, opts.box, opts.feedback),
+    ) => post(text, opts.discuss, opts.images, opts.box, { ...opts.feedback, triage: opts.triage }),
     [post],
   );
 

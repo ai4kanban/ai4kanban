@@ -1045,6 +1045,9 @@ export interface Chat {
   /** On a discussion: cards created during a turn that had no session id yet (#1222), handed
    *  it when the turn ends. */
   pendingCards?: number[]
+  /** On a discussion started from a triage item (#1252): that item's source id, until the
+   *  first card written from the discussion archives it. */
+  triage?: string
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number

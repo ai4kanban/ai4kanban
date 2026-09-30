@@ -154,6 +154,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
     linkedCard: Number.isInteger(raw.linkedCard) && (raw.linkedCard as number) > 0 ? raw.linkedCard : undefined,
     from: typeof cardId === 'number' ? handoffOf(raw.from) : undefined,
     pendingCards: isDiscussion(cardId) ? idsOf(raw.pendingCards) : undefined,
+    triage: isDiscussion(cardId) && typeof raw.triage === 'string' && raw.triage ? raw.triage : undefined,
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
@@ -498,6 +499,14 @@ export function endChatShare(cardId: ChatTarget): void {
   writeChat(chat)
 }
 
+/** Drop the triage item a discussion was started from (#1252). */
+export function clearChatTriage(cardId: ChatTarget): void {
+  const chat = readChat(cardId)
+  if (!chat?.triage) return
+  chat.triage = undefined
+  writeChat(chat)
+}
+
 /** The card a discussion says its problem is about (#628). A card's own conversation never
  *  calls this — it is that card's already. */
 export function setChatCard(cardId: ChatTarget, card: number | null): void {
@@ -526,6 +535,7 @@ export function carriedForward(held: Chat, since: Chat | null): Chat {
   held.archived = since.archived
   held.archivedBy = since.archivedBy
   held.pendingCards = since.pendingCards
+  held.triage = since.triage
   return held
 }
 
@@ -1042,6 +1052,9 @@ export interface SendOptions {
    *  the message because a conversation nobody has spoken into yet has no file to write it
    *  to — this is what makes the first message the one that records it. */
   share?: boolean
+  /** The triage item this discussion was started from (#1252), by source id. Kept by the
+   *  first message only. */
+  triage?: string
 }
 
 /** What one turn sends.
@@ -1241,6 +1254,7 @@ export async function sendChatMessage(
     // picked before anything was said had no file to be written to, and the end of a shared
     // conversation reads it off this one.
     if (options.feedback?.cardId) held.linkedCard = options.feedback.cardId
+    if (options.triage && isDiscussion(cardId) && !chat?.messages.length) held.triage = options.triage
     held.updatedAt = now
     writeChat(held)
     // Counted here, and only what the user said (#295): the name of the action and nothing

@@ -497,6 +497,7 @@ export function SignalsPage({
     createSheet.open(
       null,
       `discuss triage ${card === null ? "" : `#${card} `}(${signal.relPath}):\n\n`,
+      signal.sourceId,
     );
   };
 

@@ -367,6 +367,9 @@ export interface BoardRules {
        *  message because a conversation nobody has spoken into yet has no file to write it
        *  to. Rules from before it ignore it, and the switch is not drawn on such a board. */
       share?: boolean;
+      /** The triage item a discussion was opened from (#1252). Rules from before it ignore
+       *  it, and the item stays in triage. */
+      triage?: string;
     },
   ): Promise<ChatReply | RunRefusal>;
   clearChat?(cardId: ChatTarget): boolean;
