@@ -6,6 +6,7 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 
@@ -159,6 +160,36 @@ function bundledBinary(command: string, harness: Harness): string {
   const found = harness.bundled().find((p) => p && fs.existsSync(p))
   if (!found) return command
   return `${quoteArg(found)}${command.slice(command.indexOf(binary) + binary.length)}`
+}
+
+/** The binary a spawn should use: `binary` itself, or — when the PATH answers that bare name
+ *  with something that cannot start, such as a wrapper left pointing at an app's old layout —
+ *  the copy a desktop app shipped, with the line the run owes its log. Asked at every spawn and
+ *  never cached: a remembered answer is exactly what goes stale when the app updates. */
+export function startableBinary(binary: string, harness: Harness): { binary: string; note?: string } {
+  if (!harness.bundled || !binary || binary.includes('/') || binary.includes('\\')) return { binary }
+  if (!binaryOnPath(binary)) return { binary }
+  const found = harness.bundled().find((p) => p && fs.existsSync(p))
+  if (!found || starts(binary)) return { binary }
+  const app = /([^/\\]+)\.app[/\\]/.exec(found)?.[1]
+  return {
+    binary: found,
+    note: `The ${binary} on your PATH can't start, so this run uses the one inside ${app ?? 'your desktop app'}.`,
+  }
+}
+
+// Started the way a run starts it (no shell), so "it starts" means the run's spawn will too.
+// Only a clear never-started counts; a timeout or any other answer is a binary that runs.
+function starts(binary: string): boolean {
+  const probe = spawnSync(binary, ['--version'], {
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: 3000,
+    windowsHide: true,
+    shell: false,
+  })
+  const code = (probe.error as NodeJS.ErrnoException | undefined)?.code
+  if (code === 'ENOENT' || code === 'EACCES' || code === 'EPERM' || code === 'ENOEXEC') return false
+  return !((probe.status === 126 || probe.status === 127) && !probe.stdout?.toString().trim())
 }
 
 /** What one runtime is set to: each declared setting's value, which of its keys
@@ -489,6 +520,8 @@ export interface ActiveRun extends RunPlan {
   /** Reads this connector's failure output for a provider that merely stumbled (#525).
    *  Undefined for one that recognises none, whose runs never retry. */
   transient?: (failure: RunFailure) => TransientFailure | undefined
+  /** Set when the PATH's copy couldn't start and argv runs a desktop app's instead. */
+  startNote?: string
 }
 
 /** Work out how to start a fresh run. `cwd` is the folder it works in — the project, or a
@@ -584,13 +617,17 @@ export function planFork(
 export function openPlan(plan: RunPlan): ActiveRun {
   const resolved = resolveHarness({ agent: plan.agent, pin: plan.runtime, harness: plan.harness })
   const { harness } = resolved
+  const start = startableBinary(plan.argv[0] ?? '', harness)
+  const argv = start.note ? [start.binary, ...plan.argv.slice(1)] : plan.argv
   return {
     ...plan,
+    argv,
+    ...(start.note ? { startNote: start.note } : {}),
     env: runEnv(resolved, plan.cwd ?? REPO_ROOT),
     // The folder and the binary: what a renderer needs to go looking for what the stream
     // left out (agent/harnesses/types.ts). argv's first word is the command's own binary,
     // the same one the spawn resolves and an ENOENT names.
-    renderer: harness.renderer?.(plan.cwd ?? REPO_ROOT, plan.argv[0]),
+    renderer: harness.renderer?.(plan.cwd ?? REPO_ROOT, argv[0]),
     // The client is handed the settings that are actually in effect — the same ones that
     // would have reached the run as flags, minus whatever the picked provider doesn't
     // need — because for a connector that talks, a setting is something the conversation

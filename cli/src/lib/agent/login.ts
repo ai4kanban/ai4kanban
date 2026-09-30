@@ -27,7 +27,7 @@ import { quoteArg, splitCommand } from './argv'
 import type { Harness } from './harnesses'
 import { commandBinary, pathLookup } from './installed'
 import { shownForProvider } from './providers'
-import { activeProviderOf, commandOf, readBlock } from './resolve'
+import { activeProviderOf, commandOf, readBlock, startableBinary } from './resolve'
 import { harnessOfRuntime, readRuntimes, type Runtime } from './runtimes'
 import type { LoggedOutAgent } from './types'
 
@@ -120,7 +120,7 @@ export function toAsk(): Ask[] {
         shownForProvider(harness.settings, s.key, picked),
     )
     if (ownKey) continue
-    asks.push({ runtime, harness, binary: commandBinary(command) })
+    asks.push({ runtime, harness, binary: startableBinary(commandBinary(command), harness).binary })
   }
   return asks
 }

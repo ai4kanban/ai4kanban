@@ -104,7 +104,9 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
       if (settled) return
       settled = true
       stopTimer()
-      resolve({ ...res, harness: run.harness, ms: Date.now() - startedAt })
+      // Which copy failed matters once the board swapped it for the desktop app's.
+      const output = run.startNote && res.output ? `${run.startNote}\n${res.output}` : res.output
+      resolve({ ...res, output, harness: run.harness, ms: Date.now() - startedAt })
     }
 
     // The one failure the board explains in its own words, because the raw error ("spawn

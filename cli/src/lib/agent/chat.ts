@@ -1535,6 +1535,7 @@ async function speak(io: {
     text += chunk
     io.onText(chunk)
   }
+  if (active.startNote) push(`${noted(active.startNote)}\n`)
   let resumeId = io.plan.resumeId ?? undefined
   let reseeded = false
   let model: string | undefined

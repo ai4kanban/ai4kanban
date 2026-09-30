@@ -175,6 +175,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // The keys are read here and nowhere else: the plan on disk carries the command and the
   // agent's name, never a key, and this is the one moment one is needed.
   const active = openPlan(spec.plan)
+  if (active.startNote) log.write(`[board] ${active.startNote}\n`)
   // Resume the recorded action, not another phase of the same delivery.
   const basePrompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId, record.action), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
   const prompt = [basePrompt, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n')
