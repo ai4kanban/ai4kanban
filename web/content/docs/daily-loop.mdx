@@ -38,23 +38,15 @@ inside one that's asked for a board action gets the steps printed and does them 
 
 ## Pick what to work on
 
-Two asks, two answers.
-
-**"What's next?"** — a pick from the cards you already have. The skill takes the ones that are
-ready to build and unblocked, ranks them by priority, then ROI, then which release ships
+Say **"What's next?"** for a pick from the cards you already have. The skill takes the ones
+that are ready to build and unblocked, ranks them by priority, then ROI, then which release ships
 first, and names up to three: id, title, and one line on why each won. Priority outranks the
 release, so the pick can be work the release you're shipping doesn't contain. Nothing is
 written, so "not that one" costs you nothing. When nothing qualifies it says what's in the way
 — "4 cards wait on another card, 12 still need refining" — rather than an empty answer.
 
-**"What are we missing?"** — **new tasks**, found for you. The skill mines your planning
-sources — the ones in `docs/kanban/config.md` — exactly as it mines an article you paste in:
-it pulls out the concrete gaps, checks each against the board, your published docs,
-`readme.md` and `rejected.md` so it won't repeat work, and writes the survivors as cards.
-Strong signal only, so "nothing new" is a real answer. You approve, tweak, or drop each card.
-
-Every card it writes is judged against `memory/goal.md` — the direction in your own words. The
-file starts empty and stays optional: nothing on the board waits on it, and the skill never
+Every card the skill writes is judged against `memory/goal.md` — the direction in your own
+words. The file starts empty and stays optional: nothing on the board waits on it, and the skill never
 writes the goal for you. It only marks how clear the goal looks in that file's `reviewed:`
 field:
 
@@ -76,18 +68,6 @@ Say **"add a task: `<idea>`"**. Before writing, the skill reviews the idea (busi
 feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design mistake.
 Then it creates one indexed card with `akb raw create`, fills its body in plain language split
 into checkable todos, and adds it to `todo/README.md`.
-
-## Turn a source into tasks
-
-Say **"read this article and create tasks"**, or give the skill research, an analysis, or user
-feedback. It treats the material as evidence rather than a ready-made task list: it extracts
-concrete user problems, finds the modules that could improve them, and validates each idea
-against the goal, code, docs, the Planner's memory, and open cards. Ideas that are already supported,
-already planned, previously rejected, outside the project's control, or too weak are skipped, and
-a useful detail for existing work updates that card instead of creating a duplicate.
-
-The result can be fewer tasks than the source suggests — including none. Each card that survives
-is about the product improvement, not about reading the source.
 
 ## Push a card forward
 

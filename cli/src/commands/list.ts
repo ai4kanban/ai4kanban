@@ -2,8 +2,7 @@
 //
 // The open board at a glance, one block per card — id, title, meta, summary line,
 // and the file to read for the rest. `--module <m>` narrows it to the cards tagged
-// with one module, which is how an extract-ideas run sees where a module already has
-// effort without grepping frontmatter by hand.
+// with one module.
 //
 // `--stale` asks a different question: which cards have sat untouched past the board's
 // threshold, stalest first, and what is holding each one. Age comes from git (lib/card-age),

@@ -26,7 +26,6 @@ import conflict from '../guide/conflict.md'
 import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
-import extractIdeas from '../guide/extract-ideas.md'
 import feedback from '../guide/feedback.md'
 import followUp from '../guide/follow-up.md'
 import implement from '../guide/implement.md'
@@ -74,7 +73,6 @@ export const GUIDES: Guide[] = [
   { name: 'feedback', when: 'understand what a spec got wrong, and collect the case for it', text: feedback },
   { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
-  { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'update-questions', when: 'classify open questions, answered decisions, and human checks', text: updateQuestions },
   { name: 'refine', when: 'plan one card until it can be built, in one session', text: refine },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },

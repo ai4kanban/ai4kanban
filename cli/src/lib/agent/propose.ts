@@ -1,8 +1,7 @@
 // The proposer (#534): what the board does with a card it has just finished.
 //
 // Nothing used to look back at completed work. A follow-up surfaced only when a builder or
-// a planner noticed one mid-task, and the board's own way of finding new work
-// (`extract-ideas`) reads outside sources and never its own history.
+// a planner noticed one mid-task.
 //
 // One rule shapes everything here: ARCHIVING is the trigger, and the only one. A card
 // reaching `.archive/` starts one `reflect` run over that card alone, so a follow-up is as

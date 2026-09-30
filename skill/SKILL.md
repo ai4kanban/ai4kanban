@@ -39,7 +39,6 @@ session without `--print`. Explicit user requests take precedence.
 ## Route ambiguous requests
 
 - **"What's next?"**: follow `akb guide next-card`; choose existing work.
-- **"What are we missing?" or sources to mine**: follow `akb guide extract-ideas`; find new work.
 - **Refine / resolve / revise**: clarify the plan / apply answers / change requirements. When two fit, choose the smaller change.
 
 ## Boundaries

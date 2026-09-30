@@ -1,8 +1,7 @@
 # Name the next card to build
 
 Pick from the cards the board already has. This flow reads; it never writes a card, starts a
-run, or adds a field. Finding work the board is *missing* is `akb guide extract-ideas`
-instead.
+run, or adds a field.
 
 ## 1. Read the board
 
