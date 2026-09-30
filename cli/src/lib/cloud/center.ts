@@ -6,7 +6,9 @@
 // without subscribing or interrupting anyone.
 //
 // What is held here is a cache of what Cloud already stored, never a second authority: the
-// catch-up read on every connect and reconnect is what makes a missed hint cost nothing.
+// catch-up read on every connect and reconnect is what makes a missed hint cost nothing. That
+// read is the OPEN events alone (#1245) — landed history is read a page at a time, only as far
+// as the rail has been scrolled.
 //
 // Two interruptions and no more, both decided here and raised by the app:
 //   • a card that is waiting for a person and has nothing working on it — the board has
@@ -36,7 +38,7 @@ import { notificationsSilenced } from '../machine/settings'
 import { KANBAN } from '../paths'
 import { cloudBoardById, cloudBoardFor, readCloudBoards } from './boards'
 import { readBoardCopy } from './copy'
-import { isTerminal, listEvents, readEvent } from './client'
+import { isTerminal, listEvents, listOpenEvents, readEvent } from './client'
 import {
   eventLabel,
   needsPerson,
@@ -48,11 +50,11 @@ import {
   type CloudEventState,
   type NotificationGroup,
 } from './events'
-import { eventHome, inHome } from './home'
+import { eventHome, inHome, type EventHome } from './home'
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
 import { unsentToCloud } from './outbox'
-import { flushCloudOutbox, publishBoardEvents, takeWatchFill } from './publish'
+import { flushCloudOutbox, reconcileBoard, takeWatchFill } from './publish'
 import { readSession } from './session'
 
 /** One row of the rail. The card's number and title, the event's name under it, and nothing
@@ -133,8 +135,10 @@ export interface NotificationCenter {
   alerts: NotificationAlert[]
   /** Paged reads only (#1033): whether each tab holds rows past the page asked for. */
   more?: Record<NotificationGroup, boolean>
-  /** Paged reads only: each tab's unread rows, loaded or not. */
+  /** Paged reads only: each tab's unread rows — every open row, and the landed rows loaded. */
   tabUnread?: Record<NotificationGroup, number>
+  /** Paged reads only: the landed page asked for could not be read (#1245). */
+  pageError?: string
   /** Paged reads only: the newest event on each card the read asked about, drawn or not. */
   cards?: NotificationRow[]
   /** Signed in and the first read from Cloud has not come back yet. */
@@ -189,9 +193,28 @@ const CATCH_UP_MS = 5 * 60_000
  *  other floor needed. */
 const RETRY_MS = [1_000, 2_000, 4_000]
 
+/** The landed history of one home, as far as it has been read (#1245). */
+interface Landed {
+  home: string
+  events: Map<string, CloudEvent>
+  /** The cursor to the next page; null once the last one is in. */
+  next: string | null
+  /** Nothing read yet. */
+  fresh: boolean
+  reading?: Promise<void>
+  /** The depth a read failed at. Asking no deeper waits for Load more, not the next poll. */
+  failedAt?: number
+  error?: string
+}
+
 interface Held {
   live: LiveConnection | null
+  /** The open events, and whatever a hint has since brought in. */
   events: Map<string, CloudEvent>
+  landed?: Landed
+  /** Each card's newest event, read by number when nothing loaded holds it. Null is none. */
+  cards: Map<string, CloudEvent | null>
+  cardReads: Map<string, Promise<void>>
   alerts: NotificationAlert[]
   error?: string
   starting?: Promise<void>
@@ -209,7 +232,15 @@ interface Held {
 function state(): Held {
   const g = globalThis as unknown as { __akbCloudCenter?: Held }
   if (!g.__akbCloudCenter) {
-    g.__akbCloudCenter = { live: null, events: new Map(), alerts: [], retries: new Set(), epoch: 0 }
+    g.__akbCloudCenter = {
+      live: null,
+      events: new Map(),
+      cards: new Map(),
+      cardReads: new Map(),
+      alerts: [],
+      retries: new Set(),
+      epoch: 0,
+    }
   }
   return g.__akbCloudCenter
 }
@@ -239,9 +270,9 @@ export function startCloudCenter(onScreen: boolean): void {
     if (Date.now() - (held.readAt ?? 0) > CATCH_UP_MS) void catchUp(false).catch(() => {})
     return
   }
+  // The floor counts from here: the start's own read comes once the socket is listening.
+  held.readAt = Date.now()
   held.starting = (async () => {
-    // The reconciliation this board owes Cloud, before anything is listened for.
-    await publishBoardEvents({ reconcile: true }).catch(() => {})
     const session = readSession()
     held.live = connectCloudLive({
       topic: `account:${session?.subject ?? ''}`,
@@ -268,6 +299,8 @@ export function stopCloudCenter(): void {
   held.live?.close()
   held.live = null
   held.events.clear()
+  held.landed = undefined
+  held.cards.clear()
   held.alerts = []
   held.readAt = undefined
   held.loaded = false
@@ -278,27 +311,35 @@ export function stopCloudCenter(): void {
   held.epoch += 1
 }
 
-/** The durable read every start and reconnect does before listening for hints.
+/** The durable read every start and reconnect does once it is listening for hints.
  *
- *  It sends as well as reads: a reconnect is the first moment a machine that was asleep or
- *  offline knows Cloud is reachable, and the outbox it filled while it was not is what
+ *  The first one also reconciles the board against the same read (#1245), and the bell takes
+ *  what the reconciliation made of it: a row it retired reads `stale`, and one it wrote off is
+ *  `interrupted` already, so the change coming back as a hint raises nobody.
+ *
+ *  It sends as well as reads, last: a reconnect is the first moment a machine that was asleep
+ *  or offline knows Cloud is reachable, and the outbox it filled while it was not is what
  *  reaching Cloud again is for (#329). */
 async function catchUp(firstTime: boolean): Promise<void> {
   const held = state()
+  const first = firstTime || !held.loaded
+  const epoch = held.epoch
   held.readAt = Date.now()
-  void flushCloudOutbox()
-  const answer = await listEvents()
+  const answer = await listOpenEvents()
+  if (held.epoch !== epoch) return
+  if (first) await reconcileBoard(answer.ok ? answer.value.events : undefined).catch(() => {})
   held.loaded = true
-  if (!answer.ok) {
-    held.error = answer.error
-    return
-  }
-  held.error = undefined
-  const fresh = new Map<string, CloudEvent>()
-  for (const event of answer.value.events) fresh.set(event.id, event)
-  for (const event of fresh.values()) merge(event, { silent: firstTime })
-  // Anything Cloud no longer holds is finished and swept, so it leaves the bell too.
-  for (const id of [...held.events.keys()]) if (!fresh.has(id)) held.events.delete(id)
+  if (answer.ok) {
+    held.error = undefined
+    const fresh = new Map<string, CloudEvent>()
+    for (const event of answer.value.events) fresh.set(event.id, event)
+    for (const event of fresh.values()) merge(event, { silent: first })
+    // Anything no longer open is finished or swept, so it leaves the open set. A landing is
+    // still on the Landed tab's pages.
+    for (const id of [...held.events.keys()]) if (!fresh.has(id)) held.events.delete(id)
+    held.cards.clear()
+  } else held.error = answer.error
+  void flushCloudOutbox()
 }
 
 /** One hint, resolved through the Worker. Realtime carries the identifier; Postgres is the
@@ -330,8 +371,10 @@ export async function readHint(eventId: string, attempt = 0): Promise<void> {
 /** Take one event as Cloud now holds it, and decide whether it interrupts anybody. */
 function merge(event: CloudEvent, { silent }: { silent: boolean }): void {
   const held = state()
-  const before = held.events.get(event.id)
+  const before = held.events.get(event.id) ?? held.landed?.events.get(event.id)
   held.events.set(event.id, event)
+  // A landing a hint brought in joins the history already on screen.
+  if (event.state === 'completed' && held.landed?.home === homeKey(event)) held.landed.events.set(event.id, event)
   const raise = alertFor(before, event, silent)
   if (raise) held.alerts.push(raise)
 }
@@ -380,11 +423,21 @@ const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string)
 
 // ---- what the bell draws ----------------------------------------------------
 
+/** `readCloudCenter` once Cloud has answered what the page asks for (#1245): the Landed tab's
+ *  pages as far as `page.landed` rows, and the cards named that nothing loaded holds.
+ *  `landed: 0` lets the landed pages go, so the next ask starts from the newest again. */
+export async function fetchCloudCenter(page: CenterPage): Promise<NotificationCenter> {
+  const enabled = cloudBoardFor(KANBAN)
+  if (enabled && readSession()) await readPages(eventHome(enabled), page)
+  return readCloudCenter(page)
+}
+
 /** This board's live events, newest change first, and the alerts waiting to be raised.
  *  Reading takes the alerts away: they are raised once or not at all.
  *
  *  With `page`, `rows` is only the first rows of each tab's rail, so what the app is handed
- *  stays the same size however long the history grows (#1033). */
+ *  stays the same size however long the history grows (#1033). What the page asks for past
+ *  what is held is read in the background, for an app older than `fetchCloudCenter`. */
 export function readCloudCenter(page?: CenterPage): NotificationCenter {
   const held = state()
   const marks = reads()
@@ -392,39 +445,18 @@ export function readCloudCenter(page?: CenterPage): NotificationCenter {
   const boardId = enabled?.id ?? ''
   // What this board's own events are addressed to (#364) — its workspace, or its board id.
   const home = enabled ? eventHome(enabled) : null
-  const mine = [...held.events.values()]
-    // The bell is the open board's. The connection carries the whole account, because one
-    // machine holds one socket and every board's interruptions come down it.
-    .filter((event) => !!home && inHome(event, home))
+  if (page && home && readSession()) void readPages(home, page).catch(() => {})
+  // The bell is the open board's. The connection carries the whole account, because one
+  // machine holds one socket and every board's interruptions come down it.
+  const mine = home ? known().filter((event) => inHome(event, home)) : []
   // The endings a later answer or Implement already took over (#695). Read once over the
   // whole set, because the judgment is about the card rather than the single event, and read
   // by both the row and its unread mark so the list and the count say the same thing.
   const takenOver = takenOverEndings(mine)
-  const rows: NotificationRow[] = mine
-    .map((event) => ({
-      eventId: event.id,
-      boardId: event.boardId,
-      workspaceId: event.workspaceId ?? '',
-      taskId: event.taskId,
-      taskTitle: event.taskTitle,
-      label: eventLabel(event),
-      state: event.state,
-      kind: event.kind,
-      onRail: onTheRail(event) && !takenOver.has(event.id),
-      // Only a state waiting for a person counts, so a delivery starting under a row the
-      // user has already read leaves it read. A row a scope change brought in arrives read
-      // too (#451) — it was already waiting, and the line above the list is what says so.
-      unread:
-        needsPerson(event) &&
-        !takenOver.has(event.id) &&
-        !event.broughtIn &&
-        marks[event.id] !== event.changedAt,
-      changedAt: event.changedAt,
-    }))
-    .sort((a, b) => (a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId))
+  const rows = mine.map((event) => rowOf(event, takenOver, marks)).sort(newestFirst)
 
   const unread = rows.filter((r) => r.unread && notificationGroup(r.state) === 'todo').length
-  const paged = page ? pageOf(rows, page) : { rows }
+  const paged = page ? pageOf(rows, page, home) : { rows }
 
   const alerts = notificationsSilenced() ? [] : held.alerts
   held.alerts = []
@@ -451,12 +483,126 @@ export function readCloudCenter(page?: CenterPage): NotificationCenter {
   }
 }
 
+const newestFirst = (a: NotificationRow, b: NotificationRow) =>
+  a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId
+
+function rowOf(event: CloudEvent, takenOver: Set<string>, marks: Record<string, string>): NotificationRow {
+  return {
+    eventId: event.id,
+    boardId: event.boardId,
+    workspaceId: event.workspaceId ?? '',
+    taskId: event.taskId,
+    taskTitle: event.taskTitle,
+    label: eventLabel(event),
+    state: event.state,
+    kind: event.kind,
+    onRail: onTheRail(event) && !takenOver.has(event.id),
+    // Only a state waiting for a person counts, so a delivery starting under a row the
+    // user has already read leaves it read. A row a scope change brought in arrives read
+    // too (#451) — it was already waiting, and the line above the list is what says so.
+    unread:
+      needsPerson(event) && !takenOver.has(event.id) && !event.broughtIn && marks[event.id] !== event.changedAt,
+    changedAt: event.changedAt,
+  }
+}
+
+/** Every event this machine holds: the open set, the landed pages read, and the cards read by
+ *  number. One per id, the open set's copy first — a hint lands there. */
+function known(): CloudEvent[] {
+  const held = state()
+  const all = new Map<string, CloudEvent>()
+  for (const event of held.cards.values()) if (event) all.set(event.id, event)
+  for (const event of held.landed?.events.values() ?? []) all.set(event.id, event)
+  for (const event of held.events.values()) all.set(event.id, event)
+  return [...all.values()]
+}
+
+const homeKey = (home: { boardId?: string; workspaceId?: string }): string =>
+  `${home.workspaceId ?? ''}|${home.boardId ?? ''}`
+
+const homeQuery = (home: EventHome) =>
+  home.workspaceId ? { workspaceId: home.workspaceId } : { boardId: home.boardId }
+
+const PAGE = 30
+
+/** Read what the page asks for and nothing held already answers: the Landed tab's pages down
+ *  to `page.landed` rows, and the newest event of each card named that nothing loaded holds. */
+async function readPages(home: EventHome, page: CenterPage): Promise<void> {
+  const held = state()
+  const key = homeKey(home)
+  if (page.landed <= 0 || held.landed?.home !== key) held.landed = undefined
+  if (page.landed > 0) {
+    held.landed ??= { home: key, events: new Map(), next: null, fresh: true }
+    const landed = held.landed
+    while (landedOnRail(landed) < page.landed && (landed.fresh || landed.next)) {
+      if (landed.reading) {
+        await landed.reading
+        continue
+      }
+      // A page that just failed is tried again by Load more asking deeper, not by every poll.
+      if (landed.failedAt !== undefined && page.landed <= landed.failedAt) break
+      landed.reading = readLanded(landed, home, page.landed).finally(() => {
+        landed.reading = undefined
+      })
+      await landed.reading
+      if (landed.error) break
+    }
+  }
+  const loaded = new Set(known().filter((e) => inHome(e, home)).map((e) => e.taskId))
+  await Promise.all(
+    (page.cards ?? []).filter((id) => !loaded.has(id)).map((id) => readCard(home, id)),
+  )
+}
+
+const landedOnRail = (landed: Landed): number =>
+  [...landed.events.values()].filter((e) => onTheRail(e)).length
+
+async function readLanded(landed: Landed, home: EventHome, depth: number): Promise<void> {
+  const held = state()
+  const epoch = held.epoch
+  const answer = await listEvents({
+    scope: 'landed',
+    ...homeQuery(home),
+    limit: PAGE,
+    ...(landed.next ? { before: landed.next } : {}),
+  })
+  if (held.epoch !== epoch || held.landed !== landed) return
+  if (!answer.ok) {
+    landed.failedAt = depth
+    landed.error = answer.error
+    return
+  }
+  landed.failedAt = undefined
+  landed.error = undefined
+  landed.fresh = false
+  landed.next = answer.value.next
+  for (const event of answer.value.events) landed.events.set(event.id, event)
+}
+
+async function readCard(home: EventHome, taskId: number): Promise<void> {
+  const held = state()
+  const key = `${homeKey(home)}#${taskId}`
+  if (held.cards.has(key)) return
+  const reading = held.cardReads.get(key)
+  if (reading) return reading
+  const epoch = held.epoch
+  const read = listEvents({ ...homeQuery(home), taskId, limit: 1 })
+    .then((answer) => {
+      // A card that could not be read is asked about again on the next poll.
+      if (held.epoch === epoch && answer.ok) held.cards.set(key, answer.value.events[0] ?? null)
+    })
+    .finally(() => held.cardReads.delete(key))
+  held.cardReads.set(key, read)
+  return read
+}
+
 const PAGE_MAX = 10_000
 
 function pageOf(
   all: NotificationRow[],
   page: CenterPage,
-): Pick<NotificationCenter, 'rows' | 'more' | 'tabUnread' | 'cards'> {
+  home: EventHome | null,
+): Pick<NotificationCenter, 'rows' | 'more' | 'tabUnread' | 'cards' | 'pageError'> {
   const size = (n: number) => Math.min(PAGE_MAX, Math.max(0, Math.floor(Number(n) || 0)))
   const rail = { todo: [] as NotificationRow[], landed: [] as NotificationRow[] }
   for (const row of all) if (row.onRail) rail[notificationGroup(row.state)].push(row)
@@ -467,11 +613,16 @@ function pageOf(
   const cards: NotificationRow[] = []
   for (const row of all) if (asked.delete(row.taskId)) cards.push(row)
   const unreadIn = (rows: NotificationRow[]) => rows.filter((r) => r.unread).length
+  const history = home && state().landed?.home === homeKey(home) ? state().landed : undefined
   return {
     rows: all.filter((row) => kept.has(row)),
-    more: { todo: rail.todo.length > todo.length, landed: rail.landed.length > landed.length },
+    more: {
+      todo: rail.todo.length > todo.length,
+      landed: rail.landed.length > landed.length || (!!history && (history.fresh || !!history.next)),
+    },
     tabUnread: { todo: unreadIn(rail.todo), landed: unreadIn(rail.landed) },
     cards,
+    ...(history?.error ? { pageError: history.error } : {}),
   }
 }
 
@@ -483,7 +634,7 @@ function pageOf(
 export function openNotification(
   eventId: string,
 ): { boardPath: string | null; boardDir: string | null; taskId: number } | null {
-  const event = state().events.get(eventId)
+  const event = known().find((e) => e.id === eventId)
   if (!event) return null
   const marks = reads()
   marks[eventId] = event.changedAt
@@ -522,7 +673,7 @@ export function readAllNotifications(group?: NotificationGroup): void {
   if (!enabled) return
   const home = eventHome(enabled)
   const marks = reads()
-  for (const event of state().events.values()) {
+  for (const event of known()) {
     if (!inHome(event, home) || !needsPerson(event)) continue
     if (group && notificationGroup(event.state) !== group) continue
     marks[event.id] = event.changedAt

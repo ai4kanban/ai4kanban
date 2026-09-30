@@ -119,10 +119,56 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
   return { event }
 }
 
-/** Every event this account holds — the catch-up read on every start and reconnect. */
-export async function listEvents(env: Env, owner: Owner): Promise<{ events: EventRow[] }> {
-  const events = await call<EventRow[]>(env, 'list_events', { p_subject: owner.accountId })
-  return { events: events ?? [] }
+/** A page of the events this account holds, newest change first (#1245). `next` is the cursor
+ *  to the page after it, and null on the last. */
+export interface EventPage {
+  events: EventRow[]
+  next: string | null
+}
+
+const PAGE_SIZE = 30
+const PAGE_MAX = 100
+const SCOPES = ['open', 'landed']
+
+/**
+ * One page of the account's events, narrowed by the query: `scope` (`open` — work not over,
+ * and the failures nobody took over — or `landed`), `board` or `workspace`, `task`, `limit`
+ * and `before`, the cursor a previous page handed back. With none of them it is the newest
+ * page of everything.
+ */
+export async function listEvents(env: Env, owner: Owner, query: URLSearchParams): Promise<EventPage> {
+  const scope = query.get('scope')
+  if (scope !== null && !SCOPES.includes(scope)) throw badRequest('That read names no scope Cloud knows.')
+  const board = query.get('board')
+  const workspace = query.get('workspace')
+  if (board && workspace) throw badRequest('That read names a board or a workspace, never both.')
+  const task = query.get('task')
+  const taskId = task === null ? null : Number(task)
+  if (taskId !== null && (!Number.isInteger(taskId) || taskId < 0)) throw badRequest('That read names no task.')
+  const limit = query.get('limit')
+  const size = limit === null ? PAGE_SIZE : Number(limit)
+  if (!Number.isInteger(size) || size < 1) throw badRequest('That read asks for no page size.')
+  const before = cursor(query.get('before'))
+
+  const page = await call<EventPage>(env, 'list_events', {
+    p_subject: owner.accountId,
+    p_scope: scope,
+    p_board: board ? uuid(board, 'board') : null,
+    p_workspace: workspace ? uuid(workspace, 'workspace') : null,
+    p_task: taskId,
+    p_before_at: before?.at ?? null,
+    p_before_id: before?.id ?? null,
+    p_limit: Math.min(size, PAGE_MAX),
+  })
+  return { events: page?.events ?? [], next: page?.next ?? null }
+}
+
+/** `<changedAt>|<id>`, as a page's `next` wrote it. */
+function cursor(value: string | null): { at: string; id: string } | null {
+  if (!value) return null
+  const [at = '', id = ''] = value.split('|')
+  if (Number.isNaN(Date.parse(at))) throw badRequest('That read carries no page to continue from.')
+  return { at, id: uuid(id, 'page to continue from') }
 }
 
 /**

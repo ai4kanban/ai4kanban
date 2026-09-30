@@ -41,7 +41,7 @@ import { KANBAN } from '../paths'
 import { ALL_RELEASES, cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
-  listEvents,
+  listOpenEvents,
   postWatchSummary,
   publishEvent,
   readEvent,
@@ -50,7 +50,7 @@ import {
   registerBoard,
   retireEvent,
 } from './client'
-import type { CloudEventAnswer, CloudEventDecision, CloudEventState } from './events'
+import type { CloudEvent, CloudEventAnswer, CloudEventDecision, CloudEventState } from './events'
 import {
   claimForEvent,
   clearPublications,
@@ -146,11 +146,25 @@ function publishing(): CloudBoard | null {
  */
 export async function publishBoardEvents({ reconcile = false, broughtIn = false } = {}): Promise<void> {
   if (reconcile) {
-    const enabled = publishing()
-    if (enabled) await registerBoard(enabled.id, enabled.name)
-  }
-  await recordBoardEvents({ reconcile, broughtIn })
+    const read = cloudBoardFor(KANBAN) && readSession() ? await listOpenEvents() : null
+    await reconcileBoard(read?.ok ? read.value.events : undefined, broughtIn)
+  } else await recordBoardEvents({ broughtIn })
   await flushCloudOutbox()
+}
+
+/**
+ * The start-up pass against a read the caller already made (#1245), so one read serves the
+ * reconciliation and the bell. Nothing is sent: the caller flushes once the bell holds it.
+ *
+ * What the reconciliation decides is written back onto `onCloud` — an event it retires
+ * reads `stale`, one it writes off `interrupted` — so the bell starts from where Cloud is
+ * about to be rather than raising those again when the change comes back. Undefined when
+ * the read failed: the board is still published, and nothing is reconciled.
+ */
+export async function reconcileBoard(onCloud: CloudEvent[] | undefined, broughtIn = false): Promise<void> {
+  const enabled = publishing()
+  if (enabled) await registerBoard(enabled.id, enabled.name)
+  await recordBoardEvents({ onCloud, broughtIn })
 }
 
 /**
@@ -161,7 +175,10 @@ export async function publishBoardEvents({ reconcile = false, broughtIn = false 
  * the outbox is a task nothing would ever retry, and a terminal `akb` is gone the moment
  * its command returns.
  */
-export async function recordBoardEvents({ reconcile = false, broughtIn = false } = {}): Promise<void> {
+export async function recordBoardEvents({
+  onCloud,
+  broughtIn = false,
+}: { onCloud?: CloudEvent[]; broughtIn?: boolean } = {}): Promise<void> {
   const enabled = cloudBoardFor(KANBAN)
   if (!enabled || !readSession()) return
   // A member whose own switch is off publishes nothing from this machine (#328) — and retires
@@ -173,7 +190,7 @@ export async function recordBoardEvents({ reconcile = false, broughtIn = false }
     // nothing a closed release leaves (#328). Only a Local board's empty release means the
     // machine has stopped raising events and its own rows come down.
     if (enabled.release || eventHome(enabled).workspaceId) {
-      await queueDifference(enabled, reconcile, broughtIn)
+      await queueDifference(enabled, onCloud, broughtIn)
     } else retireLive()
   } catch {
     // A board we could not read this second is a board the next write reads again.
@@ -269,7 +286,7 @@ export function releaseCardAtWork(cardId: number | null): void {
 
 async function queueDifference(
   enabled: CloudBoard,
-  reconcile: boolean,
+  onCloud: CloudEvent[] | undefined,
   broughtIn: boolean,
 ): Promise<void> {
   const cards = await board().readCards()
@@ -378,7 +395,7 @@ async function queueDifference(
     noteWatchFill(enabled.release, broughtInCount)
   }
 
-  if (reconcile) await reconcileAgainstCloud(home, seen, atWork)
+  if (onCloud) reconcileAgainstCloud(onCloud, home, seen, atWork)
 }
 
 /** Whether the board is still holding a live event for this task. `stale` is not one — the
@@ -437,25 +454,25 @@ const ABANDONED_ACTION_MS = 10 * 60_000
 /** What Cloud believes is live for this board, checked against what the board actually
  *  holds. Closes the gap a crash between a board write and its outbox row leaves, the one a
  *  card edited outside `akb` leaves, and the one a machine that died mid-delivery leaves. */
-async function reconcileAgainstCloud(
+function reconcileAgainstCloud(
+  onCloud: CloudEvent[],
   home: EventHome,
   actionable: Set<number>,
   atWork: ReadonlySet<number>,
-): Promise<void> {
-  const answer = await listEvents()
-  if (!answer.ok) return
-  for (const event of answer.value.events) {
+): void {
+  for (const event of onCloud) {
     if (!inHome(event, home)) continue
     if (event.state === 'accepted') {
-      writeOffAbandoned(event, atWork)
+      if (writeOffAbandoned(event, atWork)) event.state = 'interrupted'
       continue
     }
     if (event.state !== 'actionable') continue
     if (actionable.has(event.taskId)) continue
     if (event.acted) continue
     queue({ opId: newOpId(), kind: 'retire', attempts: 0, eventId: event.id, state: 'stale' })
+    event.state = 'stale'
   }
-  dropSwept(answer.value.events, actionable)
+  dropSwept(onCloud, actionable)
 }
 
 /**
@@ -501,11 +518,11 @@ function dropSwept(events: Array<{ id: string }>, actionable: Set<number>): void
 function writeOffAbandoned(
   event: { id: string; taskId: number; changedAt: string },
   atWork: ReadonlySet<number>,
-): void {
-  if (recordForEvent(event.id)?.taskId !== event.taskId) return
-  if (atWork.has(event.taskId)) return
+): boolean {
+  if (recordForEvent(event.id)?.taskId !== event.taskId) return false
+  if (atWork.has(event.taskId)) return false
   const since = Date.parse(event.changedAt)
-  if (!Number.isFinite(since) || Date.now() - since < ABANDONED_ACTION_MS) return
+  if (!Number.isFinite(since) || Date.now() - since < ABANDONED_ACTION_MS) return false
   queue({
     opId: newOpId(),
     kind: 'outcome',
@@ -515,6 +532,7 @@ function writeOffAbandoned(
     reason: 'Nothing on this board is carrying it.',
   })
   noteEventState(event.id, 'interrupted')
+  return true
 }
 
 // ---- turning a board on and off ---------------------------------------------

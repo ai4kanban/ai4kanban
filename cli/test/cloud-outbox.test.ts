@@ -576,7 +576,7 @@ describe('an action Cloud refuses for good', () => {
     // nobody's to answer.
     working(12, 'implement')
     const seen = fakeCloud((url, body) => {
-      if (url.endsWith('/v1/events') && body === undefined) {
+      if (url.includes('/v1/events?') && body === undefined) {
         return ok({ events: [{ id: 'e-1', boardId: BOARD().id, taskId: 12, state: 'actionable', acted: false }] })
       }
       return ok({ event: { id: 'e-1', boardId: BOARD().id, taskId: 12, state: 'stale', acted: false } })
@@ -641,7 +641,7 @@ describe('an action nothing on this board is carrying any more', () => {
       ...over,
     }
     const calls = fakeCloud((url, body) => {
-      if (url.endsWith('/v1/events') && body === undefined) return ok({ events: [event] })
+      if (url.includes('/v1/events?') && body === undefined) return ok({ events: [event] })
       if (url.endsWith('/v1/events')) return publishedEvent('e-2', 12)
       return ok({ event: { ...event, state: 'interrupted' } })
     })
@@ -753,7 +753,7 @@ describe('widening the watched scope', () => {
         sent.push(body as Record<string, unknown>)
         return ok({ summary: { summaryId: 's-1', posted: true } })
       }
-      if (url.endsWith('/v1/events') && body === undefined) return ok({ events: [] })
+      if (url.includes('/v1/events?') && body === undefined) return ok({ events: [] })
       if (url.endsWith('/v1/events')) return publishedEvent('e-new', 13)
       return ok({})
     })

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it, mock } from 'node:test'
 
 import { PG_ALREADY_ACTED, PG_STALE_REVISION, refusalFor } from '../src/db.ts'
-import { publishEvent, recordAction, recordOutcome } from '../src/events.ts'
+import { listEvents, publishEvent, recordAction, recordOutcome } from '../src/events.ts'
 
 // The Worker's half of an event (#319): the shape of the request, and the refusal a client
 // is meant to act on. What the database does with a well-formed call is the migration's,
@@ -29,6 +29,45 @@ function fakeDatabase(answer) {
 }
 
 const anEvent = (over = {}) => ({ id: EVENT, boardId: BOARD, taskId: 12, state: 'actionable', ...over })
+
+describe('listEvents', () => {
+  const read = (query) => listEvents(ENV, OWNER, new URLSearchParams(query))
+
+  it('asks for the default page when the read names nothing', async () => {
+    const calls = fakeDatabase({ events: [anEvent()], next: null })
+    assert.deepEqual(await read(''), { events: [anEvent()], next: null })
+    assert.equal(calls[0].fn, 'list_events')
+    assert.deepEqual(calls[0].args, {
+      p_subject: OWNER.accountId,
+      p_scope: null,
+      p_board: null,
+      p_workspace: null,
+      p_task: null,
+      p_before_at: null,
+      p_before_id: null,
+      p_limit: 30,
+    })
+  })
+
+  it('passes the filters and the cursor through, and caps the page', async () => {
+    const calls = fakeDatabase({ events: [], next: null })
+    await read(`scope=landed&board=${BOARD}&task=12&limit=500&before=2026-09-30T06:00:00.123456%2B00:00|${EVENT}`)
+    const { args } = calls[0]
+    assert.equal(args.p_scope, 'landed')
+    assert.equal(args.p_board, BOARD)
+    assert.equal(args.p_task, 12)
+    assert.equal(args.p_limit, 100)
+    assert.equal(args.p_before_at, '2026-09-30T06:00:00.123456+00:00')
+    assert.equal(args.p_before_id, EVENT)
+  })
+
+  it('refuses a read it cannot make sense of', async () => {
+    fakeDatabase({ events: [], next: null })
+    for (const query of ['scope=all', `board=${BOARD}&workspace=${WORKSPACE}`, 'task=x', 'limit=0', 'before=nope|x']) {
+      await assert.rejects(read(query), (e) => e.code === 'bad_request', query)
+    }
+  })
+})
 
 describe('publishEvent', () => {
   it('carries the questions and no other part of the card', async () => {

@@ -16,14 +16,16 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
-import { defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
+import { ALL_RELEASES, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import {
+  fetchCloudCenter,
   readCloudCenter,
   readHint,
   startCloudCenter,
   stopCloudCenter,
 } from '../src/lib/cloud/center.ts'
 import type { CloudEvent } from '../src/lib/cloud/events.ts'
+import { notePublication } from '../src/lib/cloud/outbox.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { restoreMachineHome } from './helpers/board.ts'
@@ -131,7 +133,7 @@ async function settle(): Promise<void> {
 }
 
 const reads = (calls: string[], id: string) => calls.filter((c) => c.endsWith(`/v1/events/${id}`)).length
-const lists = (calls: string[]) => calls.filter((c) => c.endsWith('/v1/events')).length
+const lists = (calls: string[]) => calls.filter((c) => c.includes('/v1/events?')).length
 
 describe('a hint whose read did not get through', () => {
   it('reads it again a second later, and the alert arrives', async () => {
@@ -209,7 +211,7 @@ describe('the catch-up read under a joined socket', () => {
   it('picks up the hint the wire lost, and says nothing twice about the one it carried', async () => {
     const held = new Map<string, CloudEvent>()
     const calls = fakeCloud((url) => {
-      if (url.endsWith('/v1/events')) return ok({ events: [...held.values()] })
+      if (url.includes('/v1/events?')) return ok({ events: [...held.values()], next: null })
       const id = url.slice(url.lastIndexOf('/') + 1)
       const one = held.get(id)
       return one ? ok({ event: one }) : swept()
@@ -235,11 +237,104 @@ describe('the catch-up read under a joined socket', () => {
     await settle()
 
     assert.equal(lists(calls), before + 1, 'the durable read runs though the socket is joined')
+    assert.match(calls.filter((c) => c.includes('/v1/events?')).at(-1) ?? '', /\?scope=open&/, 'it reads the open events alone')
     const alerts = readCloudCenter().alerts
     assert.deepEqual(
       alerts.map((a) => a.eventId),
       ['e-1', 'e-2'],
     )
+  })
+})
+
+describe('the start read (#1245)', () => {
+  /** A board watching every release — a named one this temporary board never cut reads as
+   *  closed and stops the pass — holding one card that is not #12. */
+  function board(): string {
+    const id = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES).id
+    const dir = path.join(root, 'docs', 'kanban', 'todo')
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(
+      path.join(dir, '99-other.md'),
+      '---\ntitle: Other\npriority: high\nroi: high\nstatus: todo\nrelease: ""\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n---\n\nSomething else.\n',
+    )
+    return id
+  }
+
+  /** Cloud holding `open`, answered a page of `size` at a time. */
+  function cloudHolding(open: CloudEvent[], size = 100): string[] {
+    return fakeCloud((url) => {
+      if (url.includes('/v1/events?')) {
+        const q = new URL(url).searchParams
+        const from = Number(q.get('before') ?? 0)
+        const page = open.slice(from, from + Math.min(size, Number(q.get('limit'))))
+        return ok({ events: page, next: from + page.length < open.length ? String(from + page.length) : null })
+      }
+      const id = url.match(/\/v1\/events\/([^/]+)/)?.[1]
+      const one = open.find((e) => e.id === id)
+      return one ? ok({ event: one }) : ok({})
+    })
+  }
+
+  it('reads the open events once, after the socket joins, and no landed history', async () => {
+    const boardId = board()
+    const calls = cloudHolding([event('e-1', { boardId, taskId: 99 })])
+    ;(globalThis as { WebSocket?: unknown }).WebSocket = FakeSocket
+    startCloudCenter(true)
+    await settle()
+    assert.equal(lists(calls), 0, 'nothing is read before the socket is listening')
+    await join()
+    const read = calls.filter((c) => c.includes('/v1/events?'))
+    assert.deepEqual(read, [`${API}/v1/events?scope=open&limit=100`])
+    const center = readCloudCenter()
+    assert.equal(center.loading, false)
+    assert.deepEqual(center.rows.map((r) => r.eventId), ['e-1'])
+    assert.equal(center.alerts.length, 0, 'a start raises nobody')
+  })
+
+  it('follows the cursor when the open events fill more than one page', async () => {
+    const boardId = board()
+    const open = Array.from({ length: 5 }, (_, i) =>
+      event(`e-${i}`, { boardId, taskId: 99, changedAt: `2026-09-01T00:0${i}:00Z` }),
+    )
+    const calls = cloudHolding(open, 2)
+    await join()
+    assert.equal(lists(calls), 3)
+    assert.equal(readCloudCenter().rows.length, 5)
+  })
+
+  it('shows what the reconciliation retired as stale, from the same read', async () => {
+    const boardId = board()
+    // Card 12 is not on the board, so its row asks about nothing.
+    const calls = cloudHolding([event('e-1', { boardId, taskId: 12 })])
+    await join()
+    await settle()
+    assert.equal(lists(calls), 1, 'the reconciliation and the bell share one read')
+    assert.ok(calls.some((c) => c.endsWith('/v1/events/e-1/retire')))
+    assert.ok(
+      calls.findIndex((c) => c.endsWith('/retire')) > calls.findIndex((c) => c.includes('/v1/events?')),
+      'the outbox is sent after the read',
+    )
+    const center = await fetchCloudCenter({ todo: 30, landed: 0, cards: [12] })
+    assert.deepEqual(center.cards?.map((r) => r.state), ['stale'])
+    assert.deepEqual(center.rows.filter((r) => r.onRail), [])
+  })
+
+  it('raises nobody when the ending it wrote off comes back as a hint', async () => {
+    const boardId = board()
+    notePublication(12, 'e-1', 'accepted')
+    const abandoned = event('e-1', {
+      boardId,
+      state: 'accepted',
+      acted: true,
+      changedAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+    })
+    const calls = cloudHolding([abandoned])
+    await join()
+    await settle()
+    assert.ok(calls.some((c) => c.endsWith('/v1/events/e-1/outcome')), 'it was written off')
+    mock.method(globalThis, 'fetch', async () => ok({ event: { ...abandoned, state: 'interrupted' } }))
+    await readHint('e-1')
+    assert.equal(readCloudCenter().alerts.length, 0)
   })
 })
 

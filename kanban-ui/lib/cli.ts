@@ -741,6 +741,8 @@ export interface BoardRules {
   // `alertsAllowed()` in ./desktop.ts, not this.
   startCloudCenter?(onScreen: boolean): void;
   readCloudCenter?(page?: CenterPage): NotificationCenter;
+  /** Absent from rules older than the Landed tab's Cloud pages (#1245). */
+  fetchCloudCenter?(page: CenterPage): Promise<NotificationCenter>;
   openNotification?(
     eventId: string,
   ): { boardPath: string | null; boardDir: string | null; taskId: number } | null;

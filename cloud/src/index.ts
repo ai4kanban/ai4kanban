@@ -183,7 +183,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   }
 
   if (pathname === '/v1/events') {
-    if (request.method === 'GET') return json(await listEvents(env, await requireOwner(request, env)))
+    if (request.method === 'GET') return json(await listEvents(env, await requireOwner(request, env), url.searchParams))
     requireMethod(request, 'POST')
     const owner = await requireOwner(request, env)
     const published = await publishEvent(env, owner, await bodyOf(request))

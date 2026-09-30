@@ -156,6 +156,8 @@ export function useBellRail({
   const limitsRef = useRef(limits);
   const [paging, setPaging] = useState(IDLE);
   const pageEpoch = useRef(0);
+  const openRef = useRef(open);
+  openRef.current = open;
   const cardRef = useRef(cardId);
   cardRef.current = cardId;
   // Destructured, because the two moves below go into callbacks other effects depend on and
@@ -229,9 +231,11 @@ export function useBellRail({
   }, []);
 
   // Every read hands out alerts and the scope-change line once, whichever read it was.
+  // A folded rail asks for no landed history, so opening it reads the newest page again (#1245).
   const readPage = useCallback(async (page: Record<NotificationGroup, number>) => {
     const next = await notificationCenterAction({
       ...page,
+      landed: openRef.current ? page.landed : 0,
       cards: cardRef.current === null ? [] : [cardRef.current],
     });
     // Handed out once. Nothing is raised later to make up for a window that was focused
@@ -269,6 +273,7 @@ export function useBellRail({
       if (next && limitsRef.current === page) {
         setCloud(next);
         setReady(true);
+        if (next.pageError) setPaging((was) => ({ ...was, landed: "failed" }));
       }
       timer = setTimeout(() => void read(), open ? OPEN_MS : FOLDED_MS);
     };
@@ -300,6 +305,7 @@ export function useBellRail({
       try {
         const next = await readPage(page);
         if (next.unavailable) throw new Error(next.unavailable);
+        if (tab === "landed" && next.pageError) throw new Error(next.pageError);
         // Folded, or another tab's page landed meanwhile: this answer is for a page gone.
         if (limitsRef.current !== from || pageEpoch.current !== epoch) {
           setPaging((was) => ({ ...was, [tab]: "idle" }));

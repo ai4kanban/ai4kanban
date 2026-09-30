@@ -92,6 +92,8 @@ export interface NotificationCenter {
   /** Paged reads only (#1033), absent from older rules — which hand back every row. */
   more?: Record<NotificationGroup, boolean>;
   tabUnread?: Record<NotificationGroup, number>;
+  /** The Landed page asked for could not be read (#1245). */
+  pageError?: string;
   cards?: NotificationRow[];
   /** Signed in and the first read from Cloud has not come back yet. */
   loading?: boolean;
@@ -149,7 +151,7 @@ export async function notificationCenter(page?: CenterPage): Promise<Notificatio
   if (!rules.readCloudCenter || !rules.startCloudCenter) return { ...OFF, unavailable: await tooOld() };
   // Idempotent, and the one place the connection is opened: every screen polls this.
   rules.startCloudCenter(autoWorkAllowed());
-  const center = rules.readCloudCenter(page);
+  const center = page && rules.fetchCloudCenter ? await rules.fetchCloudCenter(page) : rules.readCloudCenter(page);
   // Reading took the alerts away wherever this runs; only the one board that interrupts
   // passes them on.
   return alertsAllowed() ? center : { ...center, alerts: [] };

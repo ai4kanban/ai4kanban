@@ -17,7 +17,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
-import { readCloudCenter, readHint, stopCloudCenter } from '../src/lib/cloud/center.ts'
+import { fetchCloudCenter, readCloudCenter, readHint, stopCloudCenter } from '../src/lib/cloud/center.ts'
 import type { CloudEvent } from '../src/lib/cloud/events.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -89,18 +89,35 @@ const event = (id: string, over: Partial<CloudEvent> = {}): CloudEvent =>
 const ended = (id: string, over: Partial<CloudEvent>): CloudEvent =>
   event(id, { state: 'failed', acted: true, ...over })
 
-/** Stand in for the Worker: every event this test made, answered by id. */
-function fakeCloud(events: CloudEvent[]): void {
+/** Stand in for the Worker: every event this test made, answered by id or a page at a time
+ *  the way `GET /v1/events` pages them (#1245). Hands back the list reads it answered. */
+function fakeCloud(events: CloudEvent[], { failLanded = false } = {}): string[] {
   const held = new Map(events.map((e) => [e.id, e]))
+  const lists: string[] = []
   mock.method(globalThis, 'fetch', async (url: string | URL) => {
-    const at = String(url)
-    const id = at.split('/v1/events/')[1]
-    const body = id && held.has(id) ? { event: held.get(id) } : {}
-    return new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    })
+    const at = new URL(String(url))
+    const answer = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+    if (at.pathname === '/v1/events') {
+      lists.push(at.search)
+      const q = at.searchParams
+      if (failLanded && q.get('scope') === 'landed') return answer({ error: { code: 'unavailable', message: 'down' } }, 503)
+      const cursor = q.get('before')
+      const rows = [...held.values()]
+        .filter((e) => (q.get('scope') === 'landed' ? e.state === 'completed' : true))
+        .filter((e) => (q.get('scope') === 'open' ? e.state !== 'completed' : true))
+        .filter((e) => !q.get('task') || e.taskId === Number(q.get('task')))
+        .sort((x, y) => (x.changedAt < y.changedAt ? 1 : x.changedAt > y.changedAt ? -1 : x.id < y.id ? 1 : -1))
+        .filter((e) => !cursor || `${e.changedAt}|${e.id}` < cursor)
+      const size = Number(q.get('limit') ?? 30)
+      const page = rows.slice(0, size)
+      const last = page[page.length - 1]
+      return answer({ events: page, next: rows.length > size && last ? `${last.changedAt}|${last.id}` : null })
+    }
+    const id = at.pathname.split('/v1/events/')[1]
+    return answer(id && held.has(id) ? { event: held.get(id) } : {})
   })
+  return lists
 }
 
 /** Put these events into the bell, in the order given, and hand back what it draws. */
@@ -172,19 +189,25 @@ describe('a card handled again clears what its earlier tries left (#695)', () =>
 })
 
 describe('a paged read (#1033)', () => {
-  const at = (i: number) => `2026-09-01T${String(i).padStart(2, '0')}:00:00Z`
-  const history = () => [
-    ...Array.from({ length: 5 }, (_, i) =>
+  const at = (i: number) => `2026-09-01T${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}:00Z`
+  const landed = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
       event(`landed-${i}`, { taskId: 100 + i, state: 'completed', acted: true, changedAt: at(i) }),
-    ),
-    ...Array.from({ length: 3 }, (_, i) => event(`ask-${i}`, { taskId: 200 + i, changedAt: at(10 + i) })),
-    event('working', { taskId: 300, state: 'running', acted: true, changedAt: at(20) }),
+    )
+  const open = () => [
+    ...Array.from({ length: 3 }, (_, i) => event(`ask-${i}`, { taskId: 200 + i, changedAt: at(600 + i) })),
+    event('working', { taskId: 300, state: 'running', acted: true, changedAt: at(620) }),
   ]
+  /** The open events in the bell, and the landed ones on Cloud alone. */
+  async function bell(history: CloudEvent[], opts = {}) {
+    const lists = fakeCloud([...open(), ...history], opts)
+    for (const e of open()) await readHint(e.id)
+    return lists
+  }
 
   it('hands back each tab up to its page, with the whole count and whether more is held', async () => {
-    fakeCloud(history())
-    for (const e of history()) await readHint(e.id)
-    const center = readCloudCenter({ todo: 2, landed: 2 })
+    await bell(landed(5))
+    const center = await fetchCloudCenter({ todo: 2, landed: 2 })
     assert.deepEqual(
       center.rows.map((r) => r.eventId),
       ['ask-2', 'ask-1', 'landed-4', 'landed-3'],
@@ -194,19 +217,68 @@ describe('a paged read (#1033)', () => {
     assert.equal(center.unread, 3)
   })
 
-  it('reads a card the page leaves out, including a state the rail never draws', async () => {
-    fakeCloud(history())
-    for (const e of history()) await readHint(e.id)
-    const center = readCloudCenter({ todo: 1, landed: 1, cards: [300, 100] })
-    assert.deepEqual(center.cards?.map((r) => r.eventId), ['working', 'landed-0'])
-    assert.deepEqual(readCloudCenter({ todo: 9, landed: 9 }).more, { todo: false, landed: false })
+  it('reads the landed history from Cloud a page at a time, missing and repeating nothing (#1245)', async () => {
+    const lists = await bell(landed(70))
+    const landedRows = async (n: number) =>
+      (await fetchCloudCenter({ todo: 30, landed: n })).rows.filter((r) => r.state === 'completed')
+
+    assert.equal((await landedRows(30)).length, 30)
+    assert.equal(lists.length, 1, 'the first page is one read')
+    assert.equal((await landedRows(30)).length, 30)
+    assert.equal(lists.length, 1, 'a poll at the same depth reads nothing again')
+
+    const all = await landedRows(90)
+    assert.equal(lists.length, 3)
+    assert.equal(new Set(all.map((r) => r.eventId)).size, 70)
+    assert.deepEqual((await fetchCloudCenter({ todo: 30, landed: 90 })).more, { todo: false, landed: false })
+    for (const query of lists) assert.match(query, /scope=landed&board=[^&]+&limit=30/)
   })
 
-  it('keeps an unpaged read whole, as older apps ask for it', async () => {
-    fakeCloud(history())
-    for (const e of history()) await readHint(e.id)
+  it('lets the pages go when the rail folds, and reads the first again when it opens', async () => {
+    const lists = await bell(landed(40))
+    await fetchCloudCenter({ todo: 30, landed: 60 })
+    assert.equal(lists.length, 2)
+    const folded = await fetchCloudCenter({ todo: 30, landed: 0 })
+    assert.equal(folded.rows.filter((r) => r.state === 'completed').length, 0)
+    await fetchCloudCenter({ todo: 30, landed: 30 })
+    assert.equal(lists.length, 3)
+    assert.doesNotMatch(lists[2] ?? '', /before=/, 'opening again starts from the newest page')
+  })
+
+  it('says a page failed, and tries again only when asked for more', async () => {
+    const lists = await bell(landed(5), { failLanded: true })
+    const center = await fetchCloudCenter({ todo: 30, landed: 30 })
+    assert.ok(center.pageError)
+    assert.equal(center.more?.landed, true)
+    assert.equal(center.rows.length, 3, 'the open rows still draw')
+    await fetchCloudCenter({ todo: 30, landed: 30 })
+    assert.equal(lists.length, 1, 'the poll did not hammer a page that just failed')
+    await fetchCloudCenter({ todo: 30, landed: 60 })
+    assert.equal(lists.length, 2)
+  })
+
+  it('reads a card the page leaves out, including a state the rail never draws', async () => {
+    const lists = await bell(landed(5))
+    const center = await fetchCloudCenter({ todo: 1, landed: 0, cards: [300, 100] })
+    assert.deepEqual(center.cards?.map((r) => r.eventId), ['working', 'landed-0'])
+    assert.deepEqual(lists, ['?board=' + BOARD().id + '&task=100&limit=1'])
+    await fetchCloudCenter({ todo: 1, landed: 0, cards: [300, 100] })
+    assert.equal(lists.length, 1, 'a card read once is not read again every poll')
+  })
+
+  it('reads the pages in the background for an app that reads the bell without waiting', async () => {
+    await bell(landed(5))
+    const first = readCloudCenter({ todo: 30, landed: 30 })
+    assert.equal(first.rows.filter((r) => r.state === 'completed').length, 0)
+    for (let i = 0; i < 10; i += 1) await new Promise((done) => setImmediate(done))
+    assert.equal(readCloudCenter({ todo: 30, landed: 30 }).rows.filter((r) => r.state === 'completed').length, 5)
+  })
+
+  it('keeps an unpaged read to what the bell holds', async () => {
+    const lists = await bell(landed(5))
     const center = readCloudCenter()
-    assert.equal(center.rows.length, 9)
+    assert.equal(center.rows.length, 4)
     assert.equal(center.more, undefined)
+    assert.equal(lists.length, 0)
   })
 })

@@ -127,9 +127,54 @@ export const postWatchSummary = (body: {
 export const retireEvent = (opId: string, eventId: string): Promise<CloudCall<{ event: CloudEvent }>> =>
   send('POST', `/v1/events/${encodeURIComponent(eventId)}/retire`, { opId })
 
-/** Every event this account has that is not finished — the durable catch-up read every start
- *  and reconnect does before listening for hints. */
-export const listEvents = (): Promise<CloudCall<{ events: CloudEvent[] }>> => send('GET', '/v1/events')
+/** What one page of events is narrowed to (#1245). `open` is work not over and the failures
+ *  nobody took over; `landed` is completed deliveries. `before` is the cursor a page handed
+ *  back. Nothing named is the newest page of everything. */
+export interface EventQuery {
+  scope?: 'open' | 'landed'
+  boardId?: string
+  workspaceId?: string
+  taskId?: number
+  limit?: number
+  before?: string
+}
+
+export interface EventPage {
+  events: CloudEvent[]
+  /** The cursor to the next page, null on the last. */
+  next: string | null
+}
+
+/** One page of this account's events, newest change first. */
+export function listEvents(query: EventQuery = {}): Promise<CloudCall<EventPage>> {
+  const params = new URLSearchParams()
+  if (query.scope) params.set('scope', query.scope)
+  if (query.boardId) params.set('board', query.boardId)
+  if (query.workspaceId) params.set('workspace', query.workspaceId)
+  if (query.taskId !== undefined) params.set('task', String(query.taskId))
+  if (query.limit !== undefined) params.set('limit', String(query.limit))
+  if (query.before) params.set('before', query.before)
+  const search = params.toString()
+  return send('GET', `/v1/events${search ? `?${search}` : ''}`)
+}
+
+/** Every open event the account holds, following the cursor to the end — the durable read
+ *  every start and reconnect does. */
+export async function listOpenEvents(): Promise<CloudCall<{ events: CloudEvent[] }>> {
+  const events: CloudEvent[] = []
+  let before: string | undefined
+  for (let pages = 0; pages < OPEN_PAGES_MAX; pages++) {
+    const answer = await listEvents({ scope: 'open', limit: OPEN_PAGE, before })
+    if (!answer.ok) return answer
+    events.push(...(answer.value.events ?? []))
+    if (!answer.value.next) break
+    before = answer.value.next
+  }
+  return { ok: true, value: { events } }
+}
+
+const OPEN_PAGE = 100
+const OPEN_PAGES_MAX = 50
 
 /** One event, by id — what a Realtime hint is resolved through. */
 export const readEvent = (eventId: string): Promise<CloudCall<{ event: CloudEvent }>> =>

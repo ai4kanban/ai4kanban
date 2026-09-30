@@ -295,6 +295,7 @@ export type { SignalOutcome, SignalsAccess, TriageCheck, TriageStatus } from './
 // UI like every Cloud move above: a project running older rules draws no bell rather than
 // failing to draw the header.
 export {
+  fetchCloudCenter,
   openNotification,
   readAllNotifications,
   readCloudCenter,

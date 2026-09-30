@@ -151,8 +151,8 @@ begin
     'AKB02', 'renew_claim');
 
   -- The two reads answer with the caller's own rows rather than refusing.
-  assert json_array_length(api.list_events(B)) = 0, 'list_events showed another account’s event';
-  assert json_array_length(api.list_events(A)) = 1, 'list_events lost the account’s own event';
+  assert json_array_length(api.list_events(B) -> 'events') = 0, 'list_events showed another account’s event';
+  assert json_array_length(api.list_events(A) -> 'events') = 1, 'list_events lost the account’s own event';
   select count(*) into v_count
     from json_array_elements(api.list_servers(B)) s where (s ->> 'boardId')::uuid = BOARD_A;
   assert v_count = 0, 'list_servers showed another account’s server';
@@ -2259,10 +2259,10 @@ begin
 
   -- The catch-up read answers what each of them is in the audience of. The member's own
   -- machine published both, and one of them is still not theirs to be told about.
-  assert json_array_length(api.list_events(OWNER_A)) = 2, 'an owner''s bell lost one of the two';
-  assert json_array_length(api.list_events(MEMBER_B)) = 1,
+  assert json_array_length(api.list_events(OWNER_A) -> 'events') = 2, 'an owner''s bell lost one of the two';
+  assert json_array_length(api.list_events(MEMBER_B) -> 'events') = 1,
     'a member''s bell carried the question as well as the review';
-  assert json_array_length(api.list_events(MEMBER_D)) = 0,
+  assert json_array_length(api.list_events(MEMBER_D) -> 'events') = 0,
     'somebody outside the workspace read its events';
 
   -- -------------------------------------------------------------------------
@@ -2275,7 +2275,7 @@ begin
   perform api.set_watch(OWNER_A, v_ws, false, '*', BUDGET);
   assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_question) = 0,
     'a question no owner is watching for reached somebody anyway';
-  assert json_array_length(api.list_events(OWNER_A)) = 0,
+  assert json_array_length(api.list_events(OWNER_A) -> 'events') = 0,
     'a member whose switch is off still read the workspace''s events';
   perform api.set_watch(OWNER_A, v_ws, true, '*', BUDGET);
 
@@ -2328,7 +2328,7 @@ begin
   -- Only OWNER_A is left of the three: OWNER_C is watching another release.
   assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_ready) = 1,
     'a removed member was still in the audience';
-  assert json_array_length(api.list_events(MEMBER_B)) = 0,
+  assert json_array_length(api.list_events(MEMBER_B) -> 'events') = 0,
     'a removed member still read the workspace''s events';
   assert (select count(*) from cloud.workspace_watches
            where workspace_id = v_ws and account_id = MEMBER_B) = 0,
@@ -2830,5 +2830,117 @@ begin
   raise notice 'sql checks: #1113 credits checks passed';
 end
 $credits$;
+
+-- ---------------------------------------------------------------------------
+-- The events read is paged (#1245)
+-- ---------------------------------------------------------------------------
+
+do $paged$
+declare
+  OWNER constant uuid := '00000000-0000-4000-8000-000000001245';
+  OTHER constant uuid := '00000000-0000-4000-8000-000000002245';
+  MEMBER constant uuid := '00000000-0000-4000-8000-000000003245';
+  BOARD constant uuid := '12451245-0000-4000-8000-000000000001';
+  SECOND constant uuid := '12451245-0000-4000-8000-000000000002';
+  BUDGET constant integer := 100000;
+  v_ws uuid;
+  v_page json;
+  v_seen text[] := '{}';
+  v_next text;
+  v_failed uuid;
+  v_taken uuid;
+  v_pages integer := 0;
+begin
+  insert into cloud.accounts (id, handle) values
+    (OWNER, 'p-owner'), (OTHER, 'p-other'), (MEMBER, 'p-member');
+  perform api.register_board(OWNER, BOARD, 'paged', BUDGET);
+  perform api.register_board(OWNER, SECOND, 'paged-2', BUDGET);
+  perform api.register_board(OTHER, '12451245-0000-4000-8000-000000000003', 'theirs', BUDGET);
+
+  -- 70 landed deliveries on one board, a minute apart, and five more on the second.
+  insert into cloud.events (owner_id, board_id, task_id, task_title, revision, kind, decision,
+                            fingerprint, state, changed_at, finished_at)
+  select OWNER, case when n > 70 then SECOND else BOARD end, n, 'Landed ' || n, 'r1',
+         'ready_for_review', 'implement', 'f' || n, 'completed',
+         now() - make_interval(mins => n), now() - make_interval(mins => n)
+    from generate_series(1, 75) n;
+  -- Open work: a card asking, one running, and one that failed.
+  insert into cloud.events (owner_id, board_id, task_id, task_title, revision, kind, decision,
+                            fingerprint, state, changed_at)
+  values (OWNER, BOARD, 200, 'Asking', 'r1', 'question', 'answer', 'q', 'actionable', now()),
+         (OWNER, BOARD, 201, 'Going', 'r1', 'ready_for_review', 'implement', 'g', 'running', now()),
+         (OWNER, BOARD, 202, 'Broke', 'r1', 'ready_for_review', 'implement', 'b', 'failed', now() - interval '2 hours');
+  select id into v_failed from cloud.events where board_id = BOARD and task_id = 202;
+  -- An ending a later Implement took over, and history the open read never carries.
+  insert into cloud.events (owner_id, board_id, task_id, task_title, revision, kind, decision,
+                            fingerprint, state, changed_at)
+  values (OWNER, BOARD, 203, 'Broke once', 'r1', 'ready_for_review', 'implement', 'o', 'failed', now() - interval '3 hours'),
+         (OWNER, BOARD, 203, 'Broke once', 'r2', 'ready_for_review', 'implement', 'o2', 'completed', now() - interval '1 hour'),
+         (OWNER, BOARD, 204, 'Gone', 'r1', 'ready_for_review', 'implement', 's', 'stale', now()),
+         (OWNER, BOARD, 205, 'Stopped', 'r1', 'ready_for_review', 'implement', 'c', 'cancelled', now());
+  select id into v_taken from cloud.events where board_id = BOARD and task_id = 203 and state = 'failed';
+  insert into cloud.event_actions (event_id, owner_id, decision, revision, op_id)
+  select id, OWNER, 'implement', revision, 'paged-' || id from cloud.events
+   where board_id = BOARD and task_id in (202, 203);
+
+  -- No filter is the newest 30, with a cursor to the rest.
+  v_page := api.list_events(OWNER);
+  assert json_array_length(v_page -> 'events') = 30,
+    format('an unfiltered read handed back %s events', json_array_length(v_page -> 'events'));
+  assert v_page ->> 'next' is not null, 'a read with more to come carried no cursor';
+  assert json_array_length(api.list_events(OTHER) -> 'events') = 0, 'a page carried another account''s events';
+
+  -- The landed tab walks the board's history a page at a time, missing nothing and repeating
+  -- nothing, and never strays onto the second board.
+  v_next := null;
+  loop
+    v_pages := v_pages + 1;
+    v_page := api.list_events(OWNER, 'landed', BOARD, null, null,
+                              split_part(v_next, '|', 1)::timestamptz, nullif(split_part(v_next, '|', 2), '')::uuid, 30);
+    select v_seen || array_agg(e ->> 'taskId') into v_seen from json_array_elements(v_page -> 'events') e;
+    v_next := v_page ->> 'next';
+    exit when v_next is null or v_pages = 5;
+  end loop;
+  assert array_length(v_seen, 1) = 71, format('the landed pages held %s rows', array_length(v_seen, 1));
+  assert (select count(distinct x) from unnest(v_seen) x) = 71, 'a landed row came back twice';
+  assert '203' = any(v_seen) and not ('71' = any(v_seen)), 'the landed pages strayed off the board';
+  assert v_pages = 3, format('71 landed rows took %s pages', v_pages);
+
+  -- Open work, account-wide: what is not over, and the failure nobody has taken over.
+  v_page := api.list_events(OWNER, 'open', null, null, null, null, null, 100);
+  assert (select array_agg((e ->> 'taskId')::int order by (e ->> 'taskId')::int)
+            from json_array_elements(v_page -> 'events') e) = array[200, 201, 202],
+    format('the open read held %s', v_page -> 'events');
+  assert v_page ->> 'next' is null, 'a read that fit on one page carried a cursor';
+  -- A page too small for it still reaches all of it.
+  v_page := api.list_events(OWNER, 'open', null, null, null, null, null, 2);
+  assert json_array_length(v_page -> 'events') = 2 and v_page ->> 'next' is not null,
+    'an open read larger than its page did not say there was more';
+
+  -- One card's events, newest first.
+  v_page := api.list_events(OWNER, null, BOARD, null, 203, null, null, 1);
+  assert (v_page -> 'events' -> 0 ->> 'state') = 'completed', 'a card''s first page was not its newest event';
+  assert v_page ->> 'next' is not null, 'a card''s older event was not one page away';
+
+  -- A workspace's events reach its audience and nobody else.
+  v_ws := (api.create_workspace(OWNER, 'p-create', 'Paged team', BUDGET) ->> 'id')::uuid;
+  perform api.add_member(OWNER, v_ws, 'p-add', 'p-member', 'member', BUDGET);
+  perform api.set_watch(MEMBER, v_ws, true, '*', BUDGET);
+  perform api.publish_event(OWNER, null, v_ws, 7, 'Team review', '1.0', 'r1',
+                            'ready_for_review', 'implement', '[]'::jsonb, '', '', 'tw', false, BUDGET);
+  perform api.publish_event(OWNER, null, v_ws, 8, 'Owners only', '1.0', 'r1',
+                            'question', 'answer', '[]'::jsonb, '', '', 'tq', false, BUDGET);
+  assert json_array_length(api.list_events(MEMBER, 'open') -> 'events') = 1,
+    'a member read a question addressed to the owners';
+  assert json_array_length(api.list_events(OWNER, 'open', null, v_ws) -> 'events') = 2,
+    'an owner''s workspace read lost one of its two';
+  assert json_array_length(api.list_events(OTHER, null, null, v_ws) -> 'events') = 0,
+    'somebody outside the workspace read its events';
+  assert json_array_length(api.list_events(MEMBER, null, BOARD) -> 'events') = 0,
+    'a member read the owner''s own board';
+
+  raise notice 'sql checks: #1245 paged events checks passed';
+end
+$paged$;
 
 rollback;
