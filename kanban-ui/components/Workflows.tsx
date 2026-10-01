@@ -116,6 +116,7 @@ function Caption({ children }: { children: string }) {
 export function WorkflowsPanel({
   info,
   onRuntimes,
+  onFollowed,
   onError,
 }: {
   /** The connectors this board can run, and which one is its default (#443) — what the
@@ -123,6 +124,8 @@ export function WorkflowsPanel({
   info: AgentInfo;
   /** Cross to Configuration → Runtimes — where a runtime is actually set up. */
   onRuntimes?: () => void;
+  /** Cross to Configuration → Board, on the agent whose runtime a planning lead runs. */
+  onFollowed?: (agent: string) => void;
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.workflows;
@@ -572,6 +575,7 @@ export function WorkflowsPanel({
                 agent={agent}
                 info={info}
                 onRuntimes={onRuntimes}
+                onFollowed={onFollowed}
                 onError={onError}
                 scoped
                 usage={<Usage agent={agent} />}

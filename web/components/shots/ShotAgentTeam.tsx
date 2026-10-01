@@ -18,7 +18,7 @@ const GROUPS: [title: string, rows: [name: string, label: string, trigger: strin
     [
       "You start",
       [
-        ["discussion-helper", "Discuss an idea", "When you chat"],
+        ["discussion-helper", "Planning helper", "When you chat"],
         ["feedback", "Fix a plan that missed", "When you say a plan misread you"],
       ],
     ],
@@ -218,7 +218,7 @@ export function ShotAgentTeam() {
               <Character name="discussion-helper" size={44} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: em(14), fontWeight: 800 }}>
-                  Discuss an idea
+                  Planning helper
                 </div>
                 <p
                   style={{
@@ -228,7 +228,8 @@ export function ShotAgentTeam() {
                     color: NB.inkSoft,
                   }}
                 >
-                  Help decide what’s worth building.
+                  Shapes an idea into a plan with you; planning picks up from
+                  there.
                 </p>
                 {/* The first sentence of the trigger is the answer and stays on
                     the line; what the agent adds after it opens behind View

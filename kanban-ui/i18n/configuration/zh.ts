@@ -291,6 +291,8 @@ const zh: ConfigurationCopy = {
     runtime: "运行时",
     boardsOwn: "看板的",
     openRuntimes: "管理运行时",
+    runtimeShared: "各工作流的规划也用这个运行时。",
+    runtimeFollows: "在「规划助手」里更改",
     unknownHarness: (runtime) => `设成了「${runtime}」，这个看板已经没有这一行了。`,
     harnessFailed: (agent) => `未能保存 ${agent} 用什么跑`,
     runsWhen: "触发时机",
@@ -303,11 +305,11 @@ const zh: ConfigurationCopy = {
     rulePlaceholder: (agent) => `会附加到 ${agent} 每次运行的末尾——例如「合入前先跑 pnpm test」。`,
     roles: {
       "discussion-helper": {
-        name: "讨论想法",
-        gloss: "帮你判断什么值得做。",
+        name: "规划助手",
+        gloss: "和你把想法聊成方案，规划接着往下做。",
         trigger: "你找它聊时",
         rule: "会附加到你发给它的每一条消息末尾——例如「最后总要问一个我没想到的问题」。",
-        when: "你找它聊的时候——「新想法」，或者卡片页的「讨论」。它帮你想清楚要什么、这个想法值不值得做；聊完什么都不做也是好结果。",
+        when: "你找它聊的时候——「新想法」，或者卡片页的「讨论」。它和你把想法聊成方案；之后各工作流的规划接着这段对话继续。",
       },
       "software-planner": {
         name: "软件规划师",

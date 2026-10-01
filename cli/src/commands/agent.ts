@@ -107,13 +107,14 @@ function showAgent(): MoveResult {
 
 // Every agent on this board and the runtime it runs. A row in brackets is **Global default**
 // rather than that agent's own pick.
-function sayAgents(): { name: string; runtime: string; own: boolean; harness: string; model: string }[] {
+function sayAgents(): { name: string; runtime: string; own: boolean; follows?: string; harness: string; model: string }[] {
   const rows = agentRoster().map((entry) => {
     const runs = agentRun(entry.name)
     return {
       name: entry.name,
       runtime: runs.runtimeName,
       own: runs.own,
+      ...(runs.follows ? { follows: runs.follows } : {}),
       harness: runs.harness,
       model: runs.model,
     }
@@ -122,7 +123,8 @@ function sayAgents(): { name: string; runtime: string; own: boolean; harness: st
   say('Agents')
   for (const row of rows) {
     const what = row.own ? row.runtime : `(${row.runtime})`
-    say(`  ${row.name.padEnd(22)} ${what.padEnd(20)} ${row.harness}${row.model ? ` · ${row.model}` : ''}`)
+    const follows = row.follows ? ` — follows ${row.follows}` : ''
+    say(`  ${row.name.padEnd(22)} ${what.padEnd(20)} ${row.harness}${row.model ? ` · ${row.model}` : ''}${follows}`)
   }
   say('')
   say("A runtime in brackets is Global default — that agent picked none.")
@@ -212,7 +214,10 @@ function runtimeMove(args: string[]): MoveResult {
     case 'delete': {
       const id = rest[0]?.trim() ?? ''
       if (!id) die('akb agent runtime delete <id>', { kind: 'needs-input' })
-      const named = agentRoster().filter((entry) => agentRun(entry.name).runtime === id).map((e) => e.name)
+      const named = agentRoster()
+        .map((entry) => ({ name: entry.name, runs: agentRun(entry.name) }))
+        .filter((entry) => entry.runs.runtime === id && !entry.runs.follows)
+        .map((entry) => entry.name)
       const res = deleteRuntime(id)
       if (!res.ok) die(res.error ?? 'the runtime could not be deleted', { kind: 'save-failed' })
       say(`\`${id}\` is gone.`)
@@ -347,6 +352,14 @@ function bindAgent(args: string[]): MoveResult {
     die(`"${agent}" is not an agent on this board. It has: ${agentNames().join(', ')}.`, {
       kind: 'unknown-agent',
       agent,
+    })
+  }
+  const follows = agentRun(agent).follows
+  if (follows) {
+    die(`\`${agent}\` leads planning, and planning runs on the runtime \`${follows}\` runs. Change that one: akb agent bind ${follows} <runtime>.`, {
+      kind: 'follows-agent',
+      agent,
+      follows,
     })
   }
   const asked = args[1]?.trim() ?? ''

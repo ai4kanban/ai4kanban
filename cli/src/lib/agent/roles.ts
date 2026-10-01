@@ -21,6 +21,7 @@ import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
 import { PLANNER, PROPOSER_MISSED, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
 import { KANBAN, rel } from '../paths'
+import { canonicalSpecAgent } from '../spec-agent-names'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
 import type { WorkflowStage } from './workflows'
@@ -219,8 +220,8 @@ export const roleForFlow = (flow: string, workflow?: string): AgentRole | undefi
   return name ? (roleNamed(name) ?? leadRole(name)) : undefined
 }
 
-// An agent that may lead runs a stage's flows as a role does (#822, #846): its rule and runtime
-// are keyed by its name, and a plan lead keeps the planner's memory.
+// An agent that may lead runs a stage's flows as a role does (#822, #846): its rule is keyed by
+// its name, and a plan lead keeps the planner's memory and runs the discussion's runtime.
 function leadRole(name: string): AgentRole | undefined {
   const agent = specAgentCatalog().agents.find((a) => a.name === name && a.canLead)
   if (!agent?.stage) return undefined
@@ -234,6 +235,14 @@ function leadRole(name: string): AgentRole | undefined {
 
 /** The role of a given name. */
 export const roleNamed = (name: string): AgentRole | undefined => roles().find((role) => role.name === name)
+
+/** Whether an agent may lead planning. Every one of them runs on the discussion's runtime
+ *  rather than its own pick (#1316), so planning can carry a discussion's session on. */
+export function leadsPlanning(name: string): boolean {
+  const asked = canonicalSpecAgent(name)
+  if (roleNamed(asked)) return roleNamed(asked)!.stage === 'plan'
+  return specAgentCatalog().agents.some((a) => a.name === asked && a.canLead && a.stage === 'plan')
+}
 
 /** The flows an agent runs, in the order the board declares them (./flows.ts). What the
  *  one-time rule migration concatenates in. */

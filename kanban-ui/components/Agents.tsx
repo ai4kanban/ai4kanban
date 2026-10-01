@@ -128,6 +128,8 @@ const PRODUCT_WRITER = "product-writer";
 // not initialised yet when these are.
 const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", "sweeper", REVIEWER_OF_DISMISSALS, PRODUCT_WRITER];
 const ON_AN_EVENT = ["proposer", "triage"];
+// Whose runtime every planning lead runs (#1316).
+const PLANNING_HELPER = "discussion-helper";
 
 /** The scheduled agents' cadences, for the column's rows. `reload` after a save. */
 function useCadences(onError?: (msg: string) => void) {
@@ -421,6 +423,7 @@ export function AgentDetail({
   onDeleted,
   onCadence,
   onRuntimes,
+  onFollowed,
   onError,
 }: {
   roster: AgentRoster;
@@ -442,6 +445,8 @@ export function AgentDetail({
   /** Run after a scheduled agent's cadence is saved. */
   onCadence?: () => void;
   onRuntimes?: () => void;
+  /** Cross to the page of the agent whose runtime this one runs (#1316). */
+  onFollowed?: (agent: string) => void;
   onError?: (msg: string) => void;
 }) {
   return (
@@ -464,6 +469,7 @@ export function AgentDetail({
       info={info}
       onRuntime={(runtime) => void roster.bind(agent, runtime)}
       onRuntimes={onRuntimes}
+      onFollowed={onFollowed}
       onError={onError}
       onDelete={async () => {
         await roster.remove(agent.name);
@@ -829,6 +835,7 @@ function Page({
   onPick,
   onRuntime,
   onRuntimes,
+  onFollowed,
   onError,
   onDelete,
   busySwitch,
@@ -857,6 +864,7 @@ function Page({
   onRuntime: (runtime: string) => void;
   /** Cross to Configuration → Runtimes, from the runtime row. */
   onRuntimes?: () => void;
+  onFollowed?: (agent: string) => void;
   /** Where a failure the page cannot show in place goes — the dialog's error strip. */
   onError?: (msg: string) => void;
   onDelete: () => Promise<void>;
@@ -1015,15 +1023,22 @@ function Page({
           {agent.runs && (
             <SettingRow
               label={c.runtime}
-              help={agent.runs.unknownRuntime && c.unknownHarness(agent.runs.unknownRuntime)}
+              help={
+                (agent.runs.unknownRuntime && c.unknownHarness(agent.runs.unknownRuntime)) ||
+                (agent.name === PLANNING_HELPER && c.runtimeShared)
+              }
               control={
-                <RuntimePick
-                  agent={agent}
-                  info={info}
-                  busy={busy("runtime")}
-                  onRuntime={onRuntime}
-                  onRuntimes={onRuntimes}
-                />
+                agent.runs.follows ? (
+                  <RuntimeFollowed agent={agent} info={info} onFollowed={onFollowed} />
+                ) : (
+                  <RuntimePick
+                    agent={agent}
+                    info={info}
+                    busy={busy("runtime")}
+                    onRuntime={onRuntime}
+                    onRuntimes={onRuntimes}
+                  />
+                )
               }
             />
           )}
@@ -2237,12 +2252,7 @@ function RuntimePick({
   const c = useCopy().configuration.agents;
   const nameOf = useRuntimeName();
   const [open, setOpen] = useState(false);
-  const picked = info.runtimes.find((r) => r.id === agent.runs.runtime);
-  // The whole answer to "what does this run on", deduped: a row named after its own harness
-  // says it once, and **Global default** — a row rather than a harness — says both.
-  const shown = picked
-    ? [...new Set([nameOf(picked), picked.label, picked.model].filter(Boolean))].join(" · ")
-    : "";
+  const { picked, shown } = useRuntimeShown(agent, info);
 
   return (
     // One control and nothing under it. What the pick resolves to is IN the closed trigger,
@@ -2303,6 +2313,51 @@ function RuntimePick({
       </SelectContent>
     </Select>
   );
+}
+
+// A planning lead's runtime (#1316): the planning helper's, read-only, with the way to change it.
+function RuntimeFollowed({
+  agent,
+  info,
+  onFollowed,
+}: {
+  agent: AgentView;
+  info: AgentInfo;
+  onFollowed?: (agent: string) => void;
+}) {
+  const c = useCopy().configuration.agents;
+  const { picked, shown } = useRuntimeShown(agent, info);
+  const follows = agent.runs.follows;
+  return (
+    <div className="flex min-w-0 flex-col items-end gap-1 pt-[7px] max-sm:items-start max-sm:pt-0">
+      <span className="flex max-w-full items-center gap-1.5 text-[12.5px] text-nb-ink">
+        {picked && <AgentMark src={picked.icon} size={13} />}
+        <span className="truncate">{shown}</span>
+      </span>
+      {onFollowed && follows && (
+        <button
+          type="button"
+          onClick={() => onFollowed(follows)}
+          className="flex cursor-pointer items-center gap-0.5 rounded-[4px] text-[11.5px] font-[600] text-nb-accent-deep hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+        >
+          {c.runtimeFollows}
+          <FiChevronRight size={11} aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// The runtime an agent runs and the whole answer to "what does this run on", deduped: a row
+// named after its own harness says it once, and **Global default** — a row rather than a
+// harness — says both.
+function useRuntimeShown(agent: AgentView, info: AgentInfo) {
+  const nameOf = useRuntimeName();
+  const picked = info.runtimes.find((r) => r.id === agent.runs.runtime);
+  const shown = picked
+    ? [...new Set([nameOf(picked), picked.label, picked.model].filter(Boolean))].join(" · ")
+    : "";
+  return { picked, shown };
 }
 
 // --- the characters ----------------------------------------------------------

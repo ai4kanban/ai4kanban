@@ -75,7 +75,7 @@ The header carries:
 **New idea** turns a vague idea into a conversation instead of a run, and answers for the board.
 It never shows in **Runs**.
 
-- **The Discussion helper questions the idea** rather than taking it as a spec. Ending in defer,
+- **The Planning helper questions the idea** rather than taking it as a spec. Ending in defer,
   drop or investigate is a fine outcome.
 - **The plan**: once an outcome is agreed, the agent writes it to
   `docs/kanban/plans/<id>-<slug>.md` (the problem and the agreed behavior, 30–50 lines), shown in
@@ -762,13 +762,18 @@ match.
 
 It covers the shipped roles (`discussion-helper`, `software-planner`, `builder`, `proposer`,
 `triage` and the rest `akb agent` lists) and every agent in `docs/kanban/agents/`, and it travels with the
-repository — so the planner can run on a stronger model than the builder on every checkout. Keys
+repository — so planning can run on a stronger model than the builder on every checkout. Keys
 stay per machine. An unknown `id` falls back to **Global default** with a note in the log; a tool
 that isn't installed fails with its install command.
 
 Every flow is run by its role: refine and `akb card resolve` by the software planner;
-New idea, card discussions and `akb chat` by the discussion helper; a `spec` run by the specialist
-it names.
+New idea, card discussions and `akb chat` by the Planning helper (`discussion-helper`); a `spec`
+run by the specialist it names.
+
+**Planning follows the Planning helper**: the software planner and every agent that may lead a
+workflow's planning run on `discussion-helper`'s runtime, so planning continues the session a
+discussion opened. An entry under a planning lead's own name is ignored, its page shows the runtime
+read-only, and `akb agent bind` refuses it.
 
 **Terminal**: `akb agent` lists everything; `akb agent runtime add|rename|delete` edits rows;
 `akb agent set --runtime <id> <key> <value>` sets a value; `akb agent bind <agent> <id>` points an
@@ -781,7 +786,7 @@ agent at a runtime; `akb agent use <tool>` moves **Global default** to another t
 then the **specialists** the command ships, then the ones this project added. Select one to open
 its page: runtime, rule, memory, settings and, for one you added, its `AGENT.md`.
 
-- **Roles**: **Discuss an idea** (the one you talk to), **Planner** (plans and refines cards),
+- **Roles**: **Planning helper** (the one you talk to), **Planner** (plans and refines cards),
   **Builder** (builds and lands).
 - **Board** pane: agents split into **Manual** (what you start yourself) and **Automatic** (what
   the board may start on its own); the switch says whether it may.

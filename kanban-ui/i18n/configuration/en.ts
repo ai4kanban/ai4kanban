@@ -203,6 +203,8 @@ const en: ConfigurationCopy = {
     runtime: "Runtime",
     boardsOwn: "the board's",
     openRuntimes: "Manage runtimes",
+    runtimeShared: "Every workflow's planning runs on this too.",
+    runtimeFollows: "Change it on Planning helper",
     unknownHarness: (runtime) => `Set to "${runtime}", which this board no longer has.`,
     harnessFailed: (agent) => `couldn't save what ${agent} runs`,
     runsWhen: "Runs when",
@@ -215,11 +217,11 @@ const en: ConfigurationCopy = {
     rulePlaceholder: (agent) => `Added to the end of every run ${agent} does — "run pnpm test before landing".`,
     roles: {
       "discussion-helper": {
-        name: "Discuss an idea",
-        gloss: "Help decide what's worth building.",
+        name: "Planning helper",
+        gloss: "Shapes an idea into a plan with you; planning picks up from there.",
         trigger: "When you chat",
         rule: 'Added to the end of every message you send it — "always end with the one question I have not thought about".',
-        when: "you talk to it — New idea, or Discuss on a card. It helps you decide what you want and whether an idea deserves work; a discussion that ends in nothing is a fine outcome.",
+        when: "you talk to it — New idea, or Discuss on a card. It shapes an idea into a plan with you; each workflow's planning then carries that conversation on.",
       },
       "software-planner": {
         name: "Software planner",

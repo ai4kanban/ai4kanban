@@ -1497,8 +1497,11 @@ export interface HarnessRun {
   harness: string
   /** The model id under it, for the row. Empty means the harness's own default. */
   model: string
-  /** True when the runtime is the agent's own pick rather than **Global default**. */
+  /** True when the runtime is a pick rather than **Global default**. */
   own: boolean
+  /** The agent whose pick this is, on an agent that has none of its own: a planning lead
+   *  runs what the discussion runs (#1316). */
+  follows?: string
   /** The runtime id the board holds for this agent, when the board no longer has that row.
    *  The fields around it are the runtime that runs instead. */
   unknownRuntime?: string

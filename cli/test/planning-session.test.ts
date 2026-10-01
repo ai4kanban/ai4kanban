@@ -164,6 +164,22 @@ describe('a new session, as before', () => {
     assert.deepEqual(notes(run), ['new session — the earlier session was held by Claude Code, and this step runs on Codex'])
   })
 
+  // The lead's own pick is no longer read (#1316): planning runs where the discussion ran, so
+  // the session a discussion handed over is one its planning can always carry on.
+  it('not for a lead that had picked another CLI than the discussion', async () => {
+    const cfg = JSON.parse(fs.readFileSync(uiConfigOf(root, 'docs', 'kanban'), 'utf8'))
+    const [global] = cfg.runtimes
+    cfg.runtimes = [global, { ...global, id: 'talk', name: 'Talk' }, { ...global, id: 'other', name: 'Other', harness: 'codex' }]
+    cfg.agentRuntime = { 'discussion-helper': 'talk', 'software-planner': 'other' }
+    fs.writeFileSync(uiConfigOf(root, 'docs', 'kanban'), JSON.stringify(cfg))
+    handOff({ harness: 'claude-code', resumeId: 'discussion-session', cwd: REPO_ROOT }, [1])
+    const run = await start({ action: 'clarify', id: 1 })
+    assert.equal(run.runtime, 'talk')
+    assert.equal(run.harness, 'claude-code')
+    assert.deepEqual(run.continues, { resumeId: 'discussion-session', fork: true })
+    assert.deepEqual(notes(run), ['started from a copy of the session this card was created in'])
+  })
+
   it('when the CLI cannot fork', async () => {
     board('kimi')
     await created([1], 'kimi-session')

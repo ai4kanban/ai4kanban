@@ -83,9 +83,15 @@ done with that history; the lines in `docs/kanban/.gitignore` that cover it can 
 Every run belongs to one agent: a flow is run by the role that owns it — software planner, builder —
 and a spec run by the specialist it names. Each of them names a **runtime**, which is
 the whole answer to what that run runs as: the coding tool, the provider, the endpoint, the key,
-the model id, the reasoning level and any extra arguments. So the software planner can think on a stronger
+the model id, the reasoning level and any extra arguments. So planning can think on a stronger
 model than the builder writes with, and two agents on the same tool can sit on two different
 gateways.
+
+Planning is the one exception: the software planner, and every agent that may lead a workflow's
+planning, runs on the runtime the **Planning helper** (`discussion-helper`) runs — the agent you
+talk to in New idea and Discuss. Planning then continues the conversation that shaped the card
+instead of reading it again. Bind `discussion-helper` to change it; `akb agent bind` refuses a
+planning lead.
 
 ```bash
 akb agent                                    # every runtime, then every agent and the row it runs
