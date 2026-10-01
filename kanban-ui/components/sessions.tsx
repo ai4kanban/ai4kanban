@@ -7,6 +7,7 @@
 // runs panel (task #21) — the header's activity button and its two-pane
 // history dialog.
 
+import { useDismissableLayerSurface } from "@radix-ui/react-dismissable-layer";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -808,6 +809,8 @@ function RunsOffice({
   const c = t.runs.panel;
   const s = t.runs.scene;
   const roleName = useRoleName();
+  // The panel stops every click; marked as a surface, a press on it still closes a popup.
+  const surface = useDismissableLayerSurface();
   // Which records the left drawer is listing, and whether the log is open on the right.
   const [records, setRecords] = useState<RecordsDrawer | null>(null);
   const [logOpen, setLogOpen] = useState(false);
@@ -913,6 +916,7 @@ function RunsOffice({
   return (
     <div className="nb-scrim" style={{ alignItems: "center" }} onClick={() => sessionsPanel.close()}>
       <div
+        ref={surface}
         className="nb-panel relative overflow-hidden"
         // The same frame as Configuration: both are the board's big dialogs. Here every
         // pixel of its interior is the room — no header, no padding, nothing to switch.
@@ -1226,6 +1230,7 @@ function RunsPanes({
   const t = useCopy();
   const c = t.runs.panel;
   const head = useRunHead(selected, flow);
+  const surface = useDismissableLayerSurface();
   // A phone has no room for two panes (#930): the list fills the dialog, a picked run's log
   // replaces it, and Collapse goes back.
   const phone = usePhone();
@@ -1244,6 +1249,7 @@ function RunsPanes({
       <div
         // overflow-hidden clips the list column's edge-to-edge cream fill to the
         // panel radius — without it the square fill pokes past the rounded corner.
+        ref={surface}
         className="nb-panel flex flex-col overflow-hidden"
         style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
         aria-label={c.heading}

@@ -2,12 +2,14 @@
 
 // The one way this app asks "are you sure?" — a panel that hangs off the control that was
 // pressed, rather than a dialog that takes the screen. Title, consequence, two buttons.
-// Esc or a click outside dismisses it and gives the anchor its focus back.
+// Esc or a click outside dismisses it; Esc and Cancel give the anchor its focus back.
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { useCopy } from "@/i18n/use-copy";
-import { useOverRail } from "@/lib/over-rail";
 import { Button } from "./button";
+import { Popover, PopoverAnchor, PopoverContent } from "./ui/popover";
+
+type Measurable = { getBoundingClientRect(): DOMRect };
 
 export function ConfirmationPopover({
   open,
@@ -29,8 +31,7 @@ export function ConfirmationPopover({
   cancelLabel: string;
   confirmLabel: string;
   busy: boolean;
-  /** Which edge it hangs from. A control at the right edge of a panel has to open
-   *  leftwards: 320px past the page's right edge is horizontal scroll on the whole app. */
+  /** Which edge of the anchor it lines up with. */
   align?: "left" | "right";
   /** How much the confirm weighs. `filled` for a move worth seeing before it is pressed. */
   confirm?: "quiet" | "filled";
@@ -43,62 +44,70 @@ export function ConfirmationPopover({
   const titleId = useId();
   const descriptionId = useId();
   const safeRef = useRef<HTMLButtonElement>(null);
+  // The control that opened it. Esc and Cancel hand the focus back before the caller closes:
+  // a control drawn only while its row is hovered or focused is gone a moment later.
+  const opener = useRef<HTMLElement | null>(null);
+  const handBack = () => opener.current?.focus();
 
-  // Over the chat rail while it is open, so Esc dismisses the confirmation and leaves a
-  // reply alone (#267).
-  useOverRail(open);
-
-  useEffect(() => {
-    if (!open) return;
-    safeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      // Captured and kept: Esc puts away the confirmation, not the dialog or pane under it.
-      event.stopPropagation();
-      onDismiss();
-      requestAnimationFrame(() => anchorRef.current?.querySelector<HTMLButtonElement>("button")?.focus());
-    };
-    const onPointerDown = (event: PointerEvent) => {
-      if (!anchorRef.current?.contains(event.target as Node)) onDismiss();
-    };
-    window.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [anchorRef, onDismiss, open]);
-
-  if (!open) return null;
   return (
-    <div
-      role="alertdialog"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-      className={`nb-panel-sm absolute ${align === "right" ? "right-0" : "left-0"} top-[calc(100%+8px)] z-40 w-[min(320px,calc(100vw-32px))] bg-nb-paper p-3 text-left`}
-    >
-      <p id={titleId} className="text-[13px] font-[700] text-nb-ink">{title}</p>
-      <p id={descriptionId} className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">{description}</p>
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <Button ref={safeRef} variant="ghost" size="xs" onClick={onDismiss}>
-          {cancelLabel}
-        </Button>
-        {onConfirm && (
+    <Popover open={open} onOpenChange={(next) => !next && onDismiss()}>
+      <PopoverAnchor virtualRef={anchorRef as React.RefObject<Measurable>} />
+      <PopoverContent
+        role="alertdialog"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        side="bottom"
+        sideOffset={8}
+        align={align === "right" ? "end" : "start"}
+        className="a4k-nodrag w-[min(320px,calc(100vw-32px))] rounded-[13px] p-3 text-left"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          const anchor = anchorRef.current;
+          const active = document.activeElement;
+          opener.current =
+            active instanceof HTMLElement && anchor?.contains(active)
+              ? active
+              : (anchor?.querySelector<HTMLElement>("button") ?? null);
+          safeRef.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        onEscapeKeyDown={handBack}
+        // Radix knows no trigger here: a press on the anchor is the caller's to answer.
+        onInteractOutside={(event) => {
+          if (anchorRef.current?.contains(event.target as Node)) event.preventDefault();
+        }}
+      >
+        <p id={titleId} className="text-[13px] font-[700] text-nb-ink">{title}</p>
+        <p id={descriptionId} className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">{description}</p>
+        <div className="mt-3 flex items-center justify-end gap-2">
           <Button
-            variant={confirm === "filled" ? "accent" : "ghost"}
+            ref={safeRef}
+            variant="ghost"
             size="xs"
-            disabled={busy}
-            style={
-              confirm === "filled"
-                ? undefined
-                : { color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }
-            }
-            onClick={onConfirm}
+            onClick={() => {
+              handBack();
+              onDismiss();
+            }}
           >
-            {busy ? c.working : confirmLabel}
+            {cancelLabel}
           </Button>
-        )}
-      </div>
-    </div>
+          {onConfirm && (
+            <Button
+              variant={confirm === "filled" ? "accent" : "ghost"}
+              size="xs"
+              disabled={busy}
+              style={
+                confirm === "filled"
+                  ? undefined
+                  : { color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }
+              }
+              onClick={onConfirm}
+            >
+              {busy ? c.working : confirmLabel}
+            </Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
