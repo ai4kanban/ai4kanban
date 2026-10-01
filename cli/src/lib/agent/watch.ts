@@ -53,7 +53,9 @@ import {
   readSpecRefusals,
   claimCard,
   clearAsks,
+  carriesSession,
   closeRun,
+  forgetRun,
   leftBoardOnLanding,
   needsIndexLock,
   patch,
@@ -226,7 +228,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // comes back for a run whose ask can no longer be written down, which ends on a dead
   // session exactly as it always did.
   // Never on a run said into a conversation (#1026): a fresh session holds none of it.
-  const restartBase = client && record.resumedFrom && !record.formatRepair && !record.chat ? restartPrompt(requestOf(record), record.deliveryId) : undefined
+  // Planning carried on (#1304) restarts with the ask it was given: that is the whole task.
+  const restartBase = !client || record.formatRepair || record.chat ? undefined
+    : record.resumedFrom ? restartPrompt(requestOf(record), record.deliveryId)
+    : record.continues && !record.continues.fork ? spec.prompt : undefined
   const restart = restartBase ? [restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n') : undefined
   // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
   // for a conversation and closed for a command that only prints.
@@ -428,6 +433,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // Not after a takeover either: the card stopped being this machine's while the wait
       // ran, and the next attempt would work on somebody else's card.
       const retrying = !!again && !asked && !takenOver
+      // Planning that carried a session on (#1304) and failed before one request came back:
+      // the session is gone, so the step is started again in a new one.
+      const spent = spoken ? spoken.usage : renderer?.usage?.()
+      const lost =
+        !!spec.again && !held.deliveryId && !ours && !retrying && !spawnError && code !== 0 && lastUsed === 0 &&
+        !(spent && spent.input + spent.output + spent.cacheRead + spent.cacheCreation > 0)
       // The card's hold stops being renewed only now: through the wait above it was still
       // this run's to hold.
       unhold()
@@ -644,6 +655,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             r.errorWhy = [...r.errorWhy ?? [], { kind: 'retryUnstarted', refusals: [next] }]
           })
         }
+        if (lost && status === 'error' && !takenOver) {
+          const next = await startRun(spec.again!)
+          if (!('error' in next)) forgetRun(sessionId)
+        }
         // The landing queue (#304): a delivery whose build has just finished takes the slot and
         // lands here, and what it hands back is the run that landing wants — conflict
         // resolution.
@@ -791,7 +806,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             cwd: workDir,
             // Only a resumed run carries a conversation to continue. A fresh run's session
             // is opened inside the conversation, and its id comes back here.
-            resumeId: record.resumedFrom || record.chat ? record.resumeId : undefined,
+            resumeId: carriesSession(record) ? record.resumeId : undefined,
             restartPrompt: restart,
             log: append,
             gotResumeId: (id, restarted) => gotResumeId(id, restarted),

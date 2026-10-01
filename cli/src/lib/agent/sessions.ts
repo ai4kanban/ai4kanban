@@ -25,7 +25,7 @@ import { readInbox } from '../signals/inbox'
 import { tickedSetupSteps } from '../setup'
 import { reportRun } from '../machine/usage'
 import { SKILL_VERSION } from '../../version'
-import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
+import { INDEX_LOCK, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
   carryOnFrom,
@@ -50,7 +50,7 @@ import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from '
 import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
-import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
+import { adoptsSessionId, planFork, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProductDescription } from './settings'
@@ -59,11 +59,12 @@ import { withCreationLock } from './creation-lock'
 import { canImplement, creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { findCard } from '../view/read'
 import type { Card } from '../view/types'
-import { cardsDiscussing, holdChat, repointChatRuns, type ChatSession } from './chat'
+import { cardsDiscussing, holdChat, readChat, repointChatRuns, type ChatSession } from './chat'
 import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
   AgentRequest,
+  AgentSession,
   DeliveryCarryOn,
   DeliveryRecord,
   DirectBuild,
@@ -172,6 +173,9 @@ export interface RunSpec {
    *  setting that had to fall back, and nothing else today. The watcher writes them out as
    *  it opens the log, so the reason is above the work it changed. */
   notes?: string[]
+  /** On a planning run that carried a session on (#1304): the ask to start again in a new
+   *  session, should that one turn out to be gone. */
+  again?: AgentRequest
 }
 
 export interface StartResult {
@@ -399,9 +403,14 @@ function recordProductDescription(run: RunRecord): void {
 //   • THIS run is a later turn of an earlier conversation. It carries that conversation's
 //     id, not our new key.
 function resumeIdOf(r: RunRecord): string | undefined {
-  if (adoptsSessionId(r.harness) && !r.resumedFrom && !r.chat) return r.sessionId
+  if (adoptsSessionId(r.harness) && !carriesSession(r)) return r.sessionId
   return r.resumeId
 }
+
+/** Whether this run is one more turn of a session opened before it: a resume, a run said into
+ *  a conversation, or planning carried on (#1304). A fork is a session of its own. */
+export const carriesSession = (r: RunRecord): boolean =>
+  !!(r.resumedFrom || r.chat || (r.continues && !r.continues.fork))
 
 /** The id this run's own CLI would pick its conversation up by, or nothing when there is
  *  none. Asked BEFORE a run's status is settled, by the retry that has to know whether
@@ -729,8 +738,8 @@ export function openRun(
   prompt: string,
   notes: string[] = [],
   sessionId: string = randomUUID(),
-  /** The conversation session this run carries on (#1026) or forks (#1246), in place of a fresh one. */
-  said?: Pick<ChatSession, 'plan' | 'fork' | 'origin'>,
+  /** The session this run carries on (#1026, #1304) or forks (#1246), in place of a fresh one. */
+  said?: Pick<ChatSession, 'plan' | 'fork' | 'origin'> & { continues?: string },
 ): { run: RunRecord; spec: RunSpec } | RunRefusal {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   // The runtime this one run was asked for (#518). Refused here rather than resolved away:
@@ -825,6 +834,7 @@ export function openRun(
     // that mints its own has nothing to record yet. A run said into a conversation carries
     // that conversation's; a fork is a fresh session of its own.
     ...(said && !said.fork ? { chat: req.chat, resumeId: plan.resumeId ?? undefined } : {}),
+    ...(said?.continues ? { continues: { resumeId: said.continues, ...(said.fork ? { fork: true } : {}) } } : {}),
     logPath: logPathOf(sessionId),
     // Which agent this is, on the action that is one — so the run list can name it, and so
     // a resume starts the same agent rather than a different one.
@@ -875,7 +885,13 @@ export function openRun(
     if (start) undoPrepared(start)
     return out
   }
-  const spec: RunSpec = { sessionId, plan, prompt, ...(notes.length ? { notes } : {}) }
+  const spec: RunSpec = {
+    sessionId,
+    plan,
+    prompt,
+    ...(notes.length ? { notes } : {}),
+    ...(said?.continues ? { again: { ...req, session: 'new', flowId: record.flowId } } : {}),
+  }
   writeSpec(spec)
   // A run started (#295), on the surface that asked for it: the agent's name, and nothing
   // about the card.
@@ -885,8 +901,47 @@ export function openRun(
   return { run: record, spec }
 }
 
-/** The planning runs that may carry straight on into the build of their own card (#1203). */
+/** The planning runs: they may carry straight on into the build of their own card (#1203),
+ *  and each carries the card's planning session on (#1304). */
 const PLANNING = new Set<AgentAction>(['clarify', 'resolve'])
+
+/** The session a card's planning carries on (#1304): its last finished planning run's, resumed,
+ *  or — before any — the one it was created in, forked. Only one its CLI would find from `cwd`. */
+export function planningSession(cardId: number, cwd = REPO_ROOT): { session: AgentSession; fork: boolean } | undefined {
+  const here = (dir: string | undefined): boolean => !dir || path.resolve(dir) === cwd
+  const ended = readRuns()
+    .filter((r) => r.status === 'done')
+    .sort((a, b) => b.startedAt - a.startedAt)
+  const of = (run: RunRecord | undefined, fork: boolean) => {
+    const resumeId = run && here(run.cwd) ? resumeSessionId(run) : undefined
+    return run && resumeId ? { session: { harness: run.harness, resumeId }, fork } : undefined
+  }
+  const planned = ended.find((r) => r.cardId === cardId && PLANNING.has(r.action))
+  if (planned) return of(planned, false)
+  const created = of(ended.find((r) => r.action === 'create' && r.createdCardIds?.includes(cardId)), true)
+  if (created) return created
+  const from = readChat(cardId)?.from
+  return from?.resumeId && here(from.cwd) ? { session: { harness: from.harness, resumeId: from.resumeId }, fork: true } : undefined
+}
+
+/** How a planning run carries its card's session on (#1304). Nothing — so the run opens a new
+ *  one, as it always did — when there is no session, its CLI cannot resume or fork it, or this
+ *  step resolves to another CLI than the one holding it. Never reads how full the session is. */
+export function carriedSession(req: AgentRequest): (Pick<ChatSession, 'plan' | 'fork'> & { continues: string }) | undefined {
+  if (!Number.isInteger(req.id) || !PLANNING.has(req.action) || req.session === 'new') return undefined
+  const found = planningSession(req.id as number)
+  if (!found) return undefined
+  const agent = agentForRun(req)
+  const own = planRun(randomUUID(), REPO_ROOT, agent, req.runtime ? { pin: req.runtime } : {})
+  if (own.harness !== found.session.harness) return undefined
+  const plan = (cwd: string, sessionId: string): RunPlan | null => {
+    const session = { ...found.session, cwd }
+    const pin = { pin: own.runtime }
+    return found.fork ? planFork(session, agent, pin, sessionId) : planResume(session, agent, pin)
+  }
+  if (!plan(REPO_ROOT, randomUUID())) return undefined
+  return { plan: (cwd, sessionId) => plan(cwd, sessionId)!, fork: found.fork, continues: found.session.resumeId }
+}
 
 // A spec agent whose output is for the user to see put its section above the boundary: the
 // user looks before anything is built, so planning stops there.
@@ -1102,6 +1157,22 @@ async function resumeHeld(
   reportRun('started', record.harness)
   void reportCloudRunStart(record.cardId)
   return { run: record, spec }
+}
+
+/** Take a run off the record with its log: one the board started again as another run
+ *  (#1304), so the list keeps a single row for the step. */
+export function forgetRun(sessionId: string): void {
+  const gone = withRuns((runs) => {
+    const at = runs.findIndex((r) => r.sessionId === sessionId && r.status !== 'running')
+    return at < 0 ? undefined : runs.splice(at, 1)[0]
+  })
+  if (!gone) return
+  clearAsks(sessionId)
+  try {
+    fs.unlinkSync(gone.logPath)
+  } catch {
+    // already pruned, or never written
+  }
 }
 
 /** Ask for a spec agent from inside a run.

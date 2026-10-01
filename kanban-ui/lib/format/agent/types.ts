@@ -204,6 +204,10 @@ export interface AgentRequest {
    *  run — rather than a person asking, so it plans and stops and never carries on into the
    *  build (#1203). */
   scheduled?: boolean
+  /** clarify, resolve: how the run's session is opened (#1304), set as the run is written
+   *  down — the card's planning session resumed, or the one it was created in forked. `new`
+   *  asks for a new one: the rerun after that session turned out to be gone. */
+  session?: 'resume' | 'fork' | 'new'
   /** The flow this run belongs to. Absent on the run that opens one — it is given an id
    *  when it is written down, and every session it goes on to start inherits that id. A
    *  run that joins a delivery takes the delivery's id instead, whatever is asked for
@@ -522,6 +526,9 @@ export interface RunRecord {
   /** The conversation this run was said into (#1026), by its transcript key: the run carries
    *  that conversation's session on, and holds it while it goes. */
   chat?: string
+  /** The session this planning run carried on (#1304): the one it resumed, or with `fork`
+   *  the one it started as a copy of. */
+  continues?: { resumeId: string; fork?: boolean }
   formatRepair?: { attempt: number; errors: string; cardIds: number[]; changedIds: number[]; existingIds: number[] }
   /** The automatic retry this run is part of (#525), on the run WAITING for the next
    *  attempt and on every attempt after the first. Absent on a run that has never hit a

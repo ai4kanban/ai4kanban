@@ -18,7 +18,7 @@ import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
 import { proAccess, proGate, type ProAccess } from '../cloud/pro'
 import { cardWorkflowId, workflowFor, workflowIssues, workflows } from './workflows'
-import { closeRun, markSpawned, openResume, openRun } from './sessions'
+import { carriedSession, closeRun, markSpawned, openResume, openRun } from './sessions'
 import { takeChatSession } from './chat'
 import { refusal, workflowDeleted, type AgentRequest, type RunRecord, type RunRefusal } from './types'
 
@@ -109,6 +109,9 @@ export function runAsk(req: AgentRequest, sessionId: string): AgentRequest {
   }
 }
 
+// What the log of a planning step says when it was started again in a new session (#1304).
+const SESSION_GONE = 'the session this card was being planned in is gone — this step was started again in a new one'
+
 function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: boolean } | RunRefusal {
   // A run refused below gives its pictures back — the sheet is still up with its words.
   const ask = runAsk(req, sessionId)
@@ -120,12 +123,18 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
     returnRunPictures(sessionId, req.box)
     return said
   }
+  // A card's planning carries its own session on (#1304), where there is one to carry.
+  const carried = said ? undefined : carriedSession(ask)
   let opened: ReturnType<typeof openRun>
   try {
     // The skill is called the way the conversation's own CLI takes it.
     // A sort is the board's own loop (#1263): no agent, so no prompt.
-    const { prompt, notes } = ask.action === 'triage' ? { prompt: '', notes: [] } : buildRun(said ? { ...ask, runtime: said.runtime } : ask)
-    opened = openRun(ask, prompt, notes, sessionId, said)
+    const { prompt, notes } =
+      ask.action === 'triage'
+        ? { prompt: '', notes: [] }
+        : buildRun(said ? { ...ask, runtime: said.runtime } : carried ? { ...ask, session: carried.fork ? 'fork' : 'resume' } : ask)
+    if (ask.session === 'new') notes.push(SESSION_GONE)
+    opened = openRun(ask, prompt, notes, sessionId, said ?? carried)
   } finally {
     said?.release()
   }

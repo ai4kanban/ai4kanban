@@ -180,6 +180,9 @@ export function readStore(): Store {
       logPath: logPathIn(entry.logPath, entry.sessionId),
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
       chat: typeof entry.chat === 'string' && entry.chat ? entry.chat : undefined,
+      continues: typeof entry.continues?.resumeId === 'string' && entry.continues.resumeId
+        ? { resumeId: entry.continues.resumeId, ...(entry.continues.fork === true ? { fork: true } : {}) }
+        : undefined,
       formatRepair: entry.formatRepair && typeof entry.formatRepair === 'object'
         && Number.isInteger(entry.formatRepair.attempt) && entry.formatRepair.attempt >= 0
         && typeof entry.formatRepair.errors === 'string'

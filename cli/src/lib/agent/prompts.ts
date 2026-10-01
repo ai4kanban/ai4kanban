@@ -328,6 +328,17 @@ function answeredNote(cardId: number | undefined, command: string): string {
   )
 }
 
+// What a planning run is told on a session it carried on (#1304): the ask beside it is the
+// whole task, and the card outranks whatever the session remembers of it.
+function carriedNote(req: AgentRequest): string {
+  if (req.session !== 'resume' && req.session !== 'fork') return ''
+  const held =
+    req.session === 'resume'
+      ? 'This session planned this card before.'
+      : 'This session is a copy of the one this card was created in.'
+  return `${held} The card as it reads now outranks what you remember of it: read it again before you act.`
+}
+
 function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
   // How this agent calls the skill — the only part of a prompt that follows the connector.
   // It is the connector THIS RUN spawns: the one its agent runs (#443), or the runtime the
@@ -474,6 +485,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'clarify': {
       return [
         `${kb}. Plan task ${req.id} ${named} in this one session following \`akb guide refine\`.`,
+        carriedNote(req),
         // A refine has no note box of its own, but one SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user
         // wanted it to wait — so it has to reach the run when it finally fires.
@@ -603,6 +615,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'resolve':
       return [
         `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,
+        carriedNote(req),
         answeredNote(req.id, command),
         req.notes ? `Extra notes: ${req.notes}` : '',
         req.andImplement
