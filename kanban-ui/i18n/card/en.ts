@@ -145,6 +145,7 @@ const en: CardCopy = {
     neverRun: "Never run",
     cadence: "Cadence",
     nextRun: "Next run",
+    dueNow: "Due now",
     blockedBy: "Blocked by",
     scheduled: "Scheduled",
     unschedule: "cancel",

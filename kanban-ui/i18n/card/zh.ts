@@ -142,6 +142,7 @@ const zh: CardCopy = {
     neverRun: "从未运行",
     cadence: "周期",
     nextRun: "下次运行",
+    dueNow: "已到期",
     blockedBy: "阻塞于",
     scheduled: "已计划",
     unschedule: "取消",

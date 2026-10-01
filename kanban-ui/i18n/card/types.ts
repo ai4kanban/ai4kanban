@@ -186,6 +186,7 @@ export type CardCopy = {
     neverRun: string;
     cadence: string;
     nextRun: string;
+    dueNow: string;
     blockedBy: string;
     scheduled: string;
     unschedule: string;

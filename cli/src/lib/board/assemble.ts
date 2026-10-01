@@ -98,9 +98,12 @@ export function subtaskLines(body: string): { total: number; resolved: number; t
   return { total, resolved, ticked }
 }
 
+/** What `nextRun` holds once a recurring card's wait is over; a page translates it. */
+export const DUE_NOW = 'Due now'
+
 /**
  * When a recurring card comes round again, in words a page prints as it stands. Empty when
- * the card has no cadence — then nothing but a person starts it. "Due now" when the wait is
+ * the card has no cadence — then nothing but a person starts it. `DUE_NOW` when the wait is
  * already over, which covers a card that has never run.
  *
  * Worked out where the board is read, on the clock its schedule runs on.
@@ -108,7 +111,7 @@ export function subtaskLines(body: string): { total: number; resolved: number; t
 export function dueLabel(lastRun: string, cadence: string, now = Date.now()): string {
   const due = nextDue(lastRun, cadence)
   if (!due) return ''
-  return due.getTime() <= now ? 'Due now' : formatStamp(due)
+  return due.getTime() <= now ? DUE_NOW : formatStamp(due)
 }
 
 /**

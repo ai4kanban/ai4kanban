@@ -75,6 +75,7 @@ import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
 import { SourceLinks } from "./card-sources";
 import { withoutSourceSection } from "@/lib/format/source";
+import { DUE_NOW } from "@/lib/format/board/assemble";
 import { ConfirmationPopover } from "./confirm-popover";
 import { Fold } from "./fold";
 import { goPro, useWorkflowLock } from "./pro";
@@ -2057,7 +2058,7 @@ export function CardPage({
               {card.recurring && card.nextRun && (
                 <MetaItem label={c.meta.nextRun}>
                   <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
-                    {card.nextRun}
+                    {card.nextRun === DUE_NOW ? c.meta.dueNow : card.nextRun}
                   </span>
                 </MetaItem>
               )}
