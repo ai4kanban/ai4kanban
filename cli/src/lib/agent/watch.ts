@@ -26,6 +26,8 @@ import { contextLimit, refreshCatalog } from './catalog'
 import { boardCommand } from './command'
 import { silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
+import { findDelivery, hookUnstarted } from './deliveries'
+import { nextHookRun } from './hooks'
 import { runEnv } from './flow'
 import { endAgent, runMark } from './stop'
 import { refineRunsAfter, specRunsAfter } from './follow'
@@ -679,6 +681,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         // lands here, and what it hands back is the run that landing wants — conflict
         // resolution.
         const landing = status === 'done' ? await advanceLanding() : null
+        // The next hook after the build (#1328), owed by the delivery this run just settled.
+        const hook = status === 'done' && record.deliveryId ? nextHookRun(findDelivery(record.deliveryId)) : null
         // And the proposer (#534): every card that reached the archive while this run was up —
         // the one it archived itself, the one its landing completed, a group closed by either.
         // `before` is the board as it stood at the spawn, which is the only record of what was
@@ -694,7 +698,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             // the item stays waiting, and the next sort reconciles it
           }
         }
-        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, reflect)
+        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, reflect, hook)
       } finally {
         releaseCardAtWork(record.cardId)
         await reportRunEnded(sessionId, record.cardId, status)
@@ -914,6 +918,7 @@ async function followUp(
   runs: AgentRequest[],
   landing: AgentRequest | null = null,
   reflect: AgentRequest[] = [],
+  hook: AgentRequest | null = null,
 ): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
   // id, and that loop is this flow anyway.
@@ -928,6 +933,10 @@ async function followUp(
     ]
     for (const req of asked) await startRun(join(req))
     clearAsks(sessionId)
+    if (hook) {
+      const started = await startRun(hook)
+      if ('error' in started) hookUnstarted(hook.deliveryId!, hook.specAgent!, started.error)
+    }
     if (landing) await startRun(join(landing))
     for (const req of runs) await startRun(join(req))
     // Then the reflections — they read the open cards and the inbox to decide what

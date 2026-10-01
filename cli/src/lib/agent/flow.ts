@@ -503,6 +503,8 @@ interface Flow {
 const GUIDES_FOR: Record<StartableAction, string[]> = {
   implement: ['board', 'implement', 'document-feature'],
   conflict: ['conflict'],
+  // The board starts a hook itself (#1328); it has no page and nothing prints it.
+  hook: [],
   run: ['board', 'recurring-task'],
   // One planning session (#1203): the page that plans, and the two it writes the card by.
   clarify: ['refine', 'writing', 'update-questions'],

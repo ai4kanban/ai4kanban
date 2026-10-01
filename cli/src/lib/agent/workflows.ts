@@ -4,8 +4,9 @@
 // moves the choice onto the card. One board plans a feature and a newsletter side by side,
 // each through its own `plan → execute`, and the card says which.
 //
-// Two stages, always the same two. This is not a flow editor: a workflow says WHO runs
-// each of them and who they may call in, and nothing about the order.
+// Two stages, always the same two, each followed by its hooks (#1328, stored as `helpers`):
+// after `plan` the lead calls in the ones whose description applies, and after `execute` each
+// runs once on every build, in order, before the work is delivered (./hooks.ts).
 //
 // `coding` ships with the command and cannot be renamed or deleted: it is what every board did
 // before this file. A board adds its own, and every one of them — built-in included — keeps its
@@ -14,7 +15,7 @@
 //
 // A built-in's LEADS are the command's and nobody else's (#774). Its name is a promise about
 // who runs it — `Coding` led by some other planner is a workflow lying about itself — so a
-// built-in stage takes helpers and nothing more. Somebody who wants other leads duplicates
+// built-in stage takes hooks and nothing more. Somebody who wants other leads duplicates
 // it and gets a workflow of their own, where all three are theirs to pick.
 //
 // The id is what a card carries and what a delivery freezes. It never changes: renaming a
@@ -53,7 +54,7 @@ import {
 export { WORKFLOW_STAGES }
 export type { WorkflowCandidate, WorkflowHelper, WorkflowStage, WorkflowStageView, WorkflowView }
 
-/** Who runs one stage of one workflow. Exactly one lead, and any number of helpers the lead
+/** Who runs one stage of one workflow. Exactly one lead, and any number of hooks (`helpers`) the lead
  *  may call in when its own instructions say to. An empty `lead` is a stage nobody runs, and
  *  a delivery refuses to start on one. */
 export interface WorkflowStageSetup {
@@ -1109,7 +1110,7 @@ export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string)
     if (refused) return refused
   }
   if (owner.stages[stage].helpers.some((h) => h.agent === wanted)) {
-    return { ok: false, ...refusal('agentHelps', `\`${wanted}\` already helps this stage, so it cannot lead it`, { agent: wanted }) }
+    return { ok: false, ...refusal('agentHelps', `\`${wanted}\` is already a hook of this stage, so it cannot lead it`, { agent: wanted }) }
   }
   return setStage(id, stage, (setup) => {
     setup.lead = wanted
@@ -1146,7 +1147,7 @@ export function switchWorkflowAgent(id: string, stage: WorkflowStage, agent: str
     if (!found) return { ok: false, ...refusal('agentNotFound', `this board has no \`${wanted}\` agent`, { agent: wanted }) }
     if (found.stage !== stage) return { ok: false, ...refusal('agentCannotHelp', `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}`, { agent: wanted, assigned: found.stage ?? 'board', stage }) }
     if (found.canLead) {
-      return { ok: false, ...refusal('agentLeadNotHelper', `\`${wanted}\` can lead a stage, so it never helps one — it would run a second full ${stage}`, { agent: wanted, stage }) }
+      return { ok: false, ...refusal('agentLeadNotHelper', `\`${wanted}\` can lead a stage, so it is never a hook of one — it would run a second full ${stage}`, { agent: wanted, stage }) }
     }
     const refused = elsewhere(wanted, id)
     if (refused) return refused

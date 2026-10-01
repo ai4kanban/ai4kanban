@@ -75,6 +75,10 @@ export type AgentAction =
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
    *  rebase after it. */
   | 'conflict'
+  /** One hook after a delivery's build (#1328): a non-lead agent on the `execute` stage, named
+   *  by `specAgent`, working in the build's own folder. The board starts each in turn once the
+   *  build is committed, and the delivery goes on only when the last has finished. */
+  | 'hook'
   /** Squeeze the memory back down to what helps planning (#514) — the memory pruner's one
    *  flow. It names no card: the memory set is the whole of what it works on, so it is
    *  started from the agent's own page or by the cadence that page carries. It raises
@@ -106,19 +110,16 @@ export type AgentAction =
   /** Retired (#1334): the sweeper is gone. Kept for the runs recorded. */
   | 'unstick'
 
-/** The action a specialist run takes: one section of a card (`spec`). It does not hold the
- *  card it names — it works beside the loop that asked for it — so it is out of the
- *  one-run-per-card rule at both ends, and it is named by an agent rather than run by a
- *  role. */
-export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec'])
+/** The actions a hook's agent runs as itself: one section of a card (`spec`), or the work
+ *  after a build (`hook`). Each is named by an agent rather than run by a role. */
+export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'hook'])
 
-/** The actions that write no card at all: the specialist, and a reflection whose card has
- *  left the board altogether (#534). Neither holds the card it names, so either may work one
- *  card beside its own loop.
+/** The actions that do not hold the card they name: a spec agent, which works beside the loop
+ *  that asked for it, and a reflection whose card has left the board altogether (#534).
  *
- *  It is not `SPECIALIST_ACTIONS`: that set also picks the agent a run is done by
- *  (`agent/runner.ts`) and the rule it is handed. */
-const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'reflect'])
+ *  A `hook` run is not one of them: it changes the build's own files, so nothing else may
+ *  build the card beside it. */
+const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'reflect'])
 
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
  *  so a card-free run is exempt everywhere or nowhere. */
@@ -234,7 +235,7 @@ export const isRetired = (action: AgentAction): action is RetiredAction => RETIR
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'spec'>
+  | Exclude<StartableAction, 'clarify' | 'spec' | 'hook'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -624,6 +625,8 @@ export type ReviewStopReason =
    *  not change that. The delivery stops unfinished with the card still held — there is a
    *  person's call behind it, never a card with no way out. */
   | 'capability'
+  /** A hook after the build failed or was stopped (#1328). Resuming its run carries on. */
+  | 'hook'
   /** A `files` delivery changed tracked files outside the board (#874). */
   | 'outside'
   /** A `files` delivery recorded no output file, or one it recorded is not there (#874). */
@@ -783,6 +786,9 @@ export interface DeliveryRecord {
   base?: string
   /** Why the delivery stopped, and what each review before #1203 concluded (#302). */
   review?: DeliveryReview
+  /** The hooks that have finished since the last build (#1328). Set when a build finishes;
+   *  the ones still owed are the frozen `execute` hooks not named here. */
+  hooks?: { done: string[] }
   /** What each round of applied answers concluded about these requirements (#637), oldest
    *  first. The run that writes the answers onto the card is the one that can tell, so it
    *  says so with `delivery answered` before it drops the questions — and the landing queue
@@ -849,8 +855,8 @@ export interface FrozenWorkflow {
   /** Whether this delivery has to leave a file behind to count as finished — frozen with
    *  the rest, so a workflow retyped mid-flight cannot change what this build owes. */
   needsArtifact?: boolean
-  /** Who ran each stage, by stage name: the lead, and the helpers with the extra
-   *  requirements their assignment carried. */
+  /** Who ran each stage, by stage name: the lead, and its hooks (stored as `helpers`) with
+   *  the extra requirements their assignment carried. */
   stages: Record<string, { lead: string; helpers: { agent: string; extra: string }[] }>
 }
 
@@ -859,7 +865,7 @@ export type DeliveryCommitMode = 'auto' | 'manual' | 'files'
 
 /** Where a resumed delivery picks back up (#639) — the step it stopped at, never one it
  *  has already done. */
-export type DeliveryCarryOn = 'build' | 'landing' | 'conflict'
+export type DeliveryCarryOn = 'build' | 'hook' | 'landing' | 'conflict'
 
 /** One ask for a spec agent, as the run that wanted it wrote it down.
  *
@@ -1762,7 +1768,7 @@ const RETIRED_WORKFLOWS: readonly string[] = ['content']
 export const workflowDeleted = (id: string, known: readonly string[]): boolean =>
   !!id && !known.includes(id) && !RETIRED_WORKFLOWS.includes(id)
 
-/** One helper of one stage of one workflow, and what the workflow asks of it on top of the
+/** One hook of one stage of one workflow, and what the workflow asks of it on top of the
  *  agent's own instructions. An agent belongs to one workflow (#1095); `off` keeps it there
  *  without running it. */
 export interface WorkflowHelper {
@@ -1791,7 +1797,7 @@ export interface WorkflowStageView {
   stage: WorkflowStage
   /** The one agent that runs it, or empty when nobody does. */
   lead: string
-  /** Every helper this stage has, the disabled ones included. */
+  /** Every hook this stage has, the disabled ones included, in the order they run. */
   helpers: WorkflowHelper[]
   /** Every agent that could take this stage here — none that belongs to another workflow. */
   candidates: WorkflowCandidate[]

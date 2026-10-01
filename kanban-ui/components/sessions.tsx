@@ -418,6 +418,7 @@ function FlowRow({
   const t = useCopy();
   const c = t.runs.panel;
   const language = useLanguage();
+  const agentName = useAgentName();
   const steps = flow.sessions.length > 1 ? flow.sessions : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
   const said = flow.cardId === null ? flowSaid(flow) : "";
@@ -494,7 +495,8 @@ function FlowRow({
                   <SessionDot session={s} />
                 </span>
                 <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
-                  {stepLabel(s.action, t.runs)}
+                  {/* A hook is named by its agent (#1328): several run in one delivery. */}
+                  {s.action === "hook" && s.agent ? agentName(s.agent) : stepLabel(s.action, t.runs)}
                 </span>
                 {/* A resumed session says so beside its step label. */}
                 {!!why && <span className="text-[10.5px] text-nb-ink-soft">· {why}</span>}

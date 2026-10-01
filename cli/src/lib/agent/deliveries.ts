@@ -42,6 +42,7 @@ import { completeCard } from './complete'
 import { filesStop } from './outputs'
 import { insideRun } from './env'
 import { DELIVERY_FLOWS } from './flows'
+import { executeHooks, owedHooks } from './hooks'
 import { deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
@@ -620,8 +621,8 @@ export function resumeRecord(id: string): { ok: true; delivery: DeliveryRecord }
  *
  *  A landing conflict keeps its whole record: the rebase and the resolutions staged in the
  *  worktree are untouched, and `akb delivery conflict` is what carries them through.
- *  Anything the queue already holds goes back into it, and everything else still owes its
- *  build. The landing record is what tells the two apart, because `queueLanding` is the only
+ *  Anything the queue already holds goes back into it, a build with hooks still owed goes
+ *  back to the first of them (#1328), and everything else still owes its build. The landing record is what tells the two apart, because `queueLanding` is the only
  *  thing that writes one and it writes it exactly when the build finished.
  *
  *  Asked only after the work has been checked against the target branch, because a delivery
@@ -631,9 +632,43 @@ export function carryOnFrom(deliveryId: string): DeliveryCarryOn {
     const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
     if (!delivery || delivery.status !== 'active') return 'landing'
     if (delivery.landing?.status === 'conflict') return 'conflict'
-    if (!delivery.landing) return 'build'
+    if (!delivery.landing) {
+      if (!owedHooks(delivery).length) return 'build'
+      if (delivery.review?.stopped?.reason === 'hook') delivery.review.stopped = undefined
+      return 'hook'
+    }
     delivery.landing = { ...delivery.landing, status: 'waiting', why: undefined, at: Date.now() }
     return 'landing'
+  })
+}
+
+/** Stop a delivery on a hook that would not start (#1328), in the refusal's own words. */
+export function hookUnstarted(deliveryId: string, agent: string, error: string): void {
+  withStore((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId && d.status === 'active')
+    if (!delivery) return
+    reviewOf(delivery).stopped = {
+      reason: 'hook',
+      why: `the \`${agent}\` hook could not start after the build (${error}), so nothing was delivered`,
+      at: Date.now(),
+    }
+  })
+  syncAudit(deliveryId)
+}
+
+/** Take the stop a failed hook left off a delivery still in flight (#1328), so its next owed
+ *  hook can start. Nothing when it owes none, stopped on something else, or has a run going. */
+export function carryOnHooks(id: string): DeliveryRecord | undefined {
+  const named = namedDelivery(id)
+  if (named?.status !== 'active') return undefined
+  return withStore((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === named.deliveryId && d.status === 'active')
+    if (!delivery || !owedHooks(delivery).length) return undefined
+    const stopped = delivery.review?.stopped
+    if (stopped && stopped.reason !== 'hook') return undefined
+    if (store.runs.some((r) => r.deliveryId === delivery.deliveryId && runIsLive(r))) return undefined
+    if (stopped) delivery.review!.stopped = undefined
+    return { ...delivery }
   })
 }
 
@@ -929,7 +964,7 @@ export function joinActive(
   // (#637). Taken here rather than where it was read, so a conclusion that never started
   // anything is still waiting on the next pass.
   const now = Date.now()
-  for (const answer of delivery.answers ?? []) if (!answer.actedAt) answer.actedAt = now
+  if (step !== 'hook') for (const answer of delivery.answers ?? []) if (!answer.actedAt) answer.actedAt = now
   joinFlow(run, delivery)
   writeAudit(delivery, store.runs)
   return delivery
@@ -981,8 +1016,9 @@ const DELIVERY_OUTCOME: Record<Exclude<DeliveryStatus, 'active'>, CloudEventStat
 
 /** What a run's ending means for the delivery it belonged to.
  *
- *  A finished build finishes the delivery's work: it lands, waits for the user's commit, or
- *  stops on what it could not settle. A run that failed or was cut off mid-build leaves it
+ *  A finished build is committed and owes its hooks (#1328), one run each. The last of them —
+ *  or the build itself, with none — finishes the delivery's work: it lands, waits for the
+ *  user's commit, or stops on what it could not settle. A run that failed or was cut off mid-build leaves it
  *  ACTIVE and unfinished, with the card still held, until Resume carries it on or Discard
  *  ends it. A run somebody stopped is the same: stopping a run is not ending the job. */
 export async function settleDelivery(run: RunRecord): Promise<void> {
@@ -997,8 +1033,12 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   //
   // First the run's work, committed onto the delivery's branch.
   const built = run.status === 'done' && run.action === 'implement'
-  const commit = built && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
+  const hooked = run.status === 'done' && run.action === 'hook'
+  const commit = (built || hooked) && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
   const uncommitted = commit.ok ? undefined : commit.why
+  // The delivery's own work ends with the last hook, or with the build when none is owed.
+  const owed = built ? executeHooks(before) : owedHooks(before).filter((agent) => agent !== run.specAgent)
+  const last = (built || hooked) && !owed.length
   // And, in manual commit mode, the snapshot the finished build leaves for the user's own
   // commit to be matched against.
   //
@@ -1006,12 +1046,12 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   // because the wait is read on a card page and there is none — the delivery finishes with
   // its run and leaves the change where it is.
   const reviewed =
-    !uncommitted && before.commitMode === 'manual' && before.cardId !== null && built
+    !uncommitted && before.commitMode === 'manual' && before.cardId !== null && last
       ? snapshotReviewed(before)
       : undefined
   // A `files` delivery ends on what it made (#874): the files its card records, and nothing
   // changed outside the board.
-  const files = built && before.commitMode === 'files' ? filesStop(before) : undefined
+  const files = last && before.commitMode === 'files' ? filesStop(before) : undefined
 
   const settled = withStore<Settled | null>((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)
@@ -1022,6 +1062,13 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       review.stopped = { reason: 'uncommitted', why: uncommitted, at: Date.now() }
       releaseLanding(delivery)
       return null
+    }
+    // Every build owes all of its hooks again; a finished hook is owed no more.
+    if (delivery.status === 'active') {
+      if (built) delivery.hooks = { done: [] }
+      else if (hooked && run.specAgent && !delivery.hooks?.done.includes(run.specAgent)) {
+        delivery.hooks = { done: [...(delivery.hooks?.done ?? []), run.specAgent] }
+      }
     }
     const next = nextAfterSession(delivery, run)
     if ('hold' in next) return null

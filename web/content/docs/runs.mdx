@@ -82,7 +82,7 @@ done with that history; the lines in `docs/kanban/.gitignore` that cover it can 
 ## Which runtime each agent runs on
 
 Every run belongs to one agent: a flow is run by the role that owns it — software planner, builder —
-and a spec run by the specialist it names. Each of them names a **runtime**, which is
+and a spec run, or a hook after a build, by the agent it names. Each of them names a **runtime**, which is
 the whole answer to what that run runs as: the coding tool, the provider, the endpoint, the key,
 the model id, the reasoning level and any extra arguments. So planning can think on a stronger
 model than the builder writes with, and two agents on the same tool can sit on two different

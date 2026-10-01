@@ -461,6 +461,7 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
     steps: readSteps(entry.steps),
     base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
     review: readReview(entry.review),
+    hooks: readHooks(entry.hooks),
     // What each round of answers concluded (#637). A delivery from before this has none,
     // and a round nothing judged is a round the board will not guess at.
     answers: readAnswers(entry.answers),
@@ -521,6 +522,13 @@ function readWorkflow(raw: unknown): FrozenWorkflow | undefined {
     ...(box.needsArtifact === true ? { needsArtifact: true } : {}),
     stages,
   }
+}
+
+// The hooks finished since the last build (#1328). Absent means no build has finished.
+function readHooks(raw: unknown): DeliveryRecord['hooks'] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const done = (raw as { done?: unknown }).done
+  return { done: Array.isArray(done) ? done.filter((a): a is string => typeof a === 'string' && !!a) : [] }
 }
 
 const text = (value: unknown): string | undefined =>
@@ -692,6 +700,7 @@ function asStopReason(value: unknown): ReviewStopReason {
     value === 'uncommitted' ||
     value === 'landing' ||
     value === 'capability' ||
+    value === 'hook' ||
     value === 'outside' ||
     value === 'output'
     ? value

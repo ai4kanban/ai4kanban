@@ -52,8 +52,10 @@ describe('akb guide write-agent', () => {
 
   it('names the stages the parser accepts', () => {
     const lines = blocks.flat()
-    const comment = lines[lines.findIndex((line) => line.startsWith('  stage:')) - 1] ?? ''
-    const stages = comment.replace(/^\s*#/, '').split(';')[0].split('|').map((stage) => stage.trim())
+    // One comment line per stage above the key: `# plan: …`, `# execute: …`.
+    const at = lines.findIndex((line) => line.startsWith('  stage:'))
+    const stages: string[] = []
+    for (let i = at - 1; i >= 0 && /^\s*#\s*\w+:/.test(lines[i]!); i--) stages.push(lines[i]!.replace(/^\s*#\s*/, '').split(':')[0]!)
     assert.deepEqual(sorted(stages), sorted(WORKFLOW_STAGES))
   })
 })

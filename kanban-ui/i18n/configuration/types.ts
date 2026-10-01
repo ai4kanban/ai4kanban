@@ -61,8 +61,7 @@ export type ConfigurationCopy = {
     about: (name: string) => string;
     /** The two stages, in the order a card goes through them. */
     stages: { plan: string; execute: string };
-    /** The one agent that runs the selected stage, and the picker when nobody does. */
-    lead: string;
+    /** The picker on a stage nobody leads, and the chevron that swaps who does. */
     pickLead: string;
     /** Under a lead picked before agents declared whether they may lead (#846). */
     leadUndeclared: string;
@@ -73,9 +72,10 @@ export type ConfigurationCopy = {
     /** In place of the lead, on a stage that cannot start: no lead, a lead this board no
      *  longer has, or a lead that belongs to another stage all read the same. */
     stageProblem: string;
-    /** The enabled agents that stage's lead may call in, and the line drawn when it has none. */
-    helpers: string;
-    noneInStage: string;
+    /** The labelled rule between a stage's lead and its hooks (#1328), and the plus on it:
+     *  a new agent that runs then. */
+    hooks: { plan: string; execute: string };
+    addHook: (when: string) => string;
     /** Beside the empty column: what the space to its right is for. */
     emptyPage: string;
     /** The one switch in the more menu (#874, #944): **Use a Git worktree**, what it is
@@ -90,7 +90,7 @@ export type ConfigurationCopy = {
     disabledGroup: (n: number) => string;
     disable: string;
     enable: string;
-    /** What THIS assignment asks of the selected built-in helper, on top of its own
+    /** What THIS assignment asks of the selected built-in hook, on top of its own
      *  instructions, and the one line saying how far it reaches. An agent this project
      *  added is told through its own `AGENT.md` instead, so it has no box here. */
     extra: string;
@@ -99,10 +99,6 @@ export type ConfigurationCopy = {
     /** Inside the lead picker: the search box and what a list with nothing in it says. */
     find: string;
     noCandidates: string;
-    /** Under a stage's agents: makes one in this workflow and stage, enabled (#1095). */
-    newAgent: string;
-    /** Above the helpers this project added. */
-    yoursDivider: string;
     /** Under a built-in role's line: its brief ships with the command. */
     roleNote: string;
     /** The more menu beside the workflow's name (#964), read out with that name. */

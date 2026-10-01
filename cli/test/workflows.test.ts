@@ -719,7 +719,7 @@ describe('an agent that can lead never helps (#858)', () => {
     stageAgent('outliner', 'plan', true)
     const mine = createWorkflow('Mine')
     for (const agent of ['outliner', 'software-planner', 'scriptwriter']) {
-      assert.match(addWorkflowHelper(mine.id!, 'plan', agent).error!, /can lead a stage, so it never helps/)
+      assert.match(addWorkflowHelper(mine.id!, 'plan', agent).error!, /can lead a stage, so it is never a hook/)
     }
     // Coding's own, so another workflow cannot take it (#1095).
     assert.match(addWorkflowHelper(mine.id!, 'plan', 'ui-designer').error!, /belongs to the "Coding" workflow/)

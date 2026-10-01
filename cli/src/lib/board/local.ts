@@ -22,7 +22,9 @@
 import fs from 'node:fs'
 
 import { deliveryPlan } from '../agent/commit-mode'
-import { activeDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
+import { activeDelivery, findDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
+import { nextHookRun } from '../agent/hooks'
+import { startRun } from '../agent/start'
 import { cancelDelivery, discardDelivery, resumeDelivery } from '../agent/sessions'
 import {
   cmdCreate,
@@ -498,6 +500,10 @@ export function localBoard(): BoardProvider {
       if (no) return no
       const res = await resumeDelivery(deliveryId)
       if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be carried on'))
+      // A build with hooks still owed carries on with the first of them (#1328).
+      const hook = res.carryOn === 'hook' && res.deliveryId ? nextHookRun(findDelivery(res.deliveryId)) : null
+      const started = hook ? await startRun(hook) : undefined
+      if (started && 'error' in started) return opRefused(new Error(started.error))
       return opOk(boardRevision(), { deliveryId: res.deliveryId, landed: res.landed, carryOn: res.carryOn })
     },
 

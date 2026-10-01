@@ -5,7 +5,7 @@
 // the only thing the code knew about a stage was who happened to run it.
 //
 // A contract says the rest. Each stage declares what it is handed, what it leaves behind,
-// when it is over, the agent that leads it and the agents it may call in — as DATA, read by
+// when it is over, the agent that leads it and the hooks that follow it — as DATA, read by
 // the flow, not an interface anything implements. Two of those fields are what the machine
 // acts on: `lead` is how a flow finds its agent, and `requires` is what the stage cannot end
 // without. `input`, `output` and `done` are written down for the reader and for #715, which
@@ -37,15 +37,16 @@ export interface StageContract {
   output: string
   /** When it is over. */
   done: string
-  /** The agent that runs it and writes the one conclusion. One per call: helpers run one
-   *  at a time and the lead resumes to fold their sections into it. */
+  /** The agent that runs it and writes the one conclusion. */
   lead: string
-  /** The agents it may call in, by name. A board's own `spec` agents join the planning
-   *  stage, so this names only the ones the command ships. */
+  /** The stage's hooks, by name (#1328): after `plan` the lead calls each in when it applies,
+   *  one at a time; after `build` each runs once on every build. The field keeps its stored
+   *  name. A board's own agents join through its workflow, so this names only the ones the
+   *  command ships. */
   helpers: string[]
-  /** The helpers this stage cannot end without. The lead is always required and is never
+  /** The hooks this stage cannot end without. The lead is always required and is never
    *  listed here. Empty on everything the command ships: until a board can write its own
-   *  contracts (#716), a required helper would change when a card finishes. */
+   *  contracts (#716), a required hook would change when a card finishes. */
   requires: string[]
 }
 
@@ -94,8 +95,8 @@ const BOARD_STAGES: StageContract[] = [
   },
 ]
 
-// The contracts a workflow's assignments are laid over. `lead` and `helpers` are the two
-// fields a workflow owns; everything else on a contract — what the stage is handed, what it
+// The contracts a workflow's assignments are laid over. `lead` and its hooks (`helpers`) are
+// the two fields a workflow owns; everything else on a contract — what the stage is handed, what it
 // leaves behind, when it is over — is the kernel's and the same whoever runs it.
 
 // The nodes that are no stage's work, started by something happening rather than by a
@@ -130,8 +131,8 @@ export function stageContracts(workflow?: string): StageContract[] {
     if (!stage) return contract
     const setup = flow.stages[stage]
     // The assignments as they are written down, not as they resolve: this table is read to
-    // BUILD the roster, so a liveness check here would ask the roster for itself. A helper
-    // the board no longer has is dropped where helpers are actually called in
+    // BUILD the roster, so a liveness check here would ask the roster for itself. A hook
+    // the board no longer has is dropped where hooks are actually read
     // (./workflows.ts `liveStage`).
     return { ...contract, lead: setup.lead || contract.lead, helpers: setup.helpers.filter((h) => !h.off).map((h) => h.agent) }
   })

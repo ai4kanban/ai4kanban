@@ -81,7 +81,7 @@ describe('a lead agent', () => {
 
   it('only leads: never a helper, never run by `akb spec`', async () => {
     const mine = createWorkflow('Mine').id!
-    assert.match(addWorkflowHelper(mine, 'plan', 'scriptwriter').error!, /can lead a stage, so it never helps/)
+    assert.match(addWorkflowHelper(mine, 'plan', 'scriptwriter').error!, /can lead a stage, so it is never a hook/)
     // Product video's own, so another workflow leads with a copy (#1095).
     assert.match(setWorkflowLead(mine, 'plan', 'scriptwriter').error!, /belongs to the "Product video" workflow/)
     const lead = copyAgent('scriptwriter').agent!

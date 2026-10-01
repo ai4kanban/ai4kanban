@@ -30,6 +30,7 @@ import { INDEX_LOCK, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
   carryOnFrom,
+  carryOnHooks,
   endDelivery,
   findDelivery,
   joinActive,
@@ -133,6 +134,7 @@ const VERB: Record<AgentAction, string> = {
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
+  hook: 'worked on by a hook',
   unstick: 'settled',
 }
 
@@ -154,6 +156,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
 const RUN_STATUS: Partial<Record<AgentAction, string>> = {
   implement: 'implementing',
   conflict: 'implementing',
+  hook: 'implementing',
 }
 
 
@@ -480,11 +483,12 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
     case 'reject':
       return id === undefined ? undefined : { ...base, reason: r.input }
     case 'implement':
-    case 'conflict': {
+    case 'conflict':
+    case 'hook': {
       if (id !== undefined) return { ...base, notes: r.input }
       // A build with no card is named by its delivery (#428), and by what that was handed.
       if (!r.deliveryId) return undefined
-      if (r.action === 'conflict') return { ...base, deliveryId: r.deliveryId }
+      if (r.action !== 'implement') return { ...base, deliveryId: r.deliveryId }
       const plan = findDelivery(r.deliveryId)?.plan
       return r.input || r.triage || plan ? { ...base, deliveryId: r.deliveryId, description: r.input, plan } : undefined
     }
@@ -1249,6 +1253,8 @@ async function resumeHeld(
     if (delivery) {
       delivery.sessions.push(record.sessionId)
       delivery.steps.push({ step: 'resume', at: record.startedAt })
+      // The hook that stopped it is the one carrying on (#1328).
+      if (prev.action === 'hook' && delivery.review?.stopped?.reason === 'hook') delivery.review.stopped = undefined
       record.deliveryId = delivery.deliveryId
       // Under the delivery's own group, which is where the run it continues belongs —
       // including one recorded before the group followed the delivery (#417).
@@ -1625,6 +1631,10 @@ export async function resumeDelivery(
   id: string,
 ): Promise<{ ok: boolean; deliveryId?: string; landed?: boolean; carryOn?: DeliveryCarryOn } & Partial<RunRefusal>> {
   if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to carry on', { action: 'resume' }) }
+  // One still in flight that owes a hook (#1328) has nothing to put back: the caller starts
+  // the hook.
+  const owing = carryOnHooks(id)
+  if (owing) return { ok: true, deliveryId: owing.deliveryId, carryOn: 'hook' }
   const put = resumeRecord(id)
   if (!put.ok) return put
   const delivery = put.delivery

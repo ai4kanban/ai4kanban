@@ -255,4 +255,4 @@ export const flowByAction = (action: AgentAction): Flow | undefined => {
 /** The delivery flows. Their rules are frozen with the card the delivery
  *  was approved to build, and their runs are the ones that may not be working in the
  *  project folder. */
-export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'conflict'])
+export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'conflict', 'hook'])

@@ -2,21 +2,21 @@
 
 // Configuration → Workflows (#715, #944).
 //
-// Every card on this board goes through one workflow: `plan → execute`. A workflow says WHO
-// runs each of its stages and who they may call in. This pane is the one place both halves of
-// that answer live: pick a workflow at the top of the middle column, step through its stages, and the agent you select there opens its own page — its brief, its
-// instructions, what it runs on — beside the list.
+// Every card on this board goes through one workflow: `plan → execute`, each stage followed by
+// its hooks (#1328). The left column is that whole flow top to bottom — a frame per stage, its
+// lead, then what runs after it — and the agent selected there opens its own page beside it.
 //
 // The agents themselves are the board's roster (`components/Agents.tsx`), shared with
 // Configuration → Board so an agent reads and writes the same wherever it was reached from.
-// Each belongs to one workflow (#1095): the column lists the stage's enabled agents, and the
-// rare one not wanted is disabled from its page and waits under **Disabled**.
+// Each belongs to one workflow (#1095): a stage lists its enabled hooks in the order they run,
+// and the rare one not wanted is disabled from its page and waits under **Disabled**.
 //
 // Which agents can take a stage is the board's answer, asked for with the rest; so is every
 // refusal. Nothing here has a copy of those rules.
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiChevronDown, FiChevronRight, FiMoreHorizontal, FiPlus } from "react-icons/fi";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { FaHammer } from "react-icons/fa";
+import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiMap, FiMoreHorizontal, FiPlus } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -34,7 +34,6 @@ import type {
   AgentInfo,
   AgentView,
   WorkflowCandidate,
-  WorkflowHelper,
   WorkflowStage,
   WorkflowStageView,
   WorkflowView,
@@ -116,9 +115,11 @@ export function Pill({ children, tone = "wash" }: { children: string; tone?: "wa
   );
 }
 
-function Caption({ children }: { children: string }) {
-  return <h4 className={`${CAPTION} mb-1.5 text-nb-ink-soft`}>{children}</h4>;
-}
+/** Each stage's mark in its frame: a map for planning, a hammer for executing. */
+const STAGE_LOOK: Record<WorkflowStage, { Icon: typeof FiMap }> = {
+  plan: { Icon: FiMap },
+  execute: { Icon: FaHammer },
+};
 
 export function WorkflowsPanel({
   info,
@@ -145,14 +146,14 @@ export function WorkflowsPanel({
   const loaded = !!read;
   const loadError = read?.error ?? null;
   const [picked, setPicked] = useState("");
-  const [tab, setStage] = useState<WorkflowStage>("plan");
   // The name box, when one is open: which workflow it renames (a workflow just added is the
   // same box, on a row the board has already allocated).
   const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
   const [menu, setMenu] = useState(false);
-  // Which layer is open over the column: the workflow list or the lead picker.
-  const [picking, setPicking] = useState<"flow" | "lead" | null>(null);
-  const [adding, setAdding] = useState(false);
+  // Which layer is open over the column: the workflow list, or one stage's lead picker.
+  const [picking, setPicking] = useState<"flow" | WorkflowStage | null>(null);
+  // The stage whose hooks a new agent is being named into.
+  const [adding, setAdding] = useState<WorkflowStage | null>(null);
   // What the extra-requirements box holds right now, by `<workflow>/<stage>/<agent>`, so
   // switching agents never loses an edit that has not been saved yet.
   const [extras, setExtras] = useState<Record<string, string>>({});
@@ -173,24 +174,23 @@ export function WorkflowsPanel({
   const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const proLocked = !!flow?.pro && !!lock;
   // A workflow finished in planning has no execute stage to show (#1057).
-  const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
-  const stage = stages.includes(tab) ? tab : "plan";
-  const setup = flow?.stages.find((s) => s.stage === stage);
-  // Which stage cannot start, so the tabs can say which one to fix.
-  const blocked = new Set(
-    (flow?.stages ?? []).filter((s) => stages.includes(s.stage) && stageBlocked(s)).map((s) => s.stage),
-  );
-  // Every agent this stage has, in the order the column draws them.
+  const setups = useMemo(() => {
+    const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
+    return stages.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []);
+  }, [flow]);
+  // Every agent the flow has, in the order the column draws them.
   const assigned = useMemo(
-    () => (setup ? [...(!setup.lead ? [] : [setup.lead]), ...setup.helpers.map((h) => h.agent)] : []),
-    [setup],
+    () => setups.flatMap((s) => [...(s.lead ? [s.lead] : []), ...s.helpers.map((h) => h.agent)]),
+    [setups],
   );
 
-  // Always land on an agent of this stage that the board still has: a page beside an empty
-  // column is half a pane, and the one the last stage had is not in this one. A stage can
-  // also still name an agent this board deleted — that name has no page, so it is never the
-  // one selected, and the stage says so in its own line instead.
+  // Always land on an agent of this workflow that the board still has: a page beside an empty
+  // column is half a pane. A stage can also still name an agent this board deleted — that
+  // name has no page, so it is never the one selected, and the stage says so in its own line.
   const { picked: shown, setPicked: show, select } = roster;
+  // The stage the selected agent is in: what its page writes to.
+  const setup = setups.find((s) => s.lead === shown || s.helpers.some((h) => h.agent === shown)) ?? setups[0];
+  const stage: WorkflowStage = setup?.stage ?? "plan";
   const here = useCallback(
     (name: string) => !!roster.agents?.some((a) => a.name === name),
     [roster.agents],
@@ -208,7 +208,7 @@ export function WorkflowsPanel({
   };
 
   // Every write redraws from the board's own answer rather than patching what is on screen:
-  // a stage carries a lead, its helpers and what each assignment asks for, and the board is
+  // a stage carries a lead, its hooks and what each assignment asks for, and the board is
   // the only thing that knows what a change left behind.
   const write = async (res: Promise<{ ok: boolean; error?: string }>): Promise<boolean> => {
     const done = await res;
@@ -297,13 +297,13 @@ export function WorkflowsPanel({
     await move(stage, { kind: "extra", agent, extra: text });
   };
 
-  // A new agent lands in this workflow and stage, enabled, in one press (#1095). The template
-  // writes a helper, never a lead (#944).
-  const createAgent = async (name: string): Promise<string> => {
-    const made = await roster.create(name, stage);
+  // A new agent lands in this workflow as a hook of that stage, enabled, in one press (#1095).
+  // The template writes a hook, never a lead (#944).
+  const createAgent = async (to: WorkflowStage, name: string): Promise<string> => {
+    const made = await roster.create(name, to);
     if (made.error || !made.agent) return sayFailure(made, c.saveFailed);
-    setAdding(false);
-    if (!(await move(stage, { kind: "add-helper", agent: made.agent }))) return "";
+    setAdding(null);
+    if (!(await move(to, { kind: "add-helper", agent: made.agent }))) return "";
     show(made.agent);
     // Its page opens with the `AGENT.md` box focused: the whole point of the press was to
     // carry straight on into writing the prompt.
@@ -312,22 +312,114 @@ export function WorkflowsPanel({
   };
 
   const agent = roster.agents?.find((a) => a.name === shown);
-  const isYours = (name: string) => !!roster.agents?.find((a) => a.name === name)?.file;
-  const helperRows = (helpers: WorkflowHelper[]) =>
-    helpers.map((h) => (
-      <StageRow
-        key={h.agent}
-        name={h.agent}
-        agent={setup?.candidates.find((a) => a.name === h.agent)}
-        held={shown === h.agent}
-        off={h.off}
-        onOpen={() => void select(h.agent)}
-      />
-    ));
   const isLead = !!setup && shown === setup.lead;
-  const enabled = setup?.helpers.filter((h) => !h.off) ?? [];
-  const disabled = setup?.helpers.filter((h) => h.off) ?? [];
-  const shownOff = !!disabled.find((h) => h.agent === shown);
+  const shownOff = !!setup?.helpers.find((h) => h.agent === shown)?.off;
+
+  // One stage of the flow in a light frame: its name set into the top edge, its lead, a
+  // labelled rule, then its hooks in the order they run — all on one indent.
+  const stageBlock = (one: WorkflowStageView) => {
+    if (!flow) return null;
+    const { Icon } = STAGE_LOOK[one.stage];
+    const when = c.hooks[one.stage];
+    const rows = (off: boolean) =>
+      one.helpers
+        .filter((h) => !!h.off === off)
+        .map((h) => (
+          <StageRow
+            key={h.agent}
+            name={h.agent}
+            agent={one.candidates.find((a) => a.name === h.agent)}
+            held={shown === h.agent}
+            off={h.off}
+            onOpen={() => void select(h.agent)}
+          />
+        ));
+    const off = one.helpers.filter((h) => h.off).length;
+    return (
+      <section className="relative min-w-0 shrink-0 rounded-[12px] border border-nb-ink/10 px-1 pb-2.5 pt-5">
+        <h4 className="absolute -top-[10px] left-2 flex items-center gap-1.5 bg-nb-paper px-1.5">
+          <span className="grid size-[20px] shrink-0 place-items-center rounded-[6px] bg-nb-canvas text-nb-ink">
+            <Icon aria-hidden className="text-[11px]" />
+          </span>
+          <span className="text-[12.5px] font-[500] leading-[20px] text-nb-ink">{c.stages[one.stage]}</span>
+          {stageBlocked(one) && (
+            <span
+              role="img"
+              aria-label={c.notReadyHint}
+              title={c.notReadyHint}
+              className="size-[6px] shrink-0 rounded-full bg-nb-peach-ink"
+            />
+          )}
+        </h4>
+        {stageBlocked(one) && <p className="mb-2 px-2.5 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
+        {/* A built-in's lead is what its name promises, so it is shown and not offered
+            (#774). On a workflow of this board's own the chevron beside it swaps it. */}
+        <Popover open={picking === one.stage} onOpenChange={(open) => setPicking(open ? one.stage : null)}>
+          <PopoverAnchor asChild>
+            <div>
+              {one.lead ? (
+                <StageRow
+                  name={one.lead}
+                  agent={one.candidates.find((a) => a.name === one.lead)}
+                  held={shown === one.lead}
+                  onOpen={() => void select(one.lead)}
+                  swap={flow.builtIn ? undefined : c.pickLead}
+                />
+              ) : (
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={`${FLAT_CONTROL} ${POPUP_TRIGGER} mx-1.5 flex h-[36px] w-[calc(100%-12px)] cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700]`}
+                  >
+                    {c.pickLead}
+                    <FiChevronDown aria-hidden />
+                  </button>
+                </PopoverTrigger>
+              )}
+            </div>
+          </PopoverAnchor>
+          {picking === one.stage && (
+            <AgentPicker
+              label={c.pickLead}
+              candidates={one.candidates.filter((a) => a.canLead && !one.helpers.some((h) => h.agent === a.name))}
+              chosen={one.lead}
+              onPick={async (name) => {
+                setPicking(null);
+                if (await move(one.stage, { kind: "lead", agent: name })) show(name);
+              }}
+            />
+          )}
+        </Popover>
+        {leadUndeclared(one) && <p className="mt-1 px-2.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>}
+
+        <div role="separator" aria-label={when} className="flex h-[26px] items-center gap-2 pl-2.5 pr-1.5">
+          <span className="shrink-0 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">{when}</span>
+          <span className="h-px flex-1 bg-nb-ink/10" />
+          <button
+            type="button"
+            aria-label={c.addHook(when)}
+            title={c.addHook(when)}
+            onClick={() => setAdding(one.stage)}
+            className="grid size-[20px] shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-sheet hover:text-nb-ink"
+          >
+            <FiPlus aria-hidden className="text-[13px]" />
+          </button>
+        </div>
+        {rows(false)}
+        {adding === one.stage && (
+          <NewAgentRow onCreate={(name) => createAgent(one.stage, name)} onCancel={() => setAdding(null)} />
+        )}
+        {off > 0 && (
+          <>
+            <p className="mt-2 px-2.5 pb-1 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">
+              {c.disabledGroup(off)}
+            </p>
+            {rows(true)}
+          </>
+        )}
+      </section>
+    );
+  };
 
   // Beside the workflow's name, whatever the stage holds and whoever is selected (#964).
   const menuNode = flow ? (
@@ -379,198 +471,91 @@ export function WorkflowsPanel({
 
       {flows && (
         <div className="flex flex-1 items-stretch gap-6 max-sm:flex-col max-sm:gap-4">
-          {/* The workflow, its three stages and the agents in the one that is open — top to
-              bottom in the order they are read, with the rule down the right edge running
-              the whole height of the pane. */}
-          <div className="flex w-[292px] shrink-0 flex-col border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
-            <div className="mb-5 flex shrink-0 flex-col gap-3">
-              <Popover open={picking === "flow"} onOpenChange={(open) => setPicking(open ? "flow" : null)}>
-                <PopoverAnchor asChild>
-                  <div className="flex w-full items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      {naming ? (
-                        <NameBox
-                          label={c.nameLabel}
-                          placeholder={c.namePlaceholder}
-                          value={naming.text}
-                          onChange={(text) => setNaming({ ...naming, text })}
-                          onBlur={() => void nameBlur()}
-                        />
-                      ) : (
-                        flow && (
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              aria-label={c.title}
-                              className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3`}
-                            >
-                              <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
-                                {nameOf(flow)}
-                              </span>
-                              {/* Pro outranks Built-in: three marks leave a name no room. */}
-                              {flow.pro ? (
-                                <ProPill />
-                              ) : (
-                                flow.builtIn && (
-                                  <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
-                                )
-                              )}
-                              {flow.isDefault && <Pill>{c.isDefault}</Pill>}
-                              {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
-                              <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
-                            </button>
-                          </PopoverTrigger>
-                        )
-                      )}
+          {/* The workflow and its whole flow, top to bottom: a frame per stage with an arrow
+              between them. The column scrolls on its own when the flow is long. */}
+          <div className="relative w-[292px] shrink-0 border-r border-nb-ink/10 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-4">
+            <div className="flex flex-col sm:absolute sm:inset-y-0 sm:left-0 sm:right-6">
+              <div className="mb-4 flex shrink-0 flex-col gap-3">
+                <Popover open={picking === "flow"} onOpenChange={(open) => setPicking(open ? "flow" : null)}>
+                  <PopoverAnchor asChild>
+                    <div className="flex w-full items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        {naming ? (
+                          <NameBox
+                            label={c.nameLabel}
+                            placeholder={c.namePlaceholder}
+                            value={naming.text}
+                            onChange={(text) => setNaming({ ...naming, text })}
+                            onBlur={() => void nameBlur()}
+                          />
+                        ) : (
+                          flow && (
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                aria-label={c.title}
+                                className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[44px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] px-3`}
+                              >
+                                <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
+                                  {nameOf(flow)}
+                                </span>
+                                {/* Pro outranks Built-in: three marks leave a name no room. */}
+                                {flow.pro ? (
+                                  <ProPill />
+                                ) : (
+                                  flow.builtIn && (
+                                    <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
+                                  )
+                                )}
+                                {flow.isDefault && <Pill>{c.isDefault}</Pill>}
+                                {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
+                                <FiChevronDown aria-hidden className="shrink-0 text-nb-ink-soft" />
+                              </button>
+                            </PopoverTrigger>
+                          )
+                        )}
+                      </div>
+                      {menuNode}
                     </div>
-                    {menuNode}
-                  </div>
-                </PopoverAnchor>
-                {picking === "flow" && (
-                  <FlowPicker
-                    flows={flows}
-                    chosen={picked}
-                    onPick={(id) => {
-                      setPicking(null);
-                      setPicked(id);
-                    }}
-                    onAdd={() => void add()}
-                  />
-                )}
-              </Popover>
+                  </PopoverAnchor>
+                  {picking === "flow" && (
+                    <FlowPicker
+                      flows={flows}
+                      chosen={picked}
+                      onPick={(id) => {
+                        setPicking(null);
+                        setPicked(id);
+                      }}
+                      onAdd={() => void add()}
+                    />
+                  )}
+                </Popover>
 
-              {flow?.retiredAssignment && (
-                <Note>
-                  {c.retired}{" "}
-                  <button
-                    type="button"
-                    className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
-                    onClick={() => void write(dismissRetiredAssignmentAction(flow.id))}
-                  >
-                    {c.retiredSeen}
-                  </button>
-                </Note>
-              )}
-
-              {/* The arrows between them are the order a card actually goes through, which is
-                  the one thing same-looking tabs don't say. */}
-              <div className="flex shrink-0 items-center gap-1">
-                {stages.map((name, i) => (
-                  <div key={name} className="flex items-center gap-1">
-                    {i > 0 && (
-                      <FiChevronRight size={13} aria-hidden className="shrink-0 text-nb-ink-soft/60" />
-                    )}
+                {flow?.retiredAssignment && (
+                  <Note>
+                    {c.retired}{" "}
                     <button
                       type="button"
-                      aria-current={name === stage}
-                      title={blocked.has(name) ? c.notReadyHint : undefined}
-                      onClick={() => {
-                        setStage(name);
-                        setPicking(null);
-                        setAdding(false);
-                      }}
-                      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[8px] px-3 py-1 text-[12px] font-[700] transition-colors duration-100 ${
-                        name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
-                      }`}
+                      className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
+                      onClick={() => void write(dismissRetiredAssignmentAction(flow.id))}
                     >
-                      {c.stages[name]}
-                      {blocked.has(name) && (
-                        <span
-                          role="img"
-                          aria-label={c.notReadyHint}
-                          className="size-[6px] shrink-0 rounded-full bg-nb-peach-ink"
-                        />
-                      )}
+                      {c.retiredSeen}
                     </button>
-                  </div>
+                  </Note>
+                )}
+              </div>
+
+              <div className="-mr-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-2 pt-2.5">
+                {setups.map((one, i) => (
+                  <Fragment key={one.stage}>
+                    {i > 0 && (
+                      <FiArrowDown aria-hidden strokeWidth={2.5} className="mx-auto mb-2 shrink-0 text-[16px] text-nb-ink" />
+                    )}
+                    {stageBlock(one)}
+                  </Fragment>
                 ))}
               </div>
             </div>
-
-            {setup && flow && (
-              <>
-                {stageBlocked(setup) && (
-                  <p className="mb-3 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>
-                )}
-                {/* A built-in's lead is what its name promises, so it is shown and not
-                    offered (#774). On a workflow of this board's own the chevron beside it
-                    is what swaps it. */}
-                <section className="mb-4">
-                  <Caption>{c.lead}</Caption>
-                  <Popover open={picking === "lead"} onOpenChange={(open) => setPicking(open ? "lead" : null)}>
-                    <PopoverAnchor asChild>
-                      <div>
-                        {setup.lead ? (
-                          <StageRow
-                            name={setup.lead}
-                            agent={setup.candidates.find((a) => a.name === setup.lead)}
-                            held={shown === setup.lead}
-                            onOpen={() => void select(setup.lead)}
-                            swap={flow.builtIn ? undefined : c.pickLead}
-                          />
-                        ) : (
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              className={`${FLAT_CONTROL} ${POPUP_TRIGGER} flex h-[36px] w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] px-3 text-[12.5px] font-[700]`}
-                            >
-                              {c.pickLead}
-                              <FiChevronDown aria-hidden />
-                            </button>
-                          </PopoverTrigger>
-                        )}
-                      </div>
-                    </PopoverAnchor>
-                    {picking === "lead" && (
-                      <AgentPicker
-                        label={c.pickLead}
-                        candidates={setup.candidates.filter(
-                          (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
-                        )}
-                        chosen={setup.lead}
-                        onPick={async (name) => {
-                          setPicking(null);
-                          if (await move(stage, { kind: "lead", agent: name })) show(name);
-                        }}
-                      />
-                    )}
-                  </Popover>
-                  {leadUndeclared(setup) && (
-                    <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
-                  )}
-                </section>
-
-                <section className="min-w-0">
-                  <Caption>{c.helpers}</Caption>
-                  {helperRows(enabled.filter((h) => !isYours(h.agent)))}
-                  {enabled.some((h) => isYours(h.agent)) && <YoursDivider label={c.yoursDivider} />}
-                  {helperRows(enabled.filter((h) => isYours(h.agent)))}
-                  {!enabled.length && (
-                    <p className="px-2.5 py-2 text-[11.5px] text-nb-ink-soft">
-                      {c.noneInStage}
-                    </p>
-                  )}
-                  {adding ? (
-                    <NewAgentRow onCreate={createAgent} onCancel={() => setAdding(false)} />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setAdding(true)}
-                      className={`${QUIET_BTN} mt-2.5 w-full justify-center`}
-                    >
-                      <FiPlus aria-hidden />
-                      {c.newAgent}
-                    </button>
-                  )}
-                </section>
-                {disabled.length > 0 && (
-                  <section className="mt-4 min-w-0">
-                    <Caption>{c.disabledGroup(disabled.length)}</Caption>
-                    {helperRows(disabled)}
-                  </section>
-                )}
-              </>
-            )}
           </div>
 
           {/* The selected agent: what it is, where else it is used, and what this stage
@@ -694,17 +679,6 @@ function ExtraBox({
       onBlur={onBlur}
       className={`${CONTROL} min-h-[60px] resize-none overflow-hidden text-[12px] leading-[19px]`}
     />
-  );
-}
-
-/** Between the built-in helpers and the ones this project added. */
-function YoursDivider({ label }: { label: string }) {
-  return (
-    <div role="separator" aria-label={label} className="flex items-center gap-2 px-2.5 py-1.5">
-      <span className="h-px flex-1 bg-nb-ink/10" />
-      <span className="shrink-0 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">{label}</span>
-      <span className="h-px flex-1 bg-nb-ink/10" />
-    </div>
   );
 }
 

@@ -81,9 +81,9 @@ export async function cmdWorkflowList(): Promise<MoveResult> {
     if (description) say(`  ${description}`)
     for (const stage of WORKFLOW_STAGES) {
       const setup = liveStage(flow, stage)
-      const helpers = setup.helpers.map((h) => `${titleOf(h.agent)}${h.off ? ' (off)' : ''}`).join(', ')
+      const hooks = setup.helpers.map((h) => `${titleOf(h.agent)}${h.off ? ' (off)' : ''}`).join(', ')
       const lead = setup.lead ? `${titleOf(setup.lead)}${undeclared(setup.lead) ? ' (not declared to lead)' : ''}` : '(nobody)'
-      say(`  ${stage.padEnd(8)}${lead}${helpers ? `  + ${helpers}` : ''}`)
+      say(`  ${stage.padEnd(8)}${lead}${hooks ? `  → hooks: ${hooks}` : ''}`)
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
@@ -177,8 +177,8 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
       .map((a) => a.name)
     say(`${flow.name} · ${stage}`)
     say(`  lead: ${setup.lead || '(nobody)'}${flow.builtIn ? ' — built in; duplicate the workflow to pick another' : ''}`)
-    say(`  on: ${on.join(', ') || '(none)'}`)
-    if (off.length) say(`  off: ${off.join(', ')}`)
+    say(`  hooks on: ${on.join(', ') || '(none)'}`)
+    if (off.length) say(`  hooks off: ${off.join(', ')}`)
     if (!flow.builtIn) say(`  can lead: ${leads.join(', ') || '(none)'}`)
     return { id: flow.id, stage, lead: setup.lead, on, off, leads }
   }

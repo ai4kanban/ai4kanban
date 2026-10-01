@@ -106,6 +106,7 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'archive',
   'spec',
   'conflict',
+  'hook',
 ])
 
 // What opens a restart. Everything the resume prompt leans on is gone, so the whole ask
@@ -163,7 +164,7 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
 }
 
-// What one workflow asks of a helper it calls in, on top of the agent's own instructions
+// What one workflow asks of a hook it runs, on top of the agent's own instructions
 // (#715). Read off the delivery's frozen copy when the run is part of one, and off the board
 // otherwise — the same rule a rule follows.
 //
@@ -601,6 +602,29 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         // agent's instructions and its memory, because it is written on top of them and never
         // in place of them. A card whose workflow does not call this agent in has none.
         helperExtra(req),
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    }
+    // A hook after the build (#1328): the fixed words, then the agent's own. No guide page —
+    // the board starts it, so there is no flow for it to follow.
+    case 'hook': {
+      const agent = findSpecAgent(req.specAgent ?? '')
+      const own = agent ? specAgentInstructions(agent) : null
+      if (own) notes.push(...own.notes)
+      const memory = agent ? agentMemoryBlock(agent) : ''
+      const built = req.id !== undefined ? `card #${req.id}` : `delivery ${req.deliveryId ?? ''}`
+      return [
+        [
+          `You run after the build of ${built}, in the folder holding its work.`,
+          `Do only what your instructions assign; the board commits your changes with the delivery.`,
+          `Do not land the work or start other agents.`,
+          `With nothing to do, change nothing and say so in one line.`,
+        ].join(' '),
+        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
+        own?.files ? `——— your own files ———\n\n${own.files}` : '',
+        helperExtra(req),
+        memory ? `——— what you remember ———\n\n${memory}` : '',
       ]
         .filter(Boolean)
         .join('\n\n')
