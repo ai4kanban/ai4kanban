@@ -1170,11 +1170,12 @@ function RowSource({
 
 const CHECK = "size-[14px] shrink-0 cursor-pointer accent-nb-accent-deep max-md:size-[18px]";
 const ICON_BTN =
-  "nb-tip grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40";
+  "nb-tip grid size-[26px] shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40";
 
 /** One waiting item, one row: a checkbox, its source on the first row of a run, the title with
  *  its summary on the same line, and the date — traded for four icon buttons on the row under
- *  the pointer, or on a ticked one. */
+ *  the pointer, or on a ticked one. The title stays on one line there, or the narrower text
+ *  would rewrap and the row would change height under the pointer. */
 function QueueRow({
   signal,
   first,
@@ -1234,10 +1235,10 @@ function QueueRow({
   const tip = `nb-tip ${top ? "nb-tip-below" : ""}`;
   const busy = making === "start" ? c.starting : c.making;
   const acts = [
-    { label: c.makeCard, icon: <FiPlus size={14} />, onClick: onMake, off: sorting },
-    { label: c.startNow, icon: <FiPlay size={12} />, onClick: () => onGuard(!guard), off: sorting },
-    { label: c.discuss, icon: <FiMessageSquare size={12} />, onClick: onDiscuss, off: false },
-    { label: c.ignore, icon: <FiEyeOff size={12} />, onClick: onIgnore, off: false },
+    { label: c.makeCard, icon: <FiPlus size={16} />, onClick: onMake, off: sorting },
+    { label: c.startNow, icon: <FiPlay size={14} />, onClick: () => onGuard(!guard), off: sorting },
+    { label: c.discuss, icon: <FiMessageSquare size={14} />, onClick: onDiscuss, off: false },
+    { label: c.ignore, icon: <FiEyeOff size={14} />, onClick: onIgnore, off: false },
   ];
 
   return (
@@ -1274,7 +1275,9 @@ function QueueRow({
             onClick={onOpen}
             className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 text-left focus-visible:outline-none max-md:gap-1"
           >
-            <span className="min-w-0 text-[13px] font-[600] text-nb-ink [overflow-wrap:anywhere]">{titleOf(signal)}</span>
+            <span className="min-w-0 max-w-full text-[13px] font-[600] text-nb-ink [overflow-wrap:anywhere] md:truncate">
+              {titleOf(signal)}
+            </span>
             <span className="line-clamp-1 text-[12px] text-nb-ink-soft max-md:line-clamp-2">
               <HeldPill />
               {verdictReason(signal, c)}
@@ -1289,7 +1292,7 @@ function QueueRow({
           className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-x-1.5 text-left focus-visible:outline-none"
         >
           <span
-            className={`min-w-0 [overflow-wrap:anywhere] ${
+            className={`min-w-0 [overflow-wrap:anywhere] md:truncate ${
               signal.contentKept ? "text-[13px] font-[600] text-nb-ink" : "font-mono text-[12px] font-[600] text-nb-ink-soft"
             }`}
           >
@@ -1302,46 +1305,46 @@ function QueueRow({
           )}
         </button>
         )}
-        <span className="relative -my-[3px] flex h-6 w-[108px] shrink-0 items-center justify-end max-md:hidden">
+        <span
+          className={`shrink-0 text-[11.5px] tabular-nums text-nb-ink-soft max-md:hidden ${
+            pinned ? "hidden" : still ? "" : "group-hover:hidden group-focus-within:hidden"
+          }`}
+        >
+          {dayOf(signal.collectedAt, language)}
+        </span>
+        {!still && (
           <span
-            className={`text-[11.5px] tabular-nums text-nb-ink-soft ${
-              pinned ? "hidden" : still ? "" : "group-hover:hidden group-focus-within:hidden"
+            ref={actsRef}
+            className={`relative -my-1 -mr-1 hidden shrink-0 items-center gap-0.5 self-center ${
+              pinned ? "md:flex" : "md:group-hover:flex md:group-focus-within:flex"
             }`}
           >
-            {dayOf(signal.collectedAt, language)}
+            {acts.map((act) => (
+              <button
+                key={act.label}
+                type="button"
+                data-tip={act.label}
+                aria-label={act.label}
+                aria-expanded={act.label === c.startNow ? guard : undefined}
+                disabled={act.off}
+                onClick={act.onClick}
+                className={`${ICON_BTN} ${tip}`}
+              >
+                {act.icon}
+              </button>
+            ))}
+            <StartGuard
+              open={guard}
+              anchorRef={actsRef}
+              align="right"
+              onDismiss={() => onGuard(false)}
+              onConfirm={() => {
+                onGuard(false);
+                onStart();
+              }}
+            />
           </span>
-          {!still && (
-            <span
-              ref={actsRef}
-              className={`${pinned ? "flex" : "hidden group-hover:flex group-focus-within:flex"} items-center gap-0.5`}
-            >
-              {acts.map((act) => (
-                <button
-                  key={act.label}
-                  type="button"
-                  data-tip={act.label}
-                  aria-label={act.label}
-                  aria-expanded={act.label === c.startNow ? guard : undefined}
-                  disabled={act.off}
-                  onClick={act.onClick}
-                  className={`${ICON_BTN} ${tip}`}
-                >
-                  {act.icon}
-                </button>
-              ))}
-              <StartGuard
-                open={guard}
-                anchorRef={actsRef}
-                align="right"
-                onDismiss={() => onGuard(false)}
-                onConfirm={() => {
-                  onGuard(false);
-                  onStart();
-                }}
-              />
-            </span>
-          )}
-        </span>
+        )}
       </div>
     </li>
   );
