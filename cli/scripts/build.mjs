@@ -46,6 +46,8 @@ await esbuild.build({
   // file still carries everything an agent needs (see src/lib/guide.ts).
   loader: { '.md': 'text', '.tsx': 'text', '.json': 'text' },
   banner: { js: BANNER },
+  // What lets a run spawn its watcher: only this build is the command (src/lib/agent/launch.ts).
+  define: { __AKB_BUILT__: 'true' },
   legalComments: 'none',
 })
 

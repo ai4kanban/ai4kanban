@@ -19,6 +19,11 @@ import { KANBAN, REPO_ROOT, SESSIONS_DIR } from '../paths'
 /** The built file this code is running as. */
 export const SELF = fileURLToPath(import.meta.url)
 
+// Set by scripts/build.mjs alone. Anywhere else SELF is not the command — in a test bundle it
+// is the test file, and spawning that runs the tests again, each copy starting the next.
+declare const __AKB_BUILT__: boolean | undefined
+const BUILT = typeof __AKB_BUILT__ !== 'undefined'
+
 /** Which board the watcher is pointed at. `--dir` only ever reaches `<project>/docs/kanban`,
  *  so a board named outright — `--board`, or a UI that called `setBoardDir` — has to be named
  *  again here, or the watcher reads the wrong board, finds no spec, and the run dies at
@@ -29,9 +34,10 @@ function boardArgs(): string[] {
 }
 
 /** Spawn the watcher for a run that has already been written down, and return its pid.
- *  Undefined when the spawn itself failed — then nothing is watching, and the run is
- *  closed out by whoever asked for it. */
+ *  Undefined when the spawn itself failed, or outside the built command — then nothing is
+ *  watching, and the run is closed out by whoever asked for it. */
 export function spawnWatcher(sessionId: string): number | undefined {
+  if (!BUILT) return undefined
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   // Anything the watcher says for itself — a crash before it can write a log — goes here
   // rather than to a terminal that may already be gone.
