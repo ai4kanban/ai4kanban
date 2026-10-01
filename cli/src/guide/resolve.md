@@ -10,7 +10,8 @@ another question, or change project code.
    leave that question open.
 2. Follow `akb guide writing`. Merge the answer into the existing decision, keep only the
    selected choice, remove obsolete or contradictory text, preserve completed work, and add
-   newly required work as unchecked todos.
+   newly required work as unchecked todos. When the answer changes an agent's section, read
+   that agent's rules first, as "Agent sections" there says.
 3. Drop each answered question after its answer is fully applied:
 
 ```text

@@ -53,6 +53,12 @@ Every flow writes a card in this order:
 - **Never approve a deviation here**: work that contradicts the approved requirements must
   be fixed or sent to the user by the build.
 
+## Agent sections
+
+- **Owner's rules first**: before rewriting, removing, or overruling content a spec or helper
+  agent owns, read that agent's AGENT.md and the references it points to for the affected
+  part. When they cannot be read, surface the gap before changing that content.
+
 ## `Today`
 
 - **Describe the starting point**: include only current behavior or constraints needed to

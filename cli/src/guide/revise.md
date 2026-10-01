@@ -3,11 +3,7 @@
 Make the requested change and fix what it contradicts in the card. Apply answers supported by
 the project and leave only decisions the user owns.
 
-- **Owned content first**: before changing any part a spec or helper agent owns, identify each
-  affected owner and read its AGENT.md, then load only the references its instructions point to
-  for the affected work. Read it before the edit, not after: it must inform the change itself,
-  including a rewrite, a removal, or an overrule. When an owner's instructions cannot be found
-  or read, surface the gap before changing that content.
+- **Owned content first**: before the edit, follow "Agent sections" in `akb guide writing`.
 - **Dependencies**: when the card comes to need another card's output, add that id to its
   `blocked_by` as `akb guide add-task` says.
 - **Changed outcome**: If the request materially changes what the task delivers, run the

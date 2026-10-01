@@ -47,6 +47,8 @@ The work is still worth doing. Rewrite the card for the project as it is today, 
   `--related <root-id> --schedule refine`. The subtasks refine themselves; you do not.
 - **Never touch a checked todo.** `- [x]` is history: keep it exactly as written, even when
   the step it names has been superseded.
+- **Read an owner's rules first** — before rewriting an agent's section, as "Agent sections"
+  in `akb guide writing` says.
 
 **This is a rewrite, not a refine.** Change only what you can show is out of date. Do not
 run the planning QA loop, do not research the card into a better plan, and do not change
