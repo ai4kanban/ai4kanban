@@ -80,10 +80,9 @@ export type RailCopy = {
     hits: (shown: number, total: number) => string;
     /** The group that holds everything nothing named a source for. */
     noSource: string;
-    /** One source group: folding it, and the button that brings the next of it in. */
-    fold: string;
-    unfold: string;
-    more: string;
+    /** A History row's outcome, in a word. */
+    made: string;
+    ignored: string;
     /** An empty queue, whether it never held anything or was just emptied — never a
      *  congratulation. The link under it: the history, when there is some. */
     empty: string;
@@ -142,6 +141,8 @@ export type RailCopy = {
     addReason: string;
     reasonHint: string;
     save: string;
+    /** Changing a reason already given, in History's detail. */
+    edit: string;
     reasonFailed: string;
     /** Putting an ignored item back in the queue. */
     restore: string;
