@@ -17,6 +17,7 @@ import { randomUUID } from 'node:crypto'
 import { REPO_ROOT } from '../paths'
 import { openPlan, planRun } from './resolve'
 import { runtimeById } from './runtimes'
+import { endAgent, markEnv, stopMark } from './stop'
 import { createStderrFilter } from './wire'
 import type { ConnectionTest } from './types'
 
@@ -121,6 +122,7 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
       done({ ok: false, output: said(events, run.renderer?.result(), `${stderr}\n${String(e)}`) })
     }
 
+    const mark = stopMark()
     // stdout and stderr are pipes whichever shape this is; only stdin differs.
     let child: ChildProcessByStdio<Writable | null, Readable, Readable>
     try {
@@ -130,7 +132,7 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
         // folder — an agent started there is outside the repo, and codex refuses to run at
         // all ("Not inside a trusted directory").
         cwd: REPO_ROOT,
-        env: run.env,
+        env: markEnv(run.env, mark),
         shell: false,
         // Same as a run: a piped stdin makes `claude -p` wait and then warn, which would
         // land in the output as if it were the failure — and it is a pipe, and stays open,
@@ -143,9 +145,7 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
     }
 
     const timer = setTimeout(() => {
-      child.kill('SIGTERM')
-      const kill = setTimeout(() => child.kill('SIGKILL'), KILL_AFTER_MS)
-      if (typeof kill.unref === 'function') kill.unref()
+      endAgent(child, mark, KILL_AFTER_MS)
       // Whatever it managed to say before it stopped answering is still the best clue there
       // is, so it goes under the give-up line.
       done({

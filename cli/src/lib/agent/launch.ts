@@ -15,6 +15,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { KANBAN, REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { RUN_ENV, STOP_ENV } from './env'
 
 /** The built file this code is running as. */
 export const SELF = fileURLToPath(import.meta.url)
@@ -33,6 +34,13 @@ function boardArgs(): string[] {
   return KANBAN === standard ? ['--dir', REPO_ROOT] : ['--board', KANBAN]
 }
 
+/** What the watcher starts under: the caller's environment without the marks of the run or
+ *  chat it was started inside, so stopping that one leaves this run alone (#1302). */
+export function watcherEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const { [RUN_ENV]: _run, [STOP_ENV]: _stop, ...rest } = env
+  return rest
+}
+
 /** Spawn the watcher for a run that has already been written down, and return its pid.
  *  Undefined when the spawn itself failed, or outside the built command — then nothing is
  *  watching, and the run is closed out by whoever asked for it. */
@@ -45,7 +53,7 @@ export function spawnWatcher(sessionId: string): number | undefined {
   try {
     const child = spawn(process.execPath, [SELF, '__watch', sessionId, ...boardArgs()], {
       cwd: REPO_ROOT,
-      env: process.env,
+      env: watcherEnv(),
       // Its own process group, so a Ctrl-C in the terminal that started the run doesn't
       // reach the agent — and so a stop can signal this run and nothing else.
       detached: true,

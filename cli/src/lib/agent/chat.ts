@@ -56,6 +56,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
+import { endAgent, markEnv, stopMark } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
 import { recordReplyUsage } from './usage'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
@@ -1548,6 +1549,7 @@ async function speak(io: {
 
   // stdout and stderr are pipes whichever shape this is; only stdin differs.
   const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
+  const mark = stopMark()
   let child: ChildProcessByStdio<Writable | null, Readable, Readable>
   try {
     // A connector the board talks to is handed its prompt inside the conversation and needs
@@ -1557,7 +1559,7 @@ async function speak(io: {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.
       cwd: REPO_ROOT,
-      env: chatEnv(active.env, io),
+      env: markEnv(chatEnv(active.env, io), mark),
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>
@@ -1631,11 +1633,16 @@ async function speak(io: {
     // that answers back is a server and never exits on its own, so this is how every one of
     // them ends. The turn's own answer is the verdict — the exit code of a process we killed
     // says nothing.
-    const endChild = (): void => {
+    const endChild = (commandsToo = false): void => {
       try {
         child.stdin?.end()
       } catch {
         // already gone
+      }
+      // Cut short, the commands it started go with it (#1302).
+      if (commandsToo) {
+        endAgent(child, mark, CLOSE_GRACE_MS)
+        return
       }
       try {
         child.kill('SIGTERM')
@@ -1648,7 +1655,7 @@ async function speak(io: {
     const giveUp = (why: () => void): void => {
       if (done) return
       why()
-      endChild()
+      endChild(true)
       const t = setTimeout(() => finish(false), CLOSE_GRACE_MS)
       if (typeof t.unref === 'function') t.unref()
     }

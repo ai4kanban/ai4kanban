@@ -24,6 +24,10 @@ export function runEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv
   return { ...env, [RUN_ENV]: value }
 }
 
+/** The variable a chat turn or an agent test puts on its agent, holding a one-off id: they
+ *  have no run id, and it is how a stop finds the commands that agent started (#1302). */
+export const STOP_ENV = 'KANBAN_STOP_ID'
+
 /** The variable a chat turn puts on the agent it spawns, holding the discussion that turn is
  *  answering (#496).
  *

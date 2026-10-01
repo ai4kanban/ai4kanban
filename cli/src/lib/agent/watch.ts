@@ -27,6 +27,7 @@ import { boardCommand } from './command'
 import { silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
+import { endAgent, runMark } from './stop'
 import { refineRunsAfter, specRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
 import { runSort } from './auto-triage'
@@ -695,12 +696,17 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     }
 
     // Ending the command ourselves — a stop asked, the silence window ran out, or the
-    // conversation is over. It gets a moment to end on its own, then it is killed.
-    const endChild = () => {
+    // conversation is over. It gets a moment to end on its own, then it is killed. Cut short,
+    // the commands it started go with it (#1302).
+    const endChild = (commandsToo = false) => {
       try {
         child.stdin?.end()
       } catch {
         // already gone
+      }
+      if (commandsToo) {
+        endAgent(child, runMark(sessionId), STOP_GRACE_MS)
+        return
       }
       try {
         child.kill('SIGTERM')
@@ -724,7 +730,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     // open long after the agent itself is gone, which would leave the run reading as
     // running and its card locked for good.
     const giveUp = (asked: boolean) => {
-      endChild()
+      endChild(true)
       after(STOP_GRACE_MS + STOP_CLOSE_MS, () => {
         // Nothing else is waiting on this process, and something is still holding a pipe
         // open — so leave rather than sit here for as long as it does. The ending path
