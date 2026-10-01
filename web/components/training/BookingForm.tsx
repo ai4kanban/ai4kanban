@@ -1,5 +1,6 @@
 "use client";
 
+import { Field, field, submitClass } from "@/components/contact/ContactForm";
 import { Button } from "@/components/ui/Button";
 import type { TrainingCopy } from "@/i18n/training/types";
 import type { FieldErrors, FormValues, Problem, ServiceId } from "./state";
@@ -17,10 +18,6 @@ import { slotLabel } from "./week";
 //
 // Nothing here is ever cleared by a failure. What was typed is the component's
 // caller's state (`state.ts`), and every transition into this screen keeps it.
-
-const field =
-  "mt-2 w-full rounded-lg border-2 border-border bg-elev px-3 py-2 text-sm " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 export function BookingForm({
   t,
@@ -95,15 +92,21 @@ export function BookingForm({
         }}
       >
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Field
-            label={t.form.name}
-            error={fields?.name && t.form.nameRequired}
-            value={form.name}
-            onChange={(name) => onEdit({ name })}
-            autoComplete="name"
-          />
+          <Field label={t.form.name} className="" error={fields?.name && t.form.nameRequired}>
+            {(invalid) => (
+              <input
+                className={`${field} block h-11`}
+                type="text"
+                autoComplete="name"
+                value={form.name}
+                aria-invalid={invalid}
+                onChange={(event) => onEdit({ name: event.target.value })}
+              />
+            )}
+          </Field>
           <Field
             label={t.form.email}
+            className=""
             error={
               fields?.email === "required"
                 ? t.form.emailRequired
@@ -111,39 +114,47 @@ export function BookingForm({
                   ? t.form.emailInvalid
                   : undefined
             }
-            value={form.email}
-            onChange={(email) => onEdit({ email })}
-            type="email"
-            autoComplete="email"
-          />
+          >
+            {(invalid) => (
+              <input
+                className={`${field} block h-11`}
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                aria-invalid={invalid}
+                onChange={(event) => onEdit({ email: event.target.value })}
+              />
+            )}
+          </Field>
         </div>
 
-        <label className="mt-4 block text-sm font-semibold">
-          {t.form.service}
-          <select
-            className={field}
-            value={form.service}
-            onChange={(event) => onEdit({ service: event.target.value as ServiceId })}
-          >
-            <option value="single">
-              {t.form.serviceSingle.replace("{price}", price("single"))}
-            </option>
-            <option value="monthly">
-              {t.form.serviceMonthly.replace("{price}", price("monthly"))}
-            </option>
-          </select>
-        </label>
+        <Field label={t.form.service}>
+          {() => (
+            <select
+              className={`${field} block h-11`}
+              value={form.service}
+              onChange={(event) => onEdit({ service: event.target.value as ServiceId })}
+            >
+              <option value="single">
+                {t.form.serviceSingle.replace("{price}", price("single"))}
+              </option>
+              <option value="monthly">
+                {t.form.serviceMonthly.replace("{price}", price("monthly"))}
+              </option>
+            </select>
+          )}
+        </Field>
 
-        <label className="mt-4 block text-sm font-semibold">
-          {t.form.project}
-          <textarea
-            className={field}
-            rows={3}
-            value={form.project}
-            onChange={(event) => onEdit({ project: event.target.value })}
-          />
-          <span className="mt-1 block text-xs font-normal text-muted">{t.form.projectHint}</span>
-        </label>
+        <Field label={t.form.project} hint={t.form.projectHint}>
+          {() => (
+            <textarea
+              className={`${field} block resize-y leading-relaxed`}
+              rows={3}
+              value={form.project}
+              onChange={(event) => onEdit({ project: event.target.value })}
+            />
+          )}
+        </Field>
 
         <div className="mt-6 flex flex-wrap items-center gap-5">
           {conflict ? (
@@ -153,11 +164,7 @@ export function BookingForm({
           ) : (
             // A native submit so Enter in a field works. Disabled while a submit
             // is in flight, which is what stops a second hold being attempted.
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-border bg-accent px-6 py-3 font-bold text-elev no-underline shadow-[4px_4px_0_0_var(--color-ink)] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-accent-deep hover:shadow-[6px_6px_0_0_var(--color-ink)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0_0_var(--color-ink)] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_var(--color-ink)]"
-            >
+            <button type="submit" disabled={submitting} className={submitClass}>
               {submitting ? t.form.submitting : t.form.submit}
             </button>
           )}
@@ -171,40 +178,5 @@ export function BookingForm({
         <p className="mt-4 text-xs text-muted">{t.form.seller}</p>
       </form>
     </section>
-  );
-}
-
-/** A labelled input with its complaint beside it rather than in a summary at the
- *  top — a reader fixing one field should not have to look away from it. */
-function Field({
-  label,
-  error,
-  value,
-  onChange,
-  type = "text",
-  autoComplete,
-}: {
-  label: string;
-  error?: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block text-sm font-semibold">
-      {label}
-      <input
-        className={field}
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        aria-invalid={error ? true : undefined}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      {error && (
-        <span className="mt-1 block text-xs font-normal text-caution">{error}</span>
-      )}
-    </label>
   );
 }

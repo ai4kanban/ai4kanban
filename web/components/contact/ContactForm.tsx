@@ -21,7 +21,7 @@ import {
 
 const SUPPORT_EMAIL = "support@ai4kanban.dev";
 
-// Every text box on this form and the seed form. No display class: each box adds its own.
+// Every text box on the site's forms. No display class: each box adds its own.
 const fieldBox = `mt-2 w-full rounded-lg border ${hairline} bg-elev px-3.5 py-2.5 text-[0.95rem] font-normal transition-shadow`;
 export const field =
   `${fieldBox} outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 ` +

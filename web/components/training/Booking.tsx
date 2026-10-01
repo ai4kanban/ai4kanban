@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { field } from "@/components/contact/ContactForm";
 import type { TrainingCopy } from "@/i18n/training/types";
 import { BOOKING_ANCHOR, CHOOSE_SERVICE } from "./BookButton";
 import { BookingForm } from "./BookingForm";
@@ -279,7 +280,7 @@ export function Booking({ t, locale }: { t: TrainingCopy; locale: string }) {
           <label className="mt-3 block text-sm font-semibold">
             {t.booking.zoneLabel}
             <select
-              className="mt-2 w-full rounded-lg border-2 border-border bg-elev px-3 py-2 text-sm"
+              className={`${field} block h-11`}
               defaultValue=""
               onChange={(event) => event.target.value && setZone(event.target.value)}
             >
