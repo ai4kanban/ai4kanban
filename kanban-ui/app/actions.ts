@@ -405,7 +405,7 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   if (req.plan) req = { ...req, plan: undefined };
   // Nor a triage item: **Make card** below reads the item's file off the board.
   if (req.triage) req = { ...req, triage: undefined };
-  // **Build now** is the one implement with no card (#428): the typed sentence is the whole
+  // **Start now** is the one implement with no card (#428): the typed sentence is the whole
   // requirement, so it stands in for the id an implement usually names.
   const buildNow = req.action === "implement" && !!req.description?.trim();
   if (!CARDLESS.has(req.action) && !buildNow && !Number.isInteger(req.id)) {
@@ -786,7 +786,7 @@ export async function readDiscussAction(discussion: string | null = null): Promi
 }
 
 /**
- * Start planning: the run that turns the discussion's open plans into cards (#917).
+ * Plan tasks: the run that turns the discussion's open plans into cards (#917).
  *
  * The plan's path is read here rather than taken from the browser — the path reaches a
  * prompt, and the only file this may ever point at is the one the board's own conversation
@@ -802,11 +802,11 @@ export async function startPlanningAction(
 }
 
 /**
- * Build now under the plan handoff (#481): the Create sheet's own Build now, pointed at the plan
+ * Start now under the plan handoff (#481): the Create sheet's own Start now, pointed at the plan
  * instead of a typed sentence — one run writes a card from it and builds it, refining nothing
  * and reviewing nothing.
  *
- * The plan is read here for the same reason Start planning reads it here: the path reaches a
+ * The plan is read here for the same reason Plan tasks reads it here: the path reaches a
  * prompt, and the only file this may ever point at is the one the board's own conversation
  * says it is writing.
  */
@@ -833,7 +833,7 @@ async function startFromPlan(
   const target = (await chatTarget(discussion)) ?? null;
   const plans = await plansToPlanFrom(target);
   if (!plans.length) return { ok: false, error: (await machineCopy()).messages.actions.noPlan, reason: "noPlan" };
-  // Build now writes one card from one plan; several go through Start planning (#917).
+  // Start now writes one card from one plan; several go through Plan tasks (#917).
   if (action === "implement" && plans.length > 1) {
     return { ok: false, error: (await machineCopy()).messages.actions.onePlan, reason: "onePlan" };
   }

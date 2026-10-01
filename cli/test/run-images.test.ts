@@ -1,4 +1,4 @@
-// The pictures pasted into Add task and Build now (#517).
+// The pictures pasted into Add task and Start now (#517).
 //
 // The promise is four things. A picture is a file the board named, in a box only that name
 // can reach. The run that starts takes the box as its own folder beside its log, so the log

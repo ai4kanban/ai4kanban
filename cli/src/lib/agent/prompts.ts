@@ -52,7 +52,7 @@ const DELIVERY_RESUME = [
 ].join(' ')
 
 // And the last line, which says where the requirements are. A card file can have moved
-// under the delivery, so the copy it is building from is what to read. A **Build now** that
+// under the delivery, so the copy it is building from is what to read. A **Start now** that
 // ended before it wrote its card (#470) has no file and no command that prints one, so the
 // typed sentence is quoted here — this is the whole of what a restarted run would otherwise
 // be left without.

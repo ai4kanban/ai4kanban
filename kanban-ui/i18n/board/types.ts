@@ -97,7 +97,7 @@ export type BoardCopy = {
       /** …and when that read failed, or found the discussion gone. */
       openFailed: string;
       retry: string;
-      /** The guard Build now opens under the plan. Nothing starts until it is confirmed. */
+      /** The guard Start now opens under the plan. Nothing starts until it is confirmed. */
       guard: {
         title: string;
         /** The card the run writes from the plan, above what it skips (#470). */
@@ -123,7 +123,7 @@ export type BoardCopy = {
         rewriting: string;
         /** The two answers under the ask (#481), and what each does on hover (#847). */
         start: string;
-        /** Build now off the plan: one card written from it, built in the same run. */
+        /** Start now off the plan: one card written from it, built in the same run. */
         build: string;
         planHint: string;
         buildHint: string;
@@ -134,7 +134,7 @@ export type BoardCopy = {
         /** That run is still working — no second answer is offered. */
         planning: string;
         building: string;
-        /** Several open plans (#917): what Start planning takes, Build now down beside it, and
+        /** Several open plans (#917): what Plan tasks takes, Start now down beside it, and
          *  the two lines above said of them all. */
         includes: (count: number) => string;
         buildOnlyOne: string;

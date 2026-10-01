@@ -737,7 +737,7 @@ export function harnessImages(pin?: string): ImageInput | undefined {
 }
 
 /** How the harness ONE AGENT runs takes a picture on disk (#517) — the planner's for an Add
- *  task, the builder's for a **Build now**. Undefined for one that can't see a picture at
+ *  task, the builder's for a **Start now**. Undefined for one that can't see a picture at
  *  all, which is what the create sheet turns a paste away on. `pin` is the runtime the run
  *  was started on instead (#518), whose connector then answers. */
 export function agentImages(agent?: string, pin?: string): ImageInput | undefined {

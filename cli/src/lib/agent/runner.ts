@@ -71,7 +71,7 @@ function flowOf(ask: RunAsk, action: AgentAction): string {
 }
 
 /** What each of the create sheet's two run modes can do with a picture (#517): Add task runs
- *  the planner, **Build now** the builder. Read here rather than in the sheet, so the box
+ *  the planner, **Start now** the builder. Read here rather than in the sheet, so the box
  *  turns a paste away against the run that mode would start — never against the chat's
  *  agent, which answers Discuss and nothing else. */
 export function createImageAgents(): CreateImageAgents {

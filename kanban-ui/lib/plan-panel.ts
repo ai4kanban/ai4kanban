@@ -52,7 +52,7 @@ const READ_MS = 1200;
 export interface PlanPanel {
   /** The discussion as the server last read it — null until the first read lands. */
   read: DiscussRead | null;
-  /** Every open plan, oldest first — what Start planning hands off together (#917). */
+  /** Every open plan, oldest first — what Plan tasks hands off together (#917). */
   plans: DiscussPlan[];
   /** The plan the card is showing: the one picked, else the newest. */
   plan: DiscussPlan | null;

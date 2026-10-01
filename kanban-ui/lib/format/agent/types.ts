@@ -154,11 +154,11 @@ export interface AgentRequest {
    *  the idea earned a note. */
   discard?: boolean
   /** create: what the user wants, in their own words. implement with no `id`: the typed
-   *  sentence a **Build now** is approved to build (#428) — its requirements, its prompt and
+   *  sentence a **Start now** is approved to build (#428) — its requirements, its prompt and
    *  its delivery's title at once, and the card the run writes from it (#470). */
   description?: string
   /** create: the plan this run writes cards from (#427), as a path from the project root.
-   *  implement with no `id`: the plan a **Build now** under the plan handoff is approved to build
+   *  implement with no `id`: the plan a **Start now** under the plan handoff is approved to build
    *  (#481) — it stands in for `description`, and the delivery is titled and bounded by the
    *  file. The words are in the file, so `description` is left off — a copy pasted into the
    *  prompt would go stale the moment the discussion rewrote it. */
@@ -175,7 +175,7 @@ export interface AgentRequest {
    *  records. */
   fromCard?: number
   /** create, and implement with no `id`: the version the new card(s) ship in — a
-   *  **Build now** writes one card and it ships in the release on screen like any other
+   *  **Start now** writes one card and it ships in the release on screen like any other
    *  (#470). plan-release: the version being planned, and changelog: the version being
    *  written up — the whole of what either run is about, since neither names a card. */
   release?: string
@@ -747,7 +747,7 @@ export interface DeliveryLanding {
  *  `docs/kanban/deliveries/`, tracked in git and kept after the card is archived. */
 export interface DeliveryRecord {
   deliveryId: string
-  /** The card it builds, or null for a build with no card at all (#428) — **Build now**
+  /** The card it builds, or null for a build with no card at all (#428) — **Start now**
    *  sends a typed sentence straight to an implementation run. A card-less delivery is found
    *  by its own id everywhere a carded one is found by its card, and its worktree, branch and
    *  commit message are named by the delivery id. */
@@ -1088,7 +1088,7 @@ export interface ChatPlan {
   run?: string
   /** Which answer started it (#481), so the panel names a build rather than a planning
    *  pass. Absent on a plan handed over before the third answer existed, which was always
-   *  Start planning. */
+   *  Plan tasks. */
   answer?: PlanAnswer
   /** Its cards are written, or it was withdrawn (#496, #917). It stays in the list — the
    *  discussion made it. */
@@ -1101,12 +1101,12 @@ export interface ChatPlan {
   cards?: number[]
 }
 
-/** What the handoff was answered with: Start planning, which writes the cards, or Build
- *  now, which writes one card from the plan and builds it (#481). */
+/** What the handoff was answered with: Plan tasks, which writes the cards, or Start now,
+ *  which writes one card from the plan and builds it (#481). */
 export type PlanAnswer = 'plan' | 'build'
 
 /** What a build with no card was handed, and everything its delivery is opened from: the
- *  sentence **Build now** typed (#428), or the plan the handoff was answered on (#481). */
+ *  sentence **Start now** typed (#428), or the plan the handoff was answered on (#481). */
 export interface DirectBuild {
   /** The delivery's title — the sentence itself, or the plan's own title. */
   title: string
@@ -1198,7 +1198,7 @@ export interface ImageAgent {
 }
 
 /** What the create sheet's two run modes can do with a picture: Add task runs the planner,
- *  **Build now** the builder. Discuss is the chat's own and is not here. */
+ *  **Start now** the builder. Discuss is the chat's own and is not here. */
 export interface CreateImageAgents {
   card: ImageAgent
   build: ImageAgent
@@ -1254,7 +1254,7 @@ export interface DiscussPlan {
 export interface DiscussRead {
   /** The last of `plans`, or null when there is none. */
   plan: DiscussPlan | null
-  /** Every plan still open, oldest first — what the next Start planning hands off together
+  /** Every plan still open, oldest first — what the next Plan tasks hands off together
    *  (#917). Absent on rules older than that, which hold `plan` alone. */
   plans?: DiscussPlan[]
   /** The run these plans were handed to: still working, or the one that wrote no card and can

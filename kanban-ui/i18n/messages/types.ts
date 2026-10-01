@@ -51,7 +51,7 @@ export type MessagesCopy = {
   actions: {
     noSuchCard: string;
     emptyChat: string;
-    /** Start planning was pressed on a discussion that is writing no plan. */
+    /** Plan tasks was pressed on a discussion that is writing no plan. */
     noPlan: string;
     onePlan: string;
     /** Export was pressed with no folder named. */

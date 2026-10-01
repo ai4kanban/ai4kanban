@@ -58,10 +58,10 @@ interface Props {
   discussion: DiscussionTarget | null;
   onClose: () => void;
   onSent: () => void;
-  /** Start planning: start the run that writes the plan's cards. The screen stays up until
+  /** Plan tasks: start the run that writes the plan's cards. The screen stays up until
    *  it is going (#706). `workflow` is the one picked beside it, or undefined for the default. */
   onPlan: (workflow?: string) => void;
-  /** Build now off the plan (#481): start the run that writes one card from it and builds it.
+  /** Start now off the plan (#481): start the run that writes one card from it and builds it.
    *  The guard has already been answered. */
   onBuildPlan: (workflow?: string) => void;
   /** The answer whose run is being asked for right now (#706), or null. All three answers go
@@ -580,7 +580,7 @@ function Composer({
  *  No banner and no card of its own — these are the ways of acting on the plan beside them.
  *  The box below is never taken away.
  *
- *  Start planning is the one to press: the filled button. Build now carries the accent in its
+ *  Plan tasks is the one to press: the filled button. Start now carries the accent in its
  *  frame and ink but no fill. The workflow is a setting, so it sits quietly at the row's end
  *  (#847). */
 function Handoff({
@@ -600,7 +600,7 @@ function Handoff({
   plan: PlanPanel;
   rail: ChatRail;
   /** This discussion shares when it ends and has no card to share under (#659), so the two
-   *  answers that end it are down: Build now's "are you sure?" never opens, and no run
+   *  answers that end it are down: Start now's "are you sure?" never opens, and no run
    *  starts. */
   held: boolean;
   /** The answer whose run is being asked for (#706): its own label says so, and both go
@@ -619,7 +619,7 @@ function Handoff({
 }) {
   const c = useCopy().board.create.sheet.plan;
   const pro = useCopy().shared.pro;
-  // Whether Build now's "are you sure?" is open, anchored to the answer that was pressed.
+  // Whether Start now's "are you sure?" is open, anchored to the answer that was pressed.
   const [guard, setGuard] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
   const read = plan.read;
@@ -1029,7 +1029,7 @@ function Working({ label }: { label: string }) {
   );
 }
 
-/** The guard Build now opens under the plan (#470, #840) — the one place a build starts from
+/** The guard Start now opens under the plan (#470, #840) — the one place a build starts from
  *  this screen. */
 function BuildGuard({
   open,

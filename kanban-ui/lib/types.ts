@@ -329,7 +329,7 @@ export interface SessionView {
    *  DELIVERY's, not this run's — a run the user stopped inside a cancelled delivery reads
    *  "cancelled", because that is what happened.
    *
-   *  `cardless` is a build started from **Build now** (#428): there is no card page, so the
+   *  `cardless` is a build started from **Start now** (#428): there is no card page, so the
    *  typed sentence stands where the `#id` would and `state` — the delivery's own pause,
    *  which a card page draws in its title band — is drawn on the flow instead.
    *

@@ -340,7 +340,7 @@ describe('the cards the board is working on', () => {
   })
 })
 
-// A build with no card at all (#428) — what **Build now** starts. The typed sentence is the
+// A build with no card at all (#428) — what **Start now** starts. The typed sentence is the
 // whole of what it was approved to build, and its own id is the only name it has.
 describe('a delivery with no card', () => {
   const typed = 'Rename the Runs panel heading to Activity'
@@ -695,7 +695,7 @@ describe('a delivery the live record lost', () => {
     assert.equal(readAudit('rest9999').status, 'active')
   })
 
-  // A **Build now** delivery holds no card, so there is no card check to pass (#428).
+  // A **Start now** delivery holds no card, so there is no card check to pass (#428).
   it('recovers a delivery with no card', async () => {
     resting('restaaaa', { cardId: null })
     await recoverOrphanedDeliveries()

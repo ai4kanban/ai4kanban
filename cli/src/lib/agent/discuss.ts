@@ -2,9 +2,9 @@
 //
 // The conversation itself is `agent/chat.ts`: Discuss is `akb chat` on one discussion (#496),
 // held in the same file, answered by the same agent. What is added here is the plan that
-// discussion is writing and the run one of the handoff's answers handed it to — Start
-// planning, which turns it into cards, or Build now, which writes one card from it and builds
-// it (#481).
+// discussion is writing and the run one of the handoff's answers handed it to — Plan tasks,
+// which turns it into cards, or Start now, which writes one card from it and builds it
+// (#481).
 
 import path from 'node:path'
 import fs from 'node:fs'
@@ -82,7 +82,7 @@ function shown(plan: ChatPlan): DiscussPlan | null {
  *  no card can put the row back.
  *
  *  That archive is an end, so it submits (#659) — the same one turn the rail's End discussion
- *  makes, started here and never waited on. Start planning and Build now are ends too, and a
+ *  makes, started here and never waited on. Plan tasks and Start now are ends too, and a
  *  discussion whose end is refused is not handed over at all: the screen holds these two
  *  before the run ever starts, and this is the answer behind it.
  */
@@ -118,7 +118,7 @@ export function settlePlans(target: ChatTarget, look: RunLook): void {
   for (const p of openPlans(readChat(target))) if (p.run) byRun.set(p.run, [...(byRun.get(p.run) ?? []), p])
   for (const [sessionId, plans] of byRun) {
     const run = look(sessionId)
-    // The card, not the exit code (#481): a Build now writes its card first and can fail
+    // The card, not the exit code (#481): a Start now writes its card first and can fail
     // building it, and that plan is finished all the same.
     if (!run || run.live || !run.cards.length) continue
     for (const plan of plans) {

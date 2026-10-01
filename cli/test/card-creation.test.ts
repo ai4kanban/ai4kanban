@@ -111,7 +111,7 @@ describe('a card is not finished being created until its creator is', () => {
 
   it('is not being created once the run has taken it as its own', async () => {
     const id = await createdInRun({ action: 'implement' })
-    // What `adoptDirectCard` writes for a **Build now**: the run holds the card it made,
+    // What `adoptDirectCard` writes for a **Start now**: the run holds the card it made,
     // and from then on it is being built rather than written.
     withStore((store) => {
       for (const r of store.runs) r.cardId = id

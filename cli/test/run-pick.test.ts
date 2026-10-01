@@ -1,4 +1,4 @@
-// The runtime one Add task or Build now run goes on (#518).
+// The runtime one Add task or Start now run goes on (#518).
 //
 // The promise is the same one a conversation's pick makes, one level up: the pick belongs to
 // the run it starts. The board's settings are untouched, the next run of that flow is back on

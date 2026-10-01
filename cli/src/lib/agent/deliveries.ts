@@ -9,7 +9,7 @@
 // take its worktree and branch with them (#720); what the board keeps is a delivery that
 // stopped on its own and still has a job to finish.
 //
-// A delivery may also open with NO card (#428) — **Build now** sends a typed sentence
+// A delivery may also open with NO card (#428) — **Start now** sends a typed sentence
 // straight to a build. Its snapshot is that sentence, which nothing can rewrite, and its own
 // id is what everything finds it by. The run's first act is to write the card, which
 // `adoptDirectCard` hands over (#470); until then, and for a run that ends before it, the
@@ -293,7 +293,7 @@ function recoveredRow(audit: DeliveryAudit): DeliveryRecord | null {
  *  card another `active` delivery is building are both cards this one no longer speaks for,
  *  and a row claiming either would hold work nobody can finish.
  *
- *  A **Build now** delivery (#428) holds no card, so there is nothing here to check. */
+ *  A **Start now** delivery (#428) holds no card, so there is nothing here to check. */
 function cardTakesItBack(store: Store, row: DeliveryRecord): boolean {
   if (row.cardId === null) return true
   return !!locate(row.cardId) && !activeIn(store, row.cardId)
@@ -417,7 +417,7 @@ export function resumeRefusal(delivery: DeliveryRecord, store?: Store): RunRefus
       { id, task, branch, command: discard },
     )
   }
-  // A **Build now** delivery holds no card (#428), so there is nothing here to check.
+  // A **Start now** delivery holds no card (#428), so there is nothing here to check.
   if (delivery.cardId === null) return undefined
   const card = String(delivery.cardId)
   if (cardOnBoard(delivery.cardId) === false) {
@@ -803,7 +803,7 @@ export function joinDelivery(
 ): DeliveryRecord {
   const cardId = run.cardId
   // A build with no card joins nothing (#428): there is no card to look one up by, and two
-  // Build now sends are two builds — each opens a delivery of its own.
+  // Start now sends are two builds — each opens a delivery of its own.
   let delivery = cardId === null ? undefined : activeIn(store, cardId)
   if (!delivery) {
     delivery = {
@@ -866,7 +866,7 @@ export function joinDelivery(
   return delivery
 }
 
-/** Give a **Build now** run the card it has just written (#470).
+/** Give a **Start now** run the card it has just written (#470).
  *
  *  Its delivery is prepared before the run spawns, when there is no card to name, so the id
  *  is written on afterwards — as `akb raw create` lands, from the same command that made it.
@@ -877,7 +877,7 @@ export function joinDelivery(
  *  sentence — the card was written from it, not the other
  *  way round.
  *
- *  Only a card-less build, which **Build now** is the one way into. An Add task run creates
+ *  Only a card-less build, which **Start now** is the one way into. An Add task run creates
  *  cards too, and adopting one would put a card it merely planned into a delivery. A board
  *  that does not deliver with git opened none (#407), and there the run alone takes the card.
  *

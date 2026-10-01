@@ -98,7 +98,7 @@ export function emptyRunBox(box: string): void {
 
 /** Hand a box's pictures to the run that is starting: the folder is renamed after the run,
  *  and the paths come back in the order they went into the box. Empty for a run with no
- *  pictures, which is every run but a create or a **Build now** that was pasted into. */
+ *  pictures, which is every run but a create or a **Start now** that was pasted into. */
 export function claimRunPictures(box: string | undefined, sessionId: string, names: string[] = []): string[] {
   if (!box || !freeBox(box) || names.length === 0) return []
   const from = pictureBox(box)

@@ -63,7 +63,7 @@ export function MessageBox({
   head?: React.ReactNode;
   /** The foot row, left of the corner button — the rail's agent pick, the sheet's mode row. */
   foot?: React.ReactNode;
-  /** A confirmation hung off the corner button — the sheet's Build now guard (#428). It is
+  /** A confirmation hung off the corner button — the sheet's Start now guard (#428). It is
    *  drawn inside the button's own positioned box, so it opens where the press was. */
   guard?: React.ReactNode;
   /** That box, for whatever draws the guard: it is the anchor an outside click is measured

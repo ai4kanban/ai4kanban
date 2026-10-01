@@ -124,9 +124,9 @@ describe('card creation owns its id', () => {
     assert.deepEqual(peekRun(owner.sessionId)?.createdCardIds, [8])
   })
 
-  // A **Build now** writes its own card and then builds it (#470). The delivery it opened
+  // A **Start now** writes its own card and then builds it (#470). The delivery it opened
   // with no card takes the id here, and the card is being built from the moment it exists.
-  it('hands a card made by a Build now run to the delivery it is building in', async () => {
+  it('hands a card made by a Start now run to the delivery it is building in', async () => {
     const build: RunRecord = {
       sessionId: 'build-run',
       cardId: null,

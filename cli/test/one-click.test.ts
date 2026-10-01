@@ -558,14 +558,14 @@ describe('answering a card with a build on it', () => {
   })
 })
 
-// The #613 case: a **Build now** starts from a typed sentence and writes its own card, so the
+// The #613 case: a **Start now** starts from a typed sentence and writes its own card, so the
 // copy it froze and the card it is judged against are two different documents. Nothing
 // compares them any more (#637) — the conclusion is the same one either way in.
 describe('a build that wrote its own card', () => {
   const TYPED = 'add a widget'
   const PLAN = '# Add a widget\n\nThe whole plan, in a file of its own.\n'
 
-  // A **Build now** off a typed sentence, and one off a plan — the two ways in, and the
+  // A **Start now** off a typed sentence, and one off a plan — the two ways in, and the
   // only difference between them is where the words came from.
   async function wrote(from: 'sentence' | 'plan'): Promise<DeliveryRecord> {
     let opened

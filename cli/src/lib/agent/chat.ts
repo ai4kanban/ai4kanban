@@ -192,8 +192,8 @@ function planOf(value: unknown): ChatPlan | undefined {
   return {
     path: p.path,
     run: typeof p.run === 'string' && p.run ? p.run : undefined,
-    // A plan handed over before the third answer existed (#481) names none, and Start
-    // planning is the only thing it could have been.
+    // A plan handed over before the third answer existed (#481) names none, and Plan tasks
+    // is the only thing it could have been.
     answer: p.run ? (p.answer === 'build' ? 'build' : 'plan') : undefined,
     done: p.done === true ? true : undefined,
     title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,

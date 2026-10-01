@@ -179,7 +179,7 @@ const raceOn = (arg: string, when: 'before' | 'after'): void => {
   process.env.PATH = `${bin}:${process.env.PATH}`
 }
 
-// A build with no card (#428): a **Build now** run that ended before it wrote its own card
+// A build with no card (#428): a **Start now** run that ended before it wrote its own card
 // (#470). It lands the same way and leaves nothing on the board behind it — there is no card
 // to hold, none to put back, and none to archive.
 describe('a build with no card', () => {

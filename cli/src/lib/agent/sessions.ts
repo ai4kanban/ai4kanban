@@ -704,7 +704,7 @@ export function titleOf(cardId: number | undefined): string | undefined {
   return cardNow(cardId as number)?.title
 }
 
-/** What a build with no card was handed: the sentence **Build now** typed (#428), or the
+/** What a build with no card was handed: the sentence **Start now** typed (#428), or the
  *  plan the handoff was answered on (#481). It is the delivery's title and the whole of its
  *  frozen `approved` requirements at once, so an empty one is nothing to build and the run is
  *  refused rather than opened. Undefined when this is not a card-less build. */
@@ -760,7 +760,7 @@ export function openRun(
   // below if the run is refused after it. `req.commitMode` is the Implement dialog's tick,
   // this one build's answer (#346); without it the repository setting decides.
   //
-  // A build with no card yet is the third way in (#428): **Build now** sends the typed
+  // A build with no card yet is the third way in (#428): **Start now** sends the typed
   // sentence straight here, so there is no card to look a delivery up by and one is always
   // opened. It is refused where a carded manual build would be, and nowhere else. The card
   // the run writes reaches this delivery afterwards (`adoptDirectCard`, #470).

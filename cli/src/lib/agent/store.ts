@@ -330,7 +330,7 @@ export function cardsHeldElsewhere(sessionId: string): Set<number> {
  * Two cards are never in here:
  *   • one created outside a run — `akb raw create` typed by a person attaches to nothing,
  *     so writing its file is the whole of its creation;
- *   • one the run has taken as its own (`cardId`) — a **Build now** run writes its card and
+ *   • one the run has taken as its own (`cardId`) — a **Start now** run writes its card and
  *     then builds it (`adoptDirectCard`), and from that moment the card is being built.
  *
  * The newest run naming a card wins, so a resume of the creator speaks for it.
@@ -439,7 +439,7 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
   if (!entry || typeof entry.deliveryId !== 'string' || !entry.deliveryId) return null
   return {
     deliveryId: entry.deliveryId,
-    // A delivery with no card is a **Build now** (#428) and is kept, not dropped: its own
+    // A delivery with no card is a **Start now** (#428) and is kept, not dropped: its own
     // id is what everything finds it by, and dropping the row would hand its worktree and
     // its landing slot to nobody.
     cardId: Number.isInteger(entry.cardId) ? (entry.cardId as number) : null,

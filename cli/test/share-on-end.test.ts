@@ -211,7 +211,7 @@ describe('what a reply lands on when the screen moved while it was written', () 
 
 // ---- the three ends, and the one that is held (#659) ------------------------
 //
-// A discussion ends three ways: Start planning, Build now, and the rail's End discussion. All
+// A discussion ends three ways: Plan tasks, Start now, and the rail's End discussion. All
 // three submit, and none of them happens at all while the switch is on with no card to file
 // the submission under.
 

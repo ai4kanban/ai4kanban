@@ -61,7 +61,7 @@ export interface AgentReq {
   description?: string;
   title?: string;
   release?: string; // create: the version the new card ships in
-  /** create and Build now: the pictures pasted into the create sheet (#517) — the box they
+  /** create and Start now: the pictures pasted into the create sheet (#517) — the box they
    *  were written to and their names, in the order they went in. The board renames that
    *  folder after the run and hands the run their paths. */
   box?: string;

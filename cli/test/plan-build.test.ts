@@ -1,4 +1,4 @@
-// Build now under the plan handoff (#481): the plan is the requirement, the delivery is titled
+// Start now under the plan handoff (#481): the plan is the requirement, the delivery is titled
 // and bounded by the file, and the panel lets the plan go once its run has written a card.
 
 import assert from 'node:assert/strict'
