@@ -38,6 +38,9 @@ export type ChatCopy = {
   emptyLead: string;
   emptyAskLead: string;
   emptyCardAsks: [string, string, string, string, string];
+  /** The rail's first read failed (#1259) — the discussion sheet's own words for it. */
+  readFailed: string;
+  retry: string;
   /** What you can do with a message without retyping it (#269) — the words on the
    *  buttons, and the fuller labels a screen reader and a tooltip get. */
   copyReply: string;

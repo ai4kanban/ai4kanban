@@ -35,6 +35,8 @@ const zh: ChatCopy = {
     "把验收标准写得更具体些",
     "现在可以开工了吗？",
   ],
+  readFailed: "讨论载入失败。",
+  retry: "重试",
   copyReply: "复制这条回复",
   copyCode: "复制这段代码",
   copyChat: "复制整段对话",

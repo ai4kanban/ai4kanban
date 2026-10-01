@@ -456,6 +456,10 @@ export interface RunRecord {
   /** The process watching this run — the supervisor, not the agent. It is what a stop
    *  signals and what a reader checks to tell a live run from one that was cut off. */
   pid?: number
+  /** The agent the watcher started, and when it was recorded. Windows looks under this pid
+   *  for what an unwatched run left behind (#1313). */
+  agentPid?: number
+  agentStartedAt?: number
   /** The text the user typed for this run — a create's description, an action's notes, a
    *  reject's reason, or the release a plan run was pointed at. */
   input?: string

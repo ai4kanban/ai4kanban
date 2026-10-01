@@ -35,6 +35,8 @@ const en: ChatCopy = {
     "Make the acceptance checks sharper",
     "Is it ready to build?",
   ],
+  readFailed: "The discussion could not be loaded.",
+  retry: "Retry",
   copyReply: "Copy this reply",
   copyCode: "Copy this code",
   copyChat: "Copy the conversation",

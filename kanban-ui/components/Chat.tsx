@@ -48,6 +48,7 @@ import type { PictureBox } from "@/lib/picture-box";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
+import { OpenFailed } from "./CardOpening";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { MessageBox } from "./composer";
 import { ContextRing } from "./context-ring";
@@ -177,21 +178,27 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   return (
     <section {...LEAVES_SHEET} aria-label={c.label} className="flex h-full flex-col py-2 pl-1 pr-3">
       <Head rail={rail} />
-      <Transcript
-        messages={messages}
-        changes={read?.chat?.modelChanges}
-        live={rail.live}
-        liveSince={read?.liveSince ?? null}
-        stopped={rail.stopped}
-        canSend={!!read && !blocked && !answering}
-        onResend={resend}
-        imageSrc={rail.imageSrc}
-        // Only once this conversation has actually been read. Landing on a card drops the
-        // last one's messages on the spot, and the invitation before the read would be a
-        // beat of "nothing has been said" on a card that has plenty.
-        empty={read ? <Empty cardId={cardOf(rail)} hopeless={hopeless ? blocked : undefined} /> : null}
-        before={read?.discussion?.length ? <FromDiscussion messages={read.discussion} cardId={cardOf(rail)} /> : null}
-      />
+      {rail.readFailed ? (
+        <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pt-1">
+          <OpenFailed text={c.readFailed} retry={c.retry} onRetry={rail.retry} />
+        </div>
+      ) : (
+        <Transcript
+          messages={messages}
+          changes={read?.chat?.modelChanges}
+          live={rail.live}
+          liveSince={read?.liveSince ?? null}
+          stopped={rail.stopped}
+          canSend={!!read && !blocked && !answering}
+          onResend={resend}
+          imageSrc={rail.imageSrc}
+          // Only once this conversation has actually been read. Landing on a card drops the
+          // last one's messages on the spot, and the invitation before the read would be a
+          // beat of "nothing has been said" on a card that has plenty.
+          empty={read ? <Empty cardId={cardOf(rail)} hopeless={hopeless ? blocked : undefined} /> : null}
+          before={read?.discussion?.length ? <FromDiscussion messages={read.discussion} cardId={cardOf(rail)} /> : null}
+        />
+      )}
       {trouble && !(hopeless && messages.length === 0) && (
         <p
           className="mb-1.5 shrink-0 rounded-[8px] px-2.5 py-2 text-[12px] leading-snug"
