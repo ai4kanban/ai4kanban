@@ -308,6 +308,8 @@ export type RunRefusalKind =
   | 'runNoSession'
   | 'runContinued'
   | 'runForeign'
+  /** A sort that cannot be started again: this account may not sort (#1321). */
+  | 'sortUnavailable'
   | 'discardUnfinished'
   | 'creationHeld'
   | 'deliveryUnnamed'
@@ -537,6 +539,13 @@ export interface RunRecord {
    *  Kept so a connector taking a flag per file is handed them at spawn, and so a restart
    *  can name them again. */
   pictures?: string[]
+  /** The agent's process never started (#1321), so no session stands behind this run —
+   *  even under a connector that takes our id. */
+  unspawned?: boolean
+  /** create, and implement with no card: the release and the workflow the sheet named
+   *  (#1321), kept so a retry asks for the same thing. */
+  release?: string
+  workflow?: string
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */
   stopping?: boolean
@@ -893,6 +902,9 @@ export interface RunView extends RunRecord {
    *  picked up: we know the id to continue by, and the agent that ran it is still the one
    *  the board runs. */
   canResume?: boolean
+  /** This run failed or was cut off with no session to pick up (#1321), and its ask can be
+   *  started again from the record. Never set beside `canResume`. */
+  canRetry?: boolean
   /** The card this run names has left the board since — landed, archived or rejected (#673,
    *  #809). Set only on a run that stopped short, where it says the work the run was left
    *  owing is settled. */

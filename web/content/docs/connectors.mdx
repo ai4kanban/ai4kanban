@@ -48,9 +48,10 @@ the top, and says so in the log.
 
 **Early-crash resume** — a run that failed in its first seconds picks up rather than starting
 over. Claude Code, OpenCode, DeepSeek Harness and Grok Build can: each has a session saved
-under the id the board recorded before the first prompt went out. On the other four, restart
-it — ZCode names its session that early too, but keeps it in the running command until the
-first prompt, so a crash before that takes it. Later failures resume normally on all eight.
+under the id the board recorded before the first prompt went out. On the other four the run
+offers **Retry** instead, which starts it again — ZCode names its session that early too, but
+keeps it in the running command until the first prompt, so a crash before that takes it.
+Later failures resume normally on all eight.
 
 **Run cost, token counts, model name** — what the runs panel shows for a finished run. A
 blank means nothing was reported and nothing could be worked out.

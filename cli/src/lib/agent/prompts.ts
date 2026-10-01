@@ -115,6 +115,10 @@ const RESTART_LEAD = [
   `Do the task below from the top, checking each step's precondition before you do it — work an earlier run already finished is done, so don't repeat it.`,
 ].join(' ')
 
+/** Whether `restartPrompt` has an ask to write for this run — the cheap half, for a list. */
+export const restartable = (run: { action: AgentAction; cardId: number | null; deliveryId?: string }): boolean =>
+  (run.cardId !== null || !!run.deliveryId) && RESTARTABLE.has(run.action)
+
 /** Restart a lost conversation with its original action. Builds recover approved requirements;
  *  other restartable actions receive their own ask. */
 export function restartPrompt(req: AgentRequest, deliveryId?: string): string | undefined {

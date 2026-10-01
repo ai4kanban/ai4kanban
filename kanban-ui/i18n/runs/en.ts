@@ -166,6 +166,10 @@ const en: RunsCopy = {
   retry: {
     waiting: (seconds, attempt, of) => `Retrying in ${seconds}s · attempt ${attempt} of ${of}`,
     starting: (attempt, of) => `Starting attempt ${attempt} of ${of}`,
+    label: "Retry",
+    retrying: "Retrying…",
+    hint: "Run this again from the start",
+    failed: "couldn't retry that run",
   },
   resume: {
     label: "Resume",

@@ -667,6 +667,9 @@ export function resumesUnder(harnessName: string | undefined): boolean {
   return !!harness && harness.resumes
 }
 
+/** Whether this build still ships the connector a run went on. */
+export const shipsHarness = (harnessName: string | undefined): boolean => !!harnessByName(harnessName)
+
 /** Whose settings the setup line is read under (#443). Setup writes a board's first cards
  *  and memory notes, so it follows the planner — the one role every board has, on either
  *  solution. A conversation follows `DISCUSSION_ROLE` instead (#502). */

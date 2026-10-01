@@ -291,7 +291,9 @@ export async function cmdResume(id: string | undefined, opts: { follow?: boolean
   if ('error' in opened) die(opened.error, { kind: 'run-refused' })
   const { run } = opened
   if (!opened.spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
-  say(`continuing ${short(run.resumedFrom!)} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
+  const within = run.deliveryId ? ` in delivery ${run.deliveryId}` : ''
+  // A run with no session to pick up is started again rather than continued (#1321).
+  say(run.resumedFrom ? `continuing ${short(run.resumedFrom)} — run ${run.sessionId}${within}` : `trying again — run ${run.sessionId}${within}`)
   if (opts.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId)) }
   return { sessionId: run.sessionId, resumedFrom: run.resumedFrom }
 }
@@ -542,6 +544,7 @@ function runLine(r: RunView, program = 'akb'): string {
   if (r.model) bits.push(r.model)
   if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
   if (r.canResume) bits.push(`— continue it with \`${program} run resume ${short(r.sessionId)}${BOARD_FLAG}\``)
+  if (r.canRetry) bits.push(`— try it again with \`${program} run resume ${short(r.sessionId)}${BOARD_FLAG}\``)
   const line = bits.join('  ')
   // The board's own last word rides on the row, not only in the log. `✓ done` beside a run
   // that left the board inconsistent reads as "nothing to see here", which is the one thing

@@ -305,6 +305,9 @@ export interface SessionView {
    *  the id to continue by, and it is still the agent the board runs. The Resume button
    *  appears only then. */
   canResume?: boolean;
+  /** This run failed with nothing to pick up (#1321), and can be started again as it was.
+   *  Never set beside `canResume`. */
+  canRetry?: boolean;
   /** The card this run names has left the board since — landed, archived or rejected (#673,
    *  #809) — so whatever this run stopped short of is settled: Runs no longer files it under
    *  Unfinished, and nothing warns about it. Set only on a run that stopped short. */

@@ -96,6 +96,7 @@ function toView(
     harness: run.harness,
     agent: run.agent,
     canResume: run.canResume,
+    canRetry: run.canRetry,
     cardOffBoard: run.cardOffBoard,
     resumedFrom: run.resumedFrom,
     ok: run.ok,

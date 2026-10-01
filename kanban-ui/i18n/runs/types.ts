@@ -93,6 +93,11 @@ export type RunsCopy = {
     waiting: (seconds: number, attempt: number, of: number) => string;
     /** The same the moment the wait is up. */
     starting: (attempt: number, of: number) => string;
+    /** Retry on a failed run with nothing to continue (#1321). */
+    label: string;
+    retrying: string;
+    hint: string;
+    failed: string;
   };
   resume: {
     label: string;

@@ -71,6 +71,7 @@ const en: MessagesCopy = {
     runNoSession: () => "This run left no session to continue from.",
     runContinued: () => "That run has already been continued.",
     runForeign: (a) => `This version can't continue a conversation ${a.agent} started.`,
+    sortUnavailable: () => "Sorting isn't available for this board.",
     discardUnfinished: () => "A card discard did not finish. Retry discarding it before resuming creation.",
     creationHeld: () => "A card from this creation is already being worked on. Wait for that run to finish.",
     deliveryUnnamed: (a) =>

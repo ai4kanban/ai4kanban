@@ -1052,6 +1052,7 @@ function RunsOffice({
                 session={log ?? selected}
                 head={head}
                 canResume={(log?.canResume ?? selected.canResume) && !selected.delivery?.kept}
+                canRetry={(log?.canRetry ?? selected.canRetry) && !selected.delivery?.kept}
                 onResumed={(id) => {
                   sessionsPanel.select(id);
                   onStarted();
@@ -1284,6 +1285,7 @@ function RunsPanes({
                   session={log ?? selected}
                   head={head}
                   canResume={(log?.canResume ?? selected.canResume) && !selected.delivery?.kept}
+                  canRetry={(log?.canRetry ?? selected.canRetry) && !selected.delivery?.kept}
                   onResumed={(id) => {
                     sessionsPanel.select(id);
                     onStarted();

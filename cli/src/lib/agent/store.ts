@@ -195,6 +195,9 @@ export function readStore(): Store {
       // The pictures the create sheet handed this run (#517), as paths in its own folder.
       pictures: readPictures(entry.pictures),
       stopping: entry.stopping === true ? true : undefined,
+      unspawned: entry.unspawned === true ? true : undefined,
+      release: typeof entry.release === 'string' && entry.release ? entry.release : undefined,
+      workflow: typeof entry.workflow === 'string' && entry.workflow ? entry.workflow : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
       triage:
         entry.triage && typeof entry.triage.sourceId === 'string' && typeof entry.triage.file === 'string'

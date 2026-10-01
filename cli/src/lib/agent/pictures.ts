@@ -125,3 +125,15 @@ export function returnRunPictures(sessionId: string, box: string | undefined): v
     // Nothing was claimed, or the box is gone — either way there is nothing to put back.
   }
 }
+
+/** Hand one run's pictures to the run that takes its place (#1321), so the log prune keeps
+ *  them with the run that is still on the record. The paths as they now stand. */
+export function moveRunPictures(from: string, to: string, files: string[] = []): string[] {
+  if (files.length === 0) return []
+  try {
+    fs.renameSync(pictureBox(from), pictureBox(to))
+  } catch {
+    return files
+  }
+  return files.map((file) => path.join(pictureBox(to), path.basename(file)))
+}

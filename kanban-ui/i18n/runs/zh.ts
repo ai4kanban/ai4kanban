@@ -160,6 +160,10 @@ const zh: RunsCopy = {
   retry: {
     waiting: (seconds, attempt, of) => `${seconds} 秒后重试 · 第 ${attempt}/${of} 次`,
     starting: (attempt, of) => `正在开始第 ${attempt}/${of} 次尝试`,
+    label: "重试",
+    retrying: "重试中…",
+    hint: "把这次运行重新做一遍",
+    failed: "未能重试这次运行",
   },
   resume: {
     label: "继续",

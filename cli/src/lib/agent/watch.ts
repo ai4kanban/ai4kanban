@@ -67,7 +67,7 @@ import {
   reportRunEnded,
   resumeSessionId,
   setCardStatus,
-  titleOf,
+  requestOf,
   type CardClaim,
 } from './sessions'
 import { holdCardAtWork, releaseCardAtWork } from '../cloud/publish'
@@ -185,8 +185,9 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // agent's name, never a key, and this is the one moment one is needed.
   const active = openPlan(spec.plan)
   if (active.startNote) log.write(`[board] ${active.startNote}\n`)
-  // Resume the recorded action, not another phase of the same delivery.
-  const basePrompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId, record.action), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
+  // Resume the recorded action, not another phase of the same delivery. A resume that could
+  // only open a new session (#1321) brings the whole ask instead.
+  const basePrompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? spec.prompt || resumePrompt(record.deliveryId, record.cardId, record.action) : spec.prompt)
   const prompt = [basePrompt, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n')
 
   // The board as it was the moment before the agent touched it. The difference between this
@@ -258,6 +259,9 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>
   } catch (e) {
     log.end()
+    patch(sessionId, (r) => {
+      r.unspawned = true
+    })
     await closeRun(sessionId, { status: 'error', ok: false, code: null, error: String(e) })
     letGo()
     return 1
@@ -346,6 +350,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       ? `${cmd} isn't installed, or isn't on this run's PATH. Install it with: ${active.install}`
       : String(err)
     spawnWhy = missing ? { kind: 'notInstalled', args: { cmd, install: active.install } } : undefined
+    // No process, so no session either — whatever id the connector would have taken (#1321).
+    if (child.pid === undefined) {
+      patch(sessionId, (r) => {
+        r.unspawned = true
+      })
+    }
     log.write(`\n[error] ${spawnError}`)
   })
 
@@ -987,33 +997,6 @@ function catchResumeId(sessionId: string, id: string | undefined, restarted = fa
     if (restarted || !r.resumeId) r.resumeId = id
   })
   return true
-}
-
-// The run being resumed, back in the shape a prompt is built from. Only what the record
-// kept: `openResume` drops the note the user typed, which is why a restart is offered for
-// some actions and not others (`restartPrompt`).
-function requestOf(record: RunRecord): AgentRequest {
-  const id = record.cardId ?? undefined
-  return {
-    action: record.action,
-    discard: record.discard,
-    id,
-    // A run with no card is named by its delivery (#428), and the sentence it was given is
-    // what the record kept as its input — together they are its whole ask.
-    ...(id === undefined && record.deliveryId
-      ? { deliveryId: record.deliveryId, description: record.input }
-      : {}),
-    title: titleOf(id),
-    // The runtime it is running as (#518), so a prompt rebuilt here calls the skill the way
-    // the CLI actually spawned takes it.
-    runtime: record.runtime,
-    specAgent: record.specAgent,
-    triage: record.triage,
-    fromCard: record.fromCard,
-    refineRound: record.refineRound,
-    flowId: record.flowId,
-    pictures: record.pictures,
-  }
 }
 
 // The model the agent named for this run, taken the instant its output says one — the

@@ -46,6 +46,8 @@ describe('a run the board ended', () => {
     assert.match(run.error ?? '', /isn't installed/)
     assert.equal(run.errorWhy?.[0]?.kind, 'notInstalled')
     assert.match(run.errorWhy?.[0]?.args?.cmd ?? '', /no-such-agent/)
+    // No process, so no session to pick up, whatever id the connector takes (#1321).
+    assert.equal(run.unspawned, true)
   })
 
   it('keeps the kinds through a read of the record', () => {

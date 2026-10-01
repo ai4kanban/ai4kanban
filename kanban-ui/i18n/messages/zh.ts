@@ -65,6 +65,7 @@ const zh: MessagesCopy = {
     runNoSession: () => "这次运行没有提供可用于继续的会话编号。",
     runContinued: () => "这次运行已经继续过了。",
     runForeign: (a) => `当前版本无法继续由 ${a.agent} 开始的对话。`,
+    sortUnavailable: () => "此看板暂不支持分拣。",
     discardUnfinished: () => "有张卡片尚未完成丢弃，请先重试丢弃，再继续创建。",
     creationHeld: () => "本次创建中的一张卡片正在处理，请等待该运行结束。",
     deliveryUnnamed: (a) =>

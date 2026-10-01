@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FiPlay } from "react-icons/fi";
+import { FiPlay, FiRotateCw } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { Rich } from "@/i18n/rich";
@@ -223,6 +223,16 @@ function stateWord(session: SessionView, c: RunsCopy["log"]): string {
   return c[state];
 }
 
+/** The state as the mark's own name (#1321), for a word that only repeats the mark: failed,
+ *  done, stopped, interrupted — a failure with its exit code. Nothing for a live run, or for
+ *  a word that says why. */
+function stateTip(session: SessionView, c: RunsCopy["log"]): string | undefined {
+  const state = runState(session);
+  const word = stateWord(session, c);
+  if (state === "running" || word !== c[state]) return undefined;
+  return state === "failed" && session.code != null ? `${word} · ${c.exitCode(String(session.code))}` : word;
+}
+
 /** One thing a run's facts row says, and the caveat it carries in a tooltip. */
 type RunFact = { key: string; text: string; dim?: boolean; title?: string };
 
@@ -277,10 +287,15 @@ function RunFacts({ facts }: { facts: RunFact[] }) {
 // The run's state as one mark: ✓, ✕, ⦸ for a run cut off, ■ for one somebody stopped.
 // Every form sits in the same 22px box as the Stop button beside it, so a bar is one height
 // whether the run is live or over.
-function RunIndicator({ session, ink }: { session: SessionView; ink?: boolean }) {
+function RunIndicator({ session, ink, label }: { session: SessionView; ink?: boolean; label?: string }) {
   const state = runState(session);
   return (
-    <span className="grid size-[22px] shrink-0 place-items-center leading-none">
+    <span
+      className="grid size-[22px] shrink-0 place-items-center leading-none"
+      role={label ? "img" : undefined}
+      aria-label={label}
+      title={label}
+    >
       {state === "running" ? (
         // The deep ember sinks into the ink ground; the plain one does not (#760).
         <span className={ink ? PULSE_DOT_INK : PULSE_DOT} aria-hidden />
@@ -597,6 +612,7 @@ export function RunBar({
   session,
   head,
   canResume = false,
+  canRetry = false,
   onResumed,
   onFollow,
   control,
@@ -607,6 +623,8 @@ export function RunBar({
   /** Whether Carry on belongs here. The runs panel hands the job to the delivery's own
    *  control wherever the board kept its checkout (#720), and passes false. */
   canResume?: boolean;
+  /** Retry, on a failed run with nothing to carry on (#1321). Never beside `canResume`. */
+  canRetry?: boolean;
   onResumed?: (sessionId: string) => void;
   /** Following the `#id` leaves the surface the bar is on, so the dialog closes behind it. */
   onFollow?: () => void;
@@ -617,15 +635,18 @@ export function RunBar({
 }) {
   const c = useCopy().runs.log;
   const phone = usePhone();
-  const facts = runFacts(session, c);
-  // Stop and Carry on act on the RUN. On a phone they hold the first line with the name;
-  // everywhere else they ride with the numbers they qualify.
-  const moves = (
-    <>
-      {session.status === "running" && <StopButton sessionId={session.sessionId} ink={ink} />}
-      {canResume && <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />}
-    </>
-  );
+  // A word that only repeats the mark is the mark's tooltip (#1321). A phone has no hover,
+  // so there it stays a word.
+  const tip = phone ? undefined : stateTip(session, c);
+  const facts = runFacts(session, c).filter((f) => !tip || f.key !== "state");
+  // Stop, Carry on and Retry act on the RUN. On a phone they hold the first line with the
+  // name; everywhere else they ride with the numbers they qualify.
+  const stop = session.status === "running" && <StopButton sessionId={session.sessionId} ink={ink} />;
+  // Keyed by the run: a refusal said about one run is not carried onto the next one opened.
+  const again =
+    canResume || canRetry ? (
+      <ResumeButton key={session.sessionId} sessionId={session.sessionId} onResumed={onResumed} retry={!canResume} bar ink={ink} />
+    ) : null;
   // Every tint on the bar has a second value for the ink ground: the meta text goes to
   // thinned paper, and so does the hairline that parts the window's own control.
   const meta = ink ? "text-nb-cream/70" : "text-nb-ink-soft";
@@ -660,8 +681,10 @@ export function RunBar({
         {/* 22px floor: the tallest thing that can ride here sets the bar's height, and it
             keeps that height when the run ends and the controls swap. */}
         <span className="flex min-h-[22px] shrink-0 items-center gap-1.5">
-          {!phone && moves}
-          <RunIndicator session={session} ink={ink} />
+          {!phone && stop}
+          {/* The outcome, then the move that answers it. */}
+          <RunIndicator session={session} ink={ink} label={tip} />
+          {!phone && again}
           {/* How full the model's window is, as of this run's last finished request (#675). */}
           <ContextRing context={session.context} ink={ink} />
         </span>
@@ -691,7 +714,8 @@ export function RunBar({
       {/* The window's own control, parted from the run's by a hairline: it acts on the
           window, not on the run. These never give way. */}
       <span className={`ml-auto flex min-h-[22px] shrink-0 items-center gap-1.5 ${phone ? "order-2" : ""}`}>
-        {phone && moves}
+        {phone && stop}
+        {phone && again}
         <span className={`ml-1 flex items-center border-l ${rule} pl-2`}>{control}</span>
       </span>
     </div>
@@ -730,16 +754,28 @@ export function EmptyRunBar({
 // interrupted or was stopped, its id is known, and the agent that ran it is
 // still the configured one. A passing run has nothing to continue, so it shows
 // no button at all.
+//
+// Retry (#1321) is the same control on a failed run with nothing to continue: the same
+// action, which starts the run's own ask again.
 export function ResumeButton({
   sessionId,
   onResumed,
+  retry = false,
+  bar = false,
+  ink,
 }: {
   sessionId: string;
   // Told the new run's id, so the view that owns the selection can follow the
   // resumed run instead of staying on the dead one.
   onResumed?: (sessionId: string) => void;
+  retry?: boolean;
+  /** On the run bar, where the state mark leads: a refusal is said after the button, so
+   *  the two stay together. */
+  bar?: boolean;
+  ink?: boolean;
 }) {
-  const c = useCopy().runs.resume;
+  const runs = useCopy().runs;
+  const c = retry ? runs.retry : runs.resume;
   const actions = useActions();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -763,9 +799,13 @@ export function ResumeButton({
   // Nothing to resume with (#374): a screen handed no actions draws the log and no control
   // over the run behind it.
   if (!actions) return null;
+  const refused = error && (
+    <span className={`text-[11px] ${ink ? "text-nb-peach" : "text-nb-peach-ink"}`}>{error}</span>
+  );
+  const Icon = retry ? FiRotateCw : FiPlay;
   return (
     <span className="flex shrink-0 items-center gap-2">
-      {error && <span className="text-[11px] text-nb-peach-ink">{error}</span>}
+      {!bar && refused}
       <Button
         variant="ghost"
         size="sm"
@@ -779,9 +819,10 @@ export function ResumeButton({
         // went wrong, so it invites rather than urges.
         className="gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700]"
       >
-        <FiPlay className="text-[12px]" aria-hidden />
-        {busy ? c.resuming : c.label}
+        <Icon className="text-[12px]" aria-hidden />
+        {busy ? (retry ? runs.retry.retrying : runs.resume.resuming) : c.label}
       </Button>
+      {bar && refused}
     </span>
   );
 }
