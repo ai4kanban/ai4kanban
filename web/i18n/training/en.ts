@@ -167,8 +167,10 @@ const en: TrainingCopy = {
     project: "About your project",
     projectHint: "What you are building and where it is stuck. Optional.",
     service: "Service",
-    serviceSingle: "60-minute one-to-one session · {price} / session",
-    serviceMonthly: "Monthly guidance · {price} / month, 4 sessions",
+    services: {
+      single: { name: "60-minute one-to-one session", price: "{price} / session" },
+      monthly: { name: "Monthly guidance", price: "{price} / month, 4 sessions" },
+    },
     submit: "Confirm booking",
     submitting: "Booking…",
     seller:

@@ -155,8 +155,10 @@ const zh: TrainingCopy = {
     project: "项目情况",
     projectHint: "介绍你的项目和当前遇到的问题。选填。",
     service: "服务",
-    serviceSingle: "60 分钟一对一指导 · {price} / 次",
-    serviceMonthly: "按月指导 · {price} / 月，4 次",
+    services: {
+      single: { name: "60 分钟一对一指导", price: "{price} / 次" },
+      monthly: { name: "按月指导", price: "{price} / 月，4 次" },
+    },
     submit: "确认预约",
     submitting: "正在预约……",
     seller: "由厦门宛理之间科技有限公司销售并开具发票。预约时不收费，付款和发票事宜将在预约后通过邮件确认。",

@@ -95,8 +95,7 @@ export type TrainingCopy = {
     projectHint: string;
     service: string;
     /** The two options in the service picker. `{price}` is the figure. */
-    serviceSingle: string;
-    serviceMonthly: string;
+    services: Record<"single" | "monthly", { name: string; price: string }>;
     submit: string;
     submitting: string;
     /** Who sells the session and how it is paid, read before the submit. */

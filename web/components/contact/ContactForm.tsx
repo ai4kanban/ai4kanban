@@ -22,7 +22,8 @@ import {
 const SUPPORT_EMAIL = "support@ai4kanban.dev";
 
 // Every text box on the site's forms. No display class: each box adds its own.
-const fieldBox = `mt-2 w-full rounded-lg border ${hairline} bg-elev px-3.5 py-2.5 text-[0.95rem] font-normal transition-shadow`;
+const fieldEdge = "rounded-lg border bg-elev transition-shadow";
+const fieldBox = `mt-2 w-full ${fieldEdge} ${hairline} px-3.5 py-2.5 text-[0.95rem] font-normal`;
 export const field =
   `${fieldBox} outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 ` +
   "aria-[invalid=true]:not-focus:border-caution";
@@ -30,6 +31,10 @@ export const field =
 export const fieldGroup =
   `${fieldBox} focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15 ` +
   "has-[[aria-invalid=true]]:not-focus-within:border-caution";
+// A box wrapping a radio: it lights up on keyboard focus only, and brings its own border colour.
+export const fieldOption =
+  `${fieldEdge} has-[:focus-visible]:border-accent has-[:focus-visible]:ring-4 ` +
+  "has-[:focus-visible]:ring-accent/15";
 
 // The right column; the receipt takes the same place and keeps a floor height so the page doesn't jump.
 const panel = "rounded-2xl bg-band p-7 sm:p-9 lg:col-start-2 lg:row-span-3 lg:row-start-1";

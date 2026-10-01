@@ -1,6 +1,7 @@
 "use client";
 
-import { Field, field, submitClass } from "@/components/contact/ContactForm";
+import { Field, field, fieldOption, submitClass } from "@/components/contact/ContactForm";
+import { hairline } from "@/components/styles";
 import { Button } from "@/components/ui/Button";
 import type { TrainingCopy } from "@/i18n/training/types";
 import type { FieldErrors, FormValues, Problem, ServiceId } from "./state";
@@ -128,22 +129,22 @@ export function BookingForm({
           </Field>
         </div>
 
-        <Field label={t.form.service}>
-          {() => (
-            <select
-              className={`${field} block h-11`}
-              value={form.service}
-              onChange={(event) => onEdit({ service: event.target.value as ServiceId })}
-            >
-              <option value="single">
-                {t.form.serviceSingle.replace("{price}", price("single"))}
-              </option>
-              <option value="monthly">
-                {t.form.serviceMonthly.replace("{price}", price("monthly"))}
-              </option>
-            </select>
-          )}
-        </Field>
+        <fieldset className="mt-4 min-w-0">
+          <legend className="text-sm font-semibold">{t.form.service}</legend>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2 sm:gap-4">
+            {(["single", "monthly"] as const).map((id) => (
+              <ServiceOption
+                key={id}
+                value={id}
+                name={t.form.services[id].name}
+                price={t.form.services[id].price}
+                figure={price(id)}
+                on={form.service === id}
+                onPick={() => onEdit({ service: id })}
+              />
+            ))}
+          </div>
+        </fieldset>
 
         <Field label={t.form.project} hint={t.form.projectHint}>
           {() => (
@@ -178,5 +179,55 @@ export function BookingForm({
         <p className="mt-4 text-xs text-muted">{t.form.seller}</p>
       </form>
     </section>
+  );
+}
+
+// Picked: ink border and the ember dot. Ember on the border means focus, never picked.
+function ServiceOption({
+  value,
+  name,
+  price,
+  figure,
+  on,
+  onPick,
+}: {
+  value: ServiceId;
+  name: string;
+  /** The price line, with `{price}` where `figure` goes. */
+  price: string;
+  figure: string;
+  on: boolean;
+  onPick: () => void;
+}) {
+  const [before, after] = price.split("{price}");
+  return (
+    <label
+      className={`${fieldOption} flex cursor-pointer gap-3 px-3.5 py-3 ${on ? "border-border" : hairline}`}
+    >
+      <input
+        type="radio"
+        name="service"
+        value={value}
+        checked={on}
+        onChange={onPick}
+        className="sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+          on ? "border-accent" : "border-[color-mix(in_srgb,var(--color-ink)_30%,transparent)]"
+        }`}
+      >
+        {on && <span className="h-2 w-2 rounded-full bg-accent" />}
+      </span>
+      <span className="block min-w-0 flex-1">
+        <span className="block text-[0.95rem] font-semibold">{name}</span>
+        <span className="mt-0.5 block text-sm text-muted">
+          {before}
+          <span className="font-bold text-ink">{figure}</span>
+          {after}
+        </span>
+      </span>
+    </label>
   );
 }

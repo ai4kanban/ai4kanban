@@ -37,8 +37,7 @@ export function BookingResult({
   const cancelled = booking.state === "cancelled";
   const zone = booking.timezone;
   const startsAt = new Date(booking.slot_at);
-  const service =
-    booking.service === "single" ? t.form.serviceSingle : t.form.serviceMonthly;
+  const service = t.form.services[booking.service];
   const price = `$${Math.round(booking.price_cents / 100)}`;
 
   return (
@@ -52,7 +51,9 @@ export function BookingResult({
       <p className="mt-4 text-muted">{cancelled ? t.result.cancelledLead : t.result.lead}</p>
 
       <dl className="mt-7 space-y-5 rounded-xl bg-elev p-6 text-sm">
-        <Row label={t.result.service}>{service.replace("{price}", price)}</Row>
+        <Row label={t.result.service}>
+          {service.name} · {service.price.replace("{price}", price)}
+        </Row>
         <Row label={t.result.when}>
           {slotLabel(startsAt, zone, locale)}
           <span className="mt-1 block font-normal text-muted">
