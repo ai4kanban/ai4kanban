@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiArchive, FiTag } from "react-icons/fi";
+import { FiArchive, FiSlash, FiTag } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
@@ -166,8 +166,8 @@ export function ArchivePage({
   );
 }
 
-/** One archived card: its number, its title, the release it shipped in and the day it was
- *  archived — and nothing that acts on it. The two meta cells are fixed-width so the list
+/** One archived card: its number, its title, the release it shipped in — or that it was
+ *  rejected — and the day it was archived — and nothing that acts on it. The two meta cells are fixed-width so the list
  *  reads down a column, and a card missing either leaves its cell empty rather than filling
  *  it with a dash or a guessed date. The row is the whole target; hover is the transparent
  *  border colouring in, so nothing shifts. */
@@ -180,9 +180,13 @@ function CardRow({ card }: { card: ArchivedCard }) {
       <span className="w-[34px] shrink-0 font-mono text-[11.5px] tabular-nums text-nb-ink-soft">
         {card.id}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-[600]">{card.title}</span>
-      <span className="flex w-[62px] shrink-0 justify-end">
-        {card.release && <ReleaseChip release={card.release} />}
+      <span
+        className={`min-w-0 flex-1 truncate text-[13px] ${card.rejected ? "font-[500] text-nb-ink-soft" : "font-[600]"}`}
+      >
+        {card.title}
+      </span>
+      <span className="flex w-[104px] shrink-0 justify-end">
+        {card.rejected ? <RejectedChip /> : card.release && <ReleaseChip release={card.release} />}
       </span>
       <span className="w-[78px] shrink-0 text-right font-mono text-[11px] tabular-nums text-nb-ink-soft">
         {card.archived}
@@ -202,6 +206,22 @@ function ReleaseChip({ release }: { release: string }) {
     >
       <FiTag aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       <span className="truncate">{release}</span>
+    </span>
+  );
+}
+
+/** A card that was turned down: filed here, never shipped — so it wears this where a
+ *  release would sit. */
+function RejectedChip() {
+  const c = useCopy().rail.archive.card;
+  return (
+    <span
+      className="nb-chip max-w-full"
+      title={c.rejectedTip}
+      style={{ background: "var(--color-nb-sheet)", color: "var(--color-nb-ink-soft)" }}
+    >
+      <FiSlash aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="truncate">{c.rejected}</span>
     </span>
   );
 }
@@ -262,9 +282,9 @@ export function ArchivedCardPage({
       </p>
       <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">{card.title}</h1>
       <p className="mt-1 break-all font-mono text-[12px] text-nb-ink-soft">{card.relPath}</p>
-      {(card.release || card.archived) && (
+      {(card.rejected || card.release || card.archived) && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {card.release && <ReleaseChip release={card.release} />}
+          {card.rejected ? <RejectedChip /> : card.release && <ReleaseChip release={card.release} />}
           {card.archived && (
             <span
               className="nb-chip"

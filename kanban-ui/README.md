@@ -200,10 +200,11 @@ board never opens the file for you.
 
 ### The archive
 
-**Archive**, at the foot of the rail, lists every finished card in `docs/kanban/.archive/`,
-newest first: number, title, release and archive date. Dates start from when the board began
-recording them; older rows are marked. Click a row to read the card. It is read-only: nothing
-un-archives.
+**Archive**, at the foot of the rail, lists every card that left the board, in
+`docs/kanban/.archive/`, newest first: number, title, release and archive date. A rejected or
+discarded card is filed here too, wearing **Rejected** where the release would sit; it is not
+counted as shipped by any release. Dates start from when the board began recording them; older
+rows are marked. Click a row to read the card. It is read-only: nothing un-archives.
 
 ### Assets on a card
 
@@ -319,7 +320,7 @@ running badge and a read-only live log.
 | **Build again** | While a delivery has stopped, e.g. on work it could not commit or files changed outside the board. |
 | **Continue delivery** | When a delivery's next session never started. |
 | **Archive** | Once every todo is checked (a group root: every subtask resolved). Never on a recurring card. |
-| **Reject** | Always. **Just discard** drops the card without writing memory. |
+| **Reject** | Always. The card moves to the archive, marked **Rejected**. **Just discard** does the same without writing memory. |
 
 A card has one session at a time. A session outside a delivery never commits: read `git diff` and
 commit yourself.

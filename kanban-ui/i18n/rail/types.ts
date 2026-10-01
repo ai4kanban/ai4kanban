@@ -62,7 +62,7 @@ export type RailCopy = {
      *  before the board stamped one. */
     undated: string;
     /** One archived card: the label over its title, and what its two meta chips are. */
-    card: { label: string; release: string; archived: string };
+    card: { label: string; release: string; archived: string; rejected: string; rejectedTip: string };
   };
   signals: {
     /** The row above Archive, and the name of the page it opens. */

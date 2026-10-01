@@ -415,9 +415,9 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .argument('<id>', ID, cardId)
     .summary('drop a card')
     .description(
-      'The same clean-up as archive, but the file or folder is DELETED and the card counts as rejected. ' +
-        'Deleting is final — the receipt prints the card so its note can still be written from its own ' +
-        'words.',
+      'The same clean-up as archive: the file or folder moves to .archive/, marked `rejected: true`, and ' +
+        'the card counts as rejected. It stays readable there, is listed as rejected, and is never counted ' +
+        'as shipped by a release.',
     )
     .option('--discard', 'just drop it: the receipt asks for no memory note and names no rejected.md')
     .action(async function (this: Command, id: number) {

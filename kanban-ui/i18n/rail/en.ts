@@ -49,7 +49,7 @@ const en: RailCopy = {
     empty: "Nothing archived yet. A card is moved here when it is finished, and this is where it is read.",
     list: "Archived cards",
     undated: "Archived before the board kept a record",
-    card: { label: "Archive", release: "Release", archived: "Archived" },
+    card: { label: "Archive", release: "Release", archived: "Archived", rejected: "Rejected", rejectedTip: "Rejected, not shipped" },
   },
   signals: {
     row: "Triage",

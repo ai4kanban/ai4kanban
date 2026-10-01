@@ -911,13 +911,13 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       // into and nothing is judged — the one difference between the two is right here.
       if (req.discard === true) {
         close.push(
-          `${raw} reject ${req.id} --discard — this deletes the card and writes no memory; the receipt prints it out one last time`,
+          `${raw} reject ${req.id} --discard — this files the card in the archive as rejected and writes no memory`,
         )
       } else {
         facts.push(...field('memory', memoryLines(card!.meta.modules, 'rejected.md')))
         close.push(
           'write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result',
-          `${raw} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
+          `${raw} reject ${req.id} — this files the card in the archive as rejected`,
         )
       }
       break

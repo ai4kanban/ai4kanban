@@ -1,7 +1,7 @@
 // ---- archive / reject ------------------------------------------------------
 //
-// Taking a card off the board — archive moves it into .archive/, reject deletes it —
-// and the receipt's handoff: the memory note's target, and every prose mention of the
+// Taking a card off the board — archive and reject both move it into .archive/, reject
+// marking it `rejected` — and the receipt's handoff: the memory note's target, and every prose mention of the
 // id that now needs a new sentence.
 
 import fs from 'node:fs'
@@ -16,10 +16,10 @@ import { withBoardLock } from '../lib/lock'
 import { creationRefusal, planDeliverables, planDeliveryGap } from '../lib/view/rules'
 import { findCard } from '../lib/view/read'
 import { formatDay } from '../lib/cadence'
-import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, MOCKUPS, KANBAN, REPO_ROOT } from '../lib/paths'
+import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
+import { walkMd, walkDirs, idPrefix, locate, locateArchived, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
 import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
 import { parseFrontmatter, serializeFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
@@ -76,11 +76,10 @@ function dropCrossRefs(id: number): string[] {
   return touched
 }
 
-// ---- drop mockups ----------------------------------------------------------
+// ---- the ids leaving -------------------------------------------------------
 
-// Every id this removal takes off the board: the card's own, plus a group's subtasks,
-// each of which can have mockups of its own. Read before the move — a group's folder is
-// about to stop existing.
+// Every id this removal takes off the board: the card's own, plus a group's subtasks.
+// Read before the move — a group's folder is about to stop existing.
 function leavingIds(id: number, found: Found): number[] {
   const ids = new Set([id])
   if (found.kind === 'group') {
@@ -91,22 +90,6 @@ function leavingIds(id: number, found: Found): number[] {
     }
   }
   return [...ids]
-}
-
-// Only rejected cards lose their assets; archived cards still display them. The two older
-// folders are cleaned up with the current one.
-function dropMockups(ids: number[]): { dir: string; files: number }[] {
-  const dropped: { dir: string; files: number }[] = []
-  for (const id of ids) {
-    for (const root of [ASSETS, MOCKUPS, path.join(KANBAN, '.mockups')]) {
-      const dir = path.join(root, String(id))
-      if (!fs.existsSync(dir)) continue
-      const files = fs.readdirSync(dir).length
-      fs.rmSync(dir, { recursive: true, force: true })
-      dropped.push({ dir: rel(dir), files })
-    }
-  }
-  return dropped
 }
 
 // Remove board conversations; the agent's own session stays with its CLI.
@@ -169,25 +152,17 @@ function leavingCards(id: number, found: Found): { id: number; file: string }[] 
   return cards
 }
 
-// What an archived card carries out with it: the day it left, and no stage a run was
-// holding.
-//
-// The date is written onto the card itself — the read that opens an archived card answers
-// it, and it travels with a clone the way a file time does not. Nothing is backfilled, so
-// every card archived before this existed keeps an empty date.
-//
-// `implementing` is a stage a run holds, not one a card keeps. A card can leave the board
-// mid-run — the agent building it archives it at the end of its own pass — and then the
-// run's close has no card left to put the stage back on. Dropped in the same rewrite, so
-// the copy in .archive/ can't come back saying it is being implemented when nothing is
-// running.
-function stampLeaving(cards: { id: number; file: string }[]): void {
+// What a leaving card carries out with it: the day it left, `rejected` when it was turned
+// down rather than finished, and no stage a run was holding — a card can leave mid-run, and
+// the copy in .archive/ must not come back saying it is being implemented.
+function stampLeaving(cards: { id: number; file: string }[], rejected: boolean): void {
   const day = formatDay()
   for (const card of cards) {
     if (!fs.existsSync(card.file)) continue
     const { meta, body } = parseFrontmatter(fs.readFileSync(card.file, 'utf8'))
     if (!meta) continue
     meta.archived = day
+    if (rejected) meta.rejected = true
     if (meta.status === 'implementing') meta.status = 'todo'
     fs.writeFileSync(card.file, serializeFrontmatter(meta) + '\n' + body)
   }
@@ -200,7 +175,7 @@ export interface RemoveOptions {
    *  restate them. The sentences still naming the root are reported by the subtask's
    *  receipt instead, in one list with its own. */
   closing?: boolean
-  /** This rejection is a plain discard (#601): the card goes and nothing is written to
+  /** This rejection is a plain discard (#601): the card is filed and nothing is written to
    *  memory. Clearing the backlog is not a conclusion worth keeping, so the receipt asks for
    *  no note and names no `rejected.md`. The mentions still have to be rewritten. */
   discard?: boolean
@@ -244,14 +219,13 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const unfinished = metric === 'completed' ? unfinishedDelivery(id) : null
   if (unfinished) die(unfinished, { kind: 'plan-delivery-unfinished' })
-  // Archive keeps the card (moved out of todo/), reject deletes it. Resolve the
-  // destination before anything is written, so a name clash fails with the board
-  // untouched rather than half-updated.
-  const dest = metric === 'completed' ? archiveDest(found) : null
-  // Read the card while it still exists. Its `modules:` picks the memory copy the note
-  // goes in, and on a reject its text is about to stop existing — the receipt carries it
-  // out (see `cardEpitaph`), so the note can still be written from the card's own words
-  // after the file is gone.
+  // Either way the card is filed under .archive/. Resolve the destination before anything
+  // is written, so a name clash fails with the board untouched rather than half-updated.
+  // The one delete left: a discarded card an old conversation wrote back, whose original is
+  // already filed.
+  const dest = options.cleanupDiscarded && locateArchived(id) ? null : archiveDest(found)
+  // Read the card while it is still on the board: its `modules:` picks the memory copy the
+  // note goes in.
   const cardFile = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const cardText = fs.existsSync(cardFile) ? fs.readFileSync(cardFile, 'utf8') : ''
   const { meta: cardMeta } = parseFrontmatter(cardText)
@@ -261,8 +235,8 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
     found.kind === 'group'
       ? walkMd(found.target).filter((f) => f !== cardFile).map((f) => rel(f)).sort()
       : []
-  // Read while the group's folder is still there; the folders themselves go after the move.
-  const mockupIds = leavingIds(id, found)
+  // Read while the group's folder is still in `todo/`.
+  const leftIds = leavingIds(id, found)
   const leaving = leavingCards(id, found)
   if (options.discard && !options.cleanupDiscarded) {
     const runs = readRuns()
@@ -282,27 +256,24 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
       }
     })
   }
-  // Persist the resume decision before deleting; a remaining card keeps resume blocked.
+  // Persist the resume decision before the move; a remaining card keeps resume blocked.
   if (options.discard) withStore((store) => {
     for (const run of store.runs) for (const card of run.discardedCards ?? []) {
-      if (mockupIds.includes(card.id)) delete card.pending
+      if (leftIds.includes(card.id)) delete card.pending
     }
   })
   // A subtask's fate is reflected in its group's root.md ## Todo, so the tracking card
-  // stays accurate after the subtask file is gone: archive ticks it done, reject strikes
+  // stays accurate after the subtask has left: archive ticks it done, reject strikes
   // it out. Warn if the subtask isn't listed there, so the stale checklist gets noticed.
   const groupRoot = found.kind === 'file' && !options.closing ? enclosingGroupRoot(found.target) : null
   // The last write the cards get, and it has to happen before the move: after it there is
-  // no card under `todo/` left to write. A reject gets none — the file is about to be
-  // deleted.
-  if (dest) stampLeaving(leavingCards(id, found))
+  // no card under `todo/` left to write.
   if (dest) {
+    stampLeaving(leaving, metric === 'rejected')
     fs.mkdirSync(ARCHIVE, { recursive: true })
     fs.renameSync(found.target, dest)
-  } else if (found.kind === 'group') {
-    fs.rmSync(found.target, { recursive: true, force: true })
   } else {
-    fs.rmSync(found.target)
+    fs.rmSync(found.target, { recursive: true, force: true })
   }
   const removedRefs = stripReadmeRefs(found)
   let marked: 'tick' | 'strike' | null = null
@@ -313,21 +284,19 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   }
   // The card is off the board now, so every blocked_by/related pointing at it is stale.
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
-  const unlinked = [...new Set(mockupIds.flatMap((gone) => dropCrossRefs(gone)))]
-  const droppedMockups = dest ? [] : dropMockups(mockupIds)
-  const droppedChats = dropChats(mockupIds)
+  const unlinked = [...new Set(leftIds.flatMap((gone) => dropCrossRefs(gone)))]
+  const droppedChats = dropChats(leftIds)
   if (!options.cleanupDiscarded) bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
-  if (dest) say(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
-  else if (options.discard) say(`discarded #${id}: removed ${what} — no memory written`)
-  else say(`rejected #${id}: removed ${what}`)
+  const to = dest ? ` → ${rel(dest)}${found.kind === 'group' ? '/' : ''}` : ''
+  if (metric === 'completed') say(`archived #${id}: moved ${what}${to}`)
+  else if (!dest) say(`discarded #${id}: removed ${what} — already filed in ${rel(ARCHIVE)}`)
+  else if (options.discard) say(`discarded #${id}: moved ${what}${to}, marked rejected — no memory written`)
+  else say(`rejected #${id}: moved ${what}${to}, marked rejected`)
   if (removedRefs.length) say(`  dropped ${removedRefs.length} README ${removedRefs.length === 1 ? 'entry' : 'entries'}`)
   else say('  no README entry (subtask or untracked)')
   if (marked) say(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot!)}`)
   for (const card of unlinked) say(`  unlinked #${id} from ${card}`)
-  for (const m of droppedMockups) {
-    say(`  deleted ${m.dir}/ — ${m.files} asset file(s)`)
-  }
   for (const chatId of droppedChats) say(`  forgot the conversation about #${chatId}`)
   // The group closes with its last subtask (#299). Taken before the mentions below, so a
   // sentence in a root that left with this card is never handed over to be rewritten.
@@ -339,7 +308,6 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // A closing root asks for no note of its own, and its sentences are in the list the
   // subtask's receipt prints — so it hands nothing over.
   const note = options.closing ? null : printHandoff(gone, metric, cardMeta, mentions, options.discard === true)
-  if (!dest) printEpitaph(id, rel(cardFile), cardText, alsoRemoved)
   return {
     id,
     action: metric === 'completed' ? 'archived' : 'rejected',
@@ -347,7 +315,6 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
     archived_to: dest ? rel(dest) : null,
     unlinked,
     also_removed: alsoRemoved,
-    mockups_removed: droppedMockups.map((m) => m.dir),
     chats_removed: droppedChats,
     // The group this card's departure closed, or the rule that kept a finished-looking root
     // on the board (#299). Null when the card was in no group, or its group is still open.
@@ -466,29 +433,6 @@ function printHandoff(
   return note
 }
 
-// A rejected card is deleted, so the receipt carries its text out — the note about why it
-// was turned down usually needs the card's own words, and this is the last copy outside
-// git history. Boxed with a `|` gutter because a card body has its own `---` fences and
-// headings, which would otherwise blur into the surrounding output.
-const EPITAPH_MAX_LINES = 200
-
-function printEpitaph(id: number, relPath: string, text: string, alsoRemoved: string[]): void {
-  const lines = text.replace(/\s+$/, '').split('\n')
-  const shown = lines.slice(0, EPITAPH_MAX_LINES)
-  say(`\n#${id} as it was — the file is gone, so this is the last copy outside git history:\n`)
-  say(`  ,-- ${relPath}`)
-  for (const line of shown) say(`  | ${line}`)
-  if (lines.length > shown.length) {
-    say(`  | ... ${lines.length - shown.length} more line(s) — \`git show HEAD:${relPath}\` for the rest`)
-  }
-  say('  `--')
-  if (alsoRemoved.length) {
-    say(`\n  the folder took ${alsoRemoved.length} subtask card(s) with it:`)
-    for (const f of alsoRemoved) say(`    ${f}`)
-    say('    (in git history — `git show HEAD:<path>`)')
-  }
-}
-
 /** Remove files an old conversation wrote back, without counting a second rejection. */
 export function cleanupDiscardedCards(sessionId: string): number[] {
   const discarded = readRuns().find((r) => r.sessionId === sessionId)?.discardedCards ?? []
@@ -498,7 +442,6 @@ export function cleanupDiscardedCards(sessionId: string): number[] {
       while (locate(card.id)) cmdRemove(card.id, 'rejected', { discard: true, cleanupDiscarded: true })
       dropCrossRefs(card.id)
       stripReadmeRefs({ kind: 'file', rel: path.relative(TODO, path.resolve(REPO_ROOT, card.path)).split(path.sep).join('/') })
-      dropMockups([card.id])
       dropChats([card.id])
     }
     return discarded.map((c) => c.id)

@@ -28,6 +28,7 @@ export function searchLinkable(query: string): ArchivedCard[] {
     title: card.title,
     release: card.release,
     archived: '',
+    rejected: false,
     relPath: card.relPath,
   }))
   const matches = (card: ArchivedCard): boolean =>

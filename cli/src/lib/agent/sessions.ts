@@ -522,15 +522,23 @@ function toView(r: RunRecord, gone?: ReadonlySet<number>, refusals?: Map<string,
  *  machine's record landed a commit. The second is what a Cloud board has, since hydrate
  *  leaves `.archive/` out of the local copy while `.sessions.json` stays.
  *
- *  A rejected card is deleted rather than filed, so it answers false here. */
+ *  A rejected card is filed there too, marked `rejected`, and answers false here. */
 export function leftBoardOnLanding(id: number): boolean {
-  if (locateArchived(id)) return true
+  const filed = locateArchived(id)
+  if (filed) {
+    const file = filed.kind === 'group' ? path.join(filed.target, 'root.md') : filed.target
+    try {
+      return !parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.rejected
+    } catch {
+      return true
+    }
+  }
   return withStore((store) => store.deliveries.some((d) => d.cardId === id && !!d.landing?.commit))
 }
 
 // The cards, among those a run stopped short on, that have since left the board (#673,
-// #809). Landing files a card under `.archive/`, Archive does the same, and Reject deletes
-// it — all three settle whatever the run was left owing, and none of them leaves the card
+// #809). Landing files a card under `.archive/`, and so do Archive and Reject
+// — all three settle whatever the run was left owing, and none of them leaves the card
 // in `todo/`. So the board's own card ids answer for every ending at once.
 //
 // Asked only about the cards something stopped short on, which is almost always none, and

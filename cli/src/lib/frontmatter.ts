@@ -45,6 +45,7 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   // the card carries one, so nothing on the board grows a field — and re-emitted whenever it
   // is there, the way `last_run` is.
   if (m.archived) out.push(`archived: ${yamlScalar(m.archived)}`)
+  if (m.rejected) out.push('rejected: true')
   // What this card is waiting to run once the last card in its way leaves the board (see
   // ./schedule.ts). Written only while the card carries one — and re-emitted whenever it is
   // there, so nothing that rewrites a card can quietly take a schedule off it.
@@ -185,6 +186,7 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The day it was archived. Every card archived before this field existed carries none,
   // and nothing backfills them, so empty is the ordinary answer and reads as "no date".
   meta.archived = typeof meta.archived === 'string' && meta.archived.trim() ? meta.archived.trim() : ''
+  meta.rejected = meta.rejected === 'true'
   // How often the card repeats. Kept as written — whoever reads it parses it
   // (./cadence.ts); a line that isn't one of the accepted forms means the card
   // has no working cadence and only runs by hand.

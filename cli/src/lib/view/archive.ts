@@ -1,6 +1,6 @@
 // ---- the archive, read -----------------------------------------------------
 //
-// The finished cards in `docs/kanban/.archive` (#380). Archiving is a rename — the card
+// The cards in `docs/kanban/.archive` (#380), finished and rejected alike. Archiving is a rename — the card
 // keeps its frontmatter and its body, and the board forgets it — so until this there was
 // no way back to one that wasn't a file browser.
 //
@@ -37,6 +37,7 @@ function readFile(file: string): { row: ArchivedCard; body: string; meta: Meta }
       title: meta.title,
       release: meta.release,
       archived: meta.archived,
+      rejected: meta.rejected,
       relPath: rel(file).split(path.sep).join('/'),
     },
     body: body.replace(/^\n+/, '').replace(/\s+$/, ''),

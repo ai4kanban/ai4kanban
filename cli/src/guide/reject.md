@@ -1,7 +1,7 @@
 # Reject an idea
 
-Start with `akb raw reject <id>`. It deletes the card file. Before deleting, it prints the
-whole card — that printout is your copy, and you write the note from it.
+Read the card, then run `akb raw reject <id>`. It files the card in `.archive/` marked
+`rejected: true` — still readable there, never counted as shipped.
 
 **A discard writes no memory.** When the run was started as a discard — `akb card reject <id>
 --discard` — the card is being cleared off the board, not turned down: pass `--discard` to
@@ -28,7 +28,7 @@ that entry too.
 
 **2. Fix every line that mentions the card.** The output lists them, with the file and line
 number. A mention may sometimes carry an argument — "build the storage layer, because #58
-needs it". That argument is gone with the card, so the sentence around it is now wrong: say
+needs it". That argument left with the card, so the sentence around it is now wrong: say
 what still holds, or drop the claim. Striking out the `#58` and leaving the rest is the one
 thing that doesn't work — it reads as if the card were still there.
 

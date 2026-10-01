@@ -633,7 +633,7 @@ export interface MemoryFile extends MemoryRef {
 
 // ---- the archive -----------------------------------------------------------
 //
-// The finished cards in `docs/kanban/.archive` (#380). Archiving is a rename and the board
+// The cards that left the board, in `docs/kanban/.archive` (#380) — finished or rejected. Archiving is a rename and the board
 // forgets the card, so these shapes are the only way back to one that isn't a file browser.
 
 /** One archived card, as the list draws it. */
@@ -646,6 +646,8 @@ export interface ArchivedCard {
    *  stamped one — nothing is backfilled, so the dates fill in over time rather than at
    *  once. */
   archived: string
+  /** Rejected or discarded rather than finished: filed here, never shipped. */
+  rejected: boolean
   /** The path from the repo root, forward slashes. */
   relPath: string
 }

@@ -290,13 +290,14 @@ describe('discarding unfinished creation', () => {
     const file = path.join(todo, findCard(id)!.relPath)
     fs.writeFileSync(path.join(todo, 'README.md'), `# Tasks\n- [#${id}](8-a-card-being-written.md)\n`)
     const before = fs.readFileSync(path.join(todo, 'README.md'), 'utf8')
-    const original = fs.rmSync
-    fs.rmSync = ((target, options) => {
-      if (String(target) === file) throw new Error('simulated removal failure')
-      return original(target, options)
-    }) as typeof fs.rmSync
+    // A discard files the card in the archive (#1229), so the move is what can fail.
+    const original = fs.renameSync
+    fs.renameSync = ((from, to) => {
+      if (String(from) === file) throw new Error('simulated removal failure')
+      return original(from, to)
+    }) as typeof fs.renameSync
     try { await refuses(root, ['reject', String(id), '--discard'], /simulated removal failure/) }
-    finally { fs.rmSync = original }
+    finally { fs.renameSync = original }
     assert.ok(findCard(id))
     assert.equal(fs.readFileSync(path.join(todo, 'README.md'), 'utf8'), before)
     assert.equal(peekRun('creator-run')?.discardedCards?.[0]?.id, id)
@@ -385,7 +386,7 @@ describe('discard durability and cleanup', () => {
     assert.equal(findCard(id), null)
   })
 
-  it('cleans references and assets even when an old session only restores those', async () => {
+  it('cleans references an old session restores, and leaves assets to the weekly cleanup (#1229)', async () => {
     const id = await createdInRun()
     endCreator('error')
     const sibling = await move(root, ['create', '--title', 'References'])
@@ -399,7 +400,7 @@ describe('discard durability and cleanup', () => {
     cleanupDiscardedCards('creator-run')
     assert.deepEqual(findCard(sibling.id as number)?.related, [])
     assert.deepEqual(findCard(sibling.id as number)?.blocked_by, [])
-    assert.equal(fs.existsSync(path.join(ASSETS, String(id))), false)
+    assert.equal(fs.existsSync(path.join(ASSETS, String(id), 'stale.txt')), true)
     assert.doesNotMatch(fs.readFileSync(path.join(todo, 'README.md'), 'utf8'), /8-a-card/)
     assert.equal(fs.readFileSync(path.join(kanban, 'metrics.csv'), 'utf8'), metric)
     await refuses(root, ['reject', String(id), '--discard'], /no task with id/)

@@ -842,9 +842,10 @@ interface Change {
  * The difference between the copy before a move and the copy after it.
  *
  * A card is compared by what would be written back: where it sits, whether it is on the
- * board, its frontmatter and its body. A card that has GONE — `reject` deletes the file — is
- * sent as archived: the workspace keeps a card's row and its number for good, and taking it
- * off the board is the closest it has to what a rejection does here.
+ * board, its frontmatter and its body. `reject` files a card like `archive` does, with
+ * `rejected: true` in its frontmatter, so it travels as an archived card. A card that has
+ * GONE — a file deleted by hand — is sent as archived too: the workspace keeps a card's row
+ * and its number for good.
  */
 function difference(before: BoardPayload, after: BoardPayload): Change {
   const was = new Map(before.cards.map((c) => [c.id, c]))

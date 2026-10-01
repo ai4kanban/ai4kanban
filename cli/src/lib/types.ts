@@ -50,6 +50,9 @@ export interface Meta {
   /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way
    *  out. Empty on every open card, and on one archived before the board stamped a date. */
   archived: string
+  /** The card was rejected or discarded rather than finished — `reject` writes it beside
+   *  `archived`. Such a card is in the archive but was never shipped. */
+  rejected: boolean
   /** The action waiting to run once nothing is in this card's way, or null on a card nobody
    *  scheduled (./schedule.ts). */
   schedule: CardSchedule | null

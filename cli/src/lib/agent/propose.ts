@@ -31,7 +31,8 @@ export function reflectRunsAfter(openBefore: Iterable<number>): AgentRequest[] {
   if (!before.size) return []
   let done: { id: number; title: string }[]
   try {
-    done = readArchive().cards.filter((card) => before.has(card.id))
+    // A rejected card is filed in the archive too, and there is nothing shipped to reflect on.
+    done = readArchive().cards.filter((card) => before.has(card.id) && !card.rejected)
   } catch {
     return []
   }

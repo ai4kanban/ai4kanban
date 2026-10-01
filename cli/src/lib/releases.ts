@@ -42,6 +42,8 @@ export interface CardRow {
   blockedBy: number[]
   root: boolean
   recurring: boolean
+  /** Rejected rather than finished — only ever true on a card in the archive. */
+  rejected: boolean
 }
 
 // A card the fill left out, with the test it failed.
@@ -237,6 +239,7 @@ function cardRows(dir: string): CardRow[] {
       blockedBy: (meta && meta.blocked_by) || [],
       root: base === 'root.md',
       recurring: path.relative(dir, file).split(path.sep)[0] === 'recurring',
+      rejected: Boolean(meta?.rejected),
     })
   }
   return rows.sort((a, b) => a.id - b.id)
@@ -245,8 +248,8 @@ function cardRows(dir: string): CardRow[] {
 export const openCards = () => cardRows(TODO)
 
 // The finished cards. Archiving keeps a card's `release` field, so the archive is what says
-// which cards a version actually shipped.
-export const archivedCards = () => cardRows(ARCHIVE)
+// which cards a version actually shipped. A rejected card is filed there too and shipped nothing.
+export const archivedCards = () => cardRows(ARCHIVE).filter((card) => !card.rejected)
 
 // release id → { cards, ready }, counting the open board only. What a release already
 // shipped is written down when it closes, not counted here.

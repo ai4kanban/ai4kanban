@@ -113,11 +113,11 @@ describe('mockups after removal', () => {
     for (const file of previews) assert.equal(fs.readFileSync(file, 'utf8'), '<h1>Preview</h1>')
   })
 
-  it('still removes mockups for a rejected group and its subtasks', () => {
+  it('keeps mockups for a rejected group and its subtasks too (#1229)', () => {
     group(91, [92, 93])
     const previews = [91, 92, 93].map(mockup)
     remove(91, 'rejected')
-    for (const file of previews) assert.equal(fs.existsSync(file), false)
+    for (const file of previews) assert.equal(fs.readFileSync(file, 'utf8'), '<h1>Preview</h1>')
   })
 })
 
@@ -146,10 +146,10 @@ describe('the day a card was archived', () => {
     assert.equal(meta.archived, today())
   })
 
-  it('leaves a rejected card nothing — it is deleted, not filed', () => {
+  it('is stamped on a rejected card as well — it is filed, not deleted (#1229)', () => {
     card(91)
     remove(91, 'rejected')
-    assert.equal(fs.existsSync(archive()), false)
+    assert.equal(metaOf(path.join(archive(), '91-a-card.md')).archived, today())
     assert.equal(fs.existsSync(path.join(todo(), 'features', '91-a-card.md')), false)
   })
 
