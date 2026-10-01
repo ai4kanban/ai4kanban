@@ -276,7 +276,8 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // above: it touches no card, so nothing it does can queue behind them or they behind it.
   if (pruneDue(runs)) work.push({ action: 'prune-memory' })
 
-  // What cards off the board for a week still hold in .akb (#1177), once a day. Stamped
+  // What cards off the board for a week still hold in .akb (#1177), and the archived cards
+  // past their month (#1335), once a day. Stamped
   // first, so a prune that throws waits for tomorrow rather than retrying every tick.
   try {
     const now = new Date()

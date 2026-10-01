@@ -3,7 +3,8 @@
 // Archiving keeps a card's assets for the archive page, and nothing else ever removed them —
 // nor the worktree of a delivery that ended. Once a card has been off the board for a week
 // its assets, old mockups, chats and ended delivery worktrees go, except the asset files a
-// memory note or an open card still points at.
+// memory note or an open card still points at. The archived card itself goes after 30 days
+// (#1335), unless it names a release still on the list.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -12,8 +13,11 @@ import { git, removeWorktree, dropEmptyWorktreeFolders, pruneWorktreeMetadata, w
 import { idPrefix, walkDirs, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { AKB_DIR, ARCHIVE, ASSETS, CHATS_DIR, DELIVERIES, KANBAN, MEMORY, MOCKUPS, TODO, rel } from './paths'
+import { readReleases } from './releases'
+import { normalizeRelease } from './validate'
 
 const KEEP_DAYS = 7
+const KEEP_CARD_DAYS = 30
 const DAY = 24 * 60 * 60_000
 
 export interface LeftoverPrune {
@@ -49,6 +53,21 @@ function openIds(): Set<number> {
   return ids
 }
 
+interface ArchivedFile {
+  /** Its `archived:` day, or null when it has none that reads. */
+  at: number | null
+  release: string
+}
+
+function readArchived(file: string): ArchivedFile {
+  const meta = parseFrontmatter(fs.readFileSync(file, 'utf8')).meta
+  const day = String(meta?.archived ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return {
+    at: day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])).getTime() : null,
+    release: normalizeRelease(meta?.release),
+  }
+}
+
 // When each archived card was archived, from its `archived:` day.
 function archivedAt(): Map<number, number> {
   const at = new Map<number, number>()
@@ -56,10 +75,29 @@ function archivedAt(): Map<number, number> {
   for (const file of walkMd(ARCHIVE)) {
     const id = idPrefix(path.basename(file)) ?? idPrefix(path.basename(path.dirname(file)))
     if (id === null) continue
-    const day = String(parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.archived ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
-    if (day) at.set(id, new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])).getTime())
+    const day = readArchived(file).at
+    if (day !== null) at.set(id, day)
   }
   return at
+}
+
+// Remove each archived card file, and each group folder whole, once its newest card has been
+// archived for KEEP_CARD_DAYS. A card naming a release still on the list keeps its entry:
+// closing that release reads the archive for what shipped.
+function pruneArchivedCards(now: number, removed: string[]): void {
+  const open = new Set(readReleases())
+  for (const entry of fs.existsSync(ARCHIVE) ? fs.readdirSync(ARCHIVE, { withFileTypes: true }) : []) {
+    if (idPrefix(entry.name) === null) continue
+    const full = path.join(ARCHIVE, entry.name)
+    const files = entry.isDirectory() ? walkMd(full) : entry.name.endsWith('.md') ? [full] : []
+    if (!files.length) continue
+    const cards = files.map((file) => ({ ...readArchived(file), file }))
+    if (cards.some((c) => open.has(c.release))) continue
+    const newest = Math.max(...cards.map((c) => c.at ?? mtime(c.file)))
+    if (now - newest < KEEP_CARD_DAYS * DAY) continue
+    fs.rmSync(full, { recursive: true, force: true })
+    removed.push(rel(full))
+  }
 }
 
 interface EndedWorktree {
@@ -164,10 +202,17 @@ const realpath = (p: string): string => {
   }
 }
 
-/** Remove what every card off the board for a week still holds, and say what went. */
+/** Remove what every card off the board for a week still holds, then the archived cards
+ *  past their own keep, and say what went. */
 export function pruneLeftovers(now = Date.now()): LeftoverPrune {
   const removed: string[] = []
   const skipped: string[] = []
+  pruneHeld(now, removed, skipped)
+  pruneArchivedCards(now, removed)
+  return { removed, skipped }
+}
+
+function pruneHeld(now: number, removed: string[], skipped: string[]): void {
   const open = openIds()
   const oldMockups = path.join(KANBAN, '.mockups')
 
@@ -193,7 +238,7 @@ export function pruneLeftovers(now = Date.now()): LeftoverPrune {
     const left = archived.get(id) ?? Math.max(...paths.map(mtime))
     if (now - left >= KEEP_DAYS * DAY) leaving.add(id)
   }
-  if (!leaving.size) return { removed, skipped }
+  if (!leaving.size) return
 
   const refs = assetRefs()
   for (const id of leaving) {
@@ -241,5 +286,4 @@ export function pruneLeftovers(now = Date.now()): LeftoverPrune {
     if (unregistered) pruneWorktreeMetadata()
     dropEmptyWorktreeFolders()
   }
-  return { removed, skipped }
 }

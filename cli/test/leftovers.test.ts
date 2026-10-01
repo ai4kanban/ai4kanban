@@ -1,5 +1,6 @@
 // What a card off the board for a week still holds in .akb (#1177): its assets, old mockups,
-// chats and ended delivery worktrees go, except what memory or an open card points at.
+// chats and ended delivery worktrees go, except what memory or an open card points at. The
+// archived card itself goes after 30 days (#1335).
 
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -31,8 +32,11 @@ const write = (file: string, text = 'x'): void => {
 const card = (title: string, extra = ''): string =>
   `---\ntitle: ${title}\npriority: med\nroi: med\nstatus: todo\nrelease: ""\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n${extra}---\n\nBody.\n`
 
-function archive(id: number, daysAgo: number): void {
-  write(path.join(KANBAN, '.archive', `${id}-gone.md`), card(`Card ${id}`, `archived: ${formatDay(new Date(Date.now() - daysAgo * DAY))}\n`))
+const archivedDay = (daysAgo: number): string => `archived: ${formatDay(new Date(Date.now() - daysAgo * DAY))}\n`
+const archived = (name: string): string => path.join(KANBAN, '.archive', name)
+
+function archive(id: number, daysAgo: number, extra = ''): void {
+  write(archived(`${id}-gone.md`), card(`Card ${id}`, archivedDay(daysAgo) + extra))
 }
 
 function age(p: string, daysAgo: number): void {
@@ -146,6 +150,84 @@ describe('pruning what departed cards left', () => {
     assert.equal(fs.existsSync(path.join(CHATS_DIR, 'card-38.images')), false)
     assert.equal(fs.existsSync(path.join(CHATS_DIR, 'card-380.json')), true)
     assert.equal(fs.existsSync(path.join(CHATS_DIR, 'discussion-abc.json')), true)
+  })
+})
+
+describe('pruning archived cards', () => {
+  it('removes a card archived for 30 days, finished or rejected, and reports it', () => {
+    archive(50, 30)
+    archive(51, 31, 'rejected: true\n')
+    archive(52, 29)
+
+    const out = pruneLeftovers()
+
+    assert.equal(fs.existsSync(archived('50-gone.md')), false)
+    assert.equal(fs.existsSync(archived('51-gone.md')), false)
+    assert.equal(fs.existsSync(archived('52-gone.md')), true)
+    assert.deepEqual(out.removed.sort(), ['docs/kanban/.archive/50-gone.md', 'docs/kanban/.archive/51-gone.md'])
+  })
+
+  it('keeps a card past the week while its assets go', () => {
+    archive(53, 8)
+    write(asset(53, 'a.png'))
+
+    pruneLeftovers()
+
+    assert.equal(fs.existsSync(archived('53-gone.md')), true)
+    assert.equal(fs.existsSync(path.join(ASSETS, '53')), false)
+  })
+
+  it('removes a card and its assets in the same pass', () => {
+    archive(54, 40)
+    write(asset(54, 'a.png'))
+
+    pruneLeftovers()
+
+    assert.equal(fs.existsSync(archived('54-gone.md')), false)
+    assert.equal(fs.existsSync(path.join(ASSETS, '54')), false)
+  })
+
+  it('keeps a card whose release is still on the list', () => {
+    write(path.join(KANBAN, 'releases.md'), '# Releases\n\n- **v2** — the next one\n')
+    archive(55, 40, 'release: v2\n')
+    archive(56, 40, 'release: v1\n')
+
+    pruneLeftovers()
+
+    assert.equal(fs.existsSync(archived('55-gone.md')), true)
+    assert.equal(fs.existsSync(archived('56-gone.md')), false)
+  })
+
+  it('removes a group folder whole, by its newest archive day', () => {
+    write(archived('60-old-group/root.md'), card('Old group', archivedDay(31)))
+    write(archived('60-old-group/61-piece.md'), card('Piece', archivedDay(45)))
+    write(archived('62-new-group/root.md'), card('New group', archivedDay(10)))
+    write(archived('62-new-group/63-piece.md'), card('Piece', archivedDay(45)))
+    write(path.join(KANBAN, 'releases.md'), '- **v2**\n')
+    write(archived('64-held-group/root.md'), card('Held group', archivedDay(45)))
+    write(archived('64-held-group/65-piece.md'), card('Piece', archivedDay(45) + 'release: v2\n'))
+
+    const out = pruneLeftovers()
+
+    assert.equal(fs.existsSync(archived('60-old-group')), false)
+    assert.equal(fs.existsSync(archived('62-new-group/63-piece.md')), true)
+    assert.equal(fs.existsSync(archived('64-held-group/root.md')), true)
+    assert.deepEqual(out.removed, ['docs/kanban/.archive/60-old-group'])
+  })
+
+  it('goes by the file time when a card has no archive day', () => {
+    write(archived('66-undated.md'), card('Undated'))
+    age(archived('66-undated.md'), 31)
+    write(archived('67-undated.md'), card('Undated'))
+    age(archived('67-undated.md'), 29)
+    write(archived('notes.md'), 'not a card')
+    age(archived('notes.md'), 90)
+
+    pruneLeftovers()
+
+    assert.equal(fs.existsSync(archived('66-undated.md')), false)
+    assert.equal(fs.existsSync(archived('67-undated.md')), true)
+    assert.equal(fs.existsSync(archived('notes.md')), true)
   })
 })
 
