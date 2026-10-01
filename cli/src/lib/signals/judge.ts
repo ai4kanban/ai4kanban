@@ -232,7 +232,7 @@ export function reasonWords(v: Pick<Verdict, 'reason' | 'card'>): string {
 /** The command that lands a verdict — the one line the session acts on. */
 export function nextStep(sourceId: string, v: Verdict, program = 'akb'): string {
   const self = `${program}${BOARD_FLAG}`
-  const create = `${self} raw create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level>`
+  const create = `${self} raw create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --triage ${sourceId}`
   const archive = `${self} triage archive ${sourceId} --card <id>`
   switch (v.verdict) {
     case 'skip':

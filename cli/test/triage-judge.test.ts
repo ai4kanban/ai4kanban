@@ -368,7 +368,7 @@ describe('the sort', () => {
   it('archives a card written before a stop onto its item, rather than carding it twice', async () => {
     signIn(true)
     const plan = await judged('Worth planning', 'small')
-    card(101, 'Worth planning', `What it does.\n\n## Source\n\n- ${plan}`)
+    write(path.join(todo(), '101-card-101.md'), `---\ntitle: Worth planning\npriority: med\nroi: med\nstatus: todo\ntriage: ${plan}\n---\n\nWhat it does.\n`)
     const [done] = reconcileTriage()
     assert.deepEqual([done!.sourceId, done!.cardId], [plan, 101])
     assert.deepEqual(triageWaiting(), [])

@@ -40,7 +40,7 @@ describe('Start now on a triage item', () => {
     const { item, req } = waitingItem()
     const prompt = buildPrompt(req)
     assert.match(prompt, new RegExp(`Build the triage item at \`${item.relPath}\``))
-    assert.match(prompt, new RegExp(`## Source\` naming its source id \`${item.sourceId}\``))
+    assert.match(prompt, new RegExp(`passing \`--triage ${item.sourceId}\` to \`raw create\``))
     assert.match(prompt, new RegExp(`triage archive ${item.sourceId} --card <id>\`, then build it`))
   })
 

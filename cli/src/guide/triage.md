@@ -16,8 +16,9 @@ One at a time, in the flow's order; land each before the next.
   and do what it prints. An item listed with a verdict is already judged; when the command
   fails, leave the item waiting.
 - **Body**: write it to a file before creating the card — the full skeleton of
-  `akb guide writing`, with `## Source` holding the source id, its landing path
-  `docs/kanban/triage/archived/<file>`, source type, `meta:` values and original link.
+  `akb guide writing`, with `## Source` holding only the item's original link; omit the
+  section when it has none.
+- **Create**: pass `--triage <source-id>`; never write the source id into the body.
 - **Modules**: from `modules.md` as it stands; never add one.
 - **Workflow**: add `--workflow <id>` for the one from `akb workflow list` that does the
   card's work; omit it when unsure.
@@ -29,7 +30,7 @@ One at a time, in the flow's order; land each before the next.
 - **Archiving an item already dismissed**: the card id is recorded on the dismissed record;
   that is correct.
 - **A run stopped between create and archive**: leave it; the next run archives the item
-  onto the card whose `## Source` names it.
+  onto the card created with its `--triage`.
 
 ## Report
 

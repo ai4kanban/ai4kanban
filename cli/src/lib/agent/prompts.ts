@@ -351,7 +351,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         if (req.triage) {
           return [
             `${kb}. Build the triage item at \`${req.triage.file}\`. Read it first — it is the whole requirement.`,
-            `Follow \`akb guide implement\` — write its card first, from that item, with \`## Source\` naming its source id \`${req.triage.sourceId}\`.`,
+            `Follow \`akb guide implement\` — write its card first, from that item, passing \`--triage ${req.triage.sourceId}\` to \`raw create\`.`,
             `Straight after the card is written, run \`${command} triage archive ${req.triage.sourceId} --card <id>\`, then build it.`,
             createWorkflowNote(req),
             `Resolve routine choices yourself; record blockers needing user action on the card following \`akb guide update-questions\`.`,
@@ -431,7 +431,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           : req.plan
           ? `${kb}. Add task(s) from the plan at \`${req.plan}\`. Read it first, and write \`## Source\` naming that path on every card you create.`
           : req.triage
-            ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, and write \`## Source\` naming its source id \`${req.triage.sourceId}\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`
+            ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, pass \`--triage ${req.triage.sourceId}\` to \`raw create\`, and write only the item's original link under \`## Source\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`
             : `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
         req.fromCard ? `This came up on card #${req.fromCard}; record its dependency on the new card(s) as add-task says.` : '',

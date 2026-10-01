@@ -36,6 +36,9 @@ export interface Meta {
    *  renaming one leaves every card pointing at it. Empty on a card written before the field
    *  and on a board that picks no workflows, and both read as the default workflow. */
   workflow: string
+  /** The source id of the triage item this card was made of — only `raw create --triage`
+   *  writes it, and a triage run reads it to find an item already carded (signals/carded.ts). */
+  triage: string
   /** A video card's shot previews were approved under the retired two-round flow (#991).
    *  Still read, never acted on: it authorizes nothing since #1057. */
   preview_approved: boolean

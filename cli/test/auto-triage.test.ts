@@ -64,7 +64,7 @@ function quiet<T>(work: () => T): T {
   }
 }
 
-/** One open card whose `## Source` names `sourceId` — what a sort leaves behind when it
+/** One open card made of `sourceId` — what a sort leaves behind when it
  *  died between writing the card and recording the item. */
 function cardNaming(id: number, sourceId: string): void {
   fs.writeFileSync(
@@ -79,15 +79,13 @@ function cardNaming(id: number, sourceId: string): void {
       'blocked_by: []',
       'related: []',
       'modules: []',
+      `triage: ${sourceId}`,
       'questions: []',
       '---',
       '',
       'What this card is for.',
       '',
       '<!-- agent -->',
-      '',
-      '## Source',
-      `- ${sourceId}`,
       '',
     ].join('\n'),
   )

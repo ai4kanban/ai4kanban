@@ -37,9 +37,9 @@ build.
   the way a create off a plan writes it — once the discussion has let the plan go, that path
   is the only way back to the file. It follows the `Worth noting` sections, above any
   `## By` agent section.
-- **From a triage item, file it**: `## Source` names the item's source id instead, and
-  `akb triage archive <source-id> --card <id>` runs straight after the create, before any
-  build work.
+- **From a triage item, file it**: pass `--triage <source-id>` to the create, write only
+  the item's original link under `## Source`, and run
+  `akb triage archive <source-id> --card <id>` straight after, before any build work.
 - **Leave the rest of the scaffold**: `## Worth noting`, `## Scope`, `## Todo` and
   `## Decided by the agent` stay exactly as `raw create` wrote them.
 - **Then build that card**: the code block is the whole requirement — build exactly it and

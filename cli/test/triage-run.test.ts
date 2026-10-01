@@ -18,7 +18,7 @@ import { flowByCommand, flowPath } from '../src/lib/agent/flows.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { roleForFlow } from '../src/lib/agent/roles.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
-import { cmdCreate } from '../src/commands/card.ts'
+import { cmdCreate, cmdUpdate } from '../src/commands/card.ts'
 import { cmdTriageAdd, cmdTriageArchive, cmdTriageDismiss } from '../src/commands/triage.ts'
 import { reconcileTriage } from '../src/lib/signals/carded.ts'
 import { readAllDismissed, readInbox } from '../src/lib/signals/inbox.ts'
@@ -176,37 +176,28 @@ describe('a card that was written and an item that was ignored (#561)', () => {
 })
 
 describe('the reconciliation a run starts with', () => {
-  it('archives an item an open card already names, so nothing is judged twice', async () => {
+  it('archives an item an open card was made of, so nothing is judged twice', async () => {
     const id = await waiting('Already carded')
-    fs.writeFileSync(
-      path.join(todo(), '4-already-carded.md'),
-      `---\ntitle: Already carded\n---\n\nWords.\n\n## Source\n- ${id} — docs/kanban/triage/archived/x.md\n`,
-    )
+    const body = path.join(root, 'body.md')
+    fs.writeFileSync(body, 'Words.\n\n## Source\n- https://example.com/post\n\n## Todo\n- [ ] Build it.\n')
+    const { value } = quiet(() => cmdCreate({ title: 'Already carded', bodyFile: body, triage: id, asked: [] }))
+    const written = fs.readFileSync(path.join(root, String(value.file)), 'utf8')
+    assert.match(written, new RegExp(`^triage: ${id}$`, 'm'))
     assert.deepEqual(
       reconcileTriage().map((item) => [item.sourceId, item.cardId]),
-      [[id, 4]],
+      [[id, value.id]],
     )
     assert.equal(readInbox().length, 0)
-    assert.match(fs.readFileSync(path.join(archived(), fs.readdirSync(archived())[0]!), 'utf8'), /card_id: 4/)
+    assert.match(fs.readFileSync(path.join(archived(), fs.readdirSync(archived())[0]!), 'utf8'), new RegExp(`card_id: ${value.id}`))
     // And again: the second call finds nothing, because the first moved the file out.
     assert.deepEqual(reconcileTriage(), [])
   })
 
-  it('leaves an item a card only mentions outside its ## Source', async () => {
+  it('leaves an item a card only names in its body', async () => {
     const id = await waiting('Only mentioned')
     fs.writeFileSync(
       path.join(todo(), '5-mentions.md'),
-      `---\ntitle: Mentions it\n---\n\nSomebody said ${id} once.\n\n## Source\n- #12\n`,
-    )
-    assert.deepEqual(reconcileTriage(), [])
-    assert.equal(readInbox().length, 1)
-  })
-
-  it('reads a ## Source in the human half only up to the agent boundary', async () => {
-    const id = await waiting('Named below')
-    fs.writeFileSync(
-      path.join(todo(), '7-human-source.md'),
-      `---\ntitle: Human source\n---\n\nWords.\n\n## Worth noting\n\n## Source\n- #12\n\n<!-- agent -->\nSomebody said ${id} once.\n\n## Scope\n- Words.\n`,
+      `---\ntitle: Mentions it\n---\n\nSomebody said ${id} once.\n\n## Source\n- ${id}\n`,
     )
     assert.deepEqual(reconcileTriage(), [])
     assert.equal(readInbox().length, 1)
@@ -214,11 +205,15 @@ describe('the reconciliation a run starts with', () => {
 
   it('does not take a longer id for a shorter one', async () => {
     const long = await waiting('Longer')
-    fs.writeFileSync(
-      path.join(todo(), '6-prefix.md'),
-      `---\ntitle: Prefix\n---\n\nWords.\n\n## Source\n- ${long.slice(0, 6)}\n`,
-    )
+    fs.writeFileSync(path.join(todo(), '6-prefix.md'), `---\ntitle: Prefix\ntriage: ${long.slice(0, 6)}\n---\n\nWords.\n`)
     assert.deepEqual(reconcileTriage(), [])
     assert.equal(readInbox().length, 1)
+  })
+
+  it('keeps the field through a later rewrite of the card', async () => {
+    const id = await waiting('Rewritten')
+    const { value } = quiet(() => cmdCreate({ title: 'Rewritten', triage: id, asked: [] }))
+    quiet(() => cmdUpdate(Number(value.id), { priority: 'high' }))
+    assert.match(fs.readFileSync(path.join(root, String(value.file)), 'utf8'), new RegExp(`^triage: ${id}$`, 'm'))
   })
 })

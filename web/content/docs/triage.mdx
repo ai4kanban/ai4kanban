@@ -90,16 +90,15 @@ waiting. Three things stop the chain, and each waits for the next batch of items
 
 ### What a card it wrote says
 
-A card made from an item ends with `## Source`: the item's source id and the path it moved
-to under `archived/`, its source type and the values its `meta:` carried, and the original
-link. That is how you get from a card back to the sentence somebody wrote.
+A card made from an item carries `## Source` with the item's original link — how you get
+from a card back to the sentence somebody wrote. An item with no link leaves the section out.
 
 `archived/` means **a card was made of it** — not that the work is done. The card's own
 status says that.
 
 If a run is interrupted between writing a card and recording the item, nothing is lost and
-nothing is doubled: the next run reads the source ids off open cards' `## Source` first and
-archives anything already accounted for before it judges a thing.
+nothing is doubled: each card records the item it was made of, and the next run archives
+anything already accounted for before it judges a thing.
 
 ## Where triage keeps things
 

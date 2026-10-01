@@ -104,6 +104,8 @@ export interface CreateOptions {
   cadence?: string
   /** `--workflow`: which workflow the card runs on (#715). Left off, the board's default. */
   workflow?: string
+  /** `--triage`: the source id of the triage item this card is made of. */
+  triage?: string
   schedule?: ScheduledAction
   /** `--question` and the choices that qualify it, in the order they were typed. */
   asked: [key: string, value: string][]
@@ -169,6 +171,8 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
     cadence = cadenceFlag(opts.cadence)
   }
   const workflow = workflowFlag(opts.workflow)
+  const triage = (opts.triage ?? '').trim()
+  if (triage && recurring) die('--triage is not for a recurring card: a triage item becomes a one-shot task.')
   const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
   const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, recurring, questions) : null
@@ -181,7 +185,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
-  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, cadence, questions }
+  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, cadence, questions }
   const scaffolded = !written && opts.body !== false
   const body = written ?? (!scaffolded ? '' : recurring ? recurringBody() : defaultBody())
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)

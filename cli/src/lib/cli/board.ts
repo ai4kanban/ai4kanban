@@ -162,6 +162,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--body-file <path>', "the card's whole body, written to a file first, instead of the template")
     .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
     .option('--workflow <id>', "the workflow it runs through (`akb workflow list`). Left off, the board's default")
+    .option('--triage <source-id>', 'the triage item this card is made of, so the item is never carded twice')
     .option(
       '--schedule <action>',
       `hand the new card's first run to the board: ${SCHEDULED_ACTIONS.join(' | ')}`,

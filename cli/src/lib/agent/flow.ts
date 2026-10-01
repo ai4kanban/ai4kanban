@@ -947,7 +947,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         break
       }
       close.push(
-        `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --schedule refine --body-file <path> — one call per survivor, body written first`,
+        `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --triage <source-id> --schedule refine --body-file <path> — one call per survivor, body written first`,
       )
       close.push(
         `${raw} create ... --body-file <path> with no --schedule, then ${raw} update <id> --status ready — for plan-without-refine, its body ready to build`,

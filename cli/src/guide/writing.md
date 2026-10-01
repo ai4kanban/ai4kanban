@@ -14,8 +14,8 @@ Every flow writes a card in this order:
                              <- answered material decisions building turned up; written
                                 by the build, omit when empty. Never approved delivery scope
 
-## Source                    <- where the card came from: plan path, or source id, type and
-                                link; omit when none
+## Source                    <- where the card came from: plan path, or a triage item's
+                                original link; omit when none
 
 ## By `<name>` agent         <- here when that agent's output is set to human review, or
                                 while a [user] question points at one set to agent use

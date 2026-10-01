@@ -26,6 +26,7 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   // one, so a board that never picked a workflow keeps the frontmatter it always had, and
   // re-emitted whenever it is there, so no rewrite of a card can drop it.
   if (m.workflow) out.push(`workflow: ${yamlScalar(m.workflow)}`)
+  if (m.triage) out.push(`triage: ${yamlScalar(m.triage)}`)
   if (m.preview_approved) out.push('preview_approved: true')
   // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
   // ./cadence.ts). Written only when the card carries one; no cadence means the
@@ -167,6 +168,7 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''
+  meta.triage = typeof meta.triage === 'string' ? meta.triage.trim() : ''
   meta.preview_approved = meta.preview_approved === 'true'
   // When this card last ran — recurring cards only, and only once they have run.
   // Anything but text reads as never run, so a blanked or damaged line just means
