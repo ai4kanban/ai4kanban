@@ -15,7 +15,7 @@
 // roster, and rules, runtimes and switches all still resolve by agent name.
 //
 // Everything else the board can start is a shared node: an EVENT entry something on the
-// board starts (a sort, a sweep, a reflection, a complaint, a prune). None belongs to a stage
+// board starts (a sort, a reflection, a complaint, a prune). None belongs to a stage
 // and none is open to be hooked — they are listed here so the classification is a total one:
 // every flow this board has is a stage's or an event, and never both.
 
@@ -99,13 +99,12 @@ const BOARD_STAGES: StageContract[] = [
 // leaves behind, when it is over — is the kernel's and the same whoever runs it.
 
 // The nodes that are no stage's work, started by something happening rather than by a
-// stage reaching them: a card finishing, a batch of items arriving, a card going stale, a
+// stage reaching them: a card finishing, a batch of items arriving, a
 // user saying the spec missed, a cadence coming round, a day passing over conversations
 // that said something new.
 const BOARD_NODES: FlowNode[] = [
   { flow: 'reflect', kind: 'event', agent: 'proposer' },
   { flow: 'triage', kind: 'event', agent: 'triage' },
-  { flow: 'unstick', kind: 'event', agent: 'sweeper' },
   { flow: 'feedback', kind: 'event', agent: 'feedback' },
   { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
   { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },

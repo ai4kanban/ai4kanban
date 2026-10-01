@@ -115,7 +115,6 @@ describe('the classification', () => {
     assert.deepEqual(kinds, {
       reflect: 'event',
       triage: 'event',
-      unstick: 'event',
       feedback: 'event',
       'prune-memory': 'event',
       'review-memory': 'event',
@@ -157,7 +156,6 @@ describe('the lead a contract names', () => {
     'review-memory': 'memory-reviewer',
     'review-dismissals': 'dismissal-reviewer',
     'describe-product': 'product-writer',
-    unstick: 'sweeper',
     feedback: 'feedback',
     reflect: 'proposer',
     triage: 'triage',

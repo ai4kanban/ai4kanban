@@ -53,7 +53,7 @@ const fr: HomeCopy = {
       },
       {
         title: "Confiez la gestion de votre tableau aux agents.",
-        body: "Avec les outils kanban traditionnels, vous devez tout mettre à jour à la main : un travail fastidieux qui prend du temps. Dans AI4Kanban, les agents gèrent votre tableau : ils gardent en mémoire les décisions prises dans vos conversations, font régulièrement le tri dans les informations mémorisées devenues obsolètes et les cartes laissées de côté, et proposent des tâches de suivi lorsqu’une carte est terminée. Vous n’avez plus qu’à valider les points importants et à prendre les décisions. Vous pouvez adapter chaque agent à votre façon de travailler.",
+        body: "Avec les outils kanban traditionnels, vous devez tout mettre à jour à la main : un travail fastidieux qui prend du temps. Dans AI4Kanban, les agents gèrent votre tableau : ils gardent en mémoire les décisions prises dans vos conversations, font régulièrement le tri dans les informations mémorisées devenues obsolètes, et proposent des tâches de suivi lorsqu’une carte est terminée. Vous n’avez plus qu’à valider les points importants et à prendre les décisions. Vous pouvez adapter chaque agent à votre façon de travailler.",
       },
     ],
   },

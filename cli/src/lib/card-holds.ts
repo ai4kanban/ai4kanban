@@ -3,10 +3,8 @@
 // A stale card is stale for one of three reasons, and the listing already names it (#117):
 // an unfinished card ahead of it, a question waiting on the user, or a build in flight.
 //
-// Written once, because two callers read the same answer for opposite purposes. `raw list
-// --stale` prints every hold and filters nothing — a card waiting on the user is still on
-// the list. `akb card unstick` (#118) skips the two that mean the card is not forgotten,
-// and judges everything else, an unanswered question included.
+// `raw list --stale` prints every hold and filters nothing — a card waiting on the user is
+// still on the list.
 
 import { openOf, parseQuestion } from './view/rules'
 import type { Question } from './types'

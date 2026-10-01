@@ -52,8 +52,6 @@ export type {
   CadenceSchedule,
   MemoryPruneSchedule,
   MemoryReviewState,
-  SweepReport,
-  SweepRow,
   RunReason,
   PlanAnswer,
   RuntimeView,

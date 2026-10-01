@@ -88,9 +88,7 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // interleave safely. What needs the whole run serialized is a run that writes several
 // cards off one read of the board — plan-release, setup — plus archive/reject and a
 // recurring run's close, which reconcile the index against the board they read.
-// An unstick is one of them because a discard is how half its verdicts end (#118): the card
-// file goes, and the index has to be reconciled against the board the run read.
-const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup', 'unstick'])
+const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup'])
 
 // Actions that may run only one at a time across the whole board. The per-card rule can't
 // catch a duplicate of any of them — the first five name no card at all — and each reads the
@@ -98,9 +96,6 @@ const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-re
 // two setups work down the same checklist side by side. A create is not one of them — it
 // writes the one card it was handed, and its id and index entry are the board lease's
 // problem, not this lock's.
-// An unstick is one of them too (#119): a sweep is several unsticks the board keeps track
-// of, and a second one — the cadence's, or one typed by hand — would judge cards the open
-// sweep is counting on judging itself.
 const SINGLETON_ACTIONS = new Set<AgentAction>([
   'plan-release',
   'setup',
@@ -109,7 +104,6 @@ const SINGLETON_ACTIONS = new Set<AgentAction>([
   'review-dismissals',
   'describe-product',
   'triage',
-  'unstick',
 ])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
@@ -152,7 +146,6 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'review-dismissals': 'the dismissals are already being reviewed',
   'describe-product': 'the product is already being described',
   triage: 'triage is already being sorted',
-  unstick: 'the board is already being swept',
 }
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a
@@ -660,8 +653,6 @@ const HELD_BY_DISCUSSION = new Set<AgentAction>([
   'resolve',
   'archive',
   'reject',
-  // An unstick is both at once (#118): it rewrites the card or discards it.
-  'unstick',
 ])
 
 // `clarify` is refine's own pass — the user asked for a refine, so that is what the refusal

@@ -27,7 +27,6 @@ const GROUPS: [title: string, rows: [name: string, label: string, trigger: strin
       [
         ["memory-reviewer", "Review chat memory", "Every day"],
         ["memory-pruner", "Tidy memory", "Every 7 days"],
-        ["sweeper", "Tidy stalled cards", "Every 7 days"],
         ["dismissal-reviewer", "Learn from dismissals", "Every day"],
       ],
     ],

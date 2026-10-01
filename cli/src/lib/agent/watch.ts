@@ -518,9 +518,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
               formatErrors.push({ file: rel(TODO), line: 1, rule: 'missing-card', message: `Task #${id} disappeared. Restore its card file.` })
             }
           }
-          // `unstick` is on this list because a discard is half its verdicts (#118): the
-          // card it judged is meant to leave the board.
-          if (record.cardId !== null && !['archive', 'reject', 'unstick'].includes(record.action)
+          if (record.cardId !== null && !['archive', 'reject'].includes(record.action)
             && [...sources.values()].some((card) => card.id === record.cardId)
             && missing(record.cardId)) {
             required.add(record.cardId)

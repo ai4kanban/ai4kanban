@@ -31,7 +31,6 @@ import type {
   MemoryPruneSchedule,
   CadenceSchedule,
   MemoryReviewState,
-  SweepReport,
   PlanAnswer,
   RunPick,
   RunRecord,
@@ -319,15 +318,6 @@ export interface BoardRules {
   // the pruner draw its page without the recurrence control rather than failing.
   memoryPrune?(): MemoryPruneSchedule;
   setMemoryPrune?(next: { enabled: boolean; cadence: string }): WriteResult;
-
-  // the sweep of the stale cards (#119) — its cadence, the one report the board keeps, and
-  // **Run now**. Optional for the same reason as the pruner's above: a board on older rules
-  // draws the sweeper's page without any of it rather than failing.
-  canSweep?(): boolean;
-  cardSweep?(): CadenceSchedule;
-  saveCardSweep?(next: { enabled: boolean; cadence: string }): WriteResult;
-  sweepReport?(): SweepReport | null;
-  startCardSweep?(): Promise<WriteResult>;
 
   // the last review of what the conversations settled (#748). No cadence beside it: the
   // review is daily, so there is nothing to set. Optional for the same reason as above —

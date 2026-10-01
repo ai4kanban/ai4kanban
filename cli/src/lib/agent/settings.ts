@@ -448,10 +448,9 @@ export function setSecret(name: string, value: string): Saved {
   }
 }
 
-// ---- the scheduled agents' cadences (#514, #119, #929, #1208, #1268) --------
+// ---- the scheduled agents' cadences (#514, #929, #1208, #1268) --------
 //
 //   "memoryPrune":        { "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
-//   "cardSweep":          { "cadence": "3d", "since": "2026-09-30 10:00" }
 //   "dismissalReview":    { "lastRun": "2026-09-19 08:00" }
 //   "productDescription": { "lastRun": "2026-09-30 08:00" }
 //
@@ -461,15 +460,14 @@ export function setSecret(name: string, value: string): Saved {
 //
 // `lastRun` moves only on a pass that PASSED, which is what stops a failing one firing again
 // every tick. `since` is where a cadence that never ran counts from: the scheduler writes it
-// on its first look, so a board's first prune or sweep lands a whole cadence after upgrade
+// on its first look, so a board's first prune lands a whole cadence after upgrade
 // rather than the minute it does.
 
-export type ScheduleKey = 'memoryPrune' | 'cardSweep' | 'dismissalReview' | 'productDescription'
+export type ScheduleKey = 'memoryPrune' | 'dismissalReview' | 'productDescription'
 
 /** The cadence a board that never set one runs each on. */
 export const DEFAULT_CADENCE: Record<ScheduleKey, string> = {
   memoryPrune: '7d',
-  cardSweep: '7d',
   dismissalReview: '1d',
   productDescription: '1d',
 }
@@ -539,11 +537,6 @@ export function adoptMemoryPruneCadence(cadence: string): void {
     cfg.memoryPrune = { ...configBlock(cfg.memoryPrune), cadence: next }
   })
 }
-
-export const cardSweep = (): CadenceSchedule => readSchedule('cardSweep')
-export const setCardSweep = (next: { enabled?: boolean; cadence: string }): Saved => saveSchedule('cardSweep', next)
-/** Record a sweep that finished its work — one that found nothing to judge included. */
-export const stampCardSweep = (when: Date = new Date()): void => void stampSchedule('cardSweep', when)
 
 // ---- the memory reviewer's window (#748) ------------------------------------
 //

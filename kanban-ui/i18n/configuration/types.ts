@@ -15,7 +15,6 @@ export type AgentRoleName =
   | "memory-reviewer"
   | "dismissal-reviewer"
   | "product-writer"
-  | "sweeper"
   | "feedback"
   | "triage";
 
@@ -255,8 +254,6 @@ export type ConfigurationCopy = {
     /** The three groups Configuration → Board's column is split into (#742, #1208), named for
      *  what starts an agent: you, a schedule, or an event. */
     groups: { you: string; schedule: string; event: string };
-    /** The way back out of the sweep report (#119). */
-    back: string;
     /** The one press beside a project agent's file path. */
     copyPath: string;
     /** A column row's own state, read there and flipped on the page beside it. Only a
@@ -334,9 +331,6 @@ export type ConfigurationCopy = {
     >;
     /** The memory pruner (#514) — it prunes when you press Run now, and on its cadence. */
     pruner: CadenceCopy;
-    /** The sweeper (#119) — the same controls as the pruner's, plus the report of the sweep
-     *  they start. */
-    sweeper: CadenceCopy & SweepCopy;
     /** The dismissal reviewer (#929) — the pruner's controls. */
     dismissalReviewer: CadenceCopy;
     /** The product writer (#1268) — the same controls. */
@@ -866,42 +860,6 @@ export type CadenceCopy = {
   /** A save the board refused, and rules that predate this schedule. */
   saveFailed: string;
   tooOld: string;
-};
-
-/** What the sweeper's page says beyond its controls (#119): the compact summary under the
- *  settings, and the report that summary opens. */
-export type SweepCopy = {
-  /** The summary's heading, while a sweep is going and once it has ended. */
-  sweeping: string;
-  lastSweep: string;
-  /** Looked at, kept, discarded — the counts, derived from the verdicts. */
-  counts: (looked: number, kept: number, discarded: number) => string;
-  /** The way into the report, and the report's own title. */
-  viewReport: string;
-  reportTitle: string;
-  back: string;
-  /** The summary on a board that has never swept. */
-  neverSwept: string;
-  /** A sweep that found no card to judge — one line rather than an empty list. */
-  nothingStale: string;
-  /** Outside a git repository nothing can be dated, so there is no sweep to offer. */
-  noGit: string;
-  /** How the sweep ended, under the summary. */
-  ended: {
-    cap: string;
-    nothing: string;
-    failed: string;
-  };
-  /** One row: its verdict, how long the card had sat, and the two rows that carry none. */
-  kept: string;
-  discarded: string;
-  judging: string;
-  unfinished: string;
-  sat: (days: number) => string;
-  /** The sweep stopped at this card, said on the row itself. */
-  stoppedHere: string;
-  /** Across to this row's run, while its record and log are still there. */
-  openRun: string;
 };
 
 /** The Billing tab (#1109). `pricing` is web/i18n/pricing word for word. */

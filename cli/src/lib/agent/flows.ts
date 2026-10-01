@@ -209,20 +209,6 @@ export const FLOWS: Flow[] = [
         'Describe the product sets the cadence.',
     ],
   },
-  // The sweeper's one flow (#118). Typed under `card` and named by one: a sweep over the
-  // stale ones is #119's cadence starting this on each in turn, never a second command.
-  {
-    command: 'unstick',
-    group: 'card',
-    action: 'unstick',
-    argument: '<id>',
-    gloss: 'settle a card that has sat too long: keep it rewritten, or discard it',
-    more: [
-      'The verdict is the run: it rewrites the card for the project as it stands today under a dated ' +
-        'note, or discards it. A card being built, or blocked by an unfinished one, is left alone — ' +
-        'it says what is holding it and stops.',
-    ],
-  },
   { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },
   {
     command: 'reject',

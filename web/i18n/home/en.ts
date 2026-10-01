@@ -50,7 +50,7 @@ const en: HomeCopy = {
       },
       {
         title: "Let agents take care of your board.",
-        body: "With traditional kanban tools, you have to update everything by hand — tedious, time-consuming work. In AI4Kanban, agents take care of your board: they remember decisions from your conversations, regularly clear out outdated memory and neglected cards, and suggest follow-up tasks when a card is completed. You just handle the important approvals and decisions. You can adjust each agent to suit the way you work.",
+        body: "With traditional kanban tools, you have to update everything by hand — tedious, time-consuming work. In AI4Kanban, agents take care of your board: they remember decisions from your conversations, regularly clear out outdated memory, and suggest follow-up tasks when a card is completed. You just handle the important approvals and decisions. You can adjust each agent to suit the way you work.",
       },
     ],
   },

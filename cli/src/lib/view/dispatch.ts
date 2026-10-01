@@ -4,8 +4,7 @@
 // now left the board, the recurring cards whose cadence has elapsed, the day's review of
 // what the conversations settled, the review of the dismissal reasons, the product
 // description once new commits land, the daily prune of
-// what departed cards left in .akb, and — on a board that asked for them — the memory
-// pruner's own cadence and the sweep of the stale cards.
+// what departed cards left in .akb, and the memory pruner's own cadence.
 // A front end with a timer asks this once a
 // tick and starts whatever comes back — it holds the timer, this holds the rules, so a board
 // driven from a window and a board driven from anywhere else pick the same cards in the same
@@ -16,10 +15,9 @@
 // scheduled run therefore never queues behind one — the two are started by different things
 // entirely, and a refine in flight can't hold back a card whose blocker just cleared.
 //
-// Nothing here reads a clock the caller owns, and two things here write: taking the mark off
+// Nothing here reads a clock the caller owns, and one thing here writes: taking the mark off
 // a scheduled card, which has to happen in the same pass that hands its run back (see
-// `dueScheduled`), and the sweep, which starts its own run because its report has to be keyed
-// to it (`../agent/sweep.ts`).
+// `dueScheduled`).
 
 import { formatDay, formatStamp, nextDue, parseStamp } from '../cadence'
 import {
@@ -33,7 +31,6 @@ import {
 } from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
 import { commitsSince, productDescribed } from '../agent/product'
-import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { anyChatSince } from '../agent/memory-review'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
@@ -278,18 +275,6 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two
   // above: it touches no card, so nothing it does can queue behind them or they behind it.
   if (pruneDue(runs)) work.push({ action: 'prune-memory' })
-
-  // The sweep of the stale cards (#119). It starts its own `unstick` and hands nothing back,
-  // because the report has to be keyed to that run — a sweep is state the board keeps plus
-  // one run per tick, not a run this pass could return. Opening one is the cadence's call;
-  // carrying an open one on happens whatever opened it, so the app closing mid-sweep only
-  // pauses it.
-  try {
-    if (sweepDue()) await startCardSweep()
-    else await advanceCardSweep()
-  } catch {
-    // a bad tick must not cost the requests below — the sweep tries again next minute
-  }
 
   // What cards off the board for a week still hold in .akb (#1177), once a day. Stamped
   // first, so a prune that throws waits for tomorrow rather than retrying every tick.

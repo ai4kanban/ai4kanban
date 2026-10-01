@@ -29,7 +29,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   FiAlertCircle,
-  FiArrowLeft,
   FiArrowUpRight,
   FiCheck,
   FiCopy,
@@ -41,12 +40,10 @@ import {
   FiRotateCcw,
   FiScissors,
   FiTrash2,
-  FiWind,
   FiX,
 } from "react-icons/fi";
 import {
   agentsAction,
-  cardSweepAction,
   createAgentAction,
   deleteAgentAction,
   listSessionsAction,
@@ -57,9 +54,7 @@ import {
   setMemoryPruneAction,
   setSpecAgentAction,
   memoryReviewAction,
-  setCardSweepAction,
   setSpecAgentSettingAction,
-  startCardSweepAction,
   startPruneMemoryAction,
   startReviewMemoryAction,
   dismissalReviewAction,
@@ -72,25 +67,19 @@ import {
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
 import { type Cadence, type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
-import { LANGUAGE_TAGS } from "@/lib/types";
 import type {
   AgentAction,
   AgentInfo,
   AgentView,
-  Language,
   CadenceSchedule,
   WorkflowStage,
   MemoryReviewState,
   SpecAgentSettingView,
-  SweepReport,
-  SweepRow,
 } from "@/lib/types";
 import type { CadenceCopy } from "@/i18n/configuration/types";
 import { Button } from "./button";
-import { AgentMark, configDialog, PRUNER, SWEEPER, useRuntimeName } from "./Configuration";
+import { AgentMark, PRUNER, useRuntimeName } from "./Configuration";
 import { GuideDrawer } from "./Guide";
-import { useLanguage } from "./language";
-import { sessionsPanel } from "./sessions";
 import { ConfirmationPopover } from "./confirm-popover";
 import { useCopyText } from "./copy";
 import {
@@ -110,7 +99,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { POPUP_ROW, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
-import { noteParts, sayFailure } from "@/lib/start-failure";
+import { sayFailure } from "@/lib/start-failure";
 
 // The one agent whose page carries the review action (#748). Named here because there is
 // exactly one, and its page is the only place Review now belongs.
@@ -124,9 +113,9 @@ const PRODUCT_WRITER = "product-writer";
 
 // Configuration → Board's groups, by what starts each agent (#1208). Anything not named here
 // — the discussion, the feedback agent, an agent this project added — is one you start.
-// Literals rather than PRUNER / SWEEPER: Configuration imports this file, so its exports are
-// not initialised yet when these are.
-const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", "sweeper", REVIEWER_OF_DISMISSALS, PRODUCT_WRITER];
+// A literal rather than PRUNER: Configuration imports this file, so its exports are
+// not initialised yet when this is.
+const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", REVIEWER_OF_DISMISSALS, PRODUCT_WRITER];
 const ON_AN_EVENT = ["proposer", "triage"];
 // Whose runtime every planning lead runs (#1316).
 const PLANNING_HELPER = "discussion-helper";
@@ -135,17 +124,15 @@ const PLANNING_HELPER = "discussion-helper";
 function useCadences(onError?: (msg: string) => void) {
   const [cadences, setCadences] = useState<Record<string, CadenceSchedule | null>>({});
   const reload = useCallback(async () => {
-    const [prune, sweep, dismissals, product] = await Promise.all([
+    const [prune, dismissals, product] = await Promise.all([
       memoryPruneAction(),
-      cardSweepAction(),
       dismissalReviewAction(),
       productDescriptionAction(),
     ]);
-    const error = prune.error || sweep.error || dismissals.error || product.error;
+    const error = prune.error || dismissals.error || product.error;
     if (error) onError?.(error);
     setCadences({
       [PRUNER]: prune.schedule,
-      [SWEEPER]: sweep.schedule,
       [REVIEWER_OF_DISMISSALS]: dismissals.schedule,
       [PRODUCT_WRITER]: product.schedule,
     });
@@ -160,9 +147,8 @@ function useCadences(onError?: (msg: string) => void) {
 const OUTPUT_KEY = "output";
 
 // Which copy says a scheduled agent's cadence.
-const CADENCE_COPY: Record<string, "pruner" | "sweeper" | "dismissalReviewer" | "productWriter" | undefined> = {
+const CADENCE_COPY: Record<string, "pruner" | "dismissalReviewer" | "productWriter" | undefined> = {
   "memory-pruner": "pruner",
-  sweeper: "sweeper",
   [REVIEWER_OF_DISMISSALS]: "dismissalReviewer",
   [PRODUCT_WRITER]: "productWriter",
 };
@@ -886,12 +872,6 @@ function Page({
   const box = useRef<HTMLTextAreaElement>(null);
   const [asking, setAsking] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
-  // The sweeper's own state (#119). One read for the whole page: its controls sit in the
-  // header and its summary below the settings, and two copies would poll the board twice.
-  const sweep = useCardSweep(agent.name === SWEEPER, onError, onCadence);
-  // The sweep report takes this pane while it is open, with the roster and the selection
-  // left where they are — going back is the same agent's settings, not a fresh pick.
-  const [report, setReport] = useState(false);
   useEffect(() => {
     if (!focusFile) return;
     box.current?.focus();
@@ -923,12 +903,6 @@ function Page({
   // In a workflow the one box on the page is where instructions go (#976): the board-wide
   // rule and who the output is for stay as saved, edited elsewhere.
   const settings = inStage ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings;
-
-  // The report is read in this pane rather than over it (#119): the dialog is already a
-  // window, and the way back is the settings this was opened from.
-  if (report && agent.name === SWEEPER) {
-    return <SweepReportView sweep={sweep} onBack={() => setReport(false)} />;
-  }
 
   // The page fills the pane and the box you write in takes whatever the rest of it leaves.
   // Everything above the box is fixed-height — who the agent is, and what it runs — so the
@@ -972,8 +946,6 @@ function Page({
     <DismissalControls onSaved={onCadence} onError={onError} />
   ) : agent.name === PRODUCT_WRITER ? (
     <ProductControls onSaved={onCadence} onError={onError} />
-  ) : agent.name === SWEEPER ? (
-    <SweepControls sweep={sweep} />
   ) : agent.name === REVIEWER_OF_MEMORY ? (
     <ReviewControls onError={onError} />
   ) : null;
@@ -1054,10 +1026,6 @@ function Page({
           ))}
         </div>
       )}
-
-      {/* What the current or latest sweep came to (#119) — a compact line, and the way into
-          the whole of it. The rows themselves are never here: this is a settings page. */}
-      {agent.name === SWEEPER && <SweepSummary sweep={sweep} onOpen={() => setReport(true)} />}
 
       {/* What only THIS assignment asks of the agent (#944) — the workflow pane's own
           section, between what the agent runs as and the instructions it always carries.
@@ -1348,7 +1316,6 @@ function CadenceControls({
   tooOld,
   running,
   failed,
-  blocked,
   onStart,
   onSave,
 }: {
@@ -1361,9 +1328,6 @@ function CadenceControls({
   running: boolean;
   /** The newest finished one did not get through. */
   failed: boolean;
-  /** There is nothing on this board for the agent to work on — the sweeper's case, on a
-   *  project git cannot date. Run now is off and no chip is drawn; WHY is said below. */
-  blocked?: boolean;
   onStart: () => void;
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
 }) {
@@ -1375,7 +1339,7 @@ function CadenceControls({
     <div className="flex shrink-0 items-center gap-1.5">
       {tooOld && <span className="text-[11px] text-nb-ink-soft">{copy.tooOld}</span>}
       {failed && !running && <span className="text-[11px] text-nb-peach-ink">{copy.failed}</span>}
-      {!tooOld && !blocked && state && (
+      {!tooOld && state && (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
@@ -1403,7 +1367,7 @@ function CadenceControls({
       <button
         type="button"
         className={`${COMPACT_BTN} bg-nb-accent-soft text-nb-accent-deep hover:bg-nb-accent/28`}
-        disabled={running || blocked}
+        disabled={running}
         onClick={() => void onStart()}
       >
         {icon}
@@ -1467,8 +1431,7 @@ function ProductControls({ onSaved, onError }: { onSaved?: () => void; onError?:
   );
 }
 
-// A scheduled agent's data — its schedule and its runs — for the layout above; the sweeper
-// keeps its own, since it carries a report as well.
+// A scheduled agent's data — its schedule and its runs — for the layout above.
 function ScheduledControls({
   copy: c,
   icon,
@@ -1568,289 +1531,6 @@ function ScheduledControls({
       onStart={() => void start()}
       onSave={save}
     />
-  );
-}
-
-// --- the sweep of the stalled cards (#119) -----------------------------------
-
-/** What the sweeper's page is drawn from: its cadence, and the one report the board keeps of
- *  the current or latest sweep. Polled, because it is the one thing on this pane that moves
- *  by itself — a sweep advances one card per dispatcher tick, and the cadence can open one
- *  with nobody pressing anything. */
-function useCardSweep(active: boolean, onError?: (msg: string) => void, onSaved?: () => void) {
-  const c = useCopy().configuration.agents.sweeper;
-  const [schedule, setSchedule] = useState<CadenceSchedule | null>(null);
-  const [report, setReport] = useState<SweepReport | null>(null);
-  const [tooOld, setTooOld] = useState(false);
-  const [datable, setDatable] = useState(true);
-  const [starting, setStarting] = useState(false);
-
-  const read = useCallback(async () => {
-    const res = await cardSweepAction();
-    setSchedule(res.schedule);
-    setReport(res.report);
-    setDatable(res.datable);
-    setTooOld(!res.schedule && !res.error);
-    if (res.error) onError?.(res.error);
-  }, [onError]);
-
-  useEffect(() => {
-    if (active) void read();
-  }, [active, read]);
-
-  // Every few seconds while a sweep is open, because it advances one card per dispatcher
-  // tick with nobody pressing anything — and more slowly the rest of the time, because the
-  // cadence can start one at any minute and what is on screen has to follow it there.
-  const running = report?.status === "running";
-  useEffect(() => {
-    if (!active) return;
-    const timer = setInterval(() => void read(), running ? 3000 : 15000);
-    return () => clearInterval(timer);
-  }, [active, running, read]);
-
-  const start = async () => {
-    if (starting || running) return;
-    setStarting(true);
-    const res = await startCardSweepAction();
-    setStarting(false);
-    if (!res.ok) {
-      onError?.(sayFailure(res, c.saveFailed));
-      return;
-    }
-    void read();
-  };
-
-  const save = async (next: { enabled: boolean; cadence: string }) => {
-    const res = await setCardSweepAction(next);
-    if (!res.ok) return false;
-    await read();
-    onSaved?.();
-    return true;
-  };
-
-  return { schedule, report, tooOld, datable, running: !!running || starting, start, save };
-}
-
-type Sweep = ReturnType<typeof useCardSweep>;
-
-// The sweeper's controls: the pruner's, with its own words and action. Outside a git
-// repository nothing can be dated, so Run now is off and no chip is drawn; the summary below
-// says why.
-function SweepControls({ sweep }: { sweep: Sweep }) {
-  const c = useCopy().configuration.agents.sweeper;
-  return (
-    <CadenceControls
-      copy={c}
-      icon={<FiWind size={11} aria-hidden />}
-      schedule={sweep.schedule}
-      tooOld={sweep.tooOld}
-      running={sweep.running}
-      failed={sweep.report?.end === "failed"}
-      blocked={!sweep.datable}
-      onStart={() => void sweep.start()}
-      onSave={sweep.save}
-    />
-  );
-}
-
-/** What a report's rows add up to. Only a verdict counts: a card still being judged, and the
- *  one a sweep stopped at, are not cards it looked at. */
-function sweepCounts(report: SweepReport | null) {
-  const kept = report?.rows.filter((row) => row.verdict === "kept").length ?? 0;
-  const discarded = report?.rows.filter((row) => row.verdict === "discarded").length ?? 0;
-  return { kept, discarded, looked: kept + discarded };
-}
-
-// A stamp in the language the app is set to, not in the browser's own.
-function sweepTime(ts: number, language: Language): string {
-  return new Date(ts).toLocaleString(LANGUAGE_TAGS[language], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-// The compact summary under the settings: when the sweep ran, how it stands, what it came to,
-// and the way into the whole of it. Never the rows themselves — this is a settings page, and
-// a list of verdicts on it would push the box you write in off the bottom.
-function SweepSummary({ sweep, onOpen }: { sweep: Sweep; onOpen: () => void }) {
-  const c = useCopy().configuration.agents.sweeper;
-  const language = useLanguage();
-  const report = sweep.report;
-  const { kept, discarded, looked } = sweepCounts(report);
-
-  // One plain line, and nothing to open: this board cannot be swept, has never been, or the
-  // sweep it did found no card to judge.
-  const plain = !sweep.datable
-    ? c.noGit
-    : !report
-      ? c.neverSwept
-      : report.rows.length === 0
-        ? c.nothingStale
-        : "";
-
-  return (
-    <section className="shrink-0">
-      <div className="flex items-baseline justify-between gap-3">
-        <h4 className="text-[13.5px] font-[800] leading-tight text-nb-ink">
-          {report?.status === "running" ? c.sweeping : c.lastSweep}
-        </h4>
-        {!plain && <span className="shrink-0 text-[11.5px] text-nb-ink-soft">{c.counts(looked, kept, discarded)}</span>}
-      </div>
-      {plain ? (
-        <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{plain}</p>
-      ) : (
-        <div className="mt-1 flex items-baseline justify-between gap-3">
-          <p className="min-w-0 text-[12px] leading-snug text-nb-ink-soft">
-            {sweepTime(report!.startedAt, language)}
-            {report!.end && report!.end !== "switched-off" ? ` · ${c.ended[report!.end]}` : ""}
-          </p>
-          <button
-            type="button"
-            onClick={onOpen}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[12px] font-[700] text-nb-accent-deep hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-          >
-            {c.viewReport}
-            <FiChevronRight size={12} aria-hidden />
-          </button>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// The whole report, in the pane the agent's page was in: a fixed summary across the top and
-// the rows under it, scrolling on their own. A row says what the card WAS — its id, the title
-// it had and the days it had sat — because the verdict is what makes it unreadable, renamed
-// by the rewrite or gone from the board. The closing note is drawn in full: a truncated
-// verdict is a verdict nobody can act on.
-//
-// There is no picker and no history. The board keeps one report, so this follows it — a sweep
-// starting while this is open replaces what is on screen with the new one.
-function SweepReportView({ sweep, onBack }: { sweep: Sweep; onBack: () => void }) {
-  const c = useCopy().configuration.agents.sweeper;
-  const language = useLanguage();
-  const report = sweep.report;
-  const { kept, discarded, looked } = sweepCounts(report);
-  const openable = useKeptRuns(report);
-
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex shrink-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-        >
-          <FiArrowLeft size={13} aria-hidden />
-          {c.back}
-        </button>
-        <h3 className="text-[14px] font-[800] text-nb-ink">{c.reportTitle}</h3>
-      </div>
-
-      <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-nb-ink/10 pb-2.5">
-        <span className="min-w-0 text-[12px] text-nb-ink-soft">
-          {report ? sweepTime(report.startedAt, language) : c.neverSwept}
-          {report?.end && report.end !== "switched-off" ? ` · ${c.ended[report.end]}` : ""}
-        </span>
-        <span className="shrink-0 text-[11.5px] text-nb-ink-soft">{c.counts(looked, kept, discarded)}</span>
-      </div>
-
-      {!report || report.rows.length === 0 ? (
-        <p className="text-[12px] leading-snug text-nb-ink-soft">{report ? c.nothingStale : c.neverSwept}</p>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-[11px] border border-nb-ink/10 bg-nb-sheet">
-          {report.rows.map((row, i) => (
-            <SweepRowLine
-              key={`${row.id}/${row.runId ?? i}`}
-              row={row}
-              first={i === 0}
-              openable={!!row.runId && openable.has(row.runId)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** The rows whose run can still be opened. The report outlives its runs — the records keep
- *  the newest hundred and drop one whose log is gone — so a row's own run id is not enough
- *  to offer a way across to it. Read once per report rather than per poll: what is in the
- *  records only changes as runs are cleaned up. */
-function useKeptRuns(report: SweepReport | null): ReadonlySet<string> {
-  const asked = (report?.rows ?? [])
-    .map((row) => row.runId)
-    .filter(Boolean)
-    .join(",");
-  const [kept, setKept] = useState<ReadonlySet<string>>(new Set());
-  useEffect(() => {
-    if (!asked) return;
-    let gone = false;
-    void (async () => {
-      try {
-        const runs = await listSessionsAction();
-        if (!gone) setKept(new Set(runs.map((r) => r.sessionId)));
-      } catch {
-        // the records could not be read — the rows still say everything they carry
-      }
-    })();
-    return () => {
-      gone = true;
-    };
-  }, [asked]);
-  return kept;
-}
-
-// One card the sweep looked at. The verdict is the badge; the note is whatever its run ended
-// with, wrapped rather than cut.
-function SweepRowLine({ row, first, openable }: { row: SweepRow; first: boolean; openable: boolean }) {
-  const t = useCopy();
-  const c = t.configuration.agents.sweeper;
-  const note = noteParts(row.note, row.noteWhy, t)
-    .map((p) => [p.line, ...(p.lines ?? [])].join("\n"))
-    .join("\n\n");
-  const badge = row.verdict === "kept" ? c.kept : row.verdict === "discarded" ? c.discarded : row.unfinished ? c.unfinished : c.judging;
-  const tone =
-    row.verdict === "kept"
-      ? "bg-nb-mint-soft text-nb-mint-ink"
-      : row.verdict === "discarded"
-        ? "bg-nb-ink/[0.06] text-nb-ink-soft"
-        : "bg-nb-accent-soft text-nb-accent-deep";
-
-  return (
-    <div className={`flex items-start gap-2.5 px-3 py-2.5 ${first ? "" : "border-t border-nb-ink/10"}`}>
-      <span className={`shrink-0 rounded-full px-2 py-[2px] text-[10.5px] font-[700] ${tone}`}>{badge}</span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="shrink-0 font-mono text-[11px] text-nb-ink-soft">#{row.id}</span>
-          <span className="min-w-0 text-[12.5px] font-[700] text-nb-ink">{row.title}</span>
-          <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.sat(row.days)}</span>
-        </div>
-        {(note || row.unfinished) && (
-          <p className="mt-0.5 whitespace-pre-wrap text-[11.5px] leading-relaxed text-nb-ink-soft">
-            {row.unfinished ? c.stoppedHere : note}
-          </p>
-        )}
-        {/* Across to the run itself, while its record and its log are still there. The
-            dialog gets out of the way: the runs panel is a window of its own, and two of
-            them stacked is one nobody can close. */}
-        {openable && (
-          <button
-            type="button"
-            onClick={() => {
-              configDialog.close();
-              sessionsPanel.select(row.runId!);
-            }}
-            className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[11.5px] font-[700] text-nb-accent-deep hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-          >
-            {c.openRun}
-            <FiArrowUpRight size={11} aria-hidden />
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
 

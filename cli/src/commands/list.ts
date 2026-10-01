@@ -97,8 +97,7 @@ function openRows(): Row[] {
 }
 
 // What is keeping a card where it is, in the order the card reads them (lib/card-holds.ts).
-// Nothing here is a filter: a card waiting on the user is still listed, with its reason, and
-// the sweeper decides what to skip.
+// Nothing here is a filter: a card waiting on the user is still listed, with its reason.
 const holdsOn = (row: Row, open: Set<number>): Hold[] =>
   heldBy({ blockers: row.blocked_by.filter((id) => open.has(id)), questions: row.questions, status: row.status })
 

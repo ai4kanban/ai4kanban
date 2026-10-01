@@ -14,7 +14,6 @@ export const ASSETS_FOLDER = 'assets'
 export const MOCKUPS_FOLDER = 'mockups'
 export const SESSIONS_LOCK = 'sessions.lock'
 export const INDEX_LOCK = 'index.lock'
-export const SWEEP_REPORT_FILE = 'sweeper-report.json'
 export const UI_CONFIG_FILE = 'ui.config.json'
 
 function realPathOf(dir: string): string {

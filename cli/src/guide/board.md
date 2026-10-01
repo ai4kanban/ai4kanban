@@ -124,8 +124,8 @@ move the files into the group's folder:
   workflow names in its place. `decisions.md` holds user-facing answers that guide future planning,
   `redesign.md` design mistakes to avoid, `rejected.md` turned-down ideas and why,
   `dismissed.md` triage preferences learned from the user's dismissal reasons — written only by
-  the dismissal review (`akb guide review-dismissals`). Flows that only judge — the sweep,
-  triage, a reflection — read them and write none.
+  the dismissal review (`akb guide review-dismissals`). Flows that only judge — triage,
+  a reflection — read them and write none.
 - **`memory/agents/proposer/missed.md`**: kinds of follow-up the proposer failed to propose —
   written only by the memory review (`akb guide review-memory`), read by every reflection.
 - **`memory/agents/<agent>/`**: an agent keeps only the files and split paths its own AGENT.md

@@ -13,7 +13,6 @@ import {
   SESSIONS_FILE,
   SESSIONS_FOLDER,
   SESSIONS_LOCK as SESSIONS_LOCK_NAME,
-  SWEEP_REPORT_FILE,
   UI_CONFIG_FILE,
   ensureProjectState,
   projectStateDir,
@@ -120,10 +119,6 @@ export let USAGE = ''
 // the README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
 export let INDEX_LOCK = ''
-// The one sweep report (#119) — the current or latest sweep of the stale cards: its rows,
-// where it got to, and how it ended. Machine state like the run logs: a new sweep replaces
-// it, and nothing keeps an older one.
-export let SWEEP_REPORT = ''
 // The permanent record of every delivery — one JSON file each, tracked in git and kept
 // after the card is archived (lib/agent/deliveries.ts). The live copy is a row in
 // SESSIONS above; this is what outlives the machine it ran on.
@@ -288,7 +283,6 @@ function setBoard(kanban: string, root: string, flag: string): string {
   CASES = path.join(machine, 'cases')
   USAGE = path.join(machine, 'usage.json')
   INDEX_LOCK = path.join(machine, INDEX_LOCK_NAME)
-  SWEEP_REPORT = path.join(machine, SWEEP_REPORT_FILE)
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')
   PLANS = path.join(machine, 'plans')

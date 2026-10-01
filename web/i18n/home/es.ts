@@ -56,7 +56,7 @@ const es: HomeCopy = {
       },
       {
         title: "Deja que los agentes se encarguen de tu tablero.",
-        body: "Con las herramientas kanban tradicionales, tienes que actualizarlo todo a mano: un trabajo tedioso que lleva tiempo. En AI4Kanban, los agentes se encargan de tu tablero: guardan en la memoria las decisiones de tus conversaciones, depuran periódicamente la memoria desactualizada y las tarjetas que han quedado sin atender, y proponen nuevas tareas cuando se completa una tarjeta. Tú solo tienes que aprobar lo importante y tomar decisiones. Puedes ajustar cada agente a tu forma de trabajar.",
+        body: "Con las herramientas kanban tradicionales, tienes que actualizarlo todo a mano: un trabajo tedioso que lleva tiempo. En AI4Kanban, los agentes se encargan de tu tablero: guardan en la memoria las decisiones de tus conversaciones, depuran periódicamente la memoria desactualizada y proponen nuevas tareas cuando se completa una tarjeta. Tú solo tienes que aprobar lo importante y tomar decisiones. Puedes ajustar cada agente a tu forma de trabajar.",
       },
     ],
   },

@@ -112,13 +112,12 @@ export function useRuntimeName(): (row: { fixed?: boolean; name: string }) => st
   return (row) => (row.fixed ? c.globalDefault : row.name);
 }
 
-/** The two agents whose pages carry an action rather than only settings (#514, #119): neither
- *  pruning nor sweeping is asked for by anything on the board, so each agent's page is where
- *  a pass is started and where the cadence that repeats it is opted into. Named here because
+/** The agent whose page carries an action rather than only settings (#514):
+ *  pruning is not asked for by anything on the board, so the agent's page is where a pass is
+ *  started and where the cadence that repeats it is set. Named here because
  *  several screens need the same word — the rail's button, the phone's, and the pane that
  *  draws the page. */
 export const PRUNER = "memory-pruner";
-export const SWEEPER = "sweeper";
 
 // The dialog's sections, in two sidebar groups (#742): what this board IS set up with,
 // then what the user shapes for it. The split is only navigation — a heading is not a
@@ -167,10 +166,6 @@ const NAV_GROUPS: NavGroup[] = ["settings", "customize"];
 // is one press, and the Agents pane would otherwise open on its first Always on row rather
 // than on the agent that press named.
 let openRequest: { at: number; section: Section; agent?: string } | null = null;
-// A request to shut the dialog, counted the same way. The sweep report's run links use it
-// (#119): the runs panel is a window of its own, and two stacked over each other is one
-// nobody can close.
-let closeRequest = 0;
 // The last request the dialog has opened on. The store outlives the dialog — the header
 // remounts on every page change — so without this a fresh mount would replay the previous
 // request and reopen the dialog after every navigation back.
@@ -184,10 +179,6 @@ export const configDialog = {
     openRequest = { at: openRequest ? openRequest.at + 1 : 1, section, agent };
     for (const fn of requestSubs) fn();
   },
-  close() {
-    closeRequest += 1;
-    for (const fn of requestSubs) fn();
-  },
 };
 function useOpenRequest() {
   return useSyncExternalStore(
@@ -197,17 +188,6 @@ function useOpenRequest() {
     },
     () => openRequest,
     () => openRequest,
-  );
-}
-
-function useCloseRequest() {
-  return useSyncExternalStore(
-    (fn) => {
-      requestSubs.add(fn);
-      return () => requestSubs.delete(fn);
-    },
-    () => closeRequest,
-    () => closeRequest,
   );
 }
 
@@ -258,15 +238,6 @@ export function Configuration({
     setPickAgent(request.agent ?? "");
     setOpen(true);
   }, [request]);
-
-  // Somebody inside the dialog sent the user somewhere the dialog would cover.
-  const closing = useCloseRequest();
-  const closedAt = useRef(closing);
-  useEffect(() => {
-    if (closing === closedAt.current) return;
-    closedAt.current = closing;
-    setOpen(false);
-  }, [closing]);
 
   // A storage move takes the whole window (#614), so the dialog it was started from gets out
   // of the way rather than being covered by it.

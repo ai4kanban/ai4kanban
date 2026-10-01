@@ -188,10 +188,6 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'edit',
   'clarify',
   'resolve',
-  // An unstick is a verdict, not a refine (#118). It rewrites the card it keeps for the
-  // project as it stands today and raises no question, so refining that card afterwards
-  // would re-plan a card the sweeper just settled.
-  'unstick',
   'spec',
 ])
 

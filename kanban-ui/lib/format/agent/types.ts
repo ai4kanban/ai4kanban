@@ -106,11 +106,7 @@ export type AgentAction =
    *  command judges each item through Cloud and lands the answer (./auto-triage.ts). The run
    *  record is what shows a sort going and keeps a second one from starting. */
   | 'triage'
-  /** Settle one card that has sat too long (#118) — the sweeper's one flow. It judges how
-   *  much of the card is already done and whether the rest is still worth the effort, then
-   *  either keeps the card — rewritten for the project as it stands today, under a dated
-   *  note of its own — or discards it. It raises no question and hands the card to nobody:
-   *  the verdict IS the run. */
+  /** Retired (#1334): the sweeper is gone. Kept for the runs recorded. */
   | 'unstick'
 
 /** The action a specialist run takes: one section of a card (`spec`). It does not hold the
@@ -232,9 +228,9 @@ export interface TriageAsk {
 export type StartableAction = Exclude<AgentAction, RetiredAction>
 
 /** The actions no flow starts any more. */
-export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review'
+export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick'
 
-const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review'])
+const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick'])
 
 /** Whether nothing starts this action any more — it only reads back off an old record. */
 export const isRetired = (action: AgentAction): action is RetiredAction => RETIRED.has(action)
@@ -1683,8 +1679,8 @@ export interface MemoryReviewState {
   lastRun: string
 }
 
-/** One scheduled agent's cadence (#514, #119, #929) — the pruner, the sweeper and the
- *  dismissal review. `agent/settings.ts` owns the reading and the writing. */
+/** One scheduled agent's cadence (#514, #929) — the pruner and the dismissal
+ *  review. `agent/settings.ts` owns the reading and the writing. */
 export interface CadenceSchedule {
   /** Always true since #1208 — none can be switched off. Kept for screens that read it. */
   enabled: boolean
@@ -1697,47 +1693,6 @@ export interface CadenceSchedule {
 }
 
 export type MemoryPruneSchedule = CadenceSchedule
-
-/** How a sweep of the stale cards ended (#119). `cap` and `nothing` are a sweep that
- *  finished its work, and only those two stamp the cadence. */
-export type SweepEnd = 'cap' | 'nothing' | 'failed' | 'switched-off'
-
-/** One card a sweep looked at. Written when its run starts and filled in when that run
- *  ends, because the verdict is what makes the card unreadable — renamed by the rewrite, or
- *  gone from the board. */
-export interface SweepRow {
-  id: number
-  /** The card's title when it was picked. */
-  title: string
-  /** The days it had sat when it was picked. */
-  days: number
-  /** The `unstick` run that judged it, while its record is still there. */
-  runId?: string
-  /** `kept` — the card is still on the board. `discarded` — it is gone. Absent while the
-   *  run is going, and on a row no run passed. */
-  verdict?: 'kept' | 'discarded'
-  /** The line that run ended with. */
-  note?: string
-  /** `note` by kind, when it is the board's rather than the agent's (#1241). */
-  noteWhy?: RunReason[]
-  /** The sweep stopped here: no verdict, and not counted among the cards it looked at. */
-  unfinished?: boolean
-}
-
-/** The current or latest sweep (#119) — the one report the board keeps, in
- *  `.akb/…/sweeper-report.json`. A new sweep replaces it; nothing keeps an older one. */
-export interface SweepReport {
-  sweepId: string
-  /** When this sweep opened, as epoch ms. Also the stamp that stops a tick re-opening a
-   *  sweep in the cadence window it opened in. */
-  startedAt: number
-  endedAt?: number
-  status: 'running' | 'done'
-  end?: SweepEnd
-  /** The run this sweep is waiting on right now. */
-  activeRunId?: string
-  rows: SweepRow[]
-}
 
 /** A project agent's own file, as its page holds it. */
 export interface AgentFileView {

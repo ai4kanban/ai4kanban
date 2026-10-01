@@ -4,7 +4,6 @@ import type {
   CadenceSchedule,
   MemoryPruneSchedule,
   MemoryReviewState,
-  SweepReport,
 } from "./types";
 
 // --- the settings, through the CLI (#168) ------------------------------------
@@ -79,45 +78,6 @@ export async function setMemoryPrune(next: {
     return { ok: false, error: (await machineCopy()).messages.tooOld.memoryPruner };
   }
   return said(await rules.setMemoryPrune(next));
-}
-
-// --- the sweep of the stale cards (#119) -------------------------------------
-// **Tidy stalled cards** — the cadence, the one report the board keeps and Run now, in the
-// same settings file as the pruner's schedule above. Rules that predate it answer nothing,
-// and the sweeper's page draws none of it.
-
-export async function canSweep(): Promise<boolean> {
-  const rules = await boardRules();
-  return rules.canSweep ? rules.canSweep() : false;
-}
-
-export async function cardSweep(): Promise<CadenceSchedule | null> {
-  const rules = await boardRules();
-  return rules.cardSweep ? rules.cardSweep() : null;
-}
-
-export async function saveCardSweep(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.saveCardSweep) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
-  }
-  return said(await rules.saveCardSweep(next));
-}
-
-export async function sweepReport(): Promise<SweepReport | null> {
-  const rules = await boardRules();
-  return rules.sweepReport ? rules.sweepReport() : null;
-}
-
-export async function startCardSweep(): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.startCardSweep) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
-  }
-  return said(await rules.startCardSweep());
 }
 
 // --- the memory reviewer's last review (#748) --------------------------------

@@ -32,9 +32,8 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { findSpecAgent } from '../agents'
-import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
-import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, planningMemoryFiles, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
+import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PRODUCT, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { workflowRefusal } from './start'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
@@ -532,10 +531,6 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   reflect: ['reflect', 'evaluate-task'],
   // A sort is the board's own loop (#1263): no agent reads a guide for it.
   triage: [],
-  // Settling a stale card rewrites one card and may drop it, so it gets the board's rules,
-  // how a card is written, its own flow, and the two pages its verdicts end in — `reject`
-  // for a discard, `add-task` for the split a kept card sometimes needs.
-  unstick: ['board', 'unstick', 'writing', 'update-questions', 'add-task', 'reject'],
   // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
 }
@@ -877,31 +872,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${self} triage add --title ".." --slug <short-english-slug> --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
         'propose nothing at all when nothing follows: that is a complete result, and most completions are it',
         'change nothing else — no card is created, edited or archived, and no memory file is written',
-      )
-      break
-    }
-    // Settling a card that sat too long (#118). The facts are what the verdict is made of:
-    // how long it sat, what the plan still claims, and the direction to judge the rest
-    // against — so it is given the product description and the planner's memory, and writes none of it. The close is the two verdicts and the rule that separates them
-    // from a refine.
-    case 'unstick': {
-      const age = cardAges()?.get(path.resolve(REPO_ROOT, card!.file))
-      facts.push(
-        ...field(
-          'sat',
-          age
-            ? `${age.days} days — last touched ${age.lastTouched}, the date of the commit that wrote it`
-            : 'unknown — git has never committed this card, so nothing can date it',
-        ),
-      )
-      facts.push(...stepsField(card!), ...questionsField(card!.meta))
-      facts.push(...field('product', rel(PRODUCT)))
-      facts.push(...field('memory', planningMemoryFiles()))
-      close.push(
-        'keep it: rewrite the body for the project as it stands today, and rewrite its ## By `sweeper` agent section whole — still worth doing, what must change first, and the date',
-        `discard it: \`${raw} reject ${req.id} --discard\` — no memory note, no \`rejected.md\` line, and nobody to sign it off`,
-        'never touch a `- [x]` todo, never change the status by hand, and never append a question: this is a verdict, not a refine',
-        'end with one line — kept or discarded, and why — so a sweep over the stale cards can report it',
       )
       break
     }

@@ -60,9 +60,6 @@ the whole difference, and it has to be readable at 48px.
 - **`memory-reviewer.png`** — reads past chats for what to remember. Holding a **tall transcript
   page** across the chest, short black lines alternating left and right, an **ember bookmark
   ribbon** hanging from its top edge.
-- **`sweeper.png`** — settles the cards that have sat too long. Holding a **broom** upright
-  beside the body, wooden handle above the shoulder, a wide peach head with ember bristle
-  lines and an ember band standing on the ground.
 - **`feedback.png`** — works out what a spec got wrong. A **cream plan page** across the
   chest, and a thick **ember arrow** looping out from it and turning back to point at it.
 - **`proposer.png`** — suggests follow-up work. Holding a **lit light bulb** in front of the
