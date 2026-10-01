@@ -49,7 +49,7 @@ import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from '
 import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
-import { adoptsSessionId, planFork, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
+import { adoptsSessionId, harnessLabel, planFork, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
 import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
 import { readRuntimes, runtimeById } from './runtimes'
@@ -904,41 +904,59 @@ export function openRun(
 const PLANNING = new Set<AgentAction>(['clarify', 'resolve'])
 
 /** The session a card's planning carries on (#1304): its last finished planning run's, resumed,
- *  or — before any — the one it was created in, forked. Only one its CLI would find from `cwd`. */
-export function planningSession(cardId: number, cwd = REPO_ROOT): { session: AgentSession; fork: boolean } | undefined {
+ *  or — before any — the one it was created in, forked. Only one its CLI would find from `cwd`;
+ *  otherwise `none` says why there is nothing to carry. */
+export function planningSession(cardId: number, cwd = REPO_ROOT): { session: AgentSession; fork: boolean } | { none: 'unrecorded' | 'elsewhere' } {
   const here = (dir: string | undefined): boolean => !dir || path.resolve(dir) === cwd
   const ended = readRuns()
     .filter((r) => r.status === 'done')
     .sort((a, b) => b.startedAt - a.startedAt)
-  const of = (run: RunRecord | undefined, fork: boolean) => {
-    const resumeId = run && here(run.cwd) ? resumeSessionId(run) : undefined
-    return run && resumeId ? { session: { harness: run.harness, resumeId }, fork } : undefined
+  const of = (run: RunRecord, fork: boolean) => {
+    if (!here(run.cwd)) return { none: 'elsewhere' as const }
+    const resumeId = resumeSessionId(run)
+    return resumeId ? { session: { harness: run.harness, resumeId }, fork } : { none: 'unrecorded' as const }
   }
   const planned = ended.find((r) => r.cardId === cardId && PLANNING.has(r.action))
   if (planned) return of(planned, false)
-  const created = of(ended.find((r) => r.action === 'create' && r.createdCardIds?.includes(cardId)), true)
-  if (created) return created
+  const run = ended.find((r) => r.action === 'create' && r.createdCardIds?.includes(cardId))
+  const created = run ? of(run, true) : undefined
+  if (created && 'session' in created) return created
   const from = readChat(cardId)?.from
-  return from?.resumeId && here(from.cwd) ? { session: { harness: from.harness, resumeId: from.resumeId }, fork: true } : undefined
+  if (!from?.resumeId) return created ?? { none: 'unrecorded' }
+  return here(from.cwd) ? { session: { harness: from.harness, resumeId: from.resumeId }, fork: true } : { none: 'elsewhere' }
 }
 
-/** How a planning run carries its card's session on (#1304). Nothing — so the run opens a new
- *  one, as it always did — when there is no session, its CLI cannot resume or fork it, or this
- *  step resolves to another CLI than the one holding it. Never reads how full the session is. */
-export function carriedSession(req: AgentRequest): (Pick<ChatSession, 'plan' | 'fork'> & { continues: string }) | undefined {
-  if (!Number.isInteger(req.id) || !PLANNING.has(req.action) || req.session === 'new') return undefined
+/** How a planning run carries its card's session on (#1304), and the line its log opens with
+ *  (#1309). No `carried` — so the run opens a new session — when there is none to carry, its CLI
+ *  cannot resume or fork it, or this step resolves to another CLI than the one holding it.
+ *  Undefined for a run that is not one card's planning. Never reads how full the session is. */
+export function carriedSession(
+  req: AgentRequest,
+): { note: string; carried?: Pick<ChatSession, 'plan' | 'fork'> & { continues: string } } | undefined {
+  if (!Number.isInteger(req.id) || !PLANNING.has(req.action)) return undefined
+  const fresh = (why: string) => ({ note: `new session — ${why}` })
+  if (req.session === 'new') return fresh('the earlier one is gone, so this step was started again')
   const found = planningSession(req.id as number)
-  if (!found) return undefined
+  if ('none' in found) {
+    return fresh(found.none === 'elsewhere' ? 'the earlier session was opened in another folder' : 'no earlier session of this card is on record')
+  }
   const agent = agentForRun(req)
   const own = planRun(randomUUID(), REPO_ROOT, agent, req.runtime ? { pin: req.runtime } : {})
-  if (own.harness !== found.session.harness) return undefined
+  if (own.harness !== found.session.harness) {
+    return fresh(`the earlier session was held by ${harnessLabel(found.session.harness)}, and this step runs on ${harnessLabel(own.harness)}`)
+  }
   const plan = (cwd: string, sessionId: string): RunPlan | null => {
     const session = { ...found.session, cwd }
     const pin = { pin: own.runtime }
     return found.fork ? planFork(session, agent, pin, sessionId) : planResume(session, agent, pin)
   }
-  if (!plan(REPO_ROOT, randomUUID())) return undefined
-  return { plan: (cwd, sessionId) => plan(cwd, sessionId)!, fork: found.fork, continues: found.session.resumeId }
+  if (!plan(REPO_ROOT, randomUUID())) {
+    return fresh(`${harnessLabel(own.harness)} cannot ${found.fork ? 'copy a session' : 'continue an earlier session'}`)
+  }
+  return {
+    note: found.fork ? 'started from a copy of the session this card was created in' : 'continuing the session this card was last planned in',
+    carried: { plan: (cwd, sessionId) => plan(cwd, sessionId)!, fork: found.fork, continues: found.session.resumeId },
+  }
 }
 
 /** The planning run `sessionId` is, if it is one. Planning never builds (#1295): the build is

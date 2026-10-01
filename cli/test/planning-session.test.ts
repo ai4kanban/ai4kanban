@@ -1,7 +1,8 @@
 // A card's planning carries its session on (#1304): the planning after a create forks the
 // session the card was created in, and the planning after an answer resumes the one that asked.
 // Anything else — no session, another CLI, one that cannot fork — opens a new session as before,
-// and a session that turns out to be gone has its step started again in a new one.
+// and a session that turns out to be gone has its step started again in a new one. The run's
+// log opens by saying which of these it was (#1309).
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -10,6 +11,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { handOff } from '../src/lib/agent/chat.ts'
+import { harnessLabel } from '../src/lib/agent/resolve.ts'
 import { closeRun, openRun, patch, peekRun, readSpec, resumeSessionId } from '../src/lib/agent/sessions.ts'
 import { startRun } from '../src/lib/agent/start.ts'
 import { readRuns, recordCreatedCards } from '../src/lib/agent/store.ts'
@@ -81,6 +83,9 @@ async function start(req: AgentRequest): Promise<RunRecord> {
   return started.run
 }
 
+/** The lines the run's log opens with, as `[board] <note>`. */
+const notes = (run: RunRecord): string[] => readSpec(run.sessionId)!.notes ?? []
+
 const after = (argv: string[] | undefined, flag: string): string | undefined => argv?.[(argv?.indexOf(flag) ?? -1) + 1]
 
 describe('the planning after a create', () => {
@@ -92,6 +97,7 @@ describe('the planning after a create', () => {
     assert.equal(after(run.argv, '--session-id'), run.sessionId)
     assert.deepEqual(run.continues, { resumeId: create, fork: true })
     assert.equal(resumeSessionId(run), run.sessionId)
+    assert.deepEqual(notes(run), ['started from a copy of the session this card was created in'])
     const prompt = readSpec(run.sessionId)!.prompt
     assert.match(prompt, /Plan task 1/)
     assert.match(prompt, /copy of the one this card was created in.*outranks what you remember/)
@@ -117,6 +123,7 @@ describe('the planning after a create', () => {
     const two = await start({ action: 'clarify', id: 2 })
     assert.equal(two.continues, undefined)
     assert.ok(!two.argv?.includes('--resume'))
+    assert.deepEqual(notes(two), ['new session — the earlier session was opened in another folder'])
   })
 })
 
@@ -130,6 +137,7 @@ describe('the planning after an answer', () => {
     assert.ok(!first.argv?.includes('--fork-session') && !first.argv?.includes('--session-id'))
     assert.deepEqual(first.continues, { resumeId: planned.sessionId })
     assert.equal(resumeSessionId(first), planned.sessionId)
+    assert.deepEqual(notes(first), ['continuing the session this card was last planned in'])
     assert.match(readSpec(first.sessionId)!.prompt, /Apply my answers.*planned this card before.*outranks what you remember/)
     await end(first.sessionId)
     const second = await start({ action: 'resolve', id: 1 })
@@ -142,6 +150,7 @@ describe('a new session, as before', () => {
     const run = await start({ action: 'clarify', id: 1 })
     assert.equal(run.continues, undefined)
     assert.equal(after(run.argv, '--session-id'), run.sessionId)
+    assert.deepEqual(notes(run), ['new session — no earlier session of this card is on record'])
     assert.doesNotMatch(readSpec(run.sessionId)!.prompt, /outranks/)
   })
 
@@ -152,6 +161,7 @@ describe('a new session, as before', () => {
     assert.equal(run.harness, 'codex')
     assert.equal(run.continues, undefined)
     assert.ok(!run.argv?.includes('fork'))
+    assert.deepEqual(notes(run), ['new session — the earlier session was held by Claude Code, and this step runs on Codex'])
   })
 
   it('when the CLI cannot fork', async () => {
@@ -160,6 +170,7 @@ describe('a new session, as before', () => {
     const run = await start({ action: 'clarify', id: 1 })
     assert.equal(run.harness, 'kimi')
     assert.equal(run.continues, undefined)
+    assert.deepEqual(notes(run), [`new session — ${harnessLabel('kimi')} cannot copy a session`])
     // It still resumes: the planning after an answer carries on.
     await end(run.sessionId)
     patch(run.sessionId, (r) => { r.resumeId = 'kimi-planning' })
@@ -176,6 +187,7 @@ describe('a new session, as before', () => {
       const run = await start(req)
       assert.equal(run.continues, undefined)
       assert.ok(!run.argv?.includes('--resume'))
+      assert.deepEqual(notes(run), [])
       await end(run.sessionId)
     }
   })
@@ -203,7 +215,7 @@ describe('a session that turns out to be gone', () => {
     assert.equal(run!.input, 'keep it small')
     assert.ok(!run!.argv?.includes('--resume'))
     const spec = readSpec(run!.sessionId)!
-    assert.match(spec.notes?.join('\n') ?? '', /started again in a new one/)
+    assert.deepEqual(spec.notes, ['new session — the earlier one is gone, so this step was started again'])
     assert.doesNotMatch(spec.prompt, /outranks/)
   })
 

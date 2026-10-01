@@ -109,9 +109,6 @@ export function runAsk(req: AgentRequest, sessionId: string): AgentRequest {
   }
 }
 
-// What the log of a planning step says when it was started again in a new session (#1304).
-const SESSION_GONE = 'the session this card was being planned in is gone — this step was started again in a new one'
-
 function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: boolean } | RunRefusal {
   // A run refused below gives its pictures back — the sheet is still up with its words.
   const ask = runAsk(req, sessionId)
@@ -123,8 +120,10 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
     returnRunPictures(sessionId, req.box)
     return said
   }
-  // A card's planning carries its own session on (#1304), where there is one to carry.
-  const carried = said ? undefined : carriedSession(ask)
+  // A card's planning carries its own session on (#1304), where there is one to carry, and
+  // its log opens by saying which it was (#1309).
+  const planning = said ? undefined : carriedSession(ask)
+  const carried = planning?.carried
   let opened: ReturnType<typeof openRun>
   try {
     // The skill is called the way the conversation's own CLI takes it.
@@ -133,7 +132,7 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
       ask.action === 'triage'
         ? { prompt: '', notes: [] }
         : buildRun(said ? { ...ask, runtime: said.runtime } : carried ? { ...ask, session: carried.fork ? 'fork' : 'resume' } : ask)
-    if (ask.session === 'new') notes.push(SESSION_GONE)
+    if (planning) notes.unshift(planning.note)
     opened = openRun(ask, prompt, notes, sessionId, said ?? carried)
   } finally {
     said?.release()
