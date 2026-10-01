@@ -262,6 +262,14 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     letGo()
     return 1
   }
+  // Read after the spawn, so the agent itself is never younger than its record (#1313).
+  const agentStartedAt = Date.now()
+  if (child.pid) {
+    patch(sessionId, (r) => {
+      r.agentPid = child.pid
+      r.agentStartedAt = agentStartedAt
+    })
+  }
 
   const renderer = active.renderer
   const append = (str: string) => {

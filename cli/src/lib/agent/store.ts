@@ -145,6 +145,8 @@ export function readStore(): Store {
       startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
       endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,
       pid: typeof entry.pid === 'number' ? entry.pid : undefined,
+      agentPid: Number.isInteger(entry.agentPid) && entry.agentPid! > 0 ? entry.agentPid : undefined,
+      agentStartedAt: typeof entry.agentStartedAt === 'number' ? entry.agentStartedAt : undefined,
       input: typeof entry.input === 'string' ? entry.input : undefined,
       ok: typeof entry.ok === 'boolean' ? entry.ok : undefined,
       code: entry.code ?? null,

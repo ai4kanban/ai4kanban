@@ -3,6 +3,9 @@
 // Each agent is spawned with a mark in its environment that its commands inherit: the run's
 // id for a run, a one-off id for a chat turn or a test. A command put in the background has
 // left the agent's process group and often its process tree, and still carries the mark.
+//
+// Windows shows nobody another process's environment, so there the commands are found as
+// descendants of a recorded pid (#1313). One whose parent has already exited is not reached.
 
 import { spawnSync, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -95,13 +98,95 @@ function signal(pids: number[], sig: NodeJS.Signals): void {
   }
 }
 
-/** Kill what a run nobody is watching any more left behind. */
-export function killMarked(mark: Mark): void {
+export interface Proc {
+  pid: number
+  ppid: number
+  /** When it was created, in epoch milliseconds. */
+  startedAt: number
+}
+
+export interface ProcList {
+  procs: Proc[]
+  bootedAt: number
+}
+
+/** What to end under `root`, deepest first and `root` itself last when it is still there.
+ *  `since` is when `root` was recorded; left out, `root` has to be listed and its own start
+ *  stands in. A pid is reused, so nothing older than its parent or than `since` counts, a
+ *  `root` started after `since` is somebody else's, and so is everything after a reboot. */
+export function startedUnder(list: ProcList, root: number, since?: number): number[] {
+  const self = list.procs.find((p) => p.pid === root)
+  const from = since ?? self?.startedAt
+  if (from === undefined || list.bootedAt > from) return []
+  if (self && self.startedAt > from) return []
+  const found: number[] = self ? [root] : []
+  const seen = new Set([root])
+  const queue = [{ pid: root, startedAt: from }]
+  for (const parent of queue) {
+    for (const p of list.procs) {
+      if (p.ppid !== parent.pid || seen.has(p.pid) || p.startedAt < parent.startedAt) continue
+      seen.add(p.pid)
+      found.push(p.pid)
+      queue.push(p)
+    }
+  }
+  return found.reverse()
+}
+
+const LIST_PROCS = [
+  "$ErrorActionPreference = 'Stop'",
+  "Get-CimInstance Win32_Process | ForEach-Object { if ($_.CreationDate) { '{0} {1} {2}' -f $_.ProcessId, $_.ParentProcessId, ([DateTimeOffset]$_.CreationDate).ToUnixTimeMilliseconds() } }",
+  "'boot {0}' -f ([DateTimeOffset](Get-CimInstance Win32_OperatingSystem).LastBootUpTime).ToUnixTimeMilliseconds()",
+].join('; ')
+
+/** Read what the listing printed: `<pid> <ppid> <ms>` a process, then `boot <ms>`. */
+export function readProcList(out: string): ProcList | undefined {
+  const procs: Proc[] = []
+  let bootedAt: number | undefined
+  for (const line of out.split(/\r?\n/)) {
+    const boot = /^boot (\d+)$/.exec(line.trim())
+    if (boot) bootedAt = Number(boot[1])
+    const m = /^(\d+) (\d+) (\d+)$/.exec(line.trim())
+    if (m) procs.push({ pid: Number(m[1]), ppid: Number(m[2]), startedAt: Number(m[3]) })
+  }
+  return bootedAt !== undefined && procs.length ? { procs, bootedAt } : undefined
+}
+
+// Windows PowerShell ships with Windows 10 and 11; `wmic` no longer does.
+function procsOnWindows(): ProcList | undefined {
+  const ps = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', LIST_PROCS], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: 5_000,
+    windowsHide: true,
+  })
+  return ps.status === 0 && ps.stdout ? readProcList(ps.stdout) : undefined
+}
+
+/** Windows, where `taskkill /T` could not do it: force-end everything started under `pid`,
+ *  then `pid` itself. Does nothing anywhere else, and when the processes cannot be listed. */
+export function killUnderOnWindows(pid?: number, since?: number): void {
+  if (!WINDOWS || !pid) return
+  const list = procsOnWindows()
+  if (!list) return
+  const pids = startedUnder(list, pid, since).filter((p) => p !== process.pid)
+  if (!pids.length) return
+  spawnSync('taskkill', ['/F', ...pids.flatMap((p) => ['/PID', String(p)])], { stdio: 'ignore', windowsHide: true, timeout: 10_000 })
+}
+
+/** Kill what a run nobody is watching any more left behind. On Windows that is what was
+ *  started under its recorded `agent`; a run with none recorded is left as it is. */
+export function killMarked(mark: Mark, agent?: { pid: number; since: number }): void {
+  if (WINDOWS) {
+    if (agent) killUnderOnWindows(agent.pid, agent.since)
+    return
+  }
   signal(marked(mark), 'SIGKILL')
 }
 
 /** Windows has no signal a process can catch and no environment to read, so a process is
- *  ended with everything under it at once. False anywhere else, and when that failed. */
+ *  ended with everything under it at once. False anywhere else, and when that failed —
+ *  `killUnderOnWindows` is what is left then. */
 export function killTreeOnWindows(pid?: number): boolean {
   if (!WINDOWS || !pid) return false
   const out = spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true, timeout: 10_000 })
@@ -124,6 +209,7 @@ export function endAgent(child: ChildProcess, mark: Mark, graceMs: number): void
     }
   }
   if (killTreeOnWindows(child.pid)) return
+  killUnderOnWindows(child.pid)
   // Listed before the agent is asked: once it is gone its children are nobody's.
   const seen = new Set(marked(mark, child.pid ? [child.pid] : []))
   term('SIGTERM')

@@ -51,7 +51,7 @@ import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } f
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planFork, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
-import { killMarked, killTreeOnWindows, runMark } from './stop'
+import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProductDescription } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
@@ -219,7 +219,7 @@ function reap(runs: RunRecord[], reaped: RunRecord[] = [], restore: RunRecord[] 
     r.status = r.stopping ? 'stopped' : 'interrupted'
     r.code = null // we saw no exit
     // Its watcher is gone, so nothing else will end what its agent started (#1302).
-    if (r.pid) killMarked(runMark(r.sessionId))
+    if (r.pid) killMarked(runMark(r.sessionId), r.agentPid && r.agentStartedAt ? { pid: r.agentPid, since: r.agentStartedAt } : undefined)
     // We only know it ended by the time we noticed, so this duration is an upper bound.
     r.endedAt = now
     stampDuration(r, r.endedAt)
@@ -1364,6 +1364,7 @@ export async function stopRun(id: string): Promise<StartResult> {
   if (killTreeOnWindows(live.pid)) {
     // The watcher went with its agent, so the next reap records the stop.
   } else if (live.pid) {
+    killUnderOnWindows(live.pid)
     try {
       process.kill(live.pid, 'SIGTERM')
     } catch {
