@@ -19,6 +19,7 @@ import { readRuns } from '../agent/sessions'
 import { cardsBeingCreated } from '../agent/store'
 import type { DeliveryLanding, DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
+import { cardSources } from '../card-sources'
 import { idPrefix, isGroupFolder, subtaskLines } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { parseFrontmatter } from '../frontmatter'
@@ -210,8 +211,22 @@ function collectCards(): { board: Card[]; every: Card[] } {
 /** Any open card by id, including a group subtask the columns don't show. */
 export function findCard(id: number): Card | null {
   const card = collectCards().every.find((c) => c.id === id) ?? null
-  if (card) attachDelivery(card)
+  if (card) {
+    attachDelivery(card)
+    attachSources(card)
+  }
   return card
+}
+
+// Where the card came from (#1306). Only the single-card read: resolving reads plans and triage.
+function attachSources(card: Card): void {
+  try {
+    const { meta, body } = parseFrontmatter(fs.readFileSync(path.join(TODO, card.relPath), 'utf8'))
+    const sources = meta ? cardSources(meta, body) : []
+    if (sources.length) card.sources = sources
+  } catch {
+    // drawn without a source
+  }
 }
 
 // The delivery in flight on this card, read fresh. Only the single-card read attaches it:

@@ -12,9 +12,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { cardSources } from '../card-sources'
 import { idPrefix, walkMd } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { ARCHIVE, rel } from '../paths'
+import type { Meta } from '../types'
 import type { ArchiveList, ArchivedCard, ArchivedCardFile } from './types'
 
 /** An archived card's id: its file name, or — for a group's `root.md` — the folder the
@@ -24,7 +26,7 @@ function archivedId(file: string): number | null {
   return own !== null ? own : idPrefix(path.basename(path.dirname(file)))
 }
 
-function readFile(file: string): { row: ArchivedCard; body: string } | null {
+function readFile(file: string): { row: ArchivedCard; body: string; meta: Meta } | null {
   const id = archivedId(file)
   if (id === null) return null
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
@@ -38,6 +40,7 @@ function readFile(file: string): { row: ArchivedCard; body: string } | null {
       relPath: rel(file).split(path.sep).join('/'),
     },
     body: body.replace(/^\n+/, '').replace(/\s+$/, ''),
+    meta,
   }
 }
 
@@ -49,7 +52,7 @@ export function readArchive(): ArchiveList {
   if (!fs.existsSync(ARCHIVE)) return { relPath, cards: [] }
   const cards = walkMd(ARCHIVE)
     .map(readFile)
-    .filter((found): found is { row: ArchivedCard; body: string } => found !== null)
+    .filter((found) => found !== null)
     .map((found) => found.row)
   cards.sort((a, b) => b.id - a.id)
   return { relPath, cards }
@@ -61,7 +64,9 @@ export function readArchivedCard(id: number): ArchivedCardFile | null {
   if (!Number.isInteger(id) || !fs.existsSync(ARCHIVE)) return null
   for (const file of walkMd(ARCHIVE)) {
     const found = readFile(file)
-    if (found && found.row.id === id) return { ...found.row, body: found.body }
+    if (!found || found.row.id !== id) continue
+    const sources = cardSources(found.meta, found.body)
+    return { ...found.row, body: found.body, ...(sources.length ? { sources } : {}) }
   }
   return null
 }

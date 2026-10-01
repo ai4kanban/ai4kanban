@@ -22,6 +22,7 @@ import type {
   SetupState,
   SignalInbox,
   SignalsAccess,
+  SourceDocument,
 } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
@@ -366,6 +367,13 @@ export async function signalsOpen(): Promise<SignalsAccess> {
   } catch (e) {
     return { open: false, why: e instanceof Error ? e.message : String(e) };
   }
+}
+
+/** The plan or triage item behind one of a card's source links, or null when the card names
+ *  no such source or it cannot be read here. */
+export async function readCardSource(cardId: number, kind: string, ref: string): Promise<SourceDocument | null> {
+  const rules = await boardRules();
+  return rules.readCardSource?.(cardId, kind, ref) ?? null;
 }
 
 /** What the inbox holds, and what is still to be filled in before it can hold more. */

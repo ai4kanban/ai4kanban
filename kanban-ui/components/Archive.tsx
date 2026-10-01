@@ -19,7 +19,9 @@ import { useCopy } from "@/i18n/use-copy";
 import type { MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, MemoryOwner } from "@/lib/types";
+import { withoutSourceSection } from "@/lib/format/source";
 import { CardBody } from "./CardBody";
+import { SourceLinks } from "./card-sources";
 import { HAIRLINE } from "./chrome";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
@@ -241,7 +243,9 @@ export function ArchivedCardPage({
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
-  const c = useCopy().rail.archive;
+  const t = useCopy();
+  const c = t.rail.archive;
+  const meta = t.card.meta;
   return (
     <ArchiveFrame
       projectRoot={projectRoot}
@@ -273,8 +277,14 @@ export function ArchivedCardPage({
           )}
         </div>
       )}
+      {!!card.sources?.length && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">{meta.source}</span>
+          <SourceLinks cardId={card.id} sources={card.sources} />
+        </div>
+      )}
       <div className="mt-4 flex flex-col gap-2">
-        <CardBody body={card.body} title={card.title} cardId={card.id} mockups={mockups} storyboards={storyboards} />
+        <CardBody body={card.sources?.length ? withoutSourceSection(card.body) : card.body} title={card.title} cardId={card.id} mockups={mockups} storyboards={storyboards} />
       </div>
     </ArchiveFrame>
   );

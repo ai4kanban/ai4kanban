@@ -73,6 +73,8 @@ import { canImplement, canRefine, planDeliveryGap } from "@/lib/refine";
 import { scheduleMark } from "@/lib/schedule";
 import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
+import { SourceLinks } from "./card-sources";
+import { withoutSourceSection } from "@/lib/format/source";
 import { ConfirmationPopover } from "./confirm-popover";
 import { Fold } from "./fold";
 import { goPro, useWorkflowLock } from "./pro";
@@ -2016,6 +2018,13 @@ export function CardPage({
                 </MetaItem>
               )}
 
+              {/* Where the card came from (#1306): one word per source, never a path. */}
+              {!!card.sources?.length && (
+                <MetaItem label={c.meta.source}>
+                  <SourceLinks cardId={card.id} sources={card.sources} />
+                </MetaItem>
+              )}
+
               {/* When this job last ran (#64) — recurring cards only, since it is the
                   one card that has a "last time". A card that has never run says so
                   in words rather than showing a dash: never run is a real state, and
@@ -2210,7 +2219,7 @@ export function CardPage({
             />
 
               <CardBody
-                body={card.body}
+                body={card.sources?.length ? withoutSourceSection(card.body) : card.body}
                 title={card.title}
                 cardId={card.id}
                 mockups={mockups}

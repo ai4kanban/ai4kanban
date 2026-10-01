@@ -30,6 +30,7 @@ import {
   readReleases,
   readSetupDraft,
   readSetupState,
+  readCardSource,
   readSignals,
   searchCards,
   signalsOpen,
@@ -283,6 +284,7 @@ import type {
   SkillState,
   SlackConversation,
   SlackState,
+  SourceDocument,
   SpecAgentView,
   UsageReporting,
   VerifyResult,
@@ -325,6 +327,17 @@ export async function cardOnBoardAction(id: number): Promise<boolean> {
     return await cardStillThere(id);
   } catch {
     return true;
+  }
+}
+
+/** What a card's source link opens (#1306). The card names the document; nothing here takes
+ *  a path. */
+export async function readCardSourceAction(cardId: number, kind: string, ref: string): Promise<SourceDocument | null> {
+  if (!Number.isInteger(cardId) || typeof kind !== "string" || typeof ref !== "string") return null;
+  try {
+    return await readCardSource(cardId, kind, ref);
+  } catch {
+    return null;
   }
 }
 

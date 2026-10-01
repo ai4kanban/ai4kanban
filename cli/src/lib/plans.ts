@@ -10,7 +10,7 @@ import { slugify } from './validate'
 /** One plan file, as a screen draws it. `text` is empty for a path whose file is not there
  *  — a plan named the instant before it is first written, or one mid-rewrite. */
 export interface PlanFile {
-  /** Where it is, relative to the board folder — the path a card's `## Source` carries. */
+  /** Where it is, relative to the board folder. */
   path: string
   text: string
   lines: number
@@ -108,12 +108,11 @@ function renamedPlan(rel: string): string | null {
   return found.sort((a, b) => b.at - a.at)[0]!.rel
 }
 
-/** File one plan away: its run has written its cards, so it moves to `plans/archive/` and
- *  the path answered is what those cards should name in `## Source` (#551).
+/** File one plan away: its run has written its cards, so it moves to `plans/archive/`
+ *  (#551). Its cards name it by id (`source: plan:<id>`), so nothing is repointed.
  *
- *  A plan already filed, or one whose file is no longer there, answers its own path — the
- *  move is done, or there is nothing to move, and either way the caller has nothing to
- *  repoint. Null only when the path is not a plan of this board's. */
+ *  A plan already filed, or one whose file is no longer there, answers its own path. Null
+ *  only when the path is not a plan of this board's. */
 export function archivePlan(rel: string): string | null {
   const found = readPlan(rel)
   if (!found) return null
@@ -132,7 +131,7 @@ export function archivePlan(rel: string): string | null {
   return `${ARCHIVED}${name}`
 }
 
-/** An absolute plan path for agents and source references. */
+/** An absolute plan path for agents. */
 export const planPathInText = (rel: string): string => planFile(rel) ?? rel
 
 /** The board-relative path behind one spelled that way, or null when it is not a plan of

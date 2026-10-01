@@ -21,6 +21,8 @@ import {
   setChatPlanRun,
 } from './chat'
 import { locate, locateArchived } from '../cards'
+import { plansNamed } from '../card-sources'
+import { parseFrontmatter } from '../frontmatter'
 import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
 import { archiveInboxItem } from '../signals/inbox'
 import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
@@ -63,9 +65,8 @@ function became(target: ChatTarget): DiscussRead {
   return cards.length ? { ...NOTHING, became: cards.map((id) => ({ id, title: titleOf(id) ?? '' })) } : NOTHING
 }
 
-// One plan as the screen draws it — spelled from the project root, the way a card's
-// `## Source` carries it: the panel shows the path to copy, and the board never opens a plan
-// itself.
+// One plan as the screen draws it — spelled from the project root: the panel shows the path
+// to copy.
 function shown(plan: ChatPlan): DiscussPlan | null {
   const file = readPlan(plan.path)
   return file && { ...file, path: planPathInText(file.path), title: planHeading(file.text), workflow: plan.workflow }
@@ -108,8 +109,8 @@ export function startedPlanning(
 }
 
 /** Settle every open plan whose run has ended having written cards (#917). A plan some new
- *  card names in `## Source` is finished: it is filed under `plans/archive/`, those cards are
- *  repointed at where it went, and the discussion lets it go. One no card names goes back to
+ *  card names as a source is finished: it is filed under `plans/archive/` and the discussion
+ *  lets it go. One no card names goes back to
  *  the discussion to be handed off again. A run handed a single plan wrote its cards from it
  *  whatever they name, as it always has. */
 export function settlePlans(target: ChatTarget, look: RunLook): void {
@@ -126,8 +127,7 @@ export function settlePlans(target: ChatTarget, look: RunLook): void {
         returnChatPlan(target, plan.path)
         continue
       }
-      const moved = archivePlan(plan.path)
-      if (moved && moved !== plan.path) for (const id of naming) repointSource(id, plan.path, moved)
+      archivePlan(plan.path)
       clearChatPlan(target, plan.path, naming)
       archiveDiscussionTriage(target, naming[0]!)
     }
@@ -147,64 +147,17 @@ export function archiveDiscussionTriage(target: ChatTarget, cardId: number): voi
   }
 }
 
-// One card's file, whatever became of the card; null when it is gone.
-function cardFile(id: number): string | null {
-  const found = locate(id) ?? locateArchived(id)
-  if (!found) return null
-  return found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-}
-
-// Where a card's `## Source` section sits: up to the next section or the agent boundary, as it
-// may sit in either half.
-function sourceSpan(text: string): { start: number; end: number } | null {
-  const start = text.search(/^## Source\s*$/m)
-  if (start < 0) return null
-  const next = text.slice(start + 1).search(/^## |^<!--\s*agent\s*-->/m)
-  return { start, end: next < 0 ? text.length : start + 1 + next }
-}
-
-function sourceOf(text: string): string {
-  const span = sourceSpan(text)
-  return span ? text.slice(span.start, span.end) : ''
-}
-
-// Whether a card's `## Source` names this plan, however it was spelled — by its id, the one
-// part of the name that survives a rename and the move into `archive/`.
+// Whether a card names this plan as a source, by the plan's id — the one part of its name
+// that survives a rename and the move into `archive/`.
 function sourceNames(id: number, plan: string): boolean {
   const planId = /(\d+)-[^/]*\.md$/.exec(plan)?.[1]
-  if (!planId) return false
+  const found = locate(id) ?? locateArchived(id)
+  if (!planId || !found) return false
   try {
-    const file = cardFile(id)
-    return !!file && new RegExp(`plans/(archive/)?${planId}-`).test(sourceOf(fs.readFileSync(file, 'utf8')))
+    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+    return plansNamed(meta ?? { source: [] }, body).includes(Number(planId))
   } catch {
     return false
-  }
-}
-
-// Rewrite one card's `## Source` to name where the plan went. A card already rejected or
-// otherwise gone is passed over — the plan still moves, and nothing here is worth failing
-// the move for.
-function repointSource(id: number, from: string, to: string): void {
-  let file: string | null
-  let text: string
-  try {
-    file = cardFile(id)
-    if (!file) return
-    text = fs.readFileSync(file, 'utf8')
-  } catch {
-    return
-  }
-  const span = sourceSpan(text)
-  if (!span) return
-  const was = text.slice(span.start, span.end)
-  // Both spellings are replaced: the path from the project root, which is what a card
-  // carries, and the board-relative one in case something wrote that instead.
-  const source = was.replaceAll(planPathInText(from), planPathInText(to)).replaceAll(from, to)
-  if (source === was) return
-  try {
-    fs.writeFileSync(file, text.slice(0, span.start) + source + text.slice(span.end))
-  } catch {
-    // The card goes on naming a path that still reads — `readPlan` follows the plan by its
-    // id into either folder.
   }
 }

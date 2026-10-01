@@ -344,7 +344,6 @@ function cardBody(item: Signal): string {
     '',
     '## Worth noting',
     '',
-    ...(item.url ? ['## Source', '', item.url, ''] : []),
     '<!-- agent -->',
     '',
     '## Scope',

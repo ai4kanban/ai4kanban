@@ -284,6 +284,8 @@ export {
   signalsAccess,
 } from './lib/signals'
 export { triageAfterAdding } from './lib/agent/auto-triage'
+// The plan or triage item a card's source link opens (#1306).
+export { readCardSource } from './lib/card-sources'
 export type { SignalOutcome, SignalsAccess, TriageCheck, TriageStatus } from './lib/signals'
 
 // The Cloud notification center (#319): the events this machine's boards raise, and the bell

@@ -267,6 +267,25 @@ export interface CardCreation {
   runId: string
 }
 
+/** One place a card came from, as the card page links it (#1306). No path is ever here. */
+export interface SourceLink {
+  kind: 'plan' | 'triage' | 'card' | 'url'
+  /** What it opens: the plan's id, the item's source id, the card's id, or the address. */
+  ref: string
+  /** Hover text: the plan's, item's or card's title, or the address's host. */
+  title: string
+  /** A card that has left the board, so the link goes to its archive page. */
+  archived?: boolean
+}
+
+/** A plan or a triage item, opened to be read from a card. */
+export interface SourceDocument {
+  title: string
+  text: string
+  /** A triage item's original link. Empty when it has none, and on a plan. */
+  url: string
+}
+
 export interface Card {
   id: number
   /** What version of this card was read (#312). A write passes it back as the revision it
@@ -310,6 +329,9 @@ export interface Card {
   schedule: CardSchedule | null
   /** The card body below the frontmatter (markdown). */
   body: string
+  /** Where it came from. Read on the card's own page only, and absent when nothing is known
+   *  or readable; when present the page leaves `## Source` out of the body. */
+  sources?: SourceLink[]
   todos: { total: number; done: number }
   /** True when this card is a group root — a `<id>-<slug>/` folder holding a `root.md`.
    *  Read from that folder shape, never from the subtask count: a finished subtask's file
@@ -632,6 +654,7 @@ export interface ArchivedCard {
 export interface ArchivedCardFile extends ArchivedCard {
   /** The card body below the frontmatter (markdown). */
   body: string
+  sources?: SourceLink[]
 }
 
 /** What the archive holds. */

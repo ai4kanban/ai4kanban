@@ -33,12 +33,8 @@ build.
   sentence, or the plan's whole text, verbatim, in a fenced code block. Open the fence with
   more backticks than the longest run inside it, or the card fails validation on an unclosed
   fence.
-- **From a plan, name it**: add `## Source` carrying the plan's path from the project root,
-  the way a create off a plan writes it — once the discussion has let the plan go, that path
-  is the only way back to the file. It follows the `Worth noting` sections, above any
-  `## By` agent section.
-- **From a triage item, file it**: pass `--triage <source-id>` to the create, write only
-  the item's original link under `## Source`, and run
+- **From a plan, name it**: pass `--source <plan path>` to the create.
+- **From a triage item, file it**: pass `--triage <source-id>` to the create, and run
   `akb triage archive <source-id> --card <id>` straight after, before any build work.
 - **Leave the rest of the scaffold**: `## Worth noting`, `## Scope`, `## Todo` and
   `## Decided by the agent` stay exactly as `raw create` wrote them.

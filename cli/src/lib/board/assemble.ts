@@ -23,8 +23,10 @@ import type {
   CardStatus,
   Column,
   Question,
+  SourceLink,
   Subtask,
 } from '../view/types'
+import { writtenSourceRefs } from '../source'
 import type { BoardScreen, BoardStanding, CardScreen, ScreenBoard } from './screen'
 
 // ---- what a read carries ----------------------------------------------------
@@ -315,7 +317,25 @@ function collectCards(read: BoardRead, now: number): { board: Card[]; every: Car
   }
 
   attachBlockers(cards)
+  attachSources(cards, read)
   return { board, every: cards }
+}
+
+/** Where each card came from (#1306), as far as a hosted page can open it: another open card,
+ *  or an address. A plan and a triage item are files on the machine holding the board. */
+function attachSources(cards: Card[], read: BoardRead): void {
+  const titles = new Map(cards.map((card) => [card.id, card.title]))
+  const stored = new Map(read.cards.map((entry) => [entry.id, fieldsOf(entry.data)]))
+  for (const card of cards) {
+    const held = stored.get(card.id)
+    if (!held) continue
+    const sources: SourceLink[] = []
+    for (const ref of writtenSourceRefs(lines(held.meta.source), held.body)) {
+      if (ref.kind === 'card' && titles.has(ref.id)) sources.push({ kind: 'card', ref: String(ref.id), title: titles.get(ref.id)! })
+      if (ref.kind === 'url') sources.push({ kind: 'url', ref: ref.url, title: ref.url.replace(/^https?:\/\//, '').split(/[/?#]/)[0]! })
+    }
+    if (sources.length) card.sources = sources
+  }
 }
 
 const subtaskOf = (card: Card): Subtask => ({

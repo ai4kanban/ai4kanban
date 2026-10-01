@@ -191,6 +191,11 @@ export type CardCopy = {
     unschedule: string;
     unscheduleHint: string;
     related: string;
+    /** Where the card came from (#1306), and the one word each kind of source is linked by.
+     *  A triage item wears the rail's own word. */
+    source: string;
+    sourcePlan: string;
+    sourceLink: string;
   };
   subtasks: {
     heading: string;

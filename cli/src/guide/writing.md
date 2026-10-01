@@ -14,9 +14,6 @@ Every flow writes a card in this order:
                              <- answered material decisions building turned up; written
                                 by the build, omit when empty. Never approved delivery scope
 
-## Source                    <- where the card came from: plan path, or a triage item's
-                                original link; omit when none
-
 ## By `<name>` agent         <- here when that agent's output is set to human review, or
                                 while a [user] question points at one set to agent use
 
@@ -79,17 +76,14 @@ Every flow writes a card in this order:
 - **Preserve superseded calls**: move agent or review decisions the user reverses to
   `Overruled by the user`.
 
-## `Source`
-
-- **Keep provenance traceable**: identify the URL, file, or message context that led to the
-  card and the relevant observation.
-- **Omit when unnecessary**: a direct task needs no source section unless its origin matters.
-
 ## General writing requirements
 
 - **Keep section titles fixed**: do not rename or translate an existing `##` or `###`
   section title, and leave empty scaffold sections in place.
 - **Edit only the body**: use board commands for every frontmatter field (`akb guide board`).
+- **Name the source in frontmatter**: pass each plan path, card `#id`, or URL the card came
+  from as `--source` to `akb raw create`, or `--add-source` to `akb raw update`; never write
+  a `## Source` section.
 - **Write for a fresh reader**: use professional, comprehensible language with no assumed
   conversation context.
 - **Keep human half self-contained**: nothing above `<!-- agent -->` may rely on the folded

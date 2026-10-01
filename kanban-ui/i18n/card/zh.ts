@@ -147,6 +147,9 @@ const zh: CardCopy = {
     unschedule: "取消",
     unscheduleHint: "取消计划——不会再自动启动",
     related: "相关",
+    source: "来源",
+    sourcePlan: "计划",
+    sourceLink: "链接",
   },
   subtasks: {
     heading: "子任务",

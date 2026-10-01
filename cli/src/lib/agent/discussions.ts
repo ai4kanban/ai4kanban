@@ -126,8 +126,8 @@ export function titleDiscussion(target: DiscussionTarget, title: string): void {
  *  the end of the subject, and a plan nothing came of is a file nobody would ever open again
  *  — the board lists plans nowhere, so what is left in `plans/` is unreachable by hand.
  *
- *  A plan handed to a run stays. The cards that run wrote name it in `## Source`, and that
- *  path is the only way back to the file.
+ *  A plan handed to a run stays. The cards that run wrote name it in `source:`, and that
+ *  is the only way back to the file.
  *
  *  It is the rail's **End discussion** (#633), and it does only this: a card's conversation
  *  put away leaves the list and nothing else — it does not free a card its reply is holding,

@@ -29,6 +29,7 @@ import {
   listSessionsAction,
   patchCardAction,
   planReleaseAction,
+  readCardSourceAction,
   resumeCloudRequestAction,
   resumeSessionAction,
   scheduleCardAction,
@@ -49,6 +50,7 @@ export const appActions: ScreenActions = {
   skipQuestion: skipQuestionAction,
   scheduleCard: scheduleCardAction,
   unscheduleCard: unscheduleCardAction,
+  readCardSource: readCardSourceAction,
 
   createRelease: createReleaseAction,
   planRelease: planReleaseAction,

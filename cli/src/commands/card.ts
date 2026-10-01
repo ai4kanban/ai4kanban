@@ -17,6 +17,7 @@ import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
 import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
+import { hasSourceSection, sourceRefFrom } from '../lib/source'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { cardCreation, readStore } from '../lib/agent/store'
@@ -106,6 +107,8 @@ export interface CreateOptions {
   workflow?: string
   /** `--triage`: the source id of the triage item this card is made of. */
   triage?: string
+  /** `--source`, repeatable: a plan, a card or an address the card came from (#1306). */
+  source?: string[]
   schedule?: ScheduledAction
   /** `--question` and the choices that qualify it, in the order they were typed. */
   asked: [key: string, value: string][]
@@ -173,10 +176,14 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const workflow = workflowFlag(opts.workflow)
   const triage = (opts.triage ?? '').trim()
   if (triage && recurring) die('--triage is not for a recurring card: a triage item becomes a one-shot task.')
+  const source = sourceFlag(opts.source ?? [], 'source', start)
   const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
   const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, recurring, questions) : null
   const written = bodyFromFile(opts)
+  if (written && hasSourceSection(written)) {
+    die('the body carries a `## Source` section — drop it and pass --source <plan path | plan:<id> | #<id> | URL> instead', { kind: 'needs-input' })
+  }
   const slug = slugify(opts.slug !== undefined ? opts.slug : title)
   const fileRel = recurring ? path.join(RECURRING, `${start}-${slug}.md`) : `${start}-${slug}.md`
   const file = path.join(TODO, fileRel)
@@ -185,7 +192,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
-  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, cadence, questions }
+  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, source, cadence, questions }
   const scaffolded = !written && opts.body !== false
   const body = written ?? (!scaffolded ? '' : recurring ? recurringBody() : defaultBody())
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
@@ -227,6 +234,23 @@ export interface UpdateOptions {
   modules?: string[]
   slug?: string
   cadence?: string
+  source?: string[]
+  addSource?: string[]
+}
+
+// What `--source` names, as `source:` stores it. A plan's path becomes `plan:<id>`, which
+// outlives a rename and the move into `plans/archive/`.
+function sourceFlag(said: string[], flag: string, ceiling: number): string[] {
+  const out: string[] = []
+  for (const one of said) {
+    if (!one.trim()) continue
+    const ref = sourceRefFrom(one)
+    if (!ref) die(`--${flag} ${JSON.stringify(one)} is not a source — pass a plan's path, plan:<id>, #<id> or a URL`, { kind: 'needs-input' })
+    const card = /^#(\d+)$/.exec(ref!)
+    if (card && Number(card[1]) >= ceiling) die(`--${flag} ${ref}: no card has that id yet`)
+    if (!out.includes(ref!)) out.push(ref!)
+  }
+  return out
 }
 
 // Which workflow a card runs on. Empty means the board's default and is written as no key at
@@ -254,6 +278,7 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
   if (flags.blockedBy !== undefined && flags.addBlockedBy !== undefined) die('--blocked-by replaces the list and --add-blocked-by appends to it — pass one')
   if (flags.related !== undefined && flags.addRelated !== undefined) die('--related replaces the list and --add-related appends to it — pass one')
+  if (flags.source !== undefined && flags.addSource !== undefined) die('--source replaces the list and --add-source appends to it — pass one')
 
   const changes: string[] = []
   if (flags.title !== undefined) {
@@ -307,6 +332,15 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.modules !== undefined) {
     meta.modules = validModules(flags.modules)
     changes.push('modules')
+  }
+  // `--source ""` clears the list.
+  if (flags.source !== undefined) {
+    meta.source = sourceFlag(flags.source, 'source', ceiling)
+    changes.push('source')
+  }
+  if (flags.addSource !== undefined) {
+    meta.source = [...new Set([...meta.source, ...sourceFlag(flags.addSource, 'add-source', ceiling)])]
+    changes.push('source')
   }
   // How often the card repeats, and so whether the local UI runs it in the
   // background at all. `--cadence ""` clears it and the card goes back to

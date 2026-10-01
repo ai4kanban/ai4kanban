@@ -39,6 +39,9 @@ export interface Meta {
   /** The source id of the triage item this card was made of — only `raw create --triage`
    *  writes it, and a triage run reads it to find an item already carded (signals/carded.ts). */
   triage: string
+  /** Where the card came from (#1306): `plan:<id>`, `#<id>` or an address each (./source.ts).
+   *  A triage card carries none — `triage:` already names its item. */
+  source: string[]
   /** A video card's shot previews were approved under the retired two-round flow (#991).
    *  Still read, never acted on: it authorizes nothing since #1057. */
   preview_approved: boolean

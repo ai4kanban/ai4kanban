@@ -346,7 +346,7 @@ describe('the sort', () => {
     assert.equal(valid.code, 0, valid.err + valid.out)
   })
 
-  it('schedules a refine on a small card too, and writes only the link under Source', async () => {
+  it('schedules a refine on a small card too, and writes no Source section', async () => {
     signIn(true)
     startCollecting()
     try {
@@ -359,7 +359,7 @@ describe('the sort', () => {
     const text = cardText('100-small-fix.md')
     assert.match(text, /^status: todo$/m)
     assert.match(text, /^schedule:/m)
-    assert.match(text, /## Worth noting\n\n## Source\n\nhttps:\/\/example\.test\/post\n\n<!-- agent -->/)
+    assert.match(text, /## Worth noting\n\n<!-- agent -->/)
     assert.equal(item(readArchived()[0]!.sourceId).verdict, 'plan-without-refine')
   })
 

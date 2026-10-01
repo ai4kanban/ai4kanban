@@ -132,8 +132,8 @@ export let DELIVERIES = ''
 // next-id like a card. Bodies and discussion links stay in the checkout.
 export let PLANS = ''
 // Where a plan goes once the run it was handed to has written its cards (#551). Same file,
-// one folder down, so `plans/` stays a short list of what is still live and the cards that
-// name the plan in `## Source` are repointed at it here.
+// one folder down, so `plans/` stays a short list of what is still live. Cards name a plan
+// by id (`source: plan:<id>`), which the move leaves true.
 export let PLANS_ARCHIVE = ''
 // One rule per agent, in the user's own words, appended to the end of every run that agent
 // does (#306, #420) — `rules/<agent>.md`, named by a role the board ships or a specialist a

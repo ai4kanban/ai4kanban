@@ -74,6 +74,8 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //                            laid out — and the two screen shapes assembled from one Cloud
 //                            read. `akb` reads a card off disk with these; a hosted page
 //                            reads the same card over the network with them.
+//   source                   where a card came from (#1306) — the refs `source:` carries and
+//                            the old `## Source` section the card page leaves out.
 //   storyboard               the `<Storyboard>` marker and its same-card path (#963) —
 //                            `akb raw validate` and the card page find it the same way.
 const SHARED = [
@@ -91,6 +93,7 @@ const SHARED = [
   "board/screen.ts",
   "board/assemble.ts",
   "storyboard.ts",
+  "source.ts",
 ];
 
 const BANNER = (name) =>

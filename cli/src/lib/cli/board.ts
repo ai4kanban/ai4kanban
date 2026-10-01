@@ -23,6 +23,7 @@ import { LEVELS, STATUSES } from '../validate'
 import { QUESTION_TAGS } from '../view/rules'
 import {
   cardId,
+  collect,
   collectList,
   ctxOf,
   newCommand,
@@ -163,6 +164,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
     .option('--workflow <id>', "the workflow it runs through (`akb workflow list`). Left off, the board's default")
     .option('--triage <source-id>', 'the triage item this card is made of, so the item is never carded twice')
+    .option('--source <ref>', "where it came from: a plan's path, plan:<id>, #<id> or a URL. Repeatable", collect)
     .option(
       '--schedule <action>',
       `hand the new card's first run to the board: ${SCHEDULED_ACTIONS.join(' | ')}`,
@@ -190,6 +192,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--add-blocked-by <ids>', 'append ids to blocked_by, keeping the ids already there', collectList)
     .option('--add-related <ids>', 'append ids to related, keeping the ids already there', collectList)
     .option('--modules <names>', 'the parts of the project it touches', collectList)
+    .option('--source <ref>', "where it came from: a plan's path, plan:<id>, #<id> or a URL. Repeatable; \"\" clears the list", collect)
+    .option('--add-source <ref>', 'append one source, keeping the ones already there. Repeatable', collect)
     .option('--slug <slug>', 'rename the file')
     .option('--cadence <cadence>', `how often it repeats: ${CADENCE_FORMS}. "" clears it. Recurring cards only`)
     .action(async function (this: Command, id: number) {

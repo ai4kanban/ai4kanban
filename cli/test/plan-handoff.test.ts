@@ -126,7 +126,7 @@ describe('the handoff itself', () => {
 })
 
 describe('the run that wrote cards', () => {
-  it('files the plan away and repoints every card that run wrote', () => {
+  it('files the plan away and leaves every card that run wrote as it was', () => {
     const target = discussing()
     const first = card(9)
     const second = card(10)
@@ -140,7 +140,7 @@ describe('the run that wrote cards', () => {
     assert.equal(fileIsThere(PLAN_REL), false)
     assert.equal(fileIsThere(FILED_REL), true)
     for (const file of [first, second]) {
-      assert.match(fs.readFileSync(file, 'utf8'), new RegExp(`docs/kanban/${FILED_REL}`))
+      assert.match(fs.readFileSync(file, 'utf8'), new RegExp(`docs/kanban/${PLAN_REL}`))
     }
   })
 
@@ -309,10 +309,20 @@ describe('several plans in one discussion (#917)', () => {
     assert.deepEqual(openPaths(target), [])
     assert.equal(fileIsThere(FILED_REL), true)
     assert.equal(fileIsThere('plans/archive/13-another-subject.md'), true)
-    assert.match(fs.readFileSync(first, 'utf8'), new RegExp(FILED_REL))
+    assert.match(fs.readFileSync(first, 'utf8'), new RegExp(PLAN_REL))
   })
 
-  it('reads and repoints a ## Source in the human half, leaving the agent half alone', () => {
+  it('files each plan a card names in `source:`', () => {
+    const target = twoPlans()
+    fs.writeFileSync(path.join(TODO, '9-a-card.md'), '---\ntitle: A card\nsource:\n  - plan:13\n---\nThe requirement.\n')
+    startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9] }), 'plan', target)
+
+    listDiscussions()
+    assert.deepEqual(openPaths(target), [PLAN_REL])
+    assert.equal(fileIsThere('plans/archive/13-another-subject.md'), true)
+  })
+
+  it('reads an old ## Source in the human half, leaving the card alone', () => {
     const target = twoPlans()
     const file = path.join(TODO, '9-a-card.md')
     const agentHalf = `<!-- agent -->\nCompare \`${planPathInText(OTHER_REL)}\`.\n\n## Scope\n- Words.\n`
@@ -321,8 +331,9 @@ describe('several plans in one discussion (#917)', () => {
 
     listDiscussions()
     assert.deepEqual(openPaths(target), [OTHER_REL])
+    assert.equal(fileIsThere(FILED_REL), true)
     const written = fs.readFileSync(file, 'utf8')
-    assert.match(written, new RegExp(`## Source\\n\\n- \`${planPathInText(FILED_REL)}\``))
+    assert.match(written, new RegExp(`## Source\\n\\n- \`${planPathInText(PLAN_REL)}\``))
     assert.ok(written.endsWith(agentHalf))
   })
 

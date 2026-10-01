@@ -438,11 +438,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         // plan is a file the user can open, and a copy pasted in here would go stale. Several
         // plans from one discussion go as one request (#917).
         req.plans && req.plans.length > 1
-          ? `${kb}. Add task(s) from these plans, written in one discussion: ${req.plans.map((p) => `\`${p}\``).join(', ')}. Read every one first and plan them as one request: merge overlapping requirements into one card, and record dependencies between cards. Write \`## Source\` on every card naming each plan it came from; a plan no new card names is handed back to the discussion as not planned.`
+          ? `${kb}. Add task(s) from these plans, written in one discussion: ${req.plans.map((p) => `\`${p}\``).join(', ')}. Read every one first and plan them as one request: merge overlapping requirements into one card, and record dependencies between cards. Pass each plan a card came from as \`--source\` to its \`raw create\`; a plan no new card names is handed back to the discussion as not planned.`
           : req.plan
-          ? `${kb}. Add task(s) from the plan at \`${req.plan}\`. Read it first, and write \`## Source\` naming that path on every card you create.`
+          ? `${kb}. Add task(s) from the plan at \`${req.plan}\`. Read it first, and pass \`--source ${req.plan}\` to every \`raw create\`.`
           : req.triage
-            ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, pass \`--triage ${req.triage.sourceId}\` to \`raw create\`, and write only the item's original link under \`## Source\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`
+            ? `${kb}. Add a task from the triage item at \`${req.triage.file}\`. Read it first, and pass \`--triage ${req.triage.sourceId}\` to \`raw create\`. Then run \`${command} triage archive ${req.triage.sourceId} --card <id>\` with the new card, or with the open card that already owns this work instead of creating one.`
             : `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
         req.fromCard ? `This came up on card #${req.fromCard}; record its dependency on the new card(s) as add-task says.` : '',

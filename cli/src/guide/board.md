@@ -50,7 +50,7 @@ id 4). Ids are global and never reused; only `akb raw create` allocates them.
 
 `akb raw create`, `update`, `update-questions`, `update-verify`, and `schedule` manage
 the metadata: title, priority, roi, status, release, blocked_by, related, modules,
-questions, verify, and schedule. Edit only the card's **body** by hand. `akb raw help`
+source, questions, verify, and schedule. Edit only the card's **body** by hand. `akb raw help`
 lists all operations; `akb raw help <move>` explains one operation.
 
 ## Inside a board run

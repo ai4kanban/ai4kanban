@@ -80,6 +80,7 @@ import type {
   SetupDraft,
   SetupState,
   SignalInbox,
+  SourceDocument,
   SignalsAccess,
   VerifyResult,
   WriteResult,
@@ -580,6 +581,9 @@ export interface BoardRules {
    *  rules older than the release that added them, and the rail then offers no Triage row. */
   signalsAccess?(): Promise<SignalsAccess>;
   readSignals?(): SignalInbox;
+  /** The plan or triage item one of a card's source links opens (#1306). Optional: older
+   *  rules name no sources, so nothing asks. */
+  readCardSource?(cardId: number, kind: string, ref: string): SourceDocument | null;
   dismissSignal?(sourceId: string, reason: string): { ok: boolean; error?: string };
   restoreSignal?(sourceId: string): { ok: boolean; error?: string };
   /** Batches (#1196), each id answered on its own. */

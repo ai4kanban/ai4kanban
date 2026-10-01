@@ -130,6 +130,8 @@ export type {
   Signal,
   SignalConfigGap,
   SignalInbox,
+  SourceDocument,
+  SourceLink,
   SignalMeta,
   SignalsAccess,
   Subtask,

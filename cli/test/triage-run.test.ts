@@ -74,7 +74,7 @@ describe('the sort', () => {
 describe('a card written in one call', () => {
   it('writes the body with the card, so nothing is scheduled onto a scaffold', () => {
     const body = path.join(root, 'body.md')
-    fs.writeFileSync(body, '\nWhat it does.\n\n## Todo\n- [ ] Build it.\n\n## Source\n- t3_abc\n')
+    fs.writeFileSync(body, '\nWhat it does.\n\n## Todo\n- [ ] Build it.\n')
     const { value } = quiet(() => cmdCreate({ title: 'Share conventions', bodyFile: body, schedule: 'refine', asked: [] }))
     const written = fs.readFileSync(path.join(root, String(value.file)), 'utf8')
     assert.match(written, /What it does\./)
@@ -142,7 +142,7 @@ describe('the reconciliation a run starts with', () => {
   it('archives an item an open card was made of, so nothing is judged twice', async () => {
     const id = await waiting('Already carded')
     const body = path.join(root, 'body.md')
-    fs.writeFileSync(body, 'Words.\n\n## Source\n- https://example.com/post\n\n## Todo\n- [ ] Build it.\n')
+    fs.writeFileSync(body, 'Words.\n\n## Todo\n- [ ] Build it.\n')
     const { value } = quiet(() => cmdCreate({ title: 'Already carded', bodyFile: body, triage: id, asked: [] }))
     const written = fs.readFileSync(path.join(root, String(value.file)), 'utf8')
     assert.match(written, new RegExp(`^triage: ${id}$`, 'm'))

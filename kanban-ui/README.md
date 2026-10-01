@@ -80,8 +80,8 @@ It never shows in **Runs**.
 - **The plan**: once an outcome is agreed, the agent writes it to
   `docs/kanban/plans/<id>-<slug>.md` (the problem and the agreed behavior, 30–50 lines), shown in
   a resizable panel on the right and rewritten as the discussion moves.
-- **Plan tasks** starts the run that writes the cards, in the release on screen, each citing
-  the plan in `## Source`.
+- **Plan tasks** starts the run that writes the cards, in the release on screen, each naming
+  the plan in `source:`, which the card page shows as a **Source** link.
 - **Start now** asks first, then one run writes a single card from the plan and builds it — no
   refine.
 - **Not yet** leaves it. You can also type any of the three.

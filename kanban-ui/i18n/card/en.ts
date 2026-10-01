@@ -150,6 +150,9 @@ const en: CardCopy = {
     unschedule: "cancel",
     unscheduleHint: "Take the schedule off — nothing will start on its own",
     related: "Related",
+    source: "Source",
+    sourcePlan: "Plan",
+    sourceLink: "Link",
   },
   subtasks: {
     heading: "subtasks",

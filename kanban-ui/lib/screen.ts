@@ -30,6 +30,7 @@ import type {
   CommandRequest,
   ScheduledAction,
   SessionView,
+  SourceDocument,
   VerifyResult,
   WriteResult,
 } from "./types";
@@ -78,6 +79,9 @@ export interface ScreenActions {
   skipQuestion(id: number, question: string, skipped: boolean, expect: string): Promise<WriteResult>;
   scheduleCard(id: number, action: ScheduledAction, notes: string, expect: string): Promise<WriteResult>;
   unscheduleCard(id: number, expect: string): Promise<WriteResult>;
+  /** The plan or triage item a source link opens (#1306). Only the machine holding the board
+   *  can read one, and only there does a card carry such a link. */
+  readCardSource?(cardId: number, kind: string, ref: string): Promise<SourceDocument | null>;
 
   // ---- releases ------------------------------------------------------------
   createRelease(id: string, fill: boolean, goal: string): Promise<ReleaseMade>;

@@ -27,6 +27,11 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   // re-emitted whenever it is there, so no rewrite of a card can drop it.
   if (m.workflow) out.push(`workflow: ${yamlScalar(m.workflow)}`)
   if (m.triage) out.push(`triage: ${yamlScalar(m.triage)}`)
+  // One per line, never `[a, b]`: an address may hold a comma.
+  if (m.source?.length) {
+    out.push('source:')
+    for (const ref of m.source) out.push(`  - ${yamlScalar(ref)}`)
+  }
   if (m.preview_approved) out.push('preview_approved: true')
   // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
   // ./cadence.ts). Written only when the card carries one; no cadence means the
@@ -169,6 +174,9 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''
   meta.triage = typeof meta.triage === 'string' ? meta.triage.trim() : ''
+  meta.source = (Array.isArray(meta.source) ? meta.source : typeof meta.source === 'string' ? [meta.source] : [])
+    .map((ref) => String(ref).trim())
+    .filter(Boolean)
   meta.preview_approved = meta.preview_approved === 'true'
   // When this card last ran — recurring cards only, and only once they have run.
   // Anything but text reads as never run, so a blanked or damaged line just means

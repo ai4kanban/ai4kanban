@@ -182,6 +182,9 @@ export function collectList(value: string, previous: string[] = []): string[] {
   )
 }
 
+/** A repeatable option taken whole — an address may hold a comma. */
+export const collect = (value: string, previous: string[] = []): string[] => previous.concat(value)
+
 // ---- options that belong to the option before them -----------------------------------
 //
 // `--question`, and the `--option`/`--mode`/`--recommended-option` that qualify it, cannot
