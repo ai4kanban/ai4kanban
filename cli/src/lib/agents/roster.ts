@@ -137,7 +137,7 @@ function agentTemplate(name: string, stage?: WorkflowStage): string {
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
     ...(stage ? [`  stage: ${stage}`] : ['  kind: spec']),
-    '  # output, settings, i18n, and whether it leads: `akb guide write-agent`',
+    '  # output, i18n, and whether it leads: `akb guide write-agent`',
     '---',
     '',
     `Unwritten. Write what \`${name}\` does here: what it is given, what it produces, and`,

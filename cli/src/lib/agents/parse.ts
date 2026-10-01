@@ -78,6 +78,10 @@ const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan', l
  *  and the word every flow asks for it by. */
 export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
+/** Every `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts holds
+ *  both written key tables to it. */
+export const AGENT_KEYS = ['stage', 'kind', 'lead', 'output', 'i18n'] as const
+
 /** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
 export function parseSpecAgent(
   text: string,

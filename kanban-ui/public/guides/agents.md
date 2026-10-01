@@ -11,14 +11,11 @@ The box under this line is one: write in it as you read.
 ## Keys
 
 - **description** — when a card needs this agent, written for the flow that picks it.
-- **stage** — `plan`, `execute` or `review`.
+- **stage** — `plan` or `execute`.
 - **kind** — `spec` (default) or `lead`.
 - **lead** — `true` makes a spec agent lead its stage instead of helping on it.
 - **output** — `agent` (default) or `human`: which half of the card its section lands in.
   A spec agent's is a setting from here on; a lead's stays what its file says.
-- **settings** — the choices you make about it on this page. Each has a `key`, a `label`,
-  a `default` and its `choices`; a choice needs a `value`, a `label`, the `cost` of picking
-  it, and a `reference` file in the folder, sent to the run whole when it is picked.
 - **i18n** — what its lines say in another language. Drawn here only: every run is given
   the English.
 
