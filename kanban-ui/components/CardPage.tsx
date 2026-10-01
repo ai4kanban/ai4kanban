@@ -83,7 +83,7 @@ import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { columnOf } from "./Queue";
 import { configDialog } from "./Configuration";
-import { Pill, stageBlocked, useWorkflowName } from "./Workflows";
+import { Pill, blockedStages, useWorkflowName } from "./Workflows";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -1124,11 +1124,7 @@ function WorkflowItem({ card }: { card: Card }) {
   const deleted = workflowDeleted(card.workflow || "", flows.map((f) => f.id));
   const mine =
     flows.find((f) => f.id === (card.workflow || "")) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
-  // The stages a start would be refused over (#1227). A workflow finished in planning needs no
-  // execute lead, the same exception the board's own check makes.
-  const blocked = mine.stages
-    .filter((s) => stageBlocked(s) && !(s.stage === "execute" && mine.delivers === "plan" && !s.lead))
-    .map((s) => w.stages[s.stage]);
+  const blocked = blockedStages(mine).map((s) => w.stages[s]);
   const unavailable = deleted || mine.problems.length > 0;
   const tip = deleted ? c.meta.deletedHint : c.meta.noLead(blocked);
 

@@ -90,6 +90,13 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
 export const stageBlocked = (setup: WorkflowStageView): boolean =>
   !setup.lead || !setup.candidates.some((a) => a.name === setup.lead);
 
+/** The stages a start of this workflow is refused over (#1227). One finished in planning
+ *  needs no execute lead, the same exception the board's own check makes. */
+export const blockedStages = (flow: WorkflowView): WorkflowStage[] =>
+  flow.stages
+    .filter((s) => stageBlocked(s) && !(s.stage === "execute" && flow.delivers === "plan" && !s.lead))
+    .map((s) => s.stage);
+
 /** Whether a stage runs on a lead picked before agents declared whether they may lead (#846).
  *  It still runs; the pane only says so. */
 const leadUndeclared = (setup: WorkflowStageView): boolean =>

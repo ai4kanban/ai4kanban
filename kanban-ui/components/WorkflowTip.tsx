@@ -1,8 +1,9 @@
 "use client";
 
 // What a built-in workflow is for, in a bubble beside its row in a workflow list (#1021).
-// Shared by Configuration's picker and the create sheet's. Hover waits, keyboard focus does
-// not, and a touch screen gets an info button instead.
+// Shared by Configuration's picker and the create sheet's, which also says why a row cannot
+// be picked (#1278). Hover waits, keyboard focus does not, and a touch screen gets an info
+// button instead.
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -25,7 +26,7 @@ export function useWorkflowDescription(): (flow: { id: string; builtIn: boolean 
   return useCallback((flow) => (flow.builtIn ? texts[flow.id as keyof typeof texts] : undefined), [texts]);
 }
 
-type Shown = { id: string; text: string; row: HTMLElement };
+type Shown = { id: string; reason?: string; text?: string; row: HTMLElement };
 
 export function useWorkflowTip(menu: React.RefObject<HTMLElement | null>) {
   const describe = useWorkflowDescription();
@@ -62,13 +63,14 @@ export function useWorkflowTip(menu: React.RefObject<HTMLElement | null>) {
   const bubble = useRef<HTMLDivElement>(null);
   const descId = (id: string) => `${base}-${id}`;
 
-  /** Spread on the element that picks the workflow. `anchor` is the whole row. */
-  const rowProps = (flow: { id: string; builtIn: boolean }, anchor: () => HTMLElement | null) => {
+  /** Spread on the element that picks the workflow. `anchor` is the whole row; `reason` is
+   *  why the row cannot be picked, and is said before what the workflow is for. */
+  const rowProps = (flow: { id: string; builtIn: boolean }, anchor: () => HTMLElement | null, reason?: string) => {
     const text = describe(flow);
-    if (!text) return { onPointerEnter: () => later(() => setShown(null), LEAVE_DELAY), onFocus: clear };
+    if (!text && !reason) return { onPointerEnter: () => later(() => setShown(null), LEAVE_DELAY), onFocus: clear };
     const show = () => {
       const row = anchor();
-      if (row) setShown({ id: flow.id, text, row });
+      if (row) setShown({ id: flow.id, reason, text, row });
     };
     return {
       "aria-describedby": descId(flow.id),
@@ -91,9 +93,14 @@ export function useWorkflowTip(menu: React.RefObject<HTMLElement | null>) {
   };
 
   /** The touch screen's way in: a button beside the row, which only shows or hides. */
-  const infoButton = (flow: { id: string; builtIn: boolean; name: string }, name: string, anchor: () => HTMLElement | null) => {
+  const infoButton = (
+    flow: { id: string; builtIn: boolean; name: string },
+    name: string,
+    anchor: () => HTMLElement | null,
+    reason?: string,
+  ) => {
     const text = describe(flow);
-    if (!touch || !text) return null;
+    if (!touch || (!text && !reason)) return null;
     const open = shown?.id === flow.id;
     return (
       <button
@@ -105,7 +112,7 @@ export function useWorkflowTip(menu: React.RefObject<HTMLElement | null>) {
           e.stopPropagation();
           const row = anchor();
           if (open || !row) clear();
-          else setShown({ id: flow.id, text, row });
+          else setShown({ id: flow.id, reason, text, row });
         }}
         className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft outline-none focus-visible:bg-nb-wash"
       >
@@ -115,10 +122,10 @@ export function useWorkflowTip(menu: React.RefObject<HTMLElement | null>) {
   };
 
   /** The texts every described row points at, and the bubble itself. */
-  const layer = (flows: { id: string; builtIn: boolean }[]) => (
+  const layer = (flows: { id: string; builtIn: boolean }[], reasonOf?: (id: string) => string | undefined) => (
     <>
       {flows.map((f) => {
-        const text = describe(f);
+        const text = [reasonOf?.(f.id), describe(f)].filter(Boolean).join(" ");
         return text ? (
           <span key={f.id} id={descId(f.id)} hidden>
             {text}
@@ -188,7 +195,8 @@ function Bubble({
       className="a4k-nodrag fixed z-[70] rounded-[6px] bg-nb-ink px-[7px] py-1 text-[10.5px] font-[700] leading-[16px] text-nb-cream"
       style={place ?? { visibility: "hidden", top: 0, left: 0 }}
     >
-      {shown.text}
+      {shown.reason && <div>{shown.reason}</div>}
+      {shown.text && <div className={shown.reason ? "mt-1 font-[500] opacity-75" : ""}>{shown.text}</div>}
     </div>,
     document.body,
   );

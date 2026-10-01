@@ -29,7 +29,7 @@ import { configDialog } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { DiscussFeedbackBlock, ShareRow, useDiscussFeedback, type DiscussFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
-import { useWorkflowName } from "./Workflows";
+import { blockedStages, useWorkflowName } from "./Workflows";
 import { useWorkflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess, type ProLock } from "./pro";
 import { useWorkflowTip } from "./WorkflowTip";
@@ -766,6 +766,7 @@ function WorkflowPick({
   const c = useCopy().board.create.sheet.workflow;
   const pro = useCopy().shared.pro;
   const w = useCopy().configuration.workflows;
+  const noLead = useCopy().card.meta.noLead;
   const nameOf = useWorkflowName();
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -777,6 +778,11 @@ function WorkflowPick({
   const tip = useWorkflowTip(menu);
   const { shownId: tipShown, clear: clearTip } = tip;
   const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+  // Why a row cannot be picked, in the card page's own words (#1278).
+  const reasonOf = (id: string) => {
+    const flow = flows.find((f) => f.id === id);
+    return flow?.problems.length ? noLead(blockedStages(flow).map((s) => w.stages[s])) : undefined;
+  };
 
   const close = useCallback(
     (refocus: boolean) => {
@@ -917,7 +923,8 @@ function WorkflowPick({
                   const off = f.problems.length > 0;
                   const shut = off || (!!f.pro && !!lock);
                   const row = () => rows.current.get(f.id) ?? null;
-                  const props = tip.rowProps(f, row);
+                  const reason = reasonOf(f.id);
+                  const props = tip.rowProps(f, row, reason);
                   return (
                     <div
                       key={f.id}
@@ -934,9 +941,7 @@ function WorkflowPick({
                         role="menuitemradio"
                         aria-checked={f.id === mine.id}
                         aria-disabled={shut || undefined}
-                        title={
-                          "aria-describedby" in props ? undefined : off ? w.notReadyHint : shut ? pro.locked : undefined
-                        }
+                        title={"aria-describedby" in props || !shut ? undefined : pro.locked}
                         onClick={() => {
                           if (shut) return;
                           tip.clear();
@@ -954,7 +959,7 @@ function WorkflowPick({
                         {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft opacity-45">{w.notReady}</span>}
                         {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
                       </button>
-                      {tip.infoButton(f, nameOf(f), row)}
+                      {tip.infoButton(f, nameOf(f), row, reason)}
                     </div>
                   );
                 })}
@@ -974,7 +979,7 @@ function WorkflowPick({
                 />
               )}
             </div>
-            {tip.layer(flows)}
+            {tip.layer(flows, reasonOf)}
             <div className="mt-1 shrink-0 border-t border-nb-ink/10 pt-1">
               {lock && flows.some((f) => f.pro) && (
                 <button
