@@ -46,7 +46,6 @@ import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
 import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
-import triage from '../guide/triage.md'
 import unstick from '../guide/unstick.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
@@ -90,7 +89,6 @@ export const GUIDES: Guide[] = [
   { name: 'describe-product', when: 'rewrite the description of what the product is today', text: describeProduct },
   { name: 'review-dismissals', when: "learn the user's triage preferences from their dismissal reasons", text: reviewDismissals },
   { name: 'reflect', when: 'propose the work a just-completed card leaves behind', text: reflect },
-  { name: 'triage', when: 'judge what is waiting in triage: card the worthwhile, ignore the rest', text: triage },
   { name: 'unstick', when: 'settle a card that sat too long: keep it rewritten, or discard it', text: unstick },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
   { name: 'write-agent', when: 'create or change an agent, including one built from a skill — its AGENT.md, files, memory, and how to check it', text: writeAgent },

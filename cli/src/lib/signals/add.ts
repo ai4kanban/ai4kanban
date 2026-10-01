@@ -141,7 +141,7 @@ export function addToInbox(drop: InboxDrop): InboxAddResult {
       fs.mkdirSync(SIGNALS_FILES, { recursive: true })
       fs.writeFileSync(keep.at, keep.data)
     }
-    return { ok: true, signal: writeSignal({ ...incoming, sourceId }, formatStamp(new Date())) }
+    return { ok: true, signal: writeSignal({ ...incoming, sourceId }, formatStamp(new Date()), drop.slug) }
   } catch (e) {
     return { ok: false, error: `that could not be saved: ${e instanceof Error ? e.message : String(e)}` }
   }

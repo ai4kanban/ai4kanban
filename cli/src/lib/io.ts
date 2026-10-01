@@ -81,6 +81,17 @@ export function quietly<T>(fn: () => T): T {
   }
 }
 
+/** The same, across a move that is awaited. */
+export async function quietlyAsync<T>(fn: () => Promise<T>): Promise<T> {
+  const before = sink
+  sink = { out: [], warnings: [] }
+  try {
+    return await fn()
+  } finally {
+    sink = before
+  }
+}
+
 // One line of a move's prose answer.
 export function say(line: unknown = ''): void {
   const text = String(line)

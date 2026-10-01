@@ -75,7 +75,7 @@ function readMeta(sent: unknown): SignalMeta[] {
  *
  *  `platform` is what endpoints written before #499 called `source`; both are read through
  *  the match rule now (#560) and kept as a `meta` entry when they match nothing. */
-function read(raw: Wire): { ok: true; signal: IncomingSignal } | { ok: false; why: string } {
+function read(raw: Wire): { ok: true; signal: IncomingSignal; slug: string } | { ok: false; why: string } {
   const missing = REQUIRED.filter((field) => !text(raw[field]))
   if (missing.length > 0) return { ok: false, why: `missing ${missing.join(', ')}` }
   const sent = text(raw.collected_at)
@@ -101,6 +101,7 @@ function read(raw: Wire): { ok: true; signal: IncomingSignal } | { ok: false; wh
 
   return {
     ok: true,
+    slug: text(raw.slug),
     signal: {
       sourceId: text(raw.source_id) || derivedSourceId(url || `${title}\n${summary}`),
       title,
@@ -176,7 +177,7 @@ export async function fetchSignals(): Promise<FetchReport> {
       return
     }
     seen.add(found.signal.sourceId)
-    report.added.push(writeSignal(found.signal, importedAt))
+    report.added.push(writeSignal(found.signal, importedAt, found.slug))
   })
   return report
 }

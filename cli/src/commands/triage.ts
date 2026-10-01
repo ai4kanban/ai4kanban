@@ -17,16 +17,15 @@
 // where a source id already is. A pull is held off by all three states; a hand-written add
 // only by the two that are not a dismissal.
 //
-// `archive` and `dismiss` are how a judgement lands (#561): `akb triage run` calls one of
-// them per item, so the wording of a refusal and the fields a move writes live in one place
-// rather than in the flow's own head. Neither creates a card — `raw create` does that first,
-// and `archive` only records which card the item became.
+// `run` sorts what is waiting (#1263). `archive` and `dismiss` land one judgement by hand —
+// what a **Make card** run uses. Neither creates a card: `raw create` does that first, and
+// `archive` only records which card the item became.
 //
 // Nothing else in triage is a task: nothing here ranks anything or touches the board's counts.
 
 import fs from 'node:fs'
 
-import { triageAfterAdding } from '../lib/agent/auto-triage'
+import { openSort, runSort, triageAfterAdding } from '../lib/agent/auto-triage'
 import {
   addToInbox,
   archiveInboxItem,
@@ -40,7 +39,6 @@ import {
   signalsAccess,
 } from '../lib/signals'
 import { signalEndpoint } from '../lib/signals/config'
-import { judgeItem, reasonWords } from '../lib/signals/judge'
 import { say } from '../lib/io'
 import { withBoardLock } from '../lib/lock'
 import { die, rel, TRIAGE } from '../lib/paths'
@@ -99,6 +97,7 @@ export interface TriageAddOptions {
   text?: string
   file?: string
   source?: string
+  slug?: string
 }
 
 /** Write one item into triage. The body comes from `--text` for a line or two and from
@@ -120,7 +119,7 @@ export async function cmdTriageAdd(opts: TriageAddOptions): Promise<MoveResult> 
     die('the item has to say something: --text ".." , or --file <path> for a longer one', { kind: 'needs-input' })
   }
 
-  const done = addToInbox({ title, text: body, source: opts.source })
+  const done = addToInbox({ title, text: body, source: opts.source, slug: opts.slug })
   if (!done.ok) die(done.error, { kind: 'triage-item-refused' })
   say(`added to triage: ${done.signal.relPath}`)
   await triageAfterAdding(1)
@@ -172,22 +171,19 @@ export function cmdTriageDismiss(sourceId: string, reason: string): MoveResult {
   return { source_id: said, reason: why, file: done.relPath }
 }
 
-/** `akb triage judge` — Jev's verdict on one waiting item, for Pro (#1221). Prints one line:
- *  the verdict, its reason and the command that lands it; lands nothing itself. */
-export async function cmdTriageJudge(sourceId: string, files: string[], program = 'akb'): Promise<MoveResult> {
-  const said = sourceId.trim()
-  if (!said) die('say which one: `judge <source-id> [--files <paths>]`', { kind: 'needs-input' })
-  migrateTriage()
-  const { verdict, next, trimmed } = await judgeItem(said, files, program)
-  say(`${said} — ${verdict.verdict}: ${reasonWords(verdict)} (confidence ${verdict.confidence.toFixed(2)}) — next: ${next}`)
+/** `akb triage run` — sort what is waiting, here in the command (#1263): one Cloud request per
+ *  item, each landed before the next. */
+export async function cmdTriageRun(): Promise<MoveResult> {
+  const access = await signalsAccess()
+  if (!access.open) die(access.why, { kind: 'triage-closed' })
+  const opened = await openSort()
+  if ('error' in opened) die(opened.error, { kind: 'run-refused', action: 'triage' })
+  const report = await runSort(opened.run.sessionId, say)
   return {
-    source_id: said,
-    verdict: verdict.verdict,
-    reason: verdict.reason,
-    card: verdict.card,
-    confidence: verdict.confidence,
-    next,
-    trimmed,
+    cards: report?.cards ?? [],
+    ignored: report?.ignored ?? [],
+    held: report?.held ?? [],
+    failed: report?.failed ?? [],
   }
 }
 

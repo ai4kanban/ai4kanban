@@ -29,7 +29,7 @@ import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
-import { triageRunAfter, triageWaiting } from './auto-triage'
+import { runSort } from './auto-triage'
 import { reconcileTriage } from '../signals/carded'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
@@ -123,6 +123,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     return 1
   }
 
+  // A sort is the board's own loop rather than an agent (#1263).
+  if (run.action === 'triage') {
+    await runSort(sessionId)
+    return 0
+  }
+
   // A stop can reach a run before it ever spawns, and an index run can wait a long time for
   // its turn — so the record, not this process's own memory, is what says whether to carry
   // on. It is re-read at every step.
@@ -185,10 +191,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // really is its own — and not a neighbouring run's — is settled at the close by
   // `claimChanges`, and that is what earns a card the refine that follows.
   const before = markBoard()
-  // And, on a sort, the items it was handed (#562). A sort reads the list once at its spawn,
-  // so the close compares this against what is waiting then: a sort that judged none of them
-  // starts no other, and anything that arrived while it went is what the next one is for.
-  const sorting = record.action === 'triage' ? triageWaiting() : null
   const sources = snapshotSpecs()
   // And the board's own files as they stand, on a Cloud board: the difference between this
   // and the same read at the close is what this run wrote with its own tools, and what its
@@ -652,11 +654,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         // still open then; the dispatcher cannot answer this, because a completed card is
         // exactly what it no longer sees.
         const reflect = status === 'done' ? reflectRunsAfter(before.keys()) : []
-        // And the rest of what is waiting in triage (#562): a sort sees only the items it
-        // spawned with, so the batch it was held off from judging — and anything written while
-        // it went — is carried on here. Only a sort that FINISHED: one that failed or was
-        // stopped judged nothing, and the items are still where they were.
-        const sortOn = status === 'done' && sorting ? await triageRunAfter(sorting) : null
         // A **Make card** or **Start now** run records its item itself (#894, #1193); this
         // catches one that wrote the card and ended before it did.
         if (record.triage) {
@@ -666,7 +663,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             // the item stays waiting, and the next sort reconciles it
           }
         }
-        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, reflect, sortOn)
+        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, reflect)
       } finally {
         releaseCardAtWork(record.cardId)
         await reportRunEnded(sessionId, record.cardId, status)
@@ -881,7 +878,6 @@ async function followUp(
   runs: AgentRequest[],
   landing: AgentRequest | null = null,
   reflect: AgentRequest[] = [],
-  sortOn: AgentRequest | null = null,
 ): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
   // id, and that loop is this flow anyway.
@@ -901,10 +897,6 @@ async function followUp(
     // Then the reflections — they read the open cards and the inbox to decide what
     // is worth proposing, so they run once everything this close starts is on the board.
     for (const req of reflect) await startRun(join(req))
-    // Last, the next sort (#562), and NOT joined: what starts it is a list of items rather
-    // than the flow this run belonged to, so it is its own group, its own cost and its own
-    // notification — the same sort a new batch of items would have started.
-    if (sortOn) await startRun(sortOn)
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

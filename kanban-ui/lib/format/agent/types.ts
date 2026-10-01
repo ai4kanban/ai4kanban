@@ -102,11 +102,9 @@ export type AgentAction =
    *  finding nothing worth proposing is a valid result. Only runs while the proposer is
    *  switched on. */
   | 'reflect'
-  /** Sort what is waiting in triage (#561) — the triager's one flow. It names no card: the
-   *  items in `triage/` are the whole of what it works on. Each one is judged for duplicates
-   *  and for worth; a survivor becomes a card with a refine scheduled on it, and everything
-   *  else is ignored with a reason. Only while triage is open to this board —
-   *  `signalsAccess()` decides, exactly as it does for a fetch. */
+  /** Sort what is waiting in triage (#561, #1263). It names no card and spawns no agent: the
+   *  command judges each item through Cloud and lands the answer (./auto-triage.ts). The run
+   *  record is what shows a sort going and keeps a second one from starting. */
   | 'triage'
   /** Settle one card that has sat too long (#118) — the sweeper's one flow. It judges how
    *  much of the card is already done and whether the rest is still worth the effort, then

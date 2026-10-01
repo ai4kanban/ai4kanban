@@ -210,21 +210,6 @@ export const FLOWS: Flow[] = [
         'Describe the product sets the cadence.',
     ],
   },
-  // The triager's one flow (#561). Typed under `triage`, beside the words that put items
-  // there: it acts on what is waiting rather than on a card, so it names nothing.
-  {
-    command: 'triage',
-    group: 'triage',
-    verb: 'run',
-    action: 'triage',
-    argument: '',
-    gloss: 'judge what is waiting in triage: card the worthwhile, ignore the rest',
-    more: [
-      'Product boards with triage open only. One item at a time: a survivor becomes a card with a ' +
-        'refine scheduled on it, and everything else moves to `dismissed/` with a reason. Only one ' +
-        'of these runs at a time.',
-    ],
-  },
   // The sweeper's one flow (#118). Typed under `card` and named by one: a sweep over the
   // stale ones is #119's cadence starting this on each in turn, never a second command.
   {

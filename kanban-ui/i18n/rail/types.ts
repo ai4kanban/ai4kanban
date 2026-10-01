@@ -111,7 +111,7 @@ export type RailCopy = {
     plan: string;
     direct: string;
     verdict: string;
-    reasons: Record<"supported" | "rejected" | "duplicate" | "low-value" | "needs-user" | "unsure" | "small" | "plan", string>;
+    reasons: Record<"supported" | "rejected" | "duplicate" | "low-value" | "needs-user" | "unsure" | "small" | "plan" | "no-workflow", string>;
     duplicateOf: (id: number) => string;
     /** A record carried over from a board that kept only source ids and times (#559). */
     contentGone: string;

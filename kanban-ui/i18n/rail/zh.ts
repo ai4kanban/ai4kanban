@@ -92,6 +92,7 @@ const zh: RailCopy = {
       unsure: "拿不准",
       small: "改动小，已写清",
       plan: "值得做，需先规划",
+      "no-workflow": "没有工作流能做",
     },
     duplicateOf: (id) => `与 #${id} 重复`,
     contentGone: "原内容未保留",

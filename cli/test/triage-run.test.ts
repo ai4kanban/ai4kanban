@@ -1,11 +1,9 @@
 // Sorting what is waiting in triage (#561).
 //
-// The judgement itself is an agent's and cannot be asserted here. What can, and what this
-// covers, is the machinery around it: the flow is the triager's and nobody else's, the run
-// is one at a time, the flow prints the items rather than the folder, a card is written
-// whole in one call, each judgement lands through one command, and the two races a manual
-// run has — a person ignoring an item mid-run, and a run that died between the create and
-// the archive — leave exactly one judgement behind.
+// The sort itself is in triage-judge.test.ts. This covers the moves around it: a card
+// written whole in one call, a judgement landed by hand through one command, and the two
+// races — a person ignoring an item mid-run, and a run that died between the create and the
+// archive — leaving exactly one judgement behind.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -13,11 +11,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { printFlow } from '../src/lib/agent/flow.ts'
-import { flowByCommand, flowPath } from '../src/lib/agent/flows.ts'
+import { flowByCommand } from '../src/lib/agent/flows.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { roleForFlow } from '../src/lib/agent/roles.ts'
-import { openRun } from '../src/lib/agent/sessions.ts'
 import { cmdCreate, cmdUpdate } from '../src/commands/card.ts'
 import { cmdTriageAdd, cmdTriageArchive, cmdTriageDismiss } from '../src/commands/triage.ts'
 import { reconcileTriage } from '../src/lib/signals/carded.ts'
@@ -67,44 +63,11 @@ afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true })
 })
 
-describe('the flow', () => {
-  it('is typed `triage run` and belongs to the triager alone', () => {
-    const flow = flowByCommand('triage')!
-    assert.equal(flowPath(flow), 'triage run')
-    assert.equal(flow.argument, '')
+describe('the sort', () => {
+  it('is the triager\'s, and no flow an agent is handed', () => {
+    assert.equal(flowByCommand('triage'), undefined)
     assert.equal(roleForFlow('triage')!.name, 'triage')
-  })
-
-  it('prints the items themselves, and what each judgement lands through', async () => {
-    const id = await waiting('Conventions keep getting reverted')
-    const { said } = quiet(() => printFlow({ action: 'triage' }))
-    assert.match(said, new RegExp(`${id} — Conventions keep getting reverted`))
-    assert.match(said, /--schedule refine --body-file/)
-    assert.match(said, /triage archive <source-id> --card <id>/)
-    assert.match(said, /triage dismiss <source-id> --reason/)
-    assert.match(said, /report the count judged/)
-  })
-
-  it('says there is nothing to judge rather than asking for a card', () => {
-    const { said } = quiet(() => printFlow({ action: 'triage' }))
-    assert.match(said, /\(nothing\)/)
-    assert.match(said, /write nothing/)
-    assert.doesNotMatch(said, /1\. akb raw create/)
-  })
-
-  it('runs one at a time, so a second ask is refused rather than started', () => {
-    const first = openRun({ action: 'triage' }, 'sort it')
-    assert.ok(!('error' in first))
-    const second = openRun({ action: 'triage' }, 'sort it')
-    assert.equal('error' in second ? second.error : '', 'triage is already being sorted')
-  })
-
-  it('asks the run to record every judgement through the two commands', () => {
-    const ask = buildAsk({ action: 'triage' })
-    assert.match(ask, /akb guide triage/)
-    assert.match(ask, /triage archive/)
-    assert.match(ask, /triage dismiss/)
-    assert.match(ask, /no existing card, no open question, no build/)
+    assert.equal(buildAsk({ action: 'triage' }), '')
   })
 })
 

@@ -368,7 +368,7 @@ const ACTIONS = new Set([
   // setup strip. Started through startSetupRunAction below, which is where its own refusals
   // live.
   "setup",
-  // Sort all on the Triage page (#894) — what `akb triage run` starts.
+  // Sort all on the Triage page (#894) — what `akb triage run` does.
   "triage",
 ]);
 
@@ -2047,7 +2047,7 @@ export async function startTriageItemAction(sourceId: string): Promise<StartResu
   }
 }
 
-/** **Sort all** (#894): the sort `akb triage run` starts, over the whole queue. */
+/** **Sort all** (#894): the sort `akb triage run` does, started in the background. */
 export async function sortTriageAction(): Promise<StartResult & { closed?: boolean }> {
   const access = await signalsOpen();
   if (!access.open) return { ok: false, closed: true };

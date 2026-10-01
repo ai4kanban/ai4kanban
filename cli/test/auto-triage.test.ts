@@ -1,7 +1,7 @@
 // Auto triage (#562): when the board sorts what is waiting without being asked.
 //
-// The judgement itself is an agent's and cannot be asserted here. What can, and what this
-// covers, is exactly the decision to start a run: it always runs (#1208), a batch of nothing
+// The sort itself is in triage-judge.test.ts. What this covers is exactly the decision to
+// start a run: it always runs (#1208), a batch of nothing
 // starts nothing, Cloud is read again at the moment a run would start, and the sort that
 // follows a sort carries on only where the last one actually judged something.
 

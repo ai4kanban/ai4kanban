@@ -790,7 +790,12 @@ export function openRun(
   // and not this one.
   // …and on the runtime this run was started with, when it named one (#518) — over the one
   // its agent is set to, and for this run alone.
-  const plan = said ? { ...said.plan(cwd, sessionId), note: null } : planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
+  // A sort spawns no agent (#1263): Jev answers through Cloud, so there is no command to plan.
+  const plan = said
+    ? { ...said.plan(cwd, sessionId), note: null }
+    : req.action === 'triage'
+      ? { harness: 'jev', agent: agentForRun(req), argv: [], resumeId: null, install: '', cwd, note: null }
+      : planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
   // What that agent resolved to, when the board names a connector this version can't run. It
   // goes in the log rather than being swallowed: a run on another tool than the one asked
   // for is the first thing to check when its output looks wrong.

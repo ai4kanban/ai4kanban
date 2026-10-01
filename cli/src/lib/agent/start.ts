@@ -123,7 +123,8 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
   let opened: ReturnType<typeof openRun>
   try {
     // The skill is called the way the conversation's own CLI takes it.
-    const { prompt, notes } = buildRun(said ? { ...ask, runtime: said.runtime } : ask)
+    // A sort is the board's own loop (#1263): no agent, so no prompt.
+    const { prompt, notes } = ask.action === 'triage' ? { prompt: '', notes: [] } : buildRun(said ? { ...ask, runtime: said.runtime } : ask)
     opened = openRun(ask, prompt, notes, sessionId, said)
   } finally {
     said?.release()

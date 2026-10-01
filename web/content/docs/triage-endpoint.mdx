@@ -3,7 +3,7 @@ title: "The triage endpoint contract"
 title_tag: "AI4Kanban triage endpoint contract — serve signals to any board"
 description: "What an endpoint has to serve for akb triage fetch to read it: one authenticated GET, one JSON list, which fields are required, what makes an item's identity, and what each error status means. Version akb-triage/1."
 lead: "Anybody can serve a board's Triage. This is the whole of what an endpoint has to keep — one authenticated GET, one JSON list — so the board never has to know what platform is behind it."
-last_updated: "September 11, 2026"
+last_updated: "October 1, 2026"
 nav_label: "Triage endpoint"
 icon: "package"
 ---
@@ -77,6 +77,7 @@ answer, and the pull reports that it added nothing.
 | `title` | yes | One line, the item's own words. A blank one is not a title. |
 | `summary` | yes | The body. Any length; the board keeps it whole. |
 | `source_id` | no — but send it | Your stable identity for the item. See below. |
+| `slug` | no | A short English name, such as `export-board-as-csv`. It names the item's file and the card it becomes. |
 | `source_type` | no | Which source it came from. |
 | `url` | no | The thing itself, so a reader can open the original. |
 | `collected_at` | no | RFC 3339, when *you* collected it. |
@@ -90,6 +91,9 @@ answer, and the pull reports that it added nothing.
 - **`meta`** values are single-line strings; numbers and booleans are read as their text.
   An object, a list, or a value with a newline in it is left out. The board shows values,
   not keys, so write values that read on their own.
+- **`slug`** is lowercase letters, digits and hyphens; anything else is turned into a hyphen.
+  Leave it out and the board builds one from the title's English letters and digits, which
+  reads poorly for a title in another script.
 - **`collected_at`** is when the platform's post was collected, not when the board pulled
   it — the board stamps the import itself. Send it and a reader sees how fresh the item is;
   leave it out and the board uses the moment of the pull. A value that is not a time costs

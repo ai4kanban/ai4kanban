@@ -94,6 +94,7 @@ const en: RailCopy = {
       unsure: "Not sure",
       small: "Small and fully specified",
       plan: "Worth doing, needs planning",
+      "no-workflow": "No workflow can do it",
     },
     duplicateOf: (id) => `Duplicates #${id}`,
     contentGone: "Content not kept",

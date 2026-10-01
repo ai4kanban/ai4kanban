@@ -35,7 +35,7 @@ Drop a candidate that is already on the board (`akb raw list`) or in the inbox
 ## Write
 
 ```text
-akb triage add --title "<one line>" --source "#<id>" --text "<what, why, and docs/kanban/.archive/<file>>"
+akb triage add --title "<one line>" --slug <short-english-slug> --source "#<id>" --text "<what, why, and docs/kanban/.archive/<file>>"
 ```
 
 Report what you proposed and what you skipped, with a reason for each skip.

@@ -35,7 +35,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { formatStamp } from '../cadence'
-import { DERIVED } from './identity'
 import { matchSourceType, readSourceType } from './sources'
 import { SIGNALS_ARCHIVED, SIGNALS_DISMISSED, TRIAGE, rel } from '../paths'
 import { unquote, yamlScalar } from '../yaml'
@@ -66,7 +65,7 @@ export const triagePath = (): string => boardRel(TRIAGE)
 // ---- one file -------------------------------------------------------------
 
 const VERDICTS: TriageVerdict[] = ['plan', 'plan-without-refine', 'skip', 'human-review']
-const REASONS: TriageReason[] = ['supported', 'rejected', 'duplicate', 'low-value', 'needs-user', 'unsure', 'small', 'plan']
+const REASONS: TriageReason[] = ['supported', 'rejected', 'duplicate', 'low-value', 'needs-user', 'unsure', 'small', 'plan', 'no-workflow']
 
 // What an item waiting to be sorted carries, whatever wrote it. Everything else is optional.
 const FIELDS = ['source_id', 'title', 'collected_at', 'imported_at'] as const
@@ -174,22 +173,17 @@ export function parse(file: string, lenient = false): Signal | null {
   }
 }
 
-// A source id is anything its source says it is, so the name is derived rather than used
-// as typed: the readable part for a person browsing the folder, the hash so two ids that
-// scrub down to the same word still get two files. A derived id says nothing to a reader,
-// so what is readable then is the title.
-export function fileName(signal: { sourceId: string; title: string; collectedAt: string }): string {
-  const day = (signal.collectedAt || formatStamp(new Date())).slice(0, 10)
-  const said = signal.sourceId.startsWith(DERIVED) ? signal.title : signal.sourceId
-  const word = said
+const slugOf = (said: string): string =>
+  said
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40)
-  let hash = 0x811c9dc5
-  for (const ch of signal.sourceId) hash = Math.imul(hash ^ ch.charCodeAt(0), 0x01000193) >>> 0
-  return `${day}-${word || 'item'}-${hash.toString(16).padStart(8, '0')}.md`
-}
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 56)
+    .replace(/-+$/, '')
+
+/** An item's file name (#1263): the slug its writer gave, else its title's Latin letters and
+ *  digits. It is the slug of the card the item becomes, so it says what the item is. */
+export const fileName = (title: string, slug = ''): string => `${slugOf(slug) || slugOf(title) || 'item'}.md`
 
 /** A name nothing in `dir` has yet, from the one wanted. A collision is two different items,
  *  so the second one is renamed rather than written over the first. */
@@ -267,7 +261,7 @@ export const readRecentArchived = (now = new Date()): Signal[] =>
 // ---- writing ---------------------------------------------------------------
 
 /** Write one item into triage, stamped with the moment it was imported. */
-export function writeSignal(incoming: IncomingSignal, importedAt: string): Signal {
+export function writeSignal(incoming: IncomingSignal, importedAt: string, slug = ''): Signal {
   fs.mkdirSync(TRIAGE, { recursive: true })
   const signal: Signal = {
     ...incoming,
@@ -283,7 +277,7 @@ export function writeSignal(incoming: IncomingSignal, importedAt: string): Signa
     verdictCard: null,
     relPath: '',
   }
-  const file = path.join(TRIAGE, freeName(TRIAGE, fileName(signal)))
+  const file = path.join(TRIAGE, freeName(TRIAGE, fileName(signal.title, slug)))
   fs.writeFileSync(file, serialize({ ...signal, relPath: boardRel(file) }))
   return { ...signal, relPath: boardRel(file) }
 }

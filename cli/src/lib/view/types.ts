@@ -759,7 +759,7 @@ export interface Signal {
 export type TriageVerdict = 'plan' | 'plan-without-refine' | 'skip' | 'human-review'
 
 /** The label a verdict carries: the option Jev picked, or `unsure` when its confidence was low. */
-export type TriageReason = 'supported' | 'rejected' | 'duplicate' | 'low-value' | 'needs-user' | 'unsure' | 'small' | 'plan'
+export type TriageReason = 'supported' | 'rejected' | 'duplicate' | 'low-value' | 'needs-user' | 'unsure' | 'small' | 'plan' | 'no-workflow'
 
 /** A card triage points at: its title, and whether it has left the board. */
 export interface SignalCardRef {
@@ -813,6 +813,8 @@ export interface InboxDrop {
   /** And where it came from, for the same reason: a proposal names the card that prompted
    *  it. Empty or absent leaves whatever the input itself gave. */
   source?: string
+  /** A short English name for the item's file (#1263). Absent, the title names it. */
+  slug?: string
 }
 
 /** What one add did. The failure carries the one sentence the page shows. */

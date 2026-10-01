@@ -1,31 +1,31 @@
-// Auto triage (#562): when the board judges what is waiting without being asked.
+// Sorting triage as a run (#562, #1263).
 //
-// `akb triage run` is typed by hand, so items sit in `triage/` until somebody remembers
-// them. With the triager's switch on, the board starts that same run itself — once for each
-// batch of new items, and again at a sort's close for whatever the sort could not see.
+// A sort is the command's own loop (../signals/judge.ts) — no agent is spawned — under a run
+// record, which is what draws "sorting" on the page and keeps a second sort from starting.
+// `akb triage run` does it in the terminal; the board starts the same thing in the background
+// once for each batch of new items, and again at a sort's close for whatever arrived meanwhile.
 //
-// Two rules shape all of it:
+// WRITING is the trigger, and the only one: `akb triage fetch`, **Add to triage** on the page
+// and `akb triage add` each start a sort after they have written. Nothing polls or retries.
 //
-// WRITING is the trigger, and the only one. The three ways in — `akb triage fetch`, **Add
-// to triage** on the page, `akb triage add` — each start a sort after they have written,
-// the way a manual completion starts its own reflection (./propose.ts). Nothing polls,
-// nothing retries, and switching the key on does not sweep what is already waiting: a
-// board does not spend a backlog's worth of runs because of one setting change.
-//
-// And a sort starts the next one only when it JUDGED something. A run reads the list once,
-// at its spawn, so anything that arrived while it went is unseen — that is what the
-// continuation is for. But "something is left" as the condition is a loop: one item no flow
-// can judge would start a sort forever. So the close compares the items this run was GIVEN
-// against the ones still waiting, and stops where none of them moved.
+// A sort starts the next one only when it JUDGED something: one item nothing can judge would
+// otherwise start a sort forever. So the close compares the items this sort was GIVEN against
+// the ones still waiting, and stops where none of them moved.
 
+import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+
+import { takeRunCard } from '../board'
+import { SESSIONS_DIR } from '../paths'
 import { reconcileTriage } from '../signals/carded'
 import { readInbox } from '../signals/inbox'
-import { sortable } from '../signals/judge'
+import { sortable, sortItems, type SortReport } from '../signals/judge'
 import { migrateTriage } from '../signals/migrate'
 import { signalsAccess } from '../signals/access'
+import { closeRun, markSpawned, openRun, peekRun } from './sessions'
 import { startRun } from './start'
 import { itemsBeingCarded } from './store'
-import type { AgentRequest } from './types'
+import type { AgentRequest, RunRecord, RunRefusal } from './types'
 
 /** Whether the board may start a sort by itself right now — read as a run would start, so
  *  Cloud going quiet stops a sort already lined up. Unreachable reads as closed, the same
@@ -58,6 +58,67 @@ export function triageWaiting(): string[] {
   }
 }
 
+/** Write a sort down as this process's own, for `akb triage run` in a terminal. */
+export async function openSort(): Promise<{ run: RunRecord } | RunRefusal> {
+  const sessionId = randomUUID()
+  const held = await takeRunCard(sessionId, null)
+  if (!held.ok) return held
+  const opened = openRun(SORT, '', [], sessionId)
+  if ('error' in opened) return opened
+  markSpawned(sessionId, process.pid)
+  return { run: opened.run }
+}
+
+/** Do the sort a run record stands for: reconcile, judge what is waiting one item at a time,
+ *  close the record, and start the next sort for what arrived meanwhile. Null when the run is
+ *  gone or already over. */
+export async function runSort(sessionId: string, say: (line: string) => void = () => {}): Promise<SortReport | null> {
+  const record = peekRun(sessionId)
+  if (!record || record.status !== 'running') return null
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const said = (line: string): void => {
+    try {
+      fs.appendFileSync(record.logPath, `${line}\n`)
+    } catch {
+      // a log that cannot be written costs the run its log and nothing else
+    }
+    say(line)
+  }
+  let asked = false
+  const stop = (): void => void (asked = true)
+  process.on('SIGTERM', stop)
+  process.on('SIGINT', stop)
+  const stopped = (): boolean => asked || peekRun(sessionId)?.stopping === true
+
+  let report: SortReport | null = null
+  let error: string | undefined
+  let given: string[] = []
+  try {
+    for (const item of reconcileTriage()) said(`${item.sourceId} is already on #${item.cardId} — archived: ${item.relPath}`)
+    given = triageWaiting()
+    report = await sortItems(given, said, stopped)
+    // Nothing landed and something failed: the sort itself did not work.
+    if (report.failed.length && !report.cards.length && !report.ignored.length && !report.held.length) error = report.failed[0]!.why
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e)
+    said(error)
+  } finally {
+    process.off('SIGTERM', stop)
+    process.off('SIGINT', stop)
+  }
+  const status = stopped() ? 'stopped' : error ? 'error' : 'done'
+  await closeRun(sessionId, { status, ok: status === 'stopped' ? undefined : status === 'done', code: status === 'stopped' ? null : 0, error })
+  const next = status === 'done' ? await triageRunAfter(given) : null
+  if (next) {
+    try {
+      await startRun(next)
+    } catch {
+      // a spawn that wouldn't — the items are waiting either way
+    }
+  }
+  return report
+}
+
 /** Start a sort over a batch just written, if the board may and there was a batch.
  *
  *  Best-effort in both directions: `added` at zero is a pull that brought nothing new, and a
@@ -76,9 +137,7 @@ export async function triageAfterAdding(added: number): Promise<void> {
 
 /** The sort to start now that one has finished, or null.
  *
- *  `given` is what was waiting when that sort spawned. Reconciling first is what a
- *  hand-typed `akb triage run` does before it starts: an item the sort carded but died
- *  before recording is archived here rather than judged twice. */
+ *  `given` is what was waiting when that sort started. */
 export async function triageRunAfter(given: string[]): Promise<AgentRequest | null> {
   if (!(await mayStart())) return null
   try {

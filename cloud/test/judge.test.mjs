@@ -103,10 +103,20 @@ describe('POST /v1/judge', () => {
     }
     await refused({ questions: QUESTIONS }, /state/)
     await refused({ state: 'x' }, /questions/)
+    await refused({ state: 'x', questions: {} }, /at least one/)
     await refused({ state: 'x', questions: { v: { type: 'noul', instructions: 'Is it?', criteria: { a: 'A', b: 'B' } } } }, /choice/)
     await refused({ state: 'x', questions: { v: { type: 'choice', instructions: 'Which?', criteria: { a: 'A' } } } }, /options/)
     await refused({ state: 'x'.repeat(200_001), questions: QUESTIONS }, /too long/)
     assert.equal(sent.length, 0)
+  })
+
+  it('asks as many questions as it is given', async () => {
+    const names = ['verdict', 'duplicate', 'modules', 'priority', 'roi', 'workflow']
+    const questions = Object.fromEntries(names.map((name) => [name, QUESTIONS.verdict]))
+    provider = () => json({ ...ANSWER, answers: Object.fromEntries(names.map((name) => [name, ANSWER.answers.verdict])) })
+    const res = await call({ state: 'x', questions })
+    assert.equal(res.status, 200)
+    assert.deepEqual(Object.keys((await res.json()).answers), names)
   })
 
   it('says so when this build carries no key', async () => {

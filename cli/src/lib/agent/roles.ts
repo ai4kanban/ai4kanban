@@ -125,8 +125,9 @@ const PROPOSER: AgentRole = {
 // The role that sorts what is waiting in triage (#561, #562). It owns no memory — what it
 // judged is on the card it wrote or in the `dismissed/` record that says why it did not.
 //
-// A batch of new items starts one by itself; `akb triage run` starts one by hand. It is on
-// the roster only where triage is open at all (./access).
+// A batch of new items starts one by itself; `akb triage run` starts one by hand. The sort is
+// the command's own loop asking Jev (#1263), so this role spawns no agent. It is on the roster
+// only where triage is open at all (./access).
 const TRIAGER: AgentRole = {
   name: 'triage',
   gloss: 'sorts what is waiting in triage into cards and ignores',

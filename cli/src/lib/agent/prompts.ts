@@ -8,7 +8,7 @@ import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { PLANNER, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
-import { ARCHIVE, boardText, rel, MEMORY, PRODUCT, TRIAGE } from '../paths'
+import { ARCHIVE, boardText, rel, MEMORY, PRODUCT } from '../paths'
 import {
   agentFilesBlock,
   agentMemoryBlock,
@@ -539,18 +539,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Write each survivor with \`${command} triage add\`: that is the whole of what you may write — no card is created, edited or archived, and finding nothing worth proposing is a complete result.`,
         `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
-    // Sorting what is waiting in triage (#561). It names nothing: the items in `triage/` are
-    // the whole job, and the flow prints them. What it may write is a card per survivor and a
-    // record per judgement — never an existing card, and never a build.
+    // A sort is the board's own loop (#1263): nothing is prompted.
     case 'triage':
-      return [
-        `${kb}. Sort what is waiting in \`${rel(TRIAGE)}/\` following \`akb guide triage\`.`,
-        `Judge each item on its own: skip what is already supported, already on a card, or turned down before, then ask whether it would improve the product.`,
-        `A survivor becomes one card with a refine scheduled on it; everything else is ignored with a reason. Record every judgement through \`${command} triage archive\` or \`${command} triage dismiss\`.`,
-        `Change nothing else — no existing card, no open question, no build.`,
-        `Finish by reporting how many you judged, each new card by id and title, and how many you ignored with the reason for each.`,
-        `Don't ask me questions with human-in-the-loop.`,
-      ].join(' ')
+      return ''
     // Inject the shared contract, specialty instructions, and selected references.
     case 'spec': {
       const agent = findSpecAgent(req.specAgent ?? '')

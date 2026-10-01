@@ -161,7 +161,7 @@ chat message carries depends on where the event lives.
 - `POST /v1/judge` — `{ "state": {…}, "questions": { "<name>": { "type": "choice", "instructions": "…", "criteria": { "<option>": "…" } } } }`:
   forwarded to `typesafe/jev-1.13` through OpenRouter's Decisions API; answers
   `{ "answers": { "<name>": { "choice", "probabilities", "confidence" } }, "model" }`. Choice
-  questions only, at most 4 of them with 2–500 options each, 200,000 characters in all. Same key
+  questions only, any number of them with 2–500 options each, 200,000 characters in all. Same key
   as narration. Any Pro sign-in; free — it spends no credits, and each answer's `usage.cost` is
   logged.
 

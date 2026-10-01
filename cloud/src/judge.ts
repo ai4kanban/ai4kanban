@@ -16,7 +16,6 @@ export const JUDGE_MODEL = 'typesafe/jev-1.13'
 export const DECISIONS_URL = 'https://openrouter.ai/api/alpha/decisions'
 /** Jev reads at most 32K tokens; this caps the bytes long before a request could be a burden. */
 export const MAX_BODY_CHARS = 200_000
-export const MAX_QUESTIONS = 4
 export const MAX_OPTIONS = 500
 
 interface Answer {
@@ -30,9 +29,7 @@ function readQuestions(questions: unknown): Record<string, unknown> {
     throw badRequest('Give the questions to ask, by name.')
   }
   const named = Object.entries(questions)
-  if (named.length === 0 || named.length > MAX_QUESTIONS) {
-    throw badRequest(`Ask between 1 and ${MAX_QUESTIONS} questions.`)
-  }
+  if (named.length === 0) throw badRequest('Ask at least one question.')
   for (const [name, question] of named) {
     const { type, instructions, criteria } = (question ?? {}) as Record<string, unknown>
     if (type !== 'choice') throw badRequest(`${name}: only choice questions are asked.`)

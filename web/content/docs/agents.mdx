@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 29, 2026"
+last_updated: "October 1, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -60,8 +60,9 @@ can be switched off:
 - **Proposer** — reads a card the board has just finished, with the discussion it came from, and
   proposes the work that should follow it — including anything the card promised that nothing
   shipped. It learns from follow-ups you point out it missed. Runs after every archive.
-- **Triage** — sorts what is waiting in Triage into cards and ignores. It sorts each batch of new
-  items itself and keeps going until nothing is waiting; `akb triage run` sorts on demand. Boards
+- **Triage** — sorts what is waiting in Triage into cards and ignores, one question to Cloud per
+  item rather than a coding agent. It sorts each batch of new items itself and keeps going until
+  nothing is waiting; `akb triage run` sorts on demand. Boards
   with [Triage](/docs/triage) open only, and it is not on the roster at all where Triage is closed.
 - **Memory pruner** — squeezes the memory back down to what helps planning. Every 7 days by
   default; **Run now** on its page starts one.

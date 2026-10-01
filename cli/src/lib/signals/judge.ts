@@ -1,22 +1,27 @@
-// Judging one triage item with Jev (#1221), for Pro.
+// Sorting triage with Jev (#1221, #1263), for Pro.
 //
-// The sort's session names the item and any open card it suspects; this reads the files,
-// asks Cloud two choice questions, records the verdict on the item and prints the one command
-// that lands it. It never creates a card or ignores an item — the session does, through the
-// same commands a non-Pro sort uses.
+// One Cloud request per item: six choice questions — the verdict, the card it duplicates, and
+// the module, priority, ROI and workflow of the card it would become. The answers land here:
+// a card written and the item archived, an ignore with its reason, or a hold for the user.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
+import os from 'node:os'
+
+import { builtinDescription, workflows } from '../agent/workflows'
+import { runBoardMove } from '../board'
 import { idPrefix, walkMd } from '../cards'
 import { cloudEndpoints } from '../cloud/config'
 import { forgetPro } from '../cloud/pro'
 import { accessToken } from '../cloud/session'
+import { BoardError, quietlyAsync } from '../io'
 import { PLANNER, agentMemoryDir, agentMemoryFile, onlyStarter } from '../memory'
-import { BOARD_FLAG, KANBAN, PRODUCT, REPO_ROOT, TODO, die, rel } from '../paths'
+import { MODULES_MD, PRODUCT, REPO_ROOT, TODO, die, rel } from '../paths'
+import { LEVELS } from '../validate'
 import { unquote } from '../yaml'
 import type { Signal, TriageReason, TriageVerdict } from '../view/types'
-import { readInbox, recordVerdict } from './inbox'
+import { archiveInboxItem, dismissInboxItem, readInbox, recordVerdict } from './inbox'
 
 /** Below this verdict confidence the item is held for the user, whatever was picked. */
 export const CONFIDENT = 0.6
@@ -46,6 +51,32 @@ type Option = keyof typeof VERDICT.criteria
 
 const DUPLICATE_ASKS = 'Which open card already owns the work this item asks for? Pick none when no card does.'
 
+const MODULES_ASKS = 'Which part of the project does the work this item asks for touch most?'
+
+const PRIORITY = {
+  type: 'choice',
+  instructions: 'How much does this item matter to the product now?',
+  criteria: {
+    high: 'it blocks users or the product goal.',
+    med: 'a clear improvement worth doing soon.',
+    low: 'nice to have.',
+  },
+} as const
+
+const ROI = {
+  type: 'choice',
+  instructions: 'How much is this item worth for the work it takes?',
+  criteria: {
+    high: 'much value for little work.',
+    med: 'value in proportion to the work.',
+    low: 'little value for the work.',
+  },
+} as const
+
+const WORKFLOW_ASKS = 'Which workflow does the work this item asks for? Pick none when no workflow here can.'
+
+const NO_WORKFLOW = 'no workflow here can do this work.'
+
 /** An open card, as the duplicate question offers it. */
 export interface OpenCard {
   id: number
@@ -71,17 +102,41 @@ export function openCards(): OpenCard[] {
   return cards.sort((a, b) => a.id - b.id)
 }
 
-export function questionsFor(cards: OpenCard[]): Record<string, unknown> {
+/** The module map, by name: what each part of the project is. */
+function moduleCriteria(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const line of read(MODULES_MD).split('\n')) {
+    const m = line.match(/^\s*[-*]\s+\*\*([^*]+)\*\*\s*(?:[—:-]\s*)?(.*)$/)
+    if (m) out[m[1]!.trim()] = m[2]!.trim() || m[1]!.trim()
+  }
+  return out
+}
+
+const workflowCriteria = (): Record<string, string> =>
+  Object.fromEntries(workflows().map((flow) => [flow.id, (flow.builtIn && builtinDescription(flow.id)) || flow.name]))
+
+/** What Jev is asked of one item. One already judged worth a card is asked only what its
+ *  card needs. A question with fewer than two options is left out — Cloud refuses it. */
+export function questionsFor(cards: OpenCard[], judged = false): Record<string, unknown> {
+  const modules = moduleCriteria()
   return {
-    verdict: VERDICT,
-    duplicate: {
-      type: 'choice',
-      instructions: DUPLICATE_ASKS,
-      criteria: {
-        ...Object.fromEntries(cards.map((card) => [`#${card.id}`, card.title])),
-        none: 'no open card owns this work.',
-      },
-    },
+    ...(judged
+      ? {}
+      : {
+          verdict: VERDICT,
+          duplicate: {
+            type: 'choice',
+            instructions: DUPLICATE_ASKS,
+            criteria: {
+              ...Object.fromEntries(cards.map((card) => [`#${card.id}`, card.title])),
+              none: 'no open card owns this work.',
+            },
+          },
+        }),
+    ...(Object.keys(modules).length > 1 ? { modules: { type: 'choice', instructions: MODULES_ASKS, criteria: modules } } : {}),
+    priority: PRIORITY,
+    roi: ROI,
+    workflow: { type: 'choice', instructions: WORKFLOW_ASKS, criteria: { ...workflowCriteria(), none: NO_WORKFLOW } },
   }
 }
 
@@ -107,9 +162,9 @@ export interface Judgement {
   trimmed: string[]
 }
 
-/** The files Jev is given alongside the item: fixed by the board, plus the cards the session
- *  named. Cut to fit in the order the card lays down; the item itself never is. */
-export function judgementState(item: Signal, named: string[], questions: Record<string, unknown>): Judgement {
+/** The files Jev is given alongside the item, fixed by the board. Cut to fit; the item itself
+ *  never is. Open cards reach Jev as the duplicate question's options, by id and title. */
+export function judgementState(item: Signal, questions: Record<string, unknown>): Judgement {
   const product = read(PRODUCT)
   const readme = onlyStarter('product.md', product) ? read(path.join(REPO_ROOT, 'README.md')) : ''
   const plannerDir = agentMemoryDir(PLANNER)
@@ -124,12 +179,6 @@ export function judgementState(item: Signal, named: string[], questions: Record<
   const memory: Kept[] = [...rejected, agentMemoryFile(PLANNER, 'dismissed.md')]
     .map((file) => ({ file, lines: read(file).split('\n') }))
     .filter((kept) => kept.lines.some((line) => line.trim()))
-  const cards = named.map((file) => {
-    const text = read(file)
-    const id = idPrefix(path.basename(file)) ?? idPrefix(path.basename(path.dirname(file)))
-    const title = unquote(text.match(/^title:\s*(.*)$/m)?.[1]?.trim() ?? path.basename(file))
-    return { card: id === null ? boardRel(file) : `#${id} ${title}`, text }
-  })
   let readmeText = readme
 
   const build = (): Record<string, unknown> => {
@@ -139,17 +188,11 @@ export function judgementState(item: Signal, named: string[], questions: Record<
     const decisions = read(agentMemoryFile(PLANNER, 'decisions.md'))
     if (decisions.trim()) state.decisions = decisions
     for (const kept of memory) state[boardRel(kept.file)] = kept.lines.join('\n')
-    if (cards.length) state.cards = cards.map((card) => (card.text ? card : { card: card.card }))
     return state
   }
   const fits = (): boolean => tokensOf({ state: build(), questions }) <= MAX_TOKENS
   const trimmed: string[] = []
 
-  for (const card of cards) {
-    if (fits()) break
-    card.text = ''
-    trimmed.push(`${card.card} — its body`)
-  }
   if (readmeText && !fits()) {
     readmeText = readmeText.slice(0, Math.floor(readmeText.length / 2))
     trimmed.push('README.md — its second half')
@@ -226,23 +269,8 @@ export function reasonWords(v: Pick<Verdict, 'reason' | 'card'>): string {
       return 'small and fully specified'
     case 'plan':
       return 'worth doing, needs planning'
-  }
-}
-
-/** The command that lands a verdict — the one line the session acts on. */
-export function nextStep(sourceId: string, v: Verdict, program = 'akb'): string {
-  const self = `${program}${BOARD_FLAG}`
-  const create = `${self} raw create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --triage ${sourceId}`
-  const archive = `${self} triage archive ${sourceId} --card <id>`
-  switch (v.verdict) {
-    case 'skip':
-      return `${self} triage dismiss ${sourceId} --reason "${reasonWords(v)}"`
-    case 'human-review':
-      return 'leave it waiting — the user decides'
-    case 'plan':
-      return `${create} --schedule refine --body-file <path>, then ${archive}`
-    case 'plan-without-refine':
-      return `${create} --body-file <path> — no refine, the body ready to build; then ${self} raw update <id> --status ready, then ${archive}`
+    case 'no-workflow':
+      return 'no workflow does it'
   }
 }
 
@@ -252,31 +280,34 @@ export const awaitsJudging = (item: Signal): boolean => item.verdict === ''
 export const awaitsCard = (item: Signal): boolean => item.verdict === 'plan' || item.verdict === 'plan-without-refine'
 export const sortable = (item: Signal): boolean => awaitsJudging(item) || awaitsCard(item)
 
-/** The `--files` a session passed, as absolute paths inside the board. */
-export function namedFiles(files: string[]): string[] {
-  const board = path.resolve(KANBAN)
-  return files
-    .flatMap((said) => said.split(','))
-    .map((said) => said.trim())
-    .filter(Boolean)
-    .map((said) => {
-      const file = path.resolve(REPO_ROOT, said)
-      const inside = path.relative(board, file)
-      if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) {
-        die(`--files ${said}: only files under ${boardRel(KANBAN)}/ can be passed`, { kind: 'bad-args' })
-      }
-      if (!fs.existsSync(file)) die(`--files ${said}: no such file`, { kind: 'bad-args' })
-      return file
-    })
+/** What the new card takes from Jev. `workflow` is empty for the board's default — Jev was
+ *  unsure — and null when no workflow here can do the work. */
+export interface Picks {
+  modules: string[]
+  priority: string
+  roi: string
+  workflow: string | null
+}
+
+export function picksOf(answers: Record<string, Answer | undefined>): Picks {
+  const level = (answer?: Answer): string => (answer && LEVELS.includes(answer.choice) ? answer.choice : 'med')
+  const module = answers.modules?.choice
+  const flow = answers.workflow
+  const sure = flow !== undefined && flow.confidence >= CONFIDENT
+  return {
+    modules: module && module in moduleCriteria() ? [module] : [],
+    priority: level(answers.priority),
+    roi: level(answers.roi),
+    workflow: !sure ? '' : flow.choice === 'none' ? null : flow.choice in workflowCriteria() ? flow.choice : '',
+  }
 }
 
 const ASK_MS = 60_000
 
-/** Ask Cloud; answers or dies with what the session should do instead. */
-async function ask(body: Record<string, unknown>, sourceId: string): Promise<{ verdict: Answer; duplicate?: Answer }> {
-  const skip = `leave ${sourceId} waiting and go on to the next item`
+/** Ask Cloud; answers, or throws why not. `pro-required` and `signed-out` end the whole sort. */
+async function ask(body: Record<string, unknown>, sourceId: string): Promise<Record<string, Answer | undefined>> {
   const token = await accessToken()
-  if (!token.ok) die(`couldn't judge ${sourceId}: not signed in to AI4Kanban Cloud — ${skip}`, { kind: 'judge-failed' })
+  if (!token.ok) die('not signed in to AI4Kanban Cloud', { kind: 'signed-out' })
   let res: Response
   try {
     res = await fetch(`${cloudEndpoints().api}/v1/judge`, {
@@ -286,37 +317,158 @@ async function ask(body: Record<string, unknown>, sourceId: string): Promise<{ v
       signal: AbortSignal.timeout(ASK_MS),
     })
   } catch {
-    die(`couldn't judge ${sourceId}: Cloud could not be reached — ${skip}`, { kind: 'judge-failed' })
+    die(`couldn't judge ${sourceId}: Cloud could not be reached`, { kind: 'judge-failed' })
   }
   const answer = (await res.json().catch(() => ({}))) as {
-    answers?: { verdict?: Answer; duplicate?: Answer }
+    answers?: Record<string, Answer | undefined>
     error?: { code?: string; message?: string }
   }
   if (answer.error?.code === 'pro_required') {
     forgetPro()
-    die(
-      'pro_required: this account no longer has Pro. Stop judging: card the items already judged worth a card, and leave the rest waiting.',
-      { kind: 'pro-required' },
-    )
+    die('this account no longer has Pro', { kind: 'pro-required' })
   }
-  if (!res.ok || !answer.answers?.verdict) {
-    die(`couldn't judge ${sourceId}: ${answer.error?.message ?? `Cloud answered ${res.status}`} — ${skip}`, { kind: 'judge-failed' })
+  if (!res.ok || !answer.answers) {
+    die(`couldn't judge ${sourceId}: ${answer.error?.message ?? `Cloud answered ${res.status}`}`, { kind: 'judge-failed' })
   }
-  return answer.answers as { verdict: Answer; duplicate?: Answer }
+  return answer.answers
 }
 
-/** `akb triage judge <source-id> [--files <paths>]`. */
-export async function judgeItem(sourceId: string, files: string[], program = 'akb'): Promise<{ item: Signal; verdict: Verdict; next: string; trimmed: string[] }> {
-  const item = readInbox().find((one) => one.sourceId === sourceId)
-  if (!item) die(`nothing waiting in triage is ${sourceId}`, { kind: 'triage-item-gone' })
-  if (item.verdict) {
-    die(`${sourceId} was already judged: ${item.verdict} — an item is judged once`, { kind: 'triage-already-judged' })
+// The item's own words open the card. Text that would break the card's structure — a heading,
+// a fence, a comment — goes in a fence longer than any it holds.
+function cardBody(item: Signal): string {
+  const text = item.summary.trim() || item.title.trim()
+  const risky = /^\s*(#|`{3,}|~{3,}|<!--|---\s*$)/m.test(text)
+  const fence = '`'.repeat(Math.max(3, ...(text.match(/`+/g) ?? []).map((run) => run.length + 1)))
+  return [
+    risky ? `${fence}\n${text}\n${fence}` : text,
+    '',
+    '## Worth noting',
+    '',
+    ...(item.url ? ['## Source', '', item.url, ''] : []),
+    '<!-- agent -->',
+    '',
+    '## Scope',
+    '',
+    '## Todo',
+    // The card format requires one checkbox; the scheduled refine replaces it.
+    '- [ ] every task must have todos — replace this line with the real steps.',
+    '',
+    '## Decided by the agent',
+    '',
+    '### Overruled by the user',
+    '',
+  ].join('\n')
+}
+
+/** Write the item's card: its title, its file name, Jev's picks, and a refine scheduled. */
+async function writeCard(item: Signal, picks: Picks): Promise<{ id: number; title: string }> {
+  const title = item.title.trim() || item.sourceId
+  const bodyFile = path.join(os.tmpdir(), `akb-triage-${process.pid}-${Date.now()}.md`)
+  fs.writeFileSync(bodyFile, cardBody(item))
+  try {
+    const res = await quietlyAsync(() =>
+      runBoardMove('create', [], {
+        title,
+        slug: path.basename(item.relPath, '.md'),
+        modules: picks.modules,
+        priority: picks.priority,
+        roi: picks.roi,
+        workflow: picks.workflow ?? '',
+        triage: item.sourceId,
+        schedule: 'refine',
+        bodyFile,
+        asked: [],
+      }),
+    )
+    if (!res.ok) throw new BoardError(res.error)
+    return { id: res.data.id as number, title }
+  } finally {
+    fs.rmSync(bodyFile, { force: true })
   }
-  const named = namedFiles(files)
-  const questions = questionsFor(openCards())
-  const { state, trimmed } = judgementState(item, named, questions)
-  const verdict = verdictOf(await ask({ state, questions }, sourceId))
-  const recorded = recordVerdict(sourceId, verdict)
-  if (!recorded.ok) die(recorded.error, { kind: 'triage-item-gone' })
-  return { item, verdict, next: nextStep(sourceId, verdict, program), trimmed }
+}
+
+/** Where one item ended. */
+export type Sorted =
+  | { kind: 'card'; id: number; title: string }
+  | { kind: 'ignored'; reason: string }
+  | { kind: 'held'; reason: string }
+
+/** Judge one waiting item and land the answer. Throws when Cloud or the board refuses; the
+ *  item is left waiting. */
+export async function sortItem(item: Signal): Promise<Sorted> {
+  const judged = awaitsCard(item)
+  const questions = questionsFor(openCards(), judged)
+  const answers = await ask({ state: judgementState(item, questions).state, questions }, item.sourceId)
+  const record = (verdict: Verdict): void => {
+    const recorded = recordVerdict(item.sourceId, verdict)
+    if (!recorded.ok) die(recorded.error, { kind: 'triage-item-gone' })
+  }
+  const ignore = (verdict: Verdict): Sorted => {
+    record(verdict)
+    const reason = reasonWords(verdict)
+    const moved = dismissInboxItem(item.sourceId, 'agent', reason)
+    if (!moved.ok) die(moved.error, { kind: 'triage-item-gone' })
+    return { kind: 'ignored', reason }
+  }
+
+  let confidence = 1
+  if (!judged) {
+    if (!answers.verdict) die(`couldn't judge ${item.sourceId}: Cloud left the verdict unanswered`, { kind: 'judge-failed' })
+    const verdict = verdictOf({ verdict: answers.verdict, duplicate: answers.duplicate })
+    if (verdict.verdict === 'skip') return ignore(verdict)
+    record(verdict)
+    if (verdict.verdict === 'human-review') return { kind: 'held', reason: reasonWords(verdict) }
+    confidence = verdict.confidence
+  }
+  const picks = picksOf(answers)
+  if (picks.workflow === null) return ignore({ verdict: 'skip', reason: 'no-workflow', card: null, confidence })
+  const card = await writeCard(item, picks)
+  const filed = archiveInboxItem(item.sourceId, card.id)
+  if (!filed.ok) die(filed.error, { kind: 'triage-item-gone' })
+  return { kind: 'card', ...card }
+}
+
+/** What one sort did. */
+export interface SortReport {
+  cards: { id: number; title: string }[]
+  ignored: { title: string; reason: string }[]
+  held: { title: string; reason: string }[]
+  failed: { title: string; why: string }[]
+}
+
+// Refusals no later item would get past.
+const ENDS_SORT = new Set(['pro-required', 'signed-out'])
+
+/** Sort the named items one at a time, in the order given. An item that fails stays waiting
+ *  and the next one is judged; `stopped` is asked between items. */
+export async function sortItems(sourceIds: string[], say: (line: string) => void, stopped: () => boolean = () => false): Promise<SortReport> {
+  const report: SortReport = { cards: [], ignored: [], held: [], failed: [] }
+  for (const sourceId of sourceIds) {
+    if (stopped()) break
+    // Read again each time: the user may have ignored or carded it while the sort went.
+    const item = readInbox().find((one) => one.sourceId === sourceId)
+    if (!item || !sortable(item)) continue
+    try {
+      const done = await sortItem(item)
+      if (done.kind === 'card') {
+        report.cards.push({ id: done.id, title: done.title })
+        say(`#${done.id} ${done.title}`)
+      } else {
+        report[done.kind].push({ title: item.title, reason: done.reason })
+        say(`${done.kind === 'ignored' ? 'ignored' : 'left for you'}: ${item.title} — ${done.reason}`)
+      }
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e)
+      report.failed.push({ title: item.title, why })
+      say(`left waiting: ${item.title} — ${why}`)
+      if (e instanceof BoardError && ENDS_SORT.has(e.kind)) break
+    }
+  }
+  const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
+  const sorted = report.cards.length + report.ignored.length + report.held.length
+  say(
+    `sorted ${count(sorted, 'item', 'items')}: ${count(report.cards.length, 'card', 'cards')}, ${report.ignored.length} ignored, ` +
+      `${report.held.length} left for you${report.failed.length ? `, ${report.failed.length} failed` : ''}`,
+  )
+  return report
 }

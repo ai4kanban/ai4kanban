@@ -42,11 +42,6 @@ import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
-import { itemsBeingCarded } from './store'
-import { readInbox } from '../signals/inbox'
-import { awaitsCard, awaitsJudging, openCards, sortable } from '../signals/judge'
-import type { Signal } from '../view/types'
-import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { recordedOutputs } from './outputs'
 import { boardCommandFor } from './command'
@@ -538,10 +533,8 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
   // format and the memory set are a page about work it may not do.
   reflect: ['reflect', 'evaluate-task'],
-  // Sorting triage writes cards, so it gets what a create gets — the board's own rules, the
-  // bar an idea is held to, and how a card is written — plus its own flow, which is the
-  // bookkeeping that makes each judgement land exactly once.
-  triage: ['board', 'triage', 'evaluate-task', 'add-task', 'writing'],
+  // A sort is the board's own loop (#1263): no agent reads a guide for it.
+  triage: [],
   // Settling a stale card rewrites one card and may drop it, so it gets the board's rules,
   // how a card is written, its own flow, and the two pages its verdicts end in — `reject`
   // for a discard, `add-task` for the split a kept card sometimes needs.
@@ -896,67 +889,9 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...field('rejected', rel(agentMemoryFile(PLANNER, 'rejected.md'))))
       facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
-        `${self} triage add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
+        `${self} triage add --title ".." --slug <short-english-slug> --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
         'propose nothing at all when nothing follows: that is a complete result, and most completions are it',
         'change nothing else — no card is created, edited or archived, and no memory file is written',
-      )
-      break
-    }
-    // Sorting what is waiting in triage (#561). The facts are the items themselves, because
-    // the items ARE the job — a run handed only the folder would spend its first calls
-    // listing what could have been printed here — plus the three places a duplicate hides.
-    case 'triage': {
-      migrateTriage()
-      const carding = itemsBeingCarded()
-      // Jev judges each item once (#1221): what it judged worth a card is listed to be carded,
-      // and what it held or skipped is the user's.
-      const waiting = readInbox().filter((item) => !carding.has(item.sourceId) && sortable(item))
-      const toJudge = waiting.filter(awaitsJudging)
-      const toCard = waiting.filter(awaitsCard)
-      const line = (item: Signal) => `  ${item.sourceId} — ${item.title}${item.sourceType ? ` (${item.sourceType})` : ''} — ${item.relPath}`
-      facts.push(
-        ...field(
-          'waiting',
-          toJudge.length === 0
-            ? `(nothing) — ${rel(TRIAGE)}/ holds no item to judge`
-            : [`${toJudge.length} in ${rel(TRIAGE)}/, judge each one:`, ...toJudge.map(line)],
-        ),
-      )
-      if (toCard.length) {
-        facts.push(
-          ...field('judged', [
-            `${toCard.length} already judged worth a card — card each one, judge none again:`,
-            ...toCard.map((item) => `${line(item)} — ${item.verdict}`),
-          ]),
-        )
-      }
-      facts.push(...field('judge', `${self} triage judge <source-id> [--files <paths>] — once per item to judge; do what it prints`))
-      const cards = openCards()
-      facts.push(
-        ...field(
-          'cards',
-          cards.length === 0
-            ? '(none open)'
-            : [`${cards.length} open — pass any that may already own an item to --files:`, ...cards.map((card) => `  #${card.id} ${card.title} — ${rel(card.file)}`)],
-        ),
-      )
-      facts.push(...field('product', rel(PRODUCT)))
-      facts.push(...field('modules', rel(MODULES_MD)))
-      if (toJudge.length === 0 && toCard.length === 0) {
-        close.push('write nothing — there is nothing waiting, and that is a complete result')
-        break
-      }
-      close.push(
-        `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --triage <source-id> --schedule refine --body-file <path> — one call per survivor, body written first`,
-      )
-      close.push(
-        `${raw} create ... --body-file <path> with no --schedule, then ${raw} update <id> --status ready — for plan-without-refine, its body ready to build`,
-      )
-      close.push(
-        `${self} triage archive <source-id> --card <id> — straight after the card it became`,
-        `${self} triage dismiss <source-id> --reason ".." — everything else, in one clause each`,
-        'change nothing else — no existing card is edited, no question answered, and no build started',
-        'report the count judged, each new card by id, and the count ignored',
       )
       break
     }

@@ -132,7 +132,7 @@ function liftHandled(): void {
     if (held.has(sourceId)) continue
     held.add(sourceId)
     fs.mkdirSync(SIGNALS_DISMISSED, { recursive: true })
-    const name = freeName(SIGNALS_DISMISSED, fileName({ sourceId, title: '', collectedAt: when }))
+    const name = freeName(SIGNALS_DISMISSED, fileName('', sourceId))
     const front = [
       '---',
       `source_id: ${yamlScalar(sourceId)}`,

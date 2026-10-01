@@ -61,9 +61,9 @@ import {
   cmdTriageArchive,
   cmdTriageCheck,
   cmdTriageDismiss,
-  cmdTriageJudge,
   cmdTriageFetch,
   cmdTriageRestore,
+  cmdTriageRun,
 } from '../../commands/triage'
 import { cmdSpec } from '../../commands/spec'
 import { cmdTelemetry } from '../../commands/telemetry'
@@ -224,7 +224,6 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 
   // ---- what is waiting to be sorted (#453, #499) ----------------------------
   //
-  // `run` is a flow and is declared with the rest of them, above.
 
   const triage = groups.triage
 
@@ -255,6 +254,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .option('--text <text>', 'its own words')
     .option('--file <path>', 'its own words, written to a file first')
     .option('--source <text>', 'where it came from')
+    .option('--slug <slug>', 'a short English name for its file, and for the card it becomes (default: from the title)')
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdTriageAdd(this.opts()))
     })
@@ -286,19 +286,16 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       await onBoard(this, cli, () => cmdTriageArchive(sourceId, Number(this.opts().card)))
     })
 
-  withShared(triage.command('judge'))
-    .summary("Jev's verdict on one waiting item — Pro")
+  withShared(triage.command('run'))
+    .summary('sort what is waiting: card the worthwhile, ignore the rest — Pro')
     .description(
-      'Reads the item, the product description, the planner\'s decisions, every rejected.md and ' +
-        'dismissed.md, plus each card named in `--files`, and asks Jev through Cloud what should become ' +
-        'of it: plan, plan-without-refine, skip or human-review. Records the verdict on the item and ' +
-        'prints one line with the command that lands it; creates and ignores nothing itself. An item is ' +
-        'judged once. Fails, recording nothing, when Cloud or Jev cannot answer.',
+      'One item at a time, in this command: Jev judges it through Cloud and the answer lands before the ' +
+        'next — a card titled and named after the item with a refine scheduled on it, an ignore with its ' +
+        'reason, or a hold for you. An item that fails stays waiting. Prints each new card by id and ' +
+        'title and each ignore with its reason. Only one sort runs at a time.',
     )
-    .argument('<source-id>', 'the waiting item to judge')
-    .option('--files <paths...>', 'open cards that may already own the item, under the board folder')
-    .action(async function (this: Command, sourceId: string) {
-      await onBoard(this, cli, (p) => cmdTriageJudge(sourceId, (this.opts().files as string[] | undefined) ?? [], p))
+    .action(async function (this: Command) {
+      await onBoard(this, cli, () => cmdTriageRun())
     })
 
   withShared(triage.command('dismiss'))
