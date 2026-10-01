@@ -431,7 +431,7 @@ build. **Suggest follow-up work** proposes what a build missed, after the card i
 Click the **open questions** panel (or **Resolve**) and every question you own becomes an answer
 box — or a tick list with the agent's picks pre-ticked, plus **Something else** for your own
 words. Leave a question untouched and the agent researches it. **Resolve** sends the answers; one
-session folds them into the plan and builds the card.
+session folds them into the plan and stops. **Implement** starts the build.
 
 ### Schedule it instead
 
@@ -450,17 +450,16 @@ rejected.
 
 ### Refine
 
-**Refine** plans the card in one session, spec agents included. When nothing waits on you — no
-open question, nothing such as a mockup to look at first — the same session builds it; otherwise
-it stops for **Resolve**, which applies your answers and builds.
+**Refine** plans the card in one session, spec agents included, then stops: the card is **ready**,
+or it waits for **Resolve**, which applies your answers and stops too. Planning never builds — a
+build is always a session of its own, started by **Implement**.
 
 It shows only while a refine would still move the card: not once it is **ready**, all todos are checked, every open question is yours (use
 **Resolve**), or a refine is already scheduled. On a blocked card the dialog offers **Refine
 anyway** or **Schedule**.
 
 The board also refines by itself, as a separate run, after any run that wrote or changed a card —
-one refine per card touched. A refine the board starts itself — after a run, or off a card's
-schedule — plans only and never builds. It skips blocked, ready, recurring and fully ticked cards, and cards
+one refine per card touched. It skips blocked, ready, recurring and fully ticked cards, and cards
 whose open questions are all yours. A subtask finishing doesn't refine its group root. Nothing
 scans the backlog: a card written by hand in your editor needs **Refine**.
 
