@@ -29,6 +29,7 @@ import {
   FiEyeOff,
   FiInbox,
   FiLoader,
+  FiLock,
   FiMessageSquare,
   FiPlay,
   FiPlus,
@@ -66,6 +67,7 @@ import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
+import { goPro, proLock, useProAccess } from "./pro";
 import { createSheet, useSheetUp } from "@/lib/create-open";
 import { SidePane } from "@/lib/side-pane";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
@@ -808,7 +810,7 @@ export function SignalsPage({
               <FiX size={16} aria-hidden />
             </button>
           </label>
-          {/* The source filter and Sort all take the next line on a phone. */}
+          {/* The source filter and Auto-sort take the next line on a phone. */}
           <span aria-hidden className="basis-full md:hidden" />
 
           <Select value={source} onValueChange={setSource}>
@@ -1048,7 +1050,8 @@ function TabButton({
   );
 }
 
-/** **Sort all**, and — under it — why a sort would not start. */
+/** **Auto-sort**, and — under it — why a sort would not start. An account known to lack the
+ *  plan gets a lock after the label, and the press goes to the upgrade or the sign-in (#1299). */
 function SortAll({
   idle,
   sorting,
@@ -1064,6 +1067,7 @@ function SortAll({
   onDismissNote: () => void;
 }) {
   const c = useCopy().rail.signals;
+  const lock = proLock(useProAccess(true));
   const box = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!note) return;
@@ -1086,12 +1090,14 @@ function SortAll({
       <Button
         size="xs"
         variant="ghost"
-        disabled={sorting || idle}
-        onClick={onSort}
+        disabled={!lock && (sorting || idle)}
+        onClick={lock ? () => goPro(lock) : onSort}
+        title={lock === "upgrade" ? c.sortNeedsUpgrade : lock === "signIn" ? c.sortNeedsSignIn : undefined}
         className="disabled:opacity-70"
       >
-        {!sorting && <FiZap size={13} aria-hidden />}
-        {sorting ? c.sorting : c.sortAll}
+        {(lock || !sorting) && <FiZap size={13} aria-hidden className="text-nb-accent" />}
+        {sorting && !lock ? c.sorting : c.sortAll}
+        {lock && <FiLock size={11} aria-hidden className="text-nb-ink-soft" />}
       </Button>
       {note && (
         <span

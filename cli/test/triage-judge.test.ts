@@ -570,7 +570,7 @@ describe('akb triage run', () => {
     globalThis.fetch = (async () => new Response(JSON.stringify({ billing: { plan: 'free', periodEnd: null } }), { status: 200 })) as typeof fetch
     const refused = await akb(['triage', 'run'])
     assert.notEqual(refused.code, 0)
-    assert.match(refused.err, /Triage needs Pro/)
+    assert.match(refused.err, /Sorting triage needs Pro/)
     assert.notEqual((await akb(['triage', 'judge', 'x'])).code, 0)
   })
 })

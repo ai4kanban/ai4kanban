@@ -368,7 +368,7 @@ const ACTIONS = new Set([
   // setup strip. Started through startSetupRunAction below, which is where its own refusals
   // live.
   "setup",
-  // Sort all on the Triage page (#894) — what `akb triage run` does.
+  // Auto-sort on the Triage page (#894) — what `akb triage run` does.
   "triage",
 ]);
 
@@ -1922,14 +1922,12 @@ export async function installSkillAction(): Promise<SkillInstall> {
 
 // --- the inbox waiting to be looked at (#453, #499) --------------------------
 // The rail asks for the row once when a window opens and again when the window is looked at
-// again — never on the board's poll, because whether the inbox is open reaches Cloud. The
-// page itself is a server page and reads the inbox directly.
+// again — never on the board's poll. The page itself is a server page and reads the inbox
+// directly.
 
-/** Whether to offer the rail row at all, and the count it carries. A board that may not use
- *  the inbox answers `false`, and the row is simply not there. */
+/** Whether to offer the rail row at all, and the count it carries. Open to every account
+ *  (#1299); a board whose inbox cannot be read answers `false`. */
 export async function signalsRowAction(): Promise<{ show: boolean; count: number }> {
-  const access = await signalsOpen();
-  if (!access.open) return { show: false, count: 0 };
   try {
     return { show: true, count: (await readSignals()).signals.length };
   } catch {
@@ -2047,7 +2045,7 @@ export async function startTriageItemAction(sourceId: string): Promise<StartResu
   }
 }
 
-/** **Sort all** (#894): the sort `akb triage run` does, started in the background. */
+/** **Auto-sort** (#894): the sort `akb triage run` does, started in the background. Pro only (#1299). */
 export async function sortTriageAction(): Promise<StartResult & { closed?: boolean }> {
   const access = await signalsOpen();
   if (!access.open) return { ok: false, closed: true };

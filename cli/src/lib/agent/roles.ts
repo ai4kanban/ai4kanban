@@ -42,8 +42,8 @@ export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
   /** What has to be open on this board for this role to be on its roster at all (#562).
-   *  `triage` is `signalsAccess()` — the answer the Triage rail row and `akb triage fetch`
-   *  read. Absent on every role that works wherever its board does. */
+   *  `triage` is `signalsAccess()` — whether the account may sort. Absent on every role
+   *  that works wherever its board does. */
   needs?: 'triage'
   /** The workflow stage this agent may be assigned to (#715). A role with one is a
    *  WORKFLOW agent: it can lead or help that stage of any workflow on the board. A role
@@ -127,7 +127,7 @@ const PROPOSER: AgentRole = {
 //
 // A batch of new items starts one by itself; `akb triage run` starts one by hand. The sort is
 // the command's own loop asking Jev (#1263), so this role spawns no agent. It is on the roster
-// only where triage is open at all (./access).
+// only where the account may sort (./access).
 const TRIAGER: AgentRole = {
   name: 'triage',
   gloss: 'sorts what is waiting in triage into cards and ignores',

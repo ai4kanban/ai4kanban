@@ -30,7 +30,7 @@ import { AGENT_NAME, parseSpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
 
-/** Whether this board's Triage is open, with an unreachable answer read as closed. */
+/** Whether this account may sort triage, with an unreachable answer read as closed. */
 async function triageOpen(): Promise<boolean> {
   try {
     return (await signalsAccess()).open

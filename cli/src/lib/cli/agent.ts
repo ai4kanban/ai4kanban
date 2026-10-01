@@ -235,7 +235,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
         'back. Only `title` and `summary` are required. Something already waiting, already made into ' +
         'a card, or already ignored is skipped; one with no words in it is counted and explained. ' +
         'A request that fails ' +
-        'writes nothing at all. Needs Pro.',
+        'writes nothing at all.',
     )
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdTriageFetch())

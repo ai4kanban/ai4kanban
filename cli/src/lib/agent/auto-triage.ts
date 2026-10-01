@@ -28,8 +28,7 @@ import { itemsBeingCarded } from './store'
 import type { AgentRequest, RunRecord, RunRefusal } from './types'
 
 /** Whether the board may start a sort by itself right now — read as a run would start, so
- *  Cloud going quiet stops a sort already lined up. Unreachable reads as closed, the same
- *  answer the Triage row and a fetch take. */
+ *  Cloud going quiet stops a sort already lined up. Unreachable reads as closed. */
 async function mayStart(): Promise<boolean> {
   try {
     return (await signalsAccess()).open
@@ -122,7 +121,7 @@ export async function runSort(sessionId: string, say: (line: string) => void = (
 /** Start a sort over a batch just written, if the board may and there was a batch.
  *
  *  Best-effort in both directions: `added` at zero is a pull that brought nothing new, and a
- *  run that will not start — the switch is off, triage is closed, a sort is already going —
+ *  run that will not start — the switch is off, the account may not sort, a sort is already going —
  *  leaves the items waiting for the next batch or for a hand-typed run. Either way the
  *  write that called this succeeded, and this never reports otherwise. */
 export async function triageAfterAdding(added: number): Promise<void> {

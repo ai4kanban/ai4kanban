@@ -31,8 +31,8 @@ Two tabs: **Waiting**, and **History** — what became a card or was ignored in 
 days. **Restore** puts an ignored item back in **Waiting**, and nothing sorts it again by
 itself. Search and the source picker work on both tabs.
 
-Triage needs a Pro plan. Signed out or on the free plan there is no rail row, and
-`akb triage fetch` and `akb triage run` refuse; items already waiting are kept.
+Triage is open to every account. Only automatic sorting needs a Pro plan: **Auto-sort** on
+the page, `akb triage run`, and the sort a new item starts. Without it you sort by hand.
 
 ## A triage item is not a card
 
@@ -53,7 +53,7 @@ To ask for work yourself, use **New task**. Ignoring an item moves its file to
 akb triage run
 ```
 
-**Sort all** on the page starts the same sort. It takes every item waiting, one at a time, and
+**Auto-sort** on the page starts the same sort. It takes every item waiting, one at a time, and
 lands each before the next: a card, an ignore in `dismissed/` with the reason, or a hold for
 you when the call is yours to make.
 
@@ -90,7 +90,8 @@ waiting. Three things stop the chain, and each waits for the next batch of items
 - **A sort that judged nothing.** One item no sort can get through would otherwise start
   sorts forever.
 - **A sort that failed or was stopped.** Neither is a judgement; the items stay where they are.
-- **Triage closing.** Read again each time a sort would start. A sort already going finishes.
+- **Sorting no longer available.** The plan is read again each time a sort would start. A
+  sort already going finishes.
 
 ### What a card it wrote says
 

@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { triageAfterAdding, triageRunAfter, triageWaiting } from '../src/lib/agent/auto-triage.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
-import { cmdTriageAdd, cmdTriageArchive, cmdTriageDismiss } from '../src/commands/triage.ts'
+import { cmdTriageAdd, cmdTriageArchive, cmdTriageDismiss, cmdTriageFetch, cmdTriageRun } from '../src/commands/triage.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
 import { readInbox } from '../src/lib/signals/inbox.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
@@ -126,7 +126,7 @@ afterEach(() => {
 })
 
 describe('the roster', () => {
-  it('is on the roster where triage is open, and off it where triage is not', async () => {
+  it('is on the roster where the account may sort, and off it where it may not', async () => {
     const named = async (): Promise<string[]> => (await readAgents()).agents.map((a) => a.name)
     assert.ok((await named()).includes('triage'))
     pro(false)
@@ -163,6 +163,37 @@ describe('the sort a batch of new items starts', () => {
       stopCollecting()
     }
     assert.equal(readInbox().length, 1)
+    assert.deepEqual(readRuns(), [])
+  })
+})
+
+describe('a free account (#1299)', () => {
+  const ENDPOINT = 'https://signals.example.test/v1/pull'
+
+  it('pulls, starts no sort, and is refused a sort it asks for', async () => {
+    fs.writeFileSync(path.join(kanban(), 'config.md'), `# Configuration\n\n- **Triage endpoint** — ${ENDPOINT}\n`)
+    fs.writeFileSync(path.join(kanban(), '.env'), 'TRIAGE_ENDPOINT_TOKEN=a-secret\n')
+    fs.rmSync(path.join(home, 'pro.json'), { force: true })
+    globalThis.fetch = (async (url: string) =>
+      new Response(
+        JSON.stringify(
+          String(url) === ENDPOINT
+            ? { signals: [{ title: 'Pulled', summary: 'Its words.', source_id: 'p1' }] }
+            : { billing: { plan: 'free' } },
+        ),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      )) as typeof fetch
+
+    startCollecting()
+    try {
+      assert.equal((await cmdTriageFetch()).added, 1)
+    } finally {
+      stopCollecting()
+    }
+    assert.equal(readInbox().length, 1)
+    assert.deepEqual(readRuns(), [])
+
+    await assert.rejects(cmdTriageRun(), /Sorting triage needs Pro\./)
     assert.deepEqual(readRuns(), [])
   })
 })

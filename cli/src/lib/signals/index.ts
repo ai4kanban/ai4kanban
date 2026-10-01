@@ -1,7 +1,7 @@
 // Triage, as everything outside it asks for it (#453, #499, #559).
 //
 // The local UI draws a rail row and a page from these, and `akb triage fetch` writes
-// through the same modules. Whether triage is open at all is ./access.ts, asked apart
+// through the same modules. Whether the account may sort is ./access.ts, asked apart
 // from the read because it reaches Cloud and a page read does not.
 
 import fs from 'node:fs'

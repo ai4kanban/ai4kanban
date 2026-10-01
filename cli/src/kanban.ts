@@ -267,8 +267,8 @@ export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realt
 export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
 
 // Triage: anything that might become work (#453, #499, #559) — never cards. The local UI
-// draws its rail row and its page from these: whether triage is open to this board and
-// account, what it holds, ignoring one with a reason, and restoring one (#894).
+// draws its rail row and its page from these: whether the account may sort (`signalsAccess`),
+// what it holds, ignoring one with a reason, and restoring one (#894).
 // `checkSource` is the one duplicate rule all of them read. Pulling is `akb triage fetch`.
 // `addToInbox` and `triageAfterAdding` stay for writers other than the page.
 export {

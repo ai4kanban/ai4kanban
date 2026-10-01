@@ -354,11 +354,10 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
 // `akb triage fetch` alone; what the UI does is read the inbox, ignore what it does not want,
 // and restore what it ignored.
 //
-// A board whose rules predate them answers "closed" rather than throwing: the whole feature
-// is one rail row, and a row that isn't there says the same thing.
+// The inbox is open to every account (#1299); a board whose rules predate it fails the read,
+// and the rail row is not drawn.
 
-/** Whether this board and this account may use the inbox at all. Reaches Cloud, so it is
- *  asked once when a window opens rather than on the board's poll. */
+/** Whether this account may sort the inbox — the one part that needs a plan. Reaches Cloud. */
 export async function signalsOpen(): Promise<SignalsAccess> {
   try {
     const rules = await boardRules();

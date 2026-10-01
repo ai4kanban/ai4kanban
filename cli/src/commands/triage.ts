@@ -1,6 +1,6 @@
 // `akb triage fetch` — pull what the board is pointed at into triage (#453).
 //
-// The endpoint's way in. It checks who triage is open to, reads the two settings, asks
+// The endpoint's way in, open to every account (#1299). It reads the two settings, asks
 // the endpoint, and writes what came back — the whole of it in one pass, so a scheduled pull
 // and a hand-typed one do exactly the same thing. The other way in is **Add to triage** on
 // the page (#499), which writes the same files without an endpoint.
@@ -9,8 +9,8 @@
 // which is what the proposer's reflection uses. It asks Cloud nothing, and **Add to triage**
 // on the page has never asked either.
 //
-// All three go on to start a sort when the triager is switched on (#562, ../lib/agent/
-// auto-triage.ts). The trigger sits here rather than in `addToInbox` because it is the
+// All three go on to start a sort when the triager is switched on and the account may sort
+// (#562, ../lib/agent/auto-triage.ts). The trigger sits here rather than in `addToInbox` because it is the
 // WRITE that starts one, and a batch is a write however many items it carried.
 //
 // `check` is the one duplicate rule all three read (#559): it scans the item files and says
@@ -48,9 +48,6 @@ import type { MoveResult } from '../lib/types'
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
 export async function cmdTriageFetch(): Promise<MoveResult> {
-  const access = await signalsAccess()
-  if (!access.open) die(access.why, { kind: 'triage-closed' })
-
   const gaps = signalConfigGaps()
   if (gaps.length > 0) {
     for (const gap of gaps) say(`  ${sayGap(gap)}`)

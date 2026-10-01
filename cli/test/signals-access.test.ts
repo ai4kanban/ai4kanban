@@ -1,4 +1,4 @@
-// Who triage is open to (#453, #1296): Pro only, and each refusal says why.
+// Who may sort triage (#453, #1296, #1299): Pro only, and each refusal says why.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -63,7 +63,7 @@ const why = async (): Promise<string> => {
   return access.open ? '' : access.why
 }
 
-describe('who triage is open to', () => {
+describe('who may sort triage', () => {
   it('opens for a Pro account', async () => {
     cloudSays({ billing: { plan: 'pro', periodEnd: null } })
     assert.deepEqual(await signalsAccess(), { open: true })
@@ -71,12 +71,12 @@ describe('who triage is open to', () => {
 
   it('stays shut for a free account', async () => {
     cloudSays({ billing: { plan: 'free' } })
-    assert.equal(await why(), 'Triage needs Pro.')
+    assert.equal(await why(), 'Sorting triage needs Pro.')
   })
 
   it('stays shut when signed out', async () => {
     fs.rmSync(sessionFile())
-    assert.equal(await why(), 'Triage needs Pro. Sign in first.')
+    assert.equal(await why(), 'Sorting triage needs Pro. Sign in first.')
   })
 
   it('stays shut when Cloud cannot be reached to confirm', async () => {

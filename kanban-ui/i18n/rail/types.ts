@@ -146,8 +146,11 @@ export type RailCopy = {
     /** Putting an ignored item back in the queue. */
     restore: string;
     restoreFailed: string;
-    /** Sort all: the button, while a sort runs, and why one would not start. */
+    /** Auto-sort: the button, its hover text while locked, while a sort runs, and why one
+     *  would not start. */
     sortAll: string;
+    sortNeedsUpgrade: string;
+    sortNeedsSignIn: string;
     sorting: string;
     sortClosed: string;
     sortRefused: string;
