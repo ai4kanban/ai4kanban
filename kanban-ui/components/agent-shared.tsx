@@ -13,7 +13,6 @@ import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
-import { useOverRail } from "@/lib/over-rail";
 import { useActions, useMachine } from "@/lib/screen";
 import { openOf, parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
@@ -30,6 +29,7 @@ import {
 import { Button } from "./button";
 import { ELASTIC_CHIP } from "./chips";
 import { PULSE_DOT, PULSE_DOT_INK } from "./chrome";
+import { ConfirmationPopover } from "./confirm-popover";
 import { ContextRing } from "./context-ring";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
@@ -848,28 +848,6 @@ function StopButton({ sessionId, ink }: { sessionId: string; ink?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLSpanElement>(null);
 
-  // Over the chat rail while it is open, so Esc dismisses the popover and leaves a reply
-  // alone.
-  useOverRail(open);
-
-  // Escape, or a click anywhere else, dismisses the popover — the same way out
-  // the dialogs give. Only bound while it's open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onDown);
-    };
-  }, [open]);
-
   const stop = async () => {
     if (!actions) return;
     setOpen(false);
@@ -915,37 +893,18 @@ function StopButton({ sessionId, ink }: { sessionId: string; ink?: boolean }) {
             a run can be stopped. */}
         <FaPauseCircle className="text-[13px]" aria-hidden />
       </button>
-      {open && (
-        // A full nb panel, small: ink frame and hard shadow like every other
-        // surface, hung off the button and right-aligned so it can't run off the
-        // edge of the log window.
-        <span className="nb-panel-sm absolute right-0 top-full z-30 mt-2 block w-[248px] p-3 text-left">
-          <span className="block text-[13px] font-[700] leading-snug text-nb-ink">
-            {c.confirm}
-          </span>
-          <span className="mt-1 block text-[12px] leading-relaxed text-nb-ink-soft">
-            {c.body}
-          </span>
-          <span className="mt-2.5 flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-[7px] px-2 py-1 text-[11px] font-[700]"
-              onClick={() => setOpen(false)}
-            >
-              {t.shared.cancel}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-[7px] border-nb-peach-ink px-2 py-1 text-[11px] font-[700] text-nb-peach-ink"
-              onClick={stop}
-            >
-              {c.label}
-            </Button>
-          </span>
-        </span>
-      )}
+      <ConfirmationPopover
+        open={open}
+        anchorRef={ref}
+        align="right"
+        title={c.confirm}
+        description={c.body}
+        cancelLabel={t.shared.cancel}
+        confirmLabel={c.label}
+        busy={false}
+        onDismiss={() => setOpen(false)}
+        onConfirm={() => void stop()}
+      />
     </span>
   );
 }

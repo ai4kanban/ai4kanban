@@ -66,6 +66,7 @@ import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
+import { Popover, PopoverAnchor, PopoverContent } from "./ui/popover";
 import { goPro, proLock, useProAccess } from "./pro";
 import { createSheet, useSheetUp } from "@/lib/create-open";
 import { SidePane } from "@/lib/side-pane";
@@ -1058,45 +1059,50 @@ function SortAll({
 }) {
   const c = useCopy().rail.signals;
   const lock = proLock(useProAccess(true));
-  const box = useRef<HTMLSpanElement>(null);
+  const link = useRef<HTMLButtonElement>(null);
+  // The note takes no focus and is portaled out of the tab order: the next Tab goes to its link.
   useEffect(() => {
-    if (!note) return;
+    if (note !== "refused") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onDismissNote();
-    };
-    const onDown = (e: PointerEvent) => {
-      if (!box.current?.contains(e.target as Node)) onDismissNote();
+      if (e.key !== "Tab" || e.shiftKey || !link.current || link.current === document.activeElement) return;
+      e.preventDefault();
+      link.current.focus();
     };
     window.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onDown);
-    };
-  }, [note, onDismissNote]);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [note]);
 
   return (
-    <span ref={box} className="relative inline-flex shrink-0 max-md:ml-auto">
-      <Button
-        size="xs"
-        variant="ghost"
-        disabled={!lock && (sorting || idle)}
-        onClick={lock ? () => goPro(lock) : onSort}
-        title={lock === "upgrade" ? c.sortNeedsUpgrade : lock === "signIn" ? c.sortNeedsSignIn : undefined}
-        className="disabled:opacity-70"
-      >
-        {(lock || !sorting) && <FiZap size={13} aria-hidden className="text-nb-accent" />}
-        {sorting && !lock ? c.sorting : c.sortAll}
-        {lock && <FiLock size={11} aria-hidden className="text-nb-ink-soft" />}
-      </Button>
+    <Popover open={!!note} onOpenChange={(open) => !open && onDismissNote()}>
+      <PopoverAnchor asChild>
+        <span className="relative inline-flex shrink-0 max-md:ml-auto">
+          <Button
+            size="xs"
+            variant="ghost"
+            disabled={!lock && (sorting || idle)}
+            onClick={lock ? () => goPro(lock) : onSort}
+            title={lock === "upgrade" ? c.sortNeedsUpgrade : lock === "signIn" ? c.sortNeedsSignIn : undefined}
+            className="disabled:opacity-70"
+          >
+            {(lock || !sorting) && <FiZap size={13} aria-hidden className="text-nb-accent" />}
+            {sorting && !lock ? c.sorting : c.sortAll}
+            {lock && <FiLock size={11} aria-hidden className="text-nb-ink-soft" />}
+          </Button>
+        </span>
+      </PopoverAnchor>
       {note && (
-        <span
+        <PopoverContent
           role="status"
-          className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 flex w-[260px] flex-col items-start gap-1.5 bg-nb-paper px-3 py-2.5 text-[12px] leading-[17px]"
+          align="end"
+          sideOffset={8}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className="flex w-[min(260px,calc(100vw-16px))] flex-col items-start gap-1.5 px-3 py-2.5 text-[12px] leading-[17px]"
         >
           {note === "closed" ? c.sortClosed : c.sortRefused}
           {note === "refused" && (
             <button
+              ref={link}
               type="button"
               className={LINK}
               onClick={() => {
@@ -1107,9 +1113,9 @@ function SortAll({
               {c.openConfig}
             </button>
           )}
-        </span>
+        </PopoverContent>
       )}
-    </span>
+    </Popover>
   );
 }
 

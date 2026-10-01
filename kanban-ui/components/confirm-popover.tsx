@@ -53,16 +53,18 @@ export function ConfirmationPopover({
     safeRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      // Captured and kept: Esc puts away the confirmation, not the dialog or pane under it.
+      event.stopPropagation();
       onDismiss();
       requestAnimationFrame(() => anchorRef.current?.querySelector<HTMLButtonElement>("button")?.focus());
     };
     const onPointerDown = (event: PointerEvent) => {
       if (!anchorRef.current?.contains(event.target as Node)) onDismiss();
     };
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
     document.addEventListener("pointerdown", onPointerDown);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [anchorRef, onDismiss, open]);

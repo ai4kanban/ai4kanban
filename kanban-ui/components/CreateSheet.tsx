@@ -3,7 +3,7 @@
 // Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
 // picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
@@ -33,6 +33,8 @@ import { blockedStages, useWorkflowName } from "./Workflows";
 import { useWorkflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess, type ProLock } from "./pro";
 import { useWorkflowTip } from "./WorkflowTip";
+import { Popover, PopoverContent, PopoverOption, PopoverTrigger, POPUP_ROW, POPUP_TRIGGER, stepOptions } from "./ui/popover";
+import { cn } from "@/lib/utils";
 import { Caret, useTypewriter } from "./typewriter";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
@@ -748,8 +750,7 @@ function Handoff({
 }
 
 /** Which workflow the plan's card runs through (#715): shown only when the board has more
- *  than one. Styled as the box's runtime picker (#847). The menu portals to the page so no
- *  scroll area clips it, and opens toward the side with more room (#898). */
+ *  than one. Styled as the box's runtime picker (#847); the list is Configuration's (#1244). */
 function WorkflowPick({
   flows,
   picked,
@@ -769,14 +770,14 @@ function WorkflowPick({
   const noLead = useCopy().card.meta.noLead;
   const nameOf = useWorkflowName();
   const [open, setOpen] = useState(false);
-  const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
-  const [place, setPlace] = useState<React.CSSProperties | null>(null);
   const [fade, setFade] = useState({ top: false, bottom: false });
   const rows = useRef(new Map<string, HTMLElement>());
+  // A row that opens something else must not have the button take the focus back.
+  const leaving = useRef(false);
   const tip = useWorkflowTip(menu);
-  const { shownId: tipShown, clear: clearTip } = tip;
+  const { clear: clearTip } = tip;
   const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
   // Why a row cannot be picked, in the card page's own words (#1278).
   const reasonOf = (id: string) => {
@@ -784,133 +785,82 @@ function WorkflowPick({
     return flow?.problems.length ? noLead(blockedStages(flow).map((s) => w.stages[s])) : undefined;
   };
 
-  const close = useCallback(
-    (refocus: boolean) => {
+  const show = useCallback(
+    (next: boolean) => {
       clearTip();
-      setOpen(false);
-      setPlace(null);
-      if (refocus) button.current?.focus();
+      setOpen(next);
     },
     [clearTip],
   );
   useEffect(() => {
-    if (disabled) close(false);
-  }, [disabled, close]);
+    if (disabled) show(false);
+  }, [disabled, show]);
 
   const readFade = () => {
     const el = list.current;
     if (el) setFade({ top: el.scrollTop > 0, bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 1 });
   };
 
-  // Measured at its natural height first, then placed on the side with room and capped there.
-  useLayoutEffect(() => {
-    if (!open || place || !button.current || !menu.current) return;
-    const at = button.current.getBoundingClientRect();
-    const natural = menu.current.offsetHeight;
-    const width = Math.min(MENU_WIDTH, window.innerWidth - 2 * MENU_EDGE);
-    const below = window.innerHeight - at.bottom - MENU_GAP - MENU_EDGE;
-    const above = at.top - MENU_GAP - MENU_EDGE;
-    const down = below >= natural || below > above;
-    const left = Math.min(Math.max(at.right - width, MENU_EDGE), window.innerWidth - MENU_EDGE - width);
-    setPlace({
-      left,
-      width,
-      maxHeight: Math.max(down ? below : above, 0),
-      ...(down ? { top: at.bottom + MENU_GAP } : { bottom: window.innerHeight - at.top + MENU_GAP }),
-    });
-  }, [open, place]);
-
-  // Once placed: the one in use centred in view and focused.
-  useLayoutEffect(() => {
-    if (!place || !list.current) return;
-    const row = list.current.querySelector<HTMLElement>("[aria-checked='true']");
-    if (row) {
-      list.current.scrollTop = row.offsetTop - (list.current.clientHeight - row.offsetHeight) / 2;
-      row.focus({ preventScroll: true });
+  // The one in use, centred in view.
+  const centre = () => {
+    const el = list.current;
+    const row = el?.querySelector<HTMLElement>("[aria-selected='true']");
+    if (el && row) {
+      const box = row.parentElement ?? row;
+      el.scrollTop = box.offsetTop - (el.clientHeight - box.offsetHeight) / 2;
     }
     readFade();
-  }, [place]);
-
-  useEffect(() => {
-    if (!open) return;
-    const inside = (t: EventTarget | null) =>
-      t instanceof Node && (!!menu.current?.contains(t) || !!button.current?.contains(t));
-    // Capture on window runs before the sheet's own Esc, which would close the discussion.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.stopPropagation();
-      if (tipShown) clearTip();
-      else close(true);
-    };
-    const onDown = (e: PointerEvent) => {
-      if (!inside(e.target) && !(e.target instanceof Element && e.target.closest("[data-workflow-tip]"))) close(true);
-    };
-    // A menu left behind by a moving button is worse than a closed one.
-    const onScroll = (e: Event) => {
-      if (!(e.target instanceof Node && menu.current?.contains(e.target))) close(false);
-    };
-    const onResize = () => close(false);
-    window.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [open, close, tipShown, clearTip]);
-
-  const onMenuKey = (e: React.KeyboardEvent) => {
-    const items = [...(menu.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [])];
-    const now = items.indexOf(document.activeElement as HTMLElement);
-    const to =
-      e.key === "ArrowDown" ? (now + 1) % items.length
-      : e.key === "ArrowUp" ? (now - 1 + items.length) % items.length
-      : e.key === "Home" ? 0
-      : e.key === "End" ? items.length - 1
-      : -1;
-    if (to >= 0) {
-      e.preventDefault();
-      items[to]?.focus();
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      close(true);
-    }
+    return row;
   };
 
   return (
     <span className="relative ml-auto flex min-w-0">
-      <button
-        ref={button}
-        type="button"
-        title={c.label}
-        aria-label={c.label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={disabled}
-        onClick={() => (open ? close(false) : setOpen(true))}
-        className="flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink hover:brightness-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-        style={{ background: "var(--color-nb-accent-wash)" }}
-      >
-        <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
-        {mine.pro && <ProPill />}
-        <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
-      </button>
-      {open &&
-        createPortal(
-          <div
-            ref={menu}
-            role="menu"
+      <Popover open={open} onOpenChange={show}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            title={c.label}
             aria-label={c.label}
-            onKeyDown={onMenuKey}
-            className="a4k-nodrag fixed z-[60] flex flex-col rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
-            style={place ?? { visibility: "hidden", top: 0, left: 0, width: MENU_WIDTH }}
+            disabled={disabled}
+            className={`${POPUP_TRIGGER} flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink`}
+            style={{ background: "var(--color-nb-accent-wash)" }}
+          >
+            <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
+            {mine.pro && <ProPill />}
+            <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
+          </button>
+        </PopoverTrigger>
+        {open && (
+          <PopoverContent
+            ref={menu}
+            align="end"
+            aria-label={c.label}
+            onKeyDown={stepOptions}
+            onOpenAutoFocus={(e) => {
+              e.preventDefault();
+              centre()?.focus({ preventScroll: true });
+              // Again once the panel is placed and capped to the room it has.
+              requestAnimationFrame(centre);
+            }}
+            onCloseAutoFocus={(e) => {
+              if (leaving.current) e.preventDefault();
+              leaving.current = false;
+            }}
+            onInteractOutside={(e) => {
+              if (e.target instanceof Element && e.target.closest("[data-workflow-tip]")) e.preventDefault();
+            }}
+            onEscapeKeyDown={(e) => {
+              if (!tip.shownId) return;
+              e.preventDefault();
+              tip.clear();
+            }}
+            className="a4k-nodrag flex w-[min(254px,calc(100vw-16px))] flex-col overflow-hidden"
           >
             <div className="relative flex min-h-0 flex-col">
               <div
                 ref={list}
+                role="listbox"
+                aria-label={c.label}
                 onScroll={() => {
                   tip.clear();
                   readFade();
@@ -932,33 +882,26 @@ function WorkflowPick({
                         if (el) rows.current.set(f.id, el);
                         else rows.current.delete(f.id);
                       }}
-                      className={`flex items-center rounded-[7px] ${
-                        f.id === mine.id ? "bg-nb-accent-soft" : tip.shownId === f.id ? "bg-nb-wash" : ""
-                      }`}
+                      className="flex items-center"
                     >
-                      <button
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={f.id === mine.id}
+                      <PopoverOption
+                        selected={f.id === mine.id}
+                        data-active={tip.shownId === f.id || undefined}
                         aria-disabled={shut || undefined}
                         title={"aria-describedby" in props || !shut ? undefined : pro.locked}
                         onClick={() => {
                           if (shut) return;
-                          tip.clear();
                           onPick(f.id);
-                          close(true);
+                          show(false);
                         }}
-                        className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-[7px] px-3 text-left text-[12px] font-[700] outline-none ${
-                          shut ? "cursor-not-allowed" : "cursor-pointer hover:bg-nb-wash"
-                        } ${f.id === mine.id ? "hover:bg-transparent focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent-deep)]" : "focus-visible:bg-nb-ink/[0.07]"}`}
+                        className={cn("text-[12.5px] font-[700]", shut && "cursor-not-allowed hover:bg-transparent active:bg-transparent")}
                         style={{ minHeight: MENU_ROW }}
                         {...props}
                       >
-                        <span className={`min-w-0 break-words ${shut ? "opacity-45" : ""}`}>{nameOf(f)}</span>
+                        <span className={`min-w-0 flex-1 break-words ${shut ? "opacity-45" : ""}`}>{nameOf(f)}</span>
                         {f.pro && !off && <ProPill />}
-                        {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft opacity-45">{w.notReady}</span>}
-                        {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
-                      </button>
+                        {off && <span className="shrink-0 text-[10.5px] text-nb-ink-soft opacity-45">{w.notReady}</span>}
+                      </PopoverOption>
                       {tip.infoButton(f, nameOf(f), row, reason)}
                     </div>
                   );
@@ -984,12 +927,12 @@ function WorkflowPick({
               {lock && flows.some((f) => f.pro) && (
                 <button
                   type="button"
-                  role="menuitem"
                   onClick={() => {
-                    close(false);
+                    leaving.current = true;
+                    show(false);
                     goPro(lock);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[700] text-nb-accent-deep outline-none focus-visible:bg-nb-ink/[0.07]"
+                  className={cn(POPUP_ROW, "justify-between py-2 text-[12px] font-[700] text-nb-accent-deep")}
                 >
                   {lock === "upgrade" ? pro.upgrade : pro.signIn}
                   <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
@@ -997,30 +940,26 @@ function WorkflowPick({
               )}
               <button
                 type="button"
-                role="menuitem"
                 onClick={() => {
-                  close(false);
+                  leaving.current = true;
+                  show(false);
                   configDialog.open("workflows");
                 }}
-                className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600] outline-none focus-visible:bg-nb-ink/[0.07]"
+                className={cn(POPUP_ROW, "justify-between py-2 text-[12px]")}
               >
                 {c.manage}
                 <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
               </button>
             </div>
-          </div>,
-          document.body,
+          </PopoverContent>
         )}
+      </Popover>
     </span>
   );
 }
 
-const MENU_WIDTH = 254;
 const MENU_ROW = 38;
 const MENU_ROWS = 8;
-const MENU_GAP = 6;
-/** Room kept from the window's edge, the hard shadow included. */
-const MENU_EDGE = 8;
 
 /** The run one answer started, in the line the three answers stood on. The dot is what finds
  *  it: this line sits against the reply's own small grey text, and accent moving is what says
