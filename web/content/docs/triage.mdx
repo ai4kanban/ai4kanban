@@ -198,7 +198,8 @@ the pull counts it as a failure and names what was missing. Everything else is o
   platform collected the post, not when your board pulled it; the board records the import
   time itself.
 - **`slug`** is a short English name such as `export-board-as-csv`. It names the item's file
-  and the card it becomes; left out, the board builds one from the title.
+  and the card it becomes; left out, the board builds one from the title. When the title is
+  not English, the card gets an English file name as it is planned.
 - **`source_id`** is the signal's identity. The board dedupes on it, against everything
   waiting, everything made into a card, everything ever ignored, and the rest of the same
   batch — so the same post sent on ten pulls is one file. Left out, it is derived from the
@@ -238,7 +239,8 @@ akb triage add --title "What it is" --text "Its own words." --source "where it c
 ```
 
 `--slug` names the item's file, and the card it becomes; leave it out and the title's English
-letters and digits are used.
+letters and digits are used. When the title is not English, the card gets an English file
+name as it is planned.
 
 `--source` goes through the same list — `小红书` is `xiaohongshu`, and anything the list has
 not got is kept as a `meta` entry under `source`. `--file <path>` takes the body from a file
