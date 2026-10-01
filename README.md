@@ -36,7 +36,7 @@ Our early adopters report 3–6× higher development productivity.
 
 4. The agent tests the plan by asking questions, much like [grill-me](https://github.com/mattpocock/skills) or [wayfinder](https://github.com/mattpocock/skills). It raises questions, finds answers, and repeats until it sees no major gaps. Decisions about taste, product direction, or business priorities come back to you.
 
-5. Agents work out most product details themselves, usually leaving just 2–3 questions for you per task. If the request itself is clear enough, they ask nothing and build it in the same session; otherwise your answers start one more session that builds it.
+5. Agents work out most product details themselves, usually leaving just 2–3 questions for you per task. Planning stops once the card is ready or your answers are applied; you start the build, and it always runs in a session of its own.
 
 6. Each card has two parts: a human brief with only what needs your attention, and an agent execution plan.
 

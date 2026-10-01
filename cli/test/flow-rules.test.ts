@@ -390,15 +390,14 @@ describe('the prompt', () => {
     }
   })
 
-  it('lets a printed clarify hand straight over to the build', () => {
+  it('hands no build over from planning', () => {
     startCollecting()
     try {
       const flow = printFlow({ action: 'clarify', id: 1, refineRound: 1 })
       assert.match((flow.close as string[]).join('\n'), /update 1 --status ready/)
-      assert.match((flow.next as string[]).join('\n'), /card implement 1 --print — build it in this session/)
-      // A refine the board started off a schedule stops at the plan.
-      const scheduled = printFlow({ action: 'clarify', id: 1, refineRound: 1, scheduled: true })
-      assert.deepEqual(scheduled.next, [])
+      assert.doesNotMatch((flow.next as string[]).join('\n'), /card implement/)
+      const resolved = printFlow({ action: 'resolve', id: 1 })
+      assert.doesNotMatch((resolved.next as string[]).join('\n'), /card implement/)
     } finally {
       stopCollecting()
     }

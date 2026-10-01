@@ -62,6 +62,6 @@ export function refineRunsAfter(asks: RefineAsk[]): AgentRequest[] {
       id: ask.cardId,
       notes: ask.notes,
     })
-    return 'error' in next ? [] : [{ ...next, scheduled: true }]
+    return 'error' in next ? [] : [next]
   })
 }

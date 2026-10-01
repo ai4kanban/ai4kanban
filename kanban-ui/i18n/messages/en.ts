@@ -114,7 +114,6 @@ const en: MessagesCopy = {
     proSignIn: (a) => `${a.name} needs Pro. Sign in first.`,
     proRequired: (a) => `${a.name} needs Pro.`,
     proUnconfirmed: () => "Couldn't confirm your Pro plan. Reconnect and retry.",
-    buildWaits: () => "Something on this card still needs you, so it waits for you before it is built.",
     cloudUnreachable: () =>
       "Cloud could not be reached, so the run was not started. A run works on the workspace, never on the copy left on this computer. Try again once the board is back.",
     cardHeld: (a) => `${a.details} Wait for that hold to end, or work on another card.`,

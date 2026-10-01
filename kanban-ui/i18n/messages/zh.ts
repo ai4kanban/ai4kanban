@@ -103,7 +103,6 @@ const zh: MessagesCopy = {
     proSignIn: (a) => `“${a.name}”需要 Pro，请先登录。`,
     proRequired: (a) => `“${a.name}”需要 Pro。`,
     proUnconfirmed: () => "无法确认 Pro 方案，联网后重试。",
-    buildWaits: () => "这张卡片还有事情需要你处理，处理完再开始构建。",
     cloudUnreachable: () =>
       "无法连接 Cloud，运行未启动。运行需要访问工作区，不能使用这台电脑上留存的副本；请在看板恢复连接后重试。",
     cardHeld: (a) => `${a.details} 请等待占用结束，或先处理其他卡片。`,

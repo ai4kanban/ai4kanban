@@ -28,7 +28,7 @@ import type { AgentAction, CommandAction } from './types'
 export type FlowGroup = 'card' | 'delivery' | 'release' | 'triage'
 
 /** One option a flow takes, as its command declares it. `flags` is Commander's own
- *  notation, so `--release <version>` takes a value and `--and-implement` does not. */
+ *  notation, so `--release <version>` takes a value and `--discard` does not. */
 export interface FlowOption {
   flags: string
   description: string
@@ -102,7 +102,7 @@ export const FLOWS: Flow[] = [
     group: 'card',
     action: 'refine',
     argument: '<id>',
-    gloss: 'plan the card in one session, and build it straight after when nothing waits on you',
+    gloss: 'plan the card in one session',
   },
   {
     command: 'resolve',
@@ -111,7 +111,6 @@ export const FLOWS: Flow[] = [
     argument: '<id> [note...]',
     argumentNote: NOTE,
     gloss: "apply the user's answers to its open questions",
-    options: [{ flags: '--and-implement', description: 'carry straight on into the build' }],
   },
   {
     command: 'revise',

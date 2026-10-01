@@ -32,7 +32,6 @@ import {
   endDelivery,
   findDelivery,
   joinActive,
-  activeIn,
   joinDelivery,
   listDeliveries,
   namedDelivery,
@@ -56,9 +55,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProductDescription } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
-import { canImplement, creationRefusal, discussingRefusal, openOf } from '../view/rules'
-import { findCard } from '../view/read'
-import type { Card } from '../view/types'
+import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing, holdChat, readChat, repointChatRuns, type ChatSession } from './chat'
 import { holdsCard, refusal, SPECIALIST_ACTIONS } from './types'
 import type {
@@ -845,7 +842,6 @@ export function openRun(
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round.
     refineRound: req.refineRound,
-    scheduled: req.scheduled,
     // And the flow it belongs to. A run started by a person opens one here; the watcher
     // copies the id onto every session that run goes on to start — a refinement's passes,
     // the spec agents it asked for. So one job is one thing in
@@ -901,8 +897,7 @@ export function openRun(
   return { run: record, spec }
 }
 
-/** The planning runs: they may carry straight on into the build of their own card (#1203),
- *  and each carries the card's planning session on (#1304). */
+/** The planning runs: each carries the card's planning session on (#1304). */
 const PLANNING = new Set<AgentAction>(['clarify', 'resolve'])
 
 /** The session a card's planning carries on (#1304): its last finished planning run's, resumed,
@@ -943,54 +938,11 @@ export function carriedSession(req: AgentRequest): (Pick<ChatSession, 'plan' | '
   return { plan: (cwd, sessionId) => plan(cwd, sessionId)!, fork: found.fork, continues: found.session.resumeId }
 }
 
-// A spec agent whose output is for the user to see put its section above the boundary: the
-// user looks before anything is built, so planning stops there.
-const awaitsUserReview = (body: string): boolean => {
-  const human = body.split(/^<!--\s*agent\s*-->\s*$/m)[0] ?? ''
-  return /^## By `[^`]+` agent\s*$/m.test(human)
-}
-
-/** Why the planning run this build was printed inside may not become it, or nothing when it
- *  may. Undefined `run` means the print did not come from a planning run at all. */
-function buildRefusal(run: RunRecord, card: Card | null): string | undefined {
-  if (!card) return `#${run.cardId} is gone`
-  if (run.scheduled) return 'the board started this planning by itself, and nobody asked for a build'
-  if (!canImplement(card)) return `#${card.id} is not a card to build`
-  if (openOf(card.questions).length) return `#${card.id} has an open question, and it is the user's to answer`
-  if (card.openBlockers.length) return `#${card.id} is blocked by ${card.openBlockers.map((b) => `#${b.id}`).join(', ')}`
-  if (run.action === 'clarify' && awaitsUserReview(card.body)) return `#${card.id} has a section waiting for the user to look at`
-  if (activeDelivery(card.id)) return `a delivery is already building #${card.id}`
-  return undefined
-}
-
-/** Carry the planning run `sessionId` straight on into the build of its own card (#1203): the
- *  same session, now the card's build. A delivery opens around it exactly as an Implement
- *  click would, and the run's close lands it.
- *
- *  Undefined when this is not a planning run of that card, so the caller prints the flow as
- *  it always has. A refusal says why the build must wait for the user. */
-export async function carryIntoBuild(sessionId: string, cardId: number): Promise<{ deliveryId: string } | RunRefusal | undefined> {
-  const run = readRuns().find((r) => r.sessionId === sessionId && r.status === 'running')
-  if (!run || run.cardId !== cardId || !PLANNING.has(run.action)) return undefined
-  const why = buildRefusal(run, findCard(cardId))
-  if (why) return refusal('buildWaits', `${why} — stop here; the build starts once the user is done.`)
-  const prepared = prepareDelivery(cardId)
-  if ('error' in prepared) return prepared
-  const joined = withStore((store) => {
-    const live = store.runs.find((r) => r.sessionId === sessionId && r.status === 'running')
-    if (!live || activeIn(store, cardId)) return undefined
-    live.action = 'implement'
-    live.refineRound = undefined
-    const claim = claimCard(live)
-    const delivery = joinDelivery(store, live, cardNow(cardId)?.title ?? '', 'implement', prepared.start)
-    return { deliveryId: delivery.deliveryId, claim }
-  })
-  if (!joined) {
-    undoPrepared(prepared.start)
-    return refusal('buildWaits', `the build of #${cardId} could not start here — stop; the user starts it from the card.`)
-  }
-  if (joined.claim) await setCardStatus(joined.claim.cardId, joined.claim.status)
-  return { deliveryId: joined.deliveryId }
+/** The planning run `sessionId` is, if it is one. Planning never builds (#1295): the build is
+ *  a session of its own, and the user starts it. */
+export function planningRun(sessionId: string): RunRecord | undefined {
+  const run = peekRun(sessionId)
+  return run?.status === 'running' && PLANNING.has(run.action) ? run : undefined
 }
 
 /** Write a resumed run down: one more turn of a conversation that already happened, on the
@@ -1087,7 +1039,6 @@ async function resumeHeld(
     fromCard: prev.fromCard,
     setupTicked: prev.setupTicked,
     refineRound: prev.refineRound,
-    scheduled: prev.scheduled,
     // The same refinement carried on, not a second one — the way a resume re-joins the
     // delivery it continues rather than opening another.
     flowId: prev.flowId,

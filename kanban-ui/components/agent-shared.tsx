@@ -60,7 +60,6 @@ export interface AgentReq {
   reason?: string;
   description?: string;
   title?: string;
-  andImplement?: boolean;
   release?: string; // create: the version the new card ships in
   /** create and Build now: the pictures pasted into the create sheet (#517) — the box they
    *  were written to and their names, in the order they went in. The board renames that

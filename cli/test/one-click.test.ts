@@ -24,15 +24,16 @@ import {
   listDeliveries,
   openQuestions,
 } from '../src/lib/agent/deliveries.ts'
+import { cmdStartRun } from '../src/commands/run.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { deliveryState } from '../src/lib/agent/pause.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
-import { carryIntoBuild, claimCard, closeRun, discardDelivery, openRun, peekRun, stopRun } from '../src/lib/agent/sessions.ts'
+import { claimCard, closeRun, discardDelivery, openRun, peekRun, stopRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
-import type { AgentAction, AgentRequest, DeliveryRecord } from '../src/lib/agent/types.ts'
+import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
 import { watchRun } from '../src/lib/agent/watch.ts'
 import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import { board } from '../src/lib/board/index.ts'
@@ -695,108 +696,20 @@ describe('where a delivery stands', () => {
   })
 })
 
-// A planning session that settles its card carries straight on into the build (#1203): the
-// same run, now inside a delivery, unless something still waits on the user.
-describe('a planning run carried into the build', () => {
-  const planning = (action: 'clarify' | 'resolve' = 'clarify', over: Partial<AgentRequest> = {}): string => {
-    const opened = openRun(
-      { action, id: 1, title: 'card one', ...(action === 'clarify' ? { refineRound: 1 } : {}), ...over },
-      'prompt',
-      [],
-    )
-    if ('error' in opened) throw new Error(opened.error)
-    return opened.run.sessionId
+// Planning never builds (#1295): a build printed inside a planning run is refused, and no
+// delivery opens around it.
+describe('a build asked for inside a planning run', () => {
+  for (const action of ['clarify', 'resolve'] as const) {
+    it(`is refused inside a ${action} run`, async () => {
+      const opened = openRun({ action, id: 1, title: 'card one', ...(action === 'clarify' ? { refineRound: 1 } : {}) }, 'prompt', [])
+      if ('error' in opened) throw new Error(opened.error)
+      const session = opened.run.sessionId
+      process.env[RUN_ENV] = session
+      await assert.rejects(() => cmdStartRun('implement', [1], { print: true }), /a planning run never builds/)
+      assert.equal(peekRun(session)!.action, action)
+      assert.equal(activeDelivery(1), undefined)
+    })
   }
-
-  // What a spec agent set to human review leaves: its section above the boundary.
-  const withHumanSection = (): void =>
-    fs.writeFileSync(
-      cardPath(1),
-      cardText(1, 'card one').replace(
-        'What this card is for.\n',
-        'What this card is for.\n\n## By `ui-designer` agent\n- **The screen**: drawn.\n',
-      ),
-    )
-
-  it('turns the run into the build, in a delivery of its own, and lands it', async () => {
-    const session = planning()
-    const carried = await carryIntoBuild(session, 1)
-    assert.ok(carried && 'deliveryId' in carried, JSON.stringify(carried))
-
-    const record = peekRun(session)!
-    assert.equal(record.action, 'implement')
-    assert.equal(record.refineRound, undefined)
-    assert.equal(record.deliveryId, carried.deliveryId)
-    const delivery = activeDelivery(1)!
-    assert.equal(delivery.deliveryId, carried.deliveryId)
-    assert.deepEqual(delivery.sessions, [session])
-    assert.ok(delivery.worktree, 'an auto delivery builds in its own worktree')
-    assert.match(fs.readFileSync(cardPath(1), 'utf8'), /^status: implementing$/m)
-
-    // The run's close is the build's: it queues, and the next pass lands it.
-    fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'one\n')
-    await end(session)
-    assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
-    assert.equal(await advanceLanding(), null)
-    assert.deepEqual(log(), ['card one (#1)', 'start'])
-    assert.equal(archived(1), true)
-  })
-
-  it('leaves a run that is not planning this card alone', async () => {
-    const session = planning()
-    assert.equal(await carryIntoBuild(session, 2), undefined)
-    const other = run('edit', 2, 'card two')
-    assert.equal(await carryIntoBuild(other, 2), undefined)
-    assert.equal(peekRun(session)!.action, 'clarify')
-    assert.equal(activeDelivery(1), undefined)
-  })
-
-  it('waits while the card has an open question', async () => {
-    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
-    const session = planning()
-    const refused = await carryIntoBuild(session, 1)
-    assert.ok(refused && 'error' in refused)
-    assert.equal(refused.reason, 'buildWaits')
-    assert.match(refused.error, /open question/)
-    assert.equal(peekRun(session)!.action, 'clarify')
-    assert.equal(activeDelivery(1), undefined)
-  })
-
-  it('waits on a refine the board started off a schedule', async () => {
-    const session = planning('clarify', { scheduled: true })
-    assert.equal(peekRun(session)!.scheduled, true)
-    const refused = await carryIntoBuild(session, 1)
-    assert.ok(refused && 'error' in refused)
-    assert.equal(refused.reason, 'buildWaits')
-    assert.match(refused.error, /by itself/)
-    assert.equal(activeDelivery(1), undefined)
-  })
-
-  it('waits when a spec agent left a section for the user to look at', async () => {
-    withHumanSection()
-    const refused = await carryIntoBuild(planning(), 1)
-    assert.ok(refused && 'error' in refused)
-    assert.equal(refused.reason, 'buildWaits')
-    assert.match(refused.error, /waiting for the user to look at/)
-    assert.equal(activeDelivery(1), undefined)
-  })
-
-  // Applying the user's answers IS the user having looked.
-  it('lets a resolve build past that section', async () => {
-    withHumanSection()
-    const session = planning('resolve')
-    const carried = await carryIntoBuild(session, 1)
-    assert.ok(carried && 'deliveryId' in carried, JSON.stringify(carried))
-    assert.equal(peekRun(session)!.action, 'implement')
-  })
-
-  it('waits while another delivery is already building the card', async () => {
-    const built = run('implement', 1, 'card one')
-    await end(built, 'error')
-    const refused = await carryIntoBuild(planning('resolve'), 1)
-    assert.ok(refused && 'error' in refused)
-    assert.match(refused.error, /already building/)
-  })
 })
 
 describe('a stopped delivery built again', () => {

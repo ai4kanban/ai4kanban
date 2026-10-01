@@ -188,7 +188,6 @@ export interface AgentRequest {
   /** create, and implement with no `id`: the triage item the card is made of — **Make card**
    *  (#894) and **Start now** (#1193) on the page. */
   triage?: TriageAsk
-  andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** The workflow the card this run is for runs on (#715) — a workflow's stable id, read
    *  off the card as the run is prepared. It decides which agent leads the run's stage, and
    *  which flow text the run is given. Absent on a run that names no card and on a run
@@ -197,10 +196,6 @@ export interface AgentRequest {
   workflow?: string
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** clarify: the board started it by itself — off the card's schedule, or after another
-   *  run — rather than a person asking, so it plans and stops and never carries on into the
-   *  build (#1203). */
-  scheduled?: boolean
   /** clarify, resolve: how the run's session is opened (#1304), set as the run is written
    *  down — the card's planning session resumed, or the one it was created in forked. `new`
    *  asks for a new one: the rerun after that session turned out to be gone. */
@@ -344,9 +339,6 @@ export type RunRefusalKind =
   | 'proUnconfirmed'
   | 'cloudUnreachable'
   | 'cardHeld'
-  /** A planning run tried to carry on into its card's build while something still waits on
-   *  the user (#1203). Said to the agent inside the run, never on a screen. */
-  | 'buildWaits'
   // Runtimes, workflows and settings the Configuration dialog saves.
   | 'runtimeUnnamed'
   | 'runtimeTaken'
@@ -556,8 +548,6 @@ export interface RunRecord {
   tickedNothing?: boolean
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** The board started it by itself rather than a person asking (#1203). */
-  scheduled?: boolean
   /** The FLOW this run is one session of — the id shared by the command a user typed and
    *  every session it went on to start: a refinement's passes, the spec agents a create
    *  asked for, the review that follows a build. It is what lets the runs panel show one

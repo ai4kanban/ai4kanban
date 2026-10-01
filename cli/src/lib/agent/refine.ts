@@ -224,7 +224,7 @@ function refinesAfter(
     .sort(byDispatchOrder)
     .flatMap((card) => {
       const action = refinementStep(card)
-      return action === 'done' ? [] : [{ action, id: card.id, title: card.title, refineRound: 1, scheduled: true }]
+      return action === 'done' ? [] : [{ action, id: card.id, title: card.title, refineRound: 1 }]
     })
 }
 

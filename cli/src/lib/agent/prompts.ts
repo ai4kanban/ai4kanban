@@ -618,9 +618,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         carriedNote(req),
         answeredNote(req.id, command),
         req.notes ? `Extra notes: ${req.notes}` : '',
-        req.andImplement
-          ? `Then build it in this session, as the flow's handover says — only if applying the answers leaves no open question.`
-          : '',
       ]
         .filter(Boolean)
         .join(' ')

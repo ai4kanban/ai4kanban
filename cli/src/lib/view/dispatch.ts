@@ -163,7 +163,7 @@ const scheduledRequest = (card: Card): AgentRequest => ({
   id: card.id,
   title: card.title,
   notes: card.schedule!.notes || undefined,
-  ...(card.schedule!.action === 'refine' ? { refineRound: 1, scheduled: true } : {}),
+  ...(card.schedule!.action === 'refine' ? { refineRound: 1 } : {}),
 })
 
 /**

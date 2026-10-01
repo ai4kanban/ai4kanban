@@ -57,8 +57,6 @@ import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { openOf } from '../view/rules'
 import { setupInstruction } from './resolve'
 import { isRetired, type AgentAction, type AgentRequest, type DeliveryRecord, type StartableAction } from './types'
-import { insideRun } from './env'
-import { cardWorkflow } from './workflows'
 
 // The run id an agent works under. It lives in agent/env.ts, which imports nothing, so
 // the delivery lock can ask the same question without pulling this module in behind it.
@@ -335,7 +333,6 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery?.worktree) return []
   return field('workspace', [
     `write code in ${delivery.worktree} — this delivery's own worktree, on branch ${delivery.branch}.`,
-    // A planning run carried on into the build (#1203) is still standing in the project.
     path.resolve(process.cwd()).startsWith(worktreeDir(delivery.worktree))
       ? `it is your working folder already; the board's own files are NOT in it and never go on that branch.`
       : `cd into it first — you are in the project checkout, and code written here is not part of this build. The board's own files are NOT in it and never go on that branch.`,
@@ -652,13 +649,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'settle and write the card as `akb guide refine` says; leave only `[user]` questions',
         `${raw} update ${req.id} --status ready — once the card validates`,
       )
-      // Planning carries straight on into the build when nothing waits on the user (#1203).
-      // A refine the board started by itself stops at the plan: nobody asked for a build.
-      if (!req.scheduled && cardWorkflow(req.id!)?.delivers !== 'plan') {
-        next.push(
-          `${self} card implement ${req.id} --print — build it in this session once it is ready with no open question. The board refuses while something still waits on the user; then stop`,
-        )
-      }
       break
     }
     case 'resolve': {
@@ -671,11 +661,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       facts.push(...field('memory', memoryLines(card!.meta.modules, 'decisions.md')))
       if (building) close.push(answeredClose(building, self))
-      if (req.andImplement) {
-        next.push(`${self} card implement ${req.id} --print — carry straight on in this session, but only if nothing is left for the user`)
-      } else if (!insideRun()) {
-        next.push(`${self} card implement ${req.id} --print — once every question is settled`)
-      }
       break
     }
     case 'edit': {

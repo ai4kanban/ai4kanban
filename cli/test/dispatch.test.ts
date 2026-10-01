@@ -65,7 +65,7 @@ describe('the runs the board starts on its own', () => {
     })
 
     assert.deepEqual(cleared, [11])
-    assert.deepEqual(work, [{ action: 'clarify', id: 11, title: 'Card 11', notes: undefined, refineRound: 1, scheduled: true }])
+    assert.deepEqual(work, [{ action: 'clarify', id: 11, title: 'Card 11', notes: undefined, refineRound: 1 }])
   })
 
   it('still starts a scheduled standalone card', async () => {
@@ -73,7 +73,7 @@ describe('the runs the board starts on its own', () => {
 
     const work = await nextWork(() => Promise.resolve(true))
 
-    assert.deepEqual(work, [{ action: 'clarify', id: 12, title: 'Card 12', notes: undefined, refineRound: 1, scheduled: true }])
+    assert.deepEqual(work, [{ action: 'clarify', id: 12, title: 'Card 12', notes: undefined, refineRound: 1 }])
   })
 
   // A card whose own chat is answering is held (#633), so a start would be refused. It is

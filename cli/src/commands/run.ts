@@ -12,10 +12,10 @@ import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
 import {
   askForRefine,
-  carryIntoBuild,
   discardCost,
   getRun,
   listRuns,
+  planningRun,
   stopRun,
   titleOf,
 } from '../lib/agent/sessions'
@@ -90,12 +90,13 @@ export async function cmdStartRun(
   // A run the board started passed this at its own start (#1038).
   const pro = inside ? null : await proRefusal(runnable)
   if (pro) die(pro.error, { kind: 'run-refused', action, reason: pro.reason })
-  // A planning run printing its own card's build carries straight on into it (#1203): the
-  // delivery opens around this session, and the flow printed next is the build's.
-  if (inside && action === 'implement' && req.id !== undefined) {
-    const carried = await carryIntoBuild(inside, req.id)
-    if (carried && 'error' in carried) die(carried.error, { kind: 'run-refused', action, reason: carried.reason })
-    if (carried) say(`run ${short(inside)} is now the build of #${req.id}, in delivery ${carried.deliveryId}.`)
+  // Planning never builds (#1295). A printed build here has no delivery and no worktree, so
+  // it would write code in the project checkout.
+  if (inside && action === 'implement' && planningRun(inside)) {
+    die('a planning run never builds — stop here; the user starts the build, in a session of its own.', {
+      kind: 'run-refused',
+      action,
+    })
   }
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
@@ -200,7 +201,6 @@ export interface StartOptions {
   release?: string
   /** create: the workflow the new cards run on. */
   workflow?: string
-  andImplement?: boolean
   /** The runtime this one run spawns on (#518), on the two flows that take one. */
   runtime?: string
   /** reject: drop the card without writing any memory (#601). */
@@ -281,7 +281,6 @@ function readRequest(
   // The one run's own runtime (#518) — declared by `implement` alone among these, so
   // nothing else can be given one.
   if (action === 'implement') req.runtime = opts.runtime
-  if (action === 'resolve' && opts.andImplement === true) req.andImplement = true
   return { req, follow, print }
 }
 

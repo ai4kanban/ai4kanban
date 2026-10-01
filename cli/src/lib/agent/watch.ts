@@ -516,8 +516,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (contractError) {
         log.write(`\n[validation] ${contractError}\n`)
         if (status === 'done') status = 'error'
-        // A planning run carried into the build (#1203) joined its delivery after `record` was read.
-        if (record.cardId !== null && !(peekRun(sessionId)?.deliveryId ?? record.deliveryId)) await setCardStatus(record.cardId, 'todo')
+        if (record.cardId !== null && !record.deliveryId) await setCardStatus(record.cardId, 'todo')
       }
       // A setup run exists to tick boxes and never stops to ask (#909), so a clean exit that
       // ticked none did nothing. The last tick deletes the checklist, which reads as progress.
@@ -998,7 +997,6 @@ function requestOf(record: RunRecord): AgentRequest {
     triage: record.triage,
     fromCard: record.fromCard,
     refineRound: record.refineRound,
-    scheduled: record.scheduled,
     flowId: record.flowId,
     pictures: record.pictures,
   }
