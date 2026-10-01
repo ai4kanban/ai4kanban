@@ -25,6 +25,7 @@ import { readAllDismissed, readInbox } from '../src/lib/signals/inbox.ts'
 import { dismissSignal } from '../src/lib/signals/index.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { triageShut } from './helpers/triage.ts'
 
 let root = ''
 
@@ -37,7 +38,7 @@ const archived = (): string => path.join(kanban(), 'triage', 'archived')
 async function waiting(title: string): Promise<string> {
   startCollecting()
   try {
-    await cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` })
+    await triageShut(() => cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` }))
   } finally {
     stopCollecting()
   }

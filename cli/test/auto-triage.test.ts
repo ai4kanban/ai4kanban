@@ -20,6 +20,7 @@ import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { writeSession, type CloudSession } from '../src/lib/cloud/session.ts'
 import { restoreMachineHome } from './helpers/board.ts'
+import { triageShut } from './helpers/triage.ts'
 
 const SUPABASE = 'https://project.supabase.co'
 const API = 'https://api.example.test'
@@ -31,26 +32,24 @@ const realFetch = globalThis.fetch
 const kanban = (): string => path.join(root, 'docs', 'kanban')
 const todo = (): string => path.join(kanban(), 'todo')
 
-/** Cloud says this account is admitted, or is not. Triage reads it on every call. */
-const admitted = (yes: boolean) => {
+/** Cloud says this account has Pro, or has not. A kept Pro answer is dropped so the next
+ *  call asks again. */
+const pro = (yes: boolean) => {
+  if (home) fs.rmSync(path.join(home, 'pro.json'), { force: true })
   globalThis.fetch = (async () =>
-    new Response(JSON.stringify({ session: { admitted: yes, handle: 'someone' } }), {
+    new Response(JSON.stringify({ billing: { plan: yes ? 'pro' : 'free', periodEnd: null } }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     })) as typeof fetch
 }
 
-/** One item waiting to be sorted, and the source id it was given. Cloud is held closed
- *  across the add, so seeding a list never spawns the very run under test. */
+/** One item waiting to be sorted, and the source id it was given. */
 async function waiting(title: string): Promise<string> {
-  const was = globalThis.fetch
-  admitted(false)
   startCollecting()
   try {
-    await cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` })
+    await triageShut(() => cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` }))
   } finally {
     stopCollecting()
-    globalThis.fetch = was
   }
   return readInbox().find((item) => item.title === title)!.sourceId
 }
@@ -115,7 +114,7 @@ beforeEach(() => {
     handle: 'someone',
     name: 'Someone',
   } satisfies CloudSession)
-  admitted(true)
+  pro(true)
 })
 
 afterEach(() => {
@@ -132,7 +131,7 @@ describe('the roster', () => {
   it('is on the roster where triage is open, and off it where triage is not', async () => {
     const named = async (): Promise<string[]> => (await readAgents()).agents.map((a) => a.name)
     assert.ok((await named()).includes('triage'))
-    admitted(false)
+    pro(false)
     assert.ok(!(await named()).includes('triage'))
 
     // Cloud that cannot be asked reads as closed — the row goes, and the rest of the team
@@ -150,18 +149,17 @@ describe('the sort a batch of new items starts', () => {
     assert.deepEqual(readRuns(), [])
   })
 
-  it('starts none where Cloud no longer says this account is admitted', async () => {
-    admitted(false)
+  it('starts none where Cloud no longer says this account has Pro', async () => {
+    pro(false)
     await triageAfterAdding(1)
     assert.deepEqual(readRuns(), [])
   })
 
   // The add is the move; the sort is a best effort on top of it.
   it('leaves the item added when no sort could be started', async () => {
-    admitted(false)
     startCollecting()
     try {
-      const done = await cmdTriageAdd({ title: 'Written anyway', text: 'https://example.test/written-anyway' })
+      const done = await triageShut(() => cmdTriageAdd({ title: 'Written anyway', text: 'https://example.test/written-anyway' }))
       assert.equal(done.title, 'Written anyway')
     } finally {
       stopCollecting()
@@ -172,11 +170,11 @@ describe('the sort a batch of new items starts', () => {
 })
 
 describe('the sort that follows a sort', () => {
-  it('starts none when Cloud stops saying this account is admitted', async () => {
+  it('starts none when Cloud stops saying this account has Pro', async () => {
     const given = [await waiting('Something new')]
     quiet(() => cmdTriageDismiss(given[0]!, 'too small'))
     await waiting('And another')
-    admitted(false)
+    pro(false)
     assert.equal(await triageRunAfter(given), null)
   })
 

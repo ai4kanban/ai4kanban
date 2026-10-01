@@ -6,8 +6,8 @@
 // the page (#499), which writes the same files without an endpoint.
 //
 // `add` is the third way in (#534): one item written from words the caller already has,
-// which is what the proposer's reflection uses. It asks Cloud nothing — the endpoint is what
-// admission is about, and **Add to triage** on the page has never asked either.
+// which is what the proposer's reflection uses. It asks Cloud nothing, and **Add to triage**
+// on the page has never asked either.
 //
 // All three go on to start a sort when the triager is switched on (#562, ../lib/agent/
 // auto-triage.ts). The trigger sits here rather than in `addToInbox` because it is the

@@ -31,6 +31,7 @@ import { setBoardRoot } from '../src/lib/paths.ts'
 import { runAgent } from '../src/lib/agent-cli.ts'
 import { runBoard } from '../src/lib/board-cli.ts'
 import { restoreMachineHome } from './helpers/board.ts'
+import { triageShut } from './helpers/triage.ts'
 
 const SUPABASE = 'https://project.supabase.co'
 const API = 'https://api.example.test'
@@ -59,7 +60,7 @@ function card(id: number, title: string, body = 'What it does.'): string {
 async function waiting(title: string): Promise<string> {
   startCollecting()
   try {
-    await cmdTriageAdd({ title, text: `The words of ${title}.` })
+    await triageShut(() => cmdTriageAdd({ title, text: `The words of ${title}.` }))
   } finally {
     stopCollecting()
   }
@@ -310,8 +311,6 @@ describe('akb triage judge', () => {
     assert.match(refused.err, /pro_required: .* Stop judging/)
     assert.equal(fs.existsSync(path.join(home, 'pro.json')), false)
     assert.equal(item(id).verdict, '')
-    // The next sort is the non-Pro one.
-    assert.doesNotMatch(quiet(() => printFlow({ action: 'triage' })).said, /triage judge <source-id>/)
   })
 })
 
@@ -323,7 +322,7 @@ describe('the sort', () => {
     return id
   }
 
-  it('names the tool for Pro, lists what is left to judge and to card, and never a held item', async () => {
+  it('names the tool, lists what is left to judge and to card, and never a held item', async () => {
     signIn(true)
     card(7, 'Themes')
     const fresh = await waiting('Fresh')
@@ -340,16 +339,6 @@ describe('the sort', () => {
     assert.doesNotMatch(said, new RegExp(held))
     assert.match(said, /with no --schedule, then akb.* raw update <id> --status ready/)
     assert.doesNotMatch(said, /memory\/agents\/planner\/decisions\.md/)
-  })
-
-  it('stays the same for a user without Pro', async () => {
-    signIn(false)
-    const id = await waiting('Fresh')
-    const { said } = quiet(() => printFlow({ action: 'triage' }))
-    assert.match(said, new RegExp(`${id} — Fresh`))
-    assert.doesNotMatch(said, /triage judge <source-id>/)
-    assert.doesNotMatch(said, /--status ready/)
-    assert.match(said, /memory\/agents\/planner\/decisions\.md/)
   })
 
   it('never sends a held or restored item again, and keeps one judged worth a card', async () => {

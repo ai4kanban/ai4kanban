@@ -20,8 +20,9 @@ import { openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { chatFile } from '../src/lib/agent/chat.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { cmdTriageAdd } from '../src/commands/triage.ts'
+import { cmdTriageAdd, type TriageAddOptions } from '../src/commands/triage.ts'
 import { readSignals } from '../src/lib/signals/index.ts'
+import { triageShut } from './helpers/triage.ts'
 
 let root = ''
 
@@ -253,9 +254,11 @@ describe('the flow', () => {
 })
 
 describe('a proposal in the inbox', () => {
+  const add = (opts: TriageAddOptions) => triageShut(() => cmdTriageAdd(opts))
+
   it('lands as an ordinary item carrying the card that prompted it', async () => {
     await said(() =>
-      cmdTriageAdd({
+      add({
         title: 'Let a delivery say what it skipped',
         source: '#1',
         text: 'Card #1 left its second half undone — docs/kanban/.archive/1-card.md.',
@@ -271,14 +274,14 @@ describe('a proposal in the inbox', () => {
 
   it('refuses the same proposal twice', async () => {
     const twice = () =>
-      said(() => cmdTriageAdd({ title: 'The same idea', source: '#1', text: 'The same words.' }))
+      said(() => add({ title: 'The same idea', source: '#1', text: 'The same words.' }))
     await twice()
     await assert.rejects(twice, /already waiting in triage — docs\/kanban\/triage\//)
     assert.equal(readSignals().signals.length, 1)
   })
 
   it('refuses one with nothing written in it', async () => {
-    await assert.rejects(() => cmdTriageAdd({ title: 'A title alone' }), /has to say something/)
-    await assert.rejects(() => cmdTriageAdd({ text: 'Words with no title.' }), /--title/)
+    await assert.rejects(() => add({ title: 'A title alone' }), /has to say something/)
+    await assert.rejects(() => add({ text: 'Words with no title.' }), /--title/)
   })
 })

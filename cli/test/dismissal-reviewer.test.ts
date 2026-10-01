@@ -257,10 +257,7 @@ describe('what the review is handed', () => {
     assert.match(guide, /a line with no source id was written by the user/)
   })
 
-  it('has triage read the preferences, below the product and the run’s own instruction', () => {
-    const triage = findGuide('triage')!.text
-    assert.match(triage, /`dismissed\.md` holds the user's past dismissals/)
-    assert.match(triage, /the product and\s+this run's instruction outrank it/)
+  it('has pruning keep every source id', () => {
     assert.match(findGuide('prune-memory')!.text, /keep every source id/)
   })
 })

@@ -45,7 +45,6 @@ import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from '
 import { itemsBeingCarded } from './store'
 import { readInbox } from '../signals/inbox'
 import { awaitsCard, awaitsJudging, openCards, sortable } from '../signals/judge'
-import { heldPro } from '../cloud/pro'
 import type { Signal } from '../view/types'
 import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
@@ -909,12 +908,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'triage': {
       migrateTriage()
       const carding = itemsBeingCarded()
-      const pro = heldPro()
-      // For Pro (#1221) Jev judges each item once: what it judged worth a card is listed to be
-      // carded, and what it held or skipped is the user's.
+      // Jev judges each item once (#1221): what it judged worth a card is listed to be carded,
+      // and what it held or skipped is the user's.
       const waiting = readInbox().filter((item) => !carding.has(item.sourceId) && sortable(item))
-      const toJudge = pro ? waiting.filter(awaitsJudging) : waiting
-      const toCard = pro ? waiting.filter(awaitsCard) : []
+      const toJudge = waiting.filter(awaitsJudging)
+      const toCard = waiting.filter(awaitsCard)
       const line = (item: Signal) => `  ${item.sourceId} — ${item.title}${item.sourceType ? ` (${item.sourceType})` : ''} — ${item.relPath}`
       facts.push(
         ...field(
@@ -932,20 +930,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           ]),
         )
       }
-      if (pro) {
-        facts.push(...field('judge', `${self} triage judge <source-id> [--files <paths>] — once per item to judge; do what it prints`))
-        const cards = openCards()
-        facts.push(
-          ...field(
-            'cards',
-            cards.length === 0
-              ? '(none open)'
-              : [`${cards.length} open — pass any that may already own an item to --files:`, ...cards.map((card) => `  #${card.id} ${card.title} — ${rel(card.file)}`)],
-          ),
-        )
-      }
+      facts.push(...field('judge', `${self} triage judge <source-id> [--files <paths>] — once per item to judge; do what it prints`))
+      const cards = openCards()
+      facts.push(
+        ...field(
+          'cards',
+          cards.length === 0
+            ? '(none open)'
+            : [`${cards.length} open — pass any that may already own an item to --files:`, ...cards.map((card) => `  #${card.id} ${card.title} — ${rel(card.file)}`)],
+        ),
+      )
       facts.push(...field('product', rel(PRODUCT)))
-      if (!pro) facts.push(...field('memory', planningMemoryFiles()))
       facts.push(...field('modules', rel(MODULES_MD)))
       if (toJudge.length === 0 && toCard.length === 0) {
         close.push('write nothing — there is nothing waiting, and that is a complete result')
@@ -954,11 +949,9 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --schedule refine --body-file <path> — one call per survivor, body written first`,
       )
-      if (pro) {
-        close.push(
-          `${raw} create ... --body-file <path> with no --schedule, then ${raw} update <id> --status ready — for plan-without-refine, its body ready to build`,
-        )
-      }
+      close.push(
+        `${raw} create ... --body-file <path> with no --schedule, then ${raw} update <id> --status ready — for plan-without-refine, its body ready to build`,
+      )
       close.push(
         `${self} triage archive <source-id> --card <id> — straight after the card it became`,
         `${self} triage dismiss <source-id> --reason ".." — everything else, in one clause each`,

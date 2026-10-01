@@ -1,10 +1,4 @@
-// Who the inbox is open to (#453, #555).
-//
-// The inbox UI is a Cloud preview, so it is drawn only for an account Cloud has just said is
-// admitted. What is asked here: an admitted account opens it, one we have not admitted does
-// not, and a sign-in this machine still holds but cannot prove does not either — an
-// unreachable Cloud must not leave the feature standing for an account that was never
-// invited.
+// Who triage is open to (#453, #1296): Pro only, and each refusal says why.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -13,7 +7,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { writeSession, type CloudSession } from '../src/lib/cloud/session.ts'
+import { sessionFile, writeSession, type CloudSession } from '../src/lib/cloud/session.ts'
 import { signalsAccess } from '../src/lib/signals/access.ts'
 import { restoreMachineHome } from './helpers/board.ts'
 
@@ -54,7 +48,7 @@ afterEach(() => {
   delete process.env.AI4KANBAN_CLOUD_URL
 })
 
-/** Cloud answers the session call with `body`, and nothing else is asked of the network. */
+/** Cloud answers every call with `body`. */
 const cloudSays = (body: unknown, status = 200) => {
   globalThis.fetch = (async () =>
     new Response(JSON.stringify(body), {
@@ -63,25 +57,32 @@ const cloudSays = (body: unknown, status = 200) => {
     })) as typeof fetch
 }
 
-describe('who the inbox is open to', () => {
-  it('opens for an admitted account', async () => {
-    cloudSays({ session: { admitted: true, handle: 'someone' } })
+const why = async (): Promise<string> => {
+  const access = await signalsAccess()
+  assert.equal(access.open, false)
+  return access.open ? '' : access.why
+}
+
+describe('who triage is open to', () => {
+  it('opens for a Pro account', async () => {
+    cloudSays({ billing: { plan: 'pro', periodEnd: null } })
     assert.deepEqual(await signalsAccess(), { open: true })
   })
 
-  it('stays shut for an account we have not admitted', async () => {
-    cloudSays({ session: { admitted: false, handle: 'someone' } })
-    const access = await signalsAccess()
-    assert.equal(access.open, false)
-    assert.match(access.open ? '' : access.why, /invited Cloud accounts/)
+  it('stays shut for a free account', async () => {
+    cloudSays({ billing: { plan: 'free' } })
+    assert.equal(await why(), 'Triage needs Pro.')
   })
 
-  it('stays shut when Cloud cannot be reached to check', async () => {
+  it('stays shut when signed out', async () => {
+    fs.rmSync(sessionFile())
+    assert.equal(await why(), 'Triage needs Pro. Sign in first.')
+  })
+
+  it('stays shut when Cloud cannot be reached to confirm', async () => {
     globalThis.fetch = (async () => {
       throw new Error('offline')
     }) as typeof fetch
-    const access = await signalsAccess()
-    assert.equal(access.open, false)
-    assert.match(access.open ? '' : access.why, /could not be reached/)
+    assert.equal(await why(), "Couldn't confirm your Pro plan. Reconnect and retry.")
   })
 })
