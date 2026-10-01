@@ -19,6 +19,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -241,6 +242,13 @@ function groupBySource(signals: Signal[], listed: string[]): Group[] {
 const cardHref = (id: number, archived: boolean) => (archived ? `/archive/${id}` : `/${id}`);
 
 const titleOf = (signal: Signal): string => (signal.contentKept ? signal.title : signal.sourceId);
+
+/** The native tip carries the full text only while the element is cut off at its current width. */
+function tipWhenCut(event: MouseEvent<HTMLElement>) {
+  const el = event.currentTarget;
+  if (el.scrollWidth > el.clientWidth) el.title = el.textContent ?? "";
+  else el.removeAttribute("title");
+}
 
 function without(set: Set<string>, ids: string[]): Set<string> {
   if (!ids.some((id) => set.has(id))) return set;
@@ -1275,7 +1283,10 @@ function QueueRow({
             onClick={onOpen}
             className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 text-left focus-visible:outline-none max-md:gap-1"
           >
-            <span className="min-w-0 max-w-full text-[13px] font-[600] text-nb-ink [overflow-wrap:anywhere] md:truncate">
+            <span
+              onMouseEnter={tipWhenCut}
+              className="min-w-0 max-w-full text-[13px] font-[600] text-nb-ink [overflow-wrap:anywhere] md:truncate"
+            >
               {titleOf(signal)}
             </span>
             <span className="line-clamp-1 text-[12px] text-nb-ink-soft max-md:line-clamp-2">
@@ -1292,6 +1303,7 @@ function QueueRow({
           className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-x-1.5 text-left focus-visible:outline-none"
         >
           <span
+            onMouseEnter={tipWhenCut}
             className={`min-w-0 [overflow-wrap:anywhere] md:truncate ${
               signal.contentKept ? "text-[13px] font-[600] text-nb-ink" : "font-mono text-[12px] font-[600] text-nb-ink-soft"
             }`}
