@@ -129,11 +129,9 @@ export function restartPrompt(req: AgentRequest, deliveryId?: string): string | 
 // the refinement sessions that follow are started once it ends (`refine.ts`), so each has
 // its own log and can be stopped on its own.
 
-// Every action that revises a card revises the CARD — the revision request says what the
-// text should say, not "go build it". Without this line an agent reads a request like
-// "make it handle empty input" as the work itself and writes code. A request that explicitly
-// asks for implementation still gets it. Not on create (it carries its own "create only"
-// line) and not on a resolve asked to carry on and implement.
+// A revision request says what the card should say, not "go build it"; without this line an
+// agent takes "make it handle empty input" as the work itself and writes code. Only `edit`
+// carries it — create has its own "Create task only" line.
 const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, don't implement it.)`
 
 /** The words one run is given, WITHOUT this board's own rule for the flow.
