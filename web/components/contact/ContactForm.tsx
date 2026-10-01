@@ -21,9 +21,15 @@ import {
 
 const SUPPORT_EMAIL = "support@ai4kanban.dev";
 
-const field =
-  `mt-2 block w-full rounded-lg border ${hairline} bg-elev px-3.5 py-2.5 text-[0.95rem] font-normal ` +
-  "outline-none transition-shadow focus:border-accent focus:ring-4 focus:ring-accent/15";
+// Every text box on this form and the seed form. No display class: each box adds its own.
+const fieldBox = `mt-2 w-full rounded-lg border ${hairline} bg-elev px-3.5 py-2.5 text-[0.95rem] font-normal transition-shadow`;
+export const field =
+  `${fieldBox} outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 ` +
+  "aria-[invalid=true]:not-focus:border-caution";
+// A box wrapping its input with a prefix: it lights up as one piece.
+export const fieldGroup =
+  `${fieldBox} focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15 ` +
+  "has-[[aria-invalid=true]]:not-focus-within:border-caution";
 
 // The right column; the receipt takes the same place and keeps a floor height so the page doesn't jump.
 const panel = "rounded-2xl bg-band p-7 sm:p-9 lg:col-start-2 lg:row-span-3 lg:row-start-1";
@@ -155,7 +161,7 @@ export function ContactForm({ t }: { t: ContactCopy }) {
         >
           {(invalid) => (
             <input
-              className={`${field} h-11`}
+              className={`${field} block h-11`}
               type="email"
               autoComplete="email"
               value={values.email}
@@ -176,7 +182,7 @@ export function ContactForm({ t }: { t: ContactCopy }) {
         >
           {(invalid) => (
             <textarea
-              className={`${field} resize-y leading-relaxed`}
+              className={`${field} block resize-y leading-relaxed`}
               rows={4}
               value={values.message}
               aria-invalid={invalid}
@@ -199,7 +205,7 @@ export function ContactForm({ t }: { t: ContactCopy }) {
               <>
                 <span className="mt-0.5 block text-xs font-normal text-muted">{t.workflowHint}</span>
                 <textarea
-                  className={`${field} resize-y leading-relaxed`}
+                  className={`${field} block resize-y leading-relaxed`}
                   rows={4}
                   value={values.workflow}
                   aria-invalid={invalid}

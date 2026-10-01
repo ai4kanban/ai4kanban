@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FiCheck } from "react-icons/fi";
-import { Field, WithSupport, submitClass } from "@/components/contact/ContactForm";
+import { Field, WithSupport, field, fieldGroup, submitClass } from "@/components/contact/ContactForm";
 import { newOpId, submitContact } from "@/components/contact/api";
 import {
   EMPTY,
@@ -16,11 +16,6 @@ import type { SeedCopy } from "@/i18n/seed/types";
 
 // The seed partner application (#1039): the contact form's `seed` reason, with
 // its submit, retry and refusals. The message is how they plan to use it.
-
-const box =
-  "mt-2 w-full rounded-lg border border-muted/70 bg-band/30 px-3 py-[9px] text-sm font-normal " +
-  "aria-[invalid=true]:border-caution";
-const ring = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 const START: Values = { ...EMPTY, reason: "seed" };
 
@@ -98,7 +93,7 @@ export function SeedForm({ t }: { t: SeedCopy }) {
       >
         {(invalid) => (
           <input
-            className={`${box} ${ring}`}
+            className={`${field} block h-11`}
             type="email"
             autoComplete="email"
             value={values.email}
@@ -110,11 +105,7 @@ export function SeedForm({ t }: { t: SeedCopy }) {
 
       <Field label={t.github} hint={t.githubHint} error={githubError}>
         {(invalid) => (
-          <span
-            className={`${box} flex items-center gap-1 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
-              invalid ? "border-caution" : ""
-            }`}
-          >
+          <span className={`${fieldGroup} flex h-11 items-center gap-1`}>
             <span className="text-muted">@</span>
             <input
               className="w-full bg-transparent outline-none"
@@ -136,7 +127,7 @@ export function SeedForm({ t }: { t: SeedCopy }) {
       >
         {(invalid) => (
           <textarea
-            className={`${box} ${ring} block h-[104px] resize-y lg:h-[180px]`}
+            className={`${field} block h-[104px] resize-y leading-relaxed lg:h-[180px]`}
             value={values.message}
             aria-invalid={invalid}
             onChange={(event) => edit({ message: event.target.value })}
