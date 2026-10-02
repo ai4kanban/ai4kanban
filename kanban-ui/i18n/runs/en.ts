@@ -321,7 +321,7 @@ const en: RunsCopy = {
     reject: {
       title: (id) => `Remove #${id}`,
       blurb: "This card leaves the board.",
-      placeholder: "Why are you rejecting this? (optional)…",
+      placeholder: "Reason (optional)…",
       hint: "Discard it, or add a reason so future planning avoids tasks like this.",
       confirm: "Reject",
       confirmDiscard: "Discard",

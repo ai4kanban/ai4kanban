@@ -308,7 +308,7 @@ const zh: RunsCopy = {
     reject: {
       title: (id) => `移除 #${id}`,
       blurb: "这张卡片将移出看板。",
-      placeholder: "否决原因（可选）…",
+      placeholder: "原因（可选）…",
       hint: "直接丢弃，或写下原因，未来会避开这类任务。",
       confirm: "否决",
       confirmDiscard: "丢弃",
