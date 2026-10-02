@@ -36,7 +36,7 @@ import {
 import { HELD_ON_QUESTIONS, IN_LINE } from './pause'
 import { backoffMs } from './retry'
 import { readStore, withStore } from './store'
-import type { AgentRequest, DeliveryLanding, DeliveryRecord, LandingWait } from './types'
+import type { AgentRequest, DeliveryLanding, DeliveryRecord, LandingReason, LandingWait } from './types'
 import {
   abortRebase,
   branchPatch,
@@ -118,6 +118,7 @@ function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefi
       ...was,
       status: 'landing',
       why: was.conflictAt || was.retryAt ? was.why : undefined,
+      reason: undefined,
       retryAt: undefined,
       at: Date.now(),
     }
@@ -139,12 +140,14 @@ function patchLanding(deliveryId: string, change: (landing: DeliveryLanding) => 
 }
 
 // The sentence a landing waits on, and the files it names where it names any (#958).
-// Written together everywhere: `wait` is the same fact in a shape a screen can word itself,
-// so a `why` that replaces it replaces both — and a wait can never outlive its sentence.
-const sayWhy = (deliveryId: string, why: string, wait?: LandingWait): void =>
+// Written together everywhere: `wait` and `reason` are the same fact in a shape a screen can
+// word itself, so a `why` that replaces it replaces all three — and neither can outlive its
+// sentence.
+const sayWhy = (deliveryId: string, why: string, wait?: LandingWait, reason?: LandingReason): void =>
   patchLanding(deliveryId, (landing) => {
     landing.why = why
     landing.wait = wait
+    landing.reason = reason
   })
 
 // Put the slot back, saying why. The delivery stays ACTIVE and queued: whatever stopped it
@@ -154,11 +157,12 @@ const sayWhy = (deliveryId: string, why: string, wait?: LandingWait): void =>
 // Whatever a conflict was in the middle of goes with it (#595). Every caller here is a
 // reason OUTSIDE the conflict, so the card must stop saying an attempt is coming — the wait
 // between two attempts gives the slot back on its own, and never through this.
-function giveUpSlot(delivery: DeliveryRecord, why: string, wait?: LandingWait): void {
+function giveUpSlot(delivery: DeliveryRecord, why: string, wait?: LandingWait, reason?: LandingReason): void {
   patchLanding(delivery.deliveryId, (landing) => {
     landing.status = 'waiting'
     landing.why = why
     landing.wait = wait
+    landing.reason = reason
     landing.conflictFiles = undefined
     landing.conflictFails = undefined
     landing.conflictAt = undefined
@@ -351,7 +355,7 @@ function noteQueue(held: Set<string>): void {
     // its wait is over — the tick that picks it back up is exactly the one this would spoil.
     if (delivery.landing.conflictAt || delivery.landing.retryAt) continue
     if (delivery.landing.why === why) continue
-    sayWhy(delivery.deliveryId, why)
+    sayWhy(delivery.deliveryId, why, undefined, { kind: 'queued', behind: holder.cardId === null ? `\`${holder.deliveryId}\`` : `#${holder.cardId}` })
   }
 }
 
@@ -413,7 +417,9 @@ type Step = { start?: AgentRequest; done?: boolean }
 async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step> {
   const dir = worktreeDir(delivery.worktree!)
   if (!worktreeExists(delivery.worktree)) {
-    giveUpSlot(delivery, `its worktree ${delivery.worktree} is gone, so there is nothing to land`)
+    giveUpSlot(delivery, `its worktree ${delivery.worktree} is gone, so there is nothing to land`, undefined, {
+      kind: 'worktree-gone',
+    })
     return { done: true }
   }
   // Whether there is anything left to land at all (#569). Asked before the rebase and
@@ -430,7 +436,7 @@ async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step
 
   const refusal = landingRefusal(delivery)
   if (refusal) {
-    giveUpSlot(delivery, refusal)
+    giveUpSlot(delivery, refusal.why, undefined, refusal.reason)
     return { done: true }
   }
   const target = branchTip(delivery.targetBranch!)!
@@ -471,11 +477,14 @@ async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step
 // wants the move, and the sentence that argues for it is the one they skip. Files, branches
 // and commands are wrapped in backticks; the page draws those as marks, and the terminal has
 // always spelled a command that way.
-function landingRefusal(delivery: DeliveryRecord): string | undefined {
-  if (!delivery.base) return 'it has no base commit to land against'
+function landingRefusal(delivery: DeliveryRecord): { why: string; reason: LandingReason } | undefined {
+  if (!delivery.base) return { why: 'it has no base commit to land against', reason: { kind: 'no-base' } }
   const target = branchTip(delivery.targetBranch!)
   if (!target) {
-    return `\`${delivery.targetBranch}\` is gone — put the branch back, or discard the delivery`
+    return {
+      why: `\`${delivery.targetBranch}\` is gone — put the branch back, or discard the delivery`,
+      reason: { kind: 'target-gone' },
+    }
   }
   // Nothing is asked here about the user's own staged, changed or untracked files (#958).
   // A fast-forward moves straight past work the landed commit does not touch, and names the
@@ -483,7 +492,10 @@ function landingRefusal(delivery: DeliveryRecord): string | undefined {
   // words whatever it names.
   const pending = pendingPaths(worktreeDir(delivery.worktree!))
   if (pending.length) {
-    return `its worktree still holds ${some(pending)} — clear ${them(pending.length)}`
+    return {
+      why: `its worktree still holds ${some(pending)} — clear ${them(pending.length)}`,
+      reason: { kind: 'worktree-dirty', files: pending },
+    }
   }
   return undefined
 }
@@ -573,6 +585,7 @@ async function afterRebase(
     landing.rebasedFrom = from
     landing.rebaseKind = kind
     landing.why = undefined
+    landing.reason = undefined
     landing.conflictFiles = undefined
     landing.conflictFails = undefined
     landing.conflictAt = undefined
@@ -595,6 +608,7 @@ function waitForTarget(delivery: DeliveryRecord): Step {
     landing.status = 'waiting'
     landing.retryAt = Date.now() + backoffMs(landing.attempts + 1)
     landing.why = `${delivery.targetBranch} moved again while this landing was going through, so it replays onto the new tip`
+    landing.reason = undefined
   })
   return { done: true }
 }
@@ -609,6 +623,7 @@ function startConflict(delivery: DeliveryRecord, target: string, files: string[]
     landing.onto = target
     landing.conflictFiles = files
     landing.why = `resolving a conflict with ${delivery.targetBranch} in ${names(files)}`
+    landing.reason = undefined
   })
   return { start: conflictRun(delivery) }
 }
@@ -656,6 +671,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
     landing.conflictFails = fails
     landing.conflictAt = at
     if (left.length) landing.conflictFiles = left
+    landing.reason = undefined
     landing.why =
       `the conflict between ${deliveryName(delivery)} and ${delivery.targetBranch} is not resolved yet — ` +
       `${done.why ?? 'the rebase would not go through'}`
@@ -749,6 +765,7 @@ async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto:
     landing.status = 'landed'
     landing.why = landed.why
     landing.wait = undefined
+    landing.reason = undefined
     landing.commit = landed.commit
     landing.onto = landed.onto
   })
@@ -848,7 +865,9 @@ function repairIdleLanding(): string[] {
     // the moment an agent opens on it, so a crashed attempt still reaches the abort (#595).
     if (d.landing?.conflictAt) continue
     abortRebase(worktreeDir(d.worktree))
-    giveUpSlot(d, 'a rebase was interrupted and has been put back — the landing will be tried again')
+    giveUpSlot(d, 'a rebase was interrupted and has been put back — the landing will be tried again', undefined, {
+      kind: 'interrupted',
+    })
     complaints.push(
       `delivery ${d.deliveryId}${d.cardId === null ? '' : ` on #${d.cardId}`}: a landing rebase was left half-done and has been put back. ` +
         `Its work is whole on ${d.branch}, and the landing is tried again on its own.`,

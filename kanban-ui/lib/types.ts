@@ -84,6 +84,7 @@ export type {
   Card,
   CardCreation,
   CardDelivery,
+  CardDeliveryLineKind,
   CardDeliveryStage,
   CardDeliveryState,
   CardFinished,

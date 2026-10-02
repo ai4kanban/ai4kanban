@@ -688,7 +688,7 @@ export function carryOnFrom(deliveryId: string): DeliveryCarryOn {
       if (delivery.review?.stopped?.reason === 'hook') delivery.review.stopped = undefined
       return 'hook'
     }
-    delivery.landing = { ...delivery.landing, status: 'waiting', why: undefined, at: Date.now() }
+    delivery.landing = { ...delivery.landing, status: 'waiting', why: undefined, reason: undefined, at: Date.now() }
     return 'landing'
   })
 }
@@ -702,6 +702,7 @@ export function hookUnstarted(deliveryId: string, agent: string, error: string):
       reason: 'hook',
       why: `the \`${agent}\` hook could not start after the build (${error}), so nothing was delivered`,
       at: Date.now(),
+      hook: { agent, how: 'unstarted', error },
     }
   })
   syncAudit(deliveryId)
@@ -1146,7 +1147,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       }
       return { end: 'finished' }
     }
-    reviewOf(delivery).stopped = { reason: next.stop, why: next.why, at: Date.now() }
+    reviewOf(delivery).stopped = { reason: next.stop, why: next.why, at: Date.now(), hook: next.hook }
     // A stop waits on a person, and a landing queue that waits with it stops every other
     // card on the board — so the slot goes back (#304).
     releaseLanding(delivery)
@@ -1206,6 +1207,7 @@ function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
     ...landing,
     status: landing.status === 'landing' ? 'landing' : 'waiting',
     why: undefined,
+    reason: undefined,
     checks: [
       ...(landing.checks ?? []),
       { name: `${run.action} ${run.sessionId.slice(0, 8)}`, ok: true, at: Date.now() },

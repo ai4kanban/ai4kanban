@@ -66,6 +66,7 @@ import { TOOL_BTN } from "./chrome";
 import { Copied, useCopyText } from "./copy";
 import { botTargetId, RunScene } from "./RunScene";
 import { noteParts, sayFailure } from "@/lib/start-failure";
+import { deliveryWords } from "@/lib/delivery-words";
 
 const POLL_MS = 1500; // while a run is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -537,19 +538,24 @@ function FlowEnding({ flow, selectedId }: { flow: RunFlow; selectedId: string | 
 // Only a pause is drawn. A delivery that is simply working says so by running, and a second
 // line repeating it is a line the reader learns to skip.
 function DeliveryStop({ session }: { session: SessionView }) {
-  const c = useCopy().runs.panel;
+  const copy = useCopy();
+  const c = copy.runs.panel;
   const state = session.delivery?.state;
   if (!session.delivery?.cardless || !state?.paused) return null;
+  const said = deliveryWords(state, copy.card);
   return (
     <div className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
-      <p className="nb-tag mb-1.5 text-nb-peach-ink">{c.stopped(state.label)}</p>
+      <p className="nb-tag mb-1.5 text-nb-peach-ink">{c.stopped(said.pill)}</p>
       <p className="text-[12.5px] leading-relaxed text-nb-ink">
         {/* Each command in the line is one press away from the clipboard: the way out of
             this stop is a command, and there is no card page with a button on it. */}
-        {state.line.split(/`([^`]+)`/).map((part, i) =>
+        {said.line.split(/`([^`]+)`/).map((part, i) =>
           i % 2 === 0 ? <Fragment key={i}>{part}</Fragment> : <CopyCommand key={i} text={part} />,
         )}
       </p>
+      {said.raw && (
+        <p className="mt-1.5 break-words font-mono text-[11.5px] leading-[17px] text-nb-ink-soft">{said.raw}</p>
+      )}
     </div>
   );
 }
