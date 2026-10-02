@@ -21,7 +21,6 @@ import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { deliveryDiff } from '../src/lib/view/diff.ts'
 import { findCard } from '../src/lib/view/read.ts'
-import { noExecuteHooks } from './helpers/board.ts'
 
 let root = ''
 
@@ -67,7 +66,6 @@ beforeEach(() => {
   git(['add', '-A'])
   git(['commit', '--quiet', '-m', 'start'])
   setBoardRoot(root)
-  noExecuteHooks()
   fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'), card(1, 'card one'))
   setAutoCommit(true)
 })

@@ -31,7 +31,7 @@ import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import { parseSpecAgent } from '../src/lib/agents/parse.ts'
 import { formatStamp } from '../src/lib/cadence.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState, move, noExecuteHooks, refuses } from './helpers/board.ts'
+import { forgetMachineState, move, refuses } from './helpers/board.ts'
 
 let root = ''
 const kanban = (): string => path.join(root, 'docs', 'kanban')
@@ -68,7 +68,8 @@ beforeEach(() => {
   git(['add', '-A'])
   git(['commit', '--quiet', '-m', 'start'])
   setBoardRoot(root)
-  noExecuteHooks()
+  // The one Coding ships stays out of the way: these are about a board's own.
+  assert.equal(switchWorkflowScheduled('coding', 'qa-manager', false).ok, true)
   setAutoCommit(true)
   scheduleAgent(PASS.agent)
 })
@@ -116,7 +117,7 @@ describe("a workflow's scheduled agents", () => {
   it('lists one no workflow has taken under Coding, off', () => {
     const coding = workflowViews().find((w) => w.id === 'coding')!
     assert.deepEqual(
-      coding.scheduled?.map((s) => ({ agent: s.agent, off: s.off, cadence: s.cadence })),
+      coding.scheduled?.filter((s) => !s.builtIn).map((s) => ({ agent: s.agent, off: s.off, cadence: s.cadence })),
       [{ agent: PASS.agent, off: true, cadence: '1d' }],
     )
   })
@@ -132,7 +133,7 @@ describe("a workflow's scheduled agents", () => {
 
   it('refuses a cadence it cannot read, and an agent that is not scheduled', () => {
     assert.equal(setWorkflowScheduledCadence(PASS.workflow, PASS.agent, 'weekly').reason, 'cadence')
-    assert.equal(switchWorkflowScheduled(PASS.workflow, 'qa-manager', true).reason, 'agentNotSchedule')
+    assert.equal(switchWorkflowScheduled(PASS.workflow, 'ui-designer', true).reason, 'agentNotSchedule')
   })
 
   it('copies them with the workflow, never sharing one', () => {
@@ -140,9 +141,8 @@ describe("a workflow's scheduled agents", () => {
     const copy = duplicateWorkflow('coding')
     assert.equal(copy.ok, true)
     const copied = workflowViews().find((w) => w.id === copy.id)!.scheduled!
-    assert.equal(copied.length, 1)
-    assert.notEqual(copied[0]!.agent, PASS.agent)
-    assert.equal(copied[0]!.lastRun, '')
+    assert.equal(copied.length, 2)
+    assert.ok(copied.every((one) => one.agent !== PASS.agent && one.agent !== 'qa-manager' && one.lastRun === ''))
   })
 })
 

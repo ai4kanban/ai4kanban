@@ -15,10 +15,10 @@ const now = Date.now()
 
 // [delivery, card (null = a build with no card), title, what it stopped or waits on]
 const rows = [
-  ['qa01hook', 2, '导出为 PDF', { stopped: { reason: 'hook', why: 'the `qa-manager` hook failed after the build, so nothing was delivered', hook: { agent: 'qa-manager', how: 'failed' } } }],
+  ['qa01hook', 2, '导出为 PDF', { stopped: { reason: 'hook', why: 'the `release-checker` hook failed after the build, so nothing was delivered', hook: { agent: 'release-checker', how: 'failed' } } }],
   ['qa02lock', 3, '深色模式跟随系统', { stopped: { reason: 'uncommitted', why: "fatal: Unable to create '.git/worktrees/qa02lock/index.lock': File exists" } }],
   ['qa03held', 4, '每周邮件摘要', { landing: true }],
-  ['qa04cant', 5, '看板支持自定义字体', { stopped: { reason: 'hook', why: 'the `qa-manager` hook could not start after the build (spawn claude ENOENT), so nothing was delivered', hook: { agent: 'qa-manager', how: 'unstarted', error: 'spawn claude ENOENT' } } }],
+  ['qa04cant', 5, '看板支持自定义字体', { stopped: { reason: 'hook', why: 'the `release-checker` hook could not start after the build (spawn claude ENOENT), so nothing was delivered', hook: { agent: 'release-checker', how: 'unstarted', error: 'spawn claude ENOENT' } } }],
   ['qa05left', 6, '手机端看板', { landing: true, leftover: 'notes.txt' }],
   ['qa07work', 7, '导入 CSV', {}],
   ['qa06typed', null, '给 README 加一节安装说明', { stopped: { reason: 'uncommitted', why: "fatal: Unable to create '.git/worktrees/qa06typed/index.lock': File exists" } }],
