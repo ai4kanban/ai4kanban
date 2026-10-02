@@ -149,7 +149,8 @@ chat message carries depends on where the event lives.
 - `POST /v1/speech` — `{ "voice": "Kore", "text": "…" }`: wav of the text in that voice, from
   `google/gemini-3.8-flash-tts` through OpenRouter. Voices are `VOICES` in `src/speech.ts`; text
   is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret. Any Pro sign-in, admitted or
-  not, spending 1 AI credit per second of generated audio.
+  not, spending 1 AI credit per second of generated audio. Each call is recorded in
+  `cloud.ai_calls` with its seconds and upstream cost.
 
 ## Covers
 
@@ -157,7 +158,8 @@ chat message carries depends on where the event lives.
   one image from `openai/gpt-image-2.5-sunburst` through OpenRouter at medium quality, with its
   model in `x-model`. `aspect` is one of `ASPECTS` in `src/image.ts`; prompt at most 4000
   characters; at most 3 PNG, JPEG or WebP references of 8 MB each. Same key and sign-in as
-  narration, spending 320 AI credits per image, only once it is generated.
+  narration, spending 320 AI credits per image, only once it is generated. Each call is recorded
+  in `cloud.ai_calls` with its upstream cost.
 
 ## Triage
 
@@ -165,8 +167,8 @@ chat message carries depends on where the event lives.
   forwarded to `typesafe/jev-1.13` through OpenRouter's Decisions API; answers
   `{ "answers": { "<name>": { "choice", "probabilities", "confidence" } }, "model" }`. Choice
   questions only, any number of them with 2–500 options each, 200,000 characters in all. Same key
-  as narration. Any Pro sign-in; free — it spends no credits, and each answer's `usage.cost` is
-  logged.
+  as narration. Any Pro sign-in; free — it spends no credits. Each call is recorded in
+  `cloud.ai_calls` with its input tokens and upstream cost.
 
 ## Billing
 

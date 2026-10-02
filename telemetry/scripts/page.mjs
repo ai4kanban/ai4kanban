@@ -2,7 +2,7 @@
 // day buttons are links, so a range is a URL the browser can go back through.
 
 import { LIMITS } from '../contract.ts'
-import { DAY_COLUMNS } from './dashboard.mjs'
+import { AI_CAPABILITIES, DAY_COLUMNS, JEV_OUTLIER } from './dashboard.mjs'
 
 const STYLE = `
 :root{
@@ -72,6 +72,7 @@ ${overview(view)}
 ${runsAndCards(view)}
 ${site(view)}
 ${spread(view)}
+${aiCost(view)}
 ${footer()}
 </div></body></html>
 `
@@ -210,6 +211,52 @@ ${columns}
 </section>`
 }
 
+function aiCost(view) {
+  const ai = view.ai
+  const section = (through, body) => `<section>
+  <div class="head"><h2>AI cost</h2><span class="through">${through}</span></div>
+${body}
+</section>`
+  if (ai.unavailable) {
+    return section('not read', `  <p class="alarm">Could not read Cloud's AI cost: ${escaped(ai.unavailable)} Nothing here is known until this page is restarted.</p>`)
+  }
+  if (ai.users.length === 0) {
+    return section(`${view.days} days`, `  <p class="note">No hosted AI call was recorded in this range.</p>`)
+  }
+  const th = (labels) => labels.map((label) => `<th>${label}</th>`).join('')
+  const capabilities = ai.capabilities
+    .map(
+      (one) =>
+        `    <tr><td>${one.label}</td>${cell(one.calls)}<td${one.failed ? ' class="fail"' : ''}>${number(one.failed)}</td>` +
+        `<td>${money(one.cost)}</td>${cell(one.unknown)}${cell(one.credits ? Math.round(one.credits) : null)}` +
+        `<td${one.perCredit === null ? ' class="un"' : ''}>${one.perCredit === null ? DASH : money(one.perCredit)}</td></tr>`,
+    )
+    .join('\n')
+  const users = ai.users
+    .map((one) => {
+      const flag = one.flagged ? ` <span class="pill">high Jev cost</span>` : ''
+      const by = one.by.map((use) => `${cell(use.calls)}<td>${money(use.cost)}</td>`).join('')
+      return (
+        `    <tr><td>${escaped(one.user)}${flag}</td>${by}<td>${money(one.cost)}</td>${cell(Math.round(one.credits))}` +
+        `<td>${money(one.revenue)}</td><td${one.ratio === null ? ' class="un"' : ''}>${percent(one.ratio === null ? null : 100 * one.ratio)}</td></tr>`
+      )
+    })
+    .join('\n')
+  const perUse = AI_CAPABILITIES.map(([, label]) => `${label} calls</th><th>cost`)
+  return section(
+    `${view.days} days · Cloud's hosted AI calls, by UTC day`,
+    `  <table>
+    <tr>${th(['capability', 'calls', 'failed', 'cost', 'cost unknown', 'credits spent', 'cost per credit'])}</tr>
+${capabilities}
+  </table>
+  <table>
+    <tr>${th(['user', ...perUse, 'total cost', 'credits spent', 'revenue', 'cost / revenue'])}</tr>
+${users}
+  </table>
+  <p class="note">Cost is what the provider charged, in US dollars; a call with no known cost adds nothing to it. Revenue is the plan's monthly price × days / 30, and ${DASH} is a Pro that was gifted. A user is marked when their Jev cost is over ${JEV_OUTLIER}× the median of everyone who used Jev.</p>`,
+  )
+}
+
 const footer = () => `<footer>
   App numbers cover installs with usage reporting on; site numbers cover browsers that ran the
   counter on the two pages carrying a download button. Neither is the whole product's use, and
@@ -227,6 +274,8 @@ const through = (view) =>
 const cell = (n) => (n === null ? `<td class="un">${DASH}</td>` : `<td>${number(n)}</td>`)
 const host = (endpoint) => escaped(endpoint.replace(/^https?:\/\//, ''))
 const number = (n) => n.toLocaleString('en-US')
+/** Dollars; under one, three significant digits, so a fraction of a cent is not rounded away. */
+const money = (n) => `$${n > 0 && n < 1 ? Number(n.toPrecision(3)) : n.toFixed(2)}`
 const sign = (n) => (n < 0 ? `−${Math.abs(n)}%` : `+${n}%`)
 const tone = (n) => (n < 0 ? 'down' : n > 0 ? 'up' : 'flat')
 const percent = (n) => (n === null ? `${DASH}` : `${n.toFixed(1)}%`)

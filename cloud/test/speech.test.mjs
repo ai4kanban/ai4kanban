@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
+import { COST_LOOKUP, GENERATION_URL } from '../src/ai-calls.ts'
 import { MONTHLY_CREDITS } from '../src/credits.ts'
 import { SPEECH_MODEL, wav } from '../src/speech.ts'
 
@@ -23,6 +24,12 @@ let subscriptions
 let used
 let provider
 let sent
+let recorded
+let recording
+let generation
+let looked
+let later
+const realWait = COST_LOOKUP.waitMs
 
 beforeEach(async () => {
   resetJwksCache()
@@ -31,8 +38,15 @@ beforeEach(async () => {
   admitted = true
   subscriptions = { [SUBJECT]: [PRO], [OTHER]: [PRO] }
   used = {}
-  provider = () => new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1' } })
+  provider = () =>
+    new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1', 'x-generation-id': 'gen-s1' } })
   sent = []
+  recorded = []
+  recording = 'up'
+  generation = () => json({ data: { total_cost: 0.003 } })
+  looked = []
+  later = []
+  COST_LOOKUP.waitMs = 0
   globalThis.fetch = async (url, init) => {
     const address = String(url)
     if (address === jwksUrl(SUPABASE_URL)) return json({ keys: [{ ...jwk, kid: 'k', alg: 'ES256' }] })
@@ -49,6 +63,15 @@ beforeEach(async () => {
       used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_credits
       return json(used[body.p_user_id])
     }
+    if (address.endsWith('/rest/v1/rpc/record_ai_call')) {
+      if (recording === 'down') return json({ message: 'down' }, 500)
+      recorded.push(body)
+      return new Response(null, { status: 204 })
+    }
+    if (address.startsWith(GENERATION_URL)) {
+      looked.push({ address, headers: init.headers })
+      return generation()
+    }
     if (address === 'https://openrouter.ai/api/v1/audio/speech') {
       sent.push({ headers: init.headers, body: JSON.parse(init.body) })
       return provider()
@@ -57,8 +80,11 @@ beforeEach(async () => {
   }
 })
 
-afterEach(() => {
+afterEach(async () => {
+  // A record still on its way would land in the next test's lists.
+  await Promise.all(later)
   globalThis.fetch = realFetch
+  COST_LOOKUP.waitMs = realWait
 })
 
 describe('POST /v1/speech', () => {
@@ -77,6 +103,32 @@ describe('POST /v1/speech', () => {
 
   it('spends a credit per second spoken', async () => {
     await call({ voice: 'Kore', text: 'Hi' })
+    assert.equal(used[SUBJECT], PCM.length / 48000)
+  })
+
+  it('records the call after answering, with its seconds and the cost looked up by generation (#1355)', async () => {
+    const res = await call({ voice: 'Kore', text: 'Hi' })
+    assert.equal(res.status, 200)
+    assert.equal(later.length, 1)
+
+    await Promise.all(later)
+    assert.deepEqual(looked, [{ address: `${GENERATION_URL}?id=gen-s1`, headers: { authorization: 'Bearer or-key' } }])
+    assert.deepEqual(recorded, [row({ p_usage: PCM.length / 48000, p_cost_usd: 0.003, p_generation_id: 'gen-s1' })])
+  })
+
+  it('records the call with no cost when the lookup finds none, keeping the generation', async () => {
+    generation = () => json({ error: { message: 'not found' } }, 404)
+    await call({ voice: 'Kore', text: 'Hi' })
+    await Promise.all(later)
+
+    assert.equal(looked.length, COST_LOOKUP.tries)
+    assert.deepEqual(recorded, [row({ p_usage: PCM.length / 48000, p_generation_id: 'gen-s1' })])
+  })
+
+  it('answers and charges all the same when the call cannot be recorded', async () => {
+    recording = 'down'
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 200)
+    await Promise.all(later)
     assert.equal(used[SUBJECT], PCM.length / 48000)
   })
 
@@ -104,6 +156,7 @@ describe('POST /v1/speech', () => {
     assert.equal((await res.json()).error.code, 'credits_used_up')
     assert.ok(Number(res.headers.get('retry-after')) > 0)
     assert.equal(sent.length, 0)
+    assert.equal(recorded.length, 0)
 
     assert.equal((await call({ voice: 'Kore', text: 'Hi' }, ENV, OTHER)).status, 200)
   })
@@ -133,7 +186,23 @@ describe('POST /v1/speech', () => {
     assert.equal(res.status, 502)
     assert.equal((await res.json()).error.code, 'speech_failed')
     assert.equal(used[SUBJECT], undefined)
+
+    provider = () => {
+      throw new Error('offline')
+    }
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 502)
+    assert.deepEqual(recorded, Array(2).fill(row({ p_ok: false })))
   })
+})
+
+const row = (over = {}) => ({
+  p_user_id: SUBJECT,
+  p_capability: 'speech',
+  p_ok: true,
+  p_usage: null,
+  p_cost_usd: null,
+  p_generation_id: null,
+  ...over,
 })
 
 async function call(body, env = ENV, subject = SUBJECT) {
@@ -142,7 +211,7 @@ async function call(body, env = ENV, subject = SUBJECT) {
     headers: { authorization: `Bearer ${await token(subject)}`, 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
-  return worker.fetch(request, env, { waitUntil() {} })
+  return worker.fetch(request, env, { waitUntil: (promise) => void later.push(promise) })
 }
 
 async function token(subject) {

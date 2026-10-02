@@ -29,16 +29,20 @@ let provider
 let sent
 let spent
 let logged
+let recorded
+let recording
 
 beforeEach(async () => {
   resetJwksCache()
   keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const jwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey)
   subscriptions = { [SUBJECT]: [PRO] }
-  provider = () => json(ANSWER)
+  provider = () => json(ANSWER, 200, { 'x-generation-id': 'gen-j1' })
   sent = []
   spent = 0
   logged = []
+  recorded = []
+  recording = 'up'
   console.log = (...args) => void logged.push(args.join(' '))
   globalThis.fetch = async (url, init) => {
     const address = String(url)
@@ -53,6 +57,11 @@ beforeEach(async () => {
     if (address.endsWith('/rest/v1/rpc/spend_credits')) {
       spent++
       return json(0)
+    }
+    if (address.endsWith('/rest/v1/rpc/record_ai_call')) {
+      if (recording === 'down') return json({ message: 'down' }, 500)
+      recorded.push(body)
+      return new Response(null, { status: 204 })
     }
     if (address === DECISIONS_URL) {
       sent.push({ headers: init.headers, body })
@@ -86,6 +95,16 @@ describe('POST /v1/judge', () => {
     assert.ok(logged.some((line) => line.includes('cloud: judged') && line.includes('"cost":0.0002')))
   })
 
+  it('records the call with its input tokens and what it cost (#1355)', async () => {
+    await call({ state: 'x', questions: QUESTIONS })
+    assert.deepEqual(recorded, [row('judge', { p_usage: 3000, p_cost_usd: 0.0002, p_generation_id: 'gen-j1' })])
+  })
+
+  it('answers all the same when the call cannot be recorded', async () => {
+    recording = 'down'
+    assert.equal((await call({ state: 'x', questions: QUESTIONS })).status, 200)
+  })
+
   it('refuses a free user before reaching the provider', async () => {
     subscriptions[SUBJECT] = []
     const res = await call({ state: 'x', questions: QUESTIONS })
@@ -93,6 +112,7 @@ describe('POST /v1/judge', () => {
     assert.equal(res.status, 403)
     assert.equal((await res.json()).error.code, 'pro_required')
     assert.equal(sent.length, 0)
+    assert.equal(recorded.length, 0)
   })
 
   it('refuses a malformed ask before reaching the provider', async () => {
@@ -138,7 +158,18 @@ describe('POST /v1/judge', () => {
       throw new Error('offline')
     }
     assert.equal((await call({ state: 'x', questions: QUESTIONS })).status, 502)
+    assert.deepEqual(recorded, Array(3).fill(row('judge', { p_ok: false })))
   })
+})
+
+const row = (capability, over = {}) => ({
+  p_user_id: SUBJECT,
+  p_capability: capability,
+  p_ok: true,
+  p_usage: null,
+  p_cost_usd: null,
+  p_generation_id: null,
+  ...over,
 })
 
 async function call(body, env = ENV) {
@@ -162,8 +193,8 @@ async function token(subject) {
   return `${input}.${b64uBytes(new Uint8Array(signature))}`
 }
 
-const json = (body, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+const json = (body, status = 200, headers = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } })
 
 const b64u = (text) => b64uBytes(new TextEncoder().encode(text))
 

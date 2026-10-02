@@ -22,6 +22,8 @@ let subscriptions
 let used
 let provider
 let sent
+let recorded
+let recording
 
 beforeEach(async () => {
   resetJwksCache()
@@ -29,8 +31,15 @@ beforeEach(async () => {
   const jwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey)
   subscriptions = { [SUBJECT]: [PRO] }
   used = {}
-  provider = () => json({ data: [{ b64_json: Buffer.from(PNG).toString('base64'), media_type: 'image/png' }] })
+  provider = () =>
+    json({
+      id: 'gen-i1',
+      data: [{ b64_json: Buffer.from(PNG).toString('base64'), media_type: 'image/png' }],
+      usage: { cost: 0.04 },
+    })
   sent = []
+  recorded = []
+  recording = 'up'
   globalThis.fetch = async (url, init) => {
     const address = String(url)
     if (address === jwksUrl(SUPABASE_URL)) return json({ keys: [{ ...jwk, kid: 'k', alg: 'ES256' }] })
@@ -45,6 +54,11 @@ beforeEach(async () => {
       assert.equal(body.p_use, 'image')
       used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_credits
       return json(used[body.p_user_id])
+    }
+    if (address.endsWith('/rest/v1/rpc/record_ai_call')) {
+      if (recording === 'down') return json({ message: 'down' }, 500)
+      recorded.push(body)
+      return new Response(null, { status: 204 })
     }
     if (address === 'https://openrouter.ai/api/v1/images') {
       sent.push({ headers: init.headers, body: JSON.parse(init.body) })
@@ -83,6 +97,17 @@ describe('POST /v1/image', () => {
     assert.equal(sent[0].body.input_references, undefined)
   })
 
+  it('records the call with what it cost (#1355)', async () => {
+    await call({ prompt: 'A cover', aspect: '16:9' })
+    assert.deepEqual(recorded, [row('image', { p_usage: 1, p_cost_usd: 0.04, p_generation_id: 'gen-i1' })])
+  })
+
+  it('answers and charges all the same when the call cannot be recorded', async () => {
+    recording = 'down'
+    assert.equal((await call({ prompt: 'A cover', aspect: '16:9' })).status, 200)
+    assert.equal(used[SUBJECT], 320)
+  })
+
   it('refuses a free user before reaching the provider', async () => {
     subscriptions[SUBJECT] = []
     const res = await call({ prompt: 'A cover', aspect: '16:9' })
@@ -90,6 +115,7 @@ describe('POST /v1/image', () => {
     assert.equal(res.status, 403)
     assert.equal((await res.json()).error.code, 'pro_required')
     assert.equal(sent.length, 0)
+    assert.equal(recorded.length, 0)
   })
 
   it('stops a user whose credits are used up, and lets any credit left start one', async () => {
@@ -135,7 +161,18 @@ describe('POST /v1/image', () => {
     provider = () => json({ data: [] })
     assert.equal((await call({ prompt: 'A cover', aspect: '16:9' })).status, 502)
     assert.equal(used[SUBJECT], undefined)
+    assert.deepEqual(recorded, Array(2).fill(row('image', { p_ok: false })))
   })
+})
+
+const row = (capability, over = {}) => ({
+  p_user_id: SUBJECT,
+  p_capability: capability,
+  p_ok: true,
+  p_usage: null,
+  p_cost_usd: null,
+  p_generation_id: null,
+  ...over,
 })
 
 async function call(body, env = ENV) {

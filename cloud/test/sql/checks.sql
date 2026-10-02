@@ -2832,6 +2832,48 @@ end
 $credits$;
 
 -- ---------------------------------------------------------------------------
+-- Every hosted AI call is recorded with what it cost (#1355)
+-- ---------------------------------------------------------------------------
+
+do $ai_calls$
+declare
+  CALLER constant uuid := '00000000-0000-4000-8000-00000000c101';
+  v_seen bigint;
+begin
+  perform api.record_ai_call(CALLER, 'judge', true, 3000, 0.0002, 'gen-1');
+  perform api.record_ai_call(CALLER, 'speech', false, 4, 0.01, null);
+  assert (select count(*) from cloud.ai_calls where user_id = CALLER) = 2, 'a call was not its own row';
+  assert (select usage = 3000 and cost_usd = 0.0002 and generation_id = 'gen-1'
+            and month = date_trunc('month', now() at time zone 'utc')::date
+          from cloud.ai_calls where user_id = CALLER and ok), 'a call did not read back as recorded';
+  assert (select usage is null and cost_usd is null from cloud.ai_calls where user_id = CALLER and not ok),
+    'a failed call kept usage or cost';
+  perform api.record_ai_call(CALLER, 'speech', true, 2.5, null, 'gen-2');
+  assert (select cost_usd is null and usage = 2.5 from cloud.ai_calls where generation_id = 'gen-2'),
+    'a call whose cost is unknown was not stored with none';
+  perform pg_temp.refuses(
+    $sql$select api.record_ai_call('00000000-0000-4000-8000-00000000c101', 'movie', true, 1, 0, null)$sql$,
+    '23514', 'a call of no known capability was stored');
+
+  set local role authenticated;
+  begin
+    select count(*) into v_seen from cloud.ai_calls;
+  exception when insufficient_privilege then
+    v_seen := 0;
+  end;
+  reset role;
+  assert v_seen = 0, 'a signed-in user read the call records';
+  set local role authenticated;
+  perform pg_temp.refuses(
+    $sql$select api.record_ai_call('00000000-0000-4000-8000-00000000c101', 'judge', true, 1, 0, null)$sql$,
+    '42501', 'a signed-in user recorded a call');
+  reset role;
+
+  raise notice 'sql checks: #1355 AI call checks passed';
+end
+$ai_calls$;
+
+-- ---------------------------------------------------------------------------
 -- The events read is paged (#1245)
 -- ---------------------------------------------------------------------------
 

@@ -4,8 +4,12 @@
  *
  * Pro only, spending the month's AI credits by the second (#1113). The length is known only
  * once spoken, so any credit left lets a line start and the last one may run over.
+ *
+ * The audio carries no cost, so what a line cost us is looked up by its generation id after
+ * the answer is sent, and recorded in `cloud.ai_calls` (#1355).
  */
 
+import { generationCost, recordAiCall } from './ai-calls.ts'
 import { readBilling } from './billing.ts'
 import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
@@ -24,7 +28,7 @@ export const VOICES = [
   'Achird', 'Zubenelgenubi', 'Vindemiatrix', 'Sadachbia', 'Sadaltager', 'Sulafat',
 ] as const
 
-export async function speak(env: Env, user: string, body: unknown): Promise<Response> {
+export async function speak(env: Env, ctx: ExecutionContext, user: string, body: unknown): Promise<Response> {
   const { voice, text } = (body ?? {}) as { voice?: unknown; text?: unknown }
   const named = VOICES.find((v) => typeof voice === 'string' && v.toLowerCase() === voice.toLowerCase())
   if (!named) throw badRequest(`Unknown voice. Pick one of: ${VOICES.join(', ')}.`)
@@ -37,6 +41,10 @@ export async function speak(env: Env, user: string, body: unknown): Promise<Resp
   if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw speechUnavailable()
 
+  const failed = async () => {
+    await recordAiCall(env, user, 'speech', { ok: false })
+    return speechFailed()
+  }
   let answer: Response
   try {
     answer = await fetch('https://openrouter.ai/api/v1/audio/speech', {
@@ -55,14 +63,21 @@ export async function speak(env: Env, user: string, body: unknown): Promise<Resp
     })
   } catch (e) {
     console.error('cloud: speech unreachable', e)
-    throw speechFailed()
+    throw await failed()
   }
   if (!answer.ok) {
     console.error('cloud: speech refused', answer.status, await answer.text().catch(() => ''))
-    throw speechFailed()
+    throw await failed()
   }
   const pcm = new Uint8Array(await answer.arrayBuffer())
-  await spendCredits(env, user, 'speech', pcm.length / (PCM_RATE * 2))
+  const seconds = pcm.length / (PCM_RATE * 2)
+  await spendCredits(env, user, 'speech', seconds)
+  const generationId = answer.headers.get('x-generation-id')
+  ctx.waitUntil(
+    generationCost(env, generationId).then((cost) =>
+      recordAiCall(env, user, 'speech', { ok: true, usage: seconds, cost, generationId }),
+    ),
+  )
   return new Response(wav(pcm), {
     headers: { 'content-type': 'audio/wav', 'x-voice': named },
   })
