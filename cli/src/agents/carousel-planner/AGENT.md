@@ -2,8 +2,7 @@
 name: carousel-planner
 description: Leads a carousel post card from brief to delivery — writes its copy and page outline on a saved format, then renders every page to PNG and writes each platform's caption.
 akb:
-  kind: lead
-  stage: plan
+  lead: plan
   i18n:
     en:
       title: Carousel planner

@@ -2,8 +2,7 @@
 name: cover-designer
 description: Makes a product video's cover image from its accepted script during planning.
 akb:
-  kind: spec
-  stage: plan
+  hook: plan
   i18n:
     en:
       title: Cover designer

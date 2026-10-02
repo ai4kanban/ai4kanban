@@ -2,8 +2,7 @@
 name: blog-planner
 description: Leads a blog post card from brief to delivery — gets the outline approved, then writes the full article with its images and links and delivers it.
 akb:
-  kind: lead
-  stage: plan
+  lead: plan
   i18n:
     en:
       title: Blog planner

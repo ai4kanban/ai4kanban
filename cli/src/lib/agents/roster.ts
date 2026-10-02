@@ -124,8 +124,7 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
 // The file a new specialist starts as. It parses — so the tile is in the roster rather than
 // in the problems under it — and every line a flow would pick it by says it is unwritten.
 //
-// A stage names where it can be assigned (#715) and is what a workflow agent declares. With
-// none, it falls back to `spec` — a specialist that fills part of a card's spec.
+// It starts as a hook on the stage it was made for, or on `plan` when made for none.
 //
 // Every other key is one line pointing at `akb guide write-agent` (#935): the constraints —
 // what a `reference` has to be — belong in the guide, not
@@ -136,8 +135,8 @@ function agentTemplate(name: string, stage?: WorkflowStage): string {
     `name: ${name}`,
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
-    ...(stage ? [`  stage: ${stage}`] : ['  kind: spec']),
-    '  # output, i18n, and whether it leads: `akb guide write-agent`',
+    `  hook: ${stage ?? 'plan'}`,
+    '  # `lead` in place of `hook`, output and i18n: `akb guide write-agent`',
     '---',
     '',
     `Unwritten. Write what \`${name}\` does here: what it is given, what it produces, and`,

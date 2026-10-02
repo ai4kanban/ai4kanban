@@ -11,11 +11,10 @@ The box under this line is one: write in it as you read.
 ## Keys
 
 - **description** — when a card needs this agent, written for the flow that picks it.
-- **stage** — `plan` or `execute`.
-- **kind** — `spec` (default) or `lead`.
-- **lead** — `true` makes a spec agent lead its stage instead of helping on it.
+- **lead** — `plan` or `execute`: the stage it runs. Write this or **hook**, never both.
+- **hook** — `plan` or `execute`: the stage it joins.
 - **output** — `agent` (default) or `human`: which half of the card its section lands in.
-  A spec agent's is a setting from here on; a lead's stays what its file says.
+  A hook's is a setting from here on; a lead's stays what its file says.
 - **i18n** — what its lines say in another language. Drawn here only: every run is given
   the English.
 
@@ -28,5 +27,5 @@ Anything else in the folder is opened only when the work calls for it — name i
 
 A file the board cannot read is listed under the grid on this page. `akb spec <name>
 <card> --print` prints the whole prompt this agent will be given. Being on disk is not
-being on a workflow — a stage assigns it under Workflows, though a `plan` agent joins
+being on a workflow — a stage assigns it under Workflows, though a `plan` hook joins
 Coding's planning by itself.

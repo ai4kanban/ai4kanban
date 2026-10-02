@@ -70,8 +70,7 @@ const stageAgent = (name: string, stage: string, lead = false): void => {
       `name: ${name}`,
       'description: Use when.',
       'akb:',
-      `  stage: ${stage}`,
-      ...(lead ? ['  lead: true'] : []),
+      `  ${lead ? 'lead' : 'hook'}: ${stage}`,
       '---',
       '',
       'You work.',
@@ -729,7 +728,8 @@ describe('an agent that can lead never helps (#858)', () => {
     assert.ok(planView(mine.id!).candidates.find((a) => a.name === 'outliner')!.canLead)
   })
 
-  it('keeps a helper saved before the rule until it is removed', () => {
+  // Only a `stage` + `lead: true` file was ever both; `lead: <stage>` is a lead alone (#1341).
+  it('drops a lead saved as a helper before the rule', () => {
     stageAgent('outliner', 'plan', true)
     fs.writeFileSync(
       uiConfigOf(kanban()),
@@ -740,9 +740,7 @@ describe('an agent that can lead never helps (#858)', () => {
         },
       }),
     )
-    assert.deepEqual(planView('wf-5').helpers.map((h) => h.agent), ['outliner'])
-    assert.equal(switchWorkflowAgent('wf-5', 'plan', 'outliner', false).ok, true)
-    assert.deepEqual(planView('wf-5').helpers, [{ agent: 'outliner', extra: '', off: true }])
+    assert.deepEqual(planView('wf-5').helpers, [])
   })
 
   it('moves a workflow saved under `planner` onto `software-planner`, once', () => {

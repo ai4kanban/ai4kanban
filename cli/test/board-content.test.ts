@@ -264,7 +264,7 @@ describe('the team, as a contract read and write', () => {
     const added = await onBoard((env) => board().createAgent('api-contract', undefined, env))
     assert.ok(added.ok)
     const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')
-    assert.match(fs.readFileSync(file, 'utf8'), /kind: spec/)
+    assert.match(fs.readFileSync(file, 'utf8'), /^  hook: plan$/m)
     // Every other key is one line pointing at the guide that spells them out (#935).
     assert.match(fs.readFileSync(file, 'utf8'), /^  # .*`akb guide write-agent`$/m)
 
@@ -312,7 +312,7 @@ describe('the team, as a contract read and write', () => {
     assert.equal(bad.ok, false)
     assert.equal(fs.readFileSync(file, 'utf8'), was)
 
-    const good = '---\nname: api-contract\ndescription: Use when a card changes an endpoint.\nakb:\n  kind: spec\n---\n\nWrite the contract.\n'
+    const good = '---\nname: api-contract\ndescription: Use when a card changes an endpoint.\nakb:\n  hook: plan\n---\n\nWrite the contract.\n'
     assert.ok((await onBoard((env) => board().saveAgentFile('api-contract', good, env))).ok)
     assert.equal(fs.readFileSync(file, 'utf8'), good)
   })

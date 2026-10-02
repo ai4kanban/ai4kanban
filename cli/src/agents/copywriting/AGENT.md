@@ -2,7 +2,7 @@
 name: copywriting
 description: Writes and revises the product's promotional copy. Use when a card adds or changes promotional copy — website pages, the README, release notes, or app store and Product Hunt listings. Skip user documentation, interface text inside the product, and social posts.
 akb:
-  kind: spec
+  hook: plan
   i18n:
     zh:
       title: 宣传文案

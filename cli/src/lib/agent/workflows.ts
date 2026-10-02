@@ -1104,7 +1104,7 @@ export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string)
     if (found.stage !== stage) return { ok: false, ...refusal('agentCannotLead', `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot lead ${stage}`, { agent: wanted, assigned: found.stage ?? 'board', stage }) }
     // A lead saved before #846 keeps running; only a new pick is held to the declaration.
     if (!found.canLead && owner.stages[stage].lead !== wanted) {
-      return { ok: false, ...refusal('agentNotLead', `\`${wanted}\` does not declare \`akb.lead: true\`, so it can only help`, { agent: wanted }) }
+      return { ok: false, ...refusal('agentNotLead', `\`${wanted}\` declares \`akb.hook\`, not \`akb.lead\`, so it can only help`, { agent: wanted }) }
     }
     const refused = elsewhere(wanted, id)
     if (refused) return refused

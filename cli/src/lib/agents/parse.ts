@@ -15,14 +15,13 @@ export interface SpecAgent {
    *  ever DRAWN: every run is given the English pair above, so a translation can never
    *  change what an agent is asked to do, and the block never reaches a prompt. */
   i18n: Record<string, AgentLines>
-  /** The hook it plugs into. */
+  /** Its role: `akb.lead` reads as `lead`, `akb.hook` as `spec`. */
   kind: AgentKind
-  /** Whether it may lead its stage of a workflow (#846): every `lead` agent, and a `spec`
-   *  agent whose file says `akb.lead: true`. Everything else only helps, and these never do (#858). */
+  /** Whether it may lead its stage of a workflow (#846): a `lead` agent. A hook only helps,
+   *  and a lead never does (#858). */
   canLead: boolean
-  /** The workflow stage it may be assigned to (#715), or null when it declares none and
-   *  belongs to no workflow. `akb.stage` says it; a file written before that key reads as
-   *  the stage its `kind` always served — `spec` fills a card's spec, so it is `plan`. */
+  /** The workflow stage it may be assigned to (#715) — the value of its `akb.lead` or
+   *  `akb.hook`. */
   stage: WorkflowStage | null
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
    *  the board's own `output` setting starts at, and a lead's for good. `agent` unless `akb.output` says so. */
@@ -63,16 +62,14 @@ export interface SettingLines {
   choices?: Record<string, { label?: string; cost?: string }>
 }
 
-/** The hooks an agent may plug into: `spec` fills one part of a card's spec; `lead` runs a
- *  workflow's plan or execute stage, its body printed after the shared flow (#822). `write`
- *  joined the retired marketing board's writer (#718) — a file still declaring it is listed
- *  as a problem rather than registered as something nothing can call. */
-export const AGENT_KINDS = ['spec', 'lead'] as const
-export type AgentKind = (typeof AGENT_KINDS)[number]
+/** What an agent is: `spec` is a hook on its stage — it fills one part of a card's spec, or
+ *  works on the build; `lead` runs a workflow's plan or execute stage, its body printed
+ *  after the shared flow (#822). */
+export type AgentKind = 'spec' | 'lead'
 
-/** What a `kind` means as a stage, for a file written before `akb.stage` existed. A `spec`
- *  agent fills part of a card's spec while it is being planned, which is the plan stage. */
-const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan', lead: null }
+/** The `akb.*` key naming each role (#1341). A file declares exactly one, valued with its stage. */
+const ROLE_KEYS = { lead: 'lead', hook: 'spec' } as const satisfies Record<string, AgentKind>
+const ROLE_LINES = Object.keys(ROLE_KEYS).flatMap((role) => WORKFLOW_STAGES.map((stage) => `\`${role}: ${stage}\``))
 
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
@@ -80,7 +77,7 @@ export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /** Every `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts holds
  *  both written key tables to it. */
-export const AGENT_KEYS = ['stage', 'kind', 'lead', 'output', 'i18n'] as const
+export const AGENT_KEYS = ['lead', 'hook', 'output', 'i18n'] as const
 
 /** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
 export function parseSpecAgent(
@@ -103,41 +100,41 @@ export function parseSpecAgent(
 
   const akb = map(front.akb)
   if (!akb) return bad(`\`${name}\` has no \`akb:\` block, so the board can't tell what kind of agent it is`)
-  // Where it is used: `akb.stage` is what an agent written for a workflow declares (#715),
-  // `akb.kind` what every agent written before workflows existed declares, and each stands
-  // in for the other — so a new agent says one thing and no file already on a board has to
-  // be edited.
   const declaredStage = str(akb.stage)
   if (declaredStage === 'review') {
-    return bad(`\`${name}\` declares \`akb.stage: review\`, and builds are no longer reviewed — delete this agent or give it another stage`)
-  }
-  if (declaredStage && !isStage(declaredStage)) {
-    return bad(`\`${name}\` declares \`akb.stage: ${declaredStage}\` — a stage is \`${WORKFLOW_STAGES.join('` or `')}\``)
+    return bad(`\`${name}\` declares \`akb.stage: review\`, and builds are no longer reviewed — delete this agent, or replace its role with one of ${ROLE_LINES.join(', ')}`)
   }
   const declaredKind = str(akb.kind)
   if (declaredKind === 'write') {
-    return bad(`\`${name}\` is a \`write\` agent, and the marketing board it wrote for is retired — give it an \`akb.stage\` instead`)
-  }
-  if (declaredKind && !isKind(declaredKind)) {
-    return bad(
-      `\`${name}\` declares \`akb.kind: ${declaredKind}\` — an agent is \`${AGENT_KINDS.join('\` or \`')}\``,
-    )
-  }
-  if (!declaredKind && !declaredStage) {
-    return bad(`\`${name}\` declares neither \`akb.stage\` nor \`akb.kind\`, so the board can't tell where it is used`)
-  }
-  const kind: AgentKind = isKind(declaredKind) ? declaredKind : 'spec'
-  const stage = isStage(declaredStage) ? declaredStage : STAGE_OF_KIND[kind]
-  if (kind === 'lead' && stage !== 'plan' && stage !== 'execute') {
-    return bad(`\`${name}\` is a \`lead\` agent — give it \`akb.stage: plan\` or \`akb.stage: execute\``)
+    return bad(`\`${name}\` is a \`write\` agent, and the marketing board it wrote for is retired — replace its role with one of ${ROLE_LINES.join(', ')}`)
   }
   const declaredLead = str(akb.lead)
-  if (declaredLead && declaredLead !== 'true' && declaredLead !== 'false') {
-    return bad(`\`${name}\` declares \`akb.lead: ${declaredLead}\` — it is \`true\` or \`false\``)
+  const declaredHook = str(akb.hook)
+  // The keys before #1341. Refused outright, naming the one line that says the same thing.
+  const oldLead = declaredLead === 'true' || declaredLead === 'false'
+  const old = [
+    ...(akb.stage !== undefined ? [`\`stage: ${declaredStage}\``] : []),
+    ...(akb.kind !== undefined ? [`\`kind: ${declaredKind}\``] : []),
+    ...(oldLead ? [`\`lead: ${declaredLead}\``] : []),
+  ]
+  if (old.length) {
+    const line = replacementLine(declaredStage, declaredKind, declaredLead)
+    return bad(
+      `\`${name}\` declares ${old.join(', ')} under \`akb:\`, which the board no longer reads — replace ${old.length > 1 ? 'them' : 'it'} with ${line ? `\`${line}\`` : `one of ${ROLE_LINES.join(', ')}`}`,
+    )
   }
-  if (declaredLead === 'true' && stage !== 'plan' && stage !== 'execute') {
-    return bad(`\`${name}\` declares \`akb.lead: true\` — only a plan or execute agent can lead`)
+  if (declaredLead && declaredHook) {
+    return bad(`\`${name}\` declares both \`akb.lead\` and \`akb.hook\` — keep one: \`lead\` runs a whole stage, \`hook\` joins one`)
   }
+  if (!declaredLead && !declaredHook) {
+    return bad(`\`${name}\` declares neither \`akb.lead\` nor \`akb.hook\`, so the board can't tell where it is used — add one of ${ROLE_LINES.join(', ')}`)
+  }
+  const role = declaredLead ? 'lead' : 'hook'
+  const stage = declaredLead || declaredHook
+  if (!isStage(stage)) {
+    return bad(`\`${name}\` declares \`akb.${role}: ${stage}\` — it is \`${WORKFLOW_STAGES.join('` or `')}\``)
+  }
+  const kind = ROLE_KEYS[role]
 
   // Who its output is for, to start with. A spec agent's is the board's setting from here on;
   // a lead's stays what its file says (#868). Saying nothing gets `agent`, which is where a
@@ -161,7 +158,7 @@ export function parseSpecAgent(
       description,
       i18n: readTranslations(akb.i18n),
       kind,
-      canLead: kind === 'lead' || declaredLead === 'true',
+      canLead: kind === 'lead',
       stage,
       output,
       files: list(),
@@ -192,7 +189,14 @@ function readTranslations(raw: YamlValue | undefined): Record<string, AgentLines
   return out
 }
 
-const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)
+// The one line an old file's `stage`, `kind` and `lead: true|false` come to, or null when
+// they never named a usable agent.
+function replacementLine(stage: string, kind: string, lead: string): string | null {
+  if ((stage && !isStage(stage)) || (kind && kind !== 'spec' && kind !== 'lead')) return null
+  if (lead && lead !== 'true' && lead !== 'false') return null
+  if (kind === 'lead' || lead === 'true') return stage ? `lead: ${stage}` : null
+  return stage || kind ? `hook: ${stage || 'plan'}` : null
+}
 
 const isStage = (value: string): value is WorkflowStage => (WORKFLOW_STAGES as readonly string[]).includes(value)
 

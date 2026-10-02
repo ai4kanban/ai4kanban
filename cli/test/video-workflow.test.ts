@@ -62,7 +62,7 @@ const videoCard = async (): Promise<number> =>
   (await move(root, ['create', '--title', 'Show the board', '--workflow', 'hyperframes-video'])).id as number
 
 const lead = (stage: string): string =>
-  ['---', 'name: x', 'description: Leads.', 'akb:', '  kind: lead', ...(stage ? [`  stage: ${stage}`] : []), '---', '', 'You lead.', ''].join('\n')
+  ['---', 'name: x', 'description: Leads.', 'akb:', `  lead: ${stage}`, '---', '', 'You lead.', ''].join('\n')
 
 describe('a lead agent', () => {
   it('parses with a plan or execute stage, and is refused without one', () => {
@@ -72,11 +72,11 @@ describe('a lead agent', () => {
     assert.equal(read.agent.stage, 'plan')
     const bad = parseSpecAgent(lead(''), 'x', () => null)
     assert.ok('problem' in bad)
-    assert.match(bad.problem, /`lead` agent — give it `akb.stage: plan`/)
-    // The review stage is gone (#1203), so an agent still declaring it is a problem of its own.
+    assert.match(bad.problem, /neither `akb.lead` nor `akb.hook`/)
+    // The review stage is gone (#1203), so it is not a stage a lead can name.
     const review = parseSpecAgent(lead('review'), 'x', () => null)
     assert.ok('problem' in review)
-    assert.match(review.problem, /builds are no longer reviewed/)
+    assert.match(review.problem, /`akb.lead: review` — it is `plan` or `execute`/)
   })
 
   it('only leads: never a helper, never run by `akb spec`', async () => {

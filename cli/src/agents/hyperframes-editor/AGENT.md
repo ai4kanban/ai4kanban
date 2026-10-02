@@ -2,8 +2,7 @@
 name: hyperframes-editor
 description: Produces and checks a product video from its script during planning, using the production method that suits it.
 akb:
-  kind: spec
-  stage: plan
+  hook: plan
   i18n:
     en:
       title: Video editor

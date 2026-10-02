@@ -2,8 +2,7 @@
 name: blog-illustrator
 description: Makes a blog post's cover and in-article images from its accepted outline during planning, each with alt text.
 akb:
-  kind: spec
-  stage: plan
+  hook: plan
   i18n:
     en:
       title: Blog illustrator

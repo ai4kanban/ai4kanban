@@ -28,6 +28,7 @@ import {
   specAgentSelector,
   specHookAgents,
 } from '../src/lib/agents/index.ts'
+import { parseSpecAgent } from '../src/lib/agents/parse.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
 import { createWorkflow, switchWorkflowAgent, setWorkflowLead } from '../src/lib/agent/workflows.ts'
@@ -59,7 +60,7 @@ const AGENT = [
   'name: api-contract',
   'description: Use when a card changes an endpoint other software calls.',
   'akb:',
-  '  kind: spec',
+  '  hook: plan',
   '---',
   '',
   'You settle the wire contract a card changes.',
@@ -113,7 +114,7 @@ describe("what an agent says to a reader who doesn't read English", () => {
         'name: api-contract',
         'description: Use when a card changes an endpoint other software calls.',
         'akb:',
-        '  kind: spec',
+        '  hook: plan',
         // A file written before `owns` was dropped still reads; the field is ignored.
         '  i18n:',
         '    zh:',
@@ -201,9 +202,9 @@ describe('an agent the project adds', () => {
   it('keeps its agent when its file still declares settings, and offers none of them', () => {
     project('api-contract', {
       'AGENT.md': AGENT.replace(
-        '  kind: spec\n',
+        '  hook: plan\n',
         [
-          '  kind: spec',
+          '  hook: plan',
           '  settings:',
           '    - key: style',
           '      label: Contract style',
@@ -262,7 +263,7 @@ describe('an agent still in the folder agents used to live in', () => {
 // listed as a problem rather than registered as something nothing on the board can call.
 describe('the hook an agent declares', () => {
   it('lists a leftover `write` agent as a problem rather than registering it', () => {
-    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec', '  kind: write') })
+    project('api-contract', { 'AGENT.md': AGENT.replace('  hook: plan', '  kind: write') })
     const { agents, problems } = specAgentCatalog()
     assert.ok(!agents.some((a) => a.name === 'api-contract'))
     assert.match(problems.join('\n'), /the marketing board it wrote for is retired/)
@@ -283,27 +284,81 @@ describe('an agent nobody can read', () => {
 
   it('reports a missing description', () => {
     assert.match(
-      problemFor({ 'AGENT.md': ['---', 'name: broken', 'akb:', '  kind: spec', '---', '', 'Body.'].join('\n') }),
+      problemFor({ 'AGENT.md': ['---', 'name: broken', 'akb:', '  hook: plan', '---', '', 'Body.'].join('\n') }),
       /has no `description`/,
     )
   })
 
-  it('reports a kind this board does not run', () => {
-    assert.match(
-      problemFor({
-        'AGENT.md': ['---', 'name: broken', 'description: d', 'akb:', '  kind: review', '---', '', 'Body.'].join('\n'),
-      }),
-      /an agent is `spec`/,
-    )
+  // One key says the role, its value the stage (#1341).
+  describe('the role it declares', () => {
+    const read = (...akb: string[]) =>
+      parseSpecAgent(['---', 'name: x', 'description: d', 'akb:', ...akb.map((l) => `  ${l}`), '---', '', 'Body.'].join('\n'), 'x', () => null)
+    const problem = (...akb: string[]): string => {
+      const got = read(...akb)
+      assert.ok('problem' in got, akb.join(' + '))
+      return got.problem
+    }
+    const FOUR = /one of `lead: plan`, `lead: execute`, `hook: plan`, `hook: execute`$/
+
+    it('reads each of the four lines', () => {
+      for (const [line, kind, stage] of [
+        ['lead: plan', 'lead', 'plan'],
+        ['lead: execute', 'lead', 'execute'],
+        ['hook: plan', 'spec', 'plan'],
+        ['hook: execute', 'spec', 'execute'],
+      ] as const) {
+        const got = read(line)
+        assert.ok('agent' in got, line)
+        assert.deepEqual([got.agent.kind, got.agent.stage, got.agent.canLead], [kind, stage, kind === 'lead'], line)
+      }
+    })
+
+    it('refuses both keys, neither, and a value that is no stage', () => {
+      assert.match(problem('lead: plan', 'hook: plan'), /both `akb.lead` and `akb.hook` — keep one/)
+      assert.match(problem('output: human'), /neither `akb.lead` nor `akb.hook`/)
+      assert.match(problem('output: human'), FOUR)
+      assert.match(problem('hook: build'), /`akb.hook: build` — it is `plan` or `execute`/)
+      assert.match(problem('lead: yes'), /`akb.lead: yes` — it is `plan` or `execute`/)
+    })
+
+    it('refuses the old keys, naming them and the line that replaces them', () => {
+      for (const [old, line] of [
+        [['kind: lead', 'stage: plan'], 'lead: plan'],
+        [['stage: plan', 'lead: true'], 'lead: plan'],
+        [['kind: lead', 'stage: execute'], 'lead: execute'],
+        [['stage: execute', 'lead: true'], 'lead: execute'],
+        [['kind: spec'], 'hook: plan'],
+        [['stage: plan'], 'hook: plan'],
+        [['stage: plan', 'lead: false'], 'hook: plan'],
+        [['stage: execute'], 'hook: execute'],
+        [['kind: spec', 'stage: execute', 'lead: false'], 'hook: execute'],
+      ] as const) {
+        const said = problem(...old)
+        for (const key of old) assert.ok(said.includes(`\`${key}\``), `${old.join(' + ')} names ${key}`)
+        assert.ok(said.endsWith(`replace ${old.length > 1 ? 'them' : 'it'} with \`${line}\``), `${old.join(' + ')}: ${said}`)
+      }
+    })
+
+    it('lists the four lines when the old keys never named a usable agent', () => {
+      for (const old of [['kind: lead'], ['lead: true'], ['lead: false'], ['stage: build'], ['kind: review'], ['stage: plan', 'lead: plan']]) {
+        assert.match(problem(...old), FOUR, old.join(' + '))
+        assert.match(problem(...old), /no longer reads/, old.join(' + '))
+      }
+    })
+
+    it('keeps the retired values their own sentences', () => {
+      assert.match(problem('stage: review', 'lead: true'), /builds are no longer reviewed/)
+      assert.match(problem('stage: review'), FOUR)
+      assert.match(problem('kind: write'), /the marketing board it wrote for is retired/)
+      assert.match(problem('kind: write'), FOUR)
+    })
   })
 
-  it('reads who may lead, and refuses a lead declaration it cannot honour (#846)', () => {
+  it('reads who may lead (#846)', () => {
     const lead = (extra: string[]) =>
       ['---', 'name: outliner', 'description: d', 'akb:', ...extra, '---', '', 'Body.'].join('\n')
-    assert.match(problemFor({ 'AGENT.md': lead(['  stage: plan', '  lead: yes']) }), /`true` or `false`/)
-    assert.match(problemFor({ 'AGENT.md': lead(['  stage: review', '  lead: true']) }), /builds are no longer reviewed/)
     const canLead = (name: string) => specAgentCatalog().agents.find((a) => a.name === name)?.canLead
-    project('outliner', { 'AGENT.md': lead(['  stage: plan', '  lead: true']) })
+    project('outliner', { 'AGENT.md': lead(['  lead: plan']) })
     assert.equal(canLead('outliner'), true)
     assert.equal(canLead('scriptwriter'), true)
     for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'hyperframes-editor']) {
@@ -485,8 +540,7 @@ describe("the YAML an agent's frontmatter is written in", () => {
         'name: outliner  # me',
         'description: d',
         'akb:',
-        '  stage: plan  # its stage',
-        '  lead: true # yes',
+        '  lead: plan  # its stage',
         '---',
         '',
         'Body.',
@@ -506,7 +560,7 @@ describe("an agent's memory folder", () => {
   }
 
   it('still reads an AGENT.md that declares `akb.memory`, whatever its value', () => {
-    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec\n', '  kind: spec\n  memory: user\n') })
+    project('api-contract', { 'AGENT.md': AGENT.replace('  hook: plan\n', '  hook: plan\n  memory: user\n') })
     assert.deepEqual(specAgentCatalog().problems, [])
     assert.ok(findSpecAgent('api-contract'))
   })
@@ -672,7 +726,7 @@ describe("who a spec agent's output is for", () => {
   })
 
   it('refuses an `akb.output` naming nobody', () => {
-    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec', '  kind: spec\n  output: nobody') })
+    project('api-contract', { 'AGENT.md': AGENT.replace('  hook: plan', '  hook: plan\n  output: nobody') })
     assert.match(specAgentCatalog().problems.join('\n'), /`akb\.output: nobody`/)
   })
 
@@ -706,7 +760,7 @@ describe("who a spec agent's output is for", () => {
 describe("a lead agent's output", () => {
   const outliner = (output: string): void =>
     project('outliner', {
-      'AGENT.md': ['---', 'name: outliner', 'description: d', 'akb:', '  kind: lead', '  stage: plan', ...(output ? [`  output: ${output}`] : []), '---', '', 'You outline.', ''].join('\n'),
+      'AGENT.md': ['---', 'name: outliner', 'description: d', 'akb:', '  lead: plan', ...(output ? [`  output: ${output}`] : []), '---', '', 'You outline.', ''].join('\n'),
     })
   /** Card 12, on a workflow the outliner leads the planning of. */
   const led = (): void => {

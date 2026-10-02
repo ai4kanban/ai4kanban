@@ -2,8 +2,7 @@
 name: deck-planner
 description: Leads a slide deck card from brief to delivery — writes its brief, facts, recipe and per-slide copy, then renders every slide and delivers the editable .pptx.
 akb:
-  kind: lead
-  stage: plan
+  lead: plan
   i18n:
     en:
       title: Deck planner

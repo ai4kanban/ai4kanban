@@ -2,8 +2,7 @@
 name: scriptwriter
 description: Leads product video planning — writes the script and coordinates production of the finished film and its cover.
 akb:
-  kind: lead
-  stage: plan
+  lead: plan
   i18n:
     zh:
       title: 脚本作者

@@ -50,8 +50,8 @@ beforeEach(async () => {
   fs.writeFileSync(path.join(kanban(), 'todo', 'README.md'), '# Tasks\n\n## Tasks\n')
   fs.writeFileSync(path.join(kanban(), 'config.md'), '# Configuration\n\n- **Project** — a project.\n')
   setBoardRoot(root)
-  agent('sdk-sample', ['  kind: spec'], SAMPLE_FILES)
-  agent('api-contract', ['  kind: spec'])
+  agent('sdk-sample', ['  hook: plan'], SAMPLE_FILES)
+  agent('api-contract', ['  hook: plan'])
   card = (await move(root, ['create', '--title', 'Change an endpoint'])).id as number
 })
 
@@ -84,7 +84,7 @@ describe('what a run is told', () => {
   })
 
   it('names them on a leading run too', async () => {
-    agent('clip-editor', ['  kind: lead', '  stage: execute'], { 'style.md': 'Cut on the beat.' })
+    agent('clip-editor', ['  lead: execute'], { 'style.md': 'Cut on the beat.' })
     const flow = createWorkflow('Clips').id!
     assert.equal(setWorkflowLead(flow, 'plan', 'software-planner').ok, true)
     assert.equal(setWorkflowLead(flow, 'execute', 'clip-editor').ok, true)
@@ -129,7 +129,7 @@ describe('`akb raw agent-file`', () => {
     const said = await move(root, ['agent-file', 'email-planner', 'scripts/render.mjs'])
     assert.match(String(said.text), /plainText: true/)
     assert.match(buildAsk({ action: 'spec', id: card, specAgent: 'email-planner' }), /agent-file email-planner scripts\/render\.mjs/)
-    agent('email-planner', ['  kind: spec'])
+    agent('email-planner', ['  hook: plan'])
     assert.match(specAgentCatalog().problems.join('\n'), /an agent named `email-planner` is already on this board/)
     assert.equal(findSpecAgent('email-planner')!.dir, undefined)
   })
@@ -144,7 +144,7 @@ describe('`akb raw agent-file`', () => {
 
 describe('an agent that still declares `akb.dependencies`', () => {
   it('loads as usual, even naming an agent this board does not have', () => {
-    agent('release-page', ['  kind: spec', '  dependencies:', '    - agent: api-contract', '    - agent: nobody'])
+    agent('release-page', ['  hook: plan', '  dependencies:', '    - agent: api-contract', '    - agent: nobody'])
     assert.ok(findSpecAgent('release-page'))
     assert.deepEqual(specAgentCatalog().problems, [])
   })

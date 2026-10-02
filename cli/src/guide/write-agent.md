@@ -15,21 +15,25 @@ name: ux-writer
 description: Use whenever a card changes what the product says to the user. Follows `ui-designer`.
 # Required.
 akb:
+  # Required; one of `hook` or `lead`, naming its stage.
   # plan: called in after planning when its description applies.
   # execute: runs after every build of its workflow.
-  stage: plan
-  # Optional below; declaring stage is enough for a new agent.
-  # Default spec: a hook on its stage — fills a spec section, or works on the build.
-  # lead: runs a whole stage; requires plan or execute.
-  kind: spec
-  # Default false; true lets a spec agent lead plan or execute.
-  lead: false
+  hook: plan
+  # Optional below.
   # agent (default) | human; which half receives its section.
-  # Spec: initial board setting. Lead: fixed here, no setting row.
+  # Hook: initial board setting. Lead: fixed here, no setting row.
   output: agent
 ---
 
 You write the words a screen shows.
+```
+
+An agent that runs a whole stage declares `lead` in place of `hook`:
+
+```yaml
+akb:
+  # plan | execute: the stage it runs.
+  lead: plan
 ```
 
 Everything under the frontmatter is the agent's instructions, read fresh on every run —

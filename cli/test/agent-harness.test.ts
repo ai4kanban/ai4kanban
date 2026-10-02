@@ -547,7 +547,7 @@ describe('an agent that may lead planning', () => {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(
       file,
-      ['---', 'name: outliner', 'description: d', 'akb:', '  kind: lead', '  stage: plan', '---', '', 'You outline.', ''].join('\n'),
+      ['---', 'name: outliner', 'description: d', 'akb:', '  lead: plan', '---', '', 'You outline.', ''].join('\n'),
     )
   })
 

@@ -52,7 +52,7 @@ const hookAgent = (name: string): void => {
   fs.mkdirSync(home, { recursive: true })
   fs.writeFileSync(
     path.join(home, 'AGENT.md'),
-    ['---', `name: ${name}`, 'description: Use when.', 'akb:', '  stage: execute', '---', '', `You are ${name}.`, ''].join('\n'),
+    ['---', `name: ${name}`, 'description: Use when.', 'akb:', '  hook: execute', '---', '', `You are ${name}.`, ''].join('\n'),
   )
   assert.equal(addWorkflowHelper('coding', 'execute', name).ok, true)
 }

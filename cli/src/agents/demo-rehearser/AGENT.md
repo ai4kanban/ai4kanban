@@ -2,8 +2,7 @@
 name: demo-rehearser
 description: Rehearses a product video's demo in an isolated environment and returns its key screenshots for the script.
 akb:
-  kind: spec
-  stage: plan
+  hook: plan
   i18n:
     en:
       title: Demo rehearser

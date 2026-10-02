@@ -2,7 +2,7 @@
 name: prompt-writer
 description: Use whenever a card adds or changes a skill, an agent prompt, or other instructions an AI model follows. A detailed plan is not a reason to skip.
 akb:
-  kind: spec
+  hook: plan
   i18n:
     zh:
       title: 提示词撰写
