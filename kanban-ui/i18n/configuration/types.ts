@@ -15,7 +15,6 @@ export type AgentRoleName =
   | "memory-reviewer"
   | "dismissal-reviewer"
   | "product-writer"
-  | "feedback"
   | "triage";
 
 export type ConfigurationCopy = {

@@ -32,7 +32,7 @@ import {
 import { SESSION_VARS } from './env'
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
-import { DISCUSSION_ROLE, leadsPlanning, roleForFlow } from './roles'
+import { DISCUSSION_ROLE, hiddenRole, leadsPlanning, roleForFlow } from './roles'
 import { agentForRun } from './runner'
 import { binaryOnPath, commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
@@ -254,8 +254,10 @@ export interface HarnessAsk {
 }
 
 // Whose pick an agent's runtime is read from: its own, or the discussion's for an agent that
-// may lead planning (#1316). A lead's own saved pick stays in the file, unread.
-const runtimeOwner = (agent: string): string => (leadsPlanning(agent) ? DISCUSSION_ROLE : agent)
+// may lead planning (#1316). A lead's own saved pick stays in the file, unread. A hidden role
+// has no pick to read and runs Global default.
+const runtimeOwner = (agent: string): string =>
+  hiddenRole(agent) ? '' : leadsPlanning(agent) ? DISCUSSION_ROLE : agent
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const cfg = safeConfig()
@@ -264,7 +266,8 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const list = readRuntimes(cfg)
   // Which runtime this agent runs, from the board and nowhere else: its own pick, or
   // **Global default** when it named none (agent/runtimes.ts).
-  const picked = agent ? runtimeOfAgent(specAgentNames(runtimeOwner(agent)), readAgentRuntime(cfg)) : undefined
+  const owner = agent ? runtimeOwner(agent) : ''
+  const picked = owner ? runtimeOfAgent(specAgentNames(owner), readAgentRuntime(cfg)) : undefined
   // `pin` wins over the board: a run already committed to a runtime spawns that runtime,
   // whatever the settings have been changed to since.
   const asked = ask.pin ?? picked

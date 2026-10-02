@@ -46,6 +46,8 @@ export interface AgentRole {
    *  `triage` is `signalsAccess()` — whether the account may sort. Absent on every role
    *  that works wherever its board does. */
   needs?: 'triage'
+  /** Runs, but is on no roster: no runtime of its own, and no rule. */
+  hidden?: true
   /** The workflow stage this agent may be assigned to (#715). A role with one is a
    *  WORKFLOW agent: it can lead or help that stage of any workflow on the board. A role
    *  without one is a BOARD agent — the discussion, the pruner and the rest — which no workflow assigns and every workflow gets. */
@@ -148,6 +150,7 @@ const FEEDBACK: AgentRole = {
   name: 'feedback',
   gloss: 'works out what a spec got wrong, and packs the case for it',
   memory: [],
+  hidden: true,
 }
 
 const BOARD_ROLES: AgentRole[] = [
@@ -222,6 +225,9 @@ function leadRole(name: string): AgentRole | undefined {
 /** The role of a given name. */
 export const roleNamed = (name: string): AgentRole | undefined => roles().find((role) => role.name === name)
 
+/** Whether a name is a role the board runs without listing — it reads no runtime pick and no rule. */
+export const hiddenRole = (name: string): boolean => roleNamed(name)?.hidden === true
+
 /** Whether an agent may lead planning. Every one of them runs on the discussion's runtime
  *  rather than its own pick (#1316), so planning can carry a discussion's session on. */
 export function leadsPlanning(name: string): boolean {
@@ -240,7 +246,8 @@ export function roleFlowsInOrder(name: string, workflow?: string): string[] {
 /** Every reason one of this board's contracts names an agent it does not have (./stages.ts).
  *  Read beside the agents' own problems, so a lead nobody answers to is said out loud rather
  *  than found out as a flow with nobody to run it. */
-export const stageContractProblems = (): string[] => contractProblems(agentNames())
+export const stageContractProblems = (): string[] =>
+  contractProblems([...agentNames(), ...roles().filter((role) => role.hidden).map((role) => role.name)])
 
 // ---- the roster ------------------------------------------------------------
 
@@ -313,7 +320,7 @@ export function agentRoster(): RosterEntry[] {
     }
   })
   return [
-    ...roles().map((role) => ({
+    ...roles().filter((role) => !role.hidden).map((role) => ({
       name: role.name,
       title: '',
       gloss: role.gloss,

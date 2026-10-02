@@ -26,7 +26,7 @@ import { rel, RULES } from '../paths'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
-import { agentNames, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
+import { agentNames, hiddenRole, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
 import { workflowForRun } from './runner'
 import { DEFAULT_WORKFLOW, stageHelpers, workflowFor } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
@@ -36,7 +36,7 @@ const rulePath = (agent: string): string => path.join(RULES, `${agent}.md`)
 
 // One file, as it stands. No migration behind it: the migration itself reads this way.
 function ruleFile(agent: string): string {
-  if (!agent) return ''
+  if (!agent || hiddenRole(agent)) return ''
   try {
     return fs.readFileSync(rulePath(agent), 'utf8').trim()
   } catch {

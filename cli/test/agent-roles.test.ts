@@ -13,9 +13,9 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { FLOWS } from '../src/lib/agent/flows.ts'
 import { buildRun } from '../src/lib/agent/prompts.ts'
-import { agentNames, agentRoster, roleForFlow, roleNamed, roles } from '../src/lib/agent/roles.ts'
+import { agentNames, agentRoster, roleForFlow, roleNamed, roles, stageContractProblems } from '../src/lib/agent/roles.ts'
 import { agentForFlow } from '../src/lib/agent/stages.ts'
-import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
+import { migrateFlowRules, readRule, ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
 import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { RULES, setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
@@ -88,6 +88,16 @@ describe('the roles', () => {
     assert.equal(roleForFlow('reflect')!.name, 'proposer')
   })
 
+  // The feedback agent still runs its flow, and is on no roster to be configured (#1358).
+  it('keeps the feedback agent off the roster, with no rule and no runtime of its own', () => {
+    assert.equal(roleForFlow('feedback')!.name, 'feedback')
+    assert.ok(!agentNames().includes('feedback'))
+    assert.deepEqual(stageContractProblems(), [])
+    rule('feedback', 'quote the line')
+    assert.equal(readRule('feedback'), '')
+    assert.equal(setAgentRule('feedback', 'quote the line').ok, false)
+  })
+
   // Memory belongs to whoever writes it (#805): all three planning files are the planner's,
   // and the builder — which never opened one — owns none.
   it('says what each role remembers, in files that are the board it is on', () => {
@@ -121,7 +131,6 @@ describe('the roles', () => {
       'memory-reviewer',
       'dismissal-reviewer',
       'product-writer',
-      'feedback',
       'proposer',
       'triage',
       'blog-illustrator',
@@ -144,7 +153,7 @@ describe('the roles', () => {
 
   it('rosters the roles first, then the specialists the command ships', () => {
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 10), [
+    assert.deepEqual(names.slice(0, 9), [
       'discussion-helper',
       'software-planner',
       'builder',
@@ -152,11 +161,10 @@ describe('the roles', () => {
       'memory-reviewer',
       'dismissal-reviewer',
       'product-writer',
-      'feedback',
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(10), [
+    assert.deepEqual(names.slice(9), [
       'blog-illustrator',
       'blog-planner',
       'carousel-planner',
@@ -174,7 +182,7 @@ describe('the roles', () => {
     ])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(10).fill('role'), 'spec', 'lead', 'lead', 'spec', 'spec', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec'],
+      [...Array(9).fill('role'), 'spec', 'lead', 'lead', 'spec', 'spec', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)

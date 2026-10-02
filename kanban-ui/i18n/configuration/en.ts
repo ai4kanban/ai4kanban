@@ -267,13 +267,6 @@ const en: ConfigurationCopy = {
         when: "there are chats with new messages. Chats save nothing themselves — this reads each one right through and decides from the whole conversation.",
         note: "It reads whole conversations, so a decision you have since changed is corrected instead of saved twice. Which memory it goes in follows the card the chat is on.",
       },
-      feedback: {
-        name: "Fix a plan that missed",
-        gloss: "Finds where a plan misread you, and packs the feedback together.",
-        trigger: "When you say a plan misread you",
-        rule: 'Added to the end of every feedback it packs — "always quote the line of the plan that missed it".',
-        when: "you link an earlier card in a discussion and say its plan misread you. It first confirms with you where it went wrong; if you chose to share with the team when the chat ends, it packs that planning's record for the AI4Kanban team.",
-      },
       triage: {
         name: "Auto-sort Triage",
         gloss: "Sorts what is waiting in Triage into cards and ignores.",

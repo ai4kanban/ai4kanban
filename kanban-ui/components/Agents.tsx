@@ -112,7 +112,7 @@ const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
 const PRODUCT_WRITER = "product-writer";
 
 // Configuration → Board's groups, by what starts each agent (#1208). Anything not named here
-// — the discussion, the feedback agent, an agent this project added — is one you start.
+// — the discussion, an agent this project added — is one you start.
 // A literal rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
 const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", REVIEWER_OF_DISMISSALS, PRODUCT_WRITER];
