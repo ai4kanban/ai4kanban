@@ -60,7 +60,7 @@ const en: CardCopy = {
     buildAgain: "Build again",
     buildAgainHint: "Build this card again in the same delivery, once what stopped it is sorted out",
     archive: "Archive",
-    reject: "Reject",
+    reject: "Remove",
     startFailed: "could not start the agent",
     scheduleFailed: "could not schedule the action",
     unscheduleFailed: "could not take the schedule off",

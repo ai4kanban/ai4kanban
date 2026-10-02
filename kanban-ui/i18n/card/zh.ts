@@ -58,7 +58,7 @@ const zh: CardCopy = {
     buildAgain: "再次构建",
     buildAgainHint: "处理好导致停下的问题后，在这次交付里重新构建",
     archive: "归档",
-    reject: "否决",
+    reject: "移除",
     startFailed: "Agent 未能启动",
     scheduleFailed: "未能加入计划",
     unscheduleFailed: "未能取消计划",
