@@ -18,7 +18,7 @@ import { printFrame } from "./Mat";
 // note a place on the same line at phone width.
 
 export type MemoryTreeNotes = {
-  product: string;
+  project: string;
   planner: string;
   readme: string;
   decisions: string;
@@ -36,7 +36,7 @@ type Row = {
 const TREE: Row[] = [
   { prefix: "", name: "docs/kanban/memory/", dir: true },
   { prefix: "├─ ", name: "readme.md", note: "readme" },
-  { prefix: "├─ ", name: "project.md", note: "product" },
+  { prefix: "├─ ", name: "project.md", note: "project" },
   { prefix: "└─ ", name: "agents/planner/", dir: true, note: "planner" },
   { prefix: "   ├─ ", name: "decisions.md", note: "decisions" },
   { prefix: "   ├─ ", name: "rejected.md", note: "rejected" },

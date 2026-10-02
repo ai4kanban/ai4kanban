@@ -73,7 +73,7 @@ const en: HomeCopy = {
       },
     ],
     tree: {
-      product: "What the product is",
+      project: "What the project is",
       planner: "The planner's memory",
       readme: "Shipped features",
       decisions: "Product decisions",
@@ -105,7 +105,7 @@ const en: HomeCopy = {
 
   start: {
     title: "Start with the desktop app",
-    lead: "Download the app, open a project, and answer two questions. It reads the codebase, describes the product, writes the planner's memory, and proposes the first tasks.",
+    lead: "Download AI4Kanban. Plan with precision, ship at speed.",
     notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
     cta: "Download",
     firstOpen:

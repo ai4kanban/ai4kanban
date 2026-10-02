@@ -76,7 +76,7 @@ const fr: HomeCopy = {
       },
     ],
     tree: {
-      product: "Ce qu'est le produit",
+      project: "Ce qu'est le projet",
       planner: "La mémoire du planificateur",
       readme: "Fonctionnalités livrées",
       decisions: "Décisions produit",
@@ -108,7 +108,7 @@ const fr: HomeCopy = {
 
   start: {
     title: "Commencez par l'application de bureau",
-    lead: "Téléchargez l'application, ouvrez un projet et répondez à deux questions. Elle lit le code, décrit le produit, écrit la mémoire du planificateur, puis propose les premières tâches.",
+    lead: "Téléchargez AI4Kanban. Planifiez avec précision, livrez rapidement.",
     notes: [
       "Planification autonome",
       "Local d’abord",
