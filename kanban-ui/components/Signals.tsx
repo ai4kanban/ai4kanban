@@ -1746,7 +1746,7 @@ function SignalDetail({
         </button>
       </div>
 
-      <div className="shrink-0 px-6 pb-2 pt-4 max-md:px-4">
+      <div className="shrink-0 px-6 pb-2 max-md:px-4">
         <h2
           title={title}
           className={`line-clamp-3 [overflow-wrap:anywhere] ${
