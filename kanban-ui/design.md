@@ -233,6 +233,9 @@ window width the rail, the header and the side-by-side columns are unchanged.
   that row 43px at either width.
 - **Nothing is reachable only by hover**: a tapped tooltip stays open until the next tap
   lands elsewhere, and a control that appears on hover stands all the time.
+- **A tapped tooltip stays in view**: it wraps at 260px, slides in from an edge and opens
+  on the other side when its own has no room — measured against the screen and every
+  area that clips it (`components/tip-hold.tsx`). Hover and focus tooltips are not moved.
 - **Write it as a `max-md:` utility beside the markup**. Only what a class cannot reach —
   the rail's `display` inside a panel group, the coarse-pointer tooltip — goes in
   `app/globals.css`.

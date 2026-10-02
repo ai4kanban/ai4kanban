@@ -241,6 +241,25 @@ body {
   right: 0;
   transform: none;
 }
+/* A tapped tip stays inside what is visible: components/tip-hold.tsx measures it and
+   writes the width, the sideways nudge and the side. Hover and focus keep the rules above. */
+.nb-tip[data-tip-held]::after {
+  width: max-content;
+  max-width: var(--tip-max, 260px);
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+  text-align: left;
+  translate: var(--tip-dx, 0px) 0;
+}
+.nb-tip[data-tip-held][data-tip-side="below"]::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+.nb-tip[data-tip-held][data-tip-side="above"]::after {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
 /* Dropdowns are components/ui/select.tsx (shadcn Select restyled to this
    language) — no shared class here. Its open-list animation is the nbPopIn
    keyframe below. */
