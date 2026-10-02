@@ -316,7 +316,7 @@ running badge and a read-only live log.
 | **Build again** | While a delivery has stopped, e.g. on work it could not commit or files changed outside the board. |
 | **Continue delivery** | When a delivery's next session never started. |
 | **Archive** | Once every todo is checked (a group root: every subtask resolved). Never on a recurring card. |
-| **Reject** | Always. The card moves to the archive, marked **Rejected**. **Just discard** does the same without writing memory. |
+| **Reject** | Always. The card moves to the archive, marked **Rejected**. Leave the reason empty to discard it: the same, without writing memory. |
 
 A card has one session at a time. A session outside a delivery never commits: read `git diff` and
 commit yourself.
