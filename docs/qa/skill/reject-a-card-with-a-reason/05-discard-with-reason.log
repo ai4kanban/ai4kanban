@@ -1,0 +1,14 @@
+$ akb raw reject 4 --discard --reason "字体不在这个版本的范围内"
+discarded #4: moved file 4-custom-board-font.md → docs/kanban/.archive/4-custom-board-font.md, marked rejected — no memory written
+  dropped 1 README entry
+
+next — what the script can't do:
+
+  1. nothing — this is a discard: no memory is written, and nothing judges whether it earned one
+
+  2. nothing — no other card or note mentions #4, so there is nothing to rewrite
+
+$ grep -E "^(archived|rejected)" docs/kanban/.archive/4-custom-board-font.md
+archived: 2026-10-02
+rejected: true
+rejected_reason: 字体不在这个版本的范围内

@@ -199,7 +199,8 @@ board never opens the file for you.
 `docs/kanban/.archive/`, newest first: number, title, release and archive date. A rejected or
 discarded card is filed here too, wearing **Rejected** where the release would sit; it is not
 counted as shipped by any release. Dates start from when the board began recording them; older
-rows are marked. Click a row to read the card. It is read-only: nothing un-archives.
+rows are marked. Click a row to read the card; a rejected card shows the reason it was given,
+word for word, under its chips. It is read-only: nothing un-archives.
 
 ### Assets on a card
 

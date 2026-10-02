@@ -1,0 +1,15 @@
+$ sed -n 1,14p docs/kanban/.archive/2-dark-mode-follows-system.md
+---
+title: 深色模式跟随系统
+priority: med
+roi: med
+status: todo
+release: ""
+blocked_by: []
+related: []
+modules: []
+archived: 2026-10-02
+rejected: true
+rejected_reason: "和系统设置重复：macOS 已经能按时间切换外观。\n用户说的\"跟随\"其实是想要定时，it's 另一张卡的事。"
+questions: []
+---

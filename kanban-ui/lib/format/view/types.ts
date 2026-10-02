@@ -649,6 +649,8 @@ export interface ArchivedCardFile extends ArchivedCard {
   /** The card body below the frontmatter (markdown). */
   body: string
   sources?: SourceLink[]
+  /** Why it was rejected, as typed. Absent on a card rejected with no reason. */
+  rejectedReason?: string
 }
 
 /** What the archive holds. */

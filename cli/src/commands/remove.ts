@@ -156,7 +156,7 @@ function leavingCards(id: number, found: Found): { id: number; file: string }[] 
 // What a leaving card carries out with it: the day it left, `rejected` when it was turned
 // down rather than finished, and no stage a run was holding — a card can leave mid-run, and
 // the copy in .archive/ must not come back saying it is being implemented.
-function stampLeaving(cards: { id: number; file: string }[], rejected: boolean): void {
+function stampLeaving(cards: { id: number; file: string }[], rejected: boolean, reason = ''): void {
   const day = formatDay()
   for (const card of cards) {
     if (!fs.existsSync(card.file)) continue
@@ -164,6 +164,7 @@ function stampLeaving(cards: { id: number; file: string }[], rejected: boolean):
     if (!meta) continue
     meta.archived = day
     if (rejected) meta.rejected = true
+    if (rejected && reason) meta.rejected_reason = reason
     if (meta.status === 'implementing') meta.status = 'todo'
     fs.writeFileSync(card.file, serializeFrontmatter(meta) + '\n' + body)
   }
@@ -181,6 +182,9 @@ export interface RemoveOptions {
    *  no note and names no `rejected.md`. The mentions still have to be rewritten. */
   discard?: boolean
   cleanupDiscarded?: boolean
+  /** Why the card is rejected, kept on every card that leaves with it. Unset inside a reject
+   *  run reads that run's own recorded reason. */
+  reason?: string
 }
 
 // Why a card finishing in planning (#1057) is not ready to archive, or null: the same check its
@@ -202,6 +206,15 @@ function unfinishedDelivery(id: number): string | null {
     .filter((src) => src.startsWith('.assets/'))
     .find((src) => !fs.existsSync(path.join(ASSETS, src.slice('.assets/'.length))))
   return missing ? `#${id} is not finished: ${missing} is not on this machine.` : null
+}
+
+// The reason a rejection is stamped with: the one given, else what this reject run was started with.
+function rejectionReason(id: number, given: string | undefined): string {
+  if (given !== undefined) return given.trim()
+  const sessionId = insideRun()
+  if (!sessionId) return ''
+  const run = readRuns().find((r) => r.sessionId === sessionId && r.action === 'reject' && r.cardId === id)
+  return run?.input?.trim() ?? ''
 }
 
 export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {}): MoveResult {
@@ -270,7 +283,7 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // The last write the cards get, and it has to happen before the move: after it there is
   // no card under `todo/` left to write.
   if (dest) {
-    stampLeaving(leaving, metric === 'rejected')
+    stampLeaving(leaving, metric === 'rejected', metric === 'rejected' ? rejectionReason(id, options.reason) : '')
     fs.mkdirSync(ARCHIVE, { recursive: true })
     fs.renameSync(found.target, dest)
   } else {

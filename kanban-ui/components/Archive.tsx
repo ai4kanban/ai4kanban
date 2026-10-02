@@ -297,6 +297,12 @@ export function ArchivedCardPage({
           )}
         </div>
       )}
+      {card.rejectedReason && (
+        <div className="mt-3 flex flex-col gap-1 rounded-[9px] px-3 py-2.5" style={{ border: `1px solid ${HAIRLINE}` }}>
+          <span className="text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">{c.card.reason}</span>
+          <p className="min-w-0 whitespace-pre-wrap break-words text-[12.5px] leading-relaxed">{card.rejectedReason}</p>
+        </div>
+      )}
       {!!card.sources?.length && (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">{meta.source}</span>

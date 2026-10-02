@@ -1,0 +1,15 @@
+$ akb card reject 2 $'和系统设置重复：macOS 已经能按时间切换外观。\n用户说的"跟随"其实是想要定时，it\'s 另一张卡的事。' --print
+[…]
+this board:
+
+  card      docs/kanban/todo/2-dark-mode-follows-system.md
+  meta      todo · priority med · roi med
+  reason    和系统设置重复：macOS 已经能按时间切换外观。
+  用户说的"跟随"其实是想要定时，it's 另一张卡的事。
+  memory    docs/kanban/memory/agents/planner/rejected.md
+
+closing it — no run is watching this one finish, so the bookkeeping is yours:
+
+  1. write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result
+  2. akb raw reject 2 --reason $'和系统设置重复：macOS 已经能按时间切换外观。\n用户说的"跟随"其实是想要定时，it\'s 另一张卡的事。' — this files the card in the archive as rejected
+[…]

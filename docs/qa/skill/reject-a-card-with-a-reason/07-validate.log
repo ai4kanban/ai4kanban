@@ -1,0 +1,7 @@
+$ grep -n rejected docs/kanban/todo/5-weekly-email-digest.md
+10:rejected_reason: "以后再说"
+
+$ akb raw validate 5
+akb raw: Spec format validation failed. Fix these errors without changing the planned behavior:
+docs/kanban/todo/5-weekly-email-digest.md:10 [rejected_reason] rejected_reason is only kept on a rejected card. Only akb raw reject writes it; remove the line.
+exit 1

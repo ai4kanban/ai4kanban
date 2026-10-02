@@ -1,0 +1,14 @@
+$ akb raw reject 2 --reason $'和系统设置重复：macOS 已经能按时间切换外观。\n用户说的"跟随"其实是想要定时，it\'s 另一张卡的事。'
+rejected #2: moved file 2-dark-mode-follows-system.md → docs/kanban/.archive/2-dark-mode-follows-system.md, marked rejected
+  dropped 1 README entry
+
+next — what the script can't do:
+
+  1. write the rejection note, if this rejection earns one — follow `akb guide reject`
+       file    docs/kanban/memory/agents/planner/rejected.md
+       topics  (none yet — this note starts the first one)
+
+  2. nothing — no other card or note mentions #2, so there is nothing to rewrite
+
+$ ls docs/kanban/.archive
+2-dark-mode-follows-system.md

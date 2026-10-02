@@ -409,9 +409,14 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .description(
       'The same clean-up as archive: the file or folder moves to .archive/, marked `rejected: true`, and ' +
         'the card counts as rejected. It stays readable there, is listed as rejected, and is never counted ' +
-        'as shipped by a release.',
+        'as shipped by a release. A reason is kept on the card, and on each subtask a group takes with it.',
     )
     .option('--discard', 'just drop it: the receipt asks for no memory note and names no rejected.md')
+    .option(
+      '--reason <text>',
+      'why, kept on the archived card as `rejected_reason` and shown on its page. Inside a reject run the ' +
+        "run's own reason is kept without it",
+    )
     .action(async function (this: Command, id: number) {
       await dispatch('reject', this, [String(id)], this.opts(), cli)
     })

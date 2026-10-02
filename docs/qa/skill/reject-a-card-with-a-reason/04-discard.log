@@ -1,0 +1,16 @@
+$ akb raw reject 3 --discard
+discarded #3: moved file 3-export-to-pdf.md → docs/kanban/.archive/3-export-to-pdf.md, marked rejected — no memory written
+  dropped 1 README entry
+
+next — what the script can't do:
+
+  1. nothing — this is a discard: no memory is written, and nothing judges whether it earned one
+
+  2. nothing — no other card or note mentions #3, so there is nothing to rewrite
+
+$ grep -c rejected_reason docs/kanban/.archive/3-export-to-pdf.md
+0
+
+$ grep -E "^(archived|rejected)" docs/kanban/.archive/3-export-to-pdf.md
+archived: 2026-10-02
+rejected: true

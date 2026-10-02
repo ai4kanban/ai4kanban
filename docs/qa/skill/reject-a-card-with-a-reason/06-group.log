@@ -1,0 +1,21 @@
+$ ls docs/kanban/todo/6-mobile-board
+7-mobile-read-only-view.md
+8-mobile-push.md
+root.md
+
+$ akb raw reject 6 --reason "今年不做手机端"
+rejected #6: moved folder 6-mobile-board/ → docs/kanban/.archive/6-mobile-board/, marked rejected
+  dropped 3 README entries
+
+next — what the script can't do:
+
+  1. write the rejection note, if this rejection earns one — follow `akb guide reject`
+       file    docs/kanban/memory/agents/planner/rejected.md
+       topics  (none yet — this note starts the first one)
+
+  2. nothing — no other card or note mentions #6, so there is nothing to rewrite
+
+$ grep -r rejected_reason docs/kanban/.archive/6-mobile-board
+docs/kanban/.archive/6-mobile-board/root.md:rejected_reason: 今年不做手机端
+docs/kanban/.archive/6-mobile-board/7-mobile-read-only-view.md:rejected_reason: 今年不做手机端
+docs/kanban/.archive/6-mobile-board/8-mobile-push.md:rejected_reason: 今年不做手机端

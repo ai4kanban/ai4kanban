@@ -47,7 +47,7 @@ const zh: RailCopy = {
     empty: "还没有归档任何卡片。卡片完成后会被移到这里，也在这里查看。",
     list: "已归档的卡片",
     undated: "在看板开始记录归档日期之前完成",
-    card: { label: "归档", release: "版本", archived: "归档于", rejected: "已否决", rejectedTip: "已否决，未交付" },
+    card: { label: "归档", release: "版本", archived: "归档于", rejected: "已否决", rejectedTip: "已否决，未交付", reason: "否决原因" },
   },
   signals: {
     row: "待筛选",
