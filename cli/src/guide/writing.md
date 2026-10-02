@@ -58,10 +58,8 @@ Every flow writes a card in this order:
 
 ## `Today`
 
-- **Describe the starting point**: include only current behavior or constraints needed to
-  understand the change.
-- **Omit when unnecessary**: do not repeat facts already clear from the opening paragraph
-  or scope.
+- **Omit by default**: write it, heading included, only when the build depends on findings
+  the code does not make obvious; a small change to a few simple files needs none.
 
 ## `Todo`
 
@@ -71,10 +69,10 @@ Every flow writes a card in this order:
 
 ## `Decided by the agent`
 
-- **Avoid duplicates**: include answered decisions that do not belong in either
-  `Worth noting` section.
+- **Only what changes the build**: include answered decisions the builder would otherwise
+  get wrong and neither `Worth noting` section holds; omit a finding that needs no action.
 - **Preserve superseded calls**: move agent or review decisions the user reverses to
-  `Overruled by the user`.
+  `Overruled by the user`; delete one the card leaves the builder no room to repeat.
 
 ## General writing requirements
 
@@ -93,8 +91,9 @@ Every flow writes a card in this order:
 - **Specify behavior**: omit planning notes and unnecessary coding details.
 - **Supported embeds**: only valid `<Asset>` and `<Storyboard>` markers alone in a paragraph
   embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
-- **Say each decision once**: merge duplicates across the three decision sections; remove
-  decisions that only repeat scope or no longer apply.
+- **Say each fact once**: a section holds only what the card does not already say; leave it
+  empty rather than restate the opening paragraph or another section. Cut only the repeated
+  part of a line: a name, value or case stated nowhere else stays.
 
 - **Validate after edits**: run `akb raw validate <id>` for every card you wrote. Fix each
   reported file and line before finishing; validation does not rewrite the card for you.

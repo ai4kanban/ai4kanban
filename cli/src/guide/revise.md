@@ -14,7 +14,8 @@ the project and leave only decisions the user owns.
   human half's `## Worth noting`, that the revision makes invalid is a call the user
   overruled — keep it. Move the line, as it stands, under a `### Overruled by the user`
   heading at the end of `## Decided by the agent`, adding the heading if the card has none.
-  The subsection stays last inside that section.
+  The subsection stays last inside that section. Delete an overruled line once the card
+  leaves the builder no room to repeat that call.
 - **The two halves**: write the card in the shape `akb guide writing` sets out; when the change
   lands in the agent half, re-read the opening paragraph and `## Worth noting` so both hold.
 - **Record the correction**: a revision that fixes a missed requirement or a wrong design

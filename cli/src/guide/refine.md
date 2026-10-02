@@ -13,8 +13,8 @@ Plan one card in this session until it can be built. Change no project code.
   then cover what shipping the change takes beyond the happy path — for example existing data
   and settings, release and rollback, failure, access, and ongoing cost.
 - **Questions**: settle every question you can answer with high confidence, even one worth the
-  user's attention, and record the important ones under `## Decided by the agent`. Ask only
-  what is left and passes the `[user]` test in `akb guide update-questions`.
+  user's attention, and record them as `akb guide writing` says. Ask only what is left and
+  passes the `[user]` test in `akb guide update-questions`.
 - **Write**: shape the card as `akb guide writing` says, then run `akb raw validate <id>` and
   fix every reported line.
 
