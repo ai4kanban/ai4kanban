@@ -85,6 +85,7 @@ const BOARD_STAGES: StageContract[] = [
   },
   {
     stage: 'build',
+    // `run` is retired (#1414); it stays so an old run and an old rule still read as the builder's.
     flows: ['implement', 'conflict', 'run'],
     input: 'the approved card and the rules its delivery froze',
     output: "the change, committed on the delivery's own branch",

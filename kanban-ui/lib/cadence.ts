@@ -1,4 +1,4 @@
-// How often a recurring card repeats (#139).
+// How often a scheduled agent repeats (#139).
 //
 //   30m          every 30 minutes
 //   6h           every 6 hours

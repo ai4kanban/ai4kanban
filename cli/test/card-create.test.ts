@@ -58,23 +58,12 @@ describe('card creation owns its id', () => {
     )
   })
 
-  it('scaffolds recurring state and process without an implicit cadence', async () => {
-    const made = await create(['--title', 'A repeated job', '--recurring'])
-    assert.ok(typeof made.file === 'string')
-    const written = fs.readFileSync(path.join(root, made.file), 'utf8')
-    assert.deepEqual(
-      written.split('\n').filter((line) => /^(#{2,3}\s|<!-- agent -->)/.test(line)),
-      ['## Run state', '## Process'],
-    )
-    assert.doesNotMatch(written, /^cadence:/m)
-    assert.doesNotMatch(written, /^## (Scope|Todo|Decided by the agent)$/m)
-  })
-
-  it('writes a recurring cadence only when explicitly requested', async () => {
-    const made = await create(['--title', 'A scheduled job', '--recurring', '--cadence', '1d at 09:30'])
-    assert.ok(typeof made.file === 'string')
-    const written = fs.readFileSync(path.join(root, made.file), 'utf8')
-    assert.match(written, /^cadence: 1d at 09:30$/m)
+  it('refuses the retired recurring options and points at the agent guide (#1414)', async () => {
+    await refuses(root, ['create', '--title', 'A repeated job', '--recurring'], /--recurring is gone[\s\S]*akb guide write-agent/)
+    await refuses(root, ['create', '--title', 'A job', '--cadence', '1d'], /--cadence is gone[\s\S]*akb guide write-agent/)
+    const made = await create(['--title', 'A card'])
+    await refuses(root, ['update', String(made.id), '--cadence', '1d'], /--cadence is gone/)
+    await refuses(root, ['record-run', String(made.id)], /unknown command/)
   })
 
   it('requires a complete card instead of reserving an id', async () => {

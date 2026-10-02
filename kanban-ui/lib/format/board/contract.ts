@@ -43,6 +43,7 @@ import type {
   MemoryFile,
   MemoryOwner,
   MetricsResult,
+  RecurringMigration,
   SaveProjectResult,
   SetupDraft,
   SetupState,
@@ -146,7 +147,7 @@ export type BoardKind = 'local' | 'cloud'
  * Every read and every write of a board, in one interface.
  *
  * Grouped the way the work falls: snapshots, card reads, the lease, lifecycle and
- * frontmatter, releases, memory and setup, history, the delivery lifecycle, and the named
+ * frontmatter, releases, memory and setup, the delivery lifecycle, and the named
  * `akb raw` moves. Adding a board that lives elsewhere means one more class here.
  */
 export interface BoardProvider {
@@ -233,9 +234,8 @@ export interface BoardProvider {
    *  changes the next delivery, never one in flight. */
   deliveryRules(): Promise<Record<string, string>>
 
-  // ---- history -------------------------------------------------------------
-  /** Stamp one pass of a recurring card, which is what its cadence counts from. */
-  recordRun(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
+  /** Turn the recurring cards an older version left into scheduled agents (#1414). */
+  migrateRecurring(env: OpEnvelope): Promise<OpResult<{ data: RecurringMigration }>>
 
   // ---- the delivery lifecycle ----------------------------------------------
   listDeliveries(): Promise<DeliveryRecord[]>

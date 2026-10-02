@@ -70,8 +70,6 @@ export type CardCopy = {
   heldRunning: string;
   toolbar: {
     implement: string;
-    run: string;
-    runHint: string;
     refine: string;
     refineHint: string;
     /** Another run already holds this card. `verb` is what it is doing. */
@@ -192,11 +190,6 @@ export type CardCopy = {
     priority: string;
     roi: string;
     todos: string;
-    lastRun: string;
-    neverRun: string;
-    cadence: string;
-    nextRun: string;
-    dueNow: string;
     blockedBy: string;
     scheduled: string;
     unschedule: string;

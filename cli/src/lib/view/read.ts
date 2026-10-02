@@ -20,20 +20,19 @@ import { cardsBeingCreated } from '../agent/store'
 import type { DeliveryLanding, DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
 import { cardSources } from '../card-sources'
-import { idPrefix, isGroupFolder, subtaskLines } from '../cards'
+import { idPrefix, isGroupFolder, isLegacyRecurring, subtaskLines } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { parseFrontmatter } from '../frontmatter'
 import { moduleNames } from '../validate'
 import { readReleaseEntries } from '../releases'
 import { readSetupChecklist } from '../setup'
-// The reading rules a hosted page shares (#322): what a `## Todo` counts, when a recurring
-// card is next due, what really blocks a card, and how the bands are laid out.
+// The reading rules a hosted page shares (#322): what a `## Todo` counts, what really blocks
+// a card, and how the bands are laid out.
 import {
   attachBlockers,
   columnsFrom,
   countByRelease,
   countTodos,
-  dueLabel,
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
 import { workflowFor } from '../agent/workflows'
@@ -66,10 +65,6 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   const { meta, body } = parseFrontmatter(text)
   if (!meta) return null
   const relPath = relFromTodo.split(path.sep).join('/')
-  // `recurring/` is the one reserved folder: a card in it repeats on a cadence instead of
-  // being built once. The path is what says so — the same test `record-run` makes before it
-  // will record a run.
-  const recurring = relPath.split('/')[0] === 'recurring'
   const flow = meta.workflow ? workflowFor(meta.workflow) : undefined
   const plan = flow?.delivers === 'plan'
   return {
@@ -89,14 +84,10 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     workflow: meta.workflow,
     ...(plan ? { deliversIn: 'plan' as const } : {}),
     modules: meta.modules,
-    last_run: meta.last_run,
-    cadence: meta.cadence,
     schedule: meta.schedule,
-    nextRun: recurring ? dueLabel(meta.last_run, meta.cadence) : '',
     body: body.replace(/^\n+/, '').replace(/\s+$/, ''),
     todos: countTodos(body),
     isGroup: false, // readGroup flips this on the one card that is a root
-    recurring,
     openBlockers: [], // filled by attachBlockers once every card has been read
   }
 }
@@ -151,8 +142,8 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   return { root, subCards }
 }
 
-// The plain `NN-slug.md` cards in one folder under todo/ — the board's own top level, or
-// the reserved `recurring/`. Group folders are read by readGroup instead.
+// The plain `NN-slug.md` cards in one folder under todo/ — the board's own top level, or a
+// folder an older layout left. Group folders are read by readGroup instead.
 function standaloneCards(dirRel: string): Card[] {
   const dir = dirRel ? path.join(TODO, dirRel) : TODO
   if (!fs.existsSync(dir)) return []
@@ -184,7 +175,8 @@ function collectCards(): { board: Card[]; every: Card[] } {
         board.push(g.root)
         every.push(g.root, ...g.subCards)
       }
-    } else {
+    } else if (!isLegacyRecurring(entry.name)) {
+      // A recurring card waiting to become an agent is no card (#1414).
       const cards = standaloneCards(entry.name)
       board.push(...cards)
       every.push(...cards)

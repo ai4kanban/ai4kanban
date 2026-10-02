@@ -32,17 +32,9 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
     for (const ref of m.source) out.push(`  - ${yamlScalar(ref)}`)
   }
   if (m.preview_approved) out.push('preview_approved: true')
-  // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
-  // ./cadence.ts). Written only when the card carries one; no cadence means the
-  // card runs when a human clicks Run and never on its own.
-  if (m.cadence) out.push(`cadence: ${yamlScalar(m.cadence)}`)
-  // When a recurring card last ran (`run` stamps it). Written only when the card
-  // carries one, so a one-shot card's frontmatter is untouched — and re-emitted
-  // whenever it is there, so an `update` in between can't erase the stamp.
-  if (m.last_run) out.push(`last_run: ${yamlScalar(m.last_run)}`)
   // The day the card was archived (`archive` stamps it on the way out). Written only when
   // the card carries one, so nothing on the board grows a field — and re-emitted whenever it
-  // is there, the way `last_run` is.
+  // is there.
   if (m.archived) out.push(`archived: ${yamlScalar(m.archived)}`)
   if (m.rejected) out.push('rejected: true')
   if (m.rejected_reason) out.push(`rejected_reason: ${yamlScalar(m.rejected_reason)}`)
@@ -159,6 +151,7 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   if (!Array.isArray(meta.modules)) meta.modules = []
   // Retired fields: `channels:` (#718), `decided:` (#1255) and `verify:` (#1329). A card still
   // carrying one reads as the ordinary card it now is, and the field drops out on the next rewrite.
+  // `cadence:` and `last_run:` (#1414) are left as read: ../recurring.ts carries them over.
   delete meta.channels
   delete meta.decided
   delete meta.verify
@@ -170,19 +163,11 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
     .map((ref) => String(ref).trim())
     .filter(Boolean)
   meta.preview_approved = meta.preview_approved === 'true'
-  // When this card last ran — recurring cards only, and only once they have run.
-  // Anything but text reads as never run, so a blanked or damaged line just means
-  // the card has no run to report.
-  meta.last_run = typeof meta.last_run === 'string' && meta.last_run.trim() ? meta.last_run.trim() : ''
   // The day it was archived. Every card archived before this field existed carries none,
   // and nothing backfills them, so empty is the ordinary answer and reads as "no date".
   meta.archived = typeof meta.archived === 'string' && meta.archived.trim() ? meta.archived.trim() : ''
   meta.rejected = meta.rejected === 'true'
   meta.rejected_reason = typeof meta.rejected_reason === 'string' ? meta.rejected_reason : ''
-  // How often the card repeats. Kept as written — whoever reads it parses it
-  // (./cadence.ts); a line that isn't one of the accepted forms means the card
-  // has no working cadence and only runs by hand.
-  meta.cadence = typeof meta.cadence === 'string' && meta.cadence.trim() ? meta.cadence.trim() : ''
   // The action the card is waiting to run. A card written before this field, and one whose
   // block names something the board can't start, both read as not scheduled.
   meta.schedule = normalizeSchedule(meta.schedule)

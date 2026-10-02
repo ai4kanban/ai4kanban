@@ -164,7 +164,7 @@ describe('the files', () => {
     assert.equal(agents.find((a) => a.name === 'builder')!.rule, 'Install first.')
     assert.equal(agents.find((a) => a.name === 'software-planner')!.rule, '')
     // One rule, every flow that agent runs.
-    for (const action of ['implement', 'conflict', 'run'] as const) {
+    for (const action of ['implement', 'conflict'] as const) {
       assert.equal(ruleFor({ action, id: 1 }), 'Install first.', action)
     }
   })
@@ -179,7 +179,7 @@ describe('the prompt', () => {
 
   it('has add-task refine inline only when the source is concrete', () => {
     const guide = findGuide('add-task')!.text
-    assert.match(guide, /Repeating work[\s\S]*akb guide recurring-task/)
+    assert.match(guide, /Repeating work[\s\S]*`schedule` agent[\s\S]*akb guide write-agent/)
     assert.match(guide, /open question[\s\S]*akb guide update-questions/)
     assert.doesNotMatch(guide, /Parallel|--effort/)
     assert.match(guide, /Inline[\s\S]*source already supplies[\s\S]*akb card refine <id> --print/)
@@ -188,27 +188,18 @@ describe('the prompt', () => {
 
   it('keeps the question format in one guide', () => {
     assert.match(findGuide('update-questions')!.text, /--recommended-option[\s\S]*--option/)
-    for (const name of ['add-task', 'refine', 'recurring-task', 'reject', 'setup', 'spec-agent']) {
+    for (const name of ['add-task', 'refine', 'reject', 'setup', 'spec-agent']) {
       const guide = findGuide(name)!.text
       assert.match(guide, /akb guide\s+update-questions/, name)
       assert.doesNotMatch(guide, /--recommended-option|--mode multi/, name)
     }
   })
 
-  it('keeps recurring state on the card and cadence opt-in', () => {
-    const guide = findGuide('recurring-task')!.text
-    assert.match(guide, /## Run state/)
-    assert.match(guide, /Do not create a sibling log, ledger, or history file/)
-    assert.match(guide, /Leave `--cadence` off unless the user explicitly asks/)
-    assert.match(guide, /Do not add a step that calls `akb run` or[\s\S]*stamps `last_run`/)
-
-    startCollecting()
-    try {
-      const flow = printFlow({ action: 'run', id: 1, title: 'card one' })
-      assert.match((flow.close as string[]).join('\n'), /update or add the card's ## Run state in place/)
-    } finally {
-      stopCollecting()
-    }
+  it('has no recurring guide, and asks how a scheduled agent keeps its state (#1414)', () => {
+    assert.equal(findGuide('recurring-task'), null)
+    const guide = findGuide('write-agent')!.text
+    assert.match(guide, /State between runs[\s\S]*assume no file or format/)
+    assert.match(guide, /akb workflow schedule <workflow> --on <name> --cadence <cadence>/)
   })
 
   it('plans in one clarify session under the refine guide', () => {

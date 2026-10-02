@@ -27,10 +27,10 @@ import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
 // module map's own order. The column is the answer to "can I start this", the
 // band says "what part of the product is it" — so a card needs no module chip.
 //
-// The three columns are fixed width and the row scrolls sideways. A column that
+// The two columns are fixed width and the row scrolls sideways. A column that
 // stretched to the window would rewrap its cards at every window size, and the
 // board would look like a different board on a laptop and on a monitor; fixed
-// widths mean two cards across in each half, one in Recurring, always. What a
+// widths mean two cards across in each half, always. What a
 // wider window buys is more of the row without scrolling, not wider cards.
 //
 // A phone fits one column and no more (#357), so it shows one: the columns become pages of
@@ -47,14 +47,13 @@ import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
 // only one answer to which column a card is in.
 export const isReadyHalf = (card: Card) => card.status === "ready" || card.status === "implementing";
 
-/** Which column a card is in. Recurring stands apart.
+/** Which column a card is in.
  *
  *  Exported because a card page has to name the column it came from (#357), and there is
  *  one answer to which column a card is in. */
-export type ColumnKey = "ready" | "notReady" | "recurring";
+export type ColumnKey = "ready" | "notReady";
 
-export const columnOf = (card: Card): ColumnKey =>
-  card.recurring ? "recurring" : isReadyHalf(card) ? "ready" : "notReady";
+export const columnOf = (card: Card): ColumnKey => (isReadyHalf(card) ? "ready" : "notReady");
 
 /** One module's cards within a column. Empty bands are dropped before drawing —
  *  a module with nothing on this side of the split has nothing to say. */
@@ -73,13 +72,11 @@ const bandsFor = (columns: Column[], keep: (card: Card) => boolean): Band[] =>
     }))
     .filter((band) => band.cards.length > 0);
 
-// Two cards across (265px each) plus the bands' own padding, and one card
-// across for Recurring. `min()` keeps a column inside a window narrower than it
+// Two cards across (265px each) plus the bands' own padding. `min()` keeps a column inside a window narrower than it
 // rather than hanging it off the edge; below `sm` the grid inside falls back to
 // one card per row on its own. Neither is used at phone width — there a column
 // is the screen (SwipedColumns).
 const HALF_W = "w-[min(560px,calc(100vw-2rem))]";
-const NARROW_W = "w-[min(300px,calc(100vw-2rem))]";
 
 /** A board with nothing on it (#437) — setup finished and wrote no seed card, or every card
  *  has been archived. The columns are three empty lists saying the same thing three times,
@@ -122,17 +119,9 @@ export function QueueView({
 }) {
   const c = useCopy().board.queue;
   const phone = usePhone();
-  // A recurring card is pulled out before the split, not sorted by it: it is a
-  // job on a cadence, never finished and never "ready to build", so leaving it
-  // in would park every one of them at the bottom of Not ready — a pile of work
-  // that is not late, next to work that is.
   const inColumn = (key: ColumnKey) => (card: Card) => columnOf(card) === key;
   const ready = bandsFor(columns, inColumn("ready"));
   const notReady = bandsFor(columns, inColumn("notReady"));
-  const recurring = columns
-    .flatMap((col) => col.cards)
-    .filter(inColumn("recurring"))
-    .sort(byQueueOrder);
 
   // The ready column carries two numbers, because only the first is work waiting
   // on you — an implementing card is already being built and needs nothing.
@@ -143,13 +132,6 @@ export function QueueView({
 
   // Every column, once — the same list the window lays side by side and the phone pages
   // through, so neither shape can grow a column the other doesn't have.
-  //
-  // Recurring is a reserved folder, and not part of the
-  // ready/not-ready question at all — so it stands as its own column, narrower because it
-  // is a list you glance at rather than the work you came here to pick from. The faint
-  // lilac cast the board gives a schedule rides on the header band, which is the only
-  // surface the column has left. Absent when nothing recurs: an empty column teaching a
-  // feature nobody on this board uses is just noise.
   const cols: QueueCol[] = [
     {
       key: "ready",
@@ -165,31 +147,6 @@ export function QueueView({
       width: HALF_W,
       body: <Bands bands={notReady} sessions={sessions} />,
     },
-    ...(recurring.length > 0
-      ? [
-          {
-            key: "recurring",
-            title: c.recurring,
-            count: `${recurring.length}`,
-            width: NARROW_W,
-            tint: "color-mix(in srgb, var(--color-nb-lilac) 16%, var(--color-nb-wash))",
-            dot: "var(--color-nb-lilac-ink)",
-            body: (
-              <div className="flex flex-col gap-3">
-                {recurring.map((card) => (
-                  <BoardCard
-                    key={card.id}
-                    card={card}
-                    liveSession={runningSessionForCard(sessions, card.id)}
-                    failedSession={unhandledSessionForCard(sessions, card.id)}
-                    creator={creatorOf(sessions, card)}
-                  />
-                ))}
-              </div>
-            ),
-          } satisfies QueueCol,
-        ]
-      : []),
   ];
 
   if (phone) return <SwipedColumns cols={cols} />;
@@ -210,8 +167,6 @@ export function QueueView({
           title={col.title}
           count={col.count}
           width={col.width}
-          tint={col.tint}
-          dot={col.dot}
         >
           {col.body}
         </QueueColumn>
@@ -227,8 +182,6 @@ interface QueueCol {
   count: string;
   /** The fixed width the window lays it out at. A phone gives it the screen instead. */
   width: string;
-  tint?: string;
-  dot?: string;
   body: React.ReactNode;
 }
 
@@ -276,22 +229,19 @@ function SwipedColumns({ cols }: { cols: QueueCol[] }) {
     el.scrollTo({ left: i * el.clientWidth });
     setAt(i);
   }, [cols]);
-  // A column can go — the last recurring card is archived while the strip sits on it — and
-  // the band must not name a column that is no longer there.
   const here = cols[Math.min(at, cols.length - 1)] ?? cols[0];
   if (!here) return null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
-        className="mx-2.5 mb-2.5 mt-2.5 flex h-10 shrink-0 items-center justify-between gap-2 rounded-[11px] pl-3 pr-1.5"
-        style={{ background: here.tint ?? "var(--color-nb-wash)" }}
+        className="mx-2.5 mb-2.5 mt-2.5 flex h-10 shrink-0 items-center justify-between gap-2 rounded-[11px] bg-nb-wash pl-3 pr-1.5"
       >
         {/* The column's name never gives: it is what the band is for. The count gives
             first, then the dots — which stay a thumb's height however narrow the row
             gets, because that is the part you press. */}
         <h2 className="nb-tag shrink-0 whitespace-nowrap">
-          <span style={{ color: here.dot ?? "var(--color-nb-accent)" }}>●</span>
+          <span className="text-nb-accent">●</span>
           {here.title}
         </h2>
         <span className="flex min-w-0 flex-1 items-center justify-end gap-1">
@@ -355,27 +305,20 @@ function QueueColumn({
   title,
   count,
   width,
-  tint,
-  dot,
   children,
 }: {
   title: string;
   count: string;
   width: string;
-  tint?: string;
-  /** The bullet's colour. It follows the band: on a lilac band an ember dot is
-   *  the only ember left in the column, and it reads as a warning. */
-  dot?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className={`flex min-h-0 shrink-0 flex-col ${width}`}>
       <div
-        className="mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] px-2.5"
-        style={{ background: tint ?? "var(--color-nb-wash)" }}
+        className="mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] bg-nb-wash px-2.5"
       >
         <h2 className="nb-tag">
-          <span style={{ color: dot ?? "var(--color-nb-accent)" }}>●</span>
+          <span className="text-nb-accent">●</span>
           {title}
         </h2>
         <span className="shrink-0 text-[12px] text-nb-ink-soft">{count}</span>

@@ -12,7 +12,7 @@ import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { writeReleasesIfMissing } from '../lib/releases'
 import { migrateMemory, renameProductFile, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
-import { migratePruneMemoryCard } from '../lib/recurring'
+import { migratePruneMemoryCard, migrateRecurringCards, recurringMigrationLines } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
 import type { MoveResult } from '../lib/types'
 
@@ -133,6 +133,8 @@ export function cmdInit(): MoveResult {
     // Pruning is the Memory pruner agent now, so a board still carrying the card carries two
     // prune schedules; the repair takes the card off and keeps its cadence beside the agent,
     // switched off. Once, because after it there is no such card to find.
+    //
+    // Every other recurring card becomes a scheduled agent of its workflow (#1414).
     const added: string[] = [
       ...writeSkeletonIfMissing(),
       writeConfigIfMissing() && rel(CONFIG),
@@ -162,10 +164,11 @@ export function cmdInit(): MoveResult {
     // `goal.md` is retired (#1268): what the user wrote moves into the planner's decisions.
     const goalRetired = retireGoal()
     const prunedCard = migratePruneMemoryCard()
+    const recurring = migrateRecurringCards()
     say(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
-        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired || projectRenamed ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired || projectRenamed || recurring.agents.length || recurring.removed.length ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (movedMemory.length) {
@@ -175,6 +178,7 @@ export function cmdInit(): MoveResult {
     if (projectRenamed) say(`  ${projectRenamed}`)
     if (goalRetired) say(`  docs/kanban/memory/goal.md is retired: ${goalRetired}`)
     if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Board); its cadence is kept there, switched off`)
+    for (const line of recurringMigrationLines(recurring)) say(`  ${line}`)
     if (added.includes(rel(MODULES_MD))) {
       say(`  next: fill in ${rel(MODULES_MD)} (see "The module map")`)
     }

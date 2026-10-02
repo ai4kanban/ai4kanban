@@ -122,13 +122,9 @@ run(['release', 'drop', 'v2'])
 run(['release', 'close', 'ghost'])
 run(['release', 'bogus'])
 
-// ---- a card that repeats ----------------------------------------------------
-run(['create', '--title', 'A repeating job', '--recurring', '--cadence', '1d at 09:30'])
-run(['run', '8'])
-run(['run', '4'])
-run(['run', '999'])
-run(['update', '8', '--cadence', '3h'])
-run(['update', '8', '--cadence', 'whenever'])
+// ---- repeating work is no card (#1414) --------------------------------------
+run(['create', '--title', 'A repeating job', '--recurring'])
+run(['update', '4', '--cadence', '3h'])
 
 // ---- leaving the board ------------------------------------------------------
 run(['archive', '4'])

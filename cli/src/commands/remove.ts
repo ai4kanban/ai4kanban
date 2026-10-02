@@ -19,7 +19,7 @@ import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { walkMd, walkDirs, idPrefix, subtaskLines, locate, locateArchived, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
+import { walkMd, walkDirs, idPrefix, subtaskLines, locate, locateArchived, enclosingGroupRoot, markSubtask, archiveDest, dropCrossRefs } from '../lib/cards'
 import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
 import { parseFrontmatter, serializeFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
@@ -36,45 +36,6 @@ interface Mention {
 
 // Which way a card leaves the board: archived (it shipped) or rejected (it was dropped).
 type Metric = 'completed' | 'rejected'
-
-// ---- drop cross-references -------------------------------------------------
-
-// Remove `id` from every other card's `blocked_by`/`related`. Run when a card leaves the
-// board (archive or reject): the id is gone, so a card still listing it is blocked by
-// nothing and pointing at nothing. Without this the board keeps a card "blocked" forever
-// and reconcileCrossRefs can only warn about it.
-//
-// Edits the two list lines in place rather than re-serializing the frontmatter, so a card
-// this script never wrote keeps whatever else it has. Only the inline `[1, 2]` form the
-// script writes is matched — a hand-written block list falls through to the reconcile
-// warning instead of being silently missed.
-const REF_LIST = /^(blocked_by|related):\s*\[(.*)\]\s*$/
-
-function dropCrossRefs(id: number): string[] {
-  const touched: string[] = []
-  for (const file of walkMd(TODO)) {
-    if (path.basename(file) === 'README.md') continue
-    const lines = fs.readFileSync(file, 'utf8').split('\n')
-    if (lines[0]!.trim() !== '---') continue
-    let end = 1
-    while (end < lines.length && lines[end]!.trim() !== '---') end++
-    if (end >= lines.length) continue // no closing fence — not frontmatter
-    const fields: string[] = []
-    for (let i = 1; i < end; i++) {
-      const m = lines[i]!.match(REF_LIST)
-      if (!m) continue
-      const refs = m[2]!.split(',').map((s) => s.trim()).filter(Boolean)
-      const kept = refs.filter((s) => Number(s.replace(/^#/, '')) !== id)
-      if (kept.length === refs.length) continue
-      lines[i] = `${m[1]}: [${kept.join(', ')}]`
-      fields.push(m[1])
-    }
-    if (!fields.length) continue
-    fs.writeFileSync(file, lines.join('\n'))
-    touched.push(`${path.relative(TODO, file).split(path.sep).join('/')} (${fields.join(', ')})`)
-  }
-  return touched
-}
 
 // ---- the ids leaving -------------------------------------------------------
 

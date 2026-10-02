@@ -7,7 +7,6 @@
 // The two front doors — `akb raw <move>` and the `kanban.mjs` an installed skill folder
 // runs — are the same tree. They differ only in how they are spelled in a message.
 
-import { CADENCE_FORMS } from '../cadence'
 import { insideRun } from '../agent/env'
 import { handOff } from '../agent/chat'
 import { recordCards } from '../agent/created-cards'
@@ -34,6 +33,7 @@ import {
   type Command,
   type Typed,
 } from './shared'
+import { Option } from 'commander'
 
 /** What the door hands in — see `runBoard`. */
 export interface BoardCliOptions {
@@ -101,6 +101,15 @@ async function dispatch(
   cli.onAnswer?.(data)
 }
 
+// `--recurring` and `--cadence` are retired with the recurring card (#1414).
+function refuseRecurring(command: Command): void {
+  const { recurring, cadence } = command.opts()
+  if (recurring === undefined && cadence === undefined) return
+  command.error(
+    `error: ${recurring !== undefined ? '--recurring' : '--cadence'} is gone — repeating work is a scheduled agent now, not a card. Write one with \`akb guide write-agent\`.`,
+  )
+}
+
 // What a mutation answered with: the move's own fields, or the refusal thrown so the door
 // turns it into a message and an exit code.
 function unwrap(res: OpResult<{ data: MoveOutput }>): MoveOutput {
@@ -140,13 +149,13 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         'There is no separate id-reservation mode. --blocked-by and --related take ids of existing open ' +
         'cards; for a group, create the root first, then create each subtask related to its id (see ' +
         '"Group task" in `akb guide board`). The script owns the frontmatter and writes the body ' +
-        'scaffold — recurring cards get Run state + Process; fill only the body by hand. ' +
+        'scaffold; fill only the body by hand. ' +
         '--body-file writes the body with the card instead, so a card is never left scaffolded ' +
         'with a run already scheduled on it. Turning what a user just asked for into a card goes ' +
         'through `akb create` instead: this move only writes what you already decided.',
     )
     .requiredOption('--title <title>', 'what the card is called')
-    .option('--recurring', 'a job that repeats: it goes in recurring/ and gets a Run state + Process body')
+    .addOption(new Option('--recurring').hideHelp())
     // No default here: `create` falls back to `med` itself.
     .option('--priority <level>', `how much it matters: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
     .option('--roi <level>', `what it is worth: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
@@ -161,7 +170,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--slug <slug>', 'the filename to write it under (default: from the title)')
     .option('--no-body', 'write the frontmatter and no body template')
     .option('--body-file <path>', "the card's whole body, written to a file first, instead of the template")
-    .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
+    .addOption(new Option('--cadence <cadence>').hideHelp())
     .option('--workflow <id>', "the workflow it runs through (`akb workflow list`). Left off, the board's default")
     .option('--triage <source-id>', 'the triage item this card is made of, so the item is never carded twice')
     .option('--source <ref>', "where it came from: a plan's path, plan:<id>, #<id> or a URL. Repeatable", collect)
@@ -171,6 +180,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       oneOf(SCHEDULED_ACTIONS),
     )
     .action(async function (this: Command) {
+      refuseRecurring(this)
       await dispatch('create', this, [], { ...this.opts(), asked }, cli)
     })
 
@@ -195,8 +205,9 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--source <ref>', "where it came from: a plan's path, plan:<id>, #<id> or a URL. Repeatable; \"\" clears the list", collect)
     .option('--add-source <ref>', 'append one source, keeping the ones already there. Repeatable', collect)
     .option('--slug <slug>', 'rename the file')
-    .option('--cadence <cadence>', `how often it repeats: ${CADENCE_FORMS}. "" clears it. Recurring cards only`)
+    .addOption(new Option('--cadence <cadence>').hideHelp())
     .action(async function (this: Command, id: number) {
+      refuseRecurring(this)
       await dispatch('update', this, [String(id)], this.opts(), cli)
     })
 
@@ -382,7 +393,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         "`--stale` asks the other question: which cards have sat untouched past the board's **Stale after** " +
         'setting (config.md, 30 days by default), stalest first, each with the days it has sat and what is ' +
         'holding it — a blocker, an unanswered [user] question, or a build. Age is the date git last saw ' +
-        "the card's file; group roots, recurring cards and cards git cannot date are left out.\n\n" +
+        "the card's file; group roots and cards git cannot date are left out.\n\n" +
         '`--archived` answers "which cards landed in this period": one block per landing, oldest first, with ' +
         'the card id, title, workflow, landing time, landed commit and the archived card file (blank once ' +
         'the archive has cleaned it up). Only cards the board landed are listed — a card archived by hand, ' +
@@ -430,15 +441,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     )
     .action(async function (this: Command, id: number) {
       await dispatch('reject', this, [String(id)], this.opts(), cli)
-    })
-
-  move('record-run')
-    .alias('run')
-    .argument('<id>', ID, cardId)
-    .summary('count one run of a recurring card and keep the card')
-    .description('Record one run of a recurring card: +1 completed, and the card is kept rather than archived.')
-    .action(async function (this: Command, id: number) {
-      await dispatch('record-run', this, [String(id)], this.opts(), cli)
     })
 
   // ---- releases ------------------------------------------------------------

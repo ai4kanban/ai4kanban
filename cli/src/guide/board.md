@@ -9,9 +9,8 @@ the remaining details.
 docs/kanban/
 ├── todo/           open tasks
 │   ├── README.md   the index — read it first
-│   ├── <id>-<slug>.md
-│   │               one card per file — todo/ is flat
-│   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
+│   └── <id>-<slug>.md
+│                   one card per file — todo/ is flat
 ├── memory/         all memory — see "Who owns a memory file"
 │   ├── readme.md   what shipped — the board's own record
 │   ├── project.md  what the project is today — written only by `akb describe-project`
@@ -161,8 +160,6 @@ the id so you can fix them.
 or `metrics.csv` yourself, leaves other cards' `blocked_by:` and `related:` pointing at a
 card that no longer exists — the command is what finds those, and nothing else will. A run
 that does this is reported as having broken the board.
-
-This applies only to one-shot tasks. For recurring cards, see `akb guide recurring-task`.
 
 Before archiving, record each user-facing outcome on one line in
 `docs/kanban/memory/readme.md`, under the `## <module>` heading the card's `modules:` names.

@@ -1457,6 +1457,24 @@ export function stampScheduledRun(id: string, agent: string, startedAt: Date): b
   }).ok
 }
 
+/** Take in the agent a retired recurring card became (#1414), with the cadence and last pass
+ *  the card carried. On only with a cadence; no `since`, so the cadence counts from that pass. */
+export function adoptWorkflowScheduled(id: string, agent: string, from: { cadence: string; lastRun: string }): Write {
+  const refused = elsewhere(agent, id)
+  if (refused) return refused
+  return setScheduled(id, (rows) => {
+    const at = rows.findIndex((h) => h.agent === agent)
+    if (at >= 0) rows.splice(at, 1)
+    rows.push({
+      agent,
+      extra: '',
+      ...(from.cadence ? {} : { off: true }),
+      cadence: from.cadence || SCHEDULED_CADENCE,
+      lastRun: from.lastRun,
+    })
+  })
+}
+
 /** Whether the config names a workflow at all — what says a board has been through this
  *  screen. Read straight, so an unreadable file is not mistaken for an untouched one. */
 export function workflowsConfigured(): boolean {

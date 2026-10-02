@@ -974,7 +974,7 @@ function Page({
           {/* Narrow, the controls drop under the name rather than squeezing it. */}
           <div className="flex min-h-[24px] items-center justify-between gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2">
             <div className="flex min-w-0 items-baseline gap-2">
-              <span className="shrink-0 text-[14px] font-[800] text-nb-ink">{title}</span>
+              <span className="min-w-0 truncate text-[14px] font-[800] text-nb-ink" title={title}>{title}</span>
               {agent.file && !scoped && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
             </div>
             {(controls || removal) && (
@@ -1392,7 +1392,7 @@ function CadenceControls({
       <button
         type="button"
         className={`${COMPACT_BTN} bg-nb-accent-soft text-nb-accent-deep hover:bg-nb-accent/28`}
-        disabled={running || isOff}
+        disabled={running}
         onClick={() => void onStart()}
       >
         {icon}

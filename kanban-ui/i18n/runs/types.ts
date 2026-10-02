@@ -237,15 +237,6 @@ export type RunsCopy = {
       schedule: string;
       scheduleHint: string;
     };
-    run: {
-      title: (id: number) => string;
-      blurb: string;
-      unattended: string;
-      lastRun: (when: string) => string;
-      neverRun: string;
-      notes: string;
-      confirm: string;
-    };
     refine: {
       title: (id: number) => string;
       blurb: string;

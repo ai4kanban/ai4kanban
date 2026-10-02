@@ -15,7 +15,7 @@ import { boardCardIds, locate, locateArchived } from '../cards'
 import type { CloudEventState } from '../cloud/events'
 import { reportCloudRunEnd, reportCloudRunStart } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
-import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard } from '../board'
+import { dropRunCard, runBoardMove, setCardStatusOn, takeRunCard } from '../board'
 import { cardFile } from '../board/revision'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
@@ -88,9 +88,9 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // batch, and so wait for one another. A single card write does NOT belong here: `raw
 // create` allocates the id and writes all three under the board lease, so two of them
 // interleave safely. What needs the whole run serialized is a run that writes several
-// cards off one read of the board — plan-release, setup — plus archive/reject and a
-// recurring run's close, which reconcile the index against the board they read.
-const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup'])
+// cards off one read of the board — plan-release, setup — plus archive/reject, which
+// reconcile the index against the board they read.
+const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'plan-release', 'setup'])
 
 // Actions that may run only one at a time across the whole board. The per-card rule can't
 // catch a duplicate of any of them — the first five name no card at all — and each reads the
@@ -330,24 +330,8 @@ async function releaseCard(delivery: DeliveryRecord): Promise<void> {
   await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : delivery.priorStatus ?? 'ready')
 }
 
-// Recording a recurring run is the board's own bookkeeping, not part of the job the card
-// describes — so the run does it at its close rather than asking the agent to stamp itself
-// mid-flow. The stamp is what the cadence counts from, and leaving it to the agent meant a
-// run that died on the last step left the card frozen.
-//
-// Only a run that PASSED is recorded. A failed, stopped or interrupted run never reached
-// the end of the `## Process`, so `last_run` stays where it was and the card is still due.
-async function recordRecurringRun(run: RunRecord): Promise<void> {
-  if (run.action !== 'run' || run.cardId === null || run.status !== 'done') return
-  try {
-    await recordCardRun(run.cardId)
-  } catch {
-    // the card is gone, or the board would not take the write — the run is over either way
-  }
-}
-
-// The pruner's own stamp (#514), for the same reason and on the same terms as the card
-// above: only a pass that PASSED moves it, so a prune that failed leaves the schedule due
+// The pruner's own stamp (#514), written at the close rather than by the agent mid-flow:
+// only a pass that PASSED moves it, so a prune that failed leaves the schedule due
 // and the board does not fire it again on the next tick.
 function recordPrune(run: RunRecord): void {
   if (run.action !== 'prune-memory' || run.status !== 'done') return
@@ -1482,7 +1466,7 @@ export function peekRun(sessionId: string): RunRecord | undefined {
   return readRuns().find((r) => r.sessionId === sessionId)
 }
 
-/** Close a run out: its outcome, the card's stage put back, a recurring card stamped, and
+/** Close a run out: its outcome, the card's stage put back, and
  *  the old logs trimmed. Whichever path gets here first wins and the rest are no-ops.
  *
  *  `reportEnd` false leaves Cloud to the caller. The watcher takes it, because what Cloud is
@@ -1530,7 +1514,6 @@ export async function closeRun(
   // still in flight, and leave the card at `implementing` with nothing working on it.
   await settleDelivery(closed)
   await restoreCardStatus(closed)
-  await recordRecurringRun(closed)
   recordPrune(closed)
   recordMemoryReview(closed)
   recordDismissalReview(closed)

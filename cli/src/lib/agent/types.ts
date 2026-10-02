@@ -32,8 +32,8 @@ export interface ContextWindow {
 /** Every kind of agent session the board can start. */
 export type AgentAction =
   | 'implement'
-  /** One pass of a recurring card — the agent walks its `## Process` and the run is
-   *  stamped at the end. It never finishes the card: a recurring job has no end state. */
+  /** Retired (#1414): one pass of a recurring card. Repeating work is a `scheduled` pass
+   *  now; this stays so the runs already recorded still read back as what they were. */
   | 'run'
   | 'reject'
   | 'archive'
@@ -231,9 +231,9 @@ export interface TriageAsk {
 export type StartableAction = Exclude<AgentAction, RetiredAction>
 
 /** The actions no flow starts any more. */
-export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick'
+export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run'
 
-const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick'])
+const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run'])
 
 /** Whether nothing starts this action any more — it only reads back off an old record. */
 export const isRetired = (action: AgentAction): action is RetiredAction => RETIRED.has(action)
@@ -1752,7 +1752,7 @@ export interface MemoryReviewState {
 export interface CadenceSchedule {
   /** Always true since #1208 — none can be switched off. Kept for screens that read it. */
   enabled: boolean
-  /** How often, in the recurring cards' own grammar (`../cadence.ts`). */
+  /** How often, in the grammar of `../cadence.ts`. */
   cadence: string
   /** The last pass that PASSED, as a minute stamp, or empty for "never run". */
   lastRun: string
@@ -1850,7 +1850,7 @@ export const SCHEDULED_CADENCE = '1d'
 
 /** One scheduled agent of one workflow (#1401): it runs by itself on `cadence`, on no card. */
 export interface WorkflowScheduled extends WorkflowHelper {
-  /** How often, in the recurring cards' own grammar (`../cadence.ts`). */
+  /** How often, in the grammar of `../cadence.ts`. */
   cadence: string
   /** When its last pass that PASSED began, as a minute stamp, or empty for "never run". */
   lastRun: string

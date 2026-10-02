@@ -582,7 +582,7 @@ if (invokedDirectly()) {
   const argv = process.argv.slice(2)
   // The one word this door answers that the board's moves don't: the process that watches
   // a run, spawned by whichever command started it. Spelled so it can never collide with a
-  // move — `run` has meant "record one pass of a recurring card" here since it existed.
+  // move.
   if (argv[0] === '__watch') {
     void runAgent(argv, { program: 'akb' }).then((code) => {
       process.exitCode = code

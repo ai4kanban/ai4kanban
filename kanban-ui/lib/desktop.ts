@@ -37,7 +37,7 @@ export function insetTitleBar(): boolean {
 // In the app a project keeps its own server, and a server the user has switched
 // away from keeps running so the run inside it can finish (#178). That is only
 // true of work someone asked for. Work the board starts on its own — the
-// recurring cards on the dispatcher's timer — must not go on spending money on a
+// scheduled agents on the dispatcher's timer — must not go on spending money on a
 // project nobody is looking at.
 //
 // The app says which boards are on screen by writing their paths into the file

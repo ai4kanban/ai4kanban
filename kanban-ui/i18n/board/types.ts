@@ -31,7 +31,6 @@ export type BoardCopy = {
     /** The ready column's two numbers: work waiting on you, and work already going. */
     readyCount: (ready: number, implementing: number) => string;
     notReady: string;
-    recurring: string;
     /** A column with nothing on this side of the split. */
     empty: string;
     /** A board holding no card at all (#437) — the panel that stands in for the columns,

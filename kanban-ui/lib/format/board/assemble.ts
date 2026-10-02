@@ -17,7 +17,6 @@
 // everything the machine holding the board answers — the delivery in flight, the archive,
 // the memory set, the setup checklist — so those come back empty rather than guessed at.
 
-import { formatStamp, nextDue } from '../cadence'
 import { byPickOrder } from '../view/rules'
 import type {
   Board,
@@ -71,6 +70,11 @@ export const idPrefix = (name: string): number | null => {
  *  group whose subtasks are all finished is still a group. */
 export const isGroupFolder = (name: string): boolean => idPrefix(name) !== null
 
+/** Where an older board kept its recurring cards (#1414). Each becomes a scheduled agent
+ *  (../recurring.ts); until then nothing reads one as a card. */
+export const LEGACY_RECURRING = 'recurring'
+export const isLegacyRecurring = (relFromTodo: string): boolean => relFromTodo.split(/[\\/]/)[0] === LEGACY_RECURRING
+
 /** How far a card's `## Todo` got. Every checkbox in the body counts, wherever it sits. */
 export function countTodos(body: string): { total: number; done: number } {
   const matches = body.match(/^[ \t]*[-*]\s+\[( |x|X)\]/gm) || []
@@ -101,27 +105,10 @@ export function subtaskLines(body: string): { total: number; resolved: number; t
   return { total, resolved, ticked }
 }
 
-/** What `nextRun` holds once a recurring card's wait is over; a page translates it. */
-export const DUE_NOW = 'Due now'
-
-/**
- * When a recurring card comes round again, in words a page prints as it stands. Empty when
- * the card has no cadence — then nothing but a person starts it. `DUE_NOW` when the wait is
- * already over, which covers a card that has never run.
- *
- * Worked out where the board is read, on the clock its schedule runs on.
- */
-export function dueLabel(lastRun: string, cadence: string, now = Date.now()): string {
-  const due = nextDue(lastRun, cadence)
-  if (!due) return ''
-  return due.getTime() <= now ? DUE_NOW : formatStamp(due)
-}
-
 /**
  * Work out what is really blocking each card. A `blocked_by` id counts only when it names a
  * card that is still open — an id no longer on the board was archived or rejected, so that
- * work is done. A recurring blocker and a card naming itself are skipped: neither ever
- * clears.
+ * work is done. A card naming itself is skipped: it never clears.
  */
 export function attachBlockers(cards: Card[]): void {
   const byId = new Map(cards.map((c) => [c.id, c]))
@@ -129,7 +116,7 @@ export function attachBlockers(cards: Card[]): void {
     card.openBlockers = card.blocked_by
       .filter((n) => n !== card.id)
       .map((n) => byId.get(n))
-      .filter((b): b is Card => !!b && !b.recurring)
+      .filter((b): b is Card => !!b)
       .map((b) => ({ id: b.id, title: b.title }))
   }
 }
@@ -243,15 +230,13 @@ function fieldsOf(data: unknown): { path: string; body: string; meta: Record<str
 }
 
 /** Turn one stored card into the card a screen draws. `path` is what says whether it is a
- *  group root, a subtask or a recurring job — the same rule the folder shape is read by. */
-function cardFrom(read: ReadCard, now: number): Card | null {
+ *  group root or a subtask — the same rule the folder shape is read by. */
+function cardFrom(read: ReadCard): Card | null {
   const { path, body, meta } = fieldsOf(read.data)
   if (!path) return null
   // Stored under `docs/kanban/`; a card's `relPath` is relative to `todo/`.
   const relPath = path.replace(/^todo\//, '')
-  const recurring = relPath.split('/')[0] === 'recurring'
-  const cadence = text(meta.cadence)
-  const lastRun = text(meta.last_run)
+  if (isLegacyRecurring(relPath)) return null
   return {
     id: read.id,
     revision: read.revision,
@@ -266,14 +251,10 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     questions: (Array.isArray(meta.questions) ? meta.questions : []) as Question[],
     workflow: text(meta.workflow),
     modules: lines(meta.modules),
-    last_run: lastRun,
-    cadence,
     schedule: (meta.schedule ?? null) as CardSchedule | null,
-    nextRun: recurring ? dueLabel(lastRun, cadence, now) : '',
     body: body.replace(/^\n+/, '').replace(/\s+$/, ''),
     todos: countTodos(body),
     isGroup: false,
-    recurring,
     openBlockers: [],
   }
 }
@@ -291,10 +272,10 @@ const isRoot = (relPath: string): boolean =>
  * Every card a read holds, with the group shape put back: a root carries its subtasks and a
  * subtask points back at its root, and no subtask is a board card of its own.
  */
-function collectCards(read: BoardRead, now: number): { board: Card[]; every: Card[] } {
+function collectCards(read: BoardRead): { board: Card[]; every: Card[] } {
   const cards: Card[] = []
   for (const entry of read.cards) {
-    const card = cardFrom(entry, now)
+    const card = cardFrom(entry)
     if (card) cards.push(card)
   }
   cards.sort((a, b) => a.id - b.id)
@@ -371,8 +352,8 @@ const documentBody = (read: BoardRead, path: string): string =>
   read.documents.find((d) => d.path === path)?.body ?? ''
 
 /** The whole board, as the board screen draws it. */
-function boardFrom(read: BoardRead, now = Date.now()): Board {
-  const { board, every } = collectCards(read, now)
+function boardFrom(read: BoardRead): Board {
+  const { board, every } = collectCards(read)
   const releases = releaseEntriesFrom(documentBody(read, 'releases.md'))
   const releaseGoals: Record<string, string> = {}
   for (const entry of releases) if (entry.goal) releaseGoals[entry.id] = entry.goal
@@ -392,13 +373,13 @@ function boardFrom(read: BoardRead, now = Date.now()): Board {
 }
 
 /** Everything the board screen draws. */
-export function boardScreenFrom(read: BoardRead, now = Date.now()): BoardScreen {
-  return { ...screenBoardOf(read), board: boardFrom(read, now), error: null }
+export function boardScreenFrom(read: BoardRead): BoardScreen {
+  return { ...screenBoardOf(read), board: boardFrom(read), error: null }
 }
 
 /** Everything a card page draws, or null when this read holds no card with that id. */
-export function cardScreenFrom(read: BoardRead, id: number, now = Date.now()): CardScreen | null {
-  const every = collectCards(read, now).every
+export function cardScreenFrom(read: BoardRead, id: number): CardScreen | null {
+  const every = collectCards(read).every
   const card = every.find((c) => c.id === id)
   if (!card) return null
   const releases = releaseEntriesFrom(documentBody(read, 'releases.md'))

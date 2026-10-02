@@ -56,7 +56,9 @@ export function specAgentCatalog(): SpecAgentCatalog {
   const refused: RefusedAgent[] = []
   const take = (read: { agent: SpecAgent } | ReadProblem, folder: string): void => {
     if ('problem' in read) {
-      problems.push(read.problem)
+      // A folder with no agent file is somebody's working folder (#1414), not a broken agent:
+      // it is said only where a workflow names it.
+      if (!read.missing) problems.push(read.problem)
       if (!read.file) return
       const { file, name, old } = read
       const cause = read.missing ? 'noFile' : old ? 'oldKeys' : 'file'

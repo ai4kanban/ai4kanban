@@ -30,16 +30,6 @@ const zh: ChipsCopy = {
   blockedOne: (ids) => `阻塞——${ids} 尚未完成`,
   blockedMany: (ids) => `阻塞——${ids} 尚未完成`,
   releaseStale: (version) => `${version}——不在版本列表中`,
-  cadence: {
-    every: "每",
-    at: "于",
-    count: "重复间隔",
-    time: "时间",
-    minutes: "分钟",
-    hours: "小时",
-    days: "天",
-    none: "不重复",
-  },
   question: { needsYou: "待你决定", new: "新" },
 };
 

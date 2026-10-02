@@ -7,7 +7,6 @@ import { BoardCard } from "@/components/BoardCard";
 import { Button } from "@/components/button";
 import {
   BlockedChip,
-  CadenceSelect,
   GroupChip,
   LevelSelect,
   ModuleChip,
@@ -116,9 +115,9 @@ const GROUPS: { title: string; note: string; tokens: { name: string; hex: string
       { name: "nb-mint-soft", hex: MINT_SOFT, use: "the ready pill, the module chip" },
       { name: "nb-mint-ink", hex: MINT_INK, use: "the text on those" },
       { name: "nb-sky", hex: SKY, use: "neutral — a stopped run" },
-      { name: "nb-sky-soft", hex: SKY_SOFT, use: "the release chip, the cadence chip" },
+      { name: "nb-sky-soft", hex: SKY_SOFT, use: "the release chip" },
       { name: "nb-sky-ink", hex: SKY_INK, use: "the text on those" },
-      { name: "nb-lilac", hex: LILAC, use: "the recurring column's cast" },
+      { name: "nb-lilac", hex: LILAC, use: "a schedule's cast" },
       { name: "nb-lilac-soft", hex: LILAC_SOFT, use: "the group marker, the track chip" },
       { name: "nb-lilac-ink", hex: LILAC_INK, use: "the text on those" },
       { name: "nb-peach", hex: PEACH, use: "in the way — a blocker" },
@@ -181,7 +180,7 @@ const PAIRS: {
     where: "the active tab's underline and the pulse dot — shape, never a label",
   },
   { fg: MINT_INK, bg: MINT_SOFT, label: "mint-ink on mint-soft", where: "the ready pill, a module chip" },
-  { fg: SKY_INK, bg: SKY_SOFT, label: "sky-ink on sky-soft", where: "the release chip, the cadence chip" },
+  { fg: SKY_INK, bg: SKY_SOFT, label: "sky-ink on sky-soft", where: "the release chip" },
   { fg: LILAC_INK, bg: LILAC_SOFT, label: "lilac-ink on lilac-soft", where: "the group marker, a track chip" },
   { fg: PEACH_INK, bg: PEACH_SOFT, label: "peach-ink on peach-soft", where: "the blocked marker, a warning box" },
   { fg: PEACH_INK, bg: PAPER, label: "peach-ink on paper", where: "an error line beside a control" },
@@ -272,15 +271,11 @@ const CARD: Card = {
   related: [],
   questions: [{ text: "[user] Does /design ship in the desktop app, or stay a dev-only route?" }],
   modules: ["board"],
-  last_run: "",
-  cadence: "",
   schedule: null,
   relPath: "ui/42-give-the-board-a-design-page.md",
   body: "",
   todos: { total: 5, done: 2 },
   isGroup: false,
-  recurring: false,
-  nextRun: "",
   openBlockers: [{ id: 17, title: "Port the contrast helper" }],
 };
 
@@ -371,7 +366,6 @@ export function DesignSystem() {
   // nothing to change is a picture of a select.
   const [level, setLevel] = useState("high");
   const [release, setRelease] = useState("v0.6");
-  const [cadence, setCadence] = useState("1d at 09:30");
   const [agent, setAgent] = useState("claude-code");
   const [tab, setTab] = useState<"goal" | "no-goal">("goal");
   const [pick, setPick] = useState("board");
@@ -585,8 +579,7 @@ export function DesignSystem() {
           <div className="nb-outline bg-nb-paper p-4">
             <p className="font-mono text-[12.5px] font-[700]">.nb-outline</p>
             <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
-              14px radius, framed, flat. The run log window, an option row, a
-              cadence box.
+              14px radius, framed, flat. The run log window, an option row.
             </p>
           </div>
           <div className="nb-inset bg-nb-paper p-4">
@@ -659,23 +652,6 @@ export function DesignSystem() {
                 <BoardCard card={CARD} />
                 <BoardCard card={GROUP_CARD} liveSession={LIVE_SESSION} />
               </div>
-            </section>
-            <section className="flex w-[300px] shrink-0 flex-col">
-              <div className="mb-3 flex h-8 items-center justify-between rounded-[10px] bg-[color-mix(in_srgb,var(--color-nb-lilac)_16%,var(--color-nb-wash))] px-2.5">
-                <h4 className="nb-tag">
-                  <span style={{ color: "var(--color-nb-lilac-ink)" }}>●</span>
-                  recurring
-                </h4>
-                <span className="text-[12px] text-nb-ink-soft">0</span>
-              </div>
-              <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
-              <p className="mt-3 text-[12px] leading-relaxed text-nb-ink-soft">
-                A lilac cast over the same wash — these cards repeat instead of
-                finishing. Faint on purpose: it says &ldquo;these behave
-                differently&rdquo;, not &ldquo;look here&rdquo;. The bullet goes
-                lilac with it: an ember dot would be the only warm thing on the
-                band, and read as a warning.
-              </p>
             </section>
           </div>
         </div>
@@ -905,18 +881,6 @@ export function DesignSystem() {
               <ReleaseSelect value={release} releases={["v0.6", "v0.7"]} onChange={setRelease} />
               <LevelSelect value={level} disabled onChange={() => {}} />
             </Row>
-          </div>
-          <div>
-            <Label>the cadence control — three pieces read as one sentence</Label>
-            <CadenceSelect value={cadence} onChange={setCadence} />
-            <p className="mt-2.5 max-w-3xl text-[12.5px] leading-relaxed text-nb-ink-soft">
-              The count is a box, not a list — real jobs want 5 minutes or 12 hours,
-              and a list long enough to cover them is worse than typing two digits.
-              The time of day appears only for days, the one interval it can mean
-              anything for. &ldquo;No cadence&rdquo; is an entry in the unit list
-              rather than a clear button beside it: taking a schedule off is the
-              same kind of decision as setting one.
-            </p>
           </div>
           <div>
             {/* Replicas, not imports: the tab strip is drawn inline wherever it is

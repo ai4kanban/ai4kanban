@@ -124,7 +124,7 @@ describe('raw list --stale', () => {
     assert.match(said, /#10 .*\n.*nothing holding it/)
   })
 
-  it('leaves out group roots, recurring cards and anything git cannot date', async () => {
+  it('leaves out group roots, a legacy recurring card and anything git cannot date', async () => {
     committed('20-group/root.md', card('a group'), 200)
     committed('20-group/21-sub.md', card('a subtask'), 200)
     committed('recurring/22-sweep.md', card('a sweep'), 200)

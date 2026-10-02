@@ -29,7 +29,6 @@ const en: BoardCopy = {
     ready: "Ready to build",
     readyCount: (ready, implementing) => `${ready} ready · ${implementing} implementing`,
     notReady: "Not ready",
-    recurring: "Recurring",
     empty: "no open cards",
     emptyBoard: {
       title: "The board is empty",

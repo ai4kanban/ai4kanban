@@ -139,7 +139,7 @@ export function byQueueOrder(a: Card, b: Card): number {
 }
 
 /** Highest priority first, then roi, then id — the order the board takes cards in when it
- *  starts them itself, refine follow-ups and due recurring jobs alike. Every candidate is
+ *  starts them itself. Every candidate is
  *  `todo`, so status doesn't enter this one. */
 export function byDispatchOrder(a: Card, b: Card): number {
   return (
@@ -156,10 +156,7 @@ export function byDispatchOrder(a: Card, b: Card): number {
  * each card it touched, and a Refine button on a card page — so the button can never offer
  * a run that arrives, finds nothing to do, and leaves the card exactly as it was.
  *
- * The five cases where a refine has nothing to work with:
- *   • the card is recurring — it carries a `## Process`, not a build plan with todo boxes,
- *     and it never reaches `ready` because it is never finished at all. A run owns any new
- *     decision and leaves only the user's questions open;
+ * The four cases where a refine has nothing to work with:
  *   • the card is a group root — its recursively refined subtasks own the work;
  *   • the card isn't `todo` — it's `ready` (the plan is already concrete) or being
  *     implemented, and neither is a plan waiting to be sharpened;
@@ -179,7 +176,6 @@ export function byDispatchOrder(a: Card, b: Card): number {
  * user who asks to refine a blocked card has asked for it.
  */
 export function canRefine(card: Card): boolean {
-  if (card.recurring) return false
   if (card.isGroup) return false
   if (card.status !== 'todo' && !planUnfinished(card)) return false
   const { total, done } = card.todos
@@ -196,8 +192,7 @@ export function canRefine(card: Card): boolean {
 /**
  * True when building this card is a move that fits it.
  *
- * A recurring card is run, not built — it is a job that repeats and has no end state. A
- * group root is built by finishing its subtasks, so there is nothing on the root itself to
+ * A group root is built by finishing its subtasks, so there is nothing on the root itself to
  * do. And a card whose every box is ticked is finished: what it is waiting for is an
  * archive, not another build.
  *
@@ -207,7 +202,6 @@ export function canRefine(card: Card): boolean {
  * when to spend a turn, not a fact about the card.
  */
 export function canImplement(card: Card): boolean {
-  if (card.recurring) return false
   if (card.isGroup) return false
   if (card.deliversIn === 'plan') return false
   const { total, done } = card.todos
@@ -229,9 +223,6 @@ export function canImplement(card: Card): boolean {
  * promise it can't keep.
  */
 export function scheduleRefusal(card: Card, action: ScheduledAction): string | null {
-  if (card.recurring) {
-    return `#${card.id} is a recurring job — its cadence is its schedule.`
-  }
   if (action === 'refine' && !canRefine(card)) {
     return `a refine would not move #${card.id}, so there is nothing to schedule.`
   }

@@ -71,8 +71,6 @@ export const appendCardQuestion = (id: number, question: string, options: string
 
 export const archiveCard = (id: number) => withLease({ card: id }, (env) => board().archiveCard(id, env))
 
-export const recordCardRun = (id: number) => withLease({ card: id }, (env) => board().recordRun(id, env))
-
 /** One named `akb raw` move, run in process — for the board's own bookkeeping, where there
  *  is no command line to go through (lib/cli/board.ts) but the write still belongs to the
  *  board and still has to reach a Cloud workspace. */

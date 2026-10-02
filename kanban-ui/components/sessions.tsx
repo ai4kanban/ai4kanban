@@ -99,7 +99,7 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   // poll and wake the loop when it's dormant. See the effect below.
   const kickRef = useRef<() => void>(() => {});
 
-  // A quiet board CAN go stale on its own: the dispatcher (#43) starts recurring
+  // A quiet board CAN go stale on its own: the dispatcher (#43) starts scheduled
   // runs from a server-side timer, and a run that ends starts the refine of each
   // card it touched (#211) — neither needs a user action in any tab. So an idle
   // tab must keep polling: an idle loop that goes dormant would never witness one

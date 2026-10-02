@@ -122,6 +122,8 @@ never when it runs.
 
 - **Ask little**: settle what the request, the skill and the board already answer; ask the rest
   as `akb guide update-questions` does, and never ask again what is answered.
+- **State between runs**: ask how a `schedule` agent should keep what its next run needs, and
+  write the answer into `AGENT.md`; assume no file or format.
 - **Important choices**: give a recommendation and its tradeoff, and accept a free answer.
 - **Show each edit**: when changing an existing agent, show every changed file as a unified
   diff with context, followed by one sentence of reason.
@@ -137,3 +139,5 @@ never when it runs.
 - **Workflow**: a new agent belongs to the workflow it was created in and starts switched on;
   `akb spec` refuses it while it is off. Switch it in Configuration → Workflows or with
   `akb workflow stage`.
+- **Schedule**: a `schedule` agent runs on its workflow's cadence; set it and switch it with
+  `akb workflow schedule <workflow> --on <name> --cadence <cadence>`.

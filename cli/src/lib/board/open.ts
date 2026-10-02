@@ -193,7 +193,7 @@ function refusing(error: string): import('./contract').BoardProvider {
     saveAgentFile: refused,
     deleteAgent: refused,
     deliveryRules: () => Promise.resolve({}),
-    recordRun: refused,
+    migrateRecurring: refused,
     listDeliveries: () => Promise.resolve([]),
     activeDelivery: () => Promise.resolve(undefined),
     deliveryPlan: () => Promise.resolve({ commitMode: 'auto' }),

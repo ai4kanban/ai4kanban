@@ -100,7 +100,6 @@ export function contractRepairPrompt(req: AgentRequest, errors: string): string 
 // left out for the same reason: the note naming the files it was asked for is its whole job.
 const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'implement',
-  'run',
   'clarify',
   'resolve',
   'archive',
@@ -406,24 +405,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Implement task ${req.id} ${named} following \`akb guide implement\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
-      ]
-        .filter(Boolean)
-        .join(' ')
-    // One pass of a recurring card. It is not an implement: the card is a job that repeats,
-    // so the run does its `## Process` and leaves the card on the board.
-    //
-    // Nothing here about recording the run. That is the board's bookkeeping and the run
-    // itself does it at the close (see the supervisor) — an agent asked to stamp its own
-    // scheduling state is one crash away from freezing the card.
-    //
-    // And nothing here about how a run goes. The card's `## Process` is the job, and the
-    // protocol around it — questions and never archiving — is the same for
-    // every recurring card, so it belongs in the guide, not in a prompt rebuilt every run.
-    case 'run':
-      return [
-        `${kb}. Run recurring task ${req.id} ${named} — one pass, following \`akb guide recurring-task\`.`,
-        req.notes ? `Extra notes: ${req.notes}` : '',
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(' ')

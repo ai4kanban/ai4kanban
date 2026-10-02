@@ -5,8 +5,8 @@ Use this guide whenever work may become a card. If setup is unfinished, stop and
 
 ## Route
 
-- Repeating work → follow `akb guide recurring-task`; do not continue with the one-shot
-  card flow below.
+- Repeating work → write a `schedule` agent with `akb guide write-agent`; do not create a
+  card.
 - Direct task idea → continue below.
 
 ## Create the card

@@ -90,14 +90,6 @@ export const FLOWS: Flow[] = [
     more: ['The board runs this itself; the resolution lands on the next landing pass.'],
   },
   {
-    command: 'run',
-    group: 'card',
-    action: 'run',
-    argument: '<id> [note...]',
-    argumentNote: NOTE,
-    gloss: 'one pass of a recurring card',
-  },
-  {
     command: 'refine',
     group: 'card',
     action: 'refine',

@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { enclosingGroupRoot, idPrefix, walkMd } from './cards'
+import { enclosingGroupRoot, idPrefix, isLegacyRecurring, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { ASSETS, rel, TODO } from './paths'
 import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
@@ -25,6 +25,7 @@ export function snapshotSpecs(): SpecSnapshot {
   const out: SpecSnapshot = new Map()
   if (!fs.existsSync(TODO)) return out
   for (const file of walkMd(TODO)) {
+    if (isLegacyRecurring(path.relative(TODO, file))) continue
     const id = idPrefix(path.basename(file) === 'root.md' ? path.basename(path.dirname(file)) : path.basename(file))
     if (id !== null) out.set(file, { id, text: fs.readFileSync(file, 'utf8') })
   }
@@ -147,11 +148,10 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
   }
   if (fence) add(fence.line, 'code-fence', `Unclosed code block. Close it with ${fence.char.repeat(fence.length)} on its own line.`)
   if (comment) add(lines.length, 'comment', 'Unclosed HTML comment. Add --> so the rest of the card remains visible.')
-  const recurring = file.split(path.sep).includes('recurring')
-  const required = recurring ? ['Process'] : ['Worth noting', 'Scope', 'Todo', 'Decided by the agent']
+  const required = ['Worth noting', 'Scope', 'Todo', 'Decided by the agent']
   const human = ['Worth noting', 'Worth noting after implementation']
   const agent = ['Today', 'Scope', 'Scope out', 'Todo', 'Decided by the agent']
-  const allowed = recurring ? ['Run state', 'Process', 'Source'] : [...human, ...agent, 'Source']
+  const allowed = [...human, ...agent, 'Source']
   const seen = new Set<string>()
   let lastOrder = -1
   for (const heading of headings) {
@@ -159,7 +159,7 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
     if (seen.has(heading.title)) add(heading.line, 'duplicate-section', `Duplicate ## ${heading.title}. Merge the content into one section.`)
     seen.add(heading.title)
     if (!allowed.includes(heading.title) && !specialist) add(heading.line, 'section-name', `Unknown ## ${heading.title}. Use ${allowed.map((s) => `## ${s}`).join(', ')}, or ## By \`<agent-name>\` agent. Use ### for a subheading.`)
-    if (!recurring && markers.length === 1) {
+    if (markers.length === 1) {
       const before = heading.line < markers[0]!
       if ((human.includes(heading.title) && !before) || (agent.includes(heading.title) && before)) add(heading.line, 'section-half', `Move ## ${heading.title} ${human.includes(heading.title) ? 'above' : 'below'} <!-- agent -->.`)
       const order = human.includes(heading.title) ? human.indexOf(heading.title) : specialist ? (before ? 2 : 8) : agent.includes(heading.title) ? 3 + agent.indexOf(heading.title) : -1
@@ -171,7 +171,7 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
     }
   }
   for (const title of required) if (!seen.has(title)) add(end + 2, 'missing-section', `Missing ## ${title}. Restore that section; keep its title in English.`)
-  if (!recurring && markers.length !== 1) add(markers[1] ?? end + 2, 'boundary', `Found ${markers.length} <!-- agent --> boundaries; expected exactly one, between the human and agent sections.`)
+  if (markers.length !== 1) add(markers[1] ?? end + 2, 'boundary', `Found ${markers.length} <!-- agent --> boundaries; expected exactly one, between the human and agent sections.`)
   const todo = headings.find((h) => h.title === 'Todo')
   if (todo) {
     const next = headings.find((h) => h.line > todo.line)?.line ?? lines.length + 1
@@ -235,7 +235,6 @@ export function validateRunSpecs(
 }
 
 function validateHumanSection(file: string, text: string, { agent, required }: HumanSection): ContractError[] {
-  if (file.split(path.sep).includes('recurring')) return []
   const title = `By \`${agent}\` agent`
   const lines = text.replace(/\r\n/g, '\n').split('\n')
   const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---')

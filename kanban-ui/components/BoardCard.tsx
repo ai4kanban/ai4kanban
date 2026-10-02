@@ -8,7 +8,6 @@ import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
 import { openOf, parseQuestion } from "@/lib/questions";
 import { scheduleMark } from "@/lib/schedule";
-import { DUE_NOW } from "@/lib/format/board/assemble";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { sessionsPanel } from "./sessions";
@@ -32,7 +31,7 @@ import {
 import { sayFailure } from "@/lib/start-failure";
 
 // One card, as every column draws it. A card has to look the same wherever it
-// sits — a queue column, the recurring column — so there is one component and
+// sits, so there is one component and
 // the callers only differ in what they pass in.
 //
 // `liveSession` is the one live run on this card (if any); its badge opens the runs dialog
@@ -145,9 +144,6 @@ export function BoardCard({
             ) : (
               <PendingPill label={scheduleMark(card, t.chips)} />
             )
-          ) : card.recurring && card.nextRun === DUE_NOW && lock ? (
-            // Due, but the board passes it over until the account can run it (#1293).
-            <PendingPill label={t.chips.needsProHint[lock](t.runs.action.run)} locked />
           ) : (
             <StatusPill status={card.status} />
           )}

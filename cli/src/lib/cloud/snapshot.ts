@@ -102,7 +102,6 @@ export function actionableKind(
 ): CloudEventKind | null {
   if (!board.release) return null
   if (board.release !== ALL_RELEASES && card.release !== board.release) return null
-  if (card.recurring) return null
   if (atWork?.has(card.id)) return null
   if (card.openBlockers?.length) return null
   if (userQuestions(card).length > 0) return 'question'

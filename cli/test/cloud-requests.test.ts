@@ -86,8 +86,6 @@ const card = (over: Partial<Card> = {}): Card =>
     related: [],
     questions: [],
     modules: [],
-    last_run: '',
-    cadence: '',
     schedule: null,
     body: '',
     todos: { total: 0, done: 0 },

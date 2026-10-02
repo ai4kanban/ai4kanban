@@ -78,14 +78,10 @@ function card(over: Partial<Card> = {}): Card {
     related: [],
     questions: [],
     modules: [],
-    last_run: '',
-    cadence: '',
     schedule: null,
     body: BODY,
     todos: { total: 0, done: 0 },
     isGroup: false,
-    recurring: false,
-    nextRun: '',
     openBlockers: [],
     ...over,
   } as Card
@@ -167,10 +163,6 @@ describe('which tasks a board raises an event about', () => {
     assert.equal(actionableKind(card({ status: 'ready' }), { ...BOARD, release: '' }), null)
   })
 
-  it('raises nothing for a recurring job, which has no end state to approve', () => {
-    assert.equal(actionableKind(card({ status: 'ready', recurring: true }), BOARD), null)
-  })
-
   it('raises nothing for a plain todo', () => {
     assert.equal(actionableKind(card(), BOARD), null)
   })
@@ -195,7 +187,7 @@ describe('which tasks a board raises an event about', () => {
     const blocked = { id: 9, title: 'The one it waits on' }
     assert.equal(actionableKind(card({ status: 'ready', openBlockers: [blocked] }), BOARD), null)
     assert.equal(actionableKind(card({ questions: [asked('[user] Which way?')], openBlockers: [blocked] }), BOARD), null)
-    // `blocked_by` naming a card that is archived, rejected or recurring blocks nothing —
+    // `blocked_by` naming a card that is archived or rejected blocks nothing —
     // which is exactly what `openBlockers` being empty already says.
     assert.equal(actionableKind(card({ status: 'ready', blocked_by: [9] }), BOARD), 'ready_for_review')
   })

@@ -13,7 +13,7 @@
 // takes the record's own lock.
 //
 // That lock is NOT the board's writing lock. A run's bookkeeping calls board moves —
-// putting a card's stage back, stamping a recurring card — and those take the board lock
+// putting a card's stage back, say — and those take the board lock
 // themselves, so holding it here would deadlock.
 
 import fs from 'node:fs'

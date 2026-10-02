@@ -18,7 +18,7 @@ import { die, rel, ARCHIVE, TODO, MODULES_MD } from '../lib/paths'
 import { say } from '../lib/io'
 import { moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
-import { walkMd, walkDirs, idPrefix, boardCardIds } from '../lib/cards'
+import { walkMd, walkDirs, idPrefix, boardCardIds, isLegacyRecurring } from '../lib/cards'
 import { formatStamp, parseStamp } from '../lib/cadence'
 import { landedDeliveries } from '../lib/agent/deliveries'
 import { knownWorkflow, scheduledAgent } from '../lib/agent/workflows'
@@ -34,7 +34,6 @@ interface Row {
   id: number
   file: string
   isRoot: boolean
-  isRecurring: boolean
   title: string
   status: string
   priority: string
@@ -42,7 +41,6 @@ interface Row {
   release: string
   blocked_by: number[]
   modules: string[]
-  cadence: string
   questions: Question[]
   summary: string
   // `--stale` only: when git last saw the card, and how long ago that was.
@@ -79,13 +77,12 @@ function openRows(): Row[] {
     const isRoot = base === 'root.md'
     const id = isRoot ? idPrefix(path.basename(path.dirname(file))) : idPrefix(base)
     if (id == null) continue
-    const isRecurring = path.relative(TODO, file).split(path.sep)[0] === 'recurring'
+    if (isLegacyRecurring(path.relative(TODO, file))) continue
     const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
     rows.push({
       id,
       file,
       isRoot,
-      isRecurring,
       title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
       status: (meta && meta.status) || 'todo',
       priority: level(meta?.priority),
@@ -93,7 +90,6 @@ function openRows(): Row[] {
       release: (meta && meta.release) || '',
       blocked_by: (meta && meta.blocked_by) || [],
       modules: (meta && meta.modules) || [],
-      cadence: (meta && meta.cadence) || '',
       questions: (meta && meta.questions) || [],
       summary: summaryLine(body),
     })
@@ -106,9 +102,9 @@ function openRows(): Row[] {
 const holdsOn = (row: Row, open: Set<number>): Hold[] =>
   heldBy({ blockers: row.blocked_by.filter((id) => open.has(id)), questions: row.questions, status: row.status })
 
-// The cards `--stale` reports on. A group root closes itself once its subtasks do and a
-// recurring card repeats by design, so neither sits stuck the way a subtask can.
-const canGoStale = (row: Row): boolean => !row.isRoot && !row.isRecurring
+// The cards `--stale` reports on. A group root closes itself once its subtasks do, so it
+// never sits stuck the way a subtask can.
+const canGoStale = (row: Row): boolean => !row.isRoot
 
 function cmdStale(rows: Row[], all: Row[], scope: string, mod: string | null): MoveResult {
   const days = staleAfter()
@@ -256,7 +252,6 @@ export function cmdList(opts: ListOptions): MoveResult {
     const meta = [r.status, `priority ${r.priority}`, `roi ${r.roi}`]
     if (r.isRoot) meta.push('group root')
     if (r.release) meta.push(`release ${r.release}`)
-    if (r.cadence) meta.push(`every ${r.cadence}`)
     if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
     const open = openOf(r.questions).length
     if (open) meta.push(plural(open, 'open question'))

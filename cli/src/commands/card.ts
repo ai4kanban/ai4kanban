@@ -13,9 +13,7 @@ import { slugify, validModules, parseIdList, normalizeRelease, dependencyCycle }
 import { DEFAULT_WORKFLOW, knownWorkflow } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
-import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
-import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
-import { RECURRING } from '../lib/recurring'
+import { locate, enclosingGroupRoot } from '../lib/cards'
 import { hasSourceSection, sourceRefFrom } from '../lib/source'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
@@ -35,7 +33,7 @@ import type { Meta, MoveResult, Question } from '../lib/types'
 export type { QuestionOpsInput }
 
 // A one-shot todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the
-// shape counts, not the literal string. Recurring cards have a Process instead.
+// shape counts, not the literal string.
 const TODO_ITEM = /^[ \t]*[-*+][ \t]*\[[ xX]?\]/m
 
 function defaultBody() {
@@ -59,37 +57,9 @@ function defaultBody() {
   ].join('\n')
 }
 
-function recurringBody() {
-  return [
-    '<one short paragraph: what the job is for and why it repeats.>',
-    '',
-    '## Run state',
-    '<only what the next run needs; update in place after each run, or write "None">',
-    '',
-    '## Process',
-    '1. <one pass, in order>',
-    '',
-  ].join('\n')
-}
-
-// How often a recurring card repeats, as `--cadence` gives it: one of the forms in
-// lib/cadence.ts, written back in that module's own spelling so every card reads the
-// same. An empty value is "no cadence" — the card goes back to running only when a
-// human clicks Run. Anything the grammar doesn't cover is refused with the accepted
-// forms, never written half-parsed.
-function cadenceFlag(raw: string): string {
-  const text = raw.trim()
-  if (!text) return ''
-  const parsed = parseCadence(text)
-  if (!parsed) die(`--cadence "${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}`)
-  return formatCadence(parsed)
-}
-
 /** `akb raw create`, as its command declares it (lib/cli/board.ts). */
 export interface CreateOptions {
   title: string
-  /** `--recurring`: the card goes in the reserved `recurring/` folder and repeats. */
-  recurring?: boolean
   priority?: string
   roi?: string
   release?: string
@@ -101,7 +71,6 @@ export interface CreateOptions {
   body?: boolean
   /** `--body-file`: the whole body, written to a file first (#561). */
   bodyFile?: string
-  cadence?: string
   /** `--workflow`: which workflow the card runs on (#715). Left off, the board's default. */
   workflow?: string
   /** `--triage`: the source id of the triage item this card is made of. */
@@ -120,8 +89,7 @@ export interface CreateOptions {
 //
 // Which words are actions is the command's own check; what is left here is the two ways a
 // perfectly-spelled one would still never fire.
-function createSchedule(action: ScheduledAction, recurring: boolean, questions: Question[]): ScheduledAction {
-  if (recurring) die('--schedule is not for a recurring card: its cadence is its schedule.')
+function createSchedule(action: ScheduledAction, questions: Question[]): ScheduledAction {
   if (
     action === 'refine' &&
     openOf(questions).length > 0 &&
@@ -156,7 +124,6 @@ function bodyFromFile(opts: CreateOptions): string | null {
 export function cmdCreate(opts: CreateOptions): MoveResult {
   const title = opts.title.trim()
   if (!title) die('--title must not be empty')
-  const recurring = opts.recurring === true
   const priority = opts.priority ?? 'med'
   const roi = opts.roi ?? 'med'
   // No --release means no release: the card is wanted, not promised to a version. Any
@@ -166,38 +133,29 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const blocked_by = parseIdList(opts.blockedBy ?? [], 'blocked-by', start)
   const related = parseIdList(opts.related ?? [], 'related', start)
   const modules = validModules(opts.modules ?? [])
-  // Only a card that repeats can have a cadence — a one-shot task is built once.
-  let cadence = ''
-  if (opts.cadence !== undefined) {
-    if (!recurring) die('--cadence is for recurring cards only (--recurring); a one-shot task is built once, not repeated.')
-    cadence = cadenceFlag(opts.cadence)
-  }
   const workflow = workflowFlag(opts.workflow)
   const triage = (opts.triage ?? '').trim()
-  if (triage && recurring) die('--triage is not for a recurring card: a triage item becomes a one-shot task.')
   const source = sourceFlag(opts.source ?? [], 'source', start)
   const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
-  const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, recurring, questions) : null
+  const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, questions) : null
   const written = bodyFromFile(opts)
   if (written && hasSourceSection(written)) {
     die('the body carries a `## Source` section — drop it and pass --source <plan path | plan:<id> | #<id> | URL> instead', { kind: 'needs-input' })
   }
   const slug = slugify(opts.slug !== undefined ? opts.slug : title)
-  const fileRel = recurring ? path.join(RECURRING, `${start}-${slug}.md`) : `${start}-${slug}.md`
+  const fileRel = `${start}-${slug}.md`
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) die(`${rel(file)} already exists — pick a different --slug`)
 
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
-  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, source, cadence, questions }
+  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, source, questions }
   const scaffolded = !written && opts.body !== false
-  const body = written ?? (!scaffolded ? '' : recurring ? recurringBody() : defaultBody())
+  const body = written ?? (scaffolded ? defaultBody() : '')
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
-  // A recurring card is a job, not one of the open tasks — it never archives and the index
-  // is the task list, so it stays out of it (the same cards `reconcile` never asks for).
-  const indexed = recurring ? false : addReadmeRef(start, title, fileRel)
+  const indexed = addReadmeRef(start, title, fileRel)
   // An asked-for schedule wins over the default one a blocked card gets — it is the same
   // field, and the user named the action.
   let scheduled: ScheduledAction | null = null
@@ -213,7 +171,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
       (written ? '; the body came from --body-file' : scaffolded ? '; fill the body with your editor, leave the frontmatter to the script' : ''),
   )
   if (scheduled) say(`  ${scheduleReceipt(start, scheduled)}`)
-  if ((scaffolded || written) && !recurring && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
+  if ((scaffolded || written) && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) say(`  indexed under "## ${TASKS_HEADING}"`)
   reconcileBoard()
   return { id: start, ids: [start], title, file: rel(file), indexed, schedule: scheduled }
@@ -232,7 +190,6 @@ export interface UpdateOptions {
   addRelated?: string[]
   modules?: string[]
   slug?: string
-  cadence?: string
   source?: string[]
   addSource?: string[]
 }
@@ -340,14 +297,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.addSource !== undefined) {
     meta.source = [...new Set([...meta.source, ...sourceFlag(flags.addSource, 'add-source', ceiling)])]
     changes.push('source')
-  }
-  // How often the card repeats, and so whether the local UI runs it in the
-  // background at all. `--cadence ""` clears it and the card goes back to
-  // running only when someone clicks Run.
-  if (flags.cadence !== undefined) {
-    if (!isRecurringCard(found)) die(`#${id} is not recurring (${found.rel} is not under ${RECURRING}/) — only a card that repeats can have a cadence.`)
-    meta.cadence = cadenceFlag(flags.cadence)
-    changes.push(`cadence→${meta.cadence || '(none)'}`)
   }
   // A `ready` card has no open questions by definition (see STATUSES). Open questions
   // mean the plan is not settled, so a `--status ready` with them pending lands as

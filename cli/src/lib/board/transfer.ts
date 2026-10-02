@@ -131,7 +131,7 @@ function kindOf(rel: string): DocumentKind | null {
 
 /** Whether a file neither half recognised is worth telling the person about. `next-id`
  *  travels as the payload's own number and a dotfile is somebody's editor, so the ones left
- *  are the board files nobody has named yet — a recurring job's working folder today. */
+ *  are the board files nobody has named yet. */
 function worthSaying(rel: string): boolean {
   if (rel === 'next-id') return false
   return !rel.split('/').some((part) => part.startsWith('.'))

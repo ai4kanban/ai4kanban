@@ -39,7 +39,7 @@ import {
 } from '../../commands/card'
 import { cmdInit } from '../../commands/init'
 import { cmdList, type ListOptions } from '../../commands/list'
-import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
+import { cmdMigrate, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove, type RemoveOptions } from '../../commands/remove'
 import { cmdAgentFile } from '../../commands/agent-file'
@@ -97,6 +97,7 @@ import type {
   Revision,
 } from './contract'
 import { leaseAnd, moveTarget, opConflict, opOk, opRefused, sameTarget, targetName } from './ops'
+import { migrateRecurringCards, recurringCardsLeft } from '../recurring'
 import { boardRevision, cardRevision } from './revision'
 import type { CardPatch, CardSchedule, PlanCard, SaveProjectResult } from '../view/types'
 
@@ -132,7 +133,6 @@ const MOVES: Record<string, RunMove> = {
   migrate: ({ opts }) => cmdMigrate(as<MigrateOptions>(opts)),
   archive: ({ args }) => cmdRemove(Number(args[0]), 'completed'),
   reject: ({ args, opts }) => cmdRemove(Number(args[0]), 'rejected', as<RemoveOptions>(opts)),
-  'record-run': ({ args }) => cmdRun(Number(args[0])),
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
   'agent-file': ({ args }) => cmdAgentFile(args[0] ?? '', args[1] ?? ''),
@@ -150,6 +150,17 @@ const MOVES: Record<string, RunMove> = {
     say(csv || '(no metrics yet)')
     return { csv }
   },
+}
+
+/** Turn the recurring cards an older version left into scheduled agents before the timer
+ *  starts anything (#1414). Through the provider, so a Cloud board's cards go the same way. */
+export async function migrateRecurringFirst(provider: BoardProvider): Promise<void> {
+  if (!recurringCardsLeft()) return
+  try {
+    await leaseAnd(provider, { board: true }, (env) => provider.migrateRecurring(env))
+  } catch {
+    // the next tick tries again
+  }
 }
 
 /** Every move this board answers to, by its canonical name. */
@@ -293,11 +304,13 @@ export function localBoard(): BoardProvider {
 
     // The board timer's one write goes through this contract like every other: the mark
     // comes off a scheduled card by the same operation a screen would use.
-    nextWork: () =>
-      dispatchNextWork(async (id) => {
+    nextWork: async () => {
+      await migrateRecurringFirst(provider)
+      return dispatchNextWork(async (id) => {
         const res = await leaseAnd(provider, { card: id }, (env) => provider.setSchedule(id, null, env))
         return res.ok
-      }),
+      })
+    },
 
     // ---- the writer lease ---------------------------------------------------
 
@@ -462,9 +475,7 @@ export function localBoard(): BoardProvider {
 
     deliveryRules: () => Promise.resolve(deliveryRules()),
 
-    // ---- history ------------------------------------------------------------
-
-    recordRun: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRun(id) || {} })),
+    migrateRecurring: (env) => mutate({ board: true }, env, () => ({ data: migrateRecurringCards() })),
 
     // ---- the delivery lifecycle ---------------------------------------------
 

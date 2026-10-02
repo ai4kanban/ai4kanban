@@ -5,13 +5,13 @@ import { repairDeliveries, startSession } from "./registry";
 // --- the dispatcher (#43, #139, #169) ----------------------------------------
 // A background timer inside the local-UI server that works the board on its own, so it
 // runs without being asked. It refines the cards a refine would move, and it runs the
-// recurring cards whose cadence has elapsed. Neither is the only way that work starts — a
-// card page's Refine and Run buttons do the same thing on one card on demand — but these
+// scheduled agents whose cadence has elapsed. Neither is the only way that work starts — a
+// card page's Refine and an agent's Run now do the same thing on demand — but these
 // are the ones that need no user at all.
 //
 // What it does NOT decide is which cards those are. That is `nextWork()` in the CLI: which
 // cards a refine would move, in what order, how many may be going at once, and which
-// recurring cards are due. The timer is this file's; the judgment is the board's, and the
+// scheduled agents are due. The timer is this file's; the judgment is the board's, and the
 // board is one place. A run started here is the same run `akb` starts.
 //
 // One process = one UI server, so a single timer pinned to globalThis is enough. It wakes
