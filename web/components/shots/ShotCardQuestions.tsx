@@ -381,7 +381,7 @@ export function ShotCardQuestions() {
               style={{ marginLeft: "auto" }}
               icon={<FiXCircle style={{ width: "100%", height: "100%" }} />}
             >
-              Reject
+              Remove
             </Btn>
           </div>
 
