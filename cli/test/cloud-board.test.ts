@@ -18,6 +18,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { board, boardState, openBoard, when, withLease } from '../src/lib/board/index.ts'
+import { formatDay } from '../src/lib/cadence.ts'
 import { writePointer } from '../src/lib/cloud/pointer.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
@@ -557,5 +558,117 @@ describe('a workspace this machine may not read', () => {
     assert.equal(opened.ok, true)
     assert.equal(boardState().offline, false)
     assert.deepEqual((await board().readCards()).map((c) => c.id), [3, 4])
+  })
+})
+
+// ---- the archive past its keep (#1338) ---------------------------------------
+
+describe('the daily prune on a Cloud board', () => {
+  const DAY = 24 * 60 * 60_000
+  const archivedCard = (id: number, daysAgo: number, over: Partial<Meta> = {}, file = `.archive/${id}-gone.md`) => ({
+    id,
+    revision: `a${id}`,
+    archived: true,
+    archivedAt: null,
+    data: {
+      path: file,
+      meta: meta({ title: `Card ${id}`, archived: formatDay(new Date(Date.now() - daysAgo * DAY)), ...over }),
+      body: 'Shipped.\n',
+    },
+  })
+  const ARCHIVE = [
+    archivedCard(51, 40),
+    archivedCard(52, 10),
+    archivedCard(53, 40, { release: 'v2' }),
+    archivedCard(61, 40, {}, '.archive/61-a-group/root.md'),
+    archivedCard(62, 35, {}, '.archive/61-a-group/features/62-a-part.md'),
+  ]
+  const stored = (call: Call): Response | undefined => {
+    if (call.path.endsWith('/snapshot')) {
+      const releases = { path: 'releases.md', kind: 'config', revision: 'c3', body: '# Releases\n\n- **v2** — the next one\n' }
+      return ok({ ...SNAPSHOT, documents: [...SNAPSHOT.documents, releases] })
+    }
+    if (call.path.endsWith('/archive')) return ok({ revision: '7', cards: ARCHIVE })
+    return undefined
+  }
+  const copy = (file: string): boolean => fs.existsSync(path.join(root, 'docs', 'kanban', '.archive', file))
+  const deletes = (calls: Call[]): Call[] => calls.filter((c) => c.path.endsWith('/archive/delete'))
+
+  it('deletes the due cards from the workspace, then from the copy', async () => {
+    const calls = worker((call) => {
+      if (call.path.endsWith('/archive/delete')) {
+        // Still in the copy while the workspace is being asked.
+        assert.equal(copy('51-gone.md'), true)
+        return ok({ revision: '8', deleted: call.body.cards })
+      }
+      return stored(call)
+    })
+    pointed(false)
+    await openBoard(root)
+
+    await board().nextWork()
+
+    const [sent, ...more] = deletes(calls)
+    assert.equal(more.length, 0)
+    // A group goes whole; a young card and one on an open release are never sent.
+    assert.deepEqual([...(sent.body.cards as number[])].sort(), [51, 61, 62])
+    assert.equal(sent.body.nodeId, 'node-1')
+    assert.ok(sent.body.opId)
+    assert.equal(copy('51-gone.md'), false)
+    assert.equal(copy('61-a-group'), false)
+    assert.equal(copy('52-gone.md'), true)
+    assert.equal(copy('53-gone.md'), true)
+
+    // Once a day.
+    await board().nextWork()
+    assert.equal(deletes(calls).length, 1)
+  })
+
+  it('keeps the copy when the workspace refuses, and tries no more that day', async () => {
+    const calls = worker((call) =>
+      call.path.endsWith('/archive/delete') ? refused(404, { code: 'not_found', message: 'No such endpoint.' }) : stored(call),
+    )
+    pointed(false)
+    await openBoard(root)
+
+    await board().nextWork()
+    await board().nextWork()
+
+    assert.equal(deletes(calls).length, 1)
+    assert.equal(copy('51-gone.md'), true)
+    assert.equal(copy('61-a-group'), true)
+  })
+
+  it('keeps the copy when Cloud cannot be reached', async () => {
+    const calls = worker((call) => {
+      if (call.path.endsWith('/archive/delete')) throw new Error('network down')
+      return stored(call)
+    })
+    pointed(false)
+    await openBoard(root)
+
+    await board().nextWork()
+
+    // The lost reply is retried under one operation id.
+    assert.equal(new Set(deletes(calls).map((c) => c.body.opId)).size, 1)
+    assert.equal(copy('51-gone.md'), true)
+  })
+
+  it('drops a due copy the workspace no longer holds without asking for it', async () => {
+    const calls = worker((call) => {
+      if (call.path.endsWith('/archive')) return ok({ revision: '7', cards: ARCHIVE.filter((c) => c.id !== 51) })
+      if (call.path.endsWith('/archive/delete')) return ok({ revision: '8', deleted: call.body.cards })
+      return stored(call)
+    })
+    pointed(false)
+    await openBoard(root)
+    const file = path.join(root, 'docs', 'kanban', '.archive', '51-gone.md')
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, `${serializeFrontmatter(ARCHIVE[0].data.meta)}\nShipped.\n`)
+
+    await board().nextWork()
+
+    assert.deepEqual([...(deletes(calls)[0].body.cards as number[])].sort(), [61, 62])
+    assert.equal(copy('51-gone.md'), false)
   })
 })

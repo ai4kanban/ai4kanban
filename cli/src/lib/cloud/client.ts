@@ -333,6 +333,16 @@ export const readWorkspaceArchive = (
 ): Promise<CloudCall<{ revision: string; cards: WireWorkspaceCard[] }>> =>
   send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/archive`)
 
+/** Delete archived cards for good. One already gone counts as deleted; one still on the
+ *  board refuses the whole call. */
+export const deleteWorkspaceArchivedCards = (
+  workspaceId: string,
+  opId: string,
+  cards: number[],
+  nodeId = '',
+): Promise<CloudCall<{ revision: string; deleted: number[] }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/archive/delete`, { opId, cards, nodeId })
+
 /** The board's files, all of them or one kind. */
 export const readWorkspaceDocuments = (
   workspaceId: string,

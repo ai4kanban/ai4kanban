@@ -535,6 +535,27 @@ export const readArchive = (
 ): Promise<{ revision: string; cards: WorkspaceCard[] }> =>
   call(env, 'read_archive', { p_subject: owner.accountId, p_workspace: uuid(id, 'workspace') })
 
+/**
+ * Delete archived cards for good (#1338). Which ones are past their keep is the caller's
+ * rule — it reads the card, and `data` is opaque here. A card still on the board refuses the
+ * whole call; one already gone counts as deleted.
+ */
+export async function deleteArchivedCards(
+  env: Env,
+  owner: Owner,
+  id: string,
+  body: unknown,
+): Promise<{ revision: string; deleted: number[] }> {
+  const input = held(body)
+  return await mutate(env, 'delete_archived_cards', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(id, 'workspace'),
+    p_op_id: opId(input.opId),
+    p_node: node(input.nodeId),
+    p_cards: cardIds(input.cards),
+  })
+}
+
 // ---- documents ---------------------------------------------------------------
 
 export const readDocuments = (
@@ -814,6 +835,11 @@ export async function routeWorkspace(env: Env, owner: Owner, request: Request, u
     return json(await readArchive(env, owner, id))
   }
 
+  if (section === 'archive' && name === 'delete' && !move) {
+    requireMethod(request, 'POST')
+    return json(await deleteArchivedCards(env, owner, id, await bodyOf(request)))
+  }
+
   if (section === 'documents' && !name) {
     if (request.method === 'GET') return json(await readDocuments(env, owner, id, url.searchParams.get('kind')))
     requireMethod(request, 'POST')
@@ -1008,6 +1034,15 @@ function cards(value: unknown): CardEntry[] {
       ...(card.archived === undefined ? {} : { archived: card.archived === true }),
     }
   })
+}
+
+/** `[3, 7, 12]`, under the same cap as a write. */
+function cardIds(value: unknown): number[] {
+  if (!Array.isArray(value) || value.length === 0) throw badRequest('That request names no card.')
+  if (value.length > MAX_CARDS_PER_WRITE) {
+    throw badRequest(`One call deletes at most ${MAX_CARDS_PER_WRITE} cards. Send the rest in another.`)
+  }
+  return value.map(cardId)
 }
 
 /** `[{ path, kind, expect, body }, ...]`. A body of `''` deletes the document. */

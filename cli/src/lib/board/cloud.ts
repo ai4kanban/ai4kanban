@@ -33,6 +33,7 @@
 // (#317).
 
 import {
+  deleteWorkspaceArchivedCards,
   isOffline,
   listWorkspaceLocks,
   readWorkspaceArchive,
@@ -54,6 +55,7 @@ import { readBoardCopy, rememberBoardCopy } from '../cloud/copy'
 import { dropHold, forgetHolder, heldLease, rememberHold } from '../cloud/holds'
 import { cardsHeldElsewhere, workingRun } from '../agent/store'
 import { serializeFrontmatter } from '../frontmatter'
+import { dueArchivedCards, removeArchivedCards } from '../leftovers'
 import { thisMachine } from '../machine/identity'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -74,7 +76,7 @@ import type {
   Revision,
 } from './contract'
 import { localBoard } from './local'
-import { leaseAnd, moveTarget, opConflict, opOk, opRefused, targetName } from './ops'
+import { leaseAnd, moveTarget, newOpId, opConflict, opOk, opRefused, targetName } from './ops'
 import { cardRevision } from './revision'
 import {
   clearBoardCopy,
@@ -460,10 +462,9 @@ function cloudBoard(ctx: Context): BoardProvider {
     if (!read.ok) ctx.offline = true
   }
 
-  /** Pull the archive into the copy, so the moves that read `.archive/` — closing and
-   *  dropping a release — see what the workspace holds. Once per hydration. */
-  async function withArchive(): Promise<boolean> {
-    if (ctx.archiveIn) return true
+  /** Read the workspace's archive into the copy, and say which cards it holds — or null
+   *  when it could not be read. */
+  async function pullArchive(): Promise<number[] | null> {
     await tryLive()
     const read = await readWorkspaceArchive(ctx.workspaceId)
     if (!read.ok) {
@@ -471,7 +472,7 @@ function cloudBoard(ctx: Context): BoardProvider {
         ctx.offline = true
         remember(ctx)
       }
-      return false
+      return null
     }
     const cards = read.value.cards.flatMap(cardOf)
     if (cards.length) {
@@ -482,7 +483,39 @@ function cloudBoard(ctx: Context): BoardProvider {
     }
     for (const card of read.value.cards) ctx.cardAt.set(card.id, card.revision)
     ctx.archiveIn = true
-    return true
+    return read.value.cards.map((card) => card.id)
+  }
+
+  /** Pull the archive into the copy, so the moves that read `.archive/` — closing and
+   *  dropping a release — see what the workspace holds. Once per hydration. */
+  const withArchive = async (): Promise<boolean> => ctx.archiveIn || (await pullArchive()) !== null
+
+  /**
+   * Delete the archived cards past their keep from the workspace, then from the copy (#1338).
+   *
+   * The archive is read afresh, so the Local rule runs over what the workspace holds now. A
+   * delete that did not go through — offline, refused, a service without the route — leaves
+   * the copy and the workspace as they are, for tomorrow's pass.
+   */
+  async function pruneArchive(now: number): Promise<void> {
+    const stored = await pullArchive()
+    if (!stored) return
+    const due = dueArchivedCards(now)
+    const dueIds = due.flatMap((entry) => entry.ids)
+    // A copy the workspace no longer holds was deleted from another machine: nothing to ask for.
+    const ids = dueIds.filter((id) => stored.includes(id))
+    for (let i = 0; i < ids.length; i += CARDS_PER_CALL) {
+      const batch = ids.slice(i, i + CARDS_PER_CALL)
+      const gone = await sendUntilAnswered(
+        (opId) => deleteWorkspaceArchivedCards(ctx.workspaceId, opId, batch, ctx.nodeId),
+        newOpId(),
+      )
+      if (!gone.ok) return
+      ctx.revision = gone.value.revision
+    }
+    removeArchivedCards(due)
+    for (const id of dueIds) ctx.cardAt.delete(id)
+    if (ids.length) remember(ctx)
   }
 
   // ---- one write, over the copy and then to the workspace -------------------
@@ -675,7 +708,7 @@ function cloudBoard(ctx: Context): BoardProvider {
       dispatchNextWork(async (id) => {
         const res = await leaseAnd(provider, { card: id }, (env) => provider.setSchedule(id, null, env))
         return res.ok
-      }),
+      }, pruneArchive),
 
     // ---- the writer lease ---------------------------------------------------
 

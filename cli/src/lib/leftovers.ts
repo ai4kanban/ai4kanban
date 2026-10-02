@@ -84,11 +84,19 @@ function archivedAt(): Map<number, number> {
   return at
 }
 
-// Remove each archived card file, and each group folder whole, once its newest card has been
-// archived for KEEP_CARD_DAYS. A card naming a release still on the list keeps its entry:
-// closing that release reads the archive for what shipped.
-function pruneArchivedCards(now: number, removed: string[]): void {
+/** An archive entry past its keep: one card file, or a group folder whole. */
+export interface DueArchived {
+  path: string
+  /** Every card in it. */
+  ids: number[]
+}
+
+/** Each archived card file, and each group folder whole, whose newest card has been archived
+ *  for KEEP_CARD_DAYS. A card naming a release still on the list keeps its entry: closing
+ *  that release reads the archive for what shipped. */
+export function dueArchivedCards(now = Date.now()): DueArchived[] {
   const open = new Set(readReleases())
+  const due: DueArchived[] = []
   for (const entry of fs.existsSync(ARCHIVE) ? fs.readdirSync(ARCHIVE, { withFileTypes: true }) : []) {
     if (idPrefix(entry.name) === null) continue
     const full = path.join(ARCHIVE, entry.name)
@@ -98,9 +106,18 @@ function pruneArchivedCards(now: number, removed: string[]): void {
     if (cards.some((c) => open.has(c.release))) continue
     const newest = Math.max(...cards.map((c) => c.at ?? mtime(c.file)))
     if (now - newest < KEEP_CARD_DAYS * DAY) continue
-    fs.rmSync(full, { recursive: true, force: true })
-    removed.push(rel(full))
+    const ids = files.map((file) =>
+      idPrefix(path.basename(file) === 'root.md' ? path.basename(path.dirname(file)) : path.basename(file)),
+    )
+    due.push({ path: full, ids: ids.filter((id): id is number => id !== null) })
   }
+  return due
+}
+
+/** Delete those entries, and say what went. */
+export function removeArchivedCards(due: DueArchived[]): string[] {
+  for (const entry of due) fs.rmSync(entry.path, { recursive: true, force: true })
+  return due.map((entry) => rel(entry.path))
 }
 
 interface EndedWorktree {
@@ -206,12 +223,13 @@ const realpath = (p: string): string => {
 }
 
 /** Remove what every card off the board for a week still holds, then the archived cards and
- *  the kept chats past their own keep, and say what went. */
-export function pruneLeftovers(now = Date.now()): LeftoverPrune {
+ *  the kept chats past their own keep, and say what went. `cards: false` leaves the archived
+ *  cards to a caller with somewhere else to delete them from first. */
+export function pruneLeftovers(now = Date.now(), cards = true): LeftoverPrune {
   const removed: string[] = []
   const skipped: string[] = []
   pruneHeld(now, removed, skipped)
-  pruneArchivedCards(now, removed)
+  if (cards) removed.push(...removeArchivedCards(dueArchivedCards(now)))
   for (const kept of keptChats()) {
     if (now - kept.keptAt >= KEEP_CHAT_DAYS * DAY && dropKeptChat(kept.key)) removed.push(`${rel(CHATS_DIR)}/${kept.key}.kept`)
   }

@@ -62,6 +62,9 @@ deleting it, and registering or renewing a node repeat safely and carry no `opId
   to a browser; the limit is in the migration, not the Worker.
 - `GET /v1/workspaces/<id>/events` — one live event per card waiting on somebody.
 - `GET /v1/workspaces/<id>/archive` — the cards that have left the board.
+- `POST /v1/workspaces/<id>/archive/delete` — `{ "opId": "…", "nodeId": "…", "cards": [3, 7] }`.
+  Deletes archived cards for good; the caller decides which are past their keep. A card still
+  on the board refuses the whole call, and one already gone counts as deleted.
 - `GET|POST /v1/workspaces/<id>/documents` — every board file that is not a card, under the path
   it is written back to. Write: `{ "opId": "…", "lease": "…", "documents": [{ "path":
   "rules/revise.md", "kind": "rule", "expect": "3", "body": "…" }] }`; a `""` body deletes it.

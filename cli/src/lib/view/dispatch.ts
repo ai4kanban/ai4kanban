@@ -48,6 +48,9 @@ import type { Card } from './types'
  *  not the writer. It answers false when the card moved or went away in between. */
 export type ClearMark = (id: number) => Promise<boolean>
 
+/** Delete the archived cards past their keep, for a board whose archive lives elsewhere. */
+export type PruneArchive = (now: number) => Promise<void>
+
 // The newest `run` on each card. Only run records count here: this asks "has a pass already
 // been started for the window the card is due in", and an edit or a refine on the same card
 // says nothing about that.
@@ -219,7 +222,7 @@ async function dueScheduled(
  * An empty list means there is nothing to do. It never throws — a caller on a timer must
  * survive an unreadable board and try again next tick.
  */
-export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
+export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive): Promise<AgentRequest[]> {
   let runs: RunView[]
   let cards: Card[]
   try {
@@ -279,7 +282,10 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // first, so a prune that throws waits for tomorrow rather than retrying every tick.
   try {
     const now = new Date()
-    if (!leftoverPrune().startsWith(formatDay(now)) && stampLeftoverPrune(now)) pruneLeftovers(now.getTime())
+    if (!leftoverPrune().startsWith(formatDay(now)) && stampLeftoverPrune(now)) {
+      pruneLeftovers(now.getTime(), !pruneArchive)
+      await pruneArchive?.(now.getTime())
+    }
   } catch {
     // never costs the requests below
   }

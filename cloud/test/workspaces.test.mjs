@@ -28,6 +28,7 @@ import {
   confirmDelivery,
   importDeliveries,
   createWorkspace,
+  deleteArchivedCards,
   importEvents,
   recordDelivery,
   registerNode,
@@ -320,6 +321,41 @@ describe('archiving a card', () => {
 
     const [back] = await cards([{ id: 7, expect: '3', data: {}, archived: false }])
     assert.equal(back.archived, false)
+  })
+})
+
+describe('deleting archived cards', () => {
+  it('sends the card numbers to its own function, under the attempt and the machine', async () => {
+    const calls = fakeDatabase({ revision: '3', deleted: [3, 7] })
+
+    const out = await post(`${WORKSPACE}/archive/delete`, { opId: 'op-1', nodeId: NODE, cards: [3, '7'] })
+
+    assert.deepEqual(calls.map((c) => c.fn), ['delete_archived_cards'])
+    assert.deepEqual(calls[0].args.p_cards, [3, 7])
+    assert.equal(calls[0].args.p_op_id, 'op-1')
+    assert.equal(calls[0].args.p_node, NODE)
+    assert.ok('p_daily_write_budget' in calls[0].args)
+    assert.deepEqual(await out.json(), { revision: '3', deleted: [3, 7] })
+  })
+
+  it('refuses a call naming no attempt, no card, something that is not a card, or too many', async () => {
+    const calls = fakeDatabase({})
+    const bad = (body) =>
+      assert.rejects(deleteArchivedCards(ENV, OWNER, WORKSPACE, body), (e) => e.code === 'bad_request')
+
+    await bad({ cards: [3] })
+    await bad({ opId: 'o' })
+    await bad({ opId: 'o', cards: [] })
+    await bad({ opId: 'o', cards: [0] })
+    await bad({ opId: 'o', cards: ['x'] })
+    await bad({ opId: 'o', cards: Array.from({ length: MAX_CARDS_PER_WRITE + 1 }, (_, i) => i + 1) })
+    assert.equal(calls.length, 0)
+  })
+
+  it('is a write, so it is never a GET', async () => {
+    const calls = fakeDatabase({})
+    await assert.rejects(get(`${WORKSPACE}/archive/delete`), (e) => e.code === 'method_not_allowed')
+    assert.equal(calls.length, 0)
   })
 })
 
@@ -693,6 +729,8 @@ describe('the routes', () => {
       `${WORKSPACE}/members/${ACCOUNT}/remove/typo`,
       `${WORKSPACE}/cards/1/nonsense`,
       `${WORKSPACE}/locks/nonsense`,
+      `${WORKSPACE}/archive/nonsense`,
+      `${WORKSPACE}/archive/delete/typo`,
       `${WORKSPACE}/import/nonsense`,
       `${WORKSPACE}/export/nonsense`,
       // A move is the last thing a path says. Anything after one is a path this service does

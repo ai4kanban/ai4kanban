@@ -163,8 +163,10 @@ short plain-words note when no doc covers the behavior yet — then archives the
 
 The card file moves to `docs/kanban/.archive/`, where you can still read it — a rejected card
 too. The board deletes it 30 days after it was archived, so the archive doesn't grow without
-end — a card in a release you haven't closed yet stays until you close it. The folder is in git,
-so an older card is still in your history to read or diff.
+end — a card in a release you haven't closed yet stays until you close it. On a Local board the
+folder is in git, so an older card is still in your history to read or diff. A
+[Cloud board](/docs/local-and-cloud-boards) deletes it from the workspace too, and has no
+history to read it back from.
 
 ### What the build leaves you to check
 

@@ -3005,4 +3005,81 @@ begin
 end
 $pending$;
 
+-- ---------------------------------------------------------------------------
+-- Archived cards leave the workspace after their keep (#1338)
+-- ---------------------------------------------------------------------------
+
+do $prune$
+declare
+  OWNER constant uuid := '00000000-0000-4000-8000-000000001338';
+  MEMBER constant uuid := '00000000-0000-4000-8000-000000002338';
+  OTHER constant uuid := '00000000-0000-4000-8000-000000003338';
+  BUDGET constant integer := 100000;
+  v_ws uuid;
+  v_json json;
+  v_revision text;
+  v_next integer;
+  v_writes bigint;
+begin
+  insert into cloud.accounts (id, handle) values
+    (OWNER, 'prune-owner'), (MEMBER, 'prune-member'), (OTHER, 'prune-other');
+  v_ws := (api.create_workspace(OWNER, 'd-create', 'Pruned', BUDGET) ->> 'id')::uuid;
+  perform api.add_member(OWNER, v_ws, 'd-add', 'prune-member', 'member', BUDGET);
+
+  perform api.write_cards(OWNER, v_ws, 'd-cards', null, $j$[
+    {"id":1,"expect":"","data":{"title":"live"}},
+    {"id":2,"expect":"","archived":true,"data":{"title":"shipped"}},
+    {"id":3,"expect":"","archived":true,"data":{"title":"shipped too"}},
+    {"id":4,"expect":"","archived":true,"data":{"title":"kept"}}
+  ]$j$::jsonb, BUDGET);
+  perform api.take_lock(OWNER, v_ws, null, 2, null, 1800, BUDGET);
+  insert into cloud.workspace_deliveries (workspace_id, card_id) values (v_ws, 2);
+  select revision::text, next_card_id into v_revision, v_next from cloud.workspaces where id = v_ws;
+
+  -- A card still on the board refuses the whole call: the archived one beside it stays.
+  perform pg_temp.refuses(
+    format('select api.delete_archived_cards(%L, %L, %L, null, %L, %s)', OWNER, v_ws, 'd-live', '[2,1]', BUDGET),
+    'AKB10', 'deleting a card still on the board');
+  assert json_array_length(api.read_archive(OWNER, v_ws) -> 'cards') = 3, 'a refused delete took an archived card';
+  assert (select revision::text from cloud.workspaces where id = v_ws) = v_revision,
+    'a refused delete moved the workspace';
+
+  -- Somebody outside the workspace deletes nothing.
+  perform pg_temp.refuses(
+    format('select api.delete_archived_cards(%L, %L, %L, null, %L, %s)', OTHER, v_ws, 'd-other', '[2]', BUDGET),
+    'AKB13', 'delete_archived_cards');
+
+  -- Any member may, and a number the workspace never held counts as deleted.
+  v_json := api.delete_archived_cards(MEMBER, v_ws, 'd-delete', null, '[2,3,99]'::jsonb, BUDGET);
+  assert (v_json -> 'deleted')::jsonb = '[2,3]'::jsonb, format('the delete answered %s', v_json -> 'deleted');
+  assert (select array_agg((c ->> 'id')::int) from json_array_elements(api.read_archive(OWNER, v_ws) -> 'cards') c)
+         = array[4], 'a deleted card was still in the archive';
+  assert json_array_length(api.read_cards(OWNER, v_ws) -> 'cards') = 1, 'the delete touched the live board';
+  assert (v_json ->> 'revision')::bigint = v_revision::bigint + 1, 'a delete did not move the workspace by one';
+  assert (select next_card_id from cloud.workspaces where id = v_ws) = v_next, 'a deleted number was handed back';
+  assert not exists (select 1 from cloud.workspace_locks where workspace_id = v_ws and card_id = 2),
+    'a deleted card left its lock behind';
+  assert (select count(*) from cloud.workspace_deliveries where workspace_id = v_ws and card_id = 2) = 1,
+    'a deleted card took its delivery with it';
+  assert (select array_agg(card_id order by card_id) from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'card.deleted' and account_id = MEMBER) = array[2, 3],
+    'the trail did not record each deleted card';
+
+  -- The same attempt again answers what it did the first time, and counts nothing.
+  select writes into v_writes from cloud.daily_writes where day = (now() at time zone 'utc')::date;
+  assert api.delete_archived_cards(MEMBER, v_ws, 'd-delete', null, '[2,3,99]'::jsonb, BUDGET)::jsonb = v_json::jsonb,
+    'a retried delete did not answer its first result';
+  -- A second machine pruning the same cards the same day is not refused, and changes nothing.
+  v_json := api.delete_archived_cards(OWNER, v_ws, 'd-again', null, '[2,3]'::jsonb, BUDGET);
+  assert json_array_length(v_json -> 'deleted') = 0, 'cards already gone were deleted twice';
+  assert (v_json ->> 'revision')::bigint = v_revision::bigint + 1, 'a delete of nothing moved the workspace';
+  assert (select writes from cloud.daily_writes where day = (now() at time zone 'utc')::date) = v_writes,
+    'a retry or a delete of nothing was charged to the day''s budget';
+  assert (select count(*) from cloud.workspace_audit where workspace_id = v_ws and action = 'card.deleted') = 2,
+    'a retry or a delete of nothing wrote to the trail';
+
+  raise notice 'sql checks: #1338 archived card delete checks passed';
+end
+$prune$;
+
 rollback;

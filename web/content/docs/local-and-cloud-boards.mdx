@@ -48,6 +48,11 @@ release: [what Cloud is](/cloud), and the [Privacy Policy](/privacy) and
 Cloud decides where the board is authoritative. It does not decide whether there is a project
 folder — the agent still runs here, over your repository, exactly as it does on a Local board.
 
+**An archived card is deleted from the workspace 30 days after it was archived**, by the same
+rule as a Local board: a card in a release you haven't closed yet stays until you close it. A
+Local board still has the card in git history; a Cloud board does not, so export first to keep
+one. A machine with the board open does the deleting, once a day.
+
 ## Going to Cloud
 
 Take **Create Cloud board** or **Open Cloud board** on the launcher. It walks through the
