@@ -16,7 +16,7 @@
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FaHammer } from "react-icons/fa";
-import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiMap, FiMoreHorizontal, FiPlus } from "react-icons/fi";
+import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiMap, FiMoreHorizontal, FiPlus, FiX } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -397,12 +397,16 @@ export function WorkflowsPanel({
           <span className="h-px flex-1 bg-nb-ink/10" />
           <button
             type="button"
-            aria-label={c.addHook(when)}
-            title={c.addHook(when)}
-            onClick={() => setAdding(one.stage)}
-            className="grid size-[20px] shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-sheet hover:text-nb-ink"
+            aria-label={adding === one.stage ? ca.cancel : c.addHook(when)}
+            title={adding === one.stage ? ca.cancel : c.addHook(when)}
+            onClick={() => setAdding(adding === one.stage ? null : one.stage)}
+            className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink transition-colors duration-100 hover:bg-nb-ink/12 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-ink/45"
           >
-            <FiPlus aria-hidden className="text-[13px]" />
+            {adding === one.stage ? (
+              <FiX aria-hidden strokeWidth={2.5} className="text-[13px]" />
+            ) : (
+              <FiPlus aria-hidden strokeWidth={2.5} className="text-[13px]" />
+            )}
           </button>
         </div>
         {rows(false)}
@@ -545,7 +549,8 @@ export function WorkflowsPanel({
                 )}
               </div>
 
-              <div className="-mr-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-2 pt-2.5">
+              {/* The left gutter keeps the held row's mark, which overhangs its frame, unclipped. */}
+              <div className="-ml-1 -mr-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pl-1 pr-2 pt-2.5">
                 {setups.map((one, i) => (
                   <Fragment key={one.stage}>
                     {i > 0 && (
@@ -772,10 +777,12 @@ function StageRow({
   const nameOf = useCandidateName();
   return (
     <div
-      className={`flex w-full items-center gap-2 rounded-[9px] px-2.5 py-[5px] transition-colors duration-100 ${
-        held ? "bg-nb-accent-soft" : "hover:bg-nb-sheet"
+      className={`relative flex w-full items-center gap-2 rounded-[9px] px-2.5 py-[5px] transition-colors duration-100 ${
+        held ? "" : "hover:bg-nb-sheet"
       }`}
     >
+      {/* Sits on the stage frame's left border: the frame's 4px padding plus its 1px line. */}
+      {held && <span aria-hidden className="absolute inset-y-[6px] -left-[6px] w-[3px] rounded-full bg-nb-accent" />}
       <button
         type="button"
         aria-current={held}

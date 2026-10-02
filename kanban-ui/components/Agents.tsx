@@ -83,7 +83,6 @@ import { GuideDrawer } from "./Guide";
 import { ConfirmationPopover } from "./confirm-popover";
 import { useCopyText } from "./copy";
 import {
-  CAPTION,
   DANGER_BTN,
   FLAT_CONTROL,
   Loading,
@@ -736,58 +735,60 @@ export function NewAgentRow({
     setBusy(false);
   };
 
+  // The line under the row is part of it: bring both into the column's view.
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    row.current?.scrollIntoView({ block: "nearest" });
+  }, [why]);
+
   return (
-    <div className="mt-2.5 rounded-[10px] bg-nb-sheet px-2.5 py-2">
-      <span
-        className={`${CAPTION} text-[10px] tracking-[0.08em] text-nb-ink-soft`}
-      >
-        {c.newAgent}
-      </span>
-      <input
-        autoFocus
-        value={name}
-        disabled={busy}
-        spellCheck={false}
-        aria-label={c.newAgent}
-        placeholder={c.namePlaceholder}
-        onChange={(e) => {
-          setName(e.target.value);
-          setWhy("");
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") void create();
-          if (e.key === "Escape") onCancel();
-        }}
-        className="mt-[5px] w-full rounded-[8px] bg-nb-paper px-2 py-[3px] font-mono text-[11.5px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
-      />
-      <span className="mt-[3px] block text-[10.5px] leading-[13px] text-nb-ink-soft">
-        {why || c.nameHint}
-      </span>
-      <span className="mt-1.5 flex items-center gap-1.5">
+    <div ref={row}>
+      <div className="flex w-full items-center gap-2 rounded-[9px] bg-nb-wash py-[5px] pl-2.5 pr-[5px] focus-within:outline-[1.5px] focus-within:outline-nb-ink/25">
+        <span aria-hidden className="size-[26px] shrink-0 rounded-[8px] border-[1.5px] border-dashed border-nb-ink/20" />
+        <input
+          autoFocus
+          value={name}
+          // Read-only, not disabled: a refused name keeps the caret for the fix.
+          readOnly={busy}
+          spellCheck={false}
+          aria-label={c.newAgent}
+          placeholder={c.namePlaceholder}
+          onChange={(e) => {
+            setName(e.target.value);
+            setWhy("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void create();
+            if (e.key === "Escape") {
+              // The dialog closes on Escape too; this one only takes the row away.
+              e.stopPropagation();
+              onCancel();
+            }
+          }}
+          className={`min-w-0 flex-1 bg-transparent text-[12.5px] font-[700] leading-[16px] text-nb-ink outline-none placeholder:font-[500] placeholder:text-nb-ink-soft/60 ${busy ? "cursor-wait" : ""}`}
+        />
         {/* Writing the agent and reading the roster back is not instant, so the button says
             it is working rather than sitting there looking unpressed. */}
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || !name.trim()}
           onClick={() => void create()}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-accent px-2 py-[3px] text-[11px] font-[800] text-nb-paper disabled:cursor-wait disabled:opacity-60"
+          className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-paper px-2.5 py-[5px] text-[11.5px] font-[700] leading-[14px] text-nb-ink transition-colors duration-100 hover:bg-nb-canvas focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-ink/45 disabled:hover:bg-nb-paper ${
+            busy ? "disabled:cursor-wait disabled:text-nb-ink-soft" : "disabled:cursor-not-allowed disabled:text-nb-ink-soft/50"
+          }`}
         >
           {busy && (
             <span
-              className="size-1.5 rounded-full bg-nb-paper animate-[nbPulse_1.1s_ease-in-out_infinite]"
+              className="size-1.5 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]"
               aria-hidden
             />
           )}
           {busy ? c.creating : c.create}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="cursor-pointer px-1 text-[11px] font-[700] text-nb-ink-soft"
-        >
-          {c.cancel}
-        </button>
-      </span>
+      </div>
+      <p className={`break-words px-2.5 pt-1 text-[10.5px] leading-[14px] ${why ? "text-nb-peach-ink" : "text-nb-ink-soft/70"}`}>
+        {why || c.nameHint}
+      </p>
     </div>
   );
 }
