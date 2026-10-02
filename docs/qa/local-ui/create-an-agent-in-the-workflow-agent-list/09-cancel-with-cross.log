@@ -1,0 +1,3 @@
+# 页面状态，取自真实浏览器里的 DOM：adds 是两个阶段右端按钮的 aria-label，input 是新建行的名称输入
+点「执行后」的「+」之后 {"current":["工作流","Release notes"],"input":{"value":"","focused":true,"placeholder":"release-notes"},"note":"小写字母，用短横线连接","create":{"text":"创建","disabled":true},"adds":["新建规划后运行的 Agent","取消"],"dialogOpen":true}
+点「×」之后 {"current":["工作流","Release notes"],"input":null,"note":null,"create":null,"adds":["新建规划后运行的 Agent","新建执行后运行的 Agent"],"dialogOpen":true}
