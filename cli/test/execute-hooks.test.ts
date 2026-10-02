@@ -15,7 +15,7 @@ import { workflowRefusal } from '../src/lib/agent/start.ts'
 import { readDeliveryRow, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { DeliveryRecord, RunRecord, RunStatus } from '../src/lib/agent/types.ts'
 import { addWorkflowHelper, setWorkflowHelperExtra } from '../src/lib/agent/workflows.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
 import { forgetMachineState, noExecuteHooks } from './helpers/board.ts'
 
 let root = ''
@@ -208,5 +208,28 @@ describe('the words a hook run is given', () => {
     const own = prompt.indexOf('You are lint-fixer.')
     const extra = prompt.indexOf('Only touch cli/.')
     assert.ok(own > 0 && extra > own)
+  })
+
+  it('names the board folder and the card file by their real paths', async () => {
+    hookAgent('lint-fixer')
+    await run('implement', 'done')
+    const prompt = buildPrompt(nextHookRun(delivery())!)
+    assert.ok(prompt.includes(`The board is at \`${kanban()}\` and is not part of the delivery.`))
+    assert.ok(prompt.includes(`The card is \`${path.join(kanban(), 'todo', '5-a-card.md')}\`.`))
+  })
+
+  it('names only the board folder for a delivery with no card', () => {
+    const prompt = buildPrompt({ action: 'hook', specAgent: 'lint-fixer', deliveryId: 'd1' })
+    assert.ok(prompt.startsWith(`You run after the build of delivery d1, in the folder holding its work. The board is at \`${kanban()}\``))
+    assert.doesNotMatch(prompt, /The card is/)
+  })
+
+  it('keeps a board named outright at its own path', () => {
+    const board = path.join(root, 'docs', 'kanban-two')
+    fs.cpSync(kanban(), board, { recursive: true })
+    setBoardDir(board, root)
+    const prompt = buildPrompt({ action: 'hook', id: 5, specAgent: 'lint-fixer' })
+    assert.ok(prompt.includes(`The board is at \`${board}\` and`))
+    assert.ok(prompt.includes(`The card is \`${path.join(board, 'todo', '5-a-card.md')}\`.`))
   })
 })

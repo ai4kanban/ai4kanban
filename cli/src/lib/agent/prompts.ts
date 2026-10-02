@@ -8,7 +8,7 @@ import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { PLANNER, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
-import { ARCHIVE, boardText, rel, MEMORY, PRODUCT } from '../paths'
+import { ARCHIVE, boardText, KANBAN, rel, MEMORY, PRODUCT } from '../paths'
 import {
   agentFilesBlock,
   agentMemoryBlock,
@@ -161,7 +161,22 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   const ask = [actionPrompt(req, command, notes), pictureNote(req), commandNote(command)].filter(Boolean).join(' ')
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
-  return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
+  return realPaths(boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n')), req)
+}
+
+// A hook's build folder holds no board (#1352), so it is given the real places. Filled in
+// after `boardText`, whose `docs/kanban` swap would rewrite an absolute path.
+const BOARD_FOLDER = '<board folder>'
+const CARD_FILE = '<card file>'
+
+function cardFileOf(id: number | undefined): string {
+  const found = id === undefined ? null : locate(id)
+  return found ? (found.kind === 'group' ? path.join(found.target, 'root.md') : found.target) : ''
+}
+
+function realPaths(text: string, req: AgentRequest): string {
+  if (req.action !== 'hook') return text
+  return text.split(BOARD_FOLDER).join(KANBAN).split(CARD_FILE).join(cardFileOf(req.id))
 }
 
 // What one workflow asks of a hook it runs, on top of the agent's own instructions
@@ -617,10 +632,14 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `You run after the build of ${built}, in the folder holding its work.`,
+          `The board is at \`${BOARD_FOLDER}\` and is not part of the delivery.`,
+          cardFileOf(req.id) ? `The card is \`${CARD_FILE}\`.` : '',
           `Do only what your instructions assign; the board commits your changes with the delivery.`,
           `Do not land the work or start other agents.`,
           `With nothing to do, change nothing and say so in one line.`,
-        ].join(' '),
+        ]
+          .filter(Boolean)
+          .join(' '),
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         helperExtra(req),

@@ -14,12 +14,12 @@ reproducible and backed by proof.
 
 ## The manual
 
-- **Location**: `docs/qa/<module>/<case>.md`, one case per file, under a module the board's
-  `modules.md` names.
+- **Location**: `docs/qa/<module>/<case>/case.md`, one folder per case, under a module the
+  board's `modules.md` names; when it names none, `docs/qa/<case>/case.md`.
 - **Case**: a title naming what the user is doing, the setup, numbered steps each giving one
   action and its expected result, and a closing `## Feedback`.
 - **Proof**: every step links one record of what the user sees — a screenshot, a GIF only
-  where motion matters, or a log for a command — saved under `docs/qa/<module>/proof/`.
+  where motion matters, or a log for a command — saved beside its `case.md`.
 - **Language**: a new file follows the board's language; an existing file keeps its own.
 
 ## After a build

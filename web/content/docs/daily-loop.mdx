@@ -173,9 +173,9 @@ history to read it back from.
 Every Coding build is followed by the **QA manager** (`qa-manager`), which keeps a manual of what
 your users actually do with the product. It is in your project, readable and repeatable by anyone.
 
-- **Where it is**: `docs/qa/<module>/<case>.md`, one case per file — the setup, then numbered
-  steps, each with what should happen and a proof of it: a screenshot, a GIF where motion matters,
-  or a command's log, under `docs/qa/<module>/proof/`. Each case ends with the agent's own
+- **Where it is**: `docs/qa/<module>/<case>/case.md`, one folder per case — the setup, then
+  numbered steps, each with what should happen and a proof of it: a screenshot, a GIF where motion
+  matters, or a command's log, saved beside `case.md`. Each case ends with the agent's own
   feedback on how the experience felt.
 - **When it changes**: after each build, only the cases that build affects are rewritten, run for
   real and proved again; cases the build made untrue are deleted. A build no user would notice
