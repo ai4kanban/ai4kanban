@@ -110,6 +110,8 @@ export function reasonPart(r: RunReason, t: UiCopy): ReasonPart | undefined {
       return { line: c.unsent(a.why ?? "") };
     case "qaUnfinished":
       return { line: c.qaUnfinished(card) };
+    case "refineStalled":
+      return { line: c.refineStalled(card) };
     case "stageShort": {
       const stage = t.configuration.workflows.stages[a.stage as "plan"] ?? a.stage ?? "";
       return { line: c.stageShort(stage, card, a.agents ?? "") };

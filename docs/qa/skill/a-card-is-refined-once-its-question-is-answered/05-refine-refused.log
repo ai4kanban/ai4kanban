@@ -1,0 +1,8 @@
+$ akb raw create --title "Trim the install guide" --question "[user] Which sections go?" --recommended-option "Only the Windows notes" --option "Everything after Quick start"
+2
+  wrote docs/kanban/todo/2-trim-the-install-guide.md — frontmatter is set; fill the body with your editor, leave the frontmatter to the script
+  indexed under "## Tasks"
+[exit 0]
+$ akb card refine 2
+akb: #2 is waiting for the user to answer its open questions, so there is nothing to refine yet — the board refines it on its own once they are answered.
+[exit 1]

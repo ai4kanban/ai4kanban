@@ -422,6 +422,7 @@ export type RunReasonKind =
   | 'broken'
   | 'unsent'
   | 'qaUnfinished'
+  | 'refineStalled'
   | 'stageShort'
   | 'specRefused'
 

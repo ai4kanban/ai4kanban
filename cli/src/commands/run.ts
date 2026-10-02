@@ -22,7 +22,7 @@ import {
 import { currentSession } from '../lib/agent/origin'
 import { proRefusal, startResume, startRun } from '../lib/agent/start'
 import { knownWorkflow } from '../lib/agent/workflows'
-import { cardCreation } from '../lib/agent/store'
+import { cardCreation, noteRefineTried, withStore } from '../lib/agent/store'
 import type {
   AgentRequest,
   AnswerOutcome,
@@ -87,6 +87,14 @@ export async function cmdStartRun(
   }
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
+    // A refine done in this session is a refine tried (#1366): the board starts none of its own.
+    if (action === 'refine') {
+      try {
+        withStore((store) => noteRefineTried(store, runnable.id as number))
+      } catch {
+        // an unwritable record never costs the flow
+      }
+    }
     return printFlow(runnable, program)
   }
   sayBeforeStart(req, program)

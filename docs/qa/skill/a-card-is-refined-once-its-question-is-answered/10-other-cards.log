@@ -1,0 +1,35 @@
+$ akb raw create --title "Add a troubleshooting page"
+3
+  wrote docs/kanban/todo/3-add-a-troubleshooting-page.md — frontmatter is set; fill the body with your editor, leave the frontmatter to the script
+  indexed under "## Tasks"
+[exit 0]
+$ akb raw create --title "Translate the install guide"
+4
+  wrote docs/kanban/todo/4-translate-the-install-guide.md — frontmatter is set; fill the body with your editor, leave the frontmatter to the script
+  indexed under "## Tasks"
+[exit 0]
+$ akb card refine 4 --print > /dev/null
+[exit 0]
+$ akb raw create --title "Link the troubleshooting page from the guide" --blocked-by 3
+5
+  wrote docs/kanban/todo/5-link-the-troubleshooting-page-from-the-guide.md — frontmatter is set; fill the body with your editor, leave the frontmatter to the script
+  #5 is scheduled to refine once the cards it waits on are done
+  indexed under "## Tasks"
+[exit 0]
+# 两分钟后
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"clarify","id":3,"title":"Add a troubleshooting page","refineRound":1},{"action":"describe-product"}]
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]
+$ cat .akb/boards/docs/kanban/sessions.json
+{
+  "runs": [],
+  "deliveries": [],
+  "marks": {},
+  "refined": [
+    1,
+    2,
+    4,
+    3
+  ]
+}

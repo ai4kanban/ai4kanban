@@ -7,8 +7,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
+import { logPathOf, noteRefineTried, readStore, withStore } from '../src/lib/agent/store.ts'
+import type { RunRecord } from '../src/lib/agent/types.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
-import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { CHATS_DIR, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
 import { forgetMachineState } from './helpers/board.ts'
@@ -32,17 +34,20 @@ beforeEach(() => {
 
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
-function body(id: number, opts: { schedule?: Meta['schedule']; subtasks?: number[] } = {}): string {
+function body(
+  id: number,
+  opts: { schedule?: Meta['schedule']; subtasks?: number[]; questions?: string[]; blockedBy?: number[]; priority?: Meta['priority'] } = {},
+): string {
   const meta: Partial<Meta> = {
     title: `Card ${id}`,
-    priority: 'med',
+    priority: opts.priority ?? 'med',
     roi: 'med',
     status: 'todo',
     release: '',
-    blocked_by: [],
+    blocked_by: opts.blockedBy ?? [],
     related: [],
     modules: [],
-    questions: [],
+    questions: (opts.questions ?? []).map((text) => ({ text })),
     schedule: opts.schedule ?? null,
   }
   const todo = opts.subtasks
@@ -108,5 +113,100 @@ describe('the runs the board starts on its own', () => {
 
     assert.equal(work.length, 1)
     assert.deepEqual(cleared, [work[0]!.id])
+  })
+})
+
+// A card nothing has refined is refined once, however it got that way (#1366).
+describe('the cards the board refines on its own', () => {
+  const noMark = () => Promise.resolve(true)
+  const clarify = (id: number) => ({ action: 'clarify', id, title: `Card ${id}`, refineRound: 1 })
+
+  /** Write a card whose file was last touched `ago` ms back — three minutes unless said. */
+  function write(id: number, opts: Parameters<typeof body>[1] = {}, ago = 3 * 60_000): void {
+    const file = path.join(track, `${id}-card.md`)
+    fs.writeFileSync(file, body(id, opts))
+    const at = new Date(Date.now() - ago)
+    fs.utimesSync(file, at, at)
+  }
+
+  const liveRun = (over: Partial<RunRecord>): void => {
+    const run: RunRecord = {
+      sessionId: 'live-run',
+      cardId: null,
+      action: 'create',
+      status: 'running',
+      startedAt: Date.now(),
+      pid: process.pid,
+      harness: 'test',
+      logPath: logPathOf('live-run'),
+      ...over,
+    }
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+    fs.writeFileSync(run.logPath, '')
+    withStore((store) => store.runs.push(run))
+  }
+
+  it('leaves the cards already refinable on its first pass to the user', async () => {
+    write(12)
+
+    assert.deepEqual(await nextWork(noMark), [])
+    assert.deepEqual(readStore().refined, [12])
+    assert.deepEqual(await nextWork(noMark), [], 'and never comes back for them')
+  })
+
+  it('refines a card once its last [user] question is answered, and only once', async () => {
+    write(12, { questions: ['[user] Which layout?'] })
+    assert.deepEqual(await nextWork(noMark), [])
+    assert.deepEqual(await nextWork(noMark), [], 'a card waiting on its answer is not refined')
+
+    write(12)
+    assert.deepEqual(await nextWork(noMark), [clarify(12)])
+    // The refine failed or settled nothing: the card is still refinable, and still listed.
+    assert.deepEqual(await nextWork(noMark), [])
+
+    // Asked again and answered again, it is refined once more.
+    write(12, { questions: ['[user] And the colour?'] })
+    assert.deepEqual(await nextWork(noMark), [])
+    write(12)
+    assert.deepEqual(await nextWork(noMark), [clarify(12)])
+  })
+
+  it('passes over a card a refine was already started on by hand', async () => {
+    await nextWork(noMark)
+    write(12)
+    withStore((store) => noteRefineTried(store, 12))
+
+    assert.deepEqual(await nextWork(noMark), [])
+  })
+
+  it('passes over a blocked card, a scheduled one keeps its own slot, and a fresh edit waits', async () => {
+    await nextWork(noMark)
+    write(12)
+    write(13, { blockedBy: [12] })
+    write(14, {}, 30_000)
+    write(15, { schedule: refine, blockedBy: [12] })
+
+    assert.deepEqual(await nextWork(noMark), [clarify(12)])
+    assert.deepEqual(await nextWork(noMark), [], 'the blocked, the scheduled and the just-edited all wait')
+  })
+
+  it('passes over a card in a live run, and one still being created', async () => {
+    await nextWork(noMark)
+    write(12)
+    write(13)
+    liveRun({ action: 'edit', cardId: 12, createdCardIds: [13] })
+
+    assert.deepEqual(await nextWork(noMark), [])
+    assert.deepEqual(readStore().refined, [], 'neither is listed, so each is refined once the run is over')
+  })
+
+  it('starts one a tick, in the board’s own order', async () => {
+    await nextWork(noMark)
+    write(12)
+    write(13, { priority: 'high' })
+
+    assert.deepEqual(await nextWork(noMark), [clarify(13)])
+    assert.deepEqual(await nextWork(noMark), [clarify(12)])
+    assert.deepEqual(await nextWork(noMark), [])
   })
 })

@@ -158,6 +158,20 @@ describe('entering refinement', () => {
   })
 })
 
+describe('a refine the board refuses', () => {
+  it('says a card with only [user] questions is waiting for the answer (#1366)', () => {
+    writeCard({ questions: ['[user] Which layout?'] })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.match('error' in request ? request.error : '', /#7 is waiting for the user to answer .* refines it on its own/)
+  })
+
+  it('keeps its plain words for a card no answer would make refinable', () => {
+    writeCard({ status: 'ready' })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.deepEqual(request, { error: 'a refine would not move #7' })
+  })
+})
+
 describe('the planning session', () => {
   it('ends the loop when it marks the card ready', () => {
     writeCard({ questions: ['Which boundary applies?'] })
@@ -170,9 +184,10 @@ describe('the planning session', () => {
 
   it('starts no second pass on a card it left at todo, and says so', () => {
     writeCard()
-    const { runs, stalled } = afterSession('clarify', 1, () => {})
+    const { runs, stalled, stalledWhy } = afterSession('clarify', 1, () => {})
     assert.deepEqual(runs, [])
-    assert.match(stalled ?? '', /#7 is still at todo/)
+    assert.match(stalled ?? '', /#7 is still in To do after planning/)
+    assert.deepEqual(stalledWhy, [{ kind: 'refineStalled', args: { card: '7' } }])
   })
 
   it('waits when QA leaves only revalidated user questions', () => {

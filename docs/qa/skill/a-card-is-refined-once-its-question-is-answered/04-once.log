@@ -1,0 +1,9 @@
+# 界面一直开着，规划结束近四分钟后
+$ akb run list
+✓ 8a230a20  describe-product    done  in 0s
+✓ 9a02b1a1  resolve #2          done  in 0s
+    My answers to these open questions — apply them and leave every unanswered qu…
+✓ 400e4d60  clarify #2          done  in 0s
+    ! #2 is still in To do after planning, and the board won't plan it again on its…
+nothing running.
+[exit 0]

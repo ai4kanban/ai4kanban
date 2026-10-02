@@ -1,0 +1,13 @@
+$ akb raw update-questions 2 --append "[user] Keep the screenshots?" --recommended-option "Yes" --option "No"
+updated #2 questions: appended (1 open)
+[exit 0]
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]
+$ akb raw update-questions 2 --drop 1
+updated #2 questions: dropped 1 (0 open)
+[exit 0]
+# 两分钟后
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"clarify","id":2,"title":"Trim the install guide","refineRound":1},{"action":"describe-product"}]
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]

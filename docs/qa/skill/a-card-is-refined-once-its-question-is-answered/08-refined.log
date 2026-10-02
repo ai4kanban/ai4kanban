@@ -1,0 +1,5 @@
+# 两分钟后
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"clarify","id":2,"title":"Trim the install guide","refineRound":1},{"action":"describe-product"}]
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]

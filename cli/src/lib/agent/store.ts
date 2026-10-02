@@ -104,6 +104,9 @@ export interface Store {
    *  A change is claimed once, by the first close that sees it — see `claimChanges` in
    *  agent/refine.ts, which is the only thing that reads or writes this. */
   marks: Record<string, string>
+  /** The cards a refine has been tried on and that are still refinable (#1366), so the board
+   *  refines each one on its own once. Absent until the scheduler's first pass writes it. */
+  refined?: number[]
 }
 
 /** Everything the record holds, newest last. Reads only — no lock, because a half-written
@@ -121,6 +124,7 @@ export function readStore(): Store {
     finished?: unknown
     deliveries?: unknown
     marks?: unknown
+    refined?: unknown
   }
   // `live`/`finished` is the shape the board UI's own registry wrote before the record
   // became everyone's. Read so an upgrade mid-run keeps its history.
@@ -215,7 +219,8 @@ export function readStore(): Store {
     })
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
-  return { runs, deliveries: readDeliveryRows(box?.deliveries), marks: readMarks(box?.marks) }
+  const refined = readRefined(box?.refined)
+  return { runs, deliveries: readDeliveryRows(box?.deliveries), marks: readMarks(box?.marks), ...(refined ? { refined } : {}) }
 }
 
 const strings = (raw: unknown): string[] | undefined =>
@@ -278,6 +283,18 @@ function readMarks(raw: unknown): Record<string, string> {
     if (typeof mark === 'string' && mark) marks[id] = mark
   }
   return marks
+}
+
+// Absent is not empty (#1366): a record with no list is one the scheduler has yet to seed.
+function readRefined(raw: unknown): number[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  return [...new Set(raw.filter((id): id is number => Number.isInteger(id) && id > 0))]
+}
+
+/** A refine is starting on this card (#1366), so the board will not start one itself. A
+ *  list not yet seeded is left alone: the seeding pass takes every refinable card anyway. */
+export function noteRefineTried(store: Store, cardId: number): void {
+  if (store.refined && !store.refined.includes(cardId)) store.refined.push(cardId)
 }
 
 /** Every run the record holds, newest last. */
@@ -749,6 +766,7 @@ function writeStore(store: Store): void {
     runs: prune(store.runs, deliveries),
     deliveries,
     marks: store.marks,
+    ...(store.refined ? { refined: store.refined } : {}),
   }
   fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
   const tmp = `${SESSIONS}.tmp`

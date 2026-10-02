@@ -1,7 +1,8 @@
 // ---- what the board should start on its own --------------------------------
 //
 // The jobs that need no user at all: the cards somebody scheduled, whose last blocker has
-// now left the board, the recurring cards whose cadence has elapsed, the day's review of
+// now left the board, the cards a refine would move and none has been tried on, the recurring
+// cards whose cadence has elapsed, the day's review of
 // what the conversations settled, the review of the dismissal reasons, the product
 // description once new commits land, the daily prune of
 // what departed cards left in .akb, and the memory pruner's own cadence.
@@ -10,14 +11,16 @@
 // driven from a window and a board driven from anywhere else pick the same cards in the same
 // order.
 //
-// Refining is NOT here. Nothing hunts the backlog for cards to refine: a refine follows the
-// run that touched the card, started by that run's own watcher (`agent/follow.ts`). A
-// scheduled run therefore never queues behind one — the two are started by different things
-// entirely, and a refine in flight can't hold back a card whose blocker just cleared.
+// Refining is here once per card (#1366): a card that becomes refinable with nothing coming
+// for it — its last `[user]` question answered, say — is started by `dueRefine`. The refine
+// that follows a run is still that run's own watcher's (`agent/follow.ts`).
 //
 // Nothing here reads a clock the caller owns, and one thing here writes: taking the mark off
 // a scheduled card, which has to happen in the same pass that hands its run back (see
-// `dueScheduled`).
+// `dueScheduled`) — and the list of cards a refine has been tried on (`dueRefine`).
+
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { formatDay, formatStamp, nextDue, parseStamp } from '../cadence'
 import {
@@ -38,9 +41,11 @@ import { proRefusal } from '../agent/start'
 import { proAccess, type ProAccess } from '../cloud/pro'
 import { pruneLeftovers } from '../leftovers'
 import { listRuns } from '../agent/sessions'
+import { noteRefineTried, withStore } from '../agent/store'
 import type { AgentRequest, RunView } from '../agent/types'
+import { TODO } from '../paths'
 import { allCards } from './read'
-import { byDispatchOrder, scheduleWouldDoNothing } from './rules'
+import { byDispatchOrder, canRefine, scheduleWouldDoNothing } from './rules'
 import type { Card } from './types'
 
 /** How the timer takes a card's mark off. Handed in rather than reached for, because the
@@ -212,6 +217,59 @@ async function dueScheduled(
   return request
 }
 
+// How long a card's file has to have been left alone before the board refines it (#1366), so
+// it never gets in ahead of a session still writing the card, or of an edit by hand.
+const SETTLED_MS = 2 * 60_000
+
+const settled = (card: Card, now: number): boolean => {
+  try {
+    return now - fs.statSync(path.join(TODO, card.relPath)).mtimeMs >= SETTLED_MS
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The one card to refine without being asked (#1366): refinable, unblocked, unscheduled, not
+ * busy, left alone for two minutes — and never refined before in the state it is in.
+ *
+ * "Never before" is a list in the run record. Every refine that starts goes on it, however it
+ * started, and a card comes off the moment it stops being refinable. So a card that returns
+ * to refinable is taken once more, and one whose refine failed or settled nothing is not: it
+ * never left.
+ *
+ * The first pass on a board only writes the list, with every card refinable right then on it:
+ * a backlog that was there before this rule is the user's to refine.
+ *
+ * A card whose Pro workflow this account cannot run is passed over and not listed, the same
+ * as a scheduled one.
+ */
+async function dueRefine(cards: Card[], busy: Set<number>, ask: () => Promise<ProAccess>): Promise<AgentRequest | null> {
+  const refinable = cards.filter(canRefine)
+  const ids = new Set(refinable.map((c) => c.id))
+  const tried = withStore((store) => {
+    if (!store.refined) {
+      store.refined = [...ids].sort((a, b) => a - b)
+      return null
+    }
+    store.refined = store.refined.filter((id) => ids.has(id))
+    return new Set(store.refined)
+  })
+  if (!tried) return null
+  const now = Date.now()
+  for (const card of refinable.sort(byDispatchOrder)) {
+    if (tried.has(card.id) || busy.has(card.id) || card.schedule || card.openBlockers.length > 0) continue
+    if (!settled(card, now)) continue
+    const request: AgentRequest = { action: 'clarify', id: card.id, title: card.title, refineRound: 1 }
+    if (await proRefusal(request, ask)) continue
+    // Listed as it is handed back, like a schedule's mark: a start refused after this must
+    // not come round again every tick.
+    withStore((store) => noteRefineTried(store, card.id))
+    return request
+  }
+  return null
+}
+
 /**
  * The runs the board would start on its own right now, in the order to start them.
  *
@@ -260,6 +318,16 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
   if (scheduled) {
     work.push(scheduled)
     if (scheduled.id !== undefined) busy.add(scheduled.id)
+  }
+
+  try {
+    const refine = await dueRefine(cards, busy, ask)
+    if (refine) {
+      work.push(refine)
+      busy.add(refine.id!)
+    }
+  } catch {
+    // The record would not take the write. Nothing is listed, and the next tick tries again.
   }
 
   if (!runs.some((r) => r.status === 'running' && r.action === 'run')) {

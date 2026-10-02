@@ -1,0 +1,4 @@
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]

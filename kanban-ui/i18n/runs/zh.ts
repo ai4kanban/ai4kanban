@@ -140,6 +140,8 @@ const zh: RunsCopy = {
       unsent: (why) => `这次运行对看板的改动没能同步到工作区（${why}）。它们只在本机，下次同步时会被覆盖——请先复制出需要保留的内容。`,
       qaUnfinished: (card) =>
         `质检在 ${card} 上留下了未标明归属的问题，因此没有完成。${card} 仍在待办——请重新规划，或手动标记为就绪。`,
+      refineStalled: (card) =>
+        `${card} 规划后仍在待办，看板不会再自动规划它——请重新规划，或手动标记为就绪。`,
       stageShort: (stage, card, agents) =>
         `${card} 的${stage}阶段未完成：${agents} 必须在这里写入，但没有写。请手动运行、从该阶段去掉这项要求，或自己补写这部分。`,
       specRefused: (reasons) => `规格 Agent 未启动：${reasons}`,

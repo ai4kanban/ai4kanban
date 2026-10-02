@@ -1,0 +1,5 @@
+$ akb raw update-questions 2 --drop 1
+updated #2 questions: dropped 1 (0 open)
+[exit 0]
+$ node tick.mjs cli/dist/kanban.mjs
+[{"action":"describe-product"}]
