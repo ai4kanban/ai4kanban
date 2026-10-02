@@ -95,6 +95,7 @@ function toView(
     input: run.input,
     harness: run.harness,
     agent: run.agent,
+    workflow: run.action === "scheduled" ? run.workflow : undefined,
     canResume: run.canResume,
     canRetry: run.canRetry,
     cardOffBoard: run.cardOffBoard,

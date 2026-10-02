@@ -221,6 +221,10 @@ export {
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
+  // A workflow's scheduled agents (#1401): switch one, set how often it runs, what it is asked.
+  setWorkflowScheduledCadence,
+  setWorkflowScheduledExtra,
+  switchWorkflowScheduled,
   setWorkflowWorktree,
   workflowOwnAgents,
   workflowViews,

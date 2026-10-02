@@ -1,0 +1,37 @@
+$ akb workflow schedule coding --run changelog-keeper
+Coding: started changelog-keeper — run ef77a9e7
+
+$ akb run list
+✓ ef77a9e7  scheduled changelog-keeper  done  delivery rtj2pc5z  in 0s
+nothing running.
+
+$ akb run log
+✓ ef77a9e7  scheduled changelog-keeper  done  delivery rtj2pc5z  in 0s
+
+I was told: You are the `changelog-keeper` agent of the `Coding` workflow. The board is at `<project>/docs/kanban`. Nobody is watching: never ask.
+
+$ akb raw list --archived --since last-run
+this is the first run, so no cards are listed.
+
+Added one line to CHANGELOG.md.
+
+$ git log --format='%h %s' -2
+cf7d5f1 changelog-keeper: scheduled run (Coding)
+fa8f3b1 board
+
+$ git show --stat --format='%s%n%n%b' HEAD
+changelog-keeper: scheduled run (Coding)
+
+delivery rtj2pc5z
+
+
+ CHANGELOG.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+$ git worktree list
+<project>  cf7d5f1 [master]
+
+$ akb workflow schedule coding
+Coding · scheduled
+  changelog-keeper  every 1m · last run 2026-10-02 16:23 · next after 2026-10-02 16:24
+

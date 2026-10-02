@@ -298,9 +298,9 @@ describe('an agent nobody can read', () => {
       assert.ok('problem' in got, akb.join(' + '))
       return got.problem
     }
-    const FOUR = /one of `lead: plan`, `lead: execute`, `hook: plan`, `hook: execute`$/
+    const LINES = /one of `lead: plan`, `lead: execute`, `hook: plan`, `hook: execute`, `hook: schedule`$/
 
-    it('reads each of the four lines', () => {
+    it('reads each of the stage lines', () => {
       for (const [line, kind, stage] of [
         ['lead: plan', 'lead', 'plan'],
         ['lead: execute', 'lead', 'execute'],
@@ -316,8 +316,8 @@ describe('an agent nobody can read', () => {
     it('refuses both keys, neither, and a value that is no stage', () => {
       assert.match(problem('lead: plan', 'hook: plan'), /both `akb.lead` and `akb.hook` — keep one/)
       assert.match(problem('output: human'), /neither `akb.lead` nor `akb.hook`/)
-      assert.match(problem('output: human'), FOUR)
-      assert.match(problem('hook: build'), /`akb.hook: build` — it is `plan` or `execute`/)
+      assert.match(problem('output: human'), LINES)
+      assert.match(problem('hook: build'), /`akb.hook: build` — it is `plan` or `execute` or `schedule`/)
       assert.match(problem('lead: yes'), /`akb.lead: yes` — it is `plan` or `execute`/)
     })
 
@@ -339,18 +339,18 @@ describe('an agent nobody can read', () => {
       }
     })
 
-    it('lists the four lines when the old keys never named a usable agent', () => {
+    it('lists every line when the old keys never named a usable agent', () => {
       for (const old of [['kind: lead'], ['lead: true'], ['lead: false'], ['stage: build'], ['kind: review'], ['stage: plan', 'lead: plan']]) {
-        assert.match(problem(...old), FOUR, old.join(' + '))
+        assert.match(problem(...old), LINES, old.join(' + '))
         assert.match(problem(...old), /no longer reads/, old.join(' + '))
       }
     })
 
     it('keeps the retired values their own sentences', () => {
       assert.match(problem('stage: review', 'lead: true'), /builds are no longer reviewed/)
-      assert.match(problem('stage: review'), FOUR)
+      assert.match(problem('stage: review'), LINES)
       assert.match(problem('kind: write'), /the marketing board it wrote for is retired/)
-      assert.match(problem('kind: write'), FOUR)
+      assert.match(problem('kind: write'), LINES)
     })
   })
 

@@ -263,6 +263,8 @@ export interface RosterEntry {
   /** The workflow stage this agent can be assigned to (#715), or absent on a board agent
    *  that no workflow assigns. */
   stage?: WorkflowStage
+  /** Whether it runs on its workflow's cadence instead of joining a stage (#1401). */
+  schedule?: boolean
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. */
   kind: 'role' | AgentKind
   /** Whether it may lead its stage (#846) — a role with a stage always may. */
@@ -310,10 +312,11 @@ export function agentRoster(): RosterEntry[] {
       kind: agent.kind,
       canLead: agent.canLead,
       ...(agent.stage ? { stage: agent.stage } : {}),
+      ...(agent.schedule ? { schedule: true } : {}),
       builtIn: agent.builtIn,
       // A stage is the switch (#749): assign it to one in the Workflows pane, or leave it
       // unassigned. Only an agent no workflow can reach keeps one of its own.
-      switchable: !agent.stage,
+      switchable: !agent.stage && !agent.schedule,
       flows: [],
       memory: agentMemoryFiles(agent.name).map(rel),
       ownMemory: [...memoryNamesOf(agent.name)],

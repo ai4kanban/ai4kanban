@@ -11,7 +11,8 @@ icon: "layers"
 Every flow the board starts is run by a named **agent**, and each one has a page: its rule, what
 it remembers, its settings, and — for one you added — its own instructions. Where you reach that
 page says who assigns the agent. **Configuration → Workflows** picks a workflow and shows its whole
-flow top to bottom: Plan, then Execute, each with its lead and the hooks that run after it. **Configuration → Board**
+flow top to bottom: Plan, then Execute, each with its lead and the hooks that run after it, and
+under them the agents it runs on a schedule. **Configuration → Board**
 lists the agents the board runs itself, which no workflow assigns and every workflow gets.
 
 Product video, Slide deck, Carousel post and Blog post, and copies of them, need a Pro plan: sign in under
@@ -268,21 +269,52 @@ That guide is the one place the file is written from — its name, its descripti
 it and the translations it carries — so what comes back is an agent this board accepts.
 `akb spec` lists the agents this board can use and, under them, anything wrong with one it found.
 
-The **+** beside **After planning** or **After executing** in Configuration → Workflows starts one
-from the board instead: it asks for a name, writes the folder under `docs/kanban/agents/`, adds it
-as a hook of that stage, and opens the new agent's page with its instructions box focused. A name a role or a
+The **+** beside **After planning**, **After executing** or under **Scheduled** in Configuration →
+Workflows starts one from the board instead: it asks for a name, writes the folder under
+`docs/kanban/agents/`, adds it there, and opens the new agent's page with its instructions box focused. A name a role or a
 bundled agent already answers to is refused in place. The whole file is the box on that page,
 frontmatter included, and a save the board would refuse
 keeps your text and says what is wrong rather than leaving an agent it cannot read — the pane and
 the file are one thing.
 
-A new agent is a **hook**: it runs after its stage.
+A new agent is a **hook**: it runs after its stage, or by itself on a schedule.
 
 - **After planning**: the lead calls it in when its description applies to the card.
 - **After executing**: it runs once after every build, in the order listed, in the folder holding
   the build. Its changes are committed with the delivery, and the work is delivered only when the
   last hook has finished. A hook that fails or is stopped stops the delivery; **Resume** on its
   run, or `akb delivery resume <id>`, carries on from that hook.
+- **Scheduled** (`akb.hook: schedule`): it runs by itself, once per schedule, on no card — see
+  below.
+
+## Run an agent on a schedule
+
+A workflow can carry agents that run by themselves: a nightly audit, a weekly clean-up. Each sits
+under **Scheduled** in Configuration → Workflows, below the two stages, and belongs to that
+workflow alone.
+
+- **Set it on the agent's page.** The chip beside its name picks how often — every 6 hours, every
+  day, every 7 days, or your own — and **Disable** is the last row of the same list. Picking a
+  schedule again enables it. **Run now** starts one run whether or not it is due.
+- **It starts every time its schedule comes round**, whether or not there is anything to do. A
+  quiet day still costs one short run.
+- **It never runs the moment you enable it.** The first run comes one schedule later; the page
+  shows the last run and when the next may start.
+- **What it changes is committed like a build.** With **Automatic Git commits** on, the run works
+  on its own branch and lands on your current branch; a run that changed nothing commits nothing.
+  With it off, the changes stay uncommitted in your project. A workflow that makes files commits
+  nothing.
+- **Nobody answers it.** A scheduled agent is not a card: it has no open questions, and what it
+  does with something it cannot settle is for its own instructions to say.
+- **A failed run waits.** Only a run that finished moves the last-run time; a failed or stopped one
+  is tried again one schedule later, or **Resume** it from **Runs**, where each run is named by its
+  workflow and agent.
+- **It can ask what finished since last time.** Inside its run,
+  `akb raw list --archived --since last-run` lists the cards that landed since its last finished
+  run began — none on the first run.
+
+From a terminal: `akb workflow schedule <id> --on <agent> --cadence 1d`, `--off <agent>`, or
+`--run <agent>`; `akb workflow list` shows each one's schedule and last run.
 
 It can be written to **lead** a plan or execute stage instead, and one that can lead is only
 offered as a workflow's lead, never as a hook. Of the ones the board ships, the Software planner,

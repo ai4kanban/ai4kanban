@@ -39,6 +39,7 @@ import {
   cmdWorkflowList,
   cmdWorkflowNew,
   cmdWorkflowRename,
+  cmdWorkflowSchedule,
   cmdWorkflowStage,
   cmdWorkflowWorktree,
   type WorkflowOptions,
@@ -507,6 +508,24 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, id: string) {
       const flags = this.opts() as WorkflowOptions
       await onBoard(this, cli, () => cmdWorkflowStage(id, flags))
+    })
+
+  flowWord('schedule')
+    .argument('<id>', 'the workflow, from `workflow list`')
+    .option('--on <agent>', "switch one of this workflow's scheduled agents on")
+    .option('--off <agent>', 'switch one off; it stays in the workflow')
+    .option('--cadence <cadence>', 'how often the --on agent runs, e.g. 6h, 1d, 1d at 09:30 (default 1d)')
+    .option('--extra <text>', 'what the --on or --off agent is asked for here, on top of its own instructions')
+    .option('--run <agent>', 'start one run of it now, due or not')
+    .summary("switch a workflow's scheduled agents, set how often each runs, or run one now")
+    .description(
+      'With no change asked for, it lists them with their cadence and last run. A scheduled agent declares ' +
+        '`akb.hook: schedule` and runs by itself on no card, once per cadence; what it changes is committed ' +
+        'and landed like a build. One switched on first runs a whole cadence later.',
+    )
+    .action(async function (this: Command, id: string) {
+      const flags = this.opts() as WorkflowOptions
+      await onBoard(this, cli, () => cmdWorkflowSchedule(id, flags))
     })
 
   // ---- the flows, as text ---------------------------------------------------

@@ -1,0 +1,8 @@
+$ node tick.mjs <cli>/dist/kanban.mjs
+[{"action":"describe-product"}]
+
+$ sleep 65
+
+$ node tick.mjs <cli>/dist/kanban.mjs
+[{"action":"describe-product"},{"action":"scheduled","workflow":"coding","specAgent":"changelog-keeper"}]
+

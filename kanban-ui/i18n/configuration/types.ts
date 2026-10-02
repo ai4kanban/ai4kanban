@@ -95,6 +95,19 @@ export type ConfigurationCopy = {
     extra: string;
     extraPlaceholder: string;
     extraScope: (flow: string, stage: string) => string;
+    /** The frame under the stages (#1401): the agents this workflow runs on a cadence. Its
+     *  name, the rule over its rows, the plus on it, and what an empty one says. */
+    scheduled: string;
+    scheduledWhen: string;
+    addScheduled: string;
+    scheduledEmpty: string;
+    /** On a scheduled agent's page: the chip of one switched off, the menu's last row, and
+     *  the line of run times under its description. `next` is empty on one switched off. */
+    scheduledOff: string;
+    ranAndNext: (last: string, next: string) => string;
+    neverRan: (next: string) => string;
+    /** Its cadence chip, the list it opens and Run now. */
+    cadence: CadenceCopy;
     /** Inside the lead picker: the search box and what a list with nothing in it says. */
     find: string;
     noCandidates: string;

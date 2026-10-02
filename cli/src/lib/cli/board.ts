@@ -391,7 +391,11 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('-m, --module <name>', 'only the cards tagged with that module, validated against modules.md')
     .option('--stale', 'only the cards untouched past the threshold, stalest first, with the days each has sat')
     .option('--archived', 'the cards that landed and were archived, oldest first, each with its landed commit')
-    .option('--since <time>', 'with --archived: only landings after this time, written "YYYY-MM-DD HH:MM"')
+    .option(
+      '--since <time>',
+      'with --archived: only landings after this time, written "YYYY-MM-DD HH:MM"; inside a scheduled ' +
+        "agent's run, `last-run` is when its last run began",
+    )
     .option('--workflow <id>', 'with --archived: only the cards of that workflow')
     .action(async function (this: Command) {
       await dispatch('list', this, [], this.opts(), cli)

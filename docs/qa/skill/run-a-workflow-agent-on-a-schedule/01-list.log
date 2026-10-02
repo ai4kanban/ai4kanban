@@ -1,0 +1,11 @@
+$ akb workflow schedule coding
+Coding · scheduled
+  changelog-keeper  off · never run
+
+$ akb workflow list   # the Coding rows
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder  → hooks: qa-manager
+  scheduled  changelog-keeper  off · never run
+

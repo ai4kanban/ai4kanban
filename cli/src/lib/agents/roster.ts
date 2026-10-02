@@ -15,10 +15,10 @@ import path from 'node:path'
 import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
-import { forgetWorkflowAgent, settleWorkflows, type WorkflowStage } from '../agent/workflows'
+import { forgetWorkflowAgent, settleWorkflows } from '../agent/workflows'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
 import { configBlock, forgetSpecAgent, specAgentEntries, writeConfig } from '../agent/settings'
-import type { AgentView } from '../agent/types'
+import type { AgentSlot, AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { signalsAccess } from '../signals/access'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
@@ -63,6 +63,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       gloss: entry.gloss,
       kind: entry.kind,
       ...(entry.stage ? { stage: entry.stage } : {}),
+      ...(entry.schedule ? { schedule: true } : {}),
       builtIn: entry.builtIn,
       // No role has a switch (#1208), and no workflow agent (#749) — only a specialist no
       // workflow reaches. An entry with no switch is on, whatever an older key still says.
@@ -93,7 +94,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
  *
  *  The agent is created unwritten on purpose: its `description` says so, so a
  *  planning flow reading the roster before the user has filled it in never picks it. */
-export function createAgent(asked: string, stage?: WorkflowStage): WriteResult & { agent?: string } {
+export function createAgent(asked: string, stage?: AgentSlot): WriteResult & { agent?: string } {
   const name = String(asked ?? '').trim().toLowerCase()
   if (!name) return { ok: false, error: 'an agent needs a name' }
   if (!AGENT_NAME.test(name)) {
@@ -129,7 +130,7 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
 // Every other key is one line pointing at `akb guide write-agent` (#935): the constraints —
 // what a `reference` has to be — belong in the guide, not
 // in a template nobody has read yet.
-function agentTemplate(name: string, stage?: WorkflowStage): string {
+function agentTemplate(name: string, stage?: AgentSlot): string {
   return [
     '---',
     `name: ${name}`,

@@ -79,6 +79,10 @@ export type AgentAction =
    *  by `specAgent`, working in the build's own folder. The board starts each in turn once the
    *  build is committed, and the delivery goes on only when the last has finished. */
   | 'hook'
+  /** One pass of a workflow's scheduled agent (#1401): named by `specAgent` and `workflow`, on
+   *  no card. The board starts it when its cadence comes round; it is a card-less delivery of
+   *  its own, so what it changes is committed and landed like a build. */
+  | 'scheduled'
   /** Squeeze the memory back down to what helps planning (#514) — the memory pruner's one
    *  flow. It names no card: the memory set is the whole of what it works on, so it is
    *  started from the agent's own page or by the cadence that page carries. It raises
@@ -110,9 +114,10 @@ export type AgentAction =
   /** Retired (#1334): the sweeper is gone. Kept for the runs recorded. */
   | 'unstick'
 
-/** The actions a hook's agent runs as itself: one section of a card (`spec`), or the work
- *  after a build (`hook`). Each is named by an agent rather than run by a role. */
-export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'hook'])
+/** The actions a hook's agent runs as itself: one section of a card (`spec`), the work
+ *  after a build (`hook`), or a pass on its cadence (`scheduled`). Each is named by an agent
+ *  rather than run by a role. */
+export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'hook', 'scheduled'])
 
 /** The actions that do not hold the card they name: a spec agent, which works beside the loop
  *  that asked for it, and a reflection whose card has left the board altogether (#534).
@@ -235,7 +240,7 @@ export const isRetired = (action: AgentAction): action is RetiredAction => RETIR
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'spec' | 'hook'>
+  | Exclude<StartableAction, 'clarify' | 'spec' | 'hook' | 'scheduled'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -365,6 +370,13 @@ export type RunRefusalKind =
   | 'agentLeads'
   | 'agentOtherWorkflow'
   | 'agentNotHelping'
+  | 'agentNotScheduled'
+  /** A scheduled agent's pass that cannot start (#1401): switched off, already running, or its
+   *  last pass still landing. */
+  | 'scheduledOff'
+  | 'scheduledRunning'
+  | 'scheduledLanding'
+  | 'agentNotSchedule'
   | 'minutes'
   | 'fileParse'
   | 'fileWrite'
@@ -878,6 +890,14 @@ export interface DeliveryRecord {
    *  Absent on a delivery started before workflows existed, whose runs read the board — which
    *  is exactly what they always did. */
   workflow?: FrozenWorkflow
+  /** On a scheduled agent's pass (#1401): whose it is. It holds no card and writes none. */
+  scheduled?: ScheduledPass
+}
+
+/** Which scheduled agent a pass is: the workflow's id and the agent's name. */
+export interface ScheduledPass {
+  workflow: string
+  agent: string
 }
 
 /** A delivery's own copy of the workflow it builds under (#715). */
@@ -1156,6 +1176,8 @@ export type PlanAnswer = 'plan' | 'build'
 /** What a build with no card was handed, and everything its delivery is opened from: the
  *  sentence **Start now** typed (#428), or the plan the handoff was answered on (#481). */
 export interface DirectBuild {
+  /** On a scheduled agent's pass (#1401): whose it is, in place of a requirement. */
+  scheduled?: ScheduledPass
   /** The delivery's title — the sentence itself, or the plan's own title. */
   title: string
   /** And its frozen `approved` requirements — the same sentence, or the plan's words. */
@@ -1687,6 +1709,8 @@ export interface AgentView {
    *  the discussion, the pruner — which no workflow assigns and every workflow gets. Spelled
    *  out for the same reason `kind` is. */
   stage?: WorkflowStage
+  /** Whether it runs on its workflow's cadence instead of joining a stage (#1401). */
+  schedule?: boolean
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** Whether it may be switched off. A role runs the board's own flows, so it never is, and
@@ -1818,6 +1842,32 @@ export interface WorkflowHelper {
   off?: boolean
 }
 
+/** Where a new agent starts: a stage's hook, or one that runs on a cadence (#1401). */
+export type AgentSlot = WorkflowStage | 'schedule'
+
+/** The cadence a scheduled agent runs on until somebody sets one. */
+export const SCHEDULED_CADENCE = '1d'
+
+/** One scheduled agent of one workflow (#1401): it runs by itself on `cadence`, on no card. */
+export interface WorkflowScheduled extends WorkflowHelper {
+  /** How often, in the recurring cards' own grammar (`../cadence.ts`). */
+  cadence: string
+  /** When its last pass that PASSED began, as a minute stamp, or empty for "never run". */
+  lastRun: string
+  /** Where a cadence that never ran counts from — written by the scheduler's first look. */
+  since?: string
+}
+
+/** The same, as a screen draws it. */
+export interface WorkflowScheduledView extends WorkflowScheduled {
+  /** The roster's own lines for it. */
+  title: string
+  gloss: string
+  builtIn: boolean
+  /** The stamp its next pass may start after, or empty when off or never looked at. */
+  nextRun: string
+}
+
 /** One agent as a workflow picker offers it. The two lines are the roster's own, so the
  *  picker and the Agents pane never name the same agent differently. */
 export interface WorkflowCandidate {
@@ -1863,6 +1913,8 @@ export interface WorkflowView {
    *  told yet (#945). The pane says what happened, and **Got it** clears it. */
   retiredAssignment: boolean
   stages: WorkflowStageView[]
+  /** Its scheduled agents (#1401), the disabled ones included. Absent from older rules. */
+  scheduled?: WorkflowScheduledView[]
   /** Why it cannot start a card, one line each. Empty when all three stages have a lead. */
   problems: string[]
 }

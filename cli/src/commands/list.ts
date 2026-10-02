@@ -21,7 +21,8 @@ import { parseFrontmatter } from '../lib/frontmatter'
 import { walkMd, walkDirs, idPrefix, boardCardIds } from '../lib/cards'
 import { formatStamp, parseStamp } from '../lib/cadence'
 import { landedDeliveries } from '../lib/agent/deliveries'
-import { knownWorkflow } from '../lib/agent/workflows'
+import { knownWorkflow, scheduledAgent } from '../lib/agent/workflows'
+import { insideScheduledPass } from '../lib/agent/scheduled'
 import { cardAges, staleAfter, type Age } from '../lib/card-age'
 import { heldBy, type Hold } from '../lib/card-holds'
 import { openOf } from '../lib/view/rules'
@@ -157,8 +158,22 @@ function archivedFiles(): Map<number, string> {
   return files
 }
 
+// What `--since` takes in place of a time inside a scheduled agent's pass (#1401).
+const LAST_RUN = 'last-run'
+
 function cmdArchived(opts: ListOptions): MoveResult {
   let since: Date | null = null
+  // Inside a scheduled agent's pass (#1401), `last-run` is when its last pass that passed began.
+  if (opts.since?.trim() === LAST_RUN) {
+    const pass = insideScheduledPass()
+    if (!pass) die(`--since ${LAST_RUN} only works inside a scheduled agent's run. Elsewhere, write the time as "YYYY-MM-DD HH:MM".`)
+    const last = scheduledAgent(pass!.workflow, pass!.agent)?.lastRun ?? ''
+    if (!parseStamp(last)) {
+      say('this is the first run, so no cards are listed.')
+      return { cards: [], since: null, workflow: opts.workflow ?? null, firstRun: true }
+    }
+    opts = { ...opts, since: last }
+  }
   if (opts.since !== undefined) {
     since = parseStamp(opts.since)
     if (!since) die(`cannot read --since "${opts.since}". Write it as "YYYY-MM-DD HH:MM", e.g. --since "2026-08-02 14:31".`)

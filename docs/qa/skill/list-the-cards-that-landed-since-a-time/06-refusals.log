@@ -6,6 +6,10 @@ $ akb raw list --archived --since 2026-09-30
 akb raw: cannot read --since "2026-09-30". Write it as "YYYY-MM-DD HH:MM", e.g. --since "2026-08-02 14:31".
 [exit 1]
 
+$ akb raw list --archived --since last-run
+akb raw: --since last-run only works inside a scheduled agent's run. Elsewhere, write the time as "YYYY-MM-DD HH:MM".
+[exit 1]
+
 $ akb raw list --archived --stale
 akb raw: --archived and --stale answer different questions — pass one of them.
 [exit 1]
@@ -21,3 +25,4 @@ akb raw: --since only applies to --archived.
 $ akb raw list --workflow coding
 akb raw: --workflow only applies to --archived.
 [exit 1]
+

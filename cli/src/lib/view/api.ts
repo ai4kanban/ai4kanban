@@ -29,7 +29,7 @@ import {
   type Revision,
 } from '../board'
 import type { DeliveryCarryOn } from '../agent/types'
-import type { WorkflowStage } from '../agent/workflows'
+import type { AgentSlot } from '../agent/types'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
 import type { CardPatch, SaveProjectResult, WriteResult } from './types'
 
@@ -204,7 +204,7 @@ export async function setAgentRule(agent: string, text: string, opts?: WriteOpti
  *  already a folder is refused before anything is written. */
 export async function createAgent(
   name: string,
-  stage?: WorkflowStage,
+  stage?: AgentSlot,
   opts?: WriteOptions,
 ): Promise<WriteResult & { agent?: string }> {
   return flat<{ agent: string }>(await envelopeFor({ board: true }, opts, (env) => board().createAgent(name, stage, env)))

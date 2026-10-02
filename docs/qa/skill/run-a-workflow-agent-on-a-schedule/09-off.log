@@ -1,0 +1,23 @@
+$ akb workflow schedule coding --off changelog-keeper
+Coding · scheduled: changelog-keeper off
+
+$ akb workflow schedule coding
+Coding · scheduled
+  changelog-keeper  off · last run 2026-10-02 16:28
+
+$ akb workflow schedule coding --run changelog-keeper
+akb: `changelog-keeper` is switched off in "Coding"
+(exit 1)
+
+$ sleep 65
+
+$ node tick.mjs <cli>/dist/kanban.mjs
+[{"action":"describe-product"}]
+
+$ akb workflow schedule coding --on changelog-keeper
+Coding · scheduled: changelog-keeper on
+
+$ akb workflow schedule coding
+Coding · scheduled
+  changelog-keeper  every 1m · last run 2026-10-02 16:28 · next after 2026-10-02 16:30
+

@@ -12,7 +12,8 @@ The box under this line is one: write in it as you read.
 
 - **description** — when a card needs this agent, written for the flow that picks it.
 - **lead** — `plan` or `execute`: the stage it runs. Write this or **hook**, never both.
-- **hook** — `plan` or `execute`: the stage it joins.
+- **hook** — `plan` or `execute`: the stage it joins; `schedule`: it runs by itself on
+  its workflow's cadence.
 - **output** — `agent` (default) or `human`: which half of the card its section lands in.
   A hook's is a setting from here on; a lead's stays what its file says.
 - **i18n** — what its lines say in another language. Drawn here only: every run is given

@@ -1,0 +1,14 @@
+$ akb workflow schedule coding --on changelog-keeper --cadence 1m
+Coding · scheduled: changelog-keeper on, changelog-keeper: every 1m
+
+$ akb workflow schedule coding
+Coding · scheduled
+  changelog-keeper  every 1m · never run · next after 2026-10-02 16:23
+
+$ akb workflow list   # the Coding rows
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder  → hooks: qa-manager
+  scheduled  changelog-keeper  every 1m · never run · next after 2026-10-02 16:23
+

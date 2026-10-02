@@ -1,0 +1,29 @@
+$ akb workflow schedule --help
+
+Usage: akb workflow schedule [options] <id>
+
+With no change asked for, it lists them with their cadence and last run. A scheduled agent declares
+`akb.hook: schedule` and runs by itself on no card, once per cadence; what it changes is committed
+and landed like a build. One switched on first runs a whole cadence later.
+
+Arguments:
+  id                   the workflow, from `workflow list`
+
+Options:
+  --board <dir>        the board folder to work on (or AI4KANBAN_BOARD); beats --dir
+  --dir <path>         the project to work on (default: the nearest board at or above this folder)
+  --json               answer as one JSON object instead of prose
+  --on <agent>         switch one of this workflow's scheduled agents on
+  --off <agent>        switch one off; it stays in the workflow
+  --cadence <cadence>  how often the --on agent runs, e.g. 6h, 1d, 1d at 09:30 (default 1d)
+  --extra <text>       what the --on or --off agent is asked for here, on top of its own
+                       instructions
+  --run <agent>        start one run of it now, due or not
+  -h, --help           display help for command
+
+$ akb raw list --help   # the --since row
+  --since <time>       with --archived: only landings after this time, written "YYYY-MM-DD HH:MM";
+                       inside a scheduled agent's run, `last-run` is when its last run began
+  --workflow <id>      with --archived: only the cards of that workflow
+  -h, --help           display help for command
+

@@ -25,7 +25,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
-import { liveStage, workflowById, workflowFor } from './workflows'
+import { liveStage, scheduledAgent, workflowById, workflowFor } from './workflows'
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
@@ -107,6 +107,7 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'spec',
   'conflict',
   'hook',
+  'scheduled',
 ])
 
 // What opens a restart. Everything the resume prompt leans on is gone, so the whole ask
@@ -175,7 +176,7 @@ function cardFileOf(id: number | undefined): string {
 }
 
 function realPaths(text: string, req: AgentRequest): string {
-  if (req.action !== 'hook') return text
+  if (req.action !== 'hook' && req.action !== 'scheduled') return text
   return text.split(BOARD_FOLDER).join(KANBAN).split(CARD_FILE).join(cardFileOf(req.id))
 }
 
@@ -643,6 +644,29 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         helperExtra(req),
+        memory ? `——— what you remember ———\n\n${memory}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    }
+    // A scheduled agent's pass (#1401): who it is, where the board is, and that nobody
+    // answers. When it runs is the board's alone and is never said here.
+    case 'scheduled': {
+      const agent = findSpecAgent(req.specAgent ?? '')
+      const own = agent ? specAgentInstructions(agent) : null
+      if (own) notes.push(...own.notes)
+      const memory = agent ? agentMemoryBlock(agent) : ''
+      const flow = workflowById(req.workflow ?? '')
+      const extra = flow ? scheduledAgent(flow.id, req.specAgent ?? '')?.extra.trim() : ''
+      return [
+        [
+          `You are the \`${req.specAgent}\` agent of the \`${flow?.name ?? req.workflow ?? ''}\` workflow.`,
+          `The board is at \`${BOARD_FOLDER}\`.`,
+          `Nobody is watching: never ask.`,
+        ].join(' '),
+        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
+        own?.files ? `——— your own files ———\n\n${own.files}` : '',
+        extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
       ]
         .filter(Boolean)

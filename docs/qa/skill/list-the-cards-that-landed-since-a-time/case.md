@@ -29,12 +29,12 @@
    一个 JSON 对象，`cards` 里每项有 `id`、`title`、`workflow`、`landedAt`、`commit`、`file`，另有 `since` 和 `workflow`。
    [05-json.log](05-json.log)
 
-6. 依次试写错的用法：`--since yesterday`、`--since 2026-09-30`、`--archived --stale`、`--archived --module skill`、不带 `--archived` 的 `--since` 和 `--workflow`。
-   每条都被拒绝（exit 1），一行说明原因；读不懂的时间会给出 `"YYYY-MM-DD HH:MM"` 的示例。
+6. 依次试写错的用法：`--since yesterday`、`--since 2026-09-30`、`--since last-run`、`--archived --stale`、`--archived --module skill`、不带 `--archived` 的 `--since` 和 `--workflow`。
+   每条都被拒绝（exit 1），一行说明原因；读不懂的时间会给出 `"YYYY-MM-DD HH:MM"` 的示例；`last-run` 的报错说它只在周期 Agent 的运行里可用，别处要写出时间。
    [06-refusals.log](06-refusals.log)
 
 7. 执行 `akb raw list --help`。
-   说明里有一段 `--archived`：回答「这段时间落地了哪些卡」，手动归档、手动提交、只产出文件的卡不在其中；选项里有 `--archived`、`--since`、`--workflow`。
+   说明里有一段 `--archived`：回答「这段时间落地了哪些卡」，手动归档、手动提交、只产出文件的卡不在其中；选项里有 `--archived`、`--since`、`--workflow`，`--since` 的说明里带一句：在周期 Agent 的运行里，`last-run` 是它上一遍开始的时刻。
    [07-help.log](07-help.log)
 
 ## Feedback
@@ -45,6 +45,7 @@
 - **`--workflow` 只认 id**：自建工作流的 id 是 `wf-2` 这种编号，清单里显示的也是它而不是「文档更新」；用名字会被拒绝，好在报错列出了全部 id。
 - **只给日期不行**：`--since 2026-09-30` 被拒绝，必须带上 `HH:MM`；报错里有示例，改起来不费劲，但「上周以来」这种最常见的问法多打了一截。
 - **游标会重复最后一张**：把上次最后一张卡的时间填回去会再看到它一次，要自己去重或加一分钟；这一点只写在卡片里，`--help` 没提。
+- **`last-run` 在终端里试不了**：它只在周期 Agent 的运行里有值，自己在终端敲会被拒绝；报错说清了原因，但想先看一眼「它会列出什么」的人没有办法，只能真跑一遍。
 - **没有路径的卡没说为什么**：#6 那一块只是少了括号，看不出是归档文件被清理了。
 - **提交是完整 40 位**：方便直接 `git show`，但一行很长。
-- **没有跑到的**：落地记录是 `seed.mjs` 写的，没有起真实的 agent 运行让看板自己落地；分组卡（归档为 `root.md`）也没有在这里验证。
+- **没有跑到的**：落地记录是 `seed.mjs` 写的，没有起真实的 agent 运行让看板自己落地；分组卡（归档为 `root.md`）也没有在这里验证；`--since last-run` 在运行里的两种回答在 `run-a-workflow-agent-on-a-schedule` 那个用例里跑。这次只重跑了第 6、7 步。

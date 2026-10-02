@@ -23,7 +23,8 @@ Options:
                        each has sat
   --archived           the cards that landed and were archived, oldest first, each with its landed
                        commit
-  --since <time>       with --archived: only landings after this time, written "YYYY-MM-DD HH:MM"
+  --since <time>       with --archived: only landings after this time, written "YYYY-MM-DD HH:MM";
+                       inside a scheduled agent's run, `last-run` is when its last run began
   --workflow <id>      with --archived: only the cards of that workflow
   -h, --help           display help for command
 [exit 0]

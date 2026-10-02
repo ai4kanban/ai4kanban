@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
-import type { AgentView, SpecAgentView, WorkflowStage, WriteResult } from "./types";
+import type { AgentSlot, AgentView, SpecAgentView, WriteResult } from "./types";
 
 // --- the spec agents (#191, #403, #419) --------------------------------------
 // A spec agent fills one part of a card's spec — the screen it changes, the library it
@@ -89,7 +89,7 @@ export async function setAgentRule(agent: string, text: string): Promise<WriteRe
  *  folder is refused before anything is written. */
 export async function createAgent(
   name: string,
-  stage?: WorkflowStage,
+  stage?: AgentSlot,
 ): Promise<WriteResult & { agent?: string }> {
   const rules = await boardRules();
   if (!rules.createAgent) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };

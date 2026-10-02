@@ -339,7 +339,7 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
   // A workflow agent is switched in its workflow, not here (#749).
-  if (agent.stage) {
+  if (agent.stage || agent.schedule) {
     return {
       ok: false,
       error: `\`${agent.name}\` is a workflow agent, so it has no board switch — it runs when ${SPEC_ASSIGN_HOME}.`,
@@ -420,7 +420,7 @@ function agentList(
   // Only an agent that still HAS a switch can be listed as off (#749). A workflow agent is
   // always listed: whether a card may ask for it is its workflow's answer, not the board's,
   // and this list is printed with no card in hand.
-  const switched = (a: SpecAgent): boolean => !a.stage && !specAgentEnabled(a.name, entries)
+  const switched = (a: SpecAgent): boolean => !a.stage && !a.schedule && !specAgentEnabled(a.name, entries)
   const on = agents.filter((a) => !switched(a))
   const off = agents.filter(switched)
   return [

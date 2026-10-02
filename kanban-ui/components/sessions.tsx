@@ -25,6 +25,7 @@ import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
+import { workflows } from "@/lib/window-state";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
@@ -403,6 +404,24 @@ function SessionDot({ session }: { session: SessionView }) {
 
 // One row of the run list — one job, however many sessions it took (lib/run-flows.ts).
 //
+/** What a scheduled agent's run is named by (#1401): its workflow, then the agent. Empty for
+ *  any other run. */
+function useScheduledName(): (session: SessionView) => string {
+  const read = workflows.use();
+  useEffect(() => {
+    if (!read) void workflows.refresh();
+  }, [read]);
+  // A built-in is named in the reader's own words, as the Workflows pane names it.
+  const builtIn = useCopy().configuration.workflows.builtInNames;
+  const agentName = useAgentName();
+  return (session) => {
+    if (session.action !== "scheduled") return "";
+    const flow = read?.workflows?.find((f) => f.id === session.workflow);
+    const flowName = flow?.builtIn ? (builtIn[flow.id as keyof typeof builtIn] ?? flow.name) : (flow?.name ?? "");
+    return [flowName, session.agent ? agentName(session.agent) : ""].filter(Boolean).join(" · ");
+  };
+}
+
 // A job of one session is that one row and nothing else: a timeline of a single step says
 // nothing the row hasn't already said. A job of several always shows them, with no control
 // to hide them — the sessions are the only place to reach one, and there is nothing to save
@@ -423,7 +442,8 @@ function FlowRow({
   const agentName = useAgentName();
   const steps = flow.sessions.length > 1 ? flow.sessions : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
-  const said = flow.cardId === null ? flowSaid(flow) : "";
+  const scheduledName = useScheduledName();
+  const said = flow.cardId === null ? scheduledName(flow.root) || flowSaid(flow) : "";
   // The row stands for the job, so it selects the session the job is ON: the live one, or
   // the one it ended with.
   const head = flow.latest;
@@ -1145,6 +1165,7 @@ const PAGER_ARROW =
 function useRunHead(session: SessionView | null, flow: RunFlow | null): RunHead | null {
   const t = useCopy();
   const language = useLanguage();
+  const scheduledName = useScheduledName();
   if (!session) return null;
   // A session is titled by the JOB, not by its own action: "Resolve" alone says nothing
   // about the job it is a step of.
@@ -1153,7 +1174,7 @@ function useRunHead(session: SessionView | null, flow: RunFlow | null): RunHead 
   const startedAt = fullTime(flow?.startedAt ?? session.startedAt, language);
   const name =
     session.cardId === null
-      ? (flow && flowSaid(flow)) || cardlessTitle(session, t.runs.cardless)
+      ? scheduledName(flow?.root ?? session) || (flow && flowSaid(flow)) || cardlessTitle(session, t.runs.cardless)
       : session.cardTitle?.trim() || action;
   // Where the name IS the action — a card whose title nothing can answer for any more —
   // the step is not printed a second time beside it.

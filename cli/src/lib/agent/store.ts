@@ -506,6 +506,10 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
     // The workflow this delivery froze (#715). A delivery written down before workflows
     // existed has none, and its runs read the board — which is what they always did.
     workflow: readWorkflow(entry.workflow),
+    scheduled:
+      entry.scheduled && typeof entry.scheduled.workflow === 'string' && typeof entry.scheduled.agent === 'string'
+        ? { workflow: entry.scheduled.workflow, agent: entry.scheduled.agent }
+        : undefined,
   }
 }
 

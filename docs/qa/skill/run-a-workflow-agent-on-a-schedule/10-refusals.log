@@ -1,0 +1,28 @@
+$ akb workflow schedule coding --on builder
+akb: `builder` does not declare `akb.hook: schedule`, so it cannot run on a cadence
+(exit 1)
+
+$ akb workflow schedule coding --on release-notes
+akb: this board has no `release-notes` agent
+(exit 1)
+
+$ akb workflow schedule coding --cadence 1d
+akb: --cadence says how often one agent runs, so name it: --on <agent> --cadence 1d
+(exit 1)
+
+$ akb workflow schedule coding --extra "Keep it short."
+akb: --extra says what one agent is asked for here, so name it: --on <agent> --extra "…"
+(exit 1)
+
+$ akb workflow schedule coding --on changelog-keeper --cadence weekly
+akb: "weekly" isn't a cadence — use <N>m (minutes), <N>h (hours), <N>d (days), or <N>d at HH:MM (whole days, at that time of day) — e.g. 30m, 6h, 1d at 09:30
+(exit 1)
+
+$ akb workflow schedule docs
+akb: no workflow called "docs" on this board. It has: coding, hyperframes-video, slide-deck, carousel-post, blog-post.
+(exit 1)
+
+$ akb raw list --archived --since last-run
+akb raw: --since last-run only works inside a scheduled agent's run. Elsewhere, write the time as "YYYY-MM-DD HH:MM".
+(exit 1)
+

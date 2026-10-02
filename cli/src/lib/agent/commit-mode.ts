@@ -169,10 +169,13 @@ export function deliveryPlan(cardId?: number): DeliveryPlan {
 export function prepareDelivery(
   cardId: number | null,
   wants?: DeliveryCommitMode,
+  /** A card-less pass of a workflow whose output is files (#1401). */
+  files = false,
 ): { start: DeliveryStart } | RunRefusal {
   const deliveryId = newDeliveryId()
   const gated = cardId !== null
   const base = inGitRepo() ? headCommit() : null
+  if (files) return { start: { deliveryId, commitMode: 'files', base: base ?? undefined } }
   if (gated && cardWorkflow(cardId)?.needsArtifact) {
     return {
       start: {

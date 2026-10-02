@@ -8,7 +8,10 @@ import uiGuide from '../../kanban-ui/public/guides/agents.md'
 import cliGuide from '../src/guide/write-agent.md'
 import { SPEC_OUTPUTS } from '../src/lib/agent/types.ts'
 import { WORKFLOW_STAGES } from '../src/lib/agent/workflows.ts'
-import { AGENT_KEYS } from '../src/lib/agents/parse.ts'
+import { AGENT_KEYS, SCHEDULE_HOOK } from '../src/lib/agents/parse.ts'
+
+// What `akb.hook` takes: a stage, or the cadence that is none (#1401).
+const HOOK_VALUES = [...WORKFLOW_STAGES, SCHEDULE_HOOK]
 
 const sorted = (values: Iterable<string>) => [...values].sort()
 
@@ -29,7 +32,7 @@ describe('the board UI key table', () => {
 
   it('names the values the parser accepts', () => {
     assert.deepEqual(values('lead'), sorted(WORKFLOW_STAGES))
-    assert.deepEqual(values('hook'), sorted(WORKFLOW_STAGES))
+    assert.deepEqual(values('hook'), sorted(HOOK_VALUES))
     assert.deepEqual(values('output'), sorted(SPEC_OUTPUTS))
   })
 })
@@ -52,10 +55,10 @@ describe('akb guide write-agent', () => {
 
   it('names the stages the parser accepts', () => {
     const lines = blocks.flat()
-    // One comment line per stage above the key: `# plan: …`, `# execute: …`.
+    // One comment line per value above the key: `# plan: …`, `# execute: …`, `# schedule: …`.
     const at = lines.findIndex((line) => line.startsWith('  hook:'))
     const stages: string[] = []
     for (let i = at - 1; i >= 0 && /^\s*#\s*\w+:/.test(lines[i]!); i--) stages.push(lines[i]!.replace(/^\s*#\s*/, '').split(':')[0]!)
-    assert.deepEqual(sorted(stages), sorted(WORKFLOW_STAGES))
+    assert.deepEqual(sorted(stages), sorted(HOOK_VALUES))
   })
 })

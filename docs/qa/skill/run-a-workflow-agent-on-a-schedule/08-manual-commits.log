@@ -1,0 +1,48 @@
+# Configuration → Board → "Automatic Git commits" off, written as the file it saves:
+$ node -e '…ui.config.json: autoCommit = false…'
+
+$ akb workflow schedule coding --run changelog-keeper
+Coding: started changelog-keeper — run cced3608
+
+$ akb run list   # the last row
+✓ cced3608  scheduled changelog-keeper  done  delivery vrq7xcku  in 0s
+nothing running.
+
+$ git status --short
+ M CHANGELOG.md
+?? docs/kanban/deliveries/9eqrt3xr.json
+?? docs/kanban/deliveries/acuz76jd.json
+?? docs/kanban/deliveries/fvxphj8c.json
+?? docs/kanban/deliveries/qa2.json
+?? docs/kanban/deliveries/rpp7ace4.json
+?? docs/kanban/deliveries/vrq7xcku.json
+
+$ git log --format='%h %s' -1
+bec35f3 changelog-keeper: scheduled run (Coding)
+
+$ akb workflow schedule coding --run changelog-keeper
+akb: Commit or stash your changes before starting.
+
+CHANGELOG.md
+(exit 1)
+
+$ sleep 65
+
+$ node tick.mjs <cli>/dist/kanban.mjs
+[{"action":"describe-product"},{"action":"scheduled","workflow":"coding","specAgent":"changelog-keeper"}]
+
+$ git commit -qam 'changelog' && git status --short
+?? docs/kanban/deliveries/9eqrt3xr.json
+?? docs/kanban/deliveries/acuz76jd.json
+?? docs/kanban/deliveries/fvxphj8c.json
+?? docs/kanban/deliveries/qa2.json
+?? docs/kanban/deliveries/rpp7ace4.json
+?? docs/kanban/deliveries/vrq7xcku.json
+
+$ akb workflow schedule coding --run changelog-keeper
+Coding: started changelog-keeper — run 1eafecee
+
+$ akb run list   # the last row
+✓ 1eafecee  scheduled changelog-keeper  done  delivery 3vxddsrm  in 0s
+nothing running.
+
