@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { LanguageProvider } from "@/components/language";
+import { TipHold } from "@/components/tip-hold";
 import { LANGUAGE_TAGS } from "@/lib/format/machine/types";
 import { languageFor } from "../lib/reader";
 import "./globals.css";
@@ -34,7 +35,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="font-sans antialiased">
         {/* No save is handed in: a hosted page holds no machine setting to write, so the
             language follows the browser on every visit. */}
-        <LanguageProvider initial={language}>{children}</LanguageProvider>
+        <LanguageProvider initial={language}>
+          <TipHold />
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

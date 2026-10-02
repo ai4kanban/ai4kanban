@@ -51,6 +51,7 @@ The home page answers one question — what can I start now? — in two columns:
 Inside a column, cards are banded by module, and the best card to start comes first: a blocked
 card sinks, a blocker rises. A blocked card carries a **lock** marker — hover it for the cards in
 the way. Nothing is hidden or gated by it. Columns are a fixed width and the row scrolls sideways.
+On a touch screen, tap wherever this file says hover: the tip stays until you tap elsewhere.
 
 Click a card to open it: the body, its meta (workflow, modules, release, priority, ROI, blockers),
 open questions and buttons.
