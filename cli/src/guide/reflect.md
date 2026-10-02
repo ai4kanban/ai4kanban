@@ -19,7 +19,7 @@ What helps check it — read only as far as it sharpens a candidate:
 
 ## Candidates
 
-Each must trace to a line in the card or in what shipped:
+Each is work on the project itself and must trace to a line in the card or in what shipped:
 
 - **Deferred**: work the card left out of scope.
 - **Exposed**: a gap or rough edge the work revealed.
@@ -31,6 +31,8 @@ Each must trace to a line in the card or in what shipped:
 
 Drop a candidate that is already on the board (`akb raw list`) or in the inbox
 (`akb triage check <source-id>`), or is in `docs/kanban/memory/agents/planner/rejected.md`.
+Drop one whose only work is keeping an agent's own files current — its memory, or the
+output its AGENT.md says it maintains; that agent keeps them.
 
 ## Write
 
