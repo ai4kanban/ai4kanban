@@ -1059,6 +1059,9 @@ function SortAll({
 }) {
   const c = useCopy().rail.signals;
   const lock = proLock(useProAccess(true));
+  // Off but still focusable, so the reason is reachable by keyboard and screen reader; the
+  // wrapper carries the tip because the button's own opacity would fade it.
+  const off = idle && !lock && !sorting;
   const link = useRef<HTMLButtonElement>(null);
   // The note takes no focus and is portaled out of the tab order: the next Tab goes to its link.
   useEffect(() => {
@@ -1075,16 +1078,25 @@ function SortAll({
   return (
     <Popover open={!!note} onOpenChange={(open) => !open && onDismissNote()}>
       <PopoverAnchor asChild>
-        <span className="relative inline-flex shrink-0 max-md:ml-auto">
+        <span
+          data-tip={off ? c.sortIdle : undefined}
+          className={`relative inline-flex shrink-0 max-md:ml-auto ${
+            off ? "nb-tip nb-tip-below nb-tip-end cursor-not-allowed" : ""
+          }`}
+        >
           <Button
             size="xs"
             variant="ghost"
-            disabled={!lock && (sorting || idle)}
-            onClick={lock ? () => goPro(lock) : onSort}
+            disabled={!lock && sorting}
+            aria-disabled={off || undefined}
+            aria-description={off ? c.sortIdle : undefined}
+            onClick={lock ? () => goPro(lock) : off ? undefined : onSort}
             title={lock === "upgrade" ? c.sortNeedsUpgrade : lock === "signIn" ? c.sortNeedsSignIn : undefined}
-            className="disabled:opacity-70"
+            className={off ? "pointer-events-none opacity-50" : "disabled:opacity-70"}
           >
-            {(lock || !sorting) && <FiZap size={13} aria-hidden className="text-nb-accent" />}
+            {(lock || !sorting) && (
+              <FiZap size={13} aria-hidden className={off ? "text-nb-ink-soft" : "text-nb-accent"} />
+            )}
             {sorting && !lock ? c.sorting : c.sortAll}
             {lock && <FiLock size={11} aria-hidden className="text-nb-ink-soft" />}
           </Button>

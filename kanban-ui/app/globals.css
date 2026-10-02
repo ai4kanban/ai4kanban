@@ -215,6 +215,8 @@ body {
 }
 .nb-tip:hover::after,
 .nb-tip:focus-visible::after,
+/* A wrapper's tip speaks for the control inside it. */
+.nb-tip:has(> :focus-visible)::after,
 /* A touch screen has no hover and no focus ring, so a tap is the only way in. */
 .nb-tip:active::after {
   opacity: 1;
@@ -231,6 +233,12 @@ body {
    right of the top row's controls is fixed, so opening rightwards always fits. */
 .nb-tip-start::after {
   left: 0;
+  transform: none;
+}
+/* The mirror: held to the right edge, for a control at the window's right. */
+.nb-tip-end::after {
+  left: auto;
+  right: 0;
   transform: none;
 }
 /* Dropdowns are components/ui/select.tsx (shadcn Select restyled to this

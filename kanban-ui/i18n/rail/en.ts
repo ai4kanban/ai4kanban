@@ -125,6 +125,7 @@ const en: RailCopy = {
     restore: "Restore",
     restoreFailed: "Couldn't restore it.",
     sortAll: "Auto-sort",
+    sortIdle: "Every item left needs you",
     sortNeedsUpgrade: "Upgrade to use",
     sortNeedsSignIn: "Sign in to use",
     sorting: "Sorting…",

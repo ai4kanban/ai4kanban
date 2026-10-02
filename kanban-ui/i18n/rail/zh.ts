@@ -123,6 +123,7 @@ const zh: RailCopy = {
     restore: "恢复",
     restoreFailed: "恢复失败。",
     sortAll: "自动分拣",
+    sortIdle: "剩余条目都待你判断",
     sortNeedsUpgrade: "升级后可用",
     sortNeedsSignIn: "登录后可用",
     sorting: "正在分拣…",
