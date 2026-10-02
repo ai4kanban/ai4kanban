@@ -47,9 +47,9 @@ const STOP_GRACE_MS = 3000;
 
 const urlFor = (port: number) => `http://${HOST}:${port}/`;
 
-/** A loopback port nobody is listening on. Asking the OS for one beats a fixed
- *  port: two windows, or a board someone already started in a terminal, must
- *  not fight over 7420. */
+/** A loopback port nobody is listening on. Asking the OS for one beats one port
+ *  for every project: two projects, or a board someone already started in a
+ *  terminal, must not fight over 7420. */
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const probe = net.createServer();
@@ -66,6 +66,37 @@ function freePort(): Promise<number> {
       probe.close(() => resolve(port));
     });
   });
+}
+
+/** Whether a loopback port can be listened on right now. */
+function canListen(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.on("error", () => resolve(false));
+    probe.listen(port, HOST, () => probe.close(() => resolve(true)));
+  });
+}
+
+/** The ports projects are remembered by — lib/store.ts, handed in so this file runs
+ *  without Electron. */
+export interface PortMemory {
+  portOf(dir: string): number | null;
+  otherPorts(dir: string): number[];
+  rememberPort(dir: string, port: number): void;
+}
+
+/** The port to serve `dir` on: the one it had last time, so the page's localStorage —
+ *  which is per address — is still there. A remembered port something else holds is
+ *  stepped around for this launch only and stays remembered. */
+export async function pickPort(dir: string, ports: PortMemory): Promise<number> {
+  const kept = ports.portOf(dir);
+  if (kept && (await canListen(kept))) return kept;
+  const others = new Set(ports.otherPorts(dir));
+  let port = await freePort();
+  while (others.has(port)) port = await freePort();
+  if (!kept) ports.rememberPort(dir, port);
+  return port;
 }
 
 /** Resolves once the server answers on `url`, rejects when it never does or the
@@ -99,6 +130,7 @@ export interface BoardServerOptions {
   /** Where the app writes which project is on screen. The server reads it to
    *  decide whether to do work nobody asked for — see the pool below. */
   focusFile: string;
+  ports: PortMemory;
 }
 
 /**
@@ -110,14 +142,16 @@ export class BoardServer {
   readonly version: string;
   readonly boardDir: string;
   readonly focusFile: string;
+  private readonly ports: PortMemory;
   private port: number | null = null;
   private child: ChildProcess | null = null;
 
-  constructor({ env, version, boardDir, focusFile }: BoardServerOptions) {
+  constructor({ env, version, boardDir, focusFile, ports }: BoardServerOptions) {
     this.env = env;
     this.version = version;
     this.boardDir = boardDir;
     this.focusFile = focusFile;
+    this.ports = ports;
   }
 
   get url(): string | null {
@@ -137,7 +171,7 @@ export class BoardServer {
   /** Start the server. Resolves once it answers. */
   async start(): Promise<void> {
     const boardDir = this.boardDir;
-    const port = this.port ?? (await freePort());
+    const port = this.port ?? (await pickPort(boardDir, this.ports));
     this.port = port;
     const entry = bundledResource("server", "server.js");
     if (!fs.existsSync(entry)) {
@@ -238,6 +272,7 @@ export interface BoardServersOptions {
   env: Env;
   version: string;
   focusFile: string;
+  ports: PortMemory;
 }
 
 /**
@@ -257,6 +292,7 @@ export class BoardServers {
    *  first, and the first line is also the one board that raises the account's
    *  system notifications (kanban-ui/lib/desktop.ts). */
   readonly focusFile: string;
+  private readonly ports: PortMemory;
   /** boardDir → BoardServer */
   private readonly servers = new Map<string, BoardServer>();
   /** The boards a window is showing right now — one per window (#495), so a
@@ -264,10 +300,11 @@ export class BoardServers {
   private onScreen = new Set<string>();
   private sweeper: NodeJS.Timeout | null = null;
 
-  constructor({ env, version, focusFile }: BoardServersOptions) {
+  constructor({ env, version, focusFile, ports }: BoardServersOptions) {
     this.env = env;
     this.version = version;
     this.focusFile = focusFile;
+    this.ports = ports;
   }
 
   /** Every board a window is showing, in the order the windows opened. */
@@ -291,6 +328,7 @@ export class BoardServers {
         version: this.version,
         boardDir,
         focusFile: this.focusFile,
+        ports: this.ports,
       });
       this.servers.set(boardDir, server);
       try {
