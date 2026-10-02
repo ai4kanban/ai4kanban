@@ -1,0 +1,21 @@
+$ akb raw list --archived
+6 cards landed, oldest first:
+
+#6 看板支持自定义字体
+    coding · landed 2026-09-27 08:30 · commit 3a5f5a6297b13b186992b8b55485953c16b69611
+
+#2 深色模式跟随系统  (docs/kanban/.archive/2-dark-mode-follows-system.md)
+    coding · landed 2026-09-28 10:12 · commit b630e525261ce8a5365a6425df896d1eb88e4766
+
+#5 每周邮件摘要  (docs/kanban/.archive/5-weekly-email-digest.md)
+    coding · landed 2026-09-29 11:00 · commit 1c18c01edb782a33bf439b3af70dc8237d654ecf
+
+#3 导出为 PDF  (docs/kanban/.archive/3-export-to-pdf.md)
+    coding · landed 2026-09-30 16:40 · commit 51bcc122c0e9b99d4dcf98be5bd0f7ffb277bdca
+
+#4 更新安装文档  (docs/kanban/.archive/4-update-install-docs.md)
+    wf-2 · landed 2026-10-01 09:05 · commit 497b7fbdb64fa9bef040f2622dcc688e83801f2e
+
+#5 每周邮件摘要  (docs/kanban/.archive/5-weekly-email-digest.md)
+    coding · landed 2026-10-01 15:30 · commit fae5e83a37cc344b11530885914826035c563495
+[exit 0]

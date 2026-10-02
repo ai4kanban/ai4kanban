@@ -1,0 +1,10 @@
+$ akb raw list --archived --since "2026-10-01 15:30"
+1 card landed since 2026-10-01 15:30, oldest first:
+
+#5 每周邮件摘要  (docs/kanban/.archive/5-weekly-email-digest.md)
+    coding · landed 2026-10-01 15:30 · commit fae5e83a37cc344b11530885914826035c563495
+[exit 0]
+
+$ akb raw list --archived --since "2026-10-01 15:31"
+no cards landed since 2026-10-01 15:31.
+[exit 0]

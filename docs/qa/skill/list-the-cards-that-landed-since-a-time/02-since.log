@@ -1,0 +1,12 @@
+$ akb raw list --archived --since "2026-09-30 00:00"
+3 cards landed since 2026-09-30 00:00, oldest first:
+
+#3 导出为 PDF  (docs/kanban/.archive/3-export-to-pdf.md)
+    coding · landed 2026-09-30 16:40 · commit 51bcc122c0e9b99d4dcf98be5bd0f7ffb277bdca
+
+#4 更新安装文档  (docs/kanban/.archive/4-update-install-docs.md)
+    wf-2 · landed 2026-10-01 09:05 · commit 497b7fbdb64fa9bef040f2622dcc688e83801f2e
+
+#5 每周邮件摘要  (docs/kanban/.archive/5-weekly-email-digest.md)
+    coding · landed 2026-10-01 15:30 · commit fae5e83a37cc344b11530885914826035c563495
+[exit 0]

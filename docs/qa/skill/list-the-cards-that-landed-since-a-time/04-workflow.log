@@ -1,0 +1,17 @@
+$ akb raw list --archived --workflow wf-2
+1 card landed on workflow `wf-2`, oldest first:
+
+#4 更新安装文档  (docs/kanban/.archive/4-update-install-docs.md)
+    wf-2 · landed 2026-10-01 09:05 · commit 497b7fbdb64fa9bef040f2622dcc688e83801f2e
+[exit 0]
+
+$ akb raw list --archived --workflow 文档更新
+akb raw: no workflow called "文档更新" on this board. It has: coding, hyperframes-video, slide-deck, carousel-post, blog-post, wf-2.
+[exit 1]
+
+$ akb raw list --archived --workflow coding --since "2026-10-01 00:00"
+1 card landed on workflow `coding` since 2026-10-01 00:00, oldest first:
+
+#5 每周邮件摘要  (docs/kanban/.archive/5-weekly-email-digest.md)
+    coding · landed 2026-10-01 15:30 · commit fae5e83a37cc344b11530885914826035c563495
+[exit 0]

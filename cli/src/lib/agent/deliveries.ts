@@ -47,7 +47,7 @@ import { deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
 import { openOf } from '../view/rules'
-import { cardWorkflowId, frozenWorkflow } from './workflows'
+import { cardWorkflowId, DEFAULT_WORKFLOW, frozenWorkflow } from './workflows'
 import { nextAfterSession, reviewOf } from './review'
 import { readDeliveryRow, readStore, runIsLive, withStore, type Store } from './store'
 import {
@@ -196,6 +196,31 @@ function allAudits(): DeliveryAudit[] {
     if (audit) out.push(audit)
   }
   return out
+}
+
+/** One landing that left a commit on the target branch. */
+export interface LandedDelivery {
+  cardId: number
+  title: string
+  /** The workflow the delivery ran on; a record that names none ran on the default. */
+  workflow: string
+  at: number
+  commit: string
+}
+
+/** Every landing with a commit, oldest first — optionally only those after `since` (ms) or on
+ *  one workflow. Read from the permanent records, which outlive the archived card file. */
+export function landedDeliveries(filter: { since?: number; workflow?: string } = {}): LandedDelivery[] {
+  const out: LandedDelivery[] = []
+  for (const audit of allAudits()) {
+    const landing = audit.landing
+    if (typeof audit.cardId !== 'number' || landing?.status !== 'landed' || !landing.commit) continue
+    const workflow = audit.workflow?.id || DEFAULT_WORKFLOW
+    if (filter.since !== undefined && !(landing.at > filter.since)) continue
+    if (filter.workflow !== undefined && workflow !== filter.workflow) continue
+    out.push({ cardId: audit.cardId, title: audit.title, workflow, at: landing.at, commit: landing.commit })
+  }
+  return out.sort((a, b) => a.at - b.at)
 }
 
 /** Every delivery that ended at or after `since`, the permanent record winning over the live

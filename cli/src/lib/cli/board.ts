@@ -375,17 +375,24 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     })
 
   move('list')
-    .summary('the open cards: id, title, meta, summary, path')
+    .summary('the open cards: id, title, meta, summary, path — or, with --archived, the cards that landed')
     .description(
       'The open cards at a glance — one block per card with its id, title, meta (status, priority, roi, ' +
         'release, blockers, open questions), summary line and file path.\n\n' +
         "`--stale` asks the other question: which cards have sat untouched past the board's **Stale after** " +
         'setting (config.md, 30 days by default), stalest first, each with the days it has sat and what is ' +
         'holding it — a blocker, an unanswered [user] question, or a build. Age is the date git last saw ' +
-        "the card's file; group roots, recurring cards and cards git cannot date are left out.",
+        "the card's file; group roots, recurring cards and cards git cannot date are left out.\n\n" +
+        '`--archived` answers "which cards landed in this period": one block per landing, oldest first, with ' +
+        'the card id, title, workflow, landing time, landed commit and the archived card file (blank once ' +
+        'the archive has cleaned it up). Only cards the board landed are listed — a card archived by hand, ' +
+        'committed by hand, or built by a workflow that leaves files instead of a commit is not among them.',
     )
     .option('-m, --module <name>', 'only the cards tagged with that module, validated against modules.md')
     .option('--stale', 'only the cards untouched past the threshold, stalest first, with the days each has sat')
+    .option('--archived', 'the cards that landed and were archived, oldest first, each with its landed commit')
+    .option('--since <time>', 'with --archived: only landings after this time, written "YYYY-MM-DD HH:MM"')
+    .option('--workflow <id>', 'with --archived: only the cards of that workflow')
     .action(async function (this: Command) {
       await dispatch('list', this, [], this.opts(), cli)
     })

@@ -1,0 +1,23 @@
+$ akb raw list --archived --since yesterday
+akb raw: cannot read --since "yesterday". Write it as "YYYY-MM-DD HH:MM", e.g. --since "2026-08-02 14:31".
+[exit 1]
+
+$ akb raw list --archived --since 2026-09-30
+akb raw: cannot read --since "2026-09-30". Write it as "YYYY-MM-DD HH:MM", e.g. --since "2026-08-02 14:31".
+[exit 1]
+
+$ akb raw list --archived --stale
+akb raw: --archived and --stale answer different questions — pass one of them.
+[exit 1]
+
+$ akb raw list --archived --module skill
+akb raw: --module does not apply to --archived; narrow it with --workflow.
+[exit 1]
+
+$ akb raw list --since "2026-09-30 00:00"
+akb raw: --since only applies to --archived.
+[exit 1]
+
+$ akb raw list --workflow coding
+akb raw: --workflow only applies to --archived.
+[exit 1]
