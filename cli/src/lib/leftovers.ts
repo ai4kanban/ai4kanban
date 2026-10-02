@@ -93,8 +93,9 @@ export interface DueArchived {
 
 /** Each archived card file, and each group folder whole, whose newest card has been archived
  *  for KEEP_CARD_DAYS. A card naming a release still on the list keeps its entry: closing
- *  that release reads the archive for what shipped. */
-export function dueArchivedCards(now = Date.now()): DueArchived[] {
+ *  that release reads the archive for what shipped. `undated` is when a card with no
+ *  `archived:` day was archived, by id; a card it does not name goes by its file's mtime. */
+export function dueArchivedCards(now = Date.now(), undated?: ReadonlyMap<number, number>): DueArchived[] {
   const open = new Set(readReleases())
   const due: DueArchived[] = []
   for (const entry of fs.existsSync(ARCHIVE) ? fs.readdirSync(ARCHIVE, { withFileTypes: true }) : []) {
@@ -102,14 +103,15 @@ export function dueArchivedCards(now = Date.now()): DueArchived[] {
     const full = path.join(ARCHIVE, entry.name)
     const files = entry.isDirectory() ? walkMd(full) : entry.name.endsWith('.md') ? [full] : []
     if (!files.length) continue
-    const cards = files.map((file) => ({ ...readArchived(file), file }))
+    const cards = files.map((file) => ({
+      ...readArchived(file),
+      file,
+      id: idPrefix(path.basename(file) === 'root.md' ? path.basename(path.dirname(file)) : path.basename(file)),
+    }))
     if (cards.some((c) => open.has(c.release))) continue
-    const newest = Math.max(...cards.map((c) => c.at ?? mtime(c.file)))
+    const newest = Math.max(...cards.map((c) => c.at ?? (c.id !== null ? undated?.get(c.id) : undefined) ?? mtime(c.file)))
     if (now - newest < KEEP_CARD_DAYS * DAY) continue
-    const ids = files.map((file) =>
-      idPrefix(path.basename(file) === 'root.md' ? path.basename(path.dirname(file)) : path.basename(file)),
-    )
-    due.push({ path: full, ids: ids.filter((id): id is number => id !== null) })
+    due.push({ path: full, ids: cards.map((c) => c.id).filter((id): id is number => id !== null) })
   }
   return due
 }

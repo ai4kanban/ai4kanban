@@ -1,0 +1,10 @@
+after the daily cleanup:
+  delete calls sent to Cloud: 1 — cards 71, 91, 92
+  workspace archive holds:    72, 73, 74, 81, 82, 93
+  the local copy holds:
+    .archive/72-undated-young.md
+    .archive/73-undated-no-time.md
+    .archive/74-undated-bad-time.md
+    .archive/81-young-group/features/82-part.md
+    .archive/81-young-group/root.md
+    .archive/93-dated-young.md

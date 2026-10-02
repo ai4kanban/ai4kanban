@@ -1,0 +1,14 @@
+today: 2026-10-02
+
+the workspace archive:
+  #71  .archive/71-undated-old.md                     no archived: day, archived on Cloud 40 days ago
+  #72  .archive/72-undated-young.md                   no archived: day, archived on Cloud 10 days ago
+  #73  .archive/73-undated-no-time.md                 no archived: day, Cloud holds no archive time
+  #74  .archive/74-undated-bad-time.md                no archived: day, Cloud archive time unreadable
+  #81  .archive/81-young-group/root.md                group root, archived: 40 days ago
+  #82  .archive/81-young-group/features/82-part.md    its part, no archived: day, Cloud 10 days ago
+  #91  .archive/91-old-group/root.md                  group root, archived: 40 days ago
+  #92  .archive/91-old-group/features/92-part.md      its part, no archived: day, Cloud 35 days ago
+  #93  .archive/93-dated-young.md                     archived: 10 days ago, Cloud 40 days ago
+
+board opened: yes

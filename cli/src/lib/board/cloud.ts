@@ -464,7 +464,7 @@ function cloudBoard(ctx: Context): BoardProvider {
 
   /** Read the workspace's archive into the copy, and say which cards it holds — or null
    *  when it could not be read. */
-  async function pullArchive(): Promise<number[] | null> {
+  async function pullArchive(): Promise<WireWorkspaceCard[] | null> {
     await tryLive()
     const read = await readWorkspaceArchive(ctx.workspaceId)
     if (!read.ok) {
@@ -483,7 +483,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     }
     for (const card of read.value.cards) ctx.cardAt.set(card.id, card.revision)
     ctx.archiveIn = true
-    return read.value.cards.map((card) => card.id)
+    return read.value.cards
   }
 
   /** Pull the archive into the copy, so the moves that read `.archive/` — closing and
@@ -500,10 +500,18 @@ function cloudBoard(ctx: Context): BoardProvider {
   async function pruneArchive(now: number): Promise<void> {
     const stored = await pullArchive()
     if (!stored) return
-    const due = dueArchivedCards(now)
+    // A card with no `archived:` day goes by when the workspace archived it (#1373): the pull
+    // just rewrote its file. A time that does not read keeps the card for today.
+    const archivedAt = new Map(
+      stored.map((card) => {
+        const at = Date.parse(card.archivedAt ?? '')
+        return [card.id, Number.isFinite(at) ? at : now] as const
+      }),
+    )
+    const due = dueArchivedCards(now, archivedAt)
     const dueIds = due.flatMap((entry) => entry.ids)
     // A copy the workspace no longer holds was deleted from another machine: nothing to ask for.
-    const ids = dueIds.filter((id) => stored.includes(id))
+    const ids = dueIds.filter((id) => archivedAt.has(id))
     for (let i = 0; i < ids.length; i += CARDS_PER_CALL) {
       const batch = ids.slice(i, i + CARDS_PER_CALL)
       const gone = await sendUntilAnswered(

@@ -671,4 +671,43 @@ describe('the daily prune on a Cloud board', () => {
     assert.deepEqual([...(deletes(calls)[0].body.cards as number[])].sort(), [61, 62])
     assert.equal(copy('51-gone.md'), false)
   })
+
+  it('ages a card with no archived day by when the workspace archived it', async () => {
+    const undated = (id: number, archivedAt: string | null, file = `.archive/${id}-gone.md`) => ({
+      id,
+      revision: `a${id}`,
+      archived: true,
+      archivedAt,
+      data: { path: file, meta: meta({ title: `Card ${id}` }), body: 'Shipped.\n' },
+    })
+    const ago = (days: number): string => new Date(Date.now() - days * DAY).toISOString()
+    const cards = [
+      undated(71, ago(40)),
+      undated(72, ago(10)),
+      undated(73, null),
+      undated(74, 'no time'),
+      archivedCard(81, 40, {}, '.archive/81-a-group/root.md'),
+      undated(82, ago(10), '.archive/81-a-group/features/82-a-part.md'),
+      archivedCard(91, 40, {}, '.archive/91-a-group/root.md'),
+      undated(92, ago(35), '.archive/91-a-group/features/92-a-part.md'),
+      // An `archived:` day wins over the workspace's time.
+      { ...archivedCard(93, 10), archivedAt: ago(40) },
+    ]
+    const calls = worker((call) => {
+      if (call.path.endsWith('/archive')) return ok({ revision: '7', cards })
+      if (call.path.endsWith('/archive/delete')) return ok({ revision: '8', deleted: call.body.cards })
+      return stored(call)
+    })
+    pointed(false)
+    await openBoard(root)
+
+    await board().nextWork()
+
+    const [sent, ...more] = deletes(calls)
+    assert.equal(more.length, 0)
+    assert.deepEqual([...(sent.body.cards as number[])].sort(), [71, 91, 92])
+    assert.equal(copy('71-gone.md'), false)
+    assert.equal(copy('91-a-group'), false)
+    for (const kept of ['72-gone.md', '73-gone.md', '74-gone.md', '81-a-group', '93-gone.md']) assert.equal(copy(kept), true)
+  })
 })
