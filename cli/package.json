@@ -38,7 +38,8 @@
     "test": "node scripts/test.mjs",
     "lint": "npm run typecheck",
     "prepublishOnly": "npm run build && node ../scripts/sync-version.mjs --check",
-    "eval:qa": "node scripts/qa-eval.mjs"
+    "eval:qa": "node scripts/qa-eval.mjs",
+    "eval:triage": "node scripts/triage-eval.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

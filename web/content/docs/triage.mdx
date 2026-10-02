@@ -59,11 +59,13 @@ lands each before the next: a card, an ignore in `dismissed/` with the reason, o
 you when the call is yours to make. When every item left is held for you, the button is greyed
 out and says so on hover, focus or tap.
 
-No coding agent runs. Each item is one question to Cloud, answered against your product
-description and what you turned down before: is it already supported, already owned by an
-open card, or rejected earlier — and if it is worth doing, which module, priority, ROI and
-workflow its card takes. An item no workflow on the board can do is ignored. An item that
-lands on work a card already owns is ignored rather than merged into that card.
+No coding agent runs. Each item is one request to Cloud, answered against your product
+description and what you turned down before. It asks one thing at a time: is it already
+supported, rejected earlier, or owned by an open card; does it need you; is it worth doing —
+and which module, priority, ROI and workflow its card takes. An item is ignored only when one
+of those answers is near certain, and held for you when none settles it. An item no workflow
+on the board can do is ignored. An item that lands on work a card already owns is ignored
+rather than merged into that card.
 
 The card keeps the item's own title and words, and its file is named after the item's. It is
 created with a refine already scheduled, and the board starts those itself, one per tick. So

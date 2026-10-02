@@ -1,8 +1,11 @@
 // Sorting triage with Jev (#1221, #1263), for Pro.
 //
-// One Cloud request per item: six choice questions — the verdict, the card it duplicates, and
-// the module, priority, ROI and workflow of the card it would become. The answers land here:
-// a card written and the item archived, an ignore with its reason, or a hold for the user.
+// One Cloud request per item, every question asking one thing (#1439): is it worth doing, does
+// the product already do it, was it turned down, which card it duplicates, does it need the
+// user, is it small — and the module, priority, ROI and workflow of the card it would become.
+// Jev answers each alone; the order they are read in, and where each is cut, is `verdictOf`.
+// The answers land here: a card written and the item archived, an ignore with its reason, or a
+// hold for the user.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -26,10 +29,22 @@ import { archiveInboxItem, dismissInboxItem, readInbox, recordVerdict } from './
 /** Below this confidence a workflow pick falls back to the board's default. */
 export const CONFIDENT = 0.6
 
-/** An item is ignored at this much confidence it should be dropped, and carded at this much
- *  that it is worth doing. Ignoring is the stricter: a wrong ignore is never seen. */
+// Where each answer is cut. Measured with `npm run eval:triage` on this repository's own board
+// (#1439): on 229 sorted items these ignore and card no more of them wrongly than the single
+// seven-option question did. Jev's answers move a few points between identical requests and
+// barely tell a kept item from an ignored one, so measure again before moving a line.
+
+/** An item is ignored at this much confidence the product already does it, it was turned down
+ *  before, or an open card owns it. Strict: a wrong ignore is never seen. */
+export const IGNORE_LINE = 0.9
+/** An item is held for the user at this much confidence only they can settle it. */
+export const NEEDS_USER_LINE = 0.5
+/** An item is ignored at this much confidence it is not worth doing, and carded at this much
+ *  that it is. */
 export const DROP_LINE = 0.8
-export const DO_LINE = 0.6
+export const DO_LINE = 0.8
+/** A card skips planning at this much confidence the item is small and fully specified. */
+export const SMALL_LINE = 0.6
 
 /** Jev reads 32K tokens; the state and questions are kept under this estimate of them. */
 export const MAX_TOKENS = 30_000
@@ -37,25 +52,39 @@ export const MAX_TOKENS = 30_000
 // A conservative count: three UTF-8 bytes per token overcounts English and matches CJK.
 export const tokensOf = (value: unknown): number => Math.ceil(Buffer.byteLength(JSON.stringify(value)) / 3)
 
-const VERDICT = {
-  type: 'choice',
-  instructions:
-    "What should become of this item? Judge its worth against the product, as its description and the planner's decisions say; both win over a past verdict. Pick the first option that fits.",
-  criteria: {
-    supported: 'the product already does what the item asks.',
-    rejected: 'the same idea was turned down before.',
-    duplicate: 'an open card already owns this work.',
-    'low-value': 'worth too little to the product.',
-    'needs-user': 'whether it is worth doing hinges on a direction or trade-off only the user can settle.',
-    small: 'worth doing, small, and fully specified by the item, with no design choice left.',
-    plan: 'worth doing, and needs planning first.',
-  },
-} as const
+// A yes/no question is a choice of two: Cloud forwards choice questions only. Both sides are
+// described, so a near miss falls on the right one.
+const yesNo = (instructions: string, yes: string, no: string) => ({ type: 'choice', instructions, criteria: { yes, no } }) as const
 
-type Option = keyof typeof VERDICT.criteria
+const WORTH = yesNo(
+  "Is the work this `item` asks for worth doing for the product, as its description and the planner's `decisions` say?",
+  'it fixes something users meet, or moves the product the way its description and the decisions point.',
+  'it is worth too little: cosmetic or speculative, outside what the product is for, or about something the product no longer has.',
+)
 
-const DROP_OPTIONS = ['supported', 'rejected', 'duplicate', 'low-value'] as const
-const DO_OPTIONS = ['small', 'plan'] as const
+const SUPPORTED = yesNo(
+  'Does the product already do what this `item` asks for?',
+  'the product, as described, already behaves the way the item asks.',
+  'the item asks for something the product does not do yet, or reports something still wrong.',
+)
+
+const REJECTED = yesNo(
+  'Was the idea this `item` asks for turned down before, as the `rejected.md` and `dismissed.md` notes record?',
+  'a note records the same idea, or the kind of item it is, as turned down.',
+  'no note turns down this idea.',
+)
+
+const NEEDS_USER = yesNo(
+  'Does whether to do what this `item` asks hinge on a direction or trade-off only the user can settle?',
+  'doing it means choosing a product direction, a price, a promise to users, or between options the item itself leaves open.',
+  'the item says what to do, and doing it follows the product as described.',
+)
+
+const SMALL = yesNo(
+  'Is the work this `item` asks for small and fully specified by the item?',
+  'a small change the item spells out, with no design choice left.',
+  'it needs planning first: several parts, or a design choice the item leaves open.',
+)
 
 const DUPLICATE_ASKS = 'Which open card already owns the work this item asks for? Pick none when no card does.'
 
@@ -131,7 +160,9 @@ export function questionsFor(cards: OpenCard[], judged = false): Record<string, 
     ...(judged
       ? {}
       : {
-          verdict: VERDICT,
+          worth: WORTH,
+          supported: SUPPORTED,
+          rejected: REJECTED,
           duplicate: {
             type: 'choice',
             instructions: DUPLICATE_ASKS,
@@ -140,6 +171,8 @@ export function questionsFor(cards: OpenCard[], judged = false): Record<string, 
               none: 'no open card owns this work.',
             },
           },
+          needsUser: NEEDS_USER,
+          small: SMALL,
         }),
     ...(Object.keys(modules).length > 1 ? { modules: { type: 'choice', instructions: MODULES_ASKS, criteria: modules } } : {}),
     priority: PRIORITY,
@@ -250,29 +283,47 @@ export interface Verdict {
 // Two decimals, as the item records them: the lines are measured on what is kept.
 const hundredths = (n: number): number => Math.round(n * 100) / 100
 
-/** The four ends, from the two confidences Jev's probabilities add up to. */
-export function verdictOf(answers: { verdict: Answer; duplicate?: Answer }): Verdict {
-  const pick = answers.verdict.choice as Option
-  const confidence = answers.verdict.confidence
-  if (!(pick in VERDICT.criteria)) throw new Error(`Jev picked an option it was not offered: ${pick}`)
-  const given = answers.verdict.probabilities
-  const odds: Record<string, number> = given && Object.keys(given).length > 0 ? given : { [pick]: confidence }
-  const of = (option: Option): number => (Number.isFinite(odds[option]) ? odds[option]! : 0)
-  const sum = (options: readonly Option[]): number => hundredths(options.reduce((n, option) => n + of(option), 0))
-  const base = { card: null, confidence, drop: sum(DROP_OPTIONS), do: sum(DO_OPTIONS) }
+/** How likely the answer to a yes/no question is yes. The pick and its confidence stand in when
+ *  no probabilities came. */
+const yes = (answer?: Answer): number => {
+  if (!answer) return 0
+  const given = answer.probabilities?.yes
+  if (Number.isFinite(given)) return hundredths(given!)
+  return hundredths(answer.choice === 'yes' ? answer.confidence : 1 - answer.confidence)
+}
 
-  if (pick === 'needs-user') return { ...base, verdict: 'human-review', reason: 'needs-user' }
-  if (base.drop >= DROP_LINE) {
-    const reason = DROP_OPTIONS.reduce((top, option) => (of(option) > of(top) ? option : top))
-    const card = reason === 'duplicate' ? Number(answers.duplicate?.choice.match(/^#(\d+)$/)?.[1] ?? NaN) : NaN
-    return { ...base, card: Number.isInteger(card) ? card : null, verdict: 'skip', reason }
+/** How likely some open card owns the work, and the card Jev picked. */
+function duplicateOf(answer?: Answer): { odds: number; card: number | null } {
+  if (!answer) return { odds: 0, card: null }
+  const card = Number(answer.choice.match(/^#(\d+)$/)?.[1] ?? NaN)
+  if (!Number.isInteger(card)) return { odds: 0, card: null }
+  const none = answer.probabilities?.none
+  return { odds: hundredths(Number.isFinite(none) ? 1 - none! : answer.confidence), card }
+}
+
+/** The four ends, read off the answers in a fixed order: the three facts that make an item not
+ *  worth a card, then whether the user is needed, then its worth. */
+export function verdictOf(answers: Record<string, Answer | undefined>): Verdict {
+  const worth = yes(answers.worth)
+  const duplicate = duplicateOf(answers.duplicate)
+  const facts: [TriageReason, number][] = [
+    ['supported', yes(answers.supported)],
+    ['rejected', yes(answers.rejected)],
+    ['duplicate', duplicate.odds],
+  ]
+  const [fact, odds] = facts.reduce((top, one) => (one[1] > top[1] ? one : top))
+  const base = { card: null, drop: Math.max(odds, hundredths(1 - worth)), do: worth }
+
+  if (odds >= IGNORE_LINE) return { ...base, card: fact === 'duplicate' ? duplicate.card : null, confidence: odds, verdict: 'skip', reason: fact }
+  const needsUser = yes(answers.needsUser)
+  if (needsUser >= NEEDS_USER_LINE) return { ...base, confidence: needsUser, verdict: 'human-review', reason: 'needs-user' }
+  if (hundredths(1 - worth) >= DROP_LINE) return { ...base, confidence: hundredths(1 - worth), verdict: 'skip', reason: 'low-value' }
+  if (worth >= DO_LINE) {
+    return yes(answers.small) >= SMALL_LINE
+      ? { ...base, confidence: worth, verdict: 'plan-without-refine', reason: 'small' }
+      : { ...base, confidence: worth, verdict: 'plan', reason: 'plan' }
   }
-  if (base.do >= DO_LINE) {
-    return hundredths(of('small')) >= DO_LINE
-      ? { ...base, verdict: 'plan-without-refine', reason: 'small' }
-      : { ...base, verdict: 'plan', reason: 'plan' }
-  }
-  return { ...base, verdict: 'human-review', reason: 'unsure' }
+  return { ...base, confidence: Math.max(base.drop, base.do), verdict: 'human-review', reason: 'unsure' }
 }
 
 /** The reason, in the words `triage dismiss` records and the log reads. */
@@ -336,7 +387,7 @@ export function picksOf(answers: Record<string, Answer | undefined>): Picks {
 const ASK_MS = 60_000
 
 /** Ask Cloud; answers, or throws why not. `pro-required` and `signed-out` end the whole sort. */
-async function ask(body: Record<string, unknown>, sourceId: string): Promise<Record<string, Answer | undefined>> {
+export async function ask(body: Record<string, unknown>, sourceId: string): Promise<Record<string, Answer | undefined>> {
   const token = await accessToken()
   if (!token.ok) die('not signed in to AI4Kanban Cloud', { kind: 'signed-out' })
   let res: Response
@@ -443,8 +494,8 @@ export async function sortItem(item: Signal): Promise<Sorted> {
 
   let sure = { confidence: 1, drop: item.dropConfidence, do: item.doConfidence }
   if (!judged) {
-    if (!answers.verdict) die(`couldn't judge ${item.sourceId}: Cloud left the verdict unanswered`, { kind: 'judge-failed' })
-    const verdict = verdictOf({ verdict: answers.verdict, duplicate: answers.duplicate })
+    if (!answers.worth) die(`couldn't judge ${item.sourceId}: Cloud left the verdict unanswered`, { kind: 'judge-failed' })
+    const verdict = verdictOf(answers)
     if (verdict.verdict === 'skip') return ignore(verdict)
     record(verdict)
     if (verdict.verdict === 'human-review') return { kind: 'held', reason: reasonWords(verdict) }

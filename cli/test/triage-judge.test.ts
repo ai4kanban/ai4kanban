@@ -1,7 +1,7 @@
 // Sorting triage with Jev, for Pro (#1221, #1263).
 //
-// Jev's answer is mocked at Cloud's door. What is covered is everything around it: the six
-// questions, the seven options becoming four verdicts, the state fitting Jev's window, and each
+// Jev's answer is mocked at Cloud's door. What is covered is everything around it: the ten
+// questions, their answers becoming four verdicts, the state fitting Jev's window, and each
 // answer landing — a card named after its item, an ignore with its reason, or a hold.
 
 import assert from 'node:assert/strict'
@@ -19,7 +19,10 @@ import {
   CONFIDENT,
   DO_LINE,
   DROP_LINE,
+  IGNORE_LINE,
   MAX_TOKENS,
+  NEEDS_USER_LINE,
+  SMALL_LINE,
   awaitsJudging,
   judgementState,
   picksOf,
@@ -88,6 +91,20 @@ const choice = (pick: string, confidence = 0.9): Answer => ({ choice: pick, conf
 /** An answer carrying each option's probability, as Jev gives it. */
 const odds = (pick: string, probabilities: Record<string, number>, confidence = 0.5): Answer => ({ choice: pick, confidence, probabilities })
 
+/** A yes/no answer, by how likely Jev said yes. */
+const yes = (p: number): Answer => odds(p >= 0.5 ? 'yes' : 'no', { yes: p, no: Math.round((1 - p) * 100) / 100 })
+
+/** The six answers a verdict is read off: worth doing, and nothing against it, unless told. */
+const judged = (more: Record<string, Answer> = {}): Record<string, Answer> => ({
+  worth: yes(0.9),
+  supported: yes(0.02),
+  rejected: yes(0.02),
+  duplicate: choice('none'),
+  needsUser: yes(0.02),
+  small: yes(0.1),
+  ...more,
+})
+
 function answer(res: () => Response): void {
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     sent.push({ url: String(url), body: init?.body ? JSON.parse(String(init.body)) : null })
@@ -95,12 +112,11 @@ function answer(res: () => Response): void {
   }) as typeof fetch
 }
 
-const jev = (verdict: Answer, more: Record<string, Answer> = {}) => () =>
+const jev = (more: Record<string, Answer> = {}) => () =>
   new Response(
     JSON.stringify({
       answers: {
-        verdict,
-        duplicate: choice('none'),
+        ...judged(),
         modules: choice('docs'),
         priority: choice('high'),
         roi: choice('low'),
@@ -163,75 +179,69 @@ afterEach(() => {
 })
 
 describe('the verdict', () => {
-  it('turns each of the seven options into one of the four ends', () => {
-    const ends = Object.fromEntries(
-      ['supported', 'rejected', 'duplicate', 'low-value', 'needs-user', 'small', 'plan'].map((pick) => {
-        const v = verdictOf({ verdict: choice(pick) })
-        return [pick, `${v.verdict}/${v.reason}`]
-      }),
-    )
-    assert.deepEqual(ends, {
-      supported: 'skip/supported',
-      rejected: 'skip/rejected',
-      duplicate: 'skip/duplicate',
-      'low-value': 'skip/low-value',
-      'needs-user': 'human-review/needs-user',
-      small: 'plan-without-refine/small',
-      plan: 'plan/plan',
-    })
-  })
-
-  const end = (answer: Answer): string => {
-    const v = verdictOf({ verdict: answer })
+  const end = (more: Record<string, Answer> = {}): string => {
+    const v = verdictOf(judged(more))
     return `${v.verdict}/${v.reason}`
   }
+  const owned = (p: number): Answer => odds('#1180', { '#1180': p, none: Math.round((1 - p) * 100) / 100 })
 
-  it('adds the probabilities up into two confidences, whatever the confidence of the pick', () => {
-    assert.deepEqual([DROP_LINE, DO_LINE], [0.8, 0.6])
-    const v = verdictOf({ verdict: odds('plan', { supported: 0.05, rejected: 0.05, duplicate: 0.1, 'low-value': 0.1, 'needs-user': 0.05, small: 0.3, plan: 0.35 }, 0.3) })
-    assert.deepEqual([v.drop, v.do, v.confidence], [0.3, 0.65, 0.3])
-    assert.deepEqual([v.verdict, v.reason], ['plan', 'plan'])
+  it('reads the answers into one of the four ends', () => {
+    assert.equal(end({ supported: yes(0.95) }), 'skip/supported')
+    assert.equal(end({ rejected: yes(0.95) }), 'skip/rejected')
+    assert.equal(end({ duplicate: owned(0.95) }), 'skip/duplicate')
+    assert.equal(end({ worth: yes(0.1) }), 'skip/low-value')
+    assert.equal(end({ needsUser: yes(0.7) }), 'human-review/needs-user')
+    assert.equal(end({ small: yes(0.7) }), 'plan-without-refine/small')
+    assert.equal(end(), 'plan/plan')
+    assert.equal(end({ worth: yes(0.5) }), 'human-review/unsure')
   })
 
-  it('holds what needs the user first, then ignores, then cards, then holds as unsure', () => {
-    assert.equal(end(odds('needs-user', { 'needs-user': 0.1, supported: 0.9 })), 'human-review/needs-user')
-    assert.equal(end(odds('needs-user', { 'needs-user': 0.2, plan: 0.8 })), 'human-review/needs-user')
-    assert.equal(end(odds('plan', { 'low-value': 0.5, rejected: 0.3, plan: 0.2 })), 'skip/low-value')
-    assert.equal(end(odds('plan', { plan: 0.6, supported: 0.4 })), 'plan/plan')
-    assert.equal(end(odds('plan', { plan: 0.5, supported: 0.5 })), 'human-review/unsure')
+  it('keeps two confidences: that it is worth doing, and the strongest case against it', () => {
+    assert.deepEqual([IGNORE_LINE, NEEDS_USER_LINE, DROP_LINE, DO_LINE, SMALL_LINE], [0.9, 0.5, 0.8, 0.8, 0.6])
+    const v = verdictOf(judged({ worth: yes(0.85), supported: yes(0.3), rejected: yes(0.1) }))
+    assert.deepEqual([v.drop, v.do, v.confidence], [0.3, 0.85, 0.85])
+    assert.deepEqual([v.verdict, v.reason], ['plan', 'plan'])
+    const low = verdictOf(judged({ worth: yes(0.4) }))
+    assert.deepEqual([low.drop, low.do, low.reason], [0.6, 0.4, 'unsure'])
+  })
+
+  it('ignores on a fact first, then holds what needs the user, then weighs its worth', () => {
+    assert.equal(end({ supported: yes(0.95), needsUser: yes(0.9) }), 'skip/supported')
+    assert.equal(end({ needsUser: yes(0.6), worth: yes(0.05) }), 'human-review/needs-user')
+    assert.equal(end({ worth: yes(0.05), small: yes(0.9) }), 'skip/low-value')
   })
 
   it('draws each line at its own value', () => {
-    assert.equal(end(odds('supported', { supported: 0.8, plan: 0.2 })), 'skip/supported')
-    assert.equal(end(odds('supported', { supported: 0.79, plan: 0.21 })), 'human-review/unsure')
-    // Sums that floating point leaves a hair under the line.
-    assert.equal(end(odds('supported', { supported: 0.7, rejected: 0.1 })), 'skip/supported')
-    assert.equal(end(odds('plan', { plan: 0.4, small: 0.2, supported: 0.4 })), 'plan/plan')
-    assert.equal(end(odds('plan', { plan: 0.59, supported: 0.41 })), 'human-review/unsure')
+    assert.equal(end({ supported: yes(0.9) }), 'skip/supported')
+    assert.equal(end({ supported: yes(0.89) }), 'plan/plan')
+    assert.equal(end({ duplicate: owned(0.9) }), 'skip/duplicate')
+    assert.equal(end({ duplicate: owned(0.89) }), 'plan/plan')
+    assert.equal(end({ needsUser: yes(0.5) }), 'human-review/needs-user')
+    assert.equal(end({ needsUser: yes(0.49) }), 'plan/plan')
+    assert.equal(end({ worth: yes(0.2) }), 'skip/low-value')
+    assert.equal(end({ worth: yes(0.21) }), 'human-review/unsure')
+    assert.equal(end({ worth: yes(0.79) }), 'human-review/unsure')
+    assert.equal(end({ worth: yes(0.8) }), 'plan/plan')
+    assert.equal(end({ small: yes(0.6) }), 'plan-without-refine/small')
+    assert.equal(end({ small: yes(0.59) }), 'plan/plan')
   })
 
-  it('cards without planning only when small alone reaches the line', () => {
-    assert.equal(end(odds('small', { small: 0.6, plan: 0.3 })), 'plan-without-refine/small')
-    assert.equal(end(odds('small', { small: 0.59, plan: 0.4 })), 'plan/plan')
-  })
-
-  it('ignores for the likeliest of the four reasons, naming the card only for a duplicate', () => {
-    const answers = { duplicate: choice('#1180') }
-    const dup = verdictOf({ verdict: odds('duplicate', { supported: 0.2, duplicate: 0.45, 'low-value': 0.2 }), ...answers })
-    assert.deepEqual([dup.verdict, dup.reason, dup.card], ['skip', 'duplicate', 1180])
-    const low = verdictOf({ verdict: odds('duplicate', { duplicate: 0.3, 'low-value': 0.55 }), ...answers })
-    assert.deepEqual([low.verdict, low.reason, low.card], ['skip', 'low-value', null])
+  it('ignores for the likeliest fact, naming the card only for a duplicate', () => {
+    const dup = verdictOf(judged({ supported: yes(0.92), duplicate: owned(0.95) }))
+    assert.deepEqual([dup.verdict, dup.reason, dup.card, dup.confidence], ['skip', 'duplicate', 1180, 0.95])
+    const done = verdictOf(judged({ supported: yes(0.96), duplicate: owned(0.95) }))
+    assert.deepEqual([done.verdict, done.reason, done.card], ['skip', 'supported', null])
   })
 
   it('reads the pick and its confidence when no probabilities came', () => {
     assert.equal(CONFIDENT, 0.6)
-    const held = verdictOf({ verdict: choice('supported', 0.79) })
-    assert.deepEqual([held.verdict, held.reason, held.drop, held.do], ['human-review', 'unsure', 0.79, 0])
-    assert.equal(end(choice('supported', 0.8)), 'skip/supported')
-    assert.equal(end(choice('plan', 0.59)), 'human-review/unsure')
-    assert.equal(end(choice('plan', 0.6)), 'plan/plan')
-    assert.equal(end(choice('small', 0.6)), 'plan-without-refine/small')
-    assert.equal(end({ choice: 'plan', confidence: 0.6, probabilities: {} }), 'plan/plan')
+    assert.equal(end({ supported: choice('yes', 0.9) }), 'skip/supported')
+    assert.equal(end({ supported: choice('yes', 0.89) }), 'plan/plan')
+    assert.equal(end({ supported: { choice: 'yes', confidence: 0.9, probabilities: {} } }), 'skip/supported')
+    assert.equal(end({ worth: choice('no', 0.8) }), 'skip/low-value')
+    assert.equal(end({ worth: choice('yes', 0.8) }), 'plan/plan')
+    assert.equal(end({ duplicate: choice('#1180', 0.9) }), 'skip/duplicate')
+    assert.equal(end({ duplicate: choice('#1180', 0.89) }), 'plan/plan')
   })
 
   it('says which way a held item leans, the worth-doing way when the two are level', () => {
@@ -242,22 +252,22 @@ describe('the verdict', () => {
     assert.equal(words(null, null), 'unsure')
   })
 
-  it('names the duplicated card when one was picked, and none otherwise', () => {
-    const named = verdictOf({ verdict: choice('duplicate'), duplicate: choice('#1180') })
+  it('names the duplicated card, and none when Jev picked none', () => {
+    const named = verdictOf(judged({ duplicate: owned(0.95) }))
     assert.equal(named.card, 1180)
     assert.equal(reasonWords(named), 'duplicates #1180')
-    const unnamed = verdictOf({ verdict: choice('duplicate'), duplicate: choice('none') })
-    assert.equal(unnamed.card, null)
-    assert.equal(reasonWords(unnamed), 'duplicates an open card')
-    assert.equal(verdictOf({ verdict: choice('plan'), duplicate: choice('#1180') }).card, null)
+    assert.equal(reasonWords({ reason: 'duplicate', card: null, drop: 0.9, do: 0.1 }), 'duplicates an open card')
+    assert.equal(end({ duplicate: odds('none', { none: 0.05, '#1180': 0.5, '#7': 0.45 }) }), 'plan/plan')
+    assert.equal(verdictOf(judged({ duplicate: owned(0.5) })).card, null)
   })
 })
 
 describe('the questions', () => {
-  it('asks six of a fresh item, with the modules and workflows this board has', () => {
+  it('asks ten of a fresh item, with the cards, modules and workflows this board has', () => {
     card(7, 'Themes')
     const asked = questionsFor([{ id: 7, title: 'Themes', file: '' }]) as Record<string, { criteria: Record<string, string> }>
-    assert.deepEqual(Object.keys(asked), ['verdict', 'duplicate', 'modules', 'priority', 'roi', 'workflow'])
+    assert.deepEqual(Object.keys(asked), ['worth', 'supported', 'rejected', 'duplicate', 'needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
+    for (const name of ['worth', 'supported', 'rejected', 'needsUser', 'small']) assert.deepEqual(Object.keys(asked[name]!.criteria), ['yes', 'no'])
     assert.deepEqual(asked.duplicate!.criteria, { '#7': 'Themes', none: 'no open card owns this work.' })
     assert.deepEqual(asked.modules!.criteria, { skill: 'the board machinery. `cli/`.', docs: 'the user guides.' })
     assert.deepEqual(Object.keys(asked.priority!.criteria), ['high', 'med', 'low'])
@@ -374,12 +384,12 @@ describe('the sort', () => {
     signIn(true)
     card(7, 'Themes')
     const id = await waiting('写一篇暗色模式的博客', 'dark-mode-blog-post')
-    answer(jev(choice('plan', 0.82)))
+    answer(jev())
     const { report, said } = await sort()
 
     assert.equal(sent.length, 1)
     assert.equal(sent[0]!.url, `${API}/v1/judge`)
-    assert.deepEqual(Object.keys(sent[0]!.body.questions), ['verdict', 'duplicate', 'modules', 'priority', 'roi', 'workflow'])
+    assert.deepEqual(Object.keys(sent[0]!.body.questions), ['worth', 'supported', 'rejected', 'duplicate', 'needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
     assert.equal(sent[0]!.body.state.cards, undefined)
     assert.deepEqual(report.cards, [{ id: 100, title: '写一篇暗色模式的博客' }])
     assert.deepEqual(said, ['#100 写一篇暗色模式的博客', 'sorted 1 item: 1 card, 0 ignored, 0 left for you'])
@@ -412,7 +422,7 @@ describe('the sort', () => {
     } finally {
       stopCollecting()
     }
-    answer(jev(choice('small')))
+    answer(jev({ small: yes(0.9) }))
     await sort()
     const text = cardText('100-small-fix.md')
     assert.match(text, /^status: todo$/m)
@@ -429,7 +439,7 @@ describe('the sort', () => {
     } finally {
       stopCollecting()
     }
-    answer(jev(choice('plan')))
+    answer(jev())
     await sort()
     assert.match(cardText('100-a-long-one.md'), /\n\n````\nIntro\.\n\n## Scope\n\n```js\nrun\(\)\n```\n````\n\n## Worth noting\n/)
     const valid = await akb(['validate', '100'], runBoard)
@@ -442,7 +452,7 @@ describe('the sort', () => {
       path.join(kanban(), 'triage', '2026-10-01-pro-pro-4e3a3454.md'),
       '---\nsource_id: old-1\ntitle: Pro 的 Pro\ncollected_at: "2026-10-01 09:00"\nimported_at: "2026-10-01 09:00"\n---\n\nIts words.\n',
     )
-    answer(jev(choice('plan')))
+    answer(jev())
     await sort()
     assert.deepEqual(cardFiles(), ['100-2026-10-01-pro-pro-4e3a3454.md'])
     assert.match(cardText('100-2026-10-01-pro-pro-4e3a3454.md'), /^title: "?Pro 的 Pro"?$/m)
@@ -452,7 +462,7 @@ describe('the sort', () => {
     signIn(true)
     card(1180, 'Themes')
     const dup = await waiting('Dark mode')
-    answer(jev(choice('duplicate', 0.82), { duplicate: choice('#1180') }))
+    answer(jev({ duplicate: odds('#1180', { '#1180': 0.92, none: 0.08 }) }))
     let done = await sort()
     assert.deepEqual(done.report.ignored, [{ title: 'Dark mode', reason: 'duplicates #1180' }])
     assert.deepEqual(done.said, ['ignored: Dark mode — duplicates #1180', 'sorted 1 item: 0 cards, 1 ignored, 0 left for you'])
@@ -460,20 +470,20 @@ describe('the sort', () => {
     assert.deepEqual([ignored.verdict, ignored.verdictReason, ignored.verdictCard], ['skip', 'duplicate', 1180])
     assert.deepEqual([ignored.dismissedBy, ignored.dismissedReason], ['agent', 'duplicates #1180'])
     const kept = fs.readFileSync(path.join(root, ignored.relPath), 'utf8')
-    assert.match(kept, /verdict_confidence: "?0.82"?/)
-    assert.match(kept, /drop_confidence: "?0.82"?\ndo_confidence: "?0.00"?/)
-    assert.deepEqual([ignored.dropConfidence, ignored.doConfidence], [0.82, 0])
+    assert.match(kept, /verdict_confidence: "?0.92"?/)
+    assert.match(kept, /drop_confidence: "?0.92"?\ndo_confidence: "?0.90"?/)
+    assert.deepEqual([ignored.dropConfidence, ignored.doConfidence], [0.92, 0.9])
 
     const held = await waiting('Direction')
     const unsure = await waiting('Unsure')
-    answer(jev(choice('needs-user')))
+    answer(jev({ needsUser: yes(0.7) }))
     await sortItems([held], () => {})
-    answer(jev(odds('plan', { plan: 0.3, small: 0.27, supported: 0.4 })))
+    answer(jev({ worth: yes(0.57), supported: yes(0.4) }))
     const said: string[] = []
     done = { report: await sortItems([unsure], (line) => void said.push(line)), said }
     assert.deepEqual(done.report.held, [{ title: 'Unsure', reason: 'likely worth doing, 57% sure' }])
     assert.equal(said[0], 'left for you: Unsure — likely worth doing, 57% sure')
-    assert.deepEqual([item(unsure).verdictReason, item(unsure).dropConfidence, item(unsure).doConfidence], ['unsure', 0.4, 0.57])
+    assert.deepEqual([item(unsure).verdictReason, item(unsure).dropConfidence, item(unsure).doConfidence], ['unsure', 0.43, 0.57])
     assert.deepEqual([item(held).verdict, item(held).verdictReason], ['human-review', 'needs-user'])
     assert.deepEqual(readInbox().map((one) => one.title).sort(), ['Direction', 'Unsure'])
     assert.deepEqual(triageWaiting(), [])
@@ -483,14 +493,14 @@ describe('the sort', () => {
   it('ignores an item no workflow can do, and uses the default workflow when unsure', async () => {
     signIn(true)
     const none = await waiting('Record a podcast')
-    answer(jev(choice('plan'), { workflow: choice('none') }))
+    answer(jev({ workflow: choice('none') }))
     let done = await sort()
     assert.deepEqual(done.report.ignored, [{ title: 'Record a podcast', reason: 'no workflow does it' }])
     assert.deepEqual([item(none).verdict, item(none).verdictReason, item(none).dismissedReason], ['skip', 'no-workflow', 'no workflow does it'])
     assert.deepEqual(cardFiles(), [])
 
     await waiting('Maybe a blog')
-    answer(jev(choice('plan'), { workflow: choice('none', 0.5) }))
+    answer(jev({ workflow: choice('none', 0.5) }))
     done = await sort()
     assert.equal(done.report.cards.length, 1)
     assert.doesNotMatch(cardText('100-maybe-a-blog.md'), /^workflow:/m)
@@ -519,7 +529,7 @@ describe('the sort', () => {
     let calls = 0
     globalThis.fetch = (async () => {
       if (calls++ === 0) throw new TypeError('fetch failed')
-      return jev(choice('plan'))()
+      return jev()()
     }) as typeof fetch
     const { report, said } = await sort()
     assert.equal(report.failed.length, 1)
@@ -548,7 +558,7 @@ describe('the sort', () => {
     signIn(true)
     const fresh = await waiting('Fresh')
     const skipped = await waiting('Supported')
-    answer(jev(choice('supported')))
+    answer(jev({ supported: yes(0.95) }))
     await sortItems([skipped], () => {})
     startCollecting()
     try {
@@ -576,11 +586,11 @@ describe('the sort', () => {
     assert.deepEqual([awaitsJudging(item(legacy)), awaitsJudging(item(direction))], [true, false])
     assert.deepEqual(triageWaiting(), [legacy])
 
-    answer(jev(odds('plan', { plan: 0.3, 'low-value': 0.45 })))
+    answer(jev({ worth: yes(0.3), rejected: yes(0.45) }))
     const done = await sort()
-    assert.deepEqual(done.report.held, [{ title: 'Legacy', reason: 'likely to ignore, 45% sure' }])
+    assert.deepEqual(done.report.held, [{ title: 'Legacy', reason: 'likely to ignore, 70% sure' }])
     assert.equal(sent.filter((one) => one.url.endsWith('/v1/judge')).length, 1)
-    assert.deepEqual([item(legacy).dropConfidence, item(legacy).doConfidence], [0.45, 0.3])
+    assert.deepEqual([item(legacy).dropConfidence, item(legacy).doConfidence], [0.7, 0.3])
     assert.deepEqual(triageWaiting(), [])
   })
 })
@@ -590,7 +600,7 @@ describe('a sort as a run', () => {
     signIn(true)
     const id = await waiting('Worth planning')
     write(path.join(todo(), '101-card-101.md'), `---\ntitle: Worth planning\npriority: med\nroi: med\nstatus: todo\ntriage: ${id}\n---\n\nWhat it does.\n`)
-    answer(jev(choice('plan')))
+    answer(jev())
     const opened = await openSort()
     assert.ok(!('error' in opened))
     const said: string[] = []
@@ -606,7 +616,7 @@ describe('a sort as a run', () => {
   it('runs one at a time, writes its report to the log, and closes done', async () => {
     signIn(true)
     await waiting('Dark mode')
-    answer(jev(choice('plan')))
+    answer(jev())
     const opened = await openSort()
     assert.ok(!('error' in opened))
     const second = await openSort()
@@ -640,11 +650,9 @@ describe('akb triage run', () => {
     signIn(true)
     await waiting('Dark mode')
     const skip = await waiting('Already there')
-    const picks = new Map([[skip, 'supported']])
     globalThis.fetch = (async (url: string, init?: RequestInit) => {
       const body = init?.body ? JSON.parse(String(init.body)) : null
-      const id = [...picks.keys()].find((one) => String(body?.state?.item ?? '').includes(one))
-      return jev(choice(id ? picks.get(id)! : 'plan'))()
+      return jev(String(body?.state?.item ?? '').includes(skip) ? { supported: yes(0.95) } : {})()
     }) as typeof fetch
     const { code, out, err } = await akb(['triage', 'run'])
     assert.equal(code, 0, err)
