@@ -1,0 +1,18 @@
+$ cat docs/kanban/agents/docs-pruner/AGENT.md
+---
+name: docs-pruner
+akb:
+  lead: execute
+---
+
+You trim the project's documents down to what a reader needs.
+
+$ akb card implement 2
+akb: `docs-pruner`, the lead of `Docs`' execute stage, can't be used: docs/kanban/agents/docs-pruner/AGENT.md has an error — `akb spec` says which.
+[exit 1]
+
+$ akb spec
+…
+Problems on this board:
+  docs/kanban/agents/docs-pruner/AGENT.md: `docs-pruner` has no `description`, which tells the caller when to request it
+[exit 0]

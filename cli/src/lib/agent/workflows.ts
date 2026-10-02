@@ -30,7 +30,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { die } from '../paths'
 import type { Meta } from '../types'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
-import { specAgentCatalog } from '../agents/catalog'
+import { specAgentCatalog, type RefusedAgent } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
 import { copyAgent } from '../agents/roster'
@@ -793,6 +793,12 @@ export function workflowIssues(id: string): RunRefusal[] {
     }
     const found = roster.find((entry) => entry.name === lead)
     if (!found) {
+      const refused = specAgentCatalog().refused
+      const mine = refused.find((r) => r.folder === lead) ?? refused.find((r) => r.name === lead)
+      if (mine) {
+        problems.push(leadRefused(flow, stage, mine))
+        continue
+      }
       problems.push(
         refusal('workflowLeadMissing', `\`${name}\` has \`${lead}\` leading its ${stage} stage, and this board has no such agent.`, {
           name,
@@ -816,6 +822,34 @@ export function workflowIssues(id: string): RunRefusal[] {
     }
   }
   return problems
+}
+
+// A lead whose file is there but refused (#1342): the one line that brings it back.
+function leadRefused(flow: Workflow, stage: WorkflowStage, agent: RefusedAgent): RunRefusal {
+  const lead = flow.stages[stage].lead
+  const keys = agent.keys ?? []
+  const line = agent.line ?? `lead: ${stage}`
+  const declared = agent.name ?? ''
+  const fix: Record<RefusedAgent['cause'], string> = {
+    oldKeys: `in ${agent.file}, replace ${keys.map((key) => `\`${key}\``).join(', ')} with \`${line}\``,
+    noFile: `${agent.file} is missing — add it`,
+    nameTaken: `${agent.file} takes a name already in use — rename one of the two`,
+    folderName: `its folder is \`${agent.folder}\` but ${agent.file} names it \`${declared}\` — make the two match`,
+    file: `${agent.file} has an error — \`akb spec\` says which`,
+  }
+  const of = flow.name.endsWith('s') ? "'" : "'s"
+  return refusal('workflowLeadRefused', `\`${lead}\`, the lead of \`${flow.name}\`${of} ${stage} stage, can't be used: ${fix[agent.cause]}.`, {
+    name: flow.name,
+    agent: lead,
+    stage,
+    workflow: flow.id,
+    cause: agent.cause,
+    file: agent.file,
+    folder: agent.folder,
+    declared,
+    keys: keys.join(','),
+    line,
+  })
 }
 
 /** Every helper one stage has, disabled ones included, minus any agent this board no longer

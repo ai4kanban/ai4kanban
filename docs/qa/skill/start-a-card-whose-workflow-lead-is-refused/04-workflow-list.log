@@ -1,0 +1,5 @@
+$ akb workflow list   # the Docs workflow's rows
+wf-2  Docs  (no worktree)
+  plan    software-planner
+  execute docs-pruner
+  ! `docs-pruner`, the lead of `Docs`' execute stage, can't be used: in docs/kanban/agents/docs-pruner/AGENT.md, replace `stage`, `kind` with `lead: execute`.

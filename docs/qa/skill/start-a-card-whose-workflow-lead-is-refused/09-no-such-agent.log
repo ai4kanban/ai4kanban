@@ -1,0 +1,5 @@
+$ ls docs/kanban/agents
+
+$ akb card implement 2
+akb: `Docs` has `docs-pruner` leading its execute stage, and this board has no such agent. Assign it in Configuration → Workflows, or with `akb workflow stage wf-2 --stage <stage> --lead <agent>`.
+[exit 1]

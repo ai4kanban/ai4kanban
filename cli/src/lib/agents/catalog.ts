@@ -20,43 +20,75 @@ import { ROLE_NAMES } from '../agent/roles'
 import { AGENTS, LEGACY_AGENTS, rel } from '../paths'
 import { BUNDLED_AGENT_FILES } from './bundled'
 import { parseSpecAgent } from './parse'
-import type { SpecAgent } from './parse'
+import type { AgentProblem, SpecAgent } from './parse'
 
 /** The board's agents, and every reason one is missing from them. */
 export interface SpecAgentCatalog {
   agents: SpecAgent[]
   /** One line per agent that could not be used, saying which and why. */
   problems: string[]
+  /** The project agents left out, each with why — for a caller that says it its own way (#1342). */
+  refused: RefusedAgent[]
 }
+
+export type RefusedCause = 'oldKeys' | 'noFile' | 'nameTaken' | 'folderName' | 'file'
+
+/** One project agent the board does not use. */
+export interface RefusedAgent {
+  folder: string
+  /** What its file calls itself, when it reads that far. */
+  name?: string
+  /** Its `AGENT.md`, from the project root. */
+  file: string
+  cause: RefusedCause
+  /** `oldKeys`: the keys to take out, and the line that replaces them when the file names one. */
+  keys?: string[]
+  line?: string
+}
+
+type ReadProblem = AgentProblem & { file?: string; missing?: boolean }
 
 /** Read the catalog. Nothing is cached: an agent added, edited or switched off between two
  *  runs takes effect on the next one, the same way the board's settings do. */
 export function specAgentCatalog(): SpecAgentCatalog {
   const agents: SpecAgent[] = []
   const problems: string[] = []
-  const take = (read: { agent: SpecAgent } | { problem: string }, folder: string): void => {
-    if ('problem' in read) return void problems.push(read.problem)
-    if (ROLE_NAMES.includes(read.agent.name)) {
-      problems.push(
-        `${read.agent.from}: \`${read.agent.name}\` is one of the roles the board ships, whose rule ` +
+  const refused: RefusedAgent[] = []
+  const take = (read: { agent: SpecAgent } | ReadProblem, folder: string): void => {
+    if ('problem' in read) {
+      problems.push(read.problem)
+      if (!read.file) return
+      const { file, name, old } = read
+      const cause = read.missing ? 'noFile' : old ? 'oldKeys' : 'file'
+      refused.push({ folder, file, cause, ...(name ? { name } : {}), ...(old ? { keys: old.keys } : {}), ...(old?.line ? { line: old.line } : {}) })
+      return
+    }
+    const { name, from, builtIn } = read.agent
+    const refuse = (cause: RefusedCause, problem: string): void => {
+      problems.push(problem)
+      if (!builtIn) refused.push({ folder, name, file: from, cause })
+    }
+    if (ROLE_NAMES.includes(name)) {
+      return refuse(
+        'nameTaken',
+        `${from}: \`${name}\` is one of the roles the board ships, whose rule ` +
           'this agent would then share, so this one is not used. Rename it.',
       )
-      return
     }
-    const clash = agents.find((a) => a.name === read.agent.name)
+    const clash = agents.find((a) => a.name === name)
     if (clash) {
-      problems.push(
-        `${read.agent.from}: an agent named \`${read.agent.name}\` is already on this board ` +
+      return refuse(
+        'nameTaken',
+        `${from}: an agent named \`${name}\` is already on this board ` +
           `(${clash.from}), so this one is not used. Rename one of them.`,
       )
-      return
     }
-    if (read.agent.name !== folder) {
-      problems.push(
-        `${read.agent.from}: its folder is \`${folder}\` but it calls itself \`${read.agent.name}\`. ` +
+    if (name !== folder) {
+      return refuse(
+        'folderName',
+        `${from}: its folder is \`${folder}\` but it calls itself \`${name}\`. ` +
           'An agent is asked for by its folder name — make the two match.',
       )
-      return
     }
     agents.push(read.agent)
   }
@@ -78,7 +110,7 @@ export function specAgentCatalog(): SpecAgentCatalog {
     take(readProject(LEGACY_AGENTS, folder), folder)
     problems.push(`${rel(path.join(LEGACY_AGENTS, folder))}: move it to ${rel(path.join(AGENTS, folder))}/`)
   }
-  return { agents, problems }
+  return { agents, problems, refused }
 }
 
 // ---- the agents the command ships ------------------------------------------
@@ -152,12 +184,15 @@ function walkFolder(dir: string, prefix: string): string[] {
   })
 }
 
-function readProject(root: string, folder: string): { agent: SpecAgent } | { problem: string } {
+function readProject(root: string, folder: string): { agent: SpecAgent } | ReadProblem {
   const dir = path.join(root, folder)
   const file = agentFileReader(dir)
   const found = AGENT_FILES.map((name) => ({ name, text: file(name) })).find((f) => f.text !== null)
-  if (!found) return { problem: `${rel(path.join(dir, AGENT_FILES[0]!))} is missing` }
-  const read = parseSpecAgent(found.text!, rel(path.join(dir, found.name)), file, false, () => ownFiles(walkFolder(dir, '')))
+  const missing = rel(path.join(dir, AGENT_FILE))
+  if (!found) return { problem: `${missing} is missing`, file: missing, missing: true }
+  const from = rel(path.join(dir, found.name))
+  const read = parseSpecAgent(found.text!, from, file, false, () => ownFiles(walkFolder(dir, '')))
+  if ('problem' in read) return { ...read, file: from }
   // Where it lives and what it says, whole — a project agent's file is the box the Agents
   // pane writes it through (#422), and only an agent read off disk has one.
   if ('agent' in read) Object.assign(read.agent, { dir, text: found.text! })

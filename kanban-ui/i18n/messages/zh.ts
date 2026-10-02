@@ -1,9 +1,28 @@
 // 简体中文 —— the sentences the server writes itself, mirroring `en.ts` key for key.
 // Writing rules: `i18n/index.ts`.
+import type { RefusalArgs } from "@/lib/format/agent/types";
 import type { MessagesCopy } from "./types";
 
 // A card number sits apart from the Chinese around it; a word does not.
 const spaced = (task: string): string => (task.startsWith("#") ? ` ${task}` : task);
+
+// How to bring back a workflow lead whose file the board does not use, by `cause`.
+const leadFix = (a: RefusalArgs): string => {
+  switch (a.cause) {
+    case "oldKeys": {
+      const keys = (a.keys ?? "").split(",").map((key) => `\`${key}\``);
+      return `请在它的 AGENT.md 中把 ${keys.join("、")} 换成 \`${a.line}\`。`;
+    }
+    case "noFile":
+      return "它的文件夹中缺少 AGENT.md，请补上。";
+    case "nameTaken":
+      return "它与另一个 Agent 重名，请为其中一个改名。";
+    case "folderName":
+      return `它的文件夹名是 \`${a.folder}\`，AGENT.md 中却是 \`name: ${a.declared}\`，请改成一致。`;
+    default:
+      return "它的 AGENT.md 有错误，详情见“配置 → 工作流”。";
+  }
+};
 
 const zh: MessagesCopy = {
   rules: {
@@ -99,6 +118,7 @@ const zh: MessagesCopy = {
     planDelivered: () => "此卡片在规划阶段完成，请直接归档。",
     workflowNoLead: (a) => `“${a.name}”的${a.stage}阶段尚无主导 Agent，请先分配再启动。`,
     workflowLeadMissing: (a) => `“${a.name}”的${a.stage}阶段指定了 ${a.agent}，但看板中没有该 Agent。`,
+    workflowLeadRefused: (a) => `“${a.name}”的${a.stage}阶段负责人 ${a.agent} 无法使用：${leadFix(a)}`,
     workflowLeadStage: (a) => `“${a.name}”的${a.stage}阶段指定了 ${a.agent}，但该 Agent 属于${a.assigned}阶段。`,
     proSignIn: (a) => `“${a.name}”需要 Pro，请先登录。`,
     proRequired: (a) => `“${a.name}”需要 Pro。`,

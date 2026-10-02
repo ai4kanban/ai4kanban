@@ -1,0 +1,3 @@
+$ akb card implement 2 --json
+{"ok":false,"error":{"kind":"run-refused","message":"`docs-pruner`, the lead of `Docs`' execute stage, can't be used: in docs/kanban/agents/docs-pruner/AGENT.md, replace `stage`, `kind` with `lead: execute`.","action":"implement"}}
+[exit 1]

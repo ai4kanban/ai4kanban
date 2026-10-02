@@ -1,0 +1,13 @@
+$ sed -n '4,5p' docs/kanban/agents/docs-pruner/AGENT.md
+akb:
+  lead: execute
+
+$ akb workflow list   # the Docs workflow's rows
+wf-2  Docs  (no worktree)
+  plan    software-planner
+  execute docs-pruner
+
+$ akb card implement 2 --print
+implement #2 — printed, not started. Do it here, in this session (akb).
+…
+[exit 0]

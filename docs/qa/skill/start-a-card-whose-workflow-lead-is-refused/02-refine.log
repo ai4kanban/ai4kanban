@@ -1,0 +1,3 @@
+$ akb card refine 2
+akb: `docs-pruner`, the lead of `Docs`' execute stage, can't be used: in docs/kanban/agents/docs-pruner/AGENT.md, replace `stage`, `kind` with `lead: execute`.
+[exit 1]

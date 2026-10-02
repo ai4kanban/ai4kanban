@@ -67,6 +67,8 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
   }
   const [problem] = workflowIssues(flow.id)
   if (!problem) return null
+  // A refused lead is brought back by fixing its file, not by assigning another (#1342).
+  if (problem.reason === 'workflowLeadRefused') return problem
   const command = `akb workflow stage ${flow.id} --stage <stage> --lead <agent>`
   return {
     ...problem,

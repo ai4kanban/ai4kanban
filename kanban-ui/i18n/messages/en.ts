@@ -1,6 +1,25 @@
 // English copy for the sentences `lib/` renders — the source of truth a second
 // language mirrors key for key. Writing rules: `i18n/index.ts`.
+import type { RefusalArgs } from "@/lib/format/agent/types";
 import type { MessagesCopy } from "./types";
+
+// How to bring back a workflow lead whose file the board does not use, by `cause`.
+const leadFix = (a: RefusalArgs): string => {
+  switch (a.cause) {
+    case "oldKeys": {
+      const keys = (a.keys ?? "").split(",").map((key) => `\`${key}\``);
+      return `in its AGENT.md, replace ${keys.join(", ")} with \`${a.line}\`.`;
+    }
+    case "noFile":
+      return "its folder has no AGENT.md. Add one.";
+    case "nameTaken":
+      return "another agent already uses its name. Rename one of them.";
+    case "folderName":
+      return `its folder is \`${a.folder}\`, but its AGENT.md sets \`name: ${a.declared}\`. Make the two match.`;
+    default:
+      return "its AGENT.md has an error. See Configuration → Workflows for details.";
+  }
+};
 
 const en: MessagesCopy = {
   rules: {
@@ -108,6 +127,7 @@ const en: MessagesCopy = {
     planDelivered: () => "This card is finished during planning — archive it instead.",
     workflowNoLead: (a) => `${a.name} has no agent leading its ${a.stage} stage. Assign one before it can run.`,
     workflowLeadMissing: (a) => `${a.name} has ${a.agent} leading its ${a.stage} stage, and this board has no such agent.`,
+    workflowLeadRefused: (a) => `${a.agent}, the lead of ${a.name}'s ${a.stage} stage, can't be used: ${leadFix(a)}`,
     workflowLeadStage: (a) =>
       `${a.name} has ${a.agent} leading its ${a.stage} stage, but ${a.agent} is a ${a.assigned} agent.`,
     proSignIn: (a) => `${a.name} needs Pro. Sign in first.`,

@@ -1,0 +1,13 @@
+$ cat docs/kanban/agents/docs-pruner/AGENT.md
+---
+name: builder
+description: Use when a card trims the project's documents.
+akb:
+  lead: execute
+---
+
+You trim the project's documents down to what a reader needs.
+
+$ akb card implement 2
+akb: `docs-pruner`, the lead of `Docs`' execute stage, can't be used: docs/kanban/agents/docs-pruner/AGENT.md takes a name already in use — rename one of the two.
+[exit 1]
