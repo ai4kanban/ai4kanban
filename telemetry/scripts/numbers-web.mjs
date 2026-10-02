@@ -9,6 +9,9 @@
 // production summaries once at startup and works every range out from that, so the way to
 // see today's numbers later in the day is to restart it.
 //
+// The AI cost section reads Cloud's database the same way, once, with SUPABASE_PROJECT_REF and
+// SUPABASE_ACCESS_TOKEN. Without them the rest of the page still shows.
+//
 // Production only. There is no environment switch and no request to the development copy —
 // a page that could quietly be showing the wrong copy's numbers is worse than no page.
 
@@ -16,6 +19,7 @@ import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { readAiCost } from './ai-cost.mjs'
 import { COPIES, query, serviceRoot, wrangler } from './copies.mjs'
 import { DEFAULT_RANGE, READ_DAYS, RANGES, dashboardOf, rangeOf } from './dashboard.mjs'
 import { pageOf } from './page.mjs'
@@ -29,6 +33,8 @@ const port = Number(process.argv[process.argv.indexOf('--port') + 1]) || DEFAULT
 
 credentials()
 const held = read()
+const ai = await readAiCost(process.env, rangeOf(new Date().toISOString().slice(0, 10), READ_DAYS).at(-1))
+if (ai.failed) process.stderr.write(`\n  Could not read Cloud's AI cost: ${ai.failed}\n  The page will say so.\n`)
 const today = new Date().toISOString().slice(0, 10)
 // Date and time, not a bare clock: a service left running overnight still holds the day it
 // started on, and `read 08:12` would not say which day that was. Same shape, and the same
@@ -52,6 +58,7 @@ createServer((request, answer) => {
       held: held.summaries,
       readAt,
       readFailed: held.failed,
+      ai,
     }),
   )
   answer.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })

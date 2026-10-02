@@ -1,0 +1,7 @@
+
+  Could not read Cloud's AI cost: SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are not set, in the environment or in telemetry/.env.
+  The page will say so.
+
+  AI4Kanban usage — production (t.ai4kanban.dev)
+  http://127.0.0.1:8792  — this machine only. Ctrl-C stops it.
+

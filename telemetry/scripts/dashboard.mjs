@@ -14,6 +14,17 @@ export const DEFAULT_RANGE = 14
 /** How far back the service reads at startup — every range has to fit inside it. */
 export const READ_DAYS = Math.max(...RANGES)
 
+/** Cloud's hosted capabilities, as `cloud.ai_calls` names them and as the page does. */
+export const AI_CAPABILITIES = [
+  ['judge', 'Jev triage'],
+  ['speech', 'Narration'],
+  ['image', 'Cover image'],
+]
+/** Pro's price per month in US dollars; yearly is billed at $120. */
+const MONTHLY_PRICE = { monthly: 15, yearly: 10 }
+/** A user's Jev cost past this many times the median is marked. */
+export const JEV_OUTLIER = 5
+
 /** The four numbers the overview carries, newest-day value first and the range behind it. */
 const TILES = [
   ['installs', 'Active installs', (n) => n.installs],
@@ -55,8 +66,9 @@ export const rangeOf = (today, days) =>
  * @param held        day -> { numbers, settled, writtenAt }, as far back as was read
  * @param readAt      when the service read the summaries
  * @param readFailed  the read did not come back — every number is unknown until a restart
+ * @param ai          Cloud's hosted AI calls: `{ rows, users }`, or `{ failed: why }` when not read
  */
-export function dashboardOf({ endpoint, today, days, held, readAt, readFailed = false }) {
+export function dashboardOf({ endpoint, today, days, held, readAt, readFailed = false, ai = null }) {
   const range = rangeOf(today, days)
   const before = rangeOf(shift(today, -days), days)
   // Today is still taking events, so it is never the day a headline number is read off and
@@ -86,6 +98,7 @@ export function dashboardOf({ endpoint, today, days, held, readAt, readFailed = 
     daily: daily(range, held),
     site: site(range, held),
     spread: spread(newest, newest ? held.get(newest) : null),
+    ai: aiCost(range, ai),
   }
 }
 
@@ -192,4 +205,76 @@ function spread(day, summary) {
       { label: 'Country', bars: bars(summary.numbers.install_country) },
     ],
   }
+}
+
+/**
+ * What the hosted AI calls in the range cost, per capability and per user. A read that did not
+ * come back is `{ unavailable: why }`, never a table of zeros.
+ */
+function aiCost(range, ai) {
+  if (!ai || ai.failed) return { unavailable: ai?.failed ?? 'Cloud was not read.' }
+  const from = range.at(-1)
+  const to = range[0]
+  const rows = ai.rows.filter((row) => row.day >= from && row.day <= to)
+  const blank = () => ({ calls: 0, failed: 0, cost: 0, unknown: 0, credits: 0 })
+  const add = (into, row) => {
+    into.calls += Number(row.calls)
+    into.failed += Number(row.failed)
+    into.cost += Number(row.cost)
+    into.unknown += Number(row.cost_unknown)
+    into.credits += Number(row.credits)
+  }
+
+  const total = new Map(AI_CAPABILITIES.map(([key]) => [key, blank()]))
+  const perUser = new Map()
+  for (const row of rows) {
+    if (!total.has(row.capability)) continue
+    add(total.get(row.capability), row)
+    if (!perUser.has(row.user_id)) perUser.set(row.user_id, new Map(AI_CAPABILITIES.map(([key]) => [key, blank()])))
+    add(perUser.get(row.user_id).get(row.capability), row)
+  }
+
+  const jev = [...perUser.values()].filter((by) => by.get('judge').calls > 0).map((by) => by.get('judge').cost)
+  const typical = median(jev)
+  const account = new Map(ai.users.map((user) => [user.user_id, user]))
+  const users = [...perUser].map(([id, by]) => {
+    const all = [...by.values()]
+    const cost = all.reduce((sum, one) => sum + one.cost, 0)
+    const revenue = revenueOf(account.get(id), from, range.length)
+    return {
+      user: account.get(id)?.email ?? id,
+      by: AI_CAPABILITIES.map(([key]) => ({ calls: by.get(key).calls, cost: by.get(key).cost })),
+      cost,
+      credits: all.reduce((sum, one) => sum + one.credits, 0),
+      revenue,
+      // A gifted Pro pays nothing, so there is no revenue to hold the cost against.
+      ratio: revenue > 0 ? cost / revenue : null,
+      flagged: typical > 0 && by.get('judge').cost > JEV_OUTLIER * typical,
+    }
+  })
+  users.sort((a, b) => b.cost - a.cost)
+
+  return {
+    capabilities: AI_CAPABILITIES.map(([key, label]) => {
+      const one = total.get(key)
+      return { key, label, ...one, perCredit: one.credits > 0 ? one.cost / one.credits : null }
+    }),
+    users,
+  }
+}
+
+/** Revenue accrued over the range: the plan's monthly price × days / 30. Nothing for a user
+ *  with no subscription paying in the range — Pro by a grant alone. */
+function revenueOf(user, from, days) {
+  const price = MONTHLY_PRICE[user?.period]
+  if (!price) return 0
+  const paying = user.renewing || (user.period_end && user.period_end >= from)
+  return paying ? (price * days) / 30 : 0
+}
+
+function median(numbers) {
+  if (numbers.length === 0) return 0
+  const sorted = [...numbers].sort((a, b) => a - b)
+  const mid = sorted.length >> 1
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }

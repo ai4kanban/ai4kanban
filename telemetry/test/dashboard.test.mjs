@@ -184,3 +184,112 @@ describe('what the page shows', () => {
     for (const days of RANGES) assert.match(page, new RegExp(`href="/\\?days=${days}"`))
   })
 })
+
+// Cloud's hosted AI calls (#1355). TODAY is 2026-09-14, so 14 days reach back to 09-01.
+const call = (day, user, capability, over = {}) => ({
+  day,
+  user_id: user,
+  capability,
+  calls: 1,
+  failed: 0,
+  cost: 0,
+  cost_unknown: 0,
+  credits: 0,
+  ...over,
+})
+const account = (id, over = {}) => ({
+  user_id: id,
+  email: `${id}@example.com`,
+  period: null,
+  renewing: null,
+  period_end: null,
+  ...over,
+})
+const AI = {
+  rows: [
+    call('2026-09-13', 'lin', 'judge', { calls: 40, cost: 0.6 }),
+    call('2026-09-12', 'lin', 'speech', { calls: 3, failed: 1, cost: 0.03, cost_unknown: 1, credits: 60 }),
+    call('2026-09-12', 'lin', 'image', { cost: 0.04, credits: 320 }),
+    call('2026-09-10', 'ana', 'judge', { calls: 5, cost: 0.01 }),
+    call('2026-09-09', 'bo', 'judge', { calls: 6, cost: 0.02 }),
+    call('2026-08-20', 'ana', 'judge', { calls: 100, cost: 3 }),
+  ],
+  users: [
+    account('lin', { period: 'monthly', renewing: true }),
+    account('ana', { period: 'yearly', renewing: false, period_end: '2026-09-05' }),
+    account('bo'),
+  ],
+}
+const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} is not ${expected}`)
+
+describe('what hosted AI calls cost', () => {
+  it('adds up each capability over the range and nothing outside it', () => {
+    const [judge, speech, image] = view({ ai: AI }).ai.capabilities
+    assert.equal(judge.calls, 51)
+    near(judge.cost, 0.63)
+    assert.equal(judge.perCredit, null)
+    assert.deepEqual(
+      { calls: speech.calls, failed: speech.failed, unknown: speech.unknown, credits: speech.credits },
+      { calls: 3, failed: 1, unknown: 1, credits: 60 },
+    )
+    near(speech.perCredit, 0.03 / 60)
+    near(image.perCredit, 0.04 / 320)
+
+    const wide = view({ ai: AI, days: 30 }).ai
+    assert.equal(wide.capabilities[0].calls, 151)
+    assert.equal(wide.users[0].user, 'ana@example.com')
+  })
+
+  it('lists users by total cost, each with every capability and the credits spent', () => {
+    const { users } = view({ ai: AI }).ai
+    assert.deepEqual(users.map((one) => one.user), ['lin@example.com', 'bo@example.com', 'ana@example.com'])
+    assert.deepEqual(users[0].by.map((use) => use.calls), [40, 3, 1])
+    near(users[0].cost, 0.67)
+    assert.equal(users[0].credits, 380)
+  })
+
+  it('holds cost against revenue accrued over the range, by plan', () => {
+    const [lin, bo, ana] = view({ ai: AI }).ai.users
+    assert.equal(lin.revenue, (15 * 14) / 30)
+    near(lin.ratio, 0.67 / 7)
+    // An ended subscription still paid for the days it reached into the range.
+    assert.equal(ana.revenue, (10 * 14) / 30)
+    assert.equal(bo.revenue, 0)
+
+    const week = view({ ai: AI, days: 7 }).ai.users
+    assert.equal(week.find((one) => one.user === 'lin@example.com').revenue, (15 * 7) / 30)
+    assert.equal(week.find((one) => one.user === 'ana@example.com').revenue, 0)
+  })
+
+  it('draws a dash, not a ratio, for a Pro that was gifted', () => {
+    const one = view({ ai: AI })
+    assert.equal(one.ai.users[1].ratio, null)
+    assert.match(pageOf(one), /bo@example\.com<\/td>.*<td>\$0\.00<\/td><td class="un">—<\/td><\/tr>/)
+  })
+
+  it('marks a user whose Jev cost is over five times the median, and only that user', () => {
+    const one = view({ ai: AI })
+    assert.deepEqual(one.ai.users.map((user) => user.flagged), [true, false, false])
+    assert.equal((pageOf(one).match(/high Jev cost/g) ?? []).length, 1)
+
+    const even = { ...AI, rows: AI.rows.map((row) => (row.user_id === 'lin' ? { ...row, cost: 0.02 } : row)) }
+    assert.ok(view({ ai: even }).ai.users.every((user) => !user.flagged))
+  })
+
+  it('says why Cloud was not read rather than showing its cost as zero', () => {
+    const one = view({ ai: { failed: 'SUPABASE_ACCESS_TOKEN is not set.' } })
+    assert.equal(one.ai.unavailable, 'SUPABASE_ACCESS_TOKEN is not set.')
+    assert.equal(one.ai.capabilities, undefined)
+    const page = pageOf(one)
+    assert.match(page, /Could not read Cloud's AI cost: SUPABASE_ACCESS_TOKEN is not set\./)
+    assert.ok(!page.includes('$0'), 'an unread cost was shown as zero')
+    // The rest of the page is untouched.
+    assert.match(page, /Runs and cards/)
+    assert.ok(view().ai.unavailable)
+  })
+
+  it('says no call was recorded for a range that was read and holds none', () => {
+    const page = pageOf(view({ ai: { rows: [], users: [] } }))
+    assert.match(page, /No hosted AI call was recorded in this range/)
+  })
+})

@@ -360,7 +360,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (pathname === '/v1/speech') {
     requireMethod(request, 'POST')
     const session = await readSession(request, env)
-    return speak(env, session.subject, await bodyOf(request))
+    return speak(env, ctx, session.subject, await bodyOf(request))
   }
 
   // Generated video covers (#1114), on the same terms as narration.

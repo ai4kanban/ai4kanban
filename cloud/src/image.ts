@@ -3,9 +3,11 @@
  * video's aspect ratio and a few real screenshots, and gets the image back.
  *
  * Pro only, at a flat price per image from the month's AI credits (#1113). A failure costs
- * nothing: credits are spent only once the image is in hand.
+ * nothing: credits are spent only once the image is in hand. What each call cost us is recorded
+ * in `cloud.ai_calls` (#1355).
  */
 
+import { recordAiCall } from './ai-calls.ts'
 import { readBilling } from './billing.ts'
 import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
@@ -49,6 +51,10 @@ export async function generateImage(env: Env, user: string, body: unknown): Prom
   if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw imageUnavailable()
 
+  const failed = async () => {
+    await recordAiCall(env, user, 'image', { ok: false })
+    return imageFailed()
+  }
   let answer: Response
   try {
     answer = await fetch('https://openrouter.ai/api/v1/images', {
@@ -70,22 +76,32 @@ export async function generateImage(env: Env, user: string, body: unknown): Prom
     })
   } catch (e) {
     console.error('cloud: image unreachable', e)
-    throw imageFailed()
+    throw await failed()
   }
   if (!answer.ok) {
     console.error('cloud: image refused', answer.status, await answer.text().catch(() => ''))
-    throw imageFailed()
+    throw await failed()
   }
   const out = (await answer.json().catch(() => null)) as {
+    id?: string
     data?: { b64_json?: string; media_type?: string }[]
+    usage?: { cost?: number }
   } | null
   const image = out?.data?.[0]
   if (!image?.b64_json) {
     console.error('cloud: image missing from the answer')
-    throw imageFailed()
+    throw await failed()
   }
   const bytes = Uint8Array.from(atob(image.b64_json), (c) => c.charCodeAt(0))
-  await spendCredits(env, user, 'image', 1)
+  await Promise.all([
+    spendCredits(env, user, 'image', 1),
+    recordAiCall(env, user, 'image', {
+      ok: true,
+      usage: 1,
+      cost: out?.usage?.cost,
+      generationId: answer.headers.get('x-generation-id') ?? out?.id,
+    }),
+  ])
   return new Response(bytes, {
     headers: { 'content-type': image.media_type ?? 'image/png', 'x-model': IMAGE_MODEL },
   })

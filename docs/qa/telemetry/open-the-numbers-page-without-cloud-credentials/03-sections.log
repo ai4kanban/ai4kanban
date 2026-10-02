@@ -1,0 +1,3 @@
+$ curl -s http://127.0.0.1:8792/ — the page's section headings, and every alarm on it
+sections: Overview, Runs and cards, Site, Spread, AI cost
+alarms (1): Could not read Cloud's AI cost: SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are not set, in the environment or in telemetry/.env. Nothing here is known until this page is restarted.

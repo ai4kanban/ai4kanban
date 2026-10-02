@@ -3,10 +3,11 @@
  * this forwards them to Jev with the key it holds and answers each question's choice,
  * probabilities and confidence as they came back.
  *
- * Pro only and free: nothing is spent from the month's AI credits. The cost is only logged,
- * to check what judging actually costs us.
+ * Pro only and free: nothing is spent from the month's AI credits. What each call cost us is
+ * recorded in `cloud.ai_calls` (#1355).
  */
 
+import { recordAiCall } from './ai-calls.ts'
 import { readBilling } from './billing.ts'
 import type { Env } from './env.ts'
 import { badRequest, judgeFailed, judgeUnavailable, proRequired } from './errors.ts'
@@ -51,6 +52,10 @@ export async function judge(env: Env, user: string, body: unknown): Promise<Resp
   if (billing.plan !== 'pro') throw proRequired()
   if (!env.OPENROUTER_API_KEY) throw judgeUnavailable()
 
+  const failed = async () => {
+    await recordAiCall(env, user, 'judge', { ok: false })
+    return judgeFailed()
+  }
   let answer: Response
   try {
     answer = await fetch(DECISIONS_URL, {
@@ -64,13 +69,14 @@ export async function judge(env: Env, user: string, body: unknown): Promise<Resp
     })
   } catch (e) {
     console.error('cloud: judge unreachable', e)
-    throw judgeFailed()
+    throw await failed()
   }
   if (!answer.ok) {
     console.error('cloud: judge refused', answer.status, await answer.text().catch(() => ''))
-    throw judgeFailed()
+    throw await failed()
   }
   const out = (await answer.json().catch(() => null)) as {
+    id?: string
     answers?: Record<string, Partial<Answer>>
     model?: string
     usage?: { cost?: number; input_tokens?: number }
@@ -80,10 +86,16 @@ export async function judge(env: Env, user: string, body: unknown): Promise<Resp
     const one = out?.answers?.[name]
     if (typeof one?.choice !== 'string' || typeof one.confidence !== 'number') {
       console.error('cloud: judge answer missing', name)
-      throw judgeFailed()
+      throw await failed()
     }
     answers[name] = { choice: one.choice, probabilities: one.probabilities ?? {}, confidence: one.confidence }
   }
   console.log('cloud: judged', JSON.stringify({ user, cost: out?.usage?.cost ?? null, tokens: out?.usage?.input_tokens ?? null }))
+  await recordAiCall(env, user, 'judge', {
+    ok: true,
+    usage: out?.usage?.input_tokens,
+    cost: out?.usage?.cost,
+    generationId: answer.headers.get('x-generation-id') ?? out?.id,
+  })
   return json({ answers, model: out?.model ?? JUDGE_MODEL })
 }
