@@ -1,6 +1,16 @@
 // 简体中文 —— the card detail page, mirroring `en.ts` key for key.
 // Writing rules: `i18n/index.ts`.
+import type { CardDeliveryState } from "@/lib/types";
 import type { CardCopy } from "./types";
+
+// 单个文件写出名字，多个只写数量；名字后留一个空格，数量后不留。
+const some = (files: string[] = []): string => (files.length === 1 ? `\`${files[0]}\` ` : `${files.length} 个文件`);
+const branch = (s: CardDeliveryState): string => (s.branch ? `\`${s.branch}\`` : "目标分支");
+const starts = (s: CardDeliveryState): string => (s.retryIn ? `${s.retryIn} 秒后` : "即将");
+const resume = (s: CardDeliveryState): string => `运行 \`${s.command}\` 从这个 hook 继续。`;
+const wayOut = (s: CardDeliveryState): string =>
+  s.command ? `运行 \`${s.command}\` 结束这次交付，分支会保留。` : "处理后点 `再次构建`。";
+const thenLand = (s: CardDeliveryState): string => (s.branch ? `，完成后合入 \`${s.branch}\`` : "");
 
 const zh: CardCopy = {
   partOf: (id, title) => `隶属于 #${id} ${title}`,
@@ -19,7 +29,51 @@ const zh: CardCopy = {
     stale: "不再等待",
   },
   supersedes: "此前批准的成果已经与这张卡片不符，因此本次运行从当前版本重新开始。",
-  waitingOnYou: "等你决定",
+  waitingOnYou: "等你处理",
+  state: {
+    pill: {
+      working: "进行中",
+      stopped: "等你处理",
+      commit: "等你提交",
+      held: "等待答复",
+      retry: "等待重试",
+      conflict: "正在解决冲突",
+      queued: "排队合入",
+      refused: "暂时无法合入",
+    },
+    line: {
+      landed: (s) =>
+        s.branch
+          ? `已合入 \`${s.branch}\`，提交 \`${s.commit}\`。看板正在收尾这张卡片。`
+          : `已合入，提交 \`${s.commit}\`。看板正在收尾这张卡片。`,
+      "landed-nothing": () => "没有改动，所以没有提交。看板正在收尾这张卡片。",
+      "hook-failed": (s) => `构建后的 \`${s.hook}\` hook 失败，成果没有交付。${resume(s)}`,
+      "hook-stopped": (s) => `构建后的 \`${s.hook}\` hook 被中止，成果没有交付。${resume(s)}`,
+      "hook-unstarted": (s) => `构建后的 \`${s.hook}\` hook 无法启动，成果没有交付。${resume(s)}`,
+      uncommitted: (s) => `构建的成果未能提交，原因见下。${wayOut(s)}`,
+      stopped: (s) => `这次交付停下了，原因见下。${wayOut(s)}`,
+      commit: () => "构建已完成。请自己提交这些改动，提交后交付自动继续。",
+      questions: (s) => `合入在等这张卡片的 ${s.questions} 个问题。答复后自动继续。`,
+      "conflict-wait": (s) =>
+        `第 ${(s.attempt ?? 2) - 1} 次尝试后 ${some(s.files)}与 ${branch(s)} 仍有冲突。` +
+        `${starts(s)}开始第 ${s.attempt} 次，等待期间其他交付可以先合入。`,
+      conflict: (s) =>
+        `第 ${s.attempt} 次尝试：正在解决 ${some(s.files)}与 ${branch(s)} 的冲突。解决后自动合入，无需你操作。`,
+      "target-moved": (s) =>
+        `合入过程中 ${branch(s)} 有了新提交。${starts(s)}开始第 ${s.attempt} 次尝试，等待期间其他交付可以先合入。`,
+      queued: (s) => `排在 ${s.behind} 之后。一次只合入一个，轮到后自动继续。`,
+      "worktree-gone": (s) => `这次交付的工作区 \`${s.worktree}\` 已不存在，没有可合入的内容。`,
+      "no-base": () => "这次交付没有记录起点提交，无法合入。",
+      "target-gone": (s) => `分支 \`${s.branch}\` 已不存在。请恢复这个分支，或放弃这次交付。`,
+      "worktree-dirty": (s) => `这次交付的工作区里还有 ${some(s.files)}未清理。请先清理。`,
+      interrupted: () => "合入中途被打断，已复原，会自动重试。",
+      refused: () => "未能合入，原因见下。排除后会自动重试。",
+      "hook-running": (s) =>
+        `构建已完成。交付前正在运行 \`${s.hook}\` hook${s.branch ? `，之后合入 \`${s.branch}\`` : ""}。`,
+      building: (s) => `正在按开工时批准的内容构建这张卡片${thenLand(s)}。`,
+      "building-typed": (s) => `正在构建你输入的内容${thenLand(s)}。`,
+    },
+  },
   filesOutside: (paths) => `运行期间看板以外的文件被改动：${paths}。未自动还原，处理后请再次构建。`,
   filesMissing: (paths) => `以下成品文件不存在：${paths}。补齐后请再次构建。`,
   filesNone: "任务中没有记录成品文件。补上后请再次构建。",

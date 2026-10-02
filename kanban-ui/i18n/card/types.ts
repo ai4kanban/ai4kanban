@@ -1,3 +1,5 @@
+import type { CardDeliveryLineKind, CardDeliveryStage, CardDeliveryState } from "@/lib/types";
+
 /** A card's own page: the title band, the toolbar, the delivery block and its
  *  diff, the meta box, the body, and the mockups the body points at. */
 export type CardCopy = {
@@ -43,6 +45,14 @@ export type CardCopy = {
   };
   /** The heading over a delivery note that is waiting on the reader. */
   waitingOnYou: string;
+  /** Where the delivery stands (#1377): the pill per stage — a landed one wears `landed` /
+   *  `landedNothing` above — and the line under it per kind, filled from the state's own
+   *  values. Names stay in backticks, which the page draws as marks; a reason in git's own
+   *  words is drawn under the line, never inside it. */
+  state: {
+    pill: Record<Exclude<CardDeliveryStage, "landed">, string>;
+    line: Record<CardDeliveryLineKind, (state: CardDeliveryState) => string>;
+  };
   /** An approval taken elsewhere whose machine stopped before it finished (#318). Nothing
    *  picks it up on its own, so the two ways out are here beside the delivery. */
   interrupted: {

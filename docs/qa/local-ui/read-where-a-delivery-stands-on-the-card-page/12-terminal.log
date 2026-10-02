@@ -1,0 +1,9 @@
+$ akb raw archive 2
+akb raw: delivery qa01hook is waiting on you on #2 — The `qa-manager` hook failed after the build, so nothing was delivered. `akb delivery resume qa01hook` carries on from that hook. — so the board won't change the card. Answer it with `akb card resolve 2`. Or take the card back with Discard on the card page, or `akb delivery cancel qa01hook` to end it here.
+
+$ akb raw archive 6
+akb raw: delivery qa05left is waiting on you on #6 — Its worktree still holds `notes.txt` — clear it. — so the board won't change the card. Clear that and it lands by itself. Or take the card back with Discard on the card page, or `akb delivery cancel qa05left` to end it here.
+
+$ akb raw archive 4
+akb raw: delivery qa03held is waiting on you on #4 — Landing waits on this card's 2 open questions — answer them and it carries on. — so the board won't change the card. Answer it with `akb card resolve 4`. Or take the card back with Discard on the card page, or `akb delivery cancel qa03held` to end it here.
+

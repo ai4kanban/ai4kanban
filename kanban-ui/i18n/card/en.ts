@@ -1,6 +1,16 @@
 // English copy for a card's own page — the source of truth a second language
 // mirrors key for key. Writing rules: `i18n/index.ts`.
+import type { CardDeliveryState } from "@/lib/types";
 import type { CardCopy } from "./types";
+
+// One file is named, more are counted.
+const some = (files: string[] = []): string => (files.length === 1 ? `\`${files[0]}\`` : `${files.length} files`);
+const starts = (s: CardDeliveryState): string => (s.retryIn ? `in ${s.retryIn}s` : "now");
+const resume = (s: CardDeliveryState): string => `Run \`${s.command}\` to carry on from that hook.`;
+// With no card there is no Build again to press, so the way out is the command.
+const wayOut = (s: CardDeliveryState): string =>
+  s.command ? `Run \`${s.command}\` to end it; the branch is kept.` : "Fix it, then `Build again`.";
+const toLand = (s: CardDeliveryState): string => (s.branch ? `, to land on \`${s.branch}\`` : "");
 
 const en: CardCopy = {
   partOf: (id, title) => `Part of #${id} ${title}`,
@@ -21,6 +31,58 @@ const en: CardCopy = {
   supersedes:
     "Earlier approved work no longer matched this card, so this run started fresh from the current version.",
   waitingOnYou: "waiting on you",
+  state: {
+    pill: {
+      working: "In progress",
+      stopped: "Waiting on you",
+      commit: "Waiting for your commit",
+      held: "Waiting for answers",
+      retry: "Waiting to retry",
+      conflict: "Resolving a conflict",
+      queued: "In line to land",
+      refused: "Can't land yet",
+    },
+    line: {
+      landed: (s) =>
+        s.branch
+          ? `On \`${s.branch}\` as \`${s.commit}\`. The board is completing the card.`
+          : `Landed as \`${s.commit}\`. The board is completing the card.`,
+      "landed-nothing": () => "It changed nothing, so nothing was committed. The board is completing the card.",
+      "hook-failed": (s) => `The \`${s.hook}\` hook failed after the build, so nothing was delivered. ${resume(s)}`,
+      "hook-stopped": (s) =>
+        `The \`${s.hook}\` hook was stopped after the build, so nothing was delivered. ${resume(s)}`,
+      "hook-unstarted": (s) =>
+        `The \`${s.hook}\` hook could not start after the build, so nothing was delivered. ${resume(s)}`,
+      uncommitted: (s) => `The build's work could not be committed, for the reason below. ${wayOut(s)}`,
+      stopped: (s) => `This delivery stopped, for the reason below. ${wayOut(s)}`,
+      commit: () => "The build is done. Commit these changes yourself, and the delivery carries on.",
+      questions: (s) =>
+        s.questions === 1
+          ? "Landing waits on this card's 1 open question. Answer it and it carries on."
+          : `Landing waits on this card's ${s.questions} open questions. Answer them and it carries on.`,
+      "conflict-wait": (s) =>
+        `Attempt ${(s.attempt ?? 2) - 1} left ${some(s.files)} conflicted with ${s.branch ? `\`${s.branch}\`` : "the target branch"}. ` +
+        `Attempt ${s.attempt} starts ${starts(s)}; other deliveries can land meanwhile.`,
+      conflict: (s) =>
+        `Attempt ${s.attempt}: resolving ${some(s.files)} against ${s.branch ? `\`${s.branch}\`` : "the target branch"}. ` +
+        "It lands by itself afterwards; nothing is asked of you.",
+      "target-moved": (s) =>
+        `${s.branch ? `\`${s.branch}\`` : "The target branch"} moved on while this was landing. ` +
+        `Attempt ${s.attempt} starts ${starts(s)}; other deliveries can land meanwhile.`,
+      queued: (s) => `In line behind ${s.behind}. One build lands at a time, and this one carries on by itself.`,
+      "worktree-gone": (s) => `Its worktree \`${s.worktree}\` is gone, so there is nothing to land.`,
+      "no-base": () => "It has no base commit to land against.",
+      "target-gone": (s) => `\`${s.branch}\` is gone. Put the branch back, or discard the delivery.`,
+      "worktree-dirty": (s) =>
+        `Its worktree still holds ${some(s.files)}. Clear ${s.files?.length === 1 ? "it" : "them"}.`,
+      interrupted: () => "A landing was interrupted and has been put back. It will be tried again.",
+      refused: () => "Couldn't land, for the reason below. It retries by itself once that is cleared.",
+      "hook-running": (s) =>
+        `The build is done. Running the \`${s.hook}\` hook before it is delivered${toLand(s)}.`,
+      building: (s) => `Building this card as it was approved when work started${toLand(s)}.`,
+      "building-typed": (s) => `Building what you typed${toLand(s)}.`,
+    },
+  },
   filesOutside: (paths) =>
     `Files outside the board changed during the run: ${paths}. Nothing was reverted. Sort them out, then build again.`,
   filesMissing: (paths) => `These finished files are missing: ${paths}. Make them, then build again.`,

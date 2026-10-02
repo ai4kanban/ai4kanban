@@ -648,7 +648,17 @@ export interface DeliveryReview {
     at: number
     /** `outside`: the files changed; `output`: the recorded files that are missing. */
     paths?: string[]
+    /** `hook`: which hook, and how it ended (#1377). */
+    hook?: StopHook
   }
+}
+
+/** The hook a delivery stopped on, kept beside the sentence so a screen can say it in its
+ *  own language (#1377). `error` is the system's own words on one that could not start. */
+export interface StopHook {
+  agent: string
+  how: 'failed' | 'stopped' | 'unstarted'
+  error?: string
 }
 
 // ---- what one round of answers concluded (#637) -----------------------------
@@ -703,6 +713,16 @@ export interface LandingWait {
   files: string[]
 }
 
+/** Which of the board's own sentences a landing's `why` is (#1377), kept beside it for the
+ *  same reason as `LandingWait`. Absent when `why` is git's own words. */
+export interface LandingReason {
+  kind: 'queued' | 'worktree-gone' | 'no-base' | 'target-gone' | 'worktree-dirty' | 'interrupted'
+  /** `queued`: what holds the slot — `#<card>`, or a card-less delivery's id in backticks. */
+  behind?: string
+  /** `worktree-dirty`: the files the worktree still holds. */
+  files?: string[]
+}
+
 /** What a landing's own archive finished (#1331): the group whose root left with the card —
  *  with the subtasks it had ticked — and the release left with no open card, with the cards
  *  archived under it. Empty when it finished neither. */
@@ -718,6 +738,8 @@ export interface DeliveryLanding {
   /** The user's own files the landing will not write over (#958), while that is what it is
    *  waiting on. Cleared by every other reason a landing waits. */
   wait?: LandingWait
+  /** Which fixed sentence `why` is (#1377). Written and cleared with it. */
+  reason?: LandingReason
   /** Rebases spent on a target branch that kept moving. Never bounded: a target that keeps
    *  moving is a race inside the board, so the landing waits and replays until it goes
    *  through (#665). */

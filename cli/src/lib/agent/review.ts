@@ -14,7 +14,7 @@ import { boardCommand } from './command'
 import { hookStopWhy, owedHooks } from './hooks'
 import { missingRequired } from './stage-end'
 import { stageContract, type Stage } from './stages'
-import type { DeliveryRecord, DeliveryReview, ReviewRound, ReviewStopReason, RunRecord } from './types'
+import type { DeliveryRecord, DeliveryReview, ReviewRound, ReviewStopReason, RunRecord, StopHook } from './types'
 
 /** This delivery's stop slot, made if it has none yet. */
 export function reviewOf(delivery: DeliveryRecord): DeliveryReview {
@@ -31,7 +31,7 @@ export type ReviewNext =
   /** The build and every hook after it are done — the delivery is finished. */
   | { finish: true }
   /** Stop and wait for the user. */
-  | { stop: ReviewStopReason; why: string }
+  | { stop: ReviewStopReason; why: string; hook?: StopHook }
   /** Nothing to decide here — the delivery stays exactly as it is. */
   | { hold: true }
 
@@ -45,7 +45,9 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord): Revi
   // that failed or was stopped stops the delivery where it is.
   if (run.action === 'hook') {
     if (run.status === 'done') return owedHooks(delivery).length ? HOLD : { finish: true }
-    return { stop: 'hook', why: hookStopWhy(run.specAgent ?? '', run.status === 'stopped') }
+    const agent = run.specAgent ?? ''
+    const stopped = run.status === 'stopped'
+    return { stop: 'hook', why: hookStopWhy(agent, stopped), hook: { agent, how: stopped ? 'stopped' : 'failed' } }
   }
   // A build somebody stopped, or one that was cut off, is picked up by Resume.
   if (run.action !== 'implement' || run.status !== 'done') return HOLD

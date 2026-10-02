@@ -177,7 +177,49 @@ export interface CardDeliveryState {
    *  answer, the resolve or the commit — so the card page says so, and Resolve stays live
    *  while every other held control is off. */
   paused: boolean
+  /** Which sentence `line` is, and the values it names (#1377) — what the page words in the
+   *  reader's language. Absent from an older `akb`, and `label` / `line` are drawn as is. */
+  kind?: CardDeliveryLineKind
+  branch?: string
+  commit?: string
+  hook?: string
+  questions?: number
+  files?: string[]
+  attempt?: number
+  /** Seconds until the next attempt, as of the read. */
+  retryIn?: number
+  behind?: string
+  worktree?: string
+  /** The command that is the way out. */
+  command?: string
+  /** The reason in git's or the system's own words — drawn as is. */
+  raw?: string
 }
+
+/** The sentences a delivery's line can be (`agent/pause.ts`), spelled again like the stages. */
+export type CardDeliveryLineKind =
+  | 'landed'
+  | 'landed-nothing'
+  | 'hook-failed'
+  | 'hook-stopped'
+  | 'hook-unstarted'
+  | 'uncommitted'
+  | 'stopped'
+  | 'commit'
+  | 'questions'
+  | 'conflict-wait'
+  | 'conflict'
+  | 'target-moved'
+  | 'queued'
+  | 'worktree-gone'
+  | 'no-base'
+  | 'target-gone'
+  | 'worktree-dirty'
+  | 'interrupted'
+  | 'refused'
+  | 'hook-running'
+  | 'building'
+  | 'building-typed'
 
 /** A delivery's landing, as the card page reads it (#304). The states are the delivery
  *  record's own (`agent/types.ts`); this file imports nothing, so they are spelled again

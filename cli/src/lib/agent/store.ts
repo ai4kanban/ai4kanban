@@ -35,6 +35,7 @@ import type {
   DeliveryStatus,
   DeliveryStep,
   FrozenWorkflow,
+  LandingReason,
   LandingStatus,
   LandingWait,
   ReviewStopReason,
@@ -46,6 +47,7 @@ import type {
   RunRefusalKind,
   RunRetry,
   RunStatus,
+  StopHook,
 } from './types'
 import type { CardCreation } from '../view/types'
 
@@ -618,6 +620,7 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
     closed: readLandingClosed(box.closed),
     overlap: Array.isArray(box.overlap) ? box.overlap.filter((n) => Number.isInteger(n)) : undefined,
     wait: readLandingWait(box.wait),
+    reason: readLandingReason(box.reason),
     conflictFiles: Array.isArray(box.conflictFiles)
       ? box.conflictFiles.filter((f): f is string => typeof f === 'string')
       : undefined,
@@ -653,6 +656,37 @@ function readLandingWait(raw: unknown): DeliveryLanding['wait'] {
   if (box.kind !== 'overwrite' && box.kind !== 'untracked') return undefined
   const files = Array.isArray(box.files) ? box.files.filter((f): f is string => typeof f === 'string') : []
   return files.length ? { kind: box.kind, files } : undefined
+}
+
+const LANDING_REASONS: ReadonlySet<string> = new Set<LandingReason['kind']>([
+  'queued',
+  'worktree-gone',
+  'no-base',
+  'target-gone',
+  'worktree-dirty',
+  'interrupted',
+])
+
+// Which fixed sentence a landing's `why` is (#1377). A kind this copy does not know is
+// dropped, and the screen falls back to the sentence.
+function readLandingReason(raw: unknown): DeliveryLanding['reason'] {
+  if (!raw || typeof raw !== 'object') return undefined
+  const box = raw as Partial<LandingReason>
+  if (!LANDING_REASONS.has(box.kind as string)) return undefined
+  const files = Array.isArray(box.files) ? box.files.filter((f): f is string => typeof f === 'string') : []
+  return {
+    kind: box.kind as LandingReason['kind'],
+    ...(text(box.behind) ? { behind: text(box.behind) } : {}),
+    ...(files.length ? { files } : {}),
+  }
+}
+
+function readStopHook(raw: unknown): StopHook | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const box = raw as Partial<StopHook>
+  const agent = text(box.agent)
+  if (!agent || (box.how !== 'failed' && box.how !== 'stopped' && box.how !== 'unstarted')) return undefined
+  return { agent, how: box.how, ...(text(box.error) ? { error: text(box.error) } : {}) }
 }
 
 const asLandingStatus = (value: unknown): LandingStatus =>
@@ -713,6 +747,7 @@ function readReview(raw: unknown): DeliveryReview | undefined {
             why: stop.why,
             at: typeof stop.at === 'number' ? stop.at : 0,
             ...(Array.isArray(stop.paths) ? { paths: stop.paths.filter((p): p is string => typeof p === 'string') } : {}),
+            ...(readStopHook(stop.hook) ? { hook: readStopHook(stop.hook) } : {}),
           }
         : undefined,
   }

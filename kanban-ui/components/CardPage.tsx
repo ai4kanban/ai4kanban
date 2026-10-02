@@ -70,6 +70,7 @@ import { useOnHistoryRestore } from "@/lib/history-restore";
 import { cardChat } from "@/lib/chat-open";
 import { canImplement, canRefine, planDeliveryGap } from "@/lib/refine";
 import { scheduleMark } from "@/lib/schedule";
+import { deliveryWords } from "@/lib/delivery-words";
 import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
 import { SourceLinks } from "./card-sources";
@@ -163,7 +164,7 @@ function visibleActions(card: Card, offered: readonly CardControl[] | null): Set
 // is what the held controls say, before the edit is made rather than after.
 // A native tooltip draws whatever it is given, so the line's backticks come off here.
 const heldNote = (delivery: CardDelivery, c: CardCopy): string => {
-  const line = delivery.state.line.replace(/`/g, "");
+  const line = deliveryWords(delivery.state, c).line.replace(/`/g, "");
   return `${line} ${delivery.state.paused ? c.heldPaused : c.heldRunning}`.trim();
 };
 
@@ -477,13 +478,17 @@ function marked(line: string): ReactNode[] {
 // something, so it is a note in the stage's own colour and not a grey line under the title —
 // which read as a subtitle and got skipped. Everything the board is still moving along by
 // itself stays a line: that is news, not a job.
+//
+// `raw` is the reason in git's or the system's own words (#1377): under the line, as it came.
 function DeliveryNote({
   tone,
   paused,
+  raw,
   children,
 }: {
   tone: keyof typeof PILL_SKIN;
   paused: boolean;
+  raw?: string;
   children: ReactNode;
 }) {
   const c = useCopy().card;
@@ -498,6 +503,9 @@ function DeliveryNote({
         {c.waitingOnYou}
       </div>
       <p className="text-[13px] leading-[19px] text-nb-ink">{children}</p>
+      {raw && (
+        <p className="mt-1.5 break-words font-mono text-[11.5px] leading-[17px] text-nb-ink-soft">{raw}</p>
+      )}
     </div>
   );
 }
@@ -1205,6 +1213,8 @@ export function CardPage({
   // The user's own files a landing will not write over (#958). Only while that IS what it
   // waits on: the record keeps the last one until the next pass looks again.
   const landWait = delivery?.state.stage === "refused" ? delivery.landing?.wait : undefined;
+  // The pill and the line in the reader's language (#1377).
+  const said = delivery ? deliveryWords(delivery.state, c) : undefined;
   // The one line under the title band — see where it renders for what it says.
   const deliveryLine = !!delivery && (!justBuilding || !!delivery.supersedes || !!delivery.lost);
   // This card's own chat is writing a reply (#633), so the requirement is about to move:
@@ -1496,7 +1506,7 @@ export function CardPage({
                 ) : delivery ? (
                   // What the delivery is doing, or what it is waiting for — the board's own
                   // answer, worked out from the card's questions and the delivery's records.
-                  <DeliveryPill label={delivery.state.label} tone={PILL_TONE[delivery.state.stage]} />
+                  <DeliveryPill label={said!.pill} tone={PILL_TONE[delivery.state.stage]} />
                 ) : card.landed ? (
                   // It landed, and the board is taking the card off. Normally the blink
                   // between the two; on screen for longer only when the archive failed.
@@ -1553,7 +1563,11 @@ export function CardPage({
               )}
 
               {deliveryLine && delivery && (
-                <DeliveryNote tone={PILL_TONE[delivery.state.stage]} paused={delivery.state.paused}>
+                <DeliveryNote
+                  tone={PILL_TONE[delivery.state.stage]}
+                  paused={delivery.state.paused}
+                  raw={delivery.filesStop || landWait ? undefined : said!.raw}
+                >
                   {!justBuilding &&
                     (delivery.filesStop
                       ? delivery.filesStop.reason === "outside"
@@ -1565,7 +1579,7 @@ export function CardPage({
                            here, because the two ways out are different sentences. */
                         landWait
                         ? marked(c.landWait[landWait.kind](landWait.files))
-                        : marked(delivery.state.line))}
+                        : marked(said!.line))}
                   {delivery.supersedes && <> {c.supersedes}</>}
                   {delivery.lost && (
                     <span className="ml-1" style={{ color: "var(--color-nb-accent-deep)" }}>

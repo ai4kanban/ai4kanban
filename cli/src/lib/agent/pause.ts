@@ -40,6 +40,32 @@ export type DeliveryStage =
   /** Its commit is on the target branch, and the board is completing the card. */
   | 'landed'
 
+/** Which sentence `line` is (#1377). A screen words each in its own language; the kinds
+ *  that end in git's or the system's own words carry them in `raw`. */
+export type DeliveryLineKind =
+  | 'landed'
+  | 'landed-nothing'
+  | 'hook-failed'
+  | 'hook-stopped'
+  | 'hook-unstarted'
+  | 'uncommitted'
+  | 'stopped'
+  | 'commit'
+  | 'questions'
+  | 'conflict-wait'
+  | 'conflict'
+  | 'target-moved'
+  | 'queued'
+  | 'worktree-gone'
+  | 'no-base'
+  | 'target-gone'
+  | 'worktree-dirty'
+  | 'interrupted'
+  | 'refused'
+  | 'hook-running'
+  | 'building'
+  | 'building-typed'
+
 /** One delivery's state, as every screen and every refusal words it. */
 export interface DeliveryState {
   stage: DeliveryStage
@@ -53,6 +79,29 @@ export interface DeliveryState {
   /** True while it waits on the user. There is nothing to press — what continues it is the
    *  answer, the commit, or the resolve. */
   paused: boolean
+  /** Which sentence `line` is, with the values it names below (#1377). `label` and `line`
+   *  stay the terminal's English. Absent when the record does not say which — a stop or a
+   *  queue written before the kind was kept — and the screen shows `line` as it is. */
+  kind?: DeliveryLineKind
+  /** The target branch, where the sentence names one. */
+  branch?: string
+  /** The landed commit, short. */
+  commit?: string
+  hook?: string
+  questions?: number
+  /** Conflicted files, or the ones a worktree still holds. */
+  files?: string[]
+  /** The landing attempt running, or the one the wait opens. */
+  attempt?: number
+  /** Seconds until that attempt, as of this read. */
+  retryIn?: number
+  /** What holds the landing slot, as the queue names it. */
+  behind?: string
+  worktree?: string
+  /** The command that is the way out, spelled for this board. */
+  command?: string
+  /** The reason in git's or the system's own words — never translated. */
+  raw?: string
 }
 
 /** The fixed opening words landing writes on the question hold (`landing.ts`). They are
@@ -78,8 +127,11 @@ const isHold = (why: string): boolean => why.startsWith(HELD_ON_QUESTIONS)
 
 // The command that ends a stopped build with no card (#428). A carded delivery says the card
 // page's controls instead; this one has no page to say them on.
-const backInMotion = (delivery: DeliveryRecord): string =>
-  `\`${boardCommand()} delivery cancel ${delivery.deliveryId}\` ends it and leaves the branch.`
+const cancelCommand = (delivery: DeliveryRecord): string => `${boardCommand()} delivery cancel ${delivery.deliveryId}`
+
+const backInMotion = (delivery: DeliveryRecord): string => `\`${cancelCommand(delivery)}\` ends it and leaves the branch.`
+
+const HOOK_KIND = { failed: 'hook-failed', stopped: 'hook-stopped', unstarted: 'hook-unstarted' } as const
 
 /** Where this delivery stands, given how many open questions its card carries.
  *
@@ -97,18 +149,23 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         ? `On \`${where}\` as \`${commit}\`. The board is completing the card.`
         : `It changed nothing, so nothing was committed. The board is completing the card.`,
       paused: false,
+      kind: commit ? 'landed' : 'landed-nothing',
+      branch: delivery.targetBranch,
+      commit,
     }
   }
   const stopped = delivery.review?.stopped
   // A hook that did not finish (#1328): its own run carries the delivery on, not a new build.
   if (stopped?.reason === 'hook') {
+    const command = `${boardCommand()} delivery resume ${delivery.deliveryId}`
     return {
       stage: 'stopped',
       label: 'Waiting on you',
-      line:
-        `${upper(end(stopped.why))} ` +
-        `\`${boardCommand()} delivery resume ${delivery.deliveryId}\` carries on from that hook.`,
+      line: `${upper(end(stopped.why))} \`${command}\` carries on from that hook.`,
       paused: true,
+      ...(stopped.hook
+        ? { kind: HOOK_KIND[stopped.hook.how], hook: stopped.hook.agent, command, raw: stopped.hook.error }
+        : {}),
     }
   }
   if (stopped) {
@@ -121,6 +178,9 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         ? `${upper(end(stopped.why))} ${backInMotion(delivery)}`
         : `${upper(end(stopped.why))} Fix it, then \`Build again\`.`,
       paused: true,
+      kind: stopped.reason === 'uncommitted' ? 'uncommitted' : 'stopped',
+      command: delivery.cardId === null ? cancelCommand(delivery) : undefined,
+      raw: upper(end(stopped.why)),
     }
   }
   if (delivery.commitMode !== 'auto' && delivery.commitMode !== 'files') {
@@ -130,6 +190,7 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         label: 'Waiting for your commit',
         line: 'The build is done — commit these changes yourself, and the delivery carries on.',
         paused: true,
+        kind: 'commit',
       }
     }
   }
@@ -141,6 +202,8 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
       label: 'Held at landing',
       line: `Landing waits on this card's ${count(questions)} — answer ${questions === 1 ? 'it' : 'them'} and it carries on.`,
       paused: true,
+      kind: 'questions',
+      questions,
     }
   }
   // The board resolving a landing conflict by itself (#595) — the run working on it, and
@@ -160,6 +223,11 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
           `Attempt ${attempt - 1} left ${where} conflicted. It gave the landing slot up and opens attempt ` +
           `${attempt} ${left ? `in ${left}s` : 'now'} — another delivery can land while it waits.`,
         paused: false,
+        kind: 'conflict-wait',
+        files,
+        branch: delivery.targetBranch,
+        attempt,
+        retryIn: left,
       }
     }
     if (landing.status === 'landing') {
@@ -168,6 +236,10 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         label: 'Resolving a conflict',
         line: `Attempt ${attempt}: resolving ${where}. It lands by itself once the conflict is out — nothing is asked of you.`,
         paused: false,
+        kind: 'conflict',
+        files,
+        branch: delivery.targetBranch,
+        attempt,
       }
     }
   }
@@ -185,17 +257,23 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         `It gave the landing slot up and starts attempt ${attempt} ${left ? `in ${left}s` : 'now'} — ` +
         `another delivery can land while it waits.`,
       paused: false,
+      kind: 'target-moved',
+      branch: delivery.targetBranch,
+      attempt,
+      retryIn: left,
     }
   }
   // Queued behind whichever card holds the landing slot. Before the refusal below, because
   // a waiter the queue never reached still carries the `why` of the last pass that did look
   // at it — and that one asks the user for something the queue is not waiting on.
   if (landing?.status === 'waiting' && landing.why?.startsWith(IN_LINE)) {
+    const behind = landing.reason?.kind === 'queued' ? landing.reason.behind : undefined
     return {
       stage: 'queued',
       label: 'In line to land',
       line: upper(end(landing.why)),
       paused: false,
+      ...(behind ? { kind: 'queued' as const, behind } : {}),
     }
   }
   // Landing looked at it and put it back, saying why (`landing.ts`). That sentence names
@@ -206,14 +284,20 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   // hold until the next pass clears it — a question answered a second ago would otherwise
   // read back here as a refusal.
   if (landing?.status === 'waiting' && landing.why && !isHold(landing.why)) {
+    const line = upper(end(landing.why))
+    const reason = landing.reason?.kind === 'queued' ? undefined : landing.reason
     return {
       stage: 'refused',
       label: "Can't land yet",
-      line: upper(end(landing.why)),
+      line,
       paused: true,
+      ...(reason
+        ? { kind: reason.kind, files: reason.files, branch: delivery.targetBranch, worktree: delivery.worktree }
+        : { kind: 'refused' as const, raw: line }),
     }
   }
-  const where = delivery.commitMode === 'auto' && delivery.targetBranch ? `, to land on \`${delivery.targetBranch}\`` : ''
+  const branch = delivery.commitMode === 'auto' ? delivery.targetBranch : undefined
+  const where = branch ? `, to land on \`${branch}\`` : ''
   const [hook] = owedHooks(delivery)
   if (hook) {
     return {
@@ -221,6 +305,9 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
       label: 'In progress',
       line: `The build is done. Running the \`${hook}\` hook before it is delivered${where}.`,
       paused: false,
+      kind: 'hook-running',
+      hook,
+      branch,
     }
   }
   return {
@@ -233,5 +320,7 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         ? `Building what you typed${where}.`
         : `Building this card as it was approved when work started${where}.`,
     paused: false,
+    kind: delivery.cardId === null ? 'building-typed' : 'building',
+    branch,
   }
 }
