@@ -165,7 +165,6 @@ const en: MessagesCopy = {
     agentNotHelping: (a) => `${a.agent} doesn't help the ${a.stage} stage of ${a.name}.`,
     agentNotScheduled: (a) => `${a.agent} isn't a scheduled agent of this workflow.`,
     agentNotSchedule: (a) => `${a.agent} can't run on a schedule.`,
-    scheduledOff: (a) => `${a.agent} is disabled. Pick a schedule to enable it.`,
     scheduledRunning: (a) => `${a.agent} is already running.`,
     scheduledLanding: (a) => `The last run of ${a.agent} is still being committed. Try again shortly.`,
     minutes: () => "Enter a whole number of minutes, or 0 to switch it off.",

@@ -792,7 +792,8 @@ function approvedDirect(req: AgentRequest): DirectBuild | RunRefusal | undefined
 }
 
 /** What a scheduled agent's pass opens its delivery from (#1401): no requirement, only whose
- *  pass it is. Refused when the workflow has no such agent. */
+ *  pass it is. Refused when the workflow has no such agent. A switched-off one still runs
+ *  when asked (#1435): only the scheduler passes over it. */
 function scheduledDirect(req: AgentRequest): DirectBuild | RunRefusal {
   const flow = workflowById(req.workflow ?? '')
   const agent = req.specAgent ?? ''
@@ -803,7 +804,6 @@ function scheduledDirect(req: AgentRequest): DirectBuild | RunRefusal {
       workflow: req.workflow ?? '',
     })
   }
-  if (one.off) return refusal('scheduledOff', `\`${agent}\` is switched off in "${flow.name}"`, { agent, name: flow.name, workflow: flow.id })
   return { title: `${agent}: scheduled run (${flow.name})`, approved: '', scheduled: { workflow: flow.id, agent } }
 }
 
