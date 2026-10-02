@@ -8,7 +8,7 @@ import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { PLANNER, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
-import { ARCHIVE, boardText, KANBAN, rel, MEMORY, PRODUCT } from '../paths'
+import { ARCHIVE, boardText, KANBAN, rel, MEMORY, PROJECT_MD } from '../paths'
 import {
   agentFilesBlock,
   agentMemoryBlock,
@@ -291,7 +291,7 @@ const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
 
 // What a reflection judges against on top of the card (#534): what the product is and
 // every module's decisions and rejections, none of which it writes back.
-const boardMemory = (): string => [rel(PRODUCT), ...planningMemoryFiles()].join(', ')
+const boardMemory = (): string => [rel(PROJECT_MD), ...planningMemoryFiles()].join(', ')
 
 // Where a completed card is now (#534). Named outright rather than left to a search: the
 // ordinary card read no longer finds it, so a run told only the folder would hunt through
@@ -555,8 +555,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // holds every rule.
     case 'review-dismissals':
       return `${kb}. Learn the user's triage preferences from their dismissals, following \`akb guide review-dismissals\`.`
-    case 'describe-product':
-      return `${kb}. Describe this product following \`akb guide describe-product\`.`
+    case 'describe-project':
+      return `${kb}. Describe this project following \`akb guide describe-project\`.`
     // Reflecting on a card the board has just completed (#534). The card is off the board,
     // so the ask names the archive: nothing else can find it. What it may write is inbox
     // items and nothing else — a proposal is triaged like anything else that arrives there,

@@ -138,7 +138,7 @@ has no Find, so use the box.
 
 **Discuss** in the header of a card's page opens a rail on the right, about that card. It
 remembers whether it was open, and keeps one conversation per card; walking to another card leaves
-nothing of the last one behind. It answers from the product description, module map, open cards, memory and
+nothing of the last one behind. It answers from the project description, module map, open cards, memory and
 settings, and a card it names is a link.
 
 - **It changes the board**: once a change is settled it writes, rewords, answers, moves, archives
@@ -183,8 +183,8 @@ Configuration.
 **Memory**, at the foot of the rail, is what the agent remembers about this project — read-only,
 so reading it starts no run. Rows are grouped by owner:
 
-- **Board**: **What shipped** (`docs/kanban/memory/readme.md`) and **The product**
-  (`docs/kanban/memory/product.md`, rewritten by **Describe the product** in Configuration →
+- **Board**: **What shipped** (`docs/kanban/memory/readme.md`) and **The project**
+  (`docs/kanban/memory/project.md`, rewritten by **Describe the project** in Configuration →
   Board).
 - **Each agent that keeps memory**: e.g. the Planner's **Settled decisions**, **Rejected ideas**
   and **Design mistakes** in `docs/kanban/memory/agents/planner/`. A module is a `## <module>`

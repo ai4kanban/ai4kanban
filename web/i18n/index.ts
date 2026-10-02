@@ -20,7 +20,7 @@
 //   (U+202F) before ; ! ? and a no-break space (U+00A0) before : and inside
 //   « » — invisible in the file, but already there; match the neighbouring
 //   lines.
-// - Chinese wording follows docs/kanban/memory/product.md: 自主拆解、循环澄清、
+// - Chinese wording follows docs/kanban/memory/project.md: 自主拆解、循环澄清、
 //   需求、决策可追溯、自进化、交付闭环。书面语，不用口语化的说法。
 // - Register is plain and professional, never slangy, in every language.
 import type { Locale } from "@/lib/i18n";

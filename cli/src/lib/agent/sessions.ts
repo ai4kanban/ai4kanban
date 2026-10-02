@@ -57,7 +57,7 @@ import { buildRun, restartPrompt, restartable } from './prompts'
 import { agentForRun } from './runner'
 import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
 import { readRuntimes, runtimeById } from './runtimes'
-import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProductDescription } from './settings'
+import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProjectDescription } from './settings'
 import { scheduledAgent, stampScheduledRun, workflowById } from './workflows'
 import { creationOf, logPathOf, noteRefineTried, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
@@ -104,7 +104,7 @@ const SINGLETON_ACTIONS = new Set<AgentAction>([
   'prune-memory',
   'review-memory',
   'review-dismissals',
-  'describe-product',
+  'describe-project',
   'triage',
 ])
 
@@ -128,7 +128,7 @@ const VERB: Record<AgentAction, string> = {
   'prune-memory': 'pruned',
   'review-memory': 'reviewed for memory',
   'review-dismissals': 'reviewed for triage preferences',
-  'describe-product': 'described',
+  'describe-project': 'described',
   triage: 'sorted',
   reflect: 'reflected on',
   spec: 'specified',
@@ -148,7 +148,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'prune-memory': 'the memory is already being pruned',
   'review-memory': 'the conversations are already being reviewed',
   'review-dismissals': 'the dismissals are already being reviewed',
-  'describe-product': 'the product is already being described',
+  'describe-project': 'the project is already being described',
   triage: 'triage is already being sorted',
 }
 
@@ -391,11 +391,11 @@ function recordScheduledRun(run: RunRecord): void {
   }
 }
 
-// And the product description's (#1268): the commits since this pass began are the next one's.
-function recordProductDescription(run: RunRecord): void {
-  if (run.action !== 'describe-product' || run.status !== 'done') return
+// And the project description's (#1268): the commits since this pass began are the next one's.
+function recordProjectDescription(run: RunRecord): void {
+  if (run.action !== 'describe-project' || run.status !== 'done') return
   try {
-    stampProductDescription(new Date(run.startedAt))
+    stampProjectDescription(new Date(run.startedAt))
   } catch {
     // the settings file would not take the write — the run is over either way
   }
@@ -462,7 +462,7 @@ const lacksSession = (r: RunRecord): boolean => r.action === 'triage' || neverSt
 const carriesOn = (r: RunRecord): boolean => resumesUnder(r.harness) || (!r.chat && restartable(r))
 
 // The actions that name no card.
-const CARDLESS = new Set<AgentAction>(['setup', 'prune-memory', 'review-memory', 'review-dismissals', 'describe-product'])
+const CARDLESS = new Set<AgentAction>(['setup', 'prune-memory', 'review-memory', 'review-dismissals', 'describe-project'])
 
 /** The ask a run was started with, rebuilt from its record (#1321) — `runInput` read the other
  *  way. Nothing where the record does not hold it: a run said into a conversation, one that
@@ -1534,7 +1534,7 @@ export async function closeRun(
   recordPrune(closed)
   recordMemoryReview(closed)
   recordDismissalReview(closed)
-  recordProductDescription(closed)
+  recordProjectDescription(closed)
   recordScheduledRun(closed)
   // Last, because it is the only step that reads what the five above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its

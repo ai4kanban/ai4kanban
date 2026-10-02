@@ -153,8 +153,8 @@ import {
   memoryReview,
   dismissalReview,
   setDismissalReview,
-  productDescription,
-  setProductDescription,
+  projectDescription,
+  setProjectDescription,
   setAutoCommit,
   setHarness,
   setHarnessSetting,
@@ -1256,21 +1256,21 @@ export async function startReviewDismissalsAction(): Promise<StartResult> {
   return startSession(req, await buildPrompt(req));
 }
 
-// --- the product writer (#1268) ----------------------------------------------
+// --- the project writer (#1268) ----------------------------------------------
 // Its schedule — Off in the cadence menu is its switch — and Update now.
 
-export async function productDescriptionAction(): Promise<{
+export async function projectDescriptionAction(): Promise<{
   schedule: CadenceSchedule | null;
   error?: string;
 }> {
   try {
-    return { schedule: await productDescription() };
+    return { schedule: await projectDescription() };
   } catch (e) {
     return { schedule: null, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-export async function setProductDescriptionAction(next: {
+export async function setProjectDescriptionAction(next: {
   enabled: boolean;
   cadence: string;
 }): Promise<WriteResult> {
@@ -1278,7 +1278,7 @@ export async function setProductDescriptionAction(next: {
     return { ok: false, error: "an update schedule is saved as an opt-in and a cadence" };
   }
   try {
-    return await setProductDescription(next);
+    return await setProjectDescription(next);
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };
   }
@@ -1286,8 +1286,8 @@ export async function setProductDescriptionAction(next: {
 
 /** Start one update by hand — works with the schedule off; one at a time is the run
  *  record's rule. */
-export async function startDescribeProductAction(): Promise<StartResult> {
-  const req: AgentRequest = { action: "describe-product" };
+export async function startDescribeProjectAction(): Promise<StartResult> {
+  const req: AgentRequest = { action: "describe-project" };
   return startSession(req, await buildPrompt(req));
 }
 

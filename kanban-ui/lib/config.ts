@@ -108,20 +108,20 @@ export async function setDismissalReview(next: {
   return said(await rules.setDismissalReview(next));
 }
 
-// --- the product description's schedule (#1268) -----------------------------
+// --- the project description's schedule (#1268) -----------------------------
 
-export async function productDescription(): Promise<CadenceSchedule | null> {
+export async function projectDescription(): Promise<CadenceSchedule | null> {
   const rules = await boardRules();
-  return rules.productDescription ? rules.productDescription() : null;
+  return rules.projectDescription ? rules.projectDescription() : null;
 }
 
-export async function setProductDescription(next: {
+export async function setProjectDescription(next: {
   enabled: boolean;
   cadence: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.setProductDescription) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.productWriter };
+  if (!rules.setProjectDescription) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.projectWriter };
   }
-  return said(await rules.setProductDescription(next));
+  return said(await rules.setProjectDescription(next));
 }

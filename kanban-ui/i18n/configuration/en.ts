@@ -285,9 +285,9 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every review — "skip reasons about pricing".',
         note: "Restoring an item withdraws any preference that rested on it alone. Learned preferences are in Memory, where you can edit or delete them.",
       },
-      "product-writer": {
-        name: "Describe the product",
-        gloss: "Describes what the product is today — who it's for and what it does — for planning and triage to follow.",
+      "project-writer": {
+        name: "Describe the project",
+        gloss: "Describes what the project is today — who it's for and what it does — for planning and triage to follow.",
         trigger: "Every day",
         when: "on your schedule, only if the project has changed or has no description yet. Each run reads the project itself and rewrites the whole description, covering only what has shipped.",
         rule: 'Added to the end of every update — "leave out internal tools".',
@@ -363,7 +363,7 @@ const en: ConfigurationCopy = {
       saveFailed: "Couldn't save the review schedule.",
       tooOld: "This board's rules are older than learning from dismissals.",
     },
-    productWriter: {
+    projectWriter: {
       run: "Update now",
       running: "Updating…",
       recurring: "Recurring update",
@@ -388,7 +388,7 @@ const en: ConfigurationCopy = {
       lastRun: (when) => `Last update ${when}`,
       failed: "Last run failed",
       saveFailed: "Couldn't save the update schedule.",
-      tooOld: "This board's rules are older than product descriptions.",
+      tooOld: "This board's rules are older than project descriptions.",
     },
     memoryReviewer: {
       run: "Review now",

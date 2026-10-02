@@ -14,7 +14,7 @@ docs/kanban/
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
 ├── memory/         all memory — see "Who owns a memory file"
 │   ├── readme.md   what shipped — the board's own record
-│   ├── product.md  what the product is today — written only by `akb describe-product`
+│   ├── project.md  what the project is today — written only by `akb describe-project`
 │   └── agents/     one folder per agent that keeps memory, named after it —
 │                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`, `dismissed.md`
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
@@ -118,8 +118,8 @@ move the files into the group's folder:
 **A memory file belongs to whoever reads and writes it.**
 
 - **`memory/readme.md`**: the board's record of shipped user-facing work (see "Finish a task").
-- **`memory/product.md`**: what the product is today, from its users' side, and the
-  direction every judgement serves. Only `akb describe-product` writes it.
+- **`memory/project.md`**: what the project is today, from its users' side, and the
+  direction every judgement serves. Only `akb describe-project` writes it.
 - **`memory/agents/planner/`**: owned by the plan lead — `software-planner`, or the agent a
   workflow names in its place. `decisions.md` holds user-facing answers that guide future planning,
   `redesign.md` design mistakes to avoid, `rejected.md` turned-down ideas and why,

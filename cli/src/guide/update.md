@@ -33,7 +33,8 @@ Run it from the project root. It does the whole mechanical part:
   without one is not broken, and `akb skill install` is how it is added,
 - adds what an older version never wrote: `config.md`, `modules.md`, `releases.md` (empty —
   the board never guesses a ship order), the planner's memory folder,
-  an empty `docs/kanban/memory/product.md`,
+  an empty `docs/kanban/memory/project.md`,
+- renames `docs/kanban/memory/product.md` to `project.md`,
 - moves a goal the user wrote in `docs/kanban/memory/goal.md` to the top of the planner's
   `decisions.md` and deletes the file,
 - moves a memory set still sitting at the board root into `docs/kanban/memory/`,

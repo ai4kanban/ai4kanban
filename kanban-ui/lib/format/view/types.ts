@@ -626,10 +626,10 @@ export interface MemoryRef {
 }
 
 /** Every memory file there is, in the order a panel lists them: the board's own record
- *  first — what shipped, what the product is — then the ones the planner learns. */
+ *  first — what shipped, what the project is — then the ones the planner learns. */
 export const MEMORY_FILES: readonly MemoryRef[] = [
   { name: 'readme', label: 'What shipped' },
-  { name: 'product', label: 'The product' },
+  { name: 'project', label: 'The project' },
   { name: 'decisions', label: 'Settled decisions' },
   { name: 'rejected', label: 'Rejected ideas' },
   { name: 'redesign', label: 'Design mistakes' },

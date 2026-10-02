@@ -197,16 +197,16 @@ export const FLOWS: Flow[] = [
         'an item since restored. Configuration → Board → Learn from dismissals sets its cadence.',
     ],
   },
-  // The product writer's one flow (#1268). Typed bare: it acts on the project.
+  // The project writer's one flow (#1268). Typed bare: it acts on the project.
   {
-    command: 'describe-product',
-    action: 'describe-product',
+    command: 'describe-project',
+    action: 'describe-project',
     argument: '',
-    gloss: 'rewrite the product description the planning flows read',
+    gloss: 'rewrite the project description the planning flows read',
     more: [
-      'Rewrites docs/kanban/memory/product.md from the README, the docs and the code. On its cadence it ' +
+      'Rewrites docs/kanban/memory/project.md from the README, the docs and the code. On its cadence it ' +
         'runs only after new commits, or while the file is still empty; Configuration → Board → ' +
-        'Describe the product sets the cadence.',
+        'Describe the project sets the cadence.',
     ],
   },
   { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },

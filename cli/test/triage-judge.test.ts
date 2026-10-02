@@ -293,7 +293,7 @@ describe('the state', () => {
   it('carries the item, the product, the decisions and every rejected.md and dismissed.md — and no card', async () => {
     const id = await waiting('Dark mode')
     card(7, 'Themes')
-    write(path.join(kanban(), 'memory', 'product.md'), '# Product\n\nA board.\n')
+    write(path.join(kanban(), 'memory', 'project.md'), '# Project\n\nA board.\n')
     write(path.join(planner(), 'decisions.md'), '# Decisions\n\n- keep it plain\n')
     write(path.join(planner(), 'rejected.md'), '# Rejected\n\n- a database\n')
     write(path.join(planner(), 'cloud', 'rejected.md'), '# Rejected\n\n- a second cloud\n')
@@ -313,7 +313,7 @@ describe('the state', () => {
 
   it('reads the README when the product description is empty, and judges with no decisions', async () => {
     const id = await waiting('Dark mode')
-    write(path.join(kanban(), 'memory', 'product.md'), "# Product\n\nWhat the product is today, from its users' side. Rewritten whole by `akb describe-product`;\nedits here do not last.\n")
+    write(path.join(kanban(), 'memory', 'project.md'), "# Project\n\nWhat the project is today, from its users' side. Rewritten whole by `akb describe-project`;\nedits here do not last.\n")
     write(path.join(root, 'README.md'), '# The project\n\nIt sorts cards.\n')
     const { state } = judgementState(item(id), questionsFor([]))
     assert.match(String(state.readme), /It sorts cards/)

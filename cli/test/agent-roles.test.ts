@@ -69,7 +69,7 @@ describe('the roles', () => {
         'memory-pruner',
         'memory-reviewer',
         'dismissal-reviewer',
-        'product-writer',
+        'project-writer',
         'feedback',
         'proposer',
         'triage',
@@ -81,7 +81,7 @@ describe('the roles', () => {
     // memory itself.
     assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
     assert.equal(roleForFlow('review-dismissals')!.name, 'dismissal-reviewer')
-    assert.equal(roleForFlow('describe-product')!.name, 'product-writer')
+    assert.equal(roleForFlow('describe-project')!.name, 'project-writer')
     // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
     assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
     // And a reflection is the proposer's — no flow a person types either (#534).
@@ -130,7 +130,7 @@ describe('the roles', () => {
       'memory-pruner',
       'memory-reviewer',
       'dismissal-reviewer',
-      'product-writer',
+      'project-writer',
       'proposer',
       'triage',
       'blog-illustrator',
@@ -160,7 +160,7 @@ describe('the roles', () => {
       'memory-pruner',
       'memory-reviewer',
       'dismissal-reviewer',
-      'product-writer',
+      'project-writer',
       'proposer',
       'triage',
     ])

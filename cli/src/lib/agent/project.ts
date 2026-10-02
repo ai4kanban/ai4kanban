@@ -1,18 +1,18 @@
-// ---- the product description's triggers (#1268) ------------------------------
+// ---- the project description's triggers (#1268) ------------------------------
 //
-// `memory/product.md` is rewritten only when there is something new to describe: the file has
+// `memory/project.md` is rewritten only when there is something new to describe: the file has
 // no body yet, or commits have landed since the last pass. Both are answered here, in code, so
 // a day with no change starts no agent at all.
 
 import fs from 'node:fs'
 
-import { PRODUCT } from '../paths'
+import { PROJECT_MD } from '../paths'
 import { git } from './worktree'
 
-/** Whether `product.md` holds a description — any `## ` section beyond the starter header. */
-export function productDescribed(): boolean {
+/** Whether `project.md` holds a description — any `## ` section beyond the starter header. */
+export function projectDescribed(): boolean {
   try {
-    return /^## /m.test(fs.readFileSync(PRODUCT, 'utf8'))
+    return /^## /m.test(fs.readFileSync(PROJECT_MD, 'utf8'))
   } catch {
     return false
   }

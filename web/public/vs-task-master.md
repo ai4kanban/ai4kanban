@@ -86,7 +86,7 @@ docs/kanban/
     skill/
       151-two-runs-at-once.md
   memory/
-    product.md
+    project.md
     agents/planner/decisions.md
 ```
 

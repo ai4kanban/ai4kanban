@@ -333,9 +333,9 @@ export interface BoardRules {
   dismissalReview?(): CadenceSchedule;
   setDismissalReview?(next: { enabled: boolean; cadence: string }): WriteResult;
 
-  // the product description's schedule (#1268). Optional like the ones above.
-  productDescription?(): CadenceSchedule;
-  setProductDescription?(next: { enabled: boolean; cadence: string }): WriteResult;
+  // the project description's schedule (#1268). Optional like the ones above.
+  projectDescription?(): CadenceSchedule;
+  setProjectDescription?(next: { enabled: boolean; cadence: string }): WriteResult;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

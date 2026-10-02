@@ -3,7 +3,7 @@
 // The jobs that need no user at all: the cards somebody scheduled, whose last blocker has
 // now left the board, the cards a refine would move and none has been tried on, the recurring
 // cards whose cadence has elapsed, the day's review of
-// what the conversations settled, the review of the dismissal reasons, the product
+// what the conversations settled, the review of the dismissal reasons, the project
 // description once new commits land, the daily prune of
 // what departed cards left in .akb, the memory pruner's own cadence, and every workflow's
 // scheduled agents (#1401).
@@ -29,12 +29,12 @@ import {
   leftoverPrune,
   memoryPrune,
   memoryReview,
-  productDescription,
+  projectDescription,
   scheduleClock,
   stampLeftoverPrune,
 } from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
-import { commitsSince, productDescribed } from '../agent/product'
+import { commitsSince, projectDescribed } from '../agent/project'
 import { anyChatToReview } from '../agent/memory-review'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
@@ -147,17 +147,17 @@ function dismissalReviewDue(runs: RunView[]): boolean {
   return dismissalWorkWaiting(since)
 }
 
-// Whether the product description is due (#1268). Timed like the dismissal review; then only
-// while `product.md` has no description, or when the branch has commits since the last pass.
-function productDescriptionDue(runs: RunView[]): boolean {
-  const schedule = productDescription()
-  const passes = runs.filter((r) => r.action === 'describe-product')
+// Whether the project description is due (#1268). Timed like the dismissal review; then only
+// while `project.md` has no description, or when the branch has commits since the last pass.
+function projectDescriptionDue(runs: RunView[]): boolean {
+  const schedule = projectDescription()
+  const passes = runs.filter((r) => r.action === 'describe-project')
   if (passes.some((r) => r.status === 'running')) return false
   const since = parseStamp(schedule.lastRun)?.getTime() ?? 0
   const last = Math.max(since, ...passes.map((r) => r.startedAt))
   const due = last ? nextDue(formatStamp(new Date(last)), schedule.cadence) : new Date(0)
   if (!due || due.getTime() > Date.now()) return false
-  return !productDescribed() || commitsSince(since) === true
+  return !projectDescribed() || commitsSince(since) === true
 }
 
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
@@ -364,7 +364,7 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
   // same reason: it touches no card, so nothing it does can queue behind a card's run.
   if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
   if (dismissalReviewDue(runs)) work.push({ action: 'review-dismissals' })
-  if (productDescriptionDue(runs)) work.push({ action: 'describe-product' })
+  if (projectDescriptionDue(runs)) work.push({ action: 'describe-project' })
 
   // And every workflow's scheduled agents whose cadence has come round (#1401), a slot each.
   try {

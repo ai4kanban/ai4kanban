@@ -231,6 +231,8 @@ export function migrateFlowRules(): string[] {
 // A rule is saved under the agent's name, so an agent renamed between releases would leave
 // its file behind. Move it onto the new name, once, and only when nothing is saved there
 // yet — the file under the current name is the one the user last wrote.
+const RENAMED_ROLES: Record<string, string> = { 'product-writer': 'project-writer' }
+
 function adoptRenamedRules(): void {
   let here: string[]
   try {
@@ -241,7 +243,7 @@ function adoptRenamedRules(): void {
   for (const file of here) {
     if (!file.endsWith('.md')) continue
     const was = file.slice(0, -'.md'.length)
-    const now = canonicalSpecAgent(was)
+    const now = RENAMED_ROLES[was] ?? canonicalSpecAgent(was)
     if (now === was || fs.existsSync(rulePath(now))) continue
     try {
       fs.renameSync(rulePath(was), rulePath(now))

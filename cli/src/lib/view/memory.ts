@@ -1,11 +1,11 @@
 // ---- the board's memory, read -----------------------------------------------
 //
-// What shipped, what the product is, what was settled, what design mistakes to avoid,
+// What shipped, what the project is, what was settled, what design mistakes to avoid,
 // what was turned down. Every proposal is judged against them and every answer a run settles
 // by itself leans on them, so a screen has to be able to show them.
 //
 // Memory is grouped by WHO owns it (#805): `docs/kanban/memory/` holds the board's own
-// record — `readme.md` and `product.md` — and each agent that keeps memory has a folder of its
+// record — `readme.md` and `project.md` — and each agent that keeps memory has a folder of its
 // own beside them. A module is a `## <module>` topic inside a file, so there is nothing here
 // that opens one.
 //
@@ -135,8 +135,8 @@ export function readMemoryFile(name: string, agent = ''): MemoryFile | null {
 export function writeMemoryFile(name: string, text: string, agent = ''): MemoryFile | null {
   migrateMemory()
   if (!openable(name, agent)) return null
-  // Never the product description: `describe-product` rewrites it whole (#1268).
-  if (name === 'product') return null
+  // Never the project description: `describe-project` rewrites it whole (#1268).
+  if (name === 'project') return null
   const file = memoryPath(name, agent)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text.endsWith('\n') || text === '' ? text : `${text}\n`)

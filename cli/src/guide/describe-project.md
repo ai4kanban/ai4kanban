@@ -1,9 +1,9 @@
-# Describe the product
+# Describe the project
 
-Rewrite `docs/kanban/memory/product.md` so it says what the product is today, from its
+Rewrite `docs/kanban/memory/project.md` so it says what the project is today, from its
 users' side. Change no other file and ask no questions.
 
-- **Read the product itself**: the README, the published docs, the entry points users reach,
+- **Read the project itself**: the README, the published docs, the entry points users reach,
   and the code only where those say too little.
 - **Only what ships**: describe what a user can do today; leave out plans and the roadmap.
 - **Fixed shape**: keep the file's header, then four sections — `## What it is`,

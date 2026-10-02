@@ -235,7 +235,7 @@ function Rail() {
         <div style={{ display: "flex", flexDirection: "column", gap: em(2) }}>
           <Owner name="Board" open>
             <File label="What shipped" />
-            <File label="The product" />
+            <File label="The project" />
           </Owner>
           <Owner name="Planner" open>
             <File label="Settled decisions" active />

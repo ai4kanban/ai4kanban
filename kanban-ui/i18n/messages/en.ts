@@ -61,8 +61,8 @@ const en: MessagesCopy = {
       "this board's rules are older than the memory pruner — run `npm install -g ai4kanban`.",
     dismissalReviewer:
       "this board's rules are older than learning from dismissals — run `npm install -g ai4kanban`.",
-    productWriter:
-      "this board's rules are older than product descriptions — run `npm install -g ai4kanban`.",
+    projectWriter:
+      "this board's rules are older than project descriptions — run `npm install -g ai4kanban`.",
   },
   actions: {
     noSuchCard: "that is not a card on this board.",

@@ -61,9 +61,9 @@ import {
   dismissalReviewAction,
   setDismissalReviewAction,
   startReviewDismissalsAction,
-  productDescriptionAction,
-  setProductDescriptionAction,
-  startDescribeProductAction,
+  projectDescriptionAction,
+  setProjectDescriptionAction,
+  startDescribeProjectAction,
   setWorkflowScheduledAction,
   startScheduledAgentAction,
 } from "@/app/actions";
@@ -111,14 +111,14 @@ const REVIEWER_OF_MEMORY = "memory-reviewer";
 // The dismissal reviewer (#929): the pruner's controls.
 const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
 
-// The product writer (#1268): the same controls.
-const PRODUCT_WRITER = "product-writer";
+// The project writer (#1268): the same controls.
+const PROJECT_WRITER = "project-writer";
 
 // Configuration → Board's groups, by what starts each agent (#1208). Anything not named here
 // — the discussion, an agent this project added — is one you start.
 // A literal rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
-const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", REVIEWER_OF_DISMISSALS, PRODUCT_WRITER];
+const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", REVIEWER_OF_DISMISSALS, PROJECT_WRITER];
 const ON_AN_EVENT = ["proposer", "triage"];
 // Whose runtime every planning lead runs (#1316).
 const PLANNING_HELPER = "discussion-helper";
@@ -127,17 +127,17 @@ const PLANNING_HELPER = "discussion-helper";
 function useCadences(onError?: (msg: string) => void) {
   const [cadences, setCadences] = useState<Record<string, CadenceSchedule | null>>({});
   const reload = useCallback(async () => {
-    const [prune, dismissals, product] = await Promise.all([
+    const [prune, dismissals, project] = await Promise.all([
       memoryPruneAction(),
       dismissalReviewAction(),
-      productDescriptionAction(),
+      projectDescriptionAction(),
     ]);
-    const error = prune.error || dismissals.error || product.error;
+    const error = prune.error || dismissals.error || project.error;
     if (error) onError?.(error);
     setCadences({
       [PRUNER]: prune.schedule,
       [REVIEWER_OF_DISMISSALS]: dismissals.schedule,
-      [PRODUCT_WRITER]: product.schedule,
+      [PROJECT_WRITER]: project.schedule,
     });
   }, [onError]);
   useEffect(() => {
@@ -150,10 +150,10 @@ function useCadences(onError?: (msg: string) => void) {
 const OUTPUT_KEY = "output";
 
 // Which copy says a scheduled agent's cadence.
-const CADENCE_COPY: Record<string, "pruner" | "dismissalReviewer" | "productWriter" | undefined> = {
+const CADENCE_COPY: Record<string, "pruner" | "dismissalReviewer" | "projectWriter" | undefined> = {
   "memory-pruner": "pruner",
   [REVIEWER_OF_DISMISSALS]: "dismissalReviewer",
-  [PRODUCT_WRITER]: "productWriter",
+  [PROJECT_WRITER]: "projectWriter",
 };
 
 /** The roster, and every write that touches it — read once and shared by the two panes that
@@ -956,8 +956,8 @@ function Page({
     <PruneControls onSaved={onCadence} onError={onError} />
   ) : agent.name === REVIEWER_OF_DISMISSALS ? (
     <DismissalControls onSaved={onCadence} onError={onError} />
-  ) : agent.name === PRODUCT_WRITER ? (
-    <ProductControls onSaved={onCadence} onError={onError} />
+  ) : agent.name === PROJECT_WRITER ? (
+    <ProjectControls onSaved={onCadence} onError={onError} />
   ) : agent.name === REVIEWER_OF_MEMORY ? (
     <ReviewControls onError={onError} />
   ) : null;
@@ -1526,19 +1526,19 @@ function DismissalControls({ onSaved, onError }: { onSaved?: () => void; onError
   );
 }
 
-// --- the product writer's own controls (#1268) -------------------------------
+// --- the project writer's own controls (#1268) -------------------------------
 
-function ProductControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.agents.productWriter;
+function ProjectControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.agents.projectWriter;
   return (
     <ScheduledControls
       copy={c}
       icon={<FiFileText size={11} aria-hidden />}
       onSaved={onSaved}
-      action="describe-product"
-      read={productDescriptionAction}
-      save={setProductDescriptionAction}
-      start={startDescribeProductAction}
+      action="describe-project"
+      read={projectDescriptionAction}
+      save={setProjectDescriptionAction}
+      start={startDescribeProjectAction}
       onError={onError}
     />
   );

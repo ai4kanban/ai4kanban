@@ -42,7 +42,7 @@ export type MessagesCopy = {
     usageReporting: string;
     memoryPruner: string;
     dismissalReviewer: string;
-    productWriter: string;
+    projectWriter: string;
   };
   /** The refusals a server action gives back to the screen that called it. The rest
    *  of `app/actions.ts` guards its own arguments and stays English: nothing a person
