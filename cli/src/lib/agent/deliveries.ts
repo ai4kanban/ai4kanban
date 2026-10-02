@@ -45,7 +45,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { executeHooks, owedHooks } from './hooks'
 import { deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
-import { deliveryRules } from './rules'
+import { deliveryRules, readRule } from './rules'
 import { openOf } from '../view/rules'
 import { cardWorkflowId, DEFAULT_WORKFLOW, frozenWorkflow } from './workflows'
 import { nextAfterSession, reviewOf } from './review'
@@ -926,11 +926,15 @@ export function joinDelivery(
       // its flows are run by, frozen the way the card is. Every run in it is
       // given these words rather than the files, a printed flow included, so editing a
       // rule changes the next delivery and never one in flight.
-      rules: deliveryRules(cardId === null ? undefined : cardWorkflowId(cardId)),
+      rules: {
+        ...deliveryRules(cardId === null ? direct?.scheduled?.workflow : cardWorkflowId(cardId)),
+        ...(direct?.scheduled && readRule(direct.scheduled.agent) ? { [direct.scheduled.agent]: readRule(direct.scheduled.agent) } : {}),
+      },
       // And the one read of the workflow it builds under (#715) — its name and all three
       // stages' assignments, frozen the way the rules are. Reassigning a stage, renaming the
       // workflow or deleting it changes the next delivery and never this one.
-      workflow: cardId === null ? frozenWorkflow('') : frozenWorkflow(cardWorkflowId(cardId)),
+      workflow: frozenWorkflow(cardId === null ? direct?.scheduled?.workflow ?? '' : cardWorkflowId(cardId)),
+      scheduled: direct?.scheduled,
       targetBranch: start?.targetBranch,
       worktree: start?.worktree,
       branch: start?.branch,
@@ -1086,11 +1090,13 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   // First the run's work, committed onto the delivery's branch.
   const built = run.status === 'done' && run.action === 'implement'
   const hooked = run.status === 'done' && run.action === 'hook'
-  const commit = (built || hooked) && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
+  // A scheduled agent's pass (#1401) is the whole of its delivery: no hooks follow it.
+  const passed = run.status === 'done' && run.action === 'scheduled'
+  const commit = (built || hooked || passed) && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
   const uncommitted = commit.ok ? undefined : commit.why
   // The delivery's own work ends with the last hook, or with the build when none is owed.
   const owed = built ? executeHooks(before) : owedHooks(before).filter((agent) => agent !== run.specAgent)
-  const last = (built || hooked) && !owed.length
+  const last = passed || ((built || hooked) && !owed.length)
   // And, in manual commit mode, the snapshot the finished build leaves for the user's own
   // commit to be matched against.
   //
@@ -1103,7 +1109,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       : undefined
   // A `files` delivery ends on what it made (#874): the files its card records, and nothing
   // changed outside the board.
-  const files = last && before.commitMode === 'files' ? filesStop(before) : undefined
+  const files = last && before.commitMode === 'files' && !before.scheduled ? filesStop(before) : undefined
 
   const settled = withStore<Settled | null>((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)

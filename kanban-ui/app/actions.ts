@@ -222,6 +222,7 @@ import {
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
+  setWorkflowScheduled,
   setWorkflowWorktree,
   dismissRetiredAssignment,
   workflows,
@@ -281,6 +282,7 @@ import type {
   SourceDocument,
   SpecAgentView,
   UsageReporting,
+  AgentSlot,
   WorkflowStage,
   WorkflowView,
   WriteResult,
@@ -1660,11 +1662,11 @@ export async function setAgentRuleAction(agent: string, text: string): Promise<W
  *  anything is written, so the pane never creates a clash it would then report. */
 export async function createAgentAction(
   name: string,
-  stage?: WorkflowStage,
+  stage?: AgentSlot,
 ): Promise<WriteResult & { agent?: string }> {
   if (typeof name !== "string") return { ok: false, error: "an agent is created by name" };
-  if (stage !== undefined && !WORKFLOW_STAGES.includes(stage)) {
-    return { ok: false, error: "an agent is created on one of the three stages" };
+  if (stage !== undefined && stage !== "schedule" && !WORKFLOW_STAGES.includes(stage)) {
+    return { ok: false, error: "an agent is created on a stage, or as a scheduled one" };
   }
   try {
     return await createAgent(name, stage);
@@ -1815,6 +1817,31 @@ export async function setWorkflowStageAction(
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };
   }
+}
+
+/** Switch one of a workflow's scheduled agents, set how often it runs, or write what the
+ *  workflow asks of it (#1401). */
+export async function setWorkflowScheduledAction(
+  id: string,
+  move: Parameters<typeof setWorkflowScheduled>[1],
+): Promise<WriteResult> {
+  if (typeof id !== "string" || !move || typeof move.agent !== "string") {
+    return { ok: false, error: "a scheduled agent is set by workflow id and agent name" };
+  }
+  try {
+    return await setWorkflowScheduled(id, move);
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
+  }
+}
+
+/** Start one run of a workflow's scheduled agent now, due or not (#1401). */
+export async function startScheduledAgentAction(workflow: string, agent: string): Promise<StartResult> {
+  if (typeof workflow !== "string" || typeof agent !== "string") {
+    return { ok: false, error: "a scheduled agent is started by workflow id and agent name" };
+  }
+  const req: AgentRequest = { action: "scheduled", workflow, specAgent: agent };
+  return startSession(req, await buildPrompt(req));
 }
 
 /** Delete one project agent, with everything the board kept for it. The board refuses a

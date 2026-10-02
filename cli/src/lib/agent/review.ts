@@ -49,6 +49,9 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord): Revi
     const stopped = run.status === 'stopped'
     return { stop: 'hook', why: hookStopWhy(agent, stopped), hook: { agent, how: stopped ? 'stopped' : 'failed' } }
   }
+  // A scheduled agent's pass (#1401) finishes its delivery; one that stopped short waits for
+  // Resume, or for the next pass to replace it.
+  if (run.action === 'scheduled') return run.status === 'done' ? { finish: true } : HOLD
   // A build somebody stopped, or one that was cut off, is picked up by Resume.
   if (run.action !== 'implement' || run.status !== 'done') return HOLD
   // The build stage ends here, so this is where its contract is read (#714).

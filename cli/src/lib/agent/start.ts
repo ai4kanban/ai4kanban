@@ -17,8 +17,9 @@ import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
 import { proAccess, proGate, type ProAccess } from '../cloud/pro'
-import { cardWorkflowId, workflowFor, workflowIssues, workflows } from './workflows'
-import { carriedSession, closeRun, markSpawned, openResume, openRun } from './sessions'
+import { cardWorkflowId, workflowById, workflowFor, workflowIssues, workflows } from './workflows'
+import { cancelDelivery, carriedSession, closeRun, markSpawned, openResume, openRun } from './sessions'
+import { scheduledBusy, stalePasses } from './scheduled'
 import { takeChatSession } from './chat'
 import { refusal, workflowDeleted, type AgentRequest, type RunRecord, type RunRefusal } from './types'
 
@@ -27,7 +28,7 @@ import { refusal, workflowDeleted, type AgentRequest, type RunRecord, type RunRe
 export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal> {
   const sessionId = randomUUID()
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
-  const short = workflowRefusal(req) ?? (await proRefusal(req))
+  const short = workflowRefusal(req) ?? (await proRefusal(req)) ?? (await scheduledRefusal(req))
   if (short) return short
   const held = await takeRunCard(sessionId, cardId)
   if (!held.ok) return held
@@ -75,6 +76,19 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
     error: `${problem.error} Assign it in Configuration → Workflows, or with \`${command}\`.`,
     args: { ...problem.args, command },
   }
+}
+
+// Why a scheduled agent's new pass cannot start (#1401): its workflow needs Pro, or its last
+// pass is still running or landing. One that stopped short is given up here — the new pass
+// replaces it — so a failing agent never piles up worktrees.
+async function scheduledRefusal(req: AgentRequest): Promise<RunRefusal | null> {
+  if (req.action !== 'scheduled' || req.deliveryId || !req.workflow || !req.specAgent) return null
+  const pass = { workflow: req.workflow, agent: req.specAgent }
+  const flow = workflowById(pass.workflow)
+  const refused = (flow ? await proGate(flow) : null) ?? scheduledBusy(pass)
+  if (refused) return refused
+  for (const id of stalePasses(pass)) await cancelDelivery(id)
+  return null
 }
 
 // Archive and reject take a card off the board, which needs no Pro.

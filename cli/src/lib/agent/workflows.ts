@@ -29,6 +29,7 @@ import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { die } from '../paths'
 import type { Meta } from '../types'
+import { CADENCE_FORMS, formatStamp, nextDue, parseCadence, parseStamp } from '../cadence'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog, type RefusedAgent } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
@@ -37,12 +38,15 @@ import { copyAgent } from '../agents/roster'
 import { proGate } from '../cloud/pro'
 import {
   refusal,
+  SCHEDULED_CADENCE,
   WORKFLOW_STAGES,
   type FrozenWorkflow,
   type RunRefusal,
   type DeliveryStage,
   type WorkflowCandidate,
   type WorkflowHelper,
+  type WorkflowScheduled,
+  type WorkflowScheduledView,
   type WorkflowStage,
   type WorkflowStageView,
   type WorkflowView,
@@ -91,6 +95,8 @@ export interface Workflow {
    *  told yet (#945). Cleared by `dismissRetiredAssignment`. */
   retiredAssignment: boolean
   stages: Record<WorkflowStage, WorkflowStageSetup>
+  /** Its scheduled agents (#1401), as written down. Read through `scheduledMembers`. */
+  scheduled: WorkflowScheduled[]
 }
 
 /** The workflow a card with no `workflow:` key runs on — every card written before this
@@ -122,6 +128,8 @@ interface BuiltinWorkflow {
   delivers?: DeliveryStage
   pro?: boolean
   stages: Record<WorkflowStage, { lead: string; helpers: BuiltinHelpers }>
+  /** The scheduled agents it starts with, on, until the board changes them (#1401). */
+  scheduled?: { agent: string; cadence?: string }[]
 }
 
 // `coding` is what every board did before workflows existed, written down. Its two planning
@@ -294,6 +302,40 @@ function readStage(raw: unknown): { lead?: string; helpers?: WorkflowHelper[] } 
   return out
 }
 
+// A workflow's scheduled agents (#1401) sit beside its stages, as `schedule.helpers`, so every
+// pass over a saved agent's name reaches them too. Undefined when nothing is saved.
+const SCHEDULE = 'schedule'
+
+function readScheduled(raw: unknown): WorkflowScheduled[] | undefined {
+  const rows = configBlock(raw).helpers
+  if (!Array.isArray(rows)) return undefined
+  const out: WorkflowScheduled[] = []
+  for (const entry of rows) {
+    const row = configBlock(entry)
+    const agent = typeof row.agent === 'string' ? canonicalSpecAgent(row.agent) : ''
+    if (!agent || out.some((h) => h.agent === agent)) continue
+    const text = (key: string): string => (typeof row[key] === 'string' ? (row[key] as string).trim() : '')
+    out.push({
+      agent,
+      extra: typeof row.extra === 'string' ? row.extra : '',
+      ...(row.off === true ? { off: true } : {}),
+      cadence: parseCadence(text('cadence')) ? text('cadence') : SCHEDULED_CADENCE,
+      lastRun: text('lastRun'),
+      ...(text('since') ? { since: text('since') } : {}),
+    })
+  }
+  return out
+}
+
+const scheduledRow = (h: WorkflowScheduled) => ({
+  agent: h.agent,
+  extra: h.extra,
+  ...(h.off ? { off: true } : {}),
+  ...(h.cadence !== SCHEDULED_CADENCE ? { cadence: h.cadence } : {}),
+  ...(h.lastRun ? { lastRun: h.lastRun } : {}),
+  ...(h.since ? { since: h.since } : {}),
+})
+
 function resolveOne(
   cfg: Record<string, unknown>,
   id: string,
@@ -330,6 +372,9 @@ function resolveOne(
     pro: base ? base.pro === true : pro,
     retiredAssignment: retiredRows(cfg).includes(id),
     stages,
+    scheduled:
+      readScheduled(storedStages(cfg, id)[SCHEDULE]) ??
+      (base?.scheduled ?? []).map((one) => ({ agent: one.agent, extra: '', cadence: one.cadence ?? SCHEDULED_CADENCE, lastRun: '' })),
   }
 }
 
@@ -683,9 +728,10 @@ function writtenWorkflows(): Workflow[] {
 
 // The specialists one workflow lists. Roles are never anybody's.
 const listedBy = (flow: Workflow, specialist: Set<string>): string[] =>
-  WORKFLOW_STAGES.flatMap((stage) => [flow.stages[stage].lead, ...flow.stages[stage].helpers.map((h) => h.agent)]).filter(
-    (name) => specialist.has(name),
-  )
+  [
+    ...WORKFLOW_STAGES.flatMap((stage) => [flow.stages[stage].lead, ...flow.stages[stage].helpers.map((h) => h.agent)]),
+    ...flow.scheduled.map((h) => h.agent),
+  ].filter((name) => specialist.has(name))
 
 // Every workflow, and which one each listed agent belongs to. A helper no workflow lists sits
 // in Coding, disabled and nobody's — or enabled and Coding's, on a board whose Coding still
@@ -708,6 +754,12 @@ function resolved(): { flows: Workflow[]; owners: Map<string, string> } {
     if (every) for (const name of free) owners.set(name, coding.id)
     setup.helpers = [...setup.helpers, ...free.map((agent) => ({ agent, extra: '', ...(every ? {} : { off: true }) }))]
   }
+  // And a scheduled agent no workflow lists (#1401): Coding's, off.
+  const idle = catalog.filter((a) => a.schedule && !owners.has(a.name)).map((a) => a.name)
+  coding.scheduled = [
+    ...coding.scheduled,
+    ...idle.map((agent) => ({ agent, extra: '', off: true, cadence: SCHEDULED_CADENCE, lastRun: '' })),
+  ]
   return { flows, owners }
 }
 
@@ -984,6 +1036,10 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
       return [stage, { lead: own(setup.lead), helpers }]
     }),
   )
+  // Its scheduled agents come too (#1401), counting from the copy rather than the original's last pass.
+  const scheduled = scheduledMembers(flow).map((h) =>
+    scheduledRow({ ...h, agent: own(h.agent), lastRun: '', since: formatStamp(new Date()) }),
+  )
   const res = save((block) => {
     const added = Array.isArray(block.added) ? [...block.added] : []
     added.push({
@@ -996,7 +1052,7 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
     block.added = added
     // The stages as they RESOLVE, not as they are saved: one still inheriting its workflow's
     // default has nothing saved.
-    block.stages = { ...configBlock(block.stages), [copy]: stages }
+    block.stages = { ...configBlock(block.stages), [copy]: { ...stages, ...(scheduled.length ? { [SCHEDULE]: { helpers: scheduled } } : {}) } }
   })
   return res.ok ? { ok: true, id: copy, name } : res
 }
@@ -1232,6 +1288,127 @@ export function setWorkflowHelperExtra(id: string, stage: WorkflowStage, agent: 
   })
 }
 
+// ---- scheduled agents (#1401) -------------------------------------------------
+//
+// A workflow's scheduled agents run by themselves on a cadence, on no card. Like a stage's
+// hooks they are the workflow's own and are only switched; the cadence, the extra requirements
+// and when each last passed are kept with the assignment.
+
+const scheduleAgents = (): Set<string> => new Set(specAgentCatalog().agents.filter((a) => a.schedule).map((a) => a.name))
+
+/** Every scheduled agent one workflow has, disabled ones included, minus any this board no
+ *  longer has. */
+export function scheduledMembers(flow: Workflow): WorkflowScheduled[] {
+  const names = scheduleAgents()
+  return flow.scheduled.filter((h) => names.has(h.agent))
+}
+
+/** One scheduled agent of one workflow, or undefined when it has no such agent. */
+export const scheduledAgent = (id: string, agent: string): WorkflowScheduled | undefined => {
+  const flow = workflowById(id)
+  return flow ? scheduledMembers(flow).find((h) => h.agent === canonicalSpecAgent(agent.trim())) : undefined
+}
+
+/** The stamp one scheduled agent's cadence counts from: the later of its last pass and the
+ *  moment it was first looked at or switched on. Empty when it has neither yet. */
+export const scheduledClock = (one: WorkflowScheduled): string =>
+  [one.lastRun, one.since ?? ''].filter((stamp) => parseStamp(stamp)).sort().pop() ?? ''
+
+/** When its next pass may start, or null while it is off or has no clock yet. */
+export function scheduledNext(one: WorkflowScheduled): Date | null {
+  const from = scheduledClock(one)
+  return one.off || !from ? null : nextDue(from, one.cadence)
+}
+
+function setScheduled(id: string, change: (rows: WorkflowScheduled[]) => Write | void): Write {
+  const flow = workflowById(id)
+  if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+  const rows = scheduledMembers(flow).map((h) => ({ ...h }))
+  const refused = change(rows)
+  if (refused) return refused
+  return save((block) => {
+    const stages = configBlock(block.stages)
+    stages[id] = { ...configBlock(stages[id]), [SCHEDULE]: { helpers: rows.map(scheduledRow) } }
+    block.stages = stages
+  })
+}
+
+const notScheduled = (agent: string, flow: Workflow): Write => ({
+  ok: false,
+  ...refusal('agentNotScheduled', `\`${agent}\` is not a scheduled agent of "${flow.name}"`, { agent, name: flow.name, workflow: flow.id }),
+})
+
+/** Switch one scheduled agent on or off. One no workflow lists is taken into this one; one
+ *  another workflow lists is refused. Switching it on counts its cadence from now, so it
+ *  never runs in the moment it was enabled. */
+export function switchWorkflowScheduled(id: string, agent: string, on: boolean, now: Date = new Date()): Write {
+  const wanted = canonicalSpecAgent(agent.trim())
+  return setScheduled(id, (rows) => {
+    let one = rows.find((h) => h.agent === wanted)
+    if (!one) {
+      if (!scheduleAgents().has(wanted)) {
+        const known = agentRoster().some((entry) => entry.name === wanted)
+        return known
+          ? { ok: false, ...refusal('agentNotSchedule', `\`${wanted}\` does not declare \`akb.hook: schedule\`, so it cannot run on a cadence`, { agent: wanted }) }
+          : { ok: false, ...refusal('agentNotFound', `this board has no \`${wanted}\` agent`, { agent: wanted }) }
+      }
+      const refused = elsewhere(wanted, id)
+      if (refused) return refused
+      one = { agent: wanted, extra: '', off: true, cadence: SCHEDULED_CADENCE, lastRun: '' }
+      rows.push(one)
+    }
+    if (!on) one.off = true
+    else if (one.off) {
+      delete one.off
+      one.since = formatStamp(now)
+    }
+  })
+}
+
+/** Set how often one scheduled agent runs. */
+export function setWorkflowScheduledCadence(id: string, agent: string, cadence: string): Write {
+  const wanted = canonicalSpecAgent(agent.trim())
+  const next = cadence.trim() || SCHEDULED_CADENCE
+  if (!parseCadence(next)) {
+    return { ok: false, ...refusal('cadence', `"${next}" isn't a cadence — use ${CADENCE_FORMS}`, { cadence: next, formats: CADENCE_FORMS }) }
+  }
+  return setScheduled(id, (rows) => {
+    const one = rows.find((h) => h.agent === wanted)
+    if (!one) return notScheduled(wanted, workflowById(id)!)
+    one.cadence = next
+  })
+}
+
+/** What this workflow asks of one scheduled agent on top of its own instructions. */
+export function setWorkflowScheduledExtra(id: string, agent: string, extra: string): Write {
+  const wanted = canonicalSpecAgent(agent.trim())
+  return setScheduled(id, (rows) => {
+    const one = rows.find((h) => h.agent === wanted)
+    if (!one) return notScheduled(wanted, workflowById(id)!)
+    one.extra = extra
+  })
+}
+
+/** Write where a scheduled agent that has never run counts from — the scheduler's first look.
+ *  False when nothing was written. */
+export function startScheduledClock(id: string, agent: string, now: Date = new Date()): boolean {
+  return setScheduled(id, (rows) => {
+    const one = rows.find((h) => h.agent === agent)
+    if (!one || scheduledClock(one)) return { ok: false, error: '' }
+    one.since = formatStamp(now)
+  }).ok
+}
+
+/** Record a pass that PASSED, by when it began. A failed or stopped one records nothing, so
+ *  the agent is tried again a cadence later. */
+export function stampScheduledRun(id: string, agent: string, startedAt: Date): boolean {
+  return setScheduled(id, (rows) => {
+    const one = rows.find((h) => h.agent === agent)
+    if (!one) return { ok: false, error: '' }
+    one.lastRun = formatStamp(startedAt)
+  }).ok
+}
+
 /** Whether the config names a workflow at all — what says a board has been through this
  *  screen. Read straight, so an unreadable file is not mistaken for an untouched one. */
 export function workflowsConfigured(): boolean {
@@ -1323,6 +1500,17 @@ export function workflowViews(): WorkflowView[] {
     stages: WORKFLOW_STAGES.map((stage) => {
       const setup = liveStage(flow, stage)
       return { stage, lead: setup.lead, helpers: setup.helpers, candidates: candidates(stage, flow.id) }
+    }),
+    scheduled: scheduledMembers(flow).map((one): WorkflowScheduledView => {
+      const entry = roster.find((e) => e.name === one.agent)
+      const next = scheduledNext(one)
+      return {
+        ...one,
+        title: entry?.title ?? '',
+        gloss: entry?.gloss ?? '',
+        builtIn: entry?.builtIn ?? false,
+        nextRun: next ? formatStamp(next) : '',
+      }
     }),
     problems: workflowProblems(flow.id),
   }))

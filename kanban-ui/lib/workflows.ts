@@ -132,3 +132,22 @@ export async function setWorkflowHelperExtra(
   if (!rules.setWorkflowHelperExtra) return { ok: false, error: await tooOld() };
   return said(await rules.setWorkflowHelperExtra(id, stage, agent, extra));
 }
+
+/** One change to a workflow's scheduled agent (#1401): switch it, set how often it runs, or
+ *  write what the workflow asks of it. Picking a cadence switches a disabled one back on. */
+export async function setWorkflowScheduled(
+  id: string,
+  move:
+    | { kind: "switch"; agent: string; on: boolean }
+    | { kind: "cadence"; agent: string; cadence: string }
+    | { kind: "extra"; agent: string; extra: string },
+): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.switchWorkflowScheduled || !rules.setWorkflowScheduledCadence || !rules.setWorkflowScheduledExtra) {
+    return { ok: false, error: await tooOld() };
+  }
+  if (move.kind === "switch") return said(await rules.switchWorkflowScheduled(id, move.agent, move.on));
+  if (move.kind === "extra") return said(await rules.setWorkflowScheduledExtra(id, move.agent, move.extra));
+  const saved = await said(await rules.setWorkflowScheduledCadence(id, move.agent, move.cadence));
+  return saved.ok ? said(await rules.switchWorkflowScheduled(id, move.agent, true)) : saved;
+}

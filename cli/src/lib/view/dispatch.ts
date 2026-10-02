@@ -5,7 +5,8 @@
 // cards whose cadence has elapsed, the day's review of
 // what the conversations settled, the review of the dismissal reasons, the product
 // description once new commits land, the daily prune of
-// what departed cards left in .akb, and the memory pruner's own cadence.
+// what departed cards left in .akb, the memory pruner's own cadence, and every workflow's
+// scheduled agents (#1401).
 // A front end with a timer asks this once a
 // tick and starts whatever comes back — it holds the timer, this holds the rules, so a board
 // driven from a window and a board driven from anywhere else pick the same cards in the same
@@ -38,6 +39,7 @@ import { anyChatToReview } from '../agent/memory-review'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
 import { proRefusal } from '../agent/start'
+import { dueScheduledAgents } from '../agent/scheduled'
 import { proAccess, type ProAccess } from '../cloud/pro'
 import { pruneLeftovers } from '../leftovers'
 import { listRuns } from '../agent/sessions'
@@ -363,6 +365,13 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
   if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
   if (dismissalReviewDue(runs)) work.push({ action: 'review-dismissals' })
   if (productDescriptionDue(runs)) work.push({ action: 'describe-product' })
+
+  // And every workflow's scheduled agents whose cadence has come round (#1401), a slot each.
+  try {
+    work.push(...(await dueScheduledAgents(ask)))
+  } catch {
+    // unreadable settings — the next tick tries again
+  }
 
   // And the landing queue (#304). A landing is normally moved on by the watcher of the
   // build that just finished; this is what picks up a waiter nothing handed off to,

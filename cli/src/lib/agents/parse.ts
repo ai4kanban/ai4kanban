@@ -23,6 +23,9 @@ export interface SpecAgent {
   /** The workflow stage it may be assigned to (#715) — the value of its `akb.lead` or
    *  `akb.hook`. */
   stage: WorkflowStage | null
+  /** Whether it runs by itself on its workflow's cadence (#1401) — `akb.hook: schedule`. It
+   *  joins no stage, so `stage` is null. */
+  schedule: boolean
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
    *  the board's own `output` setting starts at, and a lead's for good. `agent` unless `akb.output` says so. */
   output: SpecOutput
@@ -69,7 +72,12 @@ export type AgentKind = 'spec' | 'lead'
 
 /** The `akb.*` key naming each role (#1341). A file declares exactly one, valued with its stage. */
 const ROLE_KEYS = { lead: 'lead', hook: 'spec' } as const satisfies Record<string, AgentKind>
-const ROLE_LINES = Object.keys(ROLE_KEYS).flatMap((role) => WORKFLOW_STAGES.map((stage) => `\`${role}: ${stage}\``))
+/** The one `akb.hook` value that is no stage (#1401): the agent runs on a cadence. */
+export const SCHEDULE_HOOK = 'schedule'
+const ROLE_LINES = [
+  ...Object.keys(ROLE_KEYS).flatMap((role) => WORKFLOW_STAGES.map((stage) => `\`${role}: ${stage}\``)),
+  `\`hook: ${SCHEDULE_HOOK}\``,
+]
 
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
@@ -147,10 +155,13 @@ export function parseSpecAgent(
     return bad(`\`${name}\` declares neither \`akb.lead\` nor \`akb.hook\`, so the board can't tell where it is used — add one of ${ROLE_LINES.join(', ')}`)
   }
   const role = declaredLead ? 'lead' : 'hook'
-  const stage = declaredLead || declaredHook
-  if (!isStage(stage)) {
-    return bad(`\`${name}\` declares \`akb.${role}: ${stage}\` — it is \`${WORKFLOW_STAGES.join('` or `')}\``)
+  const declared = declaredLead || declaredHook
+  const schedule = role === 'hook' && declared === SCHEDULE_HOOK
+  if (!schedule && !isStage(declared)) {
+    const allowed = role === 'hook' ? [...WORKFLOW_STAGES, SCHEDULE_HOOK] : WORKFLOW_STAGES
+    return bad(`\`${name}\` declares \`akb.${role}: ${declared}\` — it is \`${allowed.join('` or `')}\``)
   }
+  const stage = schedule ? null : (declared as WorkflowStage)
   const kind = ROLE_KEYS[role]
 
   // Who its output is for, to start with. A spec agent's is the board's setting from here on;
@@ -177,6 +188,7 @@ export function parseSpecAgent(
       kind,
       canLead: kind === 'lead',
       stage,
+      schedule,
       output,
       files: list(),
       body: instructions,

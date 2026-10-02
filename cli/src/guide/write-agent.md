@@ -15,9 +15,10 @@ name: ux-writer
 description: Use whenever a card changes what the product says to the user. Follows `ui-designer`.
 # Required.
 akb:
-  # Required; one of `hook` or `lead`, naming its stage.
+  # Required; one of `hook` or `lead`.
   # plan: called in after planning when its description applies.
   # execute: runs after every build of its workflow.
+  # schedule: runs unattended, whenever the board starts it.
   hook: plan
   # Optional below.
   # agent (default) | human; which half receives its section.
@@ -114,7 +115,8 @@ Nothing declares one. Say it in words, in both places:
 
 Say what the agent owns, what it produces, and what it leaves alone. Don't repeat the contract
 every run is already given (`akb guide spec-agent`): where the section goes, how to validate,
-how to keep memory, and how to defer to the user.
+how to keep memory, and how to defer to the user. A `schedule` agent says what one run does,
+never when it runs.
 
 ## Work with the user
 

@@ -18,7 +18,12 @@ import {
   duplicateWorkflowIfAllowed,
   liveStage,
   renameWorkflow,
+  scheduledMembers,
+  scheduledNext,
   setWorkflowHelperExtra,
+  setWorkflowScheduledCadence,
+  setWorkflowScheduledExtra,
+  switchWorkflowScheduled,
   setWorkflowLead,
   setWorkflowWorktree,
   stageCandidates,
@@ -31,6 +36,9 @@ import {
 } from '../lib/agent/workflows'
 import { removeWorkflow } from '../lib/agent/workflow-cards'
 import { proAccess } from '../lib/cloud/pro'
+import { formatStamp } from '../lib/cadence'
+import { scheduledRequest } from '../lib/agent/scheduled'
+import { startRun } from '../lib/agent/start'
 import type { MoveResult } from '../lib/types'
 
 /** `akb workflow`, as its command declares it (lib/cli/agent.ts). */
@@ -41,6 +49,8 @@ export interface WorkflowOptions {
   on?: string
   off?: string
   extra?: string
+  cadence?: string
+  run?: string
 }
 
 const asStage = (asked: string | undefined): WorkflowStage => {
@@ -85,11 +95,18 @@ export async function cmdWorkflowList(): Promise<MoveResult> {
       const lead = setup.lead ? `${titleOf(setup.lead)}${undeclared(setup.lead) ? ' (not declared to lead)' : ''}` : '(nobody)'
       say(`  ${stage.padEnd(8)}${lead}${hooks ? `  → hooks: ${hooks}` : ''}`)
     }
+    for (const one of scheduledMembers(flow)) {
+      const next = scheduledNext(one)
+      const when = one.off ? 'off' : `every ${one.cadence}`
+      const ran = one.lastRun ? `last run ${one.lastRun}` : 'never run'
+      say(`  scheduled  ${titleOf(one.agent)}  ${when} · ${ran}${next ? ` · next after ${formatStamp(next)}` : ''}`)
+    }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
   return {
     workflows: rows.map((flow) => ({
       ...flow,
+      scheduled: scheduledMembers(flow),
       ...(flow.builtIn ? { description: builtinDescription(flow.id) } : {}),
       ...(flow.pro ? { locked } : {}),
     })),
@@ -184,4 +201,49 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)
   return { id: flow.id, stage, changes }
+}
+
+/** `akb workflow schedule`: a workflow's scheduled agents (#1401) — switch one, set how often it
+ *  runs, or start a pass now. With no change asked for, it lists them. */
+export async function cmdWorkflowSchedule(id: string, flags: WorkflowOptions): Promise<MoveResult> {
+  const flow = found(id)
+  const changes: string[] = []
+  if (flags.on !== undefined) {
+    done(switchWorkflowScheduled(flow.id, flags.on, true))
+    changes.push(`${flags.on.trim()} on`)
+  }
+  if (flags.off !== undefined) {
+    done(switchWorkflowScheduled(flow.id, flags.off, false))
+    changes.push(`${flags.off.trim()} off`)
+  }
+  const who = (flags.on ?? flags.off ?? flags.run ?? '').trim()
+  if (flags.cadence !== undefined) {
+    if (!who) die('--cadence says how often one agent runs, so name it: --on <agent> --cadence 1d')
+    done(setWorkflowScheduledCadence(flow.id, who, flags.cadence))
+    changes.push(`${who}: every ${flags.cadence.trim()}`)
+  }
+  if (flags.extra !== undefined) {
+    if (!who) die('--extra says what one agent is asked for here, so name it: --on <agent> --extra "…"')
+    done(setWorkflowScheduledExtra(flow.id, who, flags.extra))
+    changes.push(`${who}: extra requirements`)
+  }
+  if (flags.run !== undefined) {
+    const started = await startRun(scheduledRequest({ workflow: flow.id, agent: flags.run.trim() }))
+    if ('error' in started) die(started.error)
+    say(`${flow.name}: started ${flags.run.trim()} — run ${started.run.sessionId.slice(0, 8)}`)
+    return { id: flow.id, changes, sessionId: started.run.sessionId }
+  }
+  if (!changes.length) {
+    const rows = scheduledMembers(workflowById(flow.id) ?? flow)
+    say(`${flow.name} · scheduled`)
+    if (!rows.length) say('  (none) — an agent that declares `akb.hook: schedule` can be switched on here')
+    for (const one of rows) {
+      const next = scheduledNext(one)
+      const ran = one.lastRun ? `last run ${one.lastRun}` : 'never run'
+      say(`  ${one.agent}  ${one.off ? 'off' : `every ${one.cadence}`} · ${ran}${next ? ` · next after ${formatStamp(next)}` : ''}`)
+    }
+    return { id: flow.id, scheduled: rows }
+  }
+  say(`${flow.name} · scheduled: ${changes.join(', ')}`)
+  return { id: flow.id, changes }
 }

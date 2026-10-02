@@ -11,12 +11,16 @@
 // Each belongs to one workflow (#1095): a stage lists its enabled hooks in the order they run,
 // and the rare one not wanted is disabled from its page and waits under **Disabled**.
 //
+// Under the stages, with no arrow into it, a third frame holds the agents the workflow runs
+// on a cadence (#1401). Their page carries the board agents' cadence chip and Run now; the
+// chip's list is also where one is disabled.
+//
 // Which agents can take a stage is the board's answer, asked for with the rest; so is every
 // refusal. Nothing here has a copy of those rules.
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FaHammer } from "react-icons/fa";
-import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiMap, FiMoreHorizontal, FiPlus, FiX } from "react-icons/fi";
+import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiClock, FiMap, FiMoreHorizontal, FiPlus, FiX } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -24,6 +28,7 @@ import {
   dismissRetiredAssignmentAction,
   duplicateWorkflowAction,
   renameWorkflowAction,
+  setWorkflowScheduledAction,
   setWorkflowStageAction,
   setWorkflowWorktreeAction,
 } from "@/app/actions";
@@ -32,13 +37,14 @@ import { useAgentName } from "@/lib/agent-name";
 import { WORKFLOW_STAGES } from "@/lib/types";
 import type {
   AgentInfo,
+  AgentSlot,
   AgentView,
   WorkflowCandidate,
   WorkflowStage,
   WorkflowStageView,
   WorkflowView,
 } from "@/lib/types";
-import { AgentDetail, Character, NewAgentRow, useAgentRoster } from "./Agents";
+import { AgentDetail, Character, NewAgentRow, useAgentRoster, WorkflowScheduledControls } from "./Agents";
 import { useWorkflowTip } from "./WorkflowTip";
 import { useWorkflows, workflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess } from "./pro";
@@ -152,8 +158,8 @@ export function WorkflowsPanel({
   const [menu, setMenu] = useState(false);
   // Which layer is open over the column: the workflow list, or one stage's lead picker.
   const [picking, setPicking] = useState<"flow" | WorkflowStage | null>(null);
-  // The stage whose hooks a new agent is being named into.
-  const [adding, setAdding] = useState<WorkflowStage | null>(null);
+  // The stage whose hooks a new agent is being named into, or the scheduled frame.
+  const [adding, setAdding] = useState<AgentSlot | null>(null);
   // What the extra-requirements box holds right now, by `<workflow>/<stage>/<agent>`, so
   // switching agents never loses an edit that has not been saved yet.
   const [extras, setExtras] = useState<Record<string, string>>({});
@@ -178,10 +184,14 @@ export function WorkflowsPanel({
     const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
     return stages.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []);
   }, [flow]);
+  const scheduled = useMemo(() => flow?.scheduled ?? [], [flow]);
   // Every agent the flow has, in the order the column draws them.
   const assigned = useMemo(
-    () => setups.flatMap((s) => [...(s.lead ? [s.lead] : []), ...s.helpers.map((h) => h.agent)]),
-    [setups],
+    () => [
+      ...setups.flatMap((s) => [...(s.lead ? [s.lead] : []), ...s.helpers.map((h) => h.agent)]),
+      ...scheduled.map((h) => h.agent),
+    ],
+    [setups, scheduled],
   );
 
   // Always land on an agent of this workflow that the board still has: a page beside an empty
@@ -191,6 +201,8 @@ export function WorkflowsPanel({
   // The stage the selected agent is in: what its page writes to.
   const setup = setups.find((s) => s.lead === shown || s.helpers.some((h) => h.agent === shown)) ?? setups[0];
   const stage: WorkflowStage = setup?.stage ?? "plan";
+  // Or the scheduled agent it is, which belongs to no stage.
+  const timed = scheduled.find((h) => h.agent === shown);
   const here = useCallback(
     (name: string) => !!roster.agents?.some((a) => a.name === name),
     [roster.agents],
@@ -285,25 +297,30 @@ export function WorkflowsPanel({
     setPicked("");
   };
 
-  const extraKey = (agent: string) => `${picked}/${stage}/${agent}`;
-  const extraOf = (agent: string): string =>
-    extras[extraKey(agent)] ?? setup?.helpers.find((h) => h.agent === agent)?.extra ?? "";
+  const extraKey = (agent: string) => `${picked}/${timed ? "schedule" : stage}/${agent}`;
+  const savedExtra = (agent: string): string =>
+    (timed ? timed.extra : setup?.helpers.find((h) => h.agent === agent)?.extra) ?? "";
+  const extraOf = (agent: string): string => extras[extraKey(agent)] ?? savedExtra(agent);
 
   const saveExtra = async (agent: string) => {
     const text = extras[extraKey(agent)];
-    if (text === undefined) return;
-    const was = setup?.helpers.find((h) => h.agent === agent)?.extra ?? "";
-    if (text === was) return;
-    await move(stage, { kind: "extra", agent, extra: text });
+    if (text === undefined || text === savedExtra(agent)) return;
+    if (timed) await write(setWorkflowScheduledAction(picked, { kind: "extra", agent, extra: text }));
+    else await move(stage, { kind: "extra", agent, extra: text });
   };
 
   // A new agent lands in this workflow as a hook of that stage, enabled, in one press (#1095).
   // The template writes a hook, never a lead (#944).
-  const createAgent = async (to: WorkflowStage, name: string): Promise<string> => {
+  // A scheduled one lands in the frame under the stages, enabled the same way (#1401).
+  const createAgent = async (to: AgentSlot, name: string): Promise<string> => {
     const made = await roster.create(name, to);
     if (made.error || !made.agent) return sayFailure(made, c.saveFailed);
     setAdding(null);
-    if (!(await move(to, { kind: "add-helper", agent: made.agent }))) return "";
+    const taken =
+      to === "schedule"
+        ? write(setWorkflowScheduledAction(picked, { kind: "switch", agent: made.agent, on: true }))
+        : move(to, { kind: "add-helper", agent: made.agent });
+    if (!(await taken)) return "";
     show(made.agent);
     // Its page opens with the `AGENT.md` box focused: the whole point of the press was to
     // carry straight on into writing the prompt.
@@ -312,8 +329,73 @@ export function WorkflowsPanel({
   };
 
   const agent = roster.agents?.find((a) => a.name === shown);
-  const isLead = !!setup && shown === setup.lead;
+  const isLead = !timed && !!setup && shown === setup.lead;
   const shownOff = !!setup?.helpers.find((h) => h.agent === shown)?.off;
+
+  // The labelled rule over a frame's agents, with the plus that names a new one into it.
+  const rule = (slot: AgentSlot, when: string, add: string) => (
+    <div role="separator" aria-label={when} className="flex h-[26px] items-center gap-2 pl-2.5 pr-1.5">
+      <span className="shrink-0 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">{when}</span>
+      <span className="h-px flex-1 bg-nb-ink/10" />
+      <button
+        type="button"
+        aria-label={adding === slot ? ca.cancel : add}
+        title={adding === slot ? ca.cancel : add}
+        onClick={() => setAdding(adding === slot ? null : slot)}
+        className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink transition-colors duration-100 hover:bg-nb-ink/12 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-ink/45"
+      >
+        {adding === slot ? (
+          <FiX aria-hidden strokeWidth={2.5} className="text-[13px]" />
+        ) : (
+          <FiPlus aria-hidden strokeWidth={2.5} className="text-[13px]" />
+        )}
+      </button>
+    </div>
+  );
+
+  // The agents this workflow runs on a cadence (#1401). Not a stage: no lead, and no arrow in.
+  const scheduledBlock = () => {
+    const rows = (off: boolean) =>
+      scheduled
+        .filter((h) => !!h.off === off)
+        .map((h) => (
+          <StageRow
+            key={h.agent}
+            name={h.agent}
+            agent={{ name: h.agent, title: h.title, gloss: h.gloss, builtIn: h.builtIn }}
+            held={shown === h.agent}
+            off={h.off}
+            onOpen={() => void select(h.agent)}
+          />
+        ));
+    const off = scheduled.filter((h) => h.off).length;
+    return (
+      <section className="relative mt-6 min-w-0 shrink-0 rounded-[12px] border border-nb-ink/10 px-1 pb-2.5 pt-3.5">
+        <h4 className="absolute -top-[10px] left-2 flex items-center gap-1.5 bg-nb-paper px-1.5">
+          <span className="grid size-[20px] shrink-0 place-items-center rounded-[6px] bg-nb-canvas text-nb-ink">
+            <FiClock aria-hidden className="text-[11px]" />
+          </span>
+          <span className="text-[12.5px] font-[500] leading-[20px] text-nb-ink">{c.scheduled}</span>
+        </h4>
+        {rule("schedule", c.scheduledWhen, c.addScheduled)}
+        {rows(false)}
+        {adding === "schedule" && (
+          <NewAgentRow onCreate={(name) => createAgent("schedule", name)} onCancel={() => setAdding(null)} />
+        )}
+        {scheduled.length === 0 && adding !== "schedule" && (
+          <p className="px-2.5 py-[5px] text-[12px] leading-[19px] text-nb-ink-soft">{c.scheduledEmpty}</p>
+        )}
+        {off > 0 && (
+          <>
+            <p className="mt-2 px-2.5 pb-1 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">
+              {c.disabledGroup(off)}
+            </p>
+            {rows(true)}
+          </>
+        )}
+      </section>
+    );
+  };
 
   // One stage of the flow in a light frame: its name set into the top edge, its lead, a
   // labelled rule, then its hooks in the order they run — all on one indent.
@@ -392,23 +474,7 @@ export function WorkflowsPanel({
         </Popover>
         {leadUndeclared(one) && <p className="mt-1 px-2.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>}
 
-        <div role="separator" aria-label={when} className="flex h-[26px] items-center gap-2 pl-2.5 pr-1.5">
-          <span className="shrink-0 text-[10.5px] font-[700] leading-[14px] text-nb-ink-soft/70">{when}</span>
-          <span className="h-px flex-1 bg-nb-ink/10" />
-          <button
-            type="button"
-            aria-label={adding === one.stage ? ca.cancel : c.addHook(when)}
-            title={adding === one.stage ? ca.cancel : c.addHook(when)}
-            onClick={() => setAdding(adding === one.stage ? null : one.stage)}
-            className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink transition-colors duration-100 hover:bg-nb-ink/12 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-ink/45"
-          >
-            {adding === one.stage ? (
-              <FiX aria-hidden strokeWidth={2.5} className="text-[13px]" />
-            ) : (
-              <FiPlus aria-hidden strokeWidth={2.5} className="text-[13px]" />
-            )}
-          </button>
-        </div>
+        {rule(one.stage, when, c.addHook(when))}
         {rows(false)}
         {adding === one.stage && (
           <NewAgentRow onCreate={(name) => createAgent(one.stage, name)} onCancel={() => setAdding(null)} />
@@ -559,6 +625,7 @@ export function WorkflowsPanel({
                     {stageBlock(one)}
                   </Fragment>
                 ))}
+                {flow?.scheduled && scheduledBlock()}
               </div>
             </div>
           </div>
@@ -575,10 +642,22 @@ export function WorkflowsPanel({
                 onFollowed={onFollowed}
                 onError={onError}
                 scoped
-                usage={<Usage agent={agent} />}
                 onDeleted={load}
+                loose={!!timed}
+                usage={
+                  timed ? (
+                    <p className="mt-1 max-w-[74ch] text-[11.5px] leading-snug text-nb-ink-soft">
+                      {timed.lastRun ? c.ranAndNext(timed.lastRun, timed.nextRun) : c.neverRan(timed.nextRun)}
+                    </p>
+                  ) : (
+                    <Usage agent={agent} />
+                  )
+                }
                 actions={
-                  /* A lead has neither: a stage it leads would stop. */
+                  /* A scheduled agent is disabled from its cadence list (#1401). */
+                  timed ? (
+                    <WorkflowScheduledControls flow={flow.id} one={timed} onSaved={load} onError={onError} />
+                  ) : /* A lead has neither: a stage it leads would stop. */
                   !isLead ? (
                     <button
                       type="button"
@@ -599,7 +678,7 @@ export function WorkflowsPanel({
                       <div className="mb-1.5 flex items-baseline justify-between gap-2">
                         <h4 className={`${CAPTION} shrink-0 text-nb-ink-soft`}>{c.extra}</h4>
                         <span className="min-w-0 truncate text-[10.5px] text-nb-ink-soft">
-                          {c.extraScope(nameOf(flow), c.stages[stage])}
+                          {c.extraScope(nameOf(flow), timed ? c.scheduled : c.stages[stage])}
                         </span>
                       </div>
                       <ExtraBox

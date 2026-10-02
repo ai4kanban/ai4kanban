@@ -65,8 +65,10 @@ export type {
   SetupProposal,
   SpecAgentSettingView,
   SpecAgentView,
+  AgentSlot,
   WorkflowCandidate,
   WorkflowHelper,
+  WorkflowScheduledView,
   WorkflowStage,
   WorkflowStageView,
   WorkflowView,
@@ -228,6 +230,8 @@ export interface SessionView {
   /** The agent it was run by — a role, or a specialist by name (#443). Absent on a run that
    *  belongs to no agent, and on one started before agents picked a connector. */
   agent?: string;
+  /** On a scheduled agent's run (#1401): the workflow it belongs to, by id. */
+  workflow?: string;
   /** The card this run touches, or null for a run that names none (create, propose,
    *  plan-release). */
   cardId: number | null;

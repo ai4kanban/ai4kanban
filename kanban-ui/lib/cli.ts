@@ -38,6 +38,7 @@ import type {
   RunView,
   SetupProposal,
   SpecAgentView,
+  AgentSlot,
   WorkflowStage,
   WorkflowView,
 } from "./format/agent/types";
@@ -280,7 +281,7 @@ export interface BoardRules {
    *  load, and rules that predate it answer with nothing, which spells the names instead. */
   agentTitles?(): Record<string, string>;
   setAgentRule?(agent: string, text: string): Promise<WriteResult>;
-  createAgent?(name: string, stage?: WorkflowStage): Promise<WriteResult & { agent?: string }>;
+  createAgent?(name: string, stage?: AgentSlot): Promise<WriteResult & { agent?: string }>;
   saveAgentFile?(name: string, text: string): Promise<WriteResult>;
   deleteAgent?(name: string): Promise<WriteResult & { removed?: string[] }>;
 
@@ -302,6 +303,10 @@ export interface BoardRules {
   addWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
   switchWorkflowAgent?(id: string, stage: WorkflowStage, agent: string, on: boolean): WriteResult;
   setWorkflowHelperExtra?(id: string, stage: WorkflowStage, agent: string, extra: string): WriteResult;
+  // a workflow's scheduled agents (#1401). Optional: older rules have none.
+  switchWorkflowScheduled?(id: string, agent: string, on: boolean): WriteResult;
+  setWorkflowScheduledCadence?(id: string, agent: string, cadence: string): WriteResult;
+  setWorkflowScheduledExtra?(id: string, agent: string, extra: string): WriteResult;
 
   // may the board commit? (#303) The one repository-level setting behind worktrees,
   // parallel deliveries and landing reviewed code.

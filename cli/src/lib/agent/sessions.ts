@@ -58,6 +58,7 @@ import { agentForRun } from './runner'
 import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProductDescription } from './settings'
+import { scheduledAgent, stampScheduledRun, workflowById } from './workflows'
 import { creationOf, logPathOf, noteRefineTried, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
@@ -135,6 +136,7 @@ const VERB: Record<AgentAction, string> = {
   review: 'reviewed',
   conflict: 'unblocked',
   hook: 'worked on by a hook',
+  scheduled: 'run on its schedule',
   unstick: 'settled',
 }
 
@@ -377,6 +379,18 @@ function recordDismissalReview(run: RunRecord): void {
   }
 }
 
+// And a workflow's scheduled agent (#1401): a pass that PASSED, by when its delivery began —
+// a resumed pass still covers everything since the first attempt started.
+function recordScheduledRun(run: RunRecord): void {
+  if (run.action !== 'scheduled' || run.status !== 'done' || !run.workflow || !run.specAgent) return
+  try {
+    const began = (run.deliveryId ? findDelivery(run.deliveryId)?.startedAt : undefined) ?? run.startedAt
+    stampScheduledRun(run.workflow, run.specAgent, new Date(began))
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
 // And the product description's (#1268): the commits since this pass began are the next one's.
 function recordProductDescription(run: RunRecord): void {
   if (run.action !== 'describe-product' || run.status !== 'done') return
@@ -482,7 +496,8 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
       return id === undefined ? undefined : { ...base, reason: r.input }
     case 'implement':
     case 'conflict':
-    case 'hook': {
+    case 'hook':
+    case 'scheduled': {
       if (id !== undefined) return { ...base, notes: r.input }
       // A build with no card is named by its delivery (#428), and by what that was handed.
       if (!r.deliveryId) return undefined
@@ -792,6 +807,22 @@ function approvedDirect(req: AgentRequest): DirectBuild | RunRefusal | undefined
   return typed ? { title: typed, approved: typed } : undefined
 }
 
+/** What a scheduled agent's pass opens its delivery from (#1401): no requirement, only whose
+ *  pass it is. Refused when the workflow has no such agent. */
+function scheduledDirect(req: AgentRequest): DirectBuild | RunRefusal {
+  const flow = workflowById(req.workflow ?? '')
+  const agent = req.specAgent ?? ''
+  const one = flow ? scheduledAgent(flow.id, agent) : undefined
+  if (!flow || !one) {
+    return refusal('agentNotScheduled', `\`${agent}\` is not a scheduled agent of the \`${req.workflow ?? ''}\` workflow`, {
+      agent,
+      workflow: req.workflow ?? '',
+    })
+  }
+  if (one.off) return refusal('scheduledOff', `\`${agent}\` is switched off in "${flow.name}"`, { agent, name: flow.name, workflow: flow.id })
+  return { title: `${agent}: scheduled run (${flow.name})`, approved: '', scheduled: { workflow: flow.id, agent } }
+}
+
 /** Write a run down and hand back everything the watcher needs to start it. The run is
  *  `running` from this moment: it holds its card, and a second one on the same card is
  *  refused from here on, whichever process asks.
@@ -834,12 +865,17 @@ export function openRun(
   // here, and its title and its words are what the delivery is titled and bounded by — so a
   // plan with nothing written in it yet is refused, the way a missing one is, rather than
   // opening an untitled delivery with nothing to build.
-  const direct = req.action === 'implement' && cardId === null ? approvedDirect(req) : undefined
+  //
+  // A scheduled agent's pass is the fourth (#1401): a card-less delivery that writes no card. One
+  // carried on names its delivery and opens nothing.
+  const pass = req.action === 'scheduled' && !req.deliveryId ? scheduledDirect(req) : undefined
+  const direct = pass ?? (req.action === 'implement' && cardId === null ? approvedDirect(req) : undefined)
   if (direct && 'error' in direct) return direct
   const cardless = !!direct
   let start: DeliveryStart | undefined
-  if (req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
-    const prepared = prepareDelivery(cardId, req.commitMode)
+  if (pass || (req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId))))) {
+    const files = direct?.scheduled ? !!workflowById(direct.scheduled.workflow)?.needsArtifact : false
+    const prepared = prepareDelivery(cardId, req.commitMode, files)
     // Whole, kind and paths included (#706): a screen that says this in its own language
     // reads the kind, and losing it here would leave every refusal generic.
     if ('error' in prepared) return prepared
@@ -908,6 +944,7 @@ export function openRun(
     ...(req.action === 'create' || (req.action === 'implement' && cardId === null)
       ? { release: req.release?.trim() || undefined, workflow: req.workflow?.trim() || undefined }
       : {}),
+    ...(req.action === 'scheduled' ? { workflow: req.workflow?.trim() || undefined } : {}),
     fromCard: req.action === 'create' ? req.fromCard : undefined,
     setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
     // Internal refinement sessions name their position in the request. A standalone
@@ -932,11 +969,11 @@ export function openRun(
     // it. Review joins an existing delivery and never opens one: there is nothing to
     // review until something has been built.
     if (DELIVERY_FLOWS.has(req.action) && (cardId !== null || cardless || req.deliveryId)) {
-      if (req.action === 'implement') {
+      if (req.action === 'implement' || pass) {
         // A card-less delivery is titled and bounded by what it was handed (#428, #481): the
         // typed sentence, or the plan the ask was answered on.
         const title = cardId === null ? direct?.title ?? '' : req.title ?? cardNow(cardId)?.title ?? ''
-        joinDelivery(store, record, title, 'implement', start, direct)
+        joinDelivery(store, record, title, req.action, start, direct)
       } else if (!joinActive(store, record, req.action, req.deliveryId)) {
         store.runs.pop()
         const on = req.deliveryId ? `delivery ${req.deliveryId}` : `#${cardId}`
@@ -1054,6 +1091,7 @@ export function requestOf(record: RunRecord): AgentRequest {
     // the CLI actually spawned takes it.
     runtime: record.runtime,
     specAgent: record.specAgent,
+    ...(record.action === 'scheduled' ? { workflow: record.workflow } : {}),
     triage: record.triage,
     fromCard: record.fromCard,
     refineRound: record.refineRound,
@@ -1215,6 +1253,7 @@ async function resumeHeld(
         }),
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
+    ...(prev.action === 'scheduled' ? { workflow: prev.workflow } : {}),
     fromCard: prev.fromCard,
     setupTicked: prev.setupTicked,
     refineRound: prev.refineRound,
@@ -1496,6 +1535,7 @@ export async function closeRun(
   recordMemoryReview(closed)
   recordDismissalReview(closed)
   recordProductDescription(closed)
+  recordScheduledRun(closed)
   // Last, because it is the only step that reads what the five above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.
