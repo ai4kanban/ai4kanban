@@ -16,7 +16,7 @@ import { readDeliveryRow, readStore, withStore } from '../src/lib/agent/store.ts
 import type { DeliveryRecord, RunRecord, RunStatus } from '../src/lib/agent/types.ts'
 import { addWorkflowHelper, setWorkflowHelperExtra } from '../src/lib/agent/workflows.ts'
 import { setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState, noExecuteHooks } from './helpers/board.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 let root = ''
 const kanban = (): string => path.join(root, 'docs', 'kanban')
@@ -64,7 +64,6 @@ beforeEach(() => {
   fs.writeFileSync(path.join(kanban(), 'todo', 'README.md'), '# Tasks\n\n## Tasks\n')
   fs.writeFileSync(path.join(kanban(), 'config.md'), '- **Solution** — product\n')
   setBoardRoot(root)
-  noExecuteHooks()
   card(5)
 })
 
@@ -139,6 +138,18 @@ describe('the hooks after a build', () => {
     hookAgent('doc-writer')
     await settleDelivery({ ...readStore().runs[0]!, status: 'done' })
     assert.deepEqual(owedHooks(delivery()), ['lint-fixer'])
+  })
+
+  it('skips one frozen before its agent left the execute stage, and delivers (#1402)', async () => {
+    withStore((store) => {
+      const record = session()
+      store.runs.push(record)
+      joinDelivery(store, record, 'A card', 'implement')
+      store.deliveries[0]!.workflow!.stages.execute!.helpers = [{ agent: 'qa-manager', extra: '' }]
+    })
+    await settleDelivery({ ...readStore().runs[0]!, status: 'done' })
+    assert.deepEqual(owedHooks(delivery()), [])
+    assert.equal(delivery().status, 'finished')
   })
 
   it('stops the delivery on a hook that failed or was stopped, and carries on from that hook', async () => {

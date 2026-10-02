@@ -5,30 +5,38 @@ $ akb raw create --title "Dark mode follows the system"
 
 $ akb raw archive 2
 archived #2: moved file 2-dark-mode-follows-the-system.md → docs/kanban/.archive/2-dark-mode-follows-the-system.md
+  dropped 1 README entry
+
+next — what the script can't do:
+
+  1. record the shipped work — follow "Finish a task" in `akb guide board`
+       file    docs/kanban/memory/readme.md
+
+  2. nothing — no other card or note mentions #2, so there is nothing to rewrite
 
 $ node land.mjs 2 "Dark mode follows the system"
-landed #2 as 085a666
+landed #2 as b18f256
 
 $ akb workflow schedule coding --run changelog-keeper
-Coding: started changelog-keeper — run d40f18e9
+Coding: started changelog-keeper — run f60ba7e5
 
 $ akb run log
-✓ d40f18e9  scheduled changelog-keeper  done  delivery fvxphj8c  in 0s
+✓ f60ba7e5  scheduled changelog-keeper  done  delivery zvfnnmt4  in 0s
 
 I was told: You are the `changelog-keeper` agent of the `Coding` workflow. The board is at `<project>/docs/kanban`. Nobody is watching: never ask.
 
 $ akb raw list --archived --since last-run
-1 card landed since 2026-10-02 16:23, oldest first:
+1 card landed since 2026-10-02 21:38, oldest first:
 
 #2 Dark mode follows the system  (docs/kanban/.archive/2-dark-mode-follows-the-system.md)
-    coding · landed 2026-10-02 16:23 · commit 085a66667630696311a2332ec42f199e8053f085
+    coding · landed 2026-10-02 21:38 · commit b18f256b24d0815524512f2ebd0533bf2fc09e30
 
 Added one line to CHANGELOG.md.
 
 $ cat CHANGELOG.md
-- scheduled run at 2026-10-02T08:23Z
-- scheduled run at 2026-10-02T08:23Z
+- scheduled run at 2026-10-02T13:38Z
+- scheduled run at 2026-10-02T13:38Z
 
 $ git log --format='%h %s' -1
-a0b68e4 changelog-keeper: scheduled run (Coding)
+67ac2dd changelog-keeper: scheduled run (Coding)
 

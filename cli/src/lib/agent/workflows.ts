@@ -146,8 +146,9 @@ const BUILTINS: BuiltinWorkflow[] = [
     description: 'Plan and implement software changes.',
     stages: {
       plan: { lead: 'software-planner', helpers: 'every' },
-      execute: { lead: 'builder', helpers: ['qa-manager'] },
+      execute: { lead: 'builder', helpers: [] },
     },
+    scheduled: [{ agent: 'qa-manager' }],
   },
   {
     id: 'hyperframes-video',
@@ -711,6 +712,51 @@ function addShippedAgents(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
+// ---- the QA manager moves onto a schedule (#1402) -----------------------------
+//
+// `qa-manager` was Coding's hook after a build and is now its scheduled agent. A board that
+// saved its execute hooks keeps its choice, once: the row moves with its switch and extra
+// requirements, and hooks chosen without it leave it off. `qaScheduled` marks the pass done,
+// and every write sets it, so a board that never saved any is not read as one that left it out.
+
+const QA_MANAGER = 'qa-manager'
+const QA_SCHEDULED = 'qaScheduled'
+
+const isQaManager = (row: unknown): boolean => {
+  const agent = configBlock(row).agent
+  return typeof agent === 'string' && canonicalSpecAgent(agent) === QA_MANAGER
+}
+
+function scheduleQaManager(cfg: Record<string, unknown>): boolean {
+  const block = workflowsBlock(cfg)
+  if (block[QA_SCHEDULED] === true || !Object.keys(block).length) return false
+  const { ok } = writeConfig((raw) => {
+    const box = configBlock(raw.workflows)
+    const all = configBlock(box.stages)
+    const chosen = readStage(storedStages(raw, DEFAULT_WORKFLOW).execute).helpers
+    const was = chosen?.find((h) => h.agent === QA_MANAGER)
+    for (const [id, flow] of Object.entries(all)) {
+      const mine = configBlock(flow)
+      const execute = configBlock(mine.execute)
+      if (!Array.isArray(execute.helpers)) continue
+      mine.execute = { ...execute, helpers: execute.helpers.filter((h) => !isQaManager(h)) }
+      all[id] = mine
+    }
+    // Nothing saved either way keeps the built-in's default: on, every day.
+    const coding = configBlock(all[DEFAULT_WORKFLOW])
+    const saved = configBlock(coding[SCHEDULE]).helpers
+    const rows: unknown[] = Array.isArray(saved) ? saved : []
+    if ((chosen || Array.isArray(saved)) && !rows.some(isQaManager)) {
+      const row = was ? toRow(was) : { agent: QA_MANAGER, extra: '', ...(chosen ? { off: true } : {}) }
+      all[DEFAULT_WORKFLOW] = { ...coding, [SCHEDULE]: { helpers: [...rows, row] } }
+    }
+    if (Object.keys(all).length) box.stages = all
+    box[QA_SCHEDULED] = true
+    raw.workflows = box
+  })
+  return ok
+}
+
 // The workflows as written down, every pass above done first.
 function writtenWorkflows(): Workflow[] {
   let cfg = safeConfig()
@@ -720,6 +766,7 @@ function writtenWorkflows(): Workflow[] {
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
   if (splitSharedAgents(cfg)) cfg = safeConfig()
   if (addShippedAgents(cfg)) cfg = safeConfig()
+  if (scheduleQaManager(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
     ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers, row.pro)),
@@ -950,6 +997,7 @@ const save = (change: (block: Record<string, unknown>) => void): Write => {
     if (Object.keys(mine).length) block.stages = { ...stages, [DEFAULT_WORKFLOW]: mine }
     change(block)
     block[OWNED] = true
+    block[QA_SCHEDULED] = true
     if (Object.keys(block).length === 0) delete cfg.workflows
     else cfg.workflows = block
   })

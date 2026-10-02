@@ -23,7 +23,6 @@ import { rebaseInProgress, worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
-import { noExecuteHooks } from './helpers/board.ts'
 
 let root = ''
 
@@ -71,7 +70,6 @@ beforeEach(() => {
   git(['add', '-A'])
   git(['commit', '--quiet', '-m', 'start'])
   setBoardRoot(root)
-  noExecuteHooks()
   for (const [id, title] of [
     [1, 'card one'],
     [2, 'card two'],

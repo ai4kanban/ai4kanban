@@ -4,27 +4,28 @@ Coding · scheduled: changelog-keeper on, changelog-keeper: extra requirements
 $ sleep 65
 
 $ akb workflow schedule coding --run changelog-keeper
-Coding: started changelog-keeper — run 8205685a
+Coding: started changelog-keeper — run f17eee37
 
 $ akb run log
-✓ 8205685a  scheduled changelog-keeper  done  delivery acuz76jd  in 0s
+✓ f17eee37  scheduled changelog-keeper  done  delivery fgcb8cab  in 0s
 
 I was told: You are the `changelog-keeper` agent of the `Coding` workflow. The board is at `<project>/docs/kanban`. Nobody is watching: never ask.
 
 This workflow also asks: Change nothing this time.
 
 $ akb raw list --archived --since last-run
-1 card landed since 2026-10-02 16:23, oldest first:
+1 card landed since 2026-10-02 21:38, oldest first:
 
 #2 Dark mode follows the system  (docs/kanban/.archive/2-dark-mode-follows-the-system.md)
-    coding · landed 2026-10-02 16:23 · commit 085a66667630696311a2332ec42f199e8053f085
+    coding · landed 2026-10-02 21:38 · commit b18f256b24d0815524512f2ebd0533bf2fc09e30
 
 Nothing to add.
 
 $ git log --format='%h %s' -1
-a0b68e4 changelog-keeper: scheduled run (Coding)
+67ac2dd changelog-keeper: scheduled run (Coding)
 
 $ akb workflow schedule coding
 Coding · scheduled
-  changelog-keeper  every 1m · last run 2026-10-02 16:24 · next after 2026-10-02 16:25
+  qa-manager  every 1d · never run · next after 2026-10-03 21:36
+  changelog-keeper  every 1m · last run 2026-10-02 21:39 · next after 2026-10-02 21:40
 

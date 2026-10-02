@@ -1,0 +1,24 @@
+$ akb workflow stage coding --stage execute --on qa-manager --extra "Write every case in Chinese."   # 看板 A
+Coding · execute: qa-manager on, qa-manager: extra requirements
+
+$ akb workflow list   # 看板 A，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder  → hooks: qa-manager
+
+$ akb workflow stage coding --stage execute --off qa-manager   # 看板 B
+Coding · execute: qa-manager off
+
+$ akb workflow list   # 看板 B，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder  → hooks: qa-manager (off)
+
+$ akb workflow list   # 看板 C，什么都没改过
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder  → hooks: qa-manager
+

@@ -1,0 +1,6 @@
+$ akb workflow list   # 看板 A，换回升级前的版本
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+

@@ -4,22 +4,23 @@ Coding · scheduled: changelog-keeper on, changelog-keeper: extra requirements
 $ sleep 65
 
 $ akb workflow schedule coding --run changelog-keeper
-Coding: started changelog-keeper — run fa09eb6e
+Coding: started changelog-keeper — run e8588129
 
 $ akb run list
-✓ ef77a9e7  scheduled changelog-keeper  done  delivery rtj2pc5z  in 0s
-✓ d40f18e9  scheduled changelog-keeper  done  delivery fvxphj8c  in 0s
-✓ 8205685a  scheduled changelog-keeper  done  delivery acuz76jd  in 0s
-✗ fa09eb6e  scheduled changelog-keeper  error  delivery 9eqrt3xr  in 0s  — continue it with `akb run resume fa09eb6e`
+✓ 452f0546  scheduled changelog-keeper  done  delivery v3svhtb2  in 0s
+✓ f60ba7e5  scheduled changelog-keeper  done  delivery zvfnnmt4  in 0s
+✓ f17eee37  scheduled changelog-keeper  done  delivery fgcb8cab  in 0s
+✗ e8588129  scheduled changelog-keeper  error  delivery 2sxyvhmg  in 0s  — continue it with `akb run resume e8588129`
 nothing running.
 
 $ akb workflow schedule coding
 Coding · scheduled
-  changelog-keeper  every 1m · last run 2026-10-02 16:24 · next after 2026-10-02 16:25
+  qa-manager  every 1d · never run · next after 2026-10-03 21:36
+  changelog-keeper  every 1m · last run 2026-10-02 21:39 · next after 2026-10-02 21:40
 
 $ git worktree list
-<project>                                   a0b68e4 [master]
-<project>/.akb/worktrees/delivery/9eqrt3xr  a0b68e4 [delivery/9eqrt3xr]
+<project>                                   67ac2dd [master]
+<project>/.akb/worktrees/delivery/2sxyvhmg  67ac2dd [delivery/2sxyvhmg]
 
 $ node tick.mjs <cli>/dist/kanban.mjs
 [{"action":"describe-product"}]
@@ -33,20 +34,21 @@ $ akb workflow schedule coding --on changelog-keeper --extra ""
 Coding · scheduled: changelog-keeper on, changelog-keeper: extra requirements
 
 $ akb workflow schedule coding --run changelog-keeper
-Coding: started changelog-keeper — run 76d3e6ad
+Coding: started changelog-keeper — run c744838d
 
 $ akb run list
-✓ ef77a9e7  scheduled changelog-keeper  done  delivery rtj2pc5z  in 0s
-✓ d40f18e9  scheduled changelog-keeper  done  delivery fvxphj8c  in 0s
-✓ 8205685a  scheduled changelog-keeper  done  delivery acuz76jd  in 0s
-✗ fa09eb6e  scheduled changelog-keeper  error  delivery 9eqrt3xr  in 0s
-✓ 76d3e6ad  scheduled changelog-keeper  done  delivery rpp7ace4  in 0s
+✓ 452f0546  scheduled changelog-keeper  done  delivery v3svhtb2  in 0s
+✓ f60ba7e5  scheduled changelog-keeper  done  delivery zvfnnmt4  in 0s
+✓ f17eee37  scheduled changelog-keeper  done  delivery fgcb8cab  in 0s
+✗ e8588129  scheduled changelog-keeper  error  delivery 2sxyvhmg  in 0s
+✓ c744838d  scheduled changelog-keeper  done  delivery v4wmz554  in 0s
 nothing running.
 
 $ git worktree list
-<project>  bec35f3 [master]
+<project>  02d534a [master]
 
 $ akb workflow schedule coding
 Coding · scheduled
-  changelog-keeper  every 1m · last run 2026-10-02 16:26 · next after 2026-10-02 16:27
+  qa-manager  every 1d · never run · next after 2026-10-03 21:36
+  changelog-keeper  every 1m · last run 2026-10-02 21:41 · next after 2026-10-02 21:42
 

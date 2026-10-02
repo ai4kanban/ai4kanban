@@ -118,7 +118,7 @@ names the branch the change will land on.
   the card to accept it.
 - **Hooks run after the build.** Each agent under **After executing** in the card's workflow runs
   once, in order, before the work is delivered. One that fails stops the delivery until you
-  **Resume** its run. Coding ships one, the [QA manager](#the-qa-manual).
+  **Resume** its run.
 - **No AI review.** A finished build goes to its hooks, then straight to landing; your own checks and the
   open-question hold still gate it. **Suggest follow-up work** catches what a build missed,
   after the card is archived.
@@ -170,21 +170,26 @@ history to read it back from.
 
 ### The QA manual
 
-Every Coding build is followed by the **QA manager** (`qa-manager`), which keeps a manual of what
+Once a day the **QA manager** (`qa-manager`), Coding's scheduled agent, updates a manual of what
 your users actually do with the product. It is in your project, readable and repeatable by anyone.
 
 - **Where it is**: `docs/qa/<module>/<case>/case.md`, one folder per case — the setup, then
   numbered steps, each with what should happen and a proof of it: a screenshot, a GIF where motion
   matters, or a command's log, saved beside `case.md`. Each case ends with the agent's own
   feedback on how the experience felt.
-- **When it changes**: after each build, only the cases that build affects are rewritten, run for
-  real and proved again; cases the build made untrue are deleted. A build no user would notice
-  changes nothing. The changes are committed with the delivery.
-- **Rerun all of it**: before a release, ask your agent to **"rerun the QA manual as
-  qa-manager"**, or put that on a recurring card. It walks every case, reports each as passed,
-  failed or not runnable, and opens a follow-up card for each failure.
-- **Turn it off**: **Disable** QA manager under **After executing** in Configuration → Workflows →
-  Coding. A board that had already chosen its own hooks there starts with it disabled.
+- **The index**: `docs/qa/README.md` lists each module's cases, the modules still to cover, and
+  how to run your project for proof.
+- **What a run does**: first it follows the cards finished since its last run — the cases they
+  affect are rewritten, run for real and proved again, and cases they made untrue are deleted.
+  Then it writes the first cases for one module the manual does not cover yet, so what shipped
+  before the manual existed gets covered too, one module per run.
+- **How it lands**: a run's changes land as one commit of their own, like any
+  [scheduled agent](/docs/agents#run-an-agent-on-a-schedule)'s; a run that changed nothing
+  commits nothing.
+- **A case that fails**: a step the product should pass and doesn't goes to
+  [Triage](/docs/triage) as one item naming the case and step. The case stays as written.
+- **Turn it off**: open QA manager under **Scheduled** in Configuration → Workflows → Coding and
+  pick how often it runs, or **Disable**. A board that had disabled it keeps it disabled.
 
 It replaces the **check by hand** lines a card used to carry: the board no longer writes or shows
 them, and a `verify:` line on an older card is ignored.

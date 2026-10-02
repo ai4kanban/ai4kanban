@@ -28,7 +28,9 @@ import {
   duplicateWorkflow,
   frozenWorkflow,
   liveStage,
+  scheduledAgent,
   switchWorkflowAgent,
+  switchWorkflowScheduled,
   renameWorkflow,
   setWorkflowHelperExtra,
   setWorkflowLead,
@@ -152,7 +154,7 @@ describe('the workflows a board has', () => {
   })
 
   it('offers a stage only the agents that declare it', () => {
-    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'qa-manager', 'test-writer'])
+    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
     assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
@@ -540,33 +542,59 @@ describe('what a workflow changes about a run', () => {
     // Reassigning afterwards leaves the frozen copy alone — that is the whole point of it.
     stageAgent('test-fixer', 'execute')
     assert.equal(addWorkflowHelper('coding', 'execute', 'test-fixer').ok, true)
-    assert.deepEqual(frozen.stages.execute!.helpers, [{ agent: 'qa-manager', extra: '' }])
+    assert.deepEqual(frozen.stages.execute!.helpers, [])
   })
 })
 
-describe('the hook Coding ships after a build (#1329)', () => {
+describe("the QA manager, Coding's scheduled agent (#1402)", () => {
   const hooks = (id: string): string[] => frozenWorkflow(id)!.stages.execute!.helpers.map((h) => h.agent)
-
-  it('is frozen onto a delivery of a board that never chose its hooks, and onto no other built-in', () => {
-    assert.deepEqual(hooks('coding'), ['qa-manager'])
-    for (const flow of workflows().filter((w) => w.builtIn && w.id !== 'coding')) assert.deepEqual(hooks(flow.id), [])
-  })
-
-  it('leaves a board that chose its own hooks as it was, and can still be added there', () => {
-    stageAgent('test-fixer', 'execute')
+  const qa = () => scheduledAgent('coding', 'qa-manager')!
+  // A board as it was saved while the QA manager still followed every build.
+  const savedBefore = (execute?: unknown): void => {
     fs.writeFileSync(
       uiConfigOf(kanban()),
-      JSON.stringify({ workflows: { agentsOwned: true, stages: { coding: { execute: { helpers: [{ agent: 'test-fixer', extra: '' }] } } } } }),
+      JSON.stringify({ workflows: { agentsOwned: true, stages: execute ? { coding: { execute } } : {} } }),
     )
-    assert.deepEqual(hooks('coding'), ['test-fixer'])
-    assert.equal(liveStage(workflowById('coding')!, 'execute').helpers.find((h) => h.agent === 'qa-manager')?.off, true)
-    assert.equal(addWorkflowHelper('coding', 'execute', 'qa-manager').ok, true)
-    assert.deepEqual(hooks('coding'), ['test-fixer', 'qa-manager'])
+  }
+  const savedNow = () => JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8')).workflows
+
+  it('runs every day on a board that saved nothing, follows no build, and is no other built-in’s', () => {
+    assert.deepEqual(hooks('coding'), [])
+    assert.deepEqual({ off: qa().off, cadence: qa().cadence, extra: qa().extra }, { off: undefined, cadence: '1d', extra: '' })
+    for (const flow of workflowViews().filter((w) => w.builtIn && w.id !== 'coding')) assert.deepEqual(flow.scheduled, [])
+    savedBefore()
+    assert.equal(qa().off, undefined)
   })
 
-  it('stays off once the board removes it', () => {
-    assert.equal(switchWorkflowAgent('coding', 'execute', 'qa-manager', false).ok, true)
+  it('moves a saved hook over with its switch and extra requirements, once', () => {
+    stageAgent('test-fixer', 'execute')
+    savedBefore({ helpers: [{ agent: 'qa-manager', extra: 'Only the CLI.', off: true }, { agent: 'test-fixer', extra: '' }] })
+    assert.deepEqual({ off: qa().off, extra: qa().extra }, { off: true, extra: 'Only the CLI.' })
+    assert.deepEqual(savedNow().stages.coding.execute.helpers, [{ agent: 'test-fixer', extra: '' }])
+    assert.deepEqual(hooks('coding'), ['test-fixer'])
+
+    savedBefore({ helpers: [{ agent: 'qa-manager', extra: '' }] })
+    assert.equal(qa().off, undefined)
     assert.deepEqual(hooks('coding'), [])
+  })
+
+  it('stays off on a board that chose its hooks without it, and is not moved twice', () => {
+    stageAgent('test-fixer', 'execute')
+    savedBefore({ helpers: [{ agent: 'test-fixer', extra: '' }] })
+    assert.equal(qa().off, true)
+    assert.equal(switchWorkflowScheduled('coding', 'qa-manager', true).ok, true)
+    assert.equal(qa().off, undefined)
+  })
+
+  it('does not read hooks chosen from now on as a choice against it', () => {
+    stageAgent('test-fixer', 'execute')
+    assert.equal(addWorkflowHelper('coding', 'execute', 'test-fixer').ok, true)
+    assert.deepEqual(hooks('coding'), ['test-fixer'])
+    assert.equal(qa().off, undefined)
+  })
+
+  it('cannot go back after a build', () => {
+    assert.equal(switchWorkflowAgent('coding', 'execute', 'qa-manager', true).reason, 'agentCannotHelp')
   })
 })
 

@@ -3,7 +3,8 @@ Coding · scheduled: changelog-keeper off
 
 $ akb workflow schedule coding
 Coding · scheduled
-  changelog-keeper  off · last run 2026-10-02 16:28
+  qa-manager  every 1d · never run · next after 2026-10-03 21:36
+  changelog-keeper  off · last run 2026-10-02 21:42
 
 $ akb workflow schedule coding --run changelog-keeper
 akb: `changelog-keeper` is switched off in "Coding"
@@ -19,5 +20,6 @@ Coding · scheduled: changelog-keeper on
 
 $ akb workflow schedule coding
 Coding · scheduled
-  changelog-keeper  every 1m · last run 2026-10-02 16:28 · next after 2026-10-02 16:30
+  qa-manager  every 1d · never run · next after 2026-10-03 21:36
+  changelog-keeper  every 1m · last run 2026-10-02 21:42 · next after 2026-10-02 21:45
 

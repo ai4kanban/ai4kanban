@@ -118,11 +118,11 @@ card, and changes nothing else. The board ships nine, and `akb spec` lists them:
   outline: makes the cover and every image the outline names, new for that post — a screenshot of
   the product, a drawn diagram, or, with Pro, a generated image — each with its alt text.
 
-One more runs after a build instead of during planning:
+One more runs on a schedule instead of during planning:
 
-- **`qa-manager`** (QA manager) — after every Coding build, updates the cases that build affects
-  in the project's [QA manual](/docs/daily-loop#the-qa-manual) under `docs/qa/`, each step with
-  its proof, and reruns the whole manual when you ask.
+- **`qa-manager`** (QA manager) — once a day, updates the cases that the cards finished since its
+  last run affect in the project's [QA manual](/docs/daily-loop#the-qa-manual) under `docs/qa/`,
+  each step with its proof, then writes the first cases for one module not covered yet.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
 clean, given the card and a short note but never the conversation that asked for it; it writes one
@@ -291,7 +291,8 @@ A new agent is a **hook**: it runs after its stage, or by itself on a schedule.
 
 A workflow can carry agents that run by themselves: a nightly audit, a weekly clean-up. Each sits
 under **Scheduled** in Configuration → Workflows, below the two stages, and belongs to that
-workflow alone.
+workflow alone. Coding ships one, running every day: the
+[QA manager](/docs/daily-loop#the-qa-manual).
 
 - **Set it on the agent's page.** The chip beside its name picks how often — every 6 hours, every
   day, every 7 days, or your own — and **Disable** is the last row of the same list. Picking a

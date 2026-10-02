@@ -1,0 +1,24 @@
+$ akb workflow list   # 看板 A，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+  scheduled  qa-manager  every 1d · never run
+
+$ akb workflow schedule coding --json   # 看板 A
+[{"agent":"qa-manager","extra":"Write every case in Chinese.","cadence":"1d","lastRun":""}]
+
+$ akb workflow list   # 看板 B，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+  scheduled  qa-manager  off · never run
+
+$ akb workflow list   # 看板 C，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+  scheduled  qa-manager  every 1d · never run
+

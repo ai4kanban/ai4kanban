@@ -2,23 +2,23 @@
 $ node -e '…ui.config.json: autoCommit = false…'
 
 $ akb workflow schedule coding --run changelog-keeper
-Coding: started changelog-keeper — run cced3608
+Coding: started changelog-keeper — run a9496f1d
 
 $ akb run list   # the last row
-✓ cced3608  scheduled changelog-keeper  done  delivery vrq7xcku  in 0s
+✓ a9496f1d  scheduled changelog-keeper  done  delivery vz2rugm8  in 0s
 nothing running.
 
 $ git status --short
  M CHANGELOG.md
-?? docs/kanban/deliveries/9eqrt3xr.json
-?? docs/kanban/deliveries/acuz76jd.json
-?? docs/kanban/deliveries/fvxphj8c.json
+?? docs/kanban/deliveries/2sxyvhmg.json
+?? docs/kanban/deliveries/fgcb8cab.json
 ?? docs/kanban/deliveries/qa2.json
-?? docs/kanban/deliveries/rpp7ace4.json
-?? docs/kanban/deliveries/vrq7xcku.json
+?? docs/kanban/deliveries/v4wmz554.json
+?? docs/kanban/deliveries/vz2rugm8.json
+?? docs/kanban/deliveries/zvfnnmt4.json
 
 $ git log --format='%h %s' -1
-bec35f3 changelog-keeper: scheduled run (Coding)
+02d534a changelog-keeper: scheduled run (Coding)
 
 $ akb workflow schedule coding --run changelog-keeper
 akb: Commit or stash your changes before starting.
@@ -32,17 +32,17 @@ $ node tick.mjs <cli>/dist/kanban.mjs
 [{"action":"describe-product"},{"action":"scheduled","workflow":"coding","specAgent":"changelog-keeper"}]
 
 $ git commit -qam 'changelog' && git status --short
-?? docs/kanban/deliveries/9eqrt3xr.json
-?? docs/kanban/deliveries/acuz76jd.json
-?? docs/kanban/deliveries/fvxphj8c.json
+?? docs/kanban/deliveries/2sxyvhmg.json
+?? docs/kanban/deliveries/fgcb8cab.json
 ?? docs/kanban/deliveries/qa2.json
-?? docs/kanban/deliveries/rpp7ace4.json
-?? docs/kanban/deliveries/vrq7xcku.json
+?? docs/kanban/deliveries/v4wmz554.json
+?? docs/kanban/deliveries/vz2rugm8.json
+?? docs/kanban/deliveries/zvfnnmt4.json
 
 $ akb workflow schedule coding --run changelog-keeper
-Coding: started changelog-keeper — run 1eafecee
+Coding: started changelog-keeper — run b1dbe848
 
 $ akb run list   # the last row
-✓ 1eafecee  scheduled changelog-keeper  done  delivery 3vxddsrm  in 0s
+✓ b1dbe848  scheduled changelog-keeper  done  delivery 54x5qrx5  in 0s
 nothing running.
 

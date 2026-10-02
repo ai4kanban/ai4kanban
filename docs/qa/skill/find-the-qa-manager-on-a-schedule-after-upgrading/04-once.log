@@ -1,0 +1,20 @@
+$ akb workflow schedule coding --on qa-manager   # 看板 B
+Coding · scheduled: qa-manager on
+
+$ akb workflow list   # 看板 B，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+  scheduled  qa-manager  every 1d · never run · next after 2026-10-03 21:49
+
+$ akb workflow schedule coding --off qa-manager   # 看板 A
+Coding · scheduled: qa-manager off
+
+$ akb workflow list   # 看板 A，Coding 那几行
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+  scheduled  qa-manager  off · never run
+

@@ -5,11 +5,17 @@
 // order; the delivery lands, waits for the user's commit or ends on its files only when the
 // last has finished. `delivery.hooks.done` is the whole of what is stored.
 
+import { specAgentCatalog } from '../agents/catalog'
 import type { AgentRequest, DeliveryRecord } from './types'
 
-/** The hooks this delivery froze for after its build, in the order they run. */
-export const executeHooks = (delivery: DeliveryRecord): string[] =>
-  (delivery.workflow?.stages.execute?.helpers ?? []).map((h) => h.agent)
+/** The hooks this delivery froze for after its build, in the order they run. One frozen
+ *  before its agent stopped being an execute hook (#1402) is skipped. */
+export function executeHooks(delivery: DeliveryRecord): string[] {
+  const frozen = (delivery.workflow?.stages.execute?.helpers ?? []).map((h) => h.agent)
+  if (!frozen.length) return frozen
+  const moved = new Set(specAgentCatalog().agents.filter((a) => a.stage !== 'execute').map((a) => a.name))
+  return frozen.filter((agent) => !moved.has(agent))
+}
 
 /** The hooks still to run since the last build, or none when no build has finished. */
 export const owedHooks = (delivery: DeliveryRecord): string[] => {

@@ -1,0 +1,28 @@
+$ akb workflow schedule coding --on qa-manager --cadence 7d --extra "Only the skill module."
+Coding · scheduled: qa-manager on, qa-manager: every 7d, qa-manager: extra requirements
+
+$ akb workflow schedule coding
+Coding · scheduled
+  qa-manager  every 7d · never run · next after 2026-10-09 21:36
+  changelog-keeper  every 1m · last run 2026-10-02 21:42 · next after 2026-10-02 21:45
+
+$ akb workflow schedule coding --off qa-manager
+Coding · scheduled: qa-manager off
+
+$ akb workflow schedule coding
+Coding · scheduled
+  qa-manager  off · never run
+  changelog-keeper  every 1m · last run 2026-10-02 21:42 · next after 2026-10-02 21:45
+
+$ akb workflow stage coding --stage execute --on qa-manager
+akb: `qa-manager` is a board agent and cannot help execute
+(exit 1)
+
+$ akb workflow list   # the Coding rows
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder
+  scheduled  qa-manager  off · never run
+  scheduled  changelog-keeper  every 1m · last run 2026-10-02 21:42 · next after 2026-10-02 21:45
+

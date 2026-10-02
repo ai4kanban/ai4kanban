@@ -12,15 +12,15 @@
 ## Steps
 
 1. 执行 `akb workflow schedule coding`，再看 `akb workflow list` 里「Coding」那几行。
-   还没被任何工作流收下的周期 Agent 归在 Coding 下，是关着的：`changelog-keeper  off · never run`；`workflow list` 在两个阶段下面多一行 `scheduled`。
+   Coding 自带一个开着的周期 Agent：`qa-manager  every 1d · never run`，`execute builder` 后面不再有 hook。还没被任何工作流收下的周期 Agent 也归在 Coding 下，是关着的：`changelog-keeper  off · never run`；`workflow list` 在两个阶段下面每个周期 Agent 一行 `scheduled`。
    [01-list.log](01-list.log)
 
 2. 执行 `akb workflow schedule coding --on changelog-keeper --cadence 1m`，再列一次。
-   回答 `changelog-keeper on, changelog-keeper: every 1m`；列表变成 `every 1m · never run · next after <一分钟后>`，`workflow list` 的那一行相同。
+   回答 `changelog-keeper on, changelog-keeper: every 1m`；它那一行变成 `every 1m · never run · next after <一分钟后>`，`workflow list` 的那一行相同。`qa-manager` 那一行不变，还没有下次运行时间。
    [02-switch-on.log](02-switch-on.log)
 
-3. 马上执行 `node tick.mjs <cli>/dist/kanban.mjs`；等 65 秒再执行一次。
-   刚开启时看板不会启动它；过了一个周期，要启动的清单里多出 `{"action":"scheduled","workflow":"coding","specAgent":"changelog-keeper"}`。
+3. 马上执行 `node tick.mjs <cli>/dist/kanban.mjs`；等 65 秒再执行一次，然后列一次周期 Agent。
+   刚开启时看板不会启动它；过了一个周期，要启动的清单里多出 `{"action":"scheduled","workflow":"coding","specAgent":"changelog-keeper"}`，没有 `qa-manager`——它每天一遍。巡检走过之后 `qa-manager` 那一行才有了 `next after <明天此刻>`。
    [03-due.log](03-due.log)
 
 4. 执行 `akb workflow schedule coding --run changelog-keeper`，几秒后看 `akb run list`、`akb run log`、`git log`、`git worktree list`，再列一次周期 Agent。
@@ -28,7 +28,7 @@
    [04-run-now.log](04-run-now.log)
 
 5. 新建并归档一张卡（`akb raw create --title "Dark mode follows the system"`、`akb raw archive 2`、`node land.mjs 2 "Dark mode follows the system"`），再 `--run changelog-keeper`，看 `akb run log`。
-   这一次 `--since last-run` 列出 `1 card landed since <上次运行开始的时刻>` 和 #2；`CHANGELOG.md` 多一行，又是一个同名提交。
+   `raw archive` 归档之后列出脚本做不了的两件事。这一次 `--since last-run` 列出 `1 card landed since <上次运行开始的时刻>` 和 #2；`CHANGELOG.md` 多一行，又是一个同名提交。
    [05-landed-since.log](05-landed-since.log)
 
 6. 执行 `akb workflow schedule coding --on changelog-keeper --extra "Change nothing this time."`，等 65 秒后 `--run changelog-keeper`，看 `akb run log`、`git log -1` 和列表。
@@ -55,6 +55,10 @@
     说明里写明：不带改动就是列出；周期 Agent 声明 `akb.hook: schedule`，不随卡片、每个周期运行一次，改动像一次构建那样提交并落地；开启后过一个周期才第一次运行。`--since` 的说明多了 `last-run`。
     [11-help.log](11-help.log)
 
+12. 对自带的 `qa-manager` 执行 `akb workflow schedule coding --on qa-manager --cadence 7d --extra "Only the skill module."`，列一次；`--off qa-manager`，再列一次；然后试着把它挂回构建之后：`akb workflow stage coding --stage execute --on qa-manager`，再看 `akb workflow list`。
+    周期改成 `every 7d`，下次运行从它被看板记下的那一刻起算七天；关掉后是 `off · never run`。挂回「执行之后」被拒绝：`` `qa-manager` is a board agent and cannot help execute ``，退出码 1；`workflow list` 里 `execute builder` 后面仍然没有 hook。
+    [12-qa-manager.log](12-qa-manager.log)
+
 ## Feedback
 
 - **一条命令就能用起来**：写好 `AGENT.md`，`--on … --cadence …` 一行开启，`--run` 马上看到一个带固定标题的提交；列表一行里有周期、上次和下次运行，够看。
@@ -66,4 +70,7 @@
 - **`last-run` 会把同一张卡给两次**：时间只精确到分钟，上一遍开始的那一分钟里落地的卡，下一遍还会列出来；Agent 得自己去重。
 - **没改动的一遍也算跑过**：上次运行时间照常前进，这符合「成功才推进」；但提交历史里没有痕迹，要去 `akb run list` 才知道它来过。
 - **`--help` 里一句话两个意思**：`--extra` 的说明写「the --on or --off agent」，`--cadence` 只写「the --on agent」，实际两者都能跟 `--off`、`--run` 一起用。
-- **没有跑到的**：真实的 Agent（这里是替身，开场白之后的规则、文件、记忆几段没有逐段核对）；产出文件的工作流（需要 Pro）；上一遍还在合入时不启动新的一遍；`akb run resume` 继续失败的一遍；界面的真实定时器（由 `tick.mjs` 顶替，没有真的让看板自己启动一遍）；`1d at 09:30` 这种带时刻的周期。
+- **自带的那个默认就开着**：新看板什么都不做，`qa-manager` 明天此刻就会自己跑一遍真的 agent；`akb install` 的输出没有提它，要执行 `akb workflow schedule coding` 或看 `workflow list` 才知道。
+- **拒绝挂回的那句话不知所云**：「`qa-manager` is a board agent and cannot help execute」——没说它现在只按周期运行，也没指向 `akb workflow schedule`；想让 QA 跟在构建之后的人读完不知道下一步。
+- **列表看不到额外要求**：`--extra` 设了什么只有 `--json` 里有，`akb workflow schedule coding` 的那一行不显示。
+- **没有跑到的**：`qa-manager` 的 `--run`（会启动真实的 Agent，替身不做它的事）；真实的 Agent（这里是替身，开场白之后的规则、文件、记忆几段没有逐段核对）；产出文件的工作流（需要 Pro）；上一遍还在合入时不启动新的一遍；`akb run resume` 继续失败的一遍；界面的真实定时器（由 `tick.mjs` 顶替，没有真的让看板自己启动一遍）；`1d at 09:30` 这种带时刻的周期。

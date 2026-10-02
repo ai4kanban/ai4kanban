@@ -1,0 +1,9 @@
+$ akb workflow stage coding --stage execute --on qa-manager   # 看板 A
+akb: `qa-manager` is a board agent and cannot help execute
+(exit 1)
+
+$ akb workflow stage coding --stage execute
+Coding · execute
+  lead: builder — built in; duplicate the workflow to pick another
+  hooks on: (none)
+
