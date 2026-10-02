@@ -15,7 +15,7 @@ import {
 
 // The same menu the header's comparisons list uses. Every link stays on the page
 // being read and only changes its language; from a page that exists in English
-// alone (the docs, the blog, the recipes) there is nowhere to stay, so the links
+// alone (the docs, the blog) there is nowhere to stay, so the links
 // go to the landing page.
 //
 // It lists the languages the page being read is published in, not the site's

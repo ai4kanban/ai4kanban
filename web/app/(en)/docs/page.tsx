@@ -21,7 +21,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 // The page is a way into a set of pages, so the entity it is about is that set
-// — the same shape the recipes and the blog indexes take.
+// — the same shape the blog index takes.
 const list = itemList(
   DOCS_PATH,
   getAllDocs().map((doc) => ({

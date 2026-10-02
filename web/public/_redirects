@@ -12,3 +12,7 @@
 
 # `goal.md` gave way to `product.md`, which the board writes itself.
 /docs/what-makes-a-good-goal /docs 301
+
+# The recipes were taken down; scheduled agents are what replaced them.
+/recipes /docs/agents 301
+/recipes/* /docs/agents 301

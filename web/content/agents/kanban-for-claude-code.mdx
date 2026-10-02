@@ -23,14 +23,14 @@ AI4Kanban keeps the project outside those sessions: which requests are ready, wh
 
 ## Claude Code has task lists. AI4Kanban keeps the project backlog.
 
-[Claude Code offers several ways to run agents in parallel](https://code.claude.com/docs/en/agents). Its task lists coordinate work claimed by an active agent team. AI4Kanban stores the project board itself: rough ideas, prepared requirements, open decisions, dependencies, recurring work, delivery state, and completed outcomes.
+[Claude Code offers several ways to run agents in parallel](https://code.claude.com/docs/en/agents). Its task lists coordinate work claimed by an active agent team. AI4Kanban stores the project board itself: rough ideas, prepared requirements, open decisions, dependencies, scheduled agents, delivery state, and completed outcomes.
 
 | Claude Code feature | What it manages | What AI4Kanban records in the repository |
 | --- | --- | --- |
 | Session plan or task list | Work inside the current session or agent team | Approved requirements, open questions, dependencies, and verification criteria |
 | Subagents | Bounded work returned to the parent session | The task that owns the outcome and its delivery history |
 | Agent teams | Workers, messages, and dependencies inside that team | Project work before the team starts and after the team stops |
-| Agent view | Claude Code sessions that are running now | Ready, blocked, recurring, running, review, and completed work |
+| Agent view | Claude Code sessions that are running now | Ready, blocked, running, review, and completed work |
 | Worktrees | Separate files for concurrent sessions | Task ownership, review state, landing order, and conflict handling |
 
 An AI4Kanban card is 1 repository-backed task. It remains on the board when a Claude session ends, an agent team shuts down, or you open the project on another machine.

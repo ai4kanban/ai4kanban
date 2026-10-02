@@ -89,7 +89,7 @@ const zh: VsHermesCopy = {
       parallelRuns: {
         dimension: "并行与定时运行",
         kanban:
-          "由你的运行环境驱动：你一发起，Claude Code 便并行拉起子智能体；定时的工作放在 recurring/ 目录里。",
+          "由你的运行环境驱动：你一发起，Claude Code 便并行拉起子智能体；定时的工作由看板按你设定的周期启动智能体来完成。",
         hermes:
           "由运行时驱动：调度器自行捡起就绪的任务，并为每个任务拉起一个工作进程。",
       },

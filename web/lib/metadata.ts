@@ -60,7 +60,7 @@ export function pageMetadata({
   byTao?: boolean;
   /**
    * Whether this route exists in every language (`TRANSLATED_PATHS` in
-   * `lib/i18n.ts`). The English-only pages — the recipes, the blog — pass
+   * `lib/i18n.ts`). The English-only pages — the docs, the blog — pass
    * `false`: an hreflang set is a promise that each URL in it resolves, and
    * `/ja/blog` does not exist to resolve to.
    */

@@ -21,7 +21,6 @@ const zh: SharedCopy = {
     },
     github: "GitHub",
     docs: "Documentation",
-    recipes: "Recipes",
     blog: "Blog",
     cloud: "Cloud",
     training: "培训",

@@ -656,7 +656,7 @@ export default function DesignPage() {
               viewport, so it has no outside to draw. */}
           <div className="rounded-xl bg-ink px-6 py-8 text-sm text-elev/70">
             <p className="text-center">
-              GitHub · Documentation · Recipes · Apache License 2.0
+              GitHub · Documentation · Apache License 2.0
             </p>
             <p className="mt-3 text-center text-elev/30">
               elev/70 for body · elev/30 for separators

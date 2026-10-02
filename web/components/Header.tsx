@@ -27,8 +27,7 @@ function useScrolled() {
   return scrolled;
 }
 
-// The chrome on top of every page — the landing page, the comparison pages and
-// the recipes.
+// The chrome on top of every page.
 export function Header({
   c,
   locale,

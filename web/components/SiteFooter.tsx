@@ -40,7 +40,7 @@ export function SiteFooter({
   // names is what fills the row, and each is a page worth landing on. GitHub is
   // not a column: it is the mark on the base line, and one link is enough.
   //
-  // The docs, the recipes, the blog, the agent pages, the Cloud page, the
+  // The docs, the blog, the agent pages, the Cloud page, the
   // builder page and the two legal pages are English-only, so those links keep
   // their bare paths. The download and comparison pages exist in every
   // language — point at this one.
@@ -65,7 +65,6 @@ export function SiteFooter({
       title: t.groups.learn,
       links: [
         { href: "/docs", label: t.docs },
-        { href: "/recipes", label: t.recipes },
         { href: "/blog", label: t.blog },
         // Agent pages name a coding agent, so the label is the page's own name
         // rather than a translated slot — the same rule the comparisons follow.

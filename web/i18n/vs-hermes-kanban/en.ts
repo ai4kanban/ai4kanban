@@ -102,7 +102,7 @@ const en: VsHermesCopy = {
       parallelRuns: {
         dimension: "Parallel & scheduled runs",
         kanban:
-          "Your agent environment supplies parallelism; scheduled work is represented in the recurring/ folder.",
+          "Your agent environment supplies parallelism; scheduled work is done by agents the board starts as often as you set.",
         hermes:
           "The dispatcher claims ready tasks automatically and starts a worker process for each one.",
       },

@@ -30,7 +30,6 @@ export type SharedCopy = {
     /** Only read out loud: the label on the GitHub mark. */
     github: string;
     docs: string;
-    recipes: string;
     blog: string;
     /** The Cloud page. English-only, like the blog. */
     cloud: string;
