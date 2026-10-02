@@ -17,7 +17,7 @@ import { randomUUID } from 'node:crypto'
 import { REPO_ROOT } from '../paths'
 import { openPlan, planRun } from './resolve'
 import { runtimeById } from './runtimes'
-import { endAgent, markEnv, stopMark } from './stop'
+import { endAgent, markEnv, stopMark, trackAgent } from './stop'
 import { createStderrFilter } from './wire'
 import type { ConnectionTest } from './types'
 
@@ -143,6 +143,7 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
       spawnFailed(e)
       return
     }
+    trackAgent(child, mark)
 
     const timer = setTimeout(() => {
       endAgent(child, mark, KILL_AFTER_MS)
