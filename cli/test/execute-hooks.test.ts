@@ -16,7 +16,7 @@ import { readDeliveryRow, readStore, withStore } from '../src/lib/agent/store.ts
 import type { DeliveryRecord, RunRecord, RunStatus } from '../src/lib/agent/types.ts'
 import { addWorkflowHelper, setWorkflowHelperExtra } from '../src/lib/agent/workflows.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, noExecuteHooks } from './helpers/board.ts'
 
 let root = ''
 const kanban = (): string => path.join(root, 'docs', 'kanban')
@@ -64,6 +64,7 @@ beforeEach(() => {
   fs.writeFileSync(path.join(kanban(), 'todo', 'README.md'), '# Tasks\n\n## Tasks\n')
   fs.writeFileSync(path.join(kanban(), 'config.md'), '- **Solution** — product\n')
   setBoardRoot(root)
+  noExecuteHooks()
   card(5)
 })
 

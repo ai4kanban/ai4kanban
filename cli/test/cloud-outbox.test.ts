@@ -120,7 +120,6 @@ function card(over: Partial<Card> = {}): Card {
     blocked_by: [],
     related: [],
     questions: [],
-    verify: [],
     modules: [],
     last_run: '',
     cadence: '',
@@ -712,7 +711,6 @@ function writeCard(id: number, release: string, title = `Card ${id}`): void {
       'related: []',
       'modules: []',
       'questions: []',
-      'verify: []',
       '---',
       '',
       'What it is for.',
@@ -1616,7 +1614,6 @@ function writeCardFile(release = '0.8.0', questions: string[] = []): void {
       questions.length
         ? `questions:\n${questions.map((q) => `  - ${JSON.stringify(q)}`).join('\n')}`
         : 'questions: []',
-      'verify: []',
       '---',
       '',
       'What it is for.',
@@ -1903,7 +1900,6 @@ describe('a second board in the same project', () => {
         'related: []',
         'modules: []',
         'questions: []',
-        'verify: []',
         '---',
         '',
         'What it is for.',

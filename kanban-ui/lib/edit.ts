@@ -7,7 +7,6 @@ import type {
   DropPlan,
   FillPlan,
   SaveProjectResult,
-  VerifyResult,
   WriteResult,
 } from "./types";
 
@@ -43,36 +42,12 @@ export async function patchCard(id: number, patch: CardPatch, expect = ""): Prom
   }
 }
 
-/** Add one hand-check to a card, or cross one off (#276). Both answer with the list as the
- *  card now holds it, so the panel redraws from what was written — including a cross-off
- *  refused because a run had already taken that line off. Rules older than this say so in
- *  the line that names the update. */
 // Read at load, so English: rules this old may not be able to say what language to use.
 const ENGLISH = getCopy(DEFAULT_LANGUAGE).messages.rules;
 const OLD_RULES: WriteResult = {
   ok: false,
-  error: `${ENGLISH.tooOldForHandChecks} ${ENGLISH.updateIt}`,
+  error: `${ENGLISH.tooOldForSkip} ${ENGLISH.updateIt}`,
 };
-
-export async function addVerify(id: number, line: string, expect = ""): Promise<VerifyResult> {
-  try {
-    const rules = await boardRules();
-    const opts = expect ? { expect } : undefined;
-    return rules.addVerify ? await rules.addVerify(id, line, opts) : OLD_RULES;
-  } catch (e) {
-    return refused(e);
-  }
-}
-
-export async function dropVerify(id: number, line: string, expect = ""): Promise<VerifyResult> {
-  try {
-    const rules = await boardRules();
-    const opts = expect ? { expect } : undefined;
-    return rules.dropVerify ? await rules.dropVerify(id, line, opts) : OLD_RULES;
-  } catch (e) {
-    return refused(e);
-  }
-}
 
 /** Skip one of the user's questions on a card, or reopen it (#831). Named by its text. */
 export async function skipQuestion(id: number, question: string, skipped: boolean, expect = ""): Promise<WriteResult> {

@@ -6,7 +6,6 @@
 import { STATUSES, normalizeRelease } from './validate'
 import { yamlScalar, unquote } from './yaml'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
-import { normalizeVerify } from './verify'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
 import type { Meta, Question } from './types'
 
@@ -69,13 +68,6 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
       if (q.agent) out.push(`    agent: ${yamlScalar(q.agent)}`)
       if (q.skipped) out.push('    skipped: true')
     }
-  }
-  // What the user should check by hand before accepting the work (./verify.ts). Written only
-  // when the card carries one, so every card written before this field — and every card that
-  // never needed a hand-check — keeps the frontmatter it always had.
-  if (m.verify && m.verify.length) {
-    out.push('verify:')
-    for (const line of m.verify) out.push(`  - ${yamlScalar(line)}`)
   }
   out.push('---')
   return out.join('\n')
@@ -154,9 +146,6 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   if (!Array.isArray(meta.questions)) {
     meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : ([] as Question[])
   }
-  // The hand-checks, as plain lines. A card written before this field has none, and a line
-  // blanked by hand drops out rather than showing as an empty bullet.
-  meta.verify = normalizeVerify(meta.verify)
   // The release the card ships in. Missing, empty or damaged reads as no release, so a
   // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)
@@ -167,10 +156,11 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   }
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
-  // Retired fields: `channels:` (#718) and `decided:` (#1255). A card still
+  // Retired fields: `channels:` (#718), `decided:` (#1255) and `verify:` (#1329). A card still
   // carrying one reads as the ordinary card it now is, and the field drops out on the next rewrite.
   delete meta.channels
   delete meta.decided
+  delete meta.verify
   // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''

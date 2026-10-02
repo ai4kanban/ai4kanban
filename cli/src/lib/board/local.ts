@@ -32,12 +32,10 @@ import {
   cmdTag,
   cmdUpdate,
   cmdUpdateQuestions,
-  cmdUpdateVerify,
   type CreateOptions,
   type QuestionOpsInput,
   type ScheduleOptions,
   type UpdateOptions,
-  type VerifyOpsInput,
 } from '../../commands/card'
 import { cmdInit } from '../../commands/init'
 import { cmdList, type ListOptions } from '../../commands/list'
@@ -73,7 +71,7 @@ import { tickSetupStep } from '../setup'
 import { readArchive, readArchivedCard } from '../view/archive'
 import { deliveryDiff } from '../view/diff'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
-import { addVerifyLine, dropVerifyLine, patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
+import { patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
 import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '../view/first-run'
 import { deliveryRules, setAgentRule } from '../agent/rules'
 import { createAgent, deleteAgent, readAgents, saveAgentFile } from '../agents/roster'
@@ -97,7 +95,6 @@ import type {
   OpResult,
   ReleaseFill,
   Revision,
-  VerifyOp,
 } from './contract'
 import { leaseAnd, moveTarget, opConflict, opOk, opRefused, sameTarget, targetName } from './ops'
 import { boardRevision, cardRevision } from './revision'
@@ -128,7 +125,6 @@ const MOVES: Record<string, RunMove> = {
   create: ({ opts }) => cmdCreate(as<CreateOptions>(opts)),
   update: ({ args, opts }) => cmdUpdate(Number(args[0]), as<UpdateOptions>(opts)),
   'update-questions': ({ args, opts }) => cmdUpdateQuestions(Number(args[0]), as<QuestionOpsInput>(opts)),
-  'update-verify': ({ args, opts }) => cmdUpdateVerify(Number(args[0]), as<VerifyOpsInput>(opts)),
   schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
   tag: ({ args }) => cmdTag(Number(args[0]), args[1] ?? '', args[2] ?? ''),
   list: ({ opts }) => cmdList(as<ListOptions>(opts)),
@@ -346,12 +342,6 @@ export function localBoard(): BoardProvider {
         setCardSchedule(id, schedule)
         return { card: findCard(id) ?? undefined }
       }),
-
-    addVerify: (id, line, env): Promise<VerifyOp> =>
-      mutate({ card: id }, env, () => ({ verify: addVerifyLine(id, line) })),
-
-    dropVerify: (id, line, env): Promise<VerifyOp> =>
-      mutate({ card: id }, env, () => ({ verify: dropVerifyLine(id, line) })),
 
     appendQuestion: (id, question, options, env) =>
       mutate({ card: id }, env, () => {

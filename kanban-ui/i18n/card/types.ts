@@ -229,13 +229,6 @@ export type CardCopy = {
     undo: string;
     skipFailed: string;
   };
-  handChecks: {
-    heading: string;
-    crossOff: string;
-    crossOffAria: (line: string) => string;
-    crossOffHint: string;
-    failed: string;
-  };
   /** The fold over the half of the body the agent worked out. */
   agentHalf: string;
   diff: {

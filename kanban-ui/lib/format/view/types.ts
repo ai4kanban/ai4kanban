@@ -309,10 +309,6 @@ export interface Card {
   related: number[]
   /** The card's open questions, plain and options ones alike. */
   questions: Question[]
-  /** What the user should check by hand before accepting the finished work — one short line
-   *  each, left by the build. A note to read, not a question: nothing here waits on an
-   *  answer, and nothing here holds the card back. Empty on most cards. */
-  verify: string[]
   /** The workflow this card runs through (#715) — a workflow's stable id, never its name.
    *  Empty on a card that names none and on a board that picks no workflows, and both read
    *  as the default workflow. */
@@ -529,13 +525,6 @@ export interface CardPatch {
   /** How often a recurring card repeats, or empty to take the cadence off and leave the
    *  card running only when someone asks. Recurring cards only. */
   cadence?: string
-}
-
-/** One hand-check added or crossed off. `verify` is the card's list as it now stands, so
- *  the panel redraws from the card rather than from what the screen had — a cross-off
- *  refused because a run had already taken that line off still carries it. */
-export interface VerifyResult extends WriteResult {
-  verify?: string[]
 }
 
 /** What a save of the project did. */

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useContext, useEffect, useRef, useState } from "react";
-import { FiClipboard, FiHelpCircle, FiPlay, FiTrash2 } from "react-icons/fi";
+import { FiHelpCircle, FiPlay, FiTrash2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
@@ -185,21 +185,6 @@ export function BoardCard({
                 </span>
               );
             })()}
-          {/* Things the build left for the user to check by hand (#231). Sky, never
-              the accent: the accent marks a question waiting on the user, and a
-              verify line waits on nobody — the card is done, this is what to look
-              at before accepting it. Its own mark, so it can't be read as one more
-              open question. */}
-          {card.verify.length > 0 && (
-            <span
-              tabIndex={0}
-              className="nb-tip inline-flex shrink-0"
-              data-tip={c.verify(card.verify.length)}
-              style={{ color: "var(--color-nb-sky-ink)" }}
-            >
-              <FiClipboard aria-hidden style={{ width: 12.5, height: 12.5 }} />
-            </span>
-          )}
           {card.todos.total > 0 && (
             <TodoProgress done={card.todos.done} total={card.todos.total} />
           )}

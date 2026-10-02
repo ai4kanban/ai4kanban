@@ -56,7 +56,8 @@ export function spellAgent(name: string): string {
     .join(" ");
 }
 
-const plain = (word: string) => (word.toLowerCase() === "ui" ? "UI" : word);
+const ACRONYMS = ["ui", "qa"];
+const plain = (word: string) => (ACRONYMS.includes(word.toLowerCase()) ? word.toUpperCase() : word);
 const capitalise = (word: string) => {
   const shown = plain(word);
   return shown ? shown[0].toUpperCase() + shown.slice(1) : shown;

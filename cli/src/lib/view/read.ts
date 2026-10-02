@@ -86,7 +86,6 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     blocked_by: meta.blocked_by,
     related: meta.related,
     questions: meta.questions,
-    verify: meta.verify,
     workflow: meta.workflow,
     ...(plan ? { deliversIn: 'plan' as const } : {}),
     modules: meta.modules,

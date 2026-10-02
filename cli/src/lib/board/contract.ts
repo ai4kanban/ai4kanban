@@ -131,9 +131,6 @@ export interface MoveOutput extends BoardMoveData {
   warnings?: string[]
 }
 
-/** One card's list of hand-checks as it now stands (#276). */
-export type VerifyOp = OpResult<{ verify: string[] }>
-
 /** A card mutation. The card is handed back as it now reads, so a screen redraws from what
  *  was written rather than from what it had. Absent when the card has left the board. */
 export type CardOp = OpResult<{ card?: Card }>
@@ -188,8 +185,6 @@ export interface BoardProvider {
   patchCard(id: number, patch: CardPatch, env: OpEnvelope): Promise<CardOp>
   setStatus(id: number, status: string, env: OpEnvelope): Promise<CardOp>
   setSchedule(id: number, schedule: CardSchedule | null, env: OpEnvelope): Promise<CardOp>
-  addVerify(id: number, line: string, env: OpEnvelope): Promise<VerifyOp>
-  dropVerify(id: number, line: string, env: OpEnvelope): Promise<VerifyOp>
   /** `options` are the choices the user ticks — two or more, as every question carries. */
   appendQuestion(id: number, question: string, options: string[], env: OpEnvelope): Promise<CardOp>
   /** Skip one of the user's questions, or reopen it (#831). Named by its text, since a run can

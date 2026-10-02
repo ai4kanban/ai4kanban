@@ -1,8 +1,7 @@
-# Classify questions, decisions, and checks
+# Classify questions and decisions
 
-Use these categories whenever a flow finds an unresolved decision, an answered decision, or a
-post-build hand-check. Research the card, prior user choices, and relevant project evidence
-before classifying it.
+Use these categories whenever a flow finds an unresolved or an answered decision. Research
+the card, prior user choices, and relevant project evidence before classifying it.
 
 ### Question
 
@@ -41,8 +40,7 @@ A question about one spec agent's section adds `--agent <agent-name>` after its 
 
 Questions are exclusive unless their options can genuinely be combined; the board supplies the
 free-text choice. Use `--mode multi` only for combinable options, recommending every option you
-would take. Use `--update <n>`, `--drop <n[,n...]>`, or `--to-verify <n[,n...]>` only for an
-existing question.
+would take. Use `--update <n>` or `--drop <n[,n...]>` only for an existing question.
 
 ### Implementation blockers
 
@@ -61,13 +59,6 @@ implementation` instead when implementation surfaced and answered it.
 Put a necessary lasting answer that fails the test below the human half. Never use `Worth noting
 after implementation` to accept work that contradicts the approved requirements; fix the work
 or leave a user-owned question.
-
-### `verify:`
-
-A `verify:` line is a post-build check that needs human judgment or an environment the agent
-cannot use. It is not a decision, carries no options, and does not block the card. Give a
-reproducible setup, human action, expected result, and any required fixture. Put checks the
-implementation agent can run in `## Todo` instead.
 
 ### An agent's memory
 

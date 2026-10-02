@@ -31,7 +31,6 @@ import type {
   ScheduledAction,
   SessionView,
   SourceDocument,
-  VerifyResult,
   WriteResult,
 } from "./types";
 
@@ -75,7 +74,6 @@ export interface ScreenActions {
   // `expect` is the revision the page read the card at (#316): a card rewritten under an
   // open page comes back as a conflict with nothing written.
   patchCard(id: number, patch: CardPatch, expect: string): Promise<WriteResult>;
-  dropVerify(id: number, line: string, expect: string): Promise<VerifyResult>;
   skipQuestion(id: number, question: string, skipped: boolean, expect: string): Promise<WriteResult>;
   scheduleCard(id: number, action: ScheduledAction, notes: string, expect: string): Promise<WriteResult>;
   unscheduleCard(id: number, expect: string): Promise<WriteResult>;
@@ -156,8 +154,8 @@ export interface ScreenMachine {
  *
  * The seven toolbar buttons — `run` is Implement's place on a recurring card — plus `resume`,
  * which is the pair of ways out of a request whose machine stopped mid-delivery. Not in the
- * list, and so never offered by a surface that names its controls: a card's fields, a
- * hand-check cross-off and a queued run, all of which stay in the app.
+ * list, and so never offered by a surface that names its controls: a card's fields
+ * and a queued run, both of which stay in the app.
  */
 export type CardControl =
   | 'implement'

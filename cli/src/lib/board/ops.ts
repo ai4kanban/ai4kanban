@@ -71,7 +71,6 @@ export async function leaseAnd<T>(
 const CARD_MOVES = new Set([
   'update',
   'update-questions',
-  'update-verify',
   'schedule',
   'tag',
   'archive',

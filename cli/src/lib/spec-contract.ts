@@ -83,7 +83,7 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
   if (rejected && rejected.value !== 'true') {
     add(rejected.line, 'rejected', `Invalid rejected ${JSON.stringify(rejected.value)}. Only akb raw reject writes it, as true; remove the line.`)
   }
-  for (const key of ['blocked_by', 'related', 'modules', 'questions', 'verify']) {
+  for (const key of ['blocked_by', 'related', 'modules', 'questions']) {
     const field = fields.get(key)
     if (!field) continue
     if (field.value !== '' && !/^\[.*\]$/.test(field.value)) {

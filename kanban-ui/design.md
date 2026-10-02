@@ -40,7 +40,6 @@ All reusable colors are tokens in the `@theme` block of `app/globals.css`.
 | `--color-nb-lilac` / `-soft` / `-ink` | `#b199e0` / `#efe9fb` / `#5a3f92` | grouping or schedules |
 | `--color-nb-peach` / `-soft` / `-ink` | `#ec9a72` / `#fbe9dd` / `#8a4a28` | blockers, warnings, or risk |
 | `--color-nb-accent-wash` | `#fbf0e9` | section ground: something to decide |
-| `--color-nb-mint-wash` | `#eff8f2` | section ground: work already done |
 
 - **Ration ember**: it marks the action to press or the activity happening now. It is
   not general decoration.
@@ -86,8 +85,8 @@ shadow. Shadows never blur or change direction.
   the hierarchy.
 - **One ground, and colour only where a section MEANS something**: every section takes
   `nb-sheet` — the run log, the meta box, the subtasks, the delivery block, the body. The
-  exceptions are `nb-mint-wash` for checks already done and `nb-accent-wash` for the one
-  section holding a decision; peach `-soft` is an alert, a rung louder than either. A page
+  exception is `nb-accent-wash` for the one section holding a decision; peach `-soft` is an
+  alert, a rung louder. A page
   that gives every block its own tint is a swatch sheet — the colours stop meaning anything.
 - **Prose never sits on a signal**: a body ground is read through every line of it, so it
   stays in the warm neutral family. Signals are for the sections you glance at, not read.

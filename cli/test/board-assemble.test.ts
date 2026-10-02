@@ -25,7 +25,6 @@ const meta = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
   blocked_by: [],
   related: [],
   questions: [],
-  verify: [],
   modules: [],
   ...over,
 })

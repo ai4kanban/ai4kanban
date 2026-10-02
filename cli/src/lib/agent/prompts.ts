@@ -522,7 +522,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Prune this board's memory following \`akb guide prune-memory\`.`,
         `Cover the board's own record at \`${rel(MEMORY)}/\` and every agent's memory at \`${rel(MEMORY)}/agents/<agent>/\`, the ${PLANNER}'s among them.`,
-        `Change nothing but those files: no card, no \`verify:\` line, no question for anyone.`,
+        `Change nothing but those files: no card, no question for anyone.`,
       ].join(' ')
     // Reading back over the conversations (#748). It names nothing either: which ones have
     // said something new is the flow's answer, and the flow prints them with the memory
@@ -533,7 +533,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Review what this board's conversations settled and write it into memory, following \`akb guide review-memory\`.`,
         `Read each conversation the flow lists right through, and hold to "What earns a note" in \`akb guide board\`.`,
         `Rewrite or delete a note an earlier review wrote that the conversation has since overturned, rather than adding a second one.`,
-        `Change nothing but the memory files: no card, no \`verify:\` line, no question for anyone.`,
+        `Change nothing but the memory files: no card, no question for anyone.`,
       ].join(' ')
     // The dismissal review (#929). The flow lists the dismissals and restored ids; the guide
     // holds every rule.

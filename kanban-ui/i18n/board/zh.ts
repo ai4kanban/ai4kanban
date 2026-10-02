@@ -40,7 +40,6 @@ const zh: BoardCopy = {
     questionsMany: (n) => `${n} 个待澄清问题`,
     needsYouOne: "1 个待你决定",
     needsYouMany: (n) => `${n} 个待你决定`,
-    verify: (n) => `${n} 项需人工验收`,
     creating: {
       discard: "丢弃",
       discarding: "丢弃中…",

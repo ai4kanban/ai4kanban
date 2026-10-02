@@ -133,7 +133,6 @@ export type {
   SignalMeta,
   SignalsAccess,
   Subtask,
-  VerifyResult,
 } from "./format/view/types";
 import type { WriteResult as BoardWriteResult } from "./format/view/types";
 /** A board write as a screen gets it: `raw` marks an `error` the server could not put in the

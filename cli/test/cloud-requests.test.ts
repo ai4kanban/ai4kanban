@@ -85,7 +85,6 @@ const card = (over: Partial<Card> = {}): Card =>
     blocked_by: [],
     related: [],
     questions: [],
-    verify: [],
     modules: [],
     last_run: '',
     cadence: '',

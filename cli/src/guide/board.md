@@ -48,9 +48,9 @@ id 4). Ids are global and never reused; only `akb raw create` allocates them.
 
 ## Never hand-write a card's frontmatter
 
-`akb raw create`, `update`, `update-questions`, `update-verify`, and `schedule` manage
+`akb raw create`, `update`, `update-questions`, and `schedule` manage
 the metadata: title, priority, roi, status, release, blocked_by, related, modules,
-source, questions, verify, and schedule. Edit only the card's **body** by hand. `akb raw help`
+source, questions, and schedule. Edit only the card's **body** by hand. `akb raw help`
 lists all operations; `akb raw help <move>` explains one operation.
 
 ## Inside a board run
@@ -62,15 +62,15 @@ A board run carries `KANBAN_RUN` in its environment. Never unset or bypass it (f
 
 A run is told which language to write the board's prose in; told nothing, write English.
 
-- **Follows the language**: card titles and bodies, open questions and their options,
-  `verify:` lines, memory notes, changelogs, and replies to the user.
-- **Prose in frontmatter is still prose**: titles, questions, options, `verify:` lines.
+- **Follows the language**: card titles and bodies, open questions and their options, memory
+  notes, changelogs, and replies to the user.
+- **Prose in frontmatter is still prose**: titles, questions, options.
 - **Stays English**: frontmatter keys and fixed values, `##`/`###` headings, the
   `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag, module names, and filenames.
   The board matches these literally. A non-English title needs
   `akb raw create --slug <short-english-slug>`, and a group folder an English slug.
 - **An edit follows the file, not the setting**: an existing card or memory file keeps its
-  language. Open questions, their options and `verify:` lines follow the setting on every
+  language. Open questions and their options follow the setting on every
   card; so does a rewritten changelog (`akb guide changelog`).
 - **A memory file holding only its seeded header is empty**: its first note follows the
   setting.

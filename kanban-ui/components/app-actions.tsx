@@ -23,7 +23,6 @@ import {
   discardDeliveryAction,
   resumeDeliveryAction,
   dropReleaseAction,
-  dropVerifyAction,
   getBoard,
   getSessionAction,
   listSessionsAction,
@@ -46,7 +45,6 @@ export const appActions: ScreenActions = {
   cardOnBoard: cardOnBoardAction,
 
   patchCard: patchCardAction,
-  dropVerify: dropVerifyAction,
   skipQuestion: skipQuestionAction,
   scheduleCard: scheduleCardAction,
   unscheduleCard: unscheduleCardAction,

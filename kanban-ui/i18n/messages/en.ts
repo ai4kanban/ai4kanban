@@ -11,7 +11,7 @@ const en: MessagesCopy = {
     installIt: "Run `npm install -g ai4kanban` to install one.",
     tooOldForCloud: "The board's rules in this project are too old to sign in to Cloud.",
     tooOldForChat: "This board's copy of the board's rules is too old to hold a conversation.",
-    tooOldForHandChecks: "This board's copy of the rules is older than editing hand-checks.",
+    tooOldForSkip: "This board's rules are too old to skip a question.",
     tooOldForMemory: "The board's rules this board runs are too old to read its memory.",
     tooOldForArchive: "The board's rules this board runs are too old to read its archive.",
     tooOldForSignals: "The board's rules this board runs are too old to use triage.",

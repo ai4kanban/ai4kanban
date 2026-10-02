@@ -138,7 +138,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     description: 'Plan and implement software changes.',
     stages: {
       plan: { lead: 'software-planner', helpers: 'every' },
-      execute: { lead: 'builder', helpers: [] },
+      execute: { lead: 'builder', helpers: ['qa-manager'] },
     },
   },
   {

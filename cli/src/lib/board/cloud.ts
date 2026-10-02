@@ -780,8 +780,6 @@ function cloudBoard(ctx: Context): BoardProvider {
     patchCard: (id, patch, env) => through({ card: id }, env, (e) => local.patchCard(id, patch, e)),
     setStatus: (id, status, env) => through({ card: id }, env, (e) => local.setStatus(id, status, e)),
     setSchedule: (id, schedule, env) => through({ card: id }, env, (e) => local.setSchedule(id, schedule, e)),
-    addVerify: (id, line, env) => through({ card: id }, env, (e) => local.addVerify(id, line, e)),
-    dropVerify: (id, line, env) => through({ card: id }, env, (e) => local.dropVerify(id, line, e)),
     appendQuestion: (id, question, options, env) =>
       through({ card: id }, env, (e) => local.appendQuestion(id, question, options, e)),
     skipQuestion: (id, question, skipped, env) =>

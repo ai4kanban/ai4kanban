@@ -27,7 +27,6 @@ import {
   type OpResult,
   type ReleaseFill,
   type Revision,
-  type VerifyOp,
 } from '../board'
 import type { DeliveryCarryOn } from '../agent/types'
 import type { WorkflowStage } from '../agent/workflows'
@@ -116,32 +115,6 @@ export async function patchCard(id: number, patch: CardPatch, opts?: WriteOption
 /** Skip one of the user's questions on a card, or reopen it (#831). */
 export async function skipQuestion(id: number, question: string, skipped: boolean, opts?: WriteOptions): Promise<WriteResult> {
   return flat(await envelopeFor({ card: id }, opts, (env) => board().skipQuestion(id, question, skipped, env)))
-}
-
-/**
- * Add one hand-check to a card, or cross one off (#276) — the card page's two controls on
- * the **check by hand** panel.
- *
- * Both answer with the list as it now stands, so the screen redraws from what was written
- * rather than from what it had. Crossing one off names the LINE, not its place: a run can
- * add or take away hand-checks while the page sits open. A line that is no longer there
- * refuses, and the refusal is what the screen says.
- */
-export async function addVerify(id: number, line: string, opts?: WriteOptions) {
-  return flat<{ verify: string[] }>(
-    (await envelopeFor({ card: id }, opts, (env) => board().addVerify(id, line, env))) as VerifyOp,
-  )
-}
-
-export async function dropVerify(id: number, line: string, opts?: WriteOptions) {
-  const res = flat<{ verify: string[] }>(
-    (await envelopeFor({ card: id }, opts, (env) => board().dropVerify(id, line, env))) as VerifyOp,
-  )
-  if (res.ok) return res
-  // Refused — most often because a run took that line off while the page sat open. Hand
-  // back what the card holds now, so the panel redraws to the truth beside the message
-  // rather than keeping a line that is no longer there.
-  return { ...res, verify: (await board().readCard(id))?.verify }
 }
 
 /**

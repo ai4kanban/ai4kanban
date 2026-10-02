@@ -52,8 +52,6 @@ export type BoardCopy = {
     /** Of those, the ones waiting on the user. Joined after the count above. */
     needsYouOne: string;
     needsYouMany: (n: number) => string;
-    /** Things the build left for the user to check by hand. */
-    verify: (n: number) => string;
     /** A card its creator has not finished writing (#564). It stands in for the status
      *  pill, and the card does nothing when clicked. */
     creating: {

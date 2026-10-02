@@ -14,7 +14,7 @@ const zh: MessagesCopy = {
     installIt: "运行 `npm install -g ai4kanban` 安装一份。",
     tooOldForCloud: "这个项目里的运行规则太旧，无法登录 Cloud。",
     tooOldForChat: "这个看板的运行规则太旧，无法进行对话。",
-    tooOldForHandChecks: "这个看板的运行规则早于人工验收项的编辑功能。",
+    tooOldForSkip: "这个看板的运行规则太旧，无法跳过问题。",
     tooOldForMemory: "这个看板所用的运行规则太旧，无法读取它的记忆。",
     tooOldForArchive: "这个看板所用的运行规则太旧，无法读取它的归档。",
     tooOldForSignals: "这个看板所用的运行规则太旧，无法使用待筛选。",

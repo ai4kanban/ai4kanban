@@ -675,7 +675,7 @@ export function carryOnHooks(id: string): DeliveryRecord | undefined {
 // ---- the approved requirements ----------------------------------------------
 
 // What a delivery is approved to build. Everything else on the card — `## Todo` and its
-// ticks, status, questions, verify lines, the notes a delivery leaves as it works — sits
+// ticks, status, questions, the notes a delivery leaves as it works — sits
 // outside, so a delivery writing to its own card is never a change to its requirements.
 const APPROVED = [
   /^##\s+Worth noting\s*$/i,
@@ -1227,7 +1227,7 @@ export async function settleManualCommit(cardId: number): Promise<void> {
 // ---- the hold a delivery puts on its card -----------------------------------
 
 /** True when THIS process is a run of that card's delivery, so the hold does not apply
- *  to it. The implement flow closes by ticking todos, appending verify lines and archiving
+ *  to it. The implement flow closes by ticking todos and archiving
  *  the card — card writes like any other, so a hold that couldn't tell them from a user's
  *  edit would refuse the delivery its last step. */
 export function insideDelivery(cardId: number): boolean {

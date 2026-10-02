@@ -9,6 +9,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { runAgent } from '../../src/lib/agent-cli.ts'
+import { DEFAULT_WORKFLOW, switchWorkflowAgent } from '../../src/lib/agent/workflows.ts'
 import { runBoard } from '../../src/lib/board-cli.ts'
 import { projectStateDir } from '../../src/lib/machine/project.ts'
 
@@ -22,6 +23,11 @@ export function uiConfigOf(...board: string[]): string {
   const dir = projectStateDir(path.join(...board))
   fs.mkdirSync(dir, { recursive: true })
   return path.join(dir, 'ui.config.json')
+}
+
+/** Take the hook Coding ships off it, for a suite about a build that nothing follows. */
+export function noExecuteHooks(): void {
+  assert.equal(switchWorkflowAgent(DEFAULT_WORKFLOW, 'execute', 'qa-manager', false).ok, true)
 }
 
 /** Put the run's own machine home back, after a test set one of its own. */

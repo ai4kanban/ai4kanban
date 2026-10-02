@@ -31,7 +31,7 @@ import { cancelDelivery, listRuns, openResume, recoverOrphanedDeliveries, resume
 import { cardsAtWork, cardsWithLiveRun, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
-import { forgetMachineState } from './helpers/board.ts'
+import { forgetMachineState, noExecuteHooks } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-delivery-'))
 const todo = path.join(root, 'docs', 'kanban', 'todo')
@@ -84,6 +84,7 @@ beforeEach(() => {
   // The board refuses every write without it, and handing a card back is a board write.
   fs.writeFileSync(path.join(root, 'docs', 'kanban', 'next-id'), '6\n')
   setBoardRoot(root)
+  noExecuteHooks()
   delete process.env[RUN_ENV]
 })
 

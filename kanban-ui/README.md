@@ -120,11 +120,6 @@ agent it can use, or the workflow was deleted — an **Unavailable** pill sits b
 Hover it for the reason; click it to open **Configuration → Workflows**. A deleted workflow
 reads **Deleted workflow** and cannot be fixed from here.
 
-**Check by hand**: things only you can confirm after a build appear in a panel above the body, and
-the board card counts them. Cross one off with **✕** (it asks twice; there is no undo). You cannot
-add one here, crossing off is disabled while an agent works the card, and open checks do not
-block archiving.
-
 ### Finding a card
 
 Down the left is the **rail**: **All cards** (the board), then **Discussions** — every discussion

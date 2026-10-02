@@ -72,7 +72,6 @@ const PEACH_INK = "#8a4a28";
 // The two section grounds that are a colour — a signal thinned until a whole block of one
 // can carry body text. Every other section on a card page takes the plain SHEET.
 const ACCENT_WASH = "#fbf0e9";
-const MINT_WASH = "#eff8f2";
 
 // Two surfaces the board mixes rather than names, so the table below can measure
 // what a reader actually sees: the progress bar's track, and the hairline under
@@ -129,9 +128,8 @@ const GROUPS: { title: string; note: string; tokens: { name: string; hex: string
   },
   {
     title: "The section grounds",
-    note: "Two, and only two. A card page puts every section on the plain nb-sheet and spends colour on the sections that MEAN something: mint where the work is already done, ember where an answer is wanted. The body is never one of them — prose is read through its ground, and a tint under it colours every line.",
+    note: "One, and only one. A card page puts every section on the plain nb-sheet and spends colour on the section that MEANS something: ember where an answer is wanted. The body is never one of them — prose is read through its ground, and a tint under it colours every line.",
     tokens: [
-      { name: "nb-mint-wash", hex: MINT_WASH, use: "the hand-checks" },
       { name: "nb-accent-wash", hex: ACCENT_WASH, use: "the open questions" },
     ],
   },
@@ -189,8 +187,6 @@ const PAIRS: {
   { fg: PEACH_INK, bg: PAPER, label: "peach-ink on paper", where: "an error line beside a control" },
   { fg: INK, bg: ACCENT_WASH, label: "ink on accent-wash", where: "an open question on the card page" },
   { fg: INK_SOFT, bg: ACCENT_WASH, label: "ink-soft on accent-wash", where: "that section's kicker" },
-  { fg: INK, bg: MINT_WASH, label: "ink on mint-wash", where: "a hand-check line" },
-  { fg: INK_SOFT, bg: MINT_WASH, label: "ink-soft on mint-wash", where: "its cross-off control" },
   { fg: CREAM, bg: INK, label: "cream on ink", where: "the hover tooltip" },
   { fg: INK, bg: MINT_SOFT, label: "ink on mint-soft", where: "the code on an added line in the Diff tab" },
   { fg: INK, bg: PEACH_SOFT, label: "ink on peach-soft", where: "the code on a removed line" },
@@ -275,7 +271,6 @@ const CARD: Card = {
   blocked_by: [17],
   related: [],
   questions: [{ text: "[user] Does /design ship in the desktop app, or stay a dev-only route?" }],
-  verify: ["open /design in the desktop app and check every specimen still draws"],
   modules: ["board"],
   last_run: "",
   cadence: "",
@@ -627,7 +622,6 @@ export function DesignSystem() {
             {[
               { bg: "bg-nb-canvas", name: "nb-canvas", what: "the well a log scrolls in — depth inside a section is a step DOWN from its chrome, which is also what gives the block a bottom edge" },
               { bg: "bg-nb-sheet", name: "nb-sheet", what: "every section that means nothing in particular — the run log, the meta box, the subtasks, the delivery block, and the body itself, both halves of it. A tint under prose is read through every line, so the body is never a signal" },
-              { bg: "bg-nb-mint-wash", name: "nb-mint-wash", what: "the hand-checks — notes on work already done" },
               { bg: "bg-nb-accent-wash", name: "nb-accent-wash", what: "the open questions — the one section with something to decide" },
               { bg: "bg-nb-peach-soft", name: "nb-peach-soft", what: "an error, and anything the delivery is waiting on you for. An alert sits a rung louder than a section, on the -soft fill" },
             ].map((s) => (

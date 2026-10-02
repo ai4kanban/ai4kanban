@@ -163,13 +163,11 @@ import {
 } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import {
-  addVerify,
   clearSchedule,
   closePlan,
   closeRelease,
   dropPlan,
   dropRelease,
-  dropVerify,
   fillPlan,
   finishSetupStep,
   newRelease,
@@ -281,7 +279,6 @@ import type {
   SourceDocument,
   SpecAgentView,
   UsageReporting,
-  VerifyResult,
   WorkflowStage,
   WorkflowView,
   WriteResult,
@@ -1045,25 +1042,6 @@ export async function patchCardAction(
   expect = "",
 ): Promise<WriteResult> {
   return patchCard(id, patch, expect);
-}
-
-// One hand-check added or crossed off from the card page (#276). Both save the moment the
-// user acts and neither starts a run: a hand-check is one line of text, so there is nothing
-// for an agent to decide.
-//
-// A cross-off names the LINE, not its place in the list — a run can add or take away
-// hand-checks while the page sits open. The answer carries the list as the card now holds
-// it, so the panel redraws from the card either way, a refusal included.
-export async function addVerifyAction(id: number, line: string, expect = ""): Promise<VerifyResult> {
-  if (!Number.isInteger(id)) return { ok: false, error: "a hand-check is added by card number" };
-  if (typeof line !== "string" || !line.trim()) return { ok: false, error: "a hand-check is one line of text" };
-  return addVerify(id, line, expect);
-}
-
-export async function dropVerifyAction(id: number, line: string, expect = ""): Promise<VerifyResult> {
-  if (!Number.isInteger(id)) return { ok: false, error: "a hand-check is crossed off by card number" };
-  if (typeof line !== "string") return { ok: false, error: "a hand-check is named by its text" };
-  return dropVerify(id, line, expect);
 }
 
 export async function skipQuestionAction(

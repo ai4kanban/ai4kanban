@@ -172,13 +172,6 @@ const zh: CardCopy = {
     undo: "撤销",
     skipFailed: "未能更新这个问题",
   },
-  handChecks: {
-    heading: "人工验收",
-    crossOff: "标记完成",
-    crossOffAria: (line) => `标记「${line}」为已完成`,
-    crossOffHint: "标记这一项为已完成——它会从卡片上移除",
-    failed: "未能标记这项人工验收",
-  },
   agentHalf: "Agent 的分析",
   diff: {
     uncommitted: "未提交",

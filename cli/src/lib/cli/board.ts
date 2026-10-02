@@ -178,7 +178,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .argument('<id>', ID, cardId)
     .summary("rewrite a card's fields")
     .description(
-      "Rewrite a card's frontmatter fields. --slug renames it. Body, questions and verify lines are left " +
+      "Rewrite a card's frontmatter fields. --slug renames it. Body and questions are left " +
         'untouched — those have their own moves. Putting a group root in a release puts every subtask in ' +
         'it too.',
     )
@@ -207,7 +207,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
 
   move('update-questions')
     .argument('<id>', ID, cardId)
-    .summary("patch a card's open questions: append, rewrite, drop, move to verify, skip, or clear")
+    .summary("patch a card's open questions: append, rewrite, drop, skip, or clear")
     .description(
       'Patch the open-question list in place. Ops apply in the order they were typed, and a position is ' +
         'read against the list as it stands when its op runs. Positions are 1-based. A question handed to ' +
@@ -217,7 +217,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--append <text>', 'add one question to the end', opInOrder('append'))
     .option('--update <n> <text...>', 'rewrite question <n> whole', opInOrder('update'))
     .option('--drop <positions>', 'remove answered questions, e.g. 1 or 1,3', opInOrder('drop'))
-    .option('--to-verify <positions>', 'move hand-checks into `verify:`', opInOrder('to-verify'))
     .option('--skip <positions>', "mark [user] questions skipped: kept as a record, no longer open", opInOrder('skip'))
     .option('--unskip <positions>', 'reopen skipped questions', opInOrder('unskip'))
     .option('--clear', 'remove every open question', opInOrder('clear'))
@@ -227,25 +226,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--agent <name>', 'the spec agent whose section the op before it is about', opInOrder('agent'))
     .action(async function (this: Command, id: number) {
       await dispatch('update-questions', this, [String(id)], { ops: questionOps }, cli)
-    })
-
-  const verifyOps: Typed[] = []
-  const verifyInOrder = ordered(verifyOps)
-
-  move('update-verify')
-    .argument('<id>', ID, cardId)
-    .summary('patch what the user checks by hand before accepting the work')
-    .description(
-      'Patch the `verify:` list — the hand-checks a finished build leaves for the user, one short line ' +
-        'each. Ops apply in the order typed. A verify line is a NOTE, not a question: it carries no tag ' +
-        'and no options, nothing waits on an answer, and it never stops a card reaching ready or being ' +
-        'archived. A decision the user has to make is an open question instead.',
-    )
-    .option('--append <line>', 'add one hand-check', verifyInOrder('append'))
-    .option('--drop <positions>', 'remove them by 1-based position, e.g. 1 or 1,3', verifyInOrder('drop'))
-    .option('--clear', 'remove them all', verifyInOrder('clear'))
-    .action(async function (this: Command, id: number) {
-      await dispatch('update-verify', this, [String(id)], { ops: verifyOps }, cli)
     })
 
   move('schedule')
@@ -398,7 +378,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary('the open cards: id, title, meta, summary, path')
     .description(
       'The open cards at a glance — one block per card with its id, title, meta (status, priority, roi, ' +
-        'release, blockers, open questions, hand-checks), summary line and file path.\n\n' +
+        'release, blockers, open questions), summary line and file path.\n\n' +
         "`--stale` asks the other question: which cards have sat untouched past the board's **Stale after** " +
         'setting (config.md, 30 days by default), stalest first, each with the days it has sat and what is ' +
         'holding it — a blocker, an unanswered [user] question, or a build. Age is the date git last saw ' +

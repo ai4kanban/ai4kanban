@@ -39,7 +39,7 @@ import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import { board } from '../src/lib/board/index.ts'
 import { PLANS, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { move } from './helpers/board.ts'
+import { move, noExecuteHooks } from './helpers/board.ts'
 import { findCard } from '../src/lib/view/read.ts'
 
 let root = ''
@@ -97,6 +97,7 @@ beforeEach(() => {
   git(['add', '-A'])
   git(['commit', '--quiet', '-m', 'start'])
   setBoardRoot(root)
+  noExecuteHooks()
   fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
   fs.writeFileSync(cardPath(2), cardText(2, 'card two'))
   setAutoCommit(true)
@@ -475,10 +476,9 @@ describe('an answer that changed the plan', () => {
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     said(1, 'unchanged')
 
-    // A ticked todo and a verify line the build left behind: the delivery's own bookkeeping,
-    // written after the copy was frozen and no part of what it was approved to build.
+    // A ticked todo the build left behind: the delivery's own bookkeeping, written after the
+    // copy was frozen and no part of what it was approved to build.
     fs.appendFileSync(cardPath(1), '\n## Todo\n- [x] the one step\n\n')
-    await move(root, ['update-verify', '1', '--append', 'check the shade by hand'])
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
   })

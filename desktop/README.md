@@ -195,7 +195,7 @@ To watch the supersede path instead, let 0.9.1 finish, then repoint `/tmp/feed` 
 build and use **Check for Updates…**: the chip and the dialog both name 0.9.2 from there, and
 0.9.1's staging folder under `.ai4kanban-update/` is gone.
 
-**Keeping a fixture for the published feed.** The `verify:` check that proves the *real*
+**Keeping a fixture for the published feed.** The check that proves the *real*
 release works needs a lower-version build made from the final code, kept before the version
 is bumped. Copy step 2's build somewhere out of `dist/` — that folder is overwritten by the
 next `npm run dist:*` — and after publishing, launch it with **no** `AI4KANBAN_UPDATE_FEED`

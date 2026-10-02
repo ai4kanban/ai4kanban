@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "October 1, 2026"
+last_updated: "October 2, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -116,6 +116,12 @@ card, and changes nothing else. The board ships nine, and `akb spec` lists them:
 - **`blog-illustrator`** (Blog illustrator) — on a Blog post card only, after you approve the
   outline: makes the cover and every image the outline names, new for that post — a screenshot of
   the product, a drawn diagram, or, with Pro, a generated image — each with its alt text.
+
+One more runs after a build instead of during planning:
+
+- **`qa-manager`** (QA manager) — after every Coding build, updates the cases that build affects
+  in the project's [QA manual](/docs/daily-loop#the-qa-manual) under `docs/qa/`, each step with
+  its proof, and reruns the whole manual when you ask.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
 clean, given the card and a short note but never the conversation that asked for it; it writes one

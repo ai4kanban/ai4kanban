@@ -12,7 +12,6 @@ import { bumpMetric } from '../lib/metrics'
 import { slugify, validModules, parseIdList, normalizeRelease, dependencyCycle } from '../lib/validate'
 import { DEFAULT_WORKFLOW, knownWorkflow } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
-import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
 import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
@@ -33,7 +32,7 @@ import { TASKS_HEADING, addReadmeRef, stripReadmeRefs, repointReadmeLink } from 
 import { reconcileBoard } from '../lib/reconcile'
 import type { Meta, MoveResult, Question } from '../lib/types'
 
-export type { QuestionOpsInput, VerifyOpsInput }
+export type { QuestionOpsInput }
 
 // A one-shot todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the
 // shape counts, not the literal string. Recurring cards have a Process instead.
@@ -459,7 +458,6 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   }
 
   const changes: string[] = []
-  let moved = 0
   let skipped = 0
   let unskipped = 0
   const asker = specRunAgent()
@@ -485,18 +483,6 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       const ns = positions(op, 'drop')
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
-    } else if (op.kind === 'to-verify') {
-      // A hand-check filed as a question: it moves to `verify:` as it stands, minus the
-      // `[user]` tag a note never carries, and counts as moved rather than as answered.
-      const ns = positions(op, 'to-verify')
-      for (const q of meta.questions.filter((_, i) => ns.includes(i + 1))) {
-        const line = parseQuestion(q.text).text.trim()
-        if (!line) die(`question ${ns.join(',')} on #${id} is empty — there is nothing to move to verify`)
-        meta.verify.push(line)
-        moved++
-      }
-      meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
-      changes.push(`moved ${ns.join(',')} to verify`)
     } else if (op.kind === 'skip') {
       const ns = positions(op, 'skip')
       const notUser = ns.find((n) => parseQuestion(meta.questions[n - 1]!.text).tag !== 'user')
@@ -541,10 +527,9 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   say(
     `updated #${id} questions: ${changes.join(', ')} (${open} open` +
       (meta.questions.length > open ? `, ${meta.questions.length - open} skipped` : '') +
-      (moved ? `, ${meta.verify.length} to check by hand` : '') +
       ')',
   )
-  return { id, changes, open, verify: meta.verify.length, file: rel(file) }
+  return { id, changes, open, file: rel(file) }
 }
 
 // A skip is an answer that changed nothing (#831), so the delivery in flight carries on once
@@ -564,40 +549,6 @@ function specRunAgent(): string | undefined {
   if (!id) return undefined
   const run = readStore().runs.find((r) => r.sessionId === id)
   return run?.action === 'spec' ? run.specAgent : undefined
-}
-
-// Patch a card's verify list — what the user should check by hand before accepting the
-// finished work. The same three edits `update-questions` makes, applied in the order they
-// were typed, so a build that ends with two hand-checks writes them one call at a time
-// without re-passing the ones already there.
-//
-// Nothing here touches the card's status: a verify line is a note, not a question, so it
-// never takes a `ready` card back to `todo` and never stands between the card and archive.
-export function cmdUpdateVerify(id: number, input: VerifyOpsInput): MoveResult {
-  const ops = readVerifyOps(input.ops ?? [])
-  const found = locate(id)
-  if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
-  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
-  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
-
-  const changes: string[] = []
-  for (const op of ops) {
-    if (op.kind === 'clear') {
-      meta.verify = []
-      changes.push('cleared')
-    } else if (op.kind === 'drop') {
-      const ns = parseVerifyPositions(op.ns, meta.verify.length)
-      meta.verify = meta.verify.filter((_, i) => !ns.includes(i + 1))
-      changes.push(`dropped ${ns.join(',')}`)
-    } else {
-      meta.verify.push(op.line!)
-      changes.push('appended')
-    }
-  }
-  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
-  say(`updated #${id} verify: ${changes.join(', ')} (${meta.verify.length} to check by hand)`)
-  return { id, changes, verify: meta.verify.length, file: rel(file) }
 }
 
 // Set (or clear) the tag on open questions, so the refine loop can hand a

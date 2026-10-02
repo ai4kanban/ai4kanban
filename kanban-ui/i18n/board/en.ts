@@ -44,7 +44,6 @@ const en: BoardCopy = {
     questionsMany: (n) => `${n} open questions`,
     needsYouOne: "1 needs you",
     needsYouMany: (n) => `${n} need you`,
-    verify: (n) => `${n} to check by hand`,
     creating: {
       discard: "Discard",
       discarding: "Discarding…",

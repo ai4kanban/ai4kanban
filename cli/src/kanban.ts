@@ -470,7 +470,6 @@ export type * from './lib/agent/types'
 // question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
 // run, so a button and a command can never disagree about what a card says.
 export {
-  addVerify,
   allCards,
   boardStamp,
   clearSchedule,
@@ -480,7 +479,6 @@ export {
   deliveryPlan,
   dropPlan,
   dropRelease,
-  dropVerify,
   fillPlan,
   findCard,
   finishSetupStep,

@@ -264,7 +264,6 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     blocked_by: ids(meta.blocked_by),
     related: ids(meta.related),
     questions: (Array.isArray(meta.questions) ? meta.questions : []) as Question[],
-    verify: lines(meta.verify),
     workflow: text(meta.workflow),
     modules: lines(meta.modules),
     last_run: lastRun,

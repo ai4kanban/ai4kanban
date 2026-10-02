@@ -36,7 +36,7 @@ whole job.
   behind that no proposal named, add the kind of miss, not the case, to
   `docs/kanban/memory/agents/proposer/missed.md` as `- **<kind>**: <what to check> (#<card>)`,
   creating the file if missing.
-- **Change nothing else**: no card, no open question, no `verify:` line, no code. The memory
+- **Change nothing else**: no card, no open question, no code. The memory
   files are the whole of what this run writes.
 - **Say what you wrote**: finish by reporting each conversation you read, and for each the
   notes you added, rewrote, deleted, or that you wrote none.

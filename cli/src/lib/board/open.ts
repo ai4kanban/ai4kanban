@@ -176,8 +176,6 @@ function refusing(error: string): import('./contract').BoardProvider {
     patchCard: refused,
     setStatus: refused,
     setSchedule: refused,
-    addVerify: refused,
-    dropVerify: refused,
     appendQuestion: refused,
     skipQuestion: refused,
     archiveCard: refused,

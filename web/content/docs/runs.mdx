@@ -3,7 +3,7 @@ title: "Runs, and the tool behind them"
 title_tag: "AI4Kanban runs — watch one, stop it, resume it, and pick what it runs on"
 description: "A run is an agent working on its own: what to say to watch, stop or resume one, and how each agent picks the coding tool and model it runs."
 lead: "A run is an agent working on its own — it survives a closed terminal, keeps its own log, and can be stopped. Here's how you drive one, and how each agent picks what it runs on."
-last_updated: "September 29, 2026"
+last_updated: "October 2, 2026"
 nav_label: "Runs and agents"
 icon: "terminal"
 ---
@@ -25,6 +25,9 @@ runs panel and `akb run` are the same list either way.
 
 A key is the one thing your agent hands back instead of running: a key it types lands in its
 transcript and in your shell history, and the board never reads a saved key back.
+
+A Coding build shows as two runs: the build, then the [QA manager](/docs/daily-loop#the-qa-manual)
+updating the QA manual. The delivery lands when the second one finishes.
 
 When an ask can't run, the answer names the one line that fixes it — `akb install` for a project
 with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind, `akb agent test` for

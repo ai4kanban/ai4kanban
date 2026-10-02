@@ -19,7 +19,6 @@ import {
   FiPlay,
   FiRotateCw,
   FiTrash2,
-  FiX,
   FiXCircle,
 } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
@@ -77,7 +76,6 @@ import { SourceLinks } from "./card-sources";
 import { withoutSourceSection } from "@/lib/format/source";
 import { DUE_NOW } from "@/lib/format/board/assemble";
 import { ConfirmationPopover } from "./confirm-popover";
-import { Fold } from "./fold";
 import { goPro, useWorkflowLock } from "./pro";
 import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
@@ -100,155 +98,6 @@ const STACKED = "h-11 w-full justify-center text-[14px]";
 // border any more, so the one line still worth having is drawn at the quietest weight
 // there is — enough to part a tab strip from its pane, never enough to box anything in.
 const PART = { borderTop: `1px solid ${HAIRLINE}` } as const;
-
-// How long a cross-off waits for its second click before going back to being an ✕. The
-// same window the rail's Clear gives the conversation it is about to throw away.
-const CONFIRM_MS = 4000;
-
-// How long a refused hand-check edit says so. Long enough to read, and then gone — the
-// panel it sits in has already redrawn to what the card holds, so leaving the line up
-// would keep an empty panel on screen over news the user has taken in.
-const NOTE_MS = 7000;
-
-// ---- what the build left for you to check by hand (#231, #276) ---------------
-//
-// Its own section, last on the page and never inside the questions: an open question waits on
-// an answer and holds the card back, while every line here is a note on work that is already
-// done. Mint, for the same reason the ✓ in its heading is: this is the one section on the
-// page about work that is finished.
-//
-// A line you have checked is crossed off, which takes it off the card — there is no ticked
-// state to keep, because the card already keeps its record in the archive. It cannot be
-// undone from here, so the ✕ asks for a second click first; a dialog for one line would be
-// more ceremony than the loss is worth.
-//
-// A cross-off names the LINE, not its place in the list: a run can add or take away
-// hand-checks while this page sits open, and by then the third line is a different line. A
-// line a run has already taken off says so here, and the panel redraws to what the card
-// holds now.
-//
-// It opens on its heading, the same fold the agent half wears and the same component: both
-// are notes on work already done, at the foot of a page whose top is what you decide on. How
-// many are left is in the heading, so a shut panel still says there is something to check.
-function HandChecks({
-  cardId,
-  revision,
-  verify,
-  busy,
-  canEdit,
-}: {
-  cardId: number;
-  /** The revision this page read the card at (#316) — what the cross-off is written
-   *  against, so a card rewritten under the page comes back as a conflict. */
-  revision: string;
-  verify: string[];
-  busy: boolean;
-  /** Whether this surface offers crossing one off (#364). The hosted board draws the lines
-   *  and no ✕: a hand-check is a note on work already done, not one of a card's decisions. */
-  canEdit: boolean;
-}) {
-  const c = useCopy().card.handChecks;
-  const actions = useActions();
-  const router = useRouter();
-  const [lines, setLines] = useState(verify);
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  // The card is the record: a run that rewrote the hand-checks while this page sat open
-  // wins over whatever the panel was showing.
-  const fromCard = verify.join("\n");
-  useEffect(() => setLines(verify), [fromCard]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!confirming) return;
-    const timer = setTimeout(() => setConfirming(null), CONFIRM_MS);
-    return () => clearTimeout(timer);
-  }, [confirming]);
-
-  useEffect(() => {
-    if (!note) return;
-    const timer = setTimeout(() => setNote(""), NOTE_MS);
-    return () => clearTimeout(timer);
-  }, [note]);
-
-  const settle = (res: { ok: boolean; error?: string; verify?: string[] }, fallback: string) => {
-    if (res.verify) setLines(res.verify);
-    setNote(res.ok ? "" : sayFailure(res, fallback));
-    // The board card's clipboard mark counts these lines, so the board is re-read too.
-    router.refresh();
-    return res.ok;
-  };
-
-  const crossOff = async (line: string) => {
-    if (!actions) return;
-    setConfirming(null);
-    setSaving(true);
-    const res = await actions.dropVerify(cardId, line, revision);
-    setSaving(false);
-    settle(res, c.failed);
-  };
-
-  // Nothing to check — no empty panel.
-  if (lines.length === 0 && !note) return null;
-
-  return (
-    <Fold
-      className="nb-section bg-nb-mint-wash"
-      open={open}
-      onToggle={setOpen}
-      label={
-        <>
-          <span style={{ color: "var(--color-nb-mint-ink)" }}>✓</span>
-          <span>{c.heading}</span>
-          {/* How many are left, so a shut panel still says there is something to do. */}
-          {lines.length > 0 && <span className="tabular-nums">{lines.length}</span>}
-        </>
-      }
-    >
-      {lines.length > 0 && (
-        <ul className="flex flex-col gap-1 text-[13px] leading-[19px]">
-          {lines.map((line) => (
-            <li key={line} className="flex items-start gap-2">
-              <span className="mt-[7px] size-[5px] shrink-0 rounded-full bg-current" aria-hidden />
-              <span className="min-w-0 flex-1">{line}</span>
-              {!busy &&
-                canEdit &&
-                (confirming === line ? (
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => void crossOff(line)}
-                    className="flex h-[19px] max-md:h-11 shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 max-md:px-3 text-[11px] font-[700] uppercase tracking-[0.04em]"
-                    style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
-                  >
-                    {c.crossOff}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label={c.crossOffAria(line)}
-                    title={c.crossOffHint}
-                    disabled={saving}
-                    onClick={() => setConfirming(line)}
-                    className="nb-press flex h-[19px] max-md:h-11 shrink-0 items-center rounded-[6px] px-1 max-md:px-3.5 text-nb-ink-soft hover:text-nb-peach-ink disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    <FiX className="text-[13px]" aria-hidden />
-                  </button>
-                ))}
-            </li>
-          ))}
-        </ul>
-      )}
-      {note && (
-        <p className="mt-2 whitespace-pre-line break-words text-[12px] leading-snug" style={{ color: "var(--color-nb-peach-ink)" }}>
-          {note}
-        </p>
-      )}
-    </Fold>
-  );
-}
 
 type CardButton = CardControl;
 
@@ -1233,8 +1082,8 @@ export function CardPage({
   // control that fits the card.
   const offered = useControls();
   // Everything this page writes that is NOT one of those controls — a card's fields, a
-  // hand-check crossed off, a queued run taken back. A surface that names its controls offers
-  // none of it: naming two buttons must not hand over the whole page.
+  // queued run taken back. A surface that names its controls offers none of it: naming two
+  // buttons must not hand over the whole page.
   const fieldWrites = !!actions && !offered;
   // The screens this card's `<Mockup>` tags point at (#239) — a file on this machine, so it
   // travels with the machine rather than on the card's read. A caller without one draws the
@@ -2222,16 +2071,6 @@ export function CardPage({
                 mockups={mockups}
                 storyboards={storyboards}
                 questions={card.questions}
-              />
-
-              {/* Last on the page, under the body and its agent half: every line here is a
-                  note on work already done, so it comes after what the card is. */}
-              <HandChecks
-                cardId={card.id}
-                revision={card.revision}
-                verify={card.verify}
-                busy={busy}
-                canEdit={fieldWrites}
               />
             </div>
           </main>

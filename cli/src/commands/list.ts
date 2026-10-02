@@ -37,7 +37,6 @@ interface Row {
   modules: string[]
   cadence: string
   questions: Question[]
-  verify: string[]
   summary: string
   // `--stale` only: when git last saw the card, and how long ago that was.
   lastTouched?: string
@@ -89,7 +88,6 @@ function openRows(): Row[] {
       modules: (meta && meta.modules) || [],
       cadence: (meta && meta.cadence) || '',
       questions: (meta && meta.questions) || [],
-      verify: (meta && meta.verify) || [],
       summary: summaryLine(body),
     })
   }
@@ -177,7 +175,6 @@ export function cmdList(opts: ListOptions): MoveResult {
     if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
     const open = openOf(r.questions).length
     if (open) meta.push(plural(open, 'open question'))
-    if (r.verify.length) meta.push(`${r.verify.length} to check by hand`)
     say('')
     say(`#${r.id} ${r.title}  (${rel(r.file)})`)
     say(`    ${meta.join(' · ')}`)

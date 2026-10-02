@@ -15,7 +15,7 @@ export type MessagesCopy = {
      *  what is missing, and every one ends in the same line that fixes them all. */
     tooOldForCloud: string;
     tooOldForChat: string;
-    tooOldForHandChecks: string;
+    tooOldForSkip: string;
     tooOldForMemory: string;
     tooOldForArchive: string;
     tooOldForSignals: string;

@@ -175,13 +175,6 @@ const en: CardCopy = {
     undo: "Undo",
     skipFailed: "Couldn't update this question",
   },
-  handChecks: {
-    heading: "check by hand",
-    crossOff: "Cross it off",
-    crossOffAria: (line) => `Cross off "${line}"`,
-    crossOffHint: "Cross this check off — it comes off the card",
-    failed: "could not cross that hand-check off",
-  },
   agentHalf: "what the agent worked out",
   diff: {
     uncommitted: "uncommitted",

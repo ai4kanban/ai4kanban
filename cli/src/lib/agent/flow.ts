@@ -446,17 +446,6 @@ function questionsField(meta: Meta): string[] {
   return field('questions', [`${open} open:`, ...lines.map((s) => `  ${s}`)])
 }
 
-// The hand-checks already on the card, numbered as `update-verify --drop` takes them. Only
-// printed when the card carries some: the point is to stop a job appending a line that is
-// already there, not to remind every card that the field exists.
-function verifyField(meta: Meta): string[] {
-  if (!meta.verify.length) return []
-  return field('verify', [
-    `${meta.verify.length} already left for the user to check by hand:`,
-    ...numbered(meta.verify).map((s) => `  ${s}`),
-  ])
-}
-
 // What a run that wrote code has to leave behind for whatever reads it next. In a worktree
 // the board commits the whole change onto the delivery's branch as the run closes — so the
 // one thing asked of the run is to leave nothing of the board's own in there, which
@@ -606,7 +595,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       if (settled) facts.push(...notesField(card))
       facts.push(...stepsField(card))
       if (card.meta.questions.length) facts.push(...questionsField(card.meta))
-      facts.push(...verifyField(card.meta))
       facts.push(...field('memory', memoryLines(card.meta.modules, 'readme.md')))
       // Inside a delivery the build is not the end of the job: the board lands it, and
       // archives the card once it has landed (#304, #307). Outside a delivery — a card built
@@ -617,7 +605,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           ? ['honour the notes above as requirements — they are decisions already settled on this card, and nothing here reopens them']
           : []),
         'tick each box in ## Todo as you finish it — they are the record of what was built',
-        `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         delivery?.commitMode === 'files'
           ? 'leave the card on the board. The board archives it after the output files pass the delivery checks'
@@ -653,7 +640,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         `update or add the card's ## Run state in place with only what the next pass needs`,
         `${raw} record-run ${req.id} — counts this pass and stamps last_run`,
-        `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check this pass left to the user`,
         `never archive it: a recurring card has no end state`,
       )
       break

@@ -81,7 +81,6 @@ import type {
   SignalInbox,
   SourceDocument,
   SignalsAccess,
-  VerifyResult,
   WriteResult,
 } from "./format/view/types";
 
@@ -611,12 +610,8 @@ export interface BoardRules {
   // Every card write takes the revision the screen read (#316). Rules older than the
   // contract ignore the extra argument, which is what they always did with it.
   patchCard(id: number, patch: CardPatch, opts?: WriteOptions): Promise<WriteResult>;
-  // One hand-check added or crossed off from the card page (#276). Optional: a project can
-  // be running rules older than the release that added them, and the panel then reads the
-  // way it always did rather than the page failing to draw.
-  addVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
-  dropVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
-  // Skip one of the user's questions, or reopen it (#831). Optional for the same reason.
+  // Skip one of the user's questions, or reopen it (#831). Optional: a project can be
+  // running rules older than the release that added it.
   skipQuestion?(id: number, question: string, skipped: boolean, opts?: WriteOptions): Promise<WriteResult>;
   setSchedule(id: number, action: string, notes?: string, opts?: WriteOptions): Promise<WriteResult>;
   clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult>;

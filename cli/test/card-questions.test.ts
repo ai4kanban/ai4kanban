@@ -43,7 +43,7 @@ describe('a question handed to the user carries choices', () => {
     assert.match(help, /--update <n> <text\.\.\.>/)
     assert.match(help, /--recommended-option <text>/)
     assert.match(help, /--drop <positions>/)
-    assert.match(help, /--to-verify <positions>/)
+    assert.doesNotMatch(help, /--to-verify/)
     assert.match(help, /--clear/)
     assert.match(help, /akb guide update-questions/)
     assert.equal(
@@ -123,8 +123,9 @@ describe('a question handed to the user carries choices', () => {
 
   it('leaves the ops that only remove questions alone', async () => {
     await questions(['--append', 'Which region?', '--option', 'a — why', '--option', 'b — why'])
-    await questions(['--to-verify', '1'])
-    assert.match(card(), /verify:\n {2}- Which region\?/)
+    await questions(['--append', 'Which zone?', '--option', 'a — why', '--option', 'b — why'])
+    await questions(['--drop', '1'])
+    assert.doesNotMatch(card(), /Which region\?/)
     await questions(['--clear'])
     assert.match(card(), /questions: \[\]/)
   })
@@ -142,11 +143,10 @@ describe('a question the user skipped', () => {
     assert.match(card(), /status: ready/)
   })
 
-  it('refuses rewriting, dropping or moving it until it is reopened', async () => {
+  it('refuses rewriting or dropping it until it is reopened', async () => {
     await questions(user)
     await questions(['--skip', '1'])
     await refuses(root, ['update-questions', '1', '--drop', '1'], /--unskip 1/)
-    await refuses(root, ['update-questions', '1', '--to-verify', '1'], /--unskip 1/)
     await refuses(root, ['update-questions', '1', '--update', '1', '[user] Other?', '--option', 'a', '--option', 'b'], /--unskip 1/)
     await questions(['--clear'])
     assert.match(card(), /skipped: true/)
@@ -176,5 +176,19 @@ describe('a question the user skipped', () => {
     await move(root, ['update', '1', '--status', 'ready'])
     await questions(['--unskip', '1'])
     assert.match(card(), /status: todo/)
+  })
+})
+
+// `verify:` is retired (#1329): a card written before then still opens and still takes edits.
+describe('a card still carrying verify lines', () => {
+  it('reads and rewrites as an ordinary card, and the retired move is gone', async () => {
+    const file = path.join(todo, fs.readdirSync(todo).find((f) => f.endsWith('.md'))!)
+    fs.writeFileSync(file, card().replace(/\n---\n/, '\nverify:\n  - "check the shade by hand"\n---\n'))
+    assert.match(card(), /verify:\n {2}- "check the shade by hand"/)
+    await move(root, ['list'])
+    await move(root, ['update', '1', '--priority', 'high'])
+    assert.match(card(), /priority: high/)
+    assert.doesNotMatch(card(), /verify:/)
+    await refuses(root, ['update-verify', '1', '--append', 'x'], /unknown command|update-verify/)
   })
 })
