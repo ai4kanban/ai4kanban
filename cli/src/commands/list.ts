@@ -7,15 +7,21 @@
 // `--stale` asks a different question: which cards have sat untouched past the board's
 // threshold, stalest first, and what is holding each one. Age comes from git (lib/card-age),
 // so only this flag pays for the walk.
+//
+// `--archived` asks a third: which cards landed and left the board, oldest first, each with
+// the commit it landed as. It reads the delivery records, not `.archive/`.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, rel, TODO, MODULES_MD } from '../lib/paths'
+import { die, rel, ARCHIVE, TODO, MODULES_MD } from '../lib/paths'
 import { say } from '../lib/io'
 import { moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
-import { walkMd, idPrefix } from '../lib/cards'
+import { walkMd, walkDirs, idPrefix, boardCardIds } from '../lib/cards'
+import { formatStamp, parseStamp } from '../lib/cadence'
+import { landedDeliveries } from '../lib/agent/deliveries'
+import { knownWorkflow } from '../lib/agent/workflows'
 import { cardAges, staleAfter, type Age } from '../lib/card-age'
 import { heldBy, type Hold } from '../lib/card-holds'
 import { openOf } from '../lib/view/rules'
@@ -135,13 +141,77 @@ function cmdStale(rows: Row[], all: Row[], scope: string, mod: string | null): M
   return { cards, module: mod, staleAfter: days }
 }
 
+// Where each archived card's file is, by id — one walk. A group root is its `root.md`.
+function archivedFiles(): Map<number, string> {
+  const files = new Map<number, string>()
+  if (!fs.existsSync(ARCHIVE)) return files
+  for (const file of walkMd(ARCHIVE)) {
+    const id = idPrefix(path.basename(file))
+    if (id !== null) files.set(id, file)
+  }
+  for (const dir of walkDirs(ARCHIVE)) {
+    const id = idPrefix(path.basename(dir))
+    const root = path.join(dir, 'root.md')
+    if (id !== null && fs.existsSync(root)) files.set(id, root)
+  }
+  return files
+}
+
+function cmdArchived(opts: ListOptions): MoveResult {
+  let since: Date | null = null
+  if (opts.since !== undefined) {
+    since = parseStamp(opts.since)
+    if (!since) die(`cannot read --since "${opts.since}". Write it as "YYYY-MM-DD HH:MM", e.g. --since "2026-08-02 14:31".`)
+  }
+  const workflow = opts.workflow === undefined ? null : knownWorkflow(opts.workflow)
+
+  const open = boardCardIds()
+  const files = archivedFiles()
+  const cards = landedDeliveries({ since: since?.getTime(), workflow: workflow ?? undefined })
+    .filter((d) => !open.has(d.cardId))
+    .map((d) => ({
+      id: d.cardId,
+      title: d.title,
+      workflow: d.workflow,
+      landedAt: formatStamp(new Date(d.at)),
+      commit: d.commit,
+      file: files.has(d.cardId) ? rel(files.get(d.cardId)!) : '',
+    }))
+  const result = { cards, since: since ? formatStamp(since) : null, workflow }
+
+  const scope = [workflow ? `on workflow \`${workflow}\`` : '', since ? `since ${formatStamp(since)}` : ''].filter(Boolean).join(' ')
+  if (!cards.length) {
+    say(`no cards landed${scope ? ` ${scope}` : ''}.`)
+    return result
+  }
+
+  say(`${plural(cards.length, 'card')} landed${scope ? ` ${scope}` : ''}, oldest first:`)
+  for (const c of cards) {
+    say('')
+    say(`#${c.id} ${c.title}${c.file ? `  (${c.file})` : ''}`)
+    say(`    ${c.workflow} · landed ${c.landedAt} · commit ${c.commit}`)
+  }
+  return result
+}
+
 /** `akb raw list`, as its command declares it (lib/cli/board.ts). */
 export interface ListOptions {
   module?: string
   stale?: boolean
+  archived?: boolean
+  since?: string
+  workflow?: string
 }
 
 export function cmdList(opts: ListOptions): MoveResult {
+  if (opts.archived) {
+    if (opts.stale) die('--archived and --stale answer different questions — pass one of them.')
+    if (opts.module !== undefined) die('--module does not apply to --archived; narrow it with --workflow.')
+    return cmdArchived(opts)
+  }
+  if (opts.since !== undefined) die('--since only applies to --archived.')
+  if (opts.workflow !== undefined) die('--workflow only applies to --archived.')
+
   const all = openRows()
   let rows = all
   let scope = 'on the board'
