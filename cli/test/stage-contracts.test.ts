@@ -158,7 +158,6 @@ describe('the lead a contract names', () => {
     'describe-project': 'project-writer',
     feedback: 'feedback',
     reflect: 'proposer',
-    triage: 'triage',
   }
 
   it('is the agent that ran that flow before', () => {

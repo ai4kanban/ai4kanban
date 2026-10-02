@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "October 2, 2026"
+last_updated: "October 3, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -58,10 +58,6 @@ can be switched off:
 - **Proposer** — reads a card the board has just finished, with the discussion it came from, and
   proposes the work that should follow it — including anything the card promised that nothing
   shipped. It learns from follow-ups you point out it missed. Runs after every archive.
-- **Triage** — sorts what is waiting in Triage into cards and ignores, one request to Cloud per
-  item rather than a coding agent. It sorts each batch of new items itself and keeps going until
-  nothing is waiting; `akb triage run` sorts on demand. Boards
-  with [Triage](/docs/triage) open only, and it is not on the roster at all where Triage is closed.
 - **Memory pruner** — squeezes the memory back down to what helps planning. Every 7 days by
   default; **Run now** on its page starts one.
 - **Review chat memory** — reads back over the conversations that said something new and writes
@@ -73,8 +69,8 @@ can be switched off:
 
 **Configuration → Board** groups them by what starts each one: **You start**, **On a schedule** and
 **On an event**. A scheduled agent's page sets its cadence; the first scheduled pass lands one
-cadence after the board first sees it. The Proposer, Triage and the scheduled agents each spend
-runs you never asked for.
+cadence after the board first sees it. The Proposer and the scheduled agents each spend runs you
+never asked for.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
@@ -162,25 +158,12 @@ planning memory, and puts each survivor in **Triage**.
 - **One run per completion.** That is the whole of what it costs.
 - **It proposes into Triage, never onto the board.** A proposal is triaged like anything else
   that arrives there, so a weak one costs you a dismissal rather than a card in your backlog.
+  With Pro, Triage [sorts new items by itself](/docs/triage#let-it-sort-by-itself).
 - **It grounds every proposal.** Anything already planned, already in Triage, or in a
   `rejected.md` is skipped. Finding nothing worth proposing is a normal result, and the common one.
 
 Each item it writes carries a short rationale and the card that prompted it, so you can read what
 the proposal came from before deciding.
-
-## Let Triage sort for you
-
-**Triage** empties the list you would otherwise read. A batch of new items starts one sort by
-itself, and that sort's close starts the next until nothing is waiting.
-
-- **A new item is the only trigger.** A pull, **Add** on the page and `akb triage add` alike, so
-  what the Proposer writes is judged like anything from outside.
-- **One sort per batch, plus one more per sort that judged something.** A sort that judged nothing,
-  one that failed, and one you stopped all end the chain rather than starting another.
-- **Each card it writes carries a refine.** That is what it costs beyond the sort itself.
-
-That refine plans the card and stops; it never builds by itself.
-[Triage](/docs/triage) has the whole of what a sort does.
 
 ## Let the memory review remember for you
 

@@ -42,10 +42,6 @@ const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN, PLANNER_DISMISSED]
 export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
-  /** What has to be open on this board for this role to be on its roster at all (#562).
-   *  `triage` is `signalsAccess()` — whether the account may sort. Absent on every role
-   *  that works wherever its board does. */
-  needs?: 'triage'
   /** Runs, but is on no roster: no runtime of its own, and no rule. */
   hidden?: true
   /** The workflow stage this agent may be assigned to (#715). A role with one is a
@@ -125,19 +121,6 @@ const PROPOSER: AgentRole = {
   memory: [`memory/agents/proposer/${PROPOSER_MISSED}`],
 }
 
-// The role that sorts what is waiting in triage (#561, #562). It owns no memory — what it
-// judged is on the card it wrote or in the `dismissed/` record that says why it did not.
-//
-// A batch of new items starts one by itself; `akb triage run` starts one by hand. The sort is
-// the command's own loop asking Jev (#1263), so this role spawns no agent. It is on the roster
-// only where the account may sort (./access).
-const TRIAGER: AgentRole = {
-  name: 'triage',
-  gloss: 'sorts what is waiting in triage into cards and ignores',
-  memory: [],
-  needs: 'triage',
-}
-
 // The role that hears a complaint about a spec (#628). Its `feedback` is an event entry,
 // no flow anyone types: a user saying "this is not what I meant" in Discuss is what starts it, and
 // a board that never hears one never runs it. Partner feedback's own switch is a privacy
@@ -176,7 +159,6 @@ const BOARD_ROLES: AgentRole[] = [
   PROJECT_WRITER,
   FEEDBACK,
   PROPOSER,
-  TRIAGER,
 ]
 
 /** The role every conversation is held by — whose runtime a chat runs on and whose rule it
@@ -274,9 +256,6 @@ export interface RosterEntry {
   /** Whether this entry can be switched off: only a specialist that declares no stage. A
    *  workflow agent's stage assignment is its answer (#749), and no role has one (#1208). */
   switchable: boolean
-  /** What has to be open on this board for this entry to be offered — a role's own `needs`
-   *  (#562). Absent on every entry that works wherever its board does. */
-  needs?: 'triage'
   /** A role's flows. Empty on a specialist: it is asked for by name, never by a flow. */
   flows: string[]
   /** The memory files it owns, repo-relative — a role's are the files its own flows already
@@ -332,7 +311,6 @@ export function agentRoster(): RosterEntry[] {
       ...(role.stage ? { stage: role.stage } : {}),
       builtIn: true,
       switchable: false,
-      ...(role.needs ? { needs: role.needs } : {}),
       flows: flowsOfAgent(role.name),
       memory: memoryOf(role),
       ownMemory: ownMemoryOf(role.name, memoryOf(role)),

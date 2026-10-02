@@ -54,11 +54,12 @@ export interface StageContract {
  *  stage. */
 export type NodeKind = 'event'
 
-/** One shared node: a flow, what kind it is, and the agent that runs it. */
+/** One shared node: a flow, what kind it is, and the agent that runs it. A sort has none:
+ *  the command asks Cloud itself (#1263). */
 export interface FlowNode {
   flow: string
   kind: NodeKind
-  agent: string
+  agent?: string
 }
 
 // Planning is the flows that write a card, settle it and close it out.
@@ -106,7 +107,7 @@ const BOARD_STAGES: StageContract[] = [
 // that said something new.
 const BOARD_NODES: FlowNode[] = [
   { flow: 'reflect', kind: 'event', agent: 'proposer' },
-  { flow: 'triage', kind: 'event', agent: 'triage' },
+  { flow: 'triage', kind: 'event' },
   { flow: 'feedback', kind: 'event', agent: 'feedback' },
   { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
   { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
@@ -197,7 +198,7 @@ export function contractProblems(roster: readonly string[]): string[] {
     }
   }
   for (const node of flowNodes()) {
-    if (!has(node.agent)) {
+    if (node.agent && !has(node.agent)) {
       problems.push(`the \`${node.flow}\` ${node.kind} is run by \`${node.agent}\`, and this board has no such agent.`)
     }
   }

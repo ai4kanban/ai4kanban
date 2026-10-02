@@ -279,7 +279,7 @@ const en: ConfigurationCopy = {
       },
       "dismissal-reviewer": {
         name: "Learn from dismissals",
-        gloss: "Turns the reasons you give for dismissing items into preferences Auto-sort Triage follows.",
+        gloss: "Turns the reasons you give for dismissing items into preferences Auto-sort follows.",
         trigger: "Every day",
         when: "on your schedule, if there are new dismissal reasons or restored items. Only reasons you wrote count.",
         rule: 'Added to the end of every review — "skip reasons about pricing".',
@@ -300,13 +300,6 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every review — "only remember release decisions".',
         when: "there are chats with new messages. Chats save nothing themselves — this reads each one right through and decides from the whole conversation.",
         note: "It reads whole conversations, so a decision you have since changed is corrected instead of saved twice. Which memory it goes in follows the card the chat is on.",
-      },
-      triage: {
-        name: "Auto-sort Triage",
-        gloss: "Sorts what is waiting in Triage into cards and ignores.",
-        trigger: "When new items arrive",
-        rule: 'Added to the end of every sort — "never card anything that only one person asked for".',
-        when: "new items arrive — it sorts them itself, and keeps going until nothing is waiting. Each item becomes a card with a refine scheduled on it, or is ignored with the reason.",
       },
     },
     pruner: {
