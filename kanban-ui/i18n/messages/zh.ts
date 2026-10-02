@@ -156,7 +156,6 @@ const zh: MessagesCopy = {
     agentNotHelping: (a) => `${a.agent} 不是“${a.name}”工作流中${a.stage}阶段的协助 Agent。`,
     agentNotScheduled: (a) => `${a.agent} 不是这个工作流里定期运行的 Agent。`,
     agentNotSchedule: (a) => `${a.agent} 不能定期运行。`,
-    scheduledOff: (a) => `${a.agent} 已停用，选一个运行周期即可启用。`,
     scheduledRunning: (a) => `${a.agent} 正在运行。`,
     scheduledLanding: (a) => `${a.agent} 上一次运行的改动还在提交中，请稍后再试。`,
     minutes: () => "请填写整数分钟数，填 0 表示关闭。",

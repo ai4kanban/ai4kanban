@@ -371,9 +371,8 @@ export type RunRefusalKind =
   | 'agentOtherWorkflow'
   | 'agentNotHelping'
   | 'agentNotScheduled'
-  /** A scheduled agent's pass that cannot start (#1401): switched off, already running, or its
-   *  last pass still landing. */
-  | 'scheduledOff'
+  /** A scheduled agent's pass that cannot start (#1401): already running, or its last pass
+   *  still landing. */
   | 'scheduledRunning'
   | 'scheduledLanding'
   | 'agentNotSchedule'

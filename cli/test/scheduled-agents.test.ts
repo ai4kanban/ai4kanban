@@ -197,10 +197,25 @@ describe('when a scheduled agent is due', () => {
 })
 
 describe('one pass', () => {
-  it('refuses an agent that is switched off', () => {
-    const opened = openRun(scheduledRequest(PASS), 'prompt', [])
-    assert.ok('error' in opened)
-    assert.equal(opened.reason, 'scheduledOff')
+  it('runs an agent that is switched off when started by hand, and leaves it off', async () => {
+    const session = open()
+    const [delivery] = listDeliveries()
+    assert.deepEqual(delivery!.scheduled, PASS)
+    assert.equal(scheduledAgent(PASS.workflow, PASS.agent)!.off, true)
+    await end(session)
+    await advanceLanding()
+
+    const one = scheduledAgent(PASS.workflow, PASS.agent)!
+    assert.equal(one.off, true)
+    assert.equal(one.lastRun, formatStamp(new Date(delivery!.startedAt)))
+    assert.deepEqual(await dueScheduledAgents(pro, at('2030-01-01T00:00')), [])
+  })
+
+  it('still refuses a second pass of a switched-off agent while one is running', () => {
+    open()
+    const again = openRun(scheduledRequest(PASS), 'prompt', [])
+    assert.ok('error' in again)
+    assert.equal(again.reason, 'scheduledRunning')
   })
 
   it('commits what it changed and lands it, then records when it began', async () => {
