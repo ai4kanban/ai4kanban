@@ -140,8 +140,7 @@ Only what changes a future planning choice. Writing nothing is a complete outcom
 - **Honor an opt-out**: told not to record, or a discarding reject, write no memory and
   finish the requested action.
 - **A conversation writes none**: a card chat, a discussion, a feedback conversation, and
-  any flow started in it write no memory and say nothing about it; the daily review reads
-  the whole exchange instead (`akb guide review-memory`). Setup is not a
+  any flow started in it write no memory and say nothing about it. Setup is not a
   conversation: its first decisions stand.
 - **Require lasting value**: a durable preference, constraint, decision, or lesson.
 - **Skip housekeeping**: duplicates, routine status changes, and facts recorded elsewhere.
