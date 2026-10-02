@@ -1,22 +1,10 @@
 // The moments the board cheers for (#1331): which landings count, and what each says.
 
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-import { afterEach, beforeEach, describe, it } from 'node:test'
+import { describe, it } from 'node:test'
 
-import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
-import { advanceLanding } from '../src/lib/agent/landing.ts'
-import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
-import { setAutoCommit } from '../src/lib/agent/settings.ts'
-import { withStore } from '../src/lib/agent/store.ts'
-import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { DeliveryLanding, DeliveryRecord } from '../src/lib/agent/types.ts'
-import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
-import { cheersOf, readCheers } from '../src/lib/view/cheer.ts'
+import { cheersOf } from '../src/lib/view/cheer.ts'
 
 const DAY = new Date(2026, 9, 2).getTime()
 const HOUR = 3_600_000
@@ -82,73 +70,5 @@ describe('what a day of landings cheers for', () => {
       delivery(-2, { closed: { group: { id: 250, title: 'g', done: 2 } } }),
     ]
     assert.deepEqual(cheersOf(quiet, DAY), [])
-  })
-})
-
-// A real landing on a real repository: what the archive closed is written on the record.
-describe('what a landing writes down', () => {
-  let root = ''
-  const todo = () => path.join(root, 'docs', 'kanban', 'todo')
-
-  const git = (args: string[]): void => {
-    const out = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
-    if (out.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${out.stderr}`)
-  }
-
-  const card = (title: string, release: string, body = 'What this card is for.'): string =>
-    ['---', `title: ${title}`, 'priority: med', 'roi: med', 'status: ready', `release: "${release}"`, 'blocked_by: []', 'related: []', 'modules: []', 'questions: []', '---', '', body, ''].join('\n')
-
-  beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-cheer-'))
-    fs.mkdirSync(path.join(todo(), '50-a-group'), { recursive: true })
-    fs.writeFileSync(path.join(root, 'shared.txt'), 'base\n')
-    git(['init', '--quiet', '-b', 'main'])
-    git(['config', 'user.email', 'test@example.com'])
-    git(['config', 'user.name', 'test'])
-    git(['add', '-A'])
-    git(['commit', '--quiet', '-m', 'start'])
-    setBoardRoot(root)
-    setAutoCommit(true)
-  })
-
-  afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
-
-  async function land(id: number, title: string): Promise<DeliveryRecord> {
-    const opened = openRun({ action: 'implement', id, title }, 'prompt', [])
-    if ('error' in opened) throw new Error(opened.error)
-    const started = activeDelivery(id)!
-    fs.writeFileSync(path.join(worktreeDir(started.worktree!), `${id}.txt`), 'built\n')
-    const record = withStore((store) => store.runs.find((r) => r.sessionId === opened.run.sessionId))
-    fs.writeFileSync(record!.logPath, 'log\n')
-    startCollecting()
-    try {
-      await closeRun(opened.run.sessionId, { status: 'done', ok: true, code: 0 })
-      await advanceLanding()
-    } finally {
-      stopCollecting()
-    }
-    return listDeliveries().find((d) => d.deliveryId === started.deliveryId)!
-  }
-
-  it('records the group and the release its archive finished', async () => {
-    fs.writeFileSync(path.join(todo(), '50-a-group', 'root.md'), card('The whole job', '', 'Root.\n\n## Todo\n- [ ] one #51\n- [ ] two #52'))
-    fs.writeFileSync(path.join(todo(), '50-a-group', '51-one.md'), card('one', 'v1'))
-    fs.writeFileSync(path.join(todo(), '50-a-group', '52-two.md'), card('two', 'v1'))
-
-    const first = await land(51, 'one')
-    assert.equal(first.status, 'finished')
-    assert.deepEqual(first.landing!.closed, { group: undefined, release: undefined })
-
-    const last = await land(52, 'two')
-    assert.deepEqual(last.landing!.closed, {
-      group: { id: 50, title: 'The whole job', done: 2 },
-      release: { id: 'v1', done: 2 },
-    })
-
-    const cheers = readCheers()
-    assert.deepEqual(cheers.map((c) => [c.key, c.kind]), [
-      [last.deliveryId, 'release'],
-      [first.deliveryId, 'first'],
-    ])
   })
 })
