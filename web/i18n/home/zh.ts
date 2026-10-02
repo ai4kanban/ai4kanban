@@ -73,7 +73,7 @@ const zh: HomeCopy = {
       },
     ],
     tree: {
-      product: "产品是什么",
+      project: "项目是什么",
       planner: "规划师的记忆",
       readme: "已完成的功能",
       decisions: "产品决策",
@@ -100,7 +100,7 @@ const zh: HomeCopy = {
 
   start: {
     title: "从桌面应用开始",
-    lead: "下载应用，打开一个项目，回答两个问题。它会读取代码库，写下产品描述和规划师的记忆，并提出第一批任务。",
+    lead: "下载 AI4Kanban，精准规划，快速交付。",
     notes: ["自主规划", "本地优先", "不绑定 Agent"],
     cta: "下载",
     firstOpen:

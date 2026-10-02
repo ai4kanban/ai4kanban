@@ -39,7 +39,7 @@ export type HomeCopy = {
     cards: [TitleBody, TitleBody, TitleBody];
     /** What each memory file holds. The paths themselves stay in the component. */
     tree: {
-      product: string;
+      project: string;
       planner: string;
       readme: string;
       decisions: string;

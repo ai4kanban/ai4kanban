@@ -79,7 +79,7 @@ const es: HomeCopy = {
       },
     ],
     tree: {
-      product: "Qué es el producto",
+      project: "Qué es el proyecto",
       planner: "La memoria del planificador",
       readme: "Funciones entregadas",
       decisions: "Decisiones de producto",
@@ -111,7 +111,7 @@ const es: HomeCopy = {
 
   start: {
     title: "Empieza con la aplicación de escritorio",
-    lead: "Descarga la aplicación, abre un proyecto y responde dos preguntas. Lee el código, describe el producto, escribe la memoria del planificador, y propone las primeras tareas.",
+    lead: "Descarga AI4Kanban. Planifica con precisión, entrega con rapidez.",
     notes: [
       "Planificación autónoma",
       "Local primero",
