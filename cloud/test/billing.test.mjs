@@ -26,6 +26,8 @@ const EARLIER = '2026-09-01T12:00:00.000Z'
 const CANCELED_AT = '2026-09-27T12:05:00.000Z'
 const REVOKED_NOW = '2026-09-27T13:00:00.000Z'
 const NEXT = '2026-11-27T12:00:00.000Z'
+const MINUTE = 60 * 1000
+const DAY = 24 * 60 * MINUTE
 
 const realFetch = globalThis.fetch
 let keyPair
@@ -36,6 +38,12 @@ let creemDown
 let creemTxs
 let spent
 let grants
+// What 0036_pending_checkouts.sql keeps, on a clock the tests move.
+let pending
+let pendingDown
+let clock
+let creemCheckouts
+let txDown
 
 beforeEach(async () => {
   resetJwksCache()
@@ -48,6 +56,11 @@ beforeEach(async () => {
   creemTxs = []
   spent = {}
   grants = {}
+  pending = new Map()
+  pendingDown = false
+  clock = NOW
+  creemCheckouts = new Map()
+  txDown = false
   globalThis.fetch = async (url, init = {}) => {
     const address = String(url)
     const body = init.body ? JSON.parse(init.body) : undefined
@@ -79,6 +92,28 @@ beforeEach(async () => {
       }
       return json({ id: found.id, refunded_through: found.refunded_through })
     }
+    if (address.endsWith('/rest/v1/rpc/record_pending_checkout')) {
+      if (pendingDown) return json({ message: 'down' }, 500)
+      for (const [id, found] of pending) {
+        if (found.user_id === body.p_user_id && found.created_at <= clock - DAY) pending.delete(id)
+      }
+      if (!pending.has(body.p_id)) pending.set(body.p_id, { user_id: body.p_user_id, created_at: clock, checked_at: null })
+      return new Response(null, { status: 204 })
+    }
+    if (address.endsWith('/rest/v1/rpc/claim_pending_checkouts')) {
+      if (pendingDown) return json({ message: 'down' }, 500)
+      const due = [...pending]
+        .filter(([, c]) => c.user_id === body.p_user_id && c.created_at > clock - DAY)
+        .filter(([, c]) => body.p_force || c.checked_at === null || c.checked_at <= clock - MINUTE)
+        .sort(([, a], [, b]) => b.created_at - a.created_at)
+        .slice(0, 5)
+      for (const [, c] of due) c.checked_at = clock
+      return json(due.map(([id]) => id))
+    }
+    if (address.endsWith('/rest/v1/rpc/drop_pending_checkout')) {
+      if (pending.get(body.p_id)?.user_id === body.p_user_id) pending.delete(body.p_id)
+      return new Response(null, { status: 204 })
+    }
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(spent[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(grants[body.p_user_id] ?? null)
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) {
@@ -88,8 +123,15 @@ beforeEach(async () => {
       creemCalls.push({ address, headers: init.headers, body })
       if (creemDown) return json({ message: 'down' }, 500)
       const path = address.slice('https://api.creem.io'.length)
-      if (path === '/v1/checkouts') return json({ id: 'ch_1', checkout_url: 'https://checkout.creem.io/ch_1' })
+      if (path === '/v1/checkouts') {
+        const id = `ch_${creemCalls.filter((c) => c.address.endsWith('/v1/checkouts')).length}`
+        creemCheckouts.set(id, { id, status: 'pending' })
+        return json({ id, checkout_url: `https://checkout.creem.io/${id}` })
+      }
+      const checkout = /^\/v1\/checkouts\?checkout_id=(.+)$/.exec(path)
+      if (checkout && creemCheckouts.has(checkout[1])) return json(creemCheckouts.get(checkout[1]))
       const txs = /^\/v1\/transactions\/search\?customer_id=([^&]+)/.exec(path)
+      if (txs && txDown) return json({ message: 'down' }, 500)
       if (txs) return json({ items: creemTxs.filter((tx) => tx.customer === txs[1]), pagination: {} })
       if (path === '/v1/customers/billing') return json({ customer_portal_link: `https://creem.io/portal/${body.customer_id}` })
       const sub = /^\/v1\/subscriptions\?subscription_id=(.+)$/.exec(path)
@@ -311,7 +353,7 @@ describe('the signed-in billing routes', () => {
     await signedIn('POST', '/v1/billing/checkout', { period: 'monthly', source: 'desktop' })
     assert.equal(creemCalls[0].body.success_url, 'https://cloud.ai4kanban.dev/billing/done')
     await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })
-    assert.equal(creemCalls[1].body.success_url, 'https://cloud.ai4kanban.dev/settings?checkout=done')
+    assert.equal(creemCalls.at(-1).body.success_url, 'https://cloud.ai4kanban.dev/settings?checkout=done')
   })
 
   it('lists the caller’s charges newest first, and none with no subscription', async () => {
@@ -464,6 +506,158 @@ describe('a refund or chargeback', () => {
     rows.clear()
     for (const body of [cancel, refundEvent]) await send(body)
     assert.deepEqual(rows.get('sub_1'), first)
+  })
+})
+
+describe('a checkout whose notification never came (#1251)', () => {
+  const read = async () => (await signedIn('GET', '/v1/billing')).json()
+  const checkout = async () => (await (await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })).json()).url
+  const asked = (what) => creemCalls.filter((c) => c.address.includes(what)).map((c) => c.address.split('=').at(-1))
+  /** The buyer paid: Creem holds the subscription, and nothing told the Worker. */
+  const pay = (id = 'ch_1', sub = creemSub('active')) => {
+    creemSubs.set(sub.id, sub)
+    creemCheckouts.set(id, { id, status: 'completed', subscription: sub.id })
+  }
+  const refundedTx = {
+    id: 'tx_1', customer: 'cust_1', subscription: 'sub_1', amount: 1500, currency: 'USD', status: 'refunded',
+    created_at: 1_790_000_000_000, period_end: Date.parse(LATER),
+  }
+
+  it('makes the buyer Pro on the next read, and forgets the checkout', async () => {
+    assert.equal(await checkout(), 'https://checkout.creem.io/ch_1')
+    assert.equal(pending.get('ch_1').user_id, SUBJECT)
+    assert.equal((await read()).billing.plan, 'free')
+    assert.equal(pending.size, 1)
+
+    pay()
+    clock += MINUTE
+    const { billing, credits } = await read()
+    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    assert.notEqual(credits, null)
+    assert.equal(rows.get('sub_1').user_id, SUBJECT)
+    assert.equal(pending.size, 0)
+  })
+
+  it('records the subscription whole when the checkout carries it, and no metadata', async () => {
+    await checkout()
+    creemSubs.set('sub_1', creemSub('active'))
+    creemCheckouts.set('ch_1', { id: 'ch_1', status: 'completed', subscription: { id: 'sub_1' }, metadata: { userId: OTHER } })
+    assert.equal((await read()).billing.plan, 'pro')
+    assert.equal(rows.get('sub_1').user_id, SUBJECT)
+  })
+
+  it('does not make a refunded payment Pro', async () => {
+    await checkout()
+    pay('ch_1', { ...creemSub('canceled'), canceled_at: CANCELED_AT })
+    creemTxs = [refundedTx]
+    assert.deepEqual((await read()).billing, {
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null,
+    })
+    assert.equal(pending.size, 0)
+  })
+
+  it('keeps the checkout until its refunds are read, and tries again', async () => {
+    await checkout()
+    pay('ch_1', { ...creemSub('canceled'), canceled_at: CANCELED_AT })
+    creemTxs = [refundedTx]
+    txDown = true
+    assert.equal((await signedIn('GET', '/v1/billing')).status, 200)
+    assert.equal(pending.size, 1)
+
+    txDown = false
+    clock += MINUTE
+    assert.equal((await read()).billing.plan, 'free')
+    assert.equal(pending.size, 0)
+  })
+
+  it('sends a buyer who already paid to settings instead of a second checkout', async () => {
+    await checkout()
+    pay()
+    assert.equal(await checkout(), 'https://cloud.ai4kanban.dev/settings')
+    assert.equal(creemCalls.filter((c) => c.address.endsWith('/v1/checkouts')).length, 1)
+    assert.equal(pending.size, 0)
+  })
+
+  it('asks Creem once a minute on a read, and every time on a checkout', async () => {
+    await checkout()
+    await read()
+    await read()
+    assert.equal(asked('checkout_id').length, 1)
+    clock += MINUTE
+    await read()
+    assert.equal(asked('checkout_id').length, 2)
+
+    await checkout()
+    assert.deepEqual(asked('checkout_id').slice(2), ['ch_1'])
+    await checkout()
+    assert.deepEqual(asked('checkout_id').slice(3), ['ch_2', 'ch_1'])
+  })
+
+  it('writes nothing for a subscription that is somebody else’s, or not Pro', async () => {
+    await checkout()
+    pay('ch_1', { ...creemSub('active'), metadata: { userId: OTHER } })
+    assert.equal((await read()).billing.plan, 'free')
+    assert.equal(rows.size, 0)
+    assert.equal(pending.size, 0)
+
+    await checkout()
+    pay('ch_2', { ...creemSub('active'), product: { id: 'prod_other' } })
+    clock += MINUTE
+    assert.equal((await read()).billing.plan, 'free')
+    assert.equal(rows.size, 0)
+    assert.equal(pending.size, 0)
+  })
+
+  it('asks about the newest five only', async () => {
+    for (let n = 1; n <= 7; n++) {
+      pending.set(`ch_${n}`, { user_id: SUBJECT, created_at: NOW - (8 - n) * MINUTE, checked_at: null })
+      creemCheckouts.set(`ch_${n}`, { id: `ch_${n}`, status: 'pending' })
+    }
+    pending.set('ch_theirs', { user_id: OTHER, created_at: NOW, checked_at: null })
+    await read()
+    assert.deepEqual(asked('checkout_id'), ['ch_7', 'ch_6', 'ch_5', 'ch_4', 'ch_3'])
+    assert.equal(pending.size, 8)
+  })
+
+  it('forgets an expired checkout, and leaves one past its day alone', async () => {
+    await checkout()
+    creemCheckouts.set('ch_1', { id: 'ch_1', status: 'expired' })
+    await read()
+    assert.equal(pending.size, 0)
+
+    await checkout()
+    pay('ch_2')
+    clock += DAY
+    assert.equal((await read()).billing.plan, 'free')
+    assert.deepEqual(asked('checkout_id'), ['ch_1'])
+    await checkout()
+    assert.deepEqual([...pending.keys()], ['ch_3'])
+  })
+
+  it('still reads the plan when Creem or the database fails', async () => {
+    await checkout()
+    pay()
+    creemDown = true
+    const down = await signedIn('GET', '/v1/billing')
+    assert.equal(down.status, 200)
+    assert.equal((await down.json()).billing.plan, 'free')
+    assert.equal(pending.size, 1)
+
+    creemDown = false
+    pendingDown = true
+    clock += MINUTE
+    assert.equal((await read()).billing.plan, 'free')
+  })
+
+  it('asks Creem nothing when no checkout is waiting', async () => {
+    await read()
+    assert.equal(creemCalls.length, 0)
+  })
+
+  it('still hands over the checkout when it cannot be noted', async () => {
+    pendingDown = true
+    assert.equal(await checkout(), 'https://checkout.creem.io/ch_1')
+    assert.equal(pending.size, 0)
   })
 })
 

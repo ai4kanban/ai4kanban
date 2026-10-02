@@ -5,6 +5,9 @@
  * the Supabase user, not to a Cloud account. A row is only ever written with what was just
  * read back from Creem, so repeated and out-of-order notifications converge on Creem's
  * current state. Whether a row is Pro is decided when it is read, so expiry needs nothing.
+ *
+ * A notification can be lost, so every checkout started is noted, and settled against Creem
+ * when its user next reads their plan or starts another (#1251).
  */
 
 import { CLOUD_UI_ORIGIN } from './config.ts'
@@ -109,7 +112,11 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
 
   if (rest === '') {
     requireMethod(request, 'GET')
-    const billing = await readBilling(env, session.subject)
+    const [read, recovered] = await Promise.all([
+      readBilling(env, session.subject),
+      recoverCheckouts(env, creem, session.subject),
+    ])
+    const billing = recovered ? await readBilling(env, session.subject) : read
     // AI credits are Pro's alone (#1113): nobody else is granted any to show.
     const credits = billing.plan === 'pro' ? creditsOf(await creditsUsed(env, session.subject)) : null
     return json({ billing, credits })
@@ -119,11 +126,13 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     requireMethod(request, 'POST')
     const { period, source } = ((await bodyOf(request)) ?? {}) as { period?: unknown; source?: unknown }
     if (period !== 'monthly' && period !== 'yearly') throw badRequest('Pick monthly or yearly.')
+    // A payment whose notification was lost must not be taken a second time.
+    await recoverCheckouts(env, creem, session.subject, true)
     // One subscription per person: a subscriber manages theirs instead. A grant alone may buy.
     if (subscribed(await readBilling(env, session.subject))) {
       return json({ url: `${CLOUD_UI_ORIGIN}/settings` })
     }
-    const checkout = await creem<{ checkout_url?: string }>('POST', '/v1/checkouts', {
+    const checkout = await creem<{ id?: string; checkout_url?: string }>('POST', '/v1/checkouts', {
       product_id: period === 'monthly' ? env.CREEM_PRODUCT_MONTHLY : env.CREEM_PRODUCT_YEARLY,
       // The desktop app has no browser sign-in to return to, so it lands on a public page.
       success_url: source === 'desktop' ? `${CLOUD_UI_ORIGIN}/billing/done` : `${CLOUD_UI_ORIGIN}/settings?checkout=done`,
@@ -131,6 +140,12 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
       ...(session.email ? { customer: { email: session.email } } : {}),
     })
     if (!checkout.checkout_url) throw billingFailed()
+    try {
+      if (!checkout.id) throw new Error('Creem gave the checkout no id')
+      await mutate(env, 'record_pending_checkout', { p_id: checkout.id, p_user_id: session.subject })
+    } catch (error) {
+      console.error('cloud: checkout not noted', checkout.id, error)
+    }
     return json({ url: checkout.checkout_url })
   }
 
@@ -336,6 +351,56 @@ async function recordRefunds(env: Env, creem: Creem, sub: CreemSubscription, dis
     p_refunded_through: through,
     p_revoked_at: sub.canceled_at ?? null,
   })
+}
+
+// ---- a lost notification ------------------------------------------------------
+
+interface CreemCheckout {
+  status?: string
+  subscription?: string | { id: string } | null
+}
+
+/** Settle the checkouts `user` started that are due a look. True when any was looked at, so
+ *  the plan is worth reading again. Never throws: the plan in the database still stands. */
+async function recoverCheckouts(env: Env, creem: Creem, user: string, force = false): Promise<boolean> {
+  let ids: string[]
+  try {
+    ids = await mutate<string[]>(env, 'claim_pending_checkouts', { p_user_id: user, p_force: force })
+  } catch (error) {
+    console.error('cloud: pending checkouts not read', error)
+    return false
+  }
+  for (const id of ids) {
+    try {
+      if (await settled(env, creem, user, id)) {
+        await mutate(env, 'drop_pending_checkout', { p_id: id, p_user_id: user })
+      }
+    } catch (error) {
+      console.error('cloud: checkout not recovered', id, error)
+    }
+  }
+  return ids.length > 0
+}
+
+/** Whether Creem has nothing more to say about this checkout, writing the subscription a
+ *  completed one made. The user is the one who started it, never one Creem's answer names. */
+async function settled(env: Env, creem: Creem, user: string, id: string): Promise<boolean> {
+  const checkout = await creem<CreemCheckout>('GET', `/v1/checkouts?checkout_id=${encodeURIComponent(id)}`)
+  if (checkout.status === 'expired') return true
+  if (checkout.status !== 'completed') return false
+
+  const subscriptionId = idOf(checkout.subscription ?? undefined)
+  if (!subscriptionId) {
+    console.warn('cloud: completed checkout has no subscription', id)
+    return true
+  }
+  const sub = await creem<CreemSubscription>('GET', `/v1/subscriptions?subscription_id=${encodeURIComponent(subscriptionId)}`)
+  if (sub.metadata?.userId !== user) {
+    console.warn('cloud: checkout made a subscription for somebody else', id, subscriptionId)
+    return true
+  }
+  if (await record(env, sub, user)) await recordRefunds(env, creem, sub, undefined)
+  return true
 }
 
 // ---- notifications ----------------------------------------------------------

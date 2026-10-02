@@ -2943,4 +2943,66 @@ begin
 end
 $paged$;
 
+-- ---------------------------------------------------------------------------
+-- A started checkout waits to be asked about, a minute apart, for a day (#1251)
+-- ---------------------------------------------------------------------------
+
+do $pending$
+declare
+  BUDGET constant integer := 100000;
+  BUYER constant uuid := '00000000-0000-4000-8000-000000001251';
+  OTHER constant uuid := '00000000-0000-4000-8000-000000002251';
+  v_writes bigint;
+  v_ids json;
+begin
+  -- Nothing waiting: nothing handed out, nothing dropped, no budget spent.
+  select coalesce(max(writes), 0) into v_writes from cloud.daily_writes where day = (now() at time zone 'utc')::date;
+  assert json_array_length(api.claim_pending_checkouts(BUYER, false, BUDGET)) = 0, 'a user with no checkout was handed one';
+  perform api.drop_pending_checkout('ch_none', BUYER, BUDGET);
+  assert (select coalesce(max(writes), 0) from cloud.daily_writes where day = (now() at time zone 'utc')::date) = v_writes,
+    'a claim or a drop that changed nothing spent the budget';
+
+  perform api.record_pending_checkout('ch_1', BUYER, BUDGET);
+  select writes into v_writes from cloud.daily_writes where day = (now() at time zone 'utc')::date;
+  perform api.record_pending_checkout('ch_1', BUYER, BUDGET);
+  assert (select count(*) from cloud.pending_checkouts where user_id = BUYER) = 1, 'a replay made a second row';
+  assert (select writes from cloud.daily_writes where day = (now() at time zone 'utc')::date) = v_writes,
+    'a replay that changed nothing spent the budget';
+
+  -- Handed out once, then not again for a minute — unless forced.
+  perform api.record_pending_checkout('ch_o', OTHER, BUDGET);
+  assert api.claim_pending_checkouts(BUYER, false, BUDGET)::text = '["ch_1"]', 'a new checkout was not handed out';
+  assert (select writes from cloud.daily_writes where day = (now() at time zone 'utc')::date) = v_writes + 2,
+    'a claim that stamped a row was not counted once';
+  assert json_array_length(api.claim_pending_checkouts(BUYER, false, BUDGET)) = 0, 'a checkout was handed out twice in a minute';
+  assert api.claim_pending_checkouts(BUYER, true, BUDGET)::text = '["ch_1"]', 'a forced claim waited out the minute';
+  update cloud.pending_checkouts set checked_at = now() - interval '61 seconds' where id = 'ch_1';
+  assert api.claim_pending_checkouts(BUYER, false, BUDGET)::text = '["ch_1"]', 'a checkout was not handed out a minute later';
+  assert (select checked_at is null from cloud.pending_checkouts where id = 'ch_o'), 'a claim stamped another user''s checkout';
+
+  -- The newest five, and the rest on the next call.
+  insert into cloud.pending_checkouts (id, user_id, created_at)
+  select 'ch_m' || n, BUYER, now() - make_interval(mins => n) from generate_series(1, 6) n;
+  update cloud.pending_checkouts set checked_at = null where user_id = BUYER;
+  assert api.claim_pending_checkouts(BUYER, false, BUDGET)::text = '["ch_1","ch_m1","ch_m2","ch_m3","ch_m4"]',
+    'a claim was not the newest five';
+  assert api.claim_pending_checkouts(BUYER, false, BUDGET)::text = '["ch_m5","ch_m6"]', 'the rest did not follow';
+
+  -- Only the owner drops one.
+  perform api.drop_pending_checkout('ch_m6', OTHER, BUDGET);
+  assert (select count(*) from cloud.pending_checkouts where id = 'ch_m6') = 1, 'another user dropped a checkout';
+  perform api.drop_pending_checkout('ch_m6', BUYER, BUDGET);
+  assert (select count(*) from cloud.pending_checkouts where id = 'ch_m6') = 0, 'a settled checkout was kept';
+
+  -- Past its day: never handed out, and gone when its user next starts one.
+  update cloud.pending_checkouts set created_at = now() - interval '25 hours', checked_at = null where id in ('ch_m5', 'ch_o');
+  assert json_array_length(api.claim_pending_checkouts(BUYER, true, BUDGET)) = 5, 'a checkout past its day was handed out';
+  perform api.record_pending_checkout('ch_2', BUYER, BUDGET);
+  assert (select count(*) from cloud.pending_checkouts where id = 'ch_m5') = 0, 'a checkout past its day was kept';
+  assert (select count(*) from cloud.pending_checkouts where id = 'ch_o') = 1, 'one user''s checkout cleared another''s';
+
+  raise notice 'sql checks: #1251 pending checkout checks passed';
+end
+$pending$;
+
 rollback;
