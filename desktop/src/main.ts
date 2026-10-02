@@ -174,7 +174,7 @@ const raise = (w: Win): void => {
 
 // --- the app's own URL scheme (#326) -----------------------------------------
 // `ai4kanban://…` opens this app. It is what a finished Cloud sign-in comes back to: the
-// board UI server's loopback port is whatever the OS handed out at launch, so there is no
+// board UI server's loopback port is whatever the OS handed out to the project, so there is no
 // fixed address of its own to register with the Supabase project, and the window is where
 // the user started the sign-in anyway. #320 reuses the scheme to open a card from Slack.
 //
@@ -280,6 +280,7 @@ async function start(): Promise<void> {
     // repo — it is a fact about the windows, not about a board. Each board
     // server reads it before it starts work nobody asked for.
     focusFile: path.join(app.getPath("userData"), "open-project"),
+    ports: store,
   });
 
   // Started by the launcher from a project folder — that board is the one to show, ahead
@@ -497,6 +498,8 @@ async function open(w: Win, repo: string): Promise<void> {
     return fatal(e);
   }
   store.rememberRepo(repo);
+  // A project opened for the first time joins the list only now, after its server picked a port.
+  store.rememberPort(repo, Number(new URL(url).port));
   w.board = repo;
   w.project = repo;
   settle();

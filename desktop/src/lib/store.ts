@@ -12,10 +12,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { app } from "electron";
 
-/** A remembered project: where it is, and when it was last opened. */
+/** A remembered project: where it is, when it was last opened, and the loopback port its
+ *  board is served on. The port is kept because the page's localStorage is per address:
+ *  a new port every launch empties everything the board remembers in the window. */
 export interface StoredProject {
   path: string;
   openedAt: number;
+  port?: number;
 }
 
 // The file is the user's — hand-editable, and sometimes hand-edited into
@@ -26,6 +29,8 @@ type Settings = Record<string, unknown>;
 // How many projects the list keeps. Long enough that going back to something
 // from last month is still a click, short enough that the list stays a list.
 const KEEP_PROJECTS = 20;
+
+const isPort = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n > 0 && n < 65536;
 
 function file(): string {
   return path.join(app.getPath("userData"), "settings.json");
@@ -65,11 +70,12 @@ export function projects(): StoredProject[] {
   const seen = new Set<string>();
   const out: StoredProject[] = [];
   for (const entry of raw as unknown[]) {
-    const at = entry as { path?: unknown; openedAt?: unknown } | null;
+    const at = entry as { path?: unknown; openedAt?: unknown; port?: unknown } | null;
     const dir = typeof entry === "string" ? entry : at?.path;
     if (typeof dir !== "string" || !dir || seen.has(dir)) continue;
     seen.add(dir);
-    out.push({ path: dir, openedAt: Number(at?.openedAt) || 0 });
+    const port = at?.port;
+    out.push({ path: dir, openedAt: Number(at?.openedAt) || 0, ...(isPort(port) ? { port } : {}) });
   }
   return out.sort((a, b) => b.openedAt - a.openedAt);
 }
@@ -90,8 +96,10 @@ export function lastRepo(): string | null {
 /** Record that this folder is the one open now: it goes to the top of the list
  *  and becomes what the next launch reopens. */
 export function rememberRepo(dir: string): void {
-  const rest = projects().filter((p) => p.path !== dir);
-  const next = [{ path: dir, openedAt: Date.now() }, ...rest].slice(0, KEEP_PROJECTS);
+  const all = projects();
+  const was = all.find((p) => p.path === dir);
+  const rest = all.filter((p) => p.path !== dir);
+  const next = [{ ...was, path: dir, openedAt: Date.now() }, ...rest].slice(0, KEEP_PROJECTS);
   write({ repo: dir, projects: next });
 }
 
@@ -111,6 +119,26 @@ export function forgetProject(dir: string): void {
   // Don't reopen a project the user just took off the list.
   if (read().repo === dir) patch.repo = next[0]?.path ?? null;
   write(patch);
+}
+
+/** The port this project's board was served on before, or null. */
+export function portOf(dir: string): number | null {
+  return projects().find((p) => p.path === dir)?.port ?? null;
+}
+
+/** The ports every other project is holding. */
+export function otherPorts(dir: string): number[] {
+  return projects().flatMap((p) => (p.path !== dir && p.port ? [p.port] : []));
+}
+
+/** Give a listed project its port. Kept for good once given: a launch that had to serve
+ *  the board elsewhere must not move it, or what the window remembers is lost for good. */
+export function rememberPort(dir: string, port: number): void {
+  const all = projects();
+  const at = all.find((p) => p.path === dir);
+  if (!at || at.port || !isPort(port) || all.some((p) => p.port === port)) return;
+  at.port = port;
+  write({ projects: all });
 }
 
 /** Has the app already offered to put `akb` on the PATH? The offer is made once, at the
