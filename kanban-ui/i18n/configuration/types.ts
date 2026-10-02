@@ -14,8 +14,7 @@ export type AgentRoleName =
   | "memory-pruner"
   | "memory-reviewer"
   | "dismissal-reviewer"
-  | "project-writer"
-  | "triage";
+  | "project-writer";
 
 export type ConfigurationCopy = {
   open: string;
@@ -316,9 +315,9 @@ export type ConfigurationCopy = {
      *  ships the roles, so the pane can carry their words; a specialist says both in its
      *  own `AGENT.md`, which is the only place a project can write them.
      *
-     *  `when` only on a role something other than a flow starts: the proposer (#534) and the
-     *  triager (#562) are started by something you can point at, the discussion helper by you talking to it (#502), and every other role is
-     *  called by its flows.
+     *  `when` only on a role something other than a flow starts: the proposer (#534) is
+     *  started by something you can point at, the discussion helper by you talking to it (#502),
+     *  and every other role is called by its flows.
      *
      *  `note` is the quiet line under the instructions box, on a role with something left to
      *  say there.

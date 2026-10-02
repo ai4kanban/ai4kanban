@@ -126,18 +126,12 @@ afterEach(() => {
 })
 
 describe('the roster', () => {
-  it('is on the roster where the account may sort, and off it where it may not', async () => {
-    const named = async (): Promise<string[]> => (await readAgents()).agents.map((a) => a.name)
-    assert.ok((await named()).includes('triage'))
-    pro(false)
-    assert.ok(!(await named()).includes('triage'))
-
-    // Cloud that cannot be asked reads as closed — the row goes, and the rest of the team
-    // is still drawn.
+  // A sort is the command asking Cloud itself (#1386): no agent, so reading the team asks Cloud nothing.
+  it('has no sorting agent, and reads the team without Cloud', async () => {
     globalThis.fetch = (() => Promise.reject(new Error('offline'))) as typeof fetch
-    const rest = await named()
-    assert.ok(!rest.includes('triage'))
-    assert.ok(rest.includes('software-planner'))
+    const names = (await readAgents()).agents.map((a) => a.name)
+    assert.ok(!names.includes('triage'))
+    assert.ok(names.includes('software-planner'))
   })
 })
 

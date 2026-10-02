@@ -119,7 +119,7 @@ const PROJECT_WRITER = "project-writer";
 // A literal rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
 const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", REVIEWER_OF_DISMISSALS, PROJECT_WRITER];
-const ON_AN_EVENT = ["proposer", "triage"];
+const ON_AN_EVENT = ["proposer"];
 // Whose runtime every planning lead runs (#1316).
 const PLANNING_HELPER = "discussion-helper";
 
@@ -480,7 +480,7 @@ export function AgentDetail({
 }
 
 /** Configuration → Board: the agents the board runs itself (#742) — the discussion, the
- *  pruner, the triager. No workflow assigns them and every workflow gets them, so they
+ *  pruner, the proposer. No workflow assigns them and every workflow gets them, so they
  *  are read by what STARTS each one: the ones you call, then the ones the board starts. */
 export function AgentsPanel({
   info,

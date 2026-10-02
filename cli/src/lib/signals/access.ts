@@ -1,7 +1,7 @@
 // Who may sort triage (#453, #1296, #1299): Pro accounts only.
 //
 // Triage itself is open to every account. This answer gates the sort alone: `akb triage run`,
-// **Auto-sort** on the page, the sort a new item starts, and the triager's place on the team.
+// **Auto-sort** on the page, and the sort a new item starts.
 
 import { proAccess } from '../cloud/pro'
 import type { SignalsAccess } from '../view/types'

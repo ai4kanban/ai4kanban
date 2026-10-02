@@ -72,7 +72,6 @@ describe('the roles', () => {
         'project-writer',
         'feedback',
         'proposer',
-        'triage',
       ],
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
@@ -132,7 +131,6 @@ describe('the roles', () => {
       'dismissal-reviewer',
       'project-writer',
       'proposer',
-      'triage',
       'blog-illustrator',
       'blog-planner',
       'carousel-planner',
@@ -153,7 +151,7 @@ describe('the roles', () => {
 
   it('rosters the roles first, then the specialists the command ships', () => {
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 9), [
+    assert.deepEqual(names.slice(0, 8), [
       'discussion-helper',
       'software-planner',
       'builder',
@@ -162,9 +160,8 @@ describe('the roles', () => {
       'dismissal-reviewer',
       'project-writer',
       'proposer',
-      'triage',
     ])
-    assert.deepEqual(names.slice(9), [
+    assert.deepEqual(names.slice(8), [
       'blog-illustrator',
       'blog-planner',
       'carousel-planner',
@@ -182,18 +179,18 @@ describe('the roles', () => {
     ])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(9).fill('role'), 'spec', 'lead', 'lead', 'spec', 'spec', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec'],
+      [...Array(8).fill('role'), 'spec', 'lead', 'lead', 'spec', 'spec', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[10]!.flows, [])
+    assert.deepEqual(agentRoster()[9]!.flows, [])
     // No role has a switch (#1208), and no agent carrying a stage does (#749).
     assert.deepEqual(agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => a.name), [])
     assert.deepEqual(agentRoster().filter((a) => a.stage && a.switchable).map((a) => a.name), [])
   })
 })
 
-// The proposer, the triager and the memory reviewer used to have switches (#534, #562, #748).
+// The proposer and the memory reviewer used to have switches (#534, #748).
 describe('the board helpers are always on (#1208)', () => {
   const on = async (name: string): Promise<boolean> =>
     (await readAgents()).agents.find((a) => a.name === name)!.enabled
@@ -207,7 +204,7 @@ describe('the board helpers are always on (#1208)', () => {
   })
 
   it('refuses to switch one off, the way every other role refuses', () => {
-    for (const name of ['proposer', 'triage', 'memory-reviewer']) {
+    for (const name of ['proposer', 'memory-reviewer']) {
       const res = setSpecAgentEnabled(name, false)
       assert.equal(res.ok, false, name)
       assert.match(res.error!, /can't be switched off/)

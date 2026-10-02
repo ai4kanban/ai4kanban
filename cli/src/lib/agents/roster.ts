@@ -20,7 +20,6 @@ import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
 import { configBlock, forgetSpecAgent, specAgentEntries, writeConfig } from '../agent/settings'
 import type { AgentSlot, AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
-import { signalsAccess } from '../signals/access'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import type { WriteResult } from '../view/types'
 import { BUNDLED_AGENT_FILES } from './bundled'
@@ -30,32 +29,14 @@ import { AGENT_NAME, parseSpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
 
-/** Whether this account may sort triage, with an unreachable answer read as closed. */
-async function triageOpen(): Promise<boolean> {
-  try {
-    return (await signalsAccess()).open
-  } catch {
-    return false
-  }
-}
-
 /** The team, and every reason an agent is missing from it. One read: the pane draws the
- *  grid and the page from this and asks for nothing else.
- *
- *  An entry that names what it `needs` is dropped where that is closed (#562): the triager
- *  is an agent for a Triage this board does not have, and an agent nothing can start is
- *  worse than one that is simply not there. It is the one read here that reaches Cloud,
- *  which is why the whole answer is asked for rather than computed. */
+ *  grid and the page from this and asks for nothing else. */
 export async function readAgents(): Promise<{ agents: AgentView[]; problems: string[] }> {
   const { agents: specialists, problems } = specAgentCatalog()
   const entries = specAgentEntries()
   const byName = new Map(specialists.map((agent) => [agent.name, agent]))
   const table = readAgentRuntime()
-  const roster = agentRoster()
-  // An answer that cannot be got reads as closed, the same way the sort itself takes it
-  // (../agent/auto-triage.ts): one row is worth dropping, the whole pane is not.
-  const triage = roster.some((entry) => entry.needs === 'triage') ? await triageOpen() : false
-  const agents = roster.filter((entry) => entry.needs !== 'triage' || triage).map((entry): AgentView => {
+  const agents = agentRoster().map((entry): AgentView => {
     const agent = byName.get(entry.name)
     return {
       name: entry.name,

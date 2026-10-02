@@ -64,9 +64,9 @@ afterEach(() => {
 })
 
 describe('the sort', () => {
-  it('is the triager\'s, and no flow an agent is handed', () => {
+  it('is no agent\'s, and no flow an agent is handed', () => {
     assert.equal(flowByCommand('triage'), undefined)
-    assert.equal(roleForFlow('triage')!.name, 'triage')
+    assert.equal(roleForFlow('triage'), undefined)
     assert.equal(buildAsk({ action: 'triage' }), '')
   })
 })

@@ -3,7 +3,7 @@ title: "Triage"
 title_tag: "AI4Kanban triage — pull Reddit, X and Xiaohongshu leads into your board"
 description: "Point the board at a triage endpoint and it pulls what people are saying into a queue beside your cards. What lands there is a lead, not a task: make a card of it, or ignore it."
 lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into Triage, beside your cards. What lands there is a lead, not a task."
-last_updated: "October 1, 2026"
+last_updated: "October 3, 2026"
 nav_label: "Triage"
 icon: "inbox"
 ---
@@ -40,8 +40,8 @@ the page, `akb triage run`, and the sort a new item starts. Without it you sort 
 Triage is deliberately outside `todo/`. An item is never scheduled, never ranked and never
 counted in your board numbers — it is somebody else's sentence, waiting for a decision about
 whether there is work in it. Cards are what has been decided. Who decides is yours to pick:
-you, by reading the list, or the **Triage** agent, which judges each item and cards what
-survives as it arrives.
+you, by reading the list, or the board, which judges each item and cards what survives as it
+arrives.
 
 Items arrive by themselves — from an endpoint, from the **Proposer**, from `akb triage add`.
 To ask for work yourself, use **New task**. Ignoring an item moves its file to
@@ -63,7 +63,9 @@ No coding agent runs. Each item is one request to Cloud, answered against your p
 description and what you turned down before. It asks one thing at a time: is it already
 supported, rejected earlier, or owned by an open card; does it need you; is it worth doing —
 and which module, priority, ROI and workflow its card takes. An item is ignored only when one
-of those answers is near certain, and held for you when none settles it. An item no workflow
+of those answers is near certain, and held for you when none settles it. A sort is not an agent
+and takes no rule of its own: the reasons you record when you ignore an item, `project.md` and
+the planning memory are what steer it. An item no workflow
 on the board can do is ignored. An item that lands on work a card already owns is ignored
 rather than merged into that card.
 
@@ -83,8 +85,9 @@ whichever lands first wins, and the other side skips that item.
 A new item is judged before you see it: the ones worth doing become cards by themselves,
 each costing one more refine run.
 
-Every batch of new items starts one sort — a pull and `akb triage add` alike, so an item the **Proposer** writes is judged like any other. A pull
-that brought nothing new starts nothing.
+Every batch of new items starts one sort — a pull, **Add** on the page and `akb triage add`
+alike, so an item the **Proposer** writes is judged like any other. A pull that brought nothing
+new starts nothing.
 
 A sort reads the list once, when it starts, so anything that arrives while it goes is unseen.
 Its close starts the next one for exactly that, and the one after that, until nothing is
@@ -251,5 +254,5 @@ ignored is taken.
 
 This is also where the board's own **Proposer** writes: every card you archive is reflected on
 and what should follow it lands here, carrying the card that prompted it. See
-[Agents](/docs/agents). What it proposes is sorted by **Triage** without being read — the board's own follow-ups become cards the same way an outside item
-does.
+[Agents](/docs/agents). What it proposes is sorted like any other item — the board's own
+follow-ups become cards the same way an outside item does.

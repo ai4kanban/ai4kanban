@@ -9,7 +9,7 @@
 // which is what the proposer's reflection uses. It asks Cloud nothing, and **Add to triage**
 // on the page has never asked either.
 //
-// All three go on to start a sort when the triager is switched on and the account may sort
+// All three go on to start a sort when the account may sort
 // (#562, ../lib/agent/auto-triage.ts). The trigger sits here rather than in `addToInbox` because it is the
 // WRITE that starts one, and a batch is a write however many items it carried.
 //
@@ -64,7 +64,7 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
   for (const failed of report.failed) say(`  ${failed.which} — ${failed.why}`)
   if (report.added.length > 0) say(`  ${rel(TRIAGE)}/`)
 
-  // And the sort over what just landed (#562), when the triager is switched on. A pull that
+  // And the sort over what just landed (#562). A pull that
   // brought nothing new starts none, and a sort that will not start does not make the pull
   // a failure.
   await triageAfterAdding(report.added.length)

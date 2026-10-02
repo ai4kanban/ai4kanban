@@ -8,7 +8,6 @@ import { Character, HAIR, NB, Shot, em } from "./nb";
 //
 // Drawn from kanban-ui/components/Agents.tsx with `scope` = board; every word is
 // from kanban-ui/i18n/configuration/en.ts, triggers at the default cadence.
-// Auto-sort Triage is left out: it only appears for an invited Cloud account.
 //
 // Only the roster's column is fixed; the instructions box takes whatever height
 // is left, as in the real pane, so the drawing bottoms out level.
