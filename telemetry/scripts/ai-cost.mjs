@@ -2,8 +2,20 @@
 // read-only statement through Supabase's query API, the way cloud/scripts/sql.mjs runs one:
 // `cloud.ai_calls` beside `cloud.credit_spends`, summed per UTC day, user and capability.
 
+import { existsSync, readFileSync } from 'node:fs'
+import { parseEnv } from 'node:util'
+
 const NEEDED = ['SUPABASE_PROJECT_REF', 'SUPABASE_ACCESS_TOKEN']
 const TIMEOUT_MS = 20_000
+
+/** `env`, with whichever of the two values it lacks taken from cloud/.env — those two only. */
+export function withCloudEnv(env, file) {
+  const missing = NEEDED.filter((name) => !env[name])
+  if (missing.length === 0 || !existsSync(file)) return env
+  const held = parseEnv(readFileSync(file, 'utf8'))
+  const found = missing.filter((name) => held[name]).map((name) => [name, held[name]])
+  return { ...env, ...Object.fromEntries(found) }
+}
 
 /** @param from the first UTC day to read, `YYYY-MM-DD` */
 export const aiCostSql = (from) => {
@@ -64,7 +76,7 @@ export async function readAiCost(env, from) {
   const missing = NEEDED.filter((name) => !env[name])
   if (missing.length > 0) {
     const verb = missing.length > 1 ? 'are' : 'is'
-    return { failed: `${missing.join(' and ')} ${verb} not set, in the environment or in telemetry/.env.` }
+    return { failed: `${missing.join(' and ')} ${verb} not set, in the environment, telemetry/.env or cloud/.env.` }
   }
   try {
     const response = await fetch(
