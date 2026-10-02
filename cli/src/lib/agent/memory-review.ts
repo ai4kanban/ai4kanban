@@ -1,8 +1,8 @@
-// Which conversations the memory review reads, and what it is handed of each (#748, #1322).
+// Which card chats the memory review reads, and what it is handed of each (#748, #1322).
 //
 // A chat writes no memory of its own: one turn cannot see where the exchange is going. The
-// review reads a conversation whole instead — once, after its card is archived, so it is
-// complete when read. Everything the review needs is prepared here and printed with the
+// review reads a card's conversation whole instead — once, after the card is archived, so it
+// is complete when read. A discussion is never read (#1376). Everything the review needs is prepared here and printed with the
 // task: the trimmed transcript, the card's modules, and the agents whose sections the card
 // holds with the memory files each keeps.
 
@@ -14,15 +14,14 @@ import { boardCardIds, idPrefix, walkMd } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { agentMemoryDir, memoryNamesOf } from '../memory'
 import { ARCHIVE, CHATS_DIR, rel } from '../paths'
-import { awaitsReview, becameCards, dropKeptChat, keptChats, readChat, readKeptChat, setChatReviewed } from './chat'
+import { awaitsReview, dropKeptChat, keptChats, readChat, readKeptChat, setChatReviewed } from './chat'
 import { noteMemoryReviewRemaining } from './settings'
-import { DISCUSSION_PREFIX, type ChatMessage, type ChatTarget } from './types'
+import type { ChatMessage } from './types'
 
 /** How many archived cards' conversations one review run takes. */
 export const REVIEW_BATCH_CARDS = 10
 
 const CARD_KEY = /^card-(\d+)$/
-const DISCUSSION_KEY = new RegExp(`^${DISCUSSION_PREFIX}[0-9a-f-]{36}$`)
 
 /** An agent named on a conversation's card, and the memory it keeps. */
 export interface ReviewAgent {
@@ -35,16 +34,11 @@ export interface ReviewAgent {
 
 /** One conversation the review is handed. */
 export interface ChatToReview {
-  /** The name it is marked reviewed by: `card-<id>`, `discussion-<uuid>`, or a kept chat's
-   *  `card-<id>.<keptAt>`. */
+  /** The name it is marked reviewed by: `card-<id>`, or a kept chat's `card-<id>.<keptAt>`. */
   key: string
-  /** The archived cards it belongs to: a card chat's own card, or every card a discussion
-   *  became, in archive order. The last is the one its batch is counted by. */
-  cards: { id: number; title: string }[]
-  /** What a discussion was named, or empty. */
-  subject: string
-  discussion: boolean
-  /** The `## <module>` topics its notes belong under: the cards' own `modules:`. */
+  /** The archived card it belongs to. */
+  card: { id: number; title: string }
+  /** The `## <module>` topics its notes belong under: the card's own `modules:`. */
   topics: string[]
   agents: ReviewAgent[]
   /** The messages oldest first, trimmed of command echoes and warnings. */
@@ -61,14 +55,14 @@ export interface ReviewBatch {
  *  have one waiting, by archive day then id. */
 export function reviewBatch(): ReviewBatch {
   const waiting = waitingChats()
-  const anchors = [...new Map(waiting.map((w) => [w.anchor.id, w.anchor])).values()].sort(byArchive)
-  const taken = new Set(anchors.slice(0, REVIEW_BATCH_CARDS).map((c) => c.id))
+  const cards = [...new Map(waiting.map((w) => [w.card.id, w.card])).values()].sort(byArchive)
+  const taken = new Set(cards.slice(0, REVIEW_BATCH_CARDS).map((c) => c.id))
   return {
     chats: waiting
-      .filter((w) => taken.has(w.anchor.id))
-      .sort((a, b) => byArchive(a.anchor, b.anchor) || Number(a.discussion) - Number(b.discussion) || a.at - b.at)
+      .filter((w) => taken.has(w.card.id))
+      .sort((a, b) => byArchive(a.card, b.card) || a.at - b.at)
       .map(handed),
-    remaining: anchors.length > taken.size,
+    remaining: cards.length > taken.size,
   }
 }
 
@@ -108,24 +102,17 @@ interface ArchivedCard {
 interface Waiting {
   key: string
   messages: ChatMessage[]
-  /** What a discussion was named. */
-  title?: string
-  discussion: boolean
   /** Where it sorts among its card's conversations: when a kept chat was set aside, and
    *  last for the live one. */
   at: number
-  /** Its archived cards that were not rejected, in archive order. */
-  cards: ArchivedCard[]
-  /** The last of them to be archived. */
-  anchor: ArchivedCard
+  card: ArchivedCard
 }
 
 const byArchive = (a: ArchivedCard, b: ArchivedCard): number => a.day.localeCompare(b.day) || a.id - b.id
 
-// A conversation waits when it was never marked, was last spoken to after `reviewedBefore`,
-// and its card is archived — every card it became, for a discussion. A card still on the
-// board, gone from both, or rejected keeps its conversation out. A kept chat (#1345) passed
-// the first two when it was set aside.
+// A card chat waits when it was never marked, was last spoken to after `reviewedBefore`, and
+// its card is archived. A card still on the board, gone from both, or rejected keeps its
+// conversation out. A kept chat (#1345) passed the first two when it was set aside.
 function waitingChats(firstOnly = false): Waiting[] {
   const archive = archiveIndex()
   if (!archive.size) return []
@@ -135,32 +122,18 @@ function waitingChats(firstOnly = false): Waiting[] {
     if (!card || card.rejected) continue
     const messages = readKeptChat(key)
     if (!messages?.length) continue
-    found.push({ key, messages, discussion: false, at: keptAt, cards: [card], anchor: card })
+    found.push({ key, messages, at: keptAt, card })
     if (firstOnly) return found
   }
   for (const key of chatKeys()) {
-    const target = targetOf(key)
-    if (target === null) continue
-    // The file name alone settles most card chats, so they are never opened.
-    if (typeof target === 'number' && !archive.has(target)) continue
-    const chat = readChat(target)
+    const id = targetOf(key)
+    // The file name alone settles most chats, so they are never opened.
+    if (id === null || !archive.has(id)) continue
+    const chat = readChat(id)
     if (!chat || !awaitsReview(chat)) continue
-    const ids = typeof target === 'number' ? [target] : becameCards(chat)
-    if (!ids.length || !ids.every((id) => archive.has(id))) continue
-    const cards = ids
-      .map((id) => archive.get(id)!())
-      .filter((card): card is ArchivedCard => card !== null && !card.rejected)
-      .sort(byArchive)
-    if (!cards.length) continue
-    found.push({
-      key,
-      messages: chat.messages,
-      title: chat.title,
-      discussion: typeof target !== 'number',
-      at: Number.MAX_SAFE_INTEGER,
-      cards,
-      anchor: cards[cards.length - 1]!,
-    })
+    const card = archive.get(id)!()
+    if (!card || card.rejected) continue
+    found.push({ key, messages: chat.messages, at: Number.MAX_SAFE_INTEGER, card })
     if (firstOnly) break
   }
   return found
@@ -178,12 +151,11 @@ function chatKeys(): string[] {
   }
 }
 
-// A card's id, a discussion's target, or null for anything else — the board's own
-// conversation, a picture folder, a marker file.
-function targetOf(key: string): ChatTarget {
+// A card's id, or null for anything else — a discussion, the board's own conversation, a
+// picture folder, a marker file.
+function targetOf(key: string): number | null {
   const card = CARD_KEY.exec(key)
-  if (card) return Number(card[1])
-  return DISCUSSION_KEY.test(key) ? (key as ChatTarget) : null
+  return card ? Number(card[1]) : null
 }
 
 // Every card in the archive and off the board, by id — one walk, each file read only when
@@ -214,14 +186,12 @@ function readArchived(id: number, file: string): ArchivedCard | null {
 
 // ---- what the review is handed ----------------------------------------------
 
-function handed({ key, messages, title, discussion, cards }: Waiting): ChatToReview {
+function handed({ key, messages, card }: Waiting): ChatToReview {
   return {
     key,
-    cards: cards.map(({ id, title }) => ({ id, title })),
-    subject: discussion ? (title ?? '') : '',
-    discussion,
-    topics: [...new Set(cards.flatMap((c) => c.modules))],
-    agents: [...new Set(cards.flatMap((c) => agentsOn(c.body)))].map((name) => ({
+    card: { id: card.id, title: card.title },
+    topics: [...new Set(card.modules)],
+    agents: [...new Set(agentsOn(card.body))].map((name) => ({
       name,
       dir: rel(agentMemoryDir(name)),
       files: [...memoryNamesOf(name)],

@@ -525,10 +525,9 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
 // block itself, then its modules, its card's agents with their memory files, and the
 // trimmed transcript. Nothing of a conversation is printed outside its block.
 function conversationBlock(chat: ChatToReview): string[] {
-  const cards = chat.cards.map((c) => `#${c.id} ${c.title}`.trim().replace(/"/g, "'")).join('; ')
-  const kind = chat.discussion ? `discussion${chat.subject ? ` — ${chat.subject.replace(/"/g, "'")}` : ''}` : 'card chat'
+  const card = `#${chat.card.id} ${chat.card.title}`.trim().replace(/"/g, "'")
   return [
-    `<conversation card="${cards}" kind="${kind}">`,
+    `<conversation card="${card}" kind="card chat">`,
     `modules: ${chat.topics.length ? `## ${chat.topics.join(', ## ')}` : '(none)'}`,
     ...(chat.agents.length
       ? ['agents:', ...chat.agents.map((a) => `  \`${a.name}\` — ${a.dir}/: ${a.files.join(', ') || 'no files yet'}`)]

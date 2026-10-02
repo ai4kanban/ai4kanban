@@ -182,20 +182,21 @@ describe('the conversations a review takes', () => {
     assert.deepEqual(keys(), [])
   })
 
-  it('takes a discussion only once every card it became is archived', () => {
+  it('never takes a discussion, even once every card it became is archived (#1376)', async () => {
     card(1)
-    card(2, { where: 'open' })
+    card(2)
     discussion([1, 2])
     assert.deepEqual(keys(), [])
-
-    archive(2)
-    assert.deepEqual(keys(), [DISCUSSION])
+    assert.deepEqual(await work(), [])
   })
 
-  it('never takes a discussion that became no card', () => {
+  it('reports a discussion as unknown when asked to mark it', async () => {
     card(1)
-    discussion([])
-    assert.deepEqual(keys(), [])
+    discussion([1])
+    const answer = await mark(DISCUSSION)
+    assert.deepEqual(answer.marked, [])
+    assert.deepEqual(answer.unknown, [DISCUSSION])
+    assert.equal(readChat(DISCUSSION)!.reviewedAt, undefined)
   })
 
   it('takes a marked conversation never again, and marks only what the command was given', async () => {
@@ -296,7 +297,7 @@ describe('the review the board starts on its own', () => {
     assert.deepEqual(await work(), [{ action: 'review-memory' }])
 
     const first = reviewBatch()
-    assert.deepEqual(first.chats.map((c) => c.cards[0]!.id), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    assert.deepEqual(first.chats.map((c) => c.card.id), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     assert.equal(first.remaining, true)
     let started = Date.now() - 1000
     await mark(...first.chats.map((c) => c.key))
@@ -305,7 +306,7 @@ describe('the review the board starts on its own', () => {
     assert.deepEqual(await work(), [{ action: 'review-memory' }])
 
     const second = reviewBatch()
-    assert.deepEqual(second.chats.map((c) => c.cards[0]!.id), [11, 12, 13, 14])
+    assert.deepEqual(second.chats.map((c) => c.card.id), [11, 12, 13, 14])
     assert.equal(second.remaining, false)
     started = Date.now()
     await mark(...second.chats.map((c) => c.key))
@@ -331,20 +332,6 @@ describe('the review the board starts on its own', () => {
     pastRuns({ status: 'error', startedAt: Date.now() - 1000 })
     assert.deepEqual(await work(), [])
   })
-
-  it('counts a discussion with the last of its cards to be archived, and not again for the others', () => {
-    // Archive day first, then id: #11 was archived last although #12 is the newer card.
-    for (let id = 1; id <= 12; id++) {
-      card(id, { day: id === 11 ? '2026-09-30' : '2026-09-10' })
-      if (id !== 2) chat(`card-${id}`)
-    }
-    discussion([2, 11])
-    const batch = reviewBatch()
-    // Eleven cards have a conversation waiting — #2 is not one, its discussion counts with
-    // #11 — so the first ten leave #11's chat and the discussion for the next run.
-    assert.deepEqual(batch.chats.map((c) => c.key), [1, 3, 4, 5, 6, 7, 8, 9, 10, 12].map((id) => `card-${id}`))
-    assert.equal(batch.remaining, true)
-  })
 })
 
 describe('what the review is handed', () => {
@@ -353,13 +340,12 @@ describe('what the review is handed', () => {
     card(2, { modules: ['local-ui'] })
     chat('card-1')
     chat('card-2')
-    discussion([1, 2])
 
     const said = flow()
-    assert.equal(said.match(/<conversation /g)!.length, 3)
-    assert.equal(said.match(/<\/conversation>/g)!.length, 3)
+    assert.equal(said.match(/<conversation /g)!.length, 2)
+    assert.equal(said.match(/<\/conversation>/g)!.length, 2)
     assert.match(said, /<conversation card="#1 card 1" kind="card chat">\n\s+modules: ## skill\n/)
-    assert.match(said, /<conversation card="#1 card 1; #2 card 2" kind="discussion — a plan">\n\s+modules: ## skill, ## local-ui\n/)
+    assert.match(said, /<conversation card="#2 card 2" kind="card chat">\n\s+modules: ## local-ui\n/)
     assert.match(said, /memory\/agents\/planner\/ — decisions\.md, rejected\.md, redesign\.md/)
     // The task carries the transcript; no file is named for the review to open.
     assert.doesNotMatch(said, /card-1\.json/)
@@ -586,7 +572,6 @@ describe('a conversation writes no memory', () => {
   it('carries the rule where every flow already reads the bar', () => {
     const board = findGuide('board')!.text
     assert.match(board, /\*\*A conversation writes none\*\*/)
-    assert.match(board, /akb guide review-memory/)
     assert.match(board, /Setup is not a\s+conversation/)
   })
 
