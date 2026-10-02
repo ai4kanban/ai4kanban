@@ -23,8 +23,13 @@ import { unquote } from '../yaml'
 import type { Signal, TriageReason, TriageVerdict } from '../view/types'
 import { archiveInboxItem, dismissInboxItem, readInbox, recordVerdict } from './inbox'
 
-/** Below this verdict confidence the item is held for the user, whatever was picked. */
+/** Below this confidence a workflow pick falls back to the board's default. */
 export const CONFIDENT = 0.6
+
+/** An item is ignored at this much confidence it should be dropped, and carded at this much
+ *  that it is worth doing. Ignoring is the stricter: a wrong ignore is never seen. */
+export const DROP_LINE = 0.8
+export const DO_LINE = 0.6
 
 /** Jev reads 32K tokens; the state and questions are kept under this estimate of them. */
 export const MAX_TOKENS = 30_000
@@ -48,6 +53,9 @@ const VERDICT = {
 } as const
 
 type Option = keyof typeof VERDICT.criteria
+
+const DROP_OPTIONS = ['supported', 'rejected', 'duplicate', 'low-value'] as const
+const DO_OPTIONS = ['small', 'plan'] as const
 
 const DUPLICATE_ASKS = 'Which open card already owns the work this item asks for? Pick none when no card does.'
 
@@ -234,24 +242,41 @@ export interface Verdict {
   reason: TriageReason
   card: number | null
   confidence: number
+  /** How sure Jev was the item should be ignored, and that it is worth doing. Null when unknown. */
+  drop: number | null
+  do: number | null
 }
 
-/** The four ends, from what Jev picked. */
+// Two decimals, as the item records them: the lines are measured on what is kept.
+const hundredths = (n: number): number => Math.round(n * 100) / 100
+
+/** The four ends, from the two confidences Jev's probabilities add up to. */
 export function verdictOf(answers: { verdict: Answer; duplicate?: Answer }): Verdict {
   const pick = answers.verdict.choice as Option
   const confidence = answers.verdict.confidence
-  const card = pick === 'duplicate' ? Number(answers.duplicate?.choice.match(/^#(\d+)$/)?.[1] ?? NaN) : NaN
-  const base = { card: Number.isInteger(card) ? card : null, confidence }
   if (!(pick in VERDICT.criteria)) throw new Error(`Jev picked an option it was not offered: ${pick}`)
-  if (confidence < CONFIDENT) return { ...base, card: null, verdict: 'human-review', reason: 'unsure' }
+  const given = answers.verdict.probabilities
+  const odds: Record<string, number> = given && Object.keys(given).length > 0 ? given : { [pick]: confidence }
+  const of = (option: Option): number => (Number.isFinite(odds[option]) ? odds[option]! : 0)
+  const sum = (options: readonly Option[]): number => hundredths(options.reduce((n, option) => n + of(option), 0))
+  const base = { card: null, confidence, drop: sum(DROP_OPTIONS), do: sum(DO_OPTIONS) }
+
   if (pick === 'needs-user') return { ...base, verdict: 'human-review', reason: 'needs-user' }
-  if (pick === 'small') return { ...base, verdict: 'plan-without-refine', reason: 'small' }
-  if (pick === 'plan') return { ...base, verdict: 'plan', reason: 'plan' }
-  return { ...base, card: pick === 'duplicate' ? base.card : null, verdict: 'skip', reason: pick }
+  if (base.drop >= DROP_LINE) {
+    const reason = DROP_OPTIONS.reduce((top, option) => (of(option) > of(top) ? option : top))
+    const card = reason === 'duplicate' ? Number(answers.duplicate?.choice.match(/^#(\d+)$/)?.[1] ?? NaN) : NaN
+    return { ...base, card: Number.isInteger(card) ? card : null, verdict: 'skip', reason }
+  }
+  if (base.do >= DO_LINE) {
+    return hundredths(of('small')) >= DO_LINE
+      ? { ...base, verdict: 'plan-without-refine', reason: 'small' }
+      : { ...base, verdict: 'plan', reason: 'plan' }
+  }
+  return { ...base, verdict: 'human-review', reason: 'unsure' }
 }
 
 /** The reason, in the words `triage dismiss` records and the log reads. */
-export function reasonWords(v: Pick<Verdict, 'reason' | 'card'>): string {
+export function reasonWords(v: Pick<Verdict, 'reason' | 'card' | 'drop' | 'do'>): string {
   switch (v.reason) {
     case 'supported':
       return 'already supported'
@@ -263,8 +288,11 @@ export function reasonWords(v: Pick<Verdict, 'reason' | 'card'>): string {
       return 'too little worth'
     case 'needs-user':
       return 'needs your direction'
-    case 'unsure':
-      return 'unsure'
+    case 'unsure': {
+      if (v.drop === null || v.do === null) return 'unsure'
+      const sure = (n: number): string => `${Math.round(n * 100)}% sure`
+      return v.do >= v.drop ? `likely worth doing, ${sure(v.do)}` : `likely to ignore, ${sure(v.drop)}`
+    }
     case 'small':
       return 'small and fully specified'
     case 'plan':
@@ -275,8 +303,11 @@ export function reasonWords(v: Pick<Verdict, 'reason' | 'card'>): string {
 }
 
 /** Items the sort still has to deal with: never judged, or judged worth a card not yet written.
- *  Held and restored items are the user's. */
-export const awaitsJudging = (item: Signal): boolean => item.verdict === ''
+ *  Held and restored items are the user's — but one held as unsure before the two confidences
+ *  were kept (#1356) is judged once more. */
+export const awaitsJudging = (item: Signal): boolean =>
+  item.verdict === '' ||
+  (item.verdict === 'human-review' && item.verdictReason === 'unsure' && (item.dropConfidence === null || item.doConfidence === null))
 export const awaitsCard = (item: Signal): boolean => item.verdict === 'plan' || item.verdict === 'plan-without-refine'
 export const sortable = (item: Signal): boolean => awaitsJudging(item) || awaitsCard(item)
 
@@ -410,17 +441,17 @@ export async function sortItem(item: Signal): Promise<Sorted> {
     return { kind: 'ignored', reason }
   }
 
-  let confidence = 1
+  let sure = { confidence: 1, drop: item.dropConfidence, do: item.doConfidence }
   if (!judged) {
     if (!answers.verdict) die(`couldn't judge ${item.sourceId}: Cloud left the verdict unanswered`, { kind: 'judge-failed' })
     const verdict = verdictOf({ verdict: answers.verdict, duplicate: answers.duplicate })
     if (verdict.verdict === 'skip') return ignore(verdict)
     record(verdict)
     if (verdict.verdict === 'human-review') return { kind: 'held', reason: reasonWords(verdict) }
-    confidence = verdict.confidence
+    sure = verdict
   }
   const picks = picksOf(answers)
-  if (picks.workflow === null) return ignore({ verdict: 'skip', reason: 'no-workflow', card: null, confidence })
+  if (picks.workflow === null) return ignore({ verdict: 'skip', reason: 'no-workflow', card: null, confidence: sure.confidence, drop: sure.drop, do: sure.do })
   const card = await writeCard(item, picks)
   const filed = archiveInboxItem(item.sourceId, card.id)
   if (!filed.ok) die(filed.error, { kind: 'triage-item-gone' })

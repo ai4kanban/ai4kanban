@@ -17,7 +17,10 @@ import { writeSession } from '../src/lib/cloud/session.ts'
 import { fileName, readAllDismissed, readArchived, readInbox, writeSignal } from '../src/lib/signals/inbox.ts'
 import {
   CONFIDENT,
+  DO_LINE,
+  DROP_LINE,
   MAX_TOKENS,
+  awaitsJudging,
   judgementState,
   picksOf,
   questionsFor,
@@ -81,6 +84,9 @@ function signIn(pro: boolean): void {
 }
 
 const choice = (pick: string, confidence = 0.9): Answer => ({ choice: pick, confidence })
+
+/** An answer carrying each option's probability, as Jev gives it. */
+const odds = (pick: string, probabilities: Record<string, number>, confidence = 0.5): Answer => ({ choice: pick, confidence, probabilities })
 
 function answer(res: () => Response): void {
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -175,13 +181,65 @@ describe('the verdict', () => {
     })
   })
 
-  it('holds for the user whatever was picked below the confidence floor', () => {
+  const end = (answer: Answer): string => {
+    const v = verdictOf({ verdict: answer })
+    return `${v.verdict}/${v.reason}`
+  }
+
+  it('adds the probabilities up into two confidences, whatever the confidence of the pick', () => {
+    assert.deepEqual([DROP_LINE, DO_LINE], [0.8, 0.6])
+    const v = verdictOf({ verdict: odds('plan', { supported: 0.05, rejected: 0.05, duplicate: 0.1, 'low-value': 0.1, 'needs-user': 0.05, small: 0.3, plan: 0.35 }, 0.3) })
+    assert.deepEqual([v.drop, v.do, v.confidence], [0.3, 0.65, 0.3])
+    assert.deepEqual([v.verdict, v.reason], ['plan', 'plan'])
+  })
+
+  it('holds what needs the user first, then ignores, then cards, then holds as unsure', () => {
+    assert.equal(end(odds('needs-user', { 'needs-user': 0.1, supported: 0.9 })), 'human-review/needs-user')
+    assert.equal(end(odds('needs-user', { 'needs-user': 0.2, plan: 0.8 })), 'human-review/needs-user')
+    assert.equal(end(odds('plan', { 'low-value': 0.5, rejected: 0.3, plan: 0.2 })), 'skip/low-value')
+    assert.equal(end(odds('plan', { plan: 0.6, supported: 0.4 })), 'plan/plan')
+    assert.equal(end(odds('plan', { plan: 0.5, supported: 0.5 })), 'human-review/unsure')
+  })
+
+  it('draws each line at its own value', () => {
+    assert.equal(end(odds('supported', { supported: 0.8, plan: 0.2 })), 'skip/supported')
+    assert.equal(end(odds('supported', { supported: 0.79, plan: 0.21 })), 'human-review/unsure')
+    // Sums that floating point leaves a hair under the line.
+    assert.equal(end(odds('supported', { supported: 0.7, rejected: 0.1 })), 'skip/supported')
+    assert.equal(end(odds('plan', { plan: 0.4, small: 0.2, supported: 0.4 })), 'plan/plan')
+    assert.equal(end(odds('plan', { plan: 0.59, supported: 0.41 })), 'human-review/unsure')
+  })
+
+  it('cards without planning only when small alone reaches the line', () => {
+    assert.equal(end(odds('small', { small: 0.6, plan: 0.3 })), 'plan-without-refine/small')
+    assert.equal(end(odds('small', { small: 0.59, plan: 0.4 })), 'plan/plan')
+  })
+
+  it('ignores for the likeliest of the four reasons, naming the card only for a duplicate', () => {
+    const answers = { duplicate: choice('#1180') }
+    const dup = verdictOf({ verdict: odds('duplicate', { supported: 0.2, duplicate: 0.45, 'low-value': 0.2 }), ...answers })
+    assert.deepEqual([dup.verdict, dup.reason, dup.card], ['skip', 'duplicate', 1180])
+    const low = verdictOf({ verdict: odds('duplicate', { duplicate: 0.3, 'low-value': 0.55 }), ...answers })
+    assert.deepEqual([low.verdict, low.reason, low.card], ['skip', 'low-value', null])
+  })
+
+  it('reads the pick and its confidence when no probabilities came', () => {
     assert.equal(CONFIDENT, 0.6)
-    for (const pick of ['supported', 'plan', 'small']) {
-      const v = verdictOf({ verdict: choice(pick, 0.59) })
-      assert.deepEqual([v.verdict, v.reason], ['human-review', 'unsure'])
-    }
-    assert.equal(verdictOf({ verdict: choice('plan', 0.6) }).verdict, 'plan')
+    const held = verdictOf({ verdict: choice('supported', 0.79) })
+    assert.deepEqual([held.verdict, held.reason, held.drop, held.do], ['human-review', 'unsure', 0.79, 0])
+    assert.equal(end(choice('supported', 0.8)), 'skip/supported')
+    assert.equal(end(choice('plan', 0.59)), 'human-review/unsure')
+    assert.equal(end(choice('plan', 0.6)), 'plan/plan')
+    assert.equal(end(choice('small', 0.6)), 'plan-without-refine/small')
+    assert.equal(end({ choice: 'plan', confidence: 0.6, probabilities: {} }), 'plan/plan')
+  })
+
+  it('says which way a held item leans, the worth-doing way when the two are level', () => {
+    const words = (drop: number | null, worth: number | null): string => reasonWords({ reason: 'unsure', card: null, drop, do: worth })
+    assert.equal(words(0.4, 0.57), 'likely worth doing, 57% sure')
+    assert.equal(words(0.48, 0.3), 'likely to ignore, 48% sure')
+    assert.equal(words(0.45, 0.45), 'likely worth doing, 45% sure')
+    assert.equal(words(null, null), 'unsure')
   })
 
   it('names the duplicated card when one was picked, and none otherwise', () => {
@@ -401,15 +459,21 @@ describe('the sort', () => {
     const ignored = item(dup)
     assert.deepEqual([ignored.verdict, ignored.verdictReason, ignored.verdictCard], ['skip', 'duplicate', 1180])
     assert.deepEqual([ignored.dismissedBy, ignored.dismissedReason], ['agent', 'duplicates #1180'])
-    assert.match(fs.readFileSync(path.join(root, ignored.relPath), 'utf8'), /verdict_confidence: "?0.82"?/)
+    const kept = fs.readFileSync(path.join(root, ignored.relPath), 'utf8')
+    assert.match(kept, /verdict_confidence: "?0.82"?/)
+    assert.match(kept, /drop_confidence: "?0.82"?\ndo_confidence: "?0.00"?/)
+    assert.deepEqual([ignored.dropConfidence, ignored.doConfidence], [0.82, 0])
 
     const held = await waiting('Direction')
     const unsure = await waiting('Unsure')
     answer(jev(choice('needs-user')))
     await sortItems([held], () => {})
-    answer(jev(choice('plan', 0.4)))
-    done = { report: await sortItems([unsure], () => {}), said: [] }
-    assert.deepEqual(done.report.held, [{ title: 'Unsure', reason: 'unsure' }])
+    answer(jev(odds('plan', { plan: 0.3, small: 0.27, supported: 0.4 })))
+    const said: string[] = []
+    done = { report: await sortItems([unsure], (line) => void said.push(line)), said }
+    assert.deepEqual(done.report.held, [{ title: 'Unsure', reason: 'likely worth doing, 57% sure' }])
+    assert.equal(said[0], 'left for you: Unsure — likely worth doing, 57% sure')
+    assert.deepEqual([item(unsure).verdictReason, item(unsure).dropConfidence, item(unsure).doConfidence], ['unsure', 0.4, 0.57])
     assert.deepEqual([item(held).verdict, item(held).verdictReason], ['human-review', 'needs-user'])
     assert.deepEqual(readInbox().map((one) => one.title).sort(), ['Direction', 'Unsure'])
     assert.deepEqual(triageWaiting(), [])
@@ -494,6 +558,30 @@ describe('the sort', () => {
     }
     assert.equal(item(skipped).verdict, 'skip')
     assert.deepEqual(triageWaiting(), [fresh])
+  })
+
+  it('judges once more an item held as unsure before the two confidences were kept', async () => {
+    signIn(true)
+    const legacy = await waiting('Legacy')
+    const direction = await waiting('Direction')
+    // As a sort before #1356 left them: a verdict, and no two confidences.
+    const before = (sourceId: string, reason: string): void => {
+      const file = path.join(root, item(sourceId).relPath)
+      const held = `verdict: human-review\nverdict_reason: ${reason}\nverdict_confidence: "0.40"\n---`
+      fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/^---$/m, '').replace(/^---$/m, held).replace(/^/, '---'))
+    }
+    before(legacy, 'unsure')
+    before(direction, 'needs-user')
+    assert.deepEqual([item(legacy).verdict, item(legacy).dropConfidence], ['human-review', null])
+    assert.deepEqual([awaitsJudging(item(legacy)), awaitsJudging(item(direction))], [true, false])
+    assert.deepEqual(triageWaiting(), [legacy])
+
+    answer(jev(odds('plan', { plan: 0.3, 'low-value': 0.45 })))
+    const done = await sort()
+    assert.deepEqual(done.report.held, [{ title: 'Legacy', reason: 'likely to ignore, 45% sure' }])
+    assert.equal(sent.filter((one) => one.url.endsWith('/v1/judge')).length, 1)
+    assert.deepEqual([item(legacy).dropConfidence, item(legacy).doConfidence], [0.45, 0.3])
+    assert.deepEqual(triageWaiting(), [])
   })
 })
 

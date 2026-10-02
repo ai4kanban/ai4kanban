@@ -54,6 +54,8 @@ export type IncomingSignal = Omit<
   | 'verdict'
   | 'verdictReason'
   | 'verdictCard'
+  | 'dropConfidence'
+  | 'doConfidence'
 >
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
@@ -169,9 +171,13 @@ export function parse(file: string, lenient = false): Signal | null {
     verdict: VERDICTS.includes(held.verdict as TriageVerdict) ? (held.verdict as TriageVerdict) : '',
     verdictReason: REASONS.includes(held.verdict_reason as TriageReason) ? (held.verdict_reason as TriageReason) : '',
     verdictCard: /^\d+$/.test(held.verdict_card ?? '') ? Number(held.verdict_card) : null,
+    dropConfidence: confidenceOf(held.drop_confidence),
+    doConfidence: confidenceOf(held.do_confidence),
     relPath: boardRel(file),
   }
 }
+
+const confidenceOf = (said: string | undefined): number | null => (/^(0(\.\d+)?|1(\.0+)?)$/.test(said ?? '') ? Number(said) : null)
 
 const slugOf = (said: string): string =>
   said
@@ -275,6 +281,8 @@ export function writeSignal(incoming: IncomingSignal, importedAt: string, slug =
     verdict: '',
     verdictReason: '',
     verdictCard: null,
+    dropConfidence: null,
+    doConfidence: null,
     relPath: '',
   }
   const file = path.join(TRIAGE, freeName(TRIAGE, fileName(signal.title, slug)))
@@ -301,7 +309,7 @@ function stamp(file: string, fields: Record<string, string | null>): void {
  *  an item is judged once. */
 export function recordVerdict(
   sourceId: string,
-  verdict: { verdict: TriageVerdict; reason: TriageReason; card: number | null; confidence: number },
+  verdict: { verdict: TriageVerdict; reason: TriageReason; card: number | null; confidence: number; drop: number | null; do: number | null },
 ): MoveOutcome {
   const found = readInbox().find((signal) => signal.sourceId === sourceId)
   const file = found && path.join(TRIAGE, path.basename(found.relPath))
@@ -311,6 +319,10 @@ export function recordVerdict(
     verdict_reason: verdict.reason,
     verdict_card: verdict.card === null ? null : String(verdict.card),
     verdict_confidence: verdict.confidence.toFixed(2),
+    // Left as they are when unknown: a verdict recorded after the first keeps the first's two.
+    ...(verdict.drop === null || verdict.do === null
+      ? {}
+      : { drop_confidence: verdict.drop.toFixed(2), do_confidence: verdict.do.toFixed(2) }),
     judged_at: formatStamp(new Date()),
   })
   return { ok: true, relPath: found.relPath }

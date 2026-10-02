@@ -140,14 +140,26 @@ type SignalsCopy = ReturnType<typeof useCopy>["rail"]["signals"];
 /** Held for the user by a Pro sort (#1221). */
 const heldForYou = (signal: Signal): boolean => signal.verdict === "human-review";
 
+/** Held as unsure before the two confidences were kept (#1356): the next sort judges it again. */
+const unsureUnmeasured = (signal: Signal): boolean =>
+  heldForYou(signal) &&
+  signal.verdictReason === "unsure" &&
+  (signal.dropConfidence === null || signal.doConfidence === null);
+
 /** What a sort still has to do something with: never judged, or judged worth a card not yet made. */
 const sortable = (signal: Signal): boolean =>
-  !signal.verdict || signal.verdict === "plan" || signal.verdict === "plan-without-refine";
+  !signal.verdict || signal.verdict === "plan" || signal.verdict === "plan-without-refine" || unsureUnmeasured(signal);
 
-/** A verdict's reason, in the page's language. */
+/** A verdict's reason, in the page's language. An unsure one says which way Jev leans and how
+ *  sure it is, or nothing when the two confidences were never kept. */
 function verdictReason(signal: Signal, c: SignalsCopy): string {
   if (!signal.verdictReason) return "";
   if (signal.verdictReason === "duplicate" && signal.verdictCard !== null) return c.duplicateOf(signal.verdictCard);
+  if (signal.verdictReason === "unsure") {
+    const { dropConfidence: drop, doConfidence: worth } = signal;
+    if (drop === null || worth === null) return "";
+    return worth >= drop ? c.likelyDo(Math.round(worth * 100)) : c.likelyIgnore(Math.round(drop * 100));
+  }
   return c.reasons[signal.verdictReason];
 }
 

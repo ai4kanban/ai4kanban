@@ -779,6 +779,10 @@ export interface Signal {
   verdictReason: TriageReason | ''
   /** The open card it duplicates, when the reason is `duplicate` and one was named. */
   verdictCard: number | null
+  /** How sure Jev was the item should be ignored, and that it is worth doing (#1356), 0 to 1.
+   *  Null when it was never judged, or judged before the two were kept. */
+  dropConfidence: number | null
+  doConfidence: number | null
   /** The path from the repo root, forward slashes. */
   relPath: string
 }
@@ -786,7 +790,7 @@ export interface Signal {
 /** The four ends of a judged item (#1221). */
 export type TriageVerdict = 'plan' | 'plan-without-refine' | 'skip' | 'human-review'
 
-/** The label a verdict carries: the option Jev picked, or `unsure` when its confidence was low. */
+/** The label a verdict carries: the option it rests on, or `unsure` when neither confidence reached its line. */
 export type TriageReason = 'supported' | 'rejected' | 'duplicate' | 'low-value' | 'needs-user' | 'unsure' | 'small' | 'plan' | 'no-workflow'
 
 /** A card triage points at: its title, and whether it has left the board. */
