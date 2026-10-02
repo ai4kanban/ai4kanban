@@ -1075,6 +1075,8 @@ export interface Chat {
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
+  /** When the memory review marked this conversation reviewed (#1322). It is read once. */
+  reviewedAt?: number
 }
 
 /** One agent session, as a CLI would resume it (#1222). */
@@ -1675,14 +1677,18 @@ export interface AgentView {
   file?: AgentFileView
 }
 
-/** What the memory reviewer's page reads (#748). It carries no cadence: the review is
- *  daily, so there is nothing to set — the one thing worth reading is the last review that
- *  passed. It lives beside the pruner's block in `ui.config.json`. */
+/** What the board keeps about the memory review (#748, #1322), beside the pruner's block in
+ *  `ui.config.json`. It carries no cadence: a round starts at most once a day. */
 export interface MemoryReviewState {
   /** When the last review that PASSED began, as a minute stamp, or empty for "never
-   *  reviewed". The START, not the end: a conversation spoken to while the review was
-   *  reading would otherwise count as already seen and never be reviewed at all. */
+   *  reviewed". */
   lastRun: string
+  /** A conversation never marked reviewed and last spoken to by this stamp counts as reviewed
+   *  (#1322): the last pass before reviews became once-per-conversation. Pinned on the first
+   *  write after that and never moved; empty takes every conversation. */
+  reviewedBefore: string
+  /** When a batch last ended with conversations still waiting, in ms, or 0 for none. */
+  remainingAt: number
 }
 
 /** One scheduled agent's cadence (#514, #929) — the pruner and the dismissal

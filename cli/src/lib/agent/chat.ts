@@ -159,6 +159,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
+    reviewedAt: typeof raw.reviewedAt === 'number' ? raw.reviewedAt : undefined,
   }
 }
 
@@ -500,6 +501,16 @@ export function endChatShare(cardId: ChatTarget): void {
   writeChat(chat)
 }
 
+/** Mark one conversation as read by the memory review (#1322). False when there is none.
+ *  Nothing was said, so `updatedAt` stays. */
+export function setChatReviewed(cardId: ChatTarget, at: number): boolean {
+  const chat = readChat(cardId)
+  if (!chat) return false
+  chat.reviewedAt = at
+  writeChat(chat)
+  return true
+}
+
 /** Drop the triage item a discussion was started from (#1252). */
 export function clearChatTriage(cardId: ChatTarget): void {
   const chat = readChat(cardId)
@@ -537,6 +548,7 @@ export function carriedForward(held: Chat, since: Chat | null): Chat {
   held.archivedBy = since.archivedBy
   held.pendingCards = since.pendingCards
   held.triage = since.triage
+  held.reviewedAt = since.reviewedAt
   return held
 }
 

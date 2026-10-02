@@ -47,8 +47,8 @@ import { boardCommandFor } from './command'
 import { activeDelivery, deliveryFor, endedDelivery, withWorkflow } from './deliveries'
 import { chatFile, readChat } from './chat'
 import { field, metaLine, numbered } from './facts'
-import { chatsToReview } from './memory-review'
-import { dismissalReview, memoryReview } from './settings'
+import { reviewBatch, type ChatToReview } from './memory-review'
+import { dismissalReview } from './settings'
 import { dismissalsToReview, dismissedMemoryPath, withdrawnSources } from './dismissal-review'
 import { translating } from './language'
 import { buildAsk, frozenRules, leadBlock } from './prompts'
@@ -537,6 +537,24 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   spec: ['spec-agent'],
 }
 
+// One conversation as the memory review is handed it (#1322): the card it belongs to on the
+// block itself, then its modules, its card's agents with their memory files, and the
+// trimmed transcript. Nothing of a conversation is printed outside its block.
+function conversationBlock(chat: ChatToReview): string[] {
+  const cards = chat.cards.map((c) => `#${c.id} ${c.title}`.trim().replace(/"/g, "'")).join('; ')
+  const kind = chat.discussion ? `discussion${chat.subject ? ` — ${chat.subject.replace(/"/g, "'")}` : ''}` : 'card chat'
+  return [
+    `<conversation card="${cards}" kind="${kind}">`,
+    `modules: ${chat.topics.length ? `## ${chat.topics.join(', ## ')}` : '(none)'}`,
+    ...(chat.agents.length
+      ? ['agents:', ...chat.agents.map((a) => `  \`${a.name}\` — ${a.dir}/: ${a.files.join(', ') || 'no files yet'}`)]
+      : ['agents: (none)']),
+    'transcript:',
+    chat.transcript,
+    '</conversation>',
+  ]
+}
+
 // A retired action is only ever read back off an old record (#438, #1203) — nothing starts
 // one, and there is no flow left to print for it.
 const guidesFor = (req: AgentRequest): string[] => (isRetired(req.action) ? [] : GUIDES_FOR[req.action as StartableAction])
@@ -791,29 +809,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    // Reading back over the conversations (#748). The facts are the conversations themselves,
-    // because they ARE the job — which ones have said something new, where each transcript is,
-    // and the memory folder each one's notes belong in. A run handed only the folder would
-    // spend its first calls working out which files to open and which card each hangs on.
+    // Reading back over the conversations (#748, #1322). The facts are the conversations
+    // themselves, each in a block of its own with everything the review needs of it, so the
+    // run opens no transcript and looks up no card.
     case 'review-memory': {
-      const since = parseStamp(memoryReview().lastRun)
-      const chats = chatsToReview(since?.getTime() ?? 0)
-      facts.push(
-        ...field('window', since ? `since the last review that passed, ${memoryReview().lastRun}` : 'every conversation on this machine — none has been reviewed yet'),
-      )
+      const { chats, remaining } = reviewBatch()
       facts.push(
         ...field(
           'chats',
           chats.length === 0
-            ? '(none) — nothing has been said since the window opened, so there is nothing to review'
-            : [
-                `${chats.length} to read, each one right through:`,
-                ...chats.flatMap((chat) => [
-                  `  ${chat.name}${chat.cardId === null ? '' : ` (#${chat.cardId}${chat.card === 'archived' ? ', archived' : chat.card === 'gone' ? ', gone from the board' : ''})`} — ${chat.messages} message${chat.messages === 1 ? '' : 's'}`,
-                  `    transcript: ${chat.file}`,
-                  ...(chat.topics.length ? [`    topics: ## ${chat.topics.join(', ## ')}`] : []),
-                ]),
-              ],
+            ? '(none) — no archived card has a conversation waiting, so there is nothing to review'
+            : `${chats.length} to review, each in its own <conversation> block below${remaining ? ' — more are waiting, and the next review takes them' : ''}`,
         ),
       )
       facts.push(
@@ -823,12 +829,19 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           `${rel(AGENT_MEMORY)}/<agent>/ — an agent's own files, which its AGENT.md names`,
         ]),
       )
+      for (const chat of chats) facts.push('', ...conversationBlock(chat))
       close.push(
         'write the notes into the memory files named above — that is the whole job',
         'rewrite or delete a note an earlier review wrote that a conversation has since overturned, rather than adding a second one',
         'writing nothing at all is a complete result, and most conversations earn it',
         'change nothing else — not a card, not the product description, not the code',
       )
+      if (chats.length) {
+        close.push(
+          'last, mark these conversations reviewed with the command given here, exactly as written' +
+            `\n   ${raw} chats-reviewed ${chats.map((c) => c.key).join(' ')}`,
+        )
+      }
       break
     }
     // The dismissal review (#929): the two lists are the job, decided before any run starts.

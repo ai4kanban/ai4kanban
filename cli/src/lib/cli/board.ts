@@ -325,6 +325,18 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('discussion', this, [sub], this.opts(), cli)
     })
 
+  move('chats-reviewed')
+    .argument('<conversation...>', 'card-<id> or discussion-<id>, as the review task lists them')
+    .summary('mark conversations as read by the memory review')
+    .description(
+      'The last step of `akb review-memory`, which spells the command out. A marked conversation is ' +
+        'never reviewed again. It also records whether any are still waiting: when some are, the board ' +
+        'starts the next review as soon as this one passes.',
+    )
+    .action(async function (this: Command, keys: string[]) {
+      await dispatch('chats-reviewed', this, keys, this.opts(), cli)
+    })
+
   move('validate')
     .argument('[id]', ID, cardId)
     .summary('validate card format and report file, line, and repair instructions')

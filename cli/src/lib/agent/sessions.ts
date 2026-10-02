@@ -356,10 +356,8 @@ function recordPrune(run: RunRecord): void {
   }
 }
 
-// And the memory review's window (#748). Only a review that PASSED moves it, like the two
-// above — but it is stamped with when that review STARTED, not with now: a conversation
-// spoken to while the review was reading would otherwise count as already seen, and nothing
-// would ever come back to it.
+// And the memory review's last pass (#748), stamped with when that review STARTED: the day
+// until the next round counts from there. Which conversations it read is theirs to carry (#1322).
 function recordMemoryReview(run: RunRecord): void {
   if (run.action !== 'review-memory' || run.status !== 'done') return
   try {

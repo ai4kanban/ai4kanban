@@ -48,6 +48,7 @@ import { cmdAgentFile } from '../../commands/agent-file'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdDiscussion, type DiscussionOptions } from '../../commands/discussion'
 import { cmdCase, type CaseOptions } from '../../commands/case'
+import { cmdChatsReviewed } from '../../commands/chats-reviewed'
 import { cmdPlan, type PlanOptions } from '../../commands/plan'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
 import { cmdValidate } from '../../commands/validate'
@@ -141,6 +142,7 @@ const MOVES: Record<string, RunMove> = {
   'agent-file': ({ args }) => cmdAgentFile(args[0] ?? '', args[1] ?? ''),
   plan: ({ args, opts }) => cmdPlan(args, as<PlanOptions>(opts)),
   case: ({ args, opts }) => cmdCase(args, as<CaseOptions>(opts)),
+  'chats-reviewed': ({ args }) => cmdChatsReviewed(args),
   discussion: ({ args, opts }) => cmdDiscussion(args, as<DiscussionOptions>(opts)),
   peek: () => {
     const id = readNextId()

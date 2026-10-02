@@ -538,26 +538,22 @@ export function adoptMemoryPruneCadence(cadence: string): void {
   })
 }
 
-// ---- the memory reviewer's window (#748) ------------------------------------
+// ---- the memory reviewer's record (#748, #1322) -----------------------------
 //
-//   "memoryReview": { "lastRun": "2026-09-13 08:00" }
+//   "memoryReview": { "lastRun": "2026-09-13 08:00", "reviewedBefore": "2026-09-12 08:00", "remainingAt": 0 }
 //
-// One field, and no cadence beside it: the review is daily, so there is nothing to set. What
-// the field is for is the WINDOW — the conversations to read are the ones that have said
-// something since this stamp.
+// `lastRun` is when the last review that PASSED began. Whether one is DUE is answered off
+// the run record as well (`../view/dispatch.ts`), which is what holds a failed one off.
 //
-// It holds the moment the last review that PASSED *began*, not the moment it finished. A
-// review that stamped its end would mark everything said while it was reading as already
-// seen, and those turns would never be reviewed at all.
-//
-// Whether a review is DUE is a different question, answered off the run record instead
-// (`../view/dispatch.ts`): a review that failed must not reopen on the next tick, and the
-// conversations it failed on must still be in the window. Two facts, two places.
+// A conversation is reviewed once and carries its own mark, so `lastRun` is no window.
+// `reviewedBefore` is the one that is: what was said before reviews became once-only was
+// read by the daily pass, so it counts as reviewed. It is pinned to the `lastRun` standing
+// at the first write after the upgrade, and never moves again.
 
-const NEVER_REVIEWED: MemoryReviewState = { lastRun: '' }
+const NEVER_REVIEWED: MemoryReviewState = { lastRun: '', reviewedBefore: '', remainingAt: 0 }
 
-/** What the file says about the last review that passed. A file that won't parse reads as
- *  never reviewed — the widest window, which re-reads rather than skips. */
+/** What the file says about the memory review. A file that won't parse reads as never
+ *  reviewed, which re-reads rather than skips. */
 export function memoryReview(): MemoryReviewState {
   let cfg: Record<string, unknown>
   try {
@@ -565,14 +561,30 @@ export function memoryReview(): MemoryReviewState {
   } catch {
     return NEVER_REVIEWED
   }
-  const block = configBlock(cfg.memoryReview)
-  return { lastRun: typeof block.lastRun === 'string' ? block.lastRun.trim() : '' }
+  const block = pinned(configBlock(cfg.memoryReview))
+  return {
+    lastRun: stringIn(block, 'lastRun'),
+    reviewedBefore: stringIn(block, 'reviewedBefore'),
+    remainingAt: typeof block.remainingAt === 'number' ? block.remainingAt : 0,
+  }
 }
 
-/** Move the window to a review that passed, stamped with when that review STARTED. */
+// The block with `reviewedBefore` pinned: until something writes it, it is `lastRun`.
+function pinned(block: Record<string, unknown>): Record<string, unknown> {
+  return typeof block.reviewedBefore === 'string' ? block : { ...block, reviewedBefore: stringIn(block, 'lastRun') }
+}
+
+/** Record a review that passed, stamped with when that review STARTED. */
 export function stampMemoryReview(when: Date): void {
   writeConfig((cfg) => {
-    cfg.memoryReview = { ...configBlock(cfg.memoryReview), lastRun: formatStamp(when) }
+    cfg.memoryReview = { ...pinned(configBlock(cfg.memoryReview)), lastRun: formatStamp(when) }
+  })
+}
+
+/** Record whether conversations were still waiting when a batch was marked reviewed. */
+export function noteMemoryReviewRemaining(remaining: boolean, at: number = Date.now()): void {
+  writeConfig((cfg) => {
+    cfg.memoryReview = { ...pinned(configBlock(cfg.memoryReview)), remainingAt: remaining ? at : 0 }
   })
 }
 

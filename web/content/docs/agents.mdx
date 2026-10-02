@@ -182,21 +182,20 @@ cannot see where a conversation is going, so a "what if" you threw out and took 
 later could land in `decisions.md` as a decision — while the real conclusion of a long discussion
 was never written down at all.
 
-**Review chat memory** is what writes it down instead. Chats no longer save memory. Once a day it
-reads every conversation that has said something new — a card's chat and a discussion alike — right
-through, and writes what the whole exchange earned.
+**Review chat memory** is what writes it down instead. Chats no longer save memory. Once a card
+is archived, it reads that card's chat — and a discussion, once every card it became is archived —
+right through, once, and writes what the whole exchange earned.
 
-- **A day at most behind.** Memory only feeds future planning; the card you are talking about was
-  already changed in the conversation.
-- **It rewrites rather than repeats.** Reading the whole conversation is what lets it correct a
-  note from last week that you have since overturned, instead of leaving both.
-- **"Don't record this" holds.** Say it in the conversation and nothing is written — and a note an
-  earlier review already wrote is deleted.
-- **Nothing said, nothing run.** It starts only when a conversation has new messages, so a quiet
-  day costs nothing.
-- **It follows the conversation's card.** A note goes in the planning memory, under the
-  `## <module>` topic that card's `modules:` names — the archive included. A discussion, or a card
-  the board no longer has, goes under whatever topic already fits.
+- **After the card is done.** Memory only feeds future planning; the card you are talking about
+  was already changed in the conversation.
+- **Each conversation once.** It is read whole when its card is archived and never again, so say
+  what should last before then.
+- **"Don't record this" holds.** Say it in the conversation and nothing is written.
+- **It credits the right agent.** A correction to one agent's work goes in that agent's memory;
+  the rest goes in the planning memory, under the `## <module>` topic the card's `modules:` names.
+- **Nothing archived, nothing run.** It starts at most one round a day, ten cards to a run, and
+  keeps going until none are waiting.
+- **What it skips.** A rejected card's chat, and a discussion that never became a card.
 
 **Review now** on its page asks for one at any time, and `akb review-memory` is the same entry
 from a terminal. What each review wrote is in its run log.

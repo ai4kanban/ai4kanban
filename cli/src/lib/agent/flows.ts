@@ -179,11 +179,11 @@ export const FLOWS: Flow[] = [
     command: 'review-memory',
     action: 'review-memory',
     argument: '',
-    gloss: 'read the conversations that said something new, and write down what they settled',
+    gloss: "read the archived cards' conversations, and write down what they settled",
     more: [
-      'Chats write no memory themselves — this is what does. Daily, over every conversation with ' +
-        'new messages since the last review that passed; Configuration → Board → Review chat memory ' +
-        'is where Review now is.',
+      'Chats write no memory themselves — this is what does. Each conversation is reviewed once, ' +
+        'after its card is archived: daily, ten cards to a run, one run after another until none ' +
+        'are waiting. Configuration → Board → Review chat memory is where Review now is.',
     ],
   },
   // The dismissal reviewer's one flow (#929). Typed bare: it acts on the dismissals.

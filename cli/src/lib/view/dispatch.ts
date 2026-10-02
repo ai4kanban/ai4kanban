@@ -31,7 +31,7 @@ import {
 } from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
 import { commitsSince, productDescribed } from '../agent/product'
-import { anyChatSince } from '../agent/memory-review'
+import { anyChatToReview } from '../agent/memory-review'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
 import { proRefusal } from '../agent/start'
@@ -103,25 +103,23 @@ function pruneDue(runs: RunView[]): boolean {
 // How long the memory review waits between passes (#748) — one day, and nothing to set.
 const REVIEW_INTERVAL = 24 * 60 * 60_000
 
-// Whether the daily memory review is due right now (#748). Three questions, and the last one
-// is the cheap one it usually stops on:
+// Whether the memory review is due right now (#748, #1322):
 //
-//   • nothing of its own is going. One review at a time, like a prune.
-//   • a day has passed. Counted from the later of the newest review run's START and the
-//     stamp of the last one that PASSED — the run record is what holds a FAILED review off
-//     for the day, and the stamp is what still holds one off when that record has been
-//     pruned away.
-//   • somebody has said something since the last review that PASSED. The window is that
-//     stamp; a failed review leaves it where it was, so the conversations it did not get
-//     through are still in it tomorrow. And this is the only question asked on most ticks:
-//     it is the files' modification times, with nothing parsed and no board walked.
+//   • none of its own is going.
+//   • a day has passed since the later of the newest review run's START and the last one
+//     that PASSED — the run record holds a failed review off for the day, the stamp still
+//     does when that record has been pruned. A batch that passed and marked its
+//     conversations with more still waiting does not wait: the round goes on until none are.
+//   • a conversation is waiting — its card archived, itself never reviewed.
 function memoryReviewDue(runs: RunView[]): boolean {
   const passes = runs.filter((r) => r.action === 'review-memory')
   if (passes.some((r) => r.status === 'running')) return false
-  const since = parseStamp(memoryReview().lastRun)?.getTime() ?? 0
-  const last = Math.max(since, ...passes.map((r) => r.startedAt))
-  if (last && Date.now() - last < REVIEW_INTERVAL) return false
-  return anyChatSince(since)
+  const review = memoryReview()
+  const newest = passes.reduce<RunView | null>((a, r) => (a && a.startedAt >= r.startedAt ? a : r), null)
+  const last = Math.max(parseStamp(review.lastRun)?.getTime() ?? 0, newest?.startedAt ?? 0)
+  const goesOn = review.remainingAt > 0 && review.remainingAt >= last && (!newest || newest.status === 'done')
+  if (last && !goesOn && Date.now() - last < REVIEW_INTERVAL) return false
+  return anyChatToReview()
 }
 
 // Whether the dismissal review is due (#929). None of its own going, its cadence elapsed

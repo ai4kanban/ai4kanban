@@ -1,15 +1,18 @@
 # Review what the conversations settled
 
-Read each conversation listed for you right through, then write what it settled into memory.
+Read each conversation given to you right through, then write what it settled into memory.
 
 Chats write no memory themselves. One turn cannot see where an exchange is going, so a "what
 if" thrown out and taken back three turns later used to land as a decision. You read the whole
 exchange, so you can tell a decision from a passing thought — and that judgement is the
 whole job.
 
-- **Read the whole transcript**: the file is JSON with a `messages` array, oldest first, each
-  `role: "you"` (the user) or `"agent"`. Read all of it, not only what is new: an entry
-  written days ago and overturned today is one you can only fix by seeing both.
+- **Read what you are given**: each conversation comes with the task in its own
+  `<conversation>` block, already trimmed by the board, oldest first: the user's messages as
+  written and the agent's replies. Its card is archived, so it is complete and reviewed this
+  once; open no transcript file.
+- **Keep them apart**: judge each block by itself; what one conversation settled never
+  becomes a note for another's card or agents.
 - **Hold to the same bar**: "What earns a note" in `akb guide board` governs what you write,
   exactly as it governs a flow that writes one. A conversation that settled nothing earns no
   note, and most do not — writing nothing is a complete result.
@@ -23,12 +26,12 @@ whole job.
   note for it. If one is already there from an earlier review, delete it now.
 - **Where it goes**: a durable choice goes in `docs/kanban/memory/agents/planner/decisions.md`
   and a design lesson in its `redesign.md`, under the `## <module>` topic each conversation is
-  listed with. Where what was settled lands on an agent's own work, one that leads and one that
-  helps alike, follow that agent's declared files, split paths and index — "An agent's memory"
-  in `akb guide update-questions`. Distill settled feedback into reusable preferences (dos) and
-  corrections (don'ts), retaining their scope; never copy raw reviews. An agent whose instructions
-  name no memory gets no new file. Reorganize only within declared split paths, keeping the
-  index current and updating existing guidance at its indexed location.
+  listed with. Each conversation also lists the agents whose sections its card holds and the
+  memory files each keeps: where what was settled lands on one agent's own work, it goes in
+  that agent's memory instead. Read that agent's AGENT.md only then, and keep its memory the
+  way it says. Distill settled feedback into reusable preferences (dos) and corrections
+  (don'ts), retaining their scope; never copy raw reviews. An agent whose instructions name
+  no memory gets no new file.
 - **A follow-up the proposer missed**: when the user points out work a finished card left
   behind that no proposal named, add the kind of miss, not the case, to
   `docs/kanban/memory/agents/proposer/missed.md` as `- **<kind>**: <what to check> (#<card>)`,
