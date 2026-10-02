@@ -58,7 +58,7 @@ import { memoryReview } from './settings'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
-import { endAgent, markEnv, stopMark } from './stop'
+import { endAgent, markEnv, stopMark, trackAgent } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
 import { recordReplyUsage } from './usage'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
@@ -1689,6 +1689,7 @@ async function speak(io: {
   } catch (e) {
     return { ok: false, text: '', error: String(e) }
   }
+  trackAgent(child, mark)
 
   // Set once the promise below is running, which is where the child can be ended. Every
   // byte off either pipe calls it, and that is the whole of what keeps the turn alive.

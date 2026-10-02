@@ -13,6 +13,7 @@
 import { clearChat, pickChatRuntime, readChatView, sendChatMessage } from '../lib/agent/chat'
 import { asDiscussion, listDiscussions, startDiscussion } from '../lib/agent/discussions'
 import { titleOf } from '../lib/agent/sessions'
+import { leaveInterruptToCaller } from '../lib/agent/stop'
 import { isDiscussion, type ChatTarget, type ChatView } from '../lib/agent/types'
 import { collecting, say } from '../lib/io'
 import { die } from '../lib/paths'
@@ -78,7 +79,10 @@ export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveR
   // is one object, and pieces of a reply landing in the middle of it would be no answer at
   // all — the whole reply comes back in that object instead.
   const live = !collecting()
-  if (live) process.stdout.write('\n')
+  if (live) {
+    leaveInterruptToCaller()
+    process.stdout.write('\n')
+  }
   const sent = await sendChatMessage(cardId, message, {
     onText: live ? (chunk) => process.stdout.write(chunk) : undefined,
     // Ctrl-C ends the reply rather than this command: what arrived is still kept, and the

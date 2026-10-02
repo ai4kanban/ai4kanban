@@ -1,0 +1,7 @@
+$ kill -TERM -45958        # 看板服务的整个进程组，桌面应用退出时就是这样结束它的
+# 进程组在 156 ms 内全部退出，没有等到 3 秒后的 SIGKILL
+$ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:7491/1
+000
+$ ps -o pid,ppid,pgid,command -p 45958,45968,46401,46402,46416,46151
+  PID  PPID  PGID COMMAND
+46151 45912 46151 node -e setTimeout(() => {}, 600000)

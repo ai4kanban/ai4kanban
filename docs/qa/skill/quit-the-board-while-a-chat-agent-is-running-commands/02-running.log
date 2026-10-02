@@ -1,0 +1,12 @@
+$ node -e "setTimeout(() => {}, 600000)" &      # 用户自己在终端里起的，与对话无关
+[1] 46151
+$ cat pids.json
+{"agent":46401,"background":46402,"foreground":46416}
+$ ps -o pid,ppid,pgid,command -p 45958,45968,46401,46402,46416,46151
+  PID  PPID  PGID COMMAND
+45958     1 45958 node ./node_modules/.bin/next dev -p 7491
+45968 45958 45958 next-server (v15.5.24) 
+46151 45912 46151 node -e setTimeout(() => {}, 600000)
+46401 45968 45958 node stand-in.mjs --output-format stream-json --verbose --session-id 84fca68f-3a30-49fe-b4a5
+46402 46401 46402 node -e setTimeout(() => {}, 600000)
+46416 46401 45958 sleep 600

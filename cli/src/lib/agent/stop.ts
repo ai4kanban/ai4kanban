@@ -10,6 +10,7 @@
 import { spawnSync, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
+import os from 'node:os'
 
 import { RUN_ENV, STOP_ENV } from './env'
 
@@ -224,4 +225,68 @@ export function endAgent(child: ChildProcess, mark: Mark, graceMs: number): void
     term('SIGKILL')
     round(KILL_ROUNDS)
   })
+}
+
+// ---- when this process is told to go (#1385) --------------------------------
+
+// The chat and test agents this process is running. No run stands behind them, so nothing
+// else would end what they started.
+const running = new Map<ChildProcess, Mark>()
+const QUIT_SIGNALS = ['SIGTERM', 'SIGINT', 'SIGHUP'] as const
+type QuitSignal = (typeof QUIT_SIGNALS)[number]
+const listening = new Map<QuitSignal, () => void>()
+let interruptIsTheCallers = false
+
+/** `akb chat` spends Ctrl-C on stopping the reply, so it is not a quit there. Called before
+ *  the agent starts. */
+export function leaveInterruptToCaller(): void {
+  interruptIsTheCallers = true
+}
+
+// Killed outright and found synchronously: the process is on its way out, and no timer of
+// its own is going to fire.
+function killRunning(): void {
+  for (const [child, mark] of running) {
+    if (killTreeOnWindows(child.pid)) continue
+    killUnderOnWindows(child.pid)
+    signal(marked(mark, child.pid ? [child.pid] : []), 'SIGKILL')
+    try {
+      child.kill('SIGKILL')
+    } catch {
+      // already gone
+    }
+  }
+  running.clear()
+}
+
+function unlisten(): void {
+  for (const [sig, fn] of listening) process.removeListener(sig, fn)
+  listening.clear()
+}
+
+function onQuit(sig: QuitSignal): void {
+  killRunning()
+  unlisten()
+  // Ours was the only listener, so the signal's own ending is ours to carry out. Anyone
+  // else listening (Next's shutdown) has the exit.
+  if (process.listenerCount(sig) === 0) process.exit(128 + os.constants.signals[sig])
+}
+
+/** Keep `child` on the list of agents to kill, with their commands, if this process is told
+ *  to quit before it has closed. The signals are listened for only while the list is not
+ *  empty. */
+export function trackAgent(child: ChildProcess, mark: Mark): void {
+  // Never started: no `close` is promised to take it off again.
+  if (!child.pid) return
+  running.set(child, mark)
+  child.once('close', () => {
+    running.delete(child)
+    if (!running.size) unlisten()
+  })
+  for (const sig of QUIT_SIGNALS) {
+    if (listening.has(sig) || (sig === 'SIGINT' && interruptIsTheCallers)) continue
+    const fn = (): void => onQuit(sig)
+    listening.set(sig, fn)
+    process.on(sig, fn)
+  }
 }

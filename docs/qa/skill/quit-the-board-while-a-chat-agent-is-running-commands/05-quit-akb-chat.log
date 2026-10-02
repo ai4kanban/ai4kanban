@@ -1,0 +1,20 @@
+$ node -e "setTimeout(() => {}, 600000)" &      # 用户自己在终端里起的，与对话无关
+[1] 41136
+$ akb chat 1 "跑一下测试" --json &
+[2] 41138
+$ cat pids.json
+{"agent":41149,"background":41158,"foreground":41172}
+$ ps -o pid,ppid,pgid,command -p 41138,41149,41158,41172,41136
+  PID  PPID  PGID COMMAND
+41136 41134 41136 node -e setTimeout(() => {}, 600000)
+41138 41134 41138 akb chat 1 跑一下测试 --json
+41149 41138 41138 node stand-in.mjs --output-format stream-json --verbose --session-id a69539a0-917e-491d-805b
+41158 41149 41158 node -e setTimeout(() => {}, 600000)
+41172 41149 41138 sleep 600
+$ kill -TERM 41138
+$ wait 41138; echo $?
+143
+$ cat chat.out        # akb chat 的全部输出
+$ ps -o pid,ppid,pgid,command -p 41149,41158,41172,41136
+  PID  PPID  PGID COMMAND
+41136 41134 41136 node -e setTimeout(() => {}, 600000)

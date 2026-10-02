@@ -1,0 +1,11 @@
+$ akb chat 1 "跑一下测试"
+^C        # 回复还没结束时按下（这里是 kill -INT 41983）
+
+
+
+— you stopped the reply. What arrived is kept; send another message to carry on.
+$ echo $?
+0
+$ ps -o pid,ppid,pgid,command -p 42038,42057,42073,41136
+  PID  PPID  PGID COMMAND
+41136 41134 41136 node -e setTimeout(() => {}, 600000)
