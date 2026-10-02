@@ -122,6 +122,12 @@ const zh: BoardCopy = {
       label: "把这段对话分享给 AI4Kanban 团队",
     },
   },
+  cheer: {
+    group: (count) => `${count} 个任务整组完成`,
+    release: (release) => `${release} 的任务全部完成`,
+    releaseCount: (count) => `${count} 个任务`,
+    first: "今天第一个任务完成",
+  },
   release: {
     which: "显示哪个版本",
     whichHint: "一次只看一个版本，或只看未归入版本的卡片——阻塞项始终显示",

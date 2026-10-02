@@ -26,6 +26,7 @@ import type {
   AgentInfo,
   BoardScreen,
   CardPatch,
+  Cheer,
   CloudEventAnswer,
   CommandRequest,
   ScheduledAction,
@@ -69,6 +70,8 @@ export interface ScreenActions {
   /** Whether this card is still on the board — what a card page asks before it gives up on
    *  the page it is showing (#299). */
   cardOnBoard(id: number): Promise<boolean>;
+  /** Today's moments worth cheering for (#1331). A caller without it cheers for nothing. */
+  readCheers?(): Promise<Cheer[]>;
 
   // ---- one card ------------------------------------------------------------
   // `expect` is the revision the page read the card at (#316): a card rewritten under an

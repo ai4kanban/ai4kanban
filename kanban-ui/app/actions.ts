@@ -27,6 +27,7 @@ import {
   refreshBoard,
   readMetrics,
   readUsage,
+  readCheers,
   readReleases,
   readSetupDraft,
   readSetupState,
@@ -267,6 +268,7 @@ import type {
   MemberRoleWire,
   MetricsResult,
   UsageResult,
+  Cheer,
   NotificationGroup,
   PlanAnswer,
   SaveProjectResult,
@@ -1090,6 +1092,10 @@ export async function getMetricsAction(days: number): Promise<MetricsResult> {
 
 export async function getUsageAction(days: number): Promise<UsageResult> {
   return readUsage(Number.isFinite(days) ? days : 30);
+}
+
+export async function cheersAction(): Promise<Cheer[]> {
+  return readCheers();
 }
 
 // ---- the agent settings ------------------------------------------------------

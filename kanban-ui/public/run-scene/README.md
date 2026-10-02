@@ -6,6 +6,7 @@
 - **Identity**: overlay role names and harness logos in dark ink. All roles share the rear-facing work sheet; `public/agent-art/` remains the canonical role family. Green belongs only to the eyes inside the cream face, never to ear lights.
 - **Proportions**: derive poses from the actual `agent-art/base.png` and `builder.png` images: solid black arms, shaped hands, small feet and the original softer raster shading. Preserve the original body proportions; hands are not lines.
 - **Playback**: loop typing/walking independently; hold one seated frame after completion. Freeze motion for reduced-motion settings.
+- **Cheer**: `bot-cheer.png` is its own 2304×192 sheet — twelve 192×192 cells, the `cheer` action, front-facing with the cone and its near plume drawn in. The board's corner office (`components/cheer/`) steps it in CSS over a 3.6 s loop; frames 11–12 repeat frame 1, and reduced motion holds the last.
 - **Reuse**: these are the textures embedded in task 399's mockups. Carry this directory into the implementation checkout; no regeneration is required for these four actions.
 
 Generated with the built-in imagegen tool from this project's existing workshop and robot references.

@@ -619,6 +619,7 @@ describe('a delivery the live record lost', () => {
       rebasedAt: undefined,
       rebaseKind: undefined,
       commit: undefined,
+      closed: undefined,
       overlap: undefined,
       conflictFiles: undefined,
       conflictFails: undefined,

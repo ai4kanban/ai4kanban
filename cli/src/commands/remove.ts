@@ -19,7 +19,7 @@ import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { walkMd, walkDirs, idPrefix, locate, locateArchived, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
+import { walkMd, walkDirs, idPrefix, subtaskLines, locate, locateArchived, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
 import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
 import { parseFrontmatter, serializeFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
@@ -335,6 +335,9 @@ interface GroupClose {
   archived_to: string | null
   /** The rule that kept it, or null when it left. */
   held: string | null
+  /** A closed root's title and its ticked subtasks — what a landing records (#1331). */
+  title?: string
+  done?: number
 }
 
 // The root, once its last subtask has gone. Never throws and never fails the run: the
@@ -351,8 +354,16 @@ function closeGroup(rootFile: string): GroupClose | null {
   }
   say(`\nevery subtask line on #${rootId} is resolved — closing the group:`)
   try {
+    // Read before the move: the root's folder is about to leave `todo/`.
+    const { meta, body } = parseFrontmatter(fs.readFileSync(rootFile, 'utf8'))
     const res = cmdRemove(rootId, 'completed', { closing: true })
-    return { id: rootId, archived_to: (res.archived_to as string | null) ?? null, held: null }
+    return {
+      id: rootId,
+      archived_to: (res.archived_to as string | null) ?? null,
+      held: null,
+      title: meta?.title ?? '',
+      done: subtaskLines(body).ticked,
+    }
   } catch (e) {
     const held = e instanceof Error ? e.message : String(e)
     say(`  #${rootId} could not be archived: ${held}`)

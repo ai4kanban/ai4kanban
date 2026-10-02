@@ -132,6 +132,12 @@ const en: BoardCopy = {
       label: "Share this conversation with the AI4Kanban team",
     },
   },
+  cheer: {
+    group: (count) => `Group of ${count} done`,
+    release: (release) => `Everything in ${release} is done`,
+    releaseCount: (count) => `${count} tasks`,
+    first: "First task done today",
+  },
   release: {
     which: "Which release to show",
     whichHint:

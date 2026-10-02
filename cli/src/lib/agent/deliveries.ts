@@ -198,6 +198,32 @@ function allAudits(): DeliveryAudit[] {
   return out
 }
 
+/** Every delivery that ended at or after `since`, the permanent record winning over the live
+ *  row. Only files written since then are opened: the folder keeps every delivery ever run. */
+export function deliveriesEndedSince(since: number): DeliveryRecord[] {
+  const rows = new Map<string, DeliveryRecord>()
+  for (const row of readStore().deliveries) rows.set(row.deliveryId, row)
+  let names: string[] = []
+  try {
+    names = fs.readdirSync(DELIVERIES)
+  } catch {
+    // no permanent records yet
+  }
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue
+    const file = path.join(DELIVERIES, name)
+    try {
+      if (fs.statSync(file).mtimeMs < since) continue
+    } catch {
+      continue
+    }
+    const audit = wholeAudit(file)
+    const row = audit && auditRow(audit)
+    if (row) rows.set(row.deliveryId, row)
+  }
+  return [...rows.values()].filter((d) => (d.endedAt ?? 0) >= since)
+}
+
 /** Every delivery the permanent record still calls `active`. */
 const activeAudits = (): DeliveryAudit[] => allAudits().filter((a) => a.status === 'active')
 

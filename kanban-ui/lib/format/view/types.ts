@@ -709,6 +709,20 @@ export interface UsageView {
   empty: boolean
 }
 
+/** One moment the board cheers for (#1331): a release left with no open card, a group that
+ *  closed, or the day's first finished task. `key` is stable, so a screen shows each once. */
+export interface Cheer {
+  key: string
+  kind: 'release' | 'group' | 'first'
+  at: number
+  /** The group's root, or the day's first card. */
+  id?: number
+  title?: string
+  release?: string
+  /** Cards archived under the release, or subtasks the group finished. */
+  count?: number
+}
+
 export type UsageResult = { ok: true; view: UsageView } | { ok: false; error: string }
 
 /** What one metrics read gives back. The two outcomes are kept apart on purpose, so a view

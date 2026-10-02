@@ -30,6 +30,7 @@ import { createSheet } from "@/lib/create-open";
 import { filterColumns, hasOwnCards, useReleasePick, type ReleasePick } from "@/lib/release-pick";
 import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, type StripPlace } from "@/lib/screen";
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
+import { BoardCheer } from "./Cheer";
 import { OpenIdsProvider } from "./open-ids";
 import { EmptyBoard, QueueView } from "./Queue";
 import { setupFailure, type SetupFailure } from "./agent-shared";
@@ -360,7 +361,7 @@ export function Board({
   return (
     <BoardRefreshContext.Provider value={refresh}><OpenIdsProvider ids={board?.openIds ?? []}>
       <Shell {...chrome}>
-        <div className="flex h-full flex-col overflow-hidden">
+        <div className="relative flex h-full flex-col overflow-hidden">
           {/* The app's own band about how this board is being run (#175). Above the error
               strip because it is about the whole session, not this action. */}
           {Strip && <Strip {...chrome} at="head" />}
@@ -465,6 +466,8 @@ export function Board({
               wide at the top pushes them off the first screen. Outside the scrolling row,
               so it stays put as the columns move. */}
           {Strip && board?.setup && <Strip {...chrome} at="foot" />}
+
+          <BoardCheer boardId={screen.id} sessions={sessions} />
         </div>
       </Shell>
     </OpenIdsProvider></BoardRefreshContext.Provider>

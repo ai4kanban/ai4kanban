@@ -503,6 +503,8 @@ export {
 export type * from './lib/view/types'
 // What runs and chats consumed on this machine (#1067), for Insights.
 export { readUsageView } from './lib/view/usage'
+// The moments the board cheers for (#1331).
+export { readCheers } from './lib/view/cheer'
 
 // The board's operation contract (#312): the one set of operations every part of AI4Kanban
 // reads and writes a board through, and the provider answering them. Local is the markdown

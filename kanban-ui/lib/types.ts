@@ -112,6 +112,7 @@ export type {
   MetricsResult,
   MetricsView,
   UsageResult,
+  Cheer,
   UsageRow,
   UsageView,
   PlanCard,

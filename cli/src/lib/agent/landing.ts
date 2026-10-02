@@ -765,7 +765,13 @@ async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto:
         : `delivery ${delivery.deliveryId} changed nothing, so nothing landed on ${delivery.targetBranch}.`,
   )
   // With no card there is nothing to archive (#428) — the delivery just ends.
-  if (delivery.cardId !== null) await completeCard(delivery.cardId, delivery.deliveryId)
+  if (delivery.cardId === null) return
+  const closed = await completeCard(delivery.cardId, delivery.deliveryId)
+  if (closed && landed.commit) {
+    patchLanding(delivery.deliveryId, (landing) => {
+      landing.closed = closed
+    })
+  }
 }
 
 // ---- the work is already on the target branch (#569) ------------------------

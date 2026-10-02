@@ -67,6 +67,7 @@ import type {
   Card,
   CardDeliveryState,
   CardPatch,
+  Cheer,
   ClosePlan,
   DeliveryDiff,
   DeliveryPlan,
@@ -594,6 +595,8 @@ export interface BoardRules {
   /** What runs and chats consumed over the last `days` (#1067). Optional: older rules keep no
    *  usage ledger, and Insights then says the usage can't be read. */
   readUsageView?(days: number): UsageResult;
+  /** Today's moments worth cheering for (#1331). Optional: older rules cheer for nothing. */
+  readCheers?(): Cheer[];
   readReleases(): Promise<string[]>;
   /** One memory file, whole — the board's own record, or one an agent keeps when `agent`
    *  names one that holds it (#129, #130, #805). Optional: a board can be running rules older

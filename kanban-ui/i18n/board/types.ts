@@ -174,6 +174,14 @@ export type BoardCopy = {
       label: string;
     };
   };
+  /** The corner office cheering a milestone (#1331): why, in bold, then what it names or
+   *  counts. Says "done", never how the work got onto the branch. */
+  cheer: {
+    group: (count: number) => string;
+    release: (release: string) => string;
+    releaseCount: (count: number) => string;
+    first: string;
+  };
   release: {
     which: string;
     whichHint: string;

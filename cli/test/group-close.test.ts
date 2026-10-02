@@ -86,6 +86,8 @@ describe('a group whose last subtask leaves', () => {
       id: 50,
       archived_to: path.join('docs', 'kanban', '.archive', '50-a-group'),
       held: null,
+      title: 'Card 50',
+      done: 2,
     })
   })
 

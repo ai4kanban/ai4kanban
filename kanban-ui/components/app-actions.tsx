@@ -18,6 +18,7 @@
 import {
   cancelCloudRequestAction,
   cardOnBoardAction,
+  cheersAction,
   closeReleaseAction,
   createReleaseAction,
   discardDeliveryAction,
@@ -43,6 +44,7 @@ import { ScreenActionsProvider, type ScreenActions } from "@/lib/screen";
 export const appActions: ScreenActions = {
   readBoard: getBoard,
   cardOnBoard: cardOnBoardAction,
+  readCheers: cheersAction,
 
   patchCard: patchCardAction,
   skipQuestion: skipQuestionAction,

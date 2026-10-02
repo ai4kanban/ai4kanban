@@ -18,6 +18,7 @@ import type {
   MetricsResult,
   ScreenBoard,
   UsageResult,
+  Cheer,
   SetupDraft,
   SetupState,
   SignalInbox,
@@ -304,6 +305,16 @@ export async function readUsage(days: number): Promise<UsageResult> {
     return rules.readUsageView(days);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Today's moments worth cheering for (#1331) — none on rules that cannot say, or on a read
+ *  that failed: a cheer is never worth an error. */
+export async function readCheers(): Promise<Cheer[]> {
+  try {
+    return (await boardRules()).readCheers?.() ?? [];
+  } catch {
+    return [];
   }
 }
 

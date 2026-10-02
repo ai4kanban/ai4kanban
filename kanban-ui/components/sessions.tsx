@@ -917,6 +917,7 @@ function RunsOffice({
     <div className="nb-scrim" style={{ alignItems: "center" }} onClick={() => sessionsPanel.close()}>
       <div
         ref={surface}
+        data-runs-office
         className="nb-panel relative overflow-hidden"
         // The same frame as Configuration: both are the board's big dialogs. Here every
         // pixel of its interior is the room — no header, no padding, nothing to switch.

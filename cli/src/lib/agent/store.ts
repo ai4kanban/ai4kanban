@@ -598,6 +598,7 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
         : undefined,
     commit: text(box.commit),
     onto: text(box.onto),
+    closed: readLandingClosed(box.closed),
     overlap: Array.isArray(box.overlap) ? box.overlap.filter((n) => Number.isInteger(n)) : undefined,
     wait: readLandingWait(box.wait),
     conflictFiles: Array.isArray(box.conflictFiles)
@@ -612,6 +613,18 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
         )
       : undefined,
     at: num(box.at) ?? 0,
+  }
+}
+
+function readLandingClosed(raw: unknown): DeliveryLanding['closed'] {
+  if (!raw || typeof raw !== 'object') return undefined
+  const { group, release } = raw as { group?: Record<string, unknown>; release?: Record<string, unknown> }
+  const count = (value: unknown): number => (typeof value === 'number' ? value : 0)
+  return {
+    group: Number.isInteger(group?.id)
+      ? { id: group!.id as number, title: text(group!.title) ?? '', done: count(group!.done) }
+      : undefined,
+    release: text(release?.id) ? { id: text(release!.id)!, done: count(release!.done) } : undefined,
   }
 }
 
