@@ -34,6 +34,7 @@ import {
   setWorkflowLead,
   stageCandidates,
   workflowById,
+  workflowIssues,
   workflowOwnAgents,
   workflowProblems,
   workflows,
@@ -786,6 +787,61 @@ describe('an agent that can lead never helps (#858)', () => {
       helpers: [{ agent: 'ui-designer', extra: 'x' }],
     })
     assert.deepEqual(workflowProblems('wf-5'), [])
+  })
+})
+
+describe('a lead whose file the board refuses (#1342)', () => {
+  const leadBy = (lead: string): void => {
+    fs.writeFileSync(
+      uiConfigOf(kanban()),
+      JSON.stringify({
+        workflows: {
+          agentsOwned: true,
+          added: [{ id: 'wf-5', name: 'Docs' }],
+          stages: { 'wf-5': { plan: { lead: 'software-planner' }, execute: { lead } } },
+        },
+      }),
+    )
+  }
+  const issue = () => workflowIssues('wf-5')[0]!
+
+  it('names the one line that replaces the old keys, and offers no other agent', async () => {
+    const home = path.join(kanban(), 'agents', 'docs-pruner')
+    fs.mkdirSync(home, { recursive: true })
+    fs.writeFileSync(
+      path.join(home, 'AGENT.md'),
+      ['---', 'name: docs-pruner', 'description: Use when.', 'akb:', '  stage: execute', '  kind: lead', '---', '', 'You work.', ''].join('\n'),
+    )
+    leadBy('docs-pruner')
+    assert.equal(issue().reason, 'workflowLeadRefused')
+    assert.equal(
+      issue().error,
+      "`docs-pruner`, the lead of `Docs`' execute stage, can't be used: in docs/kanban/agents/docs-pruner/AGENT.md, replace `stage`, `kind` with `lead: execute`.",
+    )
+    assert.deepEqual(
+      [issue().args!.cause, issue().args!.keys, issue().args!.line],
+      ['oldKeys', 'stage,kind', 'lead: execute'],
+    )
+    const id = (await move(root, ['create', '--title', 'A doc'])).id as number
+    assert.equal(workflowRefusal({ action: 'implement', id }), null)
+    setWorkflow(id, 'wf-5')
+    assert.equal(workflowRefusal({ action: 'implement', id })!.error, issue().error)
+  })
+
+  it('says a folder with no AGENT.md is missing its file', () => {
+    fs.mkdirSync(path.join(kanban(), 'agents', 'docs-pruner'), { recursive: true })
+    leadBy('docs-pruner')
+    assert.equal(issue().args!.cause, 'noFile')
+    assert.match(issue().error, /can't be used: docs\/kanban\/agents\/docs-pruner\/AGENT\.md is missing — add it\.$/)
+  })
+
+  it('still says a name nothing answers to is no agent of this board', async () => {
+    leadBy('docs-pruner')
+    assert.equal(issue().reason, 'workflowLeadMissing')
+    assert.match(issue().error, /this board has no such agent/)
+    const id = (await move(root, ['create', '--title', 'A doc'])).id as number
+    setWorkflow(id, 'wf-5')
+    assert.match(workflowRefusal({ action: 'implement', id })!.error, /Assign it in Configuration → Workflows/)
   })
 })
 

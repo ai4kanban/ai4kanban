@@ -79,6 +79,15 @@ export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
  *  both written key tables to it. */
 export const AGENT_KEYS = ['lead', 'hook', 'output', 'i18n'] as const
 
+/** Why one `AGENT.md` can't be used: the line, and what a caller needs to say it its own way. */
+export interface AgentProblem {
+  problem: string
+  /** What the file calls itself, when it reads that far. */
+  name?: string
+  /** The keys from before #1341 it still declares, and the one line that replaces them. */
+  old?: { keys: string[]; line: string | null }
+}
+
 /** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
 export function parseSpecAgent(
   text: string,
@@ -86,8 +95,13 @@ export function parseSpecAgent(
   file: (relative: string) => string | null,
   builtIn = false,
   list: () => string[] = () => [],
-): { agent: SpecAgent } | { problem: string } {
-  const bad = (why: string) => ({ problem: `${from}: ${why}` })
+): { agent: SpecAgent } | AgentProblem {
+  let named = ''
+  const bad = (why: string, old?: AgentProblem['old']): AgentProblem => ({
+    problem: `${from}: ${why}`,
+    ...(named ? { name: named } : {}),
+    ...(old ? { old } : {}),
+  })
   const { meta, body } = splitFrontmatter(text)
   if (meta === null) return bad('no `---` frontmatter, so it declares no name or description')
   const front = parseYamlBlock(meta)
@@ -95,6 +109,7 @@ export function parseSpecAgent(
   const name = str(front.name)
   if (!name) return bad('its frontmatter has no `name`')
   if (!AGENT_NAME.test(name)) return bad(`"${name}" is not a usable agent name — use lower-case words joined by "-"`)
+  named = name
   const description = str(front.description)
   if (!description) return bad(`\`${name}\` has no \`description\`, which tells the caller when to request it`)
 
@@ -112,15 +127,17 @@ export function parseSpecAgent(
   const declaredHook = str(akb.hook)
   // The keys before #1341. Refused outright, naming the one line that says the same thing.
   const oldLead = declaredLead === 'true' || declaredLead === 'false'
-  const old = [
-    ...(akb.stage !== undefined ? [`\`stage: ${declaredStage}\``] : []),
-    ...(akb.kind !== undefined ? [`\`kind: ${declaredKind}\``] : []),
-    ...(oldLead ? [`\`lead: ${declaredLead}\``] : []),
+  const oldKeys = [
+    ...(akb.stage !== undefined ? [['stage', declaredStage]] : []),
+    ...(akb.kind !== undefined ? [['kind', declaredKind]] : []),
+    ...(oldLead ? [['lead', declaredLead]] : []),
   ]
-  if (old.length) {
+  if (oldKeys.length) {
+    const old = oldKeys.map(([key, value]) => `\`${key}: ${value}\``)
     const line = replacementLine(declaredStage, declaredKind, declaredLead)
     return bad(
       `\`${name}\` declares ${old.join(', ')} under \`akb:\`, which the board no longer reads — replace ${old.length > 1 ? 'them' : 'it'} with ${line ? `\`${line}\`` : `one of ${ROLE_LINES.join(', ')}`}`,
+      { keys: oldKeys.map(([key]) => key!), line },
     )
   }
   if (declaredLead && declaredHook) {

@@ -331,6 +331,8 @@ export type RunRefusalKind =
   | 'planDelivered'
   | 'workflowNoLead'
   | 'workflowLeadMissing'
+  /** The lead's file is there and the board does not use it (#1342); `args.cause` says why. */
+  | 'workflowLeadRefused'
   | 'workflowLeadStage'
   /** A Pro workflow (#1038): nobody signed in, a free account, or a plan Cloud could not confirm. */
   | 'proSignIn'
