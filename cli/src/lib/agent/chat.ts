@@ -24,6 +24,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 
+import { parseStamp } from '../cadence'
 import { locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
@@ -53,6 +54,7 @@ import { caseOffered, dropCase } from '../case'
 import { DISCUSSION_ROLE, FEEDBACK_ROLE } from './roles'
 import { chatRuleBlock } from './rules'
 import { readRuntimes, runtimeById } from './runtimes'
+import { memoryReview } from './settings'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
@@ -246,8 +248,24 @@ function writeChat(chat: Chat): void {
 /** Forget a conversation and start fresh. True when there was one to forget.
  *
  *  Only our end is dropped. The agent's own session stays wherever that CLI keeps it, and is
- *  never spoken to again — nothing on this board holds its id any more. */
+ *  never spoken to again — nothing on this board holds its id any more.
+ *
+ *  A card's conversation the memory review has not read is kept for it (#1345). */
 export function clearChat(cardId: ChatTarget): boolean {
+  if (typeof cardId === 'number') {
+    const chat = readChat(cardId)
+    if (chat && awaitsReview(chat)) keepChat(cardId, chat)
+  }
+  return dropChat(cardId)
+}
+
+/** Forget a card's conversation and every copy kept of it: a rejected card is never reviewed. */
+export function forgetCardChat(cardId: number): boolean {
+  const kept = keptChats(cardId).filter((k) => dropKeptChat(k.key))
+  return dropChat(cardId) || kept.length > 0
+}
+
+function dropChat(cardId: ChatTarget): boolean {
   // The pictures go with the transcript that named them (#441) — the ones already sent and
   // the ones still waiting in the box, which is the whole of what this folder holds.
   fs.rmSync(imagesDir(cardId), { recursive: true, force: true })
@@ -256,6 +274,99 @@ export function clearChat(cardId: ChatTarget): boolean {
   dropCase(keyOf(cardId))
   try {
     fs.unlinkSync(chatFile(cardId))
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ---- cleared card chats kept for the memory review (#1345) ------------------
+//
+// One file per clear, `card-<id>.<keptAt>.kept`, holding the words alone. Not `.json`, so
+// nothing that lists conversations or counts usage reads it; `card-<id>.` in front, so the
+// prune of a card's leftovers takes it.
+
+const KEPT_KEY = /^card-(\d+)\.(\d+)$/
+const KEPT_EXT = '.kept'
+
+/** A cleared card chat waiting for the review. */
+export interface KeptChat {
+  /** The name the review marks it by: `card-<id>.<keptAt>`. */
+  key: string
+  cardId: number
+  keptAt: number
+}
+
+const keptFile = (key: string): string => path.join(CHATS_DIR, `${key}${KEPT_EXT}`)
+
+function keptOf(key: string): KeptChat | null {
+  const m = KEPT_KEY.exec(key)
+  return m ? { key, cardId: Number(m[1]), keptAt: Number(m[2]) } : null
+}
+
+/** When something was last said: plans and names rewrite `updatedAt` with nothing spoken. */
+export function lastSpoken(chat: Pick<Chat, 'messages' | 'updatedAt'>): number {
+  return Math.max(0, ...chat.messages.map((m) => m.at)) || chat.updatedAt
+}
+
+/** Whether the memory review has yet to read this conversation: something was said, after
+ *  `reviewedBefore`, and it was never marked. */
+export function awaitsReview(chat: Chat): boolean {
+  if (!chat.messages.length || chat.reviewedAt !== undefined) return false
+  return lastSpoken(chat) > (parseStamp(memoryReview().reviewedBefore)?.getTime() ?? 0)
+}
+
+function keepChat(cardId: number, chat: Chat): void {
+  let keptAt = Date.now()
+  while (fs.existsSync(keptFile(`card-${cardId}.${keptAt}`))) keptAt++
+  const messages = chat.messages.map(({ role, text, at, fromBoard }) => ({ role, text, at, fromBoard }))
+  const file = keptFile(`card-${cardId}.${keptAt}`)
+  fs.writeFileSync(`${file}.tmp`, JSON.stringify({ keptAt, messages }, null, 2) + '\n')
+  fs.renameSync(`${file}.tmp`, file)
+}
+
+/** The kept chats of one card, or of every card, oldest first. Names only — none is opened. */
+export function keptChats(cardId?: number): KeptChat[] {
+  let names: string[]
+  try {
+    names = fs.readdirSync(CHATS_DIR)
+  } catch {
+    return []
+  }
+  return names
+    .filter((name) => name.endsWith(KEPT_EXT))
+    .map((name) => keptOf(name.slice(0, -KEPT_EXT.length)))
+    .filter((kept): kept is KeptChat => kept !== null && (cardId === undefined || kept.cardId === cardId))
+    .sort((a, b) => a.keptAt - b.keptAt || a.cardId - b.cardId)
+}
+
+/** What was said in one kept chat, or null when it is gone or unreadable. */
+export function readKeptChat(key: string): ChatMessage[] | null {
+  if (!keptOf(key)) return null
+  try {
+    const raw = JSON.parse(fs.readFileSync(keptFile(key), 'utf8')) as { messages?: unknown }
+    if (!Array.isArray(raw?.messages)) return null
+    const messages: ChatMessage[] = []
+    for (const entry of raw.messages as Partial<ChatMessage>[]) {
+      if (!entry || typeof entry.text !== 'string') continue
+      messages.push({
+        role: entry.role === 'agent' ? 'agent' : 'you',
+        text: entry.text,
+        at: typeof entry.at === 'number' ? entry.at : 0,
+        fromBoard: entry.fromBoard === true ? true : undefined,
+      })
+    }
+    return messages
+  } catch {
+    return null
+  }
+}
+
+/** Delete one kept chat. False when no kept chat goes by that name. */
+export function dropKeptChat(key: string): boolean {
+  if (!keptOf(key)) return false
+  try {
+    fs.unlinkSync(keptFile(key))
     return true
   } catch {
     return false

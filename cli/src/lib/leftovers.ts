@@ -4,11 +4,13 @@
 // nor the worktree of a delivery that ended. Once a card has been off the board for a week
 // its assets, old mockups, chats and ended delivery worktrees go, except the asset files a
 // memory note or an open card still points at. The archived card itself goes after 30 days
-// (#1335), unless it names a release still on the list.
+// (#1335), unless it names a release still on the list. A cleared chat kept for the memory
+// review (#1345) goes after 30 days unread, whatever became of its card.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { dropKeptChat, keptChats } from './agent/chat'
 import { git, removeWorktree, dropEmptyWorktreeFolders, pruneWorktreeMetadata, worktreeDir } from './agent/worktree'
 import { idPrefix, walkDirs, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
@@ -18,6 +20,7 @@ import { normalizeRelease } from './validate'
 
 const KEEP_DAYS = 7
 const KEEP_CARD_DAYS = 30
+const KEEP_CHAT_DAYS = 30
 const DAY = 24 * 60 * 60_000
 
 export interface LeftoverPrune {
@@ -202,13 +205,16 @@ const realpath = (p: string): string => {
   }
 }
 
-/** Remove what every card off the board for a week still holds, then the archived cards
- *  past their own keep, and say what went. */
+/** Remove what every card off the board for a week still holds, then the archived cards and
+ *  the kept chats past their own keep, and say what went. */
 export function pruneLeftovers(now = Date.now()): LeftoverPrune {
   const removed: string[] = []
   const skipped: string[] = []
   pruneHeld(now, removed, skipped)
   pruneArchivedCards(now, removed)
+  for (const kept of keptChats()) {
+    if (now - kept.keptAt >= KEEP_CHAT_DAYS * DAY && dropKeptChat(kept.key)) removed.push(`${rel(CHATS_DIR)}/${kept.key}.kept`)
+  }
   return { removed, skipped }
 }
 

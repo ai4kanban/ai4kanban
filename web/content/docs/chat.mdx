@@ -55,6 +55,12 @@ the refusal names the card and what that run is doing. The chat itself is not a 
 no runs panel and holds no card. Each conversation lives on your machine, outside the project in
 [this board's own folder](/docs/runs#where-a-runs-record-is-kept), and `--clear` starts it fresh.
 
+Clearing a card's chat, or switching it to another agent, takes the old conversation out of
+sight but not off your machine yet: its text is kept there until the
+[memory review](/docs/agents#let-the-memory-review-remember-for-you) has read it once, after the
+card is archived, and is then deleted — or after 30 days unread. A rejected card's are deleted
+at once.
+
 ## A model per conversation
 
 The agent and the model are one conversation's own. Both start on the board's; what you pick

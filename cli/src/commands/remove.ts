@@ -7,7 +7,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { clearChat } from '../lib/agent/chat'
+import { clearChat, forgetCardChat } from '../lib/agent/chat'
 import { heldByDelivery } from '../lib/agent/deliveries'
 import { cardCreation, creationOf, readRuns, runIsLive, withStore } from '../lib/agent/store'
 import { insideRun } from '../lib/agent/env'
@@ -92,9 +92,10 @@ function leavingIds(id: number, found: Found): number[] {
   return [...ids]
 }
 
-// Remove board conversations; the agent's own session stays with its CLI.
-function dropChats(ids: number[]): number[] {
-  return ids.filter((id) => clearChat(id))
+// Remove board conversations; the agent's own session stays with its CLI. A finished card's
+// are kept for the memory review (#1345); a rejected card's go with every copy kept earlier.
+function dropChats(ids: number[], finished = false): number[] {
+  return ids.filter((id) => (finished ? clearChat(id) : forgetCardChat(id)))
 }
 
 // ---- find prose mentions of a leaving id -----------------------------------
@@ -285,7 +286,7 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // The card is off the board now, so every blocked_by/related pointing at it is stale.
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
   const unlinked = [...new Set(leftIds.flatMap((gone) => dropCrossRefs(gone)))]
-  const droppedChats = dropChats(leftIds)
+  const droppedChats = dropChats(leftIds, metric === 'completed')
   if (!options.cleanupDiscarded) bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   const to = dest ? ` → ${rel(dest)}${found.kind === 'group' ? '/' : ''}` : ''

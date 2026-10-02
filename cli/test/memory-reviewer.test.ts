@@ -12,15 +12,19 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { readChat } from '../src/lib/agent/chat.ts'
+import { cmdRemove } from '../src/commands/remove.ts'
+import { clearChat, keptChats, pickChatRuntime, readChat, readKeptChat } from '../src/lib/agent/chat.ts'
+import { listConversations } from '../src/lib/agent/discussions.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { reviewBatch } from '../src/lib/agent/memory-review.ts'
+import { loadLedger } from '../src/lib/agent/usage.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { memoryReview, stampMemoryReview } from '../src/lib/agent/settings.ts'
 import { formatStamp } from '../src/lib/cadence.ts'
 import { findGuide } from '../src/lib/guide.ts'
+import { pruneLeftovers } from '../src/lib/leftovers.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { AGENT_MEMORY, CHATS_DIR, setBoardRoot, SESSIONS, UI_CONFIG } from '../src/lib/paths.ts'
+import { AGENT_MEMORY, CHATS_DIR, setBoardRoot, SESSIONS, UI_CONFIG, USAGE } from '../src/lib/paths.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
 import { forgetMachineState, move } from './helpers/board.ts'
 
@@ -429,6 +433,150 @@ describe('what the review is handed', () => {
     assert.match(guide, /writing nothing is a complete result/)
     assert.match(guide, /Read what you are given/)
     assert.match(guide, /Keep them apart/)
+  })
+})
+
+// #1345: clearing a card chat, switching its agent and archiving its card all used to delete
+// the conversation on the spot, so the review never saw one.
+describe('a cleared card chat kept for the review', () => {
+  const keptFiles = (): string[] => fs.readdirSync(CHATS_DIR).filter((name) => name.endsWith('.kept'))
+  const says = (text: string) => ({ messages: [{ role: 'you', text, at: Date.now() }] })
+
+  it('keeps the words alone when cleared, and leaves no conversation behind', () => {
+    card(1, { where: 'open' })
+    chat('card-1', Date.now(), { resumeId: 'session-1', shareOnEnd: true })
+    fs.mkdirSync(path.join(CHATS_DIR, 'card-1.images'))
+    fs.writeFileSync(path.join(CHATS_DIR, 'card-1.images', 'a.png'), 'x')
+
+    assert.equal(clearChat(1), true)
+    assert.equal(readChat(1), null)
+    assert.deepEqual(fs.readdirSync(CHATS_DIR), keptFiles())
+    const [kept] = keptChats(1)
+    assert.deepEqual(readKeptChat(kept!.key)!.map((m) => [m.role, m.text]), [
+      ['you', 'what about doing it this way'],
+      ['agent', 'here is what that would mean'],
+    ])
+    assert.deepEqual(Object.keys(JSON.parse(fs.readFileSync(path.join(CHATS_DIR, keptFiles()[0]!), 'utf8'))), ['keptAt', 'messages'])
+    // Nothing that lists conversations sees it, and nothing waits while the card is open.
+    assert.deepEqual(listConversations().filter((row) => row.cardId === 1), [])
+    assert.deepEqual(keys(), [])
+  })
+
+  it('keeps it when the chat is switched to an agent on another CLI', () => {
+    card(1, { where: 'open' })
+    chat('card-1')
+    const runtime = (id: string, harness: string) => ({ id, name: id, harness, settings: {} })
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ runtimes: [runtime('global', 'claude-code'), runtime('other', 'codex')] }))
+
+    const picked = pickChatRuntime(1, 'other')
+    assert.ok('ok' in picked && picked.cleared)
+    assert.equal(readChat(1)!.messages.length, 0)
+    assert.equal(keptChats(1).length, 1)
+  })
+
+  it('hands over the conversation of a card archived by the real command', async () => {
+    card(1, { where: 'open' })
+    chat('card-1')
+    await move(root, ['archive', '1'])
+
+    assert.equal(readChat(1), null)
+    const [kept] = keptChats(1)
+    assert.deepEqual(keys(), [kept!.key])
+    const said = flow()
+    assert.match(said, /<conversation card="#1 card 1" kind="card chat">/)
+    assert.match(said, /what about doing it this way/)
+    assert.ok(said.includes(`raw chats-reviewed ${kept!.key}\n`))
+  })
+
+  it('gives each kept chat its own block, oldest first, and counts them as one card', () => {
+    for (let id = 1; id <= 11; id++) {
+      card(id, { where: 'open' })
+      chat(`card-${id}`, Date.now(), says(`card ${id}, first`))
+    }
+    clearChat(1)
+    chat('card-1', Date.now(), says('card 1, second'))
+    clearChat(1)
+    chat('card-1', Date.now(), says('card 1, third'))
+    for (let id = 1; id <= 11; id++) archive(id)
+
+    const batch = reviewBatch()
+    assert.deepEqual(batch.chats.slice(0, 3).map((c) => c.transcript), ['first', 'second', 'third'].map((n) => `user:\ncard 1, ${n}`))
+    assert.deepEqual(batch.chats.slice(0, 3).map((c) => c.key), [...keptChats(1).map((k) => k.key), 'card-1'])
+    // Ten cards: #1's three conversations and one each for #2 to #10.
+    assert.equal(batch.chats.length, 12)
+    assert.equal(batch.remaining, true)
+    assert.equal(flow().match(/<conversation /g)!.length, 12)
+  })
+
+  it('deletes a kept chat once it is marked', async () => {
+    card(1, { where: 'open' })
+    chat('card-1')
+    clearChat(1)
+    archive(1)
+    const [key] = keys()
+
+    const answer = await mark(key!)
+    assert.deepEqual(answer.marked, [key])
+    assert.equal(answer.remaining, false)
+    assert.deepEqual(keptFiles(), [])
+    assert.deepEqual((await mark(key!)).unknown, [key])
+  })
+
+  it('deletes the conversation and every kept chat of a card that is rejected or discarded', () => {
+    for (const [id, discard] of [[1, false], [2, true]] as const) {
+      card(id, { where: 'open' })
+      chat(`card-${id}`)
+      clearChat(id)
+      chat(`card-${id}`)
+      quiet(() => cmdRemove(id, 'rejected', discard ? { discard: true } : {}))
+    }
+    assert.deepEqual(fs.readdirSync(CHATS_DIR), [])
+    assert.deepEqual(keys(), [])
+  })
+
+  it('deletes outright a chat the review has read, or that predates it', () => {
+    card(1, { where: 'open' })
+    chat('card-1', Date.now(), { reviewedAt: 5 })
+    assert.equal(clearChat(1), true)
+
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryReview: { lastRun: formatStamp(new Date(Date.now() - DAY)) } }))
+    chat('card-1', Date.now() - 2 * DAY)
+    assert.equal(clearChat(1), true)
+    assert.deepEqual(fs.readdirSync(CHATS_DIR), [])
+  })
+
+  it('drops a kept chat nobody reviewed in 30 days, whatever became of its card', () => {
+    card(1, { where: 'open' })
+    const keep = (daysAgo: number): string => {
+      const name = `card-1.${Date.now() - daysAgo * DAY}.kept`
+      fs.mkdirSync(CHATS_DIR, { recursive: true })
+      fs.writeFileSync(path.join(CHATS_DIR, name), JSON.stringify({ messages: [{ role: 'you', text: 'hi', at: 1 }] }))
+      return name
+    }
+    keep(31)
+    const young = keep(29)
+    pruneLeftovers()
+    assert.deepEqual(keptFiles(), [young])
+  })
+
+  it('clears a discussion and the board conversation as before', () => {
+    discussion([1])
+    chat('board')
+    assert.equal(clearChat(DISCUSSION), true)
+    assert.equal(clearChat(null), true)
+    assert.deepEqual(fs.readdirSync(CHATS_DIR), [])
+  })
+
+  it('counts a reply once, kept or not', () => {
+    card(1, { where: 'open' })
+    const usage = { input: 1, cacheCreation: 0, cacheRead: 0, output: 1 }
+    chat('card-1', Date.now(), { messages: [{ role: 'agent', text: 'done', at: Date.now(), usage }] })
+    assert.equal(loadLedger(() => []).entries.length, 1)
+    clearChat(1)
+    fs.rmSync(USAGE, { force: true })
+    assert.equal(loadLedger(() => []).entries.length, 0)
   })
 })
 

@@ -10,14 +10,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { canonicalSpecAgent } from '../spec-agent-names'
-import { parseStamp } from '../cadence'
 import { boardCardIds, idPrefix, walkMd } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { agentMemoryDir, memoryNamesOf } from '../memory'
 import { ARCHIVE, CHATS_DIR, rel } from '../paths'
-import { becameCards, readChat, setChatReviewed } from './chat'
-import { memoryReview, noteMemoryReviewRemaining } from './settings'
-import { DISCUSSION_PREFIX, type Chat, type ChatTarget } from './types'
+import { awaitsReview, becameCards, dropKeptChat, keptChats, readChat, readKeptChat, setChatReviewed } from './chat'
+import { noteMemoryReviewRemaining } from './settings'
+import { DISCUSSION_PREFIX, type ChatMessage, type ChatTarget } from './types'
 
 /** How many archived cards' conversations one review run takes. */
 export const REVIEW_BATCH_CARDS = 10
@@ -36,7 +35,8 @@ export interface ReviewAgent {
 
 /** One conversation the review is handed. */
 export interface ChatToReview {
-  /** The name it is marked reviewed by: `card-<id>` or `discussion-<uuid>`. */
+  /** The name it is marked reviewed by: `card-<id>`, `discussion-<uuid>`, or a kept chat's
+   *  `card-<id>.<keptAt>`. */
   key: string
   /** The archived cards it belongs to: a card chat's own card, or every card a discussion
    *  became, in archive order. The last is the one its batch is counted by. */
@@ -66,7 +66,7 @@ export function reviewBatch(): ReviewBatch {
   return {
     chats: waiting
       .filter((w) => taken.has(w.anchor.id))
-      .sort((a, b) => byArchive(a.anchor, b.anchor) || Number(a.discussion) - Number(b.discussion))
+      .sort((a, b) => byArchive(a.anchor, b.anchor) || Number(a.discussion) - Number(b.discussion) || a.at - b.at)
       .map(handed),
     remaining: anchors.length > taken.size,
   }
@@ -77,15 +77,15 @@ export function anyChatToReview(): boolean {
   return waitingChats(true).length > 0
 }
 
-/** Mark these conversations reviewed, and record whether any are still waiting. `unknown`
- *  are the keys no conversation answers to. */
+/** Mark these conversations reviewed, and record whether any are still waiting. A kept chat
+ *  is deleted instead (#1345). `unknown` are the keys no conversation answers to. */
 export function markChatsReviewed(keys: string[]): { marked: string[]; unknown: string[]; remaining: boolean } {
   const now = Date.now()
   const marked: string[] = []
   const unknown: string[] = []
   for (const key of [...new Set(keys)]) {
     const target = targetOf(key)
-    if (target !== null && setChatReviewed(target, now)) marked.push(key)
+    if (dropKeptChat(key) || (target !== null && setChatReviewed(target, now))) marked.push(key)
     else unknown.push(key)
   }
   const remaining = anyChatToReview()
@@ -107,8 +107,13 @@ interface ArchivedCard {
 
 interface Waiting {
   key: string
-  chat: Chat
+  messages: ChatMessage[]
+  /** What a discussion was named. */
+  title?: string
   discussion: boolean
+  /** Where it sorts among its card's conversations: when a kept chat was set aside, and
+   *  last for the live one. */
+  at: number
   /** Its archived cards that were not rejected, in archive order. */
   cards: ArchivedCard[]
   /** The last of them to be archived. */
@@ -119,19 +124,27 @@ const byArchive = (a: ArchivedCard, b: ArchivedCard): number => a.day.localeComp
 
 // A conversation waits when it was never marked, was last spoken to after `reviewedBefore`,
 // and its card is archived — every card it became, for a discussion. A card still on the
-// board, gone from both, or rejected keeps its conversation out.
+// board, gone from both, or rejected keeps its conversation out. A kept chat (#1345) passed
+// the first two when it was set aside.
 function waitingChats(firstOnly = false): Waiting[] {
   const archive = archiveIndex()
   if (!archive.size) return []
-  const before = parseStamp(memoryReview().reviewedBefore)?.getTime() ?? 0
   const found: Waiting[] = []
+  for (const { key, cardId, keptAt } of keptChats()) {
+    const card = archive.get(cardId)?.()
+    if (!card || card.rejected) continue
+    const messages = readKeptChat(key)
+    if (!messages?.length) continue
+    found.push({ key, messages, discussion: false, at: keptAt, cards: [card], anchor: card })
+    if (firstOnly) return found
+  }
   for (const key of chatKeys()) {
     const target = targetOf(key)
     if (target === null) continue
     // The file name alone settles most card chats, so they are never opened.
     if (typeof target === 'number' && !archive.has(target)) continue
     const chat = readChat(target)
-    if (!chat || !chat.messages.length || chat.reviewedAt !== undefined || lastSpoken(chat) <= before) continue
+    if (!chat || !awaitsReview(chat)) continue
     const ids = typeof target === 'number' ? [target] : becameCards(chat)
     if (!ids.length || !ids.every((id) => archive.has(id))) continue
     const cards = ids
@@ -139,7 +152,15 @@ function waitingChats(firstOnly = false): Waiting[] {
       .filter((card): card is ArchivedCard => card !== null && !card.rejected)
       .sort(byArchive)
     if (!cards.length) continue
-    found.push({ key, chat, discussion: typeof target !== 'number', cards, anchor: cards[cards.length - 1]! })
+    found.push({
+      key,
+      messages: chat.messages,
+      title: chat.title,
+      discussion: typeof target !== 'number',
+      at: Number.MAX_SAFE_INTEGER,
+      cards,
+      anchor: cards[cards.length - 1]!,
+    })
     if (firstOnly) break
   }
   return found
@@ -163,11 +184,6 @@ function targetOf(key: string): ChatTarget {
   const card = CARD_KEY.exec(key)
   if (card) return Number(card[1])
   return DISCUSSION_KEY.test(key) ? (key as ChatTarget) : null
-}
-
-// When something was last said: plans and names rewrite `updatedAt` with nothing spoken.
-function lastSpoken(chat: Chat): number {
-  return Math.max(0, ...chat.messages.map((m) => m.at)) || chat.updatedAt
 }
 
 // Every card in the archive and off the board, by id — one walk, each file read only when
@@ -198,11 +214,11 @@ function readArchived(id: number, file: string): ArchivedCard | null {
 
 // ---- what the review is handed ----------------------------------------------
 
-function handed({ key, chat, discussion, cards }: Waiting): ChatToReview {
+function handed({ key, messages, title, discussion, cards }: Waiting): ChatToReview {
   return {
     key,
     cards: cards.map(({ id, title }) => ({ id, title })),
-    subject: discussion ? (chat.title ?? '') : '',
+    subject: discussion ? (title ?? '') : '',
     discussion,
     topics: [...new Set(cards.flatMap((c) => c.modules))],
     agents: [...new Set(cards.flatMap((c) => agentsOn(c.body)))].map((name) => ({
@@ -210,7 +226,7 @@ function handed({ key, chat, discussion, cards }: Waiting): ChatToReview {
       dir: rel(agentMemoryDir(name)),
       files: [...memoryNamesOf(name)],
     })),
-    transcript: trimmed(chat),
+    transcript: trimmed(messages),
   }
 }
 
@@ -221,9 +237,9 @@ function agentsOn(body: string): string[] {
 
 // The user's messages whole; the agent's without the lines that echo a command (`⏺`) or
 // report a failure (`⚠`).
-function trimmed(chat: Chat): string {
+function trimmed(messages: ChatMessage[]): string {
   const said: string[] = []
-  for (const message of chat.messages) {
+  for (const message of messages) {
     const agent = message.role === 'agent'
     const text = (agent ? message.text.split('\n').filter((line) => !/^\s*[⏺⚠]/.test(line)).join('\n') : message.text)
       .replace(/\n{3,}/g, '\n\n')
