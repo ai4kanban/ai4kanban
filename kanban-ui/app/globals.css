@@ -217,8 +217,8 @@ body {
 .nb-tip:focus-visible::after,
 /* A wrapper's tip speaks for the control inside it. */
 .nb-tip:has(> :focus-visible)::after,
-/* A touch screen has no hover and no focus ring, so a tap is the only way in. */
-.nb-tip:active::after {
+/* A tap holds it open until the next press lands elsewhere (components/tip-hold.tsx). */
+.nb-tip[data-tip-held]::after {
   opacity: 1;
 }
 /* Below the element instead of above — what a control in the window's top row

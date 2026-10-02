@@ -231,8 +231,8 @@ window width the rail, the header and the side-by-side columns are unchanged.
   left to right across layers, so the list under it is the group at this width.
 - **What a thumb presses is 44px**, and a top-row control is 36px — which is what keeps
   that row 43px at either width.
-- **Nothing is reachable only by hover**: a tooltip answers a tap where the pointer is
-  coarse, and a control that appears on hover stands all the time.
+- **Nothing is reachable only by hover**: a tapped tooltip stays open until the next tap
+  lands elsewhere, and a control that appears on hover stands all the time.
 - **Write it as a `max-md:` utility beside the markup**. Only what a class cannot reach —
   the rail's `display` inside a panel group, the coarse-pointer tooltip — goes in
   `app/globals.css`.
