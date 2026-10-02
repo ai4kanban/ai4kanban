@@ -1,0 +1,13 @@
+$ akb workflow schedule coding --run sweep-stale-branches
+akb: `sweep-stale-branches` is switched off in "Coding"
+(exit 1)
+
+$ akb workflow schedule coding --on sweep-stale-branches --cadence 30d
+Coding · scheduled: sweep-stale-branches on, sweep-stale-branches: every 30d
+
+$ akb workflow schedule coding
+Coding · scheduled
+  check-for-dependency-updates  every 7d · last run 2026-10-02 22:59 · next after 2026-10-09 22:59
+  sweep-stale-branches  every 30d · never run · next after 2026-11-01 22:59
+  post-the-weekly-summary  every 7d · never run
+

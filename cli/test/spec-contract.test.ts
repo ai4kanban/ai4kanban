@@ -57,11 +57,9 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe('the card format contract', () => {
-  it('accepts ordinary cards, group roots and recurring processes', () => {
+  it('accepts ordinary cards and group roots', () => {
     assert.deepEqual(validateSpec(file, valid), [])
     assert.deepEqual(validateSpec(path.join(path.dirname(file), '1-group/root.md'), valid), [])
-    const recurring = valid.slice(0, valid.indexOf('An observable')) + 'A repeating job.\n\n## Run state\nNone.\n\n## Process\n1. Do the job.\n'
-    assert.deepEqual(validateSpec(path.join(path.dirname(file), 'recurring/1-job.md'), recurring), [])
   })
 
   it('reports exact lines and repair instructions without modifying the card', async () => {

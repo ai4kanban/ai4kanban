@@ -1,9 +1,9 @@
 // Copied from cli/src/lib/cadence.ts by scripts/sync-format.mjs — do not edit here.
 // Edit the original and re-run `node scripts/sync-format.mjs`.
 
-// ---- the cadence a recurring card repeats on -------------------------------
+// ---- the cadence repeating work runs on ------------------------------------
 //
-// A recurring card can carry one line saying how often it repeats:
+// A scheduled agent carries one line saying how often it repeats:
 //
 //   30m          every 30 minutes
 //   6h           every 6 hours
@@ -11,8 +11,7 @@
 //   1d at 09:30  every day, at that time of day
 //
 // `at HH:MM` is allowed only when the interval is whole days — "every 90 minutes
-// at 09:30" doesn't mean anything. A card with no cadence runs only when someone
-// clicks Run: writing one is the opt-in to background runs.
+// at 09:30" doesn't mean anything.
 //
 // This module is the one parser. The local UI does not carry a second one — it
 // is copied there, to `kanban-ui/lib/format/`, by `scripts/sync-format.mjs`, so
@@ -77,7 +76,7 @@ export function formatDay(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/** A minute stamp — `2026-08-02 14:31`, local time. What `last_run` holds. */
+/** A minute stamp — `2026-08-02 14:31`, local time. What a last-run stamp holds. */
 export function formatStamp(d: Date): string {
   return `${formatDay(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
@@ -99,7 +98,7 @@ export function parseStamp(raw: unknown): Date | null {
  * stands in for "as far in the past as it gets"): waiting up to a day to see a
  * new job work once would be the wrong first impression.
  *
- * Otherwise it's `last_run` plus the interval. With `at HH:MM` the day the
+ * Otherwise it's the last run plus the interval. With `at HH:MM` the day the
  * interval lands on has to reach that time as well, so `1d at 09:30` is 09:30
  * the next day whatever hour the last run happened at. Days are counted on the
  * calendar rather than in milliseconds, so a clock change doesn't drag the hour

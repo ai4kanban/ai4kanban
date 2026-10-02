@@ -1,0 +1,33 @@
+$ git log --format='%h %s' -1
+e648c74 after the update
+
+$ akb workflow schedule coding --run check-for-dependency-updates
+Coding: started check-for-dependency-updates — run 63574024
+
+$ akb run list
+✓ 63574024  scheduled check-for-dependency-updates  done  delivery 4ywhsvvf  in 0s
+nothing running.
+
+$ akb run log
+✓ 63574024  scheduled check-for-dependency-updates  done  delivery 4ywhsvvf  in 0s
+
+I was told: You are the `check-for-dependency-updates` agent of the `Coding` workflow. The board is at `<project>/docs/kanban`. Nobody is watching: never ask.
+
+$ akb raw list --archived --since last-run
+no cards landed since 2026-10-02 22:59.
+
+Added one line to CHANGELOG.md.
+
+$ git log --format='%h %s' -2
+506abfc check-for-dependency-updates: scheduled run (Coding)
+e648c74 after the update
+
+$ git worktree list
+<project>  506abfc [master]
+
+$ akb workflow schedule coding
+Coding · scheduled
+  check-for-dependency-updates  every 7d · last run 2026-10-02 22:59 · next after 2026-10-09 22:59
+  sweep-stale-branches  off · never run
+  post-the-weekly-summary  every 7d · never run
+

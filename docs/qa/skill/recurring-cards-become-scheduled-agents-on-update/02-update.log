@@ -1,0 +1,20 @@
+$ akb update
+ai4kanban 0.9.8 — updating <project>
+
+  · wrote .git/hooks/pre-commit — refuses a commit on the branch a delivery is landing on (`--no-verify` gets past it)
+board already exists at docs/kanban/ — board files all present (safe to re-run)
+  docs/kanban/todo/recurring/3-check-for-dependency-updates.md is now the scheduled agent `check-for-dependency-updates` in the Coding workflow — on, cadence 7d
+  docs/kanban/todo/recurring/4-sweep-stale-branches.md is now the scheduled agent `sweep-stale-branches` in the Coding workflow — off: it had no cadence, so it runs only when you run it
+  removed docs/kanban/todo/recurring/2-fetch-triage-items.md — write a scheduled agent to pull triage items on a cadence (`akb guide write-agent`)
+  could not turn docs/kanban/todo/recurring/6-post-the-weekly-summary.md into a scheduled agent: it has no `## Process`, so there is nothing for an agent to do. It is left as it was and tried again next time
+  · turned this board's connector settings into 1 runtime, and pointed each agent at one
+
+Needs your attention:
+  ! no skill folder to refresh here — `akb skill` adds one; repairing the board only
+  ! docs/kanban/modules.md is still blank — write it from the repo (`akb guide module-map`)
+
+The board is up to date with 0.9.8. Every release: https://github.com/ai4kanban/ai4kanban/releases
+Your cards, config, and memory were left alone. Review `git diff` before committing.
+
+This command is 0.9.8. A newer one: `npm install -g ai4kanban@latest`
+

@@ -1,19 +1,15 @@
-// ---- migrate + run ---------------------------------------------------------
+// ---- migrate ---------------------------------------------------------------
 //
 // `migrate` converts old bold-header cards to the frontmatter meta format.
-// `run` records one run of a recurring task (+1 completed) and keeps the card.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, rel, TODO } from '../lib/paths'
+import { rel, TODO } from '../lib/paths'
 import { say } from '../lib/io'
-import { bumpMetric } from '../lib/metrics'
 import { slugify, LEVELS } from '../lib/validate'
 import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
-import { formatStamp, nextDue } from '../lib/cadence'
-import { walkMd, locate, isRecurringCard } from '../lib/cards'
-import { reconcileBoard } from '../lib/reconcile'
+import { walkMd } from '../lib/cards'
 import type { Meta, MoveResult } from '../lib/types'
 
 // Pull meta out of the old bold-line header. Missing fields fall back to safe
@@ -79,32 +75,4 @@ export function cmdMigrate(opts: MigrateOptions): MoveResult {
   }
   say(`\n${dry ? '(dry run) ' : ''}${changed} card(s) ${dry ? 'to migrate' : 'migrated'}, ${skipped} already frontmatter`)
   return { dry_run: dry, migrated: changed, skipped }
-}
-
-export function cmdRun(id: number): MoveResult {
-  if (!Number.isInteger(id)) die('need a numeric task id')
-  const found = locate(id)
-  if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
-  if (!isRecurringCard(found)) {
-    die(`#${id} is not recurring (${found.rel} is not under recurring/). Use \`archive\` for one-shot tasks.`)
-  }
-  // Records one pass of a recurring card. The local UI calls this itself at the end
-  // of a run, so a card run from the board never needs anyone to remember
-  // it — this is for a pass done by hand, outside the board.
-  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
-  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
-  // To the minute, not the day — a recurring card can run several times a day, and
-  // a cadence set to the minute needs a stamp that can say so.
-  const stamp = formatStamp(new Date())
-  meta.last_run = stamp
-  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
-  bumpMetric('completed')
-  say(`ran #${id} at ${stamp}: +1 completed (card kept — recurring)`)
-  // The stamp is what the schedule counts from, so say when the card comes round
-  // again — or that nothing will start it but a person.
-  const due = nextDue(meta.last_run, meta.cadence)
-  say(due ? `  next due ${formatStamp(due)} (cadence ${meta.cadence})` : '  no cadence — this card runs only when you run it')
-  reconcileBoard()
-  return { id, last_run: stamp, cadence: meta.cadence || '', next_due: due ? formatStamp(due) : null, file: rel(file) }
 }

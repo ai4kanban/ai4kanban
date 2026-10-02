@@ -1,0 +1,11 @@
+$ akb triage fetch
+Pulled http://127.0.0.1:4517/.
+Added 2 items, skipped 0, failed 0.
+  docs/kanban/triage/
+
+$ find docs/kanban/todo docs/kanban/triage -type f | sort
+docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md
+docs/kanban/todo/README.md
+docs/kanban/triage/dark-mode-flickers-on-load.md
+docs/kanban/triage/export-the-board-as-csv.md
+

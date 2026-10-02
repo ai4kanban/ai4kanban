@@ -1,0 +1,25 @@
+$ ls docs/kanban/todo/recurring
+6-post-the-weekly-summary.md
+
+$ akb raw list | grep -c '^#6'
+0
+
+$ printf '\n## Process\n\n1. List the cards archived in the last 7 days.\n2. Post their titles to the team channel.\n' >> docs/kanban/todo/recurring/6-post-the-weekly-summary.md
+
+$ akb update | grep -E 'recurring|nothing to do'
+  docs/kanban/todo/recurring/6-post-the-weekly-summary.md is now the scheduled agent `post-the-weekly-summary` in the Coding workflow — on, cadence 7d
+
+$ akb workflow schedule coding
+Coding · scheduled
+  check-for-dependency-updates  every 7d · last run 2026-10-02 22:59 · next after 2026-10-09 22:59
+  sweep-stale-branches  off · never run
+  post-the-weekly-summary  every 7d · never run
+
+$ ls docs/kanban/todo
+1-answer-the-questions-setup-couldnt-settle.md
+5-upgrade-the-linter.md
+README.md
+
+$ akb update | grep -E 'recurring|nothing to do'
+board already exists at docs/kanban/ — nothing to do (safe to re-run)
+

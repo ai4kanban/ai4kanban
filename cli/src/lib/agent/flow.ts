@@ -20,7 +20,7 @@
 //
 // One thing a printed flow has to say that a run never does: how the job closes. A run the
 // board started is watched, and the watcher does the bookkeeping at the end — putting the
-// card's stage back, stamping a recurring run, starting the refines that follow. Nothing is
+// card's stage back, starting the refines that follow. Nothing is
 // watching an agent that followed a printed flow, so every one of these ends by naming the
 // command that closes the job, and the action it hands over to when it hands over.
 
@@ -85,10 +85,6 @@ interface CardFacts {
   /** How many boxes are already ticked. Ticked boxes are history, so this is what the job
    *  must not touch. */
   ticked: number
-  /** The card carries a `## Process` — the run instructions of a recurring card. */
-  hasProcess: boolean
-  /** The card sits in `todo/recurring/`, so it is a job that repeats and never finishes. */
-  recurring: boolean
 }
 
 // What a finished card shipped (#1211): its landed commit, the files a `files` delivery
@@ -151,8 +147,6 @@ function readCard(id: number, home: CardHome = 'board'): CardFacts {
     meta,
     steps,
     ticked,
-    hasProcess: /^##\s+Process\s*$/im.test(body),
-    recurring: found.rel.split(path.sep)[0] === 'recurring',
   }
 }
 
@@ -496,7 +490,6 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   hook: [],
   // Nor a scheduled agent's pass (#1401).
   scheduled: [],
-  run: ['board', 'recurring-task'],
   // One planning session (#1203): the page that plans, and the two it writes the card by.
   clarify: ['refine', 'writing', 'update-questions'],
   resolve: ['board', 'writing', 'resolve', 'update-questions'],
@@ -632,17 +625,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'treat the target branch as the current implementation; preserve it and replay only what the approved copy above requires',
         'repair Git state failures while preserving the delivery; `git add` each file you resolved, then stop: the board runs `git rebase --continue` and lands the composed result',
         'change nothing the conflict does not name, change nothing on the board, and create no cards or follow-up tasks',
-      )
-      break
-    }
-    case 'run': {
-      facts.push(
-        ...field('process', card!.hasProcess ? `the job is the card's ## Process — do its steps in order` : `the card has no ## Process — there is nothing to run`),
-      )
-      close.push(
-        `update or add the card's ## Run state in place with only what the next pass needs`,
-        `${raw} record-run ${req.id} — counts this pass and stamps last_run`,
-        `never archive it: a recurring card has no end state`,
       )
       break
     }

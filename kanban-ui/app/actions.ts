@@ -357,9 +357,6 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
-  // One pass of a recurring card (#64) — the Run button that stands in for Implement on a
-  // card under todo/recurring/.
-  "run",
   "reject",
   "archive",
   "edit",
@@ -425,7 +422,7 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   const onCloud =
     !!cloudRevision &&
     Number.isInteger(req.id) &&
-    (req.action === "resolve" || req.action === "implement" || req.action === "run" || req.action === "archive");
+    (req.action === "resolve" || req.action === "implement" || req.action === "archive");
   if (onCloud) {
     const decision = req.action === "resolve" ? "answer" : req.action === "archive" ? "archive" : "implement";
     await recordCloudAction(req.id as number, decision, cloudRevision!, cloudAnswers ?? []);

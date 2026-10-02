@@ -1,6 +1,5 @@
-// What a folder under `todo/` is. `todo/` is flat, so the only folders in it are a group
-// task's and the reserved `recurring/` — one rule (lib/cards.ts), and this pins the cases
-// that used to disagree.
+// What a folder under `todo/` is. `todo/` is flat, so the only folder in it is a group
+// task's — one rule (lib/cards.ts), and this pins the cases that used to disagree.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'

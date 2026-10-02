@@ -1,0 +1,47 @@
+$ akb raw list   # the previous version
+#1 Answer the questions setup couldn't settle  (docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md)
+    todo · priority high · roi high
+--
+#2 Fetch triage items  (docs/kanban/todo/recurring/2-fetch-triage-items.md)
+    todo · priority med · roi med
+--
+#3 Check for dependency updates  (docs/kanban/todo/recurring/3-check-for-dependency-updates.md)
+    todo · priority med · roi med · every 7d
+--
+#4 Sweep stale branches  (docs/kanban/todo/recurring/4-sweep-stale-branches.md)
+    todo · priority med · roi med · 1 open question
+--
+#5 Upgrade the linter  (docs/kanban/todo/5-upgrade-the-linter.md)
+    todo · priority med · roi med
+--
+#6 Post the weekly summary  (docs/kanban/todo/recurring/6-post-the-weekly-summary.md)
+    todo · priority med · roi med · every 7d
+
+$ find docs/kanban/todo docs/kanban/triage -type f | sort
+docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md
+docs/kanban/todo/5-upgrade-the-linter.md
+docs/kanban/todo/README.md
+docs/kanban/todo/recurring/2-fetch-triage-items.md
+docs/kanban/todo/recurring/3-check-for-dependency-updates.md
+docs/kanban/todo/recurring/4-sweep-stale-branches.md
+docs/kanban/todo/recurring/6-post-the-weekly-summary.md
+docs/kanban/todo/recurring/dependency-notes/ignore.md
+docs/kanban/triage/dark-mode-flickers-on-load.md
+docs/kanban/triage/export-the-board-as-csv.md
+
+$ sed -n 1,14p docs/kanban/todo/recurring/3-check-for-dependency-updates.md
+---
+title: Check for dependency updates
+priority: med
+roi: med
+status: todo
+release: ""
+blocked_by: []
+related: []
+modules: []
+cadence: 7d
+last_run: 2026-10-02 22:59
+questions: []
+---
+
+

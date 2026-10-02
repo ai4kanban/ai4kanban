@@ -1,0 +1,14 @@
+$ akb guide add-task | grep -A1 'Repeating work'
+- Repeating work → write a `schedule` agent with `akb guide write-agent`; do not create a
+  card.
+
+$ akb guide write-agent | grep -A1 -E 'State between runs|\*\*Schedule\*\*'
+- **State between runs**: ask how a `schedule` agent should keep what its next run needs, and
+  write the answer into `AGENT.md`; assume no file or format.
+--
+- **Schedule**: a `schedule` agent runs on its workflow's cadence; set it and switch it with
+  `akb workflow schedule <workflow> --on <name> --cadence <cadence>`.
+
+$ akb guide | grep recurring | wc -l
+0
+

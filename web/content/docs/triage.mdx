@@ -160,7 +160,7 @@ TRIAGE_ENDPOINT_TOKEN=…
 
 These replaced the earlier `Signal endpoint` and `SIGNAL_ENDPOINT_TOKEN`, which are no longer
 read, and the `akb signals` command, which is gone. Rename them in your own `config.md` and
-`.env`, and update any script or recurring card that still runs the old command — nothing is
+`.env`, and update any script or scheduled agent that still runs the old command — nothing is
 rewritten for you.
 
 ## What the endpoint returns
@@ -227,10 +227,7 @@ It reports what it did — `Added 12 items, skipped 3, failed 1.` — and explai
 on its own line. A request that fails, an answer it cannot read, and a setting still to be
 filled in all write nothing at all: triage is left exactly as it was.
 
-The first successful pull makes `docs/kanban/triage/` and seeds a recurring card,
-**Fetch triage items**, in `todo/recurring/`. Give that card a cadence and the board pulls on
-its own; leave it without one and nothing runs until you ask. Delete the card if you don't want
-the job — nothing puts it back.
+The first successful pull makes `docs/kanban/triage/`.
 
 ## Write an item from a script
 

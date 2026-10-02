@@ -75,7 +75,7 @@ import type {
   OpResult,
   Revision,
 } from './contract'
-import { localBoard } from './local'
+import { localBoard, migrateRecurringFirst } from './local'
 import { leaseAnd, moveTarget, newOpId, opConflict, opOk, opRefused, targetName } from './ops'
 import { cardRevision } from './revision'
 import {
@@ -712,11 +712,13 @@ function cloudBoard(ctx: Context): BoardProvider {
 
     // The board timer's own write goes through THIS provider, not the Local one under it:
     // taking a mark off a scheduled card is a board write like every other.
-    nextWork: () =>
-      dispatchNextWork(async (id) => {
+    nextWork: async () => {
+      await migrateRecurringFirst(provider)
+      return dispatchNextWork(async (id) => {
         const res = await leaseAnd(provider, { card: id }, (env) => provider.setSchedule(id, null, env))
         return res.ok
-      }, pruneArchive),
+      }, pruneArchive)
+    },
 
     // ---- the writer lease ---------------------------------------------------
 
@@ -839,10 +841,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     saveAgentFile: (name, text, env) => through({ board: true }, env, (e) => local.saveAgentFile(name, text, e)),
     deleteAgent: (name, env) => through({ board: true }, env, (e) => local.deleteAgent(name, e)),
     deliveryRules: () => local.deliveryRules(),
-
-    // ---- history ------------------------------------------------------------
-
-    recordRun: (id, env) => through({ card: id }, env, (e) => local.recordRun(id, e)),
+    migrateRecurring: (env) => through({ board: true }, env, (e) => local.migrateRecurring(e)),
 
     // ---- the delivery lifecycle ---------------------------------------------
     //

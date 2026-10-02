@@ -173,29 +173,11 @@ describe('a board, assembled from one Cloud read', () => {
     assert.equal(cards[0]!.schedule, null)
   })
 
-  it('spells when a recurring job is next due, and leaves a one-shot card without one', () => {
-    const now = new Date(2026, 8, 5, 12, 0, 0).getTime()
+  it('reads no card out of a recurring folder an older board still carries (#1414)', () => {
     const screen = boardScreenFrom(
-      read({
-        cards: [
-          card(1, 'todo/recurring/1-waiting.md', { cadence: '7d', last_run: '2026-09-04 09:00' }),
-          card(2, 'todo/recurring/2-overdue.md', { cadence: '7d', last_run: '2026-08-01 09:00' }),
-          card(3, 'todo/recurring/3-never-run.md', { cadence: '7d' }),
-          card(4, 'todo/4-one-shot.md', { cadence: '7d', last_run: '2026-09-04 09:00' }),
-        ],
-      }),
-      now,
+      read({ cards: [card(1, 'todo/recurring/1-waiting.md', { cadence: '7d' }), card(4, 'todo/4-one-shot.md')] }),
     )
-    const byId = new Map(screen.board!.columns.flatMap((c) => c.cards).map((c) => [c.id, c]))
-    assert.equal(byId.get(1)!.recurring, true)
-    // Due on the 11th, spelled on the clock the read was made on.
-    assert.match(byId.get(1)!.nextRun, /11/)
-    assert.equal(byId.get(2)!.nextRun, 'Due now')
-    // A cadence and no run yet is due the moment it gets one.
-    assert.equal(byId.get(3)!.nextRun, 'Due now')
-    // Not under `recurring/`, so nothing but a person starts it — cadence or no cadence.
-    assert.equal(byId.get(4)!.recurring, false)
-    assert.equal(byId.get(4)!.nextRun, '')
+    assert.deepEqual(screen.board!.columns.flatMap((c) => c.cards).map((c) => c.id), [4])
   })
 })
 

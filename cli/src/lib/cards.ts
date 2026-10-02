@@ -1,18 +1,18 @@
 // ---- locate a task by id ---------------------------------------------------
 //
 // Walking the board's files and folders, resolving an id to its card, and the
-// card-shape facts that hang off location (group root, recurring, archive slot).
+// card-shape facts that hang off location (group root, archive slot).
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { idPrefix, isGroupFolder, subtaskLines } from './board/assemble'
+import { LEGACY_RECURRING, idPrefix, isGroupFolder, isLegacyRecurring, subtaskLines } from './board/assemble'
 import { die, rel, TODO, ARCHIVE } from './paths'
 import type { Found } from './types'
 
 // The board's own reading rules live in `board/assemble.ts` — one copy, so a hosted page
 // reading a card over the network and `akb` reading it off disk agree on what it says.
-export { idPrefix, isGroupFolder, subtaskLines }
+export { LEGACY_RECURRING, idPrefix, isGroupFolder, isLegacyRecurring, subtaskLines }
 
 export function walkMd(dir: string, acc: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -42,16 +42,13 @@ export function walkDirs(dir: string, acc: string[] = []): string[] {
 //                                          a topic's title is not decided yet (#507)
 //   todo/<id>-<slug>/root.md               a GROUP task — one card
 //                    <sub>-<slug>.md       its subtasks
-//   todo/recurring/<id>-<slug>.md          the one reserved folder (see isRecurringCard)
 //
-// The id prefix is what tells a group folder from the reserved one, and it decides alone.
-// It is the board's own naming: a group folder is created as `<id>-<slug>/` and nothing
-// else under todo/ ever is. `isGroupFolder` reads it, above.
+// The id prefix is what says a folder is a group. It is the board's own naming: a group
+// folder is created as `<id>-<slug>/` and nothing else under todo/ ever is. `isGroupFolder`
+// reads it, above.
 
 // Returns { kind: 'group'|'file', target, rel } or null.
 //   group  — an id-prefixed folder holding a root.md tracking card; target is the folder.
-//            found at any depth, so a recurring folder-task (its card plus sibling docs)
-//            resolves the same way a top-level group root does.
 //   file   — a single card (standalone or a group's subtask); target is the file.
 export function locate(id: number): Found | null {
   const groupDir = walkDirs(TODO).find(
@@ -146,10 +143,39 @@ export function archiveDest(found: Found): string {
   return dest
 }
 
-// A recurring task never archives — each run bumps "completed" but the card stays,
-// so its ## Process can be refined toward less human effort on the next run. Recurring
-// cards live in the reserved `recurring/` folder; the guard keys off that so a one-shot
-// task can't be run.
-export function isRecurringCard(found: Found): boolean {
-  return found.rel.split(path.sep)[0] === 'recurring'
+// Remove `id` from every other card's `blocked_by`/`related`. Run when a card leaves the
+// board (archive or reject): the id is gone, so a card still listing it is blocked by
+// nothing and pointing at nothing. Without this the board keeps a card "blocked" forever
+// and reconcileCrossRefs can only warn about it.
+//
+// Edits the two list lines in place rather than re-serializing the frontmatter, so a card
+// this script never wrote keeps whatever else it has. Only the inline `[1, 2]` form the
+// script writes is matched — a hand-written block list falls through to the reconcile
+// warning instead of being silently missed.
+const REF_LIST = /^(blocked_by|related):\s*\[(.*)\]\s*$/
+
+export function dropCrossRefs(id: number): string[] {
+  const touched: string[] = []
+  for (const file of walkMd(TODO)) {
+    if (path.basename(file) === 'README.md') continue
+    const lines = fs.readFileSync(file, 'utf8').split('\n')
+    if (lines[0]!.trim() !== '---') continue
+    let end = 1
+    while (end < lines.length && lines[end]!.trim() !== '---') end++
+    if (end >= lines.length) continue // no closing fence — not frontmatter
+    const fields: string[] = []
+    for (let i = 1; i < end; i++) {
+      const m = lines[i]!.match(REF_LIST)
+      if (!m) continue
+      const refs = m[2]!.split(',').map((s) => s.trim()).filter(Boolean)
+      const kept = refs.filter((s) => Number(s.replace(/^#/, '')) !== id)
+      if (kept.length === refs.length) continue
+      lines[i] = `${m[1]}: [${kept.join(', ')}]`
+      fields.push(m[1])
+    }
+    if (!fields.length) continue
+    fs.writeFileSync(file, lines.join('\n'))
+    touched.push(`${path.relative(TODO, file).split(path.sep).join('/')} (${fields.join(', ')})`)
+  }
+  return touched
 }

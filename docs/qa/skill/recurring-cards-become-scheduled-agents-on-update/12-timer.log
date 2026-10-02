@@ -1,0 +1,31 @@
+$ akb raw create --title "Check for dependency updates" --recurring --cadence 1m --body-file card-dependency-updates.md   # the previous version
+  wrote docs/kanban/todo/recurring/2-check-for-dependency-updates.md — frontmatter is set; the body came from --body-file
+
+$ akb raw record-run 2   # the previous version
+ran #2 at 2026-10-02 22:59: +1 completed (card kept — recurring)
+  next due 2026-10-02 23:00 (cadence 1m)
+
+$ akb raw create --title "Sweep stale branches" --recurring --cadence 1m --body-file card-sweep-stale-branches.md   # the previous version
+  wrote docs/kanban/todo/recurring/3-sweep-stale-branches.md — frontmatter is set; the body came from --body-file
+
+$ sleep 65
+
+$ node tick.mjs <cli>/dist/kanban.mjs
+[{"action":"describe-product"},{"action":"scheduled","workflow":"coding","specAgent":"check-for-dependency-updates"}]
+
+$ find docs/kanban/todo docs/kanban/agents -type f | sort
+docs/kanban/agents/check-for-dependency-updates/AGENT.md
+docs/kanban/agents/sweep-stale-branches/AGENT.md
+docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md
+docs/kanban/todo/README.md
+
+$ akb workflow schedule coding
+Coding · scheduled
+  check-for-dependency-updates  every 1m · last run 2026-10-02 22:59 · next after 2026-10-02 23:00
+  sweep-stale-branches  every 1m · never run · next after 2026-10-02 23:01
+
+$ sleep 65
+
+$ node tick.mjs <cli>/dist/kanban.mjs
+[{"action":"describe-product"},{"action":"scheduled","workflow":"coding","specAgent":"check-for-dependency-updates"},{"action":"scheduled","workflow":"coding","specAgent":"sweep-stale-branches"}]
+

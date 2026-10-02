@@ -51,7 +51,7 @@ export interface FetchReport {
 const REQUIRED = ['title', 'summary'] as const
 
 /** How long the endpoint has to answer. A pull is a read of what the provider already
- *  collected, so anything past this is an outage, not slow work — and a recurring card must
+ *  collected, so anything past this is an outage, not slow work — and a scheduled run must
  *  not be able to sit on an open connection for good. */
 const ANSWER_BY_MS = 30_000
 

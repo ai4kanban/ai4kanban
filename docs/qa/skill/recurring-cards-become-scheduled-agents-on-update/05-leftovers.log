@@ -1,0 +1,44 @@
+$ akb raw list
+#1 Answer the questions setup couldn't settle  (docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md)
+    todo · priority high · roi high
+--
+#5 Upgrade the linter  (docs/kanban/todo/5-upgrade-the-linter.md)
+    todo · priority med · roi med
+
+$ cat docs/kanban/todo/README.md | tail -3
+
+- [#1 Answer the questions setup couldn't settle](1-answer-the-questions-setup-couldnt-settle.md)
+- [#5 Upgrade the linter](5-upgrade-the-linter.md)
+
+$ grep related docs/kanban/todo/5-upgrade-the-linter.md
+related: []
+
+$ ls docs/kanban/triage
+dark-mode-flickers-on-load.md
+delete-remote-branches-too-or-only-local-ones.md
+export-the-board-as-csv.md
+
+$ cat docs/kanban/triage/delete-remote-branches-too-or-only-local-ones.md
+---
+source_id: derived-7b1e3ab549181edc
+title: Delete remote branches too, or only local ones?
+collected_at: 2026-10-02 22:59
+imported_at: 2026-10-02 22:59
+meta:
+  source: agent sweep-stale-branches
+---
+
+Delete remote branches too, or only local ones?
+
+- Only local
+- Remote too
+
+$ git status --short
+ M docs/kanban/todo/5-upgrade-the-linter.md
+ D docs/kanban/todo/recurring/2-fetch-triage-items.md
+ D docs/kanban/todo/recurring/3-check-for-dependency-updates.md
+ D docs/kanban/todo/recurring/4-sweep-stale-branches.md
+ D docs/kanban/todo/recurring/dependency-notes/ignore.md
+?? docs/kanban/agents/
+?? docs/kanban/triage/delete-remote-branches-too-or-only-local-ones.md
+

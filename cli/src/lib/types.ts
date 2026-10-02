@@ -45,8 +45,6 @@ export interface Meta {
   /** A video card's shot previews were approved under the retired two-round flow (#991).
    *  Still read, never acted on: it authorizes nothing since #1057. */
   preview_approved: boolean
-  cadence: string
-  last_run: string
   /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way
    *  out. Empty on every open card, and on one archived before the board stamped a date. */
   archived: string

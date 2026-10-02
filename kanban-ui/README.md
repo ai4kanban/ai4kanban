@@ -46,7 +46,6 @@ The home page answers one question — what can I start now? — in two columns:
 - **Ready to build**: cards marked ready, then those being implemented ("5 ready · 1
   implementing").
 - **Not ready**: everything still to be worked out.
-- **Recurring** (narrow, only when the board has any): jobs that repeat and are never finished.
 
 Inside a column, cards are banded by module, and the best card to start comes first: a blocked
 card sinks, a blocker rises. A blocked card carries a **lock** marker — hover it for the cards in
@@ -309,14 +308,13 @@ running badge and a read-only live log.
 
 | Button | When it shows |
 | --- | --- |
-| **Implement** | Until every todo is checked. Never on a group root or a recurring card. |
-| **Run** | On a recurring card, in place of Implement. |
+| **Implement** | Until every todo is checked. Never on a group root. |
 | **Refine** | While a refine would still move the card. |
 | **Revise** | Always. Opens the card's chat; say what to change. |
 | **Resolve** | When the card has open questions, including while a delivery waits on you. |
 | **Build again** | While a delivery has stopped, e.g. on work it could not commit or files changed outside the board. |
 | **Continue delivery** | When a delivery's next session never started. |
-| **Archive** | Once every todo is checked (a group root: every subtask resolved). Never on a recurring card. |
+| **Archive** | Once every todo is checked (a group root: every subtask resolved). |
 | **Remove** | Always. The card moves to the archive, marked **Rejected**. Leave the reason empty to discard it: the same, without writing memory. |
 
 A card has one session at a time. A session outside a delivery never commits: read `git diff` and
@@ -457,26 +455,15 @@ It shows only while a refine would still move the card: not once it is **ready**
 anyway** or **Schedule**.
 
 The board also refines by itself, as a separate run, after any run that wrote or changed a card —
-one refine per card touched. It skips blocked, ready, recurring and fully ticked cards, and cards
+one refine per card touched. It skips blocked, ready and fully ticked cards, and cards
 whose open questions are all yours. A subtask finishing doesn't refine its group root. Nothing
 scans the backlog: a card written by hand in your editor needs **Refine**.
 
-### Recurring tasks
+### Repeating work
 
-A card in the **recurring** column is a job you repeat and never archive. **Run** does one pass
-through its **Process**, records it, and tightens a step or two. A step that needs your judgment
-is left undone and written as an open question; the next run folds in your answer. There is no
-**Archive** or **Refine**. To make one, describe the job in **New idea** and say it repeats.
-
-**Cadence** (next to **Last run**) runs it automatically — every N minutes, hours or days, with a
-time of day for days. **No cadence** means it runs only on **Run**. **Next run** shows when it is
-due, in your machine's clock.
-
-- **A new job runs within the minute**; after that it waits out the interval from its last run.
-- **Missed runs** while the board was closed run once, not once per window.
-- **One recurring job at a time**, in its own slot.
-- **A stopped, failed or unrecorded run** takes the card off its cadence; click **Run** to put it
-  back.
+Work that repeats is not a card: it is an agent a workflow runs on a schedule. Set its cadence,
+switch it off or press **Run now** in **Configuration → Workflows**. A switched-off agent still
+runs on **Run now**. Recurring cards from an older board become these agents by themselves.
 
 ### Stopping a run
 

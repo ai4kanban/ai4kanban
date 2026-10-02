@@ -83,7 +83,6 @@ export interface AgentReq {
 
 export type DialogState =
   | { kind: "implement"; card: Card }
-  | { kind: "run"; card: Card }
   | { kind: "refine"; card: Card }
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
@@ -1193,49 +1192,6 @@ export function ActionDialog({
                     onClick: () => schedule("implement"),
                   }
                 : undefined
-          }
-        />
-      </Dialog>
-    );
-  }
-
-  // One pass of a recurring card (#64) — the button that stands in for Implement
-  // on a card under todo/recurring/. No warning box here, unlike Implement:
-  // neither of its two warnings can apply. A recurring card never reaches
-  // `ready` (it is never finished, so there is nothing to be ready for) and it
-  // can't be blocked by anything the board would let you see — a run is the
-  // normal thing to do to it, not a leap.
-  if (dialog.kind === "run") {
-    const { last_run: lastRun } = dialog.card;
-    const c = d.run;
-    return (
-      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
-        <p className={INTRO}>
-          <Rich>{c.blurb}</Rich>
-        </p>
-        <p className={INTRO}>
-          {c.unattended} {lastRun ? c.lastRun(lastRun) : c.neverRun}
-        </p>
-        <textarea
-          className={INPUT}
-          rows={3}
-          placeholder={c.notes}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <DialogButtons
-          onClose={onClose}
-          confirmLabel={c.confirm}
-          onConfirm={() =>
-            run(
-              {
-                action: "run",
-                id: dialog.card.id,
-                title: dialog.card.title,
-                notes: text.trim() || undefined,
-              },
-              `Run #${dialog.card.id}`,
-            )
           }
         />
       </Dialog>

@@ -256,7 +256,7 @@ function silenced(atWork: ReadonlySet<number>): Set<number> {
   for (const id of cardsBeingCreated().keys()) quiet.add(id)
   // …and a card mid-handover (#611). The run that held it is already closed and the agent
   // taking it over is not written down yet, so the record says nobody has it — while the
-  // close itself writes the board (the stage put back, a recurring card stamped) and that
+  // close itself writes the board (the stage put back) and that
   // write is a pass. Held in memory by the watcher across the whole handover.
   for (const id of handover()) quiet.add(id)
   return quiet

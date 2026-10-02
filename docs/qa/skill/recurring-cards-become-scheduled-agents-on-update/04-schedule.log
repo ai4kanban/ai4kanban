@@ -1,0 +1,29 @@
+$ akb workflow schedule coding
+Coding · scheduled
+  check-for-dependency-updates  every 7d · last run 2026-10-02 22:59 · next after 2026-10-09 22:59
+  sweep-stale-branches  off · never run
+
+$ akb workflow list
+coding  Coding  (built-in)
+  Plan and implement software changes.
+  plan    software-planner  → hooks: copywriting, email-planner, prompt-writer, tech-stack-advisor, ui-designer
+  execute builder  → hooks: qa-manager
+  scheduled  check-for-dependency-updates  every 7d · last run 2026-10-02 22:59 · next after 2026-10-09 22:59
+  scheduled  sweep-stale-branches  off · never run
+hyperframes-video  Product video  (built-in)  (Pro · locked)  (no worktree)
+  Approve a script, get a finished product video, and archive it when you are happy.
+  plan    scriptwriter  → hooks: demo-rehearser, hyperframes-editor, cover-designer
+  execute (nobody)
+slide-deck  Slide deck  (built-in)  (Pro · locked)  (no worktree)
+  Approve the slides, get an editable PowerPoint deck, and archive it when you are happy.
+  plan    deck-planner
+  execute (nobody)
+carousel-post  Carousel post  (built-in)  (Pro · locked)  (no worktree)
+  Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.
+  plan    carousel-planner
+  execute (nobody)
+blog-post  Blog post  (built-in)  (Pro · locked)  (no worktree)
+  Approve the outline, get the full article with its images and links, and archive it when you are happy.
+  plan    blog-planner  → hooks: blog-illustrator
+  execute (nobody)
+

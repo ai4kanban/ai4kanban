@@ -155,14 +155,13 @@ export interface ScreenMachine {
 /**
  * The controls a card page can draw.
  *
- * The seven toolbar buttons — `run` is Implement's place on a recurring card — plus `resume`,
+ * The six toolbar buttons, plus `resume`,
  * which is the pair of ways out of a request whose machine stopped mid-delivery. Not in the
  * list, and so never offered by a surface that names its controls: a card's fields
  * and a queued run, both of which stay in the app.
  */
 export type CardControl =
   | 'implement'
-  | 'run'
   | 'refine'
   | 'edit'
   | 'resolve'

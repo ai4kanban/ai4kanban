@@ -1,0 +1,51 @@
+$ find docs/kanban/todo docs/kanban/agents -type f | sort
+docs/kanban/agents/check-for-dependency-updates/AGENT.md
+docs/kanban/agents/dependency-notes/ignore.md
+docs/kanban/agents/sweep-stale-branches/AGENT.md
+docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md
+docs/kanban/todo/5-upgrade-the-linter.md
+docs/kanban/todo/README.md
+docs/kanban/todo/recurring/6-post-the-weekly-summary.md
+
+$ cat docs/kanban/agents/check-for-dependency-updates/AGENT.md
+---
+name: check-for-dependency-updates
+description: "Keep the project's dependencies from falling months behind: look once a week, and open a card for each upgrade worth doing."
+akb:
+  hook: schedule
+  i18n:
+    zh:
+      title: Check for dependency updates
+---
+
+Keep the project's dependencies from falling months behind: look once a week, and open a card for each upgrade worth doing.
+
+## Run state
+
+- Last checked: never
+- Skipped on purpose: see `docs/kanban/agents/dependency-notes/ignore.md`
+
+## Process
+
+1. Run `npm outdated` and drop every package listed in `docs/kanban/agents/dependency-notes/ignore.md`.
+2. For each major upgrade left, create one card with `akb raw create`.
+3. Write today's date under "Last checked" in `## Run state`.
+
+$ cat docs/kanban/agents/sweep-stale-branches/AGENT.md
+---
+name: sweep-stale-branches
+description: Delete the branches nobody is working on, so the branch list stays readable.
+akb:
+  hook: schedule
+  i18n:
+    zh:
+      title: Sweep stale branches
+---
+
+Delete the branches nobody is working on, so the branch list stays readable.
+
+## Process
+
+1. List the branches merged into `main` more than 30 days ago.
+2. Delete each one, and say which in the run's last message.
+

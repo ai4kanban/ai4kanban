@@ -45,7 +45,7 @@ const mtime = (file: string): number => {
   }
 }
 
-// Every id still on the board, subtasks and recurring cards included.
+// Every id still on the board, subtasks included.
 function openIds(): Set<number> {
   const ids = new Set<number>()
   if (!fs.existsSync(TODO)) return ids

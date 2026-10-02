@@ -1,7 +1,7 @@
 // ---- a direct edit to one card ---------------------------------------------
 //
 // The fields a person changes from a screen rather than by asking an agent: the title, the
-// body, priority, roi, the release, a recurring card's cadence, and the action a blocked
+// body, priority, roi, the release, and the action a blocked
 // card is waiting to run. Everything else about a card — its track, its links, its
 // questions — stays with the agents and the commands.
 //
@@ -12,12 +12,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { die, rel, TODO } from '../paths'
-import { CADENCE_FORMS, formatCadence, parseCadence } from '../cadence'
 import { locate } from '../cards'
 import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { repointReadmeLink } from '../readme'
 import { setSubtreeRelease, validRelease } from '../releases'
-import { RECURRING } from '../recurring'
 import { cardCreation } from '../agent/store'
 import { normalizeSchedule } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
@@ -28,8 +26,7 @@ import type { CardPatch, CardSchedule } from './types'
 
 /** Apply a direct edit to card `id`. Refuses — by throwing the board's own refusal, which
  *  the surface above turns into a line — when the id is unknown, a level is not one of the
- *  three, the release is not on the list, or a cadence is asked of a card that never
- *  repeats. */
+ *  three, or the release is not on the list. */
 export function patchCard(id: number, patch: CardPatch): void {
   if (!Number.isInteger(id)) die('a card is edited by its number', 'bad-id')
   const found = locate(id)
@@ -59,19 +56,6 @@ export function patchCard(id: number, patch: CardPatch): void {
   // must not quietly invent a version. Empty is always allowed: it means no release, so
   // writing it is how a card comes back out of one.
   if (patch.release !== undefined) meta.release = validRelease(normalizeRelease(patch.release))
-  // Only a card that repeats can carry a cadence, and only in a form the schedule can read
-  // — a half-parsed line would look like a schedule and never run. Empty clears it, which
-  // is how a card goes back to running only when someone asks.
-  if (patch.cadence !== undefined) {
-    if (path.relative(TODO, file).split(path.sep)[0] !== RECURRING) {
-      die(`#${id} is not a recurring card — only a card that repeats can have a cadence`, { kind: 'not-recurring', id })
-    }
-    const text = patch.cadence.trim()
-    const parsed = text ? parseCadence(text) : null
-    if (text && !parsed) die(`"${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}`)
-    meta.cadence = parsed ? formatCadence(parsed) : ''
-  }
-
   const newBody = patch.body !== undefined ? patch.body : body
   const normalized = newBody.replace(/^\n+/, '').replace(/\s+$/, '')
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + normalized + '\n')

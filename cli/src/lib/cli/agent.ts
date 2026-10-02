@@ -4,7 +4,7 @@
 // starting a run, steering it, talking to the agent, and setting up what the runs run on.
 //
 // Grouped by the thing each command acts on, because the words alone were ambiguous: `run`
-// meant three things at once — one pass of a recurring card, the list of runs, and the agent
+// meant several things at once — a move on a card, the list of runs, and the agent
 // process. So each noun holds its own verbs:
 //
 //   card <verb> <id>    the card on the board

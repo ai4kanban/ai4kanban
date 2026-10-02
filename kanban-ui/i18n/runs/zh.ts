@@ -283,17 +283,6 @@ const zh: RunsCopy = {
       schedule: "加入计划",
       scheduleHint: "等没有任何阻碍后，自动构建这张卡片——按仓库的提交设置来，不看这里的勾选。",
     },
-    run: {
-      title: (id) => `执行 #${id}`,
-      blurb:
-        "Agent 按顺序走完这张卡片的**流程**，记录本次运行，并改写其中一两步，让下一次运行更少地需要你。卡片会留在看板上——周期任务永远不算完成。",
-      unattended:
-        "运行时没人盯着，因此需要你判断的步骤会被跳过，留作问题等你之后答复。",
-      lastRun: (when) => `上次运行：${when}。`,
-      neverRun: "这张卡片从未运行过。",
-      notes: "本次运行的补充说明（可选）…",
-      confirm: "执行",
-    },
     refine: {
       title: (id) => `澄清 #${id}`,
       blurb:

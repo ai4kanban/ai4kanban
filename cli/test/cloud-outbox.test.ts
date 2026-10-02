@@ -121,8 +121,6 @@ function card(over: Partial<Card> = {}): Card {
     related: [],
     questions: [],
     modules: [],
-    last_run: '',
-    cadence: '',
     schedule: null,
     body: 'What it is for.\n',
     todos: { total: 0, done: 0 },

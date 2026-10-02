@@ -65,9 +65,7 @@ export interface CardRef {
  *
  *  The two the board runs on a one-shot card without stopping for anybody: `implement`
  *  builds it, `refine` sharpens its plan. Resolve is not one — it waits on the user's
- *  answers, so a run nobody is watching would only sit there — and a recurring card's Run is
- *  not either, since a recurring card is never blocked and its cadence is already its
- *  schedule. */
+ *  answers, so a run nobody is watching would only sit there. */
 export type ScheduledAction = 'implement' | 'refine'
 
 /** What a card is waiting to do, once the last card in its way leaves the board.
@@ -356,12 +354,6 @@ export interface Card {
   deliversIn?: 'plan'
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
-  /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and only once
-   *  one has run. Empty means never run. */
-  last_run: string
-  /** How often this card repeats — `30m`, `6h`, `1d at 09:30`. Recurring cards only, and
-   *  optional there: empty means the card runs only when someone asks for it. */
-  cadence: string
   /** The action waiting to run on this card once every card it waits on has left the board,
    *  or null on a card nobody scheduled. Only a blocked card can carry one. */
   schedule: CardSchedule | null
@@ -375,16 +367,9 @@ export interface Card {
    *  Read from that folder shape, never from the subtask count: a finished subtask's file
    *  is removed, so a group with everything done would otherwise stop reading as a group. */
   isGroup: boolean
-  /** True when this card is a recurring job — it lives under `todo/recurring/`, a reserved
-   *  folder whose cards repeat on a cadence instead of being built once. */
-  recurring: boolean
-  /** When this card comes round again, ready to print: a `YYYY-MM-DD HH:MM` stamp, or "Due
-   *  now" when the wait is already over. Empty on a card with no cadence and on every
-   *  one-shot card. Worked out on the server, whose clock the schedule runs on. */
-  nextRun: string
   /** The `blocked_by` ids that still point at an open card, so this card really is blocked.
-   *  An id no longer on the board was archived or rejected and blocks nothing; a recurring
-   *  card never closes, so it is skipped too, as is the card's own id. */
+   *  An id no longer on the board was archived or rejected and blocks nothing, and the
+   *  card's own id is skipped. */
   openBlockers: CardRef[]
   /** For a group root: the subtask lines in its `## Todo` (the ones carrying a `#<subid>`
    *  ref), and how many are resolved — ticked `[x]` (done) or struck `~~…~~` (rejected).
@@ -561,9 +546,16 @@ export interface CardPatch {
   roi?: string
   /** A version id from `releases.md`, or empty to take the card out of a release. */
   release?: string
-  /** How often a recurring card repeats, or empty to take the cadence off and leave the
-   *  card running only when someone asks. Recurring cards only. */
-  cadence?: string
+}
+
+/** What turning an older board's recurring cards into scheduled agents did (#1414). */
+export interface RecurringMigration {
+  /** The cards that became agents. */
+  agents: { card: string; agent: string; workflow: string; on: boolean; cadence: string }[]
+  /** The cards deleted with no agent made — "Fetch triage items". */
+  removed: string[]
+  /** The cards left where they were, each with why. The next pass tries them again. */
+  failed: { card: string; why: string }[]
 }
 
 /** What a save of the project did. */

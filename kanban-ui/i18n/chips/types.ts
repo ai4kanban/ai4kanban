@@ -39,16 +39,6 @@ export type ChipsCopy = {
   blockedMany: (ids: string) => string;
   /** A card naming a version the release list no longer holds. */
   releaseStale: (version: string) => string;
-  cadence: {
-    every: string;
-    at: string;
-    count: string;
-    time: string;
-    minutes: string;
-    hours: string;
-    days: string;
-    none: string;
-  };
   /** Who owns an open question. */
   question: { needsYou: string; new: string };
 };

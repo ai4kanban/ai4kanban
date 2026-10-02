@@ -68,7 +68,7 @@ export function stopCollecting(): void {
 export const collecting = (): boolean => sink !== null
 
 // Run `fn` with everything it prints held aside and thrown away. For the board moves a run
-// makes on its own — putting a card's stage back, stamping a recurring run — whose prose
+// makes on its own — putting a card's stage back, say — whose prose
 // is nobody's answer: the command that triggered them is answering something else, and its
 // stdout has to stay its own. Restores whatever was collecting before, so it nests.
 export function quietly<T>(fn: () => T): T {

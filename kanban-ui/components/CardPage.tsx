@@ -50,7 +50,6 @@ import {
   stoppedShort,
 } from "./agent-shared";
 import {
-  CadenceSelect,
   LevelSelect,
   ModuleChip,
   PendingPill,
@@ -75,7 +74,6 @@ import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
 import { SourceLinks } from "./card-sources";
 import { withoutSourceSection } from "@/lib/format/source";
-import { DUE_NOW } from "@/lib/format/board/assemble";
 import { ConfirmationPopover } from "./confirm-popover";
 import { goPro, useWorkflowLock } from "./pro";
 import { OpenIdsProvider } from "./open-ids";
@@ -107,11 +105,6 @@ type CardButton = CardControl;
 // button has exactly one rule, and every state combination falls out of them —
 // read top to bottom to see all the states at a glance.
 //
-// A recurring card (#64) is the one card that reads differently, because it is a
-// job rather than a piece of work: it is run again and again and never finished.
-// So Implement becomes **Run** and Archive never shows — there is no end state to
-// archive it into. Edit, Resolve and Reject stand exactly as they are.
-//
 // Edit is not a run (#633): it opens this card's conversation, which is where what the card
 // says is settled. It is here so the toolbar draws it in the place it has always had.
 function visibleActions(card: Card, offered: readonly CardControl[] | null): Set<CardButton> {
@@ -126,20 +119,19 @@ function visibleActions(card: Card, offered: readonly CardControl[] | null): Set
   const sub = card.subtaskLines;
   const groupDone = !!sub && sub.total > 0 && sub.resolved === sub.total;
   const buttons = new Set<CardButton>();
-  if (card.recurring) buttons.add("run"); // Run — a recurring card, always: a job you can start again
   // Implement — unless all todos are checked, and never on a group root. The board's own
   // rule (canImplement), the same one a schedule is refused by, so the button and the
   // schedule behind it can never disagree about whether this card is one to build.
-  else if (canImplement(card)) buttons.add("implement");
+  if (canImplement(card)) buttons.add("implement");
   buttons.add("edit"); // Edit — always
   // Refine (#99) — only when it would move the card, and not while that same action
   // is queued. Cancelling the schedule brings the button back for this blocked episode.
   if (canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
   if (hasUserQuestions) buttons.add("resolve"); // Resolve — has a decision the user owns
   // Archive — every subtask resolved, or all todos checked; a card finished in planning
-  // once its deliverable is on it and every todo is ticked. Never on a recurring card: archiving one takes a job off the board.
+  // once its deliverable is on it and every todo is ticked.
   const finished = card.isGroup ? groupDone : card.deliversIn === "plan" ? planDeliveryGap(card) === null : allDone;
-  if (!card.recurring && finished) buttons.add("archive");
+  if (finished) buttons.add("archive");
   buttons.add("reject"); // Reject — always
   // What the SURFACE offers, on top of what the card's state allows (#364). A surface that
   // names none offers all of them, which is the app; the hosted board names only the card's
@@ -1270,7 +1262,6 @@ export function CardPage({
     (buttons.has("implement") && !delivery) ||
     (phone && canResolve) ||
     hasExtra ||
-    (buttons.has("run") && !delivery) ||
     (buttons.has("refine") && !delivery) ||
     !!waiting;
   const toolbar = !!actions && (!delivery || !!waiting) && anyAction;
@@ -1670,20 +1661,6 @@ export function CardPage({
                       onError={setError}
                     />
                   )}
-                  {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
-                      it is the one thing you came to this card to do. */}
-                  {buttons.has("run") && !delivery && !locked && (
-                    <Button
-                      size="sm"
-                      className={ACT}
-                      disabled={off}
-                      title={frozen ? frozenWhy : c.toolbar.runHint}
-                      onClick={() => setDialog({ kind: "run", card })}
-                    >
-                      <FiPlay className="text-[15px]" aria-hidden />
-                      {c.toolbar.run}
-                    </Button>
-                  )}
                   {/* Refine — the same run the board makes on its own, on demand. While
                       another run holds this card it's disabled like every other button,
                       and its tooltip names what that run is doing, so a second refine is
@@ -1882,43 +1859,6 @@ export function CardPage({
               {!!card.sources?.length && (
                 <MetaItem label={c.meta.source}>
                   <SourceLinks cardId={card.id} sources={card.sources} />
-                </MetaItem>
-              )}
-
-              {/* When this job last ran (#64) — recurring cards only, since it is the
-                  one card that has a "last time". A card that has never run says so
-                  in words rather than showing a dash: never run is a real state, and
-                  the Run button beside it is what changes it. */}
-              {card.recurring && (
-                <MetaItem label={c.meta.lastRun}>
-                  <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
-                    {card.last_run || c.meta.neverRun}
-                  </span>
-                </MetaItem>
-              )}
-
-              {/* How often it repeats (#139), and when that lands next. Writing a
-                  cadence is the opt-in to background runs: with one, the board
-                  starts this job itself when it comes due; without one, only the
-                  Run button above does. The next time is beside the last one
-                  because the pair is the whole schedule — where it just was, and
-                  where it goes next — and it is gone when there is no cadence to
-                  work it out from. Both are the server's local time. */}
-              {card.recurring && (
-                <MetaItem label={c.meta.cadence}>
-                  <CadenceSelect
-                    value={card.cadence}
-                    disabled={busy || !fieldWrites}
-                    onChange={(v) => patchCard(card.id, { cadence: v })}
-                  />
-                </MetaItem>
-              )}
-
-              {card.recurring && card.nextRun && (
-                <MetaItem label={c.meta.nextRun}>
-                  <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
-                    {card.nextRun === DUE_NOW ? c.meta.dueNow : card.nextRun}
-                  </span>
                 </MetaItem>
               )}
 

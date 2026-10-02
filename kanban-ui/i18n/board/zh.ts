@@ -25,7 +25,6 @@ const zh: BoardCopy = {
     ready: "待开发",
     readyCount: (ready, implementing) => `${ready} 个待开发 · ${implementing} 个开发中`,
     notReady: "未就绪",
-    recurring: "周期任务",
     empty: "没有待办卡片",
     emptyBoard: {
       title: "看板还空着",

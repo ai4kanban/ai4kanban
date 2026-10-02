@@ -40,9 +40,7 @@ import {
 } from '../lib/signals'
 import { signalEndpoint } from '../lib/signals/config'
 import { say } from '../lib/io'
-import { withBoardLock } from '../lib/lock'
 import { die, rel, TRIAGE } from '../lib/paths'
-import { writeSignalsFetchCard } from '../lib/recurring'
 import type { MoveResult } from '../lib/types'
 
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
@@ -56,9 +54,6 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
     })
   }
 
-  // Whether this is the pull that makes the folder, asked before it does. The recurring card
-  // below is seeded exactly once, on that pull.
-  const fresh = !fs.existsSync(TRIAGE)
   const report = await fetchSignals()
 
   say(`Pulled ${signalEndpoint()}.`)
@@ -68,11 +63,6 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
   )
   for (const failed of report.failed) say(`  ${failed.which} — ${failed.why}`)
   if (report.added.length > 0) say(`  ${rel(TRIAGE)}/`)
-
-  const seeded = fresh && report.added.length > 0 ? withBoardLock(() => writeSignalsFetchCard()) : null
-  if (seeded) {
-    say(`  recurring card: #${seeded.id} ${rel(seeded.file)} — set a cadence on it to pull on its own`)
-  }
 
   // And the sort over what just landed (#562), when the triager is switched on. A pull that
   // brought nothing new starts none, and a sort that will not start does not make the pull
@@ -84,7 +74,6 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
     skipped: report.skipped,
     failed: report.failed,
     inbox: rel(TRIAGE),
-    recurring_card: seeded?.id ?? null,
   }
 }
 

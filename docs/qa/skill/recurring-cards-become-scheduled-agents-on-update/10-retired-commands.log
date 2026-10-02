@@ -1,0 +1,33 @@
+$ akb raw create --title "Rotate the API keys" --recurring
+akb raw: --recurring is gone — repeating work is a scheduled agent now, not a card. Write one with `akb guide write-agent`.
+(exit 1)
+
+$ akb raw create --title "Rotate the API keys" --cadence 30d
+akb raw: --cadence is gone — repeating work is a scheduled agent now, not a card. Write one with `akb guide write-agent`.
+(exit 1)
+
+$ akb raw update 5 --cadence 1d
+akb raw: --cadence is gone — repeating work is a scheduled agent now, not a card. Write one with `akb guide write-agent`.
+(exit 1)
+
+$ akb raw record-run 3
+akb raw: unknown command 'record-run'
+(exit 1)
+
+$ akb raw run 3
+akb raw: unknown command 'run'
+(Did you mean rule?)
+(exit 1)
+
+$ akb guide recurring-task
+akb: no guide called "recurring-task". `akb guide` lists them.
+(exit 1)
+
+$ akb raw create --help | grep -iE 'recurring|cadence' | wc -l
+0
+
+$ ls docs/kanban/todo
+1-answer-the-questions-setup-couldnt-settle.md
+5-upgrade-the-linter.md
+README.md
+

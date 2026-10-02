@@ -294,9 +294,14 @@ under **Scheduled** in Configuration → Workflows, below the two stages, and be
 workflow alone. Coding ships one, running every day: the
 [QA manager](/docs/daily-loop#the-qa-manual).
 
+Recurring cards have moved here. On update, each one becomes a scheduled agent of its workflow:
+its steps are the agent's instructions, its cadence and last run carry over, and a card with no
+cadence arrives disabled.
+
 - **Set it on the agent's page.** The chip beside its name picks how often — every 6 hours, every
   day, every 7 days, or your own — and **Disable** is the last row of the same list. Picking a
-  schedule again enables it. **Run now** starts one run whether or not it is due.
+  schedule again enables it. **Run now** starts one run whether or not it is due, and works
+  while the agent is disabled.
 - **It starts every time its schedule comes round**, whether or not there is anything to do. A
   quiet day still costs one short run.
 - **It never runs the moment you enable it.** The first run comes one schedule later; the page

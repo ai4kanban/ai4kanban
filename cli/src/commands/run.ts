@@ -172,7 +172,7 @@ function sayIfHeld(req: CommandRequest, program: string): void {
 // is answered. The card page's Implement dialog says exactly this; the terminal was the
 // only side of the click missing it.
 function sayBeforeStart(req: CommandRequest, program: string): void {
-  if (req.action !== 'implement' && req.action !== 'run') return
+  if (req.action !== 'implement') return
   if (req.id === undefined) return
   const card = findCard(req.id)
   const blockers = card?.openBlockers ?? []

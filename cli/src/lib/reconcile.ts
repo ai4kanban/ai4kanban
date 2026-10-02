@@ -55,7 +55,7 @@ function indexableCards() {
     if (base === 'README.md' || base === 'root.md') continue
     const relTODO = path.relative(TODO, file)
     const segs = relTODO.split(path.sep)
-    if (segs.length !== 1) continue // in a folder: a subtask, or recurring — optional
+    if (segs.length !== 1) continue // in a folder: a subtask — optional
     const id = idPrefix(base)
     if (id != null) out.push({ id, rel: segs.join('/') })
   }

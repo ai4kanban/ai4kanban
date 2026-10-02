@@ -628,8 +628,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       ]
       // The close and every follow-up it starts go inside the try, and Cloud is told the
       // card stopped being worked in the finally (#611). The card is held at work for all
-      // of it: the close writes the board itself — the stage put back, a recurring card
-      // stamped — and that write is a pass like any other, so without the hold the handoff
+      // of it: the close writes the board itself — the stage put back —
+      // and that write is a pass like any other, so without the hold the handoff
       // is exactly the interruption this was meant to stop. A follow-up that would not
       // start leaves nothing holding the card, and it is raised as it stands.
       holdCardAtWork(record.cardId)

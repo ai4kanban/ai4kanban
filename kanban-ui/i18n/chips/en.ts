@@ -30,16 +30,6 @@ const en: ChipsCopy = {
   blockedOne: (ids) => `Blocked — ${ids} is still open`,
   blockedMany: (ids) => `Blocked — ${ids} are still open`,
   releaseStale: (version) => `${version} — not on the list`,
-  cadence: {
-    every: "every",
-    at: "at",
-    count: "How many",
-    time: "Time of day",
-    minutes: "minutes",
-    hours: "hours",
-    days: "days",
-    none: "No cadence",
-  },
   question: { needsYou: "needs you", new: "new" },
 };
 

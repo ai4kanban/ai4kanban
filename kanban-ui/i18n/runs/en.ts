@@ -295,17 +295,6 @@ const en: RunsCopy = {
       scheduleHint:
         "Build this card by itself, once nothing is in its way — following the repository's commit setting, not the box here.",
     },
-    run: {
-      title: (id) => `Run #${id}`,
-      blurb:
-        "The agent works through this card's **Process** in order, records the run, and rewrites a step or two so the next run needs less of you. The card stays on the board — a recurring task is never finished.",
-      unattended:
-        "Nobody watches a run, so a step that needs your judgment is left undone and comes back to you as a question to answer later.",
-      lastRun: (when) => `Last run ${when}.`,
-      neverRun: "This card has never run.",
-      notes: "Optional extra notes for this run…",
-      confirm: "Run",
-    },
     refine: {
       title: (id) => `Refine #${id}`,
       blurb:

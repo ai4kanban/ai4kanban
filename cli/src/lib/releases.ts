@@ -21,7 +21,7 @@ import path from 'node:path'
 import { die, rel, KANBAN, TODO, ARCHIVE, RELEASES, RELEASE_SUMMARIES, REPO_ROOT } from './paths'
 import { releaseEntriesFrom, releaseLineEntry, type ReleaseEntry } from './board/assemble'
 import { formatDay } from './cadence'
-import { walkMd, idPrefix } from './cards'
+import { walkMd, idPrefix, isLegacyRecurring } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
 import { cloudBoardFor, setCloudBoardRelease } from './cloud/boards'
@@ -41,7 +41,6 @@ export interface CardRow {
   done: boolean
   blockedBy: number[]
   root: boolean
-  recurring: boolean
   /** Rejected rather than finished — only ever true on a card in the archive. */
   rejected: boolean
 }
@@ -223,7 +222,7 @@ function cardRows(dir: string): CardRow[] {
   const rows: CardRow[] = []
   for (const file of walkMd(dir)) {
     const base = path.basename(file)
-    if (base === 'README.md') continue
+    if (base === 'README.md' || isLegacyRecurring(path.relative(dir, file))) continue
     const id = base === 'root.md' ? idPrefix(path.basename(path.dirname(file))) : idPrefix(base)
     if (id == null) continue
     const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
@@ -238,7 +237,6 @@ function cardRows(dir: string): CardRow[] {
       done: allTicked(body),
       blockedBy: (meta && meta.blocked_by) || [],
       root: base === 'root.md',
-      recurring: path.relative(dir, file).split(path.sep)[0] === 'recurring',
       rejected: Boolean(meta?.rejected),
     })
   }
@@ -286,12 +284,11 @@ export function fillCandidates(): { fill: CardRow[]; skipped: SkippedCard[] } {
       continue
     }
     // Blocked means blocked by a card that is still open. An id no longer on the board
-    // was archived or rejected, so that work is done; a recurring card never closes and
-    // a card can't block itself, so neither counts.
+    // was archived or rejected, so that work is done; and a card can't block itself.
     const blockers = card.blockedBy
       .filter((n) => n !== card.id)
       .map((n) => byId.get(n))
-      .filter((b): b is CardRow => Boolean(b) && !b!.recurring)
+      .filter((b): b is CardRow => Boolean(b))
     if (blockers.length) {
       skipped.push({ ...card, reason: `blocked by ${blockers.map((b) => `#${b.id}`).join(', ')}, still open` })
       continue

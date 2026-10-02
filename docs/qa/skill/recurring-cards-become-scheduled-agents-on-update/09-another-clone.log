@@ -1,0 +1,8 @@
+$ git clone <project> ../clone && cd ../clone
+
+$ akb workflow schedule coding
+Coding · scheduled
+  check-for-dependency-updates  off · never run
+  post-the-weekly-summary  off · never run
+  sweep-stale-branches  off · never run
+

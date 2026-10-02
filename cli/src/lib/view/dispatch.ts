@@ -1,8 +1,7 @@
 // ---- what the board should start on its own --------------------------------
 //
 // The jobs that need no user at all: the cards somebody scheduled, whose last blocker has
-// now left the board, the cards a refine would move and none has been tried on, the recurring
-// cards whose cadence has elapsed, the day's review of
+// now left the board, the cards a refine would move and none has been tried on, the day's review of
 // what the conversations settled, the review of the dismissal reasons, the project
 // description once new commits land, the daily prune of
 // what departed cards left in .akb, the memory pruner's own cadence, and every workflow's
@@ -58,45 +57,7 @@ export type ClearMark = (id: number) => Promise<boolean>
 /** Delete the archived cards past their keep, for a board whose archive lives elsewhere. */
 export type PruneArchive = (now: number) => Promise<void>
 
-// The newest `run` on each card. Only run records count here: this asks "has a pass already
-// been started for the window the card is due in", and an edit or a refine on the same card
-// says nothing about that.
-function newestRuns(runs: RunView[]): Map<number, RunView> {
-  const newest = new Map<number, RunView>()
-  for (const r of runs) {
-    if (r.cardId === null || r.action !== 'run') continue
-    const best = newest.get(r.cardId)
-    if (!best || r.startedAt > best.startedAt) newest.set(r.cardId, r)
-  }
-  return newest
-}
-
-// The recurring cards that should run right now, highest priority first.
-//
-// Due is the cadence's own rule (../cadence.ts): a card that never ran is due at once,
-// otherwise the interval since `last_run` has to have passed.
-//
-// A card is passed over when a run for this very window has already been started — the
-// newest run on it began at or after the time it is due. That run stopped, failed, or was
-// cut off, because only a run that PASSES is recorded, and recording moves `last_run`
-// forward and with it the due time. Without this rule a broken connector — every run
-// failing in seconds — would leave the card due on every tick and spawn a run a minute,
-// forever. Starting it again is then a person's call.
-function dueRecurring(cards: Card[], runs: RunView[], busy: Set<number>): Card[] {
-  const newest = newestRuns(runs)
-  const now = Date.now()
-  return cards
-    .filter((card) => {
-      if (!card.recurring || busy.has(card.id)) return false
-      const due = nextDue(card.last_run, card.cadence)
-      if (!due || due.getTime() > now) return false
-      const last = newest.get(card.id)
-      return !last || last.startedAt < due.getTime()
-    })
-    .sort(byDispatchOrder)
-}
-
-// Whether the memory pruner is due right now (#514). The recurring cards' rules, read out of
+// Whether the memory pruner is due right now (#514). A cadence's rules, read out of
 // the board's settings: the cadence has elapsed since the last pass that PASSED — or since
 // the scheduler first looked (#1208) — and a run started for this very window means the last
 // attempt failed, so starting it again is a person's call, not a loop every tick reopens.
@@ -276,8 +237,8 @@ async function dueRefine(cards: Card[], busy: Set<number>, ask: () => Promise<Pr
  * The runs the board would start on its own right now, in the order to start them.
  *
  * At most one of each kind, and each kind has a slot of its own: a scheduled card is a run the
- * user already asked for, on a card whose turn has finally come, so it must not sit behind a
- * recurring pass that happens to be due in the same minute.
+ * user already asked for, on a card whose turn has finally come, so it must not sit behind
+ * anything else that happens to be due in the same minute.
  *
  * An empty list means there is nothing to do. It never throws — a caller on a timer must
  * survive an unreadable board and try again next tick.
@@ -330,17 +291,6 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
     }
   } catch {
     // The record would not take the write. Nothing is listed, and the next tick tries again.
-  }
-
-  if (!runs.some((r) => r.status === 'running' && r.action === 'run')) {
-    // A card whose Pro workflow this account cannot run is passed over (#1293): no run is
-    // recorded, so it starts on the first tick after Pro is on.
-    for (const card of dueRecurring(cards, runs, busy)) {
-      const request: AgentRequest = { action: 'run', id: card.id, title: card.title }
-      if (await proRefusal(request, ask)) continue
-      work.push(request)
-      break
-    }
   }
 
   // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two
