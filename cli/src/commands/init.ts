@@ -10,7 +10,7 @@ import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { writeReleasesIfMissing } from '../lib/releases'
-import { migrateMemory, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import { migrateMemory, renameProductFile, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { migratePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
@@ -154,6 +154,8 @@ export function cmdInit(): MoveResult {
     const scaffolded: Scaffolded[] = []
     // It scaffolds what it needs on the way, so the scaffold below finds the planner's
     // folder already there and reports only what an older board never had.
+    // Before anything scaffolds an empty `project.md` beside it (#1391).
+    const projectRenamed = renameProductFile()
     const movedMemory = migrateMemory()
     const project = scaffoldProjectMemory()
     if (project) scaffolded.push(project)
@@ -163,13 +165,14 @@ export function cmdInit(): MoveResult {
     say(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
-        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired || projectRenamed ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (movedMemory.length) {
       say(`  memory now belongs to whoever writes it — merged ${movedMemory.length} file${movedMemory.length === 1 ? '' : 's'} away: ${movedMemory.join(', ')}`)
       say(`  a module's entries are a \`## <module>\` topic in the file they moved into`)
     }
+    if (projectRenamed) say(`  ${projectRenamed}`)
     if (goalRetired) say(`  docs/kanban/memory/goal.md is retired: ${goalRetired}`)
     if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Board); its cadence is kept there, switched off`)
     if (added.includes(rel(MODULES_MD))) {

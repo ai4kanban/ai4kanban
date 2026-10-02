@@ -95,6 +95,8 @@ export const knownAction = (action: unknown): boolean => !RETIRED_ACTIONS.has(St
 export const readAction = (action: unknown): AgentAction => {
   if (typeof action !== 'string') return action as AgentAction
   if (WAS_CLARIFY.has(action)) return 'clarify'
+  // Renamed in #1391.
+  if (action === 'describe-product') return 'describe-project'
   return action as AgentAction
 }
 

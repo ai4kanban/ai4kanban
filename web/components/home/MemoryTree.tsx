@@ -36,7 +36,7 @@ type Row = {
 const TREE: Row[] = [
   { prefix: "", name: "docs/kanban/memory/", dir: true },
   { prefix: "├─ ", name: "readme.md", note: "readme" },
-  { prefix: "├─ ", name: "product.md", note: "product" },
+  { prefix: "├─ ", name: "project.md", note: "product" },
   { prefix: "└─ ", name: "agents/planner/", dir: true, note: "planner" },
   { prefix: "   ├─ ", name: "decisions.md", note: "decisions" },
   { prefix: "   ├─ ", name: "rejected.md", note: "rejected" },

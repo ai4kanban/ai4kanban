@@ -34,7 +34,7 @@ import { findGuide } from '../guide'
 import { findSpecAgent } from '../agents'
 import { parseStamp } from '../cadence'
 import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
-import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PRODUCT, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
+import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PROJECT_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { workflowRefusal } from './start'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
@@ -517,7 +517,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // no card at all.
   'review-memory': ['board', 'review-memory'],
   'review-dismissals': ['review-dismissals'],
-  'describe-product': ['describe-product'],
+  'describe-project': ['describe-project'],
   // A reflection gets its own flow and `evaluate-task`, the bar an idea is held to before
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
   // format and the memory set are a page about work it may not do.
@@ -793,7 +793,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         'rewrite the files above in place — that is the whole job',
         'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
-        'change nothing else — not a card, not the product description, not the code',
+        'change nothing else — not a card, not the project description, not the code',
       )
       break
     }
@@ -822,7 +822,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'write the notes into the memory files named above — that is the whole job',
         'rewrite or delete a note an earlier review wrote that a conversation has since overturned, rather than adding a second one',
         'writing nothing at all is a complete result, and most conversations earn it',
-        'change nothing else — not a card, not the product description, not the code',
+        'change nothing else — not a card, not the project description, not the code',
       )
       if (chats.length) {
         close.push(
@@ -855,10 +855,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    // The product description (#1268): the file is the whole job, and the one thing it writes.
-    case 'describe-product': {
-      facts.push(...field('product', rel(PRODUCT)))
-      close.push(`rewrite ${rel(PRODUCT)} and nothing else`, 'raise nothing for anyone: there is no card to question')
+    // The project description (#1268): the file is the whole job, and the one thing it writes.
+    case 'describe-project': {
+      facts.push(...field('project', rel(PROJECT_MD)))
+      close.push(`rewrite ${rel(PROJECT_MD)} and nothing else`, 'raise nothing for anyone: there is no card to question')
       break
     }
     // Reflecting on a card that has just completed (#534). The facts are what it was asked

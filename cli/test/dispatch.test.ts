@@ -26,9 +26,9 @@ beforeEach(() => {
   fs.mkdirSync(groupTrack, { recursive: true })
   fs.mkdirSync(track, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '20\n')
-  // A described product, so the product writer (#1268) is not due alongside.
+  // A described project, so the project writer (#1268) is not due alongside.
   fs.mkdirSync(path.join(kanban, 'memory'), { recursive: true })
-  fs.writeFileSync(path.join(kanban, 'memory', 'product.md'), '# Product\n\n## What it is\n')
+  fs.writeFileSync(path.join(kanban, 'memory', 'project.md'), '# Project\n\n## What it is\n')
   setBoardRoot(root)
 })
 

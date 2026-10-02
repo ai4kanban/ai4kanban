@@ -98,9 +98,9 @@ export type AgentAction =
    *  reviewer's one flow. It names no card: the flow lists the new reasons and the restored
    *  items, and it writes only the planner's `dismissed.md`. */
   | 'review-dismissals'
-  /** Rewrite `memory/product.md`, what the product is today (#1268) — the product writer's
+  /** Rewrite `memory/project.md`, what the project is today (#1268) — the project writer's
    *  one flow. It names no card and writes only that file. */
-  | 'describe-product'
+  | 'describe-project'
   /** Reflect on a card the board has just completed (#534) — the proposer's one flow. It
    *  names the completed card, which is no longer on the board, so it reads it at its
    *  `.archive/` path; what it writes is inbox items for the work that should follow, and

@@ -32,7 +32,7 @@ const en: RailCopy = {
     empty: "Nothing remembered yet.",
     files: {
       readme: "What shipped",
-      product: "The product",
+      project: "The project",
       decisions: "Settled decisions",
       redesign: "Design mistakes",
       rejected: "Rejected ideas",

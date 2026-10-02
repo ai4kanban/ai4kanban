@@ -105,12 +105,12 @@ const DISMISSAL_REVIEWER: AgentRole = {
   memory: [PLANNER_DISMISSED],
 }
 
-// The role that keeps `memory/product.md` — what the product is today (#1268), on its
+// The role that keeps `memory/project.md` — what the project is today (#1268), on its
 // cadence (./settings.ts). It writes that file and nothing else.
-const PRODUCT_WRITER: AgentRole = {
-  name: 'product-writer',
-  gloss: 'describes what the product is today, for planning and triage to follow',
-  memory: ['memory/product.md'],
+const PROJECT_WRITER: AgentRole = {
+  name: 'project-writer',
+  gloss: 'describes what the project is today, for planning and triage to follow',
+  memory: ['memory/project.md'],
 }
 
 // The role that looks back at finished work (#534), one run per completion. What it
@@ -173,7 +173,7 @@ const BOARD_ROLES: AgentRole[] = [
   MEMORY_PRUNER,
   MEMORY_REVIEWER,
   DISMISSAL_REVIEWER,
-  PRODUCT_WRITER,
+  PROJECT_WRITER,
   FEEDBACK,
   PROPOSER,
   TRIAGER,

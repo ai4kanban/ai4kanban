@@ -9,7 +9,7 @@ earlier in the same flow.
    existing module now contains independently developed parts. Never ask the user to categorize the task.
 2. **State the need.** Identify the observable result and the current behavior or constraint
    it changes. If either is unclear, the idea is not ready to become a card.
-3. **Check direction and evidence.** Read `docs/kanban/memory/product.md`, the resolved
+3. **Check direction and evidence.** Read `docs/kanban/memory/project.md`, the resolved
    modules' memory, and relevant sources. Assess the idea independently if none provides
    guidance. If value or feasibility remains unclear, or evidence rules the idea out, stop
    and explain before creating a card.

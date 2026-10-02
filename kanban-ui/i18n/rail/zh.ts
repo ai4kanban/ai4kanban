@@ -30,7 +30,7 @@ const zh: RailCopy = {
     empty: "还没有记下任何内容。",
     files: {
       readme: "已交付的能力",
-      product: "产品描述",
+      project: "项目",
       decisions: "已定下的决策",
       redesign: "设计上的教训",
       rejected: "被否决的想法",

@@ -49,7 +49,22 @@ export function configBlock(value: unknown): Record<string, unknown> {
 export function readConfigRaw(): Record<string, unknown> {
   adoptLegacyConfig()
   if (!fs.existsSync(UI_CONFIG)) return {}
-  return JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8'))
+  return adoptProjectNames(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')))
+}
+
+// `product-writer` became `project-writer` (#1391): its cadence and its runtime pick read
+// under the new names, and the next save writes them there. Never over one already saved.
+function adoptProjectNames(cfg: Record<string, unknown>): Record<string, unknown> {
+  if (!cfg || typeof cfg !== 'object') return cfg
+  if (cfg.productDescription !== undefined) {
+    cfg.projectDescription ??= cfg.productDescription
+    delete cfg.productDescription
+  }
+  for (const key of ['agentRuntime', 'agentHarness']) {
+    const { 'product-writer': was, ...rest } = configBlock(cfg[key])
+    if (was !== undefined) cfg[key] = { 'project-writer': was, ...rest }
+  }
+  return cfg
 }
 
 /** Move the committed `docs/kanban/ui.config.json` into this person's state. Its content is
@@ -452,7 +467,7 @@ export function setSecret(name: string, value: string): Saved {
 //
 //   "memoryPrune":        { "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
 //   "dismissalReview":    { "lastRun": "2026-09-19 08:00" }
-//   "productDescription": { "lastRun": "2026-09-30 08:00" }
+//   "projectDescription": { "lastRun": "2026-09-30 08:00" }
 //
 // All of them always run (#1208): only the cadence is the user's, and only one other than the
 // default is written down. An `enabled` key an earlier release wrote is ignored, and dropped
@@ -463,13 +478,13 @@ export function setSecret(name: string, value: string): Saved {
 // on its first look, so a board's first prune lands a whole cadence after upgrade
 // rather than the minute it does.
 
-export type ScheduleKey = 'memoryPrune' | 'dismissalReview' | 'productDescription'
+export type ScheduleKey = 'memoryPrune' | 'dismissalReview' | 'projectDescription'
 
 /** The cadence a board that never set one runs each on. */
 export const DEFAULT_CADENCE: Record<ScheduleKey, string> = {
   memoryPrune: '7d',
   dismissalReview: '1d',
-  productDescription: '1d',
+  projectDescription: '1d',
 }
 
 const stringIn = (block: Record<string, unknown>, key: string): string =>
@@ -613,9 +628,9 @@ export const setDismissalReview = (next: { enabled?: boolean; cadence: string })
 /** Move the window to a review that passed, stamped with when that review STARTED. */
 export const stampDismissalReview = (when: Date): void => void stampSchedule('dismissalReview', when)
 
-// `productDescription`'s `lastRun` is its window too: commits since the last pass began are
+// `projectDescription`'s `lastRun` is its window too: commits since the last pass began are
 // what makes the next one due (#1268).
-export const productDescription = (): CadenceSchedule => readSchedule('productDescription')
-export const setProductDescription = (next: { enabled?: boolean; cadence: string }): Saved =>
-  saveSchedule('productDescription', next)
-export const stampProductDescription = (when: Date): void => void stampSchedule('productDescription', when)
+export const projectDescription = (): CadenceSchedule => readSchedule('projectDescription')
+export const setProjectDescription = (next: { enabled?: boolean; cadence: string }): Saved =>
+  saveSchedule('projectDescription', next)
+export const stampProjectDescription = (when: Date): void => void stampSchedule('projectDescription', when)

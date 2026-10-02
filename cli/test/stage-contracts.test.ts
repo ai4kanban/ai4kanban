@@ -119,7 +119,7 @@ describe('the classification', () => {
       'prune-memory': 'event',
       'review-memory': 'event',
       'review-dismissals': 'event',
-      'describe-product': 'event',
+      'describe-project': 'event',
     })
     // No event belongs to a stage, so none shows up in one.
     for (const flow of Object.keys(kinds)) assert.equal(stageOfFlow(flow), undefined, flow)
@@ -155,7 +155,7 @@ describe('the lead a contract names', () => {
     'prune-memory': 'memory-pruner',
     'review-memory': 'memory-reviewer',
     'review-dismissals': 'dismissal-reviewer',
-    'describe-product': 'product-writer',
+    'describe-project': 'project-writer',
     feedback: 'feedback',
     reflect: 'proposer',
     triage: 'triage',

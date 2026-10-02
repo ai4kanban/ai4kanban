@@ -1,7 +1,7 @@
 // ---- the board's memory ----------------------------------------------------
 //
 // Memory belongs to whoever reads and writes it (#805). `docs/kanban/memory/` itself holds
-// the board's own RECORD — `readme.md`, what shipped, and `product.md`, what the product is
+// the board's own RECORD — `readme.md`, what shipped, and `project.md`, what the project is
 // today. Neither is anybody's taste, so neither is an agent's. Everything a run LEARNED is
 // an agent's, under `memory/agents/<agent>/`: the planner's `decisions.md`, `rejected.md`
 // and `redesign.md`, and whatever a spec agent's own prompt says to keep. Modules are a
@@ -44,8 +44,8 @@ export const PROPOSER = 'proposer'
 export const PROPOSER_MISSED = 'missed.md'
 export const proposerMissedFile = (): string => rel(agentMemoryFile(PROPOSER, PROPOSER_MISSED))
 
-/** The board's own record — what it did, and what the product is. Not an agent's. */
-export const BOARD_MEMORY_FILES = ['readme.md', 'product.md'] as const
+/** The board's own record — what it did, and what the project is. Not an agent's. */
+export const BOARD_MEMORY_FILES = ['readme.md', 'project.md'] as const
 
 // Each starter is a short header telling the next reader what the file is for; the flows
 // fill in the rest over time. Plain language, to match the skill.
@@ -79,10 +79,10 @@ What the user's dismissal reasons say about which triage items are worth a card,
 by module. One line each, ending in the source ids it rests on. Written by the dismissal
 review; a line with no source id is the user's own.
 `,
-  // Only a header: `describe-product` writes the body, and runs while there is none (#1268).
-  'product.md': `# Product
+  // Only a header: `describe-project` writes the body, and runs while there is none (#1268).
+  'project.md': `# Project
 
-What the product is today, from its users' side. Rewritten whole by \`akb describe-product\`;
+What the project is today, from its users' side. Rewritten whole by \`akb describe-project\`;
 edits here do not last.
 `,
 }
@@ -349,8 +349,34 @@ function legacyModuleDirs(): string[] {
   }
 }
 
+// `product.md` became `project.md` (#1391). A description already under the new name is the
+// one kept, and an old file still holding only its starter carries nothing.
+
+const PRODUCT_STARTER = STARTERS['project.md']!.replaceAll('Project', 'Product').replaceAll('project', 'product')
+
+/** Rename `memory/product.md` to `project.md`. Answers what it did, for `init` to report;
+ *  null when there was no old file. */
+export function renameProductFile(): string | null {
+  const from = path.join(MEMORY, 'product.md')
+  const to = path.join(MEMORY, 'project.md')
+  if (!fs.existsSync(from)) return null
+  try {
+    const was = fs.readFileSync(from, 'utf8').trim()
+    const written = fs.existsSync(to) && !onlyStarter('project.md', fs.readFileSync(to, 'utf8'))
+    if (written || !was || was === PRODUCT_STARTER.trim()) {
+      fs.rmSync(from, { force: true })
+      return `removed ${rel(from)} — the file is ${rel(to)} now`
+    }
+    fs.renameSync(from, to)
+    return `renamed ${rel(from)} to ${rel(to)}`
+  } catch {
+    return null
+  }
+}
+
 /** What it moved, board-relative — empty on a board that is already there. */
 export function migrateMemory(): string[] {
+  renameProductFile()
   const roots = PLANNER_MEMORY_FILES.filter((name) => fs.existsSync(path.join(MEMORY, name)))
   const modules = legacyModuleDirs()
   if (!roots.length && !modules.length) return []
@@ -389,7 +415,7 @@ function dropIfEmpty(dir: string): void {
 
 // ---- retiring the goal (#1268) ----------------------------------------------
 //
-// `memory/goal.md` was the user's own direction. `product.md` replaced it, and a flow no
+// `memory/goal.md` was the user's own direction. `project.md` replaced it, and a flow no
 // longer reads it, so what the user wrote there moves to the top of the planner's
 // `decisions.md` — above every topic, where cross-module calls already sit — and the file
 // goes. A goal holding nothing but its `reviewed:` field or text an older version seeded is

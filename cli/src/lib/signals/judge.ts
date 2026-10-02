@@ -17,7 +17,7 @@ import { forgetPro } from '../cloud/pro'
 import { accessToken } from '../cloud/session'
 import { BoardError, quietlyAsync } from '../io'
 import { PLANNER, agentMemoryDir, agentMemoryFile, onlyStarter } from '../memory'
-import { MODULES_MD, PRODUCT, REPO_ROOT, TODO, die, rel } from '../paths'
+import { MODULES_MD, PROJECT_MD, REPO_ROOT, TODO, die, rel } from '../paths'
 import { LEVELS } from '../validate'
 import { unquote } from '../yaml'
 import type { Signal, TriageReason, TriageVerdict } from '../view/types'
@@ -173,8 +173,8 @@ export interface Judgement {
 /** The files Jev is given alongside the item, fixed by the board. Cut to fit; the item itself
  *  never is. Open cards reach Jev as the duplicate question's options, by id and title. */
 export function judgementState(item: Signal, questions: Record<string, unknown>): Judgement {
-  const product = read(PRODUCT)
-  const readme = onlyStarter('product.md', product) ? read(path.join(REPO_ROOT, 'README.md')) : ''
+  const product = read(PROJECT_MD)
+  const readme = onlyStarter('project.md', product) ? read(path.join(REPO_ROOT, 'README.md')) : ''
   const plannerDir = agentMemoryDir(PLANNER)
   const rejected = [agentMemoryFile(PLANNER, 'rejected.md')]
   try {
