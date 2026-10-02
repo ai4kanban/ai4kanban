@@ -317,7 +317,7 @@ running badge and a read-only live log.
 | **Build again** | While a delivery has stopped, e.g. on work it could not commit or files changed outside the board. |
 | **Continue delivery** | When a delivery's next session never started. |
 | **Archive** | Once every todo is checked (a group root: every subtask resolved). Never on a recurring card. |
-| **Reject** | Always. The card moves to the archive, marked **Rejected**. Leave the reason empty to discard it: the same, without writing memory. |
+| **Remove** | Always. The card moves to the archive, marked **Rejected**. Leave the reason empty to discard it: the same, without writing memory. |
 
 A card has one session at a time. A session outside a delivery never commits: read `git diff` and
 commit yourself.
@@ -332,7 +332,7 @@ several sessions under one delivery id, shown on the card and in `akb run list`.
   [Where a delivery's code goes](#where-a-deliverys-code-goes).
 - **It builds the card as approved**: the requirements are copied when it starts, so later edits
   to the card don't change it.
-- **The card is held**: Edit, Refine, Resolve, Archive and Reject are off, except **Resolve**
+- **The card is held**: Edit, Refine, Resolve, Archive and Remove are off, except **Resolve**
   while the delivery waits on you. Priority, ROI, release, modules and todos stay editable.
 - **Controls**: while a run is live, **Stop run** ends that run only. Once nothing runs,
   **Resume** continues the delivery and **Discard** ends it, removing its worktree and branch
@@ -503,7 +503,7 @@ A group task is a folder with a `root.md` and subtasks. The root is a tracking c
 
 - **No Implement**: the group is finished by finishing its subtasks.
 - **Archive** appears once every subtask is done or rejected, and closes the whole group. A root
-  with no subtasks is closed with **Reject**.
+  with no subtasks is closed with **Remove**.
 - **Release** moves the whole group.
 
 The root records each outcome: an archived subtask's line is ticked, a rejected one struck
