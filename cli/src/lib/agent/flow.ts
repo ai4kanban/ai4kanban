@@ -880,15 +880,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...field('reason', req.reason ?? '(none given)'))
       // A discard writes no memory at all (#601), so it is handed no memory file to write
       // into and nothing is judged — the one difference between the two is right here.
+      // The reason travels in the command, already quoted: retyped by hand, a multi-line one drifts.
+      const reason = req.reason?.trim() ? ` --reason ${shellWord(req.reason.trim())}` : ''
       if (req.discard === true) {
         close.push(
-          `${raw} reject ${req.id} --discard — this files the card in the archive as rejected and writes no memory`,
+          `${raw} reject ${req.id} --discard${reason} — this files the card in the archive as rejected and writes no memory`,
         )
       } else {
         facts.push(...field('memory', memoryLines(card!.meta.modules, 'rejected.md')))
         close.push(
           'write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result',
-          `${raw} reject ${req.id} — this files the card in the archive as rejected`,
+          `${raw} reject ${req.id}${reason} — this files the card in the archive as rejected`,
         )
       }
       break
@@ -896,6 +898,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   }
 
   return { lead: leadLine(req, program), facts, guides: guidesFor(req), close, next }
+}
+
+// One word a POSIX shell hands back unchanged, on one line: `'…'`, or `$'…'` when it holds a
+// line break or another control character.
+function shellWord(text: string): string {
+  if (!/[\x00-\x1f\x7f]/.test(text)) return `'${text.replace(/'/g, `'\\''`)}'`
+  const named: Record<string, string> = { '\n': '\\n', '\r': '\\r', '\t': '\\t' }
+  const escaped = text
+    .replace(/[\\']/g, '\\$&')
+    .replace(/[\x00-\x1f\x7f]/g, (c) => named[c] ?? `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
+  return `$'${escaped}'`
 }
 
 // What the flow opens with: the action, what it is on, and — plainly — that nothing started.

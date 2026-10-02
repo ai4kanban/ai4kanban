@@ -53,6 +53,8 @@ export interface Meta {
   /** The card was rejected or discarded rather than finished — `reject` writes it beside
    *  `archived`. Such a card is in the archive but was never shipped. */
   rejected: boolean
+  /** Why it was rejected, as typed — `reject` writes it when a reason was given. */
+  rejected_reason: string
   /** The action waiting to run once nothing is in this card's way, or null on a card nobody
    *  scheduled (./schedule.ts). */
   schedule: CardSchedule | null

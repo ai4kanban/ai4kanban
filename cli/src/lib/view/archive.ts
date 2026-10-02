@@ -67,7 +67,8 @@ export function readArchivedCard(id: number): ArchivedCardFile | null {
     const found = readFile(file)
     if (!found || found.row.id !== id) continue
     const sources = cardSources(found.meta, found.body)
-    return { ...found.row, body: found.body, ...(sources.length ? { sources } : {}) }
+    const reason = found.meta.rejected_reason
+    return { ...found.row, body: found.body, ...(sources.length ? { sources } : {}), ...(reason ? { rejectedReason: reason } : {}) }
   }
   return null
 }
