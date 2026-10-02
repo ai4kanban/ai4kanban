@@ -58,7 +58,7 @@ import { agentForRun } from './runner'
 import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProductDescription } from './settings'
-import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
+import { creationOf, logPathOf, noteRefineTried, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing, holdChat, readChat, repointChatRuns, type ChatSession } from './chat'
@@ -925,6 +925,7 @@ export function openRun(
     const locked = lockedBy(store.runs, req.action, cardId, req.release, false, req.discard)
     if (locked) return locked
     store.runs.push(record)
+    if (req.action === 'clarify' && cardId !== null) noteRefineTried(store, cardId)
     // A delivery's own runs belong to a delivery — the one already in flight on this
     // card, or, for a build, a new one opened here. Same transaction as the run it
     // belongs to, so a delivery can never be left holding a card with nothing working on

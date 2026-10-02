@@ -145,6 +145,8 @@ const en: RunsCopy = {
         `This run's board changes didn't reach the workspace (${why}). They're only on this machine, and the next sync replaces them — copy out anything worth keeping.`,
       qaUnfinished: (card) =>
         `QA left questions on ${card} without saying whose call they are, so it didn't finish. ${card} stays in To do — refine it again, or mark it ready yourself.`,
+      refineStalled: (card) =>
+        `${card} is still in To do after planning, and the board won't plan it again on its own — refine it again, or mark it ready yourself.`,
       stageShort: (stage, card, agents) =>
         `The ${stage} stage of ${card} isn't finished: ${agents} must write here and wrote nothing. Run them yourself, drop the requirement from the stage, or write that part by hand.`,
       specRefused: (reasons) => `Spec agents not started: ${reasons}`,

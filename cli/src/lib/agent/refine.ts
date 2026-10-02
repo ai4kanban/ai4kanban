@@ -150,7 +150,15 @@ export function refinementRequest(req: CommandRequest): AgentRequest | { error: 
   const card = req.id === undefined ? null : currentCard(req.id)
   if (!card) return { error: `task #${req.id} does not exist` }
   const step = refinementStep(card)
-  if (step === 'done') return { error: `a refine would not move #${card.id}` }
+  if (step === 'done') {
+    // Only the user's answers are in the way (#1366).
+    const waiting = openOf(card.questions).length > 0 && canRefine({ ...card, questions: [] })
+    return {
+      error: waiting
+        ? `#${card.id} is waiting for the user to answer its open questions, so there is nothing to refine yet — the board refines it on its own once they are answered.`
+        : `a refine would not move #${card.id}`,
+    }
+  }
   return { action: step, id: card.id, title: card.title, notes: req.notes, refineRound: 1 }
 }
 
@@ -232,11 +240,9 @@ function stalledLine(cardId: number | null, next: AgentRequest | 'incomplete' | 
   if (next !== null && next !== 'incomplete') return null
   const card = cardId === null ? null : currentCard(cardId)
   if (!card || card.schedule || refinementStep(card) === 'done') return null
-  const why =
-    next === 'incomplete'
-      ? `QA left untagged questions on #${card.id}, so it did not finish. `
-      : ''
-  return `${why}#${card.id} is still at todo and nothing else will pick it up — refine it again, or mark it ready yourself.`
+  return next === 'incomplete'
+    ? `QA left untagged questions on #${card.id}, so it did not finish. #${card.id} is still at todo and nothing else will pick it up — refine it again, or mark it ready yourself.`
+    : `#${card.id} is still in To do after planning, and the board won't plan it again on its own — refine it again, or mark it ready yourself.`
 }
 
 export interface RefinementFollowUp {
@@ -307,7 +313,7 @@ export function refinementRunsAfter(
     ...(!stalled ? []
       : short ? [{ kind: 'stageShort' as const, args: { stage: short.stage, card: String(run.cardId), agents: short.missing.join(', ') } }]
       : next === 'incomplete' ? [{ kind: 'qaUnfinished' as const, args: { card: String(run.cardId) } }]
-      : [{ text: stalled }]),
+      : [{ kind: 'refineStalled' as const, args: { card: String(run.cardId) } }]),
   ]
   return {
     runs: [...starts, ...(carryOn ? [carryOn] : []), ...(end && 'ask' in end ? [end.ask] : [])],

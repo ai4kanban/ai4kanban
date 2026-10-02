@@ -66,6 +66,7 @@ export type RunsCopy = {
       brokenMore: (n: string) => string;
       unsent: (why: string) => string;
       qaUnfinished: (card: string) => string;
+      refineStalled: (card: string) => string;
       stageShort: (stage: string, card: string, agents: string) => string;
       specRefused: (reasons: string) => string;
     };
