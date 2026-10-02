@@ -18,8 +18,9 @@ export interface AiCall {
 }
 
 export const GENERATION_URL = 'https://openrouter.ai/api/v1/generation'
-/** A generation's stats land shortly after its answer, so the lookup waits between tries. */
-export const COST_LOOKUP = { tries: 3, waitMs: 2000 }
+/** A generation's stats land 8–21s after its answer (#1387), so the lookup waits between
+ *  tries. All of them fit inside the 30s `waitUntil` allows. */
+export const COST_LOOKUP = { tries: 6, waitMs: 4000 }
 
 const numberOrNull = (n: unknown): number | null => (typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : null)
 

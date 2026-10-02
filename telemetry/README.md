@@ -116,9 +116,9 @@ the day's later numbers arrive. Use `npx wrangler login`, or provide credentials
 **The page also reads Cloud's AI cost.** Its last section, AI cost, shows what Cloud's hosted AI
 calls cost per capability and per user, read once at startup from Cloud's database
 (`cloud.ai_calls` beside `cloud.credit_spends`). That needs `SUPABASE_PROJECT_REF` and
-`SUPABASE_ACCESS_TOKEN`, in the environment or in `telemetry/.env`; without them that section
-says so and the rest of the page is unaffected. It lists users by email, which is why the page
-stays on this machine.
+`SUPABASE_ACCESS_TOKEN`, in the environment or in `telemetry/.env`, and otherwise taken from
+`cloud/.env`; without them that section says so and the rest of the page is unaffected. It lists
+users by email, which is why the page stays on this machine.
 
 **A deploy migrates first.** `deploy` runs `migrate` and stops if it fails, so a Worker is
 never live against a database without the table it reads — `0003_installs.sql` went unapplied
