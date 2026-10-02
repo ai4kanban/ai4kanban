@@ -42,7 +42,7 @@ Our early adopters report 3–6× higher development productivity.
 
 7. You bring the ideas, make the choices, and review a short brief. AI does the rest.
 
-![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v8.png)
+![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
 
 ## Your team’s shared brain
 
