@@ -100,7 +100,7 @@ const es: VsHermesCopy = {
       parallelRuns: {
         dimension: "Ejecuciones paralelas y programadas",
         kanban:
-          "Lo lleva tu entorno: Claude Code lanza subagentes en paralelo cuando arrancas algo; los trabajos programados viven en una carpeta recurring/.",
+          "Lo lleva tu entorno: Claude Code lanza subagentes en paralelo cuando arrancas algo; los trabajos programados los hacen agentes que el tablero lanza con la frecuencia que tú fijes.",
         hermes:
           "Lo lleva el runtime: el despachador coge las tareas listas por su cuenta y lanza un proceso por tarea.",
       },

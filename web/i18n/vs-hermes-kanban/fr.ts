@@ -100,7 +100,7 @@ const fr: VsHermesCopy = {
       parallelRuns: {
         dimension: "Exécutions parallèles et planifiées",
         kanban:
-          "C'est votre environnement qui mène : Claude Code lance des sous-agents en parallèle quand vous démarrez quelque chose ; les travaux planifiés vivent dans un dossier recurring/.",
+          "C'est votre environnement qui mène : Claude Code lance des sous-agents en parallèle quand vous démarrez quelque chose ; les travaux planifiés sont confiés à des agents que le tableau lance à la fréquence que vous fixez.",
         hermes:
           "C'est le runtime qui mène : le répartiteur prend de lui-même les tâches prêtes et lance un processus par tâche.",
       },

@@ -21,7 +21,6 @@ const fr: SharedCopy = {
     },
     github: "GitHub",
     docs: "Documentation",
-    recipes: "Recipes",
     blog: "Blog",
     cloud: "Cloud",
     training: "Formation",

@@ -43,7 +43,7 @@ export const LOCALE_TAGS: Record<Locale, string> = {
  * the comparisons. `/training` is the exception, and the reason this is a map
  * rather than the flat list it used to be — it is written and sold in English
  * and Chinese, and a Spanish reader must reach neither the page nor a link to
- * it. Everything unlisted (the recipes, the docs, the blog) is English-only.
+ * it. Everything unlisted (the docs, the blog) is English-only.
  */
 export const PATH_LOCALES: Record<string, readonly Locale[]> = {
   "": LOCALES,
@@ -112,7 +112,7 @@ export function localeHref(locale: Locale, href: string): string {
   const path = hash === -1 ? href : href.slice(0, hash);
   const fragment = hash === -1 ? "" : href.slice(hash);
   const base = path === "/" ? "" : path;
-  // Only the routes listed above exist per language; anything else (recipes,
+  // Only the routes listed above exist per language; anything else (the docs,
   // the Markdown mirrors) stays on its English URL. A route that exists in some
   // languages and not this one stays English too — the caller that must not
   // show it at all asks `publishedIn` first.

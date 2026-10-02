@@ -2,7 +2,6 @@ import type { MetadataRoute } from "next";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { recipes } from "@/components/recipes/recipes-content";
 import { agentPath, getAgentPages } from "@/lib/agents";
 import { getAllPosts, postPath } from "@/lib/blog";
 import { DOCS_PATH, docPath, getAllDocs } from "@/lib/docs";
@@ -13,12 +12,7 @@ import { PATH_LOCALES, localePath } from "@/lib/i18n";
 // Required for `output: export` — emit sitemap.xml at build time.
 export const dynamic = "force-static";
 
-// Recipe routes: the index plus one page per card in the catalog.
-function recipeRoutes(): string[] {
-  return ["/recipes", ...recipes.map((r) => `/recipes/${r.slug}`)];
-}
-
-// The Markdown mirrors (`/index.md`, `/vs-x.md`, one card per recipe) are not
+// The Markdown mirrors (`/index.md`, `/vs-x.md`) are not
 // listed. A sitemap is for indexable pages, and each mirror is a duplicate of a
 // page already here; `llms.txt` is where crawlers find them.
 
@@ -58,8 +52,8 @@ function gitLastModified(...paths: string[]): Date | undefined {
 // The files that own a route's rendered content. Route slugs already match
 // their component and copy directories (`""` → `components/home` and
 // `i18n/home`, `/vs-x` → `components/vs-x` and `i18n/vs-x`), so this is derived
-// rather than a hand-kept table that drifts as pages are added. Recipes have no
-// copy folder — a path git doesn't know just drops out of the log.
+// rather than a hand-kept table that drifts as pages are added. A path git
+// doesn't know just drops out of the log.
 function routeSources(route: string, locale: string): string[] {
   const slug = route === "" ? "home" : route.slice(1).split("/")[0];
   const page = route === "" ? "app/(en)/page.tsx" : `app/(en)${route}/page.tsx`;
@@ -105,15 +99,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entries.push({
       url: `${BASE_URL}${agentPath(page)}`,
       lastModified: gitLastModified(`content/agents/${page.slug}.mdx`),
-    });
-  }
-
-  // The recipes, which are English-only. A recipe page comes out of the catalog
-  // and its art.
-  for (const route of recipeRoutes()) {
-    entries.push({
-      url: `${BASE_URL}${route}`,
-      lastModified: gitLastModified(...routeSources(route, "en")),
     });
   }
 

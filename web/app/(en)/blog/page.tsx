@@ -28,8 +28,7 @@ export default function BlogIndexPage() {
   const posts = getAllPosts();
   const [featured, ...rest] = posts;
 
-  // The page is a list, so the entity it is about is the list itself — the same
-  // shape the recipes index takes.
+  // The page is a list, so the entity it is about is the list itself.
   const list = itemList(
     PATH,
     posts.map((p) => ({
@@ -89,10 +88,6 @@ export default function BlogIndexPage() {
             <div className={`${panelInset} p-8 text-center`}>
               <p className="text-lg font-semibold text-ink">
                 The first post is being written.
-              </p>
-              <p className="mt-2 text-sm text-muted">
-                Until it lands, the recipes are where the habits of a board that
-                keeps itself are written down.
               </p>
             </div>
           </section>

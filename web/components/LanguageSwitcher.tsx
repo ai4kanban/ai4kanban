@@ -15,7 +15,7 @@ import {
 // language. Each language is labelled in its own name, so a reader recognises it
 // without knowing English.
 //
-// Pages that only exist in English (the recipes) get no switcher: there'd be
+// Pages that only exist in English (the blog) get no switcher: there'd be
 // nowhere for the links to go. A page published in some languages and not all
 // lists the ones it has — `/training` shows English and Chinese and no more.
 export function LanguageSwitcher({

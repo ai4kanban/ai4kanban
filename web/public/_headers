@@ -3,7 +3,7 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
 
-# Serve the Markdown page mirrors, recipe cards, and the install prompt as UTF-8
+# Serve the Markdown page mirrors and the install prompt as UTF-8
 # text so AI crawlers (and browsers) render them inline instead of prompting a
 # download.
 /*.md
@@ -31,12 +31,6 @@
 
 /vs-multica.md
   Link: <https://ai4kanban.dev/vs-multica>; rel="canonical"
-
-/recipes/prune-the-memory.md
-  Link: <https://ai4kanban.dev/recipes/daily-kanban-maintenance>; rel="canonical"
-
-/recipes/competitor-analysis-loop.md
-  Link: <https://ai4kanban.dev/recipes/competitor-analysis-loop>; rel="canonical"
 
 /*.txt
   Content-Type: text/plain; charset=utf-8
