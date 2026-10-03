@@ -1,20 +1,18 @@
 // The reason a card was rejected with, kept on the archived card (#1379).
 //
-// Three ways it arrives — `--reason`, the reject run's own record, and the quoted word a
-// printed flow's closing command carries — and one way it is read: off the archived card.
+// It arrives as `--reason` and is read off the archived card, beside who rejected it and when
+// (#1497) — what the rejection review reads.
 
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { RUN_ENV } from '../src/lib/agent/env.ts'
-import { printFlow } from '../src/lib/agent/flow.ts'
-import { logPathOf, withStore } from '../src/lib/agent/store.ts'
+import { rejectCard } from '../src/lib/agent/reject.ts'
+import { logPathOf, readRuns, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
-import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { validateSpec } from '../src/lib/spec-contract.ts'
 import { readArchive, readArchivedCard } from '../src/lib/view/archive.ts'
@@ -55,23 +53,27 @@ function group(id: number, subIds: number[]): void {
   for (const sub of subIds) fs.writeFileSync(path.join(dir, `${sub}-a-part.md`), cardText(sub, 'One piece.'))
 }
 
-/** A live reject run on `cardId`, and this process inside it. */
-function insideRejectRun(cardId: number, input: string | undefined): void {
+/** A live run on `cardId`. */
+function liveRun(sessionId: string, cardId: number | null, action: string): void {
   const run = {
-    sessionId: 'reject-run',
+    sessionId,
     cardId,
-    action: 'reject',
+    action,
     status: 'running',
     startedAt: Date.now(),
     pid: process.pid,
     harness: 'test',
-    logPath: logPathOf('reject-run'),
-    ...(input ? { input } : {}),
+    logPath: logPathOf(sessionId),
   } as RunRecord
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   fs.writeFileSync(run.logPath, '')
   withStore((store) => store.runs.push(run))
-  process.env[RUN_ENV] = run.sessionId
+}
+
+/** This process inside a live run on no card. */
+function insideRun(sessionId: string): void {
+  liveRun(sessionId, null, 'create')
+  process.env[RUN_ENV] = sessionId
 }
 
 describe('raw reject --reason', () => {
@@ -118,65 +120,58 @@ describe('raw reject --reason', () => {
   })
 })
 
-describe('raw reject inside a reject run', () => {
-  it('takes the reason the run was started with', async () => {
+describe('who rejected it, and when (#1497)', () => {
+  const metaOf = (id: number) => fs.readFileSync(path.join(archive, `${id}-an-idea.md`), 'utf8')
+
+  it('stamps a rejection by the user', async () => {
     card(80)
-    insideRejectRun(80, WHY)
-    await move(root, ['reject', '80'])
-    assert.equal(readArchivedCard(80)?.rejectedReason, WHY)
+    const before = Date.now()
+    await move(root, ['reject', '80', '--reason', WHY])
+    const text = metaOf(80)
+    assert.match(text, /^rejected_by: user$/m)
+    const at = Date.parse(text.match(/^rejected_at: (.+)$/m)![1]!.replace(/^['"]|['"]$/g, ''))
+    assert.ok(at >= before - 1000 && at <= Date.now())
+    const file = path.join(archive, '80-an-idea.md')
+    assert.deepEqual(validateSpec(file, text).filter((e) => e.rule.startsWith('rejected')), [])
+    assert.equal(validateSpec(file, text.replace('rejected: true\n', '')).filter((e) => e.rule.startsWith('rejected')).length, 3)
   })
 
-  it('lets --reason win over the run', async () => {
+  it('stamps a rejection made inside a run as the agent', async () => {
     card(80)
-    insideRejectRun(80, WHY)
-    await move(root, ['reject', '80', '--reason', 'said here'])
-    assert.equal(readArchivedCard(80)?.rejectedReason, 'said here')
+    insideRun('chat-run')
+    await move(root, ['reject', '80', '--reason', WHY])
+    assert.match(metaOf(80), /^rejected_by: agent$/m)
   })
 
-  it("does not borrow another card's reason", async () => {
+  it('stamps neither on a discard', async () => {
     card(80)
-    card(81)
-    insideRejectRun(80, WHY)
-    await move(root, ['reject', '81'])
-    assert.equal('rejectedReason' in readArchivedCard(81)!, false)
+    await move(root, ['reject', '80', '--discard', '--reason', 'clearing'])
+    assert.doesNotMatch(metaOf(80), /rejected_(at|by)/)
   })
 })
 
-describe('the printed reject flow', () => {
-  function closing(reason: string, discard = false): string {
-    startCollecting()
-    try {
-      const flow = printFlow({ action: 'reject', id: 80, title: 'Card 80', reason, ...(discard ? { discard: true } : {}) })
-      return (flow.close as string[]).find((line) => / raw reject 80/.test(line))!
-    } finally {
-      stopCollecting()
-    }
-  }
-
-  /** The reason as a shell reads it off the printed command. */
-  function typed(line: string): string {
-    assert.doesNotMatch(line, /\n/)
-    const word = line.slice(line.indexOf('--reason ') + '--reason '.length, line.indexOf(' — this files'))
-    return execFileSync('bash', ['-c', `printf '%s' ${word}`], { encoding: 'utf8' })
-  }
-
-  for (const [name, reason] of [
-    ['multi-line, with quotes', WHY],
-    ['one line, with quotes', `it's "done" already: $HOME \`x\` \\n`],
-    ['a backslash across lines', 'C:\\new\\table\nit\'s fine'],
-  ] as const) {
-    it(`carries the reason so it reads back unchanged — ${name}`, async () => {
-      card(80)
-      const reasonRead = typed(closing(reason))
-      assert.equal(reasonRead, reason)
-      await move(root, ['reject', '80', '--reason', reasonRead])
-      assert.equal(readArchivedCard(80)?.rejectedReason, reason)
-    })
-  }
-
-  it('carries it on a discard too, and nothing when there is none', () => {
+describe('rejecting starts no run (#1497)', () => {
+  it('files the card on the spot', async () => {
     card(80)
-    assert.match(closing('just clearing', true), /raw reject 80 --discard --reason 'just clearing' — /)
-    assert.match(closing('', true), /raw reject 80 --discard — /)
+    const res = await rejectCard(80, { reason: WHY })
+    assert.equal(res.ok, true)
+    assert.equal(readArchivedCard(80)?.rejectedReason, WHY)
+    assert.equal(readRuns().length, 0)
+  })
+
+  it('is held by a live run on the card, as a reject run was', async () => {
+    card(80)
+    liveRun('refine-run', 80, 'clarify')
+    const res = await rejectCard(80, { reason: WHY })
+    assert.equal(res.ok, false)
+    assert.ok(fs.existsSync(path.join(todo, '80-an-idea.md')))
+  })
+
+  it('is not held by the run asking', async () => {
+    card(80)
+    liveRun('refine-run', 80, 'clarify')
+    process.env[RUN_ENV] = 'refine-run'
+    const res = await rejectCard(80, { reason: WHY })
+    assert.equal(res.ok, true)
   })
 })

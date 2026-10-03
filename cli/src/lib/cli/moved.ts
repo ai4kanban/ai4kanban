@@ -13,6 +13,7 @@ import { FLOWS, flowPath } from '../agent/flows'
  *  moves again brings its own answer with it. */
 export const MOVED: Record<string, string> = {
   ...Object.fromEntries(FLOWS.filter((flow) => flow.group).map((flow) => [flow.command, flowPath(flow)])),
+  reject: 'card reject',
   runs: 'run list',
   log: 'run log',
   stop: 'run stop',

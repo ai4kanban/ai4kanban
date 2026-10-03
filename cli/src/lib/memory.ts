@@ -37,9 +37,9 @@ export interface MemoryTarget {
 /** The agent every planning memory belongs to. Its flows are the ones that write them. */
 export const PLANNER = 'planner'
 
-/** The planner's files, in the order a roster lists them. `dismissed.md` is written only by
- *  the dismissal review (#929). */
-export const PLANNER_MEMORY_FILES = ['decisions.md', 'rejected.md', 'redesign.md', 'dismissed.md'] as const
+/** The planner's files, in the order a roster lists them. `rejected.md` is written only by
+ *  the rejection review (#929, #1497). */
+export const PLANNER_MEMORY_FILES = ['decisions.md', 'rejected.md', 'redesign.md'] as const
 
 /** The proposer's one file: kinds of follow-up it missed, written only by the memory review. */
 export const PROPOSER = 'proposer'
@@ -74,12 +74,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
 before proposing so you don't re-suggest them.
-`,
-  'dismissed.md': `# Triage preferences
-
-What the user's dismissal reasons say about which triage items are worth a card, grouped
-by topic. One line each, ending in the source ids it rests on. Written by the dismissal
-review; a line with no source id is the user's own.
 `,
   // Only a header: `describe-project` writes the body, and runs while there is none (#1268).
   'project.md': `# Project
@@ -490,11 +484,30 @@ export function migrateMemory(): string[] {
     }
     const known = (moduleNames() ?? []).filter(isModule)
     if (known.length) for (const name of PLANNER_MEMORY_FILES) moved.push(...liftModuleTopics(name, known))
+    moved.push(...mergeDismissed())
   } catch {
     // Part-way is a state the next read carries on from, so a failure is not worth failing
     // the read it happened under.
   }
   return moved
+}
+
+// `dismissed.md` folded into `rejected.md` beside it (#1497): both say what the user does not want.
+function mergeDismissed(): string[] {
+  const root = agentMemoryDir(PLANNER)
+  let dirs: string[]
+  try {
+    dirs = [root, ...fs.readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.join(root, e.name))]
+  } catch {
+    return []
+  }
+  return dirs.flatMap((dir) => {
+    const from = path.join(dir, 'dismissed.md')
+    if (!fs.existsSync(from)) return []
+    const into = path.join(dir, 'rejected.md')
+    scaffoldFile(into, 'rejected.md')
+    return liftMemoryFile(from, into, '') ? [rel(from)] : []
+  })
 }
 
 function dropIfEmpty(dir: string): void {

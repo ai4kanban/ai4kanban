@@ -10,6 +10,7 @@ import { activeDelivery, deliveryAcceptsAnswers, heldByDelivery, namedDelivery }
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
+import { rejectCard } from '../lib/agent/reject'
 import {
   askForRefine,
   discardCost,
@@ -113,6 +114,19 @@ export async function cmdStartRun(
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }
 
+/** `akb card reject` (#1497): the card is filed on the spot, never by a run. A discard needs
+ *  no why (#601); a plain rejection does — it is what the rejection review learns from. */
+export async function cmdReject(id: number, why: string, opts: { discard?: boolean }): Promise<MoveResult> {
+  const reason = why.trim()
+  const discard = opts.discard === true
+  if (!discard && !reason) die('say why the card is being dropped, or pass --discard to just drop it')
+  const res = await rejectCard(id, { reason, discard }, true)
+  if (!res.ok) die(res.error, { kind: 'refused' })
+  const { output, ...fields } = res.data
+  if (output) say(output)
+  return fields
+}
+
 // Handing a card to a refinement from inside a run. Nothing spawns here — a run never
 // starts another — and nothing of this conversation is passed on: the refinement reads the
 // card, not the run that rewrote it.
@@ -153,7 +167,7 @@ function queueRefine(inside: string, req: CommandRequest): MoveResult {
 //
 // The hold is the board's, not one screen's: the card page turns the same five controls off
 // (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
-const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'reject', 'archive'])
+const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'archive'])
 
 function sayIfHeld(req: CommandRequest, program: string): void {
   if (!HELD_BY_DELIVERY.has(req.action) || req.id === undefined) return
@@ -201,8 +215,6 @@ export interface StartOptions {
   workflow?: string
   /** The runtime this one run spawns on (#518), on the two flows that take one. */
   runtime?: string
-  /** reject: drop the card without writing any memory (#601). */
-  discard?: boolean
   /** create: the card this came up on (#1273). */
   fromCard?: string
 }
@@ -269,13 +281,7 @@ function readRequest(
   // Everything else works on one card.
   const id = args[0] as number
   const req: CommandRequest = { action, id, title: titleOf(id) }
-  if (action === 'reject') {
-    req.reason = words(1)
-    // A discard is a backlog clear-out, so it needs no why (#601). A plain reject still does:
-    // the note it may earn is written from it, and so is the receipt's last word on the card.
-    if (opts.discard === true) req.discard = true
-    else if (!req.reason) die('say why the card is being dropped, or pass --discard to just drop it')
-  } else req.notes = words(1)
+  req.notes = words(1)
   // The one run's own runtime (#518) — declared by `implement` alone among these, so
   // nothing else can be given one.
   if (action === 'implement') req.runtime = opts.runtime

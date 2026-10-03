@@ -77,6 +77,8 @@ export { activeDelivery, deliveryPause, heldByDelivery, keptCheckout, listDelive
 // the contract below like every other one (#312) — the card page's buttons and
 // `akb delivery cancel`, `akb delivery resume` and `akb delivery discard` are the same call.
 export { cancelDelivery, discardDelivery, resumeDelivery } from './lib/view/api'
+// Rejecting a card starts no run (#1497).
+export { rejectCard } from './lib/agent/reject'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 export { refinementRequest } from './lib/agent/refine'

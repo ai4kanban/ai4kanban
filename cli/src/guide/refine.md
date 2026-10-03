@@ -9,6 +9,7 @@ Plan one card in this session until it can be built. Change no project code.
   or outdated, run `akb spec <agent> <id> --print` here, then continue.
 - **File name**: when the card's file name does not say in English what the card is, rename
   it with `akb raw update <id> --slug <short-english-slug>`; leave a group's root as it is.
+- **Stale mentions**: rewrite any sentence that relies on a card no longer on the board.
 - **Think like the one who ships it**: settle facts from the code and authoritative sources,
   then cover what shipping the change takes beyond the happy path — for example existing data
   and settings, release and rollback, failure, access, and ongoing cost.

@@ -373,7 +373,7 @@ export function localBoard(): BoardProvider {
       }),
 
     archiveCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'completed') || {} })),
-    rejectCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'rejected') || {} })),
+    rejectCard: (id, env, how) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'rejected', how) || {} })),
 
     // ---- releases -----------------------------------------------------------
 

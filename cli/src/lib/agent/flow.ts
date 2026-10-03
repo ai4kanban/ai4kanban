@@ -49,7 +49,7 @@ import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { field, metaLine, numbered } from './facts'
 import { reviewBatch, type ChatToReview } from './memory-review'
 import { dismissalReview } from './settings'
-import { dismissalsToReview, dismissedMemoryPath, withdrawnSources } from './dismissal-review'
+import { dismissalsToReview, rejectedMemoryPath, rejectionsToReview, withdrawnSources } from './dismissal-review'
 import { translating } from './language'
 import { buildAsk, frozenRules, leadBlock, reflectedCards, settingsBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
@@ -174,14 +174,11 @@ function memoryLines(modules: string[], name: string): string[] {
   return [...own.map((m) => `${rel(memoryFile(name, m))} — the card's module \`${m}\``), `${file} — what spans modules`]
 }
 
-// What a reflection must not propose again (#1479): the global rejections, plus the triage
-// preferences and the card's own modules' rejections and preferences once they exist.
+// What a reflection must not propose again (#1479): the global rejections, plus the card's own
+// modules' once they exist.
 function rejectedLines(modules: string[]): string[] {
-  const extra = [
-    ...modules.flatMap((m) => [memoryFile('rejected.md', m), memoryFile('dismissed.md', m)]),
-    agentMemoryFile(PLANNER, 'dismissed.md'),
-  ]
-  return [...new Set([agentMemoryFile(PLANNER, 'rejected.md'), ...extra.filter((file) => fs.existsSync(file))])].map(rel)
+  const extra = modules.map((m) => memoryFile('rejected.md', m)).filter((file) => fs.existsSync(file))
+  return [...new Set([agentMemoryFile(PLANNER, 'rejected.md'), ...extra])].map(rel)
 }
 
 // The scheduled agents switched on, whose own work a reflection leaves to them (#1494).
@@ -501,7 +498,6 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // format, the memory set and the tracks are a page of rules about work it cannot do.
   changelog: ['changelog'],
   archive: ['board'],
-  reject: ['board', 'reject'],
   setup: ['board', 'setup', 'add-task'],
   // A prune gets the memory set's own definition and the rules for squeezing it, and NOT
   // the rest of `board`: it rewrites memory files and writes no card at all.
@@ -510,7 +506,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // judges by — plus its own flow, and NOT the rest of `board`: it writes memory files and
   // no card at all.
   'review-memory': ['board', 'review-memory'],
-  'review-dismissals': ['review-dismissals'],
+  'review-dismissals': ['review-rejections'],
   'describe-project': ['describe-project'],
   // A reflection gets its own flow and `evaluate-task`, the bar an idea is held to before
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
@@ -814,12 +810,22 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       break
     }
-    // The dismissal review (#929): the two lists are the job, decided before any run starts.
+    // The rejection review (#929, #1497): the lists are the job, decided before any run starts.
     case 'review-dismissals': {
       const lastRun = dismissalReview().lastRun
-      const dismissals = dismissalsToReview(parseStamp(lastRun)?.getTime() ?? 0)
+      const since = parseStamp(lastRun)?.getTime() ?? 0
+      const rejections = rejectionsToReview(since)
+      const dismissals = dismissalsToReview(since)
       const withdrawn = withdrawnSources()
-      facts.push(...field('window', lastRun ? `since the last review that passed, ${lastRun}` : 'every dismissal — none has been reviewed yet'))
+      facts.push(...field('window', lastRun ? `since the last review that passed, ${lastRun}` : 'every reason — none has been reviewed yet'))
+      facts.push(
+        ...field(
+          'rejections',
+          rejections.length === 0
+            ? '(none)'
+            : rejections.flatMap((r) => [`  #${r.id} — ${r.title || '(untitled)'}`, `    file: ${r.file}`, `    reason: ${r.reason}`]),
+        ),
+      )
       facts.push(
         ...field(
           'dismissals',
@@ -829,10 +835,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ),
       )
       facts.push(...field('withdrawn', withdrawn.length === 0 ? '(none)' : withdrawn.join(', ')))
-      facts.push(...field('memory', [dismissedMemoryPath(), `${rel(agentMemoryDir(PLANNER))}/<module>/dismissed.md — a module's own`]))
+      facts.push(...field('memory', [rejectedMemoryPath(), `${rel(agentMemoryDir(PLANNER))}/<module>/rejected.md — a module's own`]))
       facts.push(...field('modules', rel(MODULES_MD)))
       close.push(
-        `write those dismissed.md files and nothing else — writing nothing is a complete result`,
+        `write those rejected.md files and nothing else — writing nothing is a complete result`,
         'raise nothing for anyone: there is no card to question',
       )
       break
@@ -859,25 +865,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'propose nothing at all when nothing follows: that is a complete result, and most batches are it',
         'change nothing else — no card is created, edited or archived, and no memory file is written',
       )
-      break
-    }
-    case 'reject': {
-      facts.push(...field('reason', req.reason ?? '(none given)'))
-      // A discard writes no memory at all (#601), so it is handed no memory file to write
-      // into and nothing is judged — the one difference between the two is right here.
-      // The reason travels in the command, already quoted: retyped by hand, a multi-line one drifts.
-      const reason = req.reason?.trim() ? ` --reason ${shellWord(req.reason.trim())}` : ''
-      if (req.discard === true) {
-        close.push(
-          `${raw} reject ${req.id} --discard${reason} — this files the card in the archive as rejected and writes no memory`,
-        )
-      } else {
-        facts.push(...field('memory', memoryLines(card!.meta.modules, 'rejected.md')))
-        close.push(
-          'write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result',
-          `${raw} reject ${req.id}${reason} — this files the card in the archive as rejected`,
-        )
-      }
       break
     }
   }

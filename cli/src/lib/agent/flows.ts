@@ -178,15 +178,15 @@ export const FLOWS: Flow[] = [
         'are waiting. Configuration → Board → Review chat memory is where Review now is.',
     ],
   },
-  // The dismissal reviewer's one flow (#929). Typed bare: it acts on the dismissals.
+  // The dismissal reviewer's one flow (#929, #1497). Typed bare: it acts on the reasons.
   {
     command: 'review-dismissals',
     action: 'review-dismissals',
     argument: '',
-    gloss: "learn the user's triage preferences from their dismissal reasons",
+    gloss: 'learn what the user does not want from their rejection and dismissal reasons',
     more: [
       'Reads the reasons written since the last review that passed, and withdraws what rested on ' +
-        'an item since restored. Configuration → Board → Learn from dismissals sets its cadence.',
+        'an item since restored. Configuration → Board → Learn from rejections and dismissals sets its cadence.',
     ],
   },
   // The project writer's one flow (#1268). Typed bare: it acts on the project.
@@ -202,20 +202,6 @@ export const FLOWS: Flow[] = [
     ],
   },
   { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },
-  {
-    command: 'reject',
-    group: 'card',
-    action: 'reject',
-    argument: '<id> [why...]',
-    argumentNote: 'why the card is being dropped — required unless --discard',
-    gloss: 'drop the card',
-    options: [
-      {
-        flags: '--discard',
-        description: 'just drop it: no memory note is written, and the why may be left off',
-      },
-    ],
-  },
 ]
 
 /** The flow's name and the public action it starts — the dispatcher's table. */

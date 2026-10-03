@@ -178,6 +178,7 @@ import {
 import {
   cancelDelivery,
   discardDelivery,
+  rejectCard,
   resumeDelivery,
   getSession,
   listSessions,
@@ -353,7 +354,6 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
-  "reject",
   "archive",
   "edit",
   "create",
@@ -498,6 +498,17 @@ export async function stopSessionAction(sessionId: string): Promise<StartResult>
 export async function cancelDeliveryAction(deliveryId: string): Promise<StartResult> {
   if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
   return cancelDelivery(deliveryId);
+}
+
+// Reject a card (#1497): filed on the spot, so nothing comes back to watch. Rules older than
+// that still reject by a run, whose id is handed back like any start.
+export async function rejectCardAction(id: number, reason: string, discard: boolean): Promise<StartResult> {
+  if (!Number.isInteger(id)) throw new Error("action needs a card id");
+  const how = { reason: typeof reason === "string" ? reason.trim() : "", discard: discard === true };
+  const done = await rejectCard(id, how);
+  if (done) return done;
+  const req: AgentRequest = { action: "reject", id, ...how };
+  return startSession(req, await buildPrompt(req));
 }
 
 // Throw a delivery's checkout away (#303): its worktree, its branch, and everything only

@@ -15,7 +15,7 @@ docs/kanban/
 │   ├── readme.md   what shipped — the board's own record
 │   ├── project.md  what the project is today — written only by `akb describe-project`
 │   └── agents/     one folder per agent that keeps memory, named after it —
-│                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`, `dismissed.md`
+│                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
 │                   does; written from the board UI or `akb raw rule`
 ├── triage/         items waiting to be sorted, one file each — not cards. Only
@@ -121,10 +121,9 @@ move the files into the group's folder:
   direction every judgement serves. Only `akb describe-project` writes it.
 - **`memory/agents/planner/`**: owned by the plan lead — `software-planner`, or the agent a
   workflow names in its place. `decisions.md` holds user-facing answers that guide future planning,
-  `redesign.md` design mistakes to avoid, `rejected.md` turned-down ideas and why,
-  `dismissed.md` triage preferences learned from the user's dismissal reasons — written only by
-  the dismissal review (`akb guide review-dismissals`). Flows that only judge — triage,
-  a reflection — read them and write none.
+  `redesign.md` design mistakes to avoid, and `rejected.md` what the user turned down and
+  why — written only by the rejection and dismissal review (`akb guide review-rejections`).
+  Flows that only judge — triage, a reflection — read them and write none.
 - **`memory/agents/proposer/missed.md`**: kinds of follow-up the proposer failed to propose —
   written only by the memory review (`akb guide review-memory`), read by every reflection.
 - **`memory/agents/<agent>/`**: an agent keeps only the files and split paths its own AGENT.md
@@ -138,8 +137,7 @@ spanning modules, or from a card with none, stays in `memory/agents/planner/`.
 
 Only what changes a future planning choice. Writing nothing is a complete outcome.
 
-- **Honor an opt-out**: told not to record, or a discarding reject, write no memory and
-  finish the requested action.
+- **Honor an opt-out**: told not to record, write no memory and finish the requested action.
 - **A conversation writes none**: a card chat, a discussion, a feedback conversation, and
   any flow started in it write no memory and say nothing about it. Setup is not a
   conversation: its first decisions stand.

@@ -986,6 +986,7 @@ export function ActionDialog({
   dialog,
   onClose,
   onRun,
+  onReject,
   onSchedule,
   onResolveFirst,
   plan = { commitMode: "auto" },
@@ -993,6 +994,8 @@ export function ActionDialog({
   dialog: Exclude<DialogState, null>;
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
+  /** The Reject dialog's confirm (#1497): filed on the spot, never a run. */
+  onReject: (reason: string, discard: boolean) => void;
   // Answer the card's open questions before building it (#307) — the Implement dialog's
   // way out of its third warning. The card page closes this dialog and opens the questions
   // panel behind it; a view with no questions panel simply doesn't offer it.
@@ -1275,18 +1278,10 @@ export function ActionDialog({
         <DialogButtons
           onClose={onClose}
           confirmLabel={reason ? c.confirm : c.confirmDiscard}
-          onConfirm={() =>
-            run(
-              {
-                action: "reject",
-                id: dialog.card.id,
-                title: dialog.card.title,
-                reason: reason || undefined,
-                ...(reason ? {} : { discard: true }),
-              },
-              `${reason ? "Reject" : "Discard"} #${dialog.card.id}`,
-            )
-          }
+          onConfirm={() => {
+            clearDraft();
+            onReject(reason, !reason);
+          }}
         />
       </Dialog>
     );

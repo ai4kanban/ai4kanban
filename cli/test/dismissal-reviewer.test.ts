@@ -1,8 +1,8 @@
-// Learning triage preferences from dismissal reasons (#929).
+// Learning what the user does not want from rejection and dismissal reasons (#929, #1497).
 //
 // What a review writes is the agent's judgement; what is asserted here is everything around
-// it: which dismissals and restored ids reach it, when the board starts one on its own, and
-// that the window moves only on a pass.
+// it: which rejections, dismissals and restored ids reach it, when the board starts one on its
+// own, and that the window moves only on a pass.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -11,7 +11,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { formatStamp } from '../src/lib/cadence.ts'
-import { citedSources, dismissalsToReview, withdrawnSources } from '../src/lib/agent/dismissal-review.ts'
+import { citedSources, dismissalsToReview, rejectionsToReview, withdrawnSources } from '../src/lib/agent/dismissal-review.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -27,7 +27,7 @@ let root = ''
 
 const kanban = (): string => path.join(root, 'docs', 'kanban')
 const triage = (): string => path.join(kanban(), 'triage')
-const memoryFile = (): string => path.join(kanban(), 'memory', 'agents', 'planner', 'dismissed.md')
+const memoryFile = (): string => path.join(kanban(), 'memory', 'agents', 'planner', 'rejected.md')
 
 const HOUR = 60 * 60_000
 const DAY = 24 * HOUR
@@ -48,6 +48,17 @@ function item(
   if (where === 'archived') lines.push('card_id: 5', 'archived_at: 2026-09-02 09:00')
   lines.push('---', '', `what item ${id} says`, '')
   fs.writeFileSync(path.join(dir, `${id}.md`), lines.join('\n'))
+}
+
+/** One archived card, rejected as the board would have stamped it. */
+function rejected(id: number, how: { by?: 'user' | 'agent' | ''; reason?: string; at?: number } = {}): void {
+  const dir = path.join(kanban(), '.archive')
+  fs.mkdirSync(dir, { recursive: true })
+  const lines = ['---', `title: card ${id}`, 'priority: low', 'roi: low', 'status: todo', 'release: ""', 'blocked_by: []', 'related: []', 'modules: []', 'archived: 2026-09-01', 'rejected: true']
+  if (how.reason) lines.push(`rejected_reason: ${how.reason}`)
+  if (how.by !== '') lines.push(`rejected_at: '${new Date(how.at ?? Date.now()).toISOString()}'`, `rejected_by: ${how.by ?? 'user'}`)
+  lines.push('questions: []', '---', '', `what card ${id} says`, '')
+  fs.writeFileSync(path.join(dir, `${id}-card.md`), lines.join('\n'))
 }
 
 function memory(text: string): void {
@@ -114,6 +125,18 @@ describe('what a review reads', () => {
     assert.deepEqual(dismissalsToReview(0).map((d) => d.sourceId).sort(), ['mine', 'old'])
   })
 
+  it("takes only the user's rejections that carry a reason, inside the window", () => {
+    rejected(1, { reason: 'we never build a mobile app' })
+    rejected(2)
+    rejected(3, { by: 'agent', reason: 'superseded by #9' })
+    rejected(4, { by: '', reason: 'a discard keeps its reason too' })
+    rejected(5, { reason: 'not our market', at: Date.now() - 3 * DAY })
+    const since = Date.now() - DAY
+    assert.deepEqual(rejectionsToReview(since).map((r) => r.id), [1])
+    assert.equal(rejectionsToReview(since)[0]!.reason, 'we never build a mobile app')
+    assert.deepEqual(rejectionsToReview(0).map((r) => r.id).sort(), [1, 5])
+  })
+
   it('lists a cited id whose item was restored, and nothing the user wrote in brackets', () => {
     item('back', 'waiting')
     item('carded', 'archived')
@@ -124,18 +147,19 @@ describe('what a review reads', () => {
         '',
         '## skill',
         '- **No SSO**: we do not serve enterprise (back, still)',
-        '- **No mobile**: desktop only (carded)',
+        '- **No mobile**: desktop only (carded, #12)',
         '- **Keep it small**: my own words (e.g. this one)',
         '',
       ].join('\n'),
     )
-    assert.deepEqual(citedSources(fs.readFileSync(memoryFile(), 'utf8')), ['back', 'still', 'carded', 'e.g. this one'])
+    assert.deepEqual(citedSources(fs.readFileSync(memoryFile(), 'utf8')), ['back', 'still', 'carded', '#12', 'e.g. this one'])
     assert.deepEqual(withdrawnSources().sort(), ['back', 'carded'])
   })
 
   it('is scaffolded with the planner memory', () => {
     scaffoldProjectMemory()
-    assert.match(fs.readFileSync(memoryFile(), 'utf8'), /^# Triage preferences/)
+    assert.match(fs.readFileSync(memoryFile(), 'utf8'), /^# Rejected/)
+    assert.equal(fs.existsSync(path.join(path.dirname(memoryFile()), 'dismissed.md')), false)
   })
 })
 
@@ -152,6 +176,14 @@ describe('the review the board starts on its own', () => {
 
   it('starts one for a new reason', async () => {
     item('mine', 'dismissed', { reason: 'not for us' })
+    assert.deepEqual(await work(), ['review-dismissals'])
+  })
+
+  it('starts one for a new rejection reason', async () => {
+    rejected(3, { by: 'agent', reason: 'superseded' })
+    rejected(4, { by: '' })
+    assert.deepEqual(await work(), [])
+    rejected(1, { reason: 'not for us' })
     assert.deepEqual(await work(), ['review-dismissals'])
   })
 
@@ -246,27 +278,30 @@ describe('the window', () => {
 })
 
 describe('what the review is handed', () => {
-  it('lists each dismissal with its reason, the withdrawn ids and the file it writes', () => {
+  it('lists each rejection and dismissal with its reason, the withdrawn ids and the file it writes', () => {
+    rejected(7, { reason: 'we never build a mobile app' })
     item('mine', 'dismissed', { reason: 'we never serve enterprise SSO' })
     item('back', 'waiting')
     memory('## skill\n- **No SSO**: never (back)\n')
     const said = quiet(() => printFlow({ action: 'review-dismissals' }))
+    assert.match(said, /#7 — card 7/)
+    assert.match(said, /reason: we never build a mobile app/)
     assert.match(said, /mine — item mine/)
     assert.match(said, /reason: we never serve enterprise SSO/)
     assert.match(said, /withdrawn\s+back/)
-    assert.match(said, /memory\/agents\/planner\/dismissed\.md/)
+    assert.match(said, /memory\/agents\/planner\/rejected\.md/)
     assert.match(said, /none has been reviewed yet/)
   })
 
   it('points the ask at the guide, which holds the rules', () => {
-    assert.match(buildAsk({ action: 'review-dismissals' }), /akb guide review-dismissals/)
-    const guide = findGuide('review-dismissals')!.text
+    assert.match(buildAsk({ action: 'review-dismissals' }), /akb guide review-rejections/)
+    const guide = findGuide('review-rejections')!.text
     assert.match(guide, /Never infer one/)
     assert.match(guide, /Withdraw restored evidence/)
-    assert.match(guide, /a line with no source id was written by the user/)
+    assert.match(guide, /a line with no source was written by the user/)
   })
 
   it('has pruning keep every source id', () => {
-    assert.match(findGuide('prune-memory')!.text, /keep every source id/)
+    assert.match(findGuide('prune-memory')!.text, /keep\s+every source id/i)
   })
 })

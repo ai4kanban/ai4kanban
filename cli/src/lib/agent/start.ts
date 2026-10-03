@@ -92,8 +92,8 @@ async function scheduledRefusal(req: AgentRequest): Promise<RunRefusal | null> {
   return null
 }
 
-// Archive and reject take a card off the board, which needs no Pro.
-const FREE_ACTIONS = ['archive', 'reject']
+// Archive takes a card off the board, which needs no Pro.
+const FREE_ACTIONS = ['archive']
 
 /** Why this card's run needs Pro this account cannot show (#1038). Skipped where
  *  `workflowRefusal` skips, so a delivery already under way finishes on the plan it began on. */

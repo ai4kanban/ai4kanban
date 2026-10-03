@@ -179,6 +179,36 @@ describe('a planner file with module topics', () => {
   })
 })
 
+describe('triage preferences (#1497)', () => {
+  const planner = (...parts: string[]): string => memory('agents', 'planner', ...parts)
+  const STARTER = '# Triage preferences\n\nWhat the user\'s dismissal reasons say. Written by the dismissal\nreview; a line with no source id is the user\'s own.\n'
+
+  it('folds each dismissed.md into the rejected.md beside it, once', () => {
+    write(planner('rejected.md'), '# Rejected\n\n## Runs\n\n- **No cron**: never.\n')
+    write(planner('dismissed.md'), `${STARTER}\n## SSO\n\n- **No SSO**: not our users (item-1)\n`)
+    write(planner('skill', 'dismissed.md'), `${STARTER}\n- **No plugins**: one way in (item-2)\n`)
+
+    assert.deepEqual(migrateMemory().sort(), [
+      'docs/kanban/memory/agents/planner/dismissed.md',
+      'docs/kanban/memory/agents/planner/skill/dismissed.md',
+    ])
+    const root = read(planner('rejected.md'))
+    assert.match(root, /- \*\*No cron\*\*: never\.\n\n## SSO\n\n- \*\*No SSO\*\*: not our users \(item-1\)/)
+    assert.doesNotMatch(root, /Triage preferences/)
+    assert.match(read(planner('skill', 'rejected.md')), /^# Rejected\n[\s\S]*- \*\*No plugins\*\*: one way in \(item-2\)/)
+    assert.equal(fs.existsSync(planner('dismissed.md')), false)
+    assert.equal(fs.existsSync(planner('skill', 'dismissed.md')), false)
+    assert.deepEqual(migrateMemory(), [])
+  })
+
+  it('drops one holding only its starter', () => {
+    write(planner('dismissed.md'), STARTER)
+    migrateMemory()
+    assert.equal(fs.existsSync(planner('dismissed.md')), false)
+    assert.doesNotMatch(read(planner('rejected.md')), /Triage/)
+  })
+})
+
 describe('where a note goes', () => {
   it('names the module’s copy, made with its starter, and its topics', () => {
     write(path.join(board(), 'modules.md'), '- **skill** — the command\n')

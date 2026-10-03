@@ -202,17 +202,11 @@ describe('no action reaches a card that is not finished being created', () => {
 
 describe('discarding unfinished creation', () => {
   for (const status of ['error', 'stopped', 'interrupted'] as const) {
-    it(`discards after ${status} through both the printed flow and raw removal`, async () => {
+    it(`discards after ${status} on the spot, and refuses a plain reject`, async () => {
       const id = await createdInRun()
       endCreator(status)
-      await run(root, ['card', 'reject', String(id), '--discard', '--print'])
       await refuses(root, ['reject', String(id)], /Use reject --discard/)
-      const opened = openRun({ action: 'reject', id, discard: true }, 'Discard')
-      assert.ok(!('error' in opened))
-      assert.equal(peekRun(opened.run.sessionId)?.discard, true)
-      process.env[RUN_ENV] = opened.run.sessionId
-      try { await move(root, ['reject', String(id), '--discard']) }
-      finally { delete process.env[RUN_ENV] }
+      await run(root, ['card', 'reject', String(id), '--discard'])
       assert.equal(findCard(id), null)
       const saved = peekRun('creator-run')?.discardedCards
       assert.equal(saved?.[0]?.id, id)
@@ -232,7 +226,7 @@ describe('discarding unfinished creation', () => {
     const id = await createdInRun()
     process.env[RUN_ENV] = 'creator-run'
     await refuses(root, ['reject', String(id), '--discard'], /still being created/)
-    await assert.rejects(() => run(root, ['card', 'reject', String(id), '--discard', '--print']), /still being created/)
+    await assert.rejects(() => run(root, ['card', 'reject', String(id), '--discard']), /still being created/)
     assert.ok('error' in openRun({ action: 'reject', id, discard: true }, 'Discard'))
     assert.ok(findCard(id))
   })

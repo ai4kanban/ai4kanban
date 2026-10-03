@@ -319,8 +319,9 @@ function CreationActions({ card, creator, liveSession }: { card: Card; creator?:
     setBusy(true);
     setError(null);
     try {
-      const res = await actions.startAgent({ action: "reject", id: card.id, discard: true });
+      const res = await actions.rejectCard(card.id, "", true);
       if (res.ok && res.sessionId) setDiscardRun(res.sessionId);
+      else if (res.ok) { setConfirming(false); await refresh(); }
       else setError(c.discardFailed);
     } catch { setError(c.discardFailed); }
     finally { submitting.current = false; setBusy(false); }

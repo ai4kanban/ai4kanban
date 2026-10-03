@@ -15,7 +15,7 @@ import { ARCHIVE, CHATS_DIR, TODO } from '../paths'
 import { readArchived, readInbox } from '../signals/inbox'
 import type { ScheduleReads } from '../agents/parse'
 import { chatOfKey, lastSpoken, readChat } from './chat'
-import { dismissalWorkWaiting } from './dismissal-review'
+import { rejectionWorkWaiting } from './dismissal-review'
 import { commitsSince } from './project'
 import type { Store } from './store'
 import type { RunStatus, ScheduleReason, ScheduleWait } from './types'
@@ -101,7 +101,7 @@ export function readsNew(reads: ScheduleReads, since: number): boolean {
     case 'chats':
       return chatsSince(since)
     case 'dismissals':
-      return dismissalWorkWaiting(since)
+      return rejectionWorkWaiting(since)
   }
 }
 

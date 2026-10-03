@@ -195,7 +195,7 @@ export interface BoardProvider {
    *  change the list while the page sits open. */
   skipQuestion(id: number, question: string, skipped: boolean, env: OpEnvelope): Promise<CardOp>
   archiveCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
-  rejectCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
+  rejectCard(id: number, env: OpEnvelope, how?: { reason?: string; discard?: boolean }): Promise<OpResult<{ data: MoveOutput }>>
 
   // ---- releases ------------------------------------------------------------
   newRelease(id: string, goal: string, fill: boolean, env: OpEnvelope): Promise<OpResult<{ fill: ReleaseFill }>>

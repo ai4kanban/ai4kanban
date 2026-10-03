@@ -276,6 +276,18 @@ export async function getSession(sessionId: string): Promise<SessionView | null>
   }
 }
 
+/** Reject a card on the spot (#1497), or null on rules that still reject by a run. */
+export async function rejectCard(id: number, how: { reason?: string; discard?: boolean }): Promise<StartResult | null> {
+  try {
+    const rules = await boardRules();
+    if (!rules.rejectCard) return null;
+    const res = await rules.rejectCard(id, how);
+    return said({ ok: res.ok, error: res.error, reason: res.reason, args: res.args });
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
+  }
+}
+
 /** Take the card back from the delivery in flight on it: the delivery ends as cancelled,
  *  its running session is stopped, and Implement is offered again. Cancelling gives the
  *  delivery up, so its worktree and branch go with it (#720). */

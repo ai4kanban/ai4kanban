@@ -795,7 +795,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     skipQuestion: (id, question, skipped, env) =>
       through({ card: id }, env, (e) => local.skipQuestion(id, question, skipped, e)),
     archiveCard: (id, env) => through({ card: id }, env, (e) => local.archiveCard(id, e)),
-    rejectCard: (id, env) => through({ card: id }, env, (e) => local.rejectCard(id, e)),
+    rejectCard: (id, env, how) => through({ card: id }, env, (e) => local.rejectCard(id, e, how)),
 
     // ---- releases -----------------------------------------------------------
 

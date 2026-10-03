@@ -21,7 +21,7 @@ import type { ArchiveList, ArchivedCard, ArchivedCardFile } from './types'
 
 /** An archived card's id: its file name, or — for a group's `root.md` — the folder the
  *  group was archived as. */
-function archivedId(file: string): number | null {
+export function archivedId(file: string): number | null {
   const own = idPrefix(path.basename(file))
   return own !== null ? own : idPrefix(path.basename(path.dirname(file)))
 }

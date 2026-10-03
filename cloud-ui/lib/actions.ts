@@ -116,6 +116,7 @@ export function hostedActions(press: HostedPress): ScreenActions {
     setReleaseGoal: noSuchControl,
     stopSession: noSuchControl,
     resumeSession: noSuchControl,
+    rejectCard: noSuchControl,
     discardDelivery: noSuchControl,
     resumeDelivery: noSuchControl,
     resumeCloudRequest: noSuchControl,

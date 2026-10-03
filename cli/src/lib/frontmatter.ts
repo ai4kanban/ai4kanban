@@ -38,6 +38,8 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   if (m.archived) out.push(`archived: ${yamlScalar(m.archived)}`)
   if (m.rejected) out.push('rejected: true')
   if (m.rejected_reason) out.push(`rejected_reason: ${yamlScalar(m.rejected_reason)}`)
+  if (m.rejected_at) out.push(`rejected_at: ${yamlScalar(m.rejected_at)}`)
+  if (m.rejected_by) out.push(`rejected_by: ${m.rejected_by}`)
   // What this card is waiting to run once the last card in its way leaves the board (see
   // ./schedule.ts). Written only while the card carries one — and re-emitted whenever it is
   // there, so nothing that rewrites a card can quietly take a schedule off it.
@@ -168,6 +170,8 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   meta.archived = typeof meta.archived === 'string' && meta.archived.trim() ? meta.archived.trim() : ''
   meta.rejected = meta.rejected === 'true'
   meta.rejected_reason = typeof meta.rejected_reason === 'string' ? meta.rejected_reason : ''
+  meta.rejected_at = typeof meta.rejected_at === 'string' ? meta.rejected_at.trim() : ''
+  meta.rejected_by = meta.rejected_by === 'user' || meta.rejected_by === 'agent' ? meta.rejected_by : ''
   // The action the card is waiting to run. A card written before this field, and one whose
   // block names something the board can't start, both read as not scheduled.
   meta.schedule = normalizeSchedule(meta.schedule)

@@ -375,20 +375,20 @@ describe('the flow', () => {
     assert.doesNotMatch(printed, /none yet/)
   })
 
-  it("names the card's own modules' rejections and the triage preferences once they exist", async () => {
+  it("names the card's own modules' rejections once they exist", async () => {
     open(1)
     const file = path.join(TODO(), '1-card.md')
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('modules: []', 'modules: [cli]'))
     complete(1)
     const planner = path.join(kanban(), 'memory', 'agents', 'planner')
-    assert.doesNotMatch(await reflect(), /^ +docs\/kanban\/memory\/agents\/planner\/(cli\/rejected|dismissed)\.md$/m)
-    for (const rel of ['cli/rejected.md', 'web/rejected.md', 'cli/dismissed.md', 'web/dismissed.md', 'dismissed.md']) {
+    assert.doesNotMatch(await reflect(), /^ +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md$/m)
+    for (const rel of ['cli/rejected.md', 'web/rejected.md']) {
       fs.mkdirSync(path.dirname(path.join(planner, rel)), { recursive: true })
       fs.writeFileSync(path.join(planner, rel), '- **x**: y\n')
     }
     const printed = await reflect()
-    assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/dismissed\.md\n +docs\/kanban\/memory\/agents\/planner\/dismissed\.md/)
-    assert.doesNotMatch(printed, /planner\/web\/(rejected|dismissed)\.md/)
+    assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n/)
+    assert.doesNotMatch(printed, /planner\/web\/rejected\.md|dismissed\.md/)
   })
 
   it('names the scheduled agents switched on, and only those', async () => {

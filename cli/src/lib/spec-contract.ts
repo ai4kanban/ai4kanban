@@ -84,9 +84,9 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
   if (rejected && rejected.value !== 'true') {
     add(rejected.line, 'rejected', `Invalid rejected ${JSON.stringify(rejected.value)}. Only akb raw reject writes it, as true; remove the line.`)
   }
-  const reason = fields.get('rejected_reason')
-  if (reason && !rejected) {
-    add(reason.line, 'rejected_reason', 'rejected_reason is only kept on a rejected card. Only akb raw reject writes it; remove the line.')
+  for (const key of ['rejected_reason', 'rejected_at', 'rejected_by']) {
+    const field = fields.get(key)
+    if (field && !rejected) add(field.line, key, `${key} is only kept on a rejected card. Only akb raw reject writes it; remove the line.`)
   }
   for (const key of ['blocked_by', 'related', 'modules', 'questions']) {
     const field = fields.get(key)

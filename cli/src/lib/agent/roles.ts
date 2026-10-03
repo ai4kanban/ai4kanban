@@ -32,12 +32,9 @@ import type { AgentKind } from '../agents/parse'
 // once here because the two content roles read and write the same files: a board that
 // remembered its content decisions somewhere else would be a board whose pruner could only
 // ever read half of what it decided.
-const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN, PLANNER_DISMISSED] = [
-  'decisions.md',
-  'rejected.md',
-  'redesign.md',
-  'dismissed.md',
-].map((name) => `memory/agents/${PLANNER}/${name}`) as [string, string, string, string]
+const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN] = ['decisions.md', 'rejected.md', 'redesign.md'].map(
+  (name) => `memory/agents/${PLANNER}/${name}`,
+) as [string, string, string]
 
 /** One role: an agent the board ships, named by the work rather than by a flow. */
 export interface AgentRole {
@@ -97,12 +94,13 @@ const MEMORY_REVIEWER: AgentRole = {
   memory: [],
 }
 
-// The role that learns triage taste from dismissal reasons (#929), on its cadence
-// (./settings.ts). It writes the planner's `dismissed.md` and nothing else.
+// The role that learns what the user does not want from their rejection and dismissal
+// reasons (#929, #1497), on its cadence (./settings.ts). It writes the planner's `rejected.md`
+// and nothing else.
 const DISMISSAL_REVIEWER: AgentRole = {
   name: 'dismissal-reviewer',
-  gloss: 'learns your triage preferences from the reasons you give for dismissing items',
-  memory: [PLANNER_DISMISSED],
+  gloss: 'learns what you do not want from the reasons you give for rejecting cards and dismissing items',
+  memory: [PLANNER_REJECTED],
 }
 
 // The role that keeps `memory/project.md` — what the project is today (#1268), on its

@@ -620,9 +620,8 @@ export const MEMORY_FILES: readonly MemoryRef[] = [
   { name: 'readme', label: 'What shipped' },
   { name: 'project', label: 'The project' },
   { name: 'decisions', label: 'Settled decisions' },
-  { name: 'rejected', label: 'Rejected ideas' },
+  { name: 'rejected', label: 'Turned down' },
   { name: 'redesign', label: 'Design mistakes' },
-  { name: 'dismissed', label: 'Triage preferences' },
 ]
 
 /** One group the memory panel draws (#805): the board's own record, or one agent's folder.

@@ -260,6 +260,8 @@ export interface BoardRules {
   /** Carry an ended delivery on from where it stopped (#639) — a delivery that stopped with
    *  its worktree and branch still here. Finished steps are not redone. */
   resumeDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>>;
+  /** Reject a card on the spot (#1497). Missing on rules that still reject by a run. */
+  rejectCard?(id: number, how: { reason?: string; discard?: boolean }): Promise<{ ok: boolean; error?: string } & Partial<RunRefusal>>;
   /** A delivery's worktree and branch, thrown away on request (#303). */
   discardDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>>;
   /** The checkout an ENDED delivery still has, when the board kept it (#720) — nothing on

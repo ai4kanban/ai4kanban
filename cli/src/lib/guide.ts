@@ -36,10 +36,9 @@ import nextCard from '../guide/next-card.md'
 import planRelease from '../guide/plan-release.md'
 import pruneMemory from '../guide/prune-memory.md'
 import reviewMemory from '../guide/review-memory.md'
-import reviewDismissals from '../guide/review-dismissals.md'
+import reviewRejections from '../guide/review-rejections.md'
 import refine from '../guide/refine.md'
 import reflect from '../guide/reflect.md'
-import reject from '../guide/reject.md'
 import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
@@ -75,7 +74,6 @@ export const GUIDES: Guide[] = [
   { name: 'refine', when: 'plan one card until it can be built, in one session', text: refine },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
-  { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },
@@ -84,7 +82,7 @@ export const GUIDES: Guide[] = [
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'review-memory', when: 'read what the conversations settled, and write it into memory', text: reviewMemory },
   { name: 'describe-project', when: 'rewrite the description of what the project is today', text: describeProject },
-  { name: 'review-dismissals', when: "learn the user's triage preferences from their dismissal reasons", text: reviewDismissals },
+  { name: 'review-rejections', when: 'learn what the user does not want from their rejection and dismissal reasons', text: reviewRejections },
   { name: 'reflect', when: 'propose the work just-completed cards leave behind', text: reflect },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
   { name: 'write-agent', when: 'create or change an agent, including one built from a skill — its AGENT.md, files, memory, and how to check it', text: writeAgent },

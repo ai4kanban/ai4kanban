@@ -33,4 +33,4 @@ A module's planning memory is its folder, `docs/kanban/memory/agents/planner/<mo
 the new module's folder and move into each of its files the entries that belong to it. Split
 entries that cover both; keep shared rules with the module responsible for them. Rename the
 folder when a module is renamed, and fold its files into the folder that inherits the work when
-one is removed. A module may not be named `decisions`, `rejected`, `redesign` or `dismissed`.
+one is removed. A module may not be named `decisions`, `rejected` or `redesign`.

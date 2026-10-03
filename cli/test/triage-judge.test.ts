@@ -300,14 +300,13 @@ describe('the questions', () => {
 })
 
 describe('the state', () => {
-  it('carries the item, the product, the decisions and every rejected.md and dismissed.md — and no card', async () => {
+  it('carries the item, the product, the decisions and every rejected.md — and no card', async () => {
     const id = await waiting('Dark mode')
     card(7, 'Themes')
     write(path.join(kanban(), 'memory', 'project.md'), '# Project\n\nA board.\n')
     write(path.join(planner(), 'decisions.md'), '# Decisions\n\n- keep it plain\n')
     write(path.join(planner(), 'rejected.md'), '# Rejected\n\n- a database\n')
     write(path.join(planner(), 'cloud', 'rejected.md'), '# Rejected\n\n- a second cloud\n')
-    write(path.join(planner(), 'dismissed.md'), '# Triage preferences\n\n- no themes\n')
     const { state, trimmed } = judgementState(item(id), questionsFor([]))
     assert.match(String(state.item), /The words of Dark mode/)
     assert.match(String(state.item), /source_id:/)
@@ -315,7 +314,6 @@ describe('the state', () => {
     assert.match(String(state.decisions), /keep it plain/)
     assert.match(String(state['docs/kanban/memory/agents/planner/rejected.md']), /a database/)
     assert.match(String(state['docs/kanban/memory/agents/planner/cloud/rejected.md']), /a second cloud/)
-    assert.match(String(state['docs/kanban/memory/agents/planner/dismissed.md']), /no themes/)
     assert.equal(state.cards, undefined)
     assert.equal(state.readme, undefined)
     assert.deepEqual(trimmed, [])

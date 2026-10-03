@@ -188,7 +188,7 @@ describe('the prompt', () => {
 
   it('keeps the question format in one guide', () => {
     assert.match(findGuide('update-questions')!.text, /--recommended-option[\s\S]*--option/)
-    for (const name of ['add-task', 'refine', 'reject', 'setup', 'spec-agent']) {
+    for (const name of ['add-task', 'refine', 'setup', 'spec-agent']) {
       const guide = findGuide(name)!.text
       assert.match(guide, /akb guide\s+update-questions/, name)
       assert.doesNotMatch(guide, /--recommended-option|--mode multi/, name)

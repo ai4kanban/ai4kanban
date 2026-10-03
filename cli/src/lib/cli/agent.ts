@@ -53,6 +53,7 @@ import {
   cmdLog,
   cmdResume,
   cmdRuns,
+  cmdReject,
   cmdStartRun,
   cmdStop,
   cmdSubStart,
@@ -169,6 +170,17 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   }
 
   for (const flow of FLOWS) declareFlow(flow.group ? groups[flow.group] : program, flow, cli)
+
+  // Rejecting starts no run (#1497): the card is filed on the spot.
+  withShared(groups.card.command('reject'))
+    .argument('<id>', "the card's id", cardId)
+    .argument('[why...]', 'why the card is being dropped — required unless --discard')
+    .summary('drop the card')
+    .option('--discard', 'just drop it: the why may be left off, and nothing learns from it')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [id, why] = positional(vals) as [number, string[]]
+      await onBoard(this, cli, () => cmdReject(id, why.join(' '), this.opts()))
+    })
 
   declareRunning(groups.run, cli)
   declareDelivery(groups.delivery, cli)

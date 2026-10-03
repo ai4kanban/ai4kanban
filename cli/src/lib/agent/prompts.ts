@@ -465,14 +465,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
-    case 'reject':
-      return [
-        req.discard === true
-          ? `${kb}. Discard task ${req.id} ${named} — drop it and write no memory. Reason: ${req.reason || '(none given)'}.`
-          : `${kb}. Reject task ${req.id} ${named}. Reason: ${req.reason || '(none given)'}.`,
-        `Follow \`akb guide reject\`.`,
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ].join(' ')
     case 'archive':
       return [
         `${kb}. Archive task ${req.id} ${named}.`,
@@ -592,7 +584,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // The dismissal review (#929). The flow lists the dismissals and restored ids; the guide
     // holds every rule.
     case 'review-dismissals':
-      return `${kb}. Learn the user's triage preferences from their dismissals, following \`akb guide review-dismissals\`.`
+      return `${kb}. Learn what the user does not want from their rejections and dismissals, following \`akb guide review-rejections\`.`
     case 'describe-project':
       return `${kb}. Describe this project following \`akb guide describe-project\`.`
     // Reflecting on the cards the board has just completed (#534, #1467). They are off the

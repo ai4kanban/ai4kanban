@@ -22,6 +22,7 @@ import {
   closeReleaseAction,
   createReleaseAction,
   discardDeliveryAction,
+  rejectCardAction,
   resumeDeliveryAction,
   dropReleaseAction,
   getBoard,
@@ -63,6 +64,7 @@ export const appActions: ScreenActions = {
   startAgent: startAgentAction,
   stopSession: stopSessionAction,
   resumeSession: resumeSessionAction,
+  rejectCard: rejectCardAction,
 
   discardDelivery: discardDeliveryAction,
   resumeDelivery: resumeDeliveryAction,

@@ -186,7 +186,7 @@ describe('the account', () => {
 })
 
 describe('running a Pro card', () => {
-  it('refuses every run but archive and reject, in the words the account needs', async () => {
+  it('refuses every run but archive, in the words the account needs', async () => {
     card(1, 'slide-deck')
     billing({ plan: 'free' })
     assert.equal((await proRefusal({ action: 'clarify', id: 1 }))?.reason, 'proSignIn')
@@ -196,7 +196,6 @@ describe('running a Pro card', () => {
     assert.equal(free?.error, 'Slide deck needs Pro.')
     assert.deepEqual(free?.args, { workflow: 'slide-deck', name: 'Slide deck' })
     assert.equal(await proRefusal({ action: 'archive', id: 1 }), null)
-    assert.equal(await proRefusal({ action: 'reject', id: 1 }), null)
     billing('offline')
     assert.equal((await proRefusal({ action: 'clarify', id: 1 }))?.reason, 'proUnconfirmed')
     const started = await startRun({ action: 'clarify', id: 1 })

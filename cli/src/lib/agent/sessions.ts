@@ -61,6 +61,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { dropReflected, stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProjectDescription } from './settings'
 import { scheduledAgent, stampScheduledRun, workflowById } from './workflows'
 import { creationOf, logPathOf, noteRefineTried, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
+import { insideRun } from './env'
 import { withCreationLock } from './creation-lock'
 import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing, holdChat, readChat, repointChatRuns, type ChatSession } from './chat'
@@ -129,7 +130,7 @@ const VERB: Record<AgentAction, string> = {
   setup: 'set up',
   'prune-memory': 'pruned',
   'review-memory': 'reviewed for memory',
-  'review-dismissals': 'reviewed for triage preferences',
+  'review-dismissals': 'reviewed for rejections and dismissals',
   'describe-project': 'described',
   triage: 'sorted',
   reflect: 'reflected on',
@@ -150,7 +151,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   setup: 'this board is already being set up',
   'prune-memory': 'the memory is already being pruned',
   'review-memory': 'the conversations are already being reviewed',
-  'review-dismissals': 'the dismissals are already being reviewed',
+  'review-dismissals': 'the rejections and dismissals are already being reviewed',
   'describe-project': 'the project is already being described',
   triage: 'triage is already being sorted',
   reflect: 'finished tasks are already being reviewed',
@@ -367,7 +368,7 @@ function recordReflection(run: RunRecord): void {
   }
 }
 
-// And the dismissal review's window (#929), on the same terms: a pass, stamped with its start.
+// And the rejection review's window (#929, #1497), on the same terms: a pass, stamped with its start.
 function recordDismissalReview(run: RunRecord): void {
   if (run.action !== 'review-dismissals' || run.status !== 'done') return
   try {
@@ -491,8 +492,6 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
       return r.input ? { ...base, release: r.input } : undefined
     case 'create':
       return r.input || r.triage ? { ...base, description: r.input } : undefined
-    case 'reject':
-      return id === undefined ? undefined : { ...base, reason: r.input }
     case 'implement':
     case 'conflict':
     case 'hook':
@@ -750,6 +749,13 @@ function lockedBy(
     if (live) return { error: `a changelog for ${release} is already being written` }
   }
   return undefined
+}
+
+/** Why a card can't be rejected right now (#1497): the holds a reject run used to pass on its
+ *  way in. The run asking, if any, is not in its own way. */
+export function rejectRefusal(cardId: number, discard: boolean): RunRefusal | undefined {
+  const self = insideRun()
+  return lockedBy(readRuns().filter((r) => r.sessionId !== self), 'reject', cardId, undefined, false, discard)
 }
 
 /** Why this card can't be changed from outside a run this second — a live run is working on

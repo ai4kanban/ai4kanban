@@ -53,6 +53,10 @@ export interface Meta {
   rejected: boolean
   /** Why it was rejected, as typed — `reject` writes it when a reason was given. */
   rejected_reason: string
+  /** When it was rejected (ISO) and who by — what the rejection review reads (#1497). Empty on
+   *  a discard and on a card rejected before these were written. */
+  rejected_at: string
+  rejected_by: '' | 'user' | 'agent'
   /** The action waiting to run once nothing is in this card's way, or null on a card nobody
    *  scheduled (./schedule.ts). */
   schedule: CardSchedule | null

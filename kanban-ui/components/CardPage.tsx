@@ -1325,12 +1325,21 @@ export function CardPage({
   // over the run it was about.
   const runAgent = async (req: AgentReq, label: string) => {
     setDialog(null);
-    const removes = req.action === "reject" || req.action === "archive";
-    const res = await start(req, label, removes);
+    const res = await start(req, label, req.action === "archive");
     // A plan Cloud could not confirm is answered under the row, with the same run to retry.
     const unconfirmed = !res.ok && res.reason === "proUnconfirmed";
     setRetry(unconfirmed ? { line: sayFailure(res, c.toolbar.startFailed), run: () => void runAgent(req, label) } : null);
     setError(res.ok || unconfirmed ? null : sayFailure(res, c.toolbar.startFailed));
+  };
+
+  // A rejection is filed on the spot (#1497), so the page goes back to the board at once.
+  const rejectCard = async (reason: string, discard: boolean) => {
+    setDialog(null);
+    if (!actions) return;
+    const res = await actions.rejectCard(card.id, reason, discard);
+    if (res.ok && res.sessionId) watch(res.sessionId, `${discard ? "Discard" : "Reject"} #${card.id}`, true);
+    else if (res.ok) router.push("/");
+    setError(res.ok ? null : sayFailure(res, c.toolbar.startFailed));
   };
 
   // Queue an action on this card instead of starting it (#140). The card keeps its stage and
@@ -2037,6 +2046,7 @@ export function CardPage({
               dialog={dialog}
               onClose={() => setDialog(null)}
               onRun={runAgent}
+              onReject={rejectCard}
               onSchedule={fieldWrites ? scheduleAgent : undefined}
               onResolveFirst={() => {
                 setDialog(null);

@@ -1,8 +1,8 @@
 // ---- archive / reject ------------------------------------------------------
 //
 // Taking a card off the board — archive and reject both move it into .archive/, reject
-// marking it `rejected` — and the receipt's handoff: the memory note's target, and every prose mention of the
-// id that now needs a new sentence.
+// marking it `rejected` — and an archive's handoff: the memory note's target, and every prose
+// mention of the id that now needs a new sentence. A rejection hands nothing over (#1497).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -115,18 +115,31 @@ function leavingCards(id: number, found: Found): { id: number; file: string }[] 
   return cards
 }
 
+// How a card was rejected: the reason, and — for a rejection, not a discard — when and by
+// whom, which is what the rejection review reads (#1497).
+interface Rejection {
+  reason: string
+  discard: boolean
+}
+
 // What a leaving card carries out with it: the day it left, `rejected` when it was turned
 // down rather than finished, and no stage a run was holding — a card can leave mid-run, and
 // the copy in .archive/ must not come back saying it is being implemented.
-function stampLeaving(cards: { id: number; file: string }[], rejected: boolean, reason = ''): void {
+function stampLeaving(cards: { id: number; file: string }[], rejection: Rejection | null): void {
   const day = formatDay()
+  const at = new Date().toISOString()
+  const by = insideRun() ? 'agent' : 'user'
   for (const card of cards) {
     if (!fs.existsSync(card.file)) continue
     const { meta, body } = parseFrontmatter(fs.readFileSync(card.file, 'utf8'))
     if (!meta) continue
     meta.archived = day
-    if (rejected) meta.rejected = true
-    if (rejected && reason) meta.rejected_reason = reason
+    if (rejection) meta.rejected = true
+    if (rejection?.reason) meta.rejected_reason = rejection.reason
+    if (rejection && !rejection.discard) {
+      meta.rejected_at = at
+      meta.rejected_by = by
+    }
     if (meta.status === 'implementing') meta.status = 'todo'
     fs.writeFileSync(card.file, serializeFrontmatter(meta) + '\n' + body)
   }
@@ -139,13 +152,10 @@ export interface RemoveOptions {
    *  restate them. The sentences still naming the root are reported by the subtask's
    *  receipt instead, in one list with its own. */
   closing?: boolean
-  /** This rejection is a plain discard (#601): the card is filed and nothing is written to
-   *  memory. Clearing the backlog is not a conclusion worth keeping, so the receipt asks for
-   *  no note and names no `rejected.md`. The mentions still have to be rewritten. */
+  /** This rejection is a plain discard (#601): a backlog clear-out, never learned from. */
   discard?: boolean
   cleanupDiscarded?: boolean
-  /** Why the card is rejected, kept on every card that leaves with it. Unset inside a reject
-   *  run reads that run's own recorded reason. */
+  /** Why the card is rejected, kept on every card that leaves with it. */
   reason?: string
 }
 
@@ -168,15 +178,6 @@ function unfinishedDelivery(id: number): string | null {
     .filter((src) => src.startsWith('.assets/'))
     .find((src) => !fs.existsSync(path.join(ASSETS, src.slice('.assets/'.length))))
   return missing ? `#${id} is not finished: ${missing} is not on this machine.` : null
-}
-
-// The reason a rejection is stamped with: the one given, else what this reject run was started with.
-function rejectionReason(id: number, given: string | undefined): string {
-  if (given !== undefined) return given.trim()
-  const sessionId = insideRun()
-  if (!sessionId) return ''
-  const run = readRuns().find((r) => r.sessionId === sessionId && r.action === 'reject' && r.cardId === id)
-  return run?.input?.trim() ?? ''
 }
 
 // The top-level bullets under `## Decided by the agent`, and those of them under its
@@ -258,7 +259,7 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // The last write the cards get, and it has to happen before the move: after it there is
   // no card under `todo/` left to write.
   if (dest) {
-    stampLeaving(leaving, metric === 'rejected', metric === 'rejected' ? rejectionReason(id, options.reason) : '')
+    stampLeaving(leaving, metric === 'rejected' ? { reason: options.reason?.trim() ?? '', discard: options.discard === true } : null)
     fs.mkdirSync(ARCHIVE, { recursive: true })
     fs.renameSync(found.target, dest)
   } else {
@@ -288,7 +289,7 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   const to = dest ? ` → ${rel(dest)}${found.kind === 'group' ? '/' : ''}` : ''
   if (metric === 'completed') say(`archived #${id}: moved ${what}${to}`)
   else if (!dest) say(`discarded #${id}: removed ${what} — already filed in ${rel(ARCHIVE)}`)
-  else if (options.discard) say(`discarded #${id}: moved ${what}${to}, marked rejected — no memory written`)
+  else if (options.discard) say(`discarded #${id}: moved ${what}${to}, marked rejected`)
   else say(`rejected #${id}: moved ${what}${to}, marked rejected`)
   if (removedRefs.length) say(`  dropped ${removedRefs.length} README ${removedRefs.length === 1 ? 'entry' : 'entries'}`)
   else say('  no README entry (subtask or untracked)')
@@ -298,13 +299,14 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // The group closes with its last subtask (#299). Taken before the mentions below, so a
   // sentence in a root that left with this card is never handed over to be rewritten.
   const closed = groupRoot ? closeGroup(groupRoot) : null
-  // Everything above is done. What follows is the part no script can do: the memory note,
-  // and the sentences other cards wrote about an id that just left the board.
+  // Everything above is done. What follows is the part no script can do after an archive:
+  // the shipped line, and the sentences other cards wrote about an id that just left the
+  // board. A rejection hands neither over — the rejection review learns from its reason, and
+  // a stale sentence is fixed when its card is next refined (#1497).
   const gone = closed?.archived_to ? [id, closed.id] : [id]
-  const mentions = options.closing ? [] : findMentions(gone)
-  // A closing root asks for no note of its own, and its sentences are in the list the
-  // subtask's receipt prints — so it hands nothing over.
-  const note = options.closing ? null : printHandoff(gone, metric, cardMeta, mentions, options.discard === true)
+  const handsOver = !options.closing && metric === 'completed'
+  const mentions = handsOver ? findMentions(gone) : []
+  const note = handsOver ? printHandoff(gone, cardMeta, mentions) : null
   return {
     id,
     action: metric === 'completed' ? 'archived' : 'rejected',
@@ -316,7 +318,7 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
     // The group this card's departure closed, or the rule that kept a finished-looking root
     // on the board (#299). Null when the card was in no group, or its group is still open.
     group_close: closed,
-    // What the caller still has to do by hand: write the note, rewrite the sentences.
+    // What an archive still has to do by hand: write the note, rewrite the sentences.
     note,
     mentions: mentions.map((m) => ({ file: rel(m.file), line: m.line, where: m.where, text: m.text })),
   }
@@ -380,14 +382,6 @@ function closeGroup(rootFile: string): GroupClose | null {
 // how to write the note rather than restating the rule — one copy of the rule, and it is
 // the one the flows read.
 
-// `topics` says whether the target file groups its entries under `## ` headings, so the
-// receipt only offers a section to file under where there are sections. `readme.md` is one
-// flat list of shipped work by design; `rejected.md` is grouped by topic.
-const NOTE_KIND: Record<Metric, { file: string; what: string; guide: string; topics: boolean }> = {
-  completed: { file: 'readme.md', what: 'record the shipped work', guide: '"Finish a task" in `akb guide board`', topics: false },
-  rejected: { file: 'rejected.md', what: 'write the rejection note, if this rejection earns one', guide: '`akb guide reject`', topics: true },
-}
-
 // Long lines are quoted for recognition, not for copying — the file:line above each one is
 // how you get the real text. Cut on a word so a half-word never reads as the file's.
 function quoteLine(text: string, width = 96): string {
@@ -397,28 +391,14 @@ function quoteLine(text: string, width = 96): string {
   return `${(lastSpace > width / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
 }
 
-function printHandoff(
-  ids: number[],
-  metric: Metric,
-  meta: Meta | null,
-  mentions: Mention[],
-  discard: boolean,
-): { what: string; files: string[] } | null {
-  const kind = NOTE_KIND[metric]
-  const target = discard ? null : memoryTarget(kind.file, meta?.modules[0])
+function printHandoff(ids: number[], meta: Meta | null, mentions: Mention[]): { what: string; files: string[] } {
+  const what = 'record the shipped work'
+  const target = memoryTarget('readme.md', meta?.modules[0])
   say(`\nnext — what the script can't do:\n`)
+  say(`  1. ${what} — follow "Finish a task" in \`akb guide board\``)
+  say(`       file    ${rel(target.file)}`)
 
-  if (discard) say('  1. nothing — this is a discard: no memory is written, and nothing judges whether it earned one')
-  else say(`  1. ${kind.what} — follow ${kind.guide}`)
-  if (target) {
-    say(`       file    ${rel(target.file)}`)
-    if (kind.topics) {
-      const topics = target.topics.map((x) => `"${x.name}" (${x.entries})`).join(', ')
-      say(`       topics  ${topics || '(none yet — this note starts the first one)'}`)
-    }
-  }
-
-  const note = discard ? null : { what: kind.what, files: [rel(target!.file)] }
+  const note = { what, files: [rel(target.file)] }
   const which = ids.map((x) => `#${x}`).join(' or ')
   if (!mentions.length) {
     say(`\n  2. nothing — no other card or note mentions ${which}, so there is nothing to rewrite`)

@@ -103,6 +103,10 @@ export interface ScreenActions {
   stopSession(sessionId: string): Promise<StartAnswer>;
   resumeSession(sessionId: string): Promise<StartAnswer>;
 
+  /** Reject a card (#1497). Filed on the spot: `sessionId` is set only by rules that still
+   *  reject by a run. */
+  rejectCard(id: number, reason: string, discard: boolean): Promise<StartAnswer>;
+
   // ---- the delivery in flight ----------------------------------------------
   discardDelivery(deliveryId: string): Promise<StartAnswer>;
   /** Carry an ended delivery on from where it stopped (#639). */

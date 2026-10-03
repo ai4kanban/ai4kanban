@@ -69,7 +69,7 @@ const SUPPORTED = yesNo(
 )
 
 const REJECTED = yesNo(
-  'Was the idea this `item` asks for turned down before, as the `rejected.md` and `dismissed.md` notes record?',
+  'Was the idea this `item` asks for turned down before, as the `rejected.md` notes record?',
   'a note records the same idea, or the kind of item it is, as turned down.',
   'no note turns down this idea.',
 )
@@ -208,7 +208,7 @@ export interface Judgement {
 export function judgementState(item: Signal, questions: Record<string, unknown>): Judgement {
   const product = read(PROJECT_MD)
   const readme = onlyStarter('project.md', product) ? read(path.join(REPO_ROOT, 'README.md')) : ''
-  const memory: Kept[] = [...plannerCopies('rejected.md'), ...plannerCopies('dismissed.md')]
+  const memory: Kept[] = plannerCopies('rejected.md')
     .map((file) => ({ file, lines: read(file).split('\n') }))
     .filter((kept) => kept.lines.some((line) => line.trim()))
   let readmeText = readme

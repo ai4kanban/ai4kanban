@@ -38,6 +38,7 @@ export type AgentAction =
   /** Retired (#1414): one pass of a recurring card. Repeating work is a `scheduled` pass
    *  now; this stays so the runs already recorded still read back as what they were. */
   | 'run'
+  /** Retired (#1497): a rejection is filed on the spot. Stays so old runs read back. */
   | 'reject'
   | 'archive'
   | 'edit'
@@ -100,9 +101,9 @@ export type AgentAction =
    *  new content since the last review that passed. Chats write no memory themselves, so
    *  this is the only thing that turns what a conversation settled into a note. */
   | 'review-memory'
-  /** Learn the user's triage preferences from their dismissal reasons (#929) — the dismissal
-   *  reviewer's one flow. It names no card: the flow lists the new reasons and the restored
-   *  items, and it writes only the planner's `dismissed.md`. */
+  /** Learn what the user does not want from their rejection and dismissal reasons (#929,
+   *  #1497) — the dismissal reviewer's one flow. It names no card: the flow lists the new
+   *  reasons and the restored items, and it writes only the planner's `rejected.md`. */
   | 'review-dismissals'
   /** Rewrite `memory/project.md`, what the project is today (#1268) — the project writer's
    *  one flow. It names no card and writes only that file. */
@@ -243,9 +244,9 @@ export interface TriageAsk {
 export type StartableAction = Exclude<AgentAction, RetiredAction>
 
 /** The actions no flow starts any more. */
-export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run'
+export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run' | 'reject'
 
-const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run'])
+const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run', 'reject'])
 
 /** Whether nothing starts this action any more — it only reads back off an old record. */
 export const isRetired = (action: AgentAction): action is RetiredAction => RETIRED.has(action)
