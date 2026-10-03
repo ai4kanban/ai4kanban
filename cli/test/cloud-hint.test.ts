@@ -429,3 +429,56 @@ async function join(): Promise<void> {
   })
   await settle()
 }
+
+describe('the Landed pages (#1473)', () => {
+  /** Cloud's landed history, a page at a time, closing the bell or moving the board while the
+   *  first page is still on the wire. Past `cap` reads it fails, so a loop cannot hang the test. */
+  function landedCloud(meanwhile: () => void, next: (before: string | null) => string | null, cap = 10) {
+    const boardId = BOARD().id
+    let n = 0
+    return fakeCloud((url) => {
+      if (!url.includes('scope=landed')) return ok({ events: [], next: null })
+      n += 1
+      if (n > cap) return unreachable()
+      if (n === 1) meanwhile()
+      const before = new URL(url).searchParams.get('before')
+      const done = event(`l-${n}`, { boardId, state: 'completed', taskId: 100 + n })
+      return ok({ events: [done], next: next(before) })
+    })
+  }
+
+  const landedReads = (calls: string[]) => calls.filter((c) => c.includes('scope=landed')).length
+
+  /** What a poll with the Landed tab open asks for, left to read in the background. */
+  async function poll(): Promise<void> {
+    readCloudCenter({ todo: 30, landed: 60 })
+    for (let i = 0; i < 10; i += 1) await settle()
+  }
+
+  it('stops when the bell closes while a page is being read', async () => {
+    const calls = landedCloud(() => readCloudCenter({ todo: 30, landed: 0 }), () => 'c-1')
+    await poll()
+    assert.equal(landedReads(calls), 1)
+  })
+
+  it('stops when the center stops while a page is being read', async () => {
+    const calls = landedCloud(() => stopCloudCenter(), () => 'c-1')
+    await poll()
+    assert.equal(landedReads(calls), 1)
+  })
+
+  it('stops when the cursor does not move', async () => {
+    const calls = landedCloud(() => {}, () => 'c-1')
+    await poll()
+    assert.equal(landedReads(calls), 2)
+  })
+
+  it('still follows a moving cursor, a bounded number of pages per ask', async () => {
+    let i = 0
+    const calls = landedCloud(() => {}, () => `c-${(i += 1)}`, 100)
+    await poll()
+    assert.equal(landedReads(calls), 20)
+    await poll()
+    assert.equal(landedReads(calls), 40, 'the next ask carries on')
+  })
+})
