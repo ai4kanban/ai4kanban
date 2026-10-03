@@ -243,6 +243,19 @@ describe('what is queued', () => {
     assert.deepEqual(models, ['custom', 'custom', 'custom', 'zai/glm-4.6'])
   })
 
+  it("carries a chat turn's model and cost, on the same `custom` rule as a run", () => {
+    dayAlreadySent()
+    fs.writeFileSync(path.join(home, 'models-dev.json'), JSON.stringify({ fetchedAt: Date.now(), limits: { 'openai/gpt-5.5': 400_000 } }))
+    reportChatMessage({ model: 'gpt-5.5', costUsd: 0.0123, ownEndpoint: false })
+    reportChatMessage({ model: 'gpt-5.5', ownEndpoint: true })
+    reportChatMessage()
+    const [priced, own, bare] = queued().filter((e) => e.name === 'chat_message')
+    assert.equal(priced!.model, 'gpt-5.5')
+    assert.equal(priced!.cost_micros, 12_300)
+    assert.equal(own!.model, 'custom')
+    assert.ok(!('model' in bare!) && !('cost_micros' in bare!))
+  })
+
   it('says `custom` for every model before the catalogue was ever pulled', () => {
     dayAlreadySent()
     reportRun('finished', 'claude-code', false, { model: 'claude-opus-5-5', ownEndpoint: false })

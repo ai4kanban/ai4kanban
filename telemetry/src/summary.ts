@@ -34,9 +34,10 @@ export interface Totals {
 
 const firstRun = "name = 'app_open' AND json_extract(fields, '$.first_run') = 1"
 const customAgentsOn = "name = 'board_numbers' AND json_extract(fields, '$.custom_agents_on') > 0"
-const model = "COALESCE(json_extract(fields, '$.model'), 'unknown')"
+/** Chat turns (#1495) are one row, `(chat)`, beside the runs' models. */
+const model = "CASE name WHEN 'chat_message' THEN '(chat)' ELSE COALESCE(json_extract(fields, '$.model'), 'unknown') END"
 const cost = "json_extract(fields, '$.cost_micros')"
-const runEnd = "name IN ('run_finished', 'run_failed')"
+const ended = "name IN ('run_finished', 'run_failed', 'chat_message')"
 /** An install's cost on a day, in the bands `install_daily_cost` counts installs by. */
 const COST_BANDS = [
   [1_000_000, '<1'],
@@ -104,16 +105,16 @@ const BRANCHES = [
     `name || ' ' || COALESCE(json_extract(fields, '$.custom_agent'), 0) AS key, ` +
     `COUNT(*) AS n FROM d WHERE name IN ('run_started', 'run_finished', 'run_failed') GROUP BY 1, 3`,
   // #1474. `glm-4.6 1` is runs of that model that carried a cost, which a cost per run
-  // divides by; a run from an older sender carries neither field and is left out.
+  // divides by; a run or chat turn from an older sender carries neither field and is left out.
   `SELECT day AS day, 'run_model' AS dim, ${model} || ' ' || (${cost} IS NOT NULL) AS key, ` +
-    `COUNT(*) AS n FROM d WHERE ${runEnd} AND (json_extract(fields, '$.model') IS NOT NULL ` +
+    `COUNT(*) AS n FROM d WHERE ${ended} AND (json_extract(fields, '$.model') IS NOT NULL ` +
     `OR ${cost} IS NOT NULL) GROUP BY 1, 3`,
   `SELECT day AS day, 'model_cost_micros' AS dim, ${model} AS key, SUM(${cost}) AS n ` +
-    `FROM d WHERE ${runEnd} AND ${cost} IS NOT NULL GROUP BY 1, 3`,
-  // Installs by what their priced runs cost that day, in dollars. Only the bands leave here.
+    `FROM d WHERE ${ended} AND ${cost} IS NOT NULL GROUP BY 1, 3`,
+  // Installs by what their priced runs and chat turns cost that day, in dollars. Only the bands leave here.
   `SELECT day AS day, 'install_daily_cost' AS dim, band AS key, COUNT(*) AS n FROM (` +
     `SELECT day, CASE ${COST_BANDS.map(([under, band]) => `WHEN SUM(${cost}) < ${under} THEN '${band}'`).join(' ')} ` +
-    `ELSE '100+' END AS band FROM d WHERE ${runEnd} AND ${cost} IS NOT NULL GROUP BY day, install_id` +
+    `ELSE '100+' END AS band FROM d WHERE ${ended} AND ${cost} IS NOT NULL GROUP BY day, install_id` +
     `) GROUP BY 1, 3`,
   // Who has any of their own agents on; `board.custom_agents_on` is how many in all.
   spread('custom_agents', "'installs'", customAgentsOn, true),
