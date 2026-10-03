@@ -1,0 +1,3 @@
+$ wrangler dev --env="" --port 8796 --var COMMIT:9f082156   # locally, with the commit deploy.mjs computed for HEAD
+$ curl -s http://127.0.0.1:8796/health
+{"service":"ai4kanban-telemetry","ok":true,"commit":"9f082156"}

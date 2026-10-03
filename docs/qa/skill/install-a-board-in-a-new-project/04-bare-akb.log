@@ -1,4 +1,94 @@
 $ akb
-akb: (outputHelp)
-(exit 1)
+
+Usage: akb [options] [command]
+
+set up a board, and put an agent to work on it.
+
+Options:
+  --board <dir>                          the board folder to work on (or AI4KANBAN_BOARD); beats
+                                         --dir
+  --dir <path>                           the project to work on (default: the nearest board at or
+                                         above this folder)
+  --json                                 answer as one JSON object instead of prose
+  -v, --version                          print this version
+  -h, --help                             display help for command
+
+Commands:
+  install [options]                      scaffold docs/kanban/ — the board, and nothing else
+  skill [options]                        whether a coding agent can drive this board
+  update [options]                       refresh an installed skill, repair an older board, and say
+                                         if a newer command is out
+  card [options]                         one card: build it, sharpen it, change it, finish it
+  delivery [options]                     the build in flight on a card
+  run [options]                          the agent processes — what is going, and what went
+  release [options]                      a version being planned
+  triage [options]                       what is waiting to be sorted
+  create [options] <what...>             write the card(s) for it
+  setup [options]                        finish setting the board up
+  prune-memory [options]                 squeeze the memory back down to what helps planning
+  review-memory [options]                read the archived cards' conversations, and write down what
+                                         they settled
+  review-dismissals [options]            learn the user's triage preferences from their dismissal
+                                         reasons
+  describe-project [options]             rewrite the project description the planning flows read
+  spec [options] [agent] [id] [note...]  a named agent that fills one part of a card's spec
+  chat [options] [id] [message...]       a conversation that also does the board work
+  agent [options]                        what runs the board, and how it is set up
+  cloud [options]                        the account this MACHINE acts as
+  telemetry [options]                    whether this MACHINE reports anonymous usage
+  workflow [options]                     the workflows this board runs, and who runs each of their
+                                         stages
+  guide [options] [topic]                the flows the board works by, shipped with this command
+  raw [move...]                          write the board's files directly, with no agent: ids, a
+                                         card's fields, the index
+  help [command]                         this list, or one command in full
+(exit 0, stderr 0 bytes)
+
+$ akb raw
+Usage: akb raw [options] [command]
+
+the board's bookkeeping. The agent calls these between runs; a person never has to type one. They
+own docs/kanban/next-id, a card's frontmatter and metrics.csv — write and edit only a card's body.
+
+Options:
+  --board <dir>                               the board folder to work on (or AI4KANBAN_BOARD);
+                                              beats --dir
+  --dir <path>                                the project to work on (default: the nearest board at
+                                              or above this folder)
+  --json                                      answer as one JSON object instead of prose
+  -h, --help                                  display help for command
+
+Commands:
+  create [options]                            write exactly one card — its fields, its body template
+                                              and its index entry
+  update [options] <id>                       rewrite a card's fields
+  update-questions [options] <id>             patch a card's open questions: append, rewrite, drop,
+                                              skip, or clear
+  schedule [options] <id>                     hand a run to the board, to start by itself
+  tag [options] <id> <positions> <tag>        mark questions as the human's call, or clear the mark
+  plan [options] <move>                       save a discussion plan in this checkout
+  case [options] <move> [card-id]             the partner submission this discussion's user shared
+  discussion [options] <move>                 the discussions this board is holding
+  chats-reviewed [options] <conversation...>  mark conversations as read by the memory review
+  validate [options] [id]                     validate card format and report file, line, and repair
+                                              instructions
+  spec-write [options] <id> <agent>           write a spec agent's own section onto the card
+  rule [options] <agent>                      set one agent's rule, in the user's own words
+  agent-file [options] <agent> <path>         print one file from an agent's own folder
+  list [options]                              the open cards: id, title, meta, summary, path — or,
+                                              with --archived, the cards that landed
+  archive [options] <id>                      finish a card
+  reject [options] <id>                       drop a card
+  release [options]                           the versions being planned
+  init [options]                              scaffold docs/kanban/; on an existing board add only
+                                              what is missing
+  setup-done [options] <step>                 tick one setup step; the tick that closes the last one
+                                              ends setup
+  setup-status [options]                      how far setup got and what comes next
+  migrate [options]                           convert cards written before frontmatter
+  peek [options]                              the next free id, without taking it
+  metrics [options]                           print metrics.csv
+  version                                     print the installed version
+  help [move]                                 this list, or one move in full
+(exit 0, stderr 0 bytes)
 

@@ -1,0 +1,8 @@
+$ cd telemetry && npm run check:live   # a fresh copy of the repository, before npm install
+
+> ai4kanban-telemetry@0.1.0 check:live
+> node scripts/check-live.mjs
+
+wrangler is not installed: run `npm install` in telemetry/.
+$ echo $?
+2

@@ -1,0 +1,12 @@
+$ node scripts/deploy.mjs --dry-run --env=""   # what `npm run deploy` runs after migrating; --dry-run uploads nothing
+Total Upload: 42.30 KiB / gzip: 12.00 KiB
+Your Worker has access to the following bindings:
+Binding                                        Resource                  
+env.LIMITER (AddressHour)                      Durable Object            
+env.DB (ai4kanban-telemetry)                   D1 Database               
+env.ARCHIVE (ai4kanban-telemetry-archive)      R2 Bucket                 
+env.CASES (ai4kanban-cases)                    R2 Bucket                 
+env.COPY ("production")                        Environment Variable      
+env.COMMIT ("(hidden)")                        Environment Variable      
+
+--dry-run: exiting now.

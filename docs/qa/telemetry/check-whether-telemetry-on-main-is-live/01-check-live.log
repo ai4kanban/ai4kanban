@@ -1,0 +1,11 @@
+$ cd telemetry && npm run check:live   # a worktree without node_modules; wrangler comes from the main checkout
+
+> ai4kanban-telemetry@0.1.0 check:live
+> node scripts/check-live.mjs
+
+Live: commit unknown, 3 migrations applied.
+The live Worker does not report its commit: it was not deployed with `npm run deploy`.
+$ echo $?
+1
+$ curl -s https://t.ai4kanban.dev/health
+{"service":"ai4kanban-telemetry","ok":true}
