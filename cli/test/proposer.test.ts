@@ -252,6 +252,22 @@ describe('the flow', () => {
     assert.doesNotMatch(printed, /none yet/)
   })
 
+  it("names the card's own modules' rejections and the triage preferences once they exist", async () => {
+    open(1)
+    const file = path.join(TODO(), '1-card.md')
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('modules: []', 'modules: [cli]'))
+    complete(1)
+    const planner = path.join(kanban(), 'memory', 'agents', 'planner')
+    assert.doesNotMatch(await reflect(), /^ +docs\/kanban\/memory\/agents\/planner\/(cli\/rejected|dismissed)\.md$/m)
+    for (const rel of ['cli/rejected.md', 'web/rejected.md', 'dismissed.md']) {
+      fs.mkdirSync(path.dirname(path.join(planner, rel)), { recursive: true })
+      fs.writeFileSync(path.join(planner, rel), '- **x**: y\n')
+    }
+    const printed = await reflect()
+    assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/dismissed\.md/)
+    assert.doesNotMatch(printed, /planner\/web\/rejected\.md/)
+  })
+
   it('gives the memory review the misses file', async () => {
     const printed = await said(() => printFlow({ action: 'review-memory' }))
     assert.match(printed, /memory\/agents\/proposer\/missed\.md — a follow-up the user says the proposer missed/)
