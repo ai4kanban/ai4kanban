@@ -65,10 +65,3 @@ export async function planningStarted(
     // Unrecorded, so reopening Discuss offers the run again rather than saying it is going.
   }
 }
-
-/** The plan paths a run is pointed at — every open plan (#917), as the project spells them,
- *  which is how the read already carries them. Empty when the conversation is writing none. */
-export async function plansToPlanFrom(target: ChatTarget = null): Promise<string[]> {
-  const read = await readDiscuss(target);
-  return (read.plans ?? (read.plan ? [read.plan] : [])).map((p) => p.path);
-}

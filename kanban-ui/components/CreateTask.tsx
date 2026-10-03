@@ -23,6 +23,7 @@ import {
   startDiscussionAction,
   startPlanBuildAction,
   startPlanningAction,
+  type PlanPick,
 } from "@/app/actions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuLightbulb } from "react-icons/lu";
@@ -43,6 +44,7 @@ import { dropPictures } from "@/lib/picture-box";
 import { usePhone } from "@/lib/media";
 import { cardChat } from "@/lib/chat-open";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
+import type { StartResult } from "@/lib/registry";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import { Button } from "./button";
 import { useChatRailHere } from "./Chat";
@@ -100,9 +102,10 @@ export function CreateTask({
   // rather than single because the reader may pick another discussion up while the request is
   // out: only the one that pressed goes down, and the one picked up is live and startable.
   const starting = useStarting();
-  // Why the last start on the discussion the sheet is holding never came up. It lives here
-  // rather than in the sheet so an answer pressed on one discussion cannot say it on another.
-  const [failure, setFailure] = useState<StartFailure | null>(null);
+  // Why the last start on the discussion the sheet is holding never came up, by the plan it
+  // was pressed on — "" is the pair under every plan (#1442). It lives here rather than in the
+  // sheet so an answer pressed on one discussion cannot say it on another.
+  const [failures, setFailures] = useState<Record<string, StartFailure>>({});
   // The discussion whose Start now went through Plan tasks instead.
   const [rerouted, setRerouted] = useState<string | null>(null);
 
@@ -133,7 +136,7 @@ export function CreateTask({
     setOpen(false);
     setDiscussion(null);
     setError(null);
-    setFailure(null);
+    setFailures({});
   }, [setError]);
 
   // Going anywhere else closes the sheet and keeps the discussion (#888): a press on the
@@ -188,7 +191,7 @@ export function CreateTask({
   // Words handed over with the ask (#1193) always go to a fresh one, after its draft.
   const openFresh = useCallback(async (prefill?: string, triage?: string) => {
     setError(null);
-    setFailure(null);
+    setFailures({});
     if (phone && discussion && !prefill) return setOpen(true);
     // Opened after the discussion is in hand, so the sheet never paints a frame of the last
     // subject's exchange on its way to the new one.
@@ -238,7 +241,7 @@ export function CreateTask({
     if (!asked || asked === seen.current) return;
     seen.current = asked;
     setError(null);
-    setFailure(null);
+    setFailures({});
     // A row named the discussion it is picking back up; the empty board's ask names none, so
     // it opens a fresh one exactly as the button does.
     if (asked.discussion) {
@@ -267,66 +270,75 @@ export function CreateTask({
 
   const { watch } = useAgentSessions(onFinish);
 
-  // The two answers under the plan handoff that start a run (#427, #481). The screen stays up
-  // until a run is actually going (#706): a start can be refused — uncommitted changes, a
-  // build already working in this checkout — and closing first left the reader with no window,
-  // no answers and no way to press again. Which plan is the board's own to say, so nothing
-  // about it is sent from here; only the release on screen is, and the words the answer put in
-  // the transcript, which the start writes once the run is up.
+  // The two answers under the plan handoff that start a run (#427, #481), for one plan or
+  // every one still waiting (#1442). The screen stays up until a run is actually going (#706):
+  // a start can be refused, and closing first left the reader with no way to press again.
+  // Only the paths and their workflows are sent; the server checks them against the
+  // discussion.
   //
   // Everything after the await is about the discussion the answer was PRESSED on, which may no
-  // longer be the one on screen: a rail row hands another one over while the request is out,
-  // and a window Esc closed is gone altogether. So the outcome goes wherever that discussion
-  // still is — this window, its row in the rail, or, at phone width where there is no rail,
-  // under the button.
+  // longer be the one on screen: the outcome goes wherever that discussion still is — this
+  // window, its row in the rail, or, at phone width, under the button.
   const startFromPlan = useCallback(
-    async (answer: PlanAnswer, workflow?: string) => {
+    async (answer: PlanAnswer, picks: PlanPick[], all: boolean, ends: boolean) => {
       const on = discussion;
       const key = askedOn(on);
       if (asking.has(key)) return;
       asking.add(key);
-      createSheet.starting(key, answer);
-      setFailure(null);
+      createSheet.starting(key, { answer, paths: all ? null : picks.map((p) => p.path) });
+      setFailures({});
       setRerouted(null);
       createSheet.startCleared(on);
-      const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
-      let res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start, workflow);
+      const said = answer === "build" ? plan.build : plan.start;
+      const runs: { path: string | null; res: StartResult }[] = [];
+      if (answer === "build") {
+        const res = await startPlanBuildAction(release ?? undefined, on, said, undefined, picks);
+        runs.push(...(res.each ?? [{ path: null, result: res }]).map((e) => ({ path: e.path, res: e.result })));
+      }
       // A connector that can't take the discussion into the build plans it instead (#1246).
-      if (answer === "build" && res.reason === "chatNoFork") {
+      if (answer === "build" && runs.some((r) => r.res.reason === "chatNoFork")) {
         answer = "plan";
         setRerouted(key);
-        res = await startPlanningAction(release ?? undefined, on, plan.start, workflow);
+        runs.length = 0;
+      }
+      if (answer === "plan") {
+        runs.push({ path: null, res: await startPlanningAction(release ?? undefined, on, said, undefined, picks) });
       }
       asking.delete(key);
       createSheet.starting(key, null);
       // A run needs an id to be watched and tailed, so a yes with none is a start that did not
-      // happen — said as one rather than leaving the window on "Starting…".
-      if (res.ok && res.sessionId && answer === "plan") {
-        // The discussion stays up, shut, while its cards are written (#1213).
-        if (held.current !== on) forget(on);
-        quiet.current.add(res.sessionId);
-        watch(res.sessionId, "Plan tasks");
-        return;
+      // happen.
+      const went = runs.filter((r) => r.res.ok && r.res.sessionId);
+      const refused = runs.filter((r) => !r.res.ok || !r.res.sessionId);
+      for (const r of went) {
+        const id = r.res.sessionId!;
+        // Plan tasks keeps the discussion up, shut, while its cards are written (#1213), and so
+        // does any handoff that leaves a plan still waiting (#1442).
+        if (answer === "plan" || !ends) quiet.current.add(id);
+        watch(id, answer === "plan" ? "Plan tasks" : "Start now");
       }
-      if (res.ok && res.sessionId) {
-        // The run is going, which is where the board archives the discussion it was handed
-        // (#551) — so the screen lets go of it too (#610). Unless the reader has picked up
-        // another subject in the meantime; that one is not over.
+      if (went.length && answer === "build" && ends && !refused.length) {
+        // The last plan is handed over, which is where the board archives the discussion
+        // (#551) — so the screen lets go of it too (#610), unless another one is up now.
         if (held.current === on) freshen();
         else forget(on);
-        // The server started it, so it is `watch` and not `start` that takes it on — otherwise
-        // the card it writes would not reach the board until something else re-read it.
-        watch(res.sessionId, "Start now");
-        sessionsPanel.open(res.sessionId);
+        sessionsPanel.open(went[0]!.res.sessionId!);
         return;
       }
-      const why = startFailure(res, plan.failed);
-      // Still looking at it: the window says it under the three answers, which are live again.
-      if (openHere.current && held.current === on) return setFailure(why);
+      if (went.length && held.current !== on && answer === "plan" && ends) forget(on);
+      if (!refused.length) return;
+      // Said under the row it was pressed on, or under the pair for a press on every plan.
+      const whys = refused.map((r) => ({
+        at: all && (answer === "plan" || r.path === null) ? "" : (r.path ?? picks[0]?.path ?? ""),
+        why: startFailure(r.res, plan.failed),
+      }));
+      if (openHere.current && held.current === on) {
+        return setFailures(Object.fromEntries(whys.map((w) => [w.at, w.why])));
+      }
       // Gone elsewhere. A discussion has a row to mark; at phone width it has none, and the
       // button is the only thing left on screen to say it on.
-      if (on && !phone) createSheet.startFailed(on, failureText(why));
-      else setError(failureText(why));
+      if (on && !phone) createSheet.startFailed(on, failureText(whys[0]!.why));
+      else setError(failureText(whys[0]!.why));
     },
     [release, discussion, watch, freshen, phone, plan, setError],
   );
@@ -380,10 +392,9 @@ export function CreateTask({
             if (heldByButton.unspoken === discussion) heldByButton.unspoken = null;
           }}
           starting={starting[askedOn(discussion)] ?? null}
-          failure={failure}
+          failures={failures}
           rerouted={rerouted === askedOn(discussion)}
-          onPlan={(workflow) => void startFromPlan("plan", workflow)}
-          onBuildPlan={(workflow) => void startFromPlan("build", workflow)}
+          onHandoff={(answer, picks, all, ends) => void startFromPlan(answer, picks, all, ends)}
           onBecame={becameCard}
         />
       )}

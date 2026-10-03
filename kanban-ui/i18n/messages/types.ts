@@ -52,7 +52,7 @@ export type MessagesCopy = {
     emptyChat: string;
     /** Plan tasks was pressed on a discussion that is writing no plan. */
     noPlan: string;
-    onePlan: string;
+    planHanded: string;
     /** Export was pressed with no folder named. */
     exportFolder: string;
   };

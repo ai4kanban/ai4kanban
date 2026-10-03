@@ -168,6 +168,8 @@ export interface AgentRequest {
   /** create: two or more plans one discussion wrote, handed off together (#917), each a path
    *  from the project root. One plan goes as `plan`. */
   plans?: string[]
+  /** create: the workflow each plan's cards run on (#1442), keyed by the plan's path. */
+  planWorkflows?: Record<string, string>
   /** create: the conversation whose own agent session writes the cards (#1026), as its
    *  transcript key — a discussion's Plan tasks. implement: the one Start now forks (#1246). */
   chat?: string
@@ -1341,8 +1343,22 @@ export interface DiscussRead {
    *  be started again. `answer` is which answer started it, so the line under the plan names
    *  a build rather than a planning pass (#481). Null when none has been started. */
   run: { sessionId: string; running: boolean; answer: PlanAnswer } | null
-  /** The cards this discussion became (#1213). The discussion is closed once it has any. */
+  /** The cards this discussion became (#1213), once no plan is left to hand off. */
   became?: { id: number; title: string }[]
+  /** Every plan to draw a handoff row for (#1442), oldest first: the open ones and the ones
+   *  already written into cards. Absent on rules older than per-plan handoff. */
+  rows?: HandoffRow[]
+}
+
+/** One plan's own handoff (#1442): open, handed to a run, or written into cards. */
+export interface HandoffRow {
+  path: string
+  title: string
+  workflow?: string
+  /** The run it was handed to: still working, or one that wrote no card. */
+  run?: { sessionId: string; running: boolean; answer: PlanAnswer }
+  /** The cards it was written into; the row is done. */
+  cards?: { id: number; title: string }[]
 }
 
 /** What sending one message came back with. */

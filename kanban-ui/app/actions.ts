@@ -71,7 +71,7 @@ import {
   dropRunPicture,
   emptyRunBox,
 } from "@/lib/create-pictures";
-import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, plansToPlanFrom, readDiscuss } from "@/lib/discuss";
+import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, readDiscuss } from "@/lib/discuss";
 import {
   archiveDiscussion,
   asDiscussion,
@@ -779,76 +779,120 @@ export async function readDiscussAction(discussion: string | null = null): Promi
   return { ...read, supported };
 }
 
+/** One plan a handoff takes (#1442), and the workflow its cards run on — none is the board's
+ *  default. */
+export interface PlanPick {
+  path: string;
+  workflow?: string;
+}
+
 /**
- * Plan tasks: the run that turns the discussion's open plans into cards (#917).
+ * Plan tasks: one run that turns the picked plans into cards (#917, #1442). None picked is
+ * every open one, which is what a screen older than per-plan handoff sends.
  *
- * The plan's path is read here rather than taken from the browser — the path reaches a
- * prompt, and the only file this may ever point at is the one the board's own conversation
- * says it is writing. `release` is what the board was showing, so the cards land in it.
+ * Only the paths are taken from the browser, and only ones this discussion is still waiting
+ * to hand off: a path reaches a prompt. `release` is what the board was showing, so the cards
+ * land in it.
  */
 export async function startPlanningAction(
   release?: string,
   discussion: string | null = null,
   answer?: string,
   workflow?: string,
+  picks?: PlanPick[],
 ): Promise<StartResult> {
-  return startFromPlan("create", "plan", release, discussion, answer, workflow);
+  const target = (await chatTarget(discussion)) ?? null;
+  const plans = await pickedPlans(target, picks, workflow);
+  if (!Array.isArray(plans)) return plans;
+  const workflows = new Set(plans.map((p) => p.workflow ?? ""));
+  return startFromPlan("create", "plan", target, plans, release, answer, {
+    // One workflow for the run; several go one per plan.
+    ...(workflows.size === 1 && plans[0]!.workflow ? { workflow: plans[0]!.workflow } : {}),
+    ...(workflows.size > 1
+      ? { planWorkflows: Object.fromEntries(plans.flatMap((p) => (p.workflow ? [[p.path, p.workflow]] : []))) }
+      : {}),
+  });
 }
 
 /**
- * Start now under the plan handoff (#481): the Create sheet's own Start now, pointed at the plan
- * instead of a typed sentence — one run writes a card from it and builds it, refining nothing
- * and reviewing nothing.
- *
- * The plan is read here for the same reason Plan tasks reads it here: the path reaches a
- * prompt, and the only file this may ever point at is the one the board's own conversation
- * says it is writing.
+ * Start now under the plan handoff (#481): one run per picked plan, each writing a card from
+ * it and building it, refining nothing and reviewing nothing. `each` is how every one went,
+ * so a refusal is said on its own plan's row (#1442); the top-level result is the first
+ * refusal, or the first run.
  */
 export async function startPlanBuildAction(
   release?: string,
   discussion: string | null = null,
   answer?: string,
   workflow?: string,
-): Promise<StartResult> {
-  return startFromPlan("implement", "build", release, discussion, answer, workflow);
+  picks?: PlanPick[],
+): Promise<StartResult & { each?: { path: string; result: StartResult }[] }> {
+  const target = (await chatTarget(discussion)) ?? null;
+  const plans = await pickedPlans(target, picks, workflow);
+  if (!Array.isArray(plans)) return plans;
+  const each: { path: string; result: StartResult }[] = [];
+  for (const plan of plans) {
+    const result = await startFromPlan("implement", "build", target, [plan], release, each.length ? undefined : answer, {
+      ...(plan.workflow ? { workflow: plan.workflow } : {}),
+    });
+    each.push({ path: plan.path, result });
+    // A connector that cannot fork refuses every one the same way (#1246).
+    if (result.reason === "chatNoFork") break;
+  }
+  const first = each.find((e) => !e.result.ok || !e.result.sessionId) ?? each[0]!;
+  return { ...first.result, each };
+}
+
+// The plans a handoff is pointed at, read here rather than trusted from the browser: only
+// the ones this discussion says it is writing, and is still waiting to hand off.
+async function pickedPlans(
+  target: ChatTarget | null,
+  picks: PlanPick[] | undefined,
+  workflow?: string,
+): Promise<PlanPick[] | StartResult> {
+  const read = await readDiscuss(target);
+  const waiting = (read.rows ?? (read.plans ?? (read.plan ? [read.plan] : [])).map((p) => ({ ...p, run: undefined, cards: undefined })))
+    .filter((r) => !r.cards?.length && !r.run?.running)
+    .map((r) => r.path);
+  const copy = (await machineCopy()).messages.actions;
+  if (!waiting.length) return { ok: false, error: copy.noPlan, reason: "noPlan" };
+  const one = typeof workflow === "string" && workflow.trim() ? workflow.trim() : undefined;
+  if (!picks?.length) return waiting.map((path) => ({ path, workflow: one }));
+  if (!picks.every((p) => typeof p?.path === "string" && waiting.includes(p.path))) {
+    return { ok: false, error: copy.planHanded, reason: "planHanded" };
+  }
+  return picks.map((p) => ({
+    path: p.path,
+    workflow: typeof p.workflow === "string" && p.workflow.trim() ? p.workflow.trim() : undefined,
+  }));
 }
 
 async function startFromPlan(
   action: "create" | "implement",
   answer: PlanAnswer,
+  target: ChatTarget | null,
+  plans: PlanPick[],
   release?: string,
-  discussion: string | null = null,
   said?: string,
-  workflow?: string,
+  flow: { workflow?: string; planWorkflows?: Record<string, string> } = {},
 ): Promise<StartResult> {
-  // Which discussion's plan is the board's own to say: the browser names the discussion, and
-  // the path is read here — so the only file a run may ever be pointed at is the one that
-  // discussion says it is writing (#496).
-  const target = (await chatTarget(discussion)) ?? null;
-  const plans = await plansToPlanFrom(target);
-  if (!plans.length) return { ok: false, error: (await machineCopy()).messages.actions.noPlan, reason: "noPlan" };
-  // Start now writes one card from one plan; several go through Plan tasks (#917).
-  if (action === "implement" && plans.length > 1) {
-    return { ok: false, error: (await machineCopy()).messages.actions.onePlan, reason: "onePlan" };
-  }
+  const paths = plans.map((p) => p.path);
   const request = await prepareAgentRequest({
     action,
-    ...(plans.length === 1 ? { plan: plans[0] } : { plans }),
+    ...(paths.length === 1 ? { plan: paths[0] } : { plans: paths }),
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
-    // The workflow the new card runs through (#715); none is the board's default.
-    ...(typeof workflow === "string" && workflow.trim() ? { workflow: workflow.trim() } : {}),
+    // The workflow the new card(s) run through (#715); none is the board's default.
+    ...flow,
     // Plan tasks is said into the discussion's own session (#1026); Start now forks it (#1246).
     ...(typeof target !== "number" ? { chat: target ?? "board" } : {}),
   });
   const started = await startSession(request, await buildPrompt(request));
   if (!started.ok || !started.sessionId) return started;
   // The answer goes into the transcript only once the run is going (#706): a refused start
-  // leaves the screen up to be pressed again, and writing it at the press left a retry
-  // stacking the same sentence and a dead screen behind it. Before the archive below, which
-  // is what the shared submission reads (#659) — after it the sentence would be missing from
-  // what went out.
+  // leaves the screen up to be pressed again. Before the handoff below, which is what the
+  // shared submission reads (#659).
   if (typeof said === "string" && said.trim()) await noteAnswer(said.trim(), target);
-  await planningStarted(started.sessionId, answer, target, plans);
+  await planningStarted(started.sessionId, answer, target, paths);
   return started;
 }
 

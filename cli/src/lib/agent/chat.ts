@@ -526,7 +526,8 @@ export function clearChatPlan(cardId: ChatTarget, planPath?: string, cards?: num
   return true
 }
 
-/** The cards a discussion became (#1213), oldest first. Once it has any it is closed. */
+/** The cards a discussion became (#1213), oldest first. It is closed once it has any and no
+ *  plan is left to hand off (#1442). */
 export function becameCards(chat: Chat | null): number[] {
   return [...new Set((chat?.plans ?? []).flatMap((p) => p.cards ?? []))]
 }
@@ -686,7 +687,7 @@ export function noteChatMessage(cardId: ChatTarget, text: string): void {
 // runtime for at all — there is nothing left that could pick its session up.
 function blockedBy(cardId: ChatTarget, chat: Chat | null, fromBoard = false): RunRefusal | undefined {
   // The board's own turn (the submission an end makes) still lands in a closed discussion.
-  if (!fromBoard && isDiscussion(cardId) && becameCards(chat).length) {
+  if (!fromBoard && isDiscussion(cardId) && becameCards(chat).length && !openPlans(chat).length) {
     return refusal('chatClosed', 'this discussion became cards. Carry on in one of them.')
   }
   const agent = chatAgent(runtimeOf(chat))

@@ -11,7 +11,7 @@ import type { RefusalArgs, RunReason, RunRefusal, RunRefusalKind } from "./forma
 
 /** Every refusal the copy has a sentence for: the board's kinds, and the few the app answers
  *  with itself. */
-export type RefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "onePlan" | "rules";
+export type RefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "planHanded" | "rules";
 
 /** Anything that failed, as a server action hands it to the screen. `raw` marks an `error`
  *  that is the board's own English, not yet said in the user's language. */
