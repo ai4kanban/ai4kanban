@@ -13,6 +13,7 @@
 - [建一张卡，让看板把它规划好](skill/create-a-card-and-let-it-plan/case.md)
 - [升级后查看 QA 管理员从「执行之后」搬到了哪里](skill/find-the-qa-manager-on-a-schedule-after-upgrading/case.md)
 - [在新项目里装好看板](skill/install-a-board-in-a-new-project/case.md)
+- [卡片落地后，把 QA 的活留给开着的 QA 管理员](skill/leave-qa-work-to-the-qa-manager-after-a-card-lands/case.md)
 - [列出某个时间以来落地的卡片](skill/list-the-cards-that-landed-since-a-time/case.md)
 - [对话 Agent 还在跑命令时退出看板](skill/quit-the-board-while-a-chat-agent-is-running-commands/case.md)
 - [带着原因否决一张卡](skill/reject-a-card-with-a-reason/case.md)
@@ -64,7 +65,7 @@
 
 ### marketing
 
-待补写。还没有场景。
+已补写，没有场景：这个模块是写在看板上的宣传工作本身（官网文案、帖子、邮件简报），不是产品功能；用户能碰到的退订、下载等页面都在 site。
 
 ## 待补写
 
@@ -93,7 +94,7 @@
   - 打开工作区的看板
   - 查看账单与订阅
   - 退出登录
-- **telemetry**、**marketing**：不预定场景，补写时从真实产品里选；没有用户会操作的行为时，标为已补写并写明原因。
+- **telemetry**：不预定场景，补写时从真实产品里选；没有用户会操作的行为时，标为已补写并写明原因。
 
 ## 取证环境
 
