@@ -789,6 +789,8 @@ export interface Signal {
   sourceType: string
   /** Whatever else its source said about it, in the order the file writes it. */
   meta: SignalMeta[]
+  /** The agent whose run added it (#1475), or absent when no run did. */
+  agent?: string
   /** The thing itself, when there is one to open. Empty otherwise. */
   url: string
   /** When it was collected, `YYYY-MM-DD HH:MM` local. What the list sorts on. */
@@ -886,6 +888,8 @@ export interface InboxDrop {
   source?: string
   /** A short English name for the item's file (#1263). Absent, the title names it. */
   slug?: string
+  /** The agent whose run is adding it (#1475). */
+  agent?: string
 }
 
 /** What one add did. The failure carries the one sentence the page shows. */

@@ -558,9 +558,9 @@ describe("the QA manager, Coding's scheduled agent (#1402)", () => {
   }
   const savedNow = () => JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8')).workflows
 
-  it('runs every day on a board that saved nothing, follows no build, and is no other built-in’s', () => {
+  it('runs on auto on a board that saved nothing, follows no build, and is no other built-in’s', () => {
     assert.deepEqual(hooks('coding'), [])
-    assert.deepEqual({ off: qa().off, cadence: qa().cadence, extra: qa().extra }, { off: undefined, cadence: '1d', extra: '' })
+    assert.deepEqual({ off: qa().off, cadence: qa().cadence, extra: qa().extra }, { off: undefined, cadence: 'auto', extra: '' })
     for (const flow of workflowViews().filter((w) => w.builtIn && w.id !== 'coding')) assert.deepEqual(flow.scheduled, [])
     savedBefore()
     assert.equal(qa().off, undefined)

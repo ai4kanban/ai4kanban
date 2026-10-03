@@ -345,8 +345,8 @@ describe('the review the board starts on its own', () => {
     assert.equal(setMemoryReview({ enabled: true, cadence: 'whenever' }).ok, false)
     setMemoryReview({ enabled: true, cadence: '6h' })
     assert.deepEqual(await work(), [{ action: 'review-memory' }])
-    // Back at the default, nothing but the record is written down.
-    setMemoryReview({ enabled: true, cadence: '1d' })
+    // Back at auto, nothing but the record is written down.
+    setMemoryReview({ enabled: true, cadence: 'auto' })
     assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryReview.cadence, undefined)
   })
 

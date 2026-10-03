@@ -1805,14 +1805,22 @@ export type MemoryPruneSchedule = CadenceSchedule
 /** The board's own scheduled agents (#1464), by the key each is saved under. */
 export type BoardScheduleKey = 'memoryPrune' | 'dismissalReview' | 'projectDescription' | 'memoryReview'
 
+/** Why a scheduled agent that is on is not starting right now (#1475): its gap has not
+ *  passed, nothing new arrived, what it last sent to triage is unhandled, or a card is being
+ *  built. */
+export type ScheduleWait = 'tooSoon' | 'nothingNew' | 'unsorted' | 'building'
+
 /** One board schedule as a screen draws it — the shape a workflow's scheduled agent has too. */
 export interface BoardScheduleView {
   enabled: boolean
+  /** How often, or `auto` to leave it to the board (#1475). */
   cadence: string
   /** The stamp its next pass may start after, or empty while it is off. */
   nextRun: string
   /** That time has come, and there is nothing new for it to work on yet. */
   nothingNew?: boolean
+  /** Why it is not starting now. Absent while off, or due. */
+  waiting?: ScheduleWait
 }
 
 /** A project agent's own file, as its page holds it. */
@@ -1919,6 +1927,8 @@ export interface WorkflowScheduledView extends WorkflowScheduled {
   builtIn: boolean
   /** The stamp its next pass may start after, or empty when off or never looked at. */
   nextRun: string
+  /** Why it is not starting now. Absent while off, or due. */
+  waiting?: ScheduleWait
 }
 
 /** One agent as a workflow picker offers it. The two lines are the roster's own, so the

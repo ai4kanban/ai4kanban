@@ -23,6 +23,11 @@
 export const CADENCE_FORMS =
   '<N>m (minutes), <N>h (hours), <N>d (days), or <N>d at HH:MM (whole days, at that time of day) — e.g. 30m, 6h, 1d at 09:30'
 
+/** The setting that leaves the timing to the board (#1475): no cadence of its own. */
+export const AUTO_CADENCE = 'auto'
+
+export const isAuto = (cadence: string): boolean => cadence.trim().toLowerCase() === AUTO_CADENCE
+
 /** The units a cadence counts in. */
 export type CadenceUnit = 'm' | 'h' | 'd'
 

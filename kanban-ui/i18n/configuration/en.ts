@@ -208,7 +208,7 @@ const en: ConfigurationCopy = {
     },
   },
   agents: {
-    groups: { you: "You start", schedule: "On a schedule", event: "On an event" },
+    groups: { you: "You start", schedule: "On a schedule" },
     copyPath: "Copy path",
     rowOn: "On",
     rowOff: "Off",
@@ -259,9 +259,9 @@ const en: ConfigurationCopy = {
       proposer: {
         name: "Suggest follow-up work",
         gloss: "Proposes the work a finished card leaves behind.",
-        trigger: "After a card is archived",
+        trigger: "When cards finish",
         rule: 'Added to the end of every reflection it makes — "never propose more tests".',
-        when: "a card is archived. It reads that one card and puts what should follow it in Triage, to sort like anything else that arrives.",
+        when: "cards have finished, at most once an hour. It reads them and puts what should follow in Triage, to sort like anything else that arrives. It waits while what it added last time is still unsorted.",
         settings: {
           "small-fixes": {
             label: "Small fixes",
@@ -410,6 +410,7 @@ const en: ConfigurationCopy = {
       tomorrow: "tomorrow",
       inDays: (n) => `in ${n}d`,
       whenNew: "when there's something new",
+      auto: "Auto",
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,

@@ -26,6 +26,9 @@ export interface SpecAgent {
   /** Whether it runs by itself on its workflow's cadence (#1401) — `akb.hook: schedule`. It
    *  joins no stage, so `stage` is null. */
   schedule: boolean
+  /** The new input a scheduled agent runs on (#1475) — `akb.reads`. Absent: it runs on its
+   *  cadence alone. */
+  reads?: ScheduleReads
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
    *  the board's own `output` setting starts at, and a lead's for good. `agent` unless `akb.output` says so. */
   output: SpecOutput
@@ -85,7 +88,12 @@ export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /** Every `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts holds
  *  both written key tables to it. */
-export const AGENT_KEYS = ['lead', 'hook', 'output', 'i18n'] as const
+export const AGENT_KEYS = ['lead', 'hook', 'reads', 'output', 'i18n'] as const
+
+/** What `akb.reads` names (#1475): the new input whose arrival makes a scheduled agent due. */
+export const SCHEDULE_READS = ['archived-cards', 'commits', 'chats', 'dismissals'] as const
+export type ScheduleReads = (typeof SCHEDULE_READS)[number]
+export const isScheduleReads = (value: string): value is ScheduleReads => (SCHEDULE_READS as readonly string[]).includes(value)
 
 /** Why one `AGENT.md` can't be used: the line, and what a caller needs to say it its own way. */
 export interface AgentProblem {
@@ -164,6 +172,14 @@ export function parseSpecAgent(
   const stage = schedule ? null : (declared as WorkflowStage)
   const kind = ROLE_KEYS[role]
 
+  const declaredReads = str(akb.reads)
+  if (declaredReads && !schedule) {
+    return bad(`\`${name}\` declares \`akb.reads\`, which only a \`hook: ${SCHEDULE_HOOK}\` agent reads — remove it`)
+  }
+  if (declaredReads && !isScheduleReads(declaredReads)) {
+    return bad(`\`${name}\` declares \`akb.reads: ${declaredReads}\` — it is \`${SCHEDULE_READS.join('` or `')}\``)
+  }
+
   // Who its output is for, to start with. A spec agent's is the board's setting from here on;
   // a lead's stays what its file says (#868). Saying nothing gets `agent`, which is where a
   // section has always gone.
@@ -189,6 +205,7 @@ export function parseSpecAgent(
       canLead: kind === 'lead',
       stage,
       schedule,
+      ...(declaredReads ? { reads: declaredReads as ScheduleReads } : {}),
       output,
       files: list(),
       body: instructions,

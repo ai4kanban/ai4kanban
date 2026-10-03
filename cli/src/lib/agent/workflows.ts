@@ -29,16 +29,16 @@ import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { die } from '../paths'
 import type { Meta } from '../types'
-import { CADENCE_FORMS, formatStamp, nextDue, parseCadence, parseStamp } from '../cadence'
+import { AUTO_CADENCE, CADENCE_FORMS, formatStamp, isAuto, parseCadence, parseStamp } from '../cadence'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
 import { specAgentCatalog, type RefusedAgent } from '../agents/catalog'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
 import { copyAgent } from '../agents/roster'
 import { proGate } from '../cloud/pro'
+import { scheduledNext } from './scheduled'
 import {
   refusal,
-  SCHEDULED_CADENCE,
   WORKFLOW_STAGES,
   type FrozenWorkflow,
   type RunRefusal,
@@ -320,7 +320,7 @@ function readScheduled(raw: unknown): WorkflowScheduled[] | undefined {
       agent,
       extra: typeof row.extra === 'string' ? row.extra : '',
       ...(row.off === true ? { off: true } : {}),
-      cadence: parseCadence(text('cadence')) ? text('cadence') : SCHEDULED_CADENCE,
+      cadence: parseCadence(text('cadence')) ? text('cadence') : AUTO_CADENCE,
       lastRun: text('lastRun'),
       ...(text('since') ? { since: text('since') } : {}),
     })
@@ -332,7 +332,7 @@ const scheduledRow = (h: WorkflowScheduled) => ({
   agent: h.agent,
   extra: h.extra,
   ...(h.off ? { off: true } : {}),
-  ...(h.cadence !== SCHEDULED_CADENCE ? { cadence: h.cadence } : {}),
+  ...(!isAuto(h.cadence) ? { cadence: h.cadence } : {}),
   ...(h.lastRun ? { lastRun: h.lastRun } : {}),
   ...(h.since ? { since: h.since } : {}),
 })
@@ -375,7 +375,7 @@ function resolveOne(
     stages,
     scheduled:
       readScheduled(storedStages(cfg, id)[SCHEDULE]) ??
-      (base?.scheduled ?? []).map((one) => ({ agent: one.agent, extra: '', cadence: one.cadence ?? SCHEDULED_CADENCE, lastRun: '' })),
+      (base?.scheduled ?? []).map((one) => ({ agent: one.agent, extra: '', cadence: one.cadence ?? AUTO_CADENCE, lastRun: '' })),
   }
 }
 
@@ -805,7 +805,7 @@ function resolved(): { flows: Workflow[]; owners: Map<string, string> } {
   const idle = catalog.filter((a) => a.schedule && !owners.has(a.name)).map((a) => a.name)
   coding.scheduled = [
     ...coding.scheduled,
-    ...idle.map((agent) => ({ agent, extra: '', off: true, cadence: SCHEDULED_CADENCE, lastRun: '' })),
+    ...idle.map((agent) => ({ agent, extra: '', off: true, cadence: AUTO_CADENCE, lastRun: '' })),
   ]
   return { flows, owners }
 }
@@ -1362,12 +1362,6 @@ export const scheduledAgent = (id: string, agent: string): WorkflowScheduled | u
 export const scheduledClock = (one: WorkflowScheduled): string =>
   [one.lastRun, one.since ?? ''].filter((stamp) => parseStamp(stamp)).sort().pop() ?? ''
 
-/** When its next pass may start, or null while it is off or has no clock yet. */
-export function scheduledNext(one: WorkflowScheduled): Date | null {
-  const from = scheduledClock(one)
-  return one.off || !from ? null : nextDue(from, one.cadence)
-}
-
 function setScheduled(id: string, change: (rows: WorkflowScheduled[]) => Write | void): Write {
   const flow = workflowById(id)
   if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
@@ -1402,7 +1396,7 @@ export function switchWorkflowScheduled(id: string, agent: string, on: boolean, 
       }
       const refused = elsewhere(wanted, id)
       if (refused) return refused
-      one = { agent: wanted, extra: '', off: true, cadence: SCHEDULED_CADENCE, lastRun: '' }
+      one = { agent: wanted, extra: '', off: true, cadence: AUTO_CADENCE, lastRun: '' }
       rows.push(one)
     }
     if (!on) one.off = true
@@ -1413,12 +1407,14 @@ export function switchWorkflowScheduled(id: string, agent: string, on: boolean, 
   })
 }
 
-/** Set how often one scheduled agent runs. */
+/** Set how often one scheduled agent runs, or `auto` to leave it to the board (#1475). */
 export function setWorkflowScheduledCadence(id: string, agent: string, cadence: string): Write {
   const wanted = canonicalSpecAgent(agent.trim())
-  const next = cadence.trim() || SCHEDULED_CADENCE
-  if (!parseCadence(next)) {
-    return { ok: false, ...refusal('cadence', `"${next}" isn't a cadence — use ${CADENCE_FORMS}`, { cadence: next, formats: CADENCE_FORMS }) }
+  const said = cadence.trim()
+  const next = !said || isAuto(said) ? AUTO_CADENCE : said
+  if (!isAuto(next) && !parseCadence(next)) {
+    const formats = `${AUTO_CADENCE}, or ${CADENCE_FORMS}`
+    return { ok: false, ...refusal('cadence', `"${next}" isn't a cadence — use ${formats}`, { cadence: next, formats }) }
   }
   return setScheduled(id, (rows) => {
     const one = rows.find((h) => h.agent === wanted)
@@ -1469,7 +1465,7 @@ export function adoptWorkflowScheduled(id: string, agent: string, from: { cadenc
       agent,
       extra: '',
       ...(from.cadence ? {} : { off: true }),
-      cadence: from.cadence || SCHEDULED_CADENCE,
+      cadence: from.cadence || AUTO_CADENCE,
       lastRun: from.lastRun,
     })
   })
@@ -1569,13 +1565,14 @@ export function workflowViews(): WorkflowView[] {
     }),
     scheduled: scheduledMembers(flow).map((one): WorkflowScheduledView => {
       const entry = roster.find((e) => e.name === one.agent)
-      const next = scheduledNext(one)
+      const due = scheduledNext(flow.id, one)
       return {
         ...one,
         title: entry?.title ?? '',
         gloss: entry?.gloss ?? '',
         builtIn: entry?.builtIn ?? false,
-        nextRun: next ? formatStamp(next) : '',
+        nextRun: due ? formatStamp(due.next) : '',
+        ...(due?.wait ? { waiting: due.wait } : {}),
       }
     }),
     problems: workflowProblems(flow.id),

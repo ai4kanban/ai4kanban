@@ -19,7 +19,9 @@
 // CLI all read the one clock.
 
 export {
+  AUTO_CADENCE,
   CADENCE_FORMS,
+  isAuto,
   parseCadence,
   formatCadence,
   formatStamp,

@@ -199,7 +199,7 @@ describe('the prompt', () => {
     assert.equal(findGuide('recurring-task'), null)
     const guide = findGuide('write-agent')!.text
     assert.match(guide, /State between runs[\s\S]*assume no file or format/)
-    assert.match(guide, /akb workflow schedule <workflow> --on <name> --cadence <cadence>/)
+    assert.match(guide, /akb workflow schedule <workflow> --on <name> --cadence <cadence\|auto>/)
   })
 
   it('plans in one clarify session under the refine guide', () => {

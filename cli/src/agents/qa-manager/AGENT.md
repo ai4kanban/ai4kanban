@@ -3,6 +3,7 @@ name: qa-manager
 description: Keeps the project's test cases true to the product — follows every finished card and covers what the product already does.
 akb:
   hook: schedule
+  reads: archived-cards
   i18n:
     zh:
       title: 质检员

@@ -19,7 +19,6 @@ import {
   liveStage,
   renameWorkflow,
   scheduledMembers,
-  scheduledNext,
   setWorkflowHelperExtra,
   setWorkflowScheduledCadence,
   setWorkflowScheduledExtra,
@@ -36,10 +35,19 @@ import {
 } from '../lib/agent/workflows'
 import { removeWorkflow } from '../lib/agent/workflow-cards'
 import { proAccess } from '../lib/cloud/pro'
-import { formatStamp } from '../lib/cadence'
-import { scheduledRequest } from '../lib/agent/scheduled'
+import { formatStamp, isAuto } from '../lib/cadence'
+import type { DueAnswer } from '../lib/agent/due'
+import { scheduledNext, scheduledRequest } from '../lib/agent/scheduled'
+import type { WorkflowScheduled } from '../lib/agent/types'
 import { startRun } from '../lib/agent/start'
 import type { MoveResult } from '../lib/types'
+
+const cadenceLine = (one: WorkflowScheduled): string => (one.off ? 'off' : isAuto(one.cadence) ? 'auto' : `every ${one.cadence}`)
+
+const WAITS = { tooSoon: '', nothingNew: 'nothing new yet', unsorted: 'its last items are not handled yet', building: 'waits for the build to finish' }
+
+const nextLine = (due: DueAnswer | null): string =>
+  !due ? '' : ` · next after ${formatStamp(due.next)}${due.wait && WAITS[due.wait] ? ` (${WAITS[due.wait]})` : ''}`
 
 /** `akb workflow`, as its command declares it (lib/cli/agent.ts). */
 export interface WorkflowOptions {
@@ -96,10 +104,9 @@ export async function cmdWorkflowList(): Promise<MoveResult> {
       say(`  ${stage.padEnd(8)}${lead}${hooks ? `  → hooks: ${hooks}` : ''}`)
     }
     for (const one of scheduledMembers(flow)) {
-      const next = scheduledNext(one)
-      const when = one.off ? 'off' : `every ${one.cadence}`
+      const due = scheduledNext(flow.id, one)
       const ran = one.lastRun ? `last run ${one.lastRun}` : 'never run'
-      say(`  scheduled  ${titleOf(one.agent)}  ${when} · ${ran}${next ? ` · next after ${formatStamp(next)}` : ''}`)
+      say(`  scheduled  ${titleOf(one.agent)}  ${cadenceLine(one)} · ${ran}${nextLine(due)}`)
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
@@ -238,9 +245,9 @@ export async function cmdWorkflowSchedule(id: string, flags: WorkflowOptions): P
     say(`${flow.name} · scheduled`)
     if (!rows.length) say('  (none) — an agent that declares `akb.hook: schedule` can be switched on here')
     for (const one of rows) {
-      const next = scheduledNext(one)
+      const due = scheduledNext(flow.id, one)
       const ran = one.lastRun ? `last run ${one.lastRun}` : 'never run'
-      say(`  ${one.agent}  ${one.off ? 'off' : `every ${one.cadence}`} · ${ran}${next ? ` · next after ${formatStamp(next)}` : ''}`)
+      say(`  ${one.agent}  ${cadenceLine(one)} · ${ran}${nextLine(due)}`)
     }
     return { id: flow.id, scheduled: rows }
   }

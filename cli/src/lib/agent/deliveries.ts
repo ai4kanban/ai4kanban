@@ -1271,8 +1271,8 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
  *  delivery has already let go. The delivery is ended before the archive, so nothing is
  *  holding the card when it goes.
  *
- *  This is the one completion with no run closing behind it, so it hands its own reflection
- *  over (#534) rather than leaving the card unreflected on every manual-commit board. */
+ *  This is the one completion with no run closing behind it, so it queues its own reflection
+ *  (#534) rather than leaving the card unreflected on every manual-commit board. */
 export async function settleManualCommit(cardId: number): Promise<void> {
   const delivery = awaitingCommit(activeDelivery(cardId))
   if (!delivery) return
@@ -1280,7 +1280,7 @@ export async function settleManualCommit(cardId: number): Promise<void> {
   if (state === 'waiting') return
   endDelivery(delivery.deliveryId, 'finished')
   await completeCard(delivery.cardId as number, delivery.deliveryId)
-  await reflectOnCompletion(delivery.cardId as number)
+  reflectOnCompletion(delivery.cardId as number)
 }
 
 // ---- the hold a delivery puts on its card -----------------------------------

@@ -32,7 +32,7 @@ import { nextHookRun } from './hooks'
 import { runEnv } from './flow'
 import { endAgent, runMark } from './stop'
 import { refineRunsAfter, specRunsAfter } from './follow'
-import { reflectRunsAfter } from './propose'
+import { queueCompleted } from './propose'
 import { runSort } from './auto-triage'
 import { reconcileTriage } from '../signals/carded'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
@@ -709,11 +709,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         const landing = status === 'done' ? await advanceLanding() : null
         // The next hook after the build (#1328), owed by the delivery this run just settled.
         const hook = status === 'done' && record.deliveryId ? nextHookRun(findDelivery(record.deliveryId)) : null
-        // And the proposer (#534, #1467): every card that reached the archive while this run was
-        // up — the one it archived itself, the one its landing completed, a group closed by
-        // either. `before` is the board as it stood at the spawn, which is the only record of
-        // what was still open then. A reflection that passed starts the next round.
-        const reflect = status === 'done' ? reflectRunsAfter(before.keys(), record.action === 'reflect') : []
+        // And the proposer's queue (#534, #1467): every card that reached the archive while this
+        // run was up — the one it archived itself, the one its landing completed, a group closed
+        // by either. `before` is the board as it stood at the spawn, which is the only record of
+        // what was still open then. The board's timer starts the reflection (#1475).
+        if (status === 'done') queueCompleted(before.keys())
         // A **Make card** or **Start now** run records its item itself (#894, #1193); this
         // catches one that wrote the card and ended before it did.
         if (record.triage) {
@@ -723,7 +723,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             // the item stays waiting, and the next sort reconciles it
           }
         }
-        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, reflect, hook)
+        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing, hook)
       } finally {
         releaseCardAtWork(record.cardId)
         await reportRunEnded(sessionId, record.cardId, status)
@@ -947,7 +947,6 @@ async function followUp(
   flowId: string | undefined,
   runs: AgentRequest[],
   landing: AgentRequest | null = null,
-  reflect: AgentRequest[] = [],
   hook: AgentRequest | null = null,
 ): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
@@ -969,9 +968,6 @@ async function followUp(
     }
     if (landing) await startRun(join(landing))
     for (const req of runs) await startRun(join(req))
-    // Then the reflections — they read the open cards and the inbox to decide what
-    // is worth proposing, so they run once everything this close starts is on the board.
-    for (const req of reflect) await startRun(join(req))
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }
