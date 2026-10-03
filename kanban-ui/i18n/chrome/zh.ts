@@ -91,12 +91,6 @@ const zh: ChromeCopy = {
     leaving: (seconds) => `${seconds} 秒后返回看板…`,
     back: "返回看板",
   },
-  guide: {
-    failed: "指南未能加载——",
-    readOnline: "在官网阅读",
-    failedEnd: "。",
-    reading: "正在读取指南…",
-  },
 };
 
 export default zh;

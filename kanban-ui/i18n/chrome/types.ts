@@ -123,12 +123,4 @@ export type ChromeCopy = {
     leaving: (seconds: number) => string;
     back: string;
   };
-  guide: {
-    /** The drawer couldn't fetch the guide: the sentence, the link that ends it,
-     *  and the stop after the link. */
-    failed: string;
-    readOnline: string;
-    failedEnd: string;
-    reading: string;
-  };
 };
