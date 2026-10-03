@@ -526,6 +526,8 @@ const homeQuery = (home: EventHome) =>
   home.workspaceId ? { workspaceId: home.workspaceId } : { boardId: home.boardId }
 
 const PAGE = 30
+/** Pages one ask may read; the next poll carries on from there. */
+const MAX_PAGES = 20
 
 /** Read what the page asks for and nothing held already answers: the Landed tab's pages down
  *  to `page.landed` rows, and the newest event of each card named that nothing loaded holds. */
@@ -536,18 +538,22 @@ async function readPages(home: EventHome, page: CenterPage): Promise<void> {
   if (page.landed > 0) {
     held.landed ??= { home: key, events: new Map(), next: null, fresh: true }
     const landed = held.landed
-    while (landedOnRail(landed) < page.landed && (landed.fresh || landed.next)) {
+    // A read whose answer was thrown away — the bell closed, or the board changed — or a
+    // cursor that did not move ends the loop rather than asking for the same page forever (#1473).
+    for (let pages = 0; pages < MAX_PAGES && held.landed === landed; pages += 1) {
+      if (landedOnRail(landed) >= page.landed || !(landed.fresh || landed.next)) break
       if (landed.reading) {
         await landed.reading
         continue
       }
       // A page that just failed is tried again by Load more asking deeper, not by every poll.
       if (landed.failedAt !== undefined && page.landed <= landed.failedAt) break
+      const cursor = landed.next
       landed.reading = readLanded(landed, home, page.landed).finally(() => {
         landed.reading = undefined
       })
       await landed.reading
-      if (landed.error) break
+      if (landed.error || landed.fresh || landed.next === cursor) break
     }
   }
   const loaded = new Set(known().filter((e) => inHome(e, home)).map((e) => e.taskId))
