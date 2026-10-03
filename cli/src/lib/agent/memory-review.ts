@@ -38,8 +38,8 @@ export interface ChatToReview {
   key: string
   /** The archived card it belongs to. */
   card: { id: number; title: string }
-  /** The `## <module>` topics its notes belong under: the card's own `modules:`. */
-  topics: string[]
+  /** The card's own `modules:` — whose planning folder its notes go in. */
+  modules: string[]
   agents: ReviewAgent[]
   /** The messages oldest first, trimmed of command echoes and warnings. */
   transcript: string
@@ -190,7 +190,7 @@ function handed({ key, messages, card }: Waiting): ChatToReview {
   return {
     key,
     card: { id: card.id, title: card.title },
-    topics: [...new Set(card.modules)],
+    modules: [...new Set(card.modules)],
     agents: [...new Set(agentsOn(card.body))].map((name) => ({
       name,
       dir: rel(agentMemoryDir(name)),

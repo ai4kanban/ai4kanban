@@ -160,19 +160,23 @@ function readTodo(body: string): { steps: string[]; ticked: number } {
   return { steps, ticked }
 }
 
-// Where a note goes — "Who owns a memory file" in `akb guide board`, read only: one file, plus the
-// `## <module>` topics in it the card's own modules name (#805). It never scaffolds, because
-// printing a flow must not write to the board.
+// Where a note goes — "Who owns a memory file" in `akb guide board`, read only. `readme.md` is
+// one file with a `## <module>` topic per module; a planner file has a copy per module
+// (#1484), listed whether or not it exists yet. It never scaffolds, because printing a flow
+// must not write to the board.
 function memoryLines(modules: string[], name: string): string[] {
   const file = rel(memoryFile(name))
-  return modules.length ? [`${file} — under \`## ${modules.join('\`, \`## ')}\``] : [file]
+  if (name === 'readme.md') return modules.length ? [`${file} — under \`## ${modules.join('\`, \`## ')}\``] : [file]
+  const own = modules.filter((m) => memoryFile(name, m) !== memoryFile(name))
+  if (!own.length) return [file]
+  return [...own.map((m) => `${rel(memoryFile(name, m))} — the card's module \`${m}\``), `${file} — what spans modules`]
 }
 
 // What a reflection must not propose again (#1479): the global rejections, the card's own
 // modules' rejections, and the triage preferences — the latter two only once they exist.
 function rejectedLines(modules: string[]): string[] {
-  const extra = [...modules.map((m) => path.join(agentMemoryDir(PLANNER), m, 'rejected.md')), agentMemoryFile(PLANNER, 'dismissed.md')]
-  return [agentMemoryFile(PLANNER, 'rejected.md'), ...extra.filter((file) => fs.existsSync(file))].map(rel)
+  const extra = [...modules.map((m) => memoryFile('rejected.md', m)), agentMemoryFile(PLANNER, 'dismissed.md')]
+  return [...new Set([agentMemoryFile(PLANNER, 'rejected.md'), ...extra.filter((file) => fs.existsSync(file))])].map(rel)
 }
 
 // The jobs `akb guide board` tells to read the project's settings before they start:
@@ -514,7 +518,7 @@ function conversationBlock(chat: ChatToReview): string[] {
   const card = `#${chat.card.id} ${chat.card.title}`.trim().replace(/"/g, "'")
   return [
     `<conversation card="${card}" kind="card chat">`,
-    `modules: ${chat.topics.length ? `## ${chat.topics.join(', ## ')}` : '(none)'}`,
+    `modules: ${chat.modules.length ? chat.modules.join(', ') : '(none)'}`,
     ...(chat.agents.length
       ? ['agents:', ...chat.agents.map((a) => `  \`${a.name}\` — ${a.dir}/: ${a.files.join(', ') || 'no files yet'}`)]
       : ['agents: (none)']),
@@ -779,7 +783,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       facts.push(
         ...field('memory', [
-          `${rel(agentMemoryDir(PLANNER))}/ — decisions.md, rejected.md, redesign.md: where a planning note goes`,
+          `${rel(agentMemoryDir(PLANNER))}/<module>/ — decisions.md, rejected.md, redesign.md: where a planning note goes, the planner's own files for one spanning modules`,
           `${proposerMissedFile()} — a follow-up the user says the proposer missed`,
           `${rel(AGENT_MEMORY)}/<agent>/ — an agent's own files, which its AGENT.md names`,
         ]),
@@ -814,10 +818,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ),
       )
       facts.push(...field('withdrawn', withdrawn.length === 0 ? '(none)' : withdrawn.join(', ')))
-      facts.push(...field('memory', dismissedMemoryPath()))
+      facts.push(...field('memory', [dismissedMemoryPath(), `${rel(agentMemoryDir(PLANNER))}/<module>/dismissed.md — a module's own`]))
       facts.push(...field('modules', rel(MODULES_MD)))
       close.push(
-        `write ${dismissedMemoryPath()} and nothing else — writing nothing is a complete result`,
+        `write those dismissed.md files and nothing else — writing nothing is a complete result`,
         'raise nothing for anyone: there is no card to question',
       )
       break

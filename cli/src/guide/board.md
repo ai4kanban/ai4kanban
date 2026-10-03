@@ -130,8 +130,9 @@ move the files into the group's folder:
 - **`memory/agents/<agent>/`**: an agent keeps only the files and split paths its own AGENT.md
   declares (`akb guide update-questions`). An agent whose instructions name none keeps none.
 
-File a note under the `## <module>` heading its card's `modules:` names, creating it if
-missing. There are no per-module folders.
+File a planning note about one module in that module's folder,
+`memory/agents/planner/<module>/`, under the same file name, creating it if missing. A note
+spanning modules, or from a card with none, stays in `memory/agents/planner/`.
 
 ### What earns a note
 

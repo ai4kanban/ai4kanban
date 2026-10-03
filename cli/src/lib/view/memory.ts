@@ -6,8 +6,8 @@
 //
 // Memory is grouped by WHO owns it (#805): `docs/kanban/memory/` holds the board's own
 // record — `readme.md` and `project.md` — and each agent that keeps memory has a folder of its
-// own beside them. A module is a `## <module>` topic inside a file, so there is nothing here
-// that opens one.
+// own beside them. A module's copy of a planner file, `<module>/decisions`, hangs under the
+// planner's own file (#1484).
 //
 // The board's and the planner's rows are fixed, and a file that isn't there keeps its place.
 // A spec agent's rows are the files its folder actually holds (#833).
@@ -16,7 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { agentRoster } from '../agent/roles'
-import { BOARD_MEMORY_FILES, PLANNER, agentMemoryDir, memoryNamesOf, migrateMemory } from '../memory'
+import { BOARD_MEMORY_FILES, PLANNER, agentMemoryDir, memoryNamesOf, migrateMemory, plannerModules } from '../memory'
 import { MEMORY, rel } from '../paths'
 import { MEMORY_FILES, type MemoryFile, type MemoryName, type MemoryOwner } from './types'
 
@@ -53,15 +53,21 @@ const splitNames = (dir: string, depth = 1): string[] => {
 
 /** The files one owner may hold, in the panel's order — the board's two, or the agent's own,
  *  the known names first and any other file its prompt keeps after them. Each agent file is
- *  followed by what was split out of it into the folder of the same name (#959). */
+ *  followed by what was split out of it into the folder of the same name (#959), and a
+ *  planner file by each module's copy of it (#1484). */
 const filesOf = (agent: string): MemoryName[] => {
   const held = (agent ? memoryNamesOf(agent) : BOARD_MEMORY_FILES).map(nameOf)
   const known = MEMORY_FILES.map((ref) => ref.name).filter((name) => held.includes(name))
   const top = [...known, ...held.filter((name) => !known.includes(name))]
   if (!agent) return top
+  const modules = agent === PLANNER ? plannerModules() : []
   return top.flatMap((name) =>
     fs.existsSync(memoryPath(name, agent))
-      ? [name, ...splitNames(path.join(agentMemoryDir(agent), name)).map((sub) => `${name}/${sub}`)]
+      ? [
+          name,
+          ...splitNames(path.join(agentMemoryDir(agent), name)).map((sub) => `${name}/${sub}`),
+          ...modules.map((module) => `${module}/${name}`).filter((copy) => fs.existsSync(memoryPath(copy, agent))),
+        ]
       : [name],
   )
 }

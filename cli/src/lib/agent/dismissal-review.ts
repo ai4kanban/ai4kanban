@@ -9,7 +9,7 @@
 import fs from 'node:fs'
 
 import { parseStamp } from '../cadence'
-import { PLANNER, agentMemoryFile } from '../memory'
+import { PLANNER, agentMemoryFile, plannerCopies } from '../memory'
 import { rel } from '../paths'
 import { readAllDismissed, readArchived, readInbox } from '../signals/inbox'
 
@@ -56,15 +56,15 @@ export function citedSources(text: string): string[] {
   return [...ids]
 }
 
-/** The ids `dismissed.md` cites whose items have since been restored. */
+/** The ids the `dismissed.md` files cite whose items have since been restored. */
 export function withdrawnSources(): string[] {
-  let text: string
-  try {
-    text = fs.readFileSync(dismissedMemoryFile(), 'utf8')
-  } catch {
-    return []
-  }
-  const cited = citedSources(text)
+  const cited = [...new Set(plannerCopies('dismissed.md').flatMap((file) => {
+    try {
+      return citedSources(fs.readFileSync(file, 'utf8'))
+    } catch {
+      return []
+    }
+  }))]
   if (cited.length === 0) return []
   const dismissed = new Set(readAllDismissed().map((s) => s.sourceId))
   const restored = new Set([...readInbox(), ...readArchived()].map((s) => s.sourceId))

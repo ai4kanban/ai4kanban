@@ -16,9 +16,8 @@ The rest of its output names two jobs.
 a card the board has simply moved past, earns none — write nothing and say so.
 
 When it does earn one, the output names the file —
-`docs/kanban/memory/agents/planner/rejected.md` — and which topics it already has. Add one
-line under the topic that fits, which for most cards is the `## <module>` its own `modules:`
-names:
+the card's module's `rejected.md`, or the planner's own for a card with no module — and which
+topics it already has. Add one line under the topic that fits:
 
 `- **<idea name>** — <why we said no, one line>.`
 

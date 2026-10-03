@@ -29,8 +29,8 @@ The server and core change together, so they share one module.
 
 ## Split module memory
 
-A module is a `## <module>` topic inside a memory file, never a folder — there is nothing to
-create. In each file that carries the old topic, add one for the new module and move the
-entries that belong to it. Split entries that cover both; keep shared rules with the module
-responsible for them. Rename the topic when a module is renamed, and fold its entries into
-the topic that inherits the work when one is removed.
+A module's planning memory is its folder, `docs/kanban/memory/agents/planner/<module>/`. Create
+the new module's folder and move into each of its files the entries that belong to it. Split
+entries that cover both; keep shared rules with the module responsible for them. Rename the
+folder when a module is renamed, and fold its files into the folder that inherits the work when
+one is removed. A module may not be named `decisions`, `rejected`, `redesign` or `dismissed`.

@@ -10,7 +10,7 @@ import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { writeReleasesIfMissing } from '../lib/releases'
-import { migrateMemory, renameProductFile, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import { PLANNER, agentMemoryDir, migrateMemory, renameProductFile, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { migratePruneMemoryCard, migrateRecurringCards, recurringMigrationLines } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
@@ -172,8 +172,8 @@ export function cmdInit(): MoveResult {
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (movedMemory.length) {
-      say(`  memory now belongs to whoever writes it — merged ${movedMemory.length} file${movedMemory.length === 1 ? '' : 's'} away: ${movedMemory.join(', ')}`)
-      say(`  a module's entries are a \`## <module>\` topic in the file they moved into`)
+      say(`  memory now belongs to whoever writes it — moved ${movedMemory.length} file${movedMemory.length === 1 ? '' : 's'} or topic${movedMemory.length === 1 ? '' : 's'}: ${movedMemory.join(', ')}`)
+      say(`  a module's planning notes are in ${rel(agentMemoryDir(PLANNER))}/<module>/`)
     }
     if (projectRenamed) say(`  ${projectRenamed}`)
     if (goalRetired) say(`  docs/kanban/memory/goal.md is retired: ${goalRetired}`)

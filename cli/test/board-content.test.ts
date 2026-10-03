@@ -123,7 +123,7 @@ describe('memory, as a contract write (#805)', () => {
     assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents', 'builder')), false)
   })
 
-  // A module is a `## <module>` topic inside a file now, never a folder of its own (#805).
+  // A module's planning memory is the planner's, never an owner of its own (#1484).
   it('opens no module, whatever the map says', async () => {
     write('modules.md', '- **cloud** — the service\n- **skill** — the command\n')
     const res = await onBoard((env) => board().saveMemoryFile('decisions', 'x', 'cloud', env))
@@ -186,6 +186,26 @@ describe('memory, as a contract write (#805)', () => {
 
 // An entry file's folder holds what was split out of it (#959): the panel lists and opens
 // those files, and a run is still handed only the top-level ones.
+describe('a module’s copy of a planner file (#1484)', () => {
+  it('hangs under the planner’s file, in the map’s order, and opens and saves', async () => {
+    write('memory/agents/planner/decisions.md', '# Decisions\n')
+    write('memory/agents/planner/skill/decisions.md', '# Decisions\n\n- Skill.\n')
+    write('memory/agents/planner/cloud/decisions.md', '# Decisions\n\n- Cloud.\n')
+    write('memory/agents/planner/cloud/rejected.md', '# Rejected\n\n- No.\n')
+    // A split, not a module.
+    write('memory/agents/planner/rejected/old.md', '- Old.\n')
+
+    const planner = (await board().readMemoryOwners()).find((o) => o.agent === 'planner')
+    assert.deepEqual(planner?.files, ['decisions', 'cloud/decisions', 'skill/decisions'])
+
+    assert.match((await board().readMemoryFile('skill/decisions', 'planner'))?.text ?? '', /- Skill\./)
+    const res = await onBoard((env) => board().saveMemoryFile('skill/decisions', '- Again.', 'planner', env))
+    assert.equal(res.ok, true)
+    assert.equal(read('memory/agents/planner/skill/decisions.md'), '- Again.\n')
+    assert.equal(await board().readMemoryFile('docs/decisions', 'planner'), null)
+  })
+})
+
 describe('memory split into an entry file’s folder (#959)', () => {
   const filesOf = async (agent: string) => (await board().readMemoryOwners()).find((o) => o.agent === agent)?.files
 
@@ -223,11 +243,10 @@ describe('memory split into an entry file’s folder (#959)', () => {
   it("lists the planner's split files, and no folder without an entry file", async () => {
     write('memory/agents/planner/decisions.md', '- A.\n')
     write('memory/agents/planner/decisions/topic.md', '- Topic.\n')
-    write('memory/agents/planner/cloud/decisions.md', '- Old.\n')
     write('memory/agents/planner/rejected/topic.md', '- No entry file.\n')
     assert.deepEqual(await filesOf('planner'), ['decisions', 'decisions/topic'])
     assert.equal((await board().readMemoryFile('decisions/topic', 'planner'))?.text, '- Topic.\n')
-    assert.equal(await board().readMemoryFile('cloud/decisions', 'planner'), null)
+    assert.equal(await board().readMemoryFile('rejected/topic', 'planner'), null)
   })
 })
 

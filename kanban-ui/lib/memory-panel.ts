@@ -17,15 +17,29 @@ export function memoryAgentOf(key: string | null): string {
 
 /** An owner's files as the panel draws them (#959): each entry file with the files split out
  *  into its folder, named by their path under it — `feedback/recipes/tour` is `recipes/tour`
- *  under `feedback`, so the tree never grows past two levels. */
+ *  under `feedback`, so the tree never grows past two levels. A module's copy of a planner
+ *  file (#1484), `skill/decisions`, hangs under `decisions` and is named `skill`. */
 export function memoryTree(files: string[]): { name: string; kids: { name: string; label: string }[] }[] {
   const top = files.filter((name) => !name.includes("/"));
+  const kid = (name: string, file: string): { name: string; label: string } | null => {
+    if (file.startsWith(`${name}/`)) return { name: file, label: file.slice(name.length + 1) };
+    const [module, rest, ...more] = file.split("/");
+    return rest === name && !more.length && !top.includes(module!) ? { name: file, label: module! } : null;
+  };
   return top.map((name) => ({
     name,
-    kids: files
-      .filter((kid) => kid.startsWith(`${name}/`))
-      .map((kid) => ({ name: kid, label: kid.slice(name.length + 1) })),
+    kids: files.flatMap((file) => kid(name, file) ?? []),
   }));
+}
+
+/** The entry file a file hangs under in that tree, and what it is called there — or null for
+ *  an entry file itself. */
+export function memoryParent(files: string[], name: string): { entry: string; label: string } | null {
+  for (const node of memoryTree(files)) {
+    const kid = node.kids.find((k) => k.name === name);
+    if (kid) return { entry: node.name, label: kid.label };
+  }
+  return null;
 }
 
 /** Where a relative `.md` link in one memory file lands, as a memory key — or null when it

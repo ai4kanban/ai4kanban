@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
-import { PLANNER, PROPOSER_MISSED, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
+import { PLANNER, PROPOSER_MISSED, agentMemoryDir, agentMemoryFile, agentMemoryFiles, memoryNamesOf, plannerCopies } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { FLOWS } from './flows'
@@ -301,8 +301,13 @@ export interface RosterEntry {
   ownMemory: string[]
 }
 
-// Every memory file a role declares, repo-relative.
-const memoryOf = (role: AgentRole): string[] => role.memory.map((file) => rel(path.join(KANBAN, file)))
+// Every memory file a role declares, repo-relative, with each module's copy of a planner
+// file (#1484).
+const memoryOf = (role: AgentRole): string[] =>
+  role.memory.flatMap((file) => {
+    const at = path.join(KANBAN, file)
+    return path.dirname(at) === agentMemoryDir(PLANNER) ? plannerCopies(path.basename(at)) : [at]
+  }).map(rel)
 
 // Which of an agent's declared files live in its own folder — the names, so a screen can
 // draw a row per file without re-deriving where it sits.

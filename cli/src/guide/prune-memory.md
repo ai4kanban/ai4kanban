@@ -1,12 +1,13 @@
 # Prune the memory
 
 Prune the board's own record in `docs/kanban/memory/` and every agent's memory beside it in
-`docs/kanban/memory/agents/<agent>/` — the planner's three among them (see "Who owns a memory
-file" in `akb guide board`). `project.md` is rewritten on its own schedule: leave it alone.
+`docs/kanban/memory/agents/<agent>/` — the planner's files and module folders among them (see
+"Who owns a memory file" in `akb guide board`). `project.md` is rewritten on its own schedule:
+leave it alone.
 
 One principle for all files: they exist to stop us re-proposing work, re-making a
-design mistake, or re-asking a settled question. Rewrite each as **topics** (h2 title) —
-usually a module — with plain-language takeaways under each section. Keep only what helps
+design mistake, or re-asking a settled question. Rewrite each as **topics** (h2 title) with
+plain-language takeaways under each section. Keep only what helps
 future planning; drop code detail, dates, task ids, step-by-step stories.
 
 Drop every entry that fails "What earns a note" in `akb guide board` — the bar that governs a

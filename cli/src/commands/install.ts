@@ -453,7 +453,7 @@ function dropModuleGoals(board: string, report: Report): void {
     } else {
       report.notes.push(
         `docs/kanban/memory/${entry.name}/goal.md — fold what it says into` +
-          ` docs/kanban/memory/agents/planner/decisions.md under \`## ${entry.name}\`, then delete it`,
+          ` docs/kanban/memory/agents/planner/${entry.name}/decisions.md, then delete it`,
       )
     }
   }

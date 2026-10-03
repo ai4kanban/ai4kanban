@@ -66,9 +66,9 @@ discrepancies. Then `setup-done decisions`.
 
 Write at most five user-visible parts to `docs/kanban/modules.md` as
 `<module>: <purpose>`, read off the same scan. Write only the parts the repository
-actually shows. Run `akb raw init`, then file each module-specific decision under its
-`## <module>` topic in the planner's `decisions.md`; a decision that spans modules stays
-above the topics. Then `setup-done modules`.
+actually shows. Run `akb raw init`, then file each module-specific decision in
+`docs/kanban/memory/agents/planner/<module>/decisions.md`; a decision that spans modules stays
+in the planner's own `decisions.md`. Then `setup-done modules`.
 
 ## `tasks`
 
