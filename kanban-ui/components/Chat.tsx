@@ -189,6 +189,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
           live={rail.live}
           liveSince={read?.liveSince ?? null}
           stopped={rail.stopped}
+          idle={!answering && !trouble}
           canSend={!!read && !blocked && !answering}
           onResend={resend}
           imageSrc={rail.imageSrc}
@@ -350,6 +351,7 @@ export function Transcript({
   live,
   liveSince,
   stopped,
+  idle,
   canSend,
   onResend,
   imageSrc,
@@ -365,6 +367,8 @@ export function Transcript({
   liveSince: number | null;
   /** A stopped reply's words, held here until the transcript has them (#267). */
   stopped: string | null;
+  /** No reply is coming and no failure is shown — so a message left unanswered was cut short. */
+  idle: boolean;
   /** A message can leave the box right now — what "send again" waits for (#269). */
   canSend: boolean;
   /** Both held steady by the rail: a message is drawn once and held across the polls,
@@ -425,6 +429,9 @@ export function Transcript({
 
   const behind = away ? Math.max(0, lines - wasAt.current) : 0;
   const nothing = messages.length === 0 && live === null && stopped === null;
+  // The app went away mid-reply (#1411): the transcript ends on the message that asked.
+  const last = messages.at(-1);
+  const cut = idle && live === null && stopped === null && last?.role === "you" ? last : null;
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
     <div ref={box} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2.5">
@@ -462,6 +469,7 @@ export function Transcript({
               imageSrc={imageSrc}
             />
           )}
+          {cut && <CutShort canSend={canSend} onResend={() => onResend(cut.text, cut.images)} />}
           {after}
         </div>
       )}
@@ -1050,6 +1058,31 @@ function Stopped({ why }: { why: string }) {
     >
       {why} {c.stopped}
     </p>
+  );
+}
+
+/** A reply that never landed, with the one thing to do about it always in reach. */
+function CutShort({ canSend, onResend }: { canSend: boolean; onResend(): void }) {
+  const c = useCopy().chat;
+  return (
+    <div
+      className="flex items-center gap-2 rounded-[8px] py-1 pl-2 pr-1 text-[12px] leading-snug"
+      style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+    >
+      <span className="min-w-0 flex-1 py-0.5">{c.cutShort}</span>
+      <button
+        type="button"
+        disabled={!canSend}
+        title={c.againHint}
+        aria-label={c.againHint}
+        onClick={onResend}
+        className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-[6px] px-1.5 py-1 text-[11px] font-[700] disabled:cursor-default disabled:opacity-50"
+        style={{ background: "color-mix(in srgb, var(--color-nb-peach-ink) 12%, transparent)" }}
+      >
+        <FiRefreshCw size={11} aria-hidden />
+        {c.again}
+      </button>
+    </div>
   );
 }
 

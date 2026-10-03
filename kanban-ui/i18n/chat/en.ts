@@ -26,6 +26,7 @@ const en: ChatCopy = {
   toFoot: "Jump to the newest line",
   stopped: "What arrived is kept — send another message to carry on.",
   youStopped: "you stopped the reply.",
+  cutShort: "Reply interrupted. Nothing was kept.",
   emptyLead: "What's on your mind about this card?",
   emptyAskLead: "Try: ",
   emptyCardAsks: [

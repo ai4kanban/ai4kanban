@@ -383,6 +383,7 @@ function Sheet({
                     live={rail.live}
                     liveSince={read?.liveSince ?? null}
                     stopped={rail.stopped}
+                    idle={!rail.answering && !(rail.error ?? read?.failed ?? read?.blocked)}
                     canSend={!!read && !read.blocked && !rail.answering}
                     onResend={sayInDiscussion}
                     // The same conversation the rail draws, so a message pasted into on one
