@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { handOffToCards, readChat, sendChatMessage } from '../src/lib/agent/chat.ts'
 import { splitLog } from '../src/lib/agent/log.ts'
 import { ownCost } from '../src/lib/agent/own-cost.ts'
-import { closeRun, openRun, patch, peekRun } from '../src/lib/agent/sessions.ts'
+import { closeRun, openResume, openRun, patch, peekRun } from '../src/lib/agent/sessions.ts'
 import { startRun } from '../src/lib/agent/start.ts'
 import { readRuns, recordCreatedCards } from '../src/lib/agent/store.ts'
 import type { AgentRequest, RunRecord } from '../src/lib/agent/types.ts'
@@ -148,7 +148,10 @@ describe("a run's cost", () => {
   }
 
   async function watched(req: AgentRequest, usd: number): Promise<RunRecord> {
-    const run = await start(req)
+    return watch(await start(req), usd)
+  }
+
+  async function watch(run: RunRecord, usd: number): Promise<RunRecord> {
     patch(run.sessionId, (r) => { r.pid = process.pid })
     fs.writeFileSync(run.logPath, '')
     reports(usd)
@@ -173,5 +176,62 @@ describe("a run's cost", () => {
     const resolved = await watched({ action: 'resolve', id: 1 }, 7.04)
     assert.equal(resolved.continues?.resumeId, planned.sessionId)
     near(resolved.costUsd, 0.09)
+  })
+
+  // A failed run on a session that had spent `from` before it, ending at `total` if it reported one.
+  async function failed(from: number | undefined, total: number | undefined): Promise<RunRecord> {
+    const opened = openRun({ action: 'clarify', id: 1 }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    fs.writeFileSync(opened.run.logPath, 'log\n')
+    patch(opened.run.sessionId, (r) => {
+      r.sessionCostFrom = from
+      r.sessionCostUsd = total
+      r.costUsd = total === undefined ? undefined : total - (from ?? 0)
+    })
+    await closeRun(opened.run.sessionId, { status: 'error', ok: false, code: 1 })
+    return peekRun(opened.run.sessionId)!
+  }
+
+  async function resumed(prev: RunRecord, usd: number): Promise<RunRecord> {
+    const opened = await openResume(prev.sessionId)
+    if ('error' in opened) throw new Error(opened.error)
+    return watch(opened.run, usd)
+  }
+
+  const ledgerCost = (run: RunRecord) => readLedger()!.entries.find((e) => e.key === `run:${run.sessionId}`)?.costUsd
+
+  it('resumed after a failure, records only what the resume spent', async () => {
+    const prev = await failed(undefined, 2)
+    const run = await resumed(prev, 2.5)
+    assert.equal(run.resumedFrom, prev.sessionId)
+    near(run.costUsd, 0.5)
+    assert.equal(run.sessionCostUsd, 2.5)
+    near(ledgerCost(run), 0.5)
+    near(splitLog(fs.readFileSync(run.logPath, 'utf8')).costUsd, 0.5)
+  })
+
+  it('resumed from a run that reported no total, starts where that run started', async () => {
+    const prev = await failed(1, undefined)
+    const run = await resumed(prev, 2.5)
+    near(run.costUsd, 1.5)
+    patch(run.sessionId, (r) => { r.status = 'error' })
+    const again = await resumed(run, 3)
+    near(again.costUsd, 0.5)
+  })
+
+  it('said into a discussion, takes off what the discussion had spent', async () => {
+    discussion(6.88)
+    const run = await watched({ action: 'create', description: 'cards', chat: DISCUSSION }, 7)
+    assert.equal(run.chat, DISCUSSION)
+    near(run.costUsd, 0.12)
+    near(ledgerCost(run), 0.12)
+  })
+
+  it('leaves a resumed run on a connector that reports its own cost alone', async () => {
+    board('opencode')
+    const prev = await failed(undefined, 2)
+    const run = await resumed(prev, 2.5)
+    assert.equal(run.sessionCostUsd, undefined)
+    assert.equal(run.sessionCostFrom, undefined)
   })
 })

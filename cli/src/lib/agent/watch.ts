@@ -486,11 +486,18 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
               ? 'done'
               : 'error'
       const reported = spoken ? spoken.costUsd : renderer?.costUsd?.()
-      // A session total carries what the session it continues spent (#1480).
-      const sessionTotal = reportsSessionTotal(record.harness) ? reported : undefined
-      const totalCost = sessionTotal === undefined
-        ? reported
-        : ownCost(sessionTotal, record.continues ? lastSessionTotal(record.continues.resumeId, readRuns()) : undefined)
+      // A session total carries what the session it continues spent (#1480, #1483).
+      const totals = reportsSessionTotal(record.harness)
+      const sessionTotal = totals ? reported : undefined
+      const carriedId = record.chat ? record.resumeId : record.continues?.resumeId
+      const totalFrom = !totals
+        ? undefined
+        : record.resumedFrom
+          ? record.sessionCostFrom
+          : carriedId
+            ? lastSessionTotal(carriedId, readRuns())
+            : undefined
+      const totalCost = sessionTotal === undefined ? reported : ownCost(sessionTotal, totalFrom)
       const usage = spoken ? spoken.usage : renderer?.usage?.()
       // A connector the board TALKS to hands its reading back with the turn rather than on
       // the stream, so this is where its ring gets its one update (#675).
@@ -612,6 +619,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       patch(sessionId, (r) => {
         if (totalCost !== undefined) r.costUsd = totalCost
         if (sessionTotal !== undefined) r.sessionCostUsd = sessionTotal
+        if (typeof totalFrom === 'number') r.sessionCostFrom = totalFrom
         if (usage) r.usage = usage
         if (result) r.result = result
       })
