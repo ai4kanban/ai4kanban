@@ -46,6 +46,9 @@ export interface Env {
   CREEM_WEBHOOK_SECRET?: string
   CREEM_PRODUCT_MONTHLY?: string
   CREEM_PRODUCT_YEARLY?: string
+  /** The commit this build was deployed from, set by `npm run deploy`; `+dirty` when the
+   *  Worker files had uncommitted changes. */
+  COMMIT?: string
 }
 
 /** Whether this build can install into a workspace at all. */

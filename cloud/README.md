@@ -9,7 +9,8 @@ cloud/
 ├── src/            the Worker — routing in `index.ts`, the admission check in `owner.ts`,
 │                   limits and constants in `config.ts`
 ├── migrations/     the schema, one numbered file per change, applied forward only
-├── scripts/        migrate, invite, seed, redirects, the closed-database check, the schema checks
+├── scripts/        migrate, deploy, invite, seed, redirects, the closed-database and live checks,
+│                   the schema checks
 ├── test/           the Worker's checks; test/sql/ is the schema's, run on a real PostgreSQL
 ├── endpoints.md    every route, its body, and the refusal codes
 └── wrangler.jsonc  the route, the hourly schedule, and nothing secret
@@ -91,7 +92,8 @@ Run these from `cloud/`.
 | `npm run test:sql` | The schema's checks alone, on a throwaway PostgreSQL this makes and removes. |
 | `npm run migrate` | Apply every migration not yet applied. `-- --dry-run` prints the plan. |
 | `npm run check:closed` | Check the project answers nobody but the Worker. |
-| `npm run deploy` / `npm run rollback` | Deploy the Worker, its route and schedule; return to an earlier version. |
+| `npm run check:live` | Compare the live service with HEAD: migrations to apply, Worker commits not live. Exits 1 when behind. |
+| `npm run deploy` / `npm run rollback` | Deploy the Worker, its route and schedule, stamped with HEAD's commit; return to an earlier version. |
 | `npm run invite` | List, approve and track invite requests (below). |
 | `npm run seed` | List and grant seed partners' Pro (below). |
 | `npm run redirects` | Show the sign-in return addresses; `-- --set` writes them. |
@@ -118,7 +120,8 @@ ever a throwaway project, never one a workspace is using.**
 
 1. `npm run migrate` — the schema goes first, so the Worker always has the tables it expects.
 2. `npm run deploy`.
-3. `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with an **admitted**
+3. `npm run check:live` reports `up to date`.
+4. `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with an **admitted**
    account's token. `not_admitted` means the account is not on the list, not a failed deploy.
 
 `npm run rollback` returns the Worker, **not the schema**.

@@ -6,7 +6,7 @@
   "description": "The service every AI4Kanban Cloud workspace runs on — the Worker at api.ai4kanban.dev and its Postgres schema.",
   "type": "module",
   "scripts": {
-    "deploy": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy",
+    "deploy": "node scripts/deploy.mjs",
     "rollback": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler rollback",
     "migrate": "node scripts/migrate.mjs",
     "redirects": "node scripts/redirects.mjs",
@@ -14,6 +14,7 @@
     "seed": "node scripts/seed.mjs",
     "preview:slack": "node scripts/slack-preview.mjs",
     "check:closed": "node scripts/check-closed.mjs",
+    "check:live": "node scripts/check-live.mjs",
     "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",
     "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
     "typecheck": "tsc --noEmit",
