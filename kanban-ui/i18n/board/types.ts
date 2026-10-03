@@ -97,6 +97,8 @@ export type BoardCopy = {
       /** The guard Start now opens under the plan. Nothing starts until it is confirmed. */
       guard: {
         title: string;
+        /** Start all (#1442): one card and one build per plan. */
+        titleMany: (count: number) => string;
         /** The card the run writes from the plan, above what it skips (#470). */
         writes: string;
         /** One line per step it skips. */
@@ -131,11 +133,12 @@ export type BoardCopy = {
         /** That run is still working — no second answer is offered. */
         planning: string;
         building: string;
-        /** Several open plans (#917): what Plan tasks takes, Start now down beside it, and
-         *  the two lines above said of them all. */
-        includes: (count: number) => string;
-        buildOnlyOne: string;
-        tryAgainMany: string;
+        /** Several plans (#1442): the pair under them all, and each row's own two. */
+        planAll: string;
+        buildAll: string;
+        planOne: string;
+        buildOne: string;
+        /** One run writing the cards of several plans (#917). */
         planningMany: (count: number) => string;
         /** The cards the run wrote (#1213): one line each, and the box, closed, below them. */
         became: string;

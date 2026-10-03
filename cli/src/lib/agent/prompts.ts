@@ -210,7 +210,13 @@ const WORKFLOW_OF_STAGE: Partial<Record<Stage, WorkflowStage>> = {
 }
 
 // The `--workflow` a create is told to pass — the default too, so add-task never picks another.
+// Plans handed off together may each name their own (#1442).
 function createWorkflowNote(req: AgentRequest): string {
+  const each = Object.entries(req.planWorkflows ?? {}).filter(([, id]) => workflowById(id))
+  if (new Set(each.map(([, id]) => id)).size > 1) {
+    const pairs = each.map(([plan, id]) => `\`${plan}\` → \`--workflow ${id}\``).join(', ')
+    return `Put each card on the workflow of the plan it came from: ${pairs}. A card merged from plans on different workflows takes the first plan's.`
+  }
   const id = (req.workflow ?? '').trim()
   if (!id) return ''
   const flow = workflowById(id)

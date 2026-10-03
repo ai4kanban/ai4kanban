@@ -400,4 +400,71 @@ describe('several plans in one discussion (#917)', () => {
     assert.match(both, /from these plans, written in one discussion: `\/p\/plans\/12-one\.md`, `\/p\/plans\/13-two\.md`/)
     assert.match(both, /a plan no new card names is handed back to the discussion/)
   })
+
+  describe('one plan at a time (#1442)', () => {
+    it('keeps the discussion on the rail until the last plan is handed over', () => {
+      const target = twoPlans()
+      startedPlanning(run(), 'build', target, [planPathInText(PLAN_REL)])
+      assert.equal(rowIsThere(target), true)
+      assert.equal(readChat(target)?.archived, false)
+
+      startedPlanning(run(), 'plan', target, [planPathInText(OTHER_REL)])
+      assert.equal(rowIsThere(target), false)
+      assert.equal(readChat(target)?.archivedBy, 'board')
+    })
+
+    it('counts a plan whose run wrote nothing as still waiting', () => {
+      const target = twoPlans()
+      const first = run()
+      startedPlanning(first, 'plan', target, [planPathInText(PLAN_REL)])
+      ended(first)
+      startedPlanning(run(), 'plan', target, [planPathInText(OTHER_REL)])
+      assert.equal(rowIsThere(target), true)
+    })
+
+    it('reads each plan with its own run, workflow and cards', async () => {
+      const target = twoPlans()
+      setChatPlan(target, OTHER_REL, 'Another subject', 'design')
+      cardFrom(9, PLAN_REL)
+      startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9] }), 'build', target, [planPathInText(PLAN_REL)])
+
+      let read = await readDiscuss(target)
+      assert.deepEqual(read.plans?.map((p) => p.title), ['Another subject'])
+      assert.equal(read.became, undefined)
+      assert.deepEqual(
+        read.rows?.map((r) => ({ title: r.title, workflow: r.workflow, run: !!r.run, cards: r.cards?.map((c) => c.id) })),
+        [
+          { title: 'One outcome', workflow: undefined, run: false, cards: [9] },
+          { title: 'Another subject', workflow: 'design', run: false, cards: undefined },
+        ],
+      )
+
+      const sessionId = run()
+      startedPlanning(sessionId, 'plan', target, [planPathInText(OTHER_REL)])
+      read = await readDiscuss(target)
+      assert.deepEqual(read.rows?.[1]?.run, { sessionId, running: true, answer: 'plan' })
+    })
+
+    it('leaves a withdrawn plan out of the rows', async () => {
+      const target = twoPlans()
+      clearChatPlan(target, PLAN_REL)
+      assert.deepEqual((await readDiscuss(target)).rows?.map((r) => r.title), ['Another subject'])
+    })
+
+    it('puts each card on its own plan\'s workflow', () => {
+      const both = buildPrompt({
+        action: 'create',
+        plans: ['/p/plans/12-one.md', '/p/plans/13-two.md'],
+        planWorkflows: { '/p/plans/12-one.md': 'nope', '/p/plans/13-two.md': 'nope-either' },
+      })
+      // Workflows this board does not have are never named.
+      assert.doesNotMatch(both, /--workflow/)
+      const mixed = buildPrompt({
+        action: 'create',
+        plans: ['/p/plans/12-one.md', '/p/plans/13-two.md'],
+        planWorkflows: { '/p/plans/12-one.md': 'coding', '/p/plans/13-two.md': 'blog-post' },
+      })
+      assert.match(mixed, /`\/p\/plans\/12-one\.md` → `--workflow coding`, `\/p\/plans\/13-two\.md` → `--workflow blog-post`/)
+    })
+  })
 })

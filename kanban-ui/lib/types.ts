@@ -45,6 +45,7 @@ export type {
   ImageAgent,
   DiscussPlan,
   DiscussRead,
+  HandoffRow,
   HarnessGap,
   HarnessOption,
   HarnessSetting,

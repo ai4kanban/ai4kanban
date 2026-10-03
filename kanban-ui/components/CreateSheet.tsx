@@ -12,13 +12,15 @@ import { useCopy } from "@/i18n/use-copy";
 import { adoptSharedCreateDraft, createDraftKey, useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
-import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
+import { PLAN_INSET, PLAN_READ, plansOf, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { discussionTriage, heldByButton } from "@/lib/create-open";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
-import type { DiscussionTarget, WorkflowView } from "@/lib/types";
+import type { DiscussRead, DiscussionTarget, HandoffRow, WorkflowView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import type { StartFailure } from "@/lib/start-failure";
+import type { Starting } from "@/lib/create-open";
+import type { PlanPick } from "@/app/actions";
 import { Button } from "./button";
 import { OpenFailed, Skeleton } from "./CardOpening";
 import { Transcript, Pasted, Pick, useBoardChanged } from "./Chat";
@@ -60,19 +62,16 @@ interface Props {
   discussion: DiscussionTarget | null;
   onClose: () => void;
   onSent: () => void;
-  /** Plan tasks: start the run that writes the plan's cards. The screen stays up until
-   *  it is going (#706). `workflow` is the one picked beside it, or undefined for the default. */
-  onPlan: (workflow?: string) => void;
-  /** Start now off the plan (#481): start the run that writes one card from it and builds it.
-   *  The guard has already been answered. */
-  onBuildPlan: (workflow?: string) => void;
-  /** The answer whose run is being asked for right now (#706), or null. All three answers go
-   *  down while one is out, and so does the box's Send: the run archives this discussion the
-   *  moment it starts, and a message sent into it after that is one nobody answers. */
-  starting: PlanAnswer | null;
-  /** Why the last start on THIS discussion never came up (#706) — said under the answers, in
-   *  the app's own language, with the paths the board named under it. */
-  failure: StartFailure | null;
+  /** Plan tasks or Start now (#481) on some plans (#1442): `all` is a press on every plan
+   *  still waiting, and `ends` says no plan is left waiting after it. Start now's guard has
+   *  already been answered. The screen stays up until the run is going (#706). */
+  onHandoff(answer: PlanAnswer, picks: PlanPick[], all: boolean, ends: boolean): void;
+  /** The answer whose run is being asked for right now (#706), or null. Every answer goes
+   *  down while one is out, and so does the box's Send. */
+  starting: Starting | null;
+  /** Why the last start on THIS discussion never came up (#706), by the plan it was pressed
+   *  on — "" is the pair under every plan. */
+  failures: Record<string, StartFailure>;
   /** Start now could not take this discussion along and went through Plan tasks (#1246). */
   rerouted?: boolean;
   /** The discussion became one card (#1213): the screen hands the reader to its page. */
@@ -113,11 +112,10 @@ function Sheet({
   discussion,
   onClose,
   onSent,
-  onPlan,
-  onBuildPlan,
+  onHandoff,
   onBecame,
   starting,
-  failure,
+  failures,
   rerouted,
   rail,
   partner,
@@ -139,19 +137,13 @@ function Sheet({
     ? { agent: rail.read.agent, seesImages: rail.read.seesImages, imagesAble: rail.read.imagesAble }
     : null;
   const pictures = useCreatePictures(chatImages, discussion ?? "");
-  // The workflow the plans' cards run through (#715): a hand pick holds only for this
-  // discussion and these plans; otherwise the agent's pick when every plan names the same one
-  // (#847, #917), else the board's default.
+  // The workflow each plan's cards run through (#715, #1442): a hand pick holds only for this
+  // discussion; otherwise the agent's pick for that plan (#847), else the board's default.
   const flows = useWorkflows()?.workflows ?? null;
-  const pickFor = [discussion ?? "", ...plan.plans.map((p) => p.path)].join("\n");
-  const [picked, setPicked] = useState<{ for: string; id: string } | null>(null);
+  const [picked, setPicked] = useState<Record<string, string>>({});
   const usable = (id?: string) => flows?.find((f) => f.id === id && f.problems.length === 0)?.id;
-  const agreed = new Set(plan.plans.map((p) => p.workflow));
-  const workflow =
-    (picked?.for === pickFor ? picked.id : undefined) ??
-    (agreed.size === 1 ? usable(plan.plans[0]?.workflow) : undefined) ??
-    flows?.find((f) => f.isDefault)?.id ??
-    "";
+  const workflowOf = (row: { path: string; workflow?: string }) =>
+    picked[row.path] ?? usable(row.workflow) ?? flows?.find((f) => f.isDefault)?.id ?? "";
   // What unlocks the Pro workflows (#1038). A locked pick is kept, never swapped for the default.
   const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const [sending, setSending] = useState(false);
@@ -195,8 +187,10 @@ function Sheet({
   const openFailed = !opened && (rail.readFailed || plan.readFailed || gone);
   if (!opened && settled && !openFailed) setOpened(true);
   const opening = !opened;
-  // Plan tasks is writing the cards, or has written them (#1213): nothing more goes in.
-  const writing = plan.read?.run?.running === true && plan.read.run.answer === "plan";
+  // Plan tasks is writing cards in this discussion's own session (#1026), or the discussion
+  // has become cards (#1213): nothing more goes in.
+  const rows = plan.read ? rowsOf(plan.read) : [];
+  const writing = rows.some((r) => r.run?.running && r.run.answer === "plan");
   const became = plan.read?.became ?? [];
   const only = became.length === 1 ? became[0].id : null;
   useEffect(() => {
@@ -234,15 +228,15 @@ function Sheet({
       plan={plan}
       rail={rail}
       held={endHeld}
+      rows={rows}
       starting={starting}
-      failure={failure}
+      failures={failures}
       rerouted={rerouted}
       flows={flows}
-      workflow={workflow}
+      workflowOf={workflowOf}
       lock={lock}
-      onWorkflow={(id) => setPicked({ for: pickFor, id })}
-      onPlan={() => onPlan(workflow || undefined)}
-      onBuild={() => onBuildPlan(workflow || undefined)}
+      onWorkflow={(path, id) => setPicked((was) => ({ ...was, [path]: id }))}
+      onHandoff={onHandoff}
     />
   );
   // A discussion message is what is typed OR what was pasted (#441).
@@ -571,51 +565,210 @@ function Composer({
   );
 }
 
-/** The handoff (#427, #481), under the agent's own last message: the two answers whenever
- *  there is a plan and the reply is in, and while the run one of them started is going, the
- *  one line that says so.
+/** The handoff (#427, #481), under the agent's own last message: the answers whenever there is
+ *  a plan and the reply is in, and while a run one of them started is going, the line that
+ *  says so. The agent never announces it, so it can never forget to.
  *
- *  Nothing has to offer them. A plan on screen and a finished turn is the whole condition —
- *  the agent never announces the handoff, so it can never forget to. They go while a reply is
- *  being written, because the plan under them is the one being rewritten.
- *
- *  No banner and no card of its own — these are the ways of acting on the plan beside them.
- *  The box below is never taken away.
- *
- *  Plan tasks is the one to press: the filled button. Start now carries the accent in its
- *  frame and ink but no fill. The workflow is a setting, so it sits quietly at the row's end
- *  (#847). */
+ *  One plan keeps the one row it always had: Plan tasks filled, Start now in accent ink, the
+ *  workflow quietly at the end (#847). Several are one row each (#1442) — title, workflow and
+ *  their own two quiet answers — with the filled pair below taking every plan still waiting. */
 function Handoff({
   plan,
   rail,
   held,
+  rows,
   starting,
-  failure,
+  failures,
   rerouted,
   flows,
-  workflow,
+  workflowOf,
   lock,
   onWorkflow,
-  onPlan,
-  onBuild,
+  onHandoff,
 }: {
   plan: PlanPanel;
   rail: ChatRail;
-  /** This discussion shares when it ends and has no card to share under (#659), so the two
-   *  answers that end it are down: Start now's "are you sure?" never opens, and no run
-   *  starts. */
+  /** This discussion shares when it ends and has no card to share under (#659), so every
+   *  answer is down: Start now's "are you sure?" never opens, and no run starts. */
   held: boolean;
-  /** The answer whose run is being asked for (#706): its own label says so, and both go
-   *  down — a second press would be a second run. */
-  starting: PlanAnswer | null;
-  /** Why the last one never came up (#706), said in the row's own space below. */
-  failure: StartFailure | null;
+  rows: HandoffRow[];
+  starting: Starting | null;
+  failures: Record<string, StartFailure>;
   rerouted?: boolean;
   /** The board's workflows, or null before they are read or on rules without them. */
   flows: WorkflowView[] | null;
-  workflow: string;
+  workflowOf(row: HandoffRow): string;
   lock: ProLock;
-  onWorkflow(id: string): void;
+  onWorkflow(path: string, id: string): void;
+  onHandoff(answer: PlanAnswer, picks: PlanPick[], all: boolean, ends: boolean): void;
+}) {
+  const c = useCopy().board.create.sheet.plan;
+  const read = plan.read;
+  // Several cards (#1213): one line each. A single one has already taken the reader to its page.
+  if (read?.became && read.became.length > 1) {
+    return (
+      <div className="flex flex-col">
+        <BecameLinks cards={read.became} />
+      </div>
+    );
+  }
+  if (!read || !rows.length) return null;
+  const waiting = rows.filter((r) => !r.cards?.length && !r.run?.running);
+  // Nothing to press under a reply being written, nor under a message nobody has answered
+  // yet — the answer a handoff noted is not one — nor on a plan named a second ago with
+  // nothing in it to act on.
+  const answered = rail.read?.chat?.messages.at(-1)?.role === "agent" || rows.some((r) => r.run || r.cards?.length);
+  const idle = plan.shown && !rail.answering && rail.live === null && answered;
+  const down = held || starting !== null || rows.some((r) => r.run?.running && r.run.answer === "plan");
+  const pick = (r: HandoffRow): PlanPick => ({ path: r.path, workflow: workflowOf(r) || undefined });
+  const lockedOf = (r: HandoffRow) => !!lock && !!flows?.find((f) => f.id === workflowOf(r))?.pro;
+  const startingOn = (r: HandoffRow) =>
+    starting && (starting.paths === null ? waiting.includes(r) : starting.paths.includes(r.path)) ? starting.answer : null;
+  const one = (answer: PlanAnswer, r: HandoffRow) =>
+    onHandoff(answer, [pick(r)], false, waiting.length === 1 && waiting[0] === r);
+
+  if (rows.length === 1) {
+    const r = rows[0]!;
+    if (r.run?.running) {
+      return (
+        <>
+          {rerouted && r.run.answer === "plan" && <p className="px-2.5 pt-2 text-[12px] text-nb-ink-soft">{c.rerouted}</p>}
+          <Working label={r.run.answer === "build" ? c.building : c.planning} />
+        </>
+      );
+    }
+    if (!idle || r.cards?.length) return null;
+    return (
+      <div>
+        <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
+          <Answers
+            locked={lockedOf(r)}
+            lock={lock}
+            down={down}
+            starting={startingOn(r)}
+            labels={{ plan: c.start, build: c.build, buildGuard: false }}
+            onPlan={() => one("plan", r)}
+            onBuild={() => one("build", r)}
+          />
+          {r.run && !starting && !failures[r.path] && !lockedOf(r) && (
+            <span className="text-[11.5px] text-nb-ink-soft">{r.run.answer === "build" ? c.buildAgain : c.tryAgain}</span>
+          )}
+          {flows && flows.length > 1 && (
+            <WorkflowPick flows={flows} picked={workflowOf(r)} disabled={down} lock={lock} onPick={(id) => onWorkflow(r.path, id)} />
+          )}
+        </div>
+        <Failure failure={failures[r.path] ?? failures[""]} />
+      </div>
+    );
+  }
+
+  // Rows handed to one run together share one line under them all.
+  const together = (r: HandoffRow) => !!r.run?.running && rows.filter((o) => o.run?.sessionId === r.run!.sessionId).length > 1;
+  const shared = rows.find(together);
+  const sharedCount = shared ? rows.filter((o) => o.run?.sessionId === shared.run!.sessionId).length : 0;
+  const allLocked = waiting.some(lockedOf);
+  return (
+    <div>
+      {rows.map((r) => (
+        <div key={r.path} className="px-2.5 pt-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="flex min-w-[160px] flex-1 items-center gap-2">
+              <FiFileText size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
+              <span className="truncate text-[12.5px] font-[600]">{r.title || c.label}</span>
+            </span>
+            {idle && waiting.includes(r) && (
+              <span className="ml-auto flex shrink-0 items-center gap-2">
+                {flows && flows.length > 1 && (
+                  <WorkflowPick flows={flows} picked={workflowOf(r)} disabled={down} lock={lock} onPick={(id) => onWorkflow(r.path, id)} />
+                )}
+                <span className="flex items-center">
+                  <Answers
+                    quiet
+                    locked={lockedOf(r)}
+                    lock={lock}
+                    down={down}
+                    starting={startingOn(r)}
+                    labels={{ plan: c.planOne, build: c.buildOne, buildGuard: false }}
+                    onPlan={() => one("plan", r)}
+                    onBuild={() => one("build", r)}
+                  />
+                </span>
+              </span>
+            )}
+          </div>
+          {r.cards?.length ? (
+            <div className="flex flex-col">
+              <BecameLinks cards={r.cards} inset={UNDER_ROW} />
+            </div>
+          ) : r.run?.running ? (
+            !together(r) && <Working inset={UNDER_ROW} label={r.run.answer === "build" ? c.building : c.planning} />
+          ) : (
+            r.run && !startingOn(r) && !failures[r.path] && (
+              <p className={`${UNDER_ROW} text-[11.5px] text-nb-ink-soft`}>{r.run.answer === "build" ? c.buildAgain : c.tryAgain}</p>
+            )
+          )}
+          <Failure inset={UNDER_ROW} failure={failures[r.path]} />
+        </div>
+      ))}
+      {shared && (
+        <>
+          {rerouted && <p className="px-2.5 pt-2 text-[12px] text-nb-ink-soft">{c.rerouted}</p>}
+          <Working label={c.planningMany(sharedCount)} />
+        </>
+      )}
+      {idle && waiting.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
+          <Answers
+            locked={false}
+            lock={lock}
+            down={down || allLocked}
+            starting={starting?.paths === null ? starting.answer : null}
+            labels={{ plan: c.planAll, build: c.buildAll, buildGuard: waiting.length }}
+            onPlan={() => onHandoff("plan", waiting.map(pick), true, true)}
+            onBuild={() => onHandoff("build", waiting.map(pick), true, true)}
+          />
+        </div>
+      )}
+      <Failure failure={failures[""]} />
+    </div>
+  );
+}
+
+// Under a plan's own row, the lines sit under its title rather than on the column's edge.
+const UNDER_ROW = "pl-[20px] pt-1";
+
+function BecameLinks({ cards, inset = "px-2.5 pt-2" }: { cards: { id: number; title: string }[]; inset?: string }) {
+  const c = useCopy().board.create.sheet.plan;
+  return cards.map((card) => (
+    <Link key={card.id} href={`/${card.id}`} className={`flex min-w-0 items-center gap-1.5 text-[12.5px] hover:underline ${inset}`}>
+      <span className="shrink-0 text-nb-ink-soft">{c.became}</span>
+      <span className="shrink-0 font-[700]" style={{ color: "var(--color-nb-accent-deep)" }}>#{card.id}</span>
+      <span className="truncate font-[600]" style={{ color: "var(--color-nb-accent-deep)" }}>{card.title}</span>
+    </Link>
+  ));
+}
+
+/** The two answers: Plan tasks filled, Start now in accent ink behind its guard — or, `quiet`,
+ *  as small text buttons on a plan's own row (#1442). A Pro workflow this account cannot run
+ *  puts one way to Pro in place of both. */
+function Answers({
+  quiet,
+  locked,
+  lock,
+  down,
+  starting,
+  labels,
+  onPlan,
+  onBuild,
+}: {
+  quiet?: boolean;
+  locked: boolean;
+  lock: ProLock;
+  down: boolean;
+  /** Which of the two is being asked for on these plans (#706). */
+  starting: PlanAnswer | null;
+  /** `buildGuard` is how many cards Start now writes, when more than one. */
+  labels: { plan: string; build: string; buildGuard: number | false };
   onPlan(): void;
   onBuild(): void;
 }) {
@@ -624,129 +777,94 @@ function Handoff({
   // Whether Start now's "are you sure?" is open, anchored to the answer that was pressed.
   const [guard, setGuard] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
-  const read = plan.read;
-  const count = plan.plans.length;
-  const many = count > 1;
-  // Several cards (#1213): one line each. A single one has already taken the reader to its page.
-  if (read?.became && read.became.length > 1) {
-    return (
-      <div className="flex flex-col">
-        {read.became.map((card) => (
-          <Link key={card.id} href={`/${card.id}`} className="flex min-w-0 items-center gap-1.5 px-2.5 pt-2 text-[12.5px] hover:underline">
-            <span className="shrink-0 text-nb-ink-soft">{c.became}</span>
-            <span className="shrink-0 font-[700]" style={{ color: "var(--color-nb-accent-deep)" }}>#{card.id}</span>
-            <span className="truncate font-[600]" style={{ color: "var(--color-nb-accent-deep)" }}>{card.title}</span>
-          </Link>
+  const text =
+    "flex h-7 shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 text-[12px] font-[600] text-nb-accent-deep transition-[background-color] duration-100 hover:bg-nb-ink/5 disabled:cursor-not-allowed disabled:opacity-45";
+  if (locked) {
+    return quiet ? (
+      <button type="button" className={text} onClick={() => goPro(lock)}>
+        {lock === "upgrade" ? pro.upgrade : pro.signIn}
+      </button>
+    ) : (
+      <Button size="xs" onClick={() => goPro(lock)}>
+        {lock === "upgrade" ? pro.upgrade : pro.signIn}
+      </Button>
+    );
+  }
+  const planLabel = starting === "plan" ? c.starting : labels.plan;
+  const buildLabel = starting === "build" ? c.starting : labels.build;
+  return (
+    <>
+      {quiet ? (
+        <button type="button" className={text} disabled={down} title={c.planHint} onClick={onPlan}>
+          {planLabel}
+        </button>
+      ) : (
+        <Button size="xs" disabled={down} title={c.planHint} onClick={onPlan}>
+          {planLabel}
+        </Button>
+      )}
+      {/* The panel hangs off this, so it lives inside. */}
+      <span ref={anchor} className="relative flex">
+        {quiet ? (
+          <button type="button" className={text} aria-expanded={guard} disabled={down} title={c.buildHint} onClick={() => setGuard((was) => !was)}>
+            {buildLabel}
+          </button>
+        ) : (
+          <Button
+            size="xs"
+            variant="ghost"
+            className="font-[700]"
+            aria-expanded={guard}
+            disabled={down}
+            title={c.buildHint}
+            style={{ borderColor: "var(--color-nb-accent-deep)", color: "var(--color-nb-accent-deep)" }}
+            onClick={() => setGuard((was) => !was)}
+          >
+            {buildLabel}
+          </Button>
+        )}
+        <BuildGuard
+          open={guard}
+          count={labels.buildGuard || 1}
+          anchorRef={anchor}
+          onDismiss={() => setGuard(false)}
+          onConfirm={() => {
+            setGuard(false);
+            onBuild();
+          }}
+        />
+      </span>
+    </>
+  );
+}
+
+/** Why a start never came up (#706), said where it was pressed. The answers above are live
+ *  again, so pressing the same one is the retry. */
+function Failure({ failure, inset = "px-2.5 pt-2.5" }: { failure?: StartFailure; inset?: string }) {
+  if (!failure) return null;
+  return (
+    <div className={inset}>
+      <div
+        role="alert"
+        className="break-words rounded-[8px] px-2.5 py-2 text-[12px] leading-snug"
+        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+      >
+        <p>{failure.line}</p>
+        {failure.paths.map((path) => (
+          <p key={path} className="mt-1 font-mono text-[11.5px] opacity-80">
+            {path}
+          </p>
         ))}
       </div>
-    );
-  }
-  if (!read || !count) return null;
-  if (read.run?.running) {
-    return (
-      <>
-        {rerouted && read.run.answer === "plan" && <p className="px-2.5 pt-2 text-[12px] text-nb-ink-soft">{c.rerouted}</p>}
-        <Working label={read.run.answer === "build" ? c.building : many ? c.planningMany(count) : c.planning} />
-      </>
-    );
-  }
-  // A file that has been written at least once — a plan named a second ago has nothing in it
-  // to act on. And not under a reply being written, nor under a message nobody has answered
-  // yet: the answers stand under the agent's own last word.
-  if (!plan.shown) return null;
-  if (rail.answering || rail.live !== null) return null;
-  if (rail.read?.chat?.messages.at(-1)?.role !== "agent") return null;
-  // A run that wrote no card leaves the plan to be answered again, and says so.
-  const failed = !!read.run && !read.run.running;
-  const again = read.run?.answer === "build" ? c.buildAgain : many ? c.tryAgainMany : c.tryAgain;
-  const down = held || starting !== null;
-  // The picked workflow is Pro and this account cannot run it: one way to Pro in place of both.
-  const locked = !!lock && !!flows?.find((f) => f.id === workflow)?.pro;
-  return (
-    <div>
-      {/* Several plans go together (#917), so the answer names what it takes. */}
-      {many && (
-        <div className="px-2.5 pt-3">
-          <p className="text-[11.5px] text-nb-ink-soft">{c.includes(count)}</p>
-          <ul className="mt-1.5 flex flex-col gap-1">
-            {plan.plans.map((p) => (
-              <li key={p.path} className="flex min-w-0 items-center gap-1.5 text-[12.5px] font-[600]">
-                <FiFileText size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
-                <span className="truncate">{p.title || c.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
-        {locked ? (
-          <Button size="xs" onClick={() => goPro(lock)}>
-            {lock === "upgrade" ? pro.upgrade : pro.signIn}
-          </Button>
-        ) : (
-          <>
-            <Button size="xs" disabled={down} title={c.planHint} onClick={onPlan}>
-              {starting === "plan" ? c.starting : c.start}
-            </Button>
-            {/* The panel hangs off this, so it lives inside. */}
-            <span ref={anchor} className="relative flex">
-              <Button
-                size="xs"
-                variant="ghost"
-                className="font-[700]"
-                aria-expanded={guard}
-                disabled={down || many}
-                title={many ? c.buildOnlyOne : c.buildHint}
-                style={{
-                  borderColor: "var(--color-nb-accent-deep)",
-                  color: "var(--color-nb-accent-deep)",
-                }}
-                onClick={() => setGuard((was) => !was)}
-              >
-                {starting === "build" ? c.starting : c.build}
-              </Button>
-              <BuildGuard
-                open={guard}
-                anchorRef={anchor}
-                onDismiss={() => setGuard(false)}
-                onConfirm={() => {
-                  setGuard(false);
-                  onBuild();
-                }}
-              />
-            </span>
-          </>
-        )}
-        {many && !locked && <span className="text-[11.5px] text-nb-ink-soft">{c.buildOnlyOne}</span>}
-        {failed && !starting && !failure && !many && !locked && <span className="text-[11.5px] text-nb-ink-soft">{again}</span>}
-        {flows && flows.length > 1 && (
-          <WorkflowPick flows={flows} picked={workflow} disabled={down} lock={lock} onPick={onWorkflow} />
-        )}
-      </div>
-      {failed && !starting && !failure && many && (
-        <p className="px-2.5 pt-2.5 text-[11.5px] text-nb-ink-soft">{again}</p>
-      )}
-      {/* Answered where it was pressed (#706): the row's own space below, never a bubble over
-          the reply the answers stand under. The two above are live again, so pressing the
-          same one is the retry — the plan, the transcript and the box are as they were. */}
-      {failure && (
-        <div className="px-2.5 pt-2.5">
-          <div
-            role="alert"
-            className="break-words rounded-[8px] px-2.5 py-2 text-[12px] leading-snug"
-            style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
-          >
-            <p>{failure.line}</p>
-            {failure.paths.map((path) => (
-              <p key={path} className="mt-1 font-mono text-[11.5px] opacity-80">
-                {path}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
+}
+
+/** The rows a read draws (#1442); rules older than per-plan handoff give every open plan the
+ *  discussion's one run. */
+function rowsOf(read: DiscussRead): HandoffRow[] {
+  if (read.rows) return read.rows;
+  return plansOf(read).map((p) => ({ path: p.path, title: p.title, workflow: p.workflow, ...(read.run ? { run: read.run } : {}) }));
 }
 
 /** Which workflow the plan's card runs through (#715): shown only when the board has more
@@ -964,9 +1082,9 @@ const MENU_ROWS = 8;
 /** The run one answer started, in the line the three answers stood on. The dot is what finds
  *  it: this line sits against the reply's own small grey text, and accent moving is what says
  *  "working" everywhere else in the app. */
-function Working({ label }: { label: string }) {
+function Working({ label, inset = "px-2.5 pt-2" }: { label: string; inset?: string }) {
   return (
-    <p className="flex items-center gap-1.5 px-2.5 pt-2 text-[12px] text-nb-ink-soft">
+    <p className={`flex items-center gap-1.5 text-[12px] text-nb-ink-soft ${inset}`}>
       <span aria-hidden className="size-[7px] shrink-0 rounded-full bg-nb-accent" />
       {label}
     </p>
@@ -977,11 +1095,14 @@ function Working({ label }: { label: string }) {
  *  this screen. */
 function BuildGuard({
   open,
+  count,
   anchorRef,
   onDismiss,
   onConfirm,
 }: {
   open: boolean;
+  /** How many cards it writes, one build each (#1442). */
+  count: number;
   anchorRef: React.RefObject<HTMLSpanElement | null>;
   onDismiss(): void;
   onConfirm(): void;
@@ -992,7 +1113,7 @@ function BuildGuard({
       open={open}
       anchorRef={anchorRef}
       align="left"
-      title={c.title}
+      title={count > 1 ? c.titleMany(count) : c.title}
       description={
         <span className="flex flex-col gap-1">
           <span>{c.writes}</span>

@@ -32,7 +32,7 @@ let sheetUp = false;
 let failed: Readonly<Record<string, string>> = {};
 // The plan answer being asked for, per discussion, and the refusal said under the button at
 // phone width (#706). Both outlive the header, which every page change mounts afresh (#888).
-let starting: Readonly<Record<string, PlanAnswer>> = {};
+let starting: Readonly<Record<string, Starting>> = {};
 let buttonError: string | null = null;
 const subs = new Set<() => void>();
 
@@ -79,8 +79,8 @@ export const createSheet = {
     tell();
   },
 
-  /** A plan answer is out for this discussion (`answer`), or back (`null`). */
-  starting(key: string, answer: PlanAnswer | null) {
+  /** A plan answer is out for this discussion, or back (`null`). */
+  starting(key: string, answer: Starting | null) {
     starting = Object.fromEntries(Object.entries(starting).filter(([at]) => at !== key));
     if (answer) starting = { ...starting, [key]: answer };
     tell();
@@ -167,8 +167,15 @@ export function useCloseSheetRequest(): number {
   );
 }
 
+/** A plan answer out right now (#706), and the plans it takes — null is every one waiting
+ *  (#1442). */
+export interface Starting {
+  answer: PlanAnswer;
+  paths: string[] | null;
+}
+
 /** The plan answers out right now, by discussion. */
-export function useStarting(): Readonly<Record<string, PlanAnswer>> {
+export function useStarting(): Readonly<Record<string, Starting>> {
   return useSyncExternalStore(
     subscribe,
     () => starting,

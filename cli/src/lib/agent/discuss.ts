@@ -10,6 +10,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 import { listRuns, peekRun, titleOf } from './sessions'
+import { runIsLive } from './store'
 import {
   becameCards,
   clearChatPlan,
@@ -26,7 +27,15 @@ import { parseFrontmatter } from '../frontmatter'
 import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
 import { archiveInboxItem } from '../signals/inbox'
 import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
-import { isDiscussion, type ChatPlan, type ChatTarget, type DiscussPlan, type DiscussRead, type PlanAnswer } from './types'
+import {
+  isDiscussion,
+  type ChatPlan,
+  type ChatTarget,
+  type DiscussPlan,
+  type DiscussRead,
+  type HandoffRow,
+  type PlanAnswer,
+} from './types'
 
 const NOTHING: DiscussRead = { plan: null, plans: [], run: null }
 
@@ -47,19 +56,29 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
     const run = runs.find((r) => r.sessionId === id)
     return run && { live: run.status === 'running', cards: run.createdCardIds ?? [] }
   })
-  const open = openPlans(readChat(target))
+  const chat = readChat(target)
+  const open = openPlans(chat)
   const plans = open.map(shown).filter((p): p is DiscussPlan => p !== null)
   if (!plans.length) return became(target)
   const running = (p: ChatPlan) => runs.find((r) => r.sessionId === p.run)?.status === 'running'
+  const runOf = (p: ChatPlan) => p.run && { sessionId: p.run, running: running(p), answer: p.answer ?? 'plan' }
   const handed = open.find(running) ?? open.find((p) => p.run)
-  return {
-    plan: plans.at(-1)!,
-    plans,
-    run: handed?.run ? { sessionId: handed.run, running: running(handed), answer: handed.answer ?? 'plan' } : null,
-  }
+  // A withdrawn plan is done with no cards, and has no row.
+  const rows = (chat?.plans ?? []).flatMap((p): HandoffRow[] => {
+    if (p.done) {
+      if (!p.cards?.length) return []
+      const cards = p.cards.map((id) => ({ id, title: titleOf(id) ?? '' }))
+      return [{ path: planPathInText(p.path), title: p.title || cards[0]!.title, workflow: p.workflow, cards }]
+    }
+    const plan = plans.find((s) => s.path === planPathInText(p.path))
+    if (!plan) return []
+    const run = runOf(p)
+    return [{ path: plan.path, title: plan.title || p.title || '', workflow: p.workflow, ...(run ? { run } : {}) }]
+  })
+  return { plan: plans.at(-1)!, plans, run: (handed && runOf(handed)) || null, rows }
 }
 
-// A discussion with no plan open: the cards it became, if it became any (#1213).
+// A discussion with no plan left open: the cards it became, if it became any (#1213).
 function became(target: ChatTarget): DiscussRead {
   const cards = becameCards(readChat(target))
   return cards.length ? { ...NOTHING, became: cards.map((id) => ({ id, title: titleOf(id) ?? '' })) } : NOTHING
@@ -72,19 +91,13 @@ function shown(plan: ChatPlan): DiscussPlan | null {
   return file && { ...file, path: planPathInText(file.path), title: planHeading(file.text), workflow: plan.workflow }
 }
 
-/** The run this plan was handed to has started, and which answer handed it over. Held on the
- *  discussion so reopening it says the run is still working rather than offering a second
- *  one, and says which of the two is working.
+/** The run these plans were handed to has started, and which answer handed it over (#481).
+ *  Held on the discussion so reopening it says the run is still working.
  *
- *  The discussion goes out of the rail with it (#551): the user has nothing left to do on a
- *  subject whose run is already underway. The plan file stays where it is — the run is
- *  reading it — and the archive is marked the board's own, so a run that ends having written
- *  no card can put the row back.
- *
- *  That archive is an end, so it submits (#659) — the same one turn the rail's End discussion
- *  makes, started here and never waited on. Plan tasks and Start now are ends too, and a
- *  discussion whose end is refused is not handed over at all: the screen holds these two
- *  before the run ever starts, and this is the answer behind it.
+ *  Handing over the last plan still waiting ends the discussion (#551, #1442): it goes out of
+ *  the rail, marked the board's own so a run that writes no card can put it back, and it
+ *  submits (#659). A plan whose run ended with no card is waiting again. An end can be
+ *  refused, and then nothing is handed over.
  */
 export function startedPlanning(
   sessionId: string,
@@ -94,15 +107,19 @@ export function startedPlanning(
 ): { ok: true } | { error: string; reason: EndBlock } {
   const held = endBlocked(target)
   if (held) return { error: END_BLOCK_SAID[held], reason: held }
-  // The plans the run was pointed at, spelled the way the read gave them; none named is every
-  // open one, which is what a screen older than #917 hands over.
+  // None named is every open one, which is what a screen older than #917 hands over.
   const rels = paths?.map(planFromText).filter((p): p is string => p !== null)
   const handed = setChatPlanRun(target, sessionId, answer, rels ?? openPlans(readChat(target)).map((p) => p.path))
-  if (handed && isDiscussion(target)) {
+  // A run with no record may be continued under another id (#970), so it counts as live.
+  const live = (id: string) => {
+    const run = peekRun(id)
+    return id === sessionId || !run || runIsLive(run)
+  }
+  const waiting = openPlans(readChat(target)).some((p) => !p.run || !live(p.run))
+  if (handed && !waiting && isDiscussion(target)) {
     setChatArchived(target, true, 'board')
-    // Started, never waited on, and never able to take the handoff down with it: the screen
-    // has already moved on to the run, and this turn is the board's own. A run said into this
-    // discussion's session submits once it ends instead (#1026).
+    // Never waited on. A run said into this discussion's session submits once it ends instead
+    // (#1026).
     if (!peekRun(sessionId)?.chat) void shareOnEnd(target).catch(() => {})
   }
   return { ok: true }
