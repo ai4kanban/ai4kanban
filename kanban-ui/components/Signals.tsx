@@ -65,6 +65,7 @@ import { ConfirmationPopover } from "./confirm-popover";
 import { configDialog } from "./Configuration";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
+import { Markdown } from "./Markdown";
 import { OpenIdsProvider } from "./open-ids";
 import { Popover, PopoverAnchor, PopoverContent } from "./ui/popover";
 import { goPro, proLock, useProAccess } from "./pro";
@@ -163,19 +164,18 @@ function verdictReason(signal: Signal, c: SignalsCopy): string {
   return c.reasons[signal.verdictReason];
 }
 
+/** A Markdown body as one line of preview: its `####` field headings dropped. */
+const gist = (summary: string): string =>
+  summary
+    .split("\n")
+    .filter((line) => !/^\s*#{1,6}\s/.test(line))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 /** Why an item was ignored: the verdict's own label when a sort ignored it on one. */
 const whyIgnored = (signal: Signal, c: SignalsCopy): string =>
   signal.dismissedBy === "agent" && signal.verdict === "skip" ? verdictReason(signal, c) : signal.dismissedReason;
-
-/** "Needs you", leading a held item's reason in the text flow. */
-function HeldPill() {
-  const c = useCopy().rail.signals;
-  return (
-    <span className="nb-chip mr-1.5 -translate-y-px rounded-full bg-nb-peach-soft px-2 align-middle text-nb-peach-ink">
-      {c.review}
-    </span>
-  );
-}
 
 /** The kind of card a sort made of an item. Its reason is its tip. */
 function VerdictChip({ signal }: { signal: Signal }) {
@@ -892,6 +892,7 @@ export function SignalsPage({
               tab === "pending" ? (
               <>
                 {chosen.length > 0 && <div className="sticky top-0 z-20 max-md:hidden">{pickBar(false)}</div>}
+                <p className="px-3 pb-1.5 pt-0.5 text-[11.5px] text-nb-ink-soft">{c.pendingNote}</p>
                 <ul aria-label={c.pending} className="flex flex-col">
                   {rows.map((signal, i) => {
                     const key = groupOf(signal);
@@ -1260,6 +1261,7 @@ function QueueRow({
   const actsRef = useRef<HTMLSpanElement>(null);
   const still = !!making || leaving;
   const held = heldForYou(signal);
+  const reason = held ? verdictReason(signal, c) : "";
   const pinned = !still && (checked || guard);
   const tone = selected
     ? "bg-nb-accent-soft shadow-[inset_2px_0_0_0_var(--color-nb-accent-deep)]"
@@ -1319,10 +1321,9 @@ function QueueRow({
             >
               {titleOf(signal)}
             </span>
-            <span className="line-clamp-1 text-[12px] text-nb-ink-soft max-md:line-clamp-2">
-              <HeldPill />
-              {verdictReason(signal, c)}
-            </span>
+            {reason && (
+              <span className="line-clamp-1 text-[12px] text-nb-ink-soft max-md:line-clamp-2">{reason}</span>
+            )}
           </button>
         ) : (
         <button
@@ -1342,7 +1343,7 @@ function QueueRow({
           </span>
           {signal.summary && (
             <span className="min-w-0 flex-1 basis-0 truncate text-[12px] text-nb-ink-soft max-md:hidden">
-              — {signal.summary}
+              — {gist(signal.summary)}
             </span>
           )}
         </button>
@@ -1595,7 +1596,7 @@ function HistoryRow({
                 <span className="font-[700] text-nb-ink-soft">{c.dismissedWhy}</span> {why}
               </span>
             ) : (
-              !became && signal.summary && <span className={`${note} text-nb-ink-soft`}>— {signal.summary}</span>
+              !became && signal.summary && <span className={`${note} text-nb-ink-soft`}>— {gist(signal.summary)}</span>
             )}
           </button>
           {became && card && (
@@ -1769,11 +1770,8 @@ function SignalDetail({
         >
           {title}
         </h2>
-        {!history && heldForYou(signal) && (
-          <p className="mt-2 text-[13px] leading-[20px] text-nb-ink-soft">
-            <HeldPill />
-            {verdictReason(signal, c)}
-          </p>
+        {!history && heldForYou(signal) && verdictReason(signal, c) && (
+          <p className="mt-2 text-[13px] leading-[20px] text-nb-ink-soft">{verdictReason(signal, c)}</p>
         )}
         {acts && (
           <span ref={actsRef} className="relative mt-3 flex flex-wrap items-center gap-2">
@@ -1837,7 +1835,7 @@ function SignalDetail({
           <p className="text-[12px] leading-[18px] text-nb-ink-soft">{c.contentGone}</p>
         )}
         {signal.summary && (
-          <p className="whitespace-pre-wrap text-[13px] leading-[20px]">{signal.summary}</p>
+          <Markdown body={signal.summary} className="text-[13px] leading-[20px]" />
         )}
         {meta && <p className="mt-4 text-[12px] leading-[18px] text-nb-ink-soft">{meta}</p>}
         {history && (

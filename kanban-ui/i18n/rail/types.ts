@@ -109,6 +109,8 @@ export type RailCopy = {
     /** An empty queue, whether it never held anything or was just emptied — never a
      *  congratulation. The link under it: the history, when there is some. */
     empty: string;
+    /** Over the Pending list, in place of a pill on every row. */
+    pendingNote: string;
     emptyHint: string;
     seeHistory: string;
     emptyHistory: string;
@@ -129,7 +131,6 @@ export type RailCopy = {
     byAgent: string;
     /** What a Pro sort judged of an item (#1221): held for the user, the two kinds of card,
      *  and the fixed reason each verdict carries. `duplicateOf` fills `{id}`. */
-    review: string;
     plan: string;
     direct: string;
     verdict: string;
