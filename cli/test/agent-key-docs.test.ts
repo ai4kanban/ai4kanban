@@ -1,12 +1,10 @@
-// The two written tables of `AGENT.md` keys — `akb guide write-agent` and the board UI's
-// drawer — against the keys and values the parser accepts.
+// The written table of `AGENT.md` keys — `akb guide write-agent` — against the keys and
+// values the parser accepts.
 
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import uiGuide from '../../kanban-ui/public/guides/agents.md'
 import cliGuide from '../src/guide/write-agent.md'
-import { SPEC_OUTPUTS } from '../src/lib/agent/types.ts'
 import { WORKFLOW_STAGES } from '../src/lib/agent/workflows.ts'
 import { AGENT_KEYS, SCHEDULE_HOOK } from '../src/lib/agents/parse.ts'
 
@@ -14,28 +12,6 @@ import { AGENT_KEYS, SCHEDULE_HOOK } from '../src/lib/agents/parse.ts'
 const HOOK_VALUES = [...WORKFLOW_STAGES, SCHEDULE_HOOK]
 
 const sorted = (values: Iterable<string>) => [...values].sort()
-
-describe('the board UI key table', () => {
-  // One entry per `- **<key>**` bullet under `## Keys`, with its continuation lines.
-  const section = uiGuide.split(/^## /m).find((part) => part.startsWith('Keys\n')) ?? ''
-  const entries = new Map(
-    section
-      .split(/^(?=- \*\*)/m)
-      .slice(1)
-      .map((entry) => [/^- \*\*([^*]+)\*\*/.exec(entry)?.[1] ?? '', entry] as const),
-  )
-  const values = (key: string) => sorted([...(entries.get(key) ?? '').matchAll(/`([^`]+)`/g)].map((m) => m[1]))
-
-  it('lists the keys the parser reads', () => {
-    assert.deepEqual(sorted([...entries.keys()].filter((key) => key !== 'description')), sorted(AGENT_KEYS))
-  })
-
-  it('names the values the parser accepts', () => {
-    assert.deepEqual(values('lead'), sorted(WORKFLOW_STAGES))
-    assert.deepEqual(values('hook'), sorted(HOOK_VALUES))
-    assert.deepEqual(values('output'), sorted(SPEC_OUTPUTS))
-  })
-})
 
 describe('akb guide write-agent', () => {
   const blocks = [...cliGuide.matchAll(/^```yaml\n([\s\S]*?)^```/gm)].map((m) => m[1].split('\n'))

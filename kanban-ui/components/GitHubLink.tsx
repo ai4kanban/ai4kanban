@@ -25,8 +25,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
 import { openLink } from "./desktop";
 
-/** Where the project lives. The guide drawer builds its own deep links off the
- *  same repo (components/Guide.tsx). */
+/** Where the project lives. */
 export const REPO_URL = "https://github.com/ai4kanban/ai4kanban";
 
 export function GitHubLink() {

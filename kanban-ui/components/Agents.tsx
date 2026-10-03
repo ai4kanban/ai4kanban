@@ -72,7 +72,6 @@ import { cn } from "@/lib/utils";
 import type { CadenceCopy } from "@/i18n/configuration/types";
 import { Button } from "./button";
 import { AgentMark, useRuntimeName } from "./Configuration";
-import { GuideDrawer } from "./Guide";
 import { ConfirmationPopover } from "./confirm-popover";
 import { useCopyText } from "./copy";
 import {
@@ -1069,19 +1068,6 @@ function Page({
               </code>
               <CopyPath path={agent.file.path} />
             </div>
-          )}
-          {/* What may go in the file, one press from the box you write it in (#935). It opens
-              here rather than in a browser: the desktop window hands an external link to the
-              system browser, and a hand-off that fails is a click that did nothing. Only an
-              agent this project added — a built-in agent's box is a rule, not an `AGENT.md`. */}
-          {!writesRule && agent.file && (
-            <GuideDrawer
-              guide="agents"
-              title={c.guideTitle}
-              className="mt-2 shrink-0 text-[12px] leading-relaxed text-nb-ink-soft"
-            >
-              {c.guideLine}
-            </GuideDrawer>
           )}
           {writesRule ? (
             <textarea

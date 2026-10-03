@@ -92,12 +92,6 @@ const en: ChromeCopy = {
     leaving: (seconds) => `Taking you to the board in ${seconds}s…`,
     back: "Go to the board",
   },
-  guide: {
-    failed: "The guide didn’t load —",
-    readOnline: "read it on the website",
-    failedEnd: ".",
-    reading: "Reading the guide…",
-  },
 };
 
 export default en;
