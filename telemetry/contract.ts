@@ -99,6 +99,8 @@ export interface EventShape {
 /** What the app and the command put on every event they send. */
 const APP = { surface: 'token', version: 'token' } as const
 
+const RUN_END = { harness: 'token', custom_agent: 'flag', model: 'token', cost_micros: 'count' } as const
+
 export const EVENTS = {
   /** The app or the command started (#295). `first_run` is what #400 counts real installs by. */
   app_open: { from: 'app', fields: { ...APP, os: 'token', arch: 'token', first_run: 'flag' } },
@@ -106,8 +108,10 @@ export const EVENTS = {
   app_day: { from: 'app', fields: { ...APP } },
   /** `custom_agent`: the run was by an agent the project added, not one the board ships. */
   run_started: { from: 'app', fields: { ...APP, harness: 'token', custom_agent: 'flag' } },
-  run_finished: { from: 'app', fields: { ...APP, harness: 'token', custom_agent: 'flag' } },
-  run_failed: { from: 'app', fields: { ...APP, harness: 'token', custom_agent: 'flag' } },
+  /** `model` is a public model's name, or `custom` (#1474). `cost_micros` is the run's
+   *  estimated cost in millionths of a US dollar, sent only when the agent gave one. */
+  run_finished: { from: 'app', fields: { ...APP, ...RUN_END } },
+  run_failed: { from: 'app', fields: { ...APP, ...RUN_END } },
   chat_message: { from: 'app', fields: { ...APP } },
   /** One board's own counts since its last report (#296). `board` says which board they came
    *  from and nothing about the project behind it. */

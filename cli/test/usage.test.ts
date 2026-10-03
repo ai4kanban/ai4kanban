@@ -217,6 +217,34 @@ describe('what is queued', () => {
     assert.equal(run.harness, undefined)
   })
 
+  it('carries the model and cost a run ended with, and leaves out what it did not have', () => {
+    dayAlreadySent()
+    fs.writeFileSync(path.join(home, 'models-dev.json'), JSON.stringify({ fetchedAt: Date.now(), limits: { 'openai/gpt-5.5': 400_000 } }))
+    reportRun('finished', 'codex', false, { model: 'gpt-5.5', costUsd: 0.4321234, ownEndpoint: false })
+    reportRun('failed', 'cursor', false, { ownEndpoint: false })
+    const [priced, bare] = queued().filter((e) => e.name !== 'app_day')
+    assert.equal(priced!.model, 'gpt-5.5')
+    assert.equal(priced!.cost_micros, 432_123)
+    assert.ok(!('model' in bare!) && !('cost_micros' in bare!))
+  })
+
+  it('says `custom` for a model behind an own endpoint or outside the public catalogue', () => {
+    dayAlreadySent()
+    fs.writeFileSync(path.join(home, 'models-dev.json'), JSON.stringify({ fetchedAt: Date.now(), limits: { 'zai/glm-4.6': 200_000 } }))
+    reportRun('finished', 'claude-code', false, { model: 'glm-4.6', ownEndpoint: true })
+    reportRun('finished', 'claude-code', false, { model: 'acme-internal-7b', ownEndpoint: false })
+    reportRun('finished', 'claude-code', false, { model: 'my model, v2', ownEndpoint: false })
+    reportRun('finished', 'claude-code', false, { model: 'zai/glm-4.6', ownEndpoint: false })
+    const models = queued().filter((e) => e.name === 'run_finished').map((e) => e.model)
+    assert.deepEqual(models, ['custom', 'custom', 'custom', 'zai/glm-4.6'])
+  })
+
+  it('says `custom` for every model before the catalogue was ever pulled', () => {
+    dayAlreadySent()
+    reportRun('finished', 'claude-code', false, { model: 'claude-opus-5-5', ownEndpoint: false })
+    assert.equal(queued().find((e) => e.name === 'run_finished')!.model, 'custom')
+  })
+
   it('says `app` for everything under the board server the app starts', () => {
     dayAlreadySent()
     assert.deepEqual(recordUsageDisclosure(true), { ok: true })

@@ -27,6 +27,7 @@ import { randomUUID } from 'node:crypto'
 import { ENDPOINT, LIMITS, TOKEN, VERSION } from '../../../../telemetry/contract'
 import type { EventName, SentEvent } from '../../../../telemetry/contract'
 import { SKILL_VERSION } from '../../version'
+import { inCatalog } from '../agent/catalog'
 import { insideRun } from '../agent/env'
 import { BOARD_STATE } from '../paths'
 import { machineHome } from './home'
@@ -171,9 +172,39 @@ const RUN_EVENT = {
 /** A run of the board's agent, as the surface that started it saw it. Only the two endings
  *  the board witnessed are reported: a run nobody saw the end of was never finished, and a
  *  run the user stopped is neither a success nor a failure. */
-export function reportRun(what: keyof typeof RUN_EVENT, harness: string, customAgent: boolean): void {
+export function reportRun(
+  what: keyof typeof RUN_EVENT,
+  harness: string,
+  customAgent: boolean,
+  end?: RunEnd,
+): void {
   const named = token(harness)
-  reportUsage(RUN_EVENT[what], { ...(named ? { harness: named } : {}), custom_agent: customAgent })
+  reportUsage(RUN_EVENT[what], {
+    ...(named ? { harness: named } : {}),
+    custom_agent: customAgent,
+    ...(end ? endFields(end) : {}),
+  })
+}
+
+/** What a finished or failed run ended with (#1474). */
+export interface RunEnd {
+  model?: string
+  costUsd?: number
+  /** The run went to an address the user typed in, so its model name may be their own. */
+  ownEndpoint: boolean
+}
+
+/** A model the public catalogue does not name is sent as `custom`, never by its name. */
+function endFields({ model, costUsd, ownEndpoint }: RunEnd): Record<string, Field> {
+  const fields: Record<string, Field> = {}
+  if (model?.trim()) {
+    const named = TOKEN.test(model.trim()) ? model.trim() : undefined
+    fields.model = named && !ownEndpoint && inCatalog(named) ? named : 'custom'
+  }
+  if (typeof costUsd === 'number' && Number.isFinite(costUsd) && costUsd >= 0) {
+    fields.cost_micros = Math.round(costUsd * 1_000_000)
+  }
+  return fields
 }
 
 /** This board's numbers (#1471): how many of its own agents are on, at most once a day and

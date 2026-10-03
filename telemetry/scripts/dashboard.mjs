@@ -5,7 +5,7 @@
 // The site block reuses `report.mjs`'s own cells, so the page and `npm run numbers` divide
 // the same views by the same presses.
 
-import { RATE_PAGES, cellsOf, languagesOf, summed } from './report.mjs'
+import { COST_BANDS, RATE_PAGES, cellsOf, languagesOf, runsOf, summed } from './report.mjs'
 
 /** The ranges the page offers, in days. */
 export const RANGES = [7, 14, 30, 90]
@@ -97,6 +97,7 @@ export function dashboardOf({ endpoint, today, days, held, readAt, readFailed = 
     overview: overview(range, whole, before, held, latest),
     daily: daily(range, held),
     site: site(range, held),
+    runs: runs(range, held, newest),
     spread: spread(newest, newest ? held.get(newest) : null),
     ai: aiCost(range, ai),
   }
@@ -192,11 +193,7 @@ const rateOf = ({ presses, views }) => (views ? (100 * presses) / views : null)
  *  without counting the same machine twice. */
 function spread(day, summary) {
   if (!summary) return null
-  const bars = (group) => {
-    const entries = Object.entries(group ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 8)
-    const most = entries[0]?.[1] ?? 0
-    return entries.map(([key, n]) => ({ key, n, share: most ? n / most : 0 }))
-  }
+  const bars = (group) => barsOf(Object.entries(group ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 8))
   return {
     day,
     columns: [
@@ -204,6 +201,31 @@ function spread(day, summary) {
       { label: 'Version', bars: bars(summary.numbers.install_version) },
       { label: 'Country', bars: bars(summary.numbers.install_country) },
     ],
+  }
+}
+
+const barsOf = (entries) => {
+  const most = Math.max(0, ...entries.map(([, n]) => n))
+  return entries.map(([key, n]) => ({ key, n, share: most ? n / most : 0 }))
+}
+
+/** What the range's runs ran on and cost (#1474), summed over the days that have a summary.
+ *  Installs by daily cost are one day's, like the spread. */
+function runs(range, held, newest) {
+  const summaries = range.map((day) => held.get(day)?.numbers).filter(Boolean)
+  const { harness, models } = runsOf(summaries)
+  const bands = newest ? (held.get(newest).numbers.install_daily_cost ?? {}) : null
+  return {
+    knownDays: summaries.length,
+    columns: [
+      { label: 'Tool (run events)', bars: barsOf(harness.slice(0, 8)) },
+      { label: 'Model (finished and failed runs)', bars: barsOf(models.slice(0, 8).map((one) => [one.model, one.runs])) },
+      {
+        label: newest ? `Installs by daily cost, ${newest}` : 'Installs by daily cost',
+        bars: bands ? barsOf(COST_BANDS.map(([key, label]) => [label, bands[key] ?? 0])) : [],
+      },
+    ],
+    models,
   }
 }
 

@@ -172,3 +172,15 @@ export function contextLimit(harness: string, model: string | undefined): number
   }
   return widest || undefined
 }
+
+/** Whether the catalogue names this model under any provider (#1474). Never pulled reads as
+ *  not named. */
+export function inCatalog(model: string): boolean {
+  const limits = readCache()?.limits
+  if (!limits) return false
+  const whole = model.trim().toLowerCase()
+  if (limits[whole]) return true
+  const cut = whole.lastIndexOf('/')
+  const ids = spellings(cut > 0 ? whole.slice(cut + 1) : whole)
+  return Object.keys(limits).some((key) => ids.includes(key.slice(key.indexOf('/') + 1)))
+}
