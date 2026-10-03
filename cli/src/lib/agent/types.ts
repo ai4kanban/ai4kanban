@@ -492,6 +492,8 @@ export interface RunRecord {
   /** What this run cost in US dollars, as its own output reported it at close. An
    *  estimate the agent worked out from tokens at list prices — not a bill. */
   costUsd?: number
+  /** The session's running total behind `costUsd`, on a connector that reports one (#1480). */
+  sessionCostUsd?: number
   usage?: TokenUsage
   /** How full the context window was after this run's last finished request (#675). Kept
    *  apart from `usage` above, which counts what the whole run spent: this one neither adds
@@ -1001,6 +1003,8 @@ export interface ChatMessage {
   /** What the turn cost in US dollars, when the connector priced it. The agent's own
    *  arithmetic from tokens at list prices, never a bill. */
   costUsd?: number
+  /** The session's running total behind `costUsd`, on a connector that reports one (#1480). */
+  sessionCostUsd?: number
   /** The connector and model that wrote this reply. Absent on a reply written before
    *  replies named them — never filled in from the conversation's current pick. */
   harness?: string

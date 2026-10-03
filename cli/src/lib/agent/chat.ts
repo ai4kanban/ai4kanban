@@ -60,6 +60,7 @@ import { createStderrFilter } from './wire'
 import { caseEnv, discussionEnv } from './env'
 import { endAgent, markEnv, stopMark, trackAgent } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
+import { lastSessionTotal, ownCost, reportsSessionTotal } from './own-cost'
 import { recordReplyUsage } from './usage'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
 import type {
@@ -131,6 +132,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
       ms: typeof entry.ms === 'number' ? entry.ms : undefined,
       usage: usageOf(entry.usage),
       costUsd: typeof entry.costUsd === 'number' ? entry.costUsd : undefined,
+      sessionCostUsd: typeof entry.sessionCostUsd === 'number' ? entry.sessionCostUsd : undefined,
       harness: typeof entry.harness === 'string' && entry.harness ? entry.harness : undefined,
       model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       images: imagesOf(entry.images),
@@ -1459,6 +1461,10 @@ export async function sendChatMessage(
         onText: write,
         onOpen: options.onOpen,
       })
+    // The session total this turn starts from (#1480): the forked session's, or this one's.
+    const totals = reportsSessionTotal(held.harness)
+    const carried = held.resumeId ?? (fork ? from?.resumeId : undefined)
+    let before = totals && carried ? lastSessionTotal(carried, readRuns()) : undefined
     let spoken: Spoken
     if (fork) {
       // The CLI's own complaint about a session it could not fork is held back until the
@@ -1472,6 +1478,7 @@ export async function sendChatMessage(
       })
       if (!spoken.ok && !spoken.stopped && !hasWords(spoken.text)) {
         const fresh = planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own)
+        before = undefined
         spoken = await turn(fresh, chatPrompt(cardId, text, { ...say, ...opening(true) }), onText)
       }
     } else {
@@ -1489,6 +1496,7 @@ export async function sendChatMessage(
       : spoken.error || 'the reply stopped before the agent had finished.'
 
     const landed = Date.now()
+    const costUsd = totals ? ownCost(spoken.costUsd, spoken.reseeded ? undefined : before) : spoken.costUsd
     held.messages.push({
       role: 'agent',
       text: reply,
@@ -1501,7 +1509,8 @@ export async function sendChatMessage(
       // a turn that reported none carries none rather than a zero.
       ms: landed - asked,
       usage: spoken.usage,
-      costUsd: spoken.costUsd,
+      costUsd,
+      ...(totals && spoken.costUsd !== undefined ? { sessionCostUsd: spoken.costUsd } : {}),
       harness: held.harness,
       model: spoken.model ?? held.model,
     })
@@ -1528,7 +1537,7 @@ export async function sendChatMessage(
     settleHandoffs(held)
     try {
       recordReplyUsage(
-        { key: `chat:${keyOf(cardId)}:${landed}`, kind: 'chat', at: landed, harness: held.harness, model: spoken.model ?? held.model, usage: spoken.usage, costUsd: spoken.costUsd },
+        { key: `chat:${keyOf(cardId)}:${landed}`, kind: 'chat', at: landed, harness: held.harness, model: spoken.model ?? held.model, usage: spoken.usage, costUsd },
         readRuns,
       )
     } catch {
