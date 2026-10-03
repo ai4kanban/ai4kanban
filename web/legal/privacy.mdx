@@ -2,7 +2,7 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, turn AI4Kanban Cloud on for a board, and subscribe to Pro."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, the AI4Kanban Cloud preview, and the Pro subscription."
-effective: 2026-09-27
+effective: 2026-10-03
 ---
 
 <TLDR title="The short version">
@@ -174,9 +174,9 @@ The events are the whole list, and what each adds to those seven:
 | --- | --- |
 | **The app or the command was opened** | Whether this is the first open on this install, your operating system — macOS, Windows, or Linux — and your processor architecture, such as `arm64` or `x64`. The app sends this on each launch; the `akb` command sends it at most once a day, and never for an `akb` a coding agent ran for itself. |
 | **The app was used today** | Nothing. Sent at most once a day, so returning use can be counted without an event per click. |
-| **A run started, finished, or failed** | The name of the coding agent it ran on — `claude-code`, `codex`, and so on. Never the card, and never anything the run read or wrote. A run you stopped yourself is reported as neither finished nor failed. |
+| **A run started, finished, or failed** | The name of the coding agent it ran on — `claude-code`, `codex`, and so on — and whether the agent running it is one your project added or one AI4Kanban ships. Never the agent's name, never the card, and never anything the run read or wrote. A run you stopped yourself is reported as neither finished nor failed. |
 | **A chat message was sent** | Nothing. Not the message, and not the reply. |
-| **A board's own counts** | Counts since that board's last report, under a second random id for the board: cards created — and how many of those you asked for and how many the agent proposed — cards completed, cards rejected, questions closed and which kind each was, agent decisions that stood and ones you overruled, and releases closed. Numbers only. Sent at most once a day, and only when a count changed. |
+| **A board's own counts** | Counts since that board's last report, under a second random id for the board: cards created — and how many of those you asked for and how many the agent proposed — cards completed, cards rejected, questions closed and which kind each was, agent decisions that stood and ones you overruled, and releases closed. Also how many of the agents your project added are switched on — the number at that moment, while it is above zero. Numbers only, at most once a day; the counts since the last report go only when one changed. |
 
 **What it never carries**, on any event: a card id, title or body; a file path; a repository, folder or project name; a branch name or commit message; your goal text; anything you or an agent typed; a model prompt or response; your name, email address or GitHub handle; your IP address; and the machine identifier a Cloud board registers.
 

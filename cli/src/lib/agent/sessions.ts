@@ -24,7 +24,8 @@ import { planFromText, planTitle, readPlan } from '../plans'
 import { signalsAccess } from '../signals/access'
 import { readInbox } from '../signals/inbox'
 import { tickedSetupSteps } from '../setup'
-import { reportRun } from '../machine/usage'
+import { reportBoardNumbers, reportRun } from '../machine/usage'
+import { customAgentsOn, isCustomAgent } from '../agents/roster'
 import { SKILL_VERSION } from '../../version'
 import { INDEX_LOCK, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import {
@@ -994,7 +995,8 @@ export function openRun(
   writeSpec(spec)
   // A run started (#295), on the surface that asked for it: the agent's name, and nothing
   // about the card.
-  reportRun('started', record.harness)
+  reportRun('started', record.harness, isCustomAgent(record.agent))
+  reportBoardNumbers(() => customAgentsOn().length)
   // And the card is at work again, so a row Cloud is still holding about it comes down (#611).
   void reportCloudRunStart(cardId)
   return { run: record, spec }
@@ -1328,7 +1330,8 @@ async function resumeHeld(
   writeSpec(spec)
   // A resume spawns a process and works like any other run, so it counts as one — and
   // started stays ahead of finished plus failed (#295).
-  reportRun('started', record.harness)
+  reportRun('started', record.harness, isCustomAgent(record.agent))
+  reportBoardNumbers(() => customAgentsOn().length)
   void reportCloudRunStart(record.cardId)
   return { run: record, spec }
 }
@@ -1519,8 +1522,8 @@ export async function closeRun(
   if (!closed) return
   // …and the count of it (#295). Only the two endings the board WITNESSED: a stop is the
   // user's decision rather than an outcome, and a run nobody saw the end of never finished.
-  if (closed.status === 'done') reportRun('finished', closed.harness)
-  else if (closed.status === 'error') reportRun('failed', closed.harness)
+  if (closed.status === 'done') reportRun('finished', closed.harness, isCustomAgent(closed.agent))
+  else if (closed.status === 'error') reportRun('failed', closed.harness, isCustomAgent(closed.agent))
   // The delivery first: a run ending is a decision for the delivery it belongs to, and
   // whether the delivery is over is what decides whether the card is still being built.
   // Restoring the stage before that would read a delivery that was about to end as one

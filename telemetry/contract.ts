@@ -104,9 +104,10 @@ export const EVENTS = {
   app_open: { from: 'app', fields: { ...APP, os: 'token', arch: 'token', first_run: 'flag' } },
   /** Sent at most once a day, so returning use is counted without an event per click. */
   app_day: { from: 'app', fields: { ...APP } },
-  run_started: { from: 'app', fields: { ...APP, harness: 'token' } },
-  run_finished: { from: 'app', fields: { ...APP, harness: 'token' } },
-  run_failed: { from: 'app', fields: { ...APP, harness: 'token' } },
+  /** `custom_agent`: the run was by an agent the project added, not one the board ships. */
+  run_started: { from: 'app', fields: { ...APP, harness: 'token', custom_agent: 'flag' } },
+  run_finished: { from: 'app', fields: { ...APP, harness: 'token', custom_agent: 'flag' } },
+  run_failed: { from: 'app', fields: { ...APP, harness: 'token', custom_agent: 'flag' } },
   chat_message: { from: 'app', fields: { ...APP } },
   /** One board's own counts since its last report (#296). `board` says which board they came
    *  from and nothing about the project behind it. */
@@ -127,6 +128,9 @@ export const EVENTS = {
       decisions_stood: 'count',
       decisions_overruled: 'count',
       releases_closed: 'count',
+      /** How many of the project's own agents are switched on right now — a level, not a
+       *  count since the last report. */
+      custom_agents_on: 'count',
     },
   },
   /** A page of the site was loaded (#297). No identifier, so it is never de-duplicated. */
