@@ -84,6 +84,16 @@ describe('the endpoint', () => {
     assert.deepEqual(await health.json(), { service: 'ai4kanban-telemetry', ok: true })
   })
 
+  it('names the commit a deploy stamped on /health, and leaves it out otherwise', async () => {
+    const health = async (env) => (await worker.fetch(new Request('https://t.ai4kanban.dev/health'), env)).json()
+    assert.deepEqual(await health({ ...fakeEnv(), COMMIT: 'abc1234' }), {
+      service: 'ai4kanban-telemetry',
+      ok: true,
+      commit: 'abc1234',
+    })
+    assert.deepEqual(await health(fakeEnv()), { service: 'ai4kanban-telemetry', ok: true })
+  })
+
   it('holds one address to its hour and lets another through', async () => {
     const env = fakeEnv()
     const batch = appBatch([{ id: 'e1', name: 'app_day', day: day(), surface: 'app' }])

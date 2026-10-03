@@ -37,14 +37,14 @@ export const copyFrom = (argv) =>
  * bucket has none of. Everything else still throws, so a spent token or an unreachable bucket
  * is never read as a day that was never written.
  */
-export function wrangler(args, { absentIf } = {}) {
+export function wrangler(args, { absentIf, cwd = serviceRoot } = {}) {
   const env = { ...process.env }
   for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY']) {
     delete env[name]
     delete env[name.toLowerCase()]
   }
   const run = spawnSync('npx', ['--no-install', 'wrangler', ...args], {
-    cwd: serviceRoot,
+    cwd,
     env,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
@@ -60,13 +60,13 @@ export function wrangler(args, { absentIf } = {}) {
  * One statement against a copy's database, with the account we already hold. The service
  * answers no read but the installs total (#728), so this is the only way to any other number.
  */
-export function statement(copy, sql) {
+export function statement(copy, sql, options) {
   const args = ['d1', 'execute', copy.database, ...copy.flags, '--remote', '--json']
-  const out = wrangler([...args, '--command', sql])
+  const out = wrangler([...args, '--command', sql], options)
   const start = out.indexOf('[')
   if (start < 0) throw new Error(`d1 execute returned no JSON:\n${out}`)
   return JSON.parse(out.slice(start))
 }
 
-export const query = (copy, sql) =>
-  statement(copy, sql).flatMap((answer) => answer.results ?? [])
+export const query = (copy, sql, options) =>
+  statement(copy, sql, options).flatMap((answer) => answer.results ?? [])

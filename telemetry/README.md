@@ -13,7 +13,7 @@ telemetry/
 ├── contract.ts     the one file the senders and the server both read
 ├── src/            the Worker — index.ts is every route it has
 ├── migrations/     the schema, applied forward only by `wrangler d1 migrations`
-├── scripts/        migrate, numbers, numbers:web, forget, burst
+├── scripts/        migrate, deploy, check:live, numbers, numbers:web, forget, burst
 ├── test/           run by `npm test`; the SQL runs against a real SQLite
 └── wrangler.jsonc  both copies of the service, their routes, schedules and buckets
 ```
@@ -95,9 +95,10 @@ npx wrangler secret put CF_API_TOKEN     # a token with Account Analytics Read
 ## Day to day
 
 ```sh
-npm run deploy             # migrates, then deploys the endpoint at t.ai4kanban.dev
+npm run deploy             # migrates, then deploys the endpoint at t.ai4kanban.dev, stamped with HEAD's commit
 npm run deploy:dev         # the same, on the copy development builds post into
 npm run migrate            # the migrations alone, without deploying
+npm run check:live         # migrations to apply and Worker commits not live; exits 1 when behind
 npm run numbers            # the last 14 days; --days N, --dev, --json
 npm run numbers:web        # the same production numbers on a page, this machine only
 npm run forget -- <id>     # delete one install's events and feedback, archive files included
