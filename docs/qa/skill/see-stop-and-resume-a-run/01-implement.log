@@ -1,0 +1,5 @@
+$ akb card implement 2
+implement — run 124a373c-5161-4a9e-bbe0-fa6609525916 in delivery tmzb4k42
+  follow it: akb run log 124a373c --follow
+  stop it:   akb run stop 124a373c
+

@@ -1,0 +1,3 @@
+$ akb triage add --title "Search is slow on big boards" --text "Typing in the search box lags about a second once the board has 300 cards." --source "user email"
+added to triage: docs/kanban/triage/search-is-slow-on-big-boards.md
+

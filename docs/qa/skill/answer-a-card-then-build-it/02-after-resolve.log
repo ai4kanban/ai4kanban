@@ -1,0 +1,10 @@
+$ akb run list | head -3
+✓ 868a7cdd  create              done  in 0s
+    Export a card as PDF
+✓ ddfc50b7  clarify #2          done  in 0s
+
+$ akb raw list | tail -3
+#2 Export a card as PDF  (docs/kanban/todo/2-export-a-card-as-pdf.md)
+    todo · priority med · roi med
+    A card page gets an Export to PDF button that saves the card as a one-page PDF.
+

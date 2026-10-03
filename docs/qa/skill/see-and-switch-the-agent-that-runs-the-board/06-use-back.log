@@ -1,0 +1,47 @@
+$ akb agent use claude-code
+Global default runs Claude Code — every agent that named no runtime runs it.
+Runtimes
+  Global default       Claude Code
+    id global
+    provider   subscription — Claude subscription
+    apiKey     not set
+
+The first row is Global default — what an agent naming no runtime runs, and the one row
+that can be neither renamed nor deleted. `akb agent runtime add <name> <harness>` adds one.
+`args` goes after the settings' flags and before the CLI's own, and a "command"
+override never turns it off.
+
+Agents
+  discussion-helper      (Global default)     claude-code
+  software-planner       (Global default)     claude-code — follows discussion-helper
+  builder                (Global default)     claude-code
+  memory-pruner          (Global default)     claude-code
+  memory-reviewer        (Global default)     claude-code
+  dismissal-reviewer     (Global default)     claude-code
+  project-writer         (Global default)     claude-code
+  proposer               (Global default)     claude-code
+  blog-illustrator       (Global default)     claude-code
+  blog-planner           (Global default)     claude-code — follows discussion-helper
+  carousel-planner       (Global default)     claude-code — follows discussion-helper
+  copywriting            (Global default)     claude-code
+  cover-designer         (Global default)     claude-code
+  deck-planner           (Global default)     claude-code — follows discussion-helper
+  demo-rehearser         (Global default)     claude-code
+  email-planner          (Global default)     claude-code
+  hyperframes-editor     (Global default)     claude-code
+  prompt-writer          (Global default)     claude-code
+  qa-manager             (Global default)     claude-code
+  scriptwriter           (Global default)     claude-code — follows discussion-helper
+  tech-stack-advisor     (Global default)     claude-code
+  ui-designer            (Global default)     claude-code
+
+A runtime in brackets is Global default — that agent picked none.
+`akb agent bind <agent> <runtime>` gives one a row of its own.
+
+$ akb agent | head -3
+Runtimes
+  Global default       Claude Code
+    id global
+
+$ git status --short
+

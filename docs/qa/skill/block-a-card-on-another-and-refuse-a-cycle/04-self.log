@@ -1,0 +1,4 @@
+$ akb raw update 2 --blocked-by 2
+akb raw: #2 cannot be blocked by itself.
+(exit 1)
+

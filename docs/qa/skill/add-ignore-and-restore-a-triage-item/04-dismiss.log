@@ -1,0 +1,25 @@
+$ akb triage dismiss derived-d426101a8721dc45 --reason 'Only one user, and 300-card boards are rare'
+derived-d426101a8721dc45 — ignored: docs/kanban/triage/dismissed/search-is-slow-on-big-boards.md
+
+$ ls docs/kanban/triage docs/kanban/triage/dismissed
+docs/kanban/triage:
+dismissed
+
+docs/kanban/triage/dismissed:
+search-is-slow-on-big-boards.md
+
+$ cat docs/kanban/triage/dismissed/*.md
+---
+source_id: derived-d426101a8721dc45
+title: Search is slow on big boards
+collected_at: 2026-10-03 17:22
+imported_at: 2026-10-03 17:22
+meta:
+  source: user email
+dismissed_at: 2026-10-03 17:22
+dismissed_by: agent
+dismissed_reason: Only one user, and 300-card boards are rare
+---
+
+Typing in the search box lags about a second once the board has 300 cards.
+

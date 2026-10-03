@@ -1,0 +1,29 @@
+$ git log --oneline
+18d24fd Export a card as PDF (#2)
+07d5b80 plan #2
+247a37d board
+62c464f init
+
+$ git show --stat HEAD | sed 1,4d
+    Export a card as PDF (#2)
+    
+    delivery 29bqwrnb
+
+ 2.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+$ ls docs/kanban/todo docs/kanban/.archive
+docs/kanban/.archive:
+2-export-a-card-as-pdf.md
+
+docs/kanban/todo:
+1-answer-the-questions-setup-couldnt-settle.md
+README.md
+
+$ git status --short
+ M docs/kanban/metrics.csv
+ D docs/kanban/todo/2-export-a-card-as-pdf.md
+ M docs/kanban/todo/README.md
+?? docs/kanban/.archive/
+?? docs/kanban/deliveries/
+

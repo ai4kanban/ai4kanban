@@ -1,0 +1,5 @@
+$ akb run list
+· 124a373c  implement #2        running 12s  delivery tmzb4k42
+
+1 running. Follow one with `akb run log <id> --follow`.
+

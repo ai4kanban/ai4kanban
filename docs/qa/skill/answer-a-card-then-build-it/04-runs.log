@@ -1,0 +1,9 @@
+$ akb run list
+✓ 868a7cdd  create              done  in 0s
+    Export a card as PDF
+✓ ddfc50b7  clarify #2          done  in 0s
+✓ 66cd015a  resolve #2          done  in 0s
+    A4
+✓ d4e9082a  implement #2        done  delivery 29bqwrnb  in 0s
+nothing running.
+

@@ -1,0 +1,4 @@
+$ akb raw update 2 --blocked-by 9
+akb raw: --blocked-by points at #9, not a real task id (ids so far go up to 3). don't invent ids.
+(exit 1)
+

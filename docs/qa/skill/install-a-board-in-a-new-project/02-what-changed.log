@@ -1,0 +1,17 @@
+$ git status --short
+?? .gitignore
+?? docs/
+
+$ cat .gitignore
+# Delivery state — worktrees and the like. Never committed.
+.akb/
+
+$ ls docs/kanban
+config.md
+memory
+modules.md
+next-id
+releases.md
+setup-checklist.md
+todo
+

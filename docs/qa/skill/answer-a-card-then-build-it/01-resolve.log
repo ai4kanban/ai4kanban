@@ -1,0 +1,5 @@
+$ akb card resolve 2 "A4"
+resolve — run 66cd015a-9d3a-4c07-89e1-fc4093d4abf0
+  follow it: akb run log 66cd015a --follow
+  stop it:   akb run stop 66cd015a
+

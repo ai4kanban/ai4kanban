@@ -1,0 +1,5 @@
+$ akb create "Export a card as PDF"
+create — run 868a7cdd-251d-427e-9195-15fb41685fc2
+  follow it: akb run log 868a7cdd --follow
+  stop it:   akb run stop 868a7cdd
+

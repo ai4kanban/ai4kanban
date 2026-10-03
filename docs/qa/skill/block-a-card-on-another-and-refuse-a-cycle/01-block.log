@@ -1,0 +1,6 @@
+$ akb raw update 3 --blocked-by 2
+updated #3: blocked_by, schedule→refine when unblocked
+
+$ grep blocked_by docs/kanban/todo/3-print-preview.md
+blocked_by: [2]
+

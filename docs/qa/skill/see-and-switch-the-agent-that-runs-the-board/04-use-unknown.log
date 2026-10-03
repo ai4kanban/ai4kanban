@@ -1,0 +1,4 @@
+$ akb agent use gpt
+akb: no agent called "gpt". `akb agent list` says what this version runs.
+(exit 1)
+

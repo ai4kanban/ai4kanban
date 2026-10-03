@@ -1,0 +1,9 @@
+$ akb run list
+■ 124a373c  implement #2        stopped  delivery tmzb4k42  in 12s  — continue it with `akb run resume 124a373c`
+nothing running.
+
+$ akb raw list | tail -3
+#2 Slow export of all cards  (docs/kanban/todo/2-slow-export-of-all-cards.md)
+    implementing · priority med · roi med
+    <one short paragraph: the observable result and the current behavior or constraint it changes.>
+

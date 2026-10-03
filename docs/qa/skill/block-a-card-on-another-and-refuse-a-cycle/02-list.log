@@ -1,0 +1,15 @@
+$ akb raw list
+3 open cards on the board:
+
+#1 Answer the questions setup couldn't settle  (docs/kanban/todo/1-answer-the-questions-setup-couldnt-settle.md)
+    todo · priority high · roi high
+    The calls setup could not settle on its own — each step appends its own here as it runs. Answer them through the resolve flow: each answer becomes a line in `docs/kanban/memory/agents/planner/decisions.md`, and the card is done when no …
+
+#2 Export to PDF  (docs/kanban/todo/2-export-to-pdf.md)
+    todo · priority med · roi med
+    <one short paragraph: the observable result and the current behavior or constraint it changes.>
+
+#3 Print preview  (docs/kanban/todo/3-print-preview.md)
+    todo · priority med · roi med · blocked by #2
+    <one short paragraph: the observable result and the current behavior or constraint it changes.>
+

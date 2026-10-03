@@ -1,0 +1,5 @@
+$ akb card implement 2
+implement — run d4e9082a-26ac-46a8-9072-02e08b07acc4 in delivery 29bqwrnb
+  follow it: akb run log d4e9082a --follow
+  stop it:   akb run stop d4e9082a
+

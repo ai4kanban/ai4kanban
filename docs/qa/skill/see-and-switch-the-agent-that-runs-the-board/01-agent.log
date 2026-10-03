@@ -1,0 +1,14 @@
+$ akb agent | head -12
+Runtimes
+  Global default       Claude Code
+    id global
+    provider   subscription — Claude subscription
+    apiKey     not set
+
+The first row is Global default — what an agent naming no runtime runs, and the one row
+that can be neither renamed nor deleted. `akb agent runtime add <name> <harness>` adds one.
+`args` goes after the settings' flags and before the CLI's own, and a "command"
+override never turns it off.
+
+Agents
+

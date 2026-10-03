@@ -1,0 +1,7 @@
+$ akb raw update 2 --blocked-by 3
+akb raw: #2 blocked by #3 makes a cycle: #2 → #3 → #2
+(exit 1)
+
+$ grep blocked_by docs/kanban/todo/2-export-to-pdf.md
+blocked_by: []
+

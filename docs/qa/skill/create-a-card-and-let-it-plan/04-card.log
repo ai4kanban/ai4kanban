@@ -1,0 +1,35 @@
+$ cat docs/kanban/todo/2-export-a-card-as-pdf.md
+---
+title: Export a card as PDF
+priority: med
+roi: med
+status: todo
+release: ""
+blocked_by: []
+related: []
+modules: []
+questions:
+  - question: "[user] Which page size is the default?"
+    mode: single
+    options:
+      - A4
+      - US Letter
+    recommend: [1]
+---
+
+A card page gets an Export to PDF button that saves the card as a one-page PDF.
+
+## Worth noting
+
+<!-- agent -->
+
+## Scope
+- <the concrete steps>
+
+## Todo
+- [ ] every task must have todos — replace this line with the real steps.
+
+## Decided by the agent
+
+### Overruled by the user
+

@@ -1,0 +1,51 @@
+$ akb agent use codex
+Global default runs Codex — every agent that named no runtime runs it.
+Runtimes
+  Global default       Codex
+    id global   command /Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox
+    provider   subscription — ChatGPT subscription
+    apiKey     not set
+
+The first row is Global default — what an agent naming no runtime runs, and the one row
+that can be neither renamed nor deleted. `akb agent runtime add <name> <harness>` adds one.
+`args` goes after the settings' flags and before the CLI's own, and a "command"
+override never turns it off.
+
+Agents
+  discussion-helper      (Global default)     codex
+  software-planner       (Global default)     codex — follows discussion-helper
+  builder                (Global default)     codex
+  memory-pruner          (Global default)     codex
+  memory-reviewer        (Global default)     codex
+  dismissal-reviewer     (Global default)     codex
+  project-writer         (Global default)     codex
+  proposer               (Global default)     codex
+  blog-illustrator       (Global default)     codex
+  blog-planner           (Global default)     codex — follows discussion-helper
+  carousel-planner       (Global default)     codex — follows discussion-helper
+  copywriting            (Global default)     codex
+  cover-designer         (Global default)     codex
+  deck-planner           (Global default)     codex — follows discussion-helper
+  demo-rehearser         (Global default)     codex
+  email-planner          (Global default)     codex
+  hyperframes-editor     (Global default)     codex
+  prompt-writer          (Global default)     codex
+  qa-manager             (Global default)     codex
+  scriptwriter           (Global default)     codex — follows discussion-helper
+  tech-stack-advisor     (Global default)     codex
+  ui-designer            (Global default)     codex
+
+A runtime in brackets is Global default — that agent picked none.
+`akb agent bind <agent> <runtime>` gives one a row of its own.
+
+$ akb agent | head -5
+Runtimes
+  Global default       Codex
+    id global   command /Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox
+    provider   subscription — ChatGPT subscription
+    apiKey     not set
+
+$ akb agent | grep -E "^  (builder|qa-manager) "
+  builder                (Global default)     codex
+  qa-manager             (Global default)     codex
+

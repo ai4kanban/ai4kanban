@@ -1,0 +1,35 @@
+$ akb agent list
+* claude-code  Claude Code
+    claude -p --dangerously-skip-permissions
+    takes: provider, baseUrl, apiKey (key), model, reasoning, args
+  codex        Codex
+    codex exec --json --dangerously-bypass-approvals-and-sandbox
+    takes: provider, baseUrl, apiKey (key), model, reasoning, args
+    lacks: early-crash resume; rate-limit exit
+  cursor       Cursor
+    cursor-agent -p --output-format stream-json --force
+    takes: model, apiKey (key), args
+    lacks: early-crash resume; run cost; token counts; context window; rate-limit exit; provider retry; direct skill call
+  opencode     OpenCode
+    opencode run --format json
+    takes: model, variant, args
+    lacks: rate-limit exit; provider retry; direct skill call
+  kimi         Kimi Code
+    kimi --output-format stream-json
+    takes: provider, model, modelName, protocol, baseUrl, apiKey (key), args
+    lacks: early-crash resume; run cost; rate-limit exit; provider retry; direct skill call; pasted pictures
+  dsh          DSH
+    dsh-acp --permission-mode workspace-write
+    takes: model, apiKey (key), args
+    lacks: context window; rate-limit exit; provider retry; direct skill call; pasted pictures
+  zcode        ZCode
+    zcode app-server
+    takes: model, apiKey (key), args
+    lacks: early-crash resume; run cost; rate-limit exit; provider retry; direct skill call; pasted pictures
+  grok         Grok Build
+    grok agent --always-approve stdio
+    takes: model, apiKey (key), args
+    lacks: context window; rate-limit exit; provider retry; direct skill call; pasted pictures
+
+The one marked * is what Global default runs. Move it with `akb agent use <name>`.
+
