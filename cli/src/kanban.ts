@@ -273,7 +273,7 @@ export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME
 // draws its rail row and its page from these: whether the account may sort (`signalsAccess`),
 // what it holds, ignoring one with a reason, and restoring one (#894).
 // `checkSource` is the one duplicate rule all of them read. Pulling is `akb triage fetch`.
-// `addToInbox` and `triageAfterAdding` stay for writers other than the page.
+// `addToInbox` and `triageAfterAdding` serve the other writers: the command and a test case's feedback.
 export {
   addToInbox,
   checkSource,
@@ -287,6 +287,8 @@ export {
   signalsAccess,
 } from './lib/signals'
 export { triageAfterAdding } from './lib/agent/auto-triage'
+// The id `addToInbox` gives a typed item, so a writer can ask `checkSource` before sending.
+export { derivedSourceId } from './lib/signals/identity'
 // The plan or triage item a card's source link opens (#1306).
 export { readCardSource } from './lib/card-sources'
 export type { SignalOutcome, SignalsAccess, TriageCheck, TriageStatus } from './lib/signals'

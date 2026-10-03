@@ -73,6 +73,8 @@ import type {
   DeliveryPlan,
   DropPlan,
   FillPlan,
+  InboxAddResult,
+  InboxDrop,
   MemoryFile,
   MetricsResult,
   SaveProjectResult,
@@ -574,6 +576,12 @@ export interface BoardRules {
   reasonSignals?(sourceIds: string[], reason: string): { sourceId: string; ok: boolean }[];
   /** Archive every waiting item an open card already names — what a sort does first. */
   reconcileTriage?(): unknown;
+  /** Writing one item as `akb triage add` does, the sort it may start, and the id and lookup
+   *  that tell whether it was already sent (#1459). */
+  addToInbox?(drop: InboxDrop): InboxAddResult;
+  triageAfterAdding?(added: number): Promise<void>;
+  derivedSourceId?(seed: string): string;
+  checkSource?(sourceId: string): { status: "pending" | "archived" | "dismissed" | "unseen"; relPath: string };
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */

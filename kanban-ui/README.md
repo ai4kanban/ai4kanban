@@ -208,8 +208,9 @@ word for word, under its chips. It is read-only: nothing un-archives.
 not there until the project has a case. It opens a card per module with its three newest cases;
 a module opens a card per case: its steps, screenshots and logs, title, feedback count and last
 update. A case opens Setup, Steps and Feedback in order, its screenshots and logs drawn where
-they are linked, and a file that is gone says so. Every page has its own address, is re-read on
-every visit and refresh, and is read-only.
+they are linked, and a file that is gone says so. Every page has its own address and is re-read on
+every visit and refresh. **Send to Triage** on a feedback note (shown on hover, always on a phone)
+adds it to triage, naming its case; a sent note stays marked until its item is ignored.
 
 ### Assets on a card
 

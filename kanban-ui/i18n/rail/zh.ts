@@ -65,6 +65,9 @@ const zh: RailCopy = {
     missing: (file) => `找不到文件 ${file}`,
     showAll: (lines) => `展开全部 ${lines} 行`,
     fold: "收起",
+    send: "送进待筛选",
+    sent: "已送进待筛选",
+    sendFailed: "没能送出，请再试一次。",
   },
   signals: {
     row: "待筛选",

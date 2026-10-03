@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { feedbackRows, hasCases, listCases, readCase, serveCaseFile } from "../lib/test-cases.ts";
+import { feedbackItem, feedbackRows, hasCases, listCases, readCase, serveCaseFile } from "../lib/test-cases.ts";
 
 const write = (file, text) => {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -144,12 +144,23 @@ test("feedback notes: bold opening as title, other text kept apart", () => {
   assert.deepEqual(file.feedback, {
     lead: "Read on a laptop.",
     notes: [
-      { title: "Clear", body: "it says so." },
-      { title: null, body: "No bold here,\nover two lines." },
+      { title: "Clear", body: "it says so.", text: "**Clear**: it says so." },
+      { title: null, body: "No bold here,\nover two lines.", text: "No bold here,\nover two lines." },
     ],
   });
   assert.deepEqual(feedbackRows("- **A：** b\n\n  more\n\nAfter."), {
     lead: "After.",
-    notes: [{ title: "A：", body: "b\n\nmore" }],
+    notes: [{ title: "A：", body: "b\n\nmore", text: "**A：** b\n\nmore" }],
   });
+});
+
+test("a feedback note as a triage item: its title, the note as written, and the case it came from", () => {
+  const { qa } = project();
+  const file = readCase(qa, ["skill", "reject-a-card"]);
+  const from = `\n\nFrom test case "Reject a card" — docs/qa/skill/reject-a-card/case.md`;
+  assert.deepEqual(feedbackItem(file, 0), { title: "Clear", text: `**Clear**: it says so.${from}` });
+  assert.deepEqual(feedbackItem(file, 1), { title: "No bold here,", text: `No bold here,\nover two lines.${from}` });
+  assert.equal(feedbackItem(file, 2), null);
+  const long = { ...file, feedback: { lead: "", notes: [{ title: null, body: "x".repeat(150), text: "x".repeat(150) }] } };
+  assert.equal(feedbackItem(long, 0).title, `${"x".repeat(99)}…`);
 });

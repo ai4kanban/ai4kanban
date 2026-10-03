@@ -10,7 +10,7 @@
 // instead of a framework crash page.
 
 import { qaRoot } from "@/lib/qa";
-import { hasCases } from "@/lib/test-cases";
+import { hasCases, readCase as readTestCase } from "@/lib/test-cases";
 import {
   activeSettings,
   agentInfo,
@@ -43,6 +43,7 @@ import {
   reconcileTriage,
   restoreSignal,
   restoreSignals,
+  sendFeedback,
   type SignalsDone,
 } from "@/lib/board";
 import {
@@ -1870,6 +1871,20 @@ export async function testCasesRowAction(): Promise<boolean> {
     return hasCases(qaRoot());
   } catch {
     return false;
+  }
+}
+
+/** Send one feedback note of a case to triage (#1459). The note is read again here from the
+ *  case's address; nothing the page sends is written. */
+export async function sendFeedbackAction(segments: string[], index: number): Promise<{ ok: boolean; error?: string }> {
+  const c = await machineCopy();
+  const failed = { ok: false, error: c.rail.testCases.sendFailed };
+  if (!Array.isArray(segments) || !segments.every((s) => typeof s === "string") || !Number.isInteger(index)) return failed;
+  try {
+    const file = readTestCase(qaRoot(), segments);
+    return file ? await sendFeedback(file, index) : failed;
+  } catch {
+    return failed;
   }
 }
 

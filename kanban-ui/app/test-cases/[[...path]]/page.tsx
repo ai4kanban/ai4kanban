@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { TestCasesPage, type TestCasesView } from "@/components/TestCases";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
-import { readBoard } from "@/lib/board";
+import { feedbackSent, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import { moduleOrder, qaRoot } from "@/lib/qa";
@@ -38,7 +38,7 @@ export default async function Page({ params }: { params: Promise<{ path?: string
     if (picked) view = { kind: "module", list, module: picked };
   } else if (segments.length === depth) {
     const file = readCase(root, segments);
-    if (file) view = { kind: "case", list, file };
+    if (file) view = { kind: "case", list, file, sent: await feedbackSent(file) };
   }
   if (!view) notFound();
 

@@ -86,6 +86,10 @@ export type RailCopy = {
     missing: (file: string) => string;
     showAll: (lines: number) => string;
     fold: string;
+    /** One feedback note's button (#1459), its mark once sent, and the line when sending failed. */
+    send: string;
+    sent: string;
+    sendFailed: string;
   };
   signals: {
     /** The row above Archive, and the name of the page it opens. */

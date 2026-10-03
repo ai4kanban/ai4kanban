@@ -21,6 +21,7 @@ import { signalConfigGaps } from '../src/lib/signals/config.ts'
 import { fetchSignals } from '../src/lib/signals/fetch.ts'
 import { archiveInboxItem, dismissInboxItem, readAllDismissed, restoreInboxItem } from '../src/lib/signals/inbox.ts'
 import { checkSource } from '../src/lib/signals/check.ts'
+import { derivedSourceId } from '../src/lib/signals/identity.ts'
 import { migrateTriage } from '../src/lib/signals/migrate.ts'
 import { matchSourceType } from '../src/lib/signals/sources.ts'
 import {
@@ -462,6 +463,37 @@ describe('the one duplicate rule (#559)', () => {
       [id],
     )
     assert.equal(readAllDismissed().filter((s) => s.sourceId === id).length, 1)
+  })
+})
+
+describe("a test case's feedback note (#1459)", () => {
+  const note = {
+    title: 'Slow first paint',
+    text: '**Slow first paint**: the page sat blank.\n\nFrom test case "Open a card" — docs/qa/ui/open-a-card/case.md',
+    source: 'test case docs/qa/ui/open-a-card/case.md',
+  }
+  const id = derivedSourceId(`${note.title}\n${note.text}`)
+
+  it('is written as given, with the case kept as meta, under the id the page asks about', () => {
+    assert.equal(checkSource(id).status, 'unseen')
+    const done = addToInbox(note)
+    assert.equal(done.ok, true)
+    const [only] = readSignals().signals
+    assert.equal(only!.sourceId, id)
+    assert.equal(only!.title, note.title)
+    assert.equal(only!.summary, note.text)
+    assert.equal(only!.sourceType, '')
+    assert.deepEqual(only!.meta, [{ key: 'source', value: note.source }])
+    assert.equal(checkSource(id).status, 'pending')
+  })
+
+  it('is held off while waiting, and may go again once ignored', () => {
+    assert.equal(addToInbox(note).ok, true)
+    assert.equal(addToInbox(note).ok, false)
+    assert.equal(dismissSignal(id, 'not now').ok, true)
+    assert.equal(checkSource(id).status, 'dismissed')
+    assert.equal(addToInbox(note).ok, true)
+    assert.equal(checkSource(id).status, 'pending')
   })
 })
 

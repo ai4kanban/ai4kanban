@@ -74,6 +74,9 @@ const en: RailCopy = {
     missing: (file) => `File not found: ${file}`,
     showAll: (lines) => `Show all ${lines} lines`,
     fold: "Show less",
+    send: "Send to Triage",
+    sent: "Sent to Triage",
+    sendFailed: "Couldn't send it. Try again.",
   },
   signals: {
     row: "Triage",

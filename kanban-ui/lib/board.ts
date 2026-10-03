@@ -1,6 +1,7 @@
 import { machineCopy } from "./language";
 import { boardRules, NoRulesError, type BoardEntry, type BoardRules, type BoardState } from "./cli";
 import { kanbanDir, repoRoot } from "./paths";
+import { feedbackItem, type CaseFile } from "./test-cases";
 import { LOCAL_STANDING } from "./types";
 import type {
   ArchiveList,
@@ -463,6 +464,43 @@ export async function reasonSignals(sourceIds: string[], reason: string): Promis
 export async function reconcileTriage(): Promise<void> {
   const rules = await boardRules();
   rules.reconcileTriage?.();
+}
+
+// --- a test case's feedback, sent to triage (#1459) ---------------------------
+// Written as `akb triage add` writes, with the case as its source. Waiting or made into a card
+// counts as sent; an ignored one may go again, as a pasted item may.
+
+/** Whether the item one note makes is already waiting or already a card. */
+function noteSent(rules: BoardRules, file: CaseFile, index: number): boolean {
+  const item = feedbackItem(file, index);
+  if (!item || !rules.derivedSourceId || !rules.checkSource) return false;
+  const status = rules.checkSource(rules.derivedSourceId(`${item.title}\n${item.text}`)).status;
+  return status === "pending" || status === "archived";
+}
+
+/** For each of a case's feedback notes, whether it was sent. */
+export async function feedbackSent(file: CaseFile): Promise<boolean[]> {
+  const notes = file.feedback?.notes ?? [];
+  try {
+    const rules = await boardRules();
+    return notes.map((_, i) => noteSent(rules, file, i));
+  } catch {
+    return notes.map(() => false);
+  }
+}
+
+/** Send one note to triage, then start a sort if this account may. */
+export async function sendFeedback(file: CaseFile, index: number): Promise<{ ok: boolean; error?: string }> {
+  const c = await machineCopy();
+  const rules = await boardRules();
+  if (!rules.addToInbox) return { ok: false, error: c.messages.rules.tooOldForSignals };
+  const item = feedbackItem(file, index);
+  if (!item) return { ok: false, error: c.rail.testCases.sendFailed };
+  if (noteSent(rules, file, index)) return { ok: true };
+  const done = rules.addToInbox({ title: item.title, text: item.text, source: `test case ${file.relPath}` });
+  if (!done.ok) return { ok: false, error: c.rail.testCases.sendFailed };
+  await rules.triageAfterAdding?.(1);
+  return { ok: true };
 }
 
 /** What the guided first run opens with — the project as it stands. */

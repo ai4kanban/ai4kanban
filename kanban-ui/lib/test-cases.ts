@@ -62,10 +62,11 @@ export interface CaseSection {
   body: string;
 }
 
-/** One feedback note: the bold phrase it opens with, if any, and the rest. */
+/** One feedback note: the bold phrase it opens with, if any, the rest, and the note as written. */
 export interface FeedbackNote {
   title: string | null;
   body: string;
+  text: string;
 }
 
 /** The Feedback section read as notes, with whatever in it is not a list item kept apart. */
@@ -199,9 +200,26 @@ export function feedbackRows(body: string): FeedbackRows {
   const notes = items.map((raw) => {
     const text = raw.join("\n").trim();
     const bold = /^\*\*(.+?)\*\*\s*[：:]?\s*/s.exec(text);
-    return bold ? { title: bold[1]!.trim(), body: text.slice(bold[0].length).trim() } : { title: null, body: text };
+    return bold
+      ? { title: bold[1]!.trim(), body: text.slice(bold[0].length).trim(), text }
+      : { title: null, body: text, text };
   });
   return { lead: lead.join("\n").trim(), notes };
+}
+
+/** Kept under the inbox's own 120-character title cut, so the title written is this one. */
+const ITEM_TITLE_MAX = 100;
+
+/** The triage item one feedback note becomes (#1459): its bold opening or first line as the
+ *  title, the note as written, and the case it came from. Both sending it and asking whether
+ *  it was sent build it here, so the two always hash the same words. */
+export function feedbackItem(file: CaseFile, index: number): { title: string; text: string } | null {
+  const note = file.feedback?.notes[index];
+  if (!note) return null;
+  const first = (note.title ?? note.body.split("\n").find((line) => line.trim()) ?? "").replace(/^#+\s*/, "").trim();
+  const title = first.length > ITEM_TITLE_MAX ? `${first.slice(0, ITEM_TITLE_MAX - 1).trimEnd()}…` : first;
+  if (!title) return null;
+  return { title, text: `${note.text}\n\nFrom test case "${file.title}" — ${file.relPath}` };
 }
 
 const extOf = (name: string) => name.split(/[?#]/)[0]!.split(".").pop()?.toLowerCase() ?? "";
