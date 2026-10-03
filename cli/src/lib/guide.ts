@@ -85,7 +85,7 @@ export const GUIDES: Guide[] = [
   { name: 'review-memory', when: 'read what the conversations settled, and write it into memory', text: reviewMemory },
   { name: 'describe-project', when: 'rewrite the description of what the project is today', text: describeProject },
   { name: 'review-dismissals', when: "learn the user's triage preferences from their dismissal reasons", text: reviewDismissals },
-  { name: 'reflect', when: 'propose the work a just-completed card leaves behind', text: reflect },
+  { name: 'reflect', when: 'propose the work just-completed cards leave behind', text: reflect },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
   { name: 'write-agent', when: 'create or change an agent, including one built from a skill — its AGENT.md, files, memory, and how to check it', text: writeAgent },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },

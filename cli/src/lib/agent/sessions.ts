@@ -58,7 +58,7 @@ import { buildRun, restartPrompt, restartable } from './prompts'
 import { agentForRun } from './runner'
 import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
 import { readRuntimes, runtimeById } from './runtimes'
-import { stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProjectDescription } from './settings'
+import { dropReflected, stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProjectDescription } from './settings'
 import { scheduledAgent, stampScheduledRun, workflowById } from './workflows'
 import { creationOf, logPathOf, noteRefineTried, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { withCreationLock } from './creation-lock'
@@ -107,6 +107,7 @@ const SINGLETON_ACTIONS = new Set<AgentAction>([
   'review-dismissals',
   'describe-project',
   'triage',
+  'reflect',
 ])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
@@ -152,6 +153,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'review-dismissals': 'the dismissals are already being reviewed',
   'describe-project': 'the project is already being described',
   triage: 'triage is already being sorted',
+  reflect: 'finished tasks are already being reviewed',
 }
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a
@@ -355,6 +357,16 @@ function recordMemoryReview(run: RunRecord): void {
   }
 }
 
+// And the cards a reflection that passed covered (#1467): off the queue, never before.
+function recordReflection(run: RunRecord): void {
+  if (run.action !== 'reflect' || run.status !== 'done' || !run.cards?.length) return
+  try {
+    dropReflected(run.cards)
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
 // And the dismissal review's window (#929), on the same terms: a pass, stamped with its start.
 function recordDismissalReview(run: RunRecord): void {
   if (run.action !== 'review-dismissals' || run.status !== 'done') return
@@ -471,6 +483,7 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
     flowId: r.flowId,
     release: r.release,
     workflow: r.workflow,
+    cards: r.cards,
   }
   switch (r.action) {
     case 'plan-release':
@@ -491,6 +504,8 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
       const plan = findDelivery(r.deliveryId)?.plan
       return r.input || r.triage || plan ? { ...base, deliveryId: r.deliveryId, description: r.input, plan } : undefined
     }
+    case 'reflect':
+      return id !== undefined || r.cards?.length ? base : undefined
     default:
       return id === undefined && !CARDLESS.has(r.action) ? undefined : { ...base, notes: r.input }
   }
@@ -940,6 +955,7 @@ export function openRun(
       : {}),
     ...(req.action === 'scheduled' ? { workflow: req.workflow?.trim() || undefined } : {}),
     fromCard: req.action === 'create' ? req.fromCard : undefined,
+    cards: req.action === 'reflect' ? req.cards : undefined,
     setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round.
@@ -1090,6 +1106,7 @@ export function requestOf(record: RunRecord): AgentRequest {
     ...(record.action === 'scheduled' ? { workflow: record.workflow } : {}),
     triage: record.triage,
     fromCard: record.fromCard,
+    cards: record.cards,
     refineRound: record.refineRound,
     flowId: record.flowId,
     pictures: record.pictures,
@@ -1254,6 +1271,7 @@ async function resumeHeld(
     specAgent: prev.specAgent,
     ...(prev.action === 'scheduled' ? { workflow: prev.workflow } : {}),
     fromCard: prev.fromCard,
+    cards: prev.cards,
     setupTicked: prev.setupTicked,
     refineRound: prev.refineRound,
     // The same refinement carried on, not a second one — the way a resume re-joins the
@@ -1539,6 +1557,7 @@ export async function closeRun(
   await restoreCardStatus(closed)
   recordPrune(closed)
   recordMemoryReview(closed)
+  recordReflection(closed)
   recordDismissalReview(closed)
   recordProjectDescription(closed)
   recordScheduledRun(closed)

@@ -4,6 +4,7 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
+import fs from 'node:fs'
 import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { PLANNER, planningMemoryFiles } from '../memory'
@@ -21,7 +22,11 @@ import {
   type SpecAgent,
 } from '../agents'
 import { boardCommand, boardCommandFor, commandNote } from './command'
-import { activeDelivery, deliveryFor, findDelivery, withWorkflow } from './deliveries'
+import { activeDelivery, deliveryFor, endedDelivery, findDelivery, withWorkflow } from './deliveries'
+import { chatFile, readChat } from './chat'
+import { field } from './facts'
+import { recordedOutputs } from './outputs'
+import { readArchive } from '../view/archive'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
@@ -309,14 +314,49 @@ const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
 // every module's decisions and rejections, none of which it writes back.
 const boardMemory = (): string => [rel(PROJECT_MD), ...planningMemoryFiles()].join(', ')
 
-// Where a completed card is now (#534). Named outright rather than left to a search: the
-// ordinary card read no longer finds it, so a run told only the folder would hunt through
-// every card the board has ever finished. The folder is the fallback for the one case that
-// cannot happen — a reflection whose card is not in the archive.
-function archivedCardFile(id: number | undefined): string {
-  const found = id === undefined ? null : locateArchived(id)
+// Where a completed card is now (#534). Named outright: the ordinary card read no longer
+// finds it.
+function archivedCardFile(id: number): string {
+  const found = locateArchived(id)
   if (!found) return `${rel(ARCHIVE)}/`
   return rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target)
+}
+
+/** The cards one reflection covers (#1467). A run from before batching names one card. */
+export const reflectedCards = (req: AgentRequest): number[] => req.cards ?? (req.id !== undefined ? [req.id] : [])
+
+// What a finished card shipped (#1211): its landed commit, the files a `files` delivery
+// recorded, or a way to find either.
+function shippedLines(cardId: number): string[] {
+  const delivery = endedDelivery(`${cardId}`)
+  const commit = delivery?.landing?.commit
+  if (commit) return [`\`git show ${commit.slice(0, 12)}\` — the change that landed`]
+  if (delivery?.commitMode === 'files') {
+    const files = recordedOutputs(delivery)
+    if (files.length) return ['the files it delivered:', ...files.map((file) => `  ${file}`)]
+  }
+  return [`nothing on record — \`git log --grep "(#${cardId})"\`, or check the card against the project as it stands`]
+}
+
+// The discussion a card was written from (#1213), up to the handoff.
+function discussionLine(cardId: number): string | undefined {
+  const { discussion, messages = 0 } = readChat(cardId)?.from ?? {}
+  if (!discussion || !fs.existsSync(chatFile(discussion))) return undefined
+  return `${rel(chatFile(discussion))} — its first ${messages} message${messages === 1 ? '' : 's'}, up to the handoff`
+}
+
+// One `<card>` block per card a reflection reads.
+function reflectBlocks(ids: number[]): string[] {
+  return ids.flatMap((id) => {
+    const discussion = discussionLine(id)
+    return [
+      `<card id="${id}">`,
+      ...field('file', archivedCardFile(id)),
+      ...(discussion ? field('discussion', discussion) : []),
+      ...field('shipped', shippedLines(id)),
+      '</card>',
+    ]
+  })
 }
 
 function roster(req: AgentRequest): string {
@@ -555,19 +595,26 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return `${kb}. Learn the user's triage preferences from their dismissals, following \`akb guide review-dismissals\`.`
     case 'describe-project':
       return `${kb}. Describe this project following \`akb guide describe-project\`.`
-    // Reflecting on a card the board has just completed (#534). The card is off the board,
-    // so the ask names the archive: nothing else can find it. What it may write is inbox
+    // Reflecting on the cards the board has just completed (#534, #1467). They are off the
+    // board, so the ask names the archive: nothing else can find them. What it may write is inbox
     // items and nothing else — a proposal is triaged like anything else that arrives there,
     // so the run never creates, edits or archives a card, and proposing nothing is the
     // result it reports as often as not.
-    case 'reflect':
+    case 'reflect': {
+      const ids = reflectedCards(req)
+      const archived = new Map(readArchive().cards.map((card) => [card.id, card.title]))
+      const titles = ids.map((id) => (archived.get(id) ? `#${id} ("${archived.get(id)}")` : `#${id}`))
       return [
-        `${kb}. Task ${req.id} ${named} has just been completed. Propose the work that should follow it, following \`akb guide reflect\`.`,
-        `It has left the board — read it at \`${archivedCardFile(req.id)}\`, with the discussion it came from when the flow lists one.`,
-        `Skip anything already on the board, already in the inbox, or turned down before.`,
-        `Write each survivor with \`${command} triage add\`: that is the whole of what you may write unless your settings below say otherwise — no card is edited or archived, and finding nothing worth proposing is a complete result.`,
-        `Don't ask me questions with human-in-the-loop.`,
-      ].join(' ')
+        [
+          `${kb}. These tasks have just been completed: ${titles.join(', ')}. Propose the work that should follow them, following \`akb guide reflect\`.`,
+          `They have left the board — read each in its own <card> block below, with the discussion it came from when the block lists one.`,
+          `Skip anything already on the board, already in the inbox, or turned down before.`,
+          `Write each survivor with \`${command} triage add\`: that is the whole of what you may write unless your settings below say otherwise — no card is edited or archived, and finding nothing worth proposing is a complete result.`,
+          `Don't ask me questions with human-in-the-loop.`,
+        ].join(' '),
+        ...reflectBlocks(ids),
+      ].join('\n')
+    }
     // A sort is the board's own loop (#1263): nothing is prompted.
     case 'triage':
       return ''

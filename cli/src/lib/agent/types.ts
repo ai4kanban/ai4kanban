@@ -226,6 +226,8 @@ export interface AgentRequest {
   runtime?: string
   /** sub: the run that started this one (#1421). */
   parentId?: string
+  /** reflect: the completed cards this one reflection covers (#1467). */
+  cards?: number[]
 }
 
 /** A triage item a run is making a card of: its source id and file from the repo root. */
@@ -600,6 +602,8 @@ export interface RunRecord {
   deliveryId?: string
   /** The run that started this one with `akb run start` (#1421). */
   parentId?: string
+  /** reflect: the completed cards it covers (#1467). */
+  cards?: number[]
 }
 
 // ---- a delivery: everything one Implement click starts ---------------------

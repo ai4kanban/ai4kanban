@@ -42,16 +42,14 @@ import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
-import { recordedOutputs } from './outputs'
 import { boardCommandFor } from './command'
-import { activeDelivery, deliveryFor, endedDelivery, withWorkflow } from './deliveries'
-import { chatFile, readChat } from './chat'
+import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { field, metaLine, numbered } from './facts'
 import { reviewBatch, type ChatToReview } from './memory-review'
 import { dismissalReview } from './settings'
 import { dismissalsToReview, dismissedMemoryPath, withdrawnSources } from './dismissal-review'
 import { translating } from './language'
-import { buildAsk, frozenRules, leadBlock, settingsBlock } from './prompts'
+import { buildAsk, frozenRules, leadBlock, reflectedCards, settingsBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { openOf } from '../view/rules'
 import { setupInstruction } from './resolve'
@@ -85,26 +83,6 @@ interface CardFacts {
   /** How many boxes are already ticked. Ticked boxes are history, so this is what the job
    *  must not touch. */
   ticked: number
-}
-
-// What a finished card shipped (#1211): its landed commit, the files a `files` delivery
-// recorded, or a way to find either.
-function shippedLines(cardId: number): string[] {
-  const delivery = endedDelivery(`${cardId}`)
-  const commit = delivery?.landing?.commit
-  if (commit) return [`\`git show ${commit.slice(0, 12)}\` — the change that landed`]
-  if (delivery?.commitMode === 'files') {
-    const files = recordedOutputs(delivery)
-    if (files.length) return ['the files it delivered:', ...files.map((file) => `  ${file}`)]
-  }
-  return [`nothing on record — \`git log --grep "(#${cardId})"\`, or check the card against the project as it stands`]
-}
-
-// The discussion a card was written from (#1213), up to the handoff.
-function discussionLine(cardId: number): string | undefined {
-  const { discussion, messages = 0 } = readChat(cardId)?.from ?? {}
-  if (!discussion || !fs.existsSync(chatFile(discussion))) return undefined
-  return `${rel(chatFile(discussion))} — its first ${messages} message${messages === 1 ? '' : 's'}, up to the handoff`
 }
 
 function missedLine(): string {
@@ -854,15 +832,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // from, what it shipped and the proposer's past misses (#1211), plus where a follow-up may
     // already be accounted for; the close is the one thing it may write.
     case 'reflect': {
-      const discussion = discussionLine(req.id!)
-      if (discussion) facts.push(...field('discussion', discussion))
-      facts.push(...field('shipped', shippedLines(req.id!)))
+      // The cards themselves, one `<card>` block each, are in the ask.
+      const modules = [...new Set(reflectedCards(req).flatMap((id) => readCard(id, 'archive').meta.modules))]
       facts.push(...field('missed', missedLine()))
-      facts.push(...field('rejected', rejectedLines(card!.meta.modules)))
+      facts.push(...field('rejected', rejectedLines(modules)))
       facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
-        `${self} triage add --title ".." --slug <short-english-slug> --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
-        'propose nothing at all when nothing follows: that is a complete result, and most completions are it',
+        `${self} triage add --title ".." --slug <short-english-slug> --source "#<id>" --text ".." — one call per proposal, each naming the archived file of the card it traces to`,
+        'propose nothing at all when nothing follows: that is a complete result, and most batches are it',
         'change nothing else — no card is created, edited or archived, and no memory file is written',
       )
       break

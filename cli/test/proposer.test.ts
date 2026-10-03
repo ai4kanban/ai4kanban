@@ -1,11 +1,11 @@
 // The proposer (#534): what a completed card starts, and where its proposals land.
 //
 // The reflection itself is an agent's judgment and cannot be asserted here. What can, and
-// what this covers, is the machinery around it: the switch is off until somebody asks for
-// it, archiving is the only trigger and it fires once per completed card, a card the board
-// has already reflected on is never reflected on twice, the flow reads its card out of
-// `.archive/` where the ordinary card read no longer finds it, and `akb triage add` puts
-// one proposal in the inbox carrying the card that prompted it.
+// what this covers, is the machinery around it: archiving is the only trigger, completed
+// cards wait in a queue and one run covers a batch of them (#1467), only a run that passed
+// takes its cards off, the flow reads its cards out of `.archive/` where the ordinary card
+// read no longer finds them, and `akb triage add` puts one proposal in the inbox carrying
+// the card that prompted it.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -16,9 +16,10 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { setSpecAgentSetting } from '../src/lib/agents/index.ts'
-import { reflectRunsAfter } from '../src/lib/agent/propose.ts'
-import { openRun } from '../src/lib/agent/sessions.ts'
-import { withStore } from '../src/lib/agent/store.ts'
+import { REFLECT_BATCH, reflectRunsAfter } from '../src/lib/agent/propose.ts'
+import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
+import { reflectQueue } from '../src/lib/agent/settings.ts'
+import { logPathOf, withStore } from '../src/lib/agent/store.ts'
 import { chatFile } from '../src/lib/agent/chat.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { cmdTriageAdd, type TriageAddOptions } from '../src/commands/triage.ts'
@@ -102,23 +103,81 @@ afterEach(() => {
 })
 
 describe('what archiving hands over', () => {
+  /** Write the reflection down as started, then close it the way its watcher does. */
+  const reflectOn = async (cards: number[], status: 'done' | 'error'): Promise<void> => {
+    const opened = openRun({ action: 'reflect', cards }, 'prompt', [])
+    assert.ok(!('error' in opened))
+    // A finished run whose log is gone is pruned from the record.
+    fs.mkdirSync(path.dirname(logPathOf(opened.run.sessionId)), { recursive: true })
+    fs.writeFileSync(logPathOf(opened.run.sessionId), '')
+    await closeRun(opened.run.sessionId, { status, ok: status === 'done', code: status === 'done' ? 0 : 1 }, { reportEnd: false })
+  }
+
   it('reflects on the card that reached the archive', () => {
     open(1)
     const before = openNow()
     complete(1)
-    assert.deepEqual(reflectRunsAfter(before), [{ action: 'reflect', id: 1, title: 'card 1' }])
+    assert.deepEqual(reflectRunsAfter(before), [{ action: 'reflect', cards: [1] }])
   })
 
-  it('reflects once per completed card, so a group close gets one each', () => {
+  it('covers every card completed at once in one run, oldest first', () => {
     open(1)
     open(2)
     const before = openNow()
     complete(1)
     complete(2)
-    assert.deepEqual(
-      reflectRunsAfter(before).map((req) => req.id),
-      [2, 1],
-    )
+    assert.deepEqual(reflectRunsAfter(before), [{ action: 'reflect', cards: [1, 2] }])
+  })
+
+  it(`splits more than ${REFLECT_BATCH} cards into rounds, the next one when a round passes`, async () => {
+    const ids = Array.from({ length: REFLECT_BATCH + 2 }, (_, i) => i + 1)
+    ids.forEach(open)
+    const before = openNow()
+    ids.forEach(complete)
+    const [first] = reflectRunsAfter(before)
+    assert.deepEqual(first!.cards, ids.slice(0, REFLECT_BATCH))
+    await reflectOn(first!.cards!, 'done')
+    assert.deepEqual(reflectQueue(), ids.slice(REFLECT_BATCH))
+    assert.deepEqual(reflectRunsAfter([], true), [{ action: 'reflect', cards: ids.slice(REFLECT_BATCH) }])
+  })
+
+  it('starts no second round while one is running', () => {
+    open(1)
+    open(2)
+    let before = openNow()
+    complete(1)
+    const [req] = reflectRunsAfter(before)
+    assert.ok(!('error' in openRun(req!, 'prompt', [])))
+    before = openNow()
+    complete(2)
+    assert.deepEqual(reflectRunsAfter(before), [])
+    assert.deepEqual(reflectQueue(), [1, 2])
+  })
+
+  it('keeps the cards of a round that failed for the next completion', async () => {
+    open(1)
+    open(2)
+    let before = openNow()
+    complete(1)
+    reflectRunsAfter(before)
+    await reflectOn([1], 'error')
+    assert.deepEqual(reflectQueue(), [1])
+    // No retry on its own: nothing new completed.
+    assert.deepEqual(reflectRunsAfter([]), [])
+    before = openNow()
+    complete(2)
+    assert.deepEqual(reflectRunsAfter(before), [{ action: 'reflect', cards: [1, 2] }])
+  })
+
+  it('takes the cards of a round that passed off the queue, for good', async () => {
+    open(1)
+    const before = openNow()
+    complete(1)
+    reflectRunsAfter(before)
+    await reflectOn([1], 'done')
+    assert.deepEqual(reflectQueue(), [])
+    // A second run whose window also saw #1 complete queues it no more.
+    assert.deepEqual(reflectRunsAfter(before), [])
   })
 
   it('reflects on nothing while the card is still on the board', () => {
@@ -132,44 +191,49 @@ describe('what archiving hands over', () => {
     assert.deepEqual(reflectRunsAfter(openNow()), [])
   })
 
-  it('leaves a card the board has already reflected on', () => {
-    // Two runs' windows overlap all the time: both saw #1 open at their spawn and both see
-    // it archived at their close. The first one's reflection is the one that counts.
+  it('never queues a card reflected on alone before batching', () => {
     open(1)
     const before = openNow()
     complete(1)
-    const first = openRun({ action: 'reflect', id: 1, title: 'card 1' }, 'prompt', [])
-    assert.ok(!('error' in first))
+    assert.ok(!('error' in openRun({ action: 'reflect', cards: [1] }, 'prompt', [])))
     assert.deepEqual(reflectRunsAfter(before), [])
+    assert.deepEqual(reflectQueue(), [])
   })
 
   it('hands over the completion no run is closing behind — a manual commit', () => {
-    // A manual delivery is finished by the user's own commit and archived where that is
-    // noticed, not at a run's close. `reflectOnCompletion` is what that path calls, and it
-    // answers on the one card rather than on a window of them.
     open(1)
     open(2)
     complete(1)
-    assert.deepEqual(reflectRunsAfter([1]), [{ action: 'reflect', id: 1, title: 'card 1' }])
-    // And nothing for a card that is still on the board.
+    assert.deepEqual(reflectRunsAfter([1]), [{ action: 'reflect', cards: [1] }])
     assert.deepEqual(reflectRunsAfter([2]), [])
   })
-
 })
 
 describe('the flow', () => {
   it('sends the run to the card the archive holds, which the board no longer has', () => {
     open(1)
     complete(1)
-    const ask = buildAsk({ action: 'reflect', id: 1, title: 'card 1' })
+    const ask = buildAsk({ action: 'reflect', cards: [1] })
     assert.match(ask, /docs\/kanban\/\.archive\/1-card\.md/)
     assert.match(ask, /triage add/)
+  })
+
+  it('hands one run every card in its batch, each in its own block, sourced to itself', async () => {
+    open(1)
+    open(2)
+    complete(1)
+    complete(2)
+    const ask = buildAsk({ action: 'reflect', cards: [1, 2] })
+    assert.match(ask, /#1 \("card 1"\), #2 \("card 2"\)/)
+    assert.match(ask, /<card id="1">\nfile +docs\/kanban\/\.archive\/1-card\.md\n(.*\n)*<\/card>\n<card id="2">\nfile +docs\/kanban\/\.archive\/2-card\.md/)
+    const printed = await said(() => printFlow({ action: 'reflect', cards: [1, 2] }))
+    assert.match(printed, /--source "#<id>" .*the archived file of the card it traces to/)
   })
 
   it('reads the card the archive holds, which the board no longer has', async () => {
     open(1)
     complete(1)
-    const printed = await said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
+    const printed = await said(() => printFlow({ action: 'reflect', cards: [1] }))
     assert.match(printed, /docs\/kanban\/\.archive\/1-card\.md/)
     assert.match(printed, /triage add/)
     // And it is told outright that proposing nothing is a finished job.
@@ -179,7 +243,7 @@ describe('the flow', () => {
   it('carries the small-fixes pick into the printed flow (#1469)', async () => {
     open(1)
     complete(1)
-    const printed = () => said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
+    const printed = () => said(() => printFlow({ action: 'reflect', cards: [1] }))
     assert.doesNotMatch(await printed(), /Your settings on this board/)
     assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'auto').ok, true)
     assert.match(await printed(), /Your settings on this board:\n- A small fix .*--schedule implement/)
@@ -193,7 +257,7 @@ describe('the flow', () => {
       } as never)
     })
   }
-  const reflect = (): Promise<string> => said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
+  const reflect = (): Promise<string> => said(() => printFlow({ action: 'reflect', cards: [1] }))
 
   it('points at the commit a delivery landed', async () => {
     open(1)
@@ -275,7 +339,7 @@ describe('the flow', () => {
 
   it('refuses a card that never reached the archive', () => {
     open(1)
-    assert.throws(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }), /\.archive/)
+    assert.throws(() => printFlow({ action: 'reflect', cards: [1] }), /\.archive/)
   })
 })
 
