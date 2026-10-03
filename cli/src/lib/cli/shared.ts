@@ -39,11 +39,12 @@ export function newCommand(name: string): Command {
     .allowExcessArguments(false)
     .configureOutput({
       // Help and usage are prose like anything else a move prints, so they go where the
-      // rest of it goes — the terminal, or the box `--json` is filling.
+      // rest of it goes — the terminal, or the box `--json` is filling. Commander writes
+      // the help for a missing subcommand to `writeErr`; it is the same help.
       writeOut: (text) => say(text.replace(/\n$/, '')),
+      writeErr: (text) => say(text.replace(/\n$/, '')),
       // Commander's own error line is dropped here and rebuilt by `report` below, so a
       // refusal reads the same whichever door refused and `--json` gets one object.
-      writeErr: () => {},
       outputError: () => {},
     })
     .configureHelp({ helpWidth: HELP_WIDTH, sortSubcommands: false, sortOptions: false })
@@ -124,15 +125,16 @@ export async function runProgram(program: Command, argv: string[], name: string)
   }
 }
 
-// Commander ends a run for two reasons, and they are not the same answer. Printing help or
-// a version is the command working — exit 0, nothing on stderr. Everything else is a parse
-// refusal, and it is reported the way every other refusal is, with its Commander code as the
-// `kind` so a caller reading `--json` can tell an unknown option from a missing argument.
+// Commander ends a run for two reasons, and they are not the same answer. Printing help
+// (including a bare `akb` or `akb raw`) or a version is the command working — exit 0,
+// nothing on stderr. Everything else is a parse refusal, and it is reported the way every
+// other refusal is, with its Commander code as the `kind` so a caller reading `--json` can
+// tell an unknown option from a missing argument.
 //
 // A word that used to be a command carries one sentence more: Commander only looks for a
 // near miss among the words beside it, and every one of these is still here a level down.
 function commanderExit(err: CommanderError, program: string, json: boolean): number {
-  if (err.exitCode === 0) return 0
+  if (err.exitCode === 0 || err.code === 'commander.help') return 0
   const kind = err.code.replace(/^commander\./, '')
   const message = err.message.replace(/^error: /, '')
   const moved = movedTo(unknownWord(message), program)
