@@ -19,7 +19,8 @@ import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { tickedSetupSteps } from '../setup'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
-import { withStore } from './store'
+import { readRuns, withStore } from './store'
+import { lastSessionTotal, ownCost, reportsSessionTotal } from './own-cost'
 import { cleanupDiscardedCards } from '../../commands/remove'
 import { discardedCardsPrompt } from './prompts'
 import { contextLimit, refreshCatalog } from './catalog'
@@ -484,7 +485,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
             : code === 0
               ? 'done'
               : 'error'
-      const totalCost = spoken ? spoken.costUsd : renderer?.costUsd?.()
+      const reported = spoken ? spoken.costUsd : renderer?.costUsd?.()
+      // A session total carries what the session it continues spent (#1480).
+      const sessionTotal = reportsSessionTotal(record.harness) ? reported : undefined
+      const totalCost = sessionTotal === undefined
+        ? reported
+        : ownCost(sessionTotal, record.continues ? lastSessionTotal(record.continues.resumeId, readRuns()) : undefined)
       const usage = spoken ? spoken.usage : renderer?.usage?.()
       // A connector the board TALKS to hands its reading back with the turn rather than on
       // the stream, so this is where its ring gets its one update (#675).
@@ -605,6 +611,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
 
       patch(sessionId, (r) => {
         if (totalCost !== undefined) r.costUsd = totalCost
+        if (sessionTotal !== undefined) r.sessionCostUsd = sessionTotal
         if (usage) r.usage = usage
         if (result) r.result = result
       })
