@@ -120,6 +120,12 @@ describe('what the rollout beside it says', () => {
 describe('list rates', () => {
   const usage = { input: 1_000_000, cacheCreation: 0, cacheRead: 0, output: 0 }
 
+  it('prices gpt-6.1-sol, a cache hit at its own rate', () => {
+    assert.equal(priceUsd('openai', 'gpt-6.1-sol', usage), 2)
+    assert.equal(priceUsd('openai', 'gpt-6.1-sol', { input: 0, cacheCreation: 0, cacheRead: 1_000_000, output: 0 }), 0.1)
+    assert.equal(priceUsd('openai', 'gpt-6.1-sol', { input: 0, cacheCreation: 0, cacheRead: 0, output: 1_000_000 }), 10)
+  })
+
   it('prices a model pinned to a snapshot as the model', () => {
     assert.equal(priceUsd('openai', 'gpt-5.6-sol-2026-07-09', usage), 4)
   })
