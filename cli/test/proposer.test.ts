@@ -246,7 +246,9 @@ describe('the flow', () => {
     const printed = () => said(() => printFlow({ action: 'reflect', cards: [1] }))
     assert.doesNotMatch(await printed(), /Your settings on this board/)
     assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'auto').ok, true)
-    assert.match(await printed(), /Your settings on this board:\n- A small fix .*--schedule implement/)
+    const auto = await printed()
+    assert.match(auto, /Your settings on this board:\n- A small fix .*--schedule implement/)
+    assert.doesNotMatch(auto, /--related/)
   })
 
   const ended = (extra: Record<string, unknown>): void => {
