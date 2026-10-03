@@ -2,11 +2,10 @@
 
 Use when planning or implementation discovers additional work.
 
-- **Place it**: fix what the current card requires here. Create independent follow-ups
-  without asking permission or blocking the original. Never defer a required fix to make
-  the card pass.
-- **Check coverage**: use `akb raw list --module <source-module>` and relevant cards to avoid duplicates.
-- **Prepare context**: give the next agent enough context to understand the work without the original conversation.
-- **Create it**: follow `akb guide add-task` for evaluation, creation, and refinement. Link
-  the source with `--related` and preserve the context in the body before refinement.
-  Then resume the original workflow.
+- **Place it**: fix what the current card requires here; never defer a required fix to make
+  the card pass. Queue independent follow-ups in triage without asking permission or blocking
+  the original, and create no card for them.
+- **Another card's change is not a follow-up**: when it only changes an open card, run
+  `akb card revise <id> "<the change and why>"` instead.
+- **Queue it**: `akb triage add --title "<one line>" --slug <short-english-slug> --source "#<id>" --text "<what and why, readable without this session>"`,
+  then resume the original workflow. Skip one the command reports as already there.

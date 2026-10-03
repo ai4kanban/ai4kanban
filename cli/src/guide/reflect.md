@@ -2,7 +2,7 @@
 
 Some cards have just been finished. Propose the work that should follow them, one inbox item
 each. Proposing nothing is a normal result. Do not read archived cards you were not given,
-and do not edit or archive any card; create one only when your settings say so.
+and do not edit or archive any card yourself; create one only when your settings say so.
 
 ## Inputs
 
@@ -26,6 +26,9 @@ Verify a gap in the project; never take the card's word.
 
 Judge for yourself what is worth the user's time to read, exploratory ideas included; say so
 in its text when one is a small chore.
+
+When what shipped makes an open card's plan untrue, propose no item for it; run
+`akb card revise <id> "<the change and why>"` instead.
 
 ## Filter
 

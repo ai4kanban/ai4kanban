@@ -288,10 +288,12 @@ describe('the prompt', () => {
     }
     assert.match(findGuide('update-questions')!.text, /Never ask whether to fix work here or create a card/)
     const followUp = findGuide('follow-up')!.text
-    assert.match(followUp, /without asking permission or blocking the original/)
-    assert.match(followUp, /Never defer a required fix/)
-    assert.match(followUp, /preserve the context in the body before refinement/)
-    assert.match(followUp, /`akb guide add-task`/)
+    assert.match(followUp, /without asking permission or blocking\s+the original/)
+    assert.match(followUp, /never defer a required fix/)
+    // Follow-ups queue in triage, where they are judged (#1388); a change to another card is a revise.
+    assert.match(followUp, /`akb triage add /)
+    assert.match(followUp, /create no card/)
+    assert.match(followUp, /`akb card revise <id>/)
   })
 
   it('makes the latest target authoritative in a conflict', () => {
@@ -357,6 +359,23 @@ describe('the prompt', () => {
       const flow = printFlow({ action: 'create', description: 'Add a task.' })
       const next = (flow.next as string[]).join('\n')
       assert.doesNotMatch(next, /akb card refine <id>/)
+    } finally {
+      stopCollecting()
+    }
+  })
+
+  // Work is judged once, as it leaves triage (#1388).
+  it('evaluates a new card only when it is made of a triage item', () => {
+    startCollecting()
+    try {
+      const direct = printFlow({ action: 'create', description: 'Add a task.' }).guides as string[]
+      assert.deepEqual(direct, ['board', 'add-task'])
+      const fromTriage = printFlow({
+        action: 'create',
+        triage: { sourceId: 'feedback/x', file: 'docs/kanban/triage/x.md' },
+      }).guides as string[]
+      assert.deepEqual(fromTriage, ['board', 'evaluate-task', 'add-task'])
+      assert.ok((printFlow({ action: 'plan-release', release: 'v1' }).guides as string[]).includes('evaluate-task'))
     } finally {
       stopCollecting()
     }

@@ -147,8 +147,8 @@ nobody plans anything.
 
 ## Let the Proposer look back
 
-Nothing on the board looks at finished work. A follow-up surfaces only when a build or a plan
-notices one mid-task, and **Triage** reads outside sources — never your own history.
+Nothing on the board looks at finished work. A follow-up reaches **Triage** only when a build or
+a plan notices one mid-task, and Triage's endpoints read outside sources — never your own history.
 
 **Proposer** closes that gap. Every finished card that reaches the archive (a rejected one
 starts none) starts one reflection over
@@ -163,6 +163,8 @@ planning memory, and puts each survivor in **Triage**.
   With Pro, Triage [sorts new items by itself](/docs/triage#let-it-sort-by-itself).
 - **It grounds every proposal.** Anything already planned, already in Triage, or in a
   `rejected.md` is skipped. Finding nothing worth proposing is a normal result, and the common one.
+- **It keeps open plans true.** When what shipped makes an open card's plan untrue, it revises
+  that card in the background instead of proposing anything.
 
 Each item it writes carries a short rationale and the card that prompted it, so you can read what
 the proposal came from before deciding.

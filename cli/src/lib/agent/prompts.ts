@@ -588,10 +588,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'describe-project':
       return `${kb}. Describe this project following \`akb guide describe-project\`.`
     // Reflecting on the cards the board has just completed (#534, #1467). They are off the
-    // board, so the ask names the archive: nothing else can find them. What it may write is inbox
-    // items and nothing else — a proposal is triaged like anything else that arrives there,
-    // so the run never creates, edits or archives a card, and proposing nothing is the
-    // result it reports as often as not.
+    // board, so the ask names the archive: nothing else can find them. It only writes inbox
+    // items or starts a revise — it never edits or archives a card itself.
     case 'reflect': {
       const ids = reflectedCards(req)
       const archived = new Map(readArchive().cards.map((card) => [card.id, card.title]))
@@ -601,7 +599,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           `${kb}. These tasks have just been completed: ${titles.join(', ')}. Propose the work that should follow them, following \`akb guide reflect\`.`,
           `They have left the board — read each in its own <card> block below, with the discussion it came from when the block lists one.`,
           `Skip anything already on the board, already in the inbox, or turned down before.`,
-          `Write each survivor with \`${command} triage add\`: that is the whole of what you may write unless your settings below say otherwise — no card is edited or archived, and finding nothing worth proposing is a complete result.`,
+          `Write each survivor with \`${command} triage add\`, and revise an open card whose plan what shipped made untrue with \`${command} card revise\`: that is all you may do unless your settings below say otherwise — you edit and archive no card yourself, and finding nothing worth proposing is a complete result.`,
           `Don't ask me questions with human-in-the-loop.`,
         ].join(' '),
         ...reflectBlocks(ids),

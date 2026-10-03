@@ -537,7 +537,13 @@ function conversationBlock(chat: ChatToReview): string[] {
 
 // A retired action is only ever read back off an old record (#438, #1203) — nothing starts
 // one, and there is no flow left to print for it.
-const guidesFor = (req: AgentRequest): string[] => (isRetired(req.action) ? [] : GUIDES_FOR[req.action as StartableAction])
+// Work is judged once, as it leaves triage (#1388): a card the user asked for directly is
+// written as asked.
+const guidesFor = (req: AgentRequest): string[] => {
+  if (isRetired(req.action)) return []
+  const guides = GUIDES_FOR[req.action as StartableAction]
+  return req.action === 'create' && !req.triage ? guides.filter((g) => g !== 'evaluate-task') : guides
+}
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
  *  program the caller was typed as, so what is printed can be pasted back. */

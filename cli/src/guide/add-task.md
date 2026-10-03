@@ -11,9 +11,6 @@ Use this guide whenever work may become a card. If setup is unfinished, stop and
 
 ## Create the card
 
-Evaluate the idea with `akb guide evaluate-task`; during setup, use setup's batch
-evaluation instead. Skip unclear, duplicate, unsupported, or previously rejected work.
-
 Create the card with metadata flags rather than editing frontmatter:
 
 ```text
