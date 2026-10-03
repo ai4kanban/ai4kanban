@@ -17,5 +17,8 @@ Plan one card in this session until it can be built. Change no project code.
   passes the `[user]` test in `akb guide update-questions`.
 - **Write**: shape the card as `akb guide writing` says, then run `akb raw validate <id>` and
   fix every reported line.
+- **Decide readiness**: once the card validates, judge whether it can be built as written;
+  if so, run `akb raw update <id> --status ready`, otherwise leave what blocks it as a
+  `[user]` question.
 
 Follow the flow's closing steps, then stop: the user starts the build.
