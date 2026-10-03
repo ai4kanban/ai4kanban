@@ -169,10 +169,13 @@ export {
   setDismissalReview,
   setProjectDescription,
   setMemoryPrune,
+  setMemoryReview,
   setSecret,
   setSilenceMinutes,
   silenceMinutes,
 } from './lib/agent/settings'
+// The board's own scheduled agents in one read, with when each runs next (#1464).
+export { boardSchedules, setBoardSchedule } from './lib/view/dispatch'
 
 // The board's runtimes (#467) — one row is the whole answer to what a run runs as. `agentInfo`
 // already carries the list a pane draws, so these are only the writers: add, rename, delete,

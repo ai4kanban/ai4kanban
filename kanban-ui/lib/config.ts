@@ -1,10 +1,6 @@
 import { machineCopy, said } from "./language";
 import { boardRules } from "./cli";
-import type {
-  CadenceSchedule,
-  MemoryPruneSchedule,
-  MemoryReviewState,
-} from "./types";
+import type { BoardScheduleKey, BoardScheduleView } from "./types";
 
 // --- the settings, through the CLI (#168) ------------------------------------
 // ui.config.json holds which agent runs, with every agent's own settings beside it. The CLI
@@ -59,69 +55,21 @@ export async function setSilenceMinutes(minutes: number): Promise<{ ok: boolean;
   return said(await rules.setSilenceMinutes(minutes));
 }
 
-// --- the memory pruner's schedule (#514) -------------------------------------
-// **Recurring pruning** — the opt-in, the cadence and the last successful pass, in the
-// board's own settings file beside the switches above. Rules that predate the pruner answer
-// nothing, and its page draws Run now without the recurrence control.
+// --- the board's own scheduled agents (#514, #748, #929, #1268, #1464) -------
+// Rules that predate the read answer null, and the pages draw Run now without the chip.
 
-export async function memoryPrune(): Promise<MemoryPruneSchedule | null> {
+export async function boardSchedules(): Promise<Record<BoardScheduleKey, BoardScheduleView> | null> {
   const rules = await boardRules();
-  return rules.memoryPrune ? rules.memoryPrune() : null;
+  return rules.boardSchedules ? rules.boardSchedules() : null;
 }
 
-export async function setMemoryPrune(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<{ ok: boolean; error?: string }> {
+export async function setBoardSchedule(
+  key: BoardScheduleKey,
+  next: { enabled: boolean; cadence: string },
+): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
-  if (!rules.setMemoryPrune) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.memoryPruner };
+  if (!rules.setBoardSchedule) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.schedules };
   }
-  return said(await rules.setMemoryPrune(next));
-}
-
-// --- the memory reviewer's last review (#748) --------------------------------
-// One field and no cadence: the review is daily. Whether the agent is ON is the roster's
-// answer, read through its own switch like every other role's — this is only the line under
-// Review now. Rules that predate the reviewer answer nothing, and the page draws no line.
-
-export async function memoryReview(): Promise<MemoryReviewState | null> {
-  const rules = await boardRules();
-  return rules.memoryReview ? rules.memoryReview() : null;
-}
-
-// --- the dismissal review's schedule (#929) ----------------------------------
-
-export async function dismissalReview(): Promise<CadenceSchedule | null> {
-  const rules = await boardRules();
-  return rules.dismissalReview ? rules.dismissalReview() : null;
-}
-
-export async function setDismissalReview(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.setDismissalReview) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.dismissalReviewer };
-  }
-  return said(await rules.setDismissalReview(next));
-}
-
-// --- the project description's schedule (#1268) -----------------------------
-
-export async function projectDescription(): Promise<CadenceSchedule | null> {
-  const rules = await boardRules();
-  return rules.projectDescription ? rules.projectDescription() : null;
-}
-
-export async function setProjectDescription(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.setProjectDescription) {
-    return { ok: false, error: (await machineCopy()).messages.tooOld.projectWriter };
-  }
-  return said(await rules.setProjectDescription(next));
+  return said(await rules.setBoardSchedule(key, next));
 }

@@ -36,7 +36,6 @@ import {
   FiChevronRight,
   FiClock,
   FiFileText,
-  FiPlay,
   FiPlus,
   FiRotateCcw,
   FiScissors,
@@ -47,42 +46,32 @@ import {
   agentsAction,
   createAgentAction,
   deleteAgentAction,
+  boardSchedulesAction,
   listSessionsAction,
-  memoryPruneAction,
   saveAgentFileAction,
   setAgentRuntimeAction,
   setAgentRuleAction,
-  setMemoryPruneAction,
+  setBoardScheduleAction,
   setSpecAgentAction,
-  memoryReviewAction,
   setSpecAgentSettingAction,
-  startPruneMemoryAction,
-  startReviewMemoryAction,
-  dismissalReviewAction,
-  setDismissalReviewAction,
-  startReviewDismissalsAction,
-  projectDescriptionAction,
-  setProjectDescriptionAction,
-  startDescribeProjectAction,
-  setWorkflowScheduledAction,
-  startScheduledAgentAction,
+  startBoardScheduleAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
-import { type Cadence, type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
+import { type Cadence, type CadenceUnit, formatCadence, parseCadence, parseStamp } from "@/lib/cadence";
 import type {
-  AgentAction,
   AgentInfo,
   AgentView,
   AgentSlot,
-  CadenceSchedule,
-  MemoryReviewState,
+  BoardScheduleKey,
+  BoardScheduleView,
+  SessionView,
   SpecAgentSettingView,
-  WorkflowScheduledView,
 } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import type { CadenceCopy } from "@/i18n/configuration/types";
 import { Button } from "./button";
-import { AgentMark, PRUNER, useRuntimeName } from "./Configuration";
+import { AgentMark, useRuntimeName } from "./Configuration";
 import { GuideDrawer } from "./Guide";
 import { ConfirmationPopover } from "./confirm-popover";
 import { useCopyText } from "./copy";
@@ -104,57 +93,85 @@ import {
 import { POPUP_ROW, Popover, PopoverContent, PopoverTrigger, stepOptions } from "./ui/popover";
 import { sayFailure } from "@/lib/start-failure";
 
-// The one agent whose page carries the review action (#748). Named here because there is
-// exactly one, and its page is the only place Review now belongs.
-const REVIEWER_OF_MEMORY = "memory-reviewer";
-
-// The dismissal reviewer (#929): the pruner's controls.
-const REVIEWER_OF_DISMISSALS = "dismissal-reviewer";
-
-// The project writer (#1268): the same controls.
-const PROJECT_WRITER = "project-writer";
-
 // Configuration → Board's groups, by what starts each agent (#1208). Anything not named here
 // — the discussion, an agent this project added — is one you start.
-// A literal rather than PRUNER: Configuration imports this file, so its exports are
+// Literals rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
-const ON_A_SCHEDULE = [REVIEWER_OF_MEMORY, "memory-pruner", REVIEWER_OF_DISMISSALS, PROJECT_WRITER];
+const ON_A_SCHEDULE = ["memory-reviewer", "memory-pruner", "dismissal-reviewer", "project-writer"];
 const ON_AN_EVENT = ["proposer"];
 // Whose runtime every planning lead runs (#1316).
 const PLANNING_HELPER = "discussion-helper";
 
-/** The scheduled agents' cadences, for the column's rows. `reload` after a save. */
-function useCadences(onError?: (msg: string) => void) {
-  const [cadences, setCadences] = useState<Record<string, CadenceSchedule | null>>({});
+// The board's scheduled agents (#1464): the key each is saved under, its words, the mark on
+// its Run now, and the action its passes run.
+const BOARD_SCHEDULES: Record<
+  string,
+  {
+    key: BoardScheduleKey;
+    copy: "pruner" | "memoryReviewer" | "dismissalReviewer" | "projectWriter";
+    icon: React.ReactNode;
+    action: string;
+  }
+> = {
+  "memory-reviewer": {
+    key: "memoryReview",
+    copy: "memoryReviewer",
+    icon: <FiRotateCcw size={11} aria-hidden />,
+    action: "review-memory",
+  },
+  "memory-pruner": {
+    key: "memoryPrune",
+    copy: "pruner",
+    icon: <FiScissors size={11} aria-hidden />,
+    action: "prune-memory",
+  },
+  "dismissal-reviewer": {
+    key: "dismissalReview",
+    copy: "dismissalReviewer",
+    icon: <FiRotateCcw size={11} aria-hidden />,
+    action: "review-dismissals",
+  },
+  "project-writer": {
+    key: "projectDescription",
+    copy: "projectWriter",
+    icon: <FiFileText size={11} aria-hidden />,
+    action: "describe-project",
+  },
+};
+
+/** The board's scheduled agents, for the column's rows and the page. Undefined while being
+ *  read, null on rules older than the read. `reload` after a save or a pass. */
+function useBoardSchedules(onError?: (msg: string) => void) {
+  const [schedules, setSchedules] = useState<Record<BoardScheduleKey, BoardScheduleView> | null>();
   const reload = useCallback(async () => {
-    const [prune, dismissals, project] = await Promise.all([
-      memoryPruneAction(),
-      dismissalReviewAction(),
-      projectDescriptionAction(),
-    ]);
-    const error = prune.error || dismissals.error || project.error;
-    if (error) onError?.(error);
-    setCadences({
-      [PRUNER]: prune.schedule,
-      [REVIEWER_OF_DISMISSALS]: dismissals.schedule,
-      [PROJECT_WRITER]: project.schedule,
-    });
+    const res = await boardSchedulesAction();
+    if (res.error) onError?.(res.error);
+    setSchedules(res.schedules);
   }, [onError]);
   useEffect(() => {
     void reload();
   }, [reload]);
-  return { cadences, reload };
+  return { schedules, reload };
+}
+
+/** One scheduled agent's data and moves, from whichever pane holds them (#1464): a board
+ *  agent's or a workflow's, drawn by the same controls. */
+export interface AgentSchedule {
+  /** Undefined while being read; null on rules too old to draw the chip. */
+  view: BoardScheduleView | null | undefined;
+  copy: CadenceCopy;
+  icon: React.ReactNode;
+  /** Whether a run in the record is one of this agent's passes. */
+  isPass: (run: SessionView) => boolean;
+  start: () => Promise<{ ok: boolean; error?: string }>;
+  /** False is a refusal. */
+  save: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
+  /** Read the data again: a pass ended, which moves the next run. */
+  reload: () => void | Promise<void>;
 }
 
 // The board's own "who is the output for" row, on every spec agent (#445).
 const OUTPUT_KEY = "output";
-
-// Which copy says a scheduled agent's cadence.
-const CADENCE_COPY: Record<string, "pruner" | "dismissalReviewer" | "projectWriter" | undefined> = {
-  "memory-pruner": "pruner",
-  [REVIEWER_OF_DISMISSALS]: "dismissalReviewer",
-  [PROJECT_WRITER]: "projectWriter",
-};
 
 /** The roster, and every write that touches it — read once and shared by the two panes that
  *  draw an agent (#944). Configuration → Board lists the agents the board runs itself;
@@ -404,14 +421,11 @@ export function AgentDetail({
   roster,
   agent,
   info,
-  scoped,
+  schedule,
   inStage,
-  usage,
   actions,
   extra,
-  loose,
   onDeleted,
-  onCadence,
   onRuntimes,
   onFollowed,
   onError,
@@ -419,23 +433,17 @@ export function AgentDetail({
   roster: AgentRoster;
   agent: AgentView;
   info: AgentInfo;
-  /** Drawn inside a workflow: this pane's actions and Delete sit at the name row's right. */
-  scoped?: boolean;
+  /** A scheduled agent's cadence and Run now, from the pane that holds its data. */
+  schedule?: AgentSchedule;
   /** The agent is drawn as one stage's assignment — see `Page`. */
   inStage?: boolean;
-  /** Under the agent's line: where else it is used, and what a role cannot be told. */
-  usage?: React.ReactNode;
   /** Actions of this pane's own, beside Delete. */
   actions?: React.ReactNode;
-  /** A section between the settings and the instruction box; on a built-in agent in a
-   *  `scoped` pane it takes the rule box's place. */
+  /** A section between the settings and the instruction box; on a built-in agent drawn
+   *  `inStage` it takes the rule box's place. */
   extra?: React.ReactNode;
-  /** See `Page`. */
-  loose?: boolean;
   /** Run after the agent is gone, for a pane holding something else that named it. */
   onDeleted?: () => void | Promise<void>;
-  /** Run after a scheduled agent's cadence is saved. */
-  onCadence?: () => void;
   onRuntimes?: () => void;
   /** Cross to the page of the agent whose runtime this one runs (#1316). */
   onFollowed?: (agent: string) => void;
@@ -443,8 +451,8 @@ export function AgentDetail({
 }) {
   return (
     <Page
-      onCadence={onCadence}
       agent={agent}
+      schedule={schedule}
       rule={roster.rules[agent.name] ?? ""}
       file={roster.files[agent.name]}
       saved={roster.savedRule === agent.name}
@@ -469,12 +477,9 @@ export function AgentDetail({
       }}
       busySwitch={roster.saving.includes(agent.name)}
       busy={(key) => roster.saving.includes(`${agent.name}/${key}`)}
-      scoped={scoped}
       inStage={inStage}
-      usage={usage}
       actions={actions}
       extra={extra}
-      loose={loose}
     />
   );
 }
@@ -504,7 +509,28 @@ export function AgentsPanel({
   const c = useCopy().configuration.agents;
   const roster = useAgentRoster(onError);
   const { agents, picked, setPicked, select, saving } = roster;
-  const { cadences, reload: reloadCadences } = useCadences(onError);
+  const { schedules, reload: reloadSchedules } = useBoardSchedules(onError);
+  const view = (name: string) => {
+    const one = BOARD_SCHEDULES[name];
+    return one && schedules !== undefined ? (schedules?.[one.key] ?? null) : undefined;
+  };
+  const scheduleOf = (name: string): AgentSchedule | undefined => {
+    const one = BOARD_SCHEDULES[name];
+    if (!one) return undefined;
+    return {
+      view: view(name),
+      copy: c[one.copy],
+      icon: one.icon,
+      isPass: (r) => r.action === one.action,
+      start: () => startBoardScheduleAction(one.key),
+      save: async (next) => {
+        const res = await setBoardScheduleAction(one.key, next);
+        if (res.ok) await reloadSchedules();
+        return res.ok;
+      },
+      reload: reloadSchedules,
+    };
+  };
 
   // The agent a deep link named (#514) — Prune memory in the rail opens this pane on the
   // pruner's page. It selects the row rather than scrolling to it: the page sits beside the
@@ -551,7 +577,7 @@ export function AgentsPanel({
       key={a.name}
       agent={a}
       held={a.name === picked}
-      cadence={cadences[a.name]}
+      schedule={view(a.name)}
       busy={saving.includes(a.name)}
       onOpen={() => void select(a.name)}
       onFlip={(next) => roster.flip(a, next)}
@@ -588,7 +614,7 @@ export function AgentsPanel({
                   roster={roster}
                   agent={agent}
                   info={info}
-                  onCadence={() => void reloadCadences()}
+                  schedule={scheduleOf(agent.name)}
                   onRuntimes={onRuntimes}
                   onError={onError}
                 />
@@ -630,7 +656,7 @@ function Roster({ title, children }: { title: string; children: React.ReactNode 
 function PickRow({
   agent,
   held,
-  cadence,
+  schedule,
   busy,
   onOpen,
   onFlip,
@@ -638,7 +664,7 @@ function PickRow({
   agent: AgentView;
   held: boolean;
   /** A scheduled agent's cadence, which is what starts it (#1208). */
-  cadence?: CadenceSchedule | null;
+  schedule?: BoardScheduleView | null;
   busy: boolean;
   onOpen: () => void;
   onFlip: (next: boolean) => Promise<void>;
@@ -647,13 +673,15 @@ function PickRow({
   const title = useAgentTitle()(agent);
   // What starts this agent, in four or five words (#742). Only the board's own roles carry
   // it; an agent this project added is called by name, so its row stays a single line.
-  const saved = parseCadence(cadence?.cadence ?? "");
-  const cadenceCopy = CADENCE_COPY[agent.name] && c[CADENCE_COPY[agent.name]!];
-  const trigger =
-    saved && cadenceCopy
-      ? cadenceCopy.cadenceLabel(saved.n, saved.unit, saved.at)
+  const saved = parseCadence(schedule?.cadence ?? "");
+  const copy = BOARD_SCHEDULES[agent.name] && c[BOARD_SCHEDULES[agent.name].copy];
+  const scheduleOff = schedule?.enabled === false;
+  const trigger = scheduleOff
+    ? c.schedule.off
+    : saved && copy
+      ? copy.cadenceLabel(saved.n, saved.unit, saved.at)
       : (c.roles[agent.name as keyof typeof c.roles]?.trigger ?? "");
-  const off = !agent.enabled;
+  const off = !agent.enabled || scheduleOff;
   return (
     // A row, not a button: the switch lives in it (#715), and a control inside a button is
     // a control nobody can press. The name is the button; the switch is its own.
@@ -817,7 +845,7 @@ export function NewAgentRow({
 // setting in this dialog already behaves.
 function Page({
   agent,
-  onCadence,
+  schedule,
   info,
   rule,
   file,
@@ -836,15 +864,12 @@ function Page({
   onDelete,
   busySwitch,
   busy,
-  scoped,
   inStage,
-  usage,
   actions,
   extra,
-  loose,
 }: {
   agent: AgentView;
-  onCadence?: () => void;
+  schedule?: AgentSchedule;
   info: AgentInfo;
   rule: string;
   file: string | undefined;
@@ -868,18 +893,13 @@ function Page({
   /** The switch, or the delete, is in flight — they are the same agent-wide save. */
   busySwitch: boolean;
   busy: (key: string) => boolean;
-  /** What the pane around this page adds (#944). `scoped` puts `actions` and Delete at the
-   *  name row's right, `usage` sits under its line, and `extra` between the settings and the
-   *  instruction box. */
-  scoped?: boolean;
   /** This pane is one stage's assignment (#944), not the agent's board-wide page: what it is
    *  told for this stage alone is edited here, and who its output is for stays as saved. */
   inStage?: boolean;
-  usage?: React.ReactNode;
+  /** What the pane around this page adds (#944): `actions` beside Delete on the name row,
+   *  `extra` between the settings and the instruction box. */
   actions?: React.ReactNode;
   extra?: React.ReactNode;
-  /** 8px between the name row and the description (#1401): the row holds a cadence chip. */
-  loose?: boolean;
 }) {
   const c = useCopy().configuration.agents;
   const box = useRef<HTMLTextAreaElement>(null);
@@ -912,7 +932,7 @@ function Page({
   // Which box this page writes through: an added agent owns its whole file, a bundled one
   // owns only the words appended to its runs.
   const writesRule = !agent.file;
-  const off = !agent.enabled;
+  const off = !agent.enabled || schedule?.view?.enabled === false;
   // In a workflow the one box on the page is where instructions go (#976): the board-wide
   // rule and who the output is for stay as saved, edited elsewhere.
   const settings = inStage ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings;
@@ -924,8 +944,7 @@ function Page({
   // than `h-full`: the guide below opens in place, and the one thing that must not happen
   // is the page ending under the pane's floor.
   /* Only an agent this project added: a role runs the board's own flows and a bundled agent
-     ships inside the command, so neither is this board's to remove. Where it is drawn is the
-     pane's answer — beside the board's own controls, or at the workflow pane's name row. */
+     ships inside the command, so neither is this board's to remove. */
   const removal = agent.file ? (
     <span ref={anchor} className="relative shrink-0">
       <button type="button" className={DANGER_BTN} disabled={busySwitch} onClick={() => setAsking(true)}>
@@ -948,20 +967,15 @@ function Page({
     </span>
   ) : null;
 
-  // The board's own controls — the scheduled agents' cadence and Run now, the memory
-  // review's Run now — or, in a `scoped` pane (#944), that pane's actions. Either way on the
-  // name row, so the description below keeps the full width.
-  const controls = scoped ? (
-    actions
-  ) : agent.name === PRUNER ? (
-    <PruneControls onSaved={onCadence} onError={onError} />
-  ) : agent.name === REVIEWER_OF_DISMISSALS ? (
-    <DismissalControls onSaved={onCadence} onError={onError} />
-  ) : agent.name === PROJECT_WRITER ? (
-    <ProjectControls onSaved={onCadence} onError={onError} />
-  ) : agent.name === REVIEWER_OF_MEMORY ? (
-    <ReviewControls onError={onError} />
-  ) : null;
+  // On the name row, so the description below keeps the full width: a scheduled agent's
+  // cadence and Run now, then the pane's own actions and Delete.
+  const controls = (schedule || actions || removal) && (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {schedule && <ScheduledControls key={agent.name} schedule={schedule} onError={onError} />}
+      {actions}
+      {removal}
+    </div>
+  );
 
   return (
     <div className="flex min-h-full flex-col gap-4">
@@ -976,23 +990,17 @@ function Page({
           <div className="flex min-h-[24px] items-center justify-between gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2">
             <div className="flex min-w-0 items-baseline gap-2">
               <span className="min-w-0 truncate text-[14px] font-[800] text-nb-ink" title={title}>{title}</span>
-              {agent.file && !scoped && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
+              {agent.file && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.yours}</span>}
             </div>
-            {(controls || removal) && (
-              <div className="flex shrink-0 items-center gap-1.5">
-                {controls}
-                {removal}
-              </div>
-            )}
+            {controls}
           </div>
           {/* A specialist's description is a paragraph at times, and a paragraph in a
               header is read by nobody, so all but its first sentence opens. A role says when
               it runs only in its own copy (#493, #502). */}
-          <p className={`${loose ? "mt-2" : "mt-0.5"} max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft`}>
+          <p className={`${schedule ? "mt-2" : "mt-0.5"} max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft`}>
             {role ? role.gloss : <Clipped text={sentence(agent.gloss)} />}
           </p>
           {role?.when && <Trigger text={role.when} />}
-          {usage}
         </div>
       </div>
 
@@ -1312,364 +1320,52 @@ function SettingPick({
   );
 }
 
-// --- the controls an agent that runs on a cadence carries (#514, #119) -------
+// --- the controls an agent that runs on a cadence carries (#514, #1401, #1464) -
 
-// Compact, on the name row: the cadence chip, then Run now (#1208). Always on, so the chip
-// is neutral and the accent is Run now's alone. The last run is the foot of the chip's list;
-// only a failed one is said out here, beside the controls.
+// Compact, on the name row: the cadence chip, then Run now. The chip is neutral and the
+// accent is Run now's alone; a last run that failed tints the chip and says nothing more.
 const COMPACT_BTN =
   "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-[7px] px-2 text-[11.5px] font-[700] transition-[background-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
-// What each agent owns is its data and its words; this owns the layout, so the pages cannot
-// drift apart.
-function CadenceControls({
-  copy,
-  icon,
-  schedule,
-  tooOld,
-  running,
-  failed,
-  onStart,
-  onSave,
-  off,
-  onDisable,
-  foot = true,
-}: {
-  copy: CadenceCopy;
-  /** The action's own mark, so Run now reads as this agent's work. */
-  icon: React.ReactNode;
-  /** The saved schedule, or null on rules older than it — which draws Run now with no chip. */
-  schedule: CadenceSchedule | null;
-  tooOld: boolean;
-  running: boolean;
-  /** The newest finished one did not get through. */
-  failed: boolean;
-  onStart: () => void;
-  onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
-  /** A schedule that can be switched off (#1401): what the chip says while it is, and the
-   *  list's last row, which switches it off. Picking a cadence switches it back on. */
-  off?: { label: string; disable: string };
-  onDisable?: () => Promise<boolean>;
-  /** Whether the list ends on the last run. Off where the page says it itself. */
-  foot?: boolean;
-}) {
+/** When the next run is, in the list's first line: relative, and empty while off. */
+function useNextRunLine(view: BoardScheduleView | null | undefined): string {
+  const c = useCopy().configuration.agents.schedule;
+  if (!view?.enabled || !view.nextRun) return "";
+  if (view.nothingNew) return c.nextRun(c.whenNew);
+  const at = parseStamp(view.nextRun);
+  if (!at) return "";
+  const hours = (at.getTime() - Date.now()) / 3_600_000;
+  const when =
+    hours < 1
+      ? c.soon
+      : hours < 24
+        ? c.inHours(Math.min(23, Math.round(hours)))
+        : hours < 48
+          ? c.tomorrow
+          : c.inDays(Math.round(hours / 24));
+  return c.nextRun(when);
+}
+
+// One scheduled agent's data — its schedule and its runs — drawn the one way.
+function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onError?: (msg: string) => void }) {
+  const { view, copy, icon, isPass, start: begin, save, reload } = schedule;
+  const c = useCopy().configuration.agents.schedule;
   const [open, setOpen] = useState(false);
-  const saved = parseCadence(schedule?.cadence ?? "");
-  const isOff = !!off && schedule?.enabled === false;
-  const state = isOff ? off.label : saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
-
-  return (
-    <div className="flex shrink-0 items-center gap-1.5">
-      {tooOld && <span className="text-[11px] text-nb-ink-soft">{copy.tooOld}</span>}
-      {failed && !running && <span className="text-[11px] text-nb-peach-ink">{copy.failed}</span>}
-      {!tooOld && state && (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              title={copy.chipLabel(state)}
-              aria-label={copy.chipLabel(state)}
-              className={`${COMPACT_BTN} bg-nb-ink/[0.08] text-nb-ink hover:bg-nb-ink/[0.12]`}
-            >
-              <FiClock size={11} aria-hidden className="text-nb-ink-soft" />
-              {state}
-              <FiChevronDown size={10} aria-hidden className="text-nb-ink-soft" />
-            </button>
-          </PopoverTrigger>
-          {open && (
-            <CadenceMenu
-              saved={saved}
-              lastRun={foot ? (schedule?.lastRun ?? "") : undefined}
-              copy={copy}
-              onDismiss={() => setOpen(false)}
-              onSave={onSave}
-              off={isOff}
-              disable={off?.disable}
-              onDisable={onDisable}
-            />
-          )}
-        </Popover>
-      )}
-      <button
-        type="button"
-        className={`${COMPACT_BTN} bg-nb-accent-soft text-nb-accent-deep hover:bg-nb-accent/28`}
-        disabled={running}
-        onClick={() => void onStart()}
-      >
-        {icon}
-        {running ? copy.running : copy.run}
-      </button>
-    </div>
-  );
-}
-
-// --- a workflow's scheduled agent (#1401) ------------------------------------
-
-/** The cadence chip and Run now of one scheduled agent of one workflow: the board agents'
- *  own controls, whose list also switches it off. */
-export function WorkflowScheduledControls({
-  flow,
-  one,
-  onSaved,
-  onError,
-}: {
-  flow: string;
-  one: WorkflowScheduledView;
-  /** Read the workflows again: a write landed, or a run ended and moved the last run. */
-  onSaved: () => Promise<void>;
-  onError?: (msg: string) => void;
-}) {
-  const c = useCopy().configuration.workflows;
   const [running, setRunning] = useState(false);
   const [failed, setFailed] = useState(false);
-  const agent = one.agent;
+  const next = useNextRunLine(view);
 
+  // Whether one is going, and whether the newest finished one got through. Polled while a
+  // pass is live and read once otherwise — the page is a settings page, not a run log.
+  const latest = useRef(isPass);
+  latest.current = isPass;
   const readRuns = useCallback(async () => {
     let live = false;
     try {
-      const runs = (await listSessionsAction()).filter(
-        (r) => r.action === "scheduled" && r.workflow === flow && r.agent === agent,
-      );
+      const runs = (await listSessionsAction()).filter((r) => latest.current(r));
       live = runs.some((r) => r.status === "running");
       const done = runs.filter((r) => r.status !== "running").sort((a, b) => b.startedAt - a.startedAt)[0];
       setFailed(!!done && done.status !== "done");
-    } catch {
-      // the runs could not be read — the button still works
-    }
-    setRunning(live);
-    return live;
-  }, [flow, agent]);
-
-  useEffect(() => {
-    void readRuns();
-  }, [readRuns]);
-
-  useEffect(() => {
-    if (!running) return;
-    const timer = setInterval(() => {
-      void readRuns().then((live) => {
-        if (!live) void onSaved();
-      });
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [running, readRuns, onSaved]);
-
-  const start = async () => {
-    if (running) return;
-    setRunning(true);
-    setFailed(false);
-    const res = await startScheduledAgentAction(flow, agent);
-    if (!res.ok) {
-      setRunning(false);
-      onError?.(sayFailure(res, c.saveFailed));
-      return;
-    }
-    void readRuns();
-  };
-
-  const write = async (move: Parameters<typeof setWorkflowScheduledAction>[1]) => {
-    const res = await setWorkflowScheduledAction(flow, move);
-    if (!res.ok) return false;
-    await onSaved();
-    return true;
-  };
-
-  return (
-    <CadenceControls
-      copy={c.cadence}
-      icon={<FiPlay size={11} aria-hidden />}
-      schedule={{ enabled: !one.off, cadence: one.cadence, lastRun: one.lastRun }}
-      tooOld={false}
-      running={running}
-      failed={failed}
-      foot={false}
-      off={{ label: c.scheduledOff, disable: c.disable }}
-      onStart={() => void start()}
-      onSave={(next) => write({ kind: "cadence", agent, cadence: next.cadence })}
-      onDisable={() => write({ kind: "switch", agent, on: false })}
-    />
-  );
-}
-
-// --- the memory pruner's own controls (#514) ---------------------------------
-
-function PruneControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.agents.pruner;
-  return (
-    <ScheduledControls
-      copy={c}
-      icon={<FiScissors size={11} aria-hidden />}
-      onSaved={onSaved}
-      action="prune-memory"
-      read={memoryPruneAction}
-      save={setMemoryPruneAction}
-      start={startPruneMemoryAction}
-      onError={onError}
-    />
-  );
-}
-
-// --- the dismissal reviewer's own controls (#929) ----------------------------
-
-function DismissalControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.agents.dismissalReviewer;
-  return (
-    <ScheduledControls
-      copy={c}
-      icon={<FiRotateCcw size={11} aria-hidden />}
-      onSaved={onSaved}
-      action="review-dismissals"
-      read={dismissalReviewAction}
-      save={setDismissalReviewAction}
-      start={startReviewDismissalsAction}
-      onError={onError}
-    />
-  );
-}
-
-// --- the project writer's own controls (#1268) -------------------------------
-
-function ProjectControls({ onSaved, onError }: { onSaved?: () => void; onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.agents.projectWriter;
-  return (
-    <ScheduledControls
-      copy={c}
-      icon={<FiFileText size={11} aria-hidden />}
-      onSaved={onSaved}
-      action="describe-project"
-      read={projectDescriptionAction}
-      save={setProjectDescriptionAction}
-      start={startDescribeProjectAction}
-      onError={onError}
-    />
-  );
-}
-
-// A scheduled agent's data — its schedule and its runs — for the layout above.
-function ScheduledControls({
-  copy: c,
-  icon,
-  action,
-  read,
-  save: write,
-  start: begin,
-  onSaved,
-  onError,
-}: {
-  copy: CadenceCopy;
-  icon: React.ReactNode;
-  onSaved?: () => void;
-  action: AgentAction;
-  read: () => Promise<{ schedule: CadenceSchedule | null; error?: string }>;
-  save: (next: { enabled: boolean; cadence: string }) => Promise<{ ok: boolean; error?: string }>;
-  start: () => Promise<{ ok: boolean; error?: string }>;
-  onError?: (msg: string) => void;
-}) {
-  const [schedule, setSchedule] = useState<CadenceSchedule | null>(null);
-  const [tooOld, setTooOld] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  const readSchedule = useCallback(async () => {
-    const res = await read();
-    setSchedule(res.schedule);
-    setTooOld(!res.schedule && !res.error);
-    if (res.error) onError?.(res.error);
-  }, [read, onError]);
-
-  // What the runs record says about pruning right now: whether one is going, and whether
-  // the newest finished one got through. Polled while a pass is live and read once
-  // otherwise — the page is a settings page, not a run log.
-  const readRuns = useCallback(async () => {
-    let live = false;
-    try {
-      const runs = (await listSessionsAction()).filter((r) => r.action === action);
-      live = runs.some((r) => r.status === "running");
-      const done = runs.filter((r) => r.status !== "running").sort((a, b) => b.startedAt - a.startedAt)[0];
-      setFailed(!!done && done.status !== "done");
-    } catch {
-      // the runs could not be read — the button still works, and it says nothing it can't
-    }
-    setRunning(live);
-    return live;
-  }, [action]);
-
-  useEffect(() => {
-    void readSchedule();
-    void readRuns();
-  }, [readSchedule, readRuns]);
-
-  // While a pass is going, look again every few seconds — and re-read the schedule the
-  // moment it stops, because a pass that passed is what moves the last-run line.
-  useEffect(() => {
-    if (!running) return;
-    const timer = setInterval(() => {
-      void readRuns().then((live) => {
-        if (!live) void readSchedule();
-      });
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [running, readRuns, readSchedule]);
-
-  const start = async () => {
-    if (running) return;
-    setRunning(true);
-    setFailed(false);
-    const res = await begin();
-    if (!res.ok) {
-      setRunning(false);
-      onError?.(sayFailure(res, c.saveFailed));
-      return;
-    }
-    void readRuns();
-  };
-
-  // Write the schedule and read back what landed. False is a refusal — the list says so
-  // itself, in its own words, and the state on screen is still the one that is running.
-  const save = async (next: { enabled: boolean; cadence: string }) => {
-    const res = await write(next);
-    if (!res.ok) return false;
-    await readSchedule();
-    onSaved?.();
-    return true;
-  };
-
-  return (
-    <CadenceControls
-      copy={c}
-      icon={icon}
-      schedule={schedule}
-      tooOld={tooOld}
-      running={running}
-      failed={failed}
-      onStart={() => void start()}
-      onSave={save}
-    />
-  );
-}
-
-// --- the memory reviewer's one action (#748) ----------------------------------
-
-// The pruner's controls with the cadence chip taken out: the review is daily, so there is
-// nothing to set. Review now, and the last review beside it.
-function ReviewControls({ onError }: { onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.agents.memoryReviewer;
-  const [review, setReview] = useState<MemoryReviewState | null>(null);
-  const [running, setRunning] = useState(false);
-
-  const readReview = useCallback(async () => {
-    const res = await memoryReviewAction();
-    setReview(res.review);
-    if (res.error) onError?.(res.error);
-  }, [onError]);
-
-  // Whether one is going right now. Polled while it is and read once otherwise — the page is
-  // a settings page, not a run log.
-  const readRuns = useCallback(async () => {
-    let live = false;
-    try {
-      const runs = await listSessionsAction();
-      live = runs.some((r) => r.action === "review-memory" && r.status === "running");
     } catch {
       // the runs could not be read — the button still works, and it says nothing it can't
     }
@@ -1678,45 +1374,79 @@ function ReviewControls({ onError }: { onError?: (msg: string) => void }) {
   }, []);
 
   useEffect(() => {
-    void readReview();
     void readRuns();
-  }, [readReview, readRuns]);
+  }, [readRuns]);
 
-  // And read the last review back the moment one stops, because a review that PASSED is what
-  // moves that line.
+  // And read the schedule again the moment a pass stops: it moves the next run.
   useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => {
       void readRuns().then((live) => {
-        if (!live) void readReview();
+        if (!live) void reload();
       });
     }, 3000);
     return () => clearInterval(timer);
-  }, [running, readRuns, readReview]);
+  }, [running, readRuns, reload]);
 
   const start = async () => {
     if (running) return;
     setRunning(true);
-    const res = await startReviewMemoryAction();
+    setFailed(false);
+    const res = await begin();
     if (!res.ok) {
       setRunning(false);
-      onError?.(sayFailure(res, c.startFailed));
+      onError?.(sayFailure(res, copy.saveFailed));
       return;
     }
     void readRuns();
   };
 
+  const saved = parseCadence(view?.cadence ?? "");
+  const off = view?.enabled === false;
+  const state = off ? c.off : saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
+  const warn = failed && !running;
+
   return (
     <div className="flex shrink-0 items-center gap-1.5">
-      <span className="text-[11px] text-nb-ink-soft">{review?.lastRun ? c.lastRun(review.lastRun) : c.neverRun}</span>
+      {view === null && <span className="text-[11px] text-nb-ink-soft">{copy.tooOld}</span>}
+      {view && state && (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title={copy.chipLabel(state)}
+              aria-label={copy.chipLabel(state)}
+              className={`${COMPACT_BTN} ${
+                warn ? "bg-nb-peach-soft text-nb-peach-ink hover:bg-nb-peach-soft/80" : "bg-nb-ink/[0.08] text-nb-ink hover:bg-nb-ink/[0.12]"
+              }`}
+            >
+              <FiClock size={11} aria-hidden className={warn ? "" : "text-nb-ink-soft"} />
+              {state}
+              <FiChevronDown size={10} aria-hidden className={warn ? "" : "text-nb-ink-soft"} />
+            </button>
+          </PopoverTrigger>
+          {open && (
+            <CadenceMenu
+              saved={saved}
+              next={next}
+              copy={copy}
+              onDismiss={() => setOpen(false)}
+              onSave={save}
+              off={off}
+              disable={c.disable}
+              onDisable={() => (off ? Promise.resolve(true) : save({ enabled: false, cadence: view.cadence }))}
+            />
+          )}
+        </Popover>
+      )}
       <button
         type="button"
         className={`${COMPACT_BTN} bg-nb-accent-soft text-nb-accent-deep hover:bg-nb-accent/28`}
         disabled={running}
         onClick={() => void start()}
       >
-        <FiRotateCcw size={11} aria-hidden />
-        {running ? c.running : c.run}
+        {icon}
+        {running ? copy.running : copy.run}
       </button>
     </div>
   );
@@ -1765,7 +1495,7 @@ const write = (n: number, unit: CadenceUnit, at: string | null): string =>
 // parser's, with the tick still on the cadence that is really running.
 function CadenceMenu({
   saved,
-  lastRun,
+  next,
   copy,
   onDismiss,
   onSave,
@@ -1774,16 +1504,17 @@ function CadenceMenu({
   onDisable,
 }: {
   saved: Cadence | null;
-  /** The last pass that passed, for the list's foot; undefined draws no foot. */
-  lastRun: string | undefined;
+  /** When the next run is, the list's first line; empty draws none. */
+  next: string;
   copy: CadenceCopy;
   onDismiss: () => void;
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
-  /** The schedule is switched off (#1401): no row is ticked, and any pick switches it on. */
-  off?: boolean;
+  /** The schedule is switched off (#1401): Disable carries the tick, and any pick switches
+   *  it back on. */
+  off: boolean;
   /** The last row, which switches the schedule off, and its word. */
-  disable?: string;
-  onDisable?: () => Promise<boolean>;
+  disable: string;
+  onDisable: () => Promise<boolean>;
 }) {
   const [busy, setBusy] = useState<Pick | "off" | null>(null);
   const [failed, setFailed] = useState("");
@@ -1802,7 +1533,7 @@ function CadenceMenu({
   const note = saved && picked === "custom" ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : undefined;
 
   const switchOff = async () => {
-    if (busy || !onDisable) return;
+    if (busy) return;
     setFailed("");
     setBusy("off");
     const ok = await onDisable();
@@ -1831,7 +1562,6 @@ function CadenceMenu({
     if (id === picked) return onDismiss();
     setFailed("");
     setBusy(id);
-    // `enabled` for rules older than #1208, which still read it.
     const ok = await onSave({ enabled: true, cadence: id });
     setBusy(null);
     if (ok) onDismiss();
@@ -1850,6 +1580,12 @@ function CadenceMenu({
       // As wide as its rows; Custom's editor needs the room.
       className={`${draft ? "w-[280px]" : "w-[176px]"} text-left`}
     >
+      {next && (
+        <>
+          <p className="px-2.5 pt-1.5 pb-1 text-[11.5px] leading-[16px] text-nb-ink-soft">{next}</p>
+          <hr className="my-1 border-nb-ink/10" />
+        </>
+      )}
       <div ref={list} role="listbox" aria-label={copy.recurring} onKeyDown={stepOptions} className="flex flex-col">
         {ROWS.map((id) => (
           <button
@@ -1860,7 +1596,7 @@ function CadenceMenu({
             disabled={!!busy}
             onClick={() => void pick(id)}
             data-active={id === "custom" && !!draft}
-            className={`${POPUP_ROW} gap-3 pr-8`}
+            className={cn(POPUP_ROW, "gap-3 pr-8 font-[500]", picked === id && "font-[800]")}
           >
             {label(id)}
             {id === "custom" && <FiChevronDown size={11} aria-hidden className="-ml-2 shrink-0 opacity-45" />}
@@ -1876,20 +1612,25 @@ function CadenceMenu({
             )}
           </button>
         ))}
-        {disable && onDisable && !off && !draft && (
+        {!draft && (
           <>
             <hr className="my-1 border-nb-ink/10" />
             <button
               type="button"
               role="option"
-              aria-selected={false}
+              aria-selected={off}
               disabled={!!busy}
-              onClick={() => void switchOff()}
-              className={`${POPUP_ROW} text-nb-peach-ink`}
+              onClick={() => void (off ? onDismiss() : switchOff())}
+              className={cn(POPUP_ROW, "pr-8", off ? "font-[800]" : "font-[500] text-nb-peach-ink")}
             >
               {disable}
               {busy === "off" && (
                 <span className="ml-auto shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">{copy.saving}</span>
+              )}
+              {off && (
+                <span className="absolute right-2.5 flex items-center text-nb-accent-deep">
+                  <FiCheck size={13} aria-hidden />
+                </span>
               )}
             </button>
           </>
@@ -1921,11 +1662,6 @@ function CadenceMenu({
         </p>
       )}
 
-      {lastRun !== undefined && (
-        <p className="mt-1 border-t border-nb-ink/10 px-2.5 pt-1.5 pb-0.5 text-[11px] text-nb-ink-soft">
-          {lastRun ? copy.lastRun(lastRun) : copy.neverRun}
-        </p>
-      )}
     </PopoverContent>
   );
 }

@@ -100,18 +100,11 @@ export type ConfigurationCopy = {
     scheduledWhen: string;
     addScheduled: string;
     scheduledEmpty: string;
-    /** On a scheduled agent's page: the chip of one switched off, the menu's last row, and
-     *  the line of run times under its description. `next` is empty on one switched off. */
-    scheduledOff: string;
-    ranAndNext: (last: string, next: string) => string;
-    neverRan: (next: string) => string;
     /** Its cadence chip, the list it opens and Run now. */
     cadence: CadenceCopy;
     /** Inside the lead picker: the search box and what a list with nothing in it says. */
     find: string;
     noCandidates: string;
-    /** Under a built-in role's line: its brief ships with the command. */
-    roleNote: string;
     /** The more menu beside the workflow's name (#964), read out with that name. */
     more: (flow: string) => string;
     duplicate: string;
@@ -342,17 +335,20 @@ export type ConfigurationCopy = {
     dismissalReviewer: CadenceCopy;
     /** The project writer (#1268) — the same controls. */
     projectWriter: CadenceCopy;
-    /** The memory reviewer (#748) — another agent whose page carries an action: it reads
-     *  the conversations every day, and **Review now** asks for one. */
-    memoryReviewer: {
-      /** The action, and what it reads while a review is going. */
-      run: string;
-      running: string;
-      /** The last review that passed, or that there has never been one. */
-      lastRun: (when: string) => string;
-      neverRun: string;
-      /** A review the board refused to start. */
-      startFailed: string;
+    /** The memory reviewer (#748, #1464) — the same controls. */
+    memoryReviewer: CadenceCopy;
+    /** Every scheduled agent's (#1464): the chip and the roster row of one switched off, the
+     *  cadence list's last row, and its first line — when the next run is, said relatively. */
+    schedule: {
+      off: string;
+      disable: string;
+      nextRun: (when: string) => string;
+      soon: string;
+      inHours: (n: number) => string;
+      tomorrow: string;
+      inDays: (n: number) => string;
+      /** Its time has come, and nothing new has arrived for it to work on. */
+      whenNew: string;
     };
     /** The same box for a specialist. */
     specialistRule: {
@@ -859,11 +855,6 @@ export type CadenceCopy = {
   outOfRange: (unit: string, min: number, max: number) => string;
   /** A preset the board refused, said at the foot of the list it was pressed in. */
   presetFailed: (cadence: string) => string;
-  /** The last line of the cadence list. */
-  neverRun: string;
-  lastRun: (when: string) => string;
-  /** Beside the controls when the last one did not finish. */
-  failed: string;
   /** A save the board refused, and rules that predate this schedule. */
   saveFailed: string;
   tooOld: string;

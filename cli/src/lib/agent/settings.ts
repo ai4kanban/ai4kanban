@@ -463,15 +463,15 @@ export function setSecret(name: string, value: string): Saved {
   }
 }
 
-// ---- the scheduled agents' cadences (#514, #929, #1208, #1268) --------
+// ---- the scheduled agents' cadences (#514, #929, #1208, #1268, #1464) --------
 //
 //   "memoryPrune":        { "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
-//   "dismissalReview":    { "lastRun": "2026-09-19 08:00" }
+//   "dismissalReview":    { "lastRun": "2026-09-19 08:00", "off": true }
 //   "projectDescription": { "lastRun": "2026-09-30 08:00" }
 //
-// All of them always run (#1208): only the cadence is the user's, and only one other than the
-// default is written down. An `enabled` key an earlier release wrote is ignored, and dropped
-// on the next save.
+// Only what differs from the default is written down: a cadence other than the default, and
+// `off` once somebody disabled it (#1464). Off is its own key: the `enabled: false` releases
+// before #1208 wrote stays ignored, so upgrading never switches a schedule off nobody touched.
 //
 // `lastRun` moves only on a pass that PASSED, which is what stops a failing one firing again
 // every tick. `since` is where a cadence that never ran counts from: the scheduler writes it
@@ -496,15 +496,15 @@ function readSchedule(key: ScheduleKey): CadenceSchedule {
   const block = configBlock(safeConfig()[key])
   const saved = stringIn(block, 'cadence')
   return {
-    enabled: true,
+    enabled: block.off !== true,
     cadence: saved && parseCadence(saved) ? saved : DEFAULT_CADENCE[key],
     lastRun: stringIn(block, 'lastRun'),
     ...(stringIn(block, 'since') ? { since: stringIn(block, 'since') } : {}),
   }
 }
 
-/** Save the cadence, keeping `lastRun` and `since`. `enabled` is ignored: none can be
- *  switched off, so an older screen asking for Off saves only its cadence. */
+/** Save the cadence and whether it is off, keeping `lastRun` and `since`. A caller that says
+ *  nothing about `enabled` leaves it as it is. */
 function saveSchedule(key: ScheduleKey, next: { enabled?: boolean; cadence: string }): Saved {
   const cadence = next.cadence.trim() || DEFAULT_CADENCE[key]
   if (parseCadence(cadence) === null) return { ok: false, ...badCadence(cadence) }
@@ -514,6 +514,7 @@ function saveSchedule(key: ScheduleKey, next: { enabled?: boolean; cadence: stri
       ...(cadence !== DEFAULT_CADENCE[key] ? { cadence } : {}),
       ...(stringIn(block, 'lastRun') ? { lastRun: stringIn(block, 'lastRun') } : {}),
       ...(stringIn(block, 'since') ? { since: stringIn(block, 'since') } : {}),
+      ...((next.enabled ?? block.off !== true) ? {} : { off: true }),
     }
     if (Object.keys(body).length) cfg[key] = body
     else delete cfg[key]
@@ -553,9 +554,12 @@ export function adoptMemoryPruneCadence(cadence: string): void {
   })
 }
 
-// ---- the memory reviewer's record (#748, #1322) -----------------------------
+// ---- the memory reviewer's record (#748, #1322, #1464) ----------------------
 //
 //   "memoryReview": { "lastRun": "2026-09-13 08:00", "reviewedBefore": "2026-09-12 08:00", "remainingAt": 0 }
+//
+// `cadence` and `off` are the user's, written like the schedules above: only when they
+// differ from every day and on.
 //
 // `lastRun` is when the last review that PASSED began. Whether one is DUE is answered off
 // the run record as well (`../view/dispatch.ts`), which is what holds a failed one off.
@@ -565,7 +569,16 @@ export function adoptMemoryPruneCadence(cadence: string): void {
 // read by the daily pass, so it counts as reviewed. It is pinned to the `lastRun` standing
 // at the first write after the upgrade, and never moves again.
 
-const NEVER_REVIEWED: MemoryReviewState = { lastRun: '', reviewedBefore: '', remainingAt: 0 }
+/** How often the memory review runs on a board that never set it. */
+export const MEMORY_REVIEW_CADENCE = '1d'
+
+const NEVER_REVIEWED: MemoryReviewState = {
+  enabled: true,
+  cadence: MEMORY_REVIEW_CADENCE,
+  lastRun: '',
+  reviewedBefore: '',
+  remainingAt: 0,
+}
 
 /** What the file says about the memory review. A file that won't parse reads as never
  *  reviewed, which re-reads rather than skips. */
@@ -577,7 +590,10 @@ export function memoryReview(): MemoryReviewState {
     return NEVER_REVIEWED
   }
   const block = pinned(configBlock(cfg.memoryReview))
+  const cadence = stringIn(block, 'cadence')
   return {
+    enabled: block.off !== true,
+    cadence: cadence && parseCadence(cadence) ? cadence : MEMORY_REVIEW_CADENCE,
     lastRun: stringIn(block, 'lastRun'),
     reviewedBefore: stringIn(block, 'reviewedBefore'),
     remainingAt: typeof block.remainingAt === 'number' ? block.remainingAt : 0,
@@ -587,6 +603,23 @@ export function memoryReview(): MemoryReviewState {
 // The block with `reviewedBefore` pinned: until something writes it, it is `lastRun`.
 function pinned(block: Record<string, unknown>): Record<string, unknown> {
   return typeof block.reviewedBefore === 'string' ? block : { ...block, reviewedBefore: stringIn(block, 'lastRun') }
+}
+
+/** Save how often the review runs and whether it is off, keeping its record. */
+export function setMemoryReview(next: { enabled?: boolean; cadence: string }): Saved {
+  const cadence = next.cadence.trim() || MEMORY_REVIEW_CADENCE
+  if (parseCadence(cadence) === null) return { ok: false, ...badCadence(cadence) }
+  return writeConfig((cfg) => {
+    const block = { ...pinned(configBlock(cfg.memoryReview)) }
+    const off = !(next.enabled ?? block.off !== true)
+    delete block.cadence
+    delete block.off
+    cfg.memoryReview = {
+      ...block,
+      ...(cadence !== MEMORY_REVIEW_CADENCE ? { cadence } : {}),
+      ...(off ? { off: true } : {}),
+    }
+  })
 }
 
 /** Record a review that passed, stamped with when that review STARTED. */

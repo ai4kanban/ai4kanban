@@ -151,16 +151,11 @@ import {
 } from "@/lib/notifications";
 import {
   autoCommitAllowed,
-  memoryPrune,
-  memoryReview,
-  dismissalReview,
-  setDismissalReview,
-  projectDescription,
-  setProjectDescription,
+  boardSchedules,
   setAutoCommit,
+  setBoardSchedule,
   setHarness,
   setHarnessSetting,
-  setMemoryPrune,
   setSilenceMinutes,
   silenceMinutes,
 } from "@/lib/config";
@@ -265,9 +260,8 @@ import type {
   LarkCloud,
   LarkState,
   LoggedOutAgent,
-  CadenceSchedule,
-  MemoryPruneSchedule,
-  MemoryReviewState,
+  BoardScheduleKey,
+  BoardScheduleView,
   MemberRoleWire,
   MetricsResult,
   UsageResult,
@@ -1201,136 +1195,49 @@ export async function setSilenceLimitAction(minutes: number): Promise<WriteResul
   return setSilenceMinutes(minutes);
 }
 
-// --- the memory pruner (#514) ------------------------------------------------
-// Its page reads the schedule when the Agents pane opens, saves the opt-in and the cadence
-// through the same file the switches above are in, and starts one pass by hand.
-//
-// Rules older than the pruner answer `null` rather than a schedule, and the page draws Run
-// now without the recurrence chip — never a control whose save could only fail.
-export async function memoryPruneAction(): Promise<{
-  schedule: MemoryPruneSchedule | null;
+// --- the board's own scheduled agents (#514, #748, #929, #1268, #1464) -------
+// Read together, so the column and the page say the same thing. Rules older than the read
+// answer `null`, and the page draws Run now without the cadence chip.
+
+const SCHEDULE_KEYS: BoardScheduleKey[] = ["memoryPrune", "memoryReview", "dismissalReview", "projectDescription"];
+
+// What Run now starts for each. It names no card, and works with the schedule off; a second
+// while one is going is refused by the run record's own one-at-a-time rule.
+const SCHEDULE_ACTION: Record<BoardScheduleKey, AgentRequest["action"]> = {
+  memoryPrune: "prune-memory",
+  memoryReview: "review-memory",
+  dismissalReview: "review-dismissals",
+  projectDescription: "describe-project",
+};
+
+export async function boardSchedulesAction(): Promise<{
+  schedules: Record<BoardScheduleKey, BoardScheduleView> | null;
   error?: string;
 }> {
   try {
-    return { schedule: await memoryPrune() };
+    return { schedules: await boardSchedules() };
   } catch (e) {
-    return { schedule: null, error: e instanceof Error ? e.message : String(e) };
+    return { schedules: null, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-export async function setMemoryPruneAction(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<WriteResult> {
-  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
-    return { ok: false, error: "a prune schedule is saved as an opt-in and a cadence" };
+export async function setBoardScheduleAction(
+  key: BoardScheduleKey,
+  next: { enabled: boolean; cadence: string },
+): Promise<WriteResult> {
+  if (!SCHEDULE_KEYS.includes(key) || typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
+    return { ok: false, error: "a schedule is saved as an on/off and a cadence" };
   }
   try {
-    return await setMemoryPrune(next);
+    return await setBoardSchedule(key, next);
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };
   }
 }
 
-/** Start one prune by hand — **Run now** on the pruner's page. It names no card: the memory
- *  set is the whole job. A second pass while one is going is refused by the run record's own
- *  one-at-a-time rule, so the button never has to know. */
-export async function startPruneMemoryAction(): Promise<StartResult> {
-  const req: AgentRequest = { action: "prune-memory" };
-  return startSession(req, await buildPrompt(req));
-}
-
-// --- the memory reviewer (#748) ----------------------------------------------
-// Its page reads the last review when the Agents pane opens, and starts one by hand. There
-// is no schedule to save: the review is daily, and whether it happens at all is the agent's
-// own switch, flipped where every other agent's is.
-
-export async function memoryReviewAction(): Promise<{
-  review: MemoryReviewState | null;
-  error?: string;
-}> {
-  try {
-    return { review: await memoryReview() };
-  } catch (e) {
-    return { review: null, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Start one review by hand — **Review now**. It works with the switch off too: a board that
- *  stopped the daily pass can still ask for one. A second while one is going is refused by
- *  the run record's own one-at-a-time rule, so the button never has to know. */
-export async function startReviewMemoryAction(): Promise<StartResult> {
-  const req: AgentRequest = { action: "review-memory" };
-  return startSession(req, await buildPrompt(req));
-}
-
-// --- the dismissal reviewer (#929) -------------------------------------------
-// Its schedule — Off in the cadence menu is its switch — and Review now.
-
-export async function dismissalReviewAction(): Promise<{
-  schedule: CadenceSchedule | null;
-  error?: string;
-}> {
-  try {
-    return { schedule: await dismissalReview() };
-  } catch (e) {
-    return { schedule: null, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function setDismissalReviewAction(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<WriteResult> {
-  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
-    return { ok: false, error: "a review schedule is saved as an opt-in and a cadence" };
-  }
-  try {
-    return await setDismissalReview(next);
-  } catch (e) {
-    return { ok: false, ...(await saidThrown(e)) };
-  }
-}
-
-/** Start one review by hand — works with the schedule off; one at a time is the run
- *  record's rule. */
-export async function startReviewDismissalsAction(): Promise<StartResult> {
-  const req: AgentRequest = { action: "review-dismissals" };
-  return startSession(req, await buildPrompt(req));
-}
-
-// --- the project writer (#1268) ----------------------------------------------
-// Its schedule — Off in the cadence menu is its switch — and Update now.
-
-export async function projectDescriptionAction(): Promise<{
-  schedule: CadenceSchedule | null;
-  error?: string;
-}> {
-  try {
-    return { schedule: await projectDescription() };
-  } catch (e) {
-    return { schedule: null, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function setProjectDescriptionAction(next: {
-  enabled: boolean;
-  cadence: string;
-}): Promise<WriteResult> {
-  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
-    return { ok: false, error: "an update schedule is saved as an opt-in and a cadence" };
-  }
-  try {
-    return await setProjectDescription(next);
-  } catch (e) {
-    return { ok: false, ...(await saidThrown(e)) };
-  }
-}
-
-/** Start one update by hand — works with the schedule off; one at a time is the run
- *  record's rule. */
-export async function startDescribeProjectAction(): Promise<StartResult> {
-  const req: AgentRequest = { action: "describe-project" };
+export async function startBoardScheduleAction(key: BoardScheduleKey): Promise<StartResult> {
+  if (!SCHEDULE_KEYS.includes(key)) return { ok: false, error: "that is not a schedule" };
+  const req: AgentRequest = { action: SCHEDULE_ACTION[key] };
   return startSession(req, await buildPrompt(req));
 }
 
