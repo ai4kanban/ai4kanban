@@ -32,10 +32,12 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { findSpecAgent } from '../agents'
+import { specAgentCatalog } from '../agents/catalog'
 import { parseStamp } from '../cadence'
 import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PROJECT_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { workflowRefusal } from './start'
+import { scheduledMembers, workflows } from './workflows'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -180,6 +182,12 @@ function rejectedLines(modules: string[]): string[] {
     agentMemoryFile(PLANNER, 'dismissed.md'),
   ]
   return [...new Set([agentMemoryFile(PLANNER, 'rejected.md'), ...extra.filter((file) => fs.existsSync(file))])].map(rel)
+}
+
+// The scheduled agents switched on, whose own work a reflection leaves to them (#1494).
+function scheduledLines(): string[] {
+  const on = new Set(workflows().flatMap((flow) => scheduledMembers(flow).filter((h) => !h.off).map((h) => h.agent)))
+  return specAgentCatalog().agents.filter((a) => on.has(a.name)).map((a) => `${a.name} — ${a.description}`)
 }
 
 // The jobs `akb guide board` tells to read the project's settings before they start:
@@ -843,6 +851,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       const modules = [...new Set(reflectedCards(req).flatMap((id) => readCard(id, 'archive').meta.modules))]
       facts.push(...field('missed', missedLine()))
       facts.push(...field('rejected', rejectedLines(modules)))
+      const scheduled = scheduledLines()
+      if (scheduled.length) facts.push(...field('scheduled', scheduled))
       facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
         `${self} triage add --title ".." --slug <short-english-slug> --source "#<id>" --text ".." — one call per proposal, each naming the archived file of the card it traces to`,
