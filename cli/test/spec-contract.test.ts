@@ -216,7 +216,8 @@ async function fakeRun(repairable: boolean, action: AgentAction = 'clarify') {
     if (prompt.includes('Spec format validation failed.') && ${repairable}) text = text.replace('## Scpoe', '## Scope');
     else text = text.replace('## Scope', '## Scpoe');
     fs.writeFileSync(file, text);
-    console.log(JSON.stringify({type: 'result', result: 'Done', total_cost_usd: 0.1, usage: {input_tokens: 10, output_tokens: 5}}));
+    const turns = fs.readFileSync(${JSON.stringify(path.join(root, 'prompts.log'))}, 'utf8').trim().split('\\n').length;
+    console.log(JSON.stringify({type: 'result', result: 'Done', total_cost_usd: turns * 0.1, usage: {input_tokens: 10, output_tokens: 5}}));
   `)
   fs.writeFileSync(path.join(root, 'docs/kanban/ui.config.json'), JSON.stringify({ harness: 'claude-code', harnessSettings: { 'claude-code': { command: `${process.execPath} ${script}` } } }))
   const opened = openRun({ action, id: 1, ...(action === 'spec' ? { specAgent: 'ui-designer' } : {}) }, 'Write the spec.', [])

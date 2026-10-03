@@ -1261,6 +1261,8 @@ async function resumeHeld(
       : {
           resumeId: plan.resumeId ?? undefined,
           resumedFrom: prev.sessionId,
+          // Taken now: the run being continued is dropped once this one starts (#1483).
+          sessionCostFrom: prev.sessionCostUsd ?? prev.sessionCostFrom,
           chat: prev.chat,
           formatRepair: prev.formatRepair ? { ...prev.formatRepair, attempt: prev.formatRepair.attempt + 1 } : undefined,
           // The retry chain carries on rather than starting over (#525): this run IS the attempt

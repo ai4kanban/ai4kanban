@@ -163,6 +163,7 @@ export function readStore(): Store {
       // A run that never reported a cost shows none, rather than a zero it didn't earn.
       costUsd: typeof entry.costUsd === 'number' && entry.costUsd > 0 ? entry.costUsd : undefined,
       sessionCostUsd: typeof entry.sessionCostUsd === 'number' && entry.sessionCostUsd > 0 ? entry.sessionCostUsd : undefined,
+      sessionCostFrom: typeof entry.sessionCostFrom === 'number' && entry.sessionCostFrom > 0 ? entry.sessionCostFrom : undefined,
       usage: asUsage(entry.usage),
       // How full the window was at the run's last request (#675). Whitelisted like
       // everything else here: a reader that skipped it would drop it on the next write, and

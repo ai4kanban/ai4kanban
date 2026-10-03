@@ -499,6 +499,8 @@ export interface RunRecord {
   costUsd?: number
   /** The session's running total behind `costUsd`, on a connector that reports one (#1480). */
   sessionCostUsd?: number
+  /** The session total this run started from, taken off `sessionCostUsd` for `costUsd` (#1483). */
+  sessionCostFrom?: number
   usage?: TokenUsage
   /** How full the context window was after this run's last finished request (#675). Kept
    *  apart from `usage` above, which counts what the whole run spent: this one neither adds
