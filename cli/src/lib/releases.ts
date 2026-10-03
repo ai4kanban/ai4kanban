@@ -25,6 +25,7 @@ import { walkMd, idPrefix, isLegacyRecurring } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
 import { cloudBoardFor, setCloudBoardRelease } from './cloud/boards'
+import { countBoardEvent } from './machine/usage'
 
 // One release as the list carries it: its id, and what it is for. Read by `board/assemble.ts`,
 // so a hosted page draws the same release picker this file writes.
@@ -487,6 +488,7 @@ export function closeRelease(raw: string | undefined) {
   // The field is cleared: the work is not promised to a version nobody has picked yet.
   for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
+  countBoardEvent('releases_closed')
   return { id, shipped, left, summary, remaining: readReleases() }
 }
 
