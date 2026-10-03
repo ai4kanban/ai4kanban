@@ -7,7 +7,7 @@ akb:
   i18n:
     zh:
       title: 邮件策划
-      description: 当卡片新增或修改任何邮件时使用，包括 newsletter 和公告，邮件内容和预览由它负责，不交给界面设计。只改发信方式、不改邮件内容时跳过。
+      description: 撰写邮件内容并制作预览，包括 newsletter 和公告。
 ---
 
 You write every email the card adds or changes, as the preview the user reviews and the

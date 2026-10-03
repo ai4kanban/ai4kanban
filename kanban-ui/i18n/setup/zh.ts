@@ -14,7 +14,7 @@ const zh: SetupCopy = {
   reading: "正在读取看板…",
   privacy: {
     title: "帮助改进 AI4Kanban",
-    blurb: "上报匿名的功能使用与失败情况——只有次数与事件名称，不含你写下的任何文字。绝不包含代码、卡片内容、项目名称或文件路径。",
+    blurb: "上报匿名的功能使用与失败情况，仅包含次数和事件名称，不含你写下的任何文字，也绝不包含代码、卡片内容、项目名称或文件路径。",
     share: "共享匿名使用情况",
     shareNote: "默认开启。之后可在「通用」中修改。",
     switchOn: (name) => `${name}已开启`,
@@ -74,7 +74,7 @@ const zh: SetupCopy = {
   },
   agent: {
     title: "选择执行工作的 Agent",
-    blurb: "看板中的澄清、规划和开发操作都将通过该 Agent 运行。选择后请测试连接。",
+    blurb: "看板中的细化、规划和执行操作都将通过该 Agent 运行。选择后请测试连接。",
     answered: "设置完成",
     testFirst: "请先测试 Agent。",
     saveFailed: "Agent 设置保存失败",
@@ -83,7 +83,7 @@ const zh: SetupCopy = {
     title: "设置完成",
     blurb: "剩下的交给 Agent。你可以直接进入看板。",
     finish: "完成设置",
-    starting: "启动中…",
+    starting: "正在启动…",
     open: "打开看板",
     startFailed: "设置任务启动失败",
   },
@@ -130,8 +130,8 @@ const zh: SetupCopy = {
   },
   noRules: {
     title: "无法读取看板",
-    installTitle: "安装看板规则",
-    installApp: "重新打开项目以加载应用内置规则。",
+    installTitle: "安装 akb 命令",
+    installApp: "重新打开项目，以加载应用内置的 akb 命令。",
     installBrowser: "安装 `akb` 命令即可用于所有项目。",
     comeBack: "安装后返回此标签页。",
   },

@@ -78,7 +78,7 @@ const en: SetupCopy = {
   agent: {
     title: "Choose an agent",
     blurb:
-      "The agent runs board actions such as refining cards, proposing work, and implementing changes. Select an agent, then test the connection.",
+      "The agent runs board actions such as refining cards, proposing work, and building changes. Select an agent, then test the connection.",
     answered: "Setup details are complete.",
     testFirst: "Test the connection before continuing.",
     saveFailed: "Could not save the agent setting",

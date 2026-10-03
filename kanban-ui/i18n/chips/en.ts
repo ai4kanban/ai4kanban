@@ -7,13 +7,13 @@ const en: ChipsCopy = {
   roi: (level) => `ROI ${level}`,
   status: {
     ready: "ready",
-    readyLong: "Ready to implement",
-    implementing: "implementing",
-    implementingLong: "Being implemented",
+    readyLong: "Ready to build",
+    implementing: "building",
+    implementingLong: "Being built",
   },
   pending: "pending",
   schedule: {
-    action: { implement: "implement", refine: "refine" },
+    action: { implement: "build", refine: "refine" },
     waiting: (action, ids) => `${action} · waiting on ${ids}`,
     queued: (action) => `${action} · queued`,
   },

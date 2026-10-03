@@ -4,11 +4,11 @@ import type { RunsCopy } from "./types";
 
 const en: RunsCopy = {
   action: {
-    implement: "implement",
+    implement: "build",
     gate: "gate",
     review: "review",
     conflict: "conflict",
-    hook: "hook",
+    hook: "after-executing agent",
     scheduled: "scheduled run",
     sub: "sub-run",
     run: "run",
@@ -34,11 +34,11 @@ const en: RunsCopy = {
     spec: "spec",
   },
   verb: {
-    implement: "implementing",
+    implement: "building",
     gate: "judging",
     review: "reviewing",
     conflict: "resolving a conflict",
-    hook: "running a hook after the build",
+    hook: "running an after-executing agent",
     scheduled: "running on its schedule",
     sub: "working on a sub-run",
     run: "running",
@@ -64,11 +64,11 @@ const en: RunsCopy = {
     spec: "drafting a spec",
   },
   step: {
-    implement: "Implement",
+    implement: "Build",
     gate: "Gate",
     review: "Review",
     conflict: "Conflict",
-    hook: "Hook",
+    hook: "After-executing agent",
     scheduled: "Scheduled run",
     sub: "Sub-run",
     run: "Run",
@@ -160,7 +160,7 @@ const en: RunsCopy = {
     tickedNothing:
       "This setup run ended normally but checked off no step on the setup checklist. The agent's reply below says why.",
     blocker: {
-      heading: "implementation blocked",
+      heading: "build blocked",
       step: "Step",
       cause: "Cause",
       unblock: "To continue",
@@ -256,17 +256,17 @@ const en: RunsCopy = {
   dialog: {
     cancel: "Cancel",
     implement: {
-      title: (id) => `Implement #${id}`,
+      title: (id) => `Build #${id}`,
       autoBranch: (branch) => `Build and merge into \`${branch}\` automatically.`,
       autoHere: "Build and merge into the branch you are on automatically.",
       manualFolder: "Build in your project folder. You commit the result.",
       manual: "Build in your project folder. **Manual commit mode** is on, so you commit the result.",
       manualWhy: (why) => `Build in your project folder — ${why}. You commit the result.`,
-      ownBranch: "Develop in a git worktree",
+      ownBranch: "Build in a git worktree",
       ownBranchOn: "Creates a separate directory from the current commit.",
       ownBranchLocal:
         "Creates a separate directory from the current commit, without your uncommitted changes.",
-      ownBranchOff: "Develops in your project folder, one build at a time.",
+      ownBranchOff: "Builds in your project folder, one build at a time.",
       files: "The agent creates the files and archives the task when done. View the finished files on the task.",
       recorded:
         "This is recorded the moment you press it. Nothing builds here — the card waits for a machine, and whichever of yours is running picks it up and carries it all the way.",
@@ -290,8 +290,8 @@ const en: RunsCopy = {
         "This card isn't marked **ready** yet — its plan may still be rough. Press **Refine** on its page to take it to ready first.",
       ackNotReady: "I know the plan may still be rough.",
       notes: "Optional extra notes for the agent…",
-      confirm: "Implement",
-      confirmAnyway: "Implement anyway",
+      confirm: "Build",
+      confirmAnyway: "Build anyway",
       resolveFirst: "Resolve first",
       resolveFirstHint: "Answer the open questions before building this card",
       schedule: "Schedule",
