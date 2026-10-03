@@ -6,14 +6,19 @@
 
 ### skill
 
-待补写。
-
 - [回答完卡片上最后一个问题，等看板自己细化它](skill/a-card-is-refined-once-its-question-is-answered/case.md)
+- [往待筛选里加一条，忽略它，再恢复](skill/add-ignore-and-restore-a-triage-item/case.md)
+- [回答卡片的问题，然后让看板把它做完](skill/answer-a-card-then-build-it/case.md)
+- [让一张卡等另一张卡，并被拒绝循环依赖](skill/block-a-card-on-another-and-refuse-a-cycle/case.md)
+- [建一张卡，让看板把它规划好](skill/create-a-card-and-let-it-plan/case.md)
 - [升级后查看 QA 管理员从「执行之后」搬到了哪里](skill/find-the-qa-manager-on-a-schedule-after-upgrading/case.md)
+- [在新项目里装好看板](skill/install-a-board-in-a-new-project/case.md)
 - [列出某个时间以来落地的卡片](skill/list-the-cards-that-landed-since-a-time/case.md)
 - [对话 Agent 还在跑命令时退出看板](skill/quit-the-board-while-a-chat-agent-is-running-commands/case.md)
 - [带着原因否决一张卡](skill/reject-a-card-with-a-reason/case.md)
 - [用命令行让工作流里的一个 Agent 按周期自己运行](skill/run-a-workflow-agent-on-a-schedule/case.md)
+- [查看并切换运行看板的 Agent](skill/see-and-switch-the-agent-that-runs-the-board/case.md)
+- [查看、停止并继续一次运行](skill/see-stop-and-resume-a-run/case.md)
 - [在命令行开始一张卡，而它的工作流负责人文件被看板拒用](skill/start-a-card-whose-workflow-lead-is-refused/case.md)
 - [在 Cloud 看板上等没有归档日期的旧卡片满 30 天被清掉](skill/undated-archived-cards-expire-on-a-cloud-board/case.md)
 
@@ -61,15 +66,6 @@
 
 每遍补写一个模块：写出下面的场景，真实走一遍并取证，然后把它从这里删掉，并去掉上面该模块的「待补写」。
 
-- **skill**（`akb` 命令行）
-  - 在新项目里装好看板
-  - 建一张卡并让它完成规划
-  - 回答问题后实现：改动作为一次提交落到当前分支，卡片归档
-  - 查看、停止并继续一次运行
-  - 否决一张卡
-  - 添加依赖，并被拒绝循环依赖
-  - 向待筛选加一条，忽略它，再恢复
-  - 查看并切换运行用的 agent
 - **local-ui**（浏览器里的本地看板）
   - 首次打开一个没有看板的项目并完成设置
   - 新建任务，看到它出现在看板上
@@ -101,7 +97,8 @@
 ## 取证环境
 
 - **临时项目和看板**：在 `/tmp` 下建临时 git 项目和临时看板，不碰本仓库的看板。
-- **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版。
+- **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`。
+- **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/create-a-card-and-let-it-plan/stand-in.mjs) 顶替真实 agent，不花钱。
 - **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。
 - **截图**：只截相关区域。
 - **保密**：日志和截图里不出现密钥、账号和本机用户名路径。
