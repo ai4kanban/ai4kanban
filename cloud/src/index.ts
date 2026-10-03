@@ -89,7 +89,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   // Liveness. It reaches nothing, so it stays honest while the database is read-only.
   if (pathname === '/health') {
     requireMethod(request, 'GET')
-    return json({ service: 'ai4kanban-cloud', ok: true })
+    return json({ service: 'ai4kanban-cloud', ok: true, ...(env.COMMIT ? { commit: env.COMMIT } : {}) })
   }
 
   // The one route open to a verified sign-in we have not admitted (#326), so the app can

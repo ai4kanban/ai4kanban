@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url'
 export const serviceRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 /** The shell's environment, filled in from cloud/.env, which is not in git. */
-export async function loadEnv() {
+export async function loadEnv(file = join(serviceRoot, '.env')) {
   let text = ''
   try {
-    text = await readFile(join(serviceRoot, '.env'), 'utf8')
+    text = await readFile(file, 'utf8')
   } catch {
     // No file is normal: the values may come from the shell.
   }

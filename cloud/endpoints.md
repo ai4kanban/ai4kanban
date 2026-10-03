@@ -8,6 +8,7 @@ Routing is in `src/index.ts`. Unless a route says otherwise it needs `Authorizat
 ## Service
 
 - `GET /health` — liveness. Reaches nothing, so it stays honest while the database is read-only.
+  `commit` names the commit `npm run deploy` shipped; absent on a build deployed any other way.
 - `GET /v1/session` — the caller's verified identity. Answers `200` either way with
   `session.admitted`; when false it carries `refusal`, the refusal every other route would give.
 - `POST /v1/invite-request` — ask for an invite. Open to a verified sign-in that is **not**
