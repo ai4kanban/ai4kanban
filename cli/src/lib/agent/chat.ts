@@ -42,6 +42,7 @@ import {
   harnessImages,
   harnessLabel,
   openPlan,
+  onOwnEndpoint,
   planFork,
   planResume,
   planRun,
@@ -1384,9 +1385,6 @@ export async function sendChatMessage(
     if (options.triage && isDiscussion(cardId) && !chat?.messages.length) held.triage = options.triage
     held.updatedAt = now
     writeChat(held)
-    // Counted here, and only what the user said (#295): the name of the action and nothing
-    // of the message. The board's own opening turn was nobody's message, so it is not one.
-    if (!options.fromBoard) reportChatMessage()
 
     // The one runtime this turn runs as, which carries the whole of what it spawns: the
     // conversation's own pick, the CLI that opened it, or the discussion helper's.
@@ -1535,6 +1533,9 @@ export async function sendChatMessage(
     held.updatedAt = Date.now()
     writeChat(held)
     settleHandoffs(held)
+    // Counted once the reply has ended (#1495), so it carries the turn's model and cost — and
+    // only what the user said: the board's own opening turn was nobody's message.
+    if (!options.fromBoard) reportChatMessage({ model: spoken.model ?? held.model, costUsd, ownEndpoint: onOwnEndpoint(pin) })
     try {
       recordReplyUsage(
         { key: `chat:${keyOf(cardId)}:${landed}`, kind: 'chat', at: landed, harness: held.harness, model: spoken.model ?? held.model, usage: spoken.usage, costUsd },

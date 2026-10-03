@@ -112,7 +112,8 @@ export const EVENTS = {
    *  estimated cost in millionths of a US dollar, sent only when the agent gave one. */
   run_finished: { from: 'app', fields: { ...APP, ...RUN_END } },
   run_failed: { from: 'app', fields: { ...APP, ...RUN_END } },
-  chat_message: { from: 'app', fields: { ...APP } },
+  /** Sent once the reply has ended (#1495), with the model and cost of that one turn. */
+  chat_message: { from: 'app', fields: { ...APP, model: 'token', cost_micros: 'count' } },
   /** One board's own counts since its last report (#296). `board` says which board they came
    *  from and nothing about the project behind it. */
   board_numbers: {

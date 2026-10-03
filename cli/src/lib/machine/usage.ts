@@ -186,7 +186,7 @@ export function reportRun(
   })
 }
 
-/** What a finished or failed run ended with (#1474). */
+/** What a finished or failed run, or one chat turn, ended with (#1474, #1495). */
 export interface RunEnd {
   model?: string
   costUsd?: number
@@ -299,9 +299,10 @@ export function reportBoardNumbers(customAgentsOn: () => number): void {
   }
 }
 
-/** One message the user sent the board's agent. Not the message, and not the reply. */
-export function reportChatMessage(): void {
-  reportUsage('chat_message')
+/** One message the user sent the board's agent, once its reply has ended. Not the message,
+ *  and not the reply. */
+export function reportChatMessage(end?: RunEnd): void {
+  reportUsage('chat_message', end ? endFields(end) : {})
 }
 
 // ---- the queue on disk ------------------------------------------------------

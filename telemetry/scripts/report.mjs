@@ -237,6 +237,7 @@ export const COST_BANDS = [
  * What the range's runs ran on and cost (#1474). Event counts and sums, so they add across
  * days. `harness` counts starts, finishes and failures alike, as `run_harness` always has.
  * A model's `priced` runs are the ones that carried a cost, and its cost per run is over those.
+ * Chat turns are one row of their own, `(chat)` (#1495).
  */
 export function runsOf(summaries) {
   const harness = {}

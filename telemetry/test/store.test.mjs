@@ -148,14 +148,17 @@ describe("a day's summary", () => {
       end('r3', 'run_finished', { model: 'custom' }),
       end('r4', 'run_finished', {}),
       end('r5', 'run_started', { model: 'gpt-5.5', cost_micros: 1 }),
+      end('c1', 'chat_message', { model: 'gpt-5.5', cost_micros: 9_000_000 }),
+      end('c2', 'chat_message', {}),
     ])
     await put(db0, B, TODAY, [end('r6', 'run_finished', { model: 'claude-opus-5-5', cost_micros: 250_000_000 })])
 
     const numbers = await summaryOf(db0, TODAY)
-    // A run from an older sender carries neither field and is left out; so is a start.
-    assert.deepEqual(numbers.run_model, { 'gpt-5.5 1': 2, 'custom 0': 1, 'claude-opus-5-5 1': 1 })
-    assert.deepEqual(numbers.model_cost_micros, { 'gpt-5.5': 1_300_000, 'claude-opus-5-5': 250_000_000 })
-    assert.deepEqual(numbers.install_daily_cost, { '1-10': 1, '100+': 1 })
+    // A run or chat turn from an older sender carries neither field and is left out; so is a
+    // start. Chat turns are one row, and their cost counts toward the install's day.
+    assert.deepEqual(numbers.run_model, { 'gpt-5.5 1': 2, 'custom 0': 1, 'claude-opus-5-5 1': 1, '(chat) 1': 1 })
+    assert.deepEqual(numbers.model_cost_micros, { 'gpt-5.5': 1_300_000, 'claude-opus-5-5': 250_000_000, '(chat)': 9_000_000 })
+    assert.deepEqual(numbers.install_daily_cost, { '10-100': 1, '100+': 1 })
   })
 
   it('asks for the spreads in statements D1 will take, and names its columns in each', () => {

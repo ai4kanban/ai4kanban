@@ -219,7 +219,7 @@ function runs(range, held, newest) {
     knownDays: summaries.length,
     columns: [
       { label: 'Tool (run events)', bars: barsOf(harness.slice(0, 8)) },
-      { label: 'Model (finished and failed runs)', bars: barsOf(models.slice(0, 8).map((one) => [one.model, one.runs])) },
+      { label: 'Model (finished and failed runs; chat turns as one row)', bars: barsOf(models.slice(0, 8).map((one) => [one.model, one.runs])) },
       {
         label: newest ? `Installs by daily cost, ${newest}` : 'Installs by daily cost',
         bars: bands ? barsOf(COST_BANDS.map(([key, label]) => [label, bands[key] ?? 0])) : [],
