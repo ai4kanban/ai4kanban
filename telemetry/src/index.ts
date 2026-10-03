@@ -87,7 +87,7 @@ async function route(request: Request, env: Env, now: Date): Promise<Handled> {
 
   if (pathname === '/health') {
     if (request.method !== 'GET') return said(405, { ok: false })
-    return said(200, { service: 'ai4kanban-telemetry', ok: true })
+    return said(200, { service: 'ai4kanban-telemetry', ok: true, ...(env.COMMIT ? { commit: env.COMMIT } : {}) })
   }
   if (pathname === '/v1/installs') return installs(request, env, said)
   if (pathname === '/v1/feedback') return feedback(request, env, now, said)

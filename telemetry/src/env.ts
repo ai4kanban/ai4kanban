@@ -26,6 +26,9 @@ export interface Env {
    */
   CF_ACCOUNT_ID?: string
   CF_API_TOKEN?: string
+  /** The commit this build was deployed from, set by `npm run deploy`; `+dirty` when the
+   *  Worker files had uncommitted changes. */
+  COMMIT?: string
 }
 
 export const development = (env: Env): boolean => env.COPY === 'development'
