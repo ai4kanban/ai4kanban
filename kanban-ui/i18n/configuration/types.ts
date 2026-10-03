@@ -317,7 +317,9 @@ export type ConfigurationCopy = {
      *
      *  `trigger` is the four-word head of `when`, under the name in the roster column
      *  (#742): what STARTS this agent, which a name saying the job cannot say. Only on the
-     *  roles Board agents lists — a workflow's roles are started by the workflow. */
+     *  roles Board agents lists — a workflow's roles are started by the workflow.
+     *
+     *  `settings` words a role's own settings (#1469), by key and choice value. */
     roles: Record<
       AgentRoleName,
       {
@@ -327,6 +329,7 @@ export type ConfigurationCopy = {
         when?: string;
         trigger?: string;
         note?: string;
+        settings?: Record<string, RoleSettingCopy>;
       }
     >;
     /** The memory pruner (#514) — it prunes when you press Run now, and on its cadence. */
@@ -918,3 +921,10 @@ export type BillingCopy = {
     failedPayment: string;
   };
 };
+
+/** One of a role's own settings, in the reader's language (#1469). */
+export interface RoleSettingCopy {
+  label: string;
+  help?: string;
+  choices: Record<string, { label: string; cost: string }>;
+}

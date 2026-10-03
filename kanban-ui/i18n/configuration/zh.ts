@@ -350,6 +350,17 @@ const zh: ConfigurationCopy = {
         trigger: "卡片归档后",
         rule: "会附加到它每次回顾的末尾——例如「不要提补测试的事」。",
         when: "卡片归档时。它只读那一张卡片，把接下来该做的事放进待筛选，由你像处理其他来件一样分拣。",
+        settings: {
+          "small-fixes": {
+            label: "小改动",
+            help: "像改一处文案、补一处遗漏这样的小事。",
+            choices: {
+              auto: { label: "直接做完", cost: "适合速度优先于质量" },
+              propose: { label: "先问我", cost: "适合兼顾速度和质量" },
+              skip: { label: "不提", cost: "适合专注主线功能" },
+            },
+          },
+        },
       },
       "memory-pruner": {
         name: "整理记忆",

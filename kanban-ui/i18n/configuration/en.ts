@@ -262,6 +262,17 @@ const en: ConfigurationCopy = {
         trigger: "After a card is archived",
         rule: 'Added to the end of every reflection it makes — "never propose more tests".',
         when: "a card is archived. It reads that one card and puts what should follow it in Triage, to sort like anything else that arrives.",
+        settings: {
+          "small-fixes": {
+            label: "Small fixes",
+            help: "Little things like a copy fix or a missed case.",
+            choices: {
+              auto: { label: "Just do them", cost: "For speed over quality" },
+              propose: { label: "Ask me first", cost: "For balancing speed and quality" },
+              skip: { label: "Don't suggest", cost: "For focusing on mainline features" },
+            },
+          },
+        },
       },
       "memory-pruner": {
         name: "Tidy memory",

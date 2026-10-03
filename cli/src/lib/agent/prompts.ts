@@ -13,6 +13,7 @@ import {
   agentFilesBlock,
   agentMemoryBlock,
   findSpecAgent,
+  roleSettingsBlock,
   specAgentInstructions,
   specAgentOutput,
   specAgentNames,
@@ -29,7 +30,8 @@ import { liveStage, scheduledAgent, workflowById, workflowFor } from './workflow
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
-import { migrateFlowRules, ruleBlock } from './rules'
+import { roleNamed } from './roles'
+import { migrateFlowRules, ruleBlock, ruleOwner } from './rules'
 import type { AgentAction, AgentRequest } from './types'
 import { isRetired, SPECIALIST_ACTIONS } from './types'
 
@@ -228,7 +230,16 @@ function createWorkflowNote(req: AgentRequest): string {
  *  after everything else the board writes, so nothing of the board's follows the user's. */
 export function buildPrompt(rawReq: AgentRequest, notes: string[] = []): string {
   const req = withWorkflow(rawReq)
-  return [buildAsk(req, notes), leadBlock(req), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
+  return [buildAsk(req, notes), leadBlock(req), settingsBlock(req), ruleBlock(req, frozenRules(req))]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+/** What the run's role is set to (#1469), before the user's rule. */
+export function settingsBlock(req: AgentRequest): string {
+  const owner = ruleOwner(req)
+  const role = owner?.role ? roleNamed(owner.name) : undefined
+  return role ? roleSettingsBlock(role) : ''
 }
 
 /** A leading agent's own instructions, for a run it leads (#822, #846). Laid over the shared
@@ -554,7 +565,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Task ${req.id} ${named} has just been completed. Propose the work that should follow it, following \`akb guide reflect\`.`,
         `It has left the board — read it at \`${archivedCardFile(req.id)}\`, with the discussion it came from when the flow lists one.`,
         `Skip anything already on the board, already in the inbox, or turned down before.`,
-        `Write each survivor with \`${command} triage add\`: that is the whole of what you may write — no card is created, edited or archived, and finding nothing worth proposing is a complete result.`,
+        `Write each survivor with \`${command} triage add\`: that is the whole of what you may write unless your settings below say otherwise — no card is edited or archived, and finding nothing worth proposing is a complete result.`,
         `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
     // A sort is the board's own loop (#1263): nothing is prompted.

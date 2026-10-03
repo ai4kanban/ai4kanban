@@ -1,8 +1,8 @@
 // Who a spec agent's finished output is for (#445).
 //
 // The board's own setting, on every spec agent: an `AGENT.md` declares nothing for it, and
-// an agent this project added has it too. Since #1003 it is the ONLY setting an agent's page
-// draws — an agent declares none of its own.
+// an agent this project added has it too. Since #1003 it is the ONLY setting a spec agent's
+// page draws — an `AGENT.md` declares none; only the board's roles carry their own (#1469).
 //
 // It saves under `output` inside that agent's entry in ui.config.json, which is the board's
 // key the way `enabled` and `runtime` are.
