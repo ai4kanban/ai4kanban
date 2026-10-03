@@ -172,10 +172,13 @@ function memoryLines(modules: string[], name: string): string[] {
   return [...own.map((m) => `${rel(memoryFile(name, m))} — the card's module \`${m}\``), `${file} — what spans modules`]
 }
 
-// What a reflection must not propose again (#1479): the global rejections, the card's own
-// modules' rejections, and the triage preferences — the latter two only once they exist.
+// What a reflection must not propose again (#1479): the global rejections, plus the triage
+// preferences and the card's own modules' rejections and preferences once they exist.
 function rejectedLines(modules: string[]): string[] {
-  const extra = [...modules.map((m) => memoryFile('rejected.md', m)), agentMemoryFile(PLANNER, 'dismissed.md')]
+  const extra = [
+    ...modules.flatMap((m) => [memoryFile('rejected.md', m), memoryFile('dismissed.md', m)]),
+    agentMemoryFile(PLANNER, 'dismissed.md'),
+  ]
   return [...new Set([agentMemoryFile(PLANNER, 'rejected.md'), ...extra.filter((file) => fs.existsSync(file))])].map(rel)
 }
 

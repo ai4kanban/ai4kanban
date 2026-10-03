@@ -325,13 +325,13 @@ describe('the flow', () => {
     complete(1)
     const planner = path.join(kanban(), 'memory', 'agents', 'planner')
     assert.doesNotMatch(await reflect(), /^ +docs\/kanban\/memory\/agents\/planner\/(cli\/rejected|dismissed)\.md$/m)
-    for (const rel of ['cli/rejected.md', 'web/rejected.md', 'dismissed.md']) {
+    for (const rel of ['cli/rejected.md', 'web/rejected.md', 'cli/dismissed.md', 'web/dismissed.md', 'dismissed.md']) {
       fs.mkdirSync(path.dirname(path.join(planner, rel)), { recursive: true })
       fs.writeFileSync(path.join(planner, rel), '- **x**: y\n')
     }
     const printed = await reflect()
-    assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/dismissed\.md/)
-    assert.doesNotMatch(printed, /planner\/web\/rejected\.md/)
+    assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/dismissed\.md\n +docs\/kanban\/memory\/agents\/planner\/dismissed\.md/)
+    assert.doesNotMatch(printed, /planner\/web\/(rejected|dismissed)\.md/)
   })
 
   it('gives the memory review the misses file', async () => {
