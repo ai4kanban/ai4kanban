@@ -516,8 +516,9 @@ export function AgentsPanel({
     onPicked?.();
   }, [openOn, agents, onPicked, setPicked]);
 
-  // Which agents this pane is answerable for: a board agent declares no stage.
-  const mine = agents?.filter((a) => !a.stage) ?? null;
+  // Which agents this pane is answerable for: a board agent declares no stage, and a
+  // workflow's scheduled agent is set up in that workflow's settings.
+  const mine = agents?.filter((a) => !a.stage && !a.schedule) ?? null;
   const agent = mine?.find((a) => a.name === picked);
   const inGroup = (names: string[]) =>
     (mine ?? [])
