@@ -27,7 +27,7 @@ const en: BoardCopy = {
   },
   queue: {
     ready: "Ready to build",
-    readyCount: (ready, implementing) => `${ready} ready · ${implementing} implementing`,
+    readyCount: (ready, implementing) => `${ready} ready · ${implementing} building`,
     notReady: "Not ready",
     empty: "no open cards",
     emptyBoard: {

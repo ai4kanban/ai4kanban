@@ -7,7 +7,7 @@ const zh: SharedCopy = {
   viewLarger: "放大查看",
   cancel: "取消",
   save: "保存",
-  saving: "保存中…",
+  saving: "正在保存…",
   delete: "删除",
   copy: "复制",
   copied: "已复制",

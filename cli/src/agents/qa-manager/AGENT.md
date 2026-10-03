@@ -5,7 +5,7 @@ akb:
   hook: schedule
   i18n:
     zh:
-      title: QA 管理员
+      title: 质检员
       description: 维护项目的测试用例：跟进每张完成的卡片，并为已有功能补写场景。
 ---
 

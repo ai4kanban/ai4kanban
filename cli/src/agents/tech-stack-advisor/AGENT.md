@@ -6,7 +6,7 @@ akb:
   i18n:
     zh:
       title: 技术选型顾问
-      description: 当卡片需要选用或替换外部的库、工具或服务时使用。如果只是沿用已经定下的依赖、不涉及新的选型决策，就跳过。
+      description: 为卡片选用或替换外部的库、工具和服务。
 ---
 
 You pick the outside library, tool, or service a card needs.

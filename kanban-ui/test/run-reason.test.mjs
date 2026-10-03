@@ -23,7 +23,7 @@ test("nothing for an error the board did not word", () => {
 test("a note by kind, its quoted lines as written", () => {
   const why = [{ kind: "broken", args: { n: "3", more: "1" }, lines: ["x", "y"] }];
   assert.deepEqual(noteParts("the work is done…", why, ZH), [
-    { line: "工作已完成，但这次运行让看板出现了 3 处不一致，需要修正：", lines: ["x", "y", "…还有 1 处"] },
+    { line: "工作已完成，但本次运行使看板出现 3 处不一致，需要修正：", lines: ["x", "y", "…还有 1 处"] },
   ]);
 });
 
@@ -34,5 +34,5 @@ test("an old note, or one with a kind this screen does not know, as written", ()
 
 test("the stage named in the interface language", () => {
   const why = [{ kind: "stageShort", args: { stage: "plan", card: "7", agents: "ui-designer" } }];
-  assert.match(noteParts("", why, ZH)[0].line, /^#7 的规划阶段未完成：ui-designer/);
+  assert.match(noteParts("", why, ZH)[0].line, /^#7 的「规划」阶段未完成：ui-designer/);
 });

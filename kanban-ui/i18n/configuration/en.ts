@@ -254,7 +254,7 @@ const en: ConfigurationCopy = {
       builder: {
         name: "Builder",
         gloss: "Builds a card and lands it.",
-        rule: 'Added to the end of every Implement, Conflict and Run — "install with pnpm, and run pnpm test before landing".',
+        rule: 'Added to the end of every Build, Conflict and Run — "install with pnpm, and run pnpm test before landing".',
       },
       proposer: {
         name: "Suggest follow-up work",

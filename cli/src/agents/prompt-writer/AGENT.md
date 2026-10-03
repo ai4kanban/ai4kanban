@@ -6,7 +6,7 @@ akb:
   i18n:
     zh:
       title: 提示词撰写
-      description: 当卡片要新增或修改 skill、agent 提示词或其他交给 AI 模型执行的指令时使用。计划写得详细不是跳过的理由。
+      description: 撰写和修改 Skill、Agent 提示词等交给 AI 模型执行的指令。
   output: human
 ---
 
