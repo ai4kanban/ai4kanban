@@ -24,9 +24,9 @@ whole job.
   place — never leave both and never add a second.
 - **Honour "don't record this"**: told in the conversation not to record something, write no
   note for it. If one is already there from an earlier review, delete it now.
-- **Where it goes**: a durable choice goes in `docs/kanban/memory/agents/planner/decisions.md`
-  and a design lesson in its `redesign.md`, under the `## <module>` topic each conversation is
-  listed with. Each conversation also lists the agents whose sections its card holds and the
+- **Where it goes**: a durable choice goes in the planner's `decisions.md` and a design lesson
+  in its `redesign.md`, in the folder of the module each conversation is listed with (`akb
+  guide board`). Each conversation also lists the agents whose sections its card holds and the
   memory files each keeps: where what was settled lands on one agent's own work, it goes in
   that agent's memory instead. Read that agent's AGENT.md only then, and keep its memory the
   way it says. Distill settled feedback into reusable preferences (dos) and corrections

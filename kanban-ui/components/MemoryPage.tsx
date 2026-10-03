@@ -17,7 +17,7 @@ import { FiCheck, FiCopy, FiMoreHorizontal } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
-import { memoryKey } from "@/lib/memory-panel";
+import { memoryKey, memoryParent } from "@/lib/memory-panel";
 import { useMemoryOwnerName } from "./memory-owner";
 import type { AgentInfo, MemoryFile, MemoryOwner } from "@/lib/types";
 import { RunningNotice } from "./desktop";
@@ -57,10 +57,10 @@ export function MemoryPage({
   const held = memoryOwners.find((o) => o.agent === file.agent);
   const owner = useMemoryOwnerName({ agent: file.agent, title: held?.title ?? "" });
   const label = (name: string) => c.memory.files[name as keyof RailCopy["memory"]["files"]] ?? name;
-  // A file split out of an entry file (#959) is headed by its name in that folder, under the
-  // entry file's.
-  const slash = file.name.indexOf("/");
-  const entry = slash > 0 ? file.name.slice(0, slash) : "";
+  // A file hung under an entry file — split out of it (#959), or a module's copy (#1484) — is
+  // headed by its name in the tree, under the entry file's.
+  const parent = memoryParent(held?.files ?? [], file.name);
+  const entry = parent?.entry ?? "";
   const links = useMemo(
     () => ({ agent: file.agent, name: file.name, files: held?.files ?? [] }),
     [file.agent, file.name, held?.files],
@@ -125,7 +125,7 @@ export function MemoryPage({
                   {entry ? `${owner} · ${label(entry)}` : owner}
                 </p>
                 <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">
-                  {entry ? file.name.slice(slash + 1) : label(file.name)}
+                  {parent ? parent.label : label(file.name)}
                 </h1>
               </div>
               <PathMenu file={file} />

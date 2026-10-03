@@ -11,8 +11,9 @@ the user has since restored.
 - **Only what the user stated**: read the item and its reason together. Keep a note only
   where the reason states a lasting preference or constraint that would decide future items —
   "we don't serve enterprise SSO requests", not "duplicate" or "not now". Never infer one.
-- **Where it goes**: under the `## <module>` heading from `docs/kanban/modules.md` the
-  preference is about, creating the file or heading if missing. Never invent a module.
+- **Where it goes**: `dismissed.md` in the folder of the module from `docs/kanban/modules.md`
+  the preference is about, or the planner's own when it spans modules; create it if missing.
+  Never invent a module.
 - **One line each**: `- **<preference>**: <why, in the user's terms> (<source-id>, ...)`.
   The source ids are the only link back to the evidence; always keep them.
 - **Merge, don't repeat**: fold an equivalent preference into the existing line and add the

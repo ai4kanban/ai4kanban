@@ -834,8 +834,8 @@ describe("a lead agent's output", () => {
   })
 })
 
-// A module is a `## <module>` topic inside a memory file now, never a folder (#805), so
-// `init` scaffolds none of them — the map cannot reach the agents' own files at all.
+// A module's planning memory sits under the planner's folder (#1484), and `init` scaffolds
+// none of them — the map cannot reach the agents' own files at all.
 describe('`agents` as a module name', () => {
   it('gets no memory folder from `init`, whatever the map says', async () => {
     fs.writeFileSync(path.join(kanban(), 'modules.md'), '- **agents** — a module someone named\n- **skill** — the command\n')

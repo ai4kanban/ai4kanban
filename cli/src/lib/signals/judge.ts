@@ -19,7 +19,7 @@ import { cloudEndpoints } from '../cloud/config'
 import { forgetPro } from '../cloud/pro'
 import { accessToken } from '../cloud/session'
 import { BoardError, quietlyAsync } from '../io'
-import { PLANNER, agentMemoryDir, agentMemoryFile, onlyStarter } from '../memory'
+import { PLANNER, agentMemoryFile, onlyStarter, plannerCopies } from '../memory'
 import { MODULES_MD, PROJECT_MD, REPO_ROOT, TODO, die, rel } from '../paths'
 import { LEVELS } from '../validate'
 import { unquote } from '../yaml'
@@ -208,16 +208,7 @@ export interface Judgement {
 export function judgementState(item: Signal, questions: Record<string, unknown>): Judgement {
   const product = read(PROJECT_MD)
   const readme = onlyStarter('project.md', product) ? read(path.join(REPO_ROOT, 'README.md')) : ''
-  const plannerDir = agentMemoryDir(PLANNER)
-  const rejected = [agentMemoryFile(PLANNER, 'rejected.md')]
-  try {
-    for (const entry of fs.readdirSync(plannerDir, { withFileTypes: true })) {
-      if (entry.isDirectory()) rejected.push(path.join(plannerDir, entry.name, 'rejected.md'))
-    }
-  } catch {
-    // no planner memory yet
-  }
-  const memory: Kept[] = [...rejected, agentMemoryFile(PLANNER, 'dismissed.md')]
+  const memory: Kept[] = [...plannerCopies('rejected.md'), ...plannerCopies('dismissed.md')]
     .map((file) => ({ file, lines: read(file).split('\n') }))
     .filter((kept) => kept.lines.some((line) => line.trim()))
   let readmeText = readme

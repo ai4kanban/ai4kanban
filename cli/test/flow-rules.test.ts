@@ -394,6 +394,24 @@ describe('the prompt', () => {
     }
   })
 
+  it('names the card’s module copy of a planner file, then the planner’s own (#1484)', () => {
+    const facts = (): string => {
+      const sink = startCollecting()
+      try {
+        printFlow({ action: 'resolve', id: 1 })
+        return sink.out.join('\n').split('closing it')[0]!
+      } finally {
+        stopCollecting()
+      }
+    }
+    assert.match(facts(), /memory\/agents\/planner\/decisions\.md/)
+    assert.doesNotMatch(facts(), /planner\/\w+\/decisions\.md|## /)
+
+    const file = path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md')
+    fs.writeFileSync(file, card(1, 'card one').replace('modules: []', 'modules: [skill]'))
+    assert.match(facts(), /planner\/skill\/decisions\.md — the card's module `skill`\n.*planner\/decisions\.md — what spans modules/)
+  })
+
   it('keeps the split and its handoff in the refine guide', () => {
     const guide = findGuide('refine')!.text
     assert.match(guide, /\*\*Split\*\*: only when the card holds independently plannable areas and one is still vague/)

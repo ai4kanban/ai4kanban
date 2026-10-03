@@ -405,7 +405,7 @@ function printHandoff(
   discard: boolean,
 ): { what: string; files: string[] } | null {
   const kind = NOTE_KIND[metric]
-  const target = discard ? null : memoryTarget(kind.file)
+  const target = discard ? null : memoryTarget(kind.file, meta?.modules[0])
   say(`\nnext — what the script can't do:\n`)
 
   if (discard) say('  1. nothing — this is a discard: no memory is written, and nothing judges whether it earned one')
@@ -415,10 +415,6 @@ function printHandoff(
     if (kind.topics) {
       const topics = target.topics.map((x) => `"${x.name}" (${x.entries})`).join(', ')
       say(`       topics  ${topics || '(none yet — this note starts the first one)'}`)
-      // A module is a topic in that file rather than a file of its own (#805), so the card's
-      // own modules are the sections to look under first.
-      const modules = meta?.modules ?? []
-      if (modules.length) say(`       under   ## ${modules.join(', ## ')} — the card's own modules`)
     }
   }
 

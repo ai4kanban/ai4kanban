@@ -39,9 +39,10 @@ Run it from the project root. It does the whole mechanical part:
   `decisions.md` and deletes the file,
 - moves a memory set still sitting at the board root into `docs/kanban/memory/`,
 - moves the memory onto whoever writes it: `decisions.md`, `rejected.md` and `redesign.md`
-  merge into `docs/kanban/memory/agents/planner/`, each module's `readme.md` merges into
-  `docs/kanban/memory/readme.md`, and a module's entries become a `## <module>` topic in the
-  file they land in — merged, never overwritten, and only once,
+  merge into `docs/kanban/memory/agents/planner/<module>/` (the board's own copy into
+  `planner/`), each module's `readme.md` merges into `docs/kanban/memory/readme.md`, and a
+  `## <module>` topic in a planner file moves into that module's folder — merged, never
+  overwritten, and only once,
 - rescues a filled-in `config.md` left inside an old skill folder to
   `docs/kanban/config.md`,
 - prints which version you moved from and to, with a link to everything that changed
@@ -60,8 +61,8 @@ yours to finish:
   only for the new value. Leave the rest of the config alone.
 - **A blank `docs/kanban/modules.md`.** Write it per `akb guide module-map`, then run
   `akb update` again so every module gets a memory path.
-- **A per-module `goal.md`.** Fold what it says into the planner's `decisions.md` under that
-  module's topic, then delete it.
+- **A per-module `goal.md`.** Fold what it says into that module's `decisions.md` in
+  `docs/kanban/memory/agents/planner/<module>/`, then delete it.
 - **A `docs/kanban/config.from-skill.md`.** An old skill folder held a config that differs
   from the board's. Fold anything worth keeping into `docs/kanban/config.md`, then delete it.
 - **A missing agent folder.** Only one of the two is here, or neither. `akb skill install`

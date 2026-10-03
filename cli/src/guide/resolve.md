@@ -72,9 +72,8 @@ three independent items is normal; every additional item needs distinct user-fac
 ## Record lasting user decisions
 
 Record only durable, user-facing answers that clear "What earns a note" in `akb guide board`,
-in `docs/kanban/memory/agents/planner/decisions.md`. Write one `**<key>**: <call>` line under
-the topic that fits — the `## <module>` the card's own `modules:` names, created when the
-file has none — without its rationale. Replace a
+in the planner's `decisions.md` for the card's module, as that guide places it. Write one
+`**<key>**: <call>` line under the topic that fits, without its rationale. Replace a
 contradicted call instead of keeping both. If the user's answer is unclear, leave memory
 unchanged and keep the question open.
 

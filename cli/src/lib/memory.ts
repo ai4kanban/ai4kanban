@@ -4,14 +4,16 @@
 // the board's own RECORD — `readme.md`, what shipped, and `project.md`, what the project is
 // today. Neither is anybody's taste, so neither is an agent's. Everything a run LEARNED is
 // an agent's, under `memory/agents/<agent>/`: the planner's `decisions.md`, `rejected.md`
-// and `redesign.md`, and whatever a spec agent's own prompt says to keep. Modules are a
-// `## <module>` topic inside a file, never a folder.
+// and `redesign.md`, and whatever a spec agent's own prompt says to keep. A module's planning
+// notes sit in its own folder, `planner/<module>/`, under the same file names (#1484); the
+// planner's root files keep what spans modules.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { rel, warn, AGENT_MEMORY, MEMORY } from './paths'
 import { specAgentNames } from './spec-agent-names'
+import { moduleNames } from './validate'
 
 // What a scaffold made: the path, the files it wrote, and whether the folder itself is new.
 export interface Scaffolded {
@@ -251,30 +253,74 @@ function adoptOneFileMemory(agent: string): void {
   }
 }
 
+// ---- a module's planning memory (#1484) -------------------------------------
+
+/** Names a module may not take: a folder of that name beside the planner's file is what was
+ *  split out of it (#959), not a module. */
+export const RESERVED_MODULE_NAMES: readonly string[] = PLANNER_MEMORY_FILES.map((name) => name.replace(/\.md$/, ''))
+
+const isModule = (name: string): boolean => !!name && !RESERVED_MODULE_NAMES.includes(name)
+
+/** One module's copy of a planner file. */
+export const moduleMemoryFile = (module: string, name: string): string => path.join(agentMemoryDir(PLANNER), module, name)
+
+/** The module folders the planner holds, in `modules.md` order, then any other by name. */
+export function plannerModules(): string[] {
+  let dirs: string[]
+  try {
+    dirs = fs
+      .readdirSync(agentMemoryDir(PLANNER), { withFileTypes: true })
+      .filter((e) => e.isDirectory() && isModule(e.name))
+      .map((e) => e.name)
+  } catch {
+    return []
+  }
+  const order = moduleNames() ?? []
+  return [...order.filter((m) => dirs.includes(m)), ...dirs.filter((d) => !order.includes(d)).sort()]
+}
+
+/** One planner file and every module's copy of it that exists — what a run judging for the
+ *  whole board reads. */
+export const plannerCopies = (name: string): string[] => [
+  agentMemoryFile(PLANNER, name),
+  ...plannerModules()
+    .map((m) => moduleMemoryFile(m, name))
+    .filter((file) => fs.existsSync(file)),
+]
+
 // ---- where a note goes ------------------------------------------------------
 
-/** The file one memory name lives in — the board's own record in `memory/`, the planner's
- *  three in its folder. Modules do not come into it: a module is a `## <module>` topic
- *  inside the file (#805). */
-export const memoryFile = (name: string): string =>
-  (BOARD_MEMORY_FILES as readonly string[]).includes(name) ? path.join(MEMORY, name) : agentMemoryFile(PLANNER, name)
+/** The file one memory name lives in — the board's own record in `memory/`, the planner's in
+ *  its folder, or the module's copy when a module is named. */
+export const memoryFile = (name: string, module = ''): string =>
+  (BOARD_MEMORY_FILES as readonly string[]).includes(name)
+    ? path.join(MEMORY, name)
+    : isModule(module)
+      ? moduleMemoryFile(module, name)
+      : agentMemoryFile(PLANNER, name)
 
 /** Where a card's note belongs, with the `## ` topics already in that file — a hint for
  *  picking a section without opening the file blind. The note itself is written by hand,
  *  because where a line goes, and whether it merges into one already there, is a judgment
  *  call. Scaffolds first, so the file is there to open. */
-export function memoryTarget(name: string): MemoryTarget {
+export function memoryTarget(name: string, module = ''): MemoryTarget {
   migrateMemory()
   scaffoldProjectMemory()
-  const file = memoryFile(name)
+  const file = memoryFile(name, module)
+  scaffoldFile(file, name)
   return { file, topics: readTopics(file) }
 }
 
-/** The planner's `decisions.md` and `rejected.md`, board-relative — what a run standing in
- *  back on the whole board is given (#493, #534): a reflection judges for the whole
- *  board rather than writes one card. Read-only, so nothing is scaffolded. */
-export const planningMemoryFiles = (): string[] =>
-  ['decisions.md', 'rejected.md'].map((name) => rel(agentMemoryFile(PLANNER, name)))
+function scaffoldFile(file: string, name: string): void {
+  if (fs.existsSync(file) || !STARTERS[name]) return
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, STARTERS[name])
+}
+
+/** The planner's `decisions.md` and `rejected.md` and every module's, board-relative — what a
+ *  run standing back on the whole board is given (#493, #534): a reflection judges for the
+ *  whole board rather than writes one card. Read-only, so nothing is scaffolded. */
+export const planningMemoryFiles = (): string[] => ['decisions.md', 'rejected.md'].flatMap(plannerCopies).map(rel)
 
 // The `## ` headings of a memory file, each with how many entries sit under it — enough
 // to name a section in the receipt without printing the file.
@@ -297,11 +343,10 @@ function readTopics(file: string): Topic[] {
 // ---- bringing an older board over (#805) ------------------------------------
 //
 // Before this, the same four files sat at the board root and again under every module. They
-// move by OWNERSHIP: the three planning files — the board's copy and every module's — merge
-// into the planner's, and each module's `readme.md` merges into the board's one. A module's
-// entries land under a `## <module>` topic, with its own headings pushed a level down, so
-// nothing is lost and a module's notes stay findable as a group. The board's own copy keeps
-// the topics it already had.
+// move by OWNERSHIP: the board's planning files merge into the planner's, a module's into the
+// planner's folder for that module (#1484), and each module's `readme.md` merges into the
+// board's one under a `## <module>` topic. A `## <module>` topic left in a planner file by the
+// release that kept modules as topics (#805) moves into that module's folder too.
 //
 // Merged, never overwritten, and done once: the source file is removed as it lands, so a
 // second upgrade finds nothing to move. Never fatal — a migration that cannot finish leaves
@@ -319,6 +364,7 @@ const entriesOf = (text: string): string => {
 }
 
 const demote = (body: string): string => body.replace(/^(#{2,5})(\s)/gm, '#$1$2')
+const promote = (body: string): string => body.replace(/^#(#{2,5})(\s)/gm, '$1$2')
 
 function mergeInto(file: string, block: string): void {
   const before = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').replace(/\s+$/, '') : ''
@@ -331,9 +377,51 @@ function mergeInto(file: string, block: string): void {
 function liftMemoryFile(from: string, into: string, topic: string): boolean {
   if (!fs.existsSync(from)) return false
   const body = entriesOf(fs.readFileSync(from, 'utf8'))
+  if (body && !topic && !fs.existsSync(into)) {
+    fs.mkdirSync(path.dirname(into), { recursive: true })
+    fs.renameSync(from, into)
+    return true
+  }
   if (body) mergeInto(into, topic ? `## ${topic}\n\n${demote(body)}` : body)
   fs.rmSync(from, { force: true })
   return true
+}
+
+/** Move a module's `## <module>` topic out of one planner file into that module's copy.
+ *  Entries the topic holds above its own sub-headings go above the copy's topics, where
+ *  ungrouped notes sit; the sub-headings, promoted a level, go at its end. */
+function liftModuleTopics(name: string, modules: string[]): string[] {
+  const file = agentMemoryFile(PLANNER, name)
+  if (!fs.existsSync(file)) return []
+  const kept: string[] = []
+  const topics = new Map<string, string[]>()
+  let into: string[] | null = null
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+    const heading = line.match(/^##\s+(.+?)\s*$/)
+    if (heading) into = modules.includes(heading[1]!) ? (topics.get(heading[1]!) ?? []) : null
+    if (heading && into) topics.set(heading[1]!, into)
+    else (into ?? kept).push(line)
+  }
+  if (!topics.size) return []
+  for (const [module, lines] of topics) {
+    const body = promote(lines.join('\n').trim())
+    if (!body) continue
+    const target = moduleMemoryFile(module, name)
+    scaffoldFile(target, name)
+    const at = body.search(/^## /m)
+    const loose = (at < 0 ? body : body.slice(0, at)).trim()
+    const headed = at < 0 ? '' : body.slice(at).trim()
+    if (loose) {
+      const text = fs.readFileSync(target, 'utf8')
+      const first = text.search(/^## /m)
+      const head = (first < 0 ? text : text.slice(0, first)).replace(/\s+$/, '')
+      const rest = first < 0 ? '' : `\n${text.slice(first)}`
+      fs.writeFileSync(target, `${head ? `${head}\n\n` : ''}${loose}\n${rest}`)
+    }
+    if (headed) mergeInto(target, headed)
+  }
+  fs.writeFileSync(file, `${kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '')}\n`)
+  return [...topics.keys()].map((module) => `${rel(file)} ## ${module}`)
 }
 
 /** The module folders an older board kept memory in — everything under `memory/` but the
@@ -379,25 +467,29 @@ export function migrateMemory(): string[] {
   renameProductFile()
   const roots = PLANNER_MEMORY_FILES.filter((name) => fs.existsSync(path.join(MEMORY, name)))
   const modules = legacyModuleDirs()
-  if (!roots.length && !modules.length) return []
   const moved: string[] = []
   try {
-    // First, so every entry lands UNDER the starter header that says what the file is for
-    // rather than in a file the merge itself created headerless.
-    scaffoldProjectMemory()
-    for (const name of PLANNER_MEMORY_FILES) {
-      const from = path.join(MEMORY, name)
-      if (liftMemoryFile(from, agentMemoryFile(PLANNER, name), '')) moved.push(rel(from))
-    }
-    for (const module of modules) {
-      const dir = path.join(MEMORY, module)
-      for (const name of [...PLANNER_MEMORY_FILES, 'readme.md']) {
-        const from = path.join(dir, name)
-        const into = name === 'readme.md' ? path.join(MEMORY, name) : agentMemoryFile(PLANNER, name)
-        if (liftMemoryFile(from, into, module)) moved.push(rel(from))
+    if (roots.length || modules.length) {
+      // First, so every entry lands UNDER the starter header that says what the file is for
+      // rather than in a file the merge itself created headerless.
+      scaffoldProjectMemory()
+      for (const name of PLANNER_MEMORY_FILES) {
+        const from = path.join(MEMORY, name)
+        if (liftMemoryFile(from, agentMemoryFile(PLANNER, name), '')) moved.push(rel(from))
       }
-      dropIfEmpty(dir)
+      for (const module of modules) {
+        const dir = path.join(MEMORY, module)
+        for (const name of [...PLANNER_MEMORY_FILES, 'readme.md']) {
+          const from = path.join(dir, name)
+          const readme = name === 'readme.md'
+          const into = readme ? path.join(MEMORY, name) : isModule(module) ? moduleMemoryFile(module, name) : agentMemoryFile(PLANNER, name)
+          if (liftMemoryFile(from, into, readme || !isModule(module) ? module : '')) moved.push(rel(from))
+        }
+        dropIfEmpty(dir)
+      }
     }
+    const known = (moduleNames() ?? []).filter(isModule)
+    if (known.length) for (const name of PLANNER_MEMORY_FILES) moved.push(...liftModuleTopics(name, known))
   } catch {
     // Part-way is a state the next read carries on from, so a failure is not worth failing
     // the read it happened under.

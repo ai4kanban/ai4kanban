@@ -383,9 +383,9 @@ describe('what the review is handed', () => {
     const said = flow()
     assert.equal(said.match(/<conversation /g)!.length, 2)
     assert.equal(said.match(/<\/conversation>/g)!.length, 2)
-    assert.match(said, /<conversation card="#1 card 1" kind="card chat">\n\s+modules: ## skill\n/)
-    assert.match(said, /<conversation card="#2 card 2" kind="card chat">\n\s+modules: ## local-ui\n/)
-    assert.match(said, /memory\/agents\/planner\/ — decisions\.md, rejected\.md, redesign\.md/)
+    assert.match(said, /<conversation card="#1 card 1" kind="card chat">\n\s+modules: skill\n/)
+    assert.match(said, /<conversation card="#2 card 2" kind="card chat">\n\s+modules: local-ui\n/)
+    assert.match(said, /memory\/agents\/planner\/<module>\/ — decisions\.md, rejected\.md, redesign\.md/)
     // The task carries the transcript; no file is named for the review to open.
     assert.doesNotMatch(said, /card-1\.json/)
   })
