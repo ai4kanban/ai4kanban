@@ -138,7 +138,7 @@ const PROPOSER: AgentRole = {
           cost: 'For speed over quality',
           prompt:
             `${SMALL_FIX} Do each one instead of proposing it: create it with ` +
-            '`akb raw create --workflow <id> --related <id> --source "#<id>" --schedule implement`, ' +
+            '`akb raw create --workflow <workflow> --source "#<finished card id>" --schedule implement`, ' +
             'its Scope and Todo written per `akb guide writing`.',
         },
         { value: 'propose', label: 'Ask me first', cost: 'For balancing speed and quality' },

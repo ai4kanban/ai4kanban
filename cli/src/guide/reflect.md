@@ -2,7 +2,7 @@
 
 Some cards have just been finished. Propose the work that should follow them, one inbox item
 each. Proposing nothing is a normal result. Do not read archived cards you were not given,
-and do not create, edit, or archive any card.
+and do not edit or archive any card; create one only when your settings say so.
 
 ## Inputs
 
