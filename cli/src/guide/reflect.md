@@ -36,8 +36,11 @@ output its AGENT.md says it maintains; that agent keeps them.
 
 ## Write
 
+Write each item's body to a temporary Markdown file: a short `####` heading per part — what,
+to do, why, and any caveat — then the archived card's path `docs/kanban/.archive/<file>`.
+
 ```text
-akb triage add --title "<one line>" --slug <short-english-slug> --source "#<id>" --text "<what, why, and docs/kanban/.archive/<file>>"
+akb triage add --title "<one line>" --slug <short-english-slug> --source "#<id>" --file <body.md>
 ```
 
 Report what you proposed and what you skipped, with a reason for each skip.
