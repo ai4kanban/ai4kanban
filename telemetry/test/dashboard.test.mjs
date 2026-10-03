@@ -123,6 +123,22 @@ describe('what the page shows', () => {
     )
   })
 
+  it('adds runs and cost by model over the range, and reads installs by cost off one day', () => {
+    const runs = { run_model: { 'gpt-5.5 1': 3, 'custom 0': 2 }, model_cost_micros: { 'gpt-5.5': 1_500_000 }, install_daily_cost: { '1-10': 4 } }
+    const held = new Map(rangeOf(TODAY, 2).map((day) => [day, entry(summary(runs))]))
+    const one = view({ held })
+    assert.deepEqual(one.runs.models, [
+      { model: 'gpt-5.5', runs: 6, priced: 6, cost: 3, perRun: 0.5 },
+      { model: 'custom', runs: 4, priced: 0, cost: 0, perRun: null },
+    ])
+    const bands = one.runs.columns.at(-1).bars.map((bar) => [bar.key, bar.n])
+    assert.deepEqual(bands, [['<$1', 0], ['$1–10', 4], ['$10–100', 0], ['≥$100', 0]])
+    const page = pageOf(one)
+    assert.match(page, /<h2>Runs<\/h2>/)
+    assert.match(page, /\$0\.5/)
+    assert.match(report('https://t.ai4kanban.dev', rangeOf(TODAY, 2), new Map([...held].map(([day, one]) => [day, one.numbers]))), /gpt-5\.5\s+6\s+6\s+\$3\.00\s+\$0\.5/)
+  })
+
   it('divides the same views by the same presses the numbers command does', () => {
     const held = board()
     const all = view({ held }).site.rows.find((row) => row.page === 'all')

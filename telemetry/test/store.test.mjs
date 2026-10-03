@@ -139,6 +139,25 @@ describe("a day's summary", () => {
     assert.deepEqual(numbers.run_custom, { 'run_started 1': 1, 'run_failed 1': 1, 'run_started 0': 2 })
   })
 
+  it('counts runs and cost by model, and installs by what their day cost', async () => {
+    const end = (id, name, fields) => ({ id, name, day: TODAY, surface: 'app', version: '0.9.9', harness: 'codex', ...fields })
+    const db0 = fakeDatabase()
+    await put(db0, A, TODAY, [
+      end('r1', 'run_finished', { model: 'gpt-5.5', cost_micros: 600_000 }),
+      end('r2', 'run_failed', { model: 'gpt-5.5', cost_micros: 700_000 }),
+      end('r3', 'run_finished', { model: 'custom' }),
+      end('r4', 'run_finished', {}),
+      end('r5', 'run_started', { model: 'gpt-5.5', cost_micros: 1 }),
+    ])
+    await put(db0, B, TODAY, [end('r6', 'run_finished', { model: 'claude-opus-5-5', cost_micros: 250_000_000 })])
+
+    const numbers = await summaryOf(db0, TODAY)
+    // A run from an older sender carries neither field and is left out; so is a start.
+    assert.deepEqual(numbers.run_model, { 'gpt-5.5 1': 2, 'custom 0': 1, 'claude-opus-5-5 1': 1 })
+    assert.deepEqual(numbers.model_cost_micros, { 'gpt-5.5': 1_300_000, 'claude-opus-5-5': 250_000_000 })
+    assert.deepEqual(numbers.install_daily_cost, { '1-10': 1, '100+': 1 })
+  })
+
   it('asks for the spreads in statements D1 will take, and names its columns in each', () => {
     // One 25-branch query was refused by D1 every night for nine days and passed here, where
     // SQLite takes 500 (#801). A branch that starts a query is where its column names come

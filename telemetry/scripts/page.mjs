@@ -3,6 +3,7 @@
 
 import { LIMITS } from '../contract.ts'
 import { AI_CAPABILITIES, DAY_COLUMNS, JEV_OUTLIER } from './dashboard.mjs'
+import { dollars as money } from './report.mjs'
 
 const STYLE = `
 :root{
@@ -71,6 +72,7 @@ ${alarm(view)}
 ${overview(view)}
 ${runsAndCards(view)}
 ${site(view)}
+${runs(view)}
 ${spread(view)}
 ${aiCost(view)}
 ${footer()}
@@ -182,14 +184,8 @@ ${rows.join('\n')}
 </section>`
 }
 
-function spread(view) {
-  if (!view.spread) {
-    return `<section>
-  <div class="head"><h2>Spread</h2><span class="through">no summary in this range</span></div>
-  <p class="note">A spread is read from one day. No day in this range has a summary — pick a longer one.</p>
-</section>`
-  }
-  const columns = view.spread.columns
+function barColumns(columns) {
+  return columns
     .map((column) => {
       const bars = column.bars.length
         ? column.bars
@@ -199,9 +195,43 @@ function spread(view) {
             )
             .join('')
         : `<p class="note">${DASH}</p>`
-      return `    <div><div class="colk">${column.label}</div>${bars}</div>`
+      return `    <div><div class="colk">${escaped(column.label)}</div>${bars}</div>`
     })
     .join('\n')
+}
+
+function runs(view) {
+  const rows = view.runs.models
+    .map(
+      (one) =>
+        `    <tr><td>${escaped(one.model)}</td>${cell(one.runs)}${cell(one.priced)}<td>${money(one.cost)}</td>` +
+        `<td${one.perRun === null ? ' class="un"' : ''}>${one.perRun === null ? DASH : money(one.perRun)}</td></tr>`,
+    )
+    .join('\n')
+  const table = rows
+    ? `  <table>
+    <tr>${['model', 'runs', 'with a cost', 'cost', 'cost per run'].map((label) => `<th>${label}</th>`).join('')}</tr>
+${rows}
+  </table>
+`
+    : ''
+  return `<section>
+  <div class="head"><h2>Runs</h2><span class="through">${view.runs.knownDays} of ${view.days} days have a summary</span></div>
+  <div class="cols">
+${barColumns(view.runs.columns)}
+  </div>
+${table}  <p class="note">Cost is the list-price estimate the run itself showed, in US dollars, and only some agents give one; cost per run is over the runs that did. <code>custom</code> is a model behind the user's own endpoint or one the public catalogue does not name.</p>
+</section>`
+}
+
+function spread(view) {
+  if (!view.spread) {
+    return `<section>
+  <div class="head"><h2>Spread</h2><span class="through">no summary in this range</span></div>
+  <p class="note">A spread is read from one day. No day in this range has a summary — pick a longer one.</p>
+</section>`
+  }
+  const columns = barColumns(view.spread.columns)
   return `<section>
   <div class="head"><h2>Spread</h2><span class="through">${view.spread.day} only — one day, never a range</span></div>
   <div class="cols">
@@ -274,8 +304,6 @@ const through = (view) =>
 const cell = (n) => (n === null ? `<td class="un">${DASH}</td>` : `<td>${number(n)}</td>`)
 const host = (endpoint) => escaped(endpoint.replace(/^https?:\/\//, ''))
 const number = (n) => n.toLocaleString('en-US')
-/** Dollars; under one, three significant digits, so a fraction of a cent is not rounded away. */
-const money = (n) => `$${n > 0 && n < 1 ? Number(n.toPrecision(3)) : n.toFixed(2)}`
 const sign = (n) => (n < 0 ? `−${Math.abs(n)}%` : `+${n}%`)
 const tone = (n) => (n < 0 ? 'down' : n > 0 ? 'up' : 'flat')
 const percent = (n) => (n === null ? `${DASH}` : `${n.toFixed(1)}%`)

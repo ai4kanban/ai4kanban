@@ -52,7 +52,7 @@ import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from '
 import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
-import { adoptsSessionId, harnessLabel, planFork, planResume, planRun, resumesUnder, shipsHarness, type RunPlan } from './resolve'
+import { adoptsSessionId, harnessLabel, onOwnEndpoint, planFork, planResume, planRun, resumesUnder, shipsHarness, type RunPlan } from './resolve'
 import { moveRunPictures } from './pictures'
 import { buildRun, restartPrompt, restartable } from './prompts'
 import { agentForRun } from './runner'
@@ -1522,8 +1522,13 @@ export async function closeRun(
   if (!closed) return
   // …and the count of it (#295). Only the two endings the board WITNESSED: a stop is the
   // user's decision rather than an outcome, and a run nobody saw the end of never finished.
-  if (closed.status === 'done') reportRun('finished', closed.harness, isCustomAgent(closed.agent))
-  else if (closed.status === 'error') reportRun('failed', closed.harness, isCustomAgent(closed.agent))
+  if (closed.status === 'done' || closed.status === 'error') {
+    reportRun(closed.status === 'done' ? 'finished' : 'failed', closed.harness, isCustomAgent(closed.agent), {
+      model: closed.model,
+      costUsd: closed.costUsd,
+      ownEndpoint: onOwnEndpoint(closed.runtime),
+    })
+  }
   // The delivery first: a run ending is a decision for the delivery it belongs to, and
   // whether the delivery is over is what decides whether the card is still being built.
   // Restoring the stage before that would read a delivery that was about to end as one

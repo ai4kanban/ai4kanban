@@ -51,6 +51,7 @@ import {
   pickRuntime,
   readAgentRuntime,
   readRuntimes,
+  runtimeById,
   runtimeOfAgent,
   secretVar,
   type Runtime,
@@ -236,6 +237,20 @@ export function readBlock(
     else delete values[list.key]
   }
   return { values, secretsSet, ignored }
+}
+
+/** Whether this runtime sends its runs to an address the user typed in (#1474). Unreadable
+ *  reads as yes, so a model name of the user's own is never reported by mistake. */
+export function onOwnEndpoint(runtimeId: string | undefined): boolean {
+  try {
+    const runtime = runtimeId ? runtimeById(runtimeId) : undefined
+    const harness = harnessByName(runtime?.harness)
+    if (!runtime || !harness) return false
+    const { values, secretsSet } = readBlock(harness, runtime.settings, [], runtime.id)
+    return !!activeProviderOf({ harness, values, secretsSet })?.needs.includes('baseUrl')
+  } catch {
+    return true
+  }
 }
 
 /** What a run is asked for, before anything is read. */

@@ -44,6 +44,7 @@ export function report(endpoint, days, held) {
     installSpreads(days, held) +
     boardNumbers(days, held, from, to) +
     customAgents(days, held) +
+    runs(days, held, from, to) +
     allowances(days, held) +
     'The app numbers cover installs with usage reporting on, and the site numbers cover\n' +
     'browsers that ran the counter on the two pages that carry a download button. Neither is\n' +
@@ -223,6 +224,66 @@ function customAgents(days, held) {
     `(shipped agents ${at('run_started 0')} · ${at('run_finished 0')} · ${at('run_failed 0')})\n\n`
   )
 }
+
+/** The install bands `install_daily_cost` counts, cheapest first, as they read. */
+export const COST_BANDS = [
+  ['<1', '<$1'],
+  ['1-10', '$1–10'],
+  ['10-100', '$10–100'],
+  ['100+', '≥$100'],
+]
+
+/**
+ * What the range's runs ran on and cost (#1474). Event counts and sums, so they add across
+ * days. `harness` counts starts, finishes and failures alike, as `run_harness` always has.
+ * A model's `priced` runs are the ones that carried a cost, and its cost per run is over those.
+ */
+export function runsOf(summaries) {
+  const harness = {}
+  const models = new Map()
+  const model = (key) => {
+    if (!models.has(key)) models.set(key, { model: key, runs: 0, priced: 0, cost: 0 })
+    return models.get(key)
+  }
+  for (const numbers of summaries) {
+    for (const [key, n] of Object.entries(numbers.run_harness ?? {})) harness[key] = (harness[key] ?? 0) + n
+    for (const [key, n] of Object.entries(numbers.run_model ?? {})) {
+      const [name, priced] = split(key)
+      model(name).runs += n
+      if (priced === '1') model(name).priced += n
+    }
+    for (const [key, n] of Object.entries(numbers.model_cost_micros ?? {})) model(key).cost += n / 1_000_000
+  }
+  return {
+    harness: Object.entries(harness).sort((a, b) => b[1] - a[1]),
+    models: [...models.values()]
+      .map((one) => ({ ...one, perRun: one.priced ? one.cost / one.priced : null }))
+      .sort((a, b) => b.cost - a.cost || b.runs - a.runs),
+  }
+}
+
+function runs(days, held, from, to) {
+  const title = `Runs, ${from} to ${to}`
+  const { harness, models } = runsOf(days.map((day) => held.get(day)).filter(Boolean))
+  if (harness.length === 0 && models.length === 0) return `${title}\n  —\n\n`
+  const tools = harness.length ? harness.map(([key, n]) => `${key} ${count(n)}`).join(' · ') : '—'
+  const byModel = models.length
+    ? `\n${indented([
+        ['model', 'runs', 'priced', 'cost', 'per run'],
+        ...models.map((one) => [one.model, count(one.runs), count(one.priced), dollars(one.cost), one.perRun === null ? '—' : dollars(one.perRun)]),
+      ])}`
+    : ''
+  const day = days.find((one) => held.has(one))
+  const bands = held.get(day)?.install_daily_cost ?? {}
+  return (
+    `${title}\n  tool events  ${tools}${byModel}\n` +
+    `Installs by daily cost on ${day}\n  ` +
+    `${COST_BANDS.map(([key, label]) => `${label} ${count(bands[key] ?? 0)}`).join(' · ')}\n\n`
+  )
+}
+
+/** Dollars; under one, three significant digits, so a fraction of a cent is not rounded away. */
+export const dollars = (n) => `$${n > 0 && n < 1 ? Number(n.toPrecision(3)) : n.toFixed(2)}`
 
 /** What the busiest day came to, broken out — the `plan` column is each day's own share. */
 function allowances(days, held) {
