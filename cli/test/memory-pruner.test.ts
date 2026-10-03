@@ -87,8 +87,8 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe("the pruner's schedule", () => {
-  it('runs every 7 days until somebody sets a cadence, and writes nothing down', () => {
-    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '7d', lastRun: '' })
+  it('runs on auto until somebody sets a cadence, and writes nothing down', () => {
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: 'auto', lastRun: '' })
     assert.equal(fs.existsSync(UI_CONFIG), false)
   })
 
@@ -100,10 +100,10 @@ describe("the pruner's schedule", () => {
     assert.deepEqual(memoryPrune(), { enabled: true, cadence: '1d at 09:30', lastRun: '' })
   })
 
-  it('reads a hand-written cadence nothing parses as the default', () => {
+  it('reads a hand-written cadence nothing parses as auto', () => {
     fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryPrune: { enabled: true, cadence: 'soon' } }))
-    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '7d', lastRun: '' })
+    assert.deepEqual(memoryPrune(), { enabled: true, cadence: 'auto', lastRun: '' })
   })
 
   it('reads a schedule an earlier release switched off as on, at its saved cadence', () => {

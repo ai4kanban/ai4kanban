@@ -16,7 +16,7 @@ import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { closeRun } from '../src/lib/agent/sessions.ts'
 import { readRule } from '../src/lib/agent/rules.ts'
 import { readAgentRuntime } from '../src/lib/agent/runtimes.ts'
-import { projectDescription, stampProjectDescription } from '../src/lib/agent/settings.ts'
+import { projectDescription, setProjectDescription, stampProjectDescription } from '../src/lib/agent/settings.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
@@ -99,8 +99,8 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe('the description the board starts on its own', () => {
-  it('ships daily, with a header-only file on a new board', () => {
-    assert.deepEqual(projectDescription(), { enabled: true, cadence: '1d', lastRun: '' })
+  it('ships on auto, with a header-only file on a new board', () => {
+    assert.deepEqual(projectDescription(), { enabled: true, cadence: 'auto', lastRun: '' })
     scaffoldProjectMemory()
     assert.match(fs.readFileSync(projectFile(), 'utf8'), /^# Project\n/)
   })
@@ -126,11 +126,15 @@ describe('the description the board starts on its own', () => {
     assert.deepEqual(await work(), ['describe-project'])
   })
 
-  it('waits for the cadence even with new commits', async () => {
+  it('waits an hour in auto even with new commits, and a cadence the user set', async () => {
     git(['init', '-q'])
     commitAt(Date.now() - 60_000)
     describeProject()
-    stampProjectDescription(new Date(Date.now() - HOUR))
+    stampProjectDescription(new Date(Date.now() - 30 * 60_000))
+    assert.deepEqual(await work(), [])
+    stampProjectDescription(new Date(Date.now() - 2 * HOUR))
+    assert.deepEqual(await work(), ['describe-project'])
+    assert.equal(setProjectDescription({ enabled: true, cadence: '1d' }).ok, true)
     assert.deepEqual(await work(), [])
   })
 

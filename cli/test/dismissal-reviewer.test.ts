@@ -140,8 +140,8 @@ describe('what a review reads', () => {
 })
 
 describe('the review the board starts on its own', () => {
-  it('ships on, daily', () => {
-    assert.deepEqual(dismissalReview(), { enabled: true, cadence: '1d', lastRun: '' })
+  it('ships on, auto', () => {
+    assert.deepEqual(dismissalReview(), { enabled: true, cadence: 'auto', lastRun: '' })
   })
 
   it('starts nothing while nothing waits', async () => {
@@ -193,12 +193,12 @@ describe('the review the board starts on its own', () => {
     const res = setDismissalReview({ enabled: true, cadence: 'weekly' })
     assert.equal(res.ok, false)
     assert.match(res.error!, /isn't a cadence/)
-    assert.equal(dismissalReview().cadence, '1d')
+    assert.equal(dismissalReview().cadence, 'auto')
   })
 
-  it('writes nothing while the schedule is back at the default', () => {
+  it('writes nothing while the schedule is back at auto', () => {
     setDismissalReview({ enabled: false, cadence: '1d' })
-    setDismissalReview({ enabled: true, cadence: '1d' })
+    setDismissalReview({ enabled: true, cadence: 'auto' })
     assert.doesNotMatch(fs.existsSync(UI_CONFIG) ? fs.readFileSync(UI_CONFIG, 'utf8') : '', /dismissalReview/)
   })
 

@@ -58,7 +58,7 @@ import {
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
-import { type Cadence, type CadenceUnit, formatCadence, parseCadence, parseStamp } from "@/lib/cadence";
+import { AUTO_CADENCE, type Cadence, type CadenceUnit, formatCadence, isAuto, parseCadence, parseStamp } from "@/lib/cadence";
 import type {
   AgentInfo,
   AgentView,
@@ -96,8 +96,7 @@ import { sayFailure } from "@/lib/start-failure";
 // — the discussion, an agent this project added — is one you start.
 // Literals rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
-const ON_A_SCHEDULE = ["memory-reviewer", "memory-pruner", "dismissal-reviewer", "project-writer"];
-const ON_AN_EVENT = ["proposer"];
+const ON_A_SCHEDULE = ["memory-reviewer", "memory-pruner", "dismissal-reviewer", "project-writer", "proposer"];
 // Whose runtime every planning lead runs (#1316).
 const PLANNING_HELPER = "discussion-helper";
 
@@ -553,11 +552,10 @@ export function AgentsPanel({
     {
       id: "you" as const,
       rows: (mine ?? []).filter(
-        (a) => !(a.kind === "role" && [...ON_A_SCHEDULE, ...ON_AN_EVENT].includes(a.name)),
+        (a) => !(a.kind === "role" && ON_A_SCHEDULE.includes(a.name)),
       ),
     },
     { id: "schedule" as const, rows: inGroup(ON_A_SCHEDULE) },
-    { id: "event" as const, rows: inGroup(ON_AN_EVENT) },
   ].filter((group) => group.rows.length > 0);
 
   // The pane opens on the first row — entering this pane lands you on a page you did not
@@ -677,7 +675,9 @@ function PickRow({
   const scheduleOff = schedule?.enabled === false;
   const trigger = scheduleOff
     ? c.schedule.off
-    : saved && copy
+    : schedule && isAuto(schedule.cadence)
+      ? c.schedule.auto
+      : saved && copy
       ? copy.cadenceLabel(saved.n, saved.unit, saved.at)
       : (c.roles[agent.name as keyof typeof c.roles]?.trigger ?? "");
   const off = !agent.enabled || scheduleOff;
@@ -1402,8 +1402,9 @@ function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onE
   };
 
   const saved = parseCadence(view?.cadence ?? "");
+  const auto = !!view && isAuto(view.cadence);
   const off = view?.enabled === false;
-  const state = off ? c.off : saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
+  const state = off ? c.off : auto ? c.auto : saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
   const warn = failed && !running;
 
   return (
@@ -1428,6 +1429,8 @@ function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onE
           {open && (
             <CadenceMenu
               saved={saved}
+              auto={auto}
+              autoLabel={c.auto}
               next={next}
               copy={copy}
               onDismiss={() => setOpen(false)}
@@ -1455,14 +1458,14 @@ function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onE
 // The cadence list, in order: three common cadences, then the one row that opens anything — `6h` / `1d` / `7d` are the cadences themselves, so a preset row needs no table
 // of its own beyond the number and unit its words are read off.
 type Preset = "6h" | "1d" | "7d";
-type Pick = Preset | "custom";
+type Pick = "auto" | Preset | "custom";
 const PRESETS = ["6h", "1d", "7d"] as const;
 const PRESETS_AT: Record<Preset, { n: number; unit: CadenceUnit }> = {
   "6h": { n: 6, unit: "h" },
   "1d": { n: 1, unit: "d" },
   "7d": { n: 7, unit: "d" },
 };
-const ROWS: Pick[] = [...PRESETS, "custom"];
+const ROWS: Pick[] = ["auto", ...PRESETS, "custom"];
 
 // What the pickers will offer per unit. A ceiling as much as a floor: a prune rewrites every
 // memory file, so minutes below five is a job that never finishes before the next one starts,
@@ -1495,6 +1498,8 @@ const write = (n: number, unit: CadenceUnit, at: string | null): string =>
 // parser's, with the tick still on the cadence that is really running.
 function CadenceMenu({
   saved,
+  auto,
+  autoLabel,
   next,
   copy,
   onDismiss,
@@ -1504,6 +1509,9 @@ function CadenceMenu({
   onDisable,
 }: {
   saved: Cadence | null;
+  /** The board picks when it runs (#1475) — the first row. */
+  auto: boolean;
+  autoLabel: string;
   /** When the next run is, the list's first line; empty draws none. */
   next: string;
   copy: CadenceCopy;
@@ -1526,9 +1534,13 @@ function CadenceMenu({
     const id = `${c.n}${c.unit}`;
     return (PRESETS as readonly string[]).includes(id) ? (id as Preset) : null;
   };
-  const picked: Pick | null = off ? null : (presetOf(saved) ?? "custom");
+  const picked: Pick | null = off ? null : auto ? "auto" : (presetOf(saved) ?? "custom");
   const label = (id: Pick) =>
-    id === "custom" ? copy.custom : copy.cadenceLabel(PRESETS_AT[id].n, PRESETS_AT[id].unit, "");
+    id === "auto"
+      ? autoLabel
+      : id === "custom"
+        ? copy.custom
+        : copy.cadenceLabel(PRESETS_AT[id].n, PRESETS_AT[id].unit, "");
   // Custom's right end: the saved cadence, when it is no preset.
   const note = saved && picked === "custom" ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : undefined;
 
@@ -1562,7 +1574,7 @@ function CadenceMenu({
     if (id === picked) return onDismiss();
     setFailed("");
     setBusy(id);
-    const ok = await onSave({ enabled: true, cadence: id });
+    const ok = await onSave({ enabled: true, cadence: id === "auto" ? AUTO_CADENCE : id });
     setBusy(null);
     if (ok) onDismiss();
     else setFailed(copy.presetFailed(label(id)));

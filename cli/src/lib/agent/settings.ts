@@ -30,7 +30,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
+import { AUTO_CADENCE, CADENCE_FORMS, formatStamp, isAuto, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, LEGACY_UI_CONFIG, UI_CONFIG } from '../paths'
 import { refusal, type CadenceSchedule, type MemoryReviewState, type Saved } from './types'
 
@@ -146,8 +146,17 @@ export function silenceMinutes(): number {
   }
 }
 
+const CADENCES = `${AUTO_CADENCE}, or ${CADENCE_FORMS}`
 const badCadence = (cadence: string) =>
-  refusal('cadence', `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}`, { cadence, formats: CADENCE_FORMS })
+  refusal('cadence', `"${cadence}" isn't a cadence — use ${CADENCES}`, { cadence, formats: CADENCES })
+
+// What a schedule saves: '' for `auto` or nothing said, the cadence itself, or null for one
+// nothing parses.
+const savedCadence = (said: string): string | null => {
+  const cadence = said.trim()
+  if (!cadence || isAuto(cadence)) return ''
+  return parseCadence(cadence) ? cadence : null
+}
 
 /** Save it, in whole minutes. Back at the default drops the key rather than writing 10. */
 export function setSilenceMinutes(minutes: number): Saved {
@@ -476,8 +485,8 @@ export function setSecret(name: string, value: string): Saved {
 //   "dismissalReview":    { "lastRun": "2026-09-19 08:00", "off": true }
 //   "projectDescription": { "lastRun": "2026-09-30 08:00" }
 //
-// Only what differs from the default is written down: a cadence other than the default, and
-// `off` once somebody disabled it (#1464). Off is its own key: the `enabled: false` releases
+// Only what differs from the default is written down: a cadence somebody set — none is `auto`
+// (#1475), the default cadence below its fallback — and `off` once somebody disabled it (#1464). Off is its own key: the `enabled: false` releases
 // before #1208 wrote stays ignored, so upgrading never switches a schedule off nobody touched.
 //
 // `lastRun` moves only on a pass that PASSED, which is what stops a failing one firing again
@@ -487,7 +496,7 @@ export function setSecret(name: string, value: string): Saved {
 
 export type ScheduleKey = 'memoryPrune' | 'dismissalReview' | 'projectDescription'
 
-/** The cadence a board that never set one runs each on. */
+/** The gap each runs on in `auto` (#1475). */
 export const DEFAULT_CADENCE: Record<ScheduleKey, string> = {
   memoryPrune: '7d',
   dismissalReview: '1d',
@@ -504,7 +513,7 @@ function readSchedule(key: ScheduleKey): CadenceSchedule {
   const saved = stringIn(block, 'cadence')
   return {
     enabled: block.off !== true,
-    cadence: saved && parseCadence(saved) ? saved : DEFAULT_CADENCE[key],
+    cadence: saved && parseCadence(saved) ? saved : AUTO_CADENCE,
     lastRun: stringIn(block, 'lastRun'),
     ...(stringIn(block, 'since') ? { since: stringIn(block, 'since') } : {}),
   }
@@ -513,12 +522,12 @@ function readSchedule(key: ScheduleKey): CadenceSchedule {
 /** Save the cadence and whether it is off, keeping `lastRun` and `since`. A caller that says
  *  nothing about `enabled` leaves it as it is. */
 function saveSchedule(key: ScheduleKey, next: { enabled?: boolean; cadence: string }): Saved {
-  const cadence = next.cadence.trim() || DEFAULT_CADENCE[key]
-  if (parseCadence(cadence) === null) return { ok: false, ...badCadence(cadence) }
+  const cadence = savedCadence(next.cadence)
+  if (cadence === null) return { ok: false, ...badCadence(next.cadence.trim()) }
   return writeConfig((cfg) => {
     const block = configBlock(cfg[key])
     const body = {
-      ...(cadence !== DEFAULT_CADENCE[key] ? { cadence } : {}),
+      ...(cadence ? { cadence } : {}),
       ...(stringIn(block, 'lastRun') ? { lastRun: stringIn(block, 'lastRun') } : {}),
       ...(stringIn(block, 'since') ? { since: stringIn(block, 'since') } : {}),
       ...((next.enabled ?? block.off !== true) ? {} : { off: true }),
@@ -576,12 +585,12 @@ export function adoptMemoryPruneCadence(cadence: string): void {
 // read by the daily pass, so it counts as reviewed. It is pinned to the `lastRun` standing
 // at the first write after the upgrade, and never moves again.
 
-/** How often the memory review runs on a board that never set it. */
+/** The gap the memory review runs on in `auto` when it has nothing to read. */
 export const MEMORY_REVIEW_CADENCE = '1d'
 
 const NEVER_REVIEWED: MemoryReviewState = {
   enabled: true,
-  cadence: MEMORY_REVIEW_CADENCE,
+  cadence: AUTO_CADENCE,
   lastRun: '',
   reviewedBefore: '',
   remainingAt: 0,
@@ -600,7 +609,7 @@ export function memoryReview(): MemoryReviewState {
   const cadence = stringIn(block, 'cadence')
   return {
     enabled: block.off !== true,
-    cadence: cadence && parseCadence(cadence) ? cadence : MEMORY_REVIEW_CADENCE,
+    cadence: cadence && parseCadence(cadence) ? cadence : AUTO_CADENCE,
     lastRun: stringIn(block, 'lastRun'),
     reviewedBefore: stringIn(block, 'reviewedBefore'),
     remainingAt: typeof block.remainingAt === 'number' ? block.remainingAt : 0,
@@ -614,8 +623,8 @@ function pinned(block: Record<string, unknown>): Record<string, unknown> {
 
 /** Save how often the review runs and whether it is off, keeping its record. */
 export function setMemoryReview(next: { enabled?: boolean; cadence: string }): Saved {
-  const cadence = next.cadence.trim() || MEMORY_REVIEW_CADENCE
-  if (parseCadence(cadence) === null) return { ok: false, ...badCadence(cadence) }
+  const cadence = savedCadence(next.cadence)
+  if (cadence === null) return { ok: false, ...badCadence(next.cadence.trim()) }
   return writeConfig((cfg) => {
     const block = { ...pinned(configBlock(cfg.memoryReview)) }
     const off = !(next.enabled ?? block.off !== true)
@@ -623,7 +632,7 @@ export function setMemoryReview(next: { enabled?: boolean; cadence: string }): S
     delete block.off
     cfg.memoryReview = {
       ...block,
-      ...(cadence !== MEMORY_REVIEW_CADENCE ? { cadence } : {}),
+      ...(cadence ? { cadence } : {}),
       ...(off ? { off: true } : {}),
     }
   })

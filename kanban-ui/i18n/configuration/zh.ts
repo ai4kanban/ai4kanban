@@ -297,7 +297,7 @@ const zh: ConfigurationCopy = {
     },
   },
   agents: {
-    groups: { you: "你发起", schedule: "定期运行", event: "随事件运行" },
+    groups: { you: "你发起", schedule: "定期运行" },
     copyPath: "复制路径",
     rowOn: "启用",
     rowOff: "暂停",
@@ -347,9 +347,9 @@ const zh: ConfigurationCopy = {
       proposer: {
         name: "建议后续任务",
         gloss: "从已完成的卡片中提出接下来要做的事。",
-        trigger: "卡片归档后",
+        trigger: "有新完成的卡片时",
         rule: "会附加到每次回顾的末尾，例如「不要提补测试的事」。",
-        when: "卡片归档时。只读取该卡片，把接下来要做的事放进待筛选，由你像处理其他条目一样筛选。",
+        when: "有新完成的卡片时，最多每小时一次。读取这些卡片，把接下来要做的事放进待筛选，由你像处理其他条目一样筛选；上次放进的还没处理完时，先不运行。",
         settings: {
           "small-fixes": {
             label: "小改动",
@@ -498,6 +498,7 @@ const zh: ConfigurationCopy = {
       tomorrow: "明天",
       inDays: (n) => `${n} 天后`,
       whenNew: "有新内容时",
+      auto: "自动",
     },
     specialistRule: {
       spec: (agent) => `会附加到卡片细化期间 ${agent} 每次运行的末尾，例如「遵循 app/globals.css 里的设计变量」。`,

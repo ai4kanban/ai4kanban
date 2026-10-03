@@ -1,8 +1,8 @@
 // The proposer (#534): what a completed card starts, and where its proposals land.
 //
 // The reflection itself is an agent's judgment and cannot be asserted here. What can, and
-// what this covers, is the machinery around it: archiving is the only trigger, completed
-// cards wait in a queue and one run covers a batch of them (#1467), only a run that passed
+// what this covers, is the machinery around it: completed cards wait in a queue and one run
+// covers a batch of them (#1467), started by the board's timer (#1475), only a run that passed
 // takes its cards off, the flow reads its cards out of `.archive/` where the ordinary card
 // read no longer finds them, and `akb triage add` puts one proposal in the inbox carrying
 // the card that prompted it.
@@ -16,12 +16,14 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { setSpecAgentSetting } from '../src/lib/agents/index.ts'
-import { REFLECT_BATCH, reflectRunsAfter } from '../src/lib/agent/propose.ts'
+import { nextReflection, queueCompleted, REFLECT_BATCH, reflectOnCompletion } from '../src/lib/agent/propose.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { reflectQueue } from '../src/lib/agent/settings.ts'
 import { logPathOf, withStore } from '../src/lib/agent/store.ts'
 import { chatFile } from '../src/lib/agent/chat.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { agentsWithBacklog } from '../src/lib/agent/due.ts'
+import { nextWork } from '../src/lib/view/dispatch.ts'
 import { cmdTriageAdd, type TriageAddOptions } from '../src/commands/triage.ts'
 import { readSignals } from '../src/lib/signals/index.ts'
 import { triageShut } from './helpers/triage.ts'
@@ -113,6 +115,13 @@ describe('what archiving hands over', () => {
     await closeRun(opened.run.sessionId, { status, ok: status === 'done', code: status === 'done' ? 0 : 1 }, { reportEnd: false })
   }
 
+  /** Queue what completed since `before`, then the round the board's timer would start. */
+  const reflectRunsAfter = (before: number[]) => {
+    queueCompleted(before)
+    const next = nextReflection()
+    return next ? [next] : []
+  }
+
   it('reflects on the card that reached the archive', () => {
     open(1)
     const before = openNow()
@@ -129,7 +138,7 @@ describe('what archiving hands over', () => {
     assert.deepEqual(reflectRunsAfter(before), [{ action: 'reflect', cards: [1, 2] }])
   })
 
-  it(`splits more than ${REFLECT_BATCH} cards into rounds, the next one when a round passes`, async () => {
+  it(`splits more than ${REFLECT_BATCH} cards into rounds`, async () => {
     const ids = Array.from({ length: REFLECT_BATCH + 2 }, (_, i) => i + 1)
     ids.forEach(open)
     const before = openNow()
@@ -138,7 +147,7 @@ describe('what archiving hands over', () => {
     assert.deepEqual(first!.cards, ids.slice(0, REFLECT_BATCH))
     await reflectOn(first!.cards!, 'done')
     assert.deepEqual(reflectQueue(), ids.slice(REFLECT_BATCH))
-    assert.deepEqual(reflectRunsAfter([], true), [{ action: 'reflect', cards: ids.slice(REFLECT_BATCH) }])
+    assert.deepEqual(nextReflection(), { action: 'reflect', cards: ids.slice(REFLECT_BATCH) })
   })
 
   it('starts no second round while one is running', () => {
@@ -154,7 +163,7 @@ describe('what archiving hands over', () => {
     assert.deepEqual(reflectQueue(), [1, 2])
   })
 
-  it('keeps the cards of a round that failed for the next completion', async () => {
+  it('keeps the cards of a round that failed', async () => {
     open(1)
     open(2)
     let before = openNow()
@@ -162,8 +171,6 @@ describe('what archiving hands over', () => {
     reflectRunsAfter(before)
     await reflectOn([1], 'error')
     assert.deepEqual(reflectQueue(), [1])
-    // No retry on its own: nothing new completed.
-    assert.deepEqual(reflectRunsAfter([]), [])
     before = openNow()
     complete(2)
     assert.deepEqual(reflectRunsAfter(before), [{ action: 'reflect', cards: [1, 2] }])
@@ -196,16 +203,65 @@ describe('what archiving hands over', () => {
     const before = openNow()
     complete(1)
     assert.ok(!('error' in openRun({ action: 'reflect', cards: [1] }, 'prompt', [])))
-    assert.deepEqual(reflectRunsAfter(before), [])
+    assert.equal(queueCompleted(before), false)
     assert.deepEqual(reflectQueue(), [])
   })
 
-  it('hands over the completion no run is closing behind — a manual commit', () => {
+  it('queues the completion no run is closing behind — a manual commit', () => {
     open(1)
     open(2)
     complete(1)
-    assert.deepEqual(reflectRunsAfter([1]), [{ action: 'reflect', cards: [1] }])
-    assert.deepEqual(reflectRunsAfter([2]), [])
+    reflectOnCompletion(1)
+    reflectOnCompletion(2)
+    assert.deepEqual(reflectQueue(), [1])
+  })
+})
+
+describe("the board's timer (#1475)", () => {
+  const reflections = async () => (await nextWork(async () => true)).filter((r) => r.action === 'reflect')
+
+  it('starts a reflection once a card is queued, and none with nothing queued', async () => {
+    assert.deepEqual(await reflections(), [])
+    open(1)
+    const before = openNow()
+    complete(1)
+    queueCompleted(before)
+    assert.deepEqual(await reflections(), [{ action: 'reflect', cards: [1] }])
+  })
+
+  it('waits an hour after the last one began', async () => {
+    open(1)
+    open(2)
+    let before = openNow()
+    complete(1)
+    queueCompleted(before)
+    const opened = openRun({ action: 'reflect', cards: [1] }, 'prompt', [])
+    assert.ok(!('error' in opened))
+    fs.mkdirSync(path.dirname(logPathOf(opened.run.sessionId)), { recursive: true })
+    fs.writeFileSync(logPathOf(opened.run.sessionId), '')
+    await closeRun(opened.run.sessionId, { status: 'done', ok: true, code: 0 }, { reportEnd: false })
+    before = openNow()
+    complete(2)
+    queueCompleted(before)
+    assert.deepEqual(reflectQueue(), [2])
+    assert.deepEqual(await reflections(), [])
+  })
+
+  it('waits while what it proposed is still in triage', async () => {
+    open(1)
+    const before = openNow()
+    complete(1)
+    queueCompleted(before)
+    const opened = openRun({ action: 'reflect', cards: [1] }, 'prompt', [])
+    assert.ok(!('error' in opened))
+    process.env.KANBAN_RUN = opened.run.sessionId
+    try {
+      await triageShut(() => cmdTriageAdd({ title: 'Follow it up', text: 'More.', source: '#1' }))
+    } finally {
+      delete process.env.KANBAN_RUN
+    }
+    assert.equal(readSignals().signals.find((s) => s.title === 'Follow it up')?.agent, 'proposer')
+    assert.equal(agentsWithBacklog().has('proposer'), true)
   })
 })
 

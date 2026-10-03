@@ -37,6 +37,15 @@ akb:
   lead: plan
 ```
 
+A `schedule` agent can also name the new input it works on; it then runs only when there is some:
+
+```yaml
+akb:
+  hook: schedule
+  # archived-cards | commits | chats | dismissals; omit to run on its cadence alone.
+  reads: archived-cards
+```
+
 Everything under the frontmatter is the agent's instructions, read fresh on every run —
 a file with none is refused.
 
@@ -139,5 +148,6 @@ never when it runs.
 - **Workflow**: a new agent belongs to the workflow it was created in and starts switched on;
   `akb spec` refuses it while it is off. Switch it in Configuration → Workflows or with
   `akb workflow stage`.
-- **Schedule**: a `schedule` agent runs on its workflow's cadence; set it and switch it with
-  `akb workflow schedule <workflow> --on <name> --cadence <cadence>`.
+- **Schedule**: set `reads` from what the agent works on; it runs automatically by default.
+  Override or switch it with
+  `akb workflow schedule <workflow> --on <name> --cadence <cadence|auto>`.

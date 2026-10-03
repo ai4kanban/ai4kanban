@@ -57,20 +57,20 @@ can be switched off:
   where your blog lives once and remembers.
 - **Proposer** — reads a card the board has just finished, with the discussion it came from, and
   proposes the work that should follow it — including anything the card promised that nothing
-  shipped. It learns from follow-ups you point out it missed. Runs after every archive.
+  shipped. It learns from follow-ups you point out it missed. Runs once cards finish, at most once an
+  hour, and waits while what it proposed last time is still unsorted.
 - **Memory pruner** — squeezes the memory back down to what helps planning. Every 7 days by
   default; **Run now** on its page starts one.
 - **Review chat memory** — reads back over the conversations that said something new and writes
-  down what they settled. Once a day by default.
+  down what they settled. Runs once there are new messages, at most once an hour by default.
 - **Describe the project** — keeps `docs/kanban/memory/project.md` up to date: what the project is,
-  who it is for, the problems it solves and its features, from the users' point of view. Checks
-  once a day by default and rewrites the file only when new commits have landed. Planning reads it for
-  direction.
+  who it is for, the problems it solves and its features, from the users' point of view. Runs once
+  new commits have landed, at most once an hour by default. Planning reads it for direction.
 
-**Configuration → Board** groups them by what starts each one: **You start**, **On a schedule** and
-**On an event**. A scheduled agent's page sets its cadence, and the same list shows the next run
-and ends on **Disable**; **Run now** still works while it is disabled. The first scheduled pass
-lands one cadence after the board first sees it. The Proposer and the scheduled agents each spend runs you
+**Configuration → Board** groups them by what starts each one: **You start** and **On a schedule**.
+A scheduled agent's page sets its cadence — **Auto** by default, which runs it when there is
+something new, like a [workflow's scheduled agent](#run-an-agent-on-a-schedule) — and the same
+list shows the next run and ends on **Disable**; **Run now** still works while it is disabled. The Proposer and the scheduled agents each spend runs you
 never asked for.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
@@ -280,21 +280,25 @@ with `akb run start`.
 
 A workflow can carry agents that run by themselves: a nightly audit, a weekly clean-up. Each sits
 under **Scheduled** in Configuration → Workflows, below the two stages, and belongs to that
-workflow alone. Coding ships one, running every day: the
+workflow alone. Coding ships one, running when cards finish: the
 [QA manager](/docs/daily-loop#test-cases).
 
 Recurring cards have moved here. On update, each one becomes a scheduled agent of its workflow:
 its steps are the agent's instructions, its cadence and last run carry over, and a card with no
 cadence arrives disabled.
 
-- **Set it on the agent's page.** The chip beside its name picks how often — every 6 hours, every
-  day, every 7 days, or your own — and **Disable** is the last row of the same list. Picking a
-  schedule again enables it. **Run now** starts one run whether or not it is due, and works
-  while the agent is disabled.
-- **It starts every time its schedule comes round**, whether or not there is anything to do. A
-  quiet day still costs one short run.
-- **It never runs the moment you enable it.** The first run comes one schedule later; the page
-  shows the last run and when the next may start.
+- **Set it on the agent's page.** The chip beside its name picks **Auto** (the default), every 6
+  hours, every day, every 7 days, or your own — and **Disable** is the last row of the same list.
+  Picking a schedule again enables it. **Run now** starts one run whether or not it is due, and
+  works while the agent is disabled.
+- **Auto runs it when there is new work.** An agent whose `AGENT.md` sets `akb.reads` runs only
+  once something new has arrived since its last finished run — `archived-cards`, `commits`,
+  `chats` or `dismissals` — and at most once an hour. One that sets nothing runs once a day. A
+  schedule you pick replaces the hour or the day; the waits below still apply.
+- **It waits for you and for builds.** It does not run while what it put in Triage last time is
+  still waiting, or became a card nobody has started, nor while a card is being built or landed.
+- **It never runs the moment you enable it.** The first run comes one gap later; the page shows
+  the last run and when the next may start.
 - **What it changes is committed like a build.** With **Automatic Git commits** on, the run works
   on its own branch and lands on your current branch; a run that changed nothing commits nothing.
   With it off, the changes stay uncommitted in your project. A workflow that makes files commits
@@ -302,13 +306,13 @@ cadence arrives disabled.
 - **Nobody answers it.** A scheduled agent is not a card: it has no open questions, and what it
   does with something it cannot settle is for its own instructions to say.
 - **A failed run waits.** Only a run that finished moves the last-run time; a failed or stopped one
-  is tried again one schedule later, or **Resume** it from **Runs**, where each run is named by its
-  workflow and agent.
+  is tried again one gap later, and each further failure in a row doubles the wait, up to a day.
+  Or **Resume** it from **Runs**, where each run is named by its workflow and agent.
 - **It can ask what finished since last time.** Inside its run,
   `akb raw list --archived --since last-run` lists the cards that landed since its last finished
   run began — none on the first run.
 
-From a terminal: `akb workflow schedule <id> --on <agent> --cadence 1d`, `--off <agent>`, or
+From a terminal: `akb workflow schedule <id> --on <agent> --cadence 1d` (or `auto`), `--off <agent>`, or
 `--run <agent>`; `akb workflow list` shows each one's schedule and last run.
 
 It can be written to **lead** a plan or execute stage instead, and one that can lead is only

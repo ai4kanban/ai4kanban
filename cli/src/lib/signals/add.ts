@@ -129,6 +129,7 @@ export function addToInbox(drop: InboxDrop): InboxAddResult {
     ...(drop.title?.trim() ? { title: oneLine(drop.title) } : {}),
     ...(hit ? { sourceType: hit } : {}),
     ...(kept ? { meta: [kept, ...read.incoming.meta] } : {}),
+    ...(drop.agent ? { agent: drop.agent } : {}),
   }
   if (!incoming.title || !incoming.summary) return { ok: false, error: 'nothing to add — that had no words in it.' }
 

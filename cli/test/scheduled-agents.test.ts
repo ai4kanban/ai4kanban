@@ -14,7 +14,10 @@ import { listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
-import { dueScheduledAgents, scheduledBusy, scheduledRequest } from '../src/lib/agent/scheduled.ts'
+import { dueScheduledAgents, scheduledBusy, scheduledRequest, scheduledWait } from '../src/lib/agent/scheduled.ts'
+import { cmdTriageAdd } from '../src/commands/triage.ts'
+import { archiveInboxItem, readInbox } from '../src/lib/signals/inbox.ts'
+import { triageShut } from './helpers/triage.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -44,13 +47,13 @@ const git = (args: string[], cwd = root): string => {
   return out.stdout.trim()
 }
 
-const agentFile = (name: string, hook = 'schedule'): string =>
-  ['---', `name: ${name}`, 'description: Use when.', 'akb:', `  hook: ${hook}`, '---', '', `You are ${name}.`, ''].join('\n')
+const agentFile = (name: string, hook = 'schedule', reads = ''): string =>
+  ['---', `name: ${name}`, 'description: Use when.', 'akb:', `  hook: ${hook}`, ...(reads ? [`  reads: ${reads}`] : []), '---', '', `You are ${name}.`, ''].join('\n')
 
-const scheduleAgent = (name: string): void => {
+const scheduleAgent = (name: string, reads = ''): void => {
   const home = path.join(kanban(), 'agents', name)
   fs.mkdirSync(home, { recursive: true })
-  fs.writeFileSync(path.join(home, 'AGENT.md'), agentFile(name))
+  fs.writeFileSync(path.join(home, 'AGENT.md'), agentFile(name, 'schedule', reads))
 }
 
 const at = (iso: string): Date => new Date(iso)
@@ -105,6 +108,17 @@ describe('declaring a scheduled agent', () => {
     assert.equal(read.agent.stage, null)
   })
 
+  it('reads `akb.reads`, and refuses a value it does not know or a stage agent declaring it', () => {
+    const read = parseSpecAgent(agentFile('night-auditor', 'schedule', 'commits'), 'AGENT.md', () => null)
+    assert.ok('agent' in read)
+    assert.equal(read.agent.reads, 'commits')
+    const bad = parseSpecAgent(agentFile('night-auditor', 'schedule', 'tweets'), 'AGENT.md', () => null)
+    assert.ok('problem' in bad)
+    assert.match(bad.problem, /`archived-cards` or `commits` or `chats` or `dismissals`/)
+    const stage = parseSpecAgent(agentFile('night-auditor', 'plan', 'commits'), 'AGENT.md', () => null)
+    assert.ok('problem' in stage)
+  })
+
   it('refuses `akb.lead: schedule`', () => {
     const file = agentFile('night-auditor').replace('hook: schedule', 'lead: schedule')
     const read = parseSpecAgent(file, 'AGENT.md', () => null)
@@ -118,7 +132,7 @@ describe("a workflow's scheduled agents", () => {
     const coding = workflowViews().find((w) => w.id === 'coding')!
     assert.deepEqual(
       coding.scheduled?.filter((s) => !s.builtIn).map((s) => ({ agent: s.agent, off: s.off, cadence: s.cadence })),
-      [{ agent: PASS.agent, off: true, cadence: '1d' }],
+      [{ agent: PASS.agent, off: true, cadence: 'auto' }],
     )
   })
 
@@ -193,6 +207,66 @@ describe('when a scheduled agent is due', () => {
     const free = () => Promise.resolve('free' as const)
     const due = await dueScheduledAgents(free, at('2026-10-03T09:00'))
     assert.deepEqual(due.map((r) => r.specAgent), [PASS.agent])
+  })
+})
+
+describe('what a scheduled agent waits for (#1475)', () => {
+  const DAY = 86_400_000
+  const later = () => new Date(Date.now() + 3 * DAY)
+  const one = () => scheduledAgent(PASS.workflow, PASS.agent)!
+  const archived = (id: number, extra: string[] = []): void => {
+    fs.mkdirSync(path.join(kanban(), '.archive'), { recursive: true })
+    const day = formatStamp(new Date()).slice(0, 10)
+    fs.writeFileSync(path.join(kanban(), '.archive', `${id}-done.md`), ['---', `title: Done ${id}`, `archived: ${day}`, ...extra, '---', '', 'Body.', ''].join('\n'))
+  }
+
+  it('waits for a card archived since its last pass when it reads archived cards', async () => {
+    scheduleAgent(PASS.agent, 'archived-cards')
+    enable(new Date(Date.now() - 3 * DAY))
+    stampScheduledRun(PASS.workflow, PASS.agent, new Date(Date.now() - 2 * DAY))
+    assert.equal(scheduledWait(PASS, one()).wait, 'nothingNew')
+    archived(5, ['rejected: true'])
+    assert.equal(scheduledWait(PASS, one()).wait, 'nothingNew')
+    archived(6)
+    assert.equal(scheduledWait(PASS, one()).wait, null)
+    assert.deepEqual(await dueScheduledAgents(pro), [scheduledRequest(PASS)])
+  })
+
+  it('runs on its cadence alone when it declares nothing', async () => {
+    enable(new Date(Date.now() - 3 * DAY))
+    assert.deepEqual(await dueScheduledAgents(pro), [scheduledRequest(PASS)])
+  })
+
+  it('keeps a cadence the user set in place of auto, and takes auto back', () => {
+    enable(at('2026-10-01T09:00'))
+    assert.equal(setWorkflowScheduledCadence(PASS.workflow, PASS.agent, '6h').ok, true)
+    assert.equal(one().cadence, '6h')
+    assert.equal(setWorkflowScheduledCadence(PASS.workflow, PASS.agent, 'auto').ok, true)
+    assert.equal(one().cadence, 'auto')
+  })
+
+  it('waits while what it sent to triage is waiting, or carded and not started', async () => {
+    enable(new Date(Date.now() - 3 * DAY))
+    process.env[RUN_ENV] = open()
+    await triageShut(() => cmdTriageAdd({ title: 'A gap', text: 'Something to do.' }))
+    delete process.env[RUN_ENV]
+    const [item] = readInbox()
+    assert.equal(item!.agent, PASS.agent)
+    assert.equal(scheduledWait(PASS, one(), undefined, undefined, later()).wait, 'unsorted')
+
+    const card = path.join(kanban(), 'todo', '9-a-gap.md')
+    const write = (status: string) =>
+      fs.writeFileSync(card, ['---', 'title: A gap', `status: ${status}`, `triage: ${item!.sourceId}`, '---', '', 'Body.', ''].join('\n'))
+    write('todo')
+    assert.equal(archiveInboxItem(item!.sourceId, 9).ok, true)
+    assert.equal(scheduledWait(PASS, one(), undefined, undefined, later()).wait, 'unsorted')
+    write('implementing')
+    assert.notEqual(scheduledWait(PASS, one(), undefined, undefined, later()).wait, 'unsorted')
+  })
+
+  it('leaves an item added outside a run unclaimed', async () => {
+    await triageShut(() => cmdTriageAdd({ title: 'By hand', text: 'Typed in.' }))
+    assert.equal(readInbox()[0]!.agent, undefined)
   })
 })
 

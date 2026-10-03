@@ -10,7 +10,8 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { cmdRemove } from '../src/commands/remove.ts'
-import { reflectRunsAfter } from '../src/lib/agent/propose.ts'
+import { queueCompleted } from '../src/lib/agent/propose.ts'
+import { reflectQueue } from '../src/lib/agent/settings.ts'
 import { packBoard, unpackBoard } from '../src/lib/board/transfer.ts'
 import { leftBoardOnLanding } from '../src/lib/agent/sessions.ts'
 import { parseFrontmatter } from '../src/lib/frontmatter.ts'
@@ -147,7 +148,8 @@ describe('a rejected card in the archive', () => {
     card(81)
     remove(80, 'rejected')
     remove(81, 'completed')
-    assert.deepEqual(reflectRunsAfter([80, 81]).map((req) => req.cards), [[81]])
+    queueCompleted([80, 81])
+    assert.deepEqual(reflectQueue(), [81])
     assert.equal(leftBoardOnLanding(80), false)
     assert.equal(leftBoardOnLanding(81), true)
   })

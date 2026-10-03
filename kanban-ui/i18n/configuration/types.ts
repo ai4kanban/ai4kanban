@@ -253,7 +253,7 @@ export type ConfigurationCopy = {
   agents: {
     /** The three groups Configuration → Board's column is split into (#742, #1208), named for
      *  what starts an agent: you, a schedule, or an event. */
-    groups: { you: string; schedule: string; event: string };
+    groups: { you: string; schedule: string };
     /** The one press beside a project agent's file path. */
     copyPath: string;
     /** A column row's own state, read there and flipped on the page beside it. Only a
@@ -352,6 +352,8 @@ export type ConfigurationCopy = {
       inDays: (n: number) => string;
       /** Its time has come, and nothing new has arrived for it to work on. */
       whenNew: string;
+      /** The cadence that leaves the timing to the board: it runs when there is something new. */
+      auto: string;
     };
     /** The same box for a specialist. */
     specialistRule: {

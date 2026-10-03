@@ -26,6 +26,7 @@
 import fs from 'node:fs'
 
 import { openSort, runSort, triageAfterAdding } from '../lib/agent/auto-triage'
+import { runAgent } from '../lib/agent/scheduled'
 import {
   addToInbox,
   archiveInboxItem,
@@ -105,7 +106,8 @@ export async function cmdTriageAdd(opts: TriageAddOptions): Promise<MoveResult> 
     die('the item has to say something: --text ".." , or --file <path> for a longer one', { kind: 'needs-input' })
   }
 
-  const done = addToInbox({ title, text: body, source: opts.source, slug: opts.slug })
+  const agent = runAgent()
+  const done = addToInbox({ title, text: body, source: opts.source, slug: opts.slug, ...(agent ? { agent } : {}) })
   if (!done.ok) die(done.error, { kind: 'triage-item-refused' })
   say(`added to triage: ${done.signal.relPath}`)
   await triageAfterAdding(1)
