@@ -18,7 +18,7 @@ import { chatOfKey, lastSpoken, readChat } from './chat'
 import { dismissalWorkWaiting } from './dismissal-review'
 import { commitsSince } from './project'
 import type { Store } from './store'
-import type { RunStatus, ScheduleWait } from './types'
+import type { RunStatus, ScheduleReason, ScheduleWait } from './types'
 
 /** The least gap between two passes of an `auto` agent that reads something. */
 export const AUTO_GAP = '1h'
@@ -29,7 +29,8 @@ export interface DueAsk {
   cadence: string
   /** What an `auto` agent that reads nothing runs on. */
   fallback: string
-  reads: boolean
+  /** What new input it runs on. Absent: it runs on its gap alone. */
+  reads?: ScheduleReads
   /** Its clock, ms: the last pass that passed, or where it was first looked at. 0 for never. */
   from: number
   /** Its own runs. */
@@ -45,6 +46,8 @@ export interface DueAsk {
 export interface DueAnswer {
   next: Date
   wait: ScheduleWait | null
+  /** The wait as a screen says it (#1476); absent when the next run's time says it. */
+  reason?: ScheduleReason
 }
 
 /** How many of the newest attempts failed in a row. */
@@ -67,9 +70,14 @@ export function scheduleDue(ask: DueAsk, now: number = Date.now()): DueAnswer {
     const base = next.getTime() - from
     next = new Date(from + Math.min(base * 2 ** (failed - 1), Math.max(base, DAY)))
   }
+  // Said only after a real failure: a run the user stopped did not fail.
+  const newest = ask.attempts.reduce<DueAsk['attempts'][number] | null>((a, r) => (a && a.startedAt >= r.startedAt ? a : r), null)
+  const retrying = isAuto(ask.cadence) && newest?.status === 'error'
   const wait: ScheduleWait | null =
     next.getTime() > now
-      ? 'tooSoon'
+      ? retrying
+        ? 'retrying'
+        : 'tooSoon'
       : !ask.newWork()
         ? 'nothingNew'
         : ask.backlog()
@@ -77,7 +85,8 @@ export function scheduleDue(ask: DueAsk, now: number = Date.now()): DueAnswer {
           : ask.building?.()
             ? 'building'
             : null
-  return { next, wait }
+  const reason = !wait || wait === 'tooSoon' ? undefined : wait === 'nothingNew' ? ask.reads : wait
+  return { next, wait, ...(reason ? { reason } : {}) }
 }
 
 // ---- what is new since a pass began ------------------------------------------

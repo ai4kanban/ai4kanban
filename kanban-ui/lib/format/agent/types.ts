@@ -1811,9 +1811,13 @@ export type MemoryPruneSchedule = CadenceSchedule
 export type BoardScheduleKey = 'memoryPrune' | 'dismissalReview' | 'projectDescription' | 'memoryReview'
 
 /** Why a scheduled agent that is on is not starting right now (#1475): its gap has not
- *  passed, nothing new arrived, what it last sent to triage is unhandled, or a card is being
- *  built. */
-export type ScheduleWait = 'tooSoon' | 'nothingNew' | 'unsorted' | 'building'
+ *  passed, an `auto` one is backing off a failed run, nothing new arrived, what it last sent
+ *  to triage is unhandled, or a card is being built. */
+export type ScheduleWait = 'tooSoon' | 'retrying' | 'nothingNew' | 'unsorted' | 'building'
+
+/** That wait as a screen says it (#1476): nothing new reads as what the agent reads. A gap
+ *  still to pass is no reason — the next run's time says it. */
+export type ScheduleReason = 'archived-cards' | 'commits' | 'chats' | 'dismissals' | 'retrying' | 'unsorted' | 'building'
 
 /** One board schedule as a screen draws it — the shape a workflow's scheduled agent has too. */
 export interface BoardScheduleView {
@@ -1822,10 +1826,8 @@ export interface BoardScheduleView {
   cadence: string
   /** The stamp its next pass may start after, or empty while it is off. */
   nextRun: string
-  /** That time has come, and there is nothing new for it to work on yet. */
-  nothingNew?: boolean
-  /** Why it is not starting now. Absent while off, or due. */
-  waiting?: ScheduleWait
+  /** Why it is not starting now. Absent while off, due, or only short of its time. */
+  waiting?: ScheduleReason
 }
 
 /** A project agent's own file, as its page holds it. */
@@ -1932,8 +1934,8 @@ export interface WorkflowScheduledView extends WorkflowScheduled {
   builtIn: boolean
   /** The stamp its next pass may start after, or empty when off or never looked at. */
   nextRun: string
-  /** Why it is not starting now. Absent while off, or due. */
-  waiting?: ScheduleWait
+  /** Why it is not starting now. Absent while off, due, or only short of its time. */
+  waiting?: ScheduleReason
 }
 
 /** One agent as a workflow picker offers it. The two lines are the roster's own, so the

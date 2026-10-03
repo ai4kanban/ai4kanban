@@ -409,7 +409,15 @@ const en: ConfigurationCopy = {
       inHours: (n) => `in ${n}h`,
       tomorrow: "tomorrow",
       inDays: (n) => `in ${n}d`,
-      whenNew: "when there's something new",
+      waiting: {
+        "archived-cards": "Runs when a card is finished",
+        commits: "Runs after new commits",
+        chats: "Runs after new chats",
+        dismissals: "Runs after new dismissal reasons",
+        unsorted: "Runs once triage is cleared",
+        building: "Runs when builds finish",
+        retrying: "Last run failed, retrying soon",
+      },
       auto: "Auto",
     },
     specialistRule: {
