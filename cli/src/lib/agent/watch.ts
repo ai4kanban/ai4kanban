@@ -709,12 +709,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         const landing = status === 'done' ? await advanceLanding() : null
         // The next hook after the build (#1328), owed by the delivery this run just settled.
         const hook = status === 'done' && record.deliveryId ? nextHookRun(findDelivery(record.deliveryId)) : null
-        // And the proposer (#534): every card that reached the archive while this run was up —
-        // the one it archived itself, the one its landing completed, a group closed by either.
-        // `before` is the board as it stood at the spawn, which is the only record of what was
-        // still open then; the dispatcher cannot answer this, because a completed card is
-        // exactly what it no longer sees.
-        const reflect = status === 'done' ? reflectRunsAfter(before.keys()) : []
+        // And the proposer (#534, #1467): every card that reached the archive while this run was
+        // up — the one it archived itself, the one its landing completed, a group closed by
+        // either. `before` is the board as it stood at the spawn, which is the only record of
+        // what was still open then. A reflection that passed starts the next round.
+        const reflect = status === 'done' ? reflectRunsAfter(before.keys(), record.action === 'reflect') : []
         // A **Make card** or **Start now** run records its item itself (#894, #1193); this
         // catches one that wrote the card and ended before it did.
         if (record.triage) {

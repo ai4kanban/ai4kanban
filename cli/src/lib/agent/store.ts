@@ -222,6 +222,7 @@ export function readStore(): Store {
       flowId: typeof entry.flowId === 'string' && entry.flowId ? entry.flowId : undefined,
       deliveryId: typeof entry.deliveryId === 'string' && entry.deliveryId ? entry.deliveryId : undefined,
       parentId: typeof entry.parentId === 'string' && entry.parentId ? entry.parentId : undefined,
+      cards: Array.isArray(entry.cards) && entry.cards.every(Number.isInteger) ? entry.cards : undefined,
     })
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)

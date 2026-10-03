@@ -147,7 +147,7 @@ describe('a rejected card in the archive', () => {
     card(81)
     remove(80, 'rejected')
     remove(81, 'completed')
-    assert.deepEqual(reflectRunsAfter([80, 81]).map((req) => req.id), [81])
+    assert.deepEqual(reflectRunsAfter([80, 81]).map((req) => req.cards), [[81]])
     assert.equal(leftBoardOnLanding(80), false)
     assert.equal(leftBoardOnLanding(81), true)
   })

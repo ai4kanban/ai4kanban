@@ -643,6 +643,30 @@ export function noteMemoryReviewRemaining(remaining: boolean, at: number = Date.
   })
 }
 
+// ---- the cards waiting for a reflection (#1467) ------------------------------
+//
+//   "reflectQueue": [1462, 1465]
+//
+// Completed cards, oldest first. A card leaves only when a reflection over it passed.
+
+const queueIn = (cfg: Record<string, unknown>): number[] =>
+  Array.isArray(cfg.reflectQueue) ? cfg.reflectQueue.filter((id): id is number => Number.isInteger(id) && id > 0) : []
+
+export const reflectQueue = (): number[] => queueIn(safeConfig())
+
+export function queueReflect(ids: number[]): void {
+  writeConfig((cfg) => {
+    const queue = queueIn(cfg)
+    cfg.reflectQueue = [...queue, ...ids.filter((id) => !queue.includes(id))]
+  })
+}
+
+export function dropReflected(ids: number[]): void {
+  writeConfig((cfg) => {
+    cfg.reflectQueue = queueIn(cfg).filter((id) => !ids.includes(id))
+  })
+}
+
 // ---- the leftover prune's last pass (#1177) ---------------------------------
 //
 //   "leftoverPrune": { "lastRun": "2026-09-28 09:00" }
