@@ -131,7 +131,7 @@ It never reaches the archive. Escape or **×** clears it. A match found only in 
 opens that half for that visit. In a browser, ⌘F also finds text in a folded half; the desktop app
 has no Find, so use the box.
 
-**Memory** and **Archive** sit at the foot of the rail.
+**Memory**, **Archive** and **Test cases** sit at the foot of the rail.
 
 ### Discuss a card
 
@@ -201,6 +201,15 @@ discarded card is filed here too, wearing **Rejected** where the release would s
 counted as shipped by any release. Dates start from when the board began recording them; older
 rows are marked. Click a row to read the card; a rejected card shows the reason it was given,
 word for word, under its chips. It is read-only: nothing un-archives.
+
+### Test cases
+
+**Test cases**, under Archive (under **More** on a phone), reads the project's `docs/qa/`; it is
+not there until the project has a case. It opens a card per module with its three newest cases;
+a module opens a card per case: its steps, screenshots and logs, title, feedback count and last
+update. A case opens Setup, Steps and Feedback in order, its screenshots and logs drawn where
+they are linked, and a file that is gone says so. Every page has its own address, is re-read on
+every visit and refresh, and is read-only.
 
 ### Assets on a card
 

@@ -168,23 +168,27 @@ folder is in git, so an older card is still in your history to read or diff. A
 [Cloud board](/docs/local-and-cloud-boards) deletes it from the workspace too, and has no
 history to read it back from.
 
-### The QA manual
+<span id="the-qa-manual" />
 
-Once a day the **QA manager** (`qa-manager`), Coding's scheduled agent, updates a manual of what
-your users actually do with the product. It is in your project, readable and repeatable by anyone.
+### Test cases
 
-- **Where it is**: `docs/qa/<module>/<case>/case.md`, one folder per case — the setup, then
+Once a day the **QA manager** (`qa-manager`), Coding's scheduled agent, updates the test cases:
+what your users actually do with the product. They are in your project, readable and repeatable by
+anyone.
+
+- **Where they are**: `docs/qa/<module>/<case>/case.md`, one folder per case — the setup, then
   numbered steps, each with what should happen and a proof of it: a screenshot, a GIF where motion
   matters, or a command's log, saved beside `case.md`. Each case ends with the agent's own
   feedback on how the experience felt.
+- **Read them on the board**: **Test cases**, at the foot of the rail (under **More** on a phone),
+  opens a card per module, then its cases, then one case with its screenshots and logs in place.
 - **The index**: `docs/qa/README.md` lists each module's cases, the modules still to cover, and
   how to run your project for proof.
 - **What a run does**: first it follows the cards finished since its last run — the cases they
   affect are rewritten, run for real and proved again, and cases they made untrue are deleted.
-  Then it writes the first cases for one module the manual does not cover yet, so what shipped
-  before the manual existed gets covered too, one module per run. When the finished cards span
-  two or more modules, each module goes to a [sub-run](/docs/runs#sub-runs), and they run in
-  parallel.
+  Then it writes the first cases for one module not covered yet, so what shipped before the
+  test cases existed gets covered too, one module per run. When the finished cards span two or
+  more modules, each module goes to a [sub-run](/docs/runs#sub-runs), and they run in parallel.
 - **How it lands**: a run's changes land as one commit of their own, like any
   [scheduled agent](/docs/agents#run-an-agent-on-a-schedule)'s; a run that changed nothing
   commits nothing.

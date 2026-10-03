@@ -35,6 +35,7 @@ import { useCallback, useState } from "react";
 import {
   FiArchive,
   FiChevronRight,
+  FiClipboard,
   FiColumns,
   FiFileText,
   FiInbox,
@@ -77,7 +78,9 @@ export function Rail({
   activeMemory = null,
   activeArchive = false,
   activeSignals = false,
+  activeTestCases = false,
   signals = { show: false, count: 0 },
+  testCases = false,
   memoryOwners = [],
   total,
   running,
@@ -93,6 +96,10 @@ export function Rail({
   /** Whether to offer the Inbox row at all, and how much is waiting in it. A board the
    *  inbox is not open to answers `show: false`, and the row is not drawn. */
   signals?: { show: boolean; count: number };
+  /** True while this window is showing the test cases (#1422). */
+  activeTestCases?: boolean;
+  /** Whether the project has test cases, and so the row. */
+  testCases?: boolean;
   /** What the memory panel draws: the board's own record, then every agent that keeps
    *  memory (#130, #805). */
   memoryOwners?: MemoryOwner[];
@@ -163,7 +170,7 @@ export function Rail({
         <RailRow
           href="/"
           label={c.allCards}
-          active={onPage && activeId === null && !activeMemory && !activeArchive && !activeSignals}
+          active={onPage && activeId === null && !activeMemory && !activeArchive && !activeSignals && !activeTestCases}
           count={total}
         />
         {searching ? (
@@ -252,6 +259,14 @@ export function Rail({
           icon={<FiArchive size={13} className="shrink-0" aria-hidden />}
           active={onPage && activeArchive}
         />
+        {testCases && (
+          <RailRow
+            href="/test-cases"
+            label={c.testCases.row}
+            icon={<FiClipboard size={13} className="shrink-0" aria-hidden />}
+            active={onPage && activeTestCases}
+          />
+        )}
       </div>
       {/* `marked` is dropped while a discussion is up, `active` is not: which panel and which
           module stand open is where the reader was, and a sheet over the page is no reason to

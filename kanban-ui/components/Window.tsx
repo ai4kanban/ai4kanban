@@ -68,6 +68,7 @@ import {
 } from "./Phone";
 import { Rail } from "./Rail";
 import { useSignalsRow } from "./signals-row";
+import { useTestCasesRow } from "./test-cases-row";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
 /** Stood in for a caller that doesn't watch sessions. One instance, so a page
@@ -114,6 +115,7 @@ export function Window({
   currentMemory = null,
   currentArchive = false,
   currentSignals = false,
+  currentTestCases = false,
   memoryOwners = [],
   running,
   onBoardChanged,
@@ -134,6 +136,8 @@ export function Window({
   /** True while this page is showing the inbox (#453, #499) — what highlights its
    *  rail row and takes the highlight off All cards. */
   currentSignals?: boolean;
+  /** True while this page is showing the test cases (#1422). */
+  currentTestCases?: boolean;
   /** The modules the rail's Memory panel offers, from the board read every page already
    *  does (#130). Empty on a board whose map names none. */
   memoryOwners?: MemoryOwner[];
@@ -204,6 +208,7 @@ export function Window({
   // waiting in it. Asked here rather than on each page so every screen offers
   // the same rail.
   const signals = useSignalsRow();
+  const testCases = useTestCasesRow();
   foldBellRef.current = bell.fold;
   // A notification clicked outside the window opens its own row: the same read mark, and
   // the same switch to that row's board when it is not the one on screen.
@@ -289,10 +294,10 @@ export function Window({
 
   // The phone shell (#357, #1198). Board is a place you go; More and Memory are screens drawn
   // over whatever page is up, and so are the top row's matches while its box holds a word.
-  // More is lit on either screen and on a memory file. Going anywhere uncovers the page and
-  // empties the box.
+  // More is lit on either screen, on a memory file and on the test cases. Going anywhere
+  // uncovers the page and empties the box.
   const path = usePathname();
-  const onMemory = path.startsWith("/memory/");
+  const underMore = path.startsWith("/memory/") || path.startsWith("/test-cases");
   const [cover, setCover] = useState<"more" | "memory" | null>(null);
   const find = useCardSearch();
   const setQuery = find.setQuery;
@@ -300,7 +305,7 @@ export function Window({
     setCover(null);
     setQuery("");
   }, [path, setQuery]);
-  const tab: PhoneTab = cover || onMemory ? "more" : "board";
+  const tab: PhoneTab = cover || underMore ? "more" : "board";
   const foldLayers = useCallback(() => {
     foldBell();
     foldChat();
@@ -349,6 +354,7 @@ export function Window({
       <MoreScreen
         projectRoot={projectRoot}
         onMemory={() => setCover("memory")}
+        testCases={testCases}
       />
     );
   const footShown = footTaken && !phoneScreen;
@@ -399,7 +405,9 @@ export function Window({
               activeMemory={currentMemory}
               activeArchive={currentArchive}
               activeSignals={currentSignals}
+              activeTestCases={currentTestCases}
               signals={signals}
+              testCases={testCases}
               memoryOwners={memoryOwners}
               total={openIds.length}
               running={running ?? EMPTY}
