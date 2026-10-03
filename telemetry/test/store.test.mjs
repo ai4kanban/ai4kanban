@@ -125,6 +125,20 @@ describe("a day's summary", () => {
     assert.equal(numbers.board.questions_closed_board, 2)
   })
 
+  it("counts the project's own agents that are on, and the runs they made", async () => {
+    const run = (id, name, custom) => ({ id, name, day: TODAY, surface: 'app', version: '0.9.9', harness: 'codex', ...(custom === undefined ? {} : { custom_agent: custom }) })
+    const on = (id, board, n) => ({ id, name: 'board_numbers', day: TODAY, surface: 'app', version: '0.9.9', board, custom_agents_on: n })
+    const db0 = fakeDatabase()
+    await put(db0, A, TODAY, [on('c1', BOARD, 2), run('r1', 'run_started', true), run('r2', 'run_failed', true), run('r3', 'run_started', false), run('r4', 'run_started')])
+    await put(db0, B, TODAY, [on('c2', A, 1)])
+
+    const numbers = await summaryOf(db0, TODAY)
+    assert.equal(numbers.board.custom_agents_on, 3)
+    assert.deepEqual(numbers.custom_agents, { installs: 2, boards: 2 })
+    // A run from an older sender carries no flag and counts as a shipped agent's.
+    assert.deepEqual(numbers.run_custom, { 'run_started 1': 1, 'run_failed 1': 1, 'run_started 0': 2 })
+  })
+
   it('asks for the spreads in statements D1 will take, and names its columns in each', () => {
     // One 25-branch query was refused by D1 every night for nine days and passed here, where
     // SQLite takes 500 (#801). A branch that starts a query is where its column names come

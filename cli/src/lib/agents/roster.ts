@@ -15,10 +15,10 @@ import path from 'node:path'
 import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
-import { forgetWorkflowAgent, settleWorkflows } from '../agent/workflows'
+import { forgetWorkflowAgent, scheduledMembers, settleWorkflows, stageHelpers, workflows } from '../agent/workflows'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
 import { configBlock, forgetSpecAgent, specAgentEntries, writeConfig } from '../agent/settings'
-import type { AgentSlot, AgentView } from '../agent/types'
+import { WORKFLOW_STAGES, type AgentSlot, type AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import type { WriteResult } from '../view/types'
@@ -65,6 +65,28 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
     }
   })
   return { agents, problems }
+}
+
+// ---- the project's own agents (#1471) ------------------------------------------
+
+const projectAgents = () => specAgentCatalog().agents.filter((agent) => !agent.builtIn && agent.dir)
+
+/** Whether a run's agent is one the project added rather than one the board ships. */
+export const isCustomAgent = (name: string | undefined): boolean =>
+  !!name && projectAgents().some((agent) => agent.name === name)
+
+/** The project's own agents that are on: every one is a stage or scheduled agent, so on
+ *  means some workflow runs it. */
+export function customAgentsOn(): string[] {
+  const running = new Set<string>()
+  for (const flow of workflows()) {
+    for (const stage of WORKFLOW_STAGES) {
+      if (flow.stages[stage].lead) running.add(flow.stages[stage].lead)
+      for (const helper of stageHelpers(flow, stage)) running.add(helper.agent)
+    }
+    for (const scheduled of scheduledMembers(flow)) if (!scheduled.off) running.add(scheduled.agent)
+  }
+  return projectAgents().filter((agent) => running.has(agent.name)).map((agent) => agent.name)
 }
 
 // ---- adding one -------------------------------------------------------------

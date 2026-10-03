@@ -43,6 +43,7 @@ export function report(endpoint, days, held) {
     downloadRate(days, held, from, to) +
     installSpreads(days, held) +
     boardNumbers(days, held, from, to) +
+    customAgents(days, held) +
     allowances(days, held) +
     'The app numbers cover installs with usage reporting on, and the site numbers cover\n' +
     'browsers that ran the counter on the two pages that carry a download button. Neither is\n' +
@@ -191,6 +192,7 @@ function boardNumbers(days, held, from, to) {
       total[counter] = (total[counter] ?? 0) + n
     }
   }
+  delete total.custom_agents_on
   if (Object.keys(total).length === 0) return `Board numbers, ${from} to ${to}\n  —\n\n`
   const at = (name) => count(total[name])
   return (
@@ -202,6 +204,23 @@ function boardNumbers(days, held, from, to) {
     `user ${at('questions_closed_user')} · verify ${at('questions_closed_verify')})\n` +
     `  decisions stood ${at('decisions_stood')} · overruled ${at('decisions_overruled')}\n` +
     `  releases closed ${at('releases_closed')}\n\n`
+  )
+}
+
+/** A level, not a count: like the install spreads, one day's and never a range's (#1471). */
+function customAgents(days, held) {
+  const day = days.find((one) => held.has(one))
+  if (!day) return ''
+  const numbers = held.get(day)
+  const on = numbers.board?.custom_agents_on ?? 0
+  const { installs = 0, boards = 0 } = numbers.custom_agents ?? {}
+  const runs = numbers.run_custom ?? {}
+  const at = (key) => count(runs[key] ?? 0)
+  return (
+    `Custom agents on ${day}\n` +
+    `  on ${count(on)} across ${count(boards)} boards · ${count(installs)} of ${count(numbers.installs)} installs\n` +
+    `  runs started ${at('run_started 1')} · finished ${at('run_finished 1')} · failed ${at('run_failed 1')} ` +
+    `(shipped agents ${at('run_started 0')} · ${at('run_finished 0')} · ${at('run_failed 0')})\n\n`
   )
 }
 

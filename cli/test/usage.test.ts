@@ -109,7 +109,7 @@ describe('what is queued', () => {
   it('reports nothing at all from a machine that said no', () => {
     assert.deepEqual(setUsageReporting(false), { ok: true })
     reportAppOpen('command')
-    reportRun('started', 'claude-code')
+    reportRun('started', 'claude-code', false)
     reportChatMessage()
     assert.equal(fs.existsSync(usageQueueFile()), false)
     assert.equal(readUsageReporting().installId, '')
@@ -197,22 +197,22 @@ describe('what is queued', () => {
     dayAlreadySent()
     reportChatMessage()
     reportChatMessage()
-    reportRun('started', 'codex')
+    reportRun('started', 'codex', false)
     assert.deepEqual(names(), ['app_day', 'chat_message', 'chat_message', 'run_started'])
     assert.equal(state().dayEvent, usageDay())
   })
 
   it('carries the agent on a run and nothing about the card', () => {
     dayAlreadySent()
-    reportRun('finished', 'claude-code')
+    reportRun('finished', 'claude-code', false)
     const run = queued().find((e) => e.name === 'run_finished')!
     assert.equal(run.harness, 'claude-code')
-    assert.deepEqual(Object.keys(run).sort(), ['day', 'harness', 'id', 'name', 'surface', 'version'])
+    assert.deepEqual(Object.keys(run).sort(), ['custom_agent', 'day', 'harness', 'id', 'name', 'surface', 'version'])
   })
 
   it('leaves out a harness the endpoint would refuse rather than sending it', () => {
     dayAlreadySent()
-    reportRun('failed', 'an agent nobody named')
+    reportRun('failed', 'an agent nobody named', false)
     const run = queued().find((e) => e.name === 'run_failed')!
     assert.equal(run.harness, undefined)
   })
@@ -287,7 +287,7 @@ describe('the sender', () => {
     try {
       putState({ sendMinute: PARKED })
       reportChatMessage()
-      reportRun('started', 'codex')
+      reportRun('started', 'codex', false)
       await settle()
       putState({ ...state(), sendMinute: 0 })
       await sendUsage()
@@ -404,7 +404,7 @@ describe('the sender', () => {
     process.env.AI4KANBAN_USAGE_URL = at.url
     try {
       putState({ sendMinute: PARKED })
-      for (let i = 0; i < LIMITS.batchEvents; i += 1) reportRun('started', 'claude-code')
+      for (let i = 0; i < LIMITS.batchEvents; i += 1) reportRun('started', 'claude-code', false)
       await settle()
       putState({ ...state(), sendMinute: 0 })
       await sendUsage()

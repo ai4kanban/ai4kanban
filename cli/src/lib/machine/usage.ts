@@ -21,12 +21,14 @@
 // through this queue rather than building a second one.
 
 import fs from 'node:fs'
+import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 import { ENDPOINT, LIMITS, TOKEN, VERSION } from '../../../../telemetry/contract'
 import type { EventName, SentEvent } from '../../../../telemetry/contract'
 import { SKILL_VERSION } from '../../version'
 import { insideRun } from '../agent/env'
+import { BOARD_STATE } from '../paths'
 import { machineHome } from './home'
 import { ensureUsageInstallId, readUsageReporting, usageQueueFile, usageStateFile } from './telemetry'
 
@@ -169,9 +171,35 @@ const RUN_EVENT = {
 /** A run of the board's agent, as the surface that started it saw it. Only the two endings
  *  the board witnessed are reported: a run nobody saw the end of was never finished, and a
  *  run the user stopped is neither a success nor a failure. */
-export function reportRun(what: keyof typeof RUN_EVENT, harness: string): void {
+export function reportRun(what: keyof typeof RUN_EVENT, harness: string, customAgent: boolean): void {
   const named = token(harness)
-  reportUsage(RUN_EVENT[what], named ? { harness: named } : {})
+  reportUsage(RUN_EVENT[what], { ...(named ? { harness: named } : {}), custom_agent: customAgent })
+}
+
+/** This board's numbers (#1471): how many of its own agents are on, at most once a day and
+ *  only when there are some. Its id is random and kept in the board's machine state, made
+ *  only once reporting is on. */
+export function reportBoardNumbers(customAgentsOn: () => number): void {
+  try {
+    if (!BOARD_STATE || !readUsageReporting().on) return
+    const file = path.join(BOARD_STATE, 'usage-board.json')
+    let held: { id?: string; day?: string } = {}
+    try {
+      held = JSON.parse(fs.readFileSync(file, 'utf8')) as typeof held
+    } catch {
+      held = {}
+    }
+    const day = usageDay()
+    if (held.day === day) return
+    const on = customAgentsOn()
+    if (on <= 0) return
+    const id = typeof held.id === 'string' && held.id ? held.id : randomUUID()
+    fs.mkdirSync(BOARD_STATE, { recursive: true })
+    fs.writeFileSync(file, `${JSON.stringify({ id, day })}\n`)
+    reportUsage('board_numbers', { board: id, custom_agents_on: on })
+  } catch {
+    return
+  }
 }
 
 /** One message the user sent the board's agent. Not the message, and not the reply. */

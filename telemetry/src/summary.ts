@@ -33,6 +33,7 @@ export interface Totals {
 }
 
 const firstRun = "name = 'app_open' AND json_extract(fields, '$.first_run') = 1"
+const customAgentsOn = "name = 'board_numbers' AND json_extract(fields, '$.custom_agents_on') > 0"
 
 /** Every branch names the four columns, because any of them may be the first of its query
  *  and a compound takes its column names from the one it starts with. `GROUP BY 1, 3` is day
@@ -89,6 +90,14 @@ const BRANCHES = [
   spread('first_run_surface', 'surface', firstRun, true),
   spread('first_run_version', 'version', `${firstRun} AND version <> ''`, true),
   json('run_harness', 'harness', "name IN ('run_started', 'run_finished', 'run_failed')"),
+  // `run_started 1` is a run by a project's own agent, so its failure rate reads off one group.
+  `SELECT day AS day, 'run_custom' AS dim, ` +
+    `name || ' ' || COALESCE(json_extract(fields, '$.custom_agent'), 0) AS key, ` +
+    `COUNT(*) AS n FROM d WHERE name IN ('run_started', 'run_finished', 'run_failed') GROUP BY 1, 3`,
+  // Who has any of their own agents on; `board.custom_agents_on` is how many in all.
+  spread('custom_agents', "'installs'", customAgentsOn, true),
+  `SELECT day AS day, 'custom_agents' AS dim, 'boards' AS key, COUNT(DISTINCT board_id) AS n ` +
+    `FROM d WHERE ${customAgentsOn} GROUP BY 1`,
   // #297's rate: views and presses over the same key, so the two divide cell by cell.
   pageAndLanguage('page_view_seen', "name = 'page_view'"),
   pageAndLanguage('download_press_seen', "name = 'download_press'"),
