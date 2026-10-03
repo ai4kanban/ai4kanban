@@ -1,0 +1,17 @@
+$ akb raw create --title "Export a card as PDF"
+2
+  wrote docs/kanban/todo/2-export-a-card-as-pdf.md — frontmatter is set; fill the body with your editor, leave the frontmatter to the script
+  indexed under "## Tasks"
+
+$ akb card implement 2
+implement — run bbd16578-9005-4447-b198-5460b49d5b17 in delivery usntcggu
+  follow it: akb run log bbd16578 --follow
+  stop it:   akb run stop bbd16578
+$ akb run list
+✓ bbd16578  implement #2        done  delivery usntcggu  in 0s
+nothing running.
+
+$ git log --oneline
+7e0c5d1 Export a card as PDF (#2)
+a51b709 board
+1aa2d07 init

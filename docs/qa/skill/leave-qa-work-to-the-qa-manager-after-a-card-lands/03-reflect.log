@@ -1,0 +1,25 @@
+$ node start-reflect.mjs <cli/dist/kanban.mjs>
+reflect [2] — run b0a69816-5407-4684-a84b-8f06e6ca7e9e
+
+# the prompt the board gave the proposer run (last argument the agent was started with)
+/kanban. These tasks have just been completed: #2 ("Export a card as PDF"). Propose the work that should follow them, following `akb guide reflect`. They have left the board — read each in its own <card> block below, with the discussion it came from when the block lists one. Skip anything already on the board, already in the inbox, or turned down before. Write each survivor with `akb triage add`: that is the whole of what you may write unless your settings below say otherwise — no card is edited or archived, and finding nothing worth proposing is a complete result. Don't ask me questions with human-in-the-loop.
+<card id="2">
+file      docs/kanban/.archive/2-export-a-card-as-pdf.md
+shipped   `git show 7e0c5d173201` — the change that landed
+</card>
+
+Write this board's prose in 中文: card titles and bodies, open questions and their options, memory notes, changelogs, and what you say back to me. Keep English whatever the language: frontmatter keys and their fixed values, `##` and `###` section headings, the `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag, track and module names, and card filenames. Never rename or translate a section title — the board matches those by literal English text, so a changed one is a card it can no longer read, and a title that is not English needs `akb raw create --slug` a short English slug. Rewriting a card or a memory file that already exists keeps the language that file is already in; only what you write for me to read personally — an open question and its options — follows 中文 on every card, and so does the first note in a memory file still holding nothing but its seeded header. This governs the board's prose alone: code, comments, commit messages and the repository's own documents follow the repository, not me. `akb guide board` carries the rule in full.
+
+$ grep -c scheduled <that prompt>
+0
+
+$ akb run list
+✓ bbd16578  implement #2        done  delivery usntcggu  in 0s
+✓ b0a69816  reflect             done  in 0s
+nothing running.
+
+$ akb guide reflect | grep -n scheduled
+33:(`akb triage check <source-id>`), is work an agent listed under `scheduled` does on its own
+
+$ akb reflect --print
+akb: unknown command 'reflect'
