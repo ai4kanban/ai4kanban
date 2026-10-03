@@ -33,6 +33,8 @@ export type ChatCopy = {
   /** Why a reply stopped, for the seconds this window holds it before the transcript does
    *  — the board's own wording for a reply the user ended. */
   youStopped: string;
+  /** Under a message whose reply never landed — the app quit or crashed mid-reply (#1411). */
+  cutShort: string;
   /** A card's rail with nothing in it yet: the question put to the user, and the lead-in to
    *  the sample asks typed under it. A tuple, so a language cannot ship a shorter list. */
   emptyLead: string;

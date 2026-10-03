@@ -26,6 +26,7 @@ const zh: ChatCopy = {
   toFoot: "跳到最新一条",
   stopped: "已经收到的内容会保留——再发一条消息即可继续。",
   youStopped: "你停止了这次回复。",
+  cutShort: "回复被中断，内容没有保留。",
   emptyLead: "关于这张卡片，想聊什么？",
   emptyAskLead: "比如：",
   emptyCardAsks: [
