@@ -164,7 +164,7 @@ function scheduleAnswer(name: ScheduleName, runs: RunView[], write: boolean, bac
   const schedule = SCHEDULES[name]
   const ask = schedule.ask(runs, write)
   if (!ask) return null
-  return scheduleDue({ ...ask, reads: !!schedule.reads, attempts: own(runs, schedule.action), backlog: () => backlog().has(schedule.agent) })
+  return scheduleDue({ ...ask, reads: schedule.reads, attempts: own(runs, schedule.action), backlog: () => backlog().has(schedule.agent) })
 }
 
 function scheduleDueNow(name: ScheduleName, runs: RunView[], backlog: () => Set<string>): boolean {
@@ -191,8 +191,7 @@ export async function boardSchedules(): Promise<Record<BoardScheduleKey, BoardSc
       enabled: saved[key].enabled,
       cadence: saved[key].cadence,
       nextRun: due ? formatStamp(due.next) : '',
-      ...(due?.wait === 'nothingNew' ? { nothingNew: true } : {}),
-      ...(due?.wait ? { waiting: due.wait } : {}),
+      ...(due?.reason ? { waiting: due.reason } : {}),
     }
   }
   return {

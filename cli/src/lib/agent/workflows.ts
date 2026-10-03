@@ -1572,7 +1572,7 @@ export function workflowViews(): WorkflowView[] {
         gloss: entry?.gloss ?? '',
         builtIn: entry?.builtIn ?? false,
         nextRun: due ? formatStamp(due.next) : '',
-        ...(due?.wait ? { waiting: due.wait } : {}),
+        ...(due?.reason ? { waiting: due.reason } : {}),
       }
     }),
     problems: workflowProblems(flow.id),

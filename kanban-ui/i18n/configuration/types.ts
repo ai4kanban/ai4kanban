@@ -2,6 +2,7 @@
  *  harness declares — their labels, help and choices — are the board's own rules
  *  and never enter this file. */
 import type { CadenceUnit } from "@/lib/cadence";
+import type { ScheduleReason } from "@/lib/types";
 
 /** The roles the board ships — the agents its own flows are run by, on either solution.
  *  Closed, because the command ships them; a specialist is a file and carries its own
@@ -350,8 +351,9 @@ export type ConfigurationCopy = {
       inHours: (n: number) => string;
       tomorrow: string;
       inDays: (n: number) => string;
-      /** Its time has come, and nothing new has arrived for it to work on. */
-      whenNew: string;
+      /** Why one on Auto is not running yet (#1476): what it reads has nothing new, or what
+       *  holds it back. */
+      waiting: Record<ScheduleReason, string>;
       /** The cadence that leaves the timing to the board: it runs when there is something new. */
       auto: string;
     };

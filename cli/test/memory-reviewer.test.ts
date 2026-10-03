@@ -355,10 +355,10 @@ describe('the review the board starts on its own', () => {
     chat('card-1')
     const view = (await boardSchedules()).memoryReview
     assert.equal(view.enabled, true)
-    assert.equal(view.nothingNew, true)
+    assert.equal(view.waiting, 'chats')
     card(2)
     chat('card-2')
-    assert.equal((await boardSchedules()).memoryReview.nothingNew, undefined)
+    assert.equal((await boardSchedules()).memoryReview.waiting, undefined)
   })
 
   it('stops the round at a batch that failed, whatever is still waiting', async () => {

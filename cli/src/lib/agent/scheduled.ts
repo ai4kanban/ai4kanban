@@ -68,7 +68,7 @@ export function scheduledWait(
     {
       cadence: one.cadence,
       fallback: SCHEDULED_CADENCE,
-      reads: !!reads,
+      reads,
       from: stampMs(scheduledClock(one)),
       attempts: store.runs.filter((r) => isPass(r, pass)),
       newWork: () => !reads || readsNew(reads, lastRun),

@@ -52,6 +52,7 @@ export type {
   LoggedOutAgent,
   BoardScheduleKey,
   BoardScheduleView,
+  ScheduleReason,
   RunReason,
   PlanAnswer,
   RuntimeView,

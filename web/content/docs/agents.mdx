@@ -69,8 +69,9 @@ can be switched off:
 
 **Configuration → Board** groups them by what starts each one: **You start** and **On a schedule**.
 A scheduled agent's page sets its cadence — **Auto** by default, which runs it when there is
-something new, like a [workflow's scheduled agent](#run-an-agent-on-a-schedule) — and the same
-list shows the next run and ends on **Disable**; **Run now** still works while it is disabled. The Proposer and the scheduled agents each spend runs you
+something new, like a [workflow's scheduled agent](#run-an-agent-on-a-schedule) — and its list
+ends on **Disable**; **Run now** still works while it is disabled. On **Auto**, the line under its
+name says what it is waiting for. The Proposer and the scheduled agents each spend runs you
 never asked for.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
@@ -297,6 +298,7 @@ cadence arrives disabled.
   schedule you pick replaces the hour or the day; the waits below still apply.
 - **It waits for you and for builds.** It does not run while what it put in Triage last time is
   still waiting, or became a card nobody has started, nor while a card is being built or landed.
+  On **Auto**, the line under its name says what it is waiting for.
 - **It never runs the moment you enable it.** The first run comes one gap later; the page shows
   the last run and when the next may start.
 - **What it changes is committed like a build.** With **Automatic Git commits** on, the run works

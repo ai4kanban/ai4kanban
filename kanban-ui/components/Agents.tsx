@@ -676,7 +676,9 @@ function PickRow({
   const trigger = scheduleOff
     ? c.schedule.off
     : schedule && isAuto(schedule.cadence)
-      ? c.schedule.auto
+      ? schedule.waiting
+        ? c.schedule.waiting[schedule.waiting]
+        : c.schedule.auto
       : saved && copy
       ? copy.cadenceLabel(saved.n, saved.unit, saved.at)
       : (c.roles[agent.name as keyof typeof c.roles]?.trigger ?? "");
@@ -1327,11 +1329,12 @@ function SettingPick({
 const COMPACT_BTN =
   "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-[7px] px-2 text-[11.5px] font-[700] transition-[background-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
-/** When the next run is, in the list's first line: relative, and empty while off. */
+/** The list's first line: why it is waiting, else when the next run is. Empty while off. */
 function useNextRunLine(view: BoardScheduleView | null | undefined): string {
   const c = useCopy().configuration.agents.schedule;
-  if (!view?.enabled || !view.nextRun) return "";
-  if (view.nothingNew) return c.nextRun(c.whenNew);
+  if (!view?.enabled) return "";
+  if (view.waiting) return c.waiting[view.waiting];
+  if (!view.nextRun) return "";
   const at = parseStamp(view.nextRun);
   if (!at) return "";
   const hours = (at.getTime() - Date.now()) / 3_600_000;
@@ -1399,6 +1402,8 @@ function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onE
       return;
     }
     void readRuns();
+    // A running pass waits on nothing: the reason under its name goes.
+    void reload();
   };
 
   const saved = parseCadence(view?.cadence ?? "");

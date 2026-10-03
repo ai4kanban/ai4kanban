@@ -35,6 +35,7 @@ import {
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
+import { isAuto } from "@/lib/cadence";
 import { WORKFLOW_STAGES } from "@/lib/types";
 import type {
   AgentInfo,
@@ -236,7 +237,7 @@ export function WorkflowsPanel({
     const set = async (m: Parameters<typeof setWorkflowScheduledAction>[1]) =>
       (await setWorkflowScheduledAction(flowId, m)).ok;
     return {
-      view: { enabled: !one.off, cadence: one.cadence, nextRun: one.nextRun },
+      view: { enabled: !one.off, cadence: one.cadence, nextRun: one.nextRun, waiting: one.waiting },
       copy: c.cadence,
       icon: <FiPlay size={11} aria-hidden />,
       isPass: (r) => r.action === "scheduled" && r.workflow === flowId && r.agent === one.agent,
@@ -379,6 +380,7 @@ export function WorkflowsPanel({
 
   // The agents this workflow runs on a cadence (#1401). Not a stage: no lead, and no arrow in.
   const scheduledBlock = () => {
+    const waits = ca.schedule.waiting;
     const rows = (off: boolean) =>
       scheduled
         .filter((h) => !!h.off === off)
@@ -387,6 +389,7 @@ export function WorkflowsPanel({
             key={h.agent}
             name={h.agent}
             agent={{ name: h.agent, title: h.title, gloss: h.gloss, builtIn: h.builtIn }}
+            note={!h.off && h.waiting && isAuto(h.cadence) ? waits[h.waiting] : undefined}
             held={shown === h.agent}
             off={h.off}
             onOpen={() => void select(h.agent)}
@@ -844,6 +847,7 @@ function NameBox({
 function StageRow({
   name,
   agent,
+  note,
   held,
   off,
   onOpen,
@@ -851,6 +855,8 @@ function StageRow({
 }: {
   name: string;
   agent: WorkflowCandidate | undefined;
+  /** The small line under the name: why a scheduled agent is waiting (#1476). */
+  note?: string;
   held: boolean;
   off?: boolean;
   onOpen: () => void;
@@ -860,7 +866,7 @@ function StageRow({
   const nameOf = useCandidateName();
   return (
     <div
-      className={`relative flex w-full items-center gap-2 rounded-[9px] px-2.5 py-[5px] transition-colors duration-100 ${
+      className={`relative flex w-full items-center gap-2 rounded-[9px] px-2.5 ${note ? "py-[7px]" : "py-[5px]"} transition-colors duration-100 ${
         held ? "" : "hover:bg-nb-sheet"
       }`}
     >
@@ -875,10 +881,15 @@ function StageRow({
         <span className={`flex size-[26px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}>
           <Character name={name} size={26} />
         </span>
-        <span
-          className={`min-w-0 flex-1 truncate text-[12.5px] font-[700] leading-[16px] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}
-        >
-          {nameOf(agent, name)}
+        <span className="min-w-0 flex-1">
+          <span
+            className={`block truncate text-[12.5px] font-[700] leading-[16px] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}
+          >
+            {nameOf(agent, name)}
+          </span>
+          {note && (
+            <span className="mt-[1px] block truncate text-[11px] leading-[14px] text-nb-ink-soft">{note}</span>
+          )}
         </span>
       </button>
       {swap && (

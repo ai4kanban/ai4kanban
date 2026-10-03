@@ -497,7 +497,15 @@ const zh: ConfigurationCopy = {
       inHours: (n) => `${n} 小时后`,
       tomorrow: "明天",
       inDays: (n) => `${n} 天后`,
-      whenNew: "有新内容时",
+      waiting: {
+        "archived-cards": "有新完成的卡片后运行",
+        commits: "有新提交后运行",
+        chats: "有新对话后运行",
+        dismissals: "有新的忽略原因后运行",
+        unsorted: "处理完待筛选后运行",
+        building: "开发结束后运行",
+        retrying: "上次失败，稍后重试",
+      },
       auto: "自动",
     },
     specialistRule: {
