@@ -10,4 +10,3 @@ The categories and entries live with the scriptwriter agent, in
 Read them there; this repository keeps no second copy.
 
 - **Entries**: include name, shot sequence, distinctive motion and pacing, use cases, commit-pinned source and existing preview. Link related entries for shared effects, and follow the source recipes' own categories rather than inventing a taxonomy.
-- **Inventory**: `inventory.md` beside this file tracks which examples are still unwritten. It stays here and is not distributed; update an entry's status there whenever you add one.
