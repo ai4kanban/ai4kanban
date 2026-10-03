@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+// Stands in for `npx --no-install wrangler …`: a login, and `d1 execute --command` answered
+// from the SQLite file in QA_DB. Put this folder first on PATH.
+import { DatabaseSync } from 'node:sqlite'
+
+const args = process.argv.slice(2)
+if (args.includes('auth')) console.log(JSON.stringify({ type: 'oauth', token: 'sample' }))
+else {
+  const sql = args[args.indexOf('--command') + 1]
+  const results = new DatabaseSync(process.env.QA_DB).prepare(sql).all()
+  console.log(JSON.stringify([{ results, success: true }]))
+}

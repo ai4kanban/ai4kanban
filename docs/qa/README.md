@@ -37,12 +37,14 @@
 
 ### site
 
-待补写。还没有场景。
+待补写。
+
+- [在隐私页查聊天回话会上报什么](site/read-what-usage-reporting-sends-for-a-chat-on-the-privacy-page/case.md)
 
 ### docs
 
-待补写。
-
+- [从文档首页找到并读完「The daily loop」](docs/find-and-read-the-daily-loop-from-the-docs-home/case.md)
+- [在文档页之间跳转](docs/move-between-docs-pages/case.md)
 - [在文档里查 QA 手册是怎么维护的](docs/read-how-the-qa-manual-is-kept-in-the-docs/case.md)
 - [在文档里查怎么让一个 Agent 定期运行](docs/read-how-to-run-an-agent-on-a-schedule-in-the-docs/case.md)
 - [在文档里查否决一张卡时写的原因去了哪里](docs/read-what-happens-to-a-rejection-reason-in-the-docs/case.md)
@@ -55,6 +57,8 @@
 
 待补写。
 
+- [检查 main 上的 telemetry 改动是否已上线](telemetry/check-whether-telemetry-on-main-is-live/case.md)
+- [在用量数据上查看聊天回合的次数和花费](telemetry/read-chat-turn-cost-on-the-numbers-page/case.md)
 - [没有 Cloud 凭据时打开数据页](telemetry/open-the-numbers-page-without-cloud-credentials/case.md)
 - [在数据页上按能力、按用户查看托管 AI 的成本](telemetry/read-ai-cost-per-user-on-the-numbers-page/case.md)
 
@@ -84,9 +88,6 @@
   - 提交联系表单
   - 预约培训
   - 切换语言
-- **docs**（用户文档）
-  - 从 `/docs` 首页找到并读完日常流程
-  - 在文档页之间跳转
 - **cloud**（Cloud 看板）
   - 登录
   - 打开工作区的看板
