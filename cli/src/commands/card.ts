@@ -9,6 +9,7 @@ import path from 'node:path'
 import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
+import { countBoardEvent, type BoardCount } from '../lib/machine/usage'
 import { slugify, validModules, parseIdList, normalizeRelease, dependencyCycle } from '../lib/validate'
 import { DEFAULT_WORKFLOW, knownWorkflow } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
@@ -151,6 +152,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
+  countBoardEvent(triage ? 'cards_created_proposed' : 'cards_created_asked')
   const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, source, questions }
   const scaffolded = !written && opts.body !== false
   const body = written ?? (scaffolded ? defaultBody() : '')
@@ -410,6 +412,14 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   let skipped = 0
   let unskipped = 0
   const asker = specRunAgent()
+  // Who each closed question was waiting on (#1472), counted once the write lands.
+  const closed: BoardCount[] = []
+  const verifying = !!activeDelivery(id)
+  const close = (qs: Question[]): void => {
+    for (const q of qs) {
+      closed.push(verifying ? 'questions_closed_verify' : parseQuestion(q.text).tag === 'user' ? 'questions_closed_user' : 'questions_closed_board')
+    }
+  }
   // A skipped question is the user's record (#831): no run answers, rewrites or drops it.
   const positions = (op: QuestionOp, flag: string): number[] => {
     const ns = parseQuestionPositions(op.ns ?? String(op.n), meta.questions.length, flag)
@@ -426,16 +436,19 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       op.question.agent = agent.name
     }
     if (op.kind === 'clear') {
+      close(meta.questions.filter((q) => !q.skipped))
       meta.questions = meta.questions.filter((q) => q.skipped)
       changes.push('cleared')
     } else if (op.kind === 'drop') {
       const ns = positions(op, 'drop')
+      close(ns.map((n) => meta.questions[n - 1]!))
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
     } else if (op.kind === 'skip') {
       const ns = positions(op, 'skip')
       const notUser = ns.find((n) => parseQuestion(meta.questions[n - 1]!.text).tag !== 'user')
       if (notUser !== undefined) die(`question ${notUser} on #${id} is not a [user] question — only the user's own can be skipped`)
+      close(ns.map((n) => meta.questions[n - 1]!).filter((q) => !q.skipped))
       for (const n of ns) meta.questions[n - 1] = { ...meta.questions[n - 1]!, skipped: true }
       skipped += ns.length
       changes.push(`skipped ${ns.join(',')}`)
@@ -471,6 +484,7 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
     changes.push('status→todo (open questions)')
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  for (const kind of closed) countBoardEvent(kind)
   if (scheduleRefineOnBlock(id)) changes.push('schedule→refine when unblocked')
   settleDelivery(id, skipped, unskipped)
   say(

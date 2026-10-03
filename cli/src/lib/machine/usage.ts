@@ -207,27 +207,93 @@ function endFields({ model, costUsd, ownEndpoint }: RunEnd): Record<string, Fiel
   return fields
 }
 
-/** This board's numbers (#1471): how many of its own agents are on, at most once a day and
- *  only when there are some. Its id is random and kept in the board's machine state, made
- *  only once reporting is on. */
+/** What a board counts between two reports (#1472). The two totals the contract also names
+ *  are the sums of their parts, made when the report is. */
+const BOARD_COUNTS = [
+  'cards_created_asked',
+  'cards_created_proposed',
+  'cards_completed',
+  'cards_rejected',
+  'questions_closed_board',
+  'questions_closed_user',
+  'questions_closed_verify',
+  'decisions_stood',
+  'decisions_overruled',
+  'releases_closed',
+] as const
+
+export type BoardCount = (typeof BOARD_COUNTS)[number]
+
+type BoardCounts = Partial<Record<BoardCount, number>>
+
+interface BoardState {
+  id?: string
+  day?: string
+  counts?: BoardCounts
+}
+
+const boardFile = (): string => path.join(BOARD_STATE, 'usage-board.json')
+
+function readBoard(): BoardState {
+  try {
+    const held = JSON.parse(fs.readFileSync(boardFile(), 'utf8')) as BoardState
+    return held && typeof held === 'object' ? held : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeBoard(state: BoardState): void {
+  fs.mkdirSync(BOARD_STATE, { recursive: true })
+  fs.writeFileSync(boardFile(), `${JSON.stringify(state)}\n`)
+}
+
+const countOf = (counts: BoardCounts | undefined, name: BoardCount): number => {
+  const n = counts?.[name]
+  return typeof n === 'number' && Number.isInteger(n) && n > 0 ? n : 0
+}
+
+/** Add to one of this board's counts, kept until the next report. Nothing is kept while
+ *  reporting is off. Never throws. */
+export function countBoardEvent(name: BoardCount, n = 1): void {
+  try {
+    if (!BOARD_STATE || n <= 0 || !readUsageReporting().on) return
+    const held = readBoard()
+    writeBoard({ ...held, counts: { ...held.counts, [name]: countOf(held.counts, name) + n } })
+  } catch {
+    return
+  }
+}
+
+/** This board's numbers (#1471, #1472): what it counted since the last report, and how many
+ *  of its own agents are on — at most once a day, and only when there is something to say.
+ *  Its id is random and kept in the board's machine state, made only once reporting is on. */
 export function reportBoardNumbers(customAgentsOn: () => number): void {
   try {
-    if (!BOARD_STATE || !readUsageReporting().on) return
-    const file = path.join(BOARD_STATE, 'usage-board.json')
-    let held: { id?: string; day?: string } = {}
-    try {
-      held = JSON.parse(fs.readFileSync(file, 'utf8')) as typeof held
-    } catch {
-      held = {}
-    }
+    if (!BOARD_STATE) return
+    const reporting = readUsageReporting()
+    if (!reporting.on) return
+    // The event would not be queued, so the counts wait rather than vanish.
+    if (usageSurface() === 'app' && !reporting.disclosed) return
+    const held = readBoard()
     const day = usageDay()
     if (held.day === day) return
+    const fields: Record<string, Field> = {}
+    for (const name of BOARD_COUNTS) {
+      const n = countOf(held.counts, name)
+      if (n) fields[name] = n
+    }
+    const sum = (...names: BoardCount[]): number => names.reduce((total, name) => total + countOf(held.counts, name), 0)
+    const created = sum('cards_created_asked', 'cards_created_proposed')
+    if (created) fields.cards_created = created
+    const closed = sum('questions_closed_board', 'questions_closed_user', 'questions_closed_verify')
+    if (closed) fields.questions_closed = closed
     const on = customAgentsOn()
-    if (on <= 0) return
+    if (on > 0) fields.custom_agents_on = on
+    if (!Object.keys(fields).length) return
     const id = typeof held.id === 'string' && held.id ? held.id : randomUUID()
-    fs.mkdirSync(BOARD_STATE, { recursive: true })
-    fs.writeFileSync(file, `${JSON.stringify({ id, day })}\n`)
-    reportUsage('board_numbers', { board: id, custom_agents_on: on })
+    writeBoard({ id, day })
+    reportUsage('board_numbers', { board: id, ...fields })
   } catch {
     return
   }

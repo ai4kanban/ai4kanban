@@ -19,6 +19,7 @@ import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
+import { countBoardEvent } from '../lib/machine/usage'
 import { walkMd, walkDirs, idPrefix, subtaskLines, locate, locateArchived, enclosingGroupRoot, markSubtask, archiveDest, dropCrossRefs } from '../lib/cards'
 import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
@@ -178,6 +179,19 @@ function rejectionReason(id: number, given: string | undefined): string {
   return run?.input?.trim() ?? ''
 }
 
+// The top-level bullets under `## Decided by the agent`, and those of them under its
+// `### Overruled by the user`.
+function agentDecisions(text: string): { stood: number; overruled: number } {
+  let section: 'stood' | 'overruled' | null = null
+  const counts = { stood: 0, overruled: 0 }
+  for (const line of text.split('\n')) {
+    if (/^##\s/.test(line)) section = /^##\s+Decided by the agent\s*$/.test(line) ? 'stood' : null
+    else if (/^###\s/.test(line) && section) section = /^###\s+Overruled by the user\s*$/.test(line) ? 'overruled' : null
+    else if (section && /^[-*]\s/.test(line)) counts[section]++
+  }
+  return counts
+}
+
 export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {}): MoveResult {
   return withCreationLock(() => removeCard(id, metric, options))
 }
@@ -261,7 +275,15 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
   const unlinked = [...new Set(leftIds.flatMap((gone) => dropCrossRefs(gone)))]
   const droppedChats = dropChats(leftIds, metric === 'completed')
-  if (!options.cleanupDiscarded) bumpMetric(metric)
+  if (!options.cleanupDiscarded) {
+    bumpMetric(metric)
+    countBoardEvent(metric === 'completed' ? 'cards_completed' : 'cards_rejected')
+    if (metric === 'completed') {
+      const { stood, overruled } = agentDecisions(cardText)
+      countBoardEvent('decisions_stood', stood)
+      countBoardEvent('decisions_overruled', overruled)
+    }
+  }
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   const to = dest ? ` → ${rel(dest)}${found.kind === 'group' ? '/' : ''}` : ''
   if (metric === 'completed') say(`archived #${id}: moved ${what}${to}`)

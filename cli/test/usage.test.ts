@@ -16,7 +16,7 @@ import { LIMITS, VERSION } from '../../telemetry/contract.ts'
 import type { SentBatch, SentEvent } from '../../telemetry/contract.ts'
 import { SKILL_VERSION } from '../src/version.ts'
 import { runAgent } from '../src/lib/agent-cli.ts'
-import { restoreMachineHome } from './helpers/board.ts'
+import { move, restoreMachineHome } from './helpers/board.ts'
 import {
   readUsageReporting,
   recordUsageDisclosure,
@@ -24,8 +24,12 @@ import {
   usageQueueFile,
   usageStateFile,
 } from '../src/lib/machine/telemetry.ts'
+import { withStore } from '../src/lib/agent/store.ts'
+import { addRelease, closeRelease } from '../src/lib/releases.ts'
+import { BOARD_STATE, setBoardRoot } from '../src/lib/paths.ts'
 import {
   reportAppOpen,
+  reportBoardNumbers,
   reportChatMessage,
   reportRun,
   reportUsage,
@@ -300,6 +304,97 @@ async function endpoint(status = 202): Promise<{ url: string; batches: SentBatch
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   }
 }
+
+describe("a board's own counts", () => {
+  const boardFile = (): string => path.join(BOARD_STATE, 'usage-board.json')
+  const board = (): { id?: string; day?: string; counts?: Record<string, number> } =>
+    fs.existsSync(boardFile()) ? JSON.parse(fs.readFileSync(boardFile(), 'utf8')) : {}
+  const sent = (): SentEvent[] => queued().filter((e) => e.name === 'board_numbers')
+  const akb = async (...argv: string[]): Promise<void> => {
+    await quietly(async () => (await move(project, argv), 0))
+  }
+
+  beforeEach(() => {
+    putState({ sentDay: usageDay(), dayEvent: usageDay(), openDay: usageDay() })
+    fs.writeFileSync(path.join(project, 'docs', 'kanban', 'todo', 'README.md'), '# Tasks\n\n## Tasks\n')
+    setBoardRoot(project)
+  })
+
+  it('counts cards, questions, decisions and releases, and sends them once', async () => {
+    await akb('create', '--title', 'asked')
+    await akb('create', '--title', 'proposed', '--triage', 'derived-1')
+    const body = path.join(project, 'body.md')
+    fs.writeFileSync(
+      body,
+      'Done.\n\n## Decided by the agent\n- **one**: a\n  - detail\n- **two**: b\n\n### Overruled by the user\n- **three**: c\n',
+    )
+    await akb('create', '--title', 'decided', '--body-file', body)
+
+    const ask = (q: string): string[] => ['--append', q, '--option', 'yes', '--option', 'no']
+    await akb('update-questions', '1', ...ask('[user] Ship it?'), ...ask('Which file?'), ...ask('[user] Rename it?'))
+    await akb('update-questions', '1', '--drop', '2')
+    await akb('update-questions', '1', '--skip', '2')
+    await akb('update-questions', '1', '--skip', '2', '--unskip', '2', '--clear')
+    await akb('update-questions', '2', ...ask('[user] Keep the old one?'))
+    withStore((store) => {
+      store.deliveries.push({ deliveryId: 'd2', cardId: 2, title: 'proposed', status: 'active', startedAt: 1, sessions: [], approved: '', steps: [] } as never)
+    })
+    await akb('update-questions', '2', '--drop', '1')
+
+    await akb('archive', '3')
+    await akb('reject', '1')
+    addRelease('v1', 'first')
+    await quietly(async () => (closeRelease('v1'), 0))
+
+    assert.deepEqual(board().counts, {
+      cards_created_asked: 2,
+      cards_created_proposed: 1,
+      questions_closed_board: 1,
+      questions_closed_user: 3,
+      questions_closed_verify: 1,
+      cards_completed: 1,
+      decisions_stood: 2,
+      decisions_overruled: 1,
+      cards_rejected: 1,
+      releases_closed: 1,
+    })
+
+    reportBoardNumbers(() => 0)
+    reportBoardNumbers(() => 0)
+    assert.equal(sent().length, 1)
+    const { name, day, id, surface, version, ...fields } = sent()[0]!
+    assert.deepEqual(fields, {
+      board: board().id,
+      cards_created: 3,
+      cards_created_asked: 2,
+      cards_created_proposed: 1,
+      cards_completed: 1,
+      cards_rejected: 1,
+      questions_closed: 5,
+      questions_closed_board: 1,
+      questions_closed_user: 3,
+      questions_closed_verify: 1,
+      decisions_stood: 2,
+      decisions_overruled: 1,
+      releases_closed: 1,
+    })
+    assert.equal(board().counts, undefined)
+  })
+
+  it('sends only the agents that are on once nothing was counted, and nothing with none on', () => {
+    reportBoardNumbers(() => 0)
+    assert.deepEqual(sent(), [])
+    reportBoardNumbers(() => 2)
+    const { name, day, id, surface, version, ...fields } = sent()[0]!
+    assert.deepEqual(fields, { board: board().id, custom_agents_on: 2 })
+  })
+
+  it('counts nothing while reporting is off', async () => {
+    setUsageReporting(false)
+    await akb('create', '--title', 'quiet')
+    assert.equal(fs.existsSync(boardFile()), false)
+  })
+})
 
 /** Reporting an event also asks the sender whether this is the moment, so a test that
  *  wants to watch ONE send parks that minute at the end of the day first, then lets the
