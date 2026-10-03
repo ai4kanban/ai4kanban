@@ -1759,9 +1759,13 @@ export interface AgentView {
   file?: AgentFileView
 }
 
-/** What the board keeps about the memory review (#748, #1322), beside the pruner's block in
- *  `ui.config.json`. It carries no cadence: a round starts at most once a day. */
+/** What the board keeps about the memory review (#748, #1322, #1464), beside the pruner's
+ *  block in `ui.config.json`. */
 export interface MemoryReviewState {
+  /** False once somebody disabled it: the board starts none, Review now still does. */
+  enabled: boolean
+  /** How often a round may start, in the grammar of `../cadence.ts`. */
+  cadence: string
   /** When the last review that PASSED began, as a minute stamp, or empty for "never
    *  reviewed". */
   lastRun: string
@@ -1776,7 +1780,7 @@ export interface MemoryReviewState {
 /** One scheduled agent's cadence (#514, #929) — the pruner and the dismissal
  *  review. `agent/settings.ts` owns the reading and the writing. */
 export interface CadenceSchedule {
-  /** Always true since #1208 — none can be switched off. Kept for screens that read it. */
+  /** False once somebody disabled it (#1464): the board starts none, Run now still does. */
   enabled: boolean
   /** How often, in the grammar of `../cadence.ts`. */
   cadence: string
@@ -1787,6 +1791,19 @@ export interface CadenceSchedule {
 }
 
 export type MemoryPruneSchedule = CadenceSchedule
+
+/** The board's own scheduled agents (#1464), by the key each is saved under. */
+export type BoardScheduleKey = 'memoryPrune' | 'dismissalReview' | 'projectDescription' | 'memoryReview'
+
+/** One board schedule as a screen draws it — the shape a workflow's scheduled agent has too. */
+export interface BoardScheduleView {
+  enabled: boolean
+  cadence: string
+  /** The stamp its next pass may start after, or empty while it is off. */
+  nextRun: string
+  /** That time has come, and there is nothing new for it to work on yet. */
+  nothingNew?: boolean
+}
 
 /** A project agent's own file, as its page holds it. */
 export interface AgentFileView {

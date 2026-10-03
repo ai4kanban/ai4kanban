@@ -30,6 +30,10 @@ import {
   memoryReview,
   projectDescription,
   scheduleClock,
+  setDismissalReview,
+  setMemoryPrune,
+  setMemoryReview,
+  setProjectDescription,
   stampLeftoverPrune,
 } from '../agent/settings'
 import { dismissalWorkWaiting } from '../agent/dismissal-review'
@@ -43,7 +47,7 @@ import { proAccess, type ProAccess } from '../cloud/pro'
 import { pruneLeftovers } from '../leftovers'
 import { listRuns } from '../agent/sessions'
 import { noteRefineTried, withStore } from '../agent/store'
-import type { AgentRequest, RunView } from '../agent/types'
+import type { AgentRequest, BoardScheduleKey, BoardScheduleView, RunView, Saved } from '../agent/types'
 import { TODO } from '../paths'
 import { allCards } from './read'
 import { byDispatchOrder, canRefine, scheduleWouldDoNothing } from './rules'
@@ -57,68 +61,128 @@ export type ClearMark = (id: number) => Promise<boolean>
 /** Delete the archived cards past their keep, for a board whose archive lives elsewhere. */
 export type PruneArchive = (now: number) => Promise<void>
 
-// Whether the memory pruner is due right now (#514). A cadence's rules, read out of
-// the board's settings: the cadence has elapsed since the last pass that PASSED — or since
-// the scheduler first looked (#1208) — and a run started for this very window means the last
-// attempt failed, so starting it again is a person's call, not a loop every tick reopens.
-function pruneDue(runs: RunView[]): boolean {
-  const from = scheduleClock('memoryPrune')
-  if (!from) return false
-  const due = nextDue(from, memoryPrune().cadence)
-  if (!due || due.getTime() > Date.now()) return false
-  const passes = runs.filter((r) => r.action === 'prune-memory')
-  if (passes.some((r) => r.status === 'running')) return false
-  return !passes.some((r) => r.startedAt >= due.getTime())
-}
-
-// How long the memory review waits between passes (#748) — one day, and nothing to set.
-const REVIEW_INTERVAL = 24 * 60 * 60_000
-
-// Whether the memory review is due right now (#748, #1322):
+// ---- the board's own scheduled agents (#514, #748, #929, #1268, #1464) -------
 //
-//   • none of its own is going.
-//   • a day has passed since the later of the newest review run's START and the last one
-//     that PASSED — the run record holds a failed review off for the day, the stamp still
-//     does when that record has been pruned. A batch that passed and marked its
-//     conversations with more still waiting does not wait: the round goes on until none are.
-//   • a conversation is waiting — its card archived, itself never reviewed.
-function memoryReviewDue(runs: RunView[]): boolean {
-  const passes = runs.filter((r) => r.action === 'review-memory')
-  if (passes.some((r) => r.status === 'running')) return false
-  const review = memoryReview()
-  const newest = passes.reduce<RunView | null>((a, r) => (a && a.startedAt >= r.startedAt ? a : r), null)
-  const last = Math.max(parseStamp(review.lastRun)?.getTime() ?? 0, newest?.startedAt ?? 0)
-  const goesOn = review.remainingAt > 0 && review.remainingAt >= last && (!newest || newest.status === 'done')
-  if (last && !goesOn && Date.now() - last < REVIEW_INTERVAL) return false
-  return anyChatToReview()
+// One rule for all four: off starts nothing, and a pass is due once the cadence has elapsed
+// since the later of the last pass that PASSED and the newest attempt's start — so a failed
+// one waits a whole cadence rather than retrying every tick. None starts while one of its
+// own is going. Three also wait for something to work on (`waiting`).
+
+interface BoardSchedule {
+  action: AgentRequest['action']
+  /** Null while off. `write` lets the pruner's first look stamp where it counts from. */
+  next: (runs: RunView[], write: boolean) => Date | null
+  waiting: () => boolean
 }
 
-// Whether the dismissal review is due (#929). None of its own going, its cadence elapsed
-// since the later of the newest attempt's start and the last pass — so a failed review waits
-// a whole cadence rather than retrying every tick — and something to read. The window is the
-// last pass, so what a failed one missed is still in it next time.
-function dismissalReviewDue(runs: RunView[]): boolean {
-  const review = dismissalReview()
-  const passes = runs.filter((r) => r.action === 'review-dismissals')
-  if (passes.some((r) => r.status === 'running')) return false
-  const since = parseStamp(review.lastRun)?.getTime() ?? 0
-  const last = Math.max(since, ...passes.map((r) => r.startedAt))
-  const due = last ? nextDue(formatStamp(new Date(last)), review.cadence) : new Date(0)
-  if (!due || due.getTime() > Date.now()) return false
-  return dismissalWorkWaiting(since)
+// The cadence counted from `from` (ms), or at once when nothing has ever run.
+const after = (from: number, cadence: string): Date | null =>
+  from ? nextDue(formatStamp(new Date(from)), cadence) : new Date(0)
+
+const newestStart = (runs: RunView[], action: AgentRequest['action']): number =>
+  Math.max(0, ...runs.filter((r) => r.action === action).map((r) => r.startedAt))
+
+const SCHEDULES: Record<BoardScheduleKey, BoardSchedule> = {
+  // Counts from the scheduler's first look rather than from never (#1208), so a board's
+  // first prune lands a whole cadence after upgrade.
+  memoryPrune: {
+    action: 'prune-memory',
+    next: (runs, write) => {
+      const schedule = memoryPrune()
+      if (!schedule.enabled) return null
+      const clock = write ? scheduleClock('memoryPrune') : schedule.lastRun || schedule.since || formatStamp(new Date())
+      if (!clock) return null
+      const from = Math.max(parseStamp(clock)?.getTime() ?? 0, newestStart(runs, 'prune-memory'))
+      return after(from, schedule.cadence)
+    },
+    waiting: () => true,
+  },
+  // A batch that passed with conversations still waiting goes on at once: the round lasts
+  // until none are (#1322).
+  memoryReview: {
+    action: 'review-memory',
+    next: (runs) => {
+      const review = memoryReview()
+      if (!review.enabled) return null
+      const passes = runs.filter((r) => r.action === 'review-memory')
+      const newest = passes.reduce<RunView | null>((a, r) => (a && a.startedAt >= r.startedAt ? a : r), null)
+      const last = Math.max(parseStamp(review.lastRun)?.getTime() ?? 0, newest?.startedAt ?? 0)
+      const goesOn = review.remainingAt > 0 && review.remainingAt >= last && (!newest || newest.status === 'done')
+      return goesOn ? new Date(0) : after(last, review.cadence)
+    },
+    waiting: anyChatToReview,
+  },
+  // The window is the last pass, so what a failed one missed is still in it next time.
+  dismissalReview: {
+    action: 'review-dismissals',
+    next: (runs) => {
+      const review = dismissalReview()
+      if (!review.enabled) return null
+      const from = Math.max(parseStamp(review.lastRun)?.getTime() ?? 0, newestStart(runs, 'review-dismissals'))
+      return after(from, review.cadence)
+    },
+    waiting: () => dismissalWorkWaiting(parseStamp(dismissalReview().lastRun)?.getTime() ?? 0),
+  },
+  // Only while `project.md` has no description, or the branch has commits since the last pass.
+  projectDescription: {
+    action: 'describe-project',
+    next: (runs) => {
+      const schedule = projectDescription()
+      if (!schedule.enabled) return null
+      const from = Math.max(parseStamp(schedule.lastRun)?.getTime() ?? 0, newestStart(runs, 'describe-project'))
+      return after(from, schedule.cadence)
+    },
+    waiting: () => !projectDescribed() || commitsSince(parseStamp(projectDescription().lastRun)?.getTime() ?? 0) === true,
+  },
 }
 
-// Whether the project description is due (#1268). Timed like the dismissal review; then only
-// while `project.md` has no description, or when the branch has commits since the last pass.
-function projectDescriptionDue(runs: RunView[]): boolean {
-  const schedule = projectDescription()
-  const passes = runs.filter((r) => r.action === 'describe-project')
-  if (passes.some((r) => r.status === 'running')) return false
-  const since = parseStamp(schedule.lastRun)?.getTime() ?? 0
-  const last = Math.max(since, ...passes.map((r) => r.startedAt))
-  const due = last ? nextDue(formatStamp(new Date(last)), schedule.cadence) : new Date(0)
-  if (!due || due.getTime() > Date.now()) return false
-  return !projectDescribed() || commitsSince(since) === true
+function scheduleDue(key: BoardScheduleKey, runs: RunView[]): boolean {
+  const schedule = SCHEDULES[key]
+  if (runs.some((r) => r.action === schedule.action && r.status === 'running')) return false
+  const next = schedule.next(runs, true)
+  if (!next || next.getTime() > Date.now()) return false
+  return schedule.waiting()
+}
+
+/** The board's own scheduled agents as a screen draws them: on or off, how often, and when
+ *  each runs next. */
+export async function boardSchedules(): Promise<Record<BoardScheduleKey, BoardScheduleView>> {
+  let runs: RunView[] = []
+  try {
+    runs = await listRuns()
+  } catch {
+    // no record to read — every clock counts from its last pass alone
+  }
+  const saved = { memoryPrune: memoryPrune(), memoryReview: memoryReview(), dismissalReview: dismissalReview(), projectDescription: projectDescription() }
+  const view = (key: BoardScheduleKey): BoardScheduleView => {
+    const next = SCHEDULES[key].next(runs, false)
+    return {
+      enabled: saved[key].enabled,
+      cadence: saved[key].cadence,
+      nextRun: next ? formatStamp(next) : '',
+      ...(next && next.getTime() <= Date.now() && !SCHEDULES[key].waiting() ? { nothingNew: true } : {}),
+    }
+  }
+  return {
+    memoryPrune: view('memoryPrune'),
+    memoryReview: view('memoryReview'),
+    dismissalReview: view('dismissalReview'),
+    projectDescription: view('projectDescription'),
+  }
+}
+
+/** Save one of them: how often, and whether it is off. */
+export function setBoardSchedule(key: BoardScheduleKey, next: { enabled: boolean; cadence: string }): Saved {
+  switch (key) {
+    case 'memoryPrune':
+      return setMemoryPrune(next)
+    case 'memoryReview':
+      return setMemoryReview(next)
+    case 'dismissalReview':
+      return setDismissalReview(next)
+    case 'projectDescription':
+      return setProjectDescription(next)
+  }
 }
 
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
@@ -295,7 +359,7 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
 
   // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two
   // above: it touches no card, so nothing it does can queue behind them or they behind it.
-  if (pruneDue(runs)) work.push({ action: 'prune-memory' })
+  if (scheduleDue('memoryPrune', runs)) work.push({ action: 'prune-memory' })
 
   // What cards off the board for a week still hold in .akb (#1177), and the archived cards
   // past their month (#1335), once a day. Stamped
@@ -312,9 +376,9 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
 
   // And the day's review of what the conversations settled (#748). A slot of its own for the
   // same reason: it touches no card, so nothing it does can queue behind a card's run.
-  if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
-  if (dismissalReviewDue(runs)) work.push({ action: 'review-dismissals' })
-  if (projectDescriptionDue(runs)) work.push({ action: 'describe-project' })
+  if (scheduleDue('memoryReview', runs)) work.push({ action: 'review-memory' })
+  if (scheduleDue('dismissalReview', runs)) work.push({ action: 'review-dismissals' })
+  if (scheduleDue('projectDescription', runs)) work.push({ action: 'describe-project' })
 
   // And every workflow's scheduled agents whose cadence has come round (#1401), a slot each.
   try {

@@ -20,7 +20,7 @@
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FaHammer } from "react-icons/fa";
-import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiClock, FiMap, FiMoreHorizontal, FiPlus, FiX } from "react-icons/fi";
+import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiClock, FiMap, FiMoreHorizontal, FiPlay, FiPlus, FiX } from "react-icons/fi";
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
@@ -31,6 +31,7 @@ import {
   setWorkflowScheduledAction,
   setWorkflowStageAction,
   setWorkflowWorktreeAction,
+  startScheduledAgentAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
@@ -38,13 +39,13 @@ import { WORKFLOW_STAGES } from "@/lib/types";
 import type {
   AgentInfo,
   AgentSlot,
-  AgentView,
   WorkflowCandidate,
+  WorkflowScheduledView,
   WorkflowStage,
   WorkflowStageView,
   WorkflowView,
 } from "@/lib/types";
-import { AgentDetail, Character, NewAgentRow, useAgentRoster, WorkflowScheduledControls } from "./Agents";
+import { AgentDetail, type AgentSchedule, Character, NewAgentRow, useAgentRoster } from "./Agents";
 import { useWorkflowTip } from "./WorkflowTip";
 import { useWorkflows, workflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess } from "./pro";
@@ -227,6 +228,29 @@ export function WorkflowsPanel({
     if (refused(done)) return false;
     await load();
     return true;
+  };
+
+  // A scheduled agent's controls (#1401), the board agents' own (#1464). Its list says a
+  // refused save itself, so these writes stay off the error strip.
+  const scheduleOf = (flowId: string, one: WorkflowScheduledView): AgentSchedule => {
+    const set = async (m: Parameters<typeof setWorkflowScheduledAction>[1]) =>
+      (await setWorkflowScheduledAction(flowId, m)).ok;
+    return {
+      view: { enabled: !one.off, cadence: one.cadence, nextRun: one.nextRun },
+      copy: c.cadence,
+      icon: <FiPlay size={11} aria-hidden />,
+      isPass: (r) => r.action === "scheduled" && r.workflow === flowId && r.agent === one.agent,
+      start: () => startScheduledAgentAction(flowId, one.agent),
+      save: async (next) => {
+        const ok = next.enabled
+          ? (next.cadence === one.cadence || (await set({ kind: "cadence", agent: one.agent, cadence: next.cadence }))) &&
+            (!one.off || (await set({ kind: "switch", agent: one.agent, on: true })))
+          : await set({ kind: "switch", agent: one.agent, on: false });
+        await load();
+        return ok;
+      },
+      reload: load,
+    };
   };
 
   const move = (
@@ -641,24 +665,12 @@ export function WorkflowsPanel({
                 onRuntimes={onRuntimes}
                 onFollowed={onFollowed}
                 onError={onError}
-                scoped
                 onDeleted={load}
-                loose={!!timed}
-                usage={
-                  timed ? (
-                    <p className="mt-1 max-w-[74ch] text-[11.5px] leading-snug text-nb-ink-soft">
-                      {timed.lastRun ? c.ranAndNext(timed.lastRun, timed.nextRun) : c.neverRan(timed.nextRun)}
-                    </p>
-                  ) : (
-                    <Usage agent={agent} />
-                  )
-                }
+                schedule={timed && scheduleOf(flow.id, timed)}
                 actions={
-                  /* A scheduled agent is disabled from its cadence list (#1401). */
-                  timed ? (
-                    <WorkflowScheduledControls flow={flow.id} one={timed} onSaved={load} onError={onError} />
-                  ) : /* A lead has neither: a stage it leads would stop. */
-                  !isLead ? (
+                  /* A scheduled agent is disabled from its cadence list (#1401), and a lead
+                     not at all: a stage it leads would stop. */
+                  !timed && !isLead ? (
                     <button
                       type="button"
                       className={QUIET_BTN}
@@ -764,14 +776,6 @@ function ExtraBox({
       className={`${CONTROL} min-h-[60px] resize-none overflow-hidden text-[12px] leading-[19px]`}
     />
   );
-}
-
-/** Under a built-in role's line. */
-function Usage({ agent }: { agent: AgentView }) {
-  const c = useCopy().configuration.workflows;
-  return agent.kind === "role" ? (
-    <p className="mt-1 text-[11.5px] leading-[17px] text-nb-ink-soft">{c.roleNote}</p>
-  ) : null;
 }
 
 /** What one agent is CALLED here — the one lookup every screen names an agent by

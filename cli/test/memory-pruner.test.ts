@@ -112,11 +112,13 @@ describe("the pruner's schedule", () => {
     assert.deepEqual(memoryPrune(), { enabled: true, cadence: '3d', lastRun: '' })
   })
 
-  it('ignores Off from an older screen, saving only the cadence and keeping the stamps', () => {
+  it('saves Off as its own key, keeping the cadence and the stamps', () => {
     stampMemoryPrune(new Date(2026, 8, 8, 9, 30))
     assert.equal(setMemoryPrune({ enabled: false, cadence: '1d' }).ok, true)
-    assert.deepEqual(memoryPrune(), { enabled: true, cadence: '1d', lastRun: '2026-09-08 09:30' })
-    assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryPrune.enabled, undefined)
+    assert.deepEqual(memoryPrune(), { enabled: false, cadence: '1d', lastRun: '2026-09-08 09:30' })
+    assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryPrune.off, true)
+    assert.equal(setMemoryPrune({ enabled: true, cadence: '1d' }).ok, true)
+    assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryPrune.off, undefined)
   })
 })
 
@@ -154,6 +156,12 @@ describe('the prune the board starts on its own', () => {
     setMemoryPrune({ enabled: true, cadence: '30m' })
     stampMemoryPrune(new Date(Date.now() - 60 * 60_000))
     pastRun('error', Date.now() - 1000)
+    assert.deepEqual(await work(), [])
+  })
+
+  it('starts none while it is off', async () => {
+    setMemoryPrune({ enabled: false, cadence: '30m' })
+    stampMemoryPrune(new Date(Date.now() - 60 * 60_000))
     assert.deepEqual(await work(), [])
   })
 

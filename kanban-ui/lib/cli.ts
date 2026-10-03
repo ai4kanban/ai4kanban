@@ -28,9 +28,8 @@ import type {
   DeliveryRecord,
   HarnessSetting,
   LoggedOutAgent,
-  MemoryPruneSchedule,
-  CadenceSchedule,
-  MemoryReviewState,
+  BoardScheduleKey,
+  BoardScheduleView,
   PlanAnswer,
   RunPick,
   RunRecord,
@@ -318,24 +317,10 @@ export interface BoardRules {
   silenceMinutes?(): number;
   setSilenceMinutes?(minutes: number): WriteResult;
 
-  // the memory pruner's schedule (#514) — whether it repeats, how often, and the last pass
-  // that passed. Optional like the settings above: rules older than the release that added
-  // the pruner draw its page without the recurrence control rather than failing.
-  memoryPrune?(): MemoryPruneSchedule;
-  setMemoryPrune?(next: { enabled: boolean; cadence: string }): WriteResult;
-
-  // the last review of what the conversations settled (#748). No cadence beside it: the
-  // review is daily, so there is nothing to set. Optional for the same reason as above —
-  // rules older than the reviewer draw its page without the last-review line.
-  memoryReview?(): MemoryReviewState;
-
-  // the dismissal review's schedule (#929). Optional like the ones above.
-  dismissalReview?(): CadenceSchedule;
-  setDismissalReview?(next: { enabled: boolean; cadence: string }): WriteResult;
-
-  // the project description's schedule (#1268). Optional like the ones above.
-  projectDescription?(): CadenceSchedule;
-  setProjectDescription?(next: { enabled: boolean; cadence: string }): WriteResult;
+  // the board's own scheduled agents (#1464): how often each runs, whether it is off, and
+  // when it runs next. Optional: older rules draw Run now without the cadence chip.
+  boardSchedules?(): Promise<Record<BoardScheduleKey, BoardScheduleView>>;
+  setBoardSchedule?(key: BoardScheduleKey, next: { enabled: boolean; cadence: string }): WriteResult;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

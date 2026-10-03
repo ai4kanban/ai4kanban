@@ -19,13 +19,13 @@ import { printFlow } from '../src/lib/agent/flow.ts'
 import { reviewBatch } from '../src/lib/agent/memory-review.ts'
 import { loadLedger } from '../src/lib/agent/usage.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
-import { memoryReview, stampMemoryReview } from '../src/lib/agent/settings.ts'
+import { memoryReview, setMemoryReview, stampMemoryReview } from '../src/lib/agent/settings.ts'
 import { formatStamp } from '../src/lib/cadence.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { pruneLeftovers } from '../src/lib/leftovers.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { AGENT_MEMORY, CHATS_DIR, setBoardRoot, SESSIONS, UI_CONFIG, USAGE } from '../src/lib/paths.ts'
-import { nextWork } from '../src/lib/view/dispatch.ts'
+import { boardSchedules, nextWork } from '../src/lib/view/dispatch.ts'
 import { forgetMachineState, move } from './helpers/board.ts'
 
 let root = ''
@@ -320,6 +320,45 @@ describe('the review the board starts on its own', () => {
     pastRuns({ status: 'done', startedAt: started - DAY - 60_000 })
     stampMemoryReview(new Date(started - DAY - 60_000))
     assert.deepEqual(await work(), [{ action: 'review-memory' }])
+  })
+
+  it('starts none while it is off, and keeps its record through the save', async () => {
+    card(1)
+    chat('card-1')
+    stampMemoryReview(new Date(Date.now() - 2 * DAY))
+    assert.equal(setMemoryReview({ enabled: false, cadence: '1d' }).ok, true)
+    assert.deepEqual(await work(), [])
+    assert.equal(memoryReview().enabled, false)
+    assert.equal(memoryReview().lastRun, formatStamp(new Date(Date.now() - 2 * DAY)))
+    assert.equal((await boardSchedules()).memoryReview.nextRun, '')
+    setMemoryReview({ enabled: true, cadence: '1d' })
+    assert.deepEqual(await work(), [{ action: 'review-memory' }])
+  })
+
+  it('waits the cadence that was set, not a day', async () => {
+    card(1)
+    chat('card-1')
+    stampMemoryReview(new Date(Date.now() - 2 * DAY))
+    assert.equal(setMemoryReview({ enabled: true, cadence: '3d' }).ok, true)
+    assert.equal(memoryReview().cadence, '3d')
+    assert.deepEqual(await work(), [])
+    assert.equal(setMemoryReview({ enabled: true, cadence: 'whenever' }).ok, false)
+    setMemoryReview({ enabled: true, cadence: '6h' })
+    assert.deepEqual(await work(), [{ action: 'review-memory' }])
+    // Back at the default, nothing but the record is written down.
+    setMemoryReview({ enabled: true, cadence: '1d' })
+    assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).memoryReview.cadence, undefined)
+  })
+
+  it('says it waits for something new once its time has come with nothing to read', async () => {
+    card(1, { where: 'open' })
+    chat('card-1')
+    const view = (await boardSchedules()).memoryReview
+    assert.equal(view.enabled, true)
+    assert.equal(view.nothingNew, true)
+    card(2)
+    chat('card-2')
+    assert.equal((await boardSchedules()).memoryReview.nothingNew, undefined)
   })
 
   it('stops the round at a batch that failed, whatever is still waiting', async () => {

@@ -162,10 +162,19 @@ describe('the review the board starts on its own', () => {
     assert.deepEqual(await work(), ['review-dismissals'])
   })
 
-  it('still starts one where an older screen asked for Off, and keeps the cadence (#1208)', async () => {
+  it('starts none while it is off, keeps the cadence, and comes back on with it (#1464)', async () => {
     item('mine', 'dismissed', { reason: 'not for us' })
     assert.deepEqual(setDismissalReview({ enabled: false, cadence: '3d' }), { ok: true })
-    assert.deepEqual(dismissalReview(), { enabled: true, cadence: '3d', lastRun: '' })
+    assert.deepEqual(dismissalReview(), { enabled: false, cadence: '3d', lastRun: '' })
+    assert.deepEqual(await work(), [])
+    assert.deepEqual(setDismissalReview({ enabled: true, cadence: '3d' }), { ok: true })
+    assert.deepEqual(await work(), ['review-dismissals'])
+  })
+
+  it('still starts one where a release before #1208 wrote it off', async () => {
+    item('mine', 'dismissed', { reason: 'not for us' })
+    fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ dismissalReview: { enabled: false } }))
     assert.deepEqual(await work(), ['review-dismissals'])
   })
 
