@@ -64,9 +64,10 @@ or leave a user-owned question.
 
 An agent keeps `docs/kanban/memory/agents/<agent>/`, and its own AGENT.md says which
 files are there and what each holds. When the user's answer or revision lands on that agent's
-section — its recommendation taken, sent back, or overruled — read its AGENT.md and append
-one line to the file it names for that kind of note, creating the file if missing. An agent
-whose instructions define no memory keeps none — write nothing.
+section — its recommendation taken, sent back, or overruled — read its AGENT.md
+(`akb raw agent-file <agent> AGENT.md`) and append one line to the file it names for that
+kind of note, creating the file if missing. An agent whose instructions define no memory
+keeps none — write nothing.
 
 Append only what clears "What earns a note" in `akb guide board` — a correction or a choice
 that will change the agent's next proposal. Most answers change nothing lasting: leave the

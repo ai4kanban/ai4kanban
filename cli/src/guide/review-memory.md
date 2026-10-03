@@ -28,10 +28,10 @@ whole job.
   in its `redesign.md`, in the folder of the module each conversation is listed with (`akb
   guide board`). Each conversation also lists the agents whose sections its card holds and the
   memory files each keeps: where what was settled lands on one agent's own work, it goes in
-  that agent's memory instead. Read that agent's AGENT.md only then, and keep its memory the
-  way it says. Distill settled feedback into reusable preferences (dos) and corrections
-  (don'ts), retaining their scope; never copy raw reviews. An agent whose instructions name
-  no memory gets no new file.
+  that agent's memory instead. Read that agent's AGENT.md (`akb raw agent-file <agent>
+  AGENT.md`) only then, and keep its memory the way it says. Distill settled feedback into
+  reusable preferences (dos) and corrections (don'ts), retaining their scope; never copy raw
+  reviews. An agent whose instructions name no memory gets no new file.
 - **A follow-up the proposer missed**: when the user points out work a finished card left
   behind that no proposal named, add the kind of miss, not the case, to
   `docs/kanban/memory/agents/proposer/missed.md` as `- **<kind>**: <what to check> (#<card>)`,

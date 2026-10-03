@@ -1,7 +1,6 @@
 // An agent's own files (#860). Everything beside its `AGENT.md` is NAMED in every run it
-// does — leading, helping and reviewing — and never pasted in, so the run opens one only
-// when the work calls for it. A built-in agent's files ship inside the command, where there
-// is no path to open, so `akb raw agent-file` prints those.
+// does and never pasted in. A built-in agent's files ship inside the command, so
+// `akb raw agent-file` prints those, its `AGENT.md` included.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -134,10 +133,24 @@ describe('`akb raw agent-file`', () => {
     assert.equal(findSpecAgent('email-planner')!.dir, undefined)
   })
 
+  it("prints an agent's own AGENT.md, built-in or project, whole (#1308)", async () => {
+    const own = await move(root, ['agent-file', 'api-contract', 'AGENT.md'])
+    assert.match(String(own.text), /^---\nname: api-contract\n[\s\S]*You write the api-contract part\./)
+    const builtIn = await move(root, ['agent-file', 'prompt-writer', 'AGENT.md'])
+    assert.equal(builtIn.text, BUNDLED_AGENT_FILES['prompt-writer/AGENT.md'])
+    assert.ok(!findSpecAgent('prompt-writer')!.files.includes('AGENT.md'))
+  })
+
+  it('prints a project agent still on the old SKILL.md name', async () => {
+    const dir = path.join(kanban(), 'agents', 'api-contract')
+    fs.renameSync(path.join(dir, 'AGENT.md'), path.join(dir, 'SKILL.md'))
+    const said = await move(root, ['agent-file', 'api-contract', 'AGENT.md'])
+    assert.match(String(said.text), /You write the api-contract part\./)
+  })
+
   it('refuses a path that climbs out of the folder, and one the agent does not offer', async () => {
     await refuses(root, ['agent-file', 'sdk-sample', '../api-contract/AGENT.md'], /has no `\.\.\/api-contract\/AGENT\.md`/)
-    await refuses(root, ['agent-file', 'sdk-sample', 'AGENT.md'], /has no `AGENT\.md`/)
-    await refuses(root, ['agent-file', 'api-contract', 'style.md'], /It has none\./)
+    await refuses(root, ['agent-file', 'api-contract', 'style.md'], /Its files are: AGENT\.md\./)
     await refuses(root, ['agent-file', 'nobody', 'style.md'], /is not an agent on this board/)
   })
 })

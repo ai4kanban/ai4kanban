@@ -1,16 +1,14 @@
 // ---- agent-file ------------------------------------------------------------
 //
-// Print one file from an agent's own folder (#860).
-//
-// Every run is told which files its agent has, by path and nothing more, and opens one when
-// the work calls for it. A project agent's files are on disk and are opened there; a built-in
-// agent's ship inside the built command, where there is no path to open — this is the door
-// onto those. A path the agent does not offer is refused, so nothing reads past its folder.
+// Print one file from an agent's own folder (#860), its AGENT.md included (#1308). A built-in
+// agent's files ship inside the command, with no path to open — this is the door onto those.
 
 import { findSpecAgent, specAgentNamesOnBoard } from '../lib/agents'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import type { MoveResult } from '../lib/types'
+
+const AGENT_FILE = 'AGENT.md'
 
 export function cmdAgentFile(askedName: string, askedFile: string): MoveResult {
   const name = askedName.trim()
@@ -22,13 +20,17 @@ export function cmdAgentFile(askedName: string, askedFile: string): MoveResult {
     })
   }
   const file = askedFile.trim().replace(/^\.\//, '')
-  // Checked against the list the run was given rather than against the filesystem: a path
-  // that climbs out of the folder is simply not one of them.
-  if (!agent.files.includes(file)) {
-    const has = agent.files.length ? `Its files are: ${agent.files.join(', ')}.` : 'It has none.'
-    die(`the \`${agent.name}\` agent has no \`${file}\`. ${has}`, { kind: 'no-such-agent-file', agent: agent.name, file })
+  // Checked against the agent's own list, so a path that climbs out of the folder is not one.
+  const offered = [AGENT_FILE, ...agent.files]
+  if (!offered.includes(file)) {
+    die(`the \`${agent.name}\` agent has no \`${file}\`. Its files are: ${offered.join(', ')}.`, {
+      kind: 'no-such-agent-file',
+      agent: agent.name,
+      file,
+    })
   }
-  const text = agent.file(file)
+  // A project agent still on the old name keeps its rules in SKILL.md.
+  const text = agent.file(file) ?? (file === AGENT_FILE ? agent.file('SKILL.md') : null)
   if (text === null) die(`can't read \`${file}\` from the \`${agent.name}\` agent`, { kind: 'no-such-agent-file', agent: agent.name, file })
   say(text)
   return { agent: agent.name, file, text }

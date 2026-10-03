@@ -53,8 +53,9 @@ Every flow writes a card in this order:
 ## Agent sections
 
 - **Owner's rules first**: before rewriting, removing, or overruling content a spec or helper
-  agent owns, read that agent's AGENT.md and the references it points to for the affected
-  part. When they cannot be read, surface the gap before changing that content.
+  agent owns, read that agent's rules with `akb raw agent-file <agent> AGENT.md`, and the
+  references they point to for the affected part with the same command and their path. When
+  they cannot be read, surface the gap before changing that content.
 
 ## `Today`
 
