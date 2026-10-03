@@ -29,8 +29,10 @@ in its text when one is a small chore.
 ## Filter
 
 Drop a candidate that is already on the board (`akb raw list`) or in the inbox
-(`akb triage check <source-id>`), is in `docs/kanban/memory/agents/planner/rejected.md`, or
-is a guess nothing in the card or the project backs.
+(`akb triage check <source-id>`), was turned down in `docs/kanban/memory/agents/planner/rejected.md`,
+`docs/kanban/memory/agents/planner/<module>/rejected.md` for each of the card's modules, or
+`docs/kanban/memory/agents/planner/dismissed.md`, or is a guess nothing in the card or the
+project backs.
 
 ## Write
 

@@ -190,6 +190,13 @@ function memoryLines(modules: string[], name: string): string[] {
   return modules.length ? [`${file} — under \`## ${modules.join('\`, \`## ')}\``] : [file]
 }
 
+// What a reflection must not propose again (#1479): the global rejections, the card's own
+// modules' rejections, and the triage preferences — the latter two only once they exist.
+function rejectedLines(modules: string[]): string[] {
+  const extra = [...modules.map((m) => path.join(agentMemoryDir(PLANNER), m, 'rejected.md')), agentMemoryFile(PLANNER, 'dismissed.md')]
+  return [agentMemoryFile(PLANNER, 'rejected.md'), ...extra.filter((file) => fs.existsSync(file))].map(rel)
+}
+
 // The jobs `akb guide board` tells to read the project's settings before they start:
 // adding and refining. For those it is a certain read, and a certain read costs less
 // printed here than fetched in a round of its own.
@@ -851,7 +858,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       if (discussion) facts.push(...field('discussion', discussion))
       facts.push(...field('shipped', shippedLines(req.id!)))
       facts.push(...field('missed', missedLine()))
-      facts.push(...field('rejected', rel(agentMemoryFile(PLANNER, 'rejected.md'))))
+      facts.push(...field('rejected', rejectedLines(card!.meta.modules)))
       facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
         `${self} triage add --title ".." --slug <short-english-slug> --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
