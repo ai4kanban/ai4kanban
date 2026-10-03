@@ -18,7 +18,8 @@ import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
 import { proAccess, proGate, type ProAccess } from '../cloud/pro'
 import { cardWorkflowId, workflowById, workflowFor, workflowIssues, workflows } from './workflows'
-import { cancelDelivery, carriedSession, closeRun, markSpawned, openResume, openRun } from './sessions'
+import { cancelDelivery, carriedSession, closeRun, markSpawned, openResume, openRun, peekRun } from './sessions'
+import { runtimeById } from './runtimes'
 import { scheduledBusy, stalePasses } from './scheduled'
 import { takeChatSession } from './chat'
 import { refusal, workflowDeleted, type AgentRequest, type RunRecord, type RunRefusal } from './types'
@@ -100,6 +101,27 @@ export async function proRefusal(req: AgentRequest, ask: () => Promise<ProAccess
   if (!Number.isInteger(req.id) || FREE_ACTIONS.includes(req.action) || deliveryFor(req)) return null
   const flow = workflowFor(cardWorkflowId(req.id as number))
   return flow?.pro ? proGate(flow, ask) : null
+}
+
+/** Start a sub-run of the live run `parentId` (#1421): the same agent, in the same folder, on
+ *  the parent's runtime unless one is named. It takes no card lock and passes no gate the
+ *  parent already passed. */
+export function startSubRun(parentId: string, prompt: string, runtime?: string): { run: RunRecord; spawned: boolean } | RunRefusal {
+  const parent = peekRun(parentId)
+  if (!parent || parent.status !== 'running') return refusal('runNotFound', `run ${parentId.slice(0, 8)} is not running here`, { id: parentId })
+  if (parent.action === 'sub') return refusal('subRunNested', 'a sub-run cannot start sub-runs of its own')
+  const inherited = parent.runtime && runtimeById(parent.runtime) ? parent.runtime : undefined
+  return open(
+    {
+      action: 'sub',
+      id: parent.cardId ?? undefined,
+      parentId,
+      description: prompt,
+      specAgent: parent.agent,
+      runtime: runtime ?? inherited,
+    },
+    randomUUID(),
+  )
 }
 
 /** The same, from inside a board move — where the board's own lock is held and nothing may be

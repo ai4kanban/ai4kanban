@@ -137,6 +137,7 @@ const VERB: Record<AgentAction, string> = {
   conflict: 'unblocked',
   hook: 'worked on by a hook',
   scheduled: 'run on its schedule',
+  sub: 'worked on by a sub-run',
   unstick: 'settled',
 }
 
@@ -231,7 +232,7 @@ function reap(runs: RunRecord[], reaped: RunRecord[] = [], restore: RunRecord[] 
     // A run cut off mid-delivery is settled outside this lock: a build that was cut
     // off leaves the delivery ACTIVE and unfinished, and a review cut off stops and asks
     // (#302).
-    if (r.deliveryId) reaped.push({ ...r })
+    if (r.deliveryId && r.action !== 'sub') reaped.push({ ...r })
     dropSpec(r.sessionId)
     changed = true
   }
@@ -496,7 +497,8 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
 
 function toView(r: RunRecord, gone?: ReadonlySet<number>, refusals?: Map<string, RunRefusal | undefined>): RunView {
   const cardOffBoard = r.cardId !== null && !!gone?.has(r.cardId)
-  const open = canPickUp(r) && !endedDeliveryRefusal(r, refusals)
+  // A sub-run is started again by its parent, never on its own (#1421).
+  const open = r.action !== 'sub' && canPickUp(r) && !endedDeliveryRefusal(r, refusals)
   const session = !lacksSession(r)
   return {
     ...r,
@@ -562,6 +564,11 @@ export async function listRuns(): Promise<RunView[]> {
   // permanent record is the only place that ending is written down.
   for (const run of restore) await restoreCardStatus(run)
   for (const run of reaped) await settleDelivery(run)
+  // A sub-run whose parent is gone has nobody to report to (#1421).
+  for (const sub of runs) {
+    if (sub.action !== 'sub' || sub.status !== 'running' || !sub.parentId) continue
+    if (!runs.some((r) => r.sessionId === sub.parentId && r.status === 'running')) await stopRun(sub.sessionId)
+  }
   // And the deliveries no row is left of at all, which reaping cannot reach: it reads the
   // record, and these are the ones the record lost.
   if (Date.now() - scannedOrphansAt >= ORPHAN_SCAN_MS) {
@@ -874,7 +881,9 @@ export function openRun(
         ? activeDelivery(cardId)
         : undefined
     : undefined
-  const cwd = deliveryCwd(start ?? joining ?? {})
+  // A sub-run works in its parent's folder, inside its parent's delivery and flow (#1421).
+  const parent = req.action === 'sub' && req.parentId ? peekRun(req.parentId) : undefined
+  const cwd = parent?.cwd ?? deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
   // first, and the picker may well have been flipped by then). A run therefore always uses
@@ -940,7 +949,8 @@ export function openRun(
     // the record however many sessions it takes, and a second run on the same card is
     // never mistaken for a continuation of the first. A run that joins a delivery below
     // takes the delivery's id over this one (#417).
-    flowId: req.flowId ?? randomUUID(),
+    flowId: parent?.flowId ?? req.flowId ?? randomUUID(),
+    ...(parent ? { parentId: parent.sessionId, deliveryId: parent.deliveryId, specAgent: req.specAgent } : {}),
   }
   const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release, false, req.discard)
@@ -1114,6 +1124,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   if (prev === null) return ambiguousRun(id)
   if (!prev) return unknownRun(id)
   if (prev.status === 'running') return refusal('runGoing', 'that run is still going')
+  if (prev.action === 'sub') {
+    return refusal('subRunResume', 'a sub-run cannot be continued on its own — the run that started it starts it again')
+  }
   if (!canPickUp(prev)) return refusal('runNotResumable', 'only a failed, interrupted or stopped run can be continued')
   const retrying = lacksSession(prev)
   const ask = retrying && prev.status !== 'stopped' ? retryAsk(prev) : undefined
@@ -1512,7 +1525,9 @@ export async function closeRun(
   // whether the delivery is over is what decides whether the card is still being built.
   // Restoring the stage before that would read a delivery that was about to end as one
   // still in flight, and leave the card at `implementing` with nothing working on it.
-  await settleDelivery(closed)
+  // A sub-run's end is its parent's to act on, never the delivery's (#1421).
+  const sub = closed.action === 'sub'
+  if (!sub) await settleDelivery(closed)
   await restoreCardStatus(closed)
   recordPrune(closed)
   recordMemoryReview(closed)
@@ -1522,7 +1537,7 @@ export async function closeRun(
   // Last, because it is the only step that reads what the five above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.
-  if (reportEnd) await reportRunEnded(sessionId, closed.cardId, closed.status)
+  if (reportEnd && !sub) await reportRunEnded(sessionId, closed.cardId, closed.status)
   // And the card's workspace lock, after every board write above has presented it. It stays
   // held while anything else on this machine is holding that card; a session that never gets
   // here leaves the 30-minute expiry as the fallback (#398).
@@ -1603,7 +1618,7 @@ export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliver
   if (delivery.status !== 'active') return { ok: true, deliveryId: delivery.deliveryId }
   endDelivery(delivery.deliveryId, 'cancelled')
   // A delivery that has ended must not still be writing files.
-  const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId)
+  const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId && r.action !== 'sub')
   if (live) await stopRun(live.sessionId)
   // Whether or not there was one to stop: nothing is building this card now.
   await releaseCard(delivery)
@@ -1627,6 +1642,17 @@ export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliver
 // not worth holding the cancel open for, and the next sweep clears the checkout anyway.
 const STOP_WAIT_MS = 5_000
 const STOP_POLL_MS = 100
+
+/** The sub-runs `parentId` started that are still going (#1421). */
+export const liveSubRuns = (parentId: string): RunRecord[] =>
+  readRuns().filter((r) => r.parentId === parentId && runIsLive(r))
+
+/** Stop a run's sub-runs and wait them out, before the run's own close (#1421). */
+export async function stopSubRuns(parentId: string): Promise<void> {
+  const live = liveSubRuns(parentId)
+  for (const run of live) await stopRun(run.sessionId)
+  await Promise.all(live.map((run) => runIsDown(run.sessionId)))
+}
 
 async function runIsDown(sessionId: string): Promise<void> {
   for (const until = Date.now() + STOP_WAIT_MS; Date.now() < until; ) {

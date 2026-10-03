@@ -20,7 +20,7 @@ import {
   titleOf,
 } from '../lib/agent/sessions'
 import { currentSession } from '../lib/agent/origin'
-import { proRefusal, startResume, startRun } from '../lib/agent/start'
+import { proRefusal, startResume, startRun, startSubRun } from '../lib/agent/start'
 import { knownWorkflow } from '../lib/agent/workflows'
 import { cardCreation, noteRefineTried, withStore } from '../lib/agent/store'
 import type {
@@ -31,6 +31,9 @@ import type {
   DeliveryRecord,
   RunView,
 } from '../lib/agent/types'
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { say } from '../lib/io'
 import { die, BOARD_FLAG } from '../lib/paths'
 import { holdCloudClaims } from '../lib/cloud/requests'
@@ -406,6 +409,75 @@ export async function cmdStop(id: string | undefined): Promise<MoveResult> {
   return { sessionId: res.sessionId }
 }
 
+// ---- sub-runs (#1421) --------------------------------------------------------
+
+// How long one `run wait` waits before it hands back: well inside the two minutes a coding
+// agent's shell gives one command.
+const WAIT_MS = 90_000
+const WAIT_POLL_MS = 1_000
+
+// The run this agent is working inside, or a refusal naming who the command is for.
+function parentRun(verb: string): string {
+  const inside = insideRun()
+  if (!inside) die(`\`run ${verb}\` is for an agent inside a run: it works on that run's sub-runs.`, { kind: 'run-refused' })
+  return inside
+}
+
+/** Start a sub-run of the run this agent is inside, and return as soon as it has started. */
+export async function cmdSubStart(words: string[], opts: { runtime?: string; file?: string }): Promise<MoveResult> {
+  const parent = parentRun('start')
+  let prompt = words.join(' ')
+  if (opts.file) {
+    try {
+      prompt = fs.readFileSync(path.resolve(opts.file), 'utf8')
+    } catch {
+      die(`--file: cannot read ${opts.file}`, { kind: 'run-refused' })
+    }
+  }
+  if (!prompt.trim()) die('say what the sub-run should do, or pass --file <path>.', { kind: 'run-refused' })
+  const started = startSubRun(parent, prompt.trim(), opts.runtime)
+  if ('error' in started) die(started.error, { kind: 'run-refused', reason: started.reason })
+  if (!started.spawned) die(`couldn't start a process for run ${started.run.sessionId}`, { kind: 'spawn-failed' })
+  say(`sub-run ${short(started.run.sessionId)} started`)
+  return { sessionId: started.run.sessionId }
+}
+
+/** Wait for this run's sub-runs to end — the named ones, or all — for at most WAIT_MS. Each
+ *  that ended is said with its status and last message; those still running are listed. */
+export async function cmdSubWait(ids: string[], waitMs = WAIT_MS): Promise<MoveResult> {
+  const parent = parentRun('wait')
+  const mine = async () => (await listRuns()).filter((r) => r.parentId === parent)
+  const pick = (runs: RunView[]): RunView[] => {
+    if (!ids.length) return runs
+    return ids.map((id) => {
+      const hits = runs.filter((r) => r.sessionId.startsWith(id))
+      if (hits.length !== 1) die(hits.length ? `"${id}" matches more than one sub-run` : `no sub-run of this run answers to "${id}"`, { kind: 'no-such-run', run: id })
+      return hits[0]!
+    })
+  }
+  let runs = pick(await mine())
+  for (const until = Date.now() + waitMs; runs.some((r) => r.status === 'running') && Date.now() < until; ) {
+    await new Promise((wake) => setTimeout(wake, WAIT_POLL_MS))
+    const now = await mine()
+    runs = runs.map((r) => now.find((n) => n.sessionId === r.sessionId) ?? r)
+  }
+  if (!runs.length) say('this run has started no sub-runs')
+  const ended = runs.filter((r) => r.status !== 'running')
+  const running = runs.filter((r) => r.status === 'running')
+  for (const r of ended) {
+    say(`${MARK[r.status] ?? '?'} ${short(r.sessionId)}  ${r.status}`)
+    say(r.result?.trim() ? r.result.trim() : '(no last message)')
+    say('')
+  }
+  if (running.length) {
+    say(`still running: ${running.map((r) => short(r.sessionId)).join(', ')} — run \`run wait\` again.`)
+  }
+  return {
+    ended: ended.map((r) => ({ sessionId: r.sessionId, status: r.status, result: r.result })),
+    running: running.map((r) => r.sessionId),
+  }
+}
+
 // ---- reading ---------------------------------------------------------------
 
 /** What is running, and what ran lately. */
@@ -419,7 +491,13 @@ export async function cmdRuns(opts: { card?: number; all?: boolean }, program = 
     say(card !== null ? `nothing has run on #${card}` : 'nothing is running, and nothing has lately')
     return { runs: [] }
   }
-  for (const r of shown) say(runLine(r, program))
+  // A sub-run sits under the run that started it (#1421).
+  const shownIds = new Set(shown.map((r) => r.sessionId))
+  for (const r of shown) {
+    if (r.parentId && shownIds.has(r.parentId)) continue
+    say(runLine(r, program))
+    for (const sub of runs.filter((s) => s.parentId === r.sessionId)) say(runLine(sub, program, '    └ '))
+  }
   if (live.length) say('')
   say(
     live.length
@@ -523,19 +601,20 @@ const MARK: Record<string, string> = {
   stopped: '■',
 }
 
-function runLine(r: RunView, program = 'akb'): string {
+function runLine(r: RunView, program = 'akb', indent = ''): string {
+  const sub = r.action === 'sub'
   // A spec run says which agent it is: `spec` alone would read the same for every one of
   // them, and which agent is working is the whole of what that row has to say.
-  const kind = r.specAgent ? `${r.action} ${r.specAgent}` : r.action
-  const what = r.cardId !== null ? `${kind} #${r.cardId}` : kind
+  const kind = r.specAgent && !sub ? `${r.action} ${r.specAgent}` : r.action
+  const what = r.cardId !== null && !sub ? `${kind} #${r.cardId}` : kind
   const bits = [
-    `${MARK[r.status] ?? '?'} ${short(r.sessionId)}`,
-    what.padEnd(18),
+    `${indent}${MARK[r.status] ?? '?'} ${short(r.sessionId)}`,
+    sub ? what : what.padEnd(18),
     r.status === 'running' ? `running ${ago(Date.now() - r.startedAt)}` : r.status,
   ]
   // Which delivery this run belongs to, when it belongs to one. Without it a delivery's
   // three runs read as three unrelated attempts at the same card.
-  if (r.deliveryId) bits.push(`delivery ${r.deliveryId}`)
+  if (r.deliveryId && !sub) bits.push(`delivery ${r.deliveryId}`)
   if (r.durationMs !== undefined) bits.push(`in ${ago(r.durationMs)}`)
   if (r.model) bits.push(r.model)
   if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
@@ -551,7 +630,8 @@ function runLine(r: RunView, program = 'akb'): string {
     r.tickedNothing && r.error && `! ${firstLine(r.error)}`,
     r.note && `! ${firstLine(r.note)}`,
   ].filter(Boolean)
-  return under.length ? [line, ...under.map((s) => `    ${s}`)].join('\n') : line
+  const pad = ' '.repeat(indent.length + 4)
+  return under.length ? [line, ...under.map((s) => `${pad}${s}`)].join('\n') : line
 }
 
 // Eight characters of a run's id: enough to name one on a board, short enough to type

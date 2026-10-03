@@ -238,7 +238,7 @@ function attachDelivery(card: Card): void {
   attachLanded(card, live)
   attachFinished(card, live)
   if (!live) return
-  const session = readRuns().find((r) => r.status === 'running' && r.deliveryId === live.deliveryId)
+  const session = readRuns().find((r) => r.status === 'running' && r.deliveryId === live.deliveryId && r.action !== 'sub')
   card.delivery = {
     id: live.deliveryId,
     startedAt: live.startedAt,

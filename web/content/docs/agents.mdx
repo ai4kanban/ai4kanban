@@ -272,6 +272,9 @@ A new agent is a **hook**: it runs after its stage, or by itself on a schedule.
 - **Scheduled** (`akb.hook: schedule`): it runs by itself, once per schedule, on no card — see
   below.
 
+An agent's instructions can tell it to split its work across [sub-runs](/docs/runs#sub-runs)
+with `akb run start`.
+
 ## Run an agent on a schedule
 
 A workflow can carry agents that run by themselves: a nightly audit, a weekly clean-up. Each sits

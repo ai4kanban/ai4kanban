@@ -3,7 +3,7 @@ title: "The daily loop"
 title_tag: "The AI4Kanban daily loop — drive the board in plain language"
 description: "The rhythm once the board exists: pick what to work on, add and refine cards, build one end to end, check what it leaves you, and finish it."
 lead: "Once the board exists, you drive it in plain language. Here's the rhythm — what to say, and which button does the same thing."
-last_updated: "October 2, 2026"
+last_updated: "October 3, 2026"
 nav_label: "The daily loop"
 icon: "repeat"
 ---
@@ -182,7 +182,9 @@ your users actually do with the product. It is in your project, readable and rep
 - **What a run does**: first it follows the cards finished since its last run — the cases they
   affect are rewritten, run for real and proved again, and cases they made untrue are deleted.
   Then it writes the first cases for one module the manual does not cover yet, so what shipped
-  before the manual existed gets covered too, one module per run.
+  before the manual existed gets covered too, one module per run. When the finished cards span
+  two or more modules, each module goes to a [sub-run](/docs/runs#sub-runs), and they run in
+  parallel.
 - **How it lands**: a run's changes land as one commit of their own, like any
   [scheduled agent](/docs/agents#run-an-agent-on-a-schedule)'s; a run that changed nothing
   commits nothing.

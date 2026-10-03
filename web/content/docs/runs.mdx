@@ -3,7 +3,7 @@ title: "Runs, and the tool behind them"
 title_tag: "AI4Kanban runs — watch one, stop it, resume it, and pick what it runs on"
 description: "A run is an agent working on its own: what to say to watch, stop or resume one, and how each agent picks the coding tool and model it runs."
 lead: "A run is an agent working on its own — it survives a closed terminal, keeps its own log, and can be stopped. Here's how you drive one, and how each agent picks what it runs on."
-last_updated: "October 2, 2026"
+last_updated: "October 3, 2026"
 nav_label: "Runs and agents"
 icon: "terminal"
 ---
@@ -29,6 +29,23 @@ transcript and in your shell history, and the board never reads a saved key back
 When an ask can't run, the answer names the one line that fixes it — `akb install` for a project
 with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind, `akb agent test` for
 an agent that isn't installed, `akb agent` for a key or provider that isn't set.
+
+## Sub-runs
+
+An agent inside a run can hand part of its work to a **sub-run**: `akb run start "<task>"`
+starts one and returns its id, and `akb run wait` waits up to 90 seconds at a time for them to
+end, giving each one's last message. How many it starts, and for what, is up to the agent's own
+instructions — the [QA manager](/docs/daily-loop#the-qa-manual) starts one per module.
+
+- **Who**: only an agent inside a run, as that same agent, on the same runtime unless it names
+  one with `--runtime`. A sub-run cannot start sub-runs of its own.
+- **In Runs**: each sits under the step that started it, marked **Sub-run** with the first line
+  of its task, and opens onto its own log, cost and model. Each run's cost is its own; nothing
+  adds them up.
+- **Where it works**: in the parent's folder. Its changes land with the parent's, and are lost
+  with them.
+- **Stopping**: when the parent ends or is stopped, its sub-runs still going are stopped. A
+  sub-run is never resumed on its own; its parent starts it again.
 
 ## Where a run's record is kept
 

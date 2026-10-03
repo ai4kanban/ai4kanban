@@ -55,6 +55,8 @@ import {
   cmdRuns,
   cmdStartRun,
   cmdStop,
+  cmdSubStart,
+  cmdSubWait,
   cmdWatch,
 } from '../../commands/run'
 import {
@@ -583,6 +585,29 @@ function declareRunning(run: Command, cli: AgentCliOptions): void {
     .option('-a, --all', 'every run this board has kept, not just the last ten')
     .action(async function (this: Command) {
       await onBoard(this, cli, (p) => cmdRuns(this.opts(), p))
+    })
+
+  verb('start')
+    .argument('[prompt...]', 'what the sub-run should do')
+    .summary('start a sub-run of the run you are inside, and return its id')
+    .description(
+      'Only an agent inside a run can, and a sub-run cannot start its own. It works in the same folder as the ' +
+        'same agent, has its own log and cost, and is stopped when its parent ends.',
+    )
+    .option('--runtime <id>', "the runtime it runs on (default: the parent's)")
+    .option('--file <path>', 'read the prompt from this file')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [words] = positional(vals) as [string[]]
+      await onBoard(this, cli, () => cmdSubStart(words ?? [], this.opts()))
+    })
+
+  verb('wait')
+    .argument('[id...]', "sub-runs of the run you are inside; left out, all of them")
+    .summary("wait up to 90 seconds for this run's sub-runs to end")
+    .description('Each one that ended is given with its status and last message; the ones still running are listed. Call it again until none are.')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [ids] = positional(vals) as [string[]]
+      await onBoard(this, cli, () => cmdSubWait(ids ?? []))
     })
 
   verb('log')

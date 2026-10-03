@@ -83,6 +83,9 @@ export type AgentAction =
    *  no card. The board starts it when its cadence comes round; it is a card-less delivery of
    *  its own, so what it changes is committed and landed like a build. */
   | 'scheduled'
+  /** A sub-run (#1421): a prompt another run handed off with `akb run start`, in that run's
+   *  folder, as the same agent. Named by `parentId`; it holds no card and lands nothing. */
+  | 'sub'
   /** Squeeze the memory back down to what helps planning (#514) — the memory pruner's one
    *  flow. It names no card: the memory set is the whole of what it works on, so it is
    *  started from the agent's own page or by the cadence that page carries. It raises
@@ -124,7 +127,7 @@ export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>
  *
  *  A `hook` run is not one of them: it changes the build's own files, so nothing else may
  *  build the card beside it. */
-const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'reflect'])
+const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'reflect', 'sub'])
 
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
  *  so a card-free run is exempt everywhere or nowhere. */
@@ -219,6 +222,8 @@ export interface AgentRequest {
    *  agent is set to. It applies to the one run and changes nothing in Configuration →
    *  Agents. Absent on every run that named none, which is the agent's own. */
   runtime?: string
+  /** sub: the run that started this one (#1421). */
+  parentId?: string
 }
 
 /** A triage item a run is making a card of: its source id and file from the repo root. */
@@ -240,7 +245,7 @@ export const isRetired = (action: AgentAction): action is RetiredAction => RETIR
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'spec' | 'hook' | 'scheduled'>
+  | Exclude<StartableAction, 'clarify' | 'spec' | 'hook' | 'scheduled' | 'sub'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -307,6 +312,10 @@ export type RunRefusalKind =
   | 'runNoSession'
   | 'runContinued'
   | 'runForeign'
+  /** A sub-run is started again by its parent, never on its own (#1421). */
+  | 'subRunResume'
+  /** A sub-run cannot start sub-runs of its own (#1421). */
+  | 'subRunNested'
   /** A sort that cannot be started again: this account may not sort (#1321). */
   | 'sortUnavailable'
   | 'discardUnfinished'
@@ -585,6 +594,8 @@ export interface RunRecord {
   /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
    *  does today; a refine or a resolve stands alone and carries none. */
   deliveryId?: string
+  /** The run that started this one with `akb run start` (#1421). */
+  parentId?: string
 }
 
 // ---- a delivery: everything one Implement click starts ---------------------

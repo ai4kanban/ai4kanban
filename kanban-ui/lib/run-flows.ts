@@ -29,7 +29,7 @@ export interface RunFlow {
   /** The first session: the command the user typed, which is what the whole flow is. */
   root: SessionView;
   /** The newest session, whose state IS the flow's: a job is going while its current
-   *  session is, and it ended however its last one ended. */
+   *  session is, and it ended however its last one ended. Never a sub-run (#1421). */
   latest: SessionView;
   /** When the job started — its first session, not its latest. */
   startedAt: number;
@@ -44,7 +44,7 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
     const found = byId.get(id);
     if (found) {
       found.sessions.push(s);
-      found.latest = s;
+      if (!s.parentId) found.latest = s;
       continue;
     }
     const flow: RunFlow = {
