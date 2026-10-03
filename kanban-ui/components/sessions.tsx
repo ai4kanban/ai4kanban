@@ -440,7 +440,8 @@ function FlowRow({
   const c = t.runs.panel;
   const language = useLanguage();
   const agentName = useAgentName();
-  const steps = flow.sessions.length > 1 ? flow.sessions : [];
+  // A sub-run is no step of the job: it hangs off the step that started it (#1421).
+  const steps = flow.sessions.length > 1 ? flow.sessions.filter((s) => !s.parentId) : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
   const scheduledName = useScheduledName();
   const said = flow.cardId === null ? scheduledName(flow.root) || flowSaid(flow) : "";
@@ -480,7 +481,7 @@ function FlowRow({
             )}
           </span>
           <span className="block truncate text-[10.5px] text-nb-ink-soft">
-            {steps.length > 0 && `${c.steps(steps.length)} · `}
+            {steps.length > 0 && `${c.steps(flow.sessions.length)} · `}
             {relTime(flow.startedAt, c)}
           </span>
         </span>
@@ -495,44 +496,85 @@ function FlowRow({
             const last = i === steps.length - 1;
             // Resume carried the one before it on: the row above is where it came from.
             const why = s.resumedFrom ? c.resumedSession : "";
+            const subs = flow.sessions.filter((x) => x.parentId === s.sessionId);
             return (
-              <button
-                key={s.sessionId}
-                type="button"
-                onClick={() => {
-                  sessionsPanel.select(s.sessionId);
-                  onOpen?.();
-                }}
-                title={fullTime(s.startedAt, language)}
-                className={`relative flex w-full cursor-pointer items-center gap-2 py-1.5 pl-7 pr-3 text-left transition-colors ${
-                  active ? "bg-nb-paper" : "hover:bg-nb-wash/70"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className={`absolute left-[31.5px] w-px bg-nb-ink/15 ${last ? "top-0 h-1/2" : "inset-y-0"}`}
-                />
-                {/* Lifted over the rail, or the hairline draws straight across the dot. */}
-                <span className="relative z-[1] flex shrink-0">
-                  <SessionDot session={s} />
-                </span>
-                <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
-                  {/* A hook is named by its agent (#1328): several run in one delivery. */}
-                  {s.action === "hook" && s.agent ? agentName(s.agent) : stepLabel(s.action, t.runs)}
-                </span>
-                {/* A resumed session says so beside its step label. */}
-                {!!why && <span className="text-[10.5px] text-nb-ink-soft">· {why}</span>}
-                {/* A job can range over several cards — a create writes three and refines
-                    each. The step says which one, when it isn't the job's own. */}
-                {s.cardId !== null && s.cardId !== flow.cardId && (
-                  <span className="text-[10.5px] text-nb-ink-soft">#{s.cardId}</span>
-                )}
-              </button>
+              <Fragment key={s.sessionId}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionsPanel.select(s.sessionId);
+                    onOpen?.();
+                  }}
+                  title={fullTime(s.startedAt, language)}
+                  className={`relative flex w-full cursor-pointer items-center gap-2 py-1.5 pl-7 pr-3 text-left transition-colors ${
+                    active ? "bg-nb-paper" : "hover:bg-nb-wash/70"
+                  }`}
+                >
+                  {/* The rail runs on past a last step that started sub-runs: they hang off it. */}
+                  <span
+                    aria-hidden
+                    className={`absolute left-[31.5px] w-px bg-nb-ink/15 ${last && !subs.length ? "top-0 h-1/2" : "inset-y-0"}`}
+                  />
+                  {/* Lifted over the rail, or the hairline draws straight across the dot. */}
+                  <span className="relative z-[1] flex shrink-0">
+                    <SessionDot session={s} />
+                  </span>
+                  <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
+                    {/* A hook is named by its agent (#1328): several run in one delivery. */}
+                    {s.action === "hook" && s.agent ? agentName(s.agent) : stepLabel(s.action, t.runs)}
+                  </span>
+                  {/* A resumed session says so beside its step label. */}
+                  {!!why && <span className="text-[10.5px] text-nb-ink-soft">· {why}</span>}
+                  {/* A job can range over several cards — a create writes three and refines
+                      each. The step says which one, when it isn't the job's own. */}
+                  {s.cardId !== null && s.cardId !== flow.cardId && (
+                    <span className="text-[10.5px] text-nb-ink-soft">#{s.cardId}</span>
+                  )}
+                </button>
+                {subs.map((sub, j) => (
+                  <SubRunRow
+                    key={sub.sessionId}
+                    sub={sub}
+                    active={sub.sessionId === selectedId}
+                    end={last && j === subs.length - 1}
+                    onOpen={onOpen}
+                  />
+                ))}
+              </Fragment>
             );
           })}
         </div>
       )}
     </div>
+  );
+}
+
+// One sub-run (#1421), a level in on a short branch off the rail. Its prompt's first line
+// clips to the row, and all of it is the tooltip.
+function SubRunRow({ sub, active, end, onOpen }: { sub: SessionView; active: boolean; end: boolean; onOpen?: () => void }) {
+  const t = useCopy();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        sessionsPanel.select(sub.sessionId);
+        onOpen?.();
+      }}
+      title={sub.input}
+      className={`relative flex w-full cursor-pointer items-center gap-2 py-1.5 pl-[46px] pr-3 text-left transition-colors ${
+        active ? "bg-nb-paper" : "hover:bg-nb-wash/70"
+      }`}
+    >
+      <span aria-hidden className={`absolute left-[31.5px] w-px bg-nb-ink/15 ${end ? "top-0 h-1/2" : "inset-y-0"}`} />
+      <span aria-hidden className="absolute left-[32px] top-1/2 h-px w-[12px] bg-nb-ink/15" />
+      <span className="relative z-[1] flex shrink-0">
+        <SessionDot session={sub} />
+      </span>
+      <span className={`shrink-0 text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
+        {stepLabel(sub.action, t.runs)}
+      </span>
+      <span className="min-w-0 truncate text-[10.5px] text-nb-ink-soft">{(sub.input ?? "").split("\n")[0]}</span>
+    </button>
   );
 }
 

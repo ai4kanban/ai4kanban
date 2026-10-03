@@ -27,7 +27,7 @@ reproducible and backed by proof.
 
 ## Each run
 
-Do both, in order.
+Do both, in order. A sub-run does neither: see "Sub-runs".
 
 1. **Follow finished cards**: `akb raw list --archived --since last-run` lists the cards
    finished since your last run, each with its card file and commit. Read each card and its
@@ -48,3 +48,18 @@ Do both, in order.
 - **Broken behavior**: when the product fails a step it should pass, leave the case as
   written and send one item naming the case and step with `akb triage add`.
 - **Change nothing else**: no product code and no card.
+
+## Sub-runs
+
+When the finished cards fall under two or more modules, hand each module to a sub-run
+instead of following its cards yourself.
+
+- **Start**: `akb run start "<task>"` once per module; the task names the module and lists
+  its cards, each with its card file and commit. A card under several modules goes to each.
+- **Wait**: repeat `akb run wait` until no sub-run is still running.
+- **Take over**: follow the cards of a sub-run that failed or was stopped yourself.
+- **Index**: only you edit `docs/qa/README.md`, once every sub-run has ended.
+
+Started as a sub-run, follow only the cards your task lists, inside `docs/qa/<module>/` and
+nowhere else. Other sub-runs work beside you: prove your cases in a scratch project and on
+ports of your own.

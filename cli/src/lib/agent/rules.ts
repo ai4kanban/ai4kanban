@@ -115,7 +115,7 @@ interface RuleOwner {
 }
 
 function ownerOf(req: AgentRequest): RuleOwner | null {
-  if (SPECIALIST_ACTIONS.has(req.action)) {
+  if (SPECIALIST_ACTIONS.has(req.action) || req.action === 'sub') {
     const name = canonicalSpecAgent(req.specAgent ?? '')
     return name ? { name } : null
   }

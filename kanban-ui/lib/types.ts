@@ -330,6 +330,9 @@ export interface SessionView {
    *  instead of six unrelated rows. `round` is a refinement pass's place in its loop,
    *  counting from 1. A run recorded before flows carries none and stands on its own. */
   flow?: { id: string; round: number };
+  /** The run that started this one with `akb run start` (#1421). It shares that run's flow
+   *  and is drawn under it, never as a step of its own. */
+  parentId?: string;
   /** The delivery this run belongs to, when it belongs to one (#301). Only an `implement`
    *  run does: everything else is a single run that stands alone. The status is the
    *  DELIVERY's, not this run's — a run the user stopped inside a cancelled delivery reads

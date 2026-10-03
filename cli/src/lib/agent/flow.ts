@@ -488,8 +488,9 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   conflict: ['conflict'],
   // The board starts a hook itself (#1328); it has no page and nothing prints it.
   hook: [],
-  // Nor a scheduled agent's pass (#1401).
+  // Nor a scheduled agent's pass (#1401), nor a sub-run (#1421).
   scheduled: [],
+  sub: [],
   // One planning session (#1203): the page that plans, and the two it writes the card by.
   clarify: ['refine', 'writing', 'update-questions'],
   resolve: ['board', 'writing', 'resolve', 'update-questions'],

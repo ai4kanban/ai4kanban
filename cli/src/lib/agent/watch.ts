@@ -66,7 +66,9 @@ import {
   readRefineAsks,
   readSpec,
   readSpecAsks,
+  liveSubRuns,
   reportRunEnded,
+  stopSubRuns,
   resumeSessionId,
   setCardStatus,
   requestOf,
@@ -170,6 +172,9 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     claim = claimCard(r)
   })
   const record = claimed ?? run
+  // A sub-run leaves the board's bookkeeping to its parent (#1421): no card hold, no checks,
+  // no landing and no follow-ups.
+  const sub = record.action === 'sub'
   if (claim) await setCardStatus(claim.cardId, claim.status)
 
   // The log is machine state like the record it belongs to, so a folder that refuses writes
@@ -201,7 +206,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // And the board's own files as they stand, on a Cloud board: the difference between this
   // and the same read at the close is what this run wrote with its own tools, and what its
   // close sends to the workspace. Null on a Local board, where the files ARE the record.
-  const image = boardImage()
+  const image = sub ? null : boardImage()
   // And what was already broken about it. Only what a run BREAKS is worth reporting on that
   // run: a board carrying a stale link from last month would otherwise put the same line on
   // the end of every run forever, which is how a real warning gets read as furniture.
@@ -396,6 +401,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       done = true
       let asked = wanted
       if (idle) clearTimeout(idle)
+      // Its sub-runs end first, so what they leave is in the folder this close reads.
+      await stopSubRuns(sessionId)
       if (renderer) {
         append(renderer.flush())
         // The ids may have been in the last partial line, on a very short run.
@@ -437,7 +444,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // mid-stream leaves its only word, with no `result` event behind it.
       const offStream = renderer?.offStream?.()
       const blip =
-        ours || (code === 0 && !said) || !resumeSessionId(held)
+        ours || sub || (code === 0 && !said) || !resumeSessionId(held)
           ? undefined
           : active.transient?.({ failure: said, result, offStream })
       const again = blip ? planRetry(held.retry, blip, held.startedAt) : null
@@ -488,7 +495,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         .filter((r) => r.sessionId !== sessionId && r.status === 'running' && holdsCard(r.action))
         .flatMap((r) => [r.cardId, ...(r.createdCardIds ?? [])]).filter((id): id is number => id !== null)))
       let formatErrors: ReturnType<typeof validateRunSpecs> = []
-      if (!takenOver) {
+      if (!takenOver && !sub) {
         try {
           const discarded = new Set(cleanupDiscardedCards(sessionId))
           for (const [file, card] of sources) if (discarded.has(card.id)) sources.delete(file)
@@ -548,7 +555,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // What this run changed, taken now and taken once (agent/refine.ts). Every ending
       // claims, a failure included: a half-written card is not a card to refine, but leaving
       // its edits unclaimed would hand them to whichever run closes next.
-      const changed = [...new Set([...(record.formatRepair?.changedIds ?? []), ...claimChanges(before, sessionId)])].filter((id) => !peekRun(sessionId)?.discardedCards?.some((c) => c.id === id))
+      const changed = sub ? [] : [...new Set([...(record.formatRepair?.changedIds ?? []), ...claimChanges(before, sessionId)])].filter((id) => !peekRun(sessionId)?.discardedCards?.some((c) => c.id === id))
       const original = record.formatRepair ? new Map(record.formatRepair.existingIds.map((id) => [id, ''])) : before
       patch(sessionId, (r) => {
         r.formatRepair = contractError ? {
@@ -607,8 +614,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       //
       // Worked out BEFORE the record closes, so anything watching for the run to end sees
       // the note it ended with rather than catching the record a beat too early.
-      const settled = status === 'done' ? settleBoard(record, changed, original) : null
-      const broke = status === 'done' ? brokeBoard(wasBroken) : null
+      const settled = status === 'done' && !sub ? settleBoard(record, changed, original) : null
+      const broke = status === 'done' && !sub ? brokeBoard(wasBroken) : null
       const note = joinNotes(
         status === 'done' ? joinNotes(settled?.stalled, broke?.note) : undefined,
         carried ?? undefined,
@@ -632,6 +639,18 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // and that write is a pass like any other, so without the hold the handoff
       // is exactly the interruption this was meant to stop. A follow-up that would not
       // start leaves nothing holding the card, and it is raised as it stands.
+      if (sub) {
+        await closeRun(sessionId, {
+          status,
+          ok: asked ? undefined : status === 'done',
+          code: asked ? null : code,
+          error: spawnError ?? (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure)),
+          errorWhy,
+          endedAt,
+        })
+        resolve(status === 'done' ? 0 : 1)
+        return
+      }
       holdCardAtWork(record.cardId)
       try {
         await closeRun(sessionId, {
@@ -781,7 +800,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     // The card stays this machine's for as long as the run is up. A renewal that finds
     // another machine holding it ends the run there — what it wrote to the board is dropped
     // rather than uploaded, and its card is read back from the workspace (#398).
-    unhold = holdRunCard(sessionId, record.cardId, () => {
+    unhold = holdRunCard(sessionId, sub ? null : record.cardId, () => {
       if (takenOver) return
       // Waiting between retry attempts (#525): the run is closing already — `done` is set —
       // but the card is still being renewed, so a takeover has to land. Cut the wait short
@@ -805,6 +824,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (idle) clearTimeout(idle)
       idle = setTimeout(() => {
         if (done || stopped || silent) return
+        // A run waiting on its sub-runs says nothing, and is not silent (#1421).
+        if (liveSubRuns(sessionId).length) {
+          touch()
+          return
+        }
         silent = true
         log.write(`\n[board] ${silenceSaid(silenceFor)}\n`)
         giveUp(false)

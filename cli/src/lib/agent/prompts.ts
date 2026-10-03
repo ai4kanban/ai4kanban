@@ -175,7 +175,7 @@ function cardFileOf(id: number | undefined): string {
 }
 
 function realPaths(text: string, req: AgentRequest): string {
-  if (req.action !== 'hook' && req.action !== 'scheduled') return text
+  if (req.action !== 'hook' && req.action !== 'scheduled' && req.action !== 'sub') return text
   return text.split(BOARD_FOLDER).join(KANBAN).split(CARD_FILE).join(cardFileOf(req.id))
 }
 
@@ -228,8 +228,8 @@ export function buildPrompt(rawReq: AgentRequest, notes: string[] = []): string 
 /** A leading agent's own instructions, for a run it leads (#822, #846). Laid over the shared
  *  flow, never in place of it. */
 export function leadBlock(req: AgentRequest): string {
-  // Helping, it is handed its body by the spec flow instead.
-  if (SPECIALIST_ACTIONS.has(req.action)) return ''
+  // Helping, it is handed its body by the spec flow instead; a sub-run, by its own opening.
+  if (SPECIALIST_ACTIONS.has(req.action) || req.action === 'sub') return ''
   const name = agentForRun(req)
   const agent = name ? findSpecAgent(name) : null
   if (!agent?.canLead) return ''
@@ -648,6 +648,28 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
+        memory ? `——— what you remember ———\n\n${memory}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    }
+    // A sub-run (#1421): who started it and what to report, then the agent's own blocks.
+    case 'sub': {
+      const agent = findSpecAgent(req.specAgent ?? '')
+      const own = agent ? specAgentInstructions(agent) : null
+      if (own) notes.push(...own.notes)
+      const memory = agent ? agentMemoryBlock(agent) : ''
+      const whose = agent ? `the \`${agent.name}\` agent's run` : 'run'
+      return [
+        [
+          `You are a sub-run: ${whose} \`${req.parentId ?? ''}\` started you and works beside you in this same folder.`,
+          `The board is at \`${BOARD_FOLDER}\`.`,
+          `Nobody is watching: never ask.`,
+        ].join(' '),
+        'Do only the task below, and finish with one message saying what you did and what you could not do: it is all the run that started you will read.',
+        `——— your task ———\n\n${req.description ?? ''}`,
+        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
+        own?.files ? `——— your own files ———\n\n${own.files}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
       ]
         .filter(Boolean)

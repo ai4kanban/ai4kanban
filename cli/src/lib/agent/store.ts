@@ -220,6 +220,7 @@ export function readStore(): Store {
           : undefined,
       flowId: typeof entry.flowId === 'string' && entry.flowId ? entry.flowId : undefined,
       deliveryId: typeof entry.deliveryId === 'string' && entry.deliveryId ? entry.deliveryId : undefined,
+      parentId: typeof entry.parentId === 'string' && entry.parentId ? entry.parentId : undefined,
     })
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
