@@ -51,6 +51,31 @@ const en: RailCopy = {
     undated: "Archived before the board kept a record",
     card: { label: "Archive", release: "Release", archived: "Archived", rejected: "Rejected", rejectedTip: "Rejected, not shipped", reason: "Reason" },
   },
+  testCases: {
+    row: "Test cases",
+    summary: (cases, modules) =>
+      `${modules} ${modules === 1 ? "module" : "modules"} · ${cases} ${cases === 1 ? "case" : "cases"}`,
+    cases: (count) => (count === 1 ? "1 case" : `${count} cases`),
+    latest: "Latest",
+    proof: (steps, shots, logs) =>
+      [
+        `${steps} ${steps === 1 ? "step" : "steps"}`,
+        shots ? `${shots} ${shots === 1 ? "screenshot" : "screenshots"}` : "",
+        logs ? `${logs} ${logs === 1 ? "log" : "logs"}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    notes: (count) => (count === 1 ? "1 note" : `${count} notes`),
+    notesTip: "Feedback the QA manager left",
+    updated: "Updated",
+    setup: "Setup",
+    steps: "Steps",
+    feedback: "Feedback",
+    feedbackBy: "Written by the QA manager after running this case",
+    missing: (file) => `File not found: ${file}`,
+    showAll: (lines) => `Show all ${lines} lines`,
+    fold: "Show less",
+  },
   signals: {
     row: "Triage",
     title: "Triage",

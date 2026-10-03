@@ -28,6 +28,7 @@ import { storyboardAttrs } from "@/lib/format/storyboard";
 import { deviceOf, mockupBlock, type MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
+import { CaseFilesContext, EvidenceNode, fileUrl, type CaseFiles } from "./case-evidence";
 import { Copied, useCopyText } from "./copy";
 import { ExpandableImage } from "./image-preview";
 import { Mockup } from "./Mockup";
@@ -134,6 +135,61 @@ function remarkStoryboards(storyboards: StoryboardSet | null) {
   };
 }
 
+// remark plugin, on a test case only (#1422): a link or picture naming a file of the case's own
+// is taken out of its paragraph and drawn as that file, and every line break in the prose is
+// kept, so a step's lines stay the lines it was written in.
+function remarkCaseFiles(files: CaseFiles["files"]) {
+  return () => (tree: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textOf = (n: any): string => (n.type === "text" ? n.value : (n.children ?? []).map(textOf).join(""));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree as any, "paragraph", (node: any, index: number | undefined, parent: any) => {
+      if (index == null || !parent) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const out: any[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let run: any[] = [];
+      const flush = () => {
+        const first = run[0];
+        const last = run[run.length - 1];
+        if (first?.type === "text") first.value = first.value.replace(/^\s+/, "");
+        if (last?.type === "text") last.value = last.value.replace(/\s+$/, "");
+        if (run.some((kid) => kid.type !== "text" || kid.value)) out.push({ type: "paragraph", children: run });
+        run = [];
+      };
+      let hit = false;
+      for (const kid of node.children) {
+        const ev = kid.type === "link" || kid.type === "image" ? files[kid.url] : undefined;
+        if (ev && (kid.type === "image" || ev.kind !== "image")) {
+          hit = true;
+          flush();
+          out.push({
+            type: "evidence",
+            data: {
+              hName: "evidence",
+              hProperties: { "data-target": kid.url, "data-alt": kid.type === "image" ? (kid.alt ?? "") : textOf(kid) },
+              hChildren: [],
+            },
+          });
+        } else run.push(kid);
+      }
+      if (!hit) return;
+      flush();
+      parent.children.splice(index, 1, ...out);
+      return [SKIP, index + out.length];
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree as any, "text", (node: any, index: number | undefined, parent: any) => {
+      if (index == null || !parent || !node.value.includes("\n")) return;
+      const kids = node.value.split("\n").flatMap((value: string, i: number) =>
+        i ? [{ type: "break" }, { type: "text", value }] : [{ type: "text", value }],
+      );
+      parent.children.splice(index, 1, ...kids);
+      return [SKIP, index + kids.length];
+    });
+  };
+}
+
 // Fenced blocks are coloured by their language tag only — an untagged block stays plain, since
 // a wrong guess reads worse than none (#827). A diff is drawn by rehypeDiff instead, in the
 // Diff tab's colours.
@@ -215,6 +271,9 @@ const RELATIVE_MD = /^(?![a-z][a-z0-9+.-]*:|\/|#)[^#?]*\.md(#.*)?$/i;
 function Anchor({ href, children, node }: { href?: string; children?: React.ReactNode } & ExtraProps) {
   const cardHref = useCardHref();
   const memory = useContext(MemoryLinksContext);
+  const caseFiles = useContext(CaseFilesContext);
+  // A test case's own picture, linked rather than shown: open the file, not a page address.
+  if (caseFiles && href && caseFiles.files[href]?.kind === "image") href = fileUrl(caseFiles.base, href);
   // A linked picture opens the preview rather than the link — never a button inside a link.
   if (node?.children.some((kid) => kid.type === "element" && kid.tagName === "img")) return <>{children}</>;
   if (memory && href && RELATIVE_MD.test(href)) {
@@ -279,7 +338,7 @@ function Img({ node, ...rest }: React.ComponentProps<"img"> & ExtraProps) {
 
 // `mockup` is our own tag rather than an HTML one, so the map is cast: what
 // react-markdown looks up is the tag name, and it has no type for that one.
-const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, a: Anchor, img: Img } as Components;
+const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, evidence: EvidenceNode, a: Anchor, img: Img } as Components;
 
 // Held apart as a constant rather than spread at render: a fresh `components` object every
 // render is a fresh component type, which React answers by remounting the whole subtree.
@@ -297,6 +356,7 @@ export function Markdown({
    *  for it. */
   copyCode,
   memory,
+  caseFiles,
 }: {
   body: string;
   className?: string;
@@ -305,19 +365,28 @@ export function Markdown({
   copyCode?: boolean;
   /** Set on a memory page; hold it stable across renders. */
   memory?: MemoryLinks;
+  /** Set on a test case page (#1422); hold it stable across renders. */
+  caseFiles?: CaseFiles;
 }) {
   // Every markdown body on a page linkifies against the same set — see
   // OpenIdsProvider for why this is context rather than a prop.
   const ids = useOpenIds();
   // Held across renders so a poll doesn't re-parse every body on the page.
   const plugins = useMemo(
-    () => [remarkGfm, remarkCardLinks(ids), remarkMockups(mockups ?? null), remarkStoryboards(storyboards ?? null)],
-    [ids, mockups, storyboards],
+    () => [
+      remarkGfm,
+      remarkCardLinks(ids),
+      remarkMockups(mockups ?? null),
+      remarkStoryboards(storyboards ?? null),
+      ...(caseFiles ? [remarkCaseFiles(caseFiles.files)] : []),
+    ],
+    [ids, mockups, storyboards, caseFiles],
   );
   return (
     <MockupsContext.Provider value={mockups ?? null}>
       <StoryboardsContext.Provider value={storyboards ?? null}>
       <MemoryLinksContext.Provider value={memory ?? null}>
+      <CaseFilesContext.Provider value={caseFiles ?? null}>
         <div className={className ? `nb-md ${className}` : "nb-md"}>
           <ReactMarkdown
             remarkPlugins={plugins}
@@ -328,6 +397,7 @@ export function Markdown({
             {body}
           </ReactMarkdown>
         </div>
+      </CaseFilesContext.Provider>
       </MemoryLinksContext.Provider>
       </StoryboardsContext.Provider>
     </MockupsContext.Provider>

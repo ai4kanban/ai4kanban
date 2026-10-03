@@ -117,7 +117,7 @@ card, and changes nothing else. The board ships nine, and `akb spec` lists them:
 One more runs on a schedule instead of during planning:
 
 - **`qa-manager`** (QA manager) — once a day, updates the cases that the cards finished since its
-  last run affect in the project's [QA manual](/docs/daily-loop#the-qa-manual) under `docs/qa/`,
+  last run affect in the project's [test cases](/docs/daily-loop#test-cases) under `docs/qa/`,
   each step with its proof, then writes the first cases for one module not covered yet.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
@@ -280,7 +280,7 @@ with `akb run start`.
 A workflow can carry agents that run by themselves: a nightly audit, a weekly clean-up. Each sits
 under **Scheduled** in Configuration → Workflows, below the two stages, and belongs to that
 workflow alone. Coding ships one, running every day: the
-[QA manager](/docs/daily-loop#the-qa-manual).
+[QA manager](/docs/daily-loop#test-cases).
 
 Recurring cards have moved here. On update, each one becomes a scheduled agent of its workflow:
 its steps are the agent's instructions, its cadence and last run carry over, and a card with no

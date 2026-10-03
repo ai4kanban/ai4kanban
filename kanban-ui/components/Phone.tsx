@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import {
   FiBookOpen,
   FiChevronRight,
+  FiClipboard,
   FiColumns,
   FiFileText,
   FiFolder,
@@ -351,10 +352,13 @@ function MemoryRows({
 export function MoreScreen({
   projectRoot,
   onMemory,
+  testCases,
 }: {
   projectRoot: string;
   /** Open the Memory screen (#1198). */
   onMemory: () => void;
+  /** Whether the project has test cases, and so their row (#1422). */
+  testCases: boolean;
 }) {
   const copy = useCopy();
   const p = copy.chrome.phone;
@@ -384,6 +388,13 @@ export function MoreScreen({
           <span className="min-w-0 flex-1">{copy.rail.memory.heading}</span>
           <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
         </button>
+        {testCases && (
+          <Link href="/test-cases" className={PHONE_ROW}>
+            <FiClipboard size={17} className="shrink-0 text-nb-ink-soft" aria-hidden />
+            <span className="min-w-0 flex-1">{copy.rail.testCases.row}</span>
+            <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
+          </Link>
+        )}
       </div>
 
       <GroupLabel text={c.atTheComputer} divider />

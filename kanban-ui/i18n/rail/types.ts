@@ -65,6 +65,28 @@ export type RailCopy = {
      *  label over a rejected card's reason. */
     card: { label: string; release: string; archived: string; rejected: string; rejectedTip: string; reason: string };
   };
+  testCases: {
+    /** The row under Archive, and the heading of the page it opens (#1422). */
+    row: string;
+    /** Under the heading: how many modules and cases. */
+    summary: (cases: number, modules: number) => string;
+    cases: (count: number) => string;
+    /** Over a module card's newest cases. */
+    latest: string;
+    /** A case card's top line; a count of 0 is left out. */
+    proof: (steps: number, shots: number, logs: number) => string;
+    notes: (count: number) => string;
+    notesTip: string;
+    updated: string;
+    /** The three sections a case file holds, under the interface's own names. */
+    setup: string;
+    steps: string;
+    feedback: string;
+    feedbackBy: string;
+    missing: (file: string) => string;
+    showAll: (lines: number) => string;
+    fold: string;
+  };
   signals: {
     /** The row above Archive, and the name of the page it opens. */
     row: string;

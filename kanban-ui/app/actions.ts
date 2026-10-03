@@ -9,6 +9,8 @@
 // the board, and answer with a value rather than a throw, so the browser gets the reason
 // instead of a framework crash page.
 
+import { qaRoot } from "@/lib/qa";
+import { hasCases } from "@/lib/test-cases";
 import {
   activeSettings,
   agentInfo,
@@ -1897,6 +1899,15 @@ export async function signalsRowAction(): Promise<{ show: boolean; count: number
     return { show: true, count: (await readSignals()).signals.length };
   } catch {
     return { show: false, count: 0 };
+  }
+}
+
+/** Whether to offer the Test cases row: the project has at least one case (#1422). */
+export async function testCasesRowAction(): Promise<boolean> {
+  try {
+    return hasCases(qaRoot());
+  } catch {
+    return false;
   }
 }
 
