@@ -1,8 +1,8 @@
 # Learn triage preferences from dismissals
 
 Read the dismissals listed for you and keep what they say about the user's lasting triage
-taste in `docs/kanban/memory/agents/planner/dismissed.md`. Writing nothing is a complete
-result; most dismissals say nothing lasting.
+taste in the `dismissed.md` files listed under `memory`. Writing nothing is a complete result;
+most dismissals say nothing lasting.
 
 The flow lists two things: new dismissals — each item's file in `docs/kanban/triage/dismissed/`
 with the reason the user gave — and withdrawn source ids, items cited in `dismissed.md` that
