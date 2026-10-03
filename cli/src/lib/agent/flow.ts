@@ -51,7 +51,7 @@ import { reviewBatch, type ChatToReview } from './memory-review'
 import { dismissalReview } from './settings'
 import { dismissalsToReview, dismissedMemoryPath, withdrawnSources } from './dismissal-review'
 import { translating } from './language'
-import { buildAsk, frozenRules, leadBlock } from './prompts'
+import { buildAsk, frozenRules, leadBlock, settingsBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { openOf } from '../view/rules'
 import { setupInstruction } from './resolve'
@@ -985,10 +985,9 @@ export function printFlow(rawReq: AgentRequest, program = 'akb'): MoveResult {
       say(guide.text.trimEnd())
     }
   }
-  const lead = leadBlock(req)
-  if (lead) {
+  for (const block of [leadBlock(req), settingsBlock(req)].filter(Boolean)) {
     say('')
-    say(lead)
+    say(block)
   }
   // Last of all: the rule of the agent this run is done by, in the user's words (#306,
   // #420). A started run is given one block of words and reads the rule wherever it sits; a

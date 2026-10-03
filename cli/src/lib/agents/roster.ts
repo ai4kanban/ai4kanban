@@ -13,7 +13,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { agentRun } from '../agent/resolve'
-import { agentRoster, ROLE_NAMES } from '../agent/roles'
+import { agentRoster, ROLE_NAMES, roleNamed } from '../agent/roles'
 import { readRule } from '../agent/rules'
 import { forgetWorkflowAgent, scheduledMembers, settleWorkflows, stageHelpers, workflows } from '../agent/workflows'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
@@ -24,7 +24,7 @@ import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import type { WriteResult } from '../view/types'
 import { BUNDLED_AGENT_FILES } from './bundled'
 import { agentFileReader, specAgentCatalog } from './catalog'
-import { agentSettingsView, specAgentEnabled, specAgentSettings } from './index'
+import { agentSettingsView, roleSettings, roleSettingsView, specAgentEnabled, specAgentSettings } from './index'
 import { AGENT_NAME, parseSpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
@@ -38,6 +38,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
   const table = readAgentRuntime()
   const agents = agentRoster().map((entry): AgentView => {
     const agent = byName.get(entry.name)
+    const role = entry.kind === 'role' ? roleNamed(entry.name) : undefined
     return {
       name: entry.name,
       title: entry.title,
@@ -52,8 +53,8 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       enabled: !entry.switchable || specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),
       memory: entry.memory,
-      settings: agent ? agentSettingsView(agent) : [],
-      values: agent ? specAgentSettings(agent, entries).values : {},
+      settings: agent ? agentSettingsView(agent) : role ? roleSettingsView(role) : [],
+      values: agent ? specAgentSettings(agent, entries).values : role ? roleSettings(role, entries).values : {},
       // The runtime it runs, read the way a run reads it (#467) — one row, carrying its
       // harness and its model.
       runs: agentRun(entry.name, table),

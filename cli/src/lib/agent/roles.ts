@@ -24,6 +24,7 @@ import { KANBAN, rel } from '../paths'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
+import type { SpecAgentSetting } from './types'
 import type { WorkflowStage } from './workflows'
 import type { AgentKind } from '../agents/parse'
 
@@ -54,6 +55,9 @@ export interface AgentRole {
    *  listed so a roster can say what a role remembers (#805). Empty on every role that only
    *  reads: the builder never opened one at all. */
   memory: string[]
+  /** The picks its page offers (#1469). A choice's `prompt` is added to every run it does
+   *  while that choice is picked. */
+  settings?: SpecAgentSetting[]
 }
 
 // The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss. It
@@ -115,10 +119,39 @@ const PROJECT_WRITER: AgentRole = {
 //
 // `reflect` is an event entry rather than a stage (./stages.ts): no flow a person types, and
 // the role's work all the same — a card reaching the archive is what starts one.
+const SMALL_FIX =
+  'A small fix is a small change whose workflow needs none of its plan hooks.'
+
 const PROPOSER: AgentRole = {
   name: 'proposer',
   gloss: 'proposes the work a finished card leaves behind',
   memory: [`memory/agents/proposer/${PROPOSER_MISSED}`],
+  settings: [
+    {
+      key: 'small-fixes',
+      label: 'Small fixes',
+      help: 'Little things like a copy fix or a missed case.',
+      choices: [
+        {
+          value: 'auto',
+          label: 'Just do them',
+          cost: 'For speed over quality',
+          prompt:
+            `${SMALL_FIX} Do each one instead of proposing it: create it with ` +
+            '`akb raw create --workflow <id> --related <id> --source "#<id>" --schedule implement`, ' +
+            'its Scope and Todo written per `akb guide writing`.',
+        },
+        { value: 'propose', label: 'Ask me first', cost: 'For balancing speed and quality' },
+        {
+          value: 'skip',
+          label: "Don't suggest",
+          cost: 'For focusing on mainline features',
+          prompt: `${SMALL_FIX} Do not propose small fixes; list them in your report.`,
+        },
+      ],
+      default: 'propose',
+    },
+  ],
 }
 
 // The role that hears a complaint about a spec (#628). Its `feedback` is an event entry,

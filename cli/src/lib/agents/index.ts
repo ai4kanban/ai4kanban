@@ -11,10 +11,16 @@ import path from 'node:path'
 
 import { rawMove } from '../agent/command'
 import { agentRun } from '../agent/resolve'
-import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch } from '../agent/settings'
-import { roleNamed, stageContractProblems } from '../agent/roles'
+import { setSpecAgentValue, specAgentEntries, setSpecAgentSwitch } from '../agent/settings'
+import { roleNamed, stageContractProblems, type AgentRole } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
-import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
+import {
+  isSpecOutput,
+  type SpecAgentSetting,
+  type SpecAgentSettingView,
+  type SpecAgentView,
+  type SpecOutput,
+} from '../agent/types'
 import { readLanguage } from '../machine/settings'
 import type { Language } from '../machine/types'
 import { agentMemoryDir, readAgentMemory } from '../memory'
@@ -87,6 +93,14 @@ export function agentSettingsView(
   })
 }
 
+/** A role's settings as a screen reads them (#1469) — in English: a role is a closed set the
+ *  command ships, so the screen drawing it words them. */
+export const roleSettingsView = (role: AgentRole): SpecAgentSettingView[] =>
+  (role.settings ?? []).map(({ choices, ...setting }) => ({
+    ...setting,
+    choices: choices.map(({ prompt: _run, ...choice }) => choice),
+  }))
+
 /** Everything wrong with the agents on this board — a malformed `AGENT.md`, a name already
  *  taken, a folder still in the place agents used to live, or a stage contract that names
  *  somebody this board does not have (#714). Shown wherever the agents are listed, and put
@@ -156,28 +170,51 @@ const savedEntry = (name: string, entries: Record<string, SpecAgentEntry>): Spec
  *  default. `notes` holds a line for each value that had to fall back — a choice renamed or
  *  dropped between releases would otherwise reach a run as a word nobody offers, and silently
  *  getting a different answer than last time is worse than being told. */
-export function specAgentSettings(
+export const specAgentSettings = (
   agent: SpecAgent,
   entries = specAgentEntries(),
+): { values: Record<string, string>; notes: string[] } => settingValues(agent.name, agentSettings(agent), entries)
+
+/** The same for one of the board's roles (#1469). */
+export const roleSettings = (
+  role: AgentRole,
+  entries = specAgentEntries(),
+): { values: Record<string, string>; notes: string[] } => settingValues(role.name, role.settings ?? [], entries)
+
+function settingValues(
+  name: string,
+  settings: SpecAgentSetting[],
+  entries: Record<string, SpecAgentEntry>,
 ): { values: Record<string, string>; notes: string[] } {
-  const entry = savedEntry(agent.name, entries)
+  const entry = savedEntry(name, entries)
   const values: Record<string, string> = {}
   const notes: string[] = []
-  for (const setting of agentSettings(agent)) {
-    const picked = setting.key === OUTPUT_KEY ? entry?.output : undefined
+  for (const setting of settings) {
+    const raw = setting.key === OUTPUT_KEY ? entry?.output : entry?.extra[setting.key]
+    const picked = typeof raw === 'string' ? raw : undefined
     if (picked !== undefined && setting.choices.some((c) => c.value === picked)) {
       values[setting.key] = picked
       continue
     }
     if (picked !== undefined) {
       notes.push(
-        `the \`${agent.name}\` agent's ${setting.label} is saved as "${picked}", which it no longer offers — ` +
+        `the \`${name}\` agent's ${setting.label} is saved as "${picked}", which it no longer offers — ` +
           `running it at its default, "${setting.default}".`,
       )
     }
     values[setting.key] = setting.default
   }
   return { values, notes }
+}
+
+/** What a role's run is told by the settings it is set to (#1469): the `prompt` of each
+ *  picked choice that has one. Empty when none does. */
+export function roleSettingsBlock(role: AgentRole, entries = specAgentEntries()): string {
+  const { values } = roleSettings(role, entries)
+  const lines = (role.settings ?? [])
+    .map((setting) => setting.choices.find((c) => c.value === values[setting.key])?.prompt)
+    .filter((line): line is string => Boolean(line))
+  return lines.length ? ['Your settings on this board:', ...lines.map((line) => `- ${line}`)].join('\n') : ''
 }
 
 // What a board still holds for a setting an agent used to declare (#1003), and the one line
@@ -353,13 +390,15 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
  *  no setting offers. A value that IS the setting's default is dropped rather than written
  *  down — the file records what somebody changed. */
 export function setSpecAgentSetting(name: string, key: string, value: string): { ok: boolean; error?: string } {
-  const agent = findSpecAgent(name)
-  if (!agent) return { ok: false, error: notAnAgent(name) }
-  const takeable = agentSettings(agent)
+  const role = roleNamed(name)
+  const agent = role ? null : findSpecAgent(name)
+  if (!role && !agent) return { ok: false, error: notAnAgent(name) }
+  const owner = role?.name ?? agent!.name
+  const takeable = role ? (role.settings ?? []) : agentSettings(agent!)
   const setting = takeable.find((s) => s.key === key)
   if (!setting) {
     const takes = takeable.length ? `It takes: ${takeable.map((s) => s.key).join(', ')}.` : 'It takes none.'
-    return { ok: false, error: `"${key}" is not a setting the \`${agent.name}\` spec agent takes. ${takes}` }
+    return { ok: false, error: `"${key}" is not a setting the \`${owner}\` agent takes. ${takes}` }
   }
   const picked = value.trim()
   if (picked && !setting.choices.some((c) => c.value === picked)) {
@@ -371,7 +410,7 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
   // An empty value means "back to the default", and so does the default itself — both drop
   // the key, so the file never records a pick nobody made.
   const save = !picked || picked === setting.default ? '' : picked
-  return setSpecAgentOutput(agent.name, save, specAgentNames(agent.name).slice(1))
+  return setSpecAgentValue(owner, key, save, role ? [] : specAgentNames(owner).slice(1))
 }
 
 export const notAnAgent = (name: string): string => notOnHook(name, 'spec')

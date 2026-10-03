@@ -69,7 +69,7 @@ import type {
   SpecAgentSettingView,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import type { CadenceCopy } from "@/i18n/configuration/types";
+import type { CadenceCopy, RoleSettingCopy } from "@/i18n/configuration/types";
 import { Button } from "./button";
 import { AgentMark, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
@@ -920,6 +920,7 @@ function Page({
         rule: string;
         when?: string;
         note?: string;
+        settings?: Record<string, RoleSettingCopy>;
       }
     | undefined;
   const title = useAgentTitle()(agent);
@@ -934,7 +935,9 @@ function Page({
   const off = !agent.enabled || schedule?.view?.enabled === false;
   // In a workflow the one box on the page is where instructions go (#976): the board-wide
   // rule and who the output is for stay as saved, edited elsewhere.
-  const settings = inStage ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings;
+  const settings = (inStage ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings).map((setting) =>
+    roleSettingWords(setting, role?.settings?.[setting.key]),
+  );
 
   // The page fills the pane and the box you write in takes whatever the rest of it leaves.
   // Everything above the box is fixed-height — who the agent is, and what it runs — so the
@@ -1247,6 +1250,17 @@ function Clipped({ text }: { text: string }) {
       )}
     </>
   );
+}
+
+// A role's setting in the reader's language (#1469); the board's English where the copy has none.
+function roleSettingWords(setting: SpecAgentSettingView, words: RoleSettingCopy | undefined): SpecAgentSettingView {
+  if (!words) return setting;
+  return {
+    ...setting,
+    label: words.label,
+    ...(words.help ? { help: words.help } : {}),
+    choices: setting.choices.map((choice) => ({ ...choice, ...words.choices[choice.value] })),
+  };
 }
 
 // One of the settings an agent declares (#257). Each choice carries its own cost, so the

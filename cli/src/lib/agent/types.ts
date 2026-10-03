@@ -1660,6 +1660,8 @@ export interface SpecAgentChoice {
   /** What this choice costs, in one line: how long the run takes, how much detail it
    *  gives, or how readable the result is. Shown wherever the choice is offered. */
   cost: string
+  /** What a run is told when this choice is picked (#1469). A role's own settings only. */
+  prompt?: string
 }
 
 /** Who a spec agent's finished output is for (#445) — the board's own setting, on every spec
@@ -1678,8 +1680,8 @@ export const isSpecOutput = (value: unknown): value is SpecOutput =>
  *  that fills part of a card's spec rather than the CLI a run spawns. It is always a pick
  *  from named choices: never free text, never a number.
  *
- *  Every one of them is the board's own (./agents/output.ts). An agent declares none: two
- *  ways of working is two agents, each with its own `AGENT.md`. */
+ *  Every one of them is the board's own: a spec agent's output (./agents/output.ts), or a
+ *  role's (./roles.ts, #1469). An `AGENT.md` declares none: two ways of working is two agents. */
 export interface SpecAgentSetting {
   /** The key it saves under inside that agent's entry in ui.config.json. */
   key: string
@@ -1691,7 +1693,7 @@ export interface SpecAgentSetting {
 }
 
 /** One choice as a screen reads it. */
-export type SpecAgentChoiceView = SpecAgentChoice
+export type SpecAgentChoiceView = Omit<SpecAgentChoice, 'prompt'>
 
 /** One setting as a screen reads it. */
 export type SpecAgentSettingView = Omit<SpecAgentSetting, 'choices'> & { choices: SpecAgentChoiceView[] }

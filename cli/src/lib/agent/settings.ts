@@ -169,8 +169,8 @@ export function setSilenceMinutes(minutes: number): Saved {
 //     "ui-designer": { "enabled": false, "output": "agent" }
 //   }
 //
-// `enabled` and `output` are the board's two answers about an agent, and they are the whole
-// of what an entry means (#1003). A key beside them is one a release used to read — it is
+// `enabled` and `output` are the board's two answers about a spec agent (#1003). A role saves
+// its own settings beside them by key (#1469); any other key is one a release used to read —
 // carried through a write untouched and acted on by nothing.
 //
 // An agent the file doesn't name is on, at its default. A plain boolean is the switch on its
@@ -188,9 +188,8 @@ export interface SpecAgentEntry {
   enabled: boolean
   /** Who this agent's output is for (#445), when somebody has said. */
   output?: string
-  /** Every other key the file carries for this agent, exactly as it holds them — kept only
-   *  so a write puts them back. Nothing reads one: a setting an agent declared for itself is
-   *  gone (#1003), and this is the user's file. */
+  /** Every other key the file carries for this agent, exactly as it holds them: a role's own
+   *  settings (#1469), and keys a release used to read, kept only so a write puts them back. */
   extra: Record<string, unknown>
 }
 
@@ -248,20 +247,28 @@ export function setSpecAgentSwitch(
   return writeSpecAgentEntry(name, legacyNames, (entry) => ({ ...entry, enabled: on }))
 }
 
-/** Save who one spec agent's output is for (#445), leaving its switch alone. An empty value
- *  drops the key, which is how it goes back to the default its `AGENT.md` starts it at.
+/** Save one value on an agent's page, leaving its switch alone: who a spec agent's output is
+ *  for (#445), or one of a role's own settings (#1469). An empty value drops the key, which is
+ *  how it goes back to its default.
  *
- *  That the word is one the board offers is checked by the caller above this
+ *  That the key and word are ones the board offers is checked by the caller above this
  *  (`lib/agents/`). */
-export function setSpecAgentOutput(
+export function setSpecAgentValue(
   name: string,
-  output: string,
+  key: string,
+  value: string,
   legacyNames: string[] = [],
 ): Saved {
-  const next = output.trim()
-  return writeSpecAgentEntry(name, legacyNames, ({ output: _was, ...entry }) =>
-    next ? { ...entry, output: next } : entry,
-  )
+  const next = value.trim()
+  if (key === 'output') {
+    return writeSpecAgentEntry(name, legacyNames, ({ output: _was, ...entry }) =>
+      next ? { ...entry, output: next } : entry,
+    )
+  }
+  return writeSpecAgentEntry(name, legacyNames, (entry) => {
+    const { [key]: _was, ...extra } = entry.extra
+    return { ...entry, extra: next ? { ...extra, [key]: next } : extra }
+  })
 }
 
 /** Drop one spec agent's entry entirely — its switch, who its output is for, and whatever

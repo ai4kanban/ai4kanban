@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
+import { setSpecAgentSetting } from '../src/lib/agents/index.ts'
 import { reflectRunsAfter } from '../src/lib/agent/propose.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -173,6 +174,15 @@ describe('the flow', () => {
     assert.match(printed, /triage add/)
     // And it is told outright that proposing nothing is a finished job.
     assert.match(printed, /propose nothing at all/)
+  })
+
+  it('carries the small-fixes pick into the printed flow (#1469)', async () => {
+    open(1)
+    complete(1)
+    const printed = () => said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
+    assert.doesNotMatch(await printed(), /Your settings on this board/)
+    assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'auto').ok, true)
+    assert.match(await printed(), /Your settings on this board:\n- A small fix .*--schedule implement/)
   })
 
   const ended = (extra: Record<string, unknown>): void => {

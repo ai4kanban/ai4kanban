@@ -693,6 +693,31 @@ describe("who a spec agent's output is for", () => {
     assert.deepEqual(await rows('software-planner'), [])
   })
 
+  // A role's own settings (#1469): saved under its entry by key, and the picked choice's words
+  // reach every run it does, before the user's rule.
+  it("draws a role's own settings, saves them by key, and tells its runs the pick", async () => {
+    const proposer = async () => (await readAgents()).agents.find((a) => a.name === 'proposer')!
+    assert.deepEqual((await proposer()).settings.map((s) => s.key), ['small-fixes'])
+    assert.deepEqual((await proposer()).settings[0]!.choices.map((c) => c.value), ['auto', 'propose', 'skip'])
+    assert.doesNotMatch(JSON.stringify((await proposer()).settings), /prompt/)
+    assert.equal((await proposer()).values['small-fixes'], 'propose')
+    const reflect = () => buildPrompt({ action: 'reflect', id: 7, title: 'card 7' })
+    assert.doesNotMatch(reflect(), /Your settings on this board/)
+
+    assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'auto').ok, true)
+    assert.deepEqual(saved().proposer, { 'small-fixes': 'auto' })
+    assert.equal((await proposer()).values['small-fixes'], 'auto')
+    assert.match(reflect(), /Your settings on this board:\n- A small fix .*--schedule implement/)
+    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 7 }), /Your settings on this board/)
+
+    assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'skip').ok, true)
+    assert.match(reflect(), /Do not propose small fixes/)
+    assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'propose').ok, true)
+    assert.equal(saved(), undefined)
+    assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'always').ok, false)
+    assert.equal(setSpecAgentSetting('builder', 'small-fixes', 'auto').ok, false)
+  })
+
   it('starts `ui-designer` at human review and every other agent at agent use', () => {
     project('api-contract', { 'AGENT.md': AGENT })
     assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
