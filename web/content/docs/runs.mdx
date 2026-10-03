@@ -23,6 +23,9 @@ runs panel and `akb run` are the same list either way.
 | "check my setup works" | one small message through the setup, so a bad login turns up here rather than on your next card |
 | "save my API key" | it hands **you** the command to type yourself |
 
+A run that finishes on its own also ends whatever its agent left running in the background — a
+dev server or a test watcher doesn't outlive the run.
+
 A key is the one thing your agent hands back instead of running: a key it types lands in its
 transcript and in your shell history, and the board never reads a saved key back.
 
