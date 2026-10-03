@@ -19,20 +19,18 @@ What helps check it — read only as far as it sharpens a candidate:
 
 ## Candidates
 
-Each is work on the project itself and must trace to a line in the card or in what shipped:
+Each is work on the project itself that traces to a line in the card or in what shipped:
+what it left out, revealed, relied on without anyone providing it, or made worth doing now.
+Verify a gap in the project; never take the card's word.
 
-- **Deferred**: work the card left out of scope.
-- **Exposed**: a gap or rough edge the work revealed.
-- **Unbacked**: something the card relies on that nothing shipped or in the project provides.
-  Verify it in the project; never take the card's word.
-- **Unlocked**: work worth doing only now.
+Judge for yourself what is worth the user's time to read, exploratory ideas included; say so
+in its text when one is a small chore.
 
 ## Filter
 
 Drop a candidate that is already on the board (`akb raw list`) or in the inbox
-(`akb triage check <source-id>`), or is in `docs/kanban/memory/agents/planner/rejected.md`.
-Drop one whose only work is keeping an agent's own files current — its memory, or the
-output its AGENT.md says it maintains; that agent keeps them.
+(`akb triage check <source-id>`), is in `docs/kanban/memory/agents/planner/rejected.md`, or
+is a guess nothing in the card or the project backs.
 
 ## Write
 
