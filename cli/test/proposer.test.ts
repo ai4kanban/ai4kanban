@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { setSpecAgentSetting } from '../src/lib/agents/index.ts'
+import { switchWorkflowScheduled } from '../src/lib/agent/workflows.ts'
 import { nextReflection, queueCompleted, REFLECT_BATCH, reflectOnCompletion } from '../src/lib/agent/propose.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { reflectQueue } from '../src/lib/agent/settings.ts'
@@ -388,6 +389,24 @@ describe('the flow', () => {
     const printed = await reflect()
     assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/dismissed\.md\n +docs\/kanban\/memory\/agents\/planner\/dismissed\.md/)
     assert.doesNotMatch(printed, /planner\/web\/(rejected|dismissed)\.md/)
+  })
+
+  it('names the scheduled agents switched on, and only those', async () => {
+    open(1)
+    complete(1)
+    const home = path.join(kanban(), 'agents', 'night-auditor')
+    fs.mkdirSync(home, { recursive: true })
+    fs.writeFileSync(path.join(home, 'AGENT.md'), ['---', 'name: night-auditor', 'description: Audits the night.', 'akb:', '  hook: schedule', '---', '', 'You audit.', ''].join('\n'))
+    assert.equal(switchWorkflowScheduled('coding', 'night-auditor', true).ok, true)
+    let printed = await reflect()
+    assert.match(printed, /^ +scheduled +qa-manager — Keeps the project's test cases/m)
+    assert.match(printed, /^ +night-auditor — Audits the night\.$/m)
+    assert.equal(switchWorkflowScheduled('coding', 'night-auditor', false).ok, true)
+    printed = await reflect()
+    assert.match(printed, /qa-manager — /)
+    assert.doesNotMatch(printed, /night-auditor/)
+    assert.equal(switchWorkflowScheduled('coding', 'qa-manager', false).ok, true)
+    assert.doesNotMatch(await reflect(), /^ +scheduled /m)
   })
 
   it('gives the memory review the misses file', async () => {

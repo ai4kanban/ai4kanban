@@ -30,9 +30,10 @@ in its text when one is a small chore.
 ## Filter
 
 Drop a candidate that is already on the board (`akb raw list`) or in the inbox
-(`akb triage check <source-id>`), is turned down by a file listed under `rejected`, or is a
-guess nothing in the card or the project backs. When several cards lead to the same work,
-propose it once, from the card it traces to most directly.
+(`akb triage check <source-id>`), is work an agent listed under `scheduled` does on its own
+runs, is turned down by a file listed under `rejected`, or is a guess nothing in the card or
+the project backs. When several cards lead to the same work, propose it once, from the card
+it traces to most directly.
 
 ## Write
 
