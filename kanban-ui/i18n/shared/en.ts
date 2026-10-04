@@ -14,6 +14,7 @@ const en: SharedCopy = {
   none: "—",
   stop: ".",
   contextWindow: (used, limit) => `Context window ${used}/${limit}`,
+  became: { open: "→ Became", done: "Done", dropped: "Dropped" },
   pro: { mark: "Pro", upgrade: "Upgrade to Pro", signIn: "Sign in to use Pro", locked: "A Pro workflow. Upgrade to use it." },
 };
 

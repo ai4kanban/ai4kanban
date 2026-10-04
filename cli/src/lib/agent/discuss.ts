@@ -9,7 +9,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 
-import { listRuns, peekRun, titleOf } from './sessions'
+import { listRuns, peekRun } from './sessions'
 import { runIsLive } from './store'
 import {
   becameCards,
@@ -29,6 +29,7 @@ import { archiveInboxItem } from '../signals/inbox'
 import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
 import {
   isDiscussion,
+  type BecameCard,
   type ChatPlan,
   type ChatTarget,
   type DiscussPlan,
@@ -67,7 +68,7 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
   const rows = (chat?.plans ?? []).flatMap((p): HandoffRow[] => {
     if (p.done) {
       if (!p.cards?.length) return []
-      const cards = p.cards.map((id) => ({ id, title: titleOf(id) ?? '' }))
+      const cards = p.cards.map(becameCard)
       return [{ path: planPathInText(p.path), title: p.title || cards[0]!.title, workflow: p.workflow, cards }]
     }
     const plan = plans.find((s) => s.path === planPathInText(p.path))
@@ -81,7 +82,21 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
 // A discussion with no plan left open: the cards it became, if it became any (#1213).
 function became(target: ChatTarget): DiscussRead {
   const cards = becameCards(readChat(target))
-  return cards.length ? { ...NOTHING, became: cards.map((id) => ({ id, title: titleOf(id) ?? '' })) } : NOTHING
+  return cards.length ? { ...NOTHING, became: cards.map(becameCard) } : NOTHING
+}
+
+function becameCard(id: number): BecameCard {
+  try {
+    const open = locate(id)
+    const found = open ?? locateArchived(id)
+    if (!found) return { id, title: '', state: 'gone' }
+    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+    const title = meta?.title ?? ''
+    return open ? { id, title } : { id, title, state: meta?.rejected ? 'dropped' : 'done' }
+  } catch {
+    return { id, title: '' }
+  }
 }
 
 // One plan as the screen draws it — spelled from the project root: the panel shows the path

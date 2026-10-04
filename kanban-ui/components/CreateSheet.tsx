@@ -4,7 +4,6 @@
 // picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { useBodySlot } from "@/lib/body-slot";
@@ -16,11 +15,12 @@ import { PLAN_INSET, PLAN_READ, plansOf, usePlanPanel, type PlanPanel } from "@/
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { discussionTriage, heldByButton } from "@/lib/create-open";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
-import type { DiscussRead, DiscussionTarget, HandoffRow, WorkflowView } from "@/lib/types";
+import type { BecameCard, DiscussRead, DiscussionTarget, HandoffRow, WorkflowView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import type { StartFailure } from "@/lib/start-failure";
 import type { Starting } from "@/lib/create-open";
 import type { PlanPick } from "@/app/actions";
+import { BecameLine } from "./became";
 import { Button } from "./button";
 import { OpenFailed, Skeleton } from "./CardOpening";
 import { Transcript, Pasted, Pick, useBoardChanged } from "./Chat";
@@ -738,15 +738,8 @@ function Handoff({
 // Under a plan's own row, the lines sit under its title rather than on the column's edge.
 const UNDER_ROW = "pl-[20px] pt-1";
 
-function BecameLinks({ cards, inset = "px-2.5 pt-2" }: { cards: { id: number; title: string }[]; inset?: string }) {
-  const c = useCopy().board.create.sheet.plan;
-  return cards.map((card) => (
-    <Link key={card.id} href={`/${card.id}`} className={`flex min-w-0 items-center gap-1.5 text-[12.5px] hover:underline ${inset}`}>
-      <span className="shrink-0 text-nb-ink-soft">{c.became}</span>
-      <span className="shrink-0 font-[700]" style={{ color: "var(--color-nb-accent-deep)" }}>#{card.id}</span>
-      <span className="truncate font-[600]" style={{ color: "var(--color-nb-accent-deep)" }}>{card.title}</span>
-    </Link>
-  ));
+function BecameLinks({ cards, inset = "px-2.5 pt-2" }: { cards: BecameCard[]; inset?: string }) {
+  return cards.map((card) => <BecameLine key={card.id} card={card} className={`text-[12.5px] ${inset}`} />);
 }
 
 /** The two answers: Plan tasks filled, Start now in accent ink behind its guard — or, `quiet`,

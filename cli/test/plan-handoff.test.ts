@@ -17,7 +17,7 @@ import { archiveDiscussion, listDiscussions, startDiscussion } from '../src/lib/
 import { logPathOf, withStore } from '../src/lib/agent/store.ts'
 import type { DiscussionTarget, RunRecord } from '../src/lib/agent/types.ts'
 import { dropPlan, planFile, planPathInText, readPlan } from '../src/lib/plans.ts'
-import { PLANS, PLANS_ARCHIVE, TODO, setBoardRoot } from '../src/lib/paths.ts'
+import { ARCHIVE, PLANS, PLANS_ARCHIVE, TODO, setBoardRoot } from '../src/lib/paths.ts'
 
 const PLAN_REL = 'plans/12-one-outcome.md'
 const FILED_REL = 'plans/archive/12-one-outcome.md'
@@ -172,6 +172,32 @@ describe('the run that wrote cards', () => {
     assert.equal(rowIsThere(target), false)
     assert.equal(readChat(target)?.archivedBy, 'board')
     assert.equal(fileIsThere(PLAN_REL), true)
+  })
+})
+
+describe('the cards a discussion became (#1535)', () => {
+  it('reads each one as it stands now', async () => {
+    const target = discussing()
+    card(9)
+    const filed = (id: number, extra = '') => {
+      fs.mkdirSync(ARCHIVE, { recursive: true })
+      fs.renameSync(card(id), path.join(ARCHIVE, `${id}-a-card.md`))
+      if (extra) {
+        const file = path.join(ARCHIVE, `${id}-a-card.md`)
+        fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('title: A card\n', `title: A card\n${extra}`))
+      }
+    }
+    filed(10)
+    filed(11, 'rejected: true\n')
+    fs.rmSync(card(12))
+    startedPlanning(run({ status: 'done', endedAt: Date.now(), createdCardIds: [9, 10, 11, 12] }), 'plan', target)
+
+    assert.deepEqual((await readDiscuss(target)).became, [
+      { id: 9, title: 'A card' },
+      { id: 10, title: 'A card', state: 'done' },
+      { id: 11, title: 'A card', state: 'dropped' },
+      { id: 12, title: '', state: 'gone' },
+    ])
   })
 })
 

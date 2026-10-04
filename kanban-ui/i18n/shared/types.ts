@@ -18,6 +18,8 @@ export type SharedCopy = {
    *  this conversation or run has filled, and how big the window is. Both numbers arrive
    *  already shortened — `100k`, `1M`. */
   contextWindow: (used: string, limit: string) => string;
+  /** A card a discussion was written into (#1535), by where it stands now. */
+  became: { open: string; done: string; dropped: string };
   /** A Pro workflow (#1038): its mark, and the one way to it for an account without Pro. */
   pro: {
     mark: string;

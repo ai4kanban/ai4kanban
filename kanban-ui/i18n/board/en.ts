@@ -110,7 +110,6 @@ const en: BoardCopy = {
         planOne: "Plan",
         buildOne: "Start",
         planningMany: (count) => `Writing the cards from ${count} plans…`,
-        became: "→ Became",
         closed: "This discussion became cards. Carry on in one above.",
         starting: "Starting…",
         rerouted: "Couldn't start with this discussion — planning tasks instead",

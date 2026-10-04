@@ -47,6 +47,7 @@ import type { BoardChange, ChatRail } from "@/lib/chat-rail";
 import type { PictureBox } from "@/lib/picture-box";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
+import { BecameLine } from "./became";
 import { Button } from "./button";
 import { OpenFailed } from "./CardOpening";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
@@ -238,7 +239,11 @@ function FromDiscussion({ messages, cardId }: { messages: ChatMessage[]; cardId:
               <Said key={i} message={{ ...m, images: undefined }} sent={null} canSend={false} onResend={noResend} imageSrc={noImage} />
             ))}
           </div>
-          {cardId !== null && <Became>{`${c.became} #${cardId}`}</Became>}
+          {cardId !== null && (
+            <Became>
+              <BecameLine card={{ id: cardId, title: "" }} link={false} />
+            </Became>
+          )}
         </>
       )}
     </div>

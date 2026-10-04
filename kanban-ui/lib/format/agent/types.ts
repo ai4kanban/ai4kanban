@@ -1328,7 +1328,7 @@ export interface DiscussRead {
    *  a build rather than a planning pass (#481). Null when none has been started. */
   run: { sessionId: string; running: boolean; answer: PlanAnswer } | null
   /** The cards this discussion became (#1213), once no plan is left to hand off. */
-  became?: { id: number; title: string }[]
+  became?: BecameCard[]
   /** Every plan to draw a handoff row for (#1442), oldest first: the open ones and the ones
    *  already written into cards. Absent on rules older than per-plan handoff. */
   rows?: HandoffRow[]
@@ -1342,7 +1342,15 @@ export interface HandoffRow {
   /** The run it was handed to: still working, or one that wrote no card. */
   run?: { sessionId: string; running: boolean; answer: PlanAnswer }
   /** The cards it was written into; the row is done. */
-  cards?: { id: number; title: string }[]
+  cards?: BecameCard[]
+}
+
+/** A card a discussion was written into, as it stands now (#1535). `state` is absent while
+ *  it is on the board; `gone` is an id whose file is in neither `todo/` nor the archive. */
+export interface BecameCard {
+  id: number
+  title: string
+  state?: 'done' | 'dropped' | 'gone'
 }
 
 /** What sending one message came back with. */

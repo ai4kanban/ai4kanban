@@ -43,6 +43,7 @@ export type {
   ContextWindow,
   CreateImageAgents,
   ImageAgent,
+  BecameCard,
   DiscussPlan,
   DiscussRead,
   HandoffRow,

@@ -100,7 +100,6 @@ const zh: BoardCopy = {
         planOne: "规划",
         buildOne: "开始",
         planningMany: (count) => `正在根据 ${count} 份方案写卡片…`,
-        became: "→ 已写成",
         closed: "这段讨论已写成卡片，点击上方卡片继续对话",
         starting: "正在启动…",
         rerouted: "无法基于讨论直接开始，已改为规划任务",

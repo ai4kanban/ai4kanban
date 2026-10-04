@@ -42,7 +42,6 @@ const zh: ChatCopy = {
   copyCode: "复制这段代码",
   copyChat: "复制整段对话",
   fromDiscussion: (count) => `来自讨论 · ${count} 条`,
-  became: "→ 已写成",
   again: "重新发送",
   againHint: "重新发送这条消息",
   reword: "改写",
