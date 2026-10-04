@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { useSignalsRow } from "./signals-row";
 
+// Where the button was pressed from, so a second press goes back there. Lives for this window only.
+let cameFrom: string | null = null;
+
 export function TriageButton() {
   const c = useCopy().chrome.header;
   const { show, count } = useSignalsRow();
@@ -28,7 +31,15 @@ export function TriageButton() {
       aria-label={label}
       data-tip={label}
       aria-pressed={here}
-      onClick={() => router.push("/inbox")}
+      onClick={() => {
+        if (here) {
+          router.push(cameFrom ?? "/");
+          cameFrom = null;
+        } else {
+          cameFrom = window.location.pathname + window.location.search;
+          router.push("/inbox");
+        }
+      }}
       style={
         lit
           ? {
