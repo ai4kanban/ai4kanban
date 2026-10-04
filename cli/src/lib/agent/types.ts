@@ -1795,6 +1795,12 @@ export type ScheduleWait = 'tooSoon' | 'retrying' | 'nothingNew' | 'unsorted' | 
  *  still to pass is no reason — the next run's time says it. */
 export type ScheduleReason = 'archived-cards' | 'chats' | 'dismissals' | 'retrying' | 'unsorted' | 'building'
 
+/** What `auto` runs one agent on (#1543): its least gap, and the input it waits for, if any. */
+export interface AutoSchedule {
+  every: string
+  reads?: 'archived-cards' | 'chats' | 'dismissals'
+}
+
 /** One board schedule as a screen draws it — the shape a workflow's scheduled agent has too. */
 export interface BoardScheduleView {
   enabled: boolean
@@ -1804,6 +1810,8 @@ export interface BoardScheduleView {
   nextRun: string
   /** Why it is not starting now. Absent while off, due, or only short of its time. */
   waiting?: ScheduleReason
+  /** Absent from an older akb. */
+  auto?: AutoSchedule
 }
 
 /** A project agent's own file, as its page holds it. */
@@ -1912,6 +1920,7 @@ export interface WorkflowScheduledView extends WorkflowScheduled {
   nextRun: string
   /** Why it is not starting now. Absent while off, due, or only short of its time. */
   waiting?: ScheduleReason
+  auto?: AutoSchedule
 }
 
 /** One agent as a workflow picker offers it. The two lines are the roster's own, so the

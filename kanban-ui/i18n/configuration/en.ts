@@ -261,7 +261,7 @@ const en: ConfigurationCopy = {
         gloss: "Proposes the work a finished card leaves behind.",
         trigger: "When cards finish",
         rule: 'Added to the end of every reflection it makes — "never propose more tests".',
-        when: "cards have finished, at most once an hour. It reads them and puts what should follow in Triage, to sort like anything else that arrives. It waits while what it added last time is still unsorted.",
+        when: "cards have finished, at most every 6 hours. It reads them and puts what should follow in Triage, to sort like anything else that arrives. It waits while what it added last time is still unsorted.",
         settings: {
           "small-fixes": {
             label: "Small fixes",
@@ -418,6 +418,13 @@ const en: ConfigurationCopy = {
         retrying: "Last run failed, retrying soon",
       },
       auto: "Auto",
+      autoNote: (n, unit, reads) => {
+        const every = `${n}${unit}`;
+        if (reads === "archived-cards") return `After a card is finished, at most every ${every}`;
+        if (reads === "chats") return `After new chats, at most every ${every}`;
+        if (reads === "dismissals") return `After new rejection reasons, at most every ${every}`;
+        return n === 1 ? `Once a${unit === "h" ? "n" : ""} ${PRUNE_UNIT_ONE[unit]}` : `Once every ${every}`;
+      },
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,

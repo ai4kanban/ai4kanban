@@ -237,7 +237,7 @@ export function WorkflowsPanel({
     const set = async (m: Parameters<typeof setWorkflowScheduledAction>[1]) =>
       (await setWorkflowScheduledAction(flowId, m)).ok;
     return {
-      view: { enabled: !one.off, cadence: one.cadence, nextRun: one.nextRun, waiting: one.waiting },
+      view: { enabled: !one.off, cadence: one.cadence, nextRun: one.nextRun, waiting: one.waiting, auto: one.auto },
       copy: c.cadence,
       icon: <FiPlay size={11} aria-hidden />,
       isPass: (r) => r.action === "scheduled" && r.workflow === flowId && r.agent === one.agent,

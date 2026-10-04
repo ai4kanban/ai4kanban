@@ -37,7 +37,7 @@ import {
   setProjectDescription,
   stampLeftoverPrune,
 } from '../agent/settings'
-import { agentsWithBacklog, AUTO_GAP, readsNew, scheduleDue, stampMs, type DueAnswer, type DueAsk } from '../agent/due'
+import { agentsWithBacklog, AUTO_GAP, autoSchedule, readsNew, scheduleDue, stampMs, type DueAnswer, type DueAsk } from '../agent/due'
 import { projectDescribed } from '../agent/project'
 import { anyChatToReview } from '../agent/memory-review'
 import { nextReflection, REFLECT_BATCH } from '../agent/propose'
@@ -77,8 +77,10 @@ interface BoardSchedule {
   agent: string
   /** What new input it runs on — `newWork` is how it is read. Absent: it runs on its gap alone. */
   reads?: ScheduleReads
+  /** What it runs on in `auto` when it reads nothing. */
+  fallback: string
   /** Null while off. `write` lets the pruner's first look stamp where it counts from. */
-  ask: (runs: RunView[], write: boolean) => Omit<DueAsk, 'attempts' | 'backlog' | 'reads'> | null
+  ask: (runs: RunView[], write: boolean) => Omit<DueAsk, 'attempts' | 'backlog' | 'reads' | 'fallback'> | null
 }
 
 const own = (runs: RunView[], action: AgentRequest['action']): RunView[] => runs.filter((r) => r.action === action)
@@ -92,12 +94,13 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
   memoryPrune: {
     action: 'prune-memory',
     agent: 'memory-pruner',
+    fallback: DEFAULT_CADENCE.memoryPrune,
     ask: (_, write) => {
       const schedule = memoryPrune()
       if (!schedule.enabled) return null
       const clock = write ? scheduleClock('memoryPrune') : schedule.lastRun || schedule.since || formatStamp(new Date())
       if (!clock) return null
-      return { cadence: schedule.cadence, fallback: DEFAULT_CADENCE.memoryPrune, from: stampMs(clock), newWork: () => true }
+      return { cadence: schedule.cadence, from: stampMs(clock), newWork: () => true }
     },
   },
   // A batch that passed with conversations still waiting goes on at once: the round lasts
@@ -106,13 +109,14 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
     action: 'review-memory',
     agent: 'chat-reviewer',
     reads: 'chats',
+    fallback: MEMORY_REVIEW_CADENCE,
     ask: (runs) => {
       const review = memoryReview()
       if (!review.enabled) return null
       const newest = newestOf(own(runs, 'review-memory'))
       const last = Math.max(stampMs(review.lastRun), newest?.startedAt ?? 0)
       const goesOn = review.remainingAt > 0 && review.remainingAt >= last && (!newest || newest.status === 'done')
-      return { cadence: review.cadence, fallback: MEMORY_REVIEW_CADENCE, from: stampMs(review.lastRun), goesOn, newWork: anyChatToReview }
+      return { cadence: review.cadence, from: stampMs(review.lastRun), goesOn, newWork: anyChatToReview }
     },
   },
   // The window is the last pass, so what a failed one missed is still in it next time.
@@ -120,11 +124,12 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
     action: 'review-dismissals',
     agent: 'dismissal-reviewer',
     reads: 'dismissals',
+    fallback: DEFAULT_CADENCE.dismissalReview,
     ask: () => {
       const review = dismissalReview()
       if (!review.enabled) return null
       const from = stampMs(review.lastRun)
-      return { cadence: review.cadence, fallback: DEFAULT_CADENCE.dismissalReview, from, newWork: () => readsNew('dismissals', from) }
+      return { cadence: review.cadence, from, newWork: () => readsNew('dismissals', from) }
     },
   },
   // Only while `project.md` has no description, or a card was finished since the last pass.
@@ -132,13 +137,13 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
     action: 'describe-project',
     agent: 'project-writer',
     reads: 'archived-cards',
+    fallback: DEFAULT_CADENCE.projectDescription,
     ask: () => {
       const schedule = projectDescription()
       if (!schedule.enabled) return null
       const from = stampMs(schedule.lastRun)
       return {
         cadence: schedule.cadence,
-        fallback: DEFAULT_CADENCE.projectDescription,
         from,
         newWork: () => !projectDescribed() || readsNew('archived-cards', from),
       }
@@ -150,11 +155,12 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
     action: 'reflect',
     agent: 'proposer',
     reads: 'archived-cards',
+    fallback: AUTO_GAP,
     ask: (runs) => {
       const passed = own(runs, 'reflect').filter((r) => r.status === 'done')
       const newest = newestOf(own(runs, 'reflect'))
       const goesOn = newest?.status === 'done' && (newest.cards?.length ?? 0) >= REFLECT_BATCH
-      return { cadence: AUTO_CADENCE, fallback: AUTO_GAP, from: newestOf(passed)?.startedAt ?? 0, goesOn, newWork: () => reflectQueue().length > 0 }
+      return { cadence: AUTO_CADENCE, from: newestOf(passed)?.startedAt ?? 0, goesOn, newWork: () => reflectQueue().length > 0 }
     },
   },
 }
@@ -164,7 +170,7 @@ function scheduleAnswer(name: ScheduleName, runs: RunView[], write: boolean, bac
   const schedule = SCHEDULES[name]
   const ask = schedule.ask(runs, write)
   if (!ask) return null
-  return scheduleDue({ ...ask, reads: schedule.reads, attempts: own(runs, schedule.action), backlog: () => backlog().has(schedule.agent) })
+  return scheduleDue({ ...ask, reads: schedule.reads, fallback: schedule.fallback, attempts: own(runs, schedule.action), backlog: () => backlog().has(schedule.agent) })
 }
 
 function scheduleDueNow(name: ScheduleName, runs: RunView[], backlog: () => Set<string>): boolean {
@@ -192,6 +198,7 @@ export async function boardSchedules(): Promise<Record<BoardScheduleKey, BoardSc
       cadence: saved[key].cadence,
       nextRun: due ? formatStamp(due.next) : '',
       ...(due?.reason ? { waiting: due.reason } : {}),
+      auto: autoSchedule(SCHEDULES[key].reads, SCHEDULES[key].fallback),
     }
   }
   return {

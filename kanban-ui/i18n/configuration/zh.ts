@@ -349,7 +349,7 @@ const zh: ConfigurationCopy = {
         gloss: "从已完成的卡片中提出接下来要做的事。",
         trigger: "有新完成的卡片时",
         rule: "会附加到每次回顾的末尾，例如「不要提补测试的事」。",
-        when: "有新完成的卡片时，最多每小时一次。读取这些卡片，把接下来要做的事放进待筛选，由你像处理其他条目一样筛选；上次放进的还没处理完时，先不运行。",
+        when: "有新完成的卡片时，最多每 6 小时一次。读取这些卡片，把接下来要做的事放进待筛选，由你像处理其他条目一样筛选；上次放进的还没处理完时，先不运行。",
         settings: {
           "small-fixes": {
             label: "小改动",
@@ -506,6 +506,13 @@ const zh: ConfigurationCopy = {
         retrying: "上次失败，稍后重试",
       },
       auto: "自动",
+      autoNote: (n, unit, reads) => {
+        const every = n === 1 ? `每${PRUNE_UNITS[unit]}` : `每 ${n} ${PRUNE_UNITS[unit]}`;
+        if (reads === "archived-cards") return `有卡片完成后，最多${every}一次`;
+        if (reads === "chats") return `有新对话后，最多${every}一次`;
+        if (reads === "dismissals") return `有新的拒绝理由后，最多${every}一次`;
+        return `${every}一次`;
+      },
     },
     specialistRule: {
       spec: (agent) => `会附加到卡片细化期间 ${agent} 每次运行的末尾，例如「遵循 app/globals.css 里的设计变量」。`,

@@ -230,7 +230,7 @@ describe("the board's timer (#1475)", () => {
     assert.deepEqual(await reflections(), [{ action: 'reflect', cards: [1] }])
   })
 
-  it('waits an hour after the last one began', async () => {
+  it('waits six hours after the last one began', async () => {
     open(1)
     open(2)
     let before = openNow()

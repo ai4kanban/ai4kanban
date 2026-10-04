@@ -1410,6 +1410,8 @@ function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onE
   const auto = !!view && isAuto(view.cadence);
   const off = view?.enabled === false;
   const state = off ? c.off : auto ? c.auto : saved ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : "";
+  const autoEvery = parseCadence(view?.auto?.every ?? "");
+  const autoNote = autoEvery ? c.autoNote(autoEvery.n, autoEvery.unit, view?.auto?.reads) : "";
   const warn = failed && !running;
 
   return (
@@ -1436,6 +1438,7 @@ function ScheduledControls({ schedule, onError }: { schedule: AgentSchedule; onE
               saved={saved}
               auto={auto}
               autoLabel={c.auto}
+              autoNote={autoNote}
               next={next}
               copy={copy}
               onDismiss={() => setOpen(false)}
@@ -1505,6 +1508,7 @@ function CadenceMenu({
   saved,
   auto,
   autoLabel,
+  autoNote,
   next,
   copy,
   onDismiss,
@@ -1517,6 +1521,8 @@ function CadenceMenu({
   /** The board picks when it runs (#1475) — the first row. */
   auto: boolean;
   autoLabel: string;
+  /** What Auto means for this agent, on a second line under it; empty draws none. */
+  autoNote: string;
   /** When the next run is, the list's first line; empty draws none. */
   next: string;
   copy: CadenceCopy;
@@ -1595,7 +1601,7 @@ function CadenceMenu({
         list.current?.querySelectorAll<HTMLElement>('[role="option"]')[picked ? ROWS.indexOf(picked) : 0]?.focus();
       }}
       // As wide as its rows; Custom's editor needs the room.
-      className={`${draft ? "w-[280px]" : "w-[176px]"} text-left`}
+      className={`${draft ? "w-[280px]" : autoNote ? "w-[232px]" : "w-[176px]"} text-left`}
     >
       {next && (
         <>
@@ -1615,7 +1621,14 @@ function CadenceMenu({
             data-active={id === "custom" && !!draft}
             className={cn(POPUP_ROW, "gap-3 pr-8 font-[500]", picked === id && "font-[800]")}
           >
-            {label(id)}
+            {id === "auto" && autoNote ? (
+              <span className="flex min-w-0 flex-col">
+                {label(id)}
+                <span className="text-[11px] font-[400] leading-[15px] text-nb-ink-soft">{autoNote}</span>
+              </span>
+            ) : (
+              label(id)
+            )}
             {id === "custom" && <FiChevronDown size={11} aria-hidden className="-ml-2 shrink-0 opacity-45" />}
             {(busy === id || (id === "custom" && note)) && (
               <span className="ml-auto shrink-0 truncate text-[10.5px] font-[400] text-nb-ink-soft">

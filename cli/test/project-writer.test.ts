@@ -118,12 +118,12 @@ describe('the description the board starts on its own', () => {
     assert.deepEqual(await work(), ['describe-project'])
   })
 
-  it('waits an hour in auto even with a card finished, and a cadence the user set', async () => {
+  it('waits six hours in auto even with a card finished, and a cadence the user set', async () => {
     archivedAt(Date.now() - 60_000)
     describeProject()
-    stampProjectDescription(new Date(Date.now() - 30 * 60_000))
+    stampProjectDescription(new Date(Date.now() - 5 * HOUR))
     assert.deepEqual(await work(), [])
-    stampProjectDescription(new Date(Date.now() - 2 * HOUR))
+    stampProjectDescription(new Date(Date.now() - 7 * HOUR))
     assert.deepEqual(await work(), ['describe-project'])
     assert.equal(setProjectDescription({ enabled: true, cadence: '1d' }).ok, true)
     assert.deepEqual(await work(), [])

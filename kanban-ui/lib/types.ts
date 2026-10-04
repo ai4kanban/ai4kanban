@@ -53,6 +53,7 @@ export type {
   LoggedOutAgent,
   BoardScheduleKey,
   BoardScheduleView,
+  AutoSchedule,
   ScheduleReason,
   RunReason,
   PlanAnswer,

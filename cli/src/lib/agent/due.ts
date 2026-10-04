@@ -3,7 +3,7 @@
 // A pass is due once its gap has passed since the later of its clock and its newest attempt,
 // there is something new for it to read, nothing it sent to triage is still unhandled, and —
 // for a workflow's agent — no build is running or landing. The gap is the user's cadence, or
-// in `auto` an hour for an agent that reads something and its own default for one that does
+// in `auto` six hours for an agent that reads something and its own default for one that does
 // not. Failures in a row double it, up to a day.
 
 import fs from 'node:fs'
@@ -17,10 +17,10 @@ import type { ScheduleReads } from '../agents/parse'
 import { chatOfKey, lastSpoken, readChat } from './chat'
 import { rejectionWorkWaiting } from './dismissal-review'
 import type { Store } from './store'
-import type { RunStatus, ScheduleReason, ScheduleWait } from './types'
+import type { AutoSchedule, RunStatus, ScheduleReason, ScheduleWait } from './types'
 
 /** The least gap between two passes of an `auto` agent that reads something. */
-export const AUTO_GAP = '1h'
+export const AUTO_GAP = '6h'
 const DAY = 86_400_000
 
 export interface DueAsk {
@@ -49,6 +49,10 @@ export interface DueAnswer {
   reason?: ScheduleReason
 }
 
+/** What `auto` means for one agent, as its cadence list says it (#1543). */
+export const autoSchedule = (reads: ScheduleReads | undefined, fallback: string): AutoSchedule =>
+  reads ? { every: AUTO_GAP, reads } : { every: fallback }
+
 /** How many of the newest attempts failed in a row. */
 const failures = (attempts: DueAsk['attempts']): number => {
   let n = 0
@@ -61,7 +65,7 @@ const failures = (attempts: DueAsk['attempts']): number => {
 }
 
 export function scheduleDue(ask: DueAsk, now: number = Date.now()): DueAnswer {
-  const gap = !isAuto(ask.cadence) ? ask.cadence : ask.reads ? AUTO_GAP : ask.fallback
+  const gap = !isAuto(ask.cadence) ? ask.cadence : autoSchedule(ask.reads, ask.fallback).every
   const from = Math.max(ask.from, ...ask.attempts.map((a) => a.startedAt))
   let next = ask.goesOn ? new Date(0) : from ? nextDue(formatStamp(new Date(from)), gap) ?? new Date(0) : new Date(0)
   const failed = failures(ask.attempts)

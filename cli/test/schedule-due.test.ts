@@ -4,10 +4,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { scheduleDue, type DueAsk } from '../src/lib/agent/due.ts'
+import { autoSchedule, scheduleDue, type DueAsk } from '../src/lib/agent/due.ts'
 import type { RunStatus } from '../src/lib/agent/types.ts'
 
 const HOUR = 3_600_000
+const GAP = 6 * HOUR
 const T0 = new Date('2026-10-01T09:00').getTime()
 
 const ask = (over: Partial<DueAsk> = {}): DueAsk => ({
@@ -24,9 +25,9 @@ const ask = (over: Partial<DueAsk> = {}): DueAsk => ({
 const tries = (...statuses: RunStatus[]) => statuses.map((status, i) => ({ startedAt: T0 + i * 60_000, status }))
 
 describe('the gap', () => {
-  it('is an hour in auto for an agent that reads something', () => {
-    assert.equal(scheduleDue(ask(), T0 + HOUR - 60_000).wait, 'tooSoon')
-    assert.equal(scheduleDue(ask(), T0 + HOUR).wait, null)
+  it('is six hours in auto for an agent that reads something', () => {
+    assert.equal(scheduleDue(ask(), T0 + GAP - 60_000).wait, 'tooSoon')
+    assert.equal(scheduleDue(ask(), T0 + GAP).wait, null)
   })
 
   it("is the agent's own default in auto when it reads nothing", () => {
@@ -41,7 +42,7 @@ describe('the gap', () => {
 
   it('counts from the newest attempt', () => {
     const attempts = [{ startedAt: T0 + 2 * HOUR, status: 'done' as const }]
-    assert.equal(scheduleDue(ask({ attempts }), T0 + 2.5 * HOUR).wait, 'tooSoon')
+    assert.equal(scheduleDue(ask({ attempts }), T0 + 2 * HOUR + GAP - 60_000).wait, 'tooSoon')
   })
 
   it('is no gap at all for a round that goes on', () => {
@@ -52,11 +53,11 @@ describe('the gap', () => {
 describe('failures in a row', () => {
   it('wait the plain gap after the first, then double it', () => {
     const last = (n: number) => T0 + (n - 1) * 60_000
-    assert.equal(scheduleDue(ask({ attempts: tries('error') }), last(1) + HOUR).wait, null)
-    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error') }), last(2) + HOUR).wait, 'retrying')
-    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error') }), last(2) + 2 * HOUR).wait, null)
-    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error', 'error') }), last(3) + 3 * HOUR).wait, 'retrying')
-    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error', 'error') }), last(3) + 4 * HOUR).wait, null)
+    assert.equal(scheduleDue(ask({ attempts: tries('error') }), last(1) + GAP).wait, null)
+    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error') }), last(2) + GAP).wait, 'retrying')
+    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error') }), last(2) + 2 * GAP).wait, null)
+    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error', 'error') }), last(3) + 3 * GAP).wait, 'retrying')
+    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error', 'error') }), last(3) + 4 * GAP).wait, null)
   })
 
   it('stop at a day', () => {
@@ -73,25 +74,32 @@ describe('failures in a row', () => {
   })
 
   it('count from the last pass that passed', () => {
-    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error', 'done') }), T0 + 2 * 60_000 + HOUR).wait, null)
+    assert.equal(scheduleDue(ask({ attempts: tries('error', 'error', 'done') }), T0 + 2 * 60_000 + GAP).wait, null)
+  })
+})
+
+describe('what auto means', () => {
+  it('is the gap and the input for an agent that reads something, else its own default', () => {
+    assert.deepEqual(autoSchedule('chats', '1d'), { every: '6h', reads: 'chats' })
+    assert.deepEqual(autoSchedule(undefined, '7d'), { every: '7d' })
   })
 })
 
 describe('once its time has come', () => {
   it('waits for something new', () => {
-    assert.equal(scheduleDue(ask({ newWork: () => false }), T0 + HOUR).wait, 'nothingNew')
-    assert.equal(scheduleDue(ask({ newWork: () => false }), T0 + HOUR).reason, 'chats')
+    assert.equal(scheduleDue(ask({ newWork: () => false }), T0 + GAP).wait, 'nothingNew')
+    assert.equal(scheduleDue(ask({ newWork: () => false }), T0 + GAP).reason, 'chats')
   })
 
   it('gives no reason while only its time is still to come', () => {
-    assert.equal(scheduleDue(ask(), T0 + HOUR - 60_000).reason, undefined)
+    assert.equal(scheduleDue(ask(), T0 + GAP - 60_000).reason, undefined)
   })
 
   it('waits while what it sent to triage is unhandled', () => {
-    assert.equal(scheduleDue(ask({ backlog: () => true }), T0 + HOUR).reason, 'unsorted')
+    assert.equal(scheduleDue(ask({ backlog: () => true }), T0 + GAP).reason, 'unsorted')
   })
 
   it('waits while a card is being built', () => {
-    assert.equal(scheduleDue(ask({ building: () => true }), T0 + HOUR).wait, 'building')
+    assert.equal(scheduleDue(ask({ building: () => true }), T0 + GAP).wait, 'building')
   })
 })

@@ -35,7 +35,7 @@ import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
 import { copyAgent } from '../agents/roster'
 import { proGate } from '../cloud/pro'
-import { scheduledNext } from './scheduled'
+import { scheduledAuto, scheduledNext } from './scheduled'
 import {
   refusal,
   WORKFLOW_STAGES,
@@ -1575,6 +1575,7 @@ export function workflowViews(): WorkflowView[] {
         builtIn: entry?.builtIn ?? false,
         nextRun: due ? formatStamp(due.next) : '',
         ...(due?.reason ? { waiting: due.reason } : {}),
+        auto: scheduledAuto(one.agent),
       }
     }),
     problems: workflowProblems(flow.id),

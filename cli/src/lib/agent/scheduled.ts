@@ -5,7 +5,7 @@
 
 import { specAgentCatalog } from '../agents/catalog'
 import { proGate, type ProAccess } from '../cloud/pro'
-import { agentsWithBacklog, building, readsNew, scheduleDue, stampMs, type DueAnswer } from './due'
+import { agentsWithBacklog, autoSchedule, building, readsNew, scheduleDue, stampMs, type DueAnswer } from './due'
 import { insideRun } from './env'
 import { flowNodes } from './stages'
 import { readStore, type Store } from './store'
@@ -13,6 +13,7 @@ import {
   refusal,
   SCHEDULED_CADENCE,
   type AgentRequest,
+  type AutoSchedule,
   type DeliveryRecord,
   type RunRecord,
   type RunRefusal,
@@ -78,6 +79,10 @@ export function scheduledWait(
     now.getTime(),
   )
 }
+
+/** What `auto` means for it (#1543). */
+export const scheduledAuto = (agent: string): AutoSchedule =>
+  autoSchedule(specAgentCatalog().agents.find((a) => a.name === agent)?.reads, SCHEDULED_CADENCE)
 
 /** When its next pass may start and what holds it, or null while it is off or has no clock. */
 export function scheduledNext(workflow: string, one: WorkflowScheduled): DueAnswer | null {
