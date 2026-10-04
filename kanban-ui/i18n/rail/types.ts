@@ -116,13 +116,10 @@ export type RailCopy = {
     /** Over the Pending list, in place of a pill on every row. */
     pendingNote: string;
     emptyHint: string;
-    seeHistory: string;
     emptyHistory: string;
     emptyHistoryHint: string;
     noHits: string;
     clear: string;
-    /** No endpoint configured: one link to the docs that say how to serve and point at one. */
-    connect: string;
     /** One item opened in full, and the lines under it. */
     detail: string;
     collected: string;

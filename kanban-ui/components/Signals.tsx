@@ -745,8 +745,6 @@ export function SignalsPage({
       onIgnore={() => ignore(chosen)}
     />
   );
-  const unconfigured = inbox.missing.length > 0;
-  const hasHistory = inbox.archived.length + inbox.dismissed.length > 0;
 
   return (
     <SignalsFrame
@@ -875,18 +873,7 @@ export function SignalsPage({
               ) : tab === "history" ? (
                 <Empty title={c.emptyHistory} hint={c.emptyHistoryHint} />
               ) : (
-                <Empty title={c.empty} hint={c.emptyHint}>
-                  {(unconfigured || hasHistory) && (
-                    <span className="inline-flex items-center gap-4">
-                      {unconfigured && <EndpointLink label={c.connect} />}
-                      {hasHistory && (
-                        <button type="button" onClick={() => switchTab("history")} className={LINK}>
-                          {c.seeHistory}
-                        </button>
-                      )}
-                    </span>
-                  )}
-                </Empty>
+                <Empty title={c.empty} hint={c.emptyHint} />
               )
             ) : (
               tab === "pending" ? (
@@ -981,9 +968,6 @@ export function SignalsPage({
     </SignalsFrame>
   );
 }
-/** Where to read about serving and pointing at an endpoint. */
-const ENDPOINT_DOCS = "https://ai4kanban.dev/docs/triage-endpoint";
-
 /** A page with nothing on it: one centered block, no frame. */
 function Empty({
   title,
@@ -1008,20 +992,6 @@ function Empty({
       {hint && <p className="mt-1 text-[12.5px] leading-relaxed text-nb-ink-soft">{hint}</p>}
       {children && <span className="mt-3 inline-flex">{children}</span>}
     </div>
-  );
-}
-
-function EndpointLink({ label }: { label: string }) {
-  return (
-    <a
-      href={ENDPOINT_DOCS}
-      target="_blank"
-      rel="noreferrer"
-      className={`inline-flex items-center gap-1 ${LINK}`}
-    >
-      {label}
-      <FiExternalLink size={11} aria-hidden />
-    </a>
   );
 }
 
