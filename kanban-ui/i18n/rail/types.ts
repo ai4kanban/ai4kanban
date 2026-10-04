@@ -92,7 +92,7 @@ export type RailCopy = {
     sendFailed: string;
   };
   signals: {
-    /** The row above Archive, and the name of the page it opens. */
+    /** The page's name — also where a card made from an item says it came from. */
     row: string;
     title: string;
     /** The two tabs and, on History, how far back it reaches. */

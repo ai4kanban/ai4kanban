@@ -1,6 +1,6 @@
 "use client";
 
-// Whether the window offers the Inbox row at all (#453), and the count it carries.
+// Whether the top row offers the Triage button at all (#453, #1510), and the count it carries.
 //
 // Its own module rather than a part of components/Signals.tsx: the window asks for the row on
 // every screen, and that page is drawn inside the window — one file holding both would be an
@@ -16,9 +16,8 @@ export interface SignalsRow {
 }
 
 // The last answer, held for the tab rather than for the component, and the hooks watching it.
-// Opening a page is a fresh Window, and a hook starting from "no row" would take the row off
-// the rail on every navigation and put it back a moment later — including on the Inbox page
-// itself, where it is the mark saying where you are.
+// Opening a page is a fresh Window, and a hook starting from "no row" would take the button off
+// the top row on every navigation and put it back a moment later.
 let held: SignalsRow = { show: false, count: 0 };
 const watching = new Set<(row: SignalsRow) => void>();
 
@@ -28,14 +27,14 @@ async function ask(): Promise<void> {
 }
 
 /** Ask again — what the Inbox page calls once it has added or dismissed one, so the count on
- *  the rail is the count on the page. */
+ *  the button is the count on the page. */
 export const reloadSignalsRow = (): void => void ask();
 
 /** Asked when a window opens and again when the window is looked at again, never on the
  *  board's poll: the answer reaches Cloud, and a row is not worth a request a second.
  *
  *  A board that may not use the inbox — an account not in the preview, rules older than the
- *  feature — answers `false`, and the row is simply not drawn. */
+ *  feature — answers `false`, and the button is simply not drawn. */
 export function useSignalsRow(): SignalsRow {
   const [row, setRow] = useState(held);
   useEffect(() => {

@@ -38,7 +38,6 @@ import {
   FiClipboard,
   FiColumns,
   FiFileText,
-  FiInbox,
   FiMoreHorizontal,
   FiScissors,
   FiSearch,
@@ -79,7 +78,6 @@ export function Rail({
   activeArchive = false,
   activeSignals = false,
   activeTestCases = false,
-  signals = { show: false, count: 0 },
   testCases = false,
   memoryOwners = [],
   total,
@@ -91,11 +89,8 @@ export function Rail({
   activeMemory?: string | null;
   /** True while this window is showing the archive — the list, or one card in it (#380). */
   activeArchive?: boolean;
-  /** True while this window is showing the inbox (#453, #499). */
+  /** True while this window is showing Triage (#453), so All cards is not marked. */
   activeSignals?: boolean;
-  /** Whether to offer the Inbox row at all, and how much is waiting in it. A board the
-   *  inbox is not open to answers `show: false`, and the row is not drawn. */
-  signals?: { show: boolean; count: number };
   /** True while this window is showing the test cases (#1422). */
   activeTestCases?: boolean;
   /** Whether the project has test cases, and so the row. */
@@ -235,24 +230,10 @@ export function Rail({
           </>
         )}
       </nav>
-      {/* The two ways out of the list, at the foot with Memory and outside what scrolls:
-          neither is one of the open cards, and no amount of typing above should take either
-          away. The inbox (#453, #499) sits over the archive (#380) — what has not become a
-          card yet, over the cards that are finished with.
-
-          The archive carries no count: nothing archived is anywhere on the board until it is
-          asked for. The inbox carries one, because how much is waiting is the whole reason
-          to look. */}
+      {/* The ways out of the list, at the foot with Memory and outside what scrolls: none is
+          one of the open cards, and no amount of typing above should take one away. Triage
+          moved to the top row (#1510). */}
       <div className="mt-0.5 flex shrink-0 flex-col gap-0.5">
-        {signals.show && (
-          <RailRow
-            href="/inbox"
-            label={c.signals.row}
-            icon={<FiInbox size={13} className="shrink-0" aria-hidden />}
-            active={onPage && activeSignals}
-            count={signals.count}
-          />
-        )}
         <RailRow
           href="/archive"
           label={c.archive.row}

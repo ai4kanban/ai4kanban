@@ -126,8 +126,9 @@ export function ChatButton() {
         variant="ghost"
         size="xs"
         // The top row's 28px box; a narrow window keeps the button and drops the label.
-        className="shrink-0 max-sm:w-7 max-sm:px-0"
+        className="nb-tip nb-tip-below nb-tip-narrow shrink-0 max-sm:w-7 max-sm:px-0"
         aria-label={c.label}
+        data-tip={c.label}
         aria-pressed={rail.open}
         onClick={rail.toggle}
         style={rail.open ? { background: "var(--color-nb-accent-soft)" } : undefined}

@@ -13,9 +13,7 @@
 // the only permanently lit button in the row, so the bell takes a step lighter than its
 // orange.
 //
-// At phone width it keeps the segment shape it had (`tool`): the cluster there holds it
-// alone, and the count rides INSIDE the segment because a badge on a tool's shoulder would
-// be cut in half by the frame.
+// At phone width it is the same button at 36px (#1510), with Triage on its left.
 //
 // The rail is the chat rail's own place, and the right side holds one at a time — opening
 // this folds that. A row is the card's number and title with the event's name and how long
@@ -64,7 +62,7 @@ import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { HAIRLINE, TOOL_BTN } from "./chrome";
+import { HAIRLINE } from "./chrome";
 import { Loading, QUIET_BTN } from "./settings";
 import { sayFailure } from "@/lib/start-failure";
 
@@ -76,48 +74,24 @@ import { sayFailure } from "@/lib/start-failure";
  * that says "there is something for you". It does not glow when it is empty, so that it
  * still means something when it does.
  *
- * `tool` is the phone's shape (#357): a segment of the cluster, the wash rather than the
- * fill, since a filled segment inside a shared frame is a button trying to leave its box.
+ * At phone width it is the same button at 36px, beside Triage (#1510).
  */
-export function BellButton({ tool = false }: { tool?: boolean }) {
+export function BellButton() {
   const c = useCopy().notifications;
   const rail = useBell();
   if (!rail) return null;
   const { unread } = rail.center;
   const lit = unread > 0;
   const label = lit ? c.bellUnread(unread) : c.bell;
-  if (tool) {
-    return (
-      <button
-        type="button"
-        aria-label={label}
-        data-tip={label}
-        aria-pressed={rail.open}
-        onClick={rail.toggle}
-        // The count rides inside the segment, so the segment grows rather than a badge on
-        // the frame's edge breaking it.
-        className={cn(TOOL_BTN, lit && "w-auto gap-1 px-2")}
-        style={
-          lit
-            ? { background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }
-            : rail.open
-              ? { background: "color-mix(in srgb, var(--color-nb-ink) 8%, transparent)" }
-              : undefined
-        }
-      >
-        <FiBell className="text-[14px]" aria-hidden />
-        {lit && <span className="text-[11.5px] font-[800] leading-none">{unread}</span>}
-      </button>
-    );
-  }
   return (
     <Button
       variant="ghost"
       size="xs"
       // Icon-only while empty, so the row spends no width on a control with nothing to
       // say; the count is what widens it.
-      className={cn("shrink-0", lit ? "gap-1 px-2" : "w-7 px-0")}
+      className={cn("nb-tip nb-tip-below shrink-0 max-md:h-9", lit ? "gap-1 px-2" : "w-7 px-0 max-md:w-9")}
       aria-label={label}
+      data-tip={label}
       aria-pressed={rail.open}
       onClick={rail.toggle}
       style={

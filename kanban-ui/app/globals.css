@@ -18,6 +18,7 @@
   --color-nb-accent: #dd4f1e; /* ember — primary accent */
   --color-nb-accent-deep: #b83a12; /* deeper ember — hover / press */
   --color-nb-accent-soft: #f7ddce; /* ember wash — underline band, tints */
+  --color-nb-crimson: #c41e3a; /* triage waiting — cool enough to tell from ember */
 
   --color-nb-mint: #7fca9c; /* positive / done */
   --color-nb-mint-soft: #e4f3ea;
@@ -240,6 +241,12 @@ body {
   left: auto;
   right: 0;
   transform: none;
+}
+/* For a control that drops its label below `sm`: the tip only speaks once the label is gone. */
+@media (min-width: 40rem) {
+  .nb-tip-narrow::after {
+    content: none;
+  }
 }
 /* A tapped tip stays inside what is visible: components/tip-hold.tsx measures it and
    writes the width, the sideways nudge and the side. Hover and focus keep the rules above. */

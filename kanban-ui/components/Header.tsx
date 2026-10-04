@@ -15,6 +15,7 @@ import { BellButton } from "./Notifications";
 import { HeaderFind } from "./Phone";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
+import { TriageButton } from "./TriageButton";
 
 // The window's top row (components/Window.tsx draws the rest of it), shared by
 // the board and the card detail page and identical on both: the mark leads home,
@@ -36,6 +37,9 @@ import { Sessions } from "./sessions";
 // rails' state lives in the window (components/Window.tsx), which is what keeps one of them
 // on screen whichever page is up. Discuss shows on a card's pages only (#1081).
 //
+// Triage (#1510) stands left of the bell in the bell's shape, filled crimson while items
+// wait: the bell is runs moving, Triage is material waiting for your call.
+//
 // The bell left the cluster because it is the row's one control that changes by itself and
 // waits for a hand, while the cluster is where the board's machinery is looked at. Its
 // weight is its state: a ghost block when there is nothing, filled ember with the count in
@@ -56,7 +60,7 @@ import { Sessions } from "./sessions";
 // without its label.
 //
 // At phone width (#357, #1198) the row holds the card search in the mark's place, then the
-// release picker, the bell and Create task; everything else moves to the More tab
+// release picker, Triage, the bell and Create task; everything else moves to the More tab
 // (components/Phone.tsx). It is the same row with the rest hidden in CSS, every control grown
 // to 36px for a thumb.
 //
@@ -222,17 +226,13 @@ export function Header({
             <Sessions />
             <ConfigurationButton />
           </ToolCluster>
-          {/* The two rails' own buttons, in the order the rails opened in. */}
-          <BellButton />
-          <ChatButton />
         </span>
-        {/* The phone's row is untouched by that move (#807): the bell was already on its
-            own there. It keeps the cluster's frame
-            rather than becoming a bare icon — a lone segment is still the same object. */}
-        <span className="md:hidden">
-          <ToolCluster>
-            <BellButton tool />
-          </ToolCluster>
+        {/* Triage, then the two rails' own buttons in the order the rails opened in. Only
+            the first two stay at phone width. */}
+        <TriageButton />
+        <BellButton />
+        <span className="hidden md:contents">
+          <ChatButton />
         </span>
         {/* The dialog itself, mounted once at every width and opened by asks rather than by
             a control of its own. The gear above is the desktop's way in; on a phone the one

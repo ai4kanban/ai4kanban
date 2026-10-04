@@ -67,7 +67,6 @@ import {
   type PhoneTab,
 } from "./Phone";
 import { Rail } from "./Rail";
-import { useSignalsRow } from "./signals-row";
 import { useTestCasesRow } from "./test-cases-row";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 import { TourOnRequest } from "./WelcomeTour";
@@ -205,10 +204,6 @@ export function Window({
       sessionsPanel.openLog(sessionId);
     },
   });
-  // Whether this board and this account may use the inbox at all (#453), and how much is
-  // waiting in it. Asked here rather than on each page so every screen offers
-  // the same rail.
-  const signals = useSignalsRow();
   const testCases = useTestCasesRow();
   foldBellRef.current = bell.fold;
   // A notification clicked outside the window opens its own row: the same read mark, and
@@ -408,7 +403,6 @@ export function Window({
               activeArchive={currentArchive}
               activeSignals={currentSignals}
               activeTestCases={currentTestCases}
-              signals={signals}
               testCases={testCases}
               memoryOwners={memoryOwners}
               total={openIds.length}

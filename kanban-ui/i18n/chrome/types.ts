@@ -13,6 +13,11 @@ export type ChromeCopy = {
      *  tooltip and what a screen reader reads. Name the product: on a board that
      *  is itself a repo, "GitHub" alone reads as the user's own. */
     github: string;
+    /** The Triage button's tooltip, bare and with how many items are waiting. */
+    triage: string;
+    triageWaiting: (n: number) => string;
+    /** New idea's tooltip, shown once a narrow window has dropped its label. */
+    newIdea: string;
   };
   /** Only read out loud: the drag handles that widen a pane. */
   resize: { rail: string; chat: string; bell: string; side: string };

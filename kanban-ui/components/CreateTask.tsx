@@ -83,7 +83,8 @@ export function CreateTask({
    *  a card's page is not the one the window is holding. */
   projectRoot: string;
 }) {
-  const c = useCopy().board.create;
+  const copy = useCopy();
+  const c = copy.board.create;
   const plan = c.sheet.plan;
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -357,12 +358,14 @@ export function CreateTask({
   // screens keep the button but drop its label — a bulb in the same square frame, still the
   // same target.
   const label = c.button;
+  const tip = copy.chrome.header.newIdea;
   return (
     <div className="relative flex shrink-0 items-center">
       <Button
         size="xs"
-        className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
+        className="nb-tip nb-tip-below nb-tip-end nb-tip-narrow shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
         aria-label={label}
+        data-tip={tip}
         onClick={() => void openFresh()}
       >
         <LuLightbulb className="text-[15px]" aria-hidden />

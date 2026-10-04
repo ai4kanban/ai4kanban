@@ -40,9 +40,9 @@ export function GitHubLink() {
       // own mark, and the one control here that leaves the board. The shadow
       // stays ink and merges into the fill, so this one is a solid slab that
       // grows and settles as a whole rather than a block over a ledge.
-      className="hidden w-7 shrink-0 bg-nb-ink px-0 text-nb-paper sm:inline-flex"
-      title={c.github}
+      className="nb-tip nb-tip-below hidden w-7 shrink-0 bg-nb-ink px-0 text-nb-paper sm:inline-flex"
       aria-label={c.github}
+      data-tip={c.github}
       onClick={() => openLink(REPO_URL)}
     >
       {/* The filled brand mark, the same glyph the Cloud pane signs in with. It
