@@ -564,12 +564,20 @@ describe('a delivery, without its repository half', () => {
   })
 
   it('packs the committed records with their repository half already off', () => {
+    card('todo/features/12-first.md', 12)
     write('deliveries/2yfmw37a.json', `${JSON.stringify(record, null, 2)}\n`)
     const packed = packBoard().deliveries
     assert.equal(packed.length, 1)
     assert.equal(packed[0].deliveryId, '2yfmw37a')
     assert.equal(packed[0].approved, '# the card as approved')
     assert.ok(!JSON.stringify(packed).includes('card/12/2yfmw37a'))
+  })
+
+  it('leaves behind a record whose card is gone (#1524)', () => {
+    card('.archive/13-done.md', 13)
+    write('deliveries/archived.json', JSON.stringify({ ...record, deliveryId: 'archived', cardId: 13 }))
+    write('deliveries/orphan.json', JSON.stringify({ ...record, deliveryId: 'orphan', cardId: 99 }))
+    assert.deepEqual(packBoard().deliveries.map((d) => d.deliveryId), ['archived'])
   })
 })
 

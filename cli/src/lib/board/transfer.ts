@@ -186,7 +186,7 @@ export function packBoard(): BoardPayload {
     nextCardId: nextId(),
     cards: cards.sort((a, b) => a.id - b.id),
     documents: documents.sort((a, b) => a.path.localeCompare(b.path)),
-    deliveries: packDeliveries(),
+    deliveries: packDeliveries(new Set(cards.map((c) => c.id))),
     leftBehind: leftBehind.sort((a, b) => a.localeCompare(b)),
   }
 }
@@ -235,9 +235,10 @@ function cardAt(rel: string): CardPayload | null {
   return { id, archived, path: rel, meta, body }
 }
 
-/** The committed delivery records, without the fields that mean something only where the
- *  repository is. Cloud strips them too — this is what stops them being sent at all. */
-function packDeliveries(): DeliveryPayload[] {
+/** The committed delivery records of the packed cards, without the fields that mean something
+ *  only where the repository is. Cloud strips them too — this is what stops them being sent at
+ *  all. A record whose card is gone stays behind (#1524). */
+function packDeliveries(cardIds: ReadonlySet<number>): DeliveryPayload[] {
   if (!fs.existsSync(DELIVERIES)) return []
   const out: DeliveryPayload[] = []
   for (const file of fs.readdirSync(DELIVERIES).sort()) {
@@ -251,7 +252,7 @@ function packDeliveries(): DeliveryPayload[] {
     if (!record?.deliveryId) continue
     // A build with no card is this machine's alone (#428): Cloud files a delivery under the
     // card it is on, and there is none to file it under.
-    if (!Number.isInteger(record.cardId)) continue
+    if (!Number.isInteger(record.cardId) || !cardIds.has(record.cardId as number)) continue
     out.push({
       deliveryId: record.deliveryId,
       cardId: record.cardId as number,

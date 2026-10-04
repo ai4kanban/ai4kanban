@@ -5,7 +5,8 @@
 // its assets, old mockups, chats and ended delivery worktrees go, except the asset files a
 // memory note or an open card still points at. The archived card itself goes after 30 days
 // (#1335), unless it names a release still on the list, and its ended delivery records with
-// it (#1520). A cleared chat kept for the memory review (#1345) goes after 30 days unread,
+// it (#1520); an ended record whose card is in neither goes a week after its last write
+// (#1524). A cleared chat kept for the memory review (#1345) goes after 30 days unread,
 // whatever became of its card.
 
 import fs from 'node:fs'
@@ -139,6 +140,39 @@ export function removeArchivedCards(due: DueArchived[]): string[] {
   return removed
 }
 
+// Every id the archive still holds, group folders and their cards included.
+function archivedIds(): Set<number> {
+  const ids = new Set<number>()
+  if (!fs.existsSync(ARCHIVE)) return ids
+  for (const f of [...walkMd(ARCHIVE), ...walkDirs(ARCHIVE)]) {
+    const id = idPrefix(path.basename(f))
+    if (id !== null) ids.add(id)
+  }
+  return ids
+}
+
+/** Delete the ended delivery records whose card is neither on the board nor archived, a week
+ *  after their last write (#1524). Same keeps as removeArchivedCards, plus records with no card. */
+function removeOrphanDeliveries(now: number): string[] {
+  if (!fs.existsSync(TODO)) return []
+  const removed: string[] = []
+  const known = new Set([...openIds(), ...archivedIds()])
+  for (const name of listDir(DELIVERIES)) {
+    if (!name.endsWith('.json')) continue
+    const file = path.join(DELIVERIES, name)
+    try {
+      const d = JSON.parse(fs.readFileSync(file, 'utf8'))
+      if (!Number.isInteger(d.cardId) || known.has(d.cardId) || d.status === 'active' || d.worktree) continue
+    } catch {
+      continue
+    }
+    if (now - mtime(file) < KEEP_DAYS * DAY) continue
+    fs.rmSync(file, { force: true })
+    removed.push(rel(file))
+  }
+  return removed
+}
+
 interface EndedWorktree {
   cardId: number
   worktree: string
@@ -248,7 +282,7 @@ export function pruneLeftovers(now = Date.now(), cards = true): LeftoverPrune {
   const removed: string[] = []
   const skipped: string[] = []
   pruneHeld(now, removed, skipped)
-  if (cards) removed.push(...removeArchivedCards(dueArchivedCards(now)))
+  if (cards) removed.push(...removeArchivedCards(dueArchivedCards(now)), ...removeOrphanDeliveries(now))
   for (const kept of keptChats()) {
     if (now - kept.keptAt >= KEEP_CHAT_DAYS * DAY && dropKeptChat(kept.key)) removed.push(`${rel(CHATS_DIR)}/${kept.key}.kept`)
   }

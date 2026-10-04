@@ -268,6 +268,42 @@ describe('pruning a deleted card’s delivery records', () => {
   })
 })
 
+describe('pruning delivery records whose card is gone (#1524)', () => {
+  const record = (id: string) => path.join(DELIVERIES, `${id}.json`)
+
+  it('removes week-old ended records of cards in neither todo/ nor the archive', () => {
+    write(path.join(TODO, '80-open.md'), card('Open'))
+    write(archived('81-group/root.md'), card('Group', archivedDay(1)))
+    write(archived('81-group/82-child.md'), card('Child', archivedDay(1)))
+    delivery('orphan', 90, 'finished', '')
+    delivery('running', 90, 'active', '')
+    delivery('worktree', 90, 'failed')
+    delivery('fresh', 91, 'finished', '')
+    delivery('open', 80, 'finished', '')
+    delivery('group', 81, 'finished', '')
+    delivery('child', 82, 'finished', '')
+    write(record('cardless'), JSON.stringify({ deliveryId: 'cardless', status: 'finished' }))
+    for (const id of ['orphan', 'running', 'worktree', 'open', 'group', 'child', 'cardless']) age(record(id), 8)
+
+    const out = pruneLeftovers()
+
+    assert.deepEqual(out.removed, ['docs/kanban/deliveries/orphan.json'])
+    for (const id of ['running', 'worktree', 'fresh', 'open', 'group', 'child', 'cardless']) assert.equal(fs.existsSync(record(id)), true, id)
+  })
+
+  it('leaves them alone when the caller prunes cards elsewhere, or there is no todo/', () => {
+    delivery('orphan', 90, 'finished', '')
+    age(record('orphan'), 8)
+
+    pruneLeftovers(Date.now(), false)
+    assert.equal(fs.existsSync(record('orphan')), true)
+
+    fs.rmSync(TODO, { recursive: true })
+    pruneLeftovers()
+    assert.equal(fs.existsSync(record('orphan')), true)
+  })
+})
+
 describe('pruning ended delivery worktrees', () => {
   const wt = (cardId: number, id: string) => path.join(AKB_DIR, 'worktrees', String(cardId), id)
   const addWorktree = (cardId: number, id: string) => git(['worktree', 'add', '--quiet', '-b', `card/${cardId}/${id}`, wt(cardId, id)])
