@@ -1,8 +1,8 @@
 ---
 title: "Triage"
-title_tag: "AI4Kanban triage — pull Reddit, X and Xiaohongshu leads into your board"
-description: "Point the board at a triage endpoint and it pulls what people are saying into a queue beside your cards. What lands there is a lead, not a task: make a card of it, or ignore it."
-lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into Triage, beside your cards. What lands there is a lead, not a task."
+title_tag: "AI4Kanban triage — sort leads and follow-ups into cards"
+description: "Triage is a queue beside your cards for follow-ups, the Proposer's ideas and items your scripts add. What lands there is a lead, not a task: make a card of it, or ignore it."
+lead: "Triage holds what might become work — follow-ups the board noticed, the Proposer's ideas and items your scripts add — beside your cards. What lands there is a lead, not a task."
 last_updated: "October 4, 2026"
 nav_label: "Triage"
 icon: "inbox"
@@ -44,11 +44,11 @@ whether there is work in it. Cards are what has been decided. Who decides is you
 you, by reading the list, or the board, which judges each item and cards what survives as it
 arrives.
 
-Items arrive by themselves — from an endpoint, from the **Proposer**, from `akb triage add`,
-and as follow-ups a build or a plan notices along the way. To ask for work yourself, use
-**New task**: that card is written exactly as you ask. Ignoring an item moves its file to
-`docs/kanban/triage/dismissed/`, and no later pull brings it back; only **Restore** or
-`akb triage restore <source-id>` does.
+Items arrive by themselves — from the **Proposer**, from `akb triage add`, and as follow-ups
+a build or a plan notices along the way. To ask for work yourself, use **New task**: that card
+is written exactly as you ask. Ignoring an item moves its file to
+`docs/kanban/triage/dismissed/`; **Restore** or `akb triage restore <source-id>` brings it
+back.
 
 ## Sort it
 
@@ -95,9 +95,8 @@ whichever lands first wins, and the other side skips that item.
 A new item is judged before you see it: the ones worth doing become cards by themselves,
 each costing one more refine run.
 
-Every batch of new items starts one sort — a pull, **Add** on the page and `akb triage add`
-alike, so an item the **Proposer** writes is sorted too. A pull that brought nothing
-new starts nothing.
+Every batch of new items starts one sort — **Add** on the page and `akb triage add` alike, so
+an item the **Proposer** writes is sorted too.
 
 A sort reads the list once, when it starts, so anything that arrives while it goes is unseen.
 Its close starts the next one for exactly that, and the one after that, until nothing is
@@ -134,7 +133,7 @@ docs/kanban/triage/
 ```
 
 Leaving the list is a move, never a delete — the file itself is the record. `dismissed/` is
-never pruned: **History** draws the last 30 days of it, and *all* of it holds a later pull off. A dropped file's copy stays in `files/` when the item moves, so the
+never pruned: **History** draws the last 30 days of it. A dropped file's copy stays in `files/` when the item moves, so the
 path written into the item's body is good for as long as the item is.
 
 Ask where one thing already is:
@@ -143,9 +142,8 @@ Ask where one thing already is:
 akb triage check t3_1abcdef
 ```
 
-It answers `pending`, `archived`, `dismissed` or `unseen`, with the file that says so — the
-same rule all three ways in read. A pull is held off by all three; `akb triage add` only by the
-first two.
+It answers `pending`, `archived`, `dismissed` or `unseen`, with the file that says so.
+`akb triage add` refuses the first two.
 
 A board written before this moves itself the first time triage is read: items come up out of
 `triage/inbox/`, its dropped files into `triage/files/`, and every `handled.md` id with no file
@@ -153,100 +151,9 @@ left becomes a `dismissed/` record carrying the id and the time and nothing else
 were never kept, and the page says so rather than inventing them. Nothing is overwritten, and a
 migration cut short carries on the next time.
 
-## Connect a source
-
-Two settings, both filled in by hand for now.
-
-**The endpoint** goes in your board's `docs/kanban/config.md`, as one more line beside the
-settings already there:
-
-```markdown
-- **Triage endpoint** — https://signals.example.com/v1/pull
-```
-
-**The token** goes in `docs/kanban/.env`, where the board keeps every key. It is never shown
-on a screen, written to a log, or repeated in an error:
-
-```
-TRIAGE_ENDPOINT_TOKEN=…
-```
-
-`docs/kanban/.env` is kept out of git by the board's own `.gitignore`.
-
-These replaced the earlier `Signal endpoint` and `SIGNAL_ENDPOINT_TOKEN`, which are no longer
-read, and the `akb signals` command, which is gone. Rename them in your own `config.md` and
-`.env`, and update any script or scheduled agent that still runs the old command — nothing is
-rewritten for you.
-
-## What the endpoint returns
-
-The board sends `GET <your endpoint>` with `Authorization: Bearer <your token>` and expects
-JSON shaped like this:
-
-```json
-{
-  "signals": [
-    {
-      "title": "Three of us run Claude Code and the conventions keep getting reverted",
-      "summary": "We each have Claude Code open on the same repo…",
-      "source_type": "reddit",
-      "meta": { "subreddit": "r/ClaudeAI", "author": "u/mira", "score": "312 upvotes" },
-      "url": "https://www.reddit.com/r/ClaudeAI/comments/1abcdef/",
-      "collected_at": "2026-09-06T21:40:00Z",
-      "source_id": "t3_1abcdef"
-    }
-  ]
-}
-```
-
-Only **`title`** and **`summary`** are required, and a signal missing either is not imported —
-the pull counts it as a failure and names what was missing. Everything else is optional.
-
-- **`source_type`** is one key off the board's source list. It ships with `reddit`, `x`,
-  `xiaohongshu`, `weibo`, `zhihu` and `youtube`; a key that is not on it is kept exactly as
-  you sent it and drawn as itself, with no mark. Leave it out and the board reads the link's
-  domain against the same list — and if that matches nothing, the item simply has no source.
-  Nothing is invented from a domain or a file name.
-- **`meta`** is free key-value pairs — `subreddit`, `author`, whatever your source has. The
-  board does not validate, translate or fill them in, and takes only values a single line
-  holds; objects and lists are left out. The page draws the values, never the keys, so write
-  values that read on their own.
-- **`url`** is the thing itself, opened from the source name in the item's detail. **`collected_at`** is when the data
-  platform collected the post, not when your board pulled it; the board records the import
-  time itself.
-- **`slug`** is a short English name such as `export-board-as-csv`. It names the item's file
-  and the card it becomes; left out, the board builds one from the title. When the title is
-  not English, the card gets an English file name as it is planned.
-- **`source_id`** is the signal's identity. The board dedupes on it, against everything
-  waiting, everything made into a card, everything ever ignored, and the rest of the same
-  batch — so the same post sent on ten pulls is one file. Left out, it is derived from the
-  link or the words.
-- There is no paging and no ceiling. What the endpoint sends is what the board takes.
-
-An endpoint written before the source list may still send **`platform`** or **`source`** as
-free text. Both are read through the same list: a match is that source, and anything else is
-kept as a `meta` entry under `source` rather than guessed at. Files already in triage are read
-the same way, and are not rewritten.
-
-Turning what a platform actually returns into this shape is yours to write — that converter is
-the reason the board never has to know a platform. Writing the endpoint rather than pointing at
-one? [The triage endpoint contract](/docs/triage-endpoint) is the whole of what it has to keep.
-
-## Pull
-
-```bash
-akb triage fetch
-```
-
-It reports what it did — `Added 12 items, skipped 3, failed 1.` — and explains each failure
-on its own line. A request that fails, an answer it cannot read, and a setting still to be
-filled in all write nothing at all: triage is left exactly as it was.
-
-The first successful pull makes `docs/kanban/triage/`.
-
 ## Write an item from a script
 
-The endpoint is not the only way in. Scripts and agents write one item at a time:
+Scripts and agents write one item at a time:
 
 ```bash
 akb triage add --title "What it is" --text "Its own words." --source "where it came from" --slug what-it-is
@@ -256,11 +163,11 @@ akb triage add --title "What it is" --text "Its own words." --source "where it c
 letters and digits are used. When the title is not English, the card gets an English file
 name as it is planned.
 
-`--source` goes through the same list — `小红书` is `xiaohongshu`, and anything the list has
-not got is kept as a `meta` entry under `source`. `--file <path>` takes the body from a file
-when it is longer than a line or two. Neither needs an endpoint or a Cloud account. An item
-already waiting, or already made into a card, is refused and told where it is; one only
-ignored is taken.
+`--source` is read against the board's source list — `reddit`, `x`, `xiaohongshu`, `weibo`,
+`zhihu` and `youtube` — so `小红书` is `xiaohongshu`, and anything the list has not got is kept
+as written. `--file <path>` takes the body from a file when it is longer than a line or two.
+It needs no Cloud account. An item already waiting, or already made into a card, is refused
+and told where it is; one only ignored is taken.
 
 This is also where the board's own **Proposer** writes: the cards that finished are reflected on
 and what should follow them lands here, carrying the card that prompted it. See

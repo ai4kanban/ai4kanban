@@ -16,3 +16,6 @@
 # The recipes were taken down; scheduled agents are what replaced them.
 /recipes /docs/agents 301
 /recipes/* /docs/agents 301
+
+# The triage endpoint contract was taken down; Triage covers the ways items arrive.
+/docs/triage-endpoint /docs/triage 301
