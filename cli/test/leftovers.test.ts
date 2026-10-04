@@ -231,6 +231,43 @@ describe('pruning archived cards', () => {
   })
 })
 
+describe('pruning a deleted card’s delivery records', () => {
+  const record = (id: string) => path.join(DELIVERIES, `${id}.json`)
+
+  it('removes ended records with no worktree, and keeps active ones, ones with a worktree, and kept cards’', () => {
+    archive(70, 40)
+    archive(71, 10)
+    delivery('done', 70, 'finished', '')
+    delivery('dropped', 70, 'cancelled', '')
+    delivery('going', 70, 'active', '')
+    delivery('held', 70, 'failed')
+    delivery('young', 71, 'finished', '')
+
+    const out = pruneLeftovers()
+
+    assert.equal(fs.existsSync(record('done')), false)
+    assert.equal(fs.existsSync(record('dropped')), false)
+    assert.equal(fs.existsSync(record('going')), true)
+    assert.equal(fs.existsSync(record('held')), true)
+    assert.equal(fs.existsSync(record('young')), true)
+    assert.deepEqual(out.removed.sort(), [
+      'docs/kanban/.archive/70-gone.md',
+      'docs/kanban/deliveries/done.json',
+      'docs/kanban/deliveries/dropped.json',
+    ])
+  })
+
+  it('keeps the records of a card its open release still holds', () => {
+    write(path.join(KANBAN, 'releases.md'), '- **v2**\n')
+    archive(72, 40, 'release: v2\n')
+    delivery('shipped', 72, 'finished', '')
+
+    pruneLeftovers()
+
+    assert.equal(fs.existsSync(record('shipped')), true)
+  })
+})
+
 describe('pruning ended delivery worktrees', () => {
   const wt = (cardId: number, id: string) => path.join(AKB_DIR, 'worktrees', String(cardId), id)
   const addWorktree = (cardId: number, id: string) => git(['worktree', 'add', '--quiet', '-b', `card/${cardId}/${id}`, wt(cardId, id)])

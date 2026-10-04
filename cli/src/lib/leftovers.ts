@@ -4,8 +4,9 @@
 // nor the worktree of a delivery that ended. Once a card has been off the board for a week
 // its assets, old mockups, chats and ended delivery worktrees go, except the asset files a
 // memory note or an open card still points at. The archived card itself goes after 30 days
-// (#1335), unless it names a release still on the list. A cleared chat kept for the memory
-// review (#1345) goes after 30 days unread, whatever became of its card.
+// (#1335), unless it names a release still on the list, and its ended delivery records with
+// it (#1520). A cleared chat kept for the memory review (#1345) goes after 30 days unread,
+// whatever became of its card.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -116,10 +117,26 @@ export function dueArchivedCards(now = Date.now(), undated?: ReadonlyMap<number,
   return due
 }
 
-/** Delete those entries, and say what went. */
+/** Delete those entries and their cards' ended delivery records (#1520), and say what went.
+ *  A record still naming a worktree stays: its checkout may hold work. */
 export function removeArchivedCards(due: DueArchived[]): string[] {
   for (const entry of due) fs.rmSync(entry.path, { recursive: true, force: true })
-  return due.map((entry) => rel(entry.path))
+  const removed = due.map((entry) => rel(entry.path))
+  const ids = new Set(due.flatMap((entry) => entry.ids))
+  if (!ids.size) return removed
+  for (const name of listDir(DELIVERIES)) {
+    if (!name.endsWith('.json')) continue
+    const file = path.join(DELIVERIES, name)
+    try {
+      const d = JSON.parse(fs.readFileSync(file, 'utf8'))
+      if (!ids.has(d.cardId) || d.status === 'active' || d.worktree) continue
+    } catch {
+      continue
+    }
+    fs.rmSync(file, { force: true })
+    removed.push(rel(file))
+  }
+  return removed
 }
 
 interface EndedWorktree {

@@ -3075,7 +3075,8 @@ begin
     {"id":4,"expect":"","archived":true,"data":{"title":"kept"}}
   ]$j$::jsonb, BUDGET);
   perform api.take_lock(OWNER, v_ws, null, 2, null, 1800, BUDGET);
-  insert into cloud.workspace_deliveries (workspace_id, card_id) values (v_ws, 2);
+  insert into cloud.workspace_deliveries (workspace_id, card_id, state) values
+    (v_ws, 2, 'open'), (v_ws, 2, 'completed'), (v_ws, 3, 'cancelled'), (v_ws, 4, 'failed');
   select revision::text, next_card_id into v_revision, v_next from cloud.workspaces where id = v_ws;
 
   -- A card still on the board refuses the whole call: the archived one beside it stays.
@@ -3101,8 +3102,9 @@ begin
   assert (select next_card_id from cloud.workspaces where id = v_ws) = v_next, 'a deleted number was handed back';
   assert not exists (select 1 from cloud.workspace_locks where workspace_id = v_ws and card_id = 2),
     'a deleted card left its lock behind';
-  assert (select count(*) from cloud.workspace_deliveries where workspace_id = v_ws and card_id = 2) = 1,
-    'a deleted card took its delivery with it';
+  assert (select array_agg(card_id || ':' || state order by card_id) from cloud.workspace_deliveries
+           where workspace_id = v_ws) = array['2:open', '4:failed'],
+    'a deleted card kept an ended delivery, or took an open one or another card''s';
   assert (select array_agg(card_id order by card_id) from cloud.workspace_audit
            where workspace_id = v_ws and action = 'card.deleted' and account_id = MEMBER) = array[2, 3],
     'the trail did not record each deleted card';
