@@ -3,7 +3,7 @@ title: "Releases"
 title_tag: "AI4Kanban releases — plan a version, close it, drop it"
 description: "A release is a version you're planning. Say what it is for and the board fills it, writes what shipped when you close it, and forgets it when you drop it."
 lead: "A version you're planning, filled from what it is for. Optional — a board that never plans one works exactly as it does without them."
-last_updated: "September 4, 2026"
+last_updated: "October 4, 2026"
 nav_label: "Releases"
 icon: "git-branch"
 ---
@@ -55,14 +55,12 @@ you never archived counts as not shipped — the skill names it so you can archi
 line in the summary. On the local board the **⋯** beside the release dropdown offers the close,
 showing what it records and which cards come out before you confirm.
 
-The summary opens with a **changelog** — at most six plain lines saying what the version changed,
+The summary opens with a **changelog** — a few plain lines saying what the version changed,
 written by an agent from the cards it shipped, each one something you can now see or do. Under it
 the summary keeps what the version was for, since the line in `releases.md` is gone.
 
-The local board starts that agent itself in the background. In the terminal the close names the
-command instead — say **"write the changelog for v1"** — since a bookkeeping command never starts
-an agent. Either way the card list is written first and stands whatever the agent does, and
-running it again replaces the changelog rather than adding a second. A version that shipped no
+The local board writes it in the background. In a terminal, say **"write the changelog for v1"**;
+running it again replaces the changelog. A version that shipped no
 card gets no changelog. Not every change goes through the board, so one that was never a card is
 still yours to add.
 

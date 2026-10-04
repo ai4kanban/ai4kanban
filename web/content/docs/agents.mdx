@@ -3,330 +3,109 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "October 3, 2026"
+last_updated: "October 4, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
 
-Every flow the board starts is run by a named **agent**, and each one has a page: its rule, what
-it remembers, its settings, and — for one you added — its own instructions. Where you reach that
-page says who assigns the agent. **Configuration → Workflows** picks a workflow and shows its whole
-flow top to bottom: Plan, then Execute, each with its lead and the hooks that run after it, and
-under them the agents it runs on a schedule. **Configuration → Board**
-lists the agents the board runs itself, which no workflow assigns and every workflow gets.
+Every flow on the board is run by a named **agent**. Each one has a page where you set its rule,
+what it runs on and, for a scheduled one, how often it runs. **Configuration → Workflows** lists
+each workflow's agents; **Configuration → Board** lists the ones the board runs for every workflow.
 
-Product video, Slide deck, Carousel post and Blog post, and copies of them, need a Pro plan: sign in under
-**Configuration → Cloud**, and upgrade under **Configuration → Billing**.
-Coding and the workflows you make yourself stay free.
+Product video, Slide deck, Carousel post and Blog post need a Pro plan. Coding and the workflows
+you make yourself are free.
 
-There are two kinds.
+## Roles
 
-**Roles** are the agents the board's own flows are run by. You do not add or remove one, and none
-can be switched off:
+Roles run the board's own flows. You can't add, remove or switch one off.
 
-- **Software planner** (`software-planner`, `planner` before) — plans and refines the Coding
-  workflow's cards. It runs create, refine, resolve, revise, the release
-  plan, the changelog, archive and reject.
-- **Builder** — builds cards and lands them: implement, conflict, run.
-- **Scriptwriter** — leads the Product video workflow: a product intro, a screen demo, or both.
-  It writes the script — audience, core claim, the story in viewing order, the exact narration
-  and on-screen text, and the product facts with how each was checked — plus, only for a demo, what
-  each demo section must prove, worded from the demo rehearser's real results and naming the
-  result each one draws on. A real demo goes in only when you ask for one or it shows the point
-  better than screenshots, animation or text. With Pro, narration uses a hosted
-  voice in any language, spending 1 of Pro's 5,000 monthly AI credits per second: describe one, or
-  pick from two or three samples.
-  You review the script before the film is made; a script change, voice included, needs your
-  review again. The finished film is checked and on the card with no further question, and it
-  becomes the example for that kind of video — script, sources, cover, keyframes and how to remake
-  every asset — so your next one starts from it.
-- **Deck planner** — leads the Slide deck workflow in two rounds: first the content — audience,
-  goal, facts, design and every slide's copy — for your approval, then every slide rendered from
-  an editable `.pptx`, with a download on the card. A content change sends it back to the first
-  round; a visual-only change rebuilds just the slides it touches.
-- **Carousel planner** — leads the Carousel post workflow: one multi-page post for Xiaohongshu,
-  Instagram, LinkedIn or TikTok, in two rounds like the Deck planner. First the brief, the format
-  and every page's copy; then every page rendered as an image, one set per aspect ratio the
-  platforms need (3:4 for Xiaohongshu, 4:5 for Instagram and LinkedIn), plus each platform's
-  caption. In-page images it generates spend Pro's AI credits. It keeps one template and one best
-  example per format, so your next post of that kind starts from the last one it finished.
-- **Blog planner** — leads the Blog post workflow in two rounds: first the brief, the keywords you
-  want to win and the outline, for your approval; then the full article on the card, with its
-  images and its links to your other posts and to primary sources, and a download. For a blog in
-  your project it also writes the post and its images into the blog's folder, uncommitted. It asks
-  where your blog lives once and remembers.
-- **Proposer** — reads a card the board has just finished, with the discussion it came from, and
-  proposes the work that should follow it — including anything the card promised that nothing
-  shipped. It learns from follow-ups you point out it missed. Runs once cards finish, at most once an
-  hour, and waits while what it proposed last time is still unsorted.
-- **Memory pruner** — squeezes the memory back down to what helps planning. Every 7 days by
-  default; **Run now** on its page starts one.
-- **Review chats** — reads back over the conversations that said something new and writes
-  down what they settled. Runs once there are new messages, at most once an hour by default.
-- **Describe the project** — keeps `docs/kanban/memory/project.md` up to date: what the project is,
-  who it is for, the problems it solves and its features, from the users' point of view. Runs once
-  a card is finished, at most once an hour by default. Planning reads it for direction.
+- **Software planner** — plans the Coding workflow's cards: create, refine, resolve, revise,
+  release plans and changelogs.
+- **Builder** — builds a card and lands it.
+- **Scriptwriter** — writes a Product video's script; you approve it before the film is made.
+- **Deck planner** — plans a Slide deck: you approve the content, then get an editable `.pptx`.
+- **Carousel planner** — plans a multi-page post for Xiaohongshu, Instagram, LinkedIn or TikTok:
+  you approve the copy, then get every page as an image with captions.
+- **Blog planner** — plans a Blog post: you approve the outline, then get the full article with
+  its images.
+- **Proposer** — after a card is archived, proposes the work that should follow it into
+  [Triage](/docs/triage).
+- **Review chats** — after a card is archived, reads its chat and writes down what it settled.
+- **Describe the project** — keeps `docs/kanban/memory/project.md` — what the project is and who
+  it is for — up to date. Planning reads it for direction.
+- **Memory pruner** — trims the memory back to what helps planning.
 
-**Configuration → Board** groups them by what starts each one: **You start** and **On a schedule**.
-A scheduled agent's page sets its cadence — **Auto** by default, which runs it when there is
-something new, like a [workflow's scheduled agent](#run-an-agent-on-a-schedule) — and its list
-ends on **Disable**; **Run now** still works while it is disabled. On **Auto**, the line under its
-name says what it is waiting for. The Proposer and the scheduled agents each spend runs you
-never asked for.
+## Specialists
 
-**Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
-while a card is being planned — never while it is being built — writes one named section of that
-card, and changes nothing else. The board ships nine, and `akb spec` lists them:
+A specialist writes one section of a card while it is planned, and changes nothing else. The
+planner calls one in when the card needs it, so you rarely ask yourself. When the answer is a
+choice only you can make, it leaves an open question on the card.
 
-- **`copywriting`** — writes the promotional copy a card changes: website pages, the README,
-  release notes, and store or Product Hunt listings. User documentation, text inside the product
-  and social posts are not its job. It writes the final copy and leaves one question asking you
-  to confirm it.
-- **`ui-designer`** — draws the screen a card needs as one design, one drawing per page or state
-  it changes and each named for what it shows, with nothing written under the drawings. Every
-  **mockup** is a rendered screen — a copy of the product's own screen, true to the real UI. See
-  "Assets on a card" in `kanban-ui/README.md`. On a card that has copy, it waits until you have
-  confirmed the copy and then uses it word for word.
-- **`tech-stack-advisor`** — picks the library, tool, or service a card leans on. Its answer is
-  one table — a row per candidate, with what it is, its pros and its cons — and one line naming
-  the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
-  doesn't come back with something new to install by default.
-- **`prompt-writer`** — writes the instruction text a card changes: a skill, an agent prompt, or
-  anything else an AI model follows. Its answer is one diff per file, so you edit the wording
-  directly.
-- **`email-planner`** (Email planner) — writes every email a card adds or changes, in the
-  language the product sends it in: the subject, the preview text and the body, with the
-  HTML version previewed on desktop and mobile beside the plain text. The builder ships it
-  as written. Cards that change only how mail is delivered skip it.
-- **`user-docs`** (User docs) — writes the user documentation a card changes: guides, help
-  pages, a docs site or an FAQ. Each changed page comes as a diff and each new one as full
-  Markdown, for you to confirm before the builder writes it in. Internal docs, promotional copy
-  and text inside the product are not its job. It keeps your documentation preferences in its
-  memory, `writing.md`.
-- **`demo-rehearser`** (Demo rehearser) — on a Product video card with a demo only, before you
-  review the script: rehearses each demo section for real in an isolated environment, records the
-  steps in `demo.md`, and shows each section's result with its key screenshots (3–6 in total) on
-  the card for you to review.
-- **`hyperframes-editor`** (Video editor) — on a Product video card only, after you approve the
-  script: makes the film while the card is still being planned. It picks its own method
-  (HyperFrames by default), captures the real product, generates the narration, renders on your
-  machine, then watches and listens to check facts, readability, pacing, sound and anything
-  private on screen. The playable video lands on the card with the command that renders it again.
-- **`cover-designer`** (Cover designer) — on a Product video card only, right after the editor: makes
-  one cover in the video's shape from the approved script, laid out from real screenshots and
-  frames or, with Pro, generated by an image model from those screenshots at 320 AI credits each,
-  and shows it on the card below the film. It asks you which way to make it alongside the script
-  review, and redoes the cover when the title, core claim or brief changes.
-- **`blog-illustrator`** (Blog illustrator) — on a Blog post card only, after you approve the
-  outline: makes the cover and every image the outline names, new for that post — a screenshot of
-  the product, a drawn diagram, or, with Pro, a generated image — each with its alt text.
+- **`copywriting`** — promotional copy: website pages, the README, release notes, store listings.
+- **`ui-designer`** — a mockup of each screen the card changes.
+- **`tech-stack-advisor`** — compares the libraries, tools or services a card could use, and
+  picks one.
+- **`prompt-writer`** — instructions an AI model follows: skills and agent prompts.
+- **`email-planner`** — every email the card adds or changes, previewed on desktop and mobile.
+- **`user-docs`** — the user documentation the card changes.
+- **`demo-rehearser`** — Product video only: rehearses each demo for real and shows the results.
+- **`hyperframes-editor`** — Product video only: makes the film once you approve the script.
+- **`cover-designer`** — Product video only: makes the video's cover.
+- **`blog-illustrator`** — Blog post only: makes the post's cover and images.
 
-One more runs on a schedule instead of during planning:
-
-- **`qa-manager`** (QA manager) — once a day, updates the cases that the cards finished since its
-  last run affect in the project's [test cases](/docs/daily-loop#test-cases) under `docs/qa/`,
-  each step with its proof, then writes the first cases for one module not covered yet.
-
-A specialist's run is a run like any other, with three things that make it different: it starts
-clean, given the card and a short note but never the conversation that asked for it; it writes one
-named section — ``## By `ui-designer` agent`` — and nothing else, rewritten rather than doubled on a
-second run; and nothing waits for it, so a planning flow carries on and the section arrives when it
-is done. When the answer is a pick only you can make, it leaves an open question instead of choosing.
-
-You rarely ask for one yourself — the flow working the card asks when the card needs it, after a
-card is added, after a refine or revise that moved the screen or the library, and never from a
-release plan (each card's own refine asks instead). A card that needs neither a
-screen nor a library goes through all of those without a spec run, and nothing tells you it did.
-
-A Product video, Slide deck, Carousel post or Blog post has no build and asks you only about
-the content: once the finished work is on the card, the card shows **Archive**, and archiving it
-is how you accept it. **Revise** changes it instead — a content change needs your approval again, a
-visual-only change keeps the content and renders again — and Archive returns when the revision is
-done.
-
-When you do want one: **"put the ui-designer agent on #4"**, or `akb spec ui-designer 4`. Whether
-it joins a card's planning at all is its workflow's plan stage, under **Configuration → Workflows**:
-add it there and it is offered, remove it and nothing asks for it. Setting what it produces is on
-its page, beside that same list. A role is always on except the ones above, because a board without
-nobody plans anything.
-
-## Let the Proposer look back
-
-Nothing on the board looks at finished work. A follow-up reaches **Triage** only when a build or
-a plan notices one mid-task, and nothing else that lands there reads your own history.
-
-**Proposer** closes that gap. Every finished card that reaches the archive (a rejected one
-starts none) starts one reflection over
-that card alone: it reads what shipped, judges what work follows from it against `project.md` and the
-planning memory, and puts each survivor in **Triage**.
-
-- **Archiving is the only trigger.** A card completing is what starts a reflection. Nothing sweeps
-  the cards you finished last week, and there is no command that asks for one.
-- **One run per completion.** That is the whole of what it costs.
-- **It proposes into Triage, never onto the board.** A proposal is triaged like anything else
-  that arrives there, so a weak one costs you a dismissal rather than a card in your backlog.
-  With Pro, Triage [sorts new items by itself](/docs/triage#let-it-sort-by-itself).
-- **It grounds every proposal.** Anything already planned, already in Triage, or in a
-  `rejected.md` is skipped. Finding nothing worth proposing is a normal result, and the common one.
-- **It keeps open plans true.** When what shipped makes an open card's plan untrue, it revises
-  that card in the background instead of proposing anything.
-
-Each item it writes carries a short rationale and the card that prompted it, so you can read what
-the proposal came from before deciding.
-
-## Let the memory review remember for you
-
-A chat used to judge each turn as it landed: was this a preference worth remembering? One turn
-cannot see where a conversation is going, so a "what if" you threw out and took back three turns
-later could land in `decisions.md` as a decision — while the real conclusion of a long discussion
-was never written down at all.
-
-**Review chats** is what writes it down instead. Chats no longer save memory. Once a card
-is archived, it reads that card's chat right through, once, and writes what the whole exchange
-earned.
-
-- **After the card is done.** Memory only feeds future planning; the card you are talking about
-  was already changed in the conversation.
-- **Each conversation once.** It is read whole when its card is archived and never again, so say
-  what should last before then.
-- **Cleared chats count too.** A card chat you cleared, or restarted on another agent, is kept
-  on your machine and read with the rest once the card is archived, then deleted — or after 30
-  days unread.
-- **Discussions are not read.** What a discussion settled is in the cards it became; repeat a
-  preference that should last in a card's chat.
-- **"Don't record this" holds.** Say it in the conversation and nothing is written.
-- **It credits the right agent.** A correction to one agent's work goes in that agent's memory;
-  the rest goes in the planning memory, under the `## <module>` topic the card's `modules:` names.
-- **Nothing archived, nothing run.** It starts at most one round a day, ten cards to a run, and
-  keeps going until none are waiting.
-- **What it skips.** A rejected card's chat, and a discussion that never became a card.
-
-**Review now** on its page asks for one at any time, and `akb review-memory` is the same entry
-from a terminal. What each review wrote is in its run log.
+To ask for one yourself, say **"put the ui-designer agent on #4"** or run
+`akb spec ui-designer 4`. Which specialists a workflow uses is set in its plan stage under
+**Configuration → Workflows**.
 
 ## Give an agent a rule
 
-A **rule** is one paragraph, in your own words, added to the **end** of every run that agent does,
-after everything the board writes into it. Write it in the box on the agent's page; it saves when
-you leave the box.
+A **rule** is a paragraph in your own words that the agent reads on every run. Write it in the
+box on the agent's page. It is saved to `docs/kanban/rules/<agent>.md`, so git shares it with
+your team. Keep it short — every run reads it.
 
-- **It is plain words, not a command the board runs.** What it actually causes is up to the agent
-  reading it.
-- **It belongs to the agent, not to one flow.** One rule on the Builder reaches implement, conflict
-  and run alike, so a convention you write once is followed everywhere that agent works.
-- **It lives in your board**, at `docs/kanban/rules/<agent>.md`, tracked in git — so a team shares
-  it and a run started from a terminal reads the same words. Clearing the box deletes the file.
-- **A delivery freezes the rules it starts with**, so editing one changes the next delivery and
-  never one in flight.
-- **Every session that agent starts reads it**, so a long rule makes every card slower.
+## What agents remember
 
-From a terminal: `akb raw rule <agent> --file <path>`, or `--text ""` to clear it.
+Some agents remember your corrections and choices, so their next plan starts from them. An
+agent's page lists its memory files, kept in `docs/kanban/memory/agents/<agent>/`; edit them
+like any other file.
 
-## Give an agent memory
+## Let the memory review remember for you
 
-Some agents **remember** — the taste they were corrected on, and the choices you made. The
-agent's page lists the files it has, read-only:
+Chats don't save memory as you talk. Once a card is archived, **Review chats** reads its whole
+chat once and writes down what lasted. Say "don't record this" in the chat and nothing is
+written. **Review now** on its page runs one at any time.
 
-- **Planning** keeps three files in `docs/kanban/memory/agents/planner/`: `decisions.md`,
-  `rejected.md` and `redesign.md`. Whoever leads a plan stage writes them;
-  the Proposer reads them and writes none. No other role owns a file.
-- An **agent** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
-  files it keeps there and what each holds.
-  `ui-designer` keeps `redesign.md` and `decisions.md`, `copywriting` keeps `writing.md`, and
-  `tech-stack-advisor` keeps none. A specialist is handed every file in its folder on each run.
-- **The deck planner remembers your feedback** in `feedback.md`, so the next deck starts from it.
-- **The video agents remember your feedback.** Tell the scriptwriter or the video editor what to
-  do differently and the next video starts from it; one video's change is not a general rule.
-  Nothing you say is written back into a recipe. Long feedback is split
-  into `feedback/<topic>.md`; the Memory panel lists those files under **Feedback**, and the
-  index in `feedback.md` links to them.
-- **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
-  and `project.md` are facts rather than taste, so they sit outside every agent's folder.
-- **How the product looks is not memory.** Colours, dimensions and component detail are read from
-  the app's own `design.md`, so memory says which doc to read rather than repeating it.
-- The runs write these themselves — the flow that hears your answer records what was taken or sent
-  back, and the agent curates the files on its own runs. Nothing on the pane edits one.
+## Run an agent on a schedule
+
+Scheduled agents run by themselves, on no card: the board's own under **Configuration → Board**,
+and each workflow's under **Scheduled** in **Configuration → Workflows**. Coding ships one, the
+[QA manager](/docs/daily-loop#test-cases).
+
+- **Choose how often**: on the agent's page pick **Auto** — it runs when there is something new
+  for it — a preset, or your own schedule. **Disable** turns it off.
+- **Run now**: starts one at any time, even while it is disabled.
+- **Its changes are committed** like a build when **Automatic Git commits** is on.
+- **A failed run is tried again later**, or **Resume** it from **Runs**.
+
+From a terminal: `akb workflow schedule <id> --on <agent> --cadence 1d` (or `auto`),
+`--off <agent>`, or `--run <agent>`.
 
 ## Add one of your own
 
-Creating a custom agent requires the [AI4Kanban skill](/docs/daily-loop) in your project and the
-[`akb` CLI](/docs#install-the-board). Follow the linked setup instructions if either is missing.
-
-In your project's coding agent session, describe the agent you need:
+Ask your coding agent, with the [AI4Kanban skill](/docs/daily-loop) installed:
 
 ```text
 Use the AI4Kanban skill. Read akb guide write-agent,
 then create an agent that [describe its job].
 ```
 
-That guide is the one place the file is written from — its name, its description, the files beside
-it and the translations it carries — so what comes back is an agent this board accepts.
-`akb spec` lists the agents this board can use and, under them, anything wrong with one it found.
+Or press **+** beside **Helpers** or under **Scheduled** in **Configuration → Workflows**, name
+it, and write its instructions on its page. A **helper** joins planning on the cards it fits; a
+**scheduled** agent runs by itself.
 
-The **+** beside **Helpers** or under **Scheduled** in Configuration →
-Workflows starts one from the board instead: it asks for a name, writes the folder under
-`docs/kanban/agents/`, adds it there, and opens the new agent's page with its instructions box focused. A name a role or a
-bundled agent already answers to is refused in place. The whole file is the box on that page,
-frontmatter included, and a save the board would refuse
-keeps your text and says what is wrong rather than leaving an agent it cannot read — the pane and
-the file are one thing.
+**Delete** on its page removes an agent you added, with its rule and memory.
 
-A new agent is a **hook**: it helps the planner, or runs by itself on a schedule.
+## Choose what an agent runs on
 
-- **Helpers**: the planner calls it in while planning, when its description applies to the card.
-- **Scheduled** (`akb.hook: schedule`): it runs by itself, once per schedule, on no card — see
-  below. Nothing runs after a build: to check finished work, schedule an agent with
-  `akb.reads: archived-cards`.
-
-An agent's instructions can tell it to split its work across [sub-runs](/docs/runs#sub-runs)
-with `akb run start`.
-
-## Run an agent on a schedule
-
-A workflow can carry agents that run by themselves: a nightly audit, a weekly clean-up. Each sits
-under **Scheduled** in Configuration → Workflows, below the two stages, and belongs to that
-workflow alone. Coding ships one, running when cards finish: the
-[QA manager](/docs/daily-loop#test-cases).
-
-Recurring cards have moved here. On update, each one becomes a scheduled agent of its workflow:
-its steps are the agent's instructions, its cadence and last run carry over, and a card with no
-cadence arrives disabled.
-
-- **Set it on the agent's page.** The chip beside its name picks **Auto** (the default), every 6
-  hours, every day, every 7 days, or your own — and **Disable** is the last row of the same list.
-  Picking a schedule again enables it. **Run now** starts one run whether or not it is due, and
-  works while the agent is disabled.
-- **Auto runs it when there is new work.** An agent whose `AGENT.md` sets `akb.reads` runs only
-  once something new has arrived since its last finished run — `archived-cards`,
-  `chats` or `dismissals` — and at most once an hour. One that sets nothing runs once a day. A
-  schedule you pick replaces the hour or the day; the waits below still apply.
-- **It waits for you and for builds.** It does not run while what it put in Triage last time is
-  still waiting, or became a card nobody has started, nor while a card is being built or landed.
-  On **Auto**, the line under its name says what it is waiting for.
-- **It never runs the moment you enable it.** The first run comes one gap later; the page shows
-  the last run and when the next may start.
-- **What it changes is committed like a build.** With **Automatic Git commits** on, the run works
-  on its own branch and lands on your current branch; a run that changed nothing commits nothing.
-  With it off, the changes stay uncommitted in your project. A workflow that makes files commits
-  nothing.
-- **Nobody answers it.** A scheduled agent is not a card: it has no open questions, and what it
-  does with something it cannot settle is for its own instructions to say.
-- **A failed run waits.** Only a run that finished moves the last-run time; a failed or stopped one
-  is tried again one gap later, and each further failure in a row doubles the wait, up to a day.
-  Or **Resume** it from **Runs**, where each run is named by its workflow and agent.
-- **It can ask what finished since last time.** Inside its run,
-  `akb raw list --archived --since last-run` lists the cards that landed since its last finished
-  run began — none on the first run.
-
-From a terminal: `akb workflow schedule <id> --on <agent> --cadence 1d` (or `auto`), `--off <agent>`, or
-`--run <agent>`; `akb workflow list` shows each one's schedule and last run.
-
-It can be written to **lead** a plan or execute stage instead, and one that can lead is only
-offered as a workflow's lead, never as a hook. Of the ones the board ships, the Software planner,
-the Builder and the Scriptwriter lead. A workflow that already has an undeclared agent leading, or
-a lead among its hooks, keeps running until you change it, and Configuration → Workflows marks an
-undeclared lead.
-
-**Delete** on an agent's page removes it and everything the board kept for it — the folder, the
-instructions you wrote for it, what it remembered, and its switch. Only an agent this project
-added: the roles and the three the command ships are not yours to remove, and have no Delete.
+Each agent's page picks its runtime — the coding tool and model it runs. See
+[Runs](/docs/runs#which-runtime-each-agent-runs-on).

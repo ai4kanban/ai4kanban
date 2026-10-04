@@ -9,167 +9,48 @@ icon: "inbox"
 ---
 
 **Triage** is the inbox button left of the bell in the top row; it turns red with a count
-while items wait. It is a queue you empty: every
-item leaves as a card or is ignored. **Waiting** is a compact list, one row per item, ordered by
-where items came from — a source such as Reddit or 小红书, or the finished card whose follow-up
-it is — with the source written once per run of rows. Hover a row for four actions:
+while items wait. Items arrive by themselves — from the **Proposer**, from `akb triage add`, and
+as follow-ups a build or a plan notices along the way. An item is a lead, not a task: it is never
+scheduled or counted until you make a card of it. To ask for work yourself, use **New task**.
 
-- **Make card**: starts the same run **New task** does, pointed at the item. When the run
-  finds a card that already owns the work, the item is recorded against that card instead.
-- **Start now**: writes the card from the item and builds it straight away, with no
-  refining. The item moves to **History**, linked to the card.
-- **Discuss**: opens a new discussion with the item named in the box, sent only when you
-  send it. The item waits until the discussion writes a card, then moves to **History**,
-  linked to that card.
-- **Ignore**: takes the item out at once. The toast that follows has **Undo**, and
-  **Record why** for a reason that teaches the board what to send you less of.
+Hover a row for four actions:
 
-Tick rows to ignore several at once; **Select all** takes what search and the source picker
-show. Click a row for the whole item, with the same actions; its source name links to the
-original, and acting on it moves the detail on to the next item.
+- **Make card**: plans a card from the item. If a card already covers it, the item is linked to
+  that card instead.
+- **Start now**: writes the card and builds it straight away, with no refining.
+- **Discuss**: opens a discussion about the item; it waits until the discussion writes a card.
+- **Ignore**: takes the item out. The toast has **Undo**, and **Record why** for a reason that
+  teaches the board what to send you less of.
 
-Two tabs: **Waiting**, and **History** — what became a card or was ignored in the last 30
-days, newest first. Click an ignored item there to **Restore** it to **Waiting** — nothing
-sorts it again by itself — or to record or change the reason on one you ignored. Search and
-the source picker work on both tabs.
+Tick rows to ignore several at once. Click a row for the whole item and a link to its source.
 
-Triage is open to every account. Only automatic sorting needs a Pro plan: **Auto-sort** on
-the page, `akb triage run`, and the sort a new item starts. Without it you sort by hand.
+Two tabs: **Waiting**, and **History** — what became a card or was ignored lately. Click an
+ignored item there to **Restore** it, or to record why you ignored it.
 
-## A triage item is not a card
-
-Triage is deliberately outside `todo/`. An item is never scheduled, never ranked and never
-counted in your board numbers — it is somebody else's sentence, waiting for a decision about
-whether there is work in it. Cards are what has been decided. Who decides is yours to pick:
-you, by reading the list, or the board, which judges each item and cards what survives as it
-arrives.
-
-Items arrive by themselves — from the **Proposer**, from `akb triage add`, and as follow-ups
-a build or a plan notices along the way. To ask for work yourself, use **New task**: that card
-is written exactly as you ask. Ignoring an item moves its file to
-`docs/kanban/triage/dismissed/`; **Restore** or `akb triage restore <source-id>` brings it
-back.
+Triage is open to every account. Automatic sorting needs a Pro plan; without it you sort by
+hand.
 
 ## Sort it
 
-```bash
-akb triage run
-```
+**Auto-sort** on the page, or `akb triage run`, judges every waiting item against your product
+description and what you turned down before. Each one becomes a card, is ignored with a reason,
+or is held for you when the call is yours. New cards refine themselves; a sort never starts a
+build or changes a card you already have.
 
-**Auto-sort** on the page starts the same sort. It takes every item waiting, one at a time, and
-lands each before the next: a card, an ignore in `dismissed/` with the reason, or a hold for
-you when the call is yours to make. When every item left is held for you, the button is greyed
-out and says so on hover, focus or tap.
-
-No coding agent runs. Each item is one request to Cloud, answered against your product
-description and what you turned down before. It asks one thing at a time: was it rejected
-earlier, or is it owned by an open card; does it need you; is it worth doing —
-and which module, priority, ROI and workflow its card takes. An item is ignored only when one
-of those answers is near certain, and held for you when none settles it. A sort is not an agent
-and takes no rule of its own: the reasons you record when you ignore an item, `project.md` and
-the planning memory are what steer it. An item no workflow
-on the board can do is ignored. An item that lands on work a card already owns is ignored
-rather than merged into that card.
-
-An item the **Proposer** wrote was already checked against the product, the board and what you
-turned down, so the sort only asks whether it needs you and settles its card. It is never
-ignored for those reasons; turn down a card it should not have become on the board.
-
-The card keeps the item's own title and words, and its file is named after the item's. It is
-created with a refine already scheduled, and the board starts those itself, one per tick. So
-a sort leaves you cards that go on sharpening themselves — it does not start a build, answer
-a question, or touch a card that was already there.
-
-The sort does not read your code, so the card's first refine — or its build, when it skips
-planning — checks it first. A card the product already covers, or about something that no
-longer exists, goes straight to the archive with the evidence as its reason.
-
-The command prints each new card by id and title and each ignore with its reason, then the
-counts. An item that fails — Cloud out of reach, say — stays waiting for the next sort.
-
-Only one sort runs at a time. Ignoring an item on the page while a sort is going is safe:
-whichever lands first wins, and the other side skips that item.
+To steer it, record why when you ignore an item, and keep `project.md` and the planning memory
+current.
 
 ### Let it sort by itself
 
-A new item is judged before you see it: the ones worth doing become cards by themselves,
-each costing one more refine run.
-
-Every batch of new items starts one sort — **Add** on the page and `akb triage add` alike, so
-an item the **Proposer** writes is sorted too.
-
-A sort reads the list once, when it starts, so anything that arrives while it goes is unseen.
-Its close starts the next one for exactly that, and the one after that, until nothing is
-waiting. Three things stop the chain, and each waits for the next batch of items or for
-`akb triage run`:
-
-- **A sort that judged nothing.** One item no sort can get through would otherwise start
-  sorts forever.
-- **A sort that failed or was stopped.** Neither is a judgement; the items stay where they are.
-- **Sorting no longer available.** The plan is read again each time a sort would start. A
-  sort already going finishes.
-
-### What a card it wrote says
-
-A card made from an item shows a **Source** link on its page — how you get from a card back
-to the sentence somebody wrote. It opens the item's original link; an item with none opens
-the card that prompted it, or the item's own text.
-
-`archived/` means **a card was made of it** — not that the work is done. The card's own
-status says that.
-
-If a sort is interrupted between writing a card and recording the item, nothing is lost and
-nothing is doubled: each card records the item it was made of, and the next sort archives
-anything already accounted for before it judges a thing.
-
-## Where triage keeps things
-
-```
-docs/kanban/triage/
-├── <slug>.md      waiting to be sorted — this is what Triage lists
-├── archived/      a card was made of it: `card_id`, `archived_at`
-├── dismissed/     ignored: `dismissed_at`, `dismissed_by`, `dismissed_reason`
-└── files/         the bytes of anything dropped in, shared by all three
-```
-
-Leaving the list is a move, never a delete — the file itself is the record. `dismissed/` is
-never pruned: **History** draws the last 30 days of it. A dropped file's copy stays in `files/` when the item moves, so the
-path written into the item's body is good for as long as the item is.
-
-Ask where one thing already is:
-
-```bash
-akb triage check t3_1abcdef
-```
-
-It answers `pending`, `archived`, `dismissed` or `unseen`, with the file that says so.
-`akb triage add` refuses the first two.
-
-A board written before this moves itself the first time triage is read: items come up out of
-`triage/inbox/`, its dropped files into `triage/files/`, and every `handled.md` id with no file
-left becomes a `dismissed/` record carrying the id and the time and nothing else — the words
-were never kept, and the page says so rather than inventing them. Nothing is overwritten, and a
-migration cut short carries on the next time.
+On a Pro plan, new items are sorted as they arrive, so the ones worth doing are already cards
+when you look. Each such card costs one refine run.
 
 ## Write an item from a script
 
-Scripts and agents write one item at a time:
-
 ```bash
-akb triage add --title "What it is" --text "Its own words." --source "where it came from" --slug what-it-is
+akb triage add --title "What it is" --text "Its own words." --source "where it came from"
 ```
 
-`--slug` names the item's file, and the card it becomes; leave it out and the title's English
-letters and digits are used. When the title is not English, the card gets an English file
-name as it is planned.
-
-`--source` is read against the board's source list — `reddit`, `x`, `xiaohongshu`, `weibo`,
-`zhihu` and `youtube` — so `小红书` is `xiaohongshu`, and anything the list has not got is kept
-as written. `--file <path>` takes the body from a file when it is longer than a line or two.
-It needs no Cloud account. An item already waiting, or already made into a card, is refused
-and told where it is; one only ignored is taken.
-
-This is also where the board's own **Proposer** writes: the cards that finished are reflected on
-and what should follow them lands here, carrying the card that prompted it. See
-[Agents](/docs/agents). What it proposes has already been checked, so the sort only decides
-whether it needs you and how its card is set up.
+`--file <path>` takes the body from a file. `--source` names where it came from — `reddit`, `x`,
+`xiaohongshu`, `weibo`, `zhihu`, `youtube` or anything else. An item already waiting or already
+made into a card is refused. `akb triage check <source-id>` says where one already is.

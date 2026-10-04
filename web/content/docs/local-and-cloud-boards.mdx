@@ -3,7 +3,7 @@ title: "Local and Cloud boards"
 title_tag: "AI4Kanban — Local and Cloud boards, and moving between them"
 description: "A Local board is Markdown in your repository. A Cloud board lives in a workspace we host, opens on every machine you sign in from, and reads in a browser. What each one is, and what moving between them costs."
 lead: "Two boards, one app. A Local board is Markdown in your repository; a Cloud board lives in a workspace we host. Onboarding leads with Local, and Cloud is a choice you take deliberately."
-last_updated: "September 12, 2026"
+last_updated: "October 4, 2026"
 nav_label: "Local and Cloud"
 icon: "layers"
 ---
@@ -42,16 +42,14 @@ release: [what Cloud is](/cloud), and the [Privacy Policy](/privacy) and
 - **`.ai4kanban.json`** at the repository root, naming the workspace. It is committed, so
   every clone of the repository opens the same Cloud board. It carries no secret — a
   workspace id means nothing without the sign-in your machine holds.
-- **A git-ignored copy in `docs/kanban/`.** The board's own rules run over that copy, and it
-  is rewritten from the workspace on every read. It is a copy, never the record.
+- **A git-ignored copy in `docs/kanban/`**, kept in step with the workspace. It is a copy,
+  never the record.
 
 Cloud decides where the board is authoritative. It does not decide whether there is a project
 folder — the agent still runs here, over your repository, exactly as it does on a Local board.
 
-**An archived card is deleted from the workspace 30 days after it was archived**, by the same
-rule as a Local board: a card in a release you haven't closed yet stays until you close it. A
-Local board still has the card in git history; a Cloud board does not, so export first to keep
-one. A machine with the board open does the deleting, once a day.
+**Archived cards are deleted from the workspace after a while**, as on a Local board. A Local
+board still has them in git history; a Cloud board does not, so export first to keep them.
 
 ## Going to Cloud
 
@@ -136,28 +134,9 @@ loaded and meets the removal on the first thing they try to change.
 
 ## Reading a Cloud board in a browser
 
-A Cloud board also has a URL: **`cloud.ai4kanban.dev/<workspace-id>`**, and a card at
-`cloud.ai4kanban.dev/<workspace-id>/<card-id>`. Open it on a second computer, a borrowed
-laptop or a phone — anywhere the app is not installed — and sign in with GitHub there. The
-browser sign-in and your machine's are separate: ending either one leaves the other signed in.
-
-`cloud.ai4kanban.dev` on its own lands you on your workspace, or lists them by name when you
-have more than one, so a device holding no link still gets to the board.
-
-**It reads; it does not write.** The board and its cards, whole — the human half, the folded
-agent half, the subtasks and the open questions — with the release picker and the way back,
-and nothing else. There is no chat, no New idea and no card action, so nothing you press
-in a browser changes the board. Answering the agent from a browser comes later.
-
-**No board is on the open web.** Every page is for the account the workspace belongs to and
-refuses everyone else. A signed-out visitor, an account the workspace is not for, a deleted
-workspace and a made-up id all meet the same sentence, so none of them learns whether that
-workspace exists; every page is `noindex`, and a link pasted into a chat previews nothing of
-the board. There is no way to publish a board for anyone to read.
-
-The page draws in your browser's own language — English or Simplified Chinese — since there
-is no app here holding your setting. The board's own words travel in whatever language they
-were written.
+Open **`cloud.ai4kanban.dev`** on any device and sign in with GitHub to read your board and its
+cards, without the app. It reads only — nothing you press there changes the board. Only your
+workspace's members can open it; no board is public.
 
 ## When a checkout cannot read its workspace
 

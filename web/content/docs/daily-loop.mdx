@@ -3,227 +3,128 @@ title: "The daily loop"
 title_tag: "The AI4Kanban daily loop — drive the board in plain language"
 description: "The rhythm once the board exists: pick what to work on, add and refine cards, build one end to end, check what it leaves you, and finish it."
 lead: "Once the board exists, you drive it in plain language. Here's the rhythm — what to say, and which button does the same thing."
-last_updated: "October 3, 2026"
+last_updated: "October 4, 2026"
 nav_label: "The daily loop"
 icon: "repeat"
 ---
 
 Everything you *say* below goes to a coding agent, which needs the skill in the repo —
-`akb skill install`, or **Configuration → General** in the board app. A board arrives without
-it. Every one of those asks is also a button in the app and a command you can type, so
-nothing here is closed to a board that has no skill.
-
-This page is the rhythm. Two references sit beside it and are not repeated here: `akb --help`
-for the commands (`akb <noun>` lists that noun's verbs), and `kanban-ui/README.md` in the
-[repository](https://github.com/ai4kanban/ai4kanban) for what every column, panel, button and
-setting does.
+`akb skill install`, or **Configuration → General** in the board app. Every ask is also a button
+in the app and a command you can type (`akb --help`).
 
 ## Two ways the work gets done
 
-**In the conversation you're in.** You ask your coding agent for a board action — "refine
-#4", "#4 is done" — and it does the job itself, right there. It already has your code in
-context, nothing extra is billed, and "not that one" is your next message when it takes a
-wrong turn. Under the hood it asks the CLI for the steps with `--print`, and follows what
-comes back for *your* board.
+**In the conversation you're in.** Ask your coding agent for a board action — "refine #4",
+"#4 is done" — and it does the job right there. It already has your code in context, nothing
+extra is billed, and "not that one" is your next message when it takes a wrong turn.
 
-**Sent off as a run.** You press a button on the local board, or type `akb card refine 4`, and a
-second agent starts on its own. It keeps working when you close the terminal, it shows in the
-runs panel with its own log, and you can stop it. Nothing you say reaches it while it goes, so
-a correction costs the whole run.
+**Sent off as a run.** Press a button on the board, or type `akb card refine 4`, and a second
+agent starts on its own. It keeps working when you close the terminal, shows in the runs panel
+with its own log, and can be stopped. Nothing you say reaches it while it goes.
 
-Send it off for work you want happening while you do something else, or for the long
-read-heavy jobs — proposing across the repo, planning a release, refining round after round.
-Otherwise just ask, in the session you're already in. A run never starts another run: an agent
-inside one that's asked for a board action gets the steps printed and does them itself.
+Send work off when you want it happening while you do something else, or for long jobs —
+proposing across the repo, planning a release. Otherwise just ask.
 
 ## Pick what to work on
 
-Say **"What's next?"** for a pick from the cards you already have. The skill takes the ones
-that are ready to build and unblocked, ranks them by priority, then ROI, then which release ships
-first, and names up to three: id, title, and one line on why each won. Priority outranks the
-release, so the pick can be work the release you're shipping doesn't contain. Nothing is
-written, so "not that one" costs you nothing. When nothing qualifies it says what's in the way
-— "4 cards wait on another card, 12 still need refining" — rather than an empty answer.
+Say **"What's next?"** for up to three cards that are ready and unblocked, ranked by priority,
+ROI and release, each with one line on why. Nothing is written. When nothing qualifies it says
+what's in the way.
 
-Every card the skill writes is judged against `memory/project.md` — what the project is, who it
-is for, and what it does. You don't write it: the board rewrites it after a card is finished. To
-steer direction, edit the Planner's `decisions.md` in **Memory**, or add a rule to an agent.
+Planning judges every card against `memory/project.md` — what the project is and who it is for.
+The board keeps it up to date; to steer direction, edit the Planner's `decisions.md` in
+**Memory**, or [give an agent a rule](/docs/agents).
 
-Not every answer is a job. To think out loud instead — what a card means, whether two cards
-are the same card — open a [chat](/docs/chat).
+To think out loud instead — what a card means, whether two cards are the same — open a
+[chat](/docs/chat).
 
 ## Add a task
 
-Say **"add a task: `<idea>`"**. Before writing, the skill reviews the idea (business value,
-feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design mistake.
-Then it creates one indexed card with `akb raw create`, fills its body in plain language split
-into checkable todos, and adds it to `todo/README.md`.
+Say **"add a task: `<idea>`"**. The skill weighs the idea's value, feasibility and overlap with
+existing cards, then writes one card in plain language with checkable todos.
 
 ## Push a card forward
 
-Say **"refine #4"**. One session plans the card until it can be built: it settles what the code
-and sources can answer, runs the [spec agents](/docs/agents) the card needs, and leaves only the
-calls that are yours as open questions.
+Say **"refine #4"**. Planning settles what the code and sources can answer, calls in the
+[specialists](/docs/agents) the card needs, and leaves only your calls as open questions.
 
-- **Nothing for you?** The card is ready. Planning stops there; you start the build.
-- **Something for you?** Answer the questions on the card page and the app starts one more
-  session that applies your answers, then stops.
-- **Planning never builds.** A build is always a session of its own, started by you.
+- **Nothing for you?** The card is ready to build.
+- **Something for you?** Answer the questions on the card page and the board applies your
+  answers.
+- **Planning never builds.** You start the build.
 
-A card with open questions can't be refined again. Say **"resolve #4"** — the skill researches
-each question, decides the ones the evidence settles, asks you the real judgment calls, and
-clears the list.
+Say **"resolve #4"** to work through a card's open questions: the skill decides what the
+evidence settles and asks you the rest.
 
-You rarely have to ask. Any run that writes or changes a card is followed by a refine of that
-card, started on its own once the run ends, so a card you add, revise or resolve comes back
-refined without a second instruction. What has nothing to refine is skipped — a card still
-blocked, one already ready, one whose todos are all ticked, one waiting only on
-your answers, and a group's main card when a subtask finishes. When that was the last subtask the
-main card leaves the board with it, archived in the same breath.
-
-Parts of a card nobody should plan by guess — the screen it puts in front of the user, the
-outside library it leans on — go to a [spec agent](/docs/agents) instead, which the refine
-asks for by itself.
+You rarely have to ask: a card you add, revise or resolve comes back refined on its own.
 
 ## Build a card
 
-Press **Build** on the card page, or say **"build #4"**. One click carries the card all the
-way: an agent builds it, the board lands the work as one commit on the branch you are on, and
-then it archives the card. Nothing asks you again in between.
+Press **Build** on the card page, or say **"build #4"**. An agent builds it, the board lands the
+work as one commit on the branch you are on, and archives the card. What you approve is the
+**card**, not the diff.
 
-What you are approving is the **card** — what it should achieve, what to weigh, its open
-questions, and what building it turned up — not the diff. The dialog says the steps in order and
-names the branch the change will land on.
+- **Open questions**: the card is built, then waits at landing until you answer — or press
+  **Skip** on a question you don't want to answer.
+- **A pause**: the card's title band says what it is waiting on and what answers it.
+- **Manual commit**: untick **Build this on a branch of its own** and the agent builds in your
+  folder; the card is archived once you commit it.
+- **Workflows that make files** — Product video, Slide deck, Carousel post, Blog post, and your
+  own with **Use a Git worktree** off — work in your project and commit nothing. Accept the
+  result with **Archive**.
+- **No AI review**: your own checks gate the landing. **Suggest follow-up work** catches what a
+  build missed.
+- **Your own commits on that branch are refused while it lands.** Commit on another branch, or
+  use `git commit --no-verify`.
 
-- **A card with open questions can still be built**, with a warning. It is built, then holds
-  at landing until you answer — taking no landing slot while it waits, so every other
-  card still lands. **Resolve**, under the card's **open questions**, is the other way round: answer first, then build.
-- **A pause has nothing to press.** The card's title band says what the delivery is waiting on
-  and what answers it. Answering carries the same delivery on; an answer that changed what the
-  card asks for starts a fresh delivery on the card as it now reads.
-- **Skip a question you don't want to answer.** Open the card's **open questions** and press
-  **Skip** on it: the card stays as it is, the question stays as a struck-through line with
-  **Undo**, and once nothing else is open the delivery carries on. Deleting a question from the
-  card file does the same.
-- **Manual commit mode is the exception.** Untick **Build this on a branch of its own** in the
-  dialog and nothing lands: the agent builds in the folder you are sitting in, the delivery stops
-  after the build, and the card is archived once you commit it. Where a
-  worktree is impossible anyway — no git, no commit to fork from, a detached `HEAD` — the build
-  works this way regardless.
-- **A workflow that makes files gets no branch.** Product video, Slide deck, Carousel post, Blog
-  post, and any workflow of your own with **Use a Git worktree** off (the default for a new one;
-  under **Advanced settings** in the `⋯` beside the workflow's name), works in your project and
-  commits nothing, so several run at once. It is done when the files it records on the card exist; a change to your tracked files outside the board stops it instead. Those four
-  built-ins skip the build altogether: each is made while planning, and you **Archive**
-  the card to accept it.
-- **No AI review.** A finished build goes straight to landing; your own checks and the
-  open-question hold still gate it. **Suggest follow-up work** catches what a build missed,
-  after the card is archived.
-- **Your own commits on that branch are refused while it lands.** A `pre-commit` hook installed
-  beside the skill names the delivery and stops the commit. Commit on another branch, or
-  `git commit --no-verify`.
-
-In a terminal it is `akb card implement 4`, which starts the same delivery and warns about an open
-question the same way it warns about a blocker.
+In a terminal it is `akb card implement 4`.
 
 ## Queue a card that is waiting on another
 
-A card whose `blocked_by` still names an open card can be built or refined anyway — the board
-warns, it never stops you. A rough card waits properly by default: when it first becomes blocked
-the board schedules one refine, then runs it when the last card in its way leaves the board,
-archived or rejected alike. `akb raw schedule 4 --action implement` replaces that default with a
-build.
-
-In the local UI the card reads **Scheduled** with a **cancel** control, and **pending** in place
-of its stage until it fires. A card holds one schedule at a time, it fires once within a minute
-of coming free, and a schedule that has gone pointless is dropped rather than run. The mark lives
-in the card's own frontmatter, so it survives a restart and travels with the card.
-
-The saved refine is the answer to the refine that gets skipped: sharpening a plan whose
-foundation could still change shape is work you throw away.
+A card blocked by another can still be built or refined — the board only warns. By default it
+is refined once the last card in its way leaves the board; the card reads **Scheduled**, with
+**cancel**. `akb raw schedule 4 --action implement` makes it build instead.
 
 ## Review the board
 
 Say **"review the board"** (or "review #4"). The skill checks cards for plain language, split
-todos, duplication, and whether any are already done or no longer worth it. It archives finished
-ones and flags the rest.
+todos, duplication, and whether any are done or no longer worth it.
 
 ## Finish a task
 
-A card built by **Build** finishes itself: the board archives it once its delivery has
-landed, so "#4 is done" is not something you have to say.
+A card built by **Build** finishes itself once it has landed.
 
-For work done outside a delivery — you built it yourself, or an agent built it in the
-conversation you were in — say **"#4 is done"**. The skill updates the published doc the change
-touched (via the card's doc todos) and adds one line to `readme.md` — a link to that doc, or a
-short plain-words note when no doc covers the behavior yet — then archives the card.
-
-The card file moves to `docs/kanban/.archive/`, where you can still read it — a rejected card
-too. The board deletes it 30 days after it was archived, so the archive doesn't grow without
-end — a card in a release you haven't closed yet stays until you close it. On a Local board the
-folder is in git, so an older card is still in your history to read or diff. A
-[Cloud board](/docs/local-and-cloud-boards) deletes it from the workspace too, and has no
-history to read it back from.
+For work done another way, say **"#4 is done"**. The skill updates the docs the change touched,
+adds a line to `readme.md`, and archives the card. Archived cards stay readable in
+`docs/kanban/.archive/` for a while, then are deleted; on a Local board git keeps their history.
 
 <span id="the-qa-manual" />
 
 ### Test cases
 
-Once cards finish, the **QA manager** (`qa-manager`), Coding's scheduled agent, updates the test cases:
-what your users actually do with the product. They are in your project, readable and repeatable by
-anyone.
+Once cards finish, the **QA manager**, Coding's scheduled agent, writes and updates test cases:
+what your users actually do with the product, step by step, each step proved with a screenshot,
+GIF or log.
 
-- **Where they are**: `docs/qa/<module>/<case>/case.md`, one folder per case — the setup, then
-  numbered steps, each with what should happen and a proof of it: a screenshot, a GIF where motion
-  matters, or a command's log, saved beside `case.md`. Each case ends with the agent's own
-  feedback on how the experience felt.
-- **Read them on the board**: **Test cases**, at the foot of the rail (under **More** on a phone),
-  opens a card per module, then its cases, then one case with its screenshots and logs in place.
-  **Send to Triage** beside a feedback note turns it into a triage item that names its case.
-- **The index**: `docs/qa/README.md` lists each module's cases, the modules still to cover, and
-  how to run your project for proof.
-- **What a run does**: first it follows the cards finished since its last run — the cases they
-  affect are rewritten, run for real and proved again, and cases they made untrue are deleted.
-  Then it writes the first cases for one module not covered yet, so what shipped before the
-  test cases existed gets covered too, one module per run. When the finished cards span two or
-  more modules, each module goes to a [sub-run](/docs/runs#sub-runs), and they run in parallel.
-- **How it lands**: a run's changes land as one commit of their own, like any
-  [scheduled agent](/docs/agents#run-an-agent-on-a-schedule)'s; a run that changed nothing
-  commits nothing.
-- **A case that fails**: a step the product should pass and doesn't goes to
-  [Triage](/docs/triage) as one item naming the case and step. The case stays as written.
-- **Turn it off**: open QA manager under **Scheduled** in Configuration → Workflows → Coding and
-  pick how often it runs, or **Disable**. A board that had disabled it keeps it disabled.
-
-It replaces the **check by hand** lines a card used to carry: the board no longer writes or shows
-them, and a `verify:` line on an older card is ignored.
+- **Where they are**: `docs/qa/<module>/<case>/case.md`, indexed in `docs/qa/README.md`.
+- **Read them on the board**: **Test cases**, at the foot of the rail (under **More** on a
+  phone). **Send to Triage** turns a feedback note into a triage item.
+- **What a run does**: it updates the cases the latest finished cards affect, then covers one
+  more module.
+- **A case that fails** goes to [Triage](/docs/triage), naming the case and step.
+- **How often**: set it on QA manager's page under **Scheduled** in **Configuration → Workflows
+  → Coding**, or **Disable** it. See [Run an agent on a schedule](/docs/agents#run-an-agent-on-a-schedule).
 
 ## Reject an idea
 
-Say **"reject #4"** (rare). The card moves to the archive marked **Rejected**: you can still
-open and read it, and no release counts it as shipped.
+Say **"reject #4"**. The card moves to the archive marked **Rejected**, with your reason kept on
+it word for word. A lasting reason also goes into `rejected.md`, so the idea isn't proposed
+again.
 
-- **The reason stays on the card**: whatever reason you give is kept word for word — open the
-  card in the archive and read it under **Rejected**; in the file it is the `rejected_reason`
-  line. It is part of the card, so it is committed and synced with the board, anyone who can
-  read the card can read it, and the app can't edit or withdraw it.
-- **Memory is separate**: only a rejection with a lasting reason not to propose the idea again
-  adds a one-line "why not" to `rejected.md`, so future loops won't re-propose it. A duplicate
-  or a card you have simply moved past leaves no note there.
-- **Discard**: click **Remove** on the card page and leave the reason empty — the button reads
-  **Discard**: no memory, no reason on the card, and the idea can come back later. Say "don't record it" with
-  a reason and no memory is written, but the reason still stays on the card.
+To drop it without a reason or memory, press **Remove** on the card page and leave the reason
+empty — the button reads **Discard**.
 
 ## Keep it lean
 
-Over time the memory grows — the board's own `readme.md` for what shipped, and the Planner's
-`decisions.md`, `rejected.md` and `redesign.md` beside each agent's own. Ask the skill to
-**prune** it: it compresses each to planning-useful summaries grouped by topic, so scans stay
-cheap. The board itself stays small because finished work is a note, not a card.
-
-## Where the flows live
-
-The flows themselves — how a card is refined, what goes in memory, how a release is planned —
-ship with the command rather than with this site: `akb guide` lists them, `akb guide board` is
-how the board works at all. Your project keeps only a short note pointing there, so `akb update`
-upgrades every flow at once.
+Ask the skill to **prune** the memory: it compresses `readme.md`, `decisions.md`,
+`rejected.md` and `redesign.md` to short summaries grouped by topic.

@@ -3,7 +3,7 @@ title: "Talk it over, and let it do it"
 title_tag: "AI4Kanban chat — talk about the board, and change it"
 description: "A conversation that already knows your board: decide what to build and why, understand a card, spot a duplicate — and make the change when you've settled it."
 lead: "Not every answer is a job. Open a conversation to think out loud — and when it lands on a change, the chat makes it."
-last_updated: "September 29, 2026"
+last_updated: "October 4, 2026"
 nav_label: "Chat"
 icon: "message"
 ---
@@ -18,18 +18,13 @@ akb chat 241 "put it in v0.8 and drop the last todo"
 akb chat "start a build on 241"
 ```
 
-You explain nothing. A chat opens knowing what a coding agent knows after you type `/kanban`:
-`project.md`, your modules, every open card in one line, and — when you name one —
-that card in full. In the app a card's chat is a rail down the right of its page (**Discuss** in
+You explain nothing: a chat already knows your project, your open cards and, when you name one,
+that card in full. In the app a card's chat is the rail on the right of its page (**Discuss** in
 the header), and questions about the whole board go to **New idea**, on every page. A card's
 chat is one conversation either way, so you can start it in a terminal and carry it on in the app.
 
-A discussion that **Plan tasks** turns into cards carries on in them. The discussion stays on
-screen while the cards are written, then closes and opens the card — or lists the cards, when
-there are several. Each card's chat shows the discussion folded above it, and the agent still
-knows what it looked up there: Claude Code, Codex and OpenCode fork the discussion's session,
-and any other agent starts with the discussion's transcript. Each card's page links the plan
-it was written from under **Source**.
+A discussion that **Plan tasks** turns into cards carries on in them: each card's chat shows the
+discussion folded above it, and its page links the plan under **Source**.
 
 | You want | What happens |
 | --- | --- |
@@ -38,40 +33,16 @@ it was written from under **Source**.
 | to compare two cards, or spot a duplicate | it answers |
 | a change you have already settled — reword it, put it in v1, archive it | it makes the change |
 | a preference or a correction that outlasts this card | the [memory review](/docs/agents#let-the-memory-review-remember-for-you) writes it down once the card is archived |
-| the card worked out, or the code written | the skill does its printed flow here unless you ask for a background run |
+| the card worked out, or the code written | it does the work here unless you ask for a background run |
 
-On a card, it works your message out turn by turn: a change goes into the card, and an answer
-settles one of its open questions. Say to hold off and it leaves the card alone.
-
-What you settle that outlasts the card is not written down by the chat. One turn cannot see where
-a conversation is going, so a "what if" you take back three turns later would land as a decision.
-The **Review chats** agent reads the whole conversation on its schedule instead — once a day
-by default — and writes down what it earns, so memory is at most one schedule behind. Say in the
-conversation not to record something and it stays unrecorded.
-
-Chat is the kanban skill in a persistent agent session, so it follows the same board-specific
-flows and by default does the work here. A card a run is already working on is off limits, and
-the refusal names the card and what that run is doing. The chat itself is not a run: it shows in
-no runs panel and holds no card. Each conversation lives on your machine, outside the project in
-[this board's own folder](/docs/runs#where-a-runs-record-is-kept), and `--clear` starts it fresh.
-
-Clearing a card's chat, or switching it to another agent, takes the old conversation out of
-sight but not off your machine yet: its text is kept there until the
-[memory review](/docs/agents#let-the-memory-review-remember-for-you) has read it once, after the
-card is archived, and is then deleted — or after 30 days unread. A rejected card's are deleted
-at once.
+On a card, a change goes into the card, and an answer settles one of its open questions. Say to
+hold off and it leaves the card alone. A card a run is already working on is off limits.
+`--clear` starts a conversation fresh.
 
 ## A model per conversation
 
-The agent and the model are one conversation's own. Both start on the board's; what you pick
-sticks to that conversation until you change it, and nothing about the board or any other chat
-moves — so a cheap model can take the quick questions while the expensive one takes the
-thinking.
+Each conversation picks its own agent and model, starting from the board's. Changing one moves
+nothing else, so a cheap model can take the quick questions while an expensive one takes the
+thinking. Changing the model keeps the conversation; changing the agent starts a new one.
 
-Changing the model carries the same session on, and the transcript marks where it changed.
-Changing the agent cannot: a session belongs to the CLI that opened it, so the old conversation
-goes. In the app both sit on the message box's bottom row, beside Send; in a terminal they are
-`--model` and `--agent`, which `akb chat --help` spells out.
-
-Only an agent whose command can take a second message into its own session can hold a
-conversation — chat says so and names the ones that can.
+In the app both sit beside **Send**; in a terminal they are `--model` and `--agent`.
