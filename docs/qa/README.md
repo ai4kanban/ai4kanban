@@ -7,6 +7,7 @@
 ### skill
 
 - [回答完卡片上最后一个问题，等看板自己细化它](skill/a-card-is-refined-once-its-question-is-answered/case.md)
+- [在不是 git 仓库的项目里，靠归档卡片而不是新提交让周期 Agent 运行](skill/a-finished-card-not-a-commit-starts-a-scheduled-agent/case.md)
 - [往待筛选里加一条，忽略它，再恢复](skill/add-ignore-and-restore-a-triage-item/case.md)
 - [回答卡片的问题，然后让看板把它做完](skill/answer-a-card-then-build-it/case.md)
 - [让一张卡等另一张卡，并被拒绝循环依赖](skill/block-a-card-on-another-and-refuse-a-cycle/case.md)
@@ -16,6 +17,7 @@
 - [卡片落地后，把 QA 的活留给开着的 QA 管理员](skill/leave-qa-work-to-the-qa-manager-after-a-card-lands/case.md)
 - [列出某个时间以来落地的卡片](skill/list-the-cards-that-landed-since-a-time/case.md)
 - [对话 Agent 还在跑命令时退出看板](skill/quit-the-board-while-a-chat-agent-is-running-commands/case.md)
+- [升级后，周期任务卡变成定期运行的 Agent](skill/recurring-cards-become-scheduled-agents-on-update/case.md)
 - [带着原因否决一张卡](skill/reject-a-card-with-a-reason/case.md)
 - [用命令行让工作流里的一个 Agent 按周期自己运行](skill/run-a-workflow-agent-on-a-schedule/case.md)
 - [查看并切换运行看板的 Agent](skill/see-and-switch-the-agent-that-runs-the-board/case.md)
@@ -27,20 +29,29 @@
 
 待补写。
 
+- [手动归档今天的第一张卡，看到欢呼](local-ui/archive-a-card-by-hand-and-see-the-cheer/case.md)
 - [在工作流的 Agent 列表里新建一个 Agent](local-ui/create-an-agent-in-the-workflow-agent-list/case.md)
 - [移除一张卡时决定写不写原因](local-ui/decide-whether-to-give-a-reason-when-rejecting-a-card/case.md)
+- [升级后在「工作流」里找到原来的周期任务卡](local-ui/find-your-recurring-cards-under-workflows-after-upgrading/case.md)
+- [翻看欢迎导览](local-ui/flip-through-the-welcome-tour/case.md)
+- [打开待筛选，看条目是谁写的，再回到原来的页面](local-ui/open-triage-and-see-who-added-an-item/case.md)
 - [在手机看板上读卡片标记的提示气泡](local-ui/read-a-card-mark-tooltip-on-the-phone-board/case.md)
 - [在触屏上点一下读提示气泡](local-ui/read-a-tooltip-by-tapping-on-a-touch-screen/case.md)
 - [在归档里读一张被否决的卡的原因](local-ui/read-the-rejection-reason-on-an-archived-card/case.md)
 - [在卡片页读一次交付到了哪一步、为什么停下](local-ui/read-where-a-delivery-stands-on-the-card-page/case.md)
+- [在讨论里看它写成的卡片哪些已经完成](local-ui/see-which-cards-a-discussion-became-are-done/case.md)
 - [在工作流里让一个 Agent 定期运行](local-ui/set-a-workflow-agent-to-run-on-a-schedule/case.md)
 - [在卡片页按「开发」，而它的工作流负责人文件被看板拒用](local-ui/start-a-card-whose-workflow-lead-is-refused/case.md)
+- [在执行中的卡片上看「差异」，合入后在归档页再看一次](local-ui/watch-a-building-card-s-changes-in-the-diff-tab/case.md)
 
 ### site
 
-待补写。
-
+- [预约一次培训](site/book-a-training-session/case.md)
+- [在定价页比较免费版和 Pro](site/compare-plans-on-the-pricing-page/case.md)
+- [在官网下载桌面应用](site/download-the-desktop-app/case.md)
 - [在隐私页查聊天回话会上报什么](site/read-what-usage-reporting-sends-for-a-chat-on-the-privacy-page/case.md)
+- [在联系页发一条消息](site/send-a-message-from-the-contact-page/case.md)
+- [切换官网语言](site/switch-the-site-language/case.md)
 
 ### docs
 
@@ -48,11 +59,15 @@
 - [在文档页之间跳转](docs/move-between-docs-pages/case.md)
 - [在文档里查 QA 手册是怎么维护的](docs/read-how-the-qa-manual-is-kept-in-the-docs/case.md)
 - [在文档里查怎么让一个 Agent 定期运行](docs/read-how-to-run-an-agent-on-a-schedule-in-the-docs/case.md)
+- [在文档里查待筛选条目从哪来、自动分拣怎么处理它](docs/read-how-triage-sorts-an-item-in-the-docs/case.md)
+- [在文档里查看板自带哪些 Agent、各自什么时候跑](docs/read-the-agents-the-board-ships-in-the-docs/case.md)
 - [在文档里查否决一张卡时写的原因去了哪里](docs/read-what-happens-to-a-rejection-reason-in-the-docs/case.md)
 
 ### cloud
 
-待补写。还没有场景。
+待补写。
+
+- [在 Cloud 看板上，删掉的归档卡片带走它已结束的交付记录](cloud/deleted-archived-cards-take-their-deliveries-with-them/case.md)
 
 ### telemetry
 
@@ -83,12 +98,6 @@
 - **local-ui**（桌面应用）
   - 安装并首次启动
   - 打开一个项目的看板
-- **site**（官网）
-  - 下载
-  - 查看定价
-  - 提交联系表单
-  - 预约培训
-  - 切换语言
 - **cloud**（Cloud 看板）
   - 登录
   - 打开工作区的看板
@@ -102,5 +111,6 @@
 - **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`。
 - **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/create-a-card-and-let-it-plan/stand-in.mjs) 顶替真实 agent，不花钱。
 - **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。
+- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next dev`；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
 - **截图**：只截相关区域。
 - **保密**：日志和截图里不出现密钥、账号和本机用户名路径。

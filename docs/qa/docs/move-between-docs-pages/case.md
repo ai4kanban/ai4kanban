@@ -28,7 +28,7 @@
    ![手机上的折叠栏](05-phone-closed.png)
 
 6. 点折叠栏。
-   展开完整的文档目录，「Runs and agents」高亮，箭头朝上。
+   展开完整的文档目录，「Runs and agents」高亮，箭头朝上；「Using the board」下是 The daily loop、Chat、Releases、Agents、Runs and agents、Triage、Local and Cloud、Coding agents 八项，没有「Triage endpoint」。
    ![展开的目录](06-phone-open.png)
 
 7. 点「Triage」。
@@ -38,8 +38,9 @@
 ## Feedback
 
 - **左栏、翻页、手机目录都顺手**：高亮总在当前页，跳页后从页顶开始，手机上选完目录自己收起，不用再点一下。
-- **正文链接开新标签页**：文档内部互相引用（如「the daily loop」）也用 `target="_blank"`，读几页就攒一排标签页；同站跳转一般期望在原页打开，左栏和翻页也都是原页打开，行为不一致。
-- **翻页卡的分组名重复**：前后两张都写「Using the board」，除了「Overview」那一页外几乎都一样，占地方却不提供信息。
-- **Triage 页一开头就说入口在哪**：「the inbox button left of the bell」和应用里的位置对得上；只是手机读者看到的是网站，不知道「top row」指的是应用而不是这一页的页头。
+- **目录少了一项更干净**：「Using the board」下八项全是用看板时会碰到的页，不再夹着一页只给自建接口的人看的契约。
+- **正文链接开新标签页**：文档内部互相引用（如「the daily loop」）也用 `target="_blank"`，读几页就攒一排标签页；左栏和翻页都是原页打开，行为不一致。
+- **翻页卡的分组名重复**：前后两张都写「Using the board」，占地方却不提供信息。
+- **图标有重复**：「Agents」和「Local and Cloud」用的是同一个叠层图标，扫一眼分不开。
 - **手机上两条折叠栏挨得近**：「Using the board / Runs and agents」和「On this page」样式相同，第一次看分不清哪条是换页、哪条是本页小节。
 - **没有跑到的**：手机上的「On this page」折叠栏、站内搜索、左栏底部的「Open an issue」。
