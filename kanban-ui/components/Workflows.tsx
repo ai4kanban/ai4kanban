@@ -501,7 +501,7 @@ export function WorkflowsPanel({
         </Popover>
         {leadUndeclared(one) && <p className="mt-1 px-2.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>}
 
-        {rule(one.stage, when, c.addHook(when))}
+        {rule(one.stage, when, c.addHook[one.stage])}
         {rows(false)}
         {adding === one.stage && (
           <NewAgentRow onCreate={(name) => createAgent(one.stage, name)} onCancel={() => setAdding(null)} />

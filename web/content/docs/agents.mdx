@@ -258,7 +258,7 @@ That guide is the one place the file is written from — its name, its descripti
 it and the translations it carries — so what comes back is an agent this board accepts.
 `akb spec` lists the agents this board can use and, under them, anything wrong with one it found.
 
-The **+** beside **After planning**, **After executing** or under **Scheduled** in Configuration →
+The **+** beside **Helpers**, **After executing** or under **Scheduled** in Configuration →
 Workflows starts one from the board instead: it asks for a name, writes the folder under
 `docs/kanban/agents/`, adds it there, and opens the new agent's page with its instructions box focused. A name a role or a
 bundled agent already answers to is refused in place. The whole file is the box on that page,
@@ -266,9 +266,9 @@ frontmatter included, and a save the board would refuse
 keeps your text and says what is wrong rather than leaving an agent it cannot read — the pane and
 the file are one thing.
 
-A new agent is a **hook**: it runs after its stage, or by itself on a schedule.
+A new agent is a **hook**: it helps the planner, runs after a build, or runs by itself on a schedule.
 
-- **After planning**: the lead calls it in when its description applies to the card.
+- **Helpers**: the planner calls it in while planning, when its description applies to the card.
 - **After executing**: it runs once after every build, in the order listed, in the folder holding
   the build. Its changes are committed with the delivery, and the work is delivered only when the
   last hook has finished. A hook that fails or is stopped stops the delivery; **Resume** on its
