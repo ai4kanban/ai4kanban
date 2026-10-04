@@ -44,10 +44,9 @@ export function Dialog({
   // The child owns the body: no padding, no scroll — for a layout with panes of
   // its own, like Configuration's sidebar. The child scrolls its own panes.
   flush?: boolean;
-  // Two pages peek out behind the panel, like a stack of cards. Desktop only.
+  // A stack of cards the child draws itself out of `DialogCard`s, on a phone too.
   deck?: boolean;
 }) {
-  const c = useCopy().shared;
   const phone = usePhone();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -79,11 +78,81 @@ export function Dialog({
 
   if (!mounted) return null;
 
-  // The title bar is the same one either way — a hairline, not an ink rule: the panel's
-  // own frame already says where the dialog is, and a second full-strength line under the
-  // title reads as a second block. On a phone the ✕ is also the whole of Cancel, so it is
-  // given a thumb's target.
-  const head = (
+  const size = { width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" };
+
+  if (deck) {
+    return createPortal(
+      phone ? (
+        <div ref={surface} data-a4k-overlay className="fixed inset-x-0 top-0 z-50 h-[100dvh] overflow-hidden bg-nb-canvas">
+          {children}
+        </div>
+      ) : (
+        <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
+          <div ref={surface} className="relative" style={size} onClick={(e) => e.stopPropagation()}>
+            {children}
+          </div>
+        </div>
+      ),
+      document.body,
+    );
+  }
+
+  if (phone) {
+    return createPortal(
+      // `data-a4k-overlay` so the app's title bar lets the top of this page take clicks
+      // (app/globals.css) — a drag region swallows a press rather than passing it on.
+      <div ref={surface} data-a4k-overlay className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col bg-nb-paper">
+        <DialogHead title={title} onClose={onClose} />
+        {flush ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+        ) : (
+          // `flex flex-col` so a foot marked `mt-auto` (DialogButtons) drops to the bottom
+          // of a short page; on a long one `mt-auto` is inert and its own `sticky` holds it.
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">{children}</div>
+        )}
+      </div>,
+      document.body,
+    );
+  }
+
+  const panel = (
+      <div
+        ref={surface}
+        className="nb-panel relative flex flex-col"
+        style={size}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DialogHead title={title} onClose={onClose} />
+        {flush ? (
+          // Clipped to the panel's rounded corners: a pane with its own
+          // background (Configuration's wash sidebar) would otherwise paint
+          // square over the bottom corners.
+          // flex-1 fills a fixed `height`; with a content-sized panel it's inert.
+          <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-[14px] max-sm:flex-col">
+            {children}
+          </div>
+        ) : (
+          <div className="overflow-y-auto p-5">{children}</div>
+        )}
+      </div>
+  );
+
+  return createPortal(
+    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
+      {panel}
+    </div>,
+    document.body,
+  );
+}
+
+// The title bar is the same one either way — a hairline, not an ink rule: the panel's own
+// frame already says where the dialog is, and a second full-strength line under the title
+// reads as a second block. On a phone the ✕ is also the whole of Cancel, so it is given a
+// thumb's target.
+function DialogHead({ title, onClose }: { title: string; onClose: () => void }) {
+  const c = useCopy().shared;
+  const phone = usePhone();
+  return (
     <div
       className={`flex shrink-0 items-center justify-between border-b border-nb-ink/12 ${
         phone ? "px-4 py-2" : "px-5 py-3"
@@ -101,60 +170,25 @@ export function Dialog({
       </button>
     </div>
   );
+}
 
-  if (phone) {
-    return createPortal(
-      // `data-a4k-overlay` so the app's title bar lets the top of this page take clicks
-      // (app/globals.css) — a drag region swallows a press rather than passing it on.
-      <div ref={surface} data-a4k-overlay className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col bg-nb-paper">
-        {head}
-        {flush ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-        ) : (
-          // `flex flex-col` so a foot marked `mt-auto` (DialogButtons) drops to the bottom
-          // of a short page; on a long one `mt-auto` is inert and its own `sticky` holds it.
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">{children}</div>
-        )}
-      </div>,
-      document.body,
-    );
-  }
-
-  const size = { width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" };
-  const panel = (
-      <div
-        ref={surface}
-        className="nb-panel relative flex flex-col"
-        style={deck ? { height: "100%" } : size}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {head}
-        {flush ? (
-          // Clipped to the panel's rounded corners: a pane with its own
-          // background (Configuration's wash sidebar) would otherwise paint
-          // square over the bottom corners.
-          // flex-1 fills a fixed `height`; with a content-sized panel it's inert.
-          <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-[14px] max-sm:flex-col">
-            {children}
-          </div>
-        ) : (
-          <div className="overflow-y-auto p-5">{children}</div>
-        )}
-      </div>
-  );
-
-  return createPortal(
-    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
-      {deck ? (
-        <div className="relative" style={size}>
-          <div aria-hidden className="nb-panel absolute inset-0 translate-x-[14px] translate-y-[12px] rotate-[2deg] opacity-70" />
-          <div aria-hidden className="nb-panel absolute inset-0 translate-x-[7px] translate-y-[6px] rotate-[1deg]" />
-          {panel}
-        </div>
-      ) : (
-        panel
-      )}
-    </div>,
-    document.body,
+/** One card of a `deck` dialog: a whole flush panel — title bar and body — filling the deck.
+ *  The child places it with `className`/`style`. */
+export function DialogCard({
+  title,
+  onClose,
+  children,
+  className = "",
+  ...props
+}: { title: string; onClose: () => void } & React.ComponentProps<"div">) {
+  const phone = usePhone();
+  return (
+    <div
+      className={`absolute inset-0 flex flex-col ${phone ? "bg-nb-paper" : "nb-panel"} ${className}`}
+      {...props}
+    >
+      <DialogHead title={title} onClose={onClose} />
+      <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${phone ? "" : "rounded-b-[14px]"}`}>{children}</div>
+    </div>
   );
 }
