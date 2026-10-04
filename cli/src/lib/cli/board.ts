@@ -395,8 +395,9 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         'holding it — a blocker, an unanswered [user] question, or a build. Age is the date git last saw ' +
         "the card's file; group roots and cards git cannot date are left out.\n\n" +
         '`--archived` answers "which cards landed in this period": one block per landing, oldest first, with ' +
-        'the card id, title, workflow, landing time, landed commit and the archived card file (blank once ' +
-        'the archive has cleaned it up). Only cards the board landed are listed — a card archived by hand, ' +
+        'the card id, title, workflow, landing time, landed commit and the archived card file (blank when ' +
+        "the file is no longer in .archive/, e.g. deleted by hand; a card the daily cleanup deletes goes " +
+        'with its finished delivery and is not listed). Only cards the board landed are listed — a card archived by hand, ' +
         'committed by hand, or built by a workflow that leaves files instead of a commit is not among them.',
     )
     .option('-m, --module <name>', 'only the cards tagged with that module, validated against modules.md')
