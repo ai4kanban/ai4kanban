@@ -165,7 +165,7 @@ describe('a recurring card becomes a scheduled agent', () => {
   })
 
   it('adds the card id to a name another agent already has', () => {
-    write('agents/check-the-links/AGENT.md', ['---', 'name: check-the-links', 'description: Use when.', 'akb:', '  hook: execute', '---', '', 'Mine.', ''].join('\n'))
+    write('agents/check-the-links/AGENT.md', ['---', 'name: check-the-links', 'description: Use when.', 'akb:', '  hook: plan', '---', '', 'Mine.', ''].join('\n'))
     recurringCard('7-check-the-links')
     recurringCard('8-builder')
     const done = migrateRecurringCards()

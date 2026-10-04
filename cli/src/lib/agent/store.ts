@@ -47,7 +47,6 @@ import type {
   RunRefusalKind,
   RunRetry,
   RunStatus,
-  StopHook,
 } from './types'
 import type { CardCreation } from '../view/types'
 
@@ -486,7 +485,6 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
     steps: readSteps(entry.steps),
     base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
     review: readReview(entry.review),
-    hooks: readHooks(entry.hooks),
     // What each round of answers concluded (#637). A delivery from before this has none,
     // and a round nothing judged is a round the board will not guess at.
     answers: readAnswers(entry.answers),
@@ -551,13 +549,6 @@ function readWorkflow(raw: unknown): FrozenWorkflow | undefined {
     ...(box.needsArtifact === true ? { needsArtifact: true } : {}),
     stages,
   }
-}
-
-// The hooks finished since the last build (#1328). Absent means no build has finished.
-function readHooks(raw: unknown): DeliveryRecord['hooks'] {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
-  const done = (raw as { done?: unknown }).done
-  return { done: Array.isArray(done) ? done.filter((a): a is string => typeof a === 'string' && !!a) : [] }
 }
 
 const text = (value: unknown): string | undefined =>
@@ -691,14 +682,6 @@ function readLandingReason(raw: unknown): DeliveryLanding['reason'] {
   }
 }
 
-function readStopHook(raw: unknown): StopHook | undefined {
-  if (!raw || typeof raw !== 'object') return undefined
-  const box = raw as Partial<StopHook>
-  const agent = text(box.agent)
-  if (!agent || (box.how !== 'failed' && box.how !== 'stopped' && box.how !== 'unstarted')) return undefined
-  return { agent, how: box.how, ...(text(box.error) ? { error: text(box.error) } : {}) }
-}
-
 const asLandingStatus = (value: unknown): LandingStatus =>
   value === 'landing' || value === 'landed' || value === 'conflict' ? value : 'waiting'
 
@@ -757,7 +740,6 @@ function readReview(raw: unknown): DeliveryReview | undefined {
             why: stop.why,
             at: typeof stop.at === 'number' ? stop.at : 0,
             ...(Array.isArray(stop.paths) ? { paths: stop.paths.filter((p): p is string => typeof p === 'string') } : {}),
-            ...(readStopHook(stop.hook) ? { hook: readStopHook(stop.hook) } : {}),
           }
         : undefined,
   }
@@ -775,7 +757,6 @@ function asStopReason(value: unknown): ReviewStopReason {
     value === 'uncommitted' ||
     value === 'landing' ||
     value === 'capability' ||
-    value === 'hook' ||
     value === 'outside' ||
     value === 'output'
     ? value

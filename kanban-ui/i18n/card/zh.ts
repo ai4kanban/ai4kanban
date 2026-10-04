@@ -7,7 +7,6 @@ import type { CardCopy } from "./types";
 const some = (files: string[] = []): string => (files.length === 1 ? `\`${files[0]}\` ` : `${files.length} 个文件`);
 const branch = (s: CardDeliveryState): string => (s.branch ? `\`${s.branch}\`` : "目标分支");
 const starts = (s: CardDeliveryState): string => (s.retryIn ? `${s.retryIn} 秒后` : "即将");
-const resume = (s: CardDeliveryState): string => `运行 \`${s.command}\` 从该 Agent 处继续。`;
 const wayOut = (s: CardDeliveryState): string =>
   s.command ? `运行 \`${s.command}\` 结束本次交付，分支会保留。` : "处理后点「再次执行」。";
 const thenLand = (s: CardDeliveryState): string => (s.branch ? `，完成后合入 \`${s.branch}\`` : "");
@@ -47,9 +46,6 @@ const zh: CardCopy = {
           ? `已合入 \`${s.branch}\`，提交 \`${s.commit}\`。看板正在完成这张卡片。`
           : `已合入，提交 \`${s.commit}\`。看板正在完成这张卡片。`,
       "landed-nothing": () => "没有改动，因此没有提交。看板正在完成这张卡片。",
-      "hook-failed": (s) => `执行后 Agent \`${s.hook}\` 运行失败，成果未交付。${resume(s)}`,
-      "hook-stopped": (s) => `执行后 Agent \`${s.hook}\` 已中止，成果未交付。${resume(s)}`,
-      "hook-unstarted": (s) => `执行后 Agent \`${s.hook}\` 未能启动，成果未交付。${resume(s)}`,
       uncommitted: (s) => `执行成果未能提交，原因见下。${wayOut(s)}`,
       stopped: (s) => `本次交付已停止，原因见下。${wayOut(s)}`,
       commit: () => "执行已完成。请自行提交这些改动，提交后交付自动继续。",
@@ -68,8 +64,6 @@ const zh: CardCopy = {
       "worktree-dirty": (s) => `本次交付的独立工作目录中还有 ${some(s.files)}未清理，请先清理。`,
       interrupted: () => "合入意外中断，已恢复原状，将自动重试。",
       refused: () => "未能合入，原因见下。问题排除后将自动重试。",
-      "hook-running": (s) =>
-        `执行已完成。交付前正在运行执行后 Agent \`${s.hook}\`${s.branch ? `，之后合入 \`${s.branch}\`` : ""}。`,
       building: (s) => `正在按开始时批准的内容执行这张卡片${thenLand(s)}。`,
       "building-typed": (s) => `正在执行你输入的内容${thenLand(s)}。`,
     },

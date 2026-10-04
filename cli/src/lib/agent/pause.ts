@@ -9,7 +9,6 @@
 // refused board move gives, and the hold that lets Resolve through while a delivery waits.
 
 import { boardCommand } from './command'
-import { owedHooks } from './hooks'
 import type { DeliveryRecord } from './types'
 
 /** Where a delivery stands. Three of these are pauses: nothing moves until the user acts. */
@@ -17,7 +16,7 @@ export type DeliveryStage =
   /** Building — the board's own work is in flight. */
   | 'working'
   /** The delivery stopped on something only the user can clear: work nobody could commit,
-   *  files outside the board, a hook that failed, or a question a review asked before #1203. */
+   *  files outside the board, or a question a review asked before #1203. */
   | 'stopped'
   /** Built; landing waits until the card's open questions are answered. */
   | 'held'
@@ -45,9 +44,6 @@ export type DeliveryStage =
 export type DeliveryLineKind =
   | 'landed'
   | 'landed-nothing'
-  | 'hook-failed'
-  | 'hook-stopped'
-  | 'hook-unstarted'
   | 'uncommitted'
   | 'stopped'
   | 'commit'
@@ -62,7 +58,6 @@ export type DeliveryLineKind =
   | 'worktree-dirty'
   | 'interrupted'
   | 'refused'
-  | 'hook-running'
   | 'building'
   | 'building-typed'
 
@@ -87,7 +82,6 @@ export interface DeliveryState {
   branch?: string
   /** The landed commit, short. */
   commit?: string
-  hook?: string
   questions?: number
   /** Conflicted files, or the ones a worktree still holds. */
   files?: string[]
@@ -131,8 +125,6 @@ const cancelCommand = (delivery: DeliveryRecord): string => `${boardCommand()} d
 
 const backInMotion = (delivery: DeliveryRecord): string => `\`${cancelCommand(delivery)}\` ends it and leaves the branch.`
 
-const HOOK_KIND = { failed: 'hook-failed', stopped: 'hook-stopped', unstarted: 'hook-unstarted' } as const
-
 /** Where this delivery stands, given how many open questions its card carries.
  *
  *  The questions are passed in rather than read here: this file is asked from inside the
@@ -155,19 +147,6 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
     }
   }
   const stopped = delivery.review?.stopped
-  // A hook that did not finish (#1328): its own run carries the delivery on, not a new build.
-  if (stopped?.reason === 'hook') {
-    const command = `${boardCommand()} delivery resume ${delivery.deliveryId}`
-    return {
-      stage: 'stopped',
-      label: 'Waiting on you',
-      line: `${upper(end(stopped.why))} \`${command}\` carries on from that hook.`,
-      paused: true,
-      ...(stopped.hook
-        ? { kind: HOOK_KIND[stopped.hook.how], hook: stopped.hook.agent, command, raw: stopped.hook.error }
-        : {}),
-    }
-  }
   if (stopped) {
     return {
       stage: 'stopped',
@@ -298,18 +277,6 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   }
   const branch = delivery.commitMode === 'auto' ? delivery.targetBranch : undefined
   const where = branch ? `, to land on \`${branch}\`` : ''
-  const [hook] = owedHooks(delivery)
-  if (hook) {
-    return {
-      stage: 'working',
-      label: 'In progress',
-      line: `The build is done. Running the \`${hook}\` hook before it is delivered${where}.`,
-      paused: false,
-      kind: 'hook-running',
-      hook,
-      branch,
-    }
-  }
   return {
     stage: 'working',
     label: 'In progress',

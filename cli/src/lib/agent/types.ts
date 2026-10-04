@@ -76,9 +76,7 @@ export type AgentAction =
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
    *  rebase after it. */
   | 'conflict'
-  /** One hook after a delivery's build (#1328): a non-lead agent on the `execute` stage, named
-   *  by `specAgent`, working in the build's own folder. The board starts each in turn once the
-   *  build is committed, and the delivery goes on only when the last has finished. */
+  /** Retired (#1507): nothing runs after a build any more. Kept for the runs recorded. */
   | 'hook'
   /** One pass of a workflow's scheduled agent (#1401): named by `specAgent` and `workflow`, on
    *  no card. The board starts it when its cadence comes round; it is a card-less delivery of
@@ -118,16 +116,13 @@ export type AgentAction =
   /** Retired (#1334): the sweeper is gone. Kept for the runs recorded. */
   | 'unstick'
 
-/** The actions a hook's agent runs as itself: one section of a card (`spec`), the work
- *  after a build (`hook`), or a pass on its cadence (`scheduled`). Each is named by an agent
- *  rather than run by a role. */
+/** The actions a hook's agent runs as itself: one section of a card (`spec`), or a pass on
+ *  its cadence (`scheduled`). Each is named by an agent rather than run by a role. The
+ *  retired `hook` stays so its old records still name their agent. */
 export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'hook', 'scheduled'])
 
 /** The actions that do not hold the card they name: a spec agent, which works beside the loop
- *  that asked for it, and a reflection whose card has left the board altogether (#534).
- *
- *  A `hook` run is not one of them: it changes the build's own files, so nothing else may
- *  build the card beside it. */
+ *  that asked for it, and a reflection whose card has left the board altogether (#534). */
 const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'reflect', 'sub'])
 
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
@@ -241,16 +236,16 @@ export interface TriageAsk {
 export type StartableAction = Exclude<AgentAction, RetiredAction>
 
 /** The actions no flow starts any more. */
-export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run' | 'reject'
+export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run' | 'reject' | 'hook'
 
-const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run', 'reject'])
+const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run', 'reject', 'hook'])
 
 /** Whether nothing starts this action any more — it only reads back off an old record. */
 export const isRetired = (action: AgentAction): action is RetiredAction => RETIRED.has(action)
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'spec' | 'hook' | 'scheduled' | 'sub'>
+  | Exclude<StartableAction, 'clarify' | 'spec' | 'scheduled' | 'sub'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -661,8 +656,6 @@ export type ReviewStopReason =
    *  not change that. The delivery stops unfinished with the card still held — there is a
    *  person's call behind it, never a card with no way out. */
   | 'capability'
-  /** A hook after the build failed or was stopped (#1328). Resuming its run carries on. */
-  | 'hook'
   /** A `files` delivery changed tracked files outside the board (#874). */
   | 'outside'
   /** A `files` delivery recorded no output file, or one it recorded is not there (#874). */
@@ -678,17 +671,7 @@ export interface DeliveryReview {
     at: number
     /** `outside`: the files changed; `output`: the recorded files that are missing. */
     paths?: string[]
-    /** `hook`: which hook, and how it ended (#1377). */
-    hook?: StopHook
   }
-}
-
-/** The hook a delivery stopped on, kept beside the sentence so a screen can say it in its
- *  own language (#1377). `error` is the system's own words on one that could not start. */
-export interface StopHook {
-  agent: string
-  how: 'failed' | 'stopped' | 'unstarted'
-  error?: string
 }
 
 // ---- what one round of answers concluded (#637) -----------------------------
@@ -854,9 +837,6 @@ export interface DeliveryRecord {
   base?: string
   /** Why the delivery stopped, and what each review before #1203 concluded (#302). */
   review?: DeliveryReview
-  /** The hooks that have finished since the last build (#1328). Set when a build finishes;
-   *  the ones still owed are the frozen `execute` hooks not named here. */
-  hooks?: { done: string[] }
   /** What each round of applied answers concluded about these requirements (#637), oldest
    *  first. The run that writes the answers onto the card is the one that can tell, so it
    *  says so with `delivery answered` before it drops the questions — and the landing queue
@@ -941,7 +921,7 @@ export type DeliveryCommitMode = 'auto' | 'manual' | 'files'
 
 /** Where a resumed delivery picks back up (#639) — the step it stopped at, never one it
  *  has already done. */
-export type DeliveryCarryOn = 'build' | 'hook' | 'landing' | 'conflict'
+export type DeliveryCarryOn = 'build' | 'landing' | 'conflict'
 
 /** One ask for a spec agent, as the run that wanted it wrote it down.
  *

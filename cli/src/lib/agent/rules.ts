@@ -28,7 +28,7 @@ import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import { agentNames, hiddenRole, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
 import { workflowForRun } from './runner'
-import { DEFAULT_WORKFLOW, stageHelpers, workflowFor } from './workflows'
+import { DEFAULT_WORKFLOW } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentRequest } from './types'
 
@@ -88,12 +88,6 @@ export function deliveryRules(workflow?: string): Record<string, string> {
     if (!role || rules[role.name] !== undefined) continue
     const rule = ruleFile(role.name)
     if (rule) rules[role.name] = rule
-  }
-  // And each hook after the build (#1328), which runs as itself.
-  const flow = workflowFor(workflow)
-  for (const hook of flow ? stageHelpers(flow, 'execute') : []) {
-    const rule = rules[hook.agent] === undefined ? ruleFile(hook.agent) : ''
-    if (rule) rules[hook.agent] = rule
   }
   return rules
 }

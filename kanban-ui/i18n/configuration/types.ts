@@ -73,8 +73,8 @@ export type ConfigurationCopy = {
     stageProblem: string;
     /** The labelled rule between a stage's lead and its hooks (#1328), and the plus on it:
      *  a new agent that runs then. */
-    hooks: { plan: string; execute: string };
-    addHook: { plan: string; execute: string };
+    hooks: { plan: string };
+    addHook: { plan: string };
     /** Beside the empty column: what the space to its right is for. */
     emptyPage: string;
     /** The one switch in the more menu (#874, #944): **Use a Git worktree**, what it is

@@ -339,11 +339,10 @@ export async function cmdResumeDelivery(named: string): Promise<MoveResult> {
   return { deliveryId: res.deliveryId, carryOn: res.carryOn }
 }
 
-// What moves it on from here. The board picks the landing queue back up by itself and starts
-// an owed hook; the two that need a run say which command starts it.
+// What moves it on from here. The board picks the landing queue back up by itself; the two
+// that need a run say which command starts it.
 const CARRY_ON_NEXT: Record<string, (id: string) => string> = {
   build: () => '  its build has not finished: press Implement on the card, or `akb run resume` the build that stopped.',
-  hook: () => '  its build is done, and the next hook after it has started.',
   conflict: (id) => `  it stopped on a landing conflict: akb delivery conflict ${id}`,
   landing: () => '  it is back in the landing queue, and lands on its own.',
 }

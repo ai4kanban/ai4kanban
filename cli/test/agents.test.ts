@@ -298,14 +298,13 @@ describe('an agent nobody can read', () => {
       assert.ok('problem' in got, akb.join(' + '))
       return got.problem
     }
-    const LINES = /one of `lead: plan`, `lead: execute`, `hook: plan`, `hook: execute`, `hook: schedule`$/
+    const LINES = /one of `lead: plan`, `lead: execute`, `hook: plan`, `hook: schedule`$/
 
     it('reads each of the stage lines', () => {
       for (const [line, kind, stage] of [
         ['lead: plan', 'lead', 'plan'],
         ['lead: execute', 'lead', 'execute'],
         ['hook: plan', 'spec', 'plan'],
-        ['hook: execute', 'spec', 'execute'],
       ] as const) {
         const got = read(line)
         assert.ok('agent' in got, line)
@@ -317,7 +316,8 @@ describe('an agent nobody can read', () => {
       assert.match(problem('lead: plan', 'hook: plan'), /both `akb.lead` and `akb.hook` — keep one/)
       assert.match(problem('output: human'), /neither `akb.lead` nor `akb.hook`/)
       assert.match(problem('output: human'), LINES)
-      assert.match(problem('hook: build'), /`akb.hook: build` — it is `plan` or `execute` or `schedule`/)
+      assert.match(problem('hook: build'), /`akb.hook: build` — it is `plan` or `schedule`/)
+      assert.match(problem('hook: execute'), /nothing runs after a build any more — make it `hook: schedule` with `reads: archived-cards`/)
       assert.match(problem('lead: yes'), /`akb.lead: yes` — it is `plan` or `execute`/)
     })
 
@@ -330,8 +330,6 @@ describe('an agent nobody can read', () => {
         [['kind: spec'], 'hook: plan'],
         [['stage: plan'], 'hook: plan'],
         [['stage: plan', 'lead: false'], 'hook: plan'],
-        [['stage: execute'], 'hook: execute'],
-        [['kind: spec', 'stage: execute', 'lead: false'], 'hook: execute'],
       ] as const) {
         const said = problem(...old)
         for (const key of old) assert.ok(said.includes(`\`${key}\``), `${old.join(' + ')} names ${key}`)
@@ -340,7 +338,7 @@ describe('an agent nobody can read', () => {
     })
 
     it('lists every line when the old keys never named a usable agent', () => {
-      for (const old of [['kind: lead'], ['lead: true'], ['lead: false'], ['stage: build'], ['kind: review'], ['stage: plan', 'lead: plan']]) {
+      for (const old of [['kind: lead'], ['lead: true'], ['lead: false'], ['stage: build'], ['stage: execute'], ['kind: review'], ['stage: plan', 'lead: plan']]) {
         assert.match(problem(...old), LINES, old.join(' + '))
         assert.match(problem(...old), /no longer reads/, old.join(' + '))
       }

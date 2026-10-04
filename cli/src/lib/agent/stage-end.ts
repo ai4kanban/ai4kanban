@@ -64,7 +64,6 @@ export const shortLine = (short: StageShort, cardId: number): string =>
  *  a contract claims. A spec agent is the planning stage's helper, whichever flow asked. */
 export const stageOfAction = (action: AgentAction): Stage | undefined => {
   if (action === 'spec') return 'plan'
-  if (action === 'hook') return 'build'
   const flow = flowByAction(action)
   return flow ? stageOfFlow(flow.command) : undefined
 }

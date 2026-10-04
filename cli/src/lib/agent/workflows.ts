@@ -4,9 +4,8 @@
 // moves the choice onto the card. One board plans a feature and a newsletter side by side,
 // each through its own `plan → execute`, and the card says which.
 //
-// Two stages, always the same two, each followed by its hooks (#1328, stored as `helpers`):
-// after `plan` the lead calls in the ones whose description applies, and after `execute` each
-// runs once on every build, in order, before the work is delivered (./hooks.ts).
+// Two stages, always the same two. `plan` has hooks (stored as `helpers`) its lead calls in
+// when their description applies; `execute` is its lead alone (#1507).
 //
 // `coding` ships with the command and cannot be renamed or deleted: it is what every board did
 // before this file. A board adds its own, and every one of them — built-in included — keeps its
@@ -364,6 +363,8 @@ function resolveOne(
       helpersChosen: saved.helpers !== undefined,
     }
   }
+  // Hooks after the build are gone (#1507): ones a board still has saved are ignored.
+  stages.execute = { ...stages.execute, helpers: [], helpersChosen: false }
   return {
     id,
     name,

@@ -197,7 +197,6 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'clarify',
   'resolve',
   'spec',
-  'hook',
 ])
 
 /** Cards this run left worth refining — its own claims and no one else's. `before` is the

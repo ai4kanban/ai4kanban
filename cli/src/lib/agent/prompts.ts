@@ -113,7 +113,6 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'archive',
   'spec',
   'conflict',
-  'hook',
   'scheduled',
 ])
 
@@ -172,7 +171,7 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   return realPaths(boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n')), req)
 }
 
-// A hook's build folder holds no board (#1352), so it is given the real places. Filled in
+// A scheduled or sub run's folder holds no board (#1352), so it is given the real places. Filled in
 // after `boardText`, whose `docs/kanban` swap would rewrite an absolute path.
 const BOARD_FOLDER = '<board folder>'
 const CARD_FILE = '<card file>'
@@ -183,7 +182,7 @@ function cardFileOf(id: number | undefined): string {
 }
 
 function realPaths(text: string, req: AgentRequest): string {
-  if (req.action !== 'hook' && req.action !== 'scheduled' && req.action !== 'sub') return text
+  if (req.action !== 'scheduled' && req.action !== 'sub') return text
   return text.split(BOARD_FOLDER).join(KANBAN).split(CARD_FILE).join(cardFileOf(req.id))
 }
 
@@ -663,33 +662,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         // agent's instructions and its memory, because it is written on top of them and never
         // in place of them. A card whose workflow does not call this agent in has none.
         helperExtra(req),
-      ]
-        .filter(Boolean)
-        .join('\n\n')
-    }
-    // A hook after the build (#1328): the fixed words, then the agent's own. No guide page —
-    // the board starts it, so there is no flow for it to follow.
-    case 'hook': {
-      const agent = findSpecAgent(req.specAgent ?? '')
-      const own = agent ? specAgentInstructions(agent) : null
-      if (own) notes.push(...own.notes)
-      const memory = agent ? agentMemoryBlock(agent) : ''
-      const built = req.id !== undefined ? `card #${req.id}` : `delivery ${req.deliveryId ?? ''}`
-      return [
-        [
-          `You run after the build of ${built}, in the folder holding its work.`,
-          `The board is at \`${BOARD_FOLDER}\` and is not part of the delivery.`,
-          cardFileOf(req.id) ? `The card is \`${CARD_FILE}\`.` : '',
-          `Do only what your instructions assign; the board commits your changes with the delivery.`,
-          `Do not land the work or start other agents.`,
-          `With nothing to do, change nothing and say so in one line.`,
-        ]
-          .filter(Boolean)
-          .join(' '),
-        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
-        own?.files ? `——— your own files ———\n\n${own.files}` : '',
-        helperExtra(req),
-        memory ? `——— what you remember ———\n\n${memory}` : '',
       ]
         .filter(Boolean)
         .join('\n\n')

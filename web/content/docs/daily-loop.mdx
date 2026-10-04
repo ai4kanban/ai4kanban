@@ -116,10 +116,7 @@ names the branch the change will land on.
   commits nothing, so several run at once. It is done when the files it records on the card exist; a change to your tracked files outside the board stops it instead. Those four
   built-ins skip the build altogether: each is made while planning, and you **Archive**
   the card to accept it.
-- **Hooks run after the build.** Each agent under **After executing** in the card's workflow runs
-  once, in order, before the work is delivered. One that fails stops the delivery until you
-  **Resume** its run.
-- **No AI review.** A finished build goes to its hooks, then straight to landing; your own checks and the
+- **No AI review.** A finished build goes straight to landing; your own checks and the
   open-question hold still gate it. **Suggest follow-up work** catches what a build missed,
   after the card is archived.
 - **Your own commits on that branch are refused while it lands.** A `pre-commit` hook installed

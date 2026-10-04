@@ -3,7 +3,7 @@
 // repository's own checks, the open-question hold, diff approval — is untouched.
 //
 // `delivery.review` is still where a delivery that stopped says why — work nobody could
-// commit, files outside the board, a hook that failed — and where the rounds of the
+// commit, files outside the board — and where the rounds of the
 // reviews it had before #1203 are kept.
 //
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
@@ -11,10 +11,9 @@
 
 import { findCard } from '../view/read'
 import { boardCommand } from './command'
-import { hookStopWhy, owedHooks } from './hooks'
 import { missingRequired } from './stage-end'
 import { stageContract, type Stage } from './stages'
-import type { DeliveryRecord, DeliveryReview, ReviewRound, ReviewStopReason, RunRecord, StopHook } from './types'
+import type { DeliveryRecord, DeliveryReview, ReviewRound, ReviewStopReason, RunRecord } from './types'
 
 /** This delivery's stop slot, made if it has none yet. */
 export function reviewOf(delivery: DeliveryRecord): DeliveryReview {
@@ -28,10 +27,10 @@ export const lastRound = (delivery: DeliveryRecord): ReviewRound | undefined =>
 
 /** What the delivery does now that one of its runs has closed. */
 export type ReviewNext =
-  /** The build and every hook after it are done — the delivery is finished. */
+  /** The build is done — the delivery is finished. */
   | { finish: true }
   /** Stop and wait for the user. */
-  | { stop: ReviewStopReason; why: string; hook?: StopHook }
+  | { stop: ReviewStopReason; why: string }
   /** Nothing to decide here — the delivery stays exactly as it is. */
   | { hold: true }
 
@@ -41,21 +40,13 @@ const HOLD: ReviewNext = { hold: true }
  *  caller writes whatever this returns down. */
 export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
   if (delivery.status !== 'active') return HOLD
-  // A hook after the build (#1328): the next one is owed, the last one finishes, and one
-  // that failed or was stopped stops the delivery where it is.
-  if (run.action === 'hook') {
-    if (run.status === 'done') return owedHooks(delivery).length ? HOLD : { finish: true }
-    const agent = run.specAgent ?? ''
-    const stopped = run.status === 'stopped'
-    return { stop: 'hook', why: hookStopWhy(agent, stopped), hook: { agent, how: stopped ? 'stopped' : 'failed' } }
-  }
   // A scheduled agent's pass (#1401) finishes its delivery; one that stopped short waits for
   // Resume, or for the next pass to replace it.
   if (run.action === 'scheduled') return run.status === 'done' ? { finish: true } : HOLD
   // A build somebody stopped, or one that was cut off, is picked up by Resume.
   if (run.action !== 'implement' || run.status !== 'done') return HOLD
   // The build stage ends here, so this is where its contract is read (#714).
-  return stageShortfall('build', delivery) ?? (owedHooks(delivery).length ? HOLD : { finish: true })
+  return stageShortfall('build', delivery) ?? { finish: true }
 }
 
 /** The stop a stage's own contract calls for, or null when it requires nothing this card is

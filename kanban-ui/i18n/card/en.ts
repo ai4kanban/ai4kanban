@@ -6,7 +6,6 @@ import type { CardCopy } from "./types";
 // One file is named, more are counted.
 const some = (files: string[] = []): string => (files.length === 1 ? `\`${files[0]}\`` : `${files.length} files`);
 const starts = (s: CardDeliveryState): string => (s.retryIn ? `in ${s.retryIn}s` : "now");
-const resume = (s: CardDeliveryState): string => `Run \`${s.command}\` to carry on from that agent.`;
 // With no card there is no Build again to press, so the way out is the command.
 const wayOut = (s: CardDeliveryState): string =>
   s.command ? `Run \`${s.command}\` to end it; the branch is kept.` : "Fix it, then `Build again`.";
@@ -48,11 +47,6 @@ const en: CardCopy = {
           ? `On \`${s.branch}\` as \`${s.commit}\`. The board is completing the card.`
           : `Landed as \`${s.commit}\`. The board is completing the card.`,
       "landed-nothing": () => "It changed nothing, so nothing was committed. The board is completing the card.",
-      "hook-failed": (s) => `The after-executing agent \`${s.hook}\` failed, so nothing was delivered. ${resume(s)}`,
-      "hook-stopped": (s) =>
-        `The after-executing agent \`${s.hook}\` was stopped, so nothing was delivered. ${resume(s)}`,
-      "hook-unstarted": (s) =>
-        `The after-executing agent \`${s.hook}\` could not start, so nothing was delivered. ${resume(s)}`,
       uncommitted: (s) => `The build's work could not be committed, for the reason below. ${wayOut(s)}`,
       stopped: (s) => `This delivery stopped, for the reason below. ${wayOut(s)}`,
       commit: () => "The build is done. Commit these changes yourself, and the delivery carries on.",
@@ -77,8 +71,6 @@ const en: CardCopy = {
         `Its worktree still holds ${some(s.files)}. Clear ${s.files?.length === 1 ? "it" : "them"}.`,
       interrupted: () => "A landing was interrupted and has been put back. It will be tried again.",
       refused: () => "Couldn't land, for the reason below. It retries by itself once that is cleared.",
-      "hook-running": (s) =>
-        `The build is done. Running the after-executing agent \`${s.hook}\` before it is delivered${toLand(s)}.`,
       building: (s) => `Building this card as it was approved when work started${toLand(s)}.`,
       "building-typed": (s) => `Building what you typed${toLand(s)}.`,
     },

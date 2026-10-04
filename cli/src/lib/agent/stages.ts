@@ -39,9 +39,8 @@ export interface StageContract {
   done: string
   /** The agent that runs it and writes the one conclusion. */
   lead: string
-  /** The stage's hooks, by name (#1328): after `plan` the lead calls each in when it applies,
-   *  one at a time; after `build` each runs once on every build. The field keeps its stored
-   *  name. A board's own agents join through its workflow, so this names only the ones the
+  /** The stage's hooks, by name (#1328): the `plan` lead calls each in when it applies, one
+   *  at a time; `build` has none (#1507). The field keeps its stored name. A board's own agents join through its workflow, so this names only the ones the
    *  command ships. */
   helpers: string[]
   /** The hooks this stage cannot end without. The lead is always required and is never

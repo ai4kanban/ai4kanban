@@ -46,15 +46,17 @@ describe("a project's own agents", () => {
   it('counts the ones a workflow runs, and never a shipped one', () => {
     // Made in no workflow, so off.
     assert.equal(createAgent('outliner', 'plan').ok, true)
-    assert.equal(createAgent('checker', 'execute').ok, true)
+    assert.equal(createAgent('checker', 'plan').ok, true)
     assert.deepEqual(customAgentsOn(), [])
 
     assert.equal(addWorkflowHelper('coding', 'plan', 'outliner').ok, true)
-    assert.equal(addWorkflowHelper('coding', 'execute', 'checker').ok, true)
+    assert.equal(addWorkflowHelper('coding', 'plan', 'checker').ok, true)
     assert.deepEqual(customAgentsOn().sort(), ['checker', 'outliner'])
 
     assert.equal(switchWorkflowAgent('coding', 'plan', 'outliner', false).ok, true)
     assert.deepEqual(customAgentsOn(), ['checker'])
+    // Nothing runs after a build (#1507).
+    assert.equal(createAgent('after', 'execute').ok, false)
   })
 
   it("tells a project's agent from one the board ships", () => {

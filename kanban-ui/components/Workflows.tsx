@@ -2,13 +2,13 @@
 
 // Configuration → Workflows (#715, #944).
 //
-// Every card on this board goes through one workflow: `plan → execute`, each stage followed by
-// its hooks (#1328). The left column is that whole flow top to bottom — a frame per stage, its
-// lead, then what runs after it — and the agent selected there opens its own page beside it.
+// Every card on this board goes through one workflow: `plan → execute` (#1328). The left column
+// is that whole flow top to bottom — a frame per stage, its lead, and planning's hooks under it
+// (execute has none, #1507) — and the agent selected there opens its own page beside it.
 //
 // The agents themselves are the board's roster (`components/Agents.tsx`), shared with
 // Configuration → Board so an agent reads and writes the same wherever it was reached from.
-// Each belongs to one workflow (#1095): a stage lists its enabled hooks in the order they run,
+// Each belongs to one workflow (#1095): planning lists its enabled hooks,
 // and the rare one not wanted is disabled from its page and waits under **Disabled**.
 //
 // Under the stages, with no arrow into it, a third frame holds the agents the workflow runs
@@ -424,12 +424,12 @@ export function WorkflowsPanel({
     );
   };
 
-  // One stage of the flow in a light frame: its name set into the top edge, its lead, a
-  // labelled rule, then its hooks in the order they run — all on one indent.
+  // One stage of the flow in a light frame: its name set into the top edge, its lead, then on
+  // planning a labelled rule and its hooks — all on one indent.
   const stageBlock = (one: WorkflowStageView) => {
     if (!flow) return null;
     const { Icon } = STAGE_LOOK[one.stage];
-    const when = c.hooks[one.stage];
+    const when = c.hooks.plan;
     const rows = (off: boolean) =>
       one.helpers
         .filter((h) => !!h.off === off)
@@ -501,7 +501,7 @@ export function WorkflowsPanel({
         </Popover>
         {leadUndeclared(one) && <p className="mt-1 px-2.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>}
 
-        {rule(one.stage, when, c.addHook[one.stage])}
+        {one.stage === "plan" && rule(one.stage, when, c.addHook.plan)}
         {rows(false)}
         {adding === one.stage && (
           <NewAgentRow onCreate={(name) => createAgent(one.stage, name)} onCancel={() => setAdding(null)} />

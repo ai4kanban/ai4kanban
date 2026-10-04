@@ -464,8 +464,6 @@ interface Flow {
 const GUIDES_FOR: Record<StartableAction, string[]> = {
   implement: ['board', 'implement', 'document-feature'],
   conflict: ['conflict'],
-  // The board starts a hook itself (#1328); it has no page and nothing prints it.
-  hook: [],
   // Nor a scheduled agent's pass (#1401), nor a sub-run (#1421).
   scheduled: [],
   sub: [],

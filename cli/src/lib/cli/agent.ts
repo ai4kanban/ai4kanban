@@ -438,8 +438,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   const workflow = withShared(program.command('workflow'))
     .summary('the workflows this board runs, and who runs each of their stages')
     .description(
-      'Every card runs through one workflow: `plan → execute`, each stage led by one agent and ' +
-        'followed by its hooks — while planning the lead calls in the ones that apply, and after executing each runs once on every build. ' +
+      'Every card runs through one workflow: `plan → execute`, each stage led by one agent; ' +
+        'while planning the lead also calls in its hooks when they apply. ' +
         '`coding`, `hyperframes-video`, `slide-deck`, `carousel-post` and `blog-post` ship with the command: their leads are ' +
         'fixed, their hooks can be changed, and they can be copied but not renamed or deleted. A card names its workflow in its own frontmatter ' +
         '(`akb raw create --workflow`), and a delivery freezes the one it started with.',
@@ -515,9 +515,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .summary('set one stage\'s lead and switch its hooks on or off')
     .description(
       'With no change asked for, it lists this stage\'s hooks and whether each is on. A `plan` hook is ' +
-        'called in by the lead when its description applies; an `execute` hook runs after every build, in ' +
-        'the order listed, before the work is delivered. An agent belongs to the workflow it was created ' +
-        'in and is never shared. An off hook never runs; a lead cannot be switched off.',
+        'called in by the lead when its description applies; `execute` has none. An agent belongs to the ' +
+        'workflow it was created in and is never shared. An off hook never runs; a lead cannot be switched off.',
     )
     .action(async function (this: Command, id: string) {
       const flags = this.opts() as WorkflowOptions

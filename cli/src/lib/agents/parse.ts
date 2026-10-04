@@ -68,8 +68,8 @@ export interface SettingLines {
   choices?: Record<string, { label?: string; cost?: string }>
 }
 
-/** What an agent is: `spec` is a hook on its stage — it fills one part of a card's spec, or
- *  works on the build; `lead` runs a workflow's plan or execute stage, its body printed
+/** What an agent is: `spec` is a hook — it fills one part of a card's spec, or runs on a
+ *  schedule; `lead` runs a workflow's plan or execute stage, its body printed
  *  after the shared flow (#822). */
 export type AgentKind = 'spec' | 'lead'
 
@@ -77,10 +77,7 @@ export type AgentKind = 'spec' | 'lead'
 const ROLE_KEYS = { lead: 'lead', hook: 'spec' } as const satisfies Record<string, AgentKind>
 /** The one `akb.hook` value that is no stage (#1401): the agent runs on a cadence. */
 export const SCHEDULE_HOOK = 'schedule'
-const ROLE_LINES = [
-  ...Object.keys(ROLE_KEYS).flatMap((role) => WORKFLOW_STAGES.map((stage) => `\`${role}: ${stage}\``)),
-  `\`hook: ${SCHEDULE_HOOK}\``,
-]
+const ROLE_LINES = [...WORKFLOW_STAGES.map((stage) => `\`lead: ${stage}\``), '`hook: plan`', `\`hook: ${SCHEDULE_HOOK}\``]
 
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
@@ -166,8 +163,11 @@ export function parseSpecAgent(
   const declared = declaredLead || declaredHook
   const schedule = role === 'hook' && declared === SCHEDULE_HOOK
   if (!schedule && !isStage(declared)) {
-    const allowed = role === 'hook' ? [...WORKFLOW_STAGES, SCHEDULE_HOOK] : WORKFLOW_STAGES
+    const allowed = role === 'hook' ? ['plan', SCHEDULE_HOOK] : WORKFLOW_STAGES
     return bad(`\`${name}\` declares \`akb.${role}: ${declared}\` — it is \`${allowed.join('` or `')}\``)
+  }
+  if (role === 'hook' && declared === 'execute') {
+    return bad(`\`${name}\` declares \`akb.hook: execute\`, and nothing runs after a build any more — make it \`hook: ${SCHEDULE_HOOK}\` with \`reads: archived-cards\` to check finished work`)
   }
   const stage = schedule ? null : (declared as WorkflowStage)
   const kind = ROLE_KEYS[role]
@@ -241,7 +241,7 @@ function replacementLine(stage: string, kind: string, lead: string): string | nu
   if ((stage && !isStage(stage)) || (kind && kind !== 'spec' && kind !== 'lead')) return null
   if (lead && lead !== 'true' && lead !== 'false') return null
   if (kind === 'lead' || lead === 'true') return stage ? `lead: ${stage}` : null
-  return stage || kind ? `hook: ${stage || 'plan'}` : null
+  return (stage || kind) && stage !== 'execute' ? 'hook: plan' : null
 }
 
 const isStage = (value: string): value is WorkflowStage => (WORKFLOW_STAGES as readonly string[]).includes(value)

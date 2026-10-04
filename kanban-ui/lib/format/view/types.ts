@@ -180,7 +180,6 @@ export interface CardDeliveryState {
   kind?: CardDeliveryLineKind
   branch?: string
   commit?: string
-  hook?: string
   questions?: number
   files?: string[]
   attempt?: number
@@ -198,9 +197,6 @@ export interface CardDeliveryState {
 export type CardDeliveryLineKind =
   | 'landed'
   | 'landed-nothing'
-  | 'hook-failed'
-  | 'hook-stopped'
-  | 'hook-unstarted'
   | 'uncommitted'
   | 'stopped'
   | 'commit'
@@ -215,7 +211,6 @@ export type CardDeliveryLineKind =
   | 'worktree-dirty'
   | 'interrupted'
   | 'refused'
-  | 'hook-running'
   | 'building'
   | 'building-typed'
 

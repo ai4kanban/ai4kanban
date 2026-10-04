@@ -17,7 +17,6 @@ description: Use whenever a card changes what the product says to the user. Foll
 akb:
   # Required; one of `hook` or `lead`.
   # plan: called in while planning when its description applies.
-  # execute: runs after every build of its workflow.
   # schedule: runs unattended, whenever the board starts it.
   hook: plan
   # Optional below.

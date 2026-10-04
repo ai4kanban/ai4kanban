@@ -540,9 +540,8 @@ describe('what a workflow changes about a run', () => {
     assert.equal(row.workflow!.stages.execute!.lead, 'test-writer')
 
     // Reassigning afterwards leaves the frozen copy alone — that is the whole point of it.
-    stageAgent('test-fixer', 'execute')
-    assert.equal(addWorkflowHelper('coding', 'execute', 'test-fixer').ok, true)
-    assert.deepEqual(frozen.stages.execute!.helpers, [])
+    assert.equal(switchWorkflowAgent('coding', 'plan', 'tech-stack-advisor', false).ok, true)
+    assert.ok(frozen.stages.plan!.helpers.some((h) => h.agent === 'tech-stack-advisor'))
   })
 })
 
@@ -571,7 +570,8 @@ describe("the QA manager, Coding's scheduled agent (#1402)", () => {
     savedBefore({ helpers: [{ agent: 'qa-manager', extra: 'Only the CLI.', off: true }, { agent: 'test-fixer', extra: '' }] })
     assert.deepEqual({ off: qa().off, extra: qa().extra }, { off: true, extra: 'Only the CLI.' })
     assert.deepEqual(savedNow().stages.coding.execute.helpers, [{ agent: 'test-fixer', extra: '' }])
-    assert.deepEqual(hooks('coding'), ['test-fixer'])
+    // A saved hook after the build is ignored (#1507).
+    assert.deepEqual(hooks('coding'), [])
 
     savedBefore({ helpers: [{ agent: 'qa-manager', extra: '' }] })
     assert.equal(qa().off, undefined)
@@ -583,13 +583,6 @@ describe("the QA manager, Coding's scheduled agent (#1402)", () => {
     savedBefore({ helpers: [{ agent: 'test-fixer', extra: '' }] })
     assert.equal(qa().off, true)
     assert.equal(switchWorkflowScheduled('coding', 'qa-manager', true).ok, true)
-    assert.equal(qa().off, undefined)
-  })
-
-  it('does not read hooks chosen from now on as a choice against it', () => {
-    stageAgent('test-fixer', 'execute')
-    assert.equal(addWorkflowHelper('coding', 'execute', 'test-fixer').ok, true)
-    assert.deepEqual(hooks('coding'), ['test-fixer'])
     assert.equal(qa().off, undefined)
   })
 

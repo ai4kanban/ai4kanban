@@ -101,6 +101,7 @@ export function customAgentsOn(): string[] {
 export function createAgent(asked: string, stage?: AgentSlot): WriteResult & { agent?: string } {
   const name = String(asked ?? '').trim().toLowerCase()
   if (!name) return { ok: false, error: 'an agent needs a name' }
+  if (stage === 'execute') return { ok: false, error: 'nothing runs after a build — make it a scheduled agent instead' }
   if (!AGENT_NAME.test(name)) {
     return { ok: false, error: `"${name}" is not a usable agent name — use lower-case words joined by "-"` }
   }

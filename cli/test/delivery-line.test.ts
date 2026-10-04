@@ -59,19 +59,6 @@ describe("a delivery line's kind and values", () => {
       'Landed — nothing to commit',
       'It changed nothing, so nothing was committed. The board is completing the card.',
     ])
-    assert.deepEqual(
-      text(
-        stopped({
-          reason: 'hook',
-          why: 'the `qa` hook failed after the build, so nothing was delivered',
-          hook: { agent: 'qa', how: 'failed' },
-        }),
-      ),
-      [
-        'Waiting on you',
-        `The \`qa\` hook failed after the build, so nothing was delivered. \`${cmd} delivery resume aaa\` carries on from that hook.`,
-      ],
-    )
     assert.deepEqual(text(stopped({})), ['Waiting on you', 'Git said no. Fix it, then `Build again`.'])
     assert.deepEqual(text(stopped({}, { ...base, cardId: null })), [
       'Waiting on you',
@@ -119,25 +106,6 @@ describe("a delivery line's kind and values", () => {
       commit: 'abc1234',
     })
     assert.deepEqual(said(landing({ status: 'landed' })), { kind: 'landed-nothing', branch: 'main' })
-  })
-
-  it('names the hook a delivery stopped on, how it ended, and the command that resumes it', () => {
-    const command = `${boardCommand()} delivery resume aaa`
-    for (const how of ['failed', 'stopped'] as const) {
-      assert.deepEqual(said(stopped({ reason: 'hook', hook: { agent: 'qa', how } })), {
-        kind: `hook-${how}`,
-        hook: 'qa',
-        command,
-      })
-    }
-    assert.deepEqual(said(stopped({ reason: 'hook', hook: { agent: 'qa', how: 'unstarted', error: 'spawn ENOENT' } })), {
-      kind: 'hook-unstarted',
-      hook: 'qa',
-      command,
-      raw: 'spawn ENOENT',
-    })
-    // A hook stop recorded before the detail was kept names no kind: the line is all there is.
-    assert.deepEqual(said(stopped({ reason: 'hook' })), {})
   })
 
   it('carries every other stop in its own words, with the way out a card-less build has', () => {
@@ -201,13 +169,7 @@ describe("a delivery line's kind and values", () => {
     assert.deepEqual(refused({ kind: 'queued', behind: '#2' }), { kind: 'refused', raw: 'No.' })
   })
 
-  it('names the hook running and the branch a build lands on', () => {
-    const hooked: DeliveryRecord = {
-      ...base,
-      hooks: { done: [] },
-      workflow: { id: 'coding', name: 'Coding', stages: { execute: { lead: 'builder', helpers: [{ agent: 'qa', extra: '' }] } } },
-    }
-    assert.deepEqual(said(hooked), { kind: 'hook-running', hook: 'qa', branch: 'main' })
+  it('names the branch a build lands on', () => {
     assert.deepEqual(said(base), { kind: 'building', branch: 'main' })
     assert.deepEqual(said({ ...base, commitMode: 'manual' }), { kind: 'building' })
     assert.deepEqual(said({ ...base, cardId: null }), { kind: 'building-typed', branch: 'main' })
@@ -215,15 +177,14 @@ describe("a delivery line's kind and values", () => {
 })
 
 describe('the record keeps the kind', () => {
-  it('reads a landing reason and a stopped hook back', () => {
+  it('reads a landing reason back, and an old hook stop as a plain stop', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-line-'))
     try {
       fs.mkdirSync(path.join(root, 'docs', 'kanban', 'todo'), { recursive: true })
       setBoardRoot(root)
-      const hook = { agent: 'qa', how: 'unstarted' as const, error: 'spawn ENOENT' }
       withStore((store) => {
         store.deliveries.push(
-          { ...stopped({ reason: 'hook', hook }), deliveryId: 'one' },
+          { ...stopped({ reason: 'hook' as never }), deliveryId: 'one' },
           { ...landing({ why: 'no', reason: { kind: 'worktree-dirty', files: ['a.ts'] } }), deliveryId: 'two', cardId: 2 },
           { ...landing({ why: 'no', reason: { kind: 'queued', behind: '#1' } }), deliveryId: 'three', cardId: 3 },
           // A kind this copy does not know is dropped rather than trusted.
@@ -231,7 +192,7 @@ describe('the record keeps the kind', () => {
         )
       })
       const [one, two, three, four] = readStore().deliveries
-      assert.deepEqual(one!.review?.stopped?.hook, hook)
+      assert.equal(one!.review?.stopped?.reason, 'session')
       assert.deepEqual(two!.landing?.reason, { kind: 'worktree-dirty', files: ['a.ts'] })
       assert.deepEqual(three!.landing?.reason, { kind: 'queued', behind: '#1' })
       assert.equal(four!.landing?.reason, undefined)
