@@ -221,14 +221,14 @@ export type CardLandingStatus = 'waiting' | 'landing' | 'landed' | 'conflict'
 
 /** What one delivery changed, as the card page's **Diff** tab draws it (#305).
  *
- *  Two things are being shown under one shape: while a delivery builds, its branch against
- *  the base it forked from; once it has landed, the squash commit against the tip it landed
+ *  Two things are being shown under one shape: while a delivery builds, its working tree
+ *  against the base it forked from; once it has landed, the squash commit against the tip it landed
  *  onto. The tab appears only when there is one of these to show. */
 export interface DeliveryDiff {
   /** The delivery this is the diff of. */
   id: string
   /** Files changed, insertions and deletions — one line, always drawn first. Empty when
-   *  `note` says why there is nothing. */
+   *  nothing changed, or when `note` says why there is nothing. */
   stat: string
   /** The diff itself, in git's own format. Empty beside a `note`. */
   diff: string
@@ -679,6 +679,8 @@ export interface ArchivedCardFile extends ArchivedCard {
   sources?: SourceLink[]
   /** Why it was rejected, as typed. Absent on a card rejected with no reason. */
   rejectedReason?: string
+  /** Its newest delivery that landed a commit, while the board still has the record. */
+  landed?: { id: string; commit: string; targetBranch?: string }
 }
 
 /** What the archive holds. */

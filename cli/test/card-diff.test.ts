@@ -1,6 +1,6 @@
 // A delivery's diff on the card (#305).
 //
-// Every question here is a git question — what the branch holds against its base, what the
+// Every question here is a git question — what the worktree holds against its base, what the
 // squash commit holds against the tip it landed onto, what a working tree with a brand new
 // file in it looks like — so the board is a real repository with real worktrees.
 
@@ -11,6 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
+import { candidateOf, candidatePatch, candidateStat } from '../src/lib/agent/candidate.ts'
 import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -18,7 +19,8 @@ import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { ARCHIVE, setBoardRoot } from '../src/lib/paths.ts'
+import { readArchivedCard } from '../src/lib/view/archive.ts'
 import { deliveryDiff } from '../src/lib/view/diff.ts'
 import { findCard } from '../src/lib/view/read.ts'
 
@@ -111,6 +113,35 @@ describe('while a delivery builds', () => {
     assert.equal(diff.uncommitted, undefined)
   })
 
+  it('shows what the run has written but not yet committed, new files included (#1537)', async () => {
+    const session = run('implement', 1, 'card one')
+    const delivery = activeDelivery(1)!
+    const dir = worktreeDir(delivery.worktree!)
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n')
+    fs.writeFileSync(path.join(dir, 'brand-new.txt'), 'whole new module\n')
+
+    const diff = deliveryDiff(delivery.deliveryId)!
+    assert.equal(diff.stat, '2 files changed, 2 insertions(+), 1 deletion(-)')
+    assert.match(diff.diff, /^\+one$/m)
+    assert.match(diff.diff, /^\+whole new module$/m)
+    assert.equal(diff.uncommitted, undefined)
+
+    // Review still reads only what is committed on the branch.
+    const candidate = candidateOf(delivery)
+    assert.equal(candidatePatch(candidate), '')
+    assert.equal(candidateStat(candidate), 'no tracked file changed')
+    await end(session)
+  })
+
+  it('is empty, not git\'s wording, before the run has written anything', async () => {
+    const session = run('implement', 1, 'card one')
+    const diff = deliveryDiff(activeDelivery(1)!.deliveryId)!
+    assert.equal(diff.stat, '')
+    assert.equal(diff.diff, '')
+    assert.equal(diff.note, undefined)
+    await end(session)
+  })
+
   it('leaves the board out of it', async () => {
     const delivery = await built((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
     assert.equal(deliveryDiff(delivery.deliveryId)!.diff.includes('docs/kanban'), false)
@@ -180,6 +211,19 @@ describe('once it has landed', () => {
     assert.ok(deliveryDiff(finished.id))
   })
 
+  it('is reachable from the archived card (#1537)', async () => {
+    const delivery = await built((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+    await advanceLanding()
+    const commit = recordOf(delivery.deliveryId).landing!.commit!
+    fs.mkdirSync(ARCHIVE, { recursive: true })
+    fs.writeFileSync(path.join(ARCHIVE, '1-card.md'), card(1, 'card one'))
+    fs.rmSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'), { force: true })
+
+    const landed = readArchivedCard(1)!.landed!
+    assert.deepEqual(landed, { id: delivery.deliveryId, commit, targetBranch: 'main' })
+    assert.match(deliveryDiff(landed.id)!.diff, /^\+one$/m)
+  })
+
   it('says so plainly when the commit is no longer there', async () => {
     const delivery = await built((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
     await advanceLanding()
@@ -205,6 +249,6 @@ describe('a diff too long for the page', () => {
     assert.equal(diff.truncated, true)
     assert.ok(diff.diff.length < 130_000)
     assert.ok(diff.diff.endsWith('\n'))
-    assert.match(diff.whole ?? '', /git -C .* diff [0-9a-f]{7}\.\.card\/1\//)
+    assert.match(diff.whole ?? '', /git -C .* diff [0-9a-f]{7}$/)
   })
 })

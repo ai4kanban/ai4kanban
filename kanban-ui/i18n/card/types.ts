@@ -246,6 +246,8 @@ export type CardCopy = {
     renamed: string;
     binary: string;
     noLines: string;
+    /** The whole diff is empty. */
+    noChanges: string;
     /** Only read out loud: which side of the diff a line is on. */
     lineAdded: string;
     lineRemoved: string;

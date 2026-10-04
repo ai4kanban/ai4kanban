@@ -12,6 +12,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { listDeliveries } from '../agent/deliveries'
 import { cardSources } from '../card-sources'
 import { idPrefix, walkMd } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
@@ -68,7 +69,22 @@ export function readArchivedCard(id: number): ArchivedCardFile | null {
     if (!found || found.row.id !== id) continue
     const sources = cardSources(found.meta, found.body)
     const reason = found.meta.rejected_reason
-    return { ...found.row, body: found.body, ...(sources.length ? { sources } : {}), ...(reason ? { rejectedReason: reason } : {}) }
+    const landed = landedDelivery(id)
+    return {
+      ...found.row,
+      body: found.body,
+      ...(sources.length ? { sources } : {}),
+      ...(reason ? { rejectedReason: reason } : {}),
+      ...(landed ? { landed } : {}),
+    }
   }
   return null
+}
+
+// The card's newest delivery that landed a commit (#1537), so its page can show what landed.
+function landedDelivery(cardId: number): ArchivedCardFile['landed'] {
+  const last = listDeliveries()
+    .filter((d) => d.cardId === cardId && d.status === 'finished' && d.landing?.status === 'landed' && d.landing.commit)
+    .pop()
+  return last && { id: last.deliveryId, commit: last.landing!.commit!, targetBranch: last.targetBranch }
 }

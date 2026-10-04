@@ -743,6 +743,7 @@ function DeliveryBlock({
   onEnded,
   onResumed,
   onError,
+  onDiffOpen,
 }: {
   delivery: CardDelivery;
   diff: DeliveryDiff | null;
@@ -750,6 +751,8 @@ function DeliveryBlock({
   onEnded: () => void;
   onResumed: (sessionId: string) => void;
   onError: (why: string) => void;
+  /** The Diff tab was opened while a run is writing — the diff on hand is already stale. */
+  onDiffOpen: () => void;
 }) {
   const c = useCopy().card.delivery;
   // The log opens first: while a delivery is live it is the thing that moves, and the diff
@@ -800,6 +803,7 @@ function DeliveryBlock({
         onPick={(key) => {
           setTab(key);
           setOpen(true);
+          if (key === "diff" && live) onDiffOpen();
         }}
         onToggle={() => setOpen((v) => !v)}
         meta={<SessionMeta session={session} />}
@@ -949,6 +953,40 @@ function FinishedBlock({
             {finished.targetBranch ??
               (finished.commitMode === "files" ? "" : finished.commitMode === "auto" ? c.autoCommit : c.manualCommits)}
           </span>
+        </DeliveryFoot>
+      )}
+    </div>
+  );
+}
+
+// An archived card's landed delivery (#1537): read-only, open on its Diff.
+export function LandedBlock({
+  landed,
+  diff,
+}: {
+  landed: { commit: string; targetBranch?: string };
+  diff: DeliveryDiff;
+}) {
+  const c = useCopy().card.delivery;
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="nb-section bg-nb-sheet">
+      <TabStrip
+        tabs={[{ key: "diff", label: c.tabDiff }]}
+        current="diff"
+        open={open}
+        onPick={() => setOpen(true)}
+        onToggle={() => setOpen((v) => !v)}
+      />
+      {open && <DiffPane diff={diff} />}
+      {open && (
+        <DeliveryFoot>
+          <span className="flex items-center gap-1.5">
+            <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
+            <span>{c.landedAs}</span>
+            <code className="font-mono text-nb-ink">{landed.commit.slice(0, 7)}</code>
+          </span>
+          {landed.targetBranch && <span className={CAP}>{landed.targetBranch}</span>}
         </DeliveryFoot>
       )}
     </div>
@@ -1793,6 +1831,7 @@ export function CardPage({
                 }}
                 onResumed={onResumed}
                 onError={setError}
+                onDiffOpen={refresh}
               />
             ) : finishedBlock && card.finished && diff ? (
               /* The delivery has ended and the card is still here (#305) — normally the

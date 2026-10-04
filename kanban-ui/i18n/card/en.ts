@@ -234,6 +234,7 @@ const en: CardCopy = {
     renamed: "moved",
     binary: "Binary file — nothing to show in lines.",
     noLines: "No lines changed.",
+    noChanges: "No changes yet",
     lineAdded: "added ",
     lineRemoved: "removed ",
   },

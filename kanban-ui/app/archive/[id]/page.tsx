@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { ArchivedCardPage } from "@/components/Archive";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
-import { readArchivedCard, readBoard } from "@/lib/board";
+import { deliveryDiff, readArchivedCard, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
 import { readStoryboards } from "@/lib/storyboard";
@@ -32,10 +32,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // page of its own.
   if (!card) notFound();
 
-  const [agent, mockups, storyboards] = await Promise.all([
+  const [agent, mockups, storyboards, diff] = await Promise.all([
     agentInfo().catch(() => NO_AGENT),
     readMockups(card.body),
     readStoryboards(card.body, cardId),
+    deliveryDiff(card.landed?.id),
   ]);
   return (
     <ArchivedCardPage
@@ -47,6 +48,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       projectRoot={repoRoot()}
       memoryOwners={board.memoryOwners}
       desktop={isDesktop()}
+      diff={diff}
     />
   );
 }

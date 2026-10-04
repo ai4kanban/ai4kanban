@@ -225,6 +225,7 @@ const zh: CardCopy = {
     renamed: "移动",
     binary: "二进制文件，无法按行显示。",
     noLines: "没有行发生变化。",
+    noChanges: "还没有改动",
     lineAdded: "新增 ",
     lineRemoved: "删除 ",
   },

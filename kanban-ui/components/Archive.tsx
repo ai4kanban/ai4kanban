@@ -18,9 +18,10 @@ import { FiArchive, FiSlash, FiTag } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
-import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, MemoryOwner } from "@/lib/types";
+import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, DeliveryDiff, MemoryOwner } from "@/lib/types";
 import { withoutSourceSection } from "@/lib/format/source";
 import { CardBody } from "./CardBody";
+import { LandedBlock } from "./CardPage";
 import { SourceLinks } from "./card-sources";
 import { HAIRLINE } from "./chrome";
 import { RunningNotice } from "./desktop";
@@ -253,6 +254,7 @@ export function ArchivedCardPage({
   projectRoot,
   memoryOwners,
   desktop,
+  diff,
 }: {
   card: ArchivedCardFile;
   mockups?: MockupSet;
@@ -262,6 +264,8 @@ export function ArchivedCardPage({
   projectRoot: string;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
+  /** What its landed delivery changed, when the board still has the record. */
+  diff?: DeliveryDiff | null;
 }) {
   const t = useCopy();
   const c = t.rail.archive;
@@ -310,7 +314,14 @@ export function ArchivedCardPage({
         </div>
       )}
       <div className="mt-4 flex flex-col gap-2">
-        <CardBody body={card.sources?.length ? withoutSourceSection(card.body) : card.body} title={card.title} cardId={card.id} mockups={mockups} storyboards={storyboards} />
+        <CardBody
+          body={card.sources?.length ? withoutSourceSection(card.body) : card.body}
+          title={card.title}
+          cardId={card.id}
+          mockups={mockups}
+          storyboards={storyboards}
+          beforeAgent={card.landed && diff && <LandedBlock landed={card.landed} diff={diff} />}
+        />
       </div>
     </ArchiveFrame>
   );

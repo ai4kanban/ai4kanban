@@ -30,6 +30,7 @@ export function CardBody({
   mockups,
   storyboards,
   questions,
+  beforeAgent,
 }: {
   body: string;
   title: string;
@@ -38,6 +39,8 @@ export function CardBody({
   /** Absent off this machine: each tag then says to open the card in the app. */
   storyboards?: StoryboardSet;
   questions?: Question[];
+  /** Drawn between the user's half and the agent's fold. */
+  beforeAgent?: React.ReactNode;
 }) {
   const c = useCopy().card;
   const halves = useMemo(() => splitCardBody(body), [body]);
@@ -92,6 +95,7 @@ export function CardBody({
           ),
         )}
       </div>
+      {beforeAgent}
       {halves.agent && (
         <Fold
           className="nb-section bg-nb-sheet"
