@@ -157,7 +157,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'user-docs'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -170,10 +170,10 @@ describe('the workflows a board has', () => {
 
   it('keeps the specialists the coding plan stage offers until the board chooses for it', () => {
     const helpers = () => workflowViews()[0]!.stages[0]!.helpers.filter((h) => !h.off).map((h) => h.agent)
-    assert.deepEqual(helpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(helpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer', 'user-docs'])
     // Disabling one IS choosing, and the choice sticks.
     assert.equal(switchWorkflowAgent('coding', 'plan', 'ui-designer', false).ok, true)
-    assert.deepEqual(helpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor'])
+    assert.deepEqual(helpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'user-docs'])
   })
 
   it('keeps an extra requirement per assignment, and clears it without touching the agent', () => {
@@ -204,7 +204,7 @@ describe('the leads of a workflow the command ships', () => {
   it('still takes helpers, and writes no lead beside them', () => {
     const helpers = (stage: number) => workflowViews()[0]!.stages[stage]!.helpers.filter((h) => !h.off).map((h) => h.agent)
     assert.equal(switchWorkflowAgent('coding', 'plan', 'ui-designer', false).ok, true)
-    assert.deepEqual(helpers(0), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor'])
+    assert.deepEqual(helpers(0), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'user-docs'])
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
   })
 
@@ -227,7 +227,7 @@ describe('the leads of a workflow the command ships', () => {
     assert.equal(coding.stages[1]!.lead, 'builder')
     // The lead is never also a helper, so the agent it had been moved aside for is gone; the
     // plan helpers no workflow lists wait there, disabled (#1095) — all but a newly shipped one (#1099).
-    assert.deepEqual(coding.stages[0]!.helpers.filter((h) => !h.off).map((h) => h.agent), ['prompt-writer', 'email-planner'])
+    assert.deepEqual(coding.stages[0]!.helpers.filter((h) => !h.off).map((h) => h.agent), ['prompt-writer', 'email-planner', 'user-docs'])
     // A stage that held nothing but a lead goes with it.
     assert.equal(config().workflows.stages.coding.execute, undefined)
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
@@ -235,6 +235,7 @@ describe('the leads of a workflow the command ships', () => {
       { agent: 'software-planner', extra: 'x' },
       { agent: 'prompt-writer', extra: '' },
       { agent: 'email-planner', extra: '' },
+      { agent: 'user-docs', extra: '' },
     ])
   })
 
@@ -340,7 +341,7 @@ describe('a switch a board saved before the assignment was the answer', () => {
 
   it('comes off every stage that was offering the agent, and the key goes with it', () => {
     saveConfig({ specAgents: { 'ui-designer': false } })
-    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'user-docs'])
     assert.equal(config().specAgents, undefined)
     // Written down, not worked out again: the stage is chosen from here.
     assert.deepEqual(config().workflows.stages.coding.plan.helpers, [
@@ -348,6 +349,7 @@ describe('a switch a board saved before the assignment was the answer', () => {
       { agent: 'email-planner', extra: '' },
       { agent: 'prompt-writer', extra: '' },
       { agent: 'tech-stack-advisor', extra: '' },
+      { agent: 'user-docs', extra: '' },
     ])
     // The lead is not written with it — a built-in's is the command's own (#774).
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
@@ -355,7 +357,7 @@ describe('a switch a board saved before the assignment was the answer', () => {
 
   it('leaves everything else the entry held, and touches no other agent', () => {
     saveConfig({ specAgents: { 'ui-designer': { enabled: false, mockupStyle: 'ascii' } } })
-    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'user-docs'])
     assert.deepEqual(config().specAgents, { 'ui-designer': { mockupStyle: 'ascii' } })
   })
 
@@ -364,15 +366,15 @@ describe('a switch a board saved before the assignment was the answer', () => {
       specAgents: { 'tech-stack-advisor': false },
       workflows: { stages: { coding: { plan: { lead: 'software-planner', helpers: [{ agent: 'tech-stack-advisor', extra: 'x' }] } } } },
     })
-    assert.deepEqual(planHelpers(), ['prompt-writer', 'email-planner'])
+    assert.deepEqual(planHelpers(), ['prompt-writer', 'email-planner', 'user-docs'])
     assert.equal(config().specAgents, undefined)
   })
 
   it('does not put the agent back, and adding it again is the board’s own choice', () => {
     saveConfig({ specAgents: { 'ui-designer': false } })
-    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'user-docs'])
     assert.equal(addWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
-    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'user-docs', 'ui-designer'])
     assert.equal(config().specAgents, undefined)
   })
 
@@ -380,7 +382,7 @@ describe('a switch a board saved before the assignment was the answer', () => {
     const refused = setSpecAgentEnabled('ui-designer', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /workflow agent, so it has no board switch/)
-    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer', 'user-docs'])
   })
 })
 
@@ -404,7 +406,7 @@ describe('a workflow the board adds', () => {
     assert.equal(mine.builtIn, false)
     assert.equal(mine.stages.execute.lead, 'builder')
     // Including the helpers the original was OFFERING, each copied so the two share none (#1095).
-    assert.deepEqual(mine.stages.plan.helpers.map((h) => h.agent), ['copywriting-2', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2'])
+    assert.deepEqual(mine.stages.plan.helpers.map((h) => h.agent), ['copywriting-2', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2', 'user-docs-2'])
     assert.ok(fs.existsSync(path.join(kanban(), 'agents', 'ui-designer-2', 'AGENT.md')))
     // Its own configuration from here: changing the copy leaves the built-in alone.
     assert.equal(setWorkflowLead(copy.id!, 'execute', 'test-writer').ok, true)
@@ -599,7 +601,7 @@ describe('an agent a workflow no longer has', () => {
     assert.equal(addWorkflowHelper(copy.id!, 'plan', 'nobody-here').ok, false)
     assert.deepEqual(
       workflowById(copy.id!)!.stages.plan.helpers.map((h) => h.agent),
-      ['copywriting-2', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2'],
+      ['copywriting-2', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2', 'user-docs-2'],
     )
     // A LEAD nobody answers to is left exactly as assigned and reported, rather than quietly
     // running as somebody else.
@@ -927,7 +929,7 @@ describe('one workflow per agent (#1095)', () => {
   it('keeps who runs where, and puts an agent nobody listed in Coding, disabled', () => {
     stageAgent('outliner', 'plan')
     write({ workflows: { stages: { coding: { plan: { helpers: [{ agent: 'ui-designer', extra: '' }] } } } } })
-    assert.deepEqual(members('coding'), ['ui-designer', 'prompt-writer', 'email-planner', 'copywriting (off)', 'tech-stack-advisor (off)', 'outliner (off)'])
+    assert.deepEqual(members('coding'), ['ui-designer', 'prompt-writer', 'email-planner', 'user-docs', 'copywriting (off)', 'tech-stack-advisor (off)', 'outliner (off)'])
     assert.equal(specAgentAssigned('outliner', 'coding'), false)
     assert.equal(saved().workflows.agentsOwned, true)
   })
@@ -935,7 +937,7 @@ describe('one workflow per agent (#1095)', () => {
   it('turns a newly shipped agent on in a Coding the board already chose, once (#1099)', () => {
     write({ workflows: { stages: { coding: { plan: { helpers: [{ agent: 'ui-designer', extra: '' }] } } } } })
     assert.deepEqual(members('coding').slice(0, 3), ['ui-designer', 'prompt-writer', 'email-planner'])
-    assert.deepEqual(saved().workflows.shipped, ['prompt-writer', 'email-planner', 'cover-designer', 'demo-rehearser'])
+    assert.deepEqual(saved().workflows.shipped, ['prompt-writer', 'email-planner', 'user-docs', 'cover-designer', 'demo-rehearser'])
     assert.equal(switchWorkflowAgent('coding', 'plan', 'prompt-writer', false).ok, true)
     assert.ok(members('coding').includes('prompt-writer (off)'))
     const cfg = saved()
@@ -963,7 +965,7 @@ describe('one workflow per agent (#1095)', () => {
         stages: { 'wf-2': { plan: { lead: 'software-planner', helpers: [{ agent: 'ui-designer', extra: 'x' }] } } },
       },
     })
-    assert.deepEqual(members('coding'), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(members('coding'), ['copywriting', 'email-planner', 'prompt-writer', 'tech-stack-advisor', 'ui-designer', 'user-docs'])
     assert.deepEqual(liveStage(workflowById('wf-2')!, 'plan').helpers, [{ agent: 'ui-designer-2', extra: 'x' }])
     assert.ok(fs.existsSync(path.join(kanban(), 'agents', 'ui-designer-2', 'AGENT.md')))
     assert.deepEqual(members('wf-2'), ['ui-designer-2'])
@@ -997,7 +999,7 @@ describe('one workflow per agent (#1095)', () => {
     fs.writeFileSync(path.join(kanban(), 'memory', 'agents', 'ui-designer', 'notes.md'), 'x\n')
     assert.equal(switchWorkflowAgent('coding', 'plan', 'copywriting', false).ok, true)
     const copy = duplicateWorkflow('coding').id!
-    assert.deepEqual(members(copy), ['copywriting-2 (off)', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2'])
+    assert.deepEqual(members(copy), ['copywriting-2 (off)', 'email-planner-2', 'prompt-writer-2', 'tech-stack-advisor-2', 'ui-designer-2', 'user-docs-2'])
     assert.equal(fs.readFileSync(path.join(kanban(), 'rules', 'ui-designer-2.md'), 'utf8'), 'Be brief.\n')
     assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-designer-2', 'notes.md')))
     assert.deepEqual(saved().specAgents['ui-designer-2'], { output: 'human' })

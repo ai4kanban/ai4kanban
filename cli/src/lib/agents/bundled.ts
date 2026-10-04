@@ -43,6 +43,7 @@ import compositionWorkflowsIntegrations from '../../agents/scriptwriter/referenc
 import compositionShaderTransitions from '../../agents/scriptwriter/references/composition/shader-transitions.md'
 import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md'
 import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
+import userDocs from '../../agents/user-docs/AGENT.md'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
@@ -83,6 +84,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/references/composition/shader-transitions.md': compositionShaderTransitions,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
+  'user-docs/AGENT.md': userDocs,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,

@@ -25,7 +25,6 @@ import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
 import describeProject from '../guide/describe-project.md'
 import discussIdea from '../guide/discuss-idea.md'
-import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
 import feedback from '../guide/feedback.md'
 import followUp from '../guide/follow-up.md'
@@ -78,7 +77,6 @@ export const GUIDES: Guide[] = [
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },
   { name: 'changelog', when: "write a closed version's changelog from what its close wrote down", text: changelog },
-  { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'review-memory', when: 'read what the conversations settled, and write it into memory', text: reviewMemory },
   { name: 'describe-project', when: 'rewrite the description of what the project is today', text: describeProject },

@@ -672,6 +672,7 @@ function splitSharedAgents(cfg: Record<string, unknown>): boolean {
 const SHIPPED_ON: { agent: string; flow: string }[] = [
   { agent: 'prompt-writer', flow: DEFAULT_WORKFLOW },
   { agent: 'email-planner', flow: DEFAULT_WORKFLOW },
+  { agent: 'user-docs', flow: DEFAULT_WORKFLOW },
   { agent: 'cover-designer', flow: 'hyperframes-video' },
   { agent: 'demo-rehearser', flow: 'hyperframes-video' },
 ]

@@ -462,7 +462,7 @@ interface Flow {
 
 /** Guides supplied upfront, general rules before the action's own flow. */
 const GUIDES_FOR: Record<StartableAction, string[]> = {
-  implement: ['board', 'implement', 'document-feature'],
+  implement: ['board', 'implement'],
   conflict: ['conflict'],
   // Nor a scheduled agent's pass (#1401), nor a sub-run (#1421).
   scheduled: [],

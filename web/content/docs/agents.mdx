@@ -98,6 +98,11 @@ card, and changes nothing else. The board ships nine, and `akb spec` lists them:
   language the product sends it in: the subject, the preview text and the body, with the
   HTML version previewed on desktop and mobile beside the plain text. The builder ships it
   as written. Cards that change only how mail is delivered skip it.
+- **`user-docs`** (User docs) — writes the user documentation a card changes: guides, help
+  pages, a docs site or an FAQ. Each changed page comes as a diff and each new one as full
+  Markdown, for you to confirm before the builder writes it in. Internal docs, promotional copy
+  and text inside the product are not its job. It keeps your documentation preferences in its
+  memory, `writing.md`.
 - **`demo-rehearser`** (Demo rehearser) — on a Product video card with a demo only, before you
   review the script: rehearses each demo section for real in an isolated environment, records the
   steps in `demo.md`, and shows each section's result with its key screenshots (3–6 in total) on
