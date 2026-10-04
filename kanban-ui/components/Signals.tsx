@@ -201,11 +201,12 @@ function sourceCard(signal: Signal): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** The group an item sits in: its source type, the card it came from, or none. */
+/** The group an item sits in: its source type, the card it came from, the agent that wrote it, or none. */
 function groupOf(signal: Signal): string {
   if (signal.sourceType) return signal.sourceType;
   const card = sourceCard(signal);
-  return card === null ? "" : `#${card}`;
+  if (card !== null) return `#${card}`;
+  return signal.agent ? `@${signal.agent}` : "";
 }
 
 const cardOfGroup = (key: string): number | null =>
@@ -229,8 +230,8 @@ interface Group {
   items: Signal[];
 }
 
-/** Source types in the board's own order, then other types by key, then card groups newest
- *  card first, then the one group nothing named a source for. */
+/** Source types in the board's own order, then other types by key, then agents by name, then
+ *  card groups newest card first, then the one group nothing named a source for. */
 function groupBySource(signals: Signal[], listed: string[]): Group[] {
   const by = new Map<string, Signal[]>();
   for (const signal of signals) {
@@ -243,7 +244,8 @@ function groupBySource(signals: Signal[], listed: string[]): Group[] {
   const keys = [...by.keys()];
   const order = [
     ...listed.filter((type) => by.has(type)),
-    ...keys.filter((key) => key && !key.startsWith("#") && !known.has(key)).sort(),
+    ...keys.filter((key) => key && !"#@".includes(key[0]) && !known.has(key)).sort(),
+    ...keys.filter((key) => key.startsWith("@")).sort(),
     ...keys
       .filter((key) => key.startsWith("#"))
       .sort((a, b) => cardOfGroup(b)! - cardOfGroup(a)!),
@@ -495,6 +497,7 @@ export function SignalsPage({
   );
   const groupName = (key: string) => {
     const card = cardOfGroup(key);
+    if (key.startsWith("@")) return key.slice(1);
     if (card === null) return sourceName(key, c.noSource);
     const title = inbox.cards[card]?.title;
     return title ? `#${card} ${title}` : `#${card}`;
