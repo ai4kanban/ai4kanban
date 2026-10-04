@@ -109,6 +109,3 @@ export function withdrawnSources(): string[] {
 export function rejectionWorkWaiting(since: number): boolean {
   return rejectionsToReview(since).length > 0 || dismissalsToReview(since).length > 0 || withdrawnSources().length > 0
 }
-
-/** The memory file, repo-relative, as the flow names it. */
-export const rejectedMemoryPath = (): string => rel(rejectedMemoryFile())

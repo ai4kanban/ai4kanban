@@ -32,12 +32,10 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { findSpecAgent } from '../agents'
-import { specAgentCatalog } from '../agents/catalog'
 import { parseStamp } from '../cadence'
-import { PLANNER, agentMemoryDir, agentMemoryFile, memoryFile, PROPOSER, PROPOSER_MISSED, proposerMissedFile } from '../memory'
-import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PROJECT_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
+import { PLANNER, agentMemoryDir, memoryFile, proposerMissedFile } from '../memory'
+import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PROJECT_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
 import { workflowRefusal } from './start'
-import { scheduledMembers, workflows } from './workflows'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -49,7 +47,7 @@ import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { field, metaLine, numbered } from './facts'
 import { reviewBatch, type ChatToReview } from './memory-review'
 import { dismissalReview } from './settings'
-import { dismissalsToReview, rejectedMemoryPath, rejectionsToReview, withdrawnSources } from './dismissal-review'
+import { dismissalsToReview, rejectionsToReview, withdrawnSources } from './dismissal-review'
 import { translating } from './language'
 import { buildAsk, frozenRules, leadBlock, reflectedCards, settingsBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
@@ -85,10 +83,6 @@ interface CardFacts {
   /** How many boxes are already ticked. Ticked boxes are history, so this is what the job
    *  must not touch. */
   ticked: number
-}
-
-function missedLine(): string {
-  return fs.existsSync(agentMemoryFile(PROPOSER, PROPOSER_MISSED)) ? proposerMissedFile() : `${proposerMissedFile()} — none yet`
 }
 
 // Where one flow reads its card. Everything works a card still on the board; a reflection
@@ -172,19 +166,6 @@ function memoryLines(modules: string[], name: string): string[] {
   const own = modules.filter((m) => memoryFile(name, m) !== memoryFile(name))
   if (!own.length) return [file]
   return [...own.map((m) => `${rel(memoryFile(name, m))} — the card's module \`${m}\``), `${file} — what spans modules`]
-}
-
-// What a reflection must not propose again (#1479): the global rejections, plus the card's own
-// modules' once they exist.
-function rejectedLines(modules: string[]): string[] {
-  const extra = modules.map((m) => memoryFile('rejected.md', m)).filter((file) => fs.existsSync(file))
-  return [...new Set([agentMemoryFile(PLANNER, 'rejected.md'), ...extra])].map(rel)
-}
-
-// The scheduled agents switched on, whose own work a reflection leaves to them (#1494).
-function scheduledLines(): string[] {
-  const on = new Set(workflows().flatMap((flow) => scheduledMembers(flow).filter((h) => !h.off).map((h) => h.agent)))
-  return specAgentCatalog().agents.filter((a) => on.has(a.name)).map((a) => `${a.name} — ${a.description}`)
 }
 
 // The jobs `akb guide board` tells to read the project's settings before they start:
@@ -841,8 +822,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ),
       )
       facts.push(...field('withdrawn', withdrawn.length === 0 ? '(none)' : withdrawn.join(', ')))
-      facts.push(...field('memory', [rejectedMemoryPath(), `${rel(agentMemoryDir(PLANNER))}/<module>/rejected.md — a module's own`]))
-      facts.push(...field('modules', rel(MODULES_MD)))
       close.push(
         `write those rejected.md files and nothing else — writing nothing is a complete result`,
         'raise nothing for anyone: there is no card to question',
@@ -855,17 +834,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(`rewrite ${rel(PROJECT_MD)} and nothing else`, 'raise nothing for anyone: there is no card to question')
       break
     }
-    // Reflecting on a card that has just completed (#534). The facts are what it was asked
-    // from, what it shipped and the proposer's past misses (#1211), plus where a follow-up may
-    // already be accounted for; the close is the one thing it may write.
+    // Reflecting on a card that has just completed (#534). The cards, and the scheduled agents
+    // it leaves work to, are in the ask; the guide names the memory it reads (#1498).
     case 'reflect': {
-      // The cards themselves, one `<card>` block each, are in the ask.
-      const modules = [...new Set(reflectedCards(req).flatMap((id) => readCard(id, 'archive').meta.modules))]
-      facts.push(...field('missed', missedLine()))
-      facts.push(...field('rejected', rejectedLines(modules)))
-      const scheduled = scheduledLines()
-      if (scheduled.length) facts.push(...field('scheduled', scheduled))
-      facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
+      for (const id of reflectedCards(req)) readCard(id, 'archive')
       close.push(
         `${self} triage add --title ".." --slug <short-english-slug> --source "#<id>" --text ".." — one call per proposal, each naming the archived file of the card it traces to`,
         'propose nothing at all when nothing follows: that is a complete result, and most batches are it',

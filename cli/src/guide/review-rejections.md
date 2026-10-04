@@ -1,8 +1,8 @@
 # Learn from rejections and dismissals
 
 Read the rejections and dismissals listed for you and keep what they say about what the user
-lastingly does not want in the `rejected.md` files listed under `memory`. Writing nothing is a
-complete result; most reasons say nothing lasting.
+lastingly does not want in `rejected.md` files. Writing nothing is a complete result; most
+reasons say nothing lasting.
 
 The flow lists new rejections (each card's file in `.archive/`), new dismissals (each item's
 file in `docs/kanban/triage/dismissed/`), each with the reason the user gave, and withdrawn
@@ -11,8 +11,9 @@ source ids: items cited in `rejected.md` that the user has since restored.
 - **Only what the user stated**: read the item and its reason together. Keep a note only
   where the reason states a lasting preference or constraint that would decide future cards or
   items — "we don't serve enterprise SSO requests", not "duplicate" or "not now". Never infer one.
-- **Where it goes**: `rejected.md` in the folder of the module from `docs/kanban/modules.md`
-  the preference is about, or the planner's own when it spans modules; create it if missing.
+- **Where it goes**: `docs/kanban/memory/agents/planner/<module>/rejected.md` for the module in
+  `docs/kanban/modules.md` the preference is about, or
+  `docs/kanban/memory/agents/planner/rejected.md` when it spans modules; create it if missing.
   Never invent a module.
 - **One line each**: `- **<what not to do>**: <why, in the user's terms> (<source>, ...)`, a
   source being a card `#id` or an item's source id; always keep them.

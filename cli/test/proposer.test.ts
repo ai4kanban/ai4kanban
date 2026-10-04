@@ -14,7 +14,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { printFlow } from '../src/lib/agent/flow.ts'
-import { buildAsk } from '../src/lib/agent/prompts.ts'
+import { buildAsk, buildRun } from '../src/lib/agent/prompts.ts'
 import { setSpecAgentSetting } from '../src/lib/agents/index.ts'
 import { switchWorkflowScheduled } from '../src/lib/agent/workflows.ts'
 import { nextReflection, queueCompleted, REFLECT_BATCH, reflectOnCompletion } from '../src/lib/agent/propose.ts'
@@ -363,34 +363,6 @@ describe('the flow', () => {
     assert.doesNotMatch(await reflect(), /^ +discussion /m)
   })
 
-  it('names the misses file whether or not it exists yet', async () => {
-    open(1)
-    complete(1)
-    assert.match(await reflect(), /memory\/agents\/proposer\/missed\.md — none yet/)
-    const missed = path.join(kanban(), 'memory', 'agents', 'proposer', 'missed.md')
-    fs.mkdirSync(path.dirname(missed), { recursive: true })
-    fs.writeFileSync(missed, '- **x**: y (#1)\n')
-    const printed = await reflect()
-    assert.match(printed, /memory\/agents\/proposer\/missed\.md/)
-    assert.doesNotMatch(printed, /none yet/)
-  })
-
-  it("names the card's own modules' rejections once they exist", async () => {
-    open(1)
-    const file = path.join(TODO(), '1-card.md')
-    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('modules: []', 'modules: [cli]'))
-    complete(1)
-    const planner = path.join(kanban(), 'memory', 'agents', 'planner')
-    assert.doesNotMatch(await reflect(), /^ +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md$/m)
-    for (const rel of ['cli/rejected.md', 'web/rejected.md']) {
-      fs.mkdirSync(path.dirname(path.join(planner, rel)), { recursive: true })
-      fs.writeFileSync(path.join(planner, rel), '- **x**: y\n')
-    }
-    const printed = await reflect()
-    assert.match(printed, /rejected +docs\/kanban\/memory\/agents\/planner\/rejected\.md\n +docs\/kanban\/memory\/agents\/planner\/cli\/rejected\.md\n/)
-    assert.doesNotMatch(printed, /planner\/web\/rejected\.md|dismissed\.md/)
-  })
-
   it('names the scheduled agents switched on, and only those', async () => {
     open(1)
     complete(1)
@@ -398,15 +370,16 @@ describe('the flow', () => {
     fs.mkdirSync(home, { recursive: true })
     fs.writeFileSync(path.join(home, 'AGENT.md'), ['---', 'name: night-auditor', 'description: Audits the night.', 'akb:', '  hook: schedule', '---', '', 'You audit.', ''].join('\n'))
     assert.equal(switchWorkflowScheduled('coding', 'night-auditor', true).ok, true)
-    let printed = await reflect()
-    assert.match(printed, /^ +scheduled +qa-manager — Keeps the project's test cases/m)
-    assert.match(printed, /^ +night-auditor — Audits the night\.$/m)
+    const scheduled = () => buildRun({ action: 'reflect', cards: [1] }).prompt
+    let printed = scheduled()
+    assert.match(printed, /<\/card>\n<scheduled-agents>\nqa-manager — Keeps the project's test cases/)
+    assert.match(printed, /^night-auditor — Audits the night\.$/m)
     assert.equal(switchWorkflowScheduled('coding', 'night-auditor', false).ok, true)
-    printed = await reflect()
+    printed = scheduled()
     assert.match(printed, /qa-manager — /)
     assert.doesNotMatch(printed, /night-auditor/)
     assert.equal(switchWorkflowScheduled('coding', 'qa-manager', false).ok, true)
-    assert.doesNotMatch(await reflect(), /^ +scheduled /m)
+    assert.doesNotMatch(scheduled(), /scheduled-agents/)
   })
 
   it('gives the memory review the misses file', async () => {

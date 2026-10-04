@@ -16,7 +16,8 @@ for another:
 What helps check it — read only as far as it sharpens a candidate:
 
 - **What shipped**: what each block lists under `shipped`.
-- **Past misses**: each kind listed under `missed`; check every card for each one.
+- **Past misses**: `docs/kanban/memory/agents/proposer/missed.md`, when it exists, lists kinds
+  of follow-up missed before; check every card for each one.
 
 ## Candidates
 
@@ -33,10 +34,11 @@ When what shipped makes an open card's plan untrue, propose no item for it; run
 ## Filter
 
 Drop a candidate that is already on the board (`akb raw list`) or in the inbox
-(`akb triage check <source-id>`), is work an agent listed under `scheduled` does on its own
-runs, is turned down by a file listed under `rejected`, or is a guess nothing in the card or
-the project backs. When several cards lead to the same work, propose it once, from the card
-it traces to most directly.
+(`akb triage check <source-id>`), is work an agent in the `<scheduled-agents>` block does on its
+own runs, is turned down by `docs/kanban/memory/agents/planner/rejected.md` or
+`docs/kanban/memory/agents/planner/*/rejected.md`, or is a guess nothing in the card or the
+project backs. When several cards lead to the same work, propose it once, from the card it
+traces to most directly.
 
 ## Write
 

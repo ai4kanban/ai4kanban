@@ -31,7 +31,8 @@ import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
-import { liveStage, scheduledAgent, workflowById, workflowFor } from './workflows'
+import { liveStage, scheduledAgent, scheduledMembers, workflowById, workflowFor, workflows } from './workflows'
+import { specAgentCatalog } from '../agents/catalog'
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
@@ -359,6 +360,14 @@ function reflectBlocks(ids: number[]): string[] {
   })
 }
 
+// The scheduled agents switched on, whose own work a reflection leaves to them (#1494). They
+// live in the app's settings, so the run is told rather than pointed at a file (#1498).
+function scheduledBlock(): string[] {
+  const on = new Set(workflows().flatMap((flow) => scheduledMembers(flow).filter((h) => !h.off).map((h) => h.agent)))
+  const lines = specAgentCatalog().agents.filter((a) => on.has(a.name)).map((a) => `${a.name} — ${a.description}`)
+  return lines.length ? ['<scheduled-agents>', ...lines, '</scheduled-agents>'] : []
+}
+
 function roster(req: AgentRequest): string {
   if (req.id === undefined) return ''
   // The card's own workflow, not only the one the request carries (#749): the ask this block
@@ -603,6 +612,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           `Don't ask me questions with human-in-the-loop.`,
         ].join(' '),
         ...reflectBlocks(ids),
+        ...scheduledBlock(),
       ].join('\n')
     }
     // A sort is the board's own loop (#1263): nothing is prompted.
