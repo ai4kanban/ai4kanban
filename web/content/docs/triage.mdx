@@ -71,6 +71,10 @@ the planning memory are what steer it. An item no workflow
 on the board can do is ignored. An item that lands on work a card already owns is ignored
 rather than merged into that card.
 
+An item the **Proposer** wrote was already checked against the product, the board and what you
+turned down, so the sort only asks whether it needs you and settles its card. It is never
+ignored for those reasons; turn down a card it should not have become on the board.
+
 The card keeps the item's own title and words, and its file is named after the item's. It is
 created with a refine already scheduled, and the board starts those itself, one per tick. So
 a sort leaves you cards that go on sharpening themselves — it does not start a build, answer
@@ -88,7 +92,7 @@ A new item is judged before you see it: the ones worth doing become cards by the
 each costing one more refine run.
 
 Every batch of new items starts one sort — a pull, **Add** on the page and `akb triage add`
-alike, so an item the **Proposer** writes is judged like any other. A pull that brought nothing
+alike, so an item the **Proposer** writes is sorted too. A pull that brought nothing
 new starts nothing.
 
 A sort reads the list once, when it starts, so anything that arrives while it goes is unseen.
@@ -256,5 +260,5 @@ ignored is taken.
 
 This is also where the board's own **Proposer** writes: the cards that finished are reflected on
 and what should follow them lands here, carrying the card that prompted it. See
-[Agents](/docs/agents). What it proposes is sorted like any other item — the board's own
-follow-ups become cards the same way an outside item does.
+[Agents](/docs/agents). What it proposes has already been checked, so the sort only decides
+whether it needs you and how its card is set up.

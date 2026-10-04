@@ -3,6 +3,8 @@
 // One Cloud request per item, every question asking one thing (#1439): is it worth doing, does
 // the product already do it, was it turned down, which card it duplicates, does it need the
 // user, is it small — and the module, priority, ROI and workflow of the card it would become.
+// A proposer's item was checked against the product, the board and what was turned down before
+// it was written (#1511), so it is asked only whether it needs the user, its size and its card.
 // Jev answers each alone; the order they are read in, and where each is cut, is `verdictOf`.
 // The answers land here: a card written and the item archived, an ignore with its reason, or a
 // hold for the user.
@@ -12,6 +14,7 @@ import path from 'node:path'
 
 import os from 'node:os'
 
+import { nodeOfFlow } from '../agent/stages'
 import { builtinDescription, workflows } from '../agent/workflows'
 import { runBoardMove } from '../board'
 import { idPrefix, walkMd } from '../cards'
@@ -152,28 +155,36 @@ function moduleCriteria(): Record<string, string> {
 const workflowCriteria = (): Record<string, string> =>
   Object.fromEntries(workflows().map((flow) => [flow.id, (flow.builtIn && builtinDescription(flow.id)) || flow.name]))
 
-/** What Jev is asked of one item. One already judged worth a card is asked only what its
- *  card needs. A question with fewer than two options is left out — Cloud refuses it. */
-export function questionsFor(cards: OpenCard[], judged = false): Record<string, unknown> {
+/** Which questions an item is asked: all of them, a proposer's, or only its card's. */
+export type Asks = 'all' | 'proposer' | 'card'
+
+/** Whether a reflection run wrote the item. */
+export const fromProposer = (item: Signal): boolean => !!item.agent && item.agent === nodeOfFlow('reflect')?.agent
+
+/** What Jev is asked of one item. A question with fewer than two options is left out — Cloud
+ *  refuses it. */
+export function questionsFor(cards: OpenCard[], asks: Asks = 'all'): Record<string, unknown> {
   const modules = moduleCriteria()
   return {
-    ...(judged
+    ...(asks === 'card'
       ? {}
-      : {
-          worth: WORTH,
-          supported: SUPPORTED,
-          rejected: REJECTED,
-          duplicate: {
-            type: 'choice',
-            instructions: DUPLICATE_ASKS,
-            criteria: {
-              ...Object.fromEntries(cards.map((card) => [`#${card.id}`, card.title])),
-              none: 'no open card owns this work.',
+      : asks === 'proposer'
+        ? { needsUser: NEEDS_USER, small: SMALL }
+        : {
+            worth: WORTH,
+            supported: SUPPORTED,
+            rejected: REJECTED,
+            duplicate: {
+              type: 'choice',
+              instructions: DUPLICATE_ASKS,
+              criteria: {
+                ...Object.fromEntries(cards.map((card) => [`#${card.id}`, card.title])),
+                none: 'no open card owns this work.',
+              },
             },
-          },
-          needsUser: NEEDS_USER,
-          small: SMALL,
-        }),
+            needsUser: NEEDS_USER,
+            small: SMALL,
+          }),
     ...(Object.keys(modules).length > 1 ? { modules: { type: 'choice', instructions: MODULES_ASKS, criteria: modules } } : {}),
     priority: PRIORITY,
     roi: ROI,
@@ -204,11 +215,12 @@ export interface Judgement {
 }
 
 /** The files Jev is given alongside the item, fixed by the board. Cut to fit; the item itself
- *  never is. Open cards reach Jev as the duplicate question's options, by id and title. */
+ *  never is. Open cards reach Jev as the duplicate question's options, by id and title. A
+ *  proposer's item is not asked whether it was turned down, so gets no `rejected.md`. */
 export function judgementState(item: Signal, questions: Record<string, unknown>): Judgement {
   const product = read(PROJECT_MD)
   const readme = onlyStarter('project.md', product) ? read(path.join(REPO_ROOT, 'README.md')) : ''
-  const memory: Kept[] = plannerCopies('rejected.md')
+  const memory: Kept[] = (fromProposer(item) ? [] : plannerCopies('rejected.md'))
     .map((file) => ({ file, lines: read(file).split('\n') }))
     .filter((kept) => kept.lines.some((line) => line.trim()))
   let readmeText = readme
@@ -293,8 +305,18 @@ function duplicateOf(answer?: Answer): { odds: number; card: number | null } {
 }
 
 /** The four ends, read off the answers in a fixed order: the three facts that make an item not
- *  worth a card, then whether the user is needed, then its worth. */
-export function verdictOf(answers: Record<string, Answer | undefined>): Verdict {
+ *  worth a card, then whether the user is needed, then its worth. A proposer's item is never
+ *  ignored here: it is held when it needs the user, and carded otherwise. */
+export function verdictOf(answers: Record<string, Answer | undefined>, asks: Asks = 'all'): Verdict {
+  if (asks === 'proposer') {
+    const needsUser = yes(answers.needsUser)
+    const small = yes(answers.small)
+    const base = { card: null, drop: null, do: null }
+    if (needsUser >= NEEDS_USER_LINE) return { ...base, confidence: needsUser, verdict: 'human-review', reason: 'needs-user' }
+    return small >= SMALL_LINE
+      ? { ...base, confidence: small, verdict: 'plan-without-refine', reason: 'small' }
+      : { ...base, confidence: hundredths(1 - small), verdict: 'plan', reason: 'plan' }
+  }
   const worth = yes(answers.worth)
   const duplicate = duplicateOf(answers.duplicate)
   const facts: [TriageReason, number][] = [
@@ -352,6 +374,7 @@ export const awaitsJudging = (item: Signal): boolean =>
   (item.verdict === 'human-review' && item.verdictReason === 'unsure' && (item.dropConfidence === null || item.doConfidence === null))
 export const awaitsCard = (item: Signal): boolean => item.verdict === 'plan' || item.verdict === 'plan-without-refine'
 export const sortable = (item: Signal): boolean => awaitsJudging(item) || awaitsCard(item)
+export const asksOf = (item: Signal): Asks => (awaitsCard(item) ? 'card' : fromProposer(item) ? 'proposer' : 'all')
 
 /** What the new card takes from Jev. `workflow` is empty for the board's default — Jev was
  *  unsure — and null when no workflow here can do the work. */
@@ -468,8 +491,8 @@ export type Sorted =
 /** Judge one waiting item and land the answer. Throws when Cloud or the board refuses; the
  *  item is left waiting. */
 export async function sortItem(item: Signal): Promise<Sorted> {
-  const judged = awaitsCard(item)
-  const questions = questionsFor(openCards(), judged)
+  const asks = asksOf(item)
+  const questions = questionsFor(asks === 'all' ? openCards() : [], asks)
   const answers = await ask({ state: judgementState(item, questions).state, questions }, item.sourceId)
   const record = (verdict: Verdict): void => {
     const recorded = recordVerdict(item.sourceId, verdict)
@@ -484,9 +507,9 @@ export async function sortItem(item: Signal): Promise<Sorted> {
   }
 
   let sure = { confidence: 1, drop: item.dropConfidence, do: item.doConfidence }
-  if (!judged) {
-    if (!answers.worth) die(`couldn't judge ${item.sourceId}: Cloud left the verdict unanswered`, { kind: 'judge-failed' })
-    const verdict = verdictOf(answers)
+  if (asks !== 'card') {
+    if (!answers[asks === 'proposer' ? 'needsUser' : 'worth']) die(`couldn't judge ${item.sourceId}: Cloud left the verdict unanswered`, { kind: 'judge-failed' })
+    const verdict = verdictOf(answers, asks)
     if (verdict.verdict === 'skip') return ignore(verdict)
     record(verdict)
     if (verdict.verdict === 'human-review') return { kind: 'held', reason: reasonWords(verdict) }

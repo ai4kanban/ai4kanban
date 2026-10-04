@@ -14,6 +14,7 @@ import { openSort, runSort, triageWaiting } from '../src/lib/agent/auto-triage.t
 import { readRuns } from '../src/lib/agent/store.ts'
 import { cmdTriageAdd, cmdTriageRestore } from '../src/commands/triage.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
+import { addToInbox } from '../src/lib/signals/add.ts'
 import { fileName, readAllDismissed, readArchived, readInbox, writeSignal } from '../src/lib/signals/inbox.ts'
 import {
   CONFIDENT,
@@ -71,6 +72,13 @@ async function waiting(title: string, slug?: string): Promise<string> {
   } finally {
     stopCollecting()
   }
+  return readInbox().find((item) => item.title === title)!.sourceId
+}
+
+/** An item a run of `agent` added — a reflection's is the proposer's. */
+function addedBy(agent: string, title: string): string {
+  const done = addToInbox({ title, text: `The words of ${title}.`, agent })
+  assert.ok(done.ok)
   return readInbox().find((item) => item.title === title)!.sourceId
 }
 
@@ -196,6 +204,16 @@ describe('the verdict', () => {
     assert.equal(end({ worth: yes(0.5) }), 'human-review/unsure')
   })
 
+  it("reads a proposer's item off whether it needs the user and its size alone", () => {
+    const of = (more: Record<string, Answer>) => verdictOf(more, 'proposer')
+    const end = (v: ReturnType<typeof verdictOf>) => `${v.verdict}/${v.reason}`
+    assert.equal(end(of({ needsUser: yes(0.7), small: yes(0.9) })), 'human-review/needs-user')
+    assert.equal(end(of({ needsUser: yes(0.1), small: yes(0.7) })), 'plan-without-refine/small')
+    assert.equal(end(of({ needsUser: yes(0.1), small: yes(0.2) })), 'plan/plan')
+    assert.equal(end(of({ needsUser: yes(0.1), small: yes(0.2), worth: yes(0.01), supported: yes(0.99) })), 'plan/plan')
+    assert.deepEqual([of({ small: yes(0.2) }).drop, of({ small: yes(0.2) }).do, of({ small: yes(0.2) }).confidence], [null, null, 0.8])
+  })
+
   it('keeps two confidences: that it is worth doing, and the strongest case against it', () => {
     assert.deepEqual([IGNORE_LINE, NEEDS_USER_LINE, DROP_LINE, DO_LINE, SMALL_LINE], [0.9, 0.5, 0.8, 0.8, 0.6])
     const v = verdictOf(judged({ worth: yes(0.85), supported: yes(0.3), rejected: yes(0.1) }))
@@ -278,12 +296,16 @@ describe('the questions', () => {
   })
 
   it('asks only what the card needs of an item already judged worth one', () => {
-    assert.deepEqual(Object.keys(questionsFor([], true)), ['modules', 'priority', 'roi', 'workflow'])
+    assert.deepEqual(Object.keys(questionsFor([], 'card')), ['modules', 'priority', 'roi', 'workflow'])
+  })
+
+  it("asks a proposer's item only whether it needs the user, its size and its card", () => {
+    assert.deepEqual(Object.keys(questionsFor([], 'proposer')), ['needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
   })
 
   it('leaves the module question out when there are not two modules to pick from', () => {
     fs.rmSync(path.join(kanban(), 'modules.md'))
-    assert.deepEqual(Object.keys(questionsFor([], true)), ['priority', 'roi', 'workflow'])
+    assert.deepEqual(Object.keys(questionsFor([], 'card')), ['priority', 'roi', 'workflow'])
   })
 
   it('reads the picks, falling back where Jev was unsure or off the list', () => {
@@ -317,6 +339,16 @@ describe('the state', () => {
     assert.equal(state.cards, undefined)
     assert.equal(state.readme, undefined)
     assert.deepEqual(trimmed, [])
+  })
+
+  it("gives a proposer's item no rejected.md", () => {
+    write(path.join(planner(), 'decisions.md'), '# Decisions\n\n- keep it plain\n')
+    write(path.join(planner(), 'rejected.md'), '# Rejected\n\n- a database\n')
+    const { state } = judgementState(item(addedBy('proposer', 'Dark mode')), questionsFor([], 'proposer'))
+    assert.match(String(state.decisions), /keep it plain/)
+    assert.equal(state['docs/kanban/memory/agents/planner/rejected.md'], undefined)
+    const other = judgementState(item(addedBy('qa-manager', 'Light mode')), questionsFor([])).state
+    assert.match(String(other['docs/kanban/memory/agents/planner/rejected.md']), /a database/)
   })
 
   it('reads the README when the product description is empty, and judges with no decisions', async () => {
@@ -410,6 +442,33 @@ describe('the sort', () => {
     assert.match(filed.relPath, /triage\/archived\/dark-mode-blog-post\.md$/)
     const valid = await akb(['validate', '100'], runBoard)
     assert.equal(valid.code, 0, valid.err + valid.out)
+  })
+
+  it("cards a proposer's item Jev would have ignored, and holds one that needs the user", async () => {
+    signIn(true)
+    card(7, 'Themes')
+    const carded = addedBy('proposer', 'Dark mode')
+    answer(jev({ worth: yes(0.01), supported: yes(0.99) }))
+    const first = await sort()
+    assert.deepEqual(Object.keys(sent[0]!.body.questions), ['needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
+    assert.deepEqual(first.report.cards, [{ id: 100, title: 'Dark mode' }])
+    assert.deepEqual([item(carded).verdict, item(carded).verdictReason], ['plan', 'plan'])
+
+    const held = addedBy('proposer', 'Pricing')
+    answer(jev({ needsUser: yes(0.9) }))
+    const second = await sort()
+    assert.deepEqual(second.report.held, [{ title: 'Pricing', reason: 'needs your direction' }])
+    assert.deepEqual([item(held).verdict, item(held).verdictReason], ['human-review', 'needs-user'])
+  })
+
+  it("judges another agent's item in full", async () => {
+    signIn(true)
+    const id = addedBy('qa-manager', 'Dark mode')
+    answer(jev({ supported: yes(0.99) }))
+    const { report } = await sort()
+    assert.equal(Object.keys(sent[0]!.body.questions).length, 10)
+    assert.equal(report.ignored.length, 1)
+    assert.deepEqual([item(id).verdict, item(id).verdictReason], ['skip', 'supported'])
   })
 
   it('schedules a refine on a small card too, and writes no Source section', async () => {

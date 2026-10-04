@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { ARCHIVE, REPO_ROOT, setBoardRoot } from '../src/lib/paths'
 import { readAllDismissed, readArchived, readInbox } from '../src/lib/signals/inbox'
-import { ask, judgementState, openCards, questionsFor, verdictOf, type Answer } from '../src/lib/signals/judge'
+import { ask, fromProposer, judgementState, openCards, questionsFor, verdictOf, type Answer, type Asks } from '../src/lib/signals/judge'
 import type { Signal } from '../src/lib/view/types'
 
 const args = process.argv.slice(2)
@@ -50,9 +50,9 @@ const items: { item: Signal; truth: Truth }[] = [
   ...readInbox().map((item) => ({ item, truth: 'waiting' as Truth })),
 ].filter(({ item }) => item.contentKept)
 
-async function answersOf(item: Signal): Promise<Record<string, Answer | undefined>> {
+async function answersOf(item: Signal, asks: Asks): Promise<Record<string, Answer | undefined>> {
   // Its own card is not a duplicate of it.
-  const questions = questionsFor(cards.filter((card) => card.id !== item.cardId))
+  const questions = questionsFor(cards.filter((card) => card.id !== item.cardId), asks)
   const state = { ...judgementState(item, questions).state, item: asCollected(item) }
   const key = createHash('sha256').update(JSON.stringify({ state, questions })).digest('hex').slice(0, 16)
   const cache = path.join(os.tmpdir(), 'akb-triage-eval', `${key}.json`)
@@ -63,13 +63,14 @@ async function answersOf(item: Signal): Promise<Record<string, Answer | undefine
   return answers
 }
 
-const judged: { truth: Truth; answers: Record<string, Answer | undefined> }[] = []
+const judged: { truth: Truth; asks: Asks; answers: Record<string, Answer | undefined> }[] = []
 const queue = [...items]
 await Promise.all(
   Array.from({ length: 4 }, async () => {
     for (let next = queue.shift(); next; next = queue.shift()) {
       try {
-        judged.push({ truth: next.truth, answers: await answersOf(next.item) })
+        const asks: Asks = fromProposer(next.item) ? 'proposer' : 'all'
+        judged.push({ truth: next.truth, asks, answers: await answersOf(next.item, asks) })
       } catch (e) {
         console.error(e instanceof Error ? e.message : String(e))
       }
@@ -82,7 +83,7 @@ console.log(`\n${judged.length} items — what the lines in judge.ts make of eac
 console.log(`${''.padEnd(32)}card  ignore  hold`)
 for (const truth of TRUTHS) {
   const ends = { card: 0, ignore: 0, hold: 0 }
-  for (const one of judged) if (one.truth === truth) ends[ENDS[verdictOf(one.answers).verdict]]++
+  for (const one of judged) if (one.truth === truth) ends[ENDS[verdictOf(one.answers, one.asks).verdict]]++
   console.log(`${NAMES[truth].padEnd(32)}${String(ends.card).padStart(4)}${String(ends.ignore).padStart(8)}${String(ends.hold).padStart(6)}`)
 }
 
