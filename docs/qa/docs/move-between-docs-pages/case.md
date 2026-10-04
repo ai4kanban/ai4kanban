@@ -32,7 +32,7 @@
    ![展开的目录](06-phone-open.png)
 
 7. 点「Triage」。
-   进入 `/docs/triage`，目录自动收起，折叠栏变成「Using the board / Triage」。
+   进入 `/docs/triage`，目录自动收起，折叠栏变成「Using the board / Triage」；正文第一句说 Triage 是顶栏铃铛左边的收件箱按钮，有条目等着时变红并带数字。
    ![跳到 Triage 后](07-phone-triage.png)
 
 ## Feedback
@@ -40,5 +40,6 @@
 - **左栏、翻页、手机目录都顺手**：高亮总在当前页，跳页后从页顶开始，手机上选完目录自己收起，不用再点一下。
 - **正文链接开新标签页**：文档内部互相引用（如「the daily loop」）也用 `target="_blank"`，读几页就攒一排标签页；同站跳转一般期望在原页打开，左栏和翻页也都是原页打开，行为不一致。
 - **翻页卡的分组名重复**：前后两张都写「Using the board」，除了「Overview」那一页外几乎都一样，占地方却不提供信息。
+- **Triage 页一开头就说入口在哪**：「the inbox button left of the bell」和应用里的位置对得上；只是手机读者看到的是网站，不知道「top row」指的是应用而不是这一页的页头。
 - **手机上两条折叠栏挨得近**：「Using the board / Runs and agents」和「On this page」样式相同，第一次看分不清哪条是换页、哪条是本页小节。
 - **没有跑到的**：手机上的「On this page」折叠栏、站内搜索、左栏底部的「Open an issue」。

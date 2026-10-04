@@ -4,7 +4,7 @@
 
 - **项目**：一次性 git 项目，`akb install` 新装的看板，删掉 `setup-checklist.md` 后提交。
 - **Agent**：[stand-in.mjs](../create-a-card-and-let-it-plan/stand-in.mjs) 顶替真实 agent，收到「实现」就写 `<id>.txt`；设了 `STAND_IN_TRACE` 时把启动参数（最后一个就是提示词）写进文件。
-- **看板的定时器**：命令行没有起 proposer 的入口，用 [start-reflect.mjs](start-reflect.mjs) 顶替界面每分钟一次的定时器，只起 `nextWork()` 给出的 `reflect` 运行。
+- **看板的定时器**：命令行没有起 proposer 的入口，用 [start-reflect.mjs](start-reflect.mjs) 顶替界面每分钟一次的定时器，只起 `nextWork()` 给出的 `reflect` 运行；带上卡号时直接起这些卡的 `reflect`，不等两次回顾之间的一小时。
 - **终端**：zsh，`env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`；日志里的 `akb` 就是这次构建出的命令。
 
 ## Steps
@@ -17,13 +17,18 @@
    `implement #2` 完成；当前分支多一次提交 `Export a card as PDF (#2)`。
    [02-implement.log](02-implement.log)
 
-3. 让看板起这张卡落地后的 proposer 运行（`reflect`），看它收到的提示词。
-   提示词里有 `scheduled` 一项，写着 `qa-manager — <它的职责>`，proposer 据此不再提议「补写或重录 QA 用例」。
-   **实际**：提示词里没有 `scheduled`，也没有 `missed`、`rejected`；`akb guide reflect` 的过滤规则提到「`scheduled` 里列出的 Agent」，但没有命令能打印 reflect 的流程（`akb reflect --print` 是未知命令）。已记入待筛选。
+3. 让看板起这张卡落地后的 proposer 运行（`reflect`），看它收到的提示词和 `akb guide reflect`。
+   提示词在 `<card>` 块之后有一个 `<scheduled-agents>` 块，一行 `qa-manager — <它的职责>`；`akb guide reflect` 写明过滤掉这个块里的 Agent 自己会做的工作，并直接给出 `missed.md` 和 `rejected.md` 的路径。
    [03-reflect.log](03-reflect.log)
+
+4. 执行 `akb workflow schedule coding --off qa-manager`，再建一张卡落地，起它的 `reflect`。
+   提示词里不再有 `<scheduled-agents>` 块。
+   [04-off.log](04-off.log)
 
 ## Feedback
 
-- **改动到不了真实运行**：#1494 只把 `scheduled` 加进了打印出来的流程，而看板起的 proposer 只拿到提示词，读 `akb guide reflect` 也只看到「列在 `scheduled` 下的 Agent」这句话，看不到名单。用户照样会在 qa-manager 开着时收到「重录 QA 用例」这类重复提议。
-- **用户看不到 proposer 跳过了什么**：就算过滤生效，它跳过的理由只写在运行报告里，待筛选里什么也不留；要确认「没提」是因为归了 qa-manager，得翻运行日志。
-- **证据的局限**：proposer 由替身顶替，验证的是它收到了什么，不是真实 agent 怎么判断。
+- **真实运行终于拿到名单**：开着的 QA 管理员连同一句职责直接写进 proposer 的提示词，关掉就消失，不用再指望它去读只在打印流程里才有的字段。
+- **职责只有一句英文简介**：proposer 要靠「Keeps the project's test cases true to the product」自己推断哪些后续归 QA 管理员，边界（比如「给新命令写文档」算不算）全凭判断。
+- **用户看不到 proposer 跳过了什么**：被过滤的提议不在待筛选里留痕，要确认「没提」是因为归了 QA 管理员，得翻运行日志。
+- **回顾之间隔一小时**：连着落地两张卡，第二张要等一小时才轮到回顾；这里用脚本带卡号直接起，界面上没有这个入口。
+- **证据的局限**：proposer 由替身顶替，验证的是它收到了什么，不是真实 agent 怎么判断；`missed.md`、`rejected.md` 有内容时它会不会去读，这次没跑。
