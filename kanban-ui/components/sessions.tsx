@@ -203,23 +203,43 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   return { sessions, start, watch, kick };
 }
 
-// Run `fn` each time the tab becomes visible again. A hidden tab stops polling,
+// Run `fn` each time the tab becomes visible again, or the window gets focus
+// back after the user left it — a desktop window covered by another app stays
+// "visible", so visibility alone never fires there. A hidden tab stops polling,
 // and the running-set diff a view uses to catch finishes only fires on a
-// running→finished change the view actually witnessed while polling. A run
-// that both starts and finishes while the tab is hidden is never witnessed, so
-// on focus that diff finds nothing and the view stays stale. An unconditional
-// re-read on focus is always correct and doesn't depend on witnessing the
-// transition — it also covers a finished run evicted from the kept-30 window
-// before the tab woke. Board and CardPage both use this to re-read on focus.
+// transition it witnessed; an unconditional re-read on return is always
+// correct. Focus moving into an in-page iframe is not leaving, and the two
+// events of one return collapse into one call.
 export function useOnTabFocus(fn: () => void) {
   const ref = useRef(fn);
   ref.current = fn;
   useEffect(() => {
+    let last = 0;
+    let left = false;
+    const fire = () => {
+      const now = Date.now();
+      if (now - last < 1000) return;
+      last = now;
+      ref.current();
+    };
     const onVisible = () => {
-      if (document.visibilityState === "visible") ref.current();
+      if (document.visibilityState === "visible") fire();
+    };
+    const onBlur = () => {
+      left = !(document.activeElement instanceof HTMLIFrameElement);
+    };
+    const onFocus = () => {
+      if (left) fire();
+      left = false;
     };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 }
 

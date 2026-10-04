@@ -31,8 +31,8 @@ async function ask(): Promise<void> {
 export const reloadSignalsRow = (): void => void ask();
 
 /** Asked when a window opens, when it is looked at again, and when a run ends — never on
- *  every tick of the board's poll: the answer reaches Cloud, and a row is not worth a request
- *  a second.
+ *  every tick of the board's poll: the count reads the local `triage/` folder, and a row is not
+ *  worth a read a second.
  *
  *  A board that may not use the inbox — an account not in the preview, rules older than the
  *  feature — answers `false`, and the button is simply not drawn. */
