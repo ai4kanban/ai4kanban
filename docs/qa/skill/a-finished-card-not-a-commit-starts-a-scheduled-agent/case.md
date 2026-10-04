@@ -35,9 +35,9 @@
    [06-a-finished-card.log](06-a-finished-card.log)
 
 7. 执行 `akb describe-project --help`。
-   应写明有新归档的卡片才运行。**失败**：仍写着 `runs only after new commits`，已记待筛选 `describe-project-help-still-says-commits`。
+   帮助写着按周期 `runs only after a card is finished, or while the file is still empty`，与第 4–6 步一致，不再提新提交。
    [07-help.log](07-help.log)
 
 ## Feedback
 
-行为本身干净：不是 git 仓库也能描述项目、跑周期 Agent，旧的 `reads: commits` 不报错地换成按归档卡片触发，升级的人不用改任何文件。但这个换算是悄悄发生的——`akb workflow schedule` 不显示 Agent 读什么，写着 `commits` 的人不会知道它的含义变了。`describe-project --help` 还在讲「新提交」，和实际行为相反，读帮助的人会白等一次提交。等待原因 `(nothing new yet)` 只出现在 `release-notes` 上，「描述项目」为什么不跑在命令行里看不到，只能靠巡检结果猜。
+行为本身干净：不是 git 仓库也能描述项目、跑周期 Agent，旧的 `reads: commits` 不报错地换成按归档卡片触发，升级的人不用改任何文件。`describe-project --help` 现在和实际行为一致，读帮助的人不会再白等一次提交。但换算仍是悄悄发生的——`akb workflow schedule` 不显示 Agent 读什么，写着 `commits` 的人不会知道它的含义变了。等待原因 `(nothing new yet)` 只出现在 `release-notes` 上，「描述项目」为什么不跑在命令行里看不到，只能靠巡检结果猜。

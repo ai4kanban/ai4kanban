@@ -27,8 +27,6 @@
 
 ### local-ui
 
-待补写。
-
 - [手动归档今天的第一张卡，看到欢呼](local-ui/archive-a-card-by-hand-and-see-the-cheer/case.md)
 - [在工作流的 Agent 列表里新建一个 Agent](local-ui/create-an-agent-in-the-workflow-agent-list/case.md)
 - [移除一张卡时决定写不写原因](local-ui/decide-whether-to-give-a-reason-when-rejecting-a-card/case.md)
@@ -42,7 +40,11 @@
 - [在讨论里看它写成的卡片哪些已经完成](local-ui/see-which-cards-a-discussion-became-are-done/case.md)
 - [在工作流里让一个 Agent 定期运行](local-ui/set-a-workflow-agent-to-run-on-a-schedule/case.md)
 - [在卡片页按「开发」，而它的工作流负责人文件被看板拒用](local-ui/start-a-card-whose-workflow-lead-is-refused/case.md)
+- [切换看板界面的语言](local-ui/switch-the-board-language/case.md)
+- [在看板上把一个想法变成卡片](local-ui/turn-an-idea-into-a-card-on-the-board/case.md)
 - [在执行中的卡片上看「差异」，合入后在归档页再看一次](local-ui/watch-a-building-card-s-changes-in-the-diff-tab/case.md)
+
+已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
 ### site
 
@@ -86,18 +88,6 @@
 
 每遍补写一个模块：写出下面的场景，真实走一遍并取证，然后把它从这里删掉，并去掉上面该模块的「待补写」。
 
-- **local-ui**（浏览器里的本地看板）
-  - 首次打开一个没有看板的项目并完成设置
-  - 新建任务，看到它出现在看板上
-  - 在卡片页回答问题
-  - 一键实现，并查看交付的改动
-  - 在 Runs 里看日志、停止、继续
-  - 在卡片对话里提问
-  - 在待筛选里建卡、忽略、恢复
-  - 切换界面语言
-- **local-ui**（桌面应用）
-  - 安装并首次启动
-  - 打开一个项目的看板
 - **cloud**（Cloud 看板）
   - 登录
   - 打开工作区的看板
