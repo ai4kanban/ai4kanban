@@ -385,11 +385,11 @@ const zh: ConfigurationCopy = {
         rule: "会附加到每次更新项目描述的末尾，例如「不写内部工具」。",
         note: "项目描述保存在「记忆」中，由该 Agent 维护。",
       },
-      "memory-reviewer": {
-        name: "回顾对话记忆",
+      "chat-reviewer": {
+        name: "回顾对话",
         gloss: "回顾有新内容的对话，把已确定的事项写入记忆。",
         trigger: "每天",
-        rule: "会附加到每次回顾对话记忆的末尾，例如「只记与发布流程有关的决定」。",
+        rule: "会附加到每次回顾对话的末尾，例如「只记与发布流程有关的决定」。",
         when: "按所设周期，仅在有新对话时运行。对话本身不写记忆，由回顾读完整段对话后决定写入什么。",
       },
     },
@@ -465,7 +465,7 @@ const zh: ConfigurationCopy = {
       saveFailed: "更新周期保存失败",
       tooOld: "akb 命令版本过旧，无法更新项目描述。请运行 `npm install -g ai4kanban` 更新。",
     },
-    memoryReviewer: {
+    chatReviewer: {
       run: "立即回顾",
       running: "正在回顾…",
       recurring: "定期回顾",
@@ -487,7 +487,7 @@ const zh: ConfigurationCopy = {
       outOfRange: (unit, min, max) => `${unit}需在 ${min} 到 ${max} 之间。`,
       presetFailed: (cadence) => `「${cadence}」保存失败，再选一次重试。`,
       saveFailed: "回顾周期保存失败",
-      tooOld: "akb 命令版本过旧，无法定期回顾对话记忆。请运行 `npm install -g ai4kanban` 更新。",
+      tooOld: "akb 命令版本过旧，无法定期回顾对话。请运行 `npm install -g ai4kanban` 更新。",
     },
     schedule: {
       off: "已停用",

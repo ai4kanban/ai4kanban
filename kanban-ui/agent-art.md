@@ -57,7 +57,7 @@ the whole difference, and it has to be readable at 48px.
 - **`memory-pruner.png`** — squeezes memory back down to what helps planning. A **mint
   notebook** with a spiral spine across the chest, and **grey pruning shears** with ember
   handles raised in the free hand.
-- **`memory-reviewer.png`** — reads past chats for what to remember. Holding a **tall transcript
+- **`chat-reviewer.png`** — reads past chats for what to remember. Holding a **tall transcript
   page** across the chest, short black lines alternating left and right, an **ember bookmark
   ribbon** hanging from its top edge.
 - **`feedback.png`** — works out what a spec got wrong. A **cream plan page** across the

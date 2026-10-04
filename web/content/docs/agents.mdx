@@ -61,7 +61,7 @@ can be switched off:
   hour, and waits while what it proposed last time is still unsorted.
 - **Memory pruner** — squeezes the memory back down to what helps planning. Every 7 days by
   default; **Run now** on its page starts one.
-- **Review chat memory** — reads back over the conversations that said something new and writes
+- **Review chats** — reads back over the conversations that said something new and writes
   down what they settled. Runs once there are new messages, at most once an hour by default.
 - **Describe the project** — keeps `docs/kanban/memory/project.md` up to date: what the project is,
   who it is for, the problems it solves and its features, from the users' point of view. Runs once
@@ -176,7 +176,7 @@ cannot see where a conversation is going, so a "what if" you threw out and took 
 later could land in `decisions.md` as a decision — while the real conclusion of a long discussion
 was never written down at all.
 
-**Review chat memory** is what writes it down instead. Chats no longer save memory. Once a card
+**Review chats** is what writes it down instead. Chats no longer save memory. Once a card
 is archived, it reads that card's chat right through, once, and writes what the whole exchange
 earned.
 

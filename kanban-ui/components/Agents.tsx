@@ -96,7 +96,7 @@ import { sayFailure } from "@/lib/start-failure";
 // — the discussion, an agent this project added — is one you start.
 // Literals rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
-const ON_A_SCHEDULE = ["memory-reviewer", "memory-pruner", "dismissal-reviewer", "project-writer", "proposer"];
+const ON_A_SCHEDULE = ["chat-reviewer", "memory-pruner", "dismissal-reviewer", "project-writer", "proposer"];
 // Whose runtime every planning lead runs (#1316).
 const PLANNING_HELPER = "discussion-helper";
 
@@ -106,14 +106,14 @@ const BOARD_SCHEDULES: Record<
   string,
   {
     key: BoardScheduleKey;
-    copy: "pruner" | "memoryReviewer" | "dismissalReviewer" | "projectWriter";
+    copy: "pruner" | "chatReviewer" | "dismissalReviewer" | "projectWriter";
     icon: React.ReactNode;
     action: string;
   }
 > = {
-  "memory-reviewer": {
+  "chat-reviewer": {
     key: "memoryReview",
-    copy: "memoryReviewer",
+    copy: "chatReviewer",
     icon: <FiRotateCcw size={11} aria-hidden />,
     action: "review-memory",
   },

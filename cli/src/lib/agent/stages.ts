@@ -110,7 +110,7 @@ const BOARD_NODES: FlowNode[] = [
   { flow: 'triage', kind: 'event' },
   { flow: 'feedback', kind: 'event', agent: 'feedback' },
   { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
-  { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
+  { flow: 'review-memory', kind: 'event', agent: 'chat-reviewer' },
   { flow: 'review-dismissals', kind: 'event', agent: 'dismissal-reviewer' },
   { flow: 'describe-project', kind: 'event', agent: 'project-writer' },
 ]

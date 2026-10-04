@@ -297,8 +297,8 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every update — "leave out internal tools".',
         note: "The description is in Memory and kept up to date for you.",
       },
-      "memory-reviewer": {
-        name: "Review chat memory",
+      "chat-reviewer": {
+        name: "Review chats",
         gloss: "Saves decisions from your chats to memory.",
         trigger: "Every day",
         rule: 'Added to the end of every review — "only remember release decisions".',
@@ -377,7 +377,7 @@ const en: ConfigurationCopy = {
       saveFailed: "Couldn't save the update schedule.",
       tooOld: "This board's rules are older than project descriptions.",
     },
-    memoryReviewer: {
+    chatReviewer: {
       run: "Review now",
       running: "Reviewing…",
       recurring: "Recurring review",
@@ -399,7 +399,7 @@ const en: ConfigurationCopy = {
       outOfRange: (unit, min, max) => `${unit} must be between ${min} and ${max}.`,
       presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
       saveFailed: "Couldn't save the review schedule.",
-      tooOld: "This board's rules are older than recurring chat memory reviews.",
+      tooOld: "This board's rules are older than recurring chat reviews.",
     },
     schedule: {
       off: "Disabled",

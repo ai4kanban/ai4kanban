@@ -24,7 +24,7 @@ const GROUPS: [title: string, rows: [name: string, label: string, trigger: strin
     [
       "On a schedule",
       [
-        ["memory-reviewer", "Review chat memory", "Every day"],
+        ["chat-reviewer", "Review chats", "Every day"],
         ["memory-pruner", "Tidy memory", "Every 7 days"],
         ["dismissal-reviewer", "Learn from dismissals", "Every day"],
       ],

@@ -67,7 +67,7 @@ describe('the roles', () => {
         'software-planner',
         'builder',
         'memory-pruner',
-        'memory-reviewer',
+        'chat-reviewer',
         'dismissal-reviewer',
         'project-writer',
         'feedback',
@@ -76,9 +76,9 @@ describe('the roles', () => {
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
     assert.equal(roleForFlow('prune-memory')!.name, 'memory-pruner')
-    // Reading back over the conversations is the memory reviewer's (#748): a chat writes no
+    // Reading back over the conversations is the chat reviewer's (#748): a chat writes no
     // memory itself.
-    assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
+    assert.equal(roleForFlow('review-memory')!.name, 'chat-reviewer')
     assert.equal(roleForFlow('review-dismissals')!.name, 'dismissal-reviewer')
     assert.equal(roleForFlow('describe-project')!.name, 'project-writer')
     // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
@@ -127,7 +127,7 @@ describe('the roles', () => {
       'software-planner',
       'builder',
       'memory-pruner',
-      'memory-reviewer',
+      'chat-reviewer',
       'dismissal-reviewer',
       'project-writer',
       'proposer',
@@ -156,7 +156,7 @@ describe('the roles', () => {
       'software-planner',
       'builder',
       'memory-pruner',
-      'memory-reviewer',
+      'chat-reviewer',
       'dismissal-reviewer',
       'project-writer',
       'proposer',
@@ -190,7 +190,7 @@ describe('the roles', () => {
   })
 })
 
-// The proposer and the memory reviewer used to have switches (#534, #748).
+// The proposer and the chat reviewer used to have switches (#534, #748).
 describe('the board helpers are always on (#1208)', () => {
   const on = async (name: string): Promise<boolean> =>
     (await readAgents()).agents.find((a) => a.name === name)!.enabled
@@ -198,13 +198,13 @@ describe('the board helpers are always on (#1208)', () => {
   it('reads a key an earlier release wrote to switch one off as on', async () => {
     fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ proposer: false, autoTriage: false, memoryReviewer: false }))
-    for (const name of ['proposer', 'memory-reviewer', 'discussion-helper', 'software-planner', 'builder']) {
+    for (const name of ['proposer', 'chat-reviewer', 'discussion-helper', 'software-planner', 'builder']) {
       assert.equal(await on(name), true, name)
     }
   })
 
   it('refuses to switch one off, the way every other role refuses', () => {
-    for (const name of ['proposer', 'memory-reviewer']) {
+    for (const name of ['proposer', 'chat-reviewer']) {
       const res = setSpecAgentEnabled(name, false)
       assert.equal(res.ok, false, name)
       assert.match(res.error!, /can't be switched off/)

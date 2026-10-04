@@ -153,7 +153,7 @@ describe('the lead a contract names', () => {
     conflict: 'builder',
     run: 'builder',
     'prune-memory': 'memory-pruner',
-    'review-memory': 'memory-reviewer',
+    'review-memory': 'chat-reviewer',
     'review-dismissals': 'dismissal-reviewer',
     'describe-project': 'project-writer',
     feedback: 'feedback',

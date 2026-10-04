@@ -104,7 +104,7 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
   // until none are (#1322).
   memoryReview: {
     action: 'review-memory',
-    agent: 'memory-reviewer',
+    agent: 'chat-reviewer',
     reads: 'chats',
     ask: (runs) => {
       const review = memoryReview()

@@ -17,6 +17,9 @@ import { clearChat, keptChats, pickChatRuntime, readChat, readKeptChat } from '.
 import { listConversations } from '../src/lib/agent/discussions.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { reviewBatch } from '../src/lib/agent/memory-review.ts'
+import { runtimeOfAgent } from '../src/lib/agent/runtimes.ts'
+import { readRule } from '../src/lib/agent/rules.ts'
+import { specAgentNames } from '../src/lib/spec-agent-names.ts'
 import { loadLedger } from '../src/lib/agent/usage.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { memoryReview, setMemoryReview, stampMemoryReview } from '../src/lib/agent/settings.ts'
@@ -24,7 +27,7 @@ import { formatStamp } from '../src/lib/cadence.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { pruneLeftovers } from '../src/lib/leftovers.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { AGENT_MEMORY, CHATS_DIR, setBoardRoot, SESSIONS, UI_CONFIG, USAGE } from '../src/lib/paths.ts'
+import { AGENT_MEMORY, CHATS_DIR, RULES, setBoardRoot, SESSIONS, UI_CONFIG, USAGE } from '../src/lib/paths.ts'
 import { boardSchedules, nextWork } from '../src/lib/view/dispatch.ts'
 import { forgetMachineState, move } from './helpers/board.ts'
 
@@ -624,5 +627,16 @@ describe('a conversation writes no memory', () => {
     const chat = findGuide('card-chat')!.text
     assert.doesNotMatch(chat, /decisions\.md/)
     assert.doesNotMatch(chat, /the memory you wrote/)
+  })
+})
+
+// It was `memory-reviewer` before #1502; what a user saved under that name still applies.
+describe('the name it had before', () => {
+  it('keeps the runtime pick and the rule saved under it', () => {
+    assert.equal(runtimeOfAgent(specAgentNames('chat-reviewer'), { 'memory-reviewer': 'fast' }), 'fast')
+    fs.mkdirSync(RULES, { recursive: true })
+    fs.writeFileSync(path.join(RULES, 'memory-reviewer.md'), 'Only remember release decisions.\n')
+    assert.equal(readRule('chat-reviewer'), 'Only remember release decisions.')
+    assert.equal(fs.existsSync(path.join(RULES, 'memory-reviewer.md')), false)
   })
 })

@@ -89,7 +89,7 @@ const MEMORY_PRUNER: AgentRole = {
 // `review-memory` is an event entry rather than a stage (./stages.ts): the day coming round
 // is what starts one.
 const MEMORY_REVIEWER: AgentRole = {
-  name: 'memory-reviewer',
+  name: 'chat-reviewer',
   gloss: 'reads back over your conversations and writes down what they settled',
   memory: [],
 }

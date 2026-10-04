@@ -165,7 +165,7 @@ export const FLOWS: Flow[] = [
         'where it is started and where its cadence is set.',
     ],
   },
-  // The memory reviewer's one flow (#748). Typed bare, beside the prune: it acts on the
+  // The chat reviewer's one flow (#748). Typed bare, beside the prune: it acts on the
   // conversations on this machine rather than on a card, so it names nothing.
   {
     command: 'review-memory',
@@ -175,7 +175,7 @@ export const FLOWS: Flow[] = [
     more: [
       'Chats write no memory themselves — this is what does. Each conversation is reviewed once, ' +
         'after its card is archived: daily, ten cards to a run, one run after another until none ' +
-        'are waiting. Configuration → Board → Review chat memory is where Review now is.',
+        'are waiting. Configuration → Board → Review chats is where Review now is.',
     ],
   },
   // The dismissal reviewer's one flow (#929, #1497). Typed bare: it acts on the reasons.

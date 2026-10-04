@@ -96,7 +96,7 @@ export type AgentAction =
    *  nothing for a human — what it cannot settle stays in the memory file. */
   | 'prune-memory'
   /** Read the conversations that have said something new and write what they settled into
-   *  memory (#748) — the memory reviewer's one flow. It names no card: the conversations on
+   *  memory (#748) — the chat reviewer's one flow. It names no card: the conversations on
    *  this machine are the whole of what it works on, and the flow picks out the ones with
    *  new content since the last review that passed. Chats write no memory themselves, so
    *  this is the only thing that turns what a conversation settled into a note. */

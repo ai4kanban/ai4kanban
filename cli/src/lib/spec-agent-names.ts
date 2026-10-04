@@ -13,6 +13,8 @@ const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   // Renamed in #945 and folded into the editor in #1057; its asset memory stays in
   // `memory/agents/video-assets/`.
   'video-assets': 'hyperframes-editor',
+  // Renamed in #1502: it reads chats, and writes memory as a result.
+  'memory-reviewer': 'chat-reviewer',
 }
 
 /** The name a spec agent goes by now, for a name it may have gone by before. */

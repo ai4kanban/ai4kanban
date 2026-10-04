@@ -570,7 +570,7 @@ export function adoptMemoryPruneCadence(cadence: string): void {
   })
 }
 
-// ---- the memory reviewer's record (#748, #1322, #1464) ----------------------
+// ---- the chat reviewer's record (#748, #1322, #1464) ----------------------
 //
 //   "memoryReview": { "lastRun": "2026-09-13 08:00", "reviewedBefore": "2026-09-12 08:00", "remainingAt": 0 }
 //

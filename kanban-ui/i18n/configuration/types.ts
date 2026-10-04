@@ -13,7 +13,7 @@ export type AgentRoleName =
   | "builder"
   | "proposer"
   | "memory-pruner"
-  | "memory-reviewer"
+  | "chat-reviewer"
   | "dismissal-reviewer"
   | "project-writer";
 
@@ -339,8 +339,8 @@ export type ConfigurationCopy = {
     dismissalReviewer: CadenceCopy;
     /** The project writer (#1268) — the same controls. */
     projectWriter: CadenceCopy;
-    /** The memory reviewer (#748, #1464) — the same controls. */
-    memoryReviewer: CadenceCopy;
+    /** The chat reviewer (#748, #1464) — the same controls. */
+    chatReviewer: CadenceCopy;
     /** Every scheduled agent's (#1464): the chip and the roster row of one switched off, the
      *  cadence list's last row, and its first line — when the next run is, said relatively. */
     schedule: {
