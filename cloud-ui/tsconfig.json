@@ -18,7 +18,10 @@
       // The screens are `kanban-ui`'s and resolve their own modules through `@/*`, so this
       // app maps that alias onto that tree and reaches its own files by relative path. See
       // README.md, "Where the screens come from".
-      "@/*": ["../kanban-ui/*"]
+      "@/*": ["../kanban-ui/*"],
+      // One React for both trees, or kanban-ui's files type against its own @types/react.
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
     }
   },
   "include": [
