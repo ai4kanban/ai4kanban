@@ -67,6 +67,7 @@ import {
   type PhoneTab,
 } from "./Phone";
 import { Rail } from "./Rail";
+import { reloadSignalsRow } from "./signals-row";
 import { useTestCasesRow } from "./test-cases-row";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 import { TourOnRequest } from "./WelcomeTour";
@@ -191,6 +192,15 @@ export function Window({
   // and for nothing else — this window starts none of its own, so `onFinish` never fires.
   const noRunsOfOurOwn = useCallback(() => {}, []);
   const { sessions } = useAgentSessions(noRunsOfOurOwn);
+  // A finished run may have written to the inbox or sorted it: the Triage count reads again.
+  const prevRunning = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
+    let finished = false;
+    for (const id of prevRunning.current) if (!now.has(id)) finished = true;
+    prevRunning.current = now;
+    if (finished) reloadSignalsRow();
+  }, [sessions]);
   const bell = useBellRail({
     projectRoot,
     cardId: currentId ?? null,

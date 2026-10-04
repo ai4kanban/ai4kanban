@@ -19,6 +19,7 @@ import { Header } from "./Header";
 import { Markdown } from "./Markdown";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
+import { reloadSignalsRow } from "./signals-row";
 import { Window } from "./Window";
 
 export type TestCasesView =
@@ -300,6 +301,7 @@ function NoteRow({
         setError("");
         setSent(true);
         router.refresh();
+        reloadSignalsRow();
       } else setError(done.error || c.sendFailed);
     });
   // Shown on hover at desktop width, always on a phone, and kept while sending or after a failure.

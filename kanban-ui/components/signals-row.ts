@@ -26,12 +26,13 @@ async function ask(): Promise<void> {
   for (const tell of watching) tell(held);
 }
 
-/** Ask again — what the Inbox page calls once it has added or dismissed one, so the count on
- *  the button is the count on the page. */
+/** Ask again — after the Inbox page adds or dismisses one, a test case is sent there, or a
+ *  run ends, so the count on the button is the count on the page. */
 export const reloadSignalsRow = (): void => void ask();
 
-/** Asked when a window opens and again when the window is looked at again, never on the
- *  board's poll: the answer reaches Cloud, and a row is not worth a request a second.
+/** Asked when a window opens, when it is looked at again, and when a run ends — never on
+ *  every tick of the board's poll: the answer reaches Cloud, and a row is not worth a request
+ *  a second.
  *
  *  A board that may not use the inbox — an account not in the preview, rules older than the
  *  feature — answers `false`, and the button is simply not drawn. */
