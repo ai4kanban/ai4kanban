@@ -20,6 +20,7 @@ import { archiveInboxItem, readInbox } from '../src/lib/signals/inbox.ts'
 import { triageShut } from './helpers/triage.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
+import { startRun } from '../src/lib/agent/start.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import {
   duplicateWorkflow,
@@ -285,9 +286,9 @@ describe('one pass', () => {
     assert.deepEqual(await dueScheduledAgents(pro, at('2030-01-01T00:00')), [])
   })
 
-  it('still refuses a second pass of a switched-off agent while one is running', () => {
+  it('still refuses a second pass of a switched-off agent while one is running', async () => {
     open()
-    const again = openRun(scheduledRequest(PASS), 'prompt', [])
+    const again = await startRun(scheduledRequest(PASS))
     assert.ok('error' in again)
     assert.equal(again.reason, 'scheduledRunning')
   })
