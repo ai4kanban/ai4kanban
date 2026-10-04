@@ -17,7 +17,6 @@ Produce the video the approved current script in ``## By `scriptwriter` agent`` 
 ## Paths
 
 - **Assets**: `<board-state>/assets/<card id>/` in the project, the board's asset folder.
-- **Record**: `media.md` in the same folder: every file used with its source and rights, the checks run and the sensitive data removed.
 - **Video**: `<short-name>.mp4` in the same folder, `<short-name>` a lowercase slug of the card title.
 
 ## Media
@@ -28,12 +27,12 @@ Use the first available source for each file:
 2. **Memory**: copy a suitable asset from `assets.md`.
 3. **Repository**: copy an existing asset.
 4. **Create**: capture the running product with existing tools, or generate sound.
-5. **Human**: name what you cannot prepare, including unclear rights, in one `[user]` question and stop.
+5. **Human**: name what you cannot prepare, including an outside asset without an open license, in one `[user]` question and stop.
 
 - **Recorder**: obtain your bundled `record.mjs` with `akb raw agent-file hyperframes-editor record.mjs` and keep it in the project. Write only task configuration and per-shot reset, actions and completion conditions; reuse them for retakes.
 - **Capture**: follow the demo procedure; restore and verify the starting state before every take and preserve unrelated work. A result that differs from the script's expected result is a `[user]` question, never a silent change.
-- **Narration**: generate it from the exact scripted lines with the approved voice: `akb cloud tts` for a hosted voice, local Kokoro for a Kokoro ID, `af_heart` / `zf_xiaobei` when the source names none. Never switch voice or service silently; regenerate only narration whose voice changed, and record the voice in `media.md`. For a human voice, reuse the supplied recording or ask for it.
-- **Checks**: repository assets are trusted. Check other assets for quality, match with the script and rights; remove secrets, personal data and private paths.
+- **Narration**: generate it from the exact scripted lines with the approved voice: `akb cloud tts` for a hosted voice, local Kokoro for a Kokoro ID, `af_heart` / `zf_xiaobei` when the source names none. Never switch voice or service silently; regenerate only narration whose voice changed. For a human voice, reuse the supplied recording or ask for it.
+- **Checks**: assets you make or generate and repository assets are trusted; use an outside asset only under an open license, checked for quality and match with the script. Remove secrets, personal data and private paths.
 
 ## Build
 

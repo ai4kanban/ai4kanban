@@ -33,8 +33,7 @@ Make one cover image for the video the approved current script in ``## By `scrip
 ## Paths
 
 - **Assets**: `<board-state>/assets/<card id>/`, the folder the editor uses.
-- **Cover**: `cover.png` there, with the source that renders it kept beside it.
-- **Record**: add every file used, with its source and rights, to `media.md` there; for a generated cover, also the model and prompt.
+- **Cover**: `cover.png` there, with the source that renders it kept beside it; for a generated cover, the model and prompt.
 - **Show it**: put one `<Asset src=".assets/<card id>/cover.png" label="..." />` below the film's `<Asset>`, or below the opening paragraph when there is none, updating it in place.
 
 ## Rules
