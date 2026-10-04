@@ -197,7 +197,7 @@ export const FLOWS: Flow[] = [
     gloss: 'rewrite the project description the planning flows read',
     more: [
       'Rewrites docs/kanban/memory/project.md from the README, the docs and the code. On its cadence it ' +
-        'runs only after new commits, or while the file is still empty; Configuration → Board → ' +
+        'runs only after a card is finished, or while the file is still empty; Configuration → Board → ' +
         'Describe the project sets the cadence.',
     ],
   },
