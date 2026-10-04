@@ -293,7 +293,7 @@ const en: ConfigurationCopy = {
         name: "Describe the project",
         gloss: "Describes what the project is today — who it's for and what it does — for planning and triage to follow.",
         trigger: "Every day",
-        when: "on your schedule, only if the project has changed or has no description yet. Each run reads the project itself and rewrites the whole description, covering only what has shipped.",
+        when: "on your schedule, only when a card has been finished or there is no description yet. Each run reads the project itself and rewrites the whole description, covering only what has shipped.",
         rule: 'Added to the end of every update — "leave out internal tools".',
         note: "The description is in Memory and kept up to date for you.",
       },
@@ -411,7 +411,6 @@ const en: ConfigurationCopy = {
       inDays: (n) => `in ${n}d`,
       waiting: {
         "archived-cards": "Runs when a card is finished",
-        commits: "Runs after new commits",
         chats: "Runs after new chats",
         dismissals: "Runs after new rejection or dismissal reasons",
         unsorted: "Runs once triage is cleared",

@@ -65,7 +65,7 @@ can be switched off:
   down what they settled. Runs once there are new messages, at most once an hour by default.
 - **Describe the project** — keeps `docs/kanban/memory/project.md` up to date: what the project is,
   who it is for, the problems it solves and its features, from the users' point of view. Runs once
-  new commits have landed, at most once an hour by default. Planning reads it for direction.
+  a card is finished, at most once an hour by default. Planning reads it for direction.
 
 **Configuration → Board** groups them by what starts each one: **You start** and **On a schedule**.
 A scheduled agent's page sets its cadence — **Auto** by default, which runs it when there is
@@ -292,7 +292,7 @@ cadence arrives disabled.
   Picking a schedule again enables it. **Run now** starts one run whether or not it is due, and
   works while the agent is disabled.
 - **Auto runs it when there is new work.** An agent whose `AGENT.md` sets `akb.reads` runs only
-  once something new has arrived since its last finished run — `archived-cards`, `commits`,
+  once something new has arrived since its last finished run — `archived-cards`,
   `chats` or `dismissals` — and at most once an hour. One that sets nothing runs once a day. A
   schedule you pick replaces the hour or the day; the waits below still apply.
 - **It waits for you and for builds.** It does not run while what it put in Triage last time is

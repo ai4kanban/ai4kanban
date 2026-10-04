@@ -135,7 +135,9 @@ function pastRuns(...runs: { status: string; startedAt: number }[]): void {
   )
 }
 
-const work = (): Promise<{ action: string }[]> => nextWork(() => Promise.resolve(true))
+// Without the project writer (#1268), which an archived card makes due alongside.
+const work = async (): Promise<{ action: string }[]> =>
+  (await nextWork(() => Promise.resolve(true))).filter((w) => w.action !== 'describe-project')
 
 /** Everything printed while `job` ran — a printed flow says rather than returns. */
 function quiet<T>(job: () => T): string {
@@ -159,9 +161,6 @@ beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-memory-review-'))
   fs.mkdirSync(TODO(), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'next-id'), '1\n')
-  // A described project, so the project writer (#1268) is not due alongside.
-  fs.mkdirSync(path.join(kanban(), 'memory'), { recursive: true })
-  fs.writeFileSync(path.join(kanban(), 'memory', 'project.md'), '# Project\n\n## What it is\n')
   forgetMachineState(root)
   setBoardRoot(root)
 })

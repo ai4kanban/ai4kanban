@@ -110,14 +110,20 @@ describe('declaring a scheduled agent', () => {
   })
 
   it('reads `akb.reads`, and refuses a value it does not know or a stage agent declaring it', () => {
-    const read = parseSpecAgent(agentFile('night-auditor', 'schedule', 'commits'), 'AGENT.md', () => null)
+    const read = parseSpecAgent(agentFile('night-auditor', 'schedule', 'chats'), 'AGENT.md', () => null)
     assert.ok('agent' in read)
-    assert.equal(read.agent.reads, 'commits')
+    assert.equal(read.agent.reads, 'chats')
     const bad = parseSpecAgent(agentFile('night-auditor', 'schedule', 'tweets'), 'AGENT.md', () => null)
     assert.ok('problem' in bad)
-    assert.match(bad.problem, /`archived-cards` or `commits` or `chats` or `dismissals`/)
-    const stage = parseSpecAgent(agentFile('night-auditor', 'plan', 'commits'), 'AGENT.md', () => null)
+    assert.match(bad.problem, /`archived-cards` or `chats` or `dismissals`$/)
+    const stage = parseSpecAgent(agentFile('night-auditor', 'plan', 'chats'), 'AGENT.md', () => null)
     assert.ok('problem' in stage)
+  })
+
+  it('reads the retired `akb.reads: commits` as archived cards', () => {
+    const read = parseSpecAgent(agentFile('night-auditor', 'schedule', 'commits'), 'AGENT.md', () => null)
+    assert.ok('agent' in read)
+    assert.equal(read.agent.reads, 'archived-cards')
   })
 
   it('refuses `akb.lead: schedule`', () => {

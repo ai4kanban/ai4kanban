@@ -127,11 +127,11 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
       return { cadence: review.cadence, fallback: DEFAULT_CADENCE.dismissalReview, from, newWork: () => readsNew('dismissals', from) }
     },
   },
-  // Only while `project.md` has no description, or the branch has commits since the last pass.
+  // Only while `project.md` has no description, or a card was finished since the last pass.
   projectDescription: {
     action: 'describe-project',
     agent: 'project-writer',
-    reads: 'commits',
+    reads: 'archived-cards',
     ask: () => {
       const schedule = projectDescription()
       if (!schedule.enabled) return null
@@ -140,7 +140,7 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
         cadence: schedule.cadence,
         fallback: DEFAULT_CADENCE.projectDescription,
         from,
-        newWork: () => !projectDescribed() || readsNew('commits', from),
+        newWork: () => !projectDescribed() || readsNew('archived-cards', from),
       }
     },
   },

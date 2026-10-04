@@ -41,7 +41,7 @@ A `schedule` agent can also name the new input it works on; it then runs only wh
 ```yaml
 akb:
   hook: schedule
-  # archived-cards | commits | chats | dismissals; omit to run on its cadence alone.
+  # archived-cards | chats | dismissals; omit to run on its cadence alone.
   reads: archived-cards
 ```
 

@@ -88,7 +88,7 @@ export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const AGENT_KEYS = ['lead', 'hook', 'reads', 'output', 'i18n'] as const
 
 /** What `akb.reads` names (#1475): the new input whose arrival makes a scheduled agent due. */
-export const SCHEDULE_READS = ['archived-cards', 'commits', 'chats', 'dismissals'] as const
+export const SCHEDULE_READS = ['archived-cards', 'chats', 'dismissals'] as const
 export type ScheduleReads = (typeof SCHEDULE_READS)[number]
 export const isScheduleReads = (value: string): value is ScheduleReads => (SCHEDULE_READS as readonly string[]).includes(value)
 
@@ -172,7 +172,8 @@ export function parseSpecAgent(
   const stage = schedule ? null : (declared as WorkflowStage)
   const kind = ROLE_KEYS[role]
 
-  const declaredReads = str(akb.reads)
+  // `commits` was retired so no schedule depends on git: what it stood for is finished cards.
+  const declaredReads = str(akb.reads) === 'commits' ? 'archived-cards' : str(akb.reads)
   if (declaredReads && !schedule) {
     return bad(`\`${name}\` declares \`akb.reads\`, which only a \`hook: ${SCHEDULE_HOOK}\` agent reads — remove it`)
   }

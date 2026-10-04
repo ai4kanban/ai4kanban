@@ -4,13 +4,12 @@
 // its own, that the window moves only on a pass, and how an older board's goal is carried over.
 
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { formatStamp } from '../src/lib/cadence.ts'
+import { formatDay, formatStamp } from '../src/lib/cadence.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { closeRun } from '../src/lib/agent/sessions.ts'
@@ -43,17 +42,12 @@ function describeProject(text = DESCRIBED): void {
   fs.writeFileSync(projectFile(), text)
 }
 
-function git(args: string[], when?: number): void {
-  const date = when === undefined ? {} : { GIT_COMMITTER_DATE: new Date(when).toISOString(), GIT_AUTHOR_DATE: new Date(when).toISOString() }
-  const out = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], {
-    cwd: root,
-    encoding: 'utf8',
-    env: { ...process.env, ...date },
-  })
-  assert.equal(out.status, 0, out.stderr)
+function archivedAt(when: number): void {
+  const file = path.join(kanban(), '.archive', `${when}-done.md`)
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, ['---', 'title: Done', `archived: ${formatDay(new Date(when))}`, '---', '', 'Body.', ''].join('\n'))
+  fs.utimesSync(file, new Date(when), new Date(when))
 }
-
-const commitAt = (when: number): void => git(['commit', '--allow-empty', '-q', '-m', 'x'], when)
 
 function pastRuns(...runs: { status: string; startedAt: number }[]): void {
   fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
@@ -110,25 +104,22 @@ describe('the description the board starts on its own', () => {
     assert.deepEqual(await work(), ['describe-project'])
   })
 
-  it('starts nothing without a commit since the last pass', async () => {
-    git(['init', '-q'])
-    commitAt(Date.now() - 3 * DAY)
+  it('starts nothing without a card finished since the last pass', async () => {
+    archivedAt(Date.now() - 3 * DAY)
     describeProject()
     stampProjectDescription(new Date(Date.now() - 2 * DAY))
     assert.deepEqual(await work(), [])
   })
 
-  it('starts one for a commit since the last pass', async () => {
-    git(['init', '-q'])
-    commitAt(Date.now() - HOUR)
+  it('starts one for a card finished since the last pass', async () => {
+    archivedAt(Date.now() - HOUR)
     describeProject()
     stampProjectDescription(new Date(Date.now() - 2 * DAY))
     assert.deepEqual(await work(), ['describe-project'])
   })
 
-  it('waits an hour in auto even with new commits, and a cadence the user set', async () => {
-    git(['init', '-q'])
-    commitAt(Date.now() - 60_000)
+  it('waits an hour in auto even with a card finished, and a cadence the user set', async () => {
+    archivedAt(Date.now() - 60_000)
     describeProject()
     stampProjectDescription(new Date(Date.now() - 30 * 60_000))
     assert.deepEqual(await work(), [])
@@ -138,7 +129,7 @@ describe('the description the board starts on its own', () => {
     assert.deepEqual(await work(), [])
   })
 
-  it('outside git, starts one only while the file has no description', async () => {
+  it('with nothing finished, starts one only while the file has no description', async () => {
     stampProjectDescription(new Date(Date.now() - 2 * DAY))
     describeProject()
     assert.deepEqual(await work(), [])

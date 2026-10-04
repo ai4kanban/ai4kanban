@@ -1788,7 +1788,7 @@ export type ScheduleWait = 'tooSoon' | 'retrying' | 'nothingNew' | 'unsorted' | 
 
 /** That wait as a screen says it (#1476): nothing new reads as what the agent reads. A gap
  *  still to pass is no reason — the next run's time says it. */
-export type ScheduleReason = 'archived-cards' | 'commits' | 'chats' | 'dismissals' | 'retrying' | 'unsorted' | 'building'
+export type ScheduleReason = 'archived-cards' | 'chats' | 'dismissals' | 'retrying' | 'unsorted' | 'building'
 
 /** One board schedule as a screen draws it — the shape a workflow's scheduled agent has too. */
 export interface BoardScheduleView {

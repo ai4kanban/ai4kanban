@@ -381,7 +381,7 @@ const zh: ConfigurationCopy = {
         name: "描述项目",
         gloss: "从用户视角写清项目现状、目标用户和功能，供规划和筛选参考。",
         trigger: "每天",
-        when: "按所设周期，仅在项目有新改动或尚无项目描述时运行。每次读取项目并整篇重写，只写已上线的功能。",
+        when: "按所设周期，仅在有新归档的卡片，或者还没有项目描述时运行。每次读取项目并整篇重写，只写已上线的功能。",
         rule: "会附加到每次更新项目描述的末尾，例如「不写内部工具」。",
         note: "项目描述保存在「记忆」中，由该 Agent 维护。",
       },
@@ -499,7 +499,6 @@ const zh: ConfigurationCopy = {
       inDays: (n) => `${n} 天后`,
       waiting: {
         "archived-cards": "有新完成的卡片后运行",
-        commits: "有新提交后运行",
         chats: "有新对话后运行",
         dismissals: "有新的拒绝或忽略原因后运行",
         unsorted: "处理完待筛选后运行",
