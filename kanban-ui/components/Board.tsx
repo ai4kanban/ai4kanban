@@ -32,6 +32,7 @@ import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, typ
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { BoardCheer } from "./Cheer";
 import { OpenIdsProvider } from "./open-ids";
+import { TourOnFirstOpen } from "./WelcomeTour";
 import { EmptyBoard, QueueView } from "./Queue";
 import { setupFailure, type SetupFailure } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus } from "./sessions";
@@ -75,11 +76,15 @@ export function Board({
   screen: first,
   shell,
   strips,
+  tour,
 }: {
   /** The one read this screen draws from — the server's, for the first paint. */
   screen: BoardScreen;
   shell?: BoardShell;
   strips?: BoardStrips;
+  /** Whether the welcome tour is owed and how its close is kept (#1500). Left out, the
+   *  browser keeps it. */
+  tour?: { owed: boolean; record: () => void };
 }) {
   const t = useCopy();
   const c = t.board;
@@ -361,6 +366,9 @@ export function Board({
   return (
     <BoardRefreshContext.Provider value={refresh}><OpenIdsProvider ids={board?.openIds ?? []}>
       <Shell {...chrome}>
+        {/* Inside the shell, so the usage disclosure and the guided run, drawn instead of
+            the board, come first; and not while setup is still unfinished. */}
+        {board && !board.setup && <TourOnFirstOpen owed={tour?.owed} record={tour?.record} />}
         <div className="relative flex h-full flex-col overflow-hidden">
           {/* The app's own band about how this board is being run (#175). Above the error
               strip because it is about the whole session, not this action. */}

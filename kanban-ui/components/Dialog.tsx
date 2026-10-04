@@ -31,6 +31,7 @@ export function Dialog({
   width = 520,
   height,
   flush = false,
+  deck = false,
 }: {
   title: string;
   onClose: () => void;
@@ -43,6 +44,8 @@ export function Dialog({
   // The child owns the body: no padding, no scroll — for a layout with panes of
   // its own, like Configuration's sidebar. The child scrolls its own panes.
   flush?: boolean;
+  // Two pages peek out behind the panel, like a stack of cards. Desktop only.
+  deck?: boolean;
 }) {
   const c = useCopy().shared;
   const phone = usePhone();
@@ -117,12 +120,12 @@ export function Dialog({
     );
   }
 
-  return createPortal(
-    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
+  const size = { width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" };
+  const panel = (
       <div
         ref={surface}
-        className="nb-panel flex flex-col"
-        style={{ width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" }}
+        className="nb-panel relative flex flex-col"
+        style={deck ? { height: "100%" } : size}
         onClick={(e) => e.stopPropagation()}
       >
         {head}
@@ -138,6 +141,19 @@ export function Dialog({
           <div className="overflow-y-auto p-5">{children}</div>
         )}
       </div>
+  );
+
+  return createPortal(
+    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
+      {deck ? (
+        <div className="relative" style={size}>
+          <div aria-hidden className="nb-panel absolute inset-0 translate-x-[14px] translate-y-[12px] rotate-[2deg] opacity-70" />
+          <div aria-hidden className="nb-panel absolute inset-0 translate-x-[7px] translate-y-[6px] rotate-[1deg]" />
+          {panel}
+        </div>
+      ) : (
+        panel
+      )}
     </div>,
     document.body,
   );

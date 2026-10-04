@@ -38,6 +38,8 @@ export interface MenuOptions {
    *  the one screen where there is nothing to use it on. */
   hasProject?: boolean;
   onCheckUpdates: () => unknown;
+  /** Help → Welcome Tour (#1500): the board on screen opens it. */
+  onOpenTour: () => unknown;
   onBack: () => unknown;
   onForward: () => unknown;
   /** Whether there is a view to go back to, and one to go forward to, right
@@ -76,6 +78,7 @@ export function buildMenu({
   onCloseProject,
   hasProject = false,
   onCheckUpdates,
+  onOpenTour,
   onBack,
   onForward,
   canGoBack = false,
@@ -214,6 +217,8 @@ export function buildMenu({
       role: "help",
       label: c.help.title,
       submenu: [
+        { label: c.help.tour, enabled: hasProject, click: onOpenTour },
+        { type: "separator" },
         { label: c.help.guide, click: () => shell.openExternal(DOCS_URL) },
         { label: c.help.downloads, click: () => shell.openExternal(DOWNLOADS_URL) },
       ],

@@ -326,6 +326,8 @@ export const CHANNELS = {
   /** The Dock icon raised the window while the badge was carrying a count — the other way.
    *  The page opens the bell on the rows the badge was counting. */
   openBell: "a4k:open-bell",
+  /** Help → Welcome Tour (#1500) — the other way. The page opens the tour. */
+  openTour: "a4k:open-tour",
   /** The app has begun opening a project, named by its folder. Sent once the picker is
    *  out of the way, so the launcher can say what it is doing instead of sitting there:
    *  a folder with no board gets one installed here, and that is seconds of nothing.
@@ -452,6 +454,8 @@ export interface Ai4kanbanBridge {
   /** Be told the Dock icon raised the window while the badge was carrying a count. The
    *  page opens the bell on what it was counting. Returns the way to stop being told. */
   onOpenBell(fn: () => void): () => void;
+  /** Be told Help → Welcome Tour was picked. Returns the way to stop being told. */
+  onOpenTour(fn: () => void): () => void;
   /** Be told when a notification was clicked, by the id of the event it was raised for.
    *  The page opens that event exactly as clicking its row does — switching the app to that
    *  board first when the event belongs to another one. Returns the way to stop being told. */

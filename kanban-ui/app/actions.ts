@@ -126,6 +126,7 @@ import {
 import { machineCopy, saidThrown, setMachineLanguage } from "@/lib/language";
 import {
   recordUsageDisclosure,
+  recordWelcomeTour,
   reportAppOpen,
   partnerFeedback,
   setPartnerFeedback,
@@ -2427,6 +2428,11 @@ export async function recordUsageDisclosureAction(on: boolean): Promise<WriteRes
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };
   }
+}
+
+/** The welcome tour was closed on this machine (#1500). */
+export async function recordWelcomeTourAction(): Promise<void> {
+  await recordWelcomeTour().catch(() => undefined);
 }
 
 /** Whether this machine takes part in partner feedback (#628). Its own answer, never

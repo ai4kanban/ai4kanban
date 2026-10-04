@@ -59,7 +59,7 @@ const en: DesktopCopy = {
       front: "Bring All to Front",
       close: "Close",
     },
-    help: { title: "Help", guide: "AI4Kanban Guide", downloads: "Downloads" },
+    help: { title: "Help", tour: "Welcome Tour", guide: "AI4Kanban Guide", downloads: "Downloads" },
   },
   launcher: {
     openFolder: "Open folder",

@@ -73,6 +73,7 @@ import { ACCENT_BTN, CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./s
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { sayFailure } from "@/lib/start-failure";
+import { welcomeTour } from "@/lib/welcome-tour";
 import { installedAgents, useInstalledAgents } from "@/lib/window-state";
 
 // Every box, list and small button in here is the settings kit's
@@ -238,6 +239,9 @@ export function Configuration({
     setPickAgent(request.agent ?? "");
     setOpen(true);
   }, [request]);
+
+  // The welcome tour asked for from General takes the screen, so the dialog steps aside.
+  useEffect(() => welcomeTour.onOpen(() => setOpen(false)), []);
 
   // A storage move takes the whole window (#614), so the dialog it was started from gets out
   // of the way rather than being covered by it.

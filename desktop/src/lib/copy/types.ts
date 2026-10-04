@@ -74,7 +74,7 @@ export interface DesktopCopy {
       front: string;
       close: string;
     };
-    help: { title: string; guide: string; downloads: string };
+    help: { title: string; tour: string; guide: string; downloads: string };
   };
   /** The launcher page (`lib/launcher.ts`) — its markup, and the inline script that draws
    *  the recent list. */

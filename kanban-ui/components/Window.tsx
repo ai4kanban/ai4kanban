@@ -70,6 +70,7 @@ import { Rail } from "./Rail";
 import { useSignalsRow } from "./signals-row";
 import { useTestCasesRow } from "./test-cases-row";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
+import { TourOnRequest } from "./WelcomeTour";
 
 /** Stood in for a caller that doesn't watch sessions. One instance, so a page
  *  without it doesn't hand the rail a fresh empty set on every render. */
@@ -373,6 +374,7 @@ export function Window({
         page was scrolled. Everywhere else the two are the same number. */}
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-nb-cream max-md:bg-nb-paper">
       {header}
+      <TourOnRequest />
       {linkNotice && <LinkNotice words={linkNotice} onClose={() => setLinkNotice(null)} />}
       {/* The rail and the body are a panel group so the rail can be dragged
           wider — a title is the only thing a row has to say, and how much of one

@@ -16,6 +16,7 @@ import type { RailCopy } from "./rail/types";
 import type { RunsCopy } from "./runs/types";
 import type { SetupCopy } from "./setup/types";
 import type { SharedCopy } from "./shared/types";
+import type { TourCopy } from "./tour/types";
 
 /** Every word the board UI renders, in one language. */
 export type UiCopy = {
@@ -31,4 +32,5 @@ export type UiCopy = {
   rail: RailCopy;
   notifications: NotificationsCopy;
   messages: MessagesCopy;
+  tour: TourCopy;
 };

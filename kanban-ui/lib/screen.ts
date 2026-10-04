@@ -138,6 +138,8 @@ export interface ScreenMachine {
    *  that is not this app (#322), which then draws no step: the answer belongs to the
    *  machine holding `docs/kanban/`, not to whoever is reading the board. */
   usageDisclosure?: boolean;
+  /** Whether this machine has yet to see the welcome tour (#1500). */
+  welcomeTour?: boolean;
   /** The screens the card on screen points its `<Mockup>` tags at, already read off this
    *  disk (#239). Absent on the board, which draws none. */
   mockups?: MockupSet;

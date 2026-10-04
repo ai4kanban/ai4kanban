@@ -633,6 +633,11 @@ export interface BoardRules {
   readLanguage?(): Language;
   setLanguage?(value: Language): WriteResult;
 
+  // the welcome tour (#1500), shown once per machine. Optional: older rules cannot record
+  // it, and the tour then never opens by itself.
+  welcomeTourShown?(): boolean;
+  recordWelcomeTour?(): WriteResult;
+
   // optional usage reporting (#293) — the same machine-wide file, one answer for the app
   // and every `akb` on this computer. Optional for the same reason as the language above:
   // rules older than the release that added them can neither read the answer nor record

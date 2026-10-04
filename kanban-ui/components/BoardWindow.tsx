@@ -10,8 +10,8 @@
 // holding `docs/kanban/`: a caller that is not this app renders `<Board>` with its own frame,
 // or with none.
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { startSetupRunAction } from "@/app/actions";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { recordWelcomeTourAction, startSetupRunAction } from "@/app/actions";
 import { cardOpen } from "@/lib/card-open";
 import { useMachine, ScreenMachineProvider, type ScreenMachine, type StripPlace } from "@/lib/screen";
 import type { BoardScreen } from "@/lib/types";
@@ -69,10 +69,23 @@ export function BoardWindow({ screen, machine }: { screen: BoardScreen; machine:
     setOpen(false);
   }, []);
 
+  // The welcome tour (#1500): owed per machine, and no longer once it has been closed here.
+  const [tourOwed, setTourOwed] = useState(machine.welcomeTour === true);
+  const tour = useMemo(
+    () => ({
+      owed: tourOwed,
+      record: () => {
+        setTourOwed(false);
+        void recordWelcomeTourAction();
+      },
+    }),
+    [tourOwed],
+  );
+
   return (
     <ScreenMachineProvider value={machine}>
       <FlowContext.Provider value={{ left, open, resume, exit }}>
-        <Board screen={screen} shell={BoardShell} strips={BoardStrips} />
+        <Board screen={screen} shell={BoardShell} strips={BoardStrips} tour={tour} />
       </FlowContext.Provider>
     </ScreenMachineProvider>
   );

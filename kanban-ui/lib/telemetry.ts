@@ -68,3 +68,18 @@ export async function setPartnerFeedback(on: boolean): Promise<WriteResult> {
   if (!rules.setPartnerFeedback) return { ok: false, error: (await machineCopy()).messages.tooOld.usageReporting };
   return rules.setPartnerFeedback(on);
 }
+
+// --- the welcome tour (#1500) ------------------------------------------------
+// Shown once per machine, recorded in the same file. Rules that cannot record it never open
+// it by themselves: a tour nobody can close for good would come back on every open.
+
+export async function welcomeTourOwed(): Promise<boolean> {
+  const rules = await boardRules();
+  return rules.welcomeTourShown ? !rules.welcomeTourShown() : false;
+}
+
+/** Silent either way: a close that could not be saved just brings the tour back next time. */
+export async function recordWelcomeTour(): Promise<void> {
+  const rules = await boardRules();
+  rules.recordWelcomeTour?.();
+}

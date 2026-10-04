@@ -79,6 +79,17 @@ export function setNotificationsSilenced(on: boolean): WriteResult {
   return saveSettings({ notificationsSilenced: !!on })
 }
 
+/** Whether the welcome tour has been shown on this machine (#1500). An unreadable file
+ *  reads as shown, so a tour whose close could not be saved never comes back on every open. */
+export function welcomeTourShown(): boolean {
+  const { unreadable, values } = heldSettings()
+  return unreadable || values.welcomeTourShown === true
+}
+
+export function recordWelcomeTour(): WriteResult {
+  return saveSettings({ welcomeTourShown: true })
+}
+
 /** Write these keys, keeping whatever else the file holds; a key given `undefined` is
  *  removed. Refused while the file cannot be read, since the merge would write the keys it
  *  could not parse out of existence. */

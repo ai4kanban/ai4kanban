@@ -975,6 +975,7 @@ function refreshMenu(): void {
     onCloseProject: () => closeProject(focusedWindow()),
     hasProject: Boolean(w?.board),
     onCheckUpdates: checkUpdatesFromMenu,
+    onOpenTour: () => focusedWindow()?.win.webContents.send(CHANNELS.openTour),
     onBack: () => focusedWindow()?.nav.back(),
     onForward: () => focusedWindow()?.nav.forward(),
     canGoBack: w?.nav.canGoBack() ?? false,

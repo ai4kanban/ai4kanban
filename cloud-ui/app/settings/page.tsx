@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Avatar, Page as Frame } from "../../components/Frame";
 import { PlanPanel, type PlanState } from "../../components/PlanPanel";
+import { TourRow } from "../../components/TourRow";
 import {
   accountAddress,
   accountName,
@@ -79,6 +80,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Que
         portalFailed={one("portal") === "failed"}
         refreshHref={here}
       />
+      <TourRow />
       <p className="text-[13px] leading-relaxed text-nb-ink-soft">{copy.settingsInApp}</p>
     </Frame>
   );

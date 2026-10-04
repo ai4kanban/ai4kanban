@@ -59,7 +59,7 @@ const zh: DesktopCopy = {
       front: "前置全部窗口",
       close: "关闭",
     },
-    help: { title: "帮助", guide: "AI4Kanban 指南", downloads: "下载" },
+    help: { title: "帮助", tour: "功能导览", guide: "AI4Kanban 指南", downloads: "下载" },
   },
   launcher: {
     openFolder: "打开文件夹",

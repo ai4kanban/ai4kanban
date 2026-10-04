@@ -91,6 +91,15 @@ export function useOpenBellFromApp(open: () => void): void {
   }, [open]);
 }
 
+/** Open the welcome tour from the app's Help menu (#1500). */
+export function useOpenTourFromApp(open: () => void): void {
+  useEffect(() => {
+    const app = bridge();
+    if (!app?.onOpenTour) return;
+    return app.onOpenTour(open);
+  }, [open]);
+}
+
 /** Open the event a clicked notification names — the same thing clicking its row does, so
  *  a notification raised by another board switches the app to that board first. */
 export function useOpenNotificationFromApp(open: (eventId: string) => void): void {
@@ -246,6 +255,8 @@ interface AppBridge {
    *  bell opens on what it was counting. Returns the way to stop being told. Optional for
    *  the same reason. */
   onOpenBell?(fn: () => void): () => void;
+  /** Help → Welcome tour (#1500). Optional — an older app has no such item. */
+  onOpenTour?(fn: () => void): () => void;
   /** The app was opened with a card link (#320) — `ai4kanban://card/…`, which a Slack
    *  message carries. Its own channel rather than the sign-in's: the two are answered in
    *  different places, and one shared channel would let whichever listener happened to be

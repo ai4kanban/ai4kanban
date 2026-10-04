@@ -387,6 +387,8 @@ export type * from './lib/cloud/events'
 // finds nothing said, it walks the system's preferred languages through the mapping here and
 // saves the first this build has a copy for.
 export { languageChosen, readLanguage, setLanguage, settingsFile as machineSettingsFile } from './lib/machine/settings'
+// The welcome tour (#1500) is shown once per machine, so its record sits in the same file.
+export { recordWelcomeTour, welcomeTourShown } from './lib/machine/settings'
 export {
   DEFAULT_LANGUAGE,
   isLanguage,

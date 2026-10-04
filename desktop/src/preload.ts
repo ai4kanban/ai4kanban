@@ -59,6 +59,7 @@ const CHANNELS: typeof Channels = {
   openNotification: "a4k:open-notification",
   badge: "a4k:badge",
   openBell: "a4k:open-bell",
+  openTour: "a4k:open-tour",
   opening: "a4k:opening",
 };
 
@@ -106,6 +107,10 @@ const bridge: Ai4kanbanBridge = {
       queueMicrotask(fn);
     }
     return () => bellWatchers.delete(fn);
+  },
+  onOpenTour: (fn) => {
+    tourWatchers.add(fn);
+    return () => tourWatchers.delete(fn);
   },
   onOpenNotification: (fn) => {
     notificationWatchers.add(fn);
@@ -199,6 +204,10 @@ ipcRenderer.on(CHANNELS.openBell, () => {
   }
   bellWatchers.forEach((fn) => fn());
 });
+
+// Help → Welcome Tour (#1500). Only ever picked with the page already drawn, so nothing is held.
+const tourWatchers = new Set<() => void>();
+ipcRenderer.on(CHANNELS.openTour, () => tourWatchers.forEach((fn) => fn()));
 
 // The card link a Slack message carries (#320), on its way to the window. Its own set, not
 // the sign-in's: the two are answered in different places, and one shared set would let

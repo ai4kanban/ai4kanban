@@ -4,7 +4,8 @@
 //
 // Setup (#174) is two rows — the skill in this project, the `akb` command on the PATH.
 // Delivery (#303, #416) is two switches. Runs (#394) is the silence limit. Privacy (#293)
-// is the usage-reporting switch. Language (#334) is one control. A pane each was a sidebar
+// is the usage-reporting switch. Language (#334) is one control. The welcome tour (#1500) is
+// one button. A pane each was a sidebar
 // you had to walk to find anything; one pane shows all of it at a glance, and each group's
 // caption is the whole of its explanation.
 //
@@ -17,6 +18,7 @@ import { LanguageGroup } from "./language";
 import { PrivacyGroup } from "./Privacy";
 import { RunsGroup } from "./Runs";
 import { SetupGroup } from "./Skill";
+import { TourGroup } from "./WelcomeTour";
 
 export function GeneralPanel({ onError }: { onError?: (msg: string) => void }) {
   return (
@@ -26,6 +28,7 @@ export function GeneralPanel({ onError }: { onError?: (msg: string) => void }) {
       <RunsGroup onError={onError} />
       <PrivacyGroup onError={onError} />
       <LanguageGroup onError={onError} />
+      <TourGroup />
     </div>
   );
 }

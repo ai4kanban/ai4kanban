@@ -43,6 +43,7 @@ import rail from "./rail";
 import runs from "./runs";
 import setup from "./setup";
 import shared from "./shared";
+import tour from "./tour";
 
 /** Every word the board UI renders, in one language. */
 export function getCopy(language: Language): UiCopy {
@@ -59,5 +60,6 @@ export function getCopy(language: Language): UiCopy {
     rail: rail[language],
     notifications: notifications[language],
     messages: messages[language],
+    tour: tour[language],
   };
 }
