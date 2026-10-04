@@ -37,3 +37,5 @@ video/
 /assets/video/*
 !/assets/video/README.md
 .playwright-mcp
+
+test-ai4kanban/

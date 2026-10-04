@@ -2,6 +2,21 @@
 
 Ideas we turned down, one line each with the reason. Read before proposing.
 
+- **Connectors for more coding agents (e.g. Amp)** — people use only the top five or so; supporting every agent isn't worth the upkeep.
+- **Pro-only Proposer** — the Proposer stays free: its proposals are what show a user why Triage matters, and only a pile that has built up shows why auto-sort does. Sorting by hand stays free too; Pro sells only the relief from that tedium (auto-sort).
+- **Full rerun of the QA manual** — we don't rerun the whole project's manual; for now there is no point, so nothing gets built to make it reachable.
+- **Scheduled agent's first run catching up on earlier cards** — listing nothing on the first run is the intended design; the QA guide is seeded from the repo's whole codebase, not backfilled from past cards or chats.
+- **Keeping discussion chats for the memory review** — the review doesn't read discussions; only card revisions become memory, and planning ideas will end up in the planner's `readme.md`.
+- **Reporting or repairing recurring cards that fail to migrate to scheduled agents** — we assume users have no recurring cards; their compatibility breaks silently, with no notice, retry UI or migration help.
+- **Cards for Windows-only edge cases (e.g. interrupted-run cleanup holding the run record's lock)** — not at this stage; Windows edge cases and Windows-only tests wait until there is bandwidth for them.
+- **Replacing Jev with agent triage** — on a 20-item eval in `evals/` neither sorted better, and Jev is much cheaper.
+- **Seeding a triage-fetch card or agent on the first fetch** — nobody used it; a board that wants scheduled fetching writes its own scheduled agent.
+- **This board's notes-to-blog and composition-index jobs (#388, #983)** — dropped for good, never rebuilt as scheduled agents.
+- **Cards that run or schedule the user's own agents (e.g. a first run of the competitor analysis agent, then turning on its schedule)** — when and how to run their agents is the user's call, not the board's.
+- **Follow-up planning pinning the runtime of the session it continues** — overdesign; we fork and continue the original session, but staying on its original runtime adds nothing — the planner's current runtime is fine.
+- **Install or setup text announcing what runs in the background (e.g. the daily QA manager)** — overdesign; show the key background work as tutorial cards on a new board instead.
+- **Treating an agent's stage as something users move (e.g. a refusal pointing a scheduled agent "back" to a stage)** — there is no such concept: which agents a workflow has, and each one's stage, are fixed; a built-in agent like the QA manager only runs after execute, and users' own agents are theirs to write.
+
 ## Agents and connectors
 
 - **Custom leads and helpers across all three stages** — overdesigned.

@@ -2,6 +2,8 @@
 
 Design mistakes to avoid when writing a card: the mistake, then the design we want.
 
+- ❌ **介绍功能时讲它怎么演变而来** → ✅ 只写它现在的样子。
+
 ## Product positioning
 
 - ❌ **Reducing AI4Kanban to task or context management** → ✅ ground it in `positioning.md`.

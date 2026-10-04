@@ -2,6 +2,12 @@
 
 Settled user-facing answers that guide future Cloud planning. Read before re-asking.
 
+- **申请人邮件**：只发英文。
+- **alpha 定位**：礼貌说明仍在开发、目前对受邀用户免费、不承诺永久免费。
+- **托管看板暂不对外**：面向用户的 Cloud 说明只放桌面端 Cloud 设置页和 Cloud 邮件。
+- **暂不做线上兼容**：Cloud 目前没有外部用户，接口和迁移直接换新，不为旧客户端保留旧签名或过渡期。
+- **「将此看板存储到 Cloud」**：修完已知问题、团队用真实看板在正式环境往返一次且数据完整后，一次性对所有受邀用户开放，不分批。
+
 ## What Cloud is
 
 - **Hosted pages**: they hold no setting a reader may write; Settings there is the account alone, and board and machine configuration stays in the app.

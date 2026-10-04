@@ -2,6 +2,14 @@
 
 Settled user-facing answers for the local UI. Read before proposing so you don't re-ask a settled call.
 
+- **统计图表时段**：最短 30 天，不做 24 小时或 7 天。
+- **跨组件共享状态只用 React**：模块级 store 配 `useSyncExternalStore`，不引入 Zustand、Jotai 等外部库。
+- **「重试」只给「继续」接不住的失败运行**：不是每个没有「继续」的运行都给；已取消、已完成这类不算失败的不出按钮。
+- **只为值得的里程碑庆祝**：想给开发过程加点让人愉快的点缀，但不是每次归档都庆祝；整组完成、release 完成、当天第一次落地才庆祝，并写明在庆祝什么。
+- **反馈助手不对用户露出**：配置里不列它，固定用全局默认运行环境；暂时只隐藏，以后可能删除。
+- **内置 agent 的中文名称不求统一风格**：职能名和角色名可以混用；只改读着别扭的那一个，不批量改名。
+- **QA 手册在界面上叫「测试用例 / Test cases」**：单个叫「用例 / case」；`docs/qa/` 目录名不变。
+
 ## What the UI is
 
 - The board's rules live in the command; the UI drives every run through it and never holds a second copy of how a card is written.
@@ -83,7 +91,7 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 - One setting covers both the app's words and the agent's prose; board structure (frontmatter, headings, files, commands, paths) stays English.
 - Only new writing follows the setting, so a switched board holds both languages.
 - `akb`'s terminal output and in-app guides stay English; everything the app shows, `akb` errors included, follows the setting.
-- **Action labels fit every workflow and stay short**: no software-only verb like Implement or Build on shared buttons, never longer than what they replace.
+- **Action words follow `akb`'s vocabulary**: running a card is Build (中文「执行」, the Execute stage's word) in every workflow, a run is 运行, refine is 细化; a label never grows longer than what it replaces.
 - **界面失败提示的英文**：按界面风格重写（首字母大写、带句号、不提终端命令），但不丢原句信息。
 
 ## Background agents

@@ -12,6 +12,6 @@
   - `README.md` for what we promise today, `web/content/docs/` for what we teach.
 - **Reference docs** — optional files the flows read when they exist. Leave blank
   if you don't have them:
-  - roadmap / direction: `docs/kanban/memory/goal.md`, plus the Roadmap section of `README.md`
+  - roadmap / direction: `positioning.md` (the positioning every entry point quotes)
   - user-facing docs the work should keep in sync: `web/content/docs/`, `README.md`,
     `README-zh.md`, and the site copy in `web/`

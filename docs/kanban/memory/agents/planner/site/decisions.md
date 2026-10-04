@@ -4,7 +4,7 @@ Settled user-facing answers for the public site. Read before re-asking a settled
 
 ## Translations
 
-- **Scope**: translate the landing page, the vs pages, and the training page (English and Chinese only); recipes, Markdown mirrors, blog, docs UI and legal pages stay English.
+- **Scope**: translate the landing page, the vs pages, and the training page (English and Chinese only); Markdown mirrors, blog, docs UI and legal pages stay English.
 - **No auto-redirect**: English is always the root; a visible footer switcher names each language in itself. Chinese is Simplified only.
 - **Per-path languages**: a path is not automatically four languages; its supported languages are recorded, and hreflang, sitemap and switcher read that record. A one-language page shows no switcher.
 - **Upkeep**: by hand with `/translate-sync`, said the way each language naturally would, with no pre-deploy gate or native-speaker blocker. Positioning copy on the home page changes in every language in the same batch.
@@ -44,5 +44,6 @@ Settled user-facing answers for the public site. Read before re-asking a settled
 ## Planning the site
 
 - **One card per workflow landing page**: each needs its own UI polish.
+- **No recipes**: the site publishes none; `/recipes` and everything under it redirect to `/docs/agents`.
 - **`web/design.md` is a reference**: a page may break from it.
 - **Newsletter unsubscribe**: lives on ai4kanban.dev, not the mail platform's page, so the site keeps a writable endpoint.

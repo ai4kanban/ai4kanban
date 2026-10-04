@@ -2,6 +2,12 @@
 
 Ideas we turned down, one line each with the reason. Read before proposing.
 
+- **Card age on board cards** — board cards show only the key elements; per-card details like how long a card has sat don't belong there.
+- **Spelling out why a workflow's lead file was refused, and the line to fix, on every screen that shows the workflow** — the agent design is new and will keep breaking; extra UI for files in an outdated format is over-designing for backward compatibility.
+- **Saying on the card why an auto-refine start was refused** — overdesign that only adds upkeep; a user who finds a card left unrefined opens it and sees the lead agent is missing.
+- **Cross-links between card pages and test cases (cards recording their cases, cases their source cards)** — too complicated for what it gives; overdesign.
+- **Rewording a refused new-agent name into the UI language** — the current message for a taken name is good enough; another error message adds nothing.
+
 ## The board
 
 - **An expanded specialist-agent registration form and editor** — overdesigned.
@@ -15,13 +21,13 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Drawing a screen inside an open question** — questions live in frontmatter; drawings stay in the body.
 - **Dropping the card page's Edit button** — the chat rail is folded by default, so nothing else would be visible.
 - **Editing a card's title, body or links on its page** — only settings are direct; the rest is an approved spec.
-- **Adding your own hand-check on the card page** — hand-checks come from the spec; crossing one off stays.
 - **Assigning a specialist agent from the card page** — planning asks for one itself; too rare for a per-card control.
 - **Keyboard shortcuts for the board** — a shortcut set costs more than the mouse trips it saves.
 - **A `#` card picker in the chat box** — typing `#12` already points at a card.
 - **Serving the board to a phone from the user's machine** — Cloud reaches a phone anywhere, even with the machine asleep.
 - **A desktop pet that speaks notifications** — the system notification center already does it and gets out of the way.
 - **A card's screens side by side on a pan-and-zoom canvas** — trades scrolling for panning at the cost of a fixed viewport and a gesture layer.
+- **Tooltip polish (touch behavior, tap-to-read marks, bubble placement)** — overdesign; propose tooltip work only when the user asks for it.
 
 ## Runs
 

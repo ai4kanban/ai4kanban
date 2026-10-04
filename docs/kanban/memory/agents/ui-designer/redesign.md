@@ -23,6 +23,7 @@ One line per correction: the mistake, then the design to use instead.
   supplied reference.
 - ❌ **A static lookalike where the card wanted a capture** → ✅ run the real surface and shoot it.
 - ❌ **A guide entry drawn as a link to the website** → ✅ reuse the app's in-place guide drawer.
+- ❌ **手机稿另配按钮样式（几个按钮共用一个框、换成浅色填充）** → ✅ 沿用桌面端的按钮样式和颜色，只缩尺寸。
 
 ## What a screen may do
 
@@ -34,9 +35,18 @@ One line per correction: the mistake, then the design to use instead.
 - **Saving reads at the caret**, and an in-flight start relabels the pressed button.
 - **No bulk retry over failures**: each row is a different run.
 - **A source is a type plus key/value pairs**, never one free-text string.
+- ❌ **Splitting content into fields its agent's rules never require** → ✅ render it as Markdown; one agent's habit is not a format.
 - ❌ **Every item repeats actions, timestamps and counts under stacked toolbars** → ✅ actions
   only on the focused item, one control row.
 - ❌ **A form opened inside an item** → ✅ it opens outside the item.
+- ❌ **An add button in brand orange, a new-item form as a panel under the list** → ✅ match the
+  list: a neutral button, and the new item is a row in it.
+- ❌ **A selected row marked by a fill beside other grey blocks, or by a black bar squeezed into
+  the row** → ✅ a short coloured bar merged into the group's left border.
+- ❌ **A control row butted against the text below, a menu sized for an editor it rarely shows**
+  → ✅ leave breathing room; a menu is as narrow as its items, widening only while editing.
+- ❌ **A turn-off item in a menu drawn like the rest** → ✅ the warning colour, set apart by a
+  divider.
 
 ## Refusals and empty states
 
@@ -73,10 +83,22 @@ One line per correction: the mistake, then the design to use instead.
 - ❌ **A busy machine as a lit still** → ✅ an animation sheet that freezes on a working frame
   for reduced motion.
 
+## Explainer animations
+
+- ❌ **Abstract metaphors, or one page concrete and the rest abstract** → ✅ every page plays one
+  concrete product scene at the same level of detail.
+- ❌ **A prop with a second reading** (a "3,000-word doc" read as what we deliver; "remembered"
+  beside a delete dialog read as deleting memory) → ✅ mark what is spared as spared, and keep
+  destructive words out of unrelated scenes.
+- ❌ **Behaviour the product lacks, or a generic outcome** (gaps found on an in-progress card; a
+  bare "remembered") → ✅ show the real trigger and destination: gaps after completion, a note
+  landing in the named agent's or module's memory.
+
 ## Wording and width
 
 - ❌ **Vague or childish phrasing about mistakes** → ✅ professional Chinese that names the
   issue, e.g. "需求理解偏差".
+- ❌ **界面说明照搬内部机制**（如记忆审阅怎样改掉旧条目） → ✅ 用户不需要知道的直接删，不换说法。
 - **Write a Chinese line a few characters under its limit**, or it orphans two or three.
 - **Event words stay English in Chinese notification rows; ids stay lowercase.**
 - ❌ **A one-line fact bar drawn for desktop only on a surface phones open** → ✅ draw the narrow
@@ -91,6 +113,7 @@ One line per correction: the mistake, then the design to use instead.
 - **A growing series is a line, never bars**, with text kept outside the chart graphic.
 - **A figure spends no extra lines** over what the old one had.
 - **A UI crop is worth it only if its words survive the shown width**: crop to the one block.
+- ❌ **Screenshots shrunk into card covers** → ✅ unreadable thumbnails are noise; such cards carry text only, in the board card's style.
 - ❌ **Annotating a picture like markdown** → ✅ one whole-file note control, one numbering
   across both anchors.
 - ❌ **A machine verdict mixed into the user's notes** → ✅ set it apart clearly and say what it

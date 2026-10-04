@@ -3,6 +3,57 @@
 Settled user-facing answers for the project as a whole; a module's own live in its folder
 beside this file. Read before proposing so you don't re-ask a settled call.
 
+AI project management that grows with you.
+
+AI4Kanban的目标是一个自进化的AI *项目经理*：给它一个模糊想法，它会自主解读、拆解、循环澄清，直到每个需求细节都被明确。
+
+- [x] 自主拆解：agent解读需求，将其拆解为多个子任务；夹带的无关需求会被拆出，作为独立任务。
+- [x] 循环澄清：agent首先对需求自主提问；凡是凭记忆和常识能解答的，直接决策，否则请人类介入澄清。此流程不断重复，直到agent对需求提不出更多疑问。
+- [x] 7x24：拆解与澄清在后台持续进行，直到需求明确。
+- [x] 决策可追溯：人类随时能看到需求是如何一步步被细化的。
+- [x] 自主提需求：agent基于各模块的记忆提出功能提案。人类的否决会被记录，令agent此后不再提出同类提案。
+- [x] 自进化：每次人工介入都会被记录，作为后续自主决策的参照。记忆按项目模块分别组织。
+- [x] 依赖和优先级管理：agent不仅拆解任务，还负责排定优先级——识别任务间的依赖，权衡价值与成本，确保任务以正确的顺序执行。
+- [x] 交付闭环：AI4Kanban的职责不止于把需求澄清，而是覆盖任务的完整生命周期——提出、澄清、执行、归档。看板始终反映项目的真实进展。
+
+AI4Kanban为小微团队而设计：用看板管理工作，把人从具体实施中解脱出来，去关注每项工作对用户的价值，而非coding agent的执行细节。得益于新模型的能力，当前的coding agent已经能高完成度地把明确的需求翻译成代码；但如果需求本身不明确，它只会在错误的假设上做错误的开发。AI4Kanban依靠持续积累的记忆，在你提出模糊想法时沿着过去的决策轨迹自主判断，最终产出可落地的明确需求。
+
+----
+
+- [ ] Harness无关：任何Harness都可以使用，包括但不限于Claude Code、Codex、Cursor。
+- [x] 本地优先：看板任务默认存储为本地Markdown文件，无需MCP，无需数据库，节约token。一切以纯文本留存于git，可审查、可diff、可回滚。
+- [x] 开箱即用：一条prompt完成安装与升级；AI4Kanban专为项目管理打造，配置极简。
+- [x] ~~两种使用模式：既可通过skill在命令行内管理看板，也可在本地UI中操作。~~
+- [ ] UI优先（或者说看板优先）：通过Skill进行首次安装和配置的不可控因素太多，用户的主要操作应该通过GUI，Skill只作为后续可选项。
+  - [ ] 桌面端：考虑到人负责取舍而非执行，人应该可以在任意设备上提供决策，而不仅是web浏览器。
+  - [ ] CLI：与agent harness的交互、看板管理都封装在CLI中，UI后端通过CLI进行看板/agent操作，这使得Skill能够实现UI同样的功能。
+  - [ ] Onboarding：首次使用时应该经过类似于typeless的引导，完成看板的初始化，包括设置 goal.md。
+  - [ ] Chat with Board：既然UI优先，那么交互方式应该能跳过agent，直接在UI中进行任务的讨论。
+
+人类项目经理用看板管理工作，agent也应如此。AI4Kanban不以聊天窗作为交互方式，而以看板为中心。
+
+----
+
+- [ ] 外部系统接入（近期）：从Obsidian、Notion、GitHub Issues等导入需求或镜像进展；它们不是AI4Kanban的权威存储。
+- [ ] 可插拔Harness（近期）：看板任务可交由Claude Code、Codex、Cursor等执行。
+- [ ] Git worktree（近期）：任务在各自的worktree中并行执行，互不干扰。
+- [ ] 定时任务/Webhook（近期）：按计划或经Webhook自动从外部导入需求。
+- [ ] 阻塞任务管理（近期）：对长期搁置的任务做激进处理——拆分、改写，或直接否决。
+
+----
+
+团队协作（中期）。以下是方向，不是已实现的功能。
+
+- 开源版聚焦本地单人工作流；多人权限、通知和协作同步由托管团队版提供。
+- 开源项目早期可以把看板放在仓库的`docs/kanban/`中，由维护者在本地使用；社区仍通过Issue提交需求、通过PR贡献代码。
+- 当核心贡献者增多时，项目可以迁移到AI4Kanban Cloud。Cloud支持从`docs/kanban/`批量导入卡片、记忆、release和历史数据。
+- Cloud以云数据库为权威数据源。看板默认私有，项目可主动设为公开只读，让社区查看路线图和进度。
+- 需要直接参与看板工作的核心贡献者通过Cloud协作。AI4Kanban计划为符合条件的开源项目提供支持，具体政策另行发布。
+- 执行近期仍在开发者自己的机器上：每个人的机器是自己的执行节点，使用自己的模型账号；Cloud负责任务派发、协作和数据同步，不代跑agent。
+- 团队协作要解决四件事：识别团队成员；把agent的问题送给能决策的人；避免多个agent同时处理同一张卡；让团队决策进入同一份可追溯记忆。
+- 决策收件箱让成员在浏览器中回答agent、编辑确定性字段并查看任务状态；IM接入用于把提问送到成员日常工作的地方。
+- GitHub Issues、Linear等继续作为社区反馈入口和进展镜像；外部评论只作为建议导入，不能直接覆盖看板。
+
 ## Positioning
 
 - 定位以仓库根目录 `positioning.md` 为准，入口文案直接引用，不再单独确认；看板是载体而非卖点。
@@ -11,6 +62,7 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 - The "3–6× faster" claim stays without a citation, backed by this repository's own auditable
   figures beside it.
 - Local-first promises the default backend (markdown in git), not every backend a user can pick.
+- **记忆的卖点**：记忆天然按 Agent 和模块切分，取用更精准、占用上下文更少；不说「粒度更细」这类术语。
 - **不做无人值守**：主打验收前置（先给用户看最在意的部分，如 UI，不靠谱就当场放弃）和规划后置（漏掉的功能在实现后由后台补卡，不在实现前反复规划）。
 
 ## How far agents go alone
@@ -18,7 +70,7 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 - No global autonomy switch or ladder of levels: each step that needs no user brings its own
   setting if it needs one.
 - **看板助手一律常开**：不能关闭，定期运行的只能调周期；不做「自动批准执行」「自动回答问题」这类全自动开关。
-- Nothing decides on its own that a card should be rejected; that would be a separate feature.
+- Nothing decides on its own that a card should be rejected, except one exception: an auto-sorted card whose planning (or, skipping planning, its build) finds the product already does it or what it concerns is gone is removed straight to the archive with the evidence as its reason, without asking.
 - A delivery that cannot land is not a question: the board resolves and lands it, asking only
   when the work is genuinely at risk.
 - A finished delivery's worktree is kept only when the user can really bring it back.
@@ -50,6 +102,7 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 
 ## Pricing
 
+- **取舍只看用户价值**：不因能否支撑收费（如 Pro）保留次优方案。
 - **四档**：Free（Apache 2.0、8 种编码 agent、编码工作流、不限并发和自定义）；Pro $15/月或 $120/年，默认显示年付；种子伙伴（隐私保护下分享对话换 6 个月 Pro，候补加入，内部上限 20 人不对外公布）；培训只放一张链到 `/training` 的卡。
 - **Pro 额度**：每月一笔 credits，托管配音与生图共用，不加购，用尽停到下月，不改用用户自己的 agent；按每月约 10 条带配音和封面的视频定量，满额仍小有盈利；生成一张封面扣 320 积分（中等质量）。
 - **triage 逐条判断**：Pro 免费、不限条数，不扣 credits。
@@ -59,35 +112,3 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 - **退款**：默认不退款（法律另有要求除外），个别退款由我们决定是否受理；一旦退款或拒付，付费方案与 credits 立即全部收回。
 - **管理员不自动有 Pro**：测试时给自己发赠送，计费不设特例。
 - **桌面端购买 Pro**：在桌面端定价页选月付/年付，用桌面端 Cloud 登录下单，付款页在系统浏览器打开，付完落到无需登录的「请回到 AI4Kanban」页。
-
-## skill
-
-- **按交付物选工作流**：看卡片最终交付什么，不看改动对象；指南里的选择规则不举具体工作流名。
-- **发版前不做旧数据兼容**：未发版功能改名或改格式时直接换新。
-- **Cloud 付费命令归在 `akb cloud` 下**：要登录、扣额度的命令不放顶层。
-- **视频卡演示截图只显示一次**：排练结果及截图在卡片审阅区显示，脚本段落只注明对应哪段演示，不重复嵌图。
-- **博客工作流不在 SEO 上花力气**：主攻关键词只问用户，没有就跳过；不做关键词研究或排名追踪。
-- **不保留 AI 审查**：coding 卡 build 完直接交付，不留可选审查开关；漏掉的靠归档后的建议后续任务补。
-- **对话里要求实现**：助手从不在对话里改代码，也绝不绕过卡片；用户明说建卡或直接做时可跳过讨论计划，当轮从原话建卡并启动后台 build。
-- **refine 指引保持轻量**：计划里站不住的缺口交给建议后续任务事后对照交付补卡，不往规划指引加核查规则；proposer 保持通用，不按工作流定制。
-- **续跑会话是基础能力**：从对话建的卡接续原会话，而不是让新 agent 读对话记录；认出「当前是哪个智能体的哪段会话」和续跑/分叉只在一处实现，续跑中断任务、卡片对话、讨论建卡、终端建卡都走它。
-- **Pro 的 triage 由 Jev 逐条判断**：本机组装上下文，经 Cloud 调用；结论只有 plan / plan-without-refine / skip / human-review，极小改动（调按钮样式、修小错）建卡跳过规划，不自动开工。
-- **游戏开发先看平台**：用户要的是微信小游戏和 ModRetro（Game Boy Color），希望尽量多覆盖；每张卡只交付单个场景或 mockup，不带完整产品，整体测试在用户的模拟器、引擎或真机上。
-- **接用户终端里的会话**：只接能分叉的智能体（Claude Code、Codex、OpenCode），不续用原会话、不读智能体的本地会话记录。
-- **看板设置按机器存**：本地看板和 Cloud 工作区都不共享看板设置（工作流、运行时、模型），不进 git、不上传。
-
-## local-ui
-
-- **统计图表时段**：最短 30 天，不做 24 小时或 7 天。
-- **跨组件共享状态只用 React**：模块级 store 配 `useSyncExternalStore`，不引入 Zustand、Jotai 等外部库。
-
-## cloud
-
-- **申请人邮件**：只发英文。
-- **alpha 定位**：礼貌说明仍在开发、目前对受邀用户免费、不承诺永久免费。
-- **托管看板暂不对外**：面向用户的 Cloud 说明只放桌面端 Cloud 设置页和 Cloud 邮件。
-- **「将此看板存储到 Cloud」**：修完已知问题、团队用真实看板在正式环境往返一次且数据完整后，一次性对所有受邀用户开放，不分批。
-
-## marketing
-
-- **周报发送**：随版本发布，由用户手动发送；agent 只准备到测试邮件通过为止。

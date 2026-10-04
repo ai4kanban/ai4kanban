@@ -2,6 +2,8 @@
 
 Settled user-facing answers for marketing. Read before proposing.
 
+- **周报发送**：随版本发布，由用户手动发送；agent 只准备到测试邮件通过为止。
+
 ## How the work runs
 
 - **Content work runs on the ordinary board** and default workflow; no second board or flow set.

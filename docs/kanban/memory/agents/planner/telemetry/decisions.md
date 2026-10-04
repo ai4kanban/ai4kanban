@@ -2,6 +2,9 @@
 
 Settled user-facing answers for telemetry. Read before proposing.
 
+- **内部运营数字放进 telemetry 数据页**：如 AI 调用成本，和其他指标同一页显示，不另做命令行报表。
+- **用户自己起名的模型名**：公开服务商的原样上报，自定义端点一律报 `custom`。
+
 ## The service
 
 - **Workers free plan**: a day past its allowances loses events rather than billing; move to

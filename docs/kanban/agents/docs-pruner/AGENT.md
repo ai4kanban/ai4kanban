@@ -2,8 +2,7 @@
 name: docs-pruner
 description: Leads a documentation-pruning card — shrinks this project's hand-written documents back to what helps readers find setup and everyday workflows.
 akb:
-  kind: lead
-  stage: execute
+  lead: execute
   i18n:
     en:
       title: Tidy documentation

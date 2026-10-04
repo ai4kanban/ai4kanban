@@ -2,6 +2,10 @@
 
 Design mistakes to avoid when writing a card: the mistake, then the design we want. Read before writing or reviewing a card.
 
+- ❌ **标签已经说明状态，旁边再写一句没有信息的理由凑数（「待你判断」配「拿不准」）** → ✅ 没有可补充的就不写；要写就给出具体依据，例如把握度的数值。
+
+- ❌ **提示语解释机制（存在哪、怎么同步）或说空话（「留空则不记录」）** → ✅ 价值优先、并列直说两个选择，如「直接丢弃，或写下原因，未来会避开这类任务」。
+
 ## What the UI does
 
 - ❌ **The UI hand-edits the board** → ✅ it spawns agent runs for kanban work; only card settings such as priority, ROI and release are direct.
@@ -14,6 +18,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **A new expressive view replaces the plain list** → ✅ it sits beside the list, which never goes away.
 - ❌ **A card replacing a whole screen describes its parts in prose** → ✅ draw the screen before settling the card; scope says what it does, not how it looks.
 - ❌ **A control that starts a run offers only fixed choices** → ✅ add a free-text note carried into the run.
+- ❌ **A control is disabled with no reason shown** → ✅ every disabled state says why in a tooltip.
 - ❌ **Archiving the discussion you're viewing leaves it open** → ✅ return to New idea; archiving another never interrupts your view.
 
 ## Runs and deliveries
@@ -35,7 +40,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **A form omits fields it can't save yet and explains why** → ✅ draw the whole form and hold what can't be written; needing to explain the order means the order is wrong.
 - ❌ **Telemetry asked over the board, or a permanent Privacy tab** → ✅ one default-on disclosure step in onboarding, once per machine, then just a switch under General.
 - ❌ **An optional schedule takes a full settings row** → ✅ a compact control beside the manual action, reusing the existing scheduled agent's parts.
-- ❌ **Every workflow field at once, or flows on separate pages** → ✅ usable defaults; always the rail and Plan → Execute → Review tabs, even for one flow; name new flows and copies inline on blur; built-ins can't be renamed or deleted.
+- ❌ **Every workflow field at once, or flows on separate pages** → ✅ usable defaults; always the rail and Plan → Execute tabs, even for one flow; name new flows and copies inline on blur; built-ins can't be renamed or deleted.
 - ❌ **Agents added to, removed from or shared across workflows** → ✅ each workflow owns its agents, the lead included, and only switches them; reuse is a copy, and copying a workflow copies its agents.
 - ❌ **Agent creation and runtime settings mixed into a workflow, or a field repeated across scopes** → ✅ only the selected agent shows its extra requirements, and each switch lives in one place.
 
@@ -46,7 +51,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 
 ## Recurring tasks
 
-- ❌ **Recurring tasks only add a Run button** → ✅ the server's dispatcher runs due cards on a cadence; never an in-session loop.
+- ❌ **Recurring tasks only add a Run button** → ✅ the server's dispatcher runs due scheduled agents on a cadence; never an in-session loop.
 - ❌ **Scheduling is preset-only or a mandatory form** → ✅ one menu of common cadences and Off, with Custom for number, unit and time.
 
 ## Shipping the desktop app
@@ -55,7 +60,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **A platform is dropped because a library's path there needs a signature** → ✅ check what the system lets an unsigned build do first.
 - ❌ **A gesture needs a system setting turned on** → ✅ a gesture people already use in browsers works with no setup.
 - ❌ **A password prompt on every machine, or for a write needing no privilege** → ✅ link into a user-owned PATH folder, privileged path as fallback, never edit shell startup files.
-- ❌ **A `verify:` that can only run after release** → ✅ scope a local way to exercise it, failure cases included.
+- ❌ **A check that can only run after release** → ✅ scope a local way to exercise it, failure cases included.
 - ❌ **An update failure sends users to a manual download** → ✅ keep updates automatic: retry network failures silently, then show only a confirmed cause.
 
 ## Triage and feedback
