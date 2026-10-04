@@ -739,14 +739,6 @@ export interface LandingReason {
   files?: string[]
 }
 
-/** What a landing's own archive finished (#1331): the group whose root left with the card —
- *  with the subtasks it had ticked — and the release left with no open card, with the cards
- *  archived under it. Empty when it finished neither. */
-export interface LandingClosed {
-  group?: { id: number; title: string; done: number }
-  release?: { id: string; done: number }
-}
-
 export interface DeliveryLanding {
   status: LandingStatus
   /** Why it is waiting, or why it stopped — one plain sentence. */
@@ -773,8 +765,6 @@ export interface DeliveryLanding {
   commit?: string
   /** The target tip it landed onto — the comparison base the landed commit sits on. */
   onto?: string
-  /** Set once the landed card is archived; absent on a landing that archived nothing. */
-  closed?: LandingClosed
   /** Cards whose delivery touches the same files. A warning recorded here, never a reason
    *  to refuse. */
   overlap?: number[]

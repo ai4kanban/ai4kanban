@@ -15,6 +15,7 @@ import { withCreationLock } from '../lib/agent/creation-lock'
 import { withBoardLock } from '../lib/lock'
 import { creationRefusal, planDeliverables, planDeliveryGap } from '../lib/view/rules'
 import { findCard } from '../lib/view/read'
+import { recordCompletion } from '../lib/view/cheer'
 import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, REPO_ROOT } from '../lib/paths'
 import { say } from '../lib/io'
@@ -299,6 +300,10 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // The group closes with its last subtask (#299). Taken before the mentions below, so a
   // sentence in a root that left with this card is never handed over to be rewritten.
   const closed = groupRoot ? closeGroup(groupRoot) : null
+  if (metric === 'completed' && !options.closing && !options.cleanupDiscarded) {
+    const group = closed?.archived_to ? { id: closed.id, title: closed.title ?? '', done: closed.done ?? 0 } : undefined
+    recordCompletion({ id, title: cardMeta?.title ?? '', group })
+  }
   // Everything above is done. What follows is the part no script can do after an archive:
   // the shipped line, and the sentences other cards wrote about an id that just left the
   // board. A rejection hands neither over — the rejection review learns from its reason, and
@@ -333,7 +338,7 @@ interface GroupClose {
   archived_to: string | null
   /** The rule that kept it, or null when it left. */
   held: string | null
-  /** A closed root's title and its ticked subtasks — what a landing records (#1331). */
+  /** A closed root's title and its ticked subtasks — what a cheer says (#1331). */
   title?: string
   done?: number
 }
