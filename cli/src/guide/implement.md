@@ -2,6 +2,8 @@
 
 Build the approved card. Preserve settled decisions and unrelated questions.
 
+- **Unchecked card**: a card with `triage:` set and an empty `## Scope` skipped planning; do
+  what "Unchecked card" in `akb guide refine` says before building.
 - **User-action blockers**: follow `akb guide update-questions` and append a `[user]`
   question describing the obstacle and action needed. Stop only dependent work; resume it
   after the user resolves the question. Settle routine technical choices yourself.

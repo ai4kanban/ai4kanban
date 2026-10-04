@@ -62,8 +62,8 @@ you when the call is yours to make. When every item left is held for you, the bu
 out and says so on hover, focus or tap.
 
 No coding agent runs. Each item is one request to Cloud, answered against your product
-description and what you turned down before. It asks one thing at a time: is it already
-supported, rejected earlier, or owned by an open card; does it need you; is it worth doing —
+description and what you turned down before. It asks one thing at a time: was it rejected
+earlier, or is it owned by an open card; does it need you; is it worth doing —
 and which module, priority, ROI and workflow its card takes. An item is ignored only when one
 of those answers is near certain, and held for you when none settles it. A sort is not an agent
 and takes no rule of its own: the reasons you record when you ignore an item, `project.md` and
@@ -79,6 +79,10 @@ The card keeps the item's own title and words, and its file is named after the i
 created with a refine already scheduled, and the board starts those itself, one per tick. So
 a sort leaves you cards that go on sharpening themselves — it does not start a build, answer
 a question, or touch a card that was already there.
+
+The sort does not read your code, so the card's first refine — or its build, when it skips
+planning — checks it first. A card the product already covers, or about something that no
+longer exists, goes straight to the archive with the evidence as its reason.
 
 The command prints each new card by id and title and each ignore with its reason, then the
 counts. An item that fails — Cloud out of reach, say — stays waiting for the next sort.

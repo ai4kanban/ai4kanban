@@ -2,6 +2,10 @@
 
 Plan one card in this session until it can be built. Change no project code.
 
+- **Unchecked card**: a card with `triage:` set and an empty `## Scope` was never checked
+  against the project. Search the relevant code and docs first; when the project already does
+  the work, or what it concerns no longer exists, run
+  `akb raw reject <id> --discard --reason "<what shows it>"` and stop.
 - **Split**: only when the card holds independently plannable areas and one is still vague,
   follow the group procedure in `akb guide add-task`, create each subtask with
   `--schedule refine`, and stop.

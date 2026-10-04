@@ -23,8 +23,10 @@ const cards = openCards()
 const open = new Set(cards.map((card) => card.id))
 const archived = fs.existsSync(ARCHIVE) ? fs.readdirSync(ARCHIVE) : []
 const rejected = (id: number): boolean => {
-  const file = archived.find((name) => name.startsWith(`${id}-`))
-  return file !== undefined && /^rejected: true$/m.test(fs.readFileSync(path.join(ARCHIVE, file), 'utf8'))
+  const name = archived.find((one) => one.startsWith(`${id}-`))
+  if (name === undefined) return false
+  const file = fs.statSync(path.join(ARCHIVE, name)).isDirectory() ? path.join(ARCHIVE, name, 'root.md') : path.join(ARCHIVE, name)
+  return fs.existsSync(file) && /^rejected: true$/m.test(fs.readFileSync(file, 'utf8'))
 }
 const truthOf = (item: Signal, where: Truth): Truth =>
   where === 'kept' && item.cardId !== null && !open.has(item.cardId) && rejected(item.cardId) ? 'ignored' : where
@@ -91,7 +93,6 @@ const BANDS: [number, number][] = [[0, 0.2], [0.2, 0.5], [0.5, 0.8], [0.8, 0.9],
 const yes = (answer?: Answer): number => answer?.probabilities?.yes ?? 0
 const ODDS: Record<string, (answers: Record<string, Answer | undefined>) => number> = {
   worth: (a) => yes(a.worth),
-  supported: (a) => yes(a.supported),
   rejected: (a) => yes(a.rejected),
   duplicate: (a) => (a.duplicate && a.duplicate.choice !== 'none' ? 1 - (a.duplicate.probabilities?.none ?? 1) : 0),
   needsUser: (a) => yes(a.needsUser),

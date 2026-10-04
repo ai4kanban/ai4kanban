@@ -102,10 +102,9 @@ const odds = (pick: string, probabilities: Record<string, number>, confidence = 
 /** A yes/no answer, by how likely Jev said yes. */
 const yes = (p: number): Answer => odds(p >= 0.5 ? 'yes' : 'no', { yes: p, no: Math.round((1 - p) * 100) / 100 })
 
-/** The six answers a verdict is read off: worth doing, and nothing against it, unless told. */
+/** The five answers a verdict is read off: worth doing, and nothing against it, unless told. */
 const judged = (more: Record<string, Answer> = {}): Record<string, Answer> => ({
   worth: yes(0.9),
-  supported: yes(0.02),
   rejected: yes(0.02),
   duplicate: choice('none'),
   needsUser: yes(0.02),
@@ -194,7 +193,6 @@ describe('the verdict', () => {
   const owned = (p: number): Answer => odds('#1180', { '#1180': p, none: Math.round((1 - p) * 100) / 100 })
 
   it('reads the answers into one of the four ends', () => {
-    assert.equal(end({ supported: yes(0.95) }), 'skip/supported')
     assert.equal(end({ rejected: yes(0.95) }), 'skip/rejected')
     assert.equal(end({ duplicate: owned(0.95) }), 'skip/duplicate')
     assert.equal(end({ worth: yes(0.1) }), 'skip/low-value')
@@ -216,7 +214,7 @@ describe('the verdict', () => {
 
   it('keeps two confidences: that it is worth doing, and the strongest case against it', () => {
     assert.deepEqual([IGNORE_LINE, NEEDS_USER_LINE, DROP_LINE, DO_LINE, SMALL_LINE], [0.9, 0.5, 0.8, 0.8, 0.6])
-    const v = verdictOf(judged({ worth: yes(0.85), supported: yes(0.3), rejected: yes(0.1) }))
+    const v = verdictOf(judged({ worth: yes(0.85), rejected: yes(0.3) }))
     assert.deepEqual([v.drop, v.do, v.confidence], [0.3, 0.85, 0.85])
     assert.deepEqual([v.verdict, v.reason], ['plan', 'plan'])
     const low = verdictOf(judged({ worth: yes(0.4) }))
@@ -224,14 +222,14 @@ describe('the verdict', () => {
   })
 
   it('ignores on a fact first, then holds what needs the user, then weighs its worth', () => {
-    assert.equal(end({ supported: yes(0.95), needsUser: yes(0.9) }), 'skip/supported')
+    assert.equal(end({ rejected: yes(0.95), needsUser: yes(0.9) }), 'skip/rejected')
     assert.equal(end({ needsUser: yes(0.6), worth: yes(0.05) }), 'human-review/needs-user')
     assert.equal(end({ worth: yes(0.05), small: yes(0.9) }), 'skip/low-value')
   })
 
   it('draws each line at its own value', () => {
-    assert.equal(end({ supported: yes(0.9) }), 'skip/supported')
-    assert.equal(end({ supported: yes(0.89) }), 'plan/plan')
+    assert.equal(end({ rejected: yes(0.9) }), 'skip/rejected')
+    assert.equal(end({ rejected: yes(0.89) }), 'plan/plan')
     assert.equal(end({ duplicate: owned(0.9) }), 'skip/duplicate')
     assert.equal(end({ duplicate: owned(0.89) }), 'plan/plan')
     assert.equal(end({ needsUser: yes(0.5) }), 'human-review/needs-user')
@@ -245,17 +243,17 @@ describe('the verdict', () => {
   })
 
   it('ignores for the likeliest fact, naming the card only for a duplicate', () => {
-    const dup = verdictOf(judged({ supported: yes(0.92), duplicate: owned(0.95) }))
+    const dup = verdictOf(judged({ rejected: yes(0.92), duplicate: owned(0.95) }))
     assert.deepEqual([dup.verdict, dup.reason, dup.card, dup.confidence], ['skip', 'duplicate', 1180, 0.95])
-    const done = verdictOf(judged({ supported: yes(0.96), duplicate: owned(0.95) }))
-    assert.deepEqual([done.verdict, done.reason, done.card], ['skip', 'supported', null])
+    const done = verdictOf(judged({ rejected: yes(0.96), duplicate: owned(0.95) }))
+    assert.deepEqual([done.verdict, done.reason, done.card], ['skip', 'rejected', null])
   })
 
   it('reads the pick and its confidence when no probabilities came', () => {
     assert.equal(CONFIDENT, 0.6)
-    assert.equal(end({ supported: choice('yes', 0.9) }), 'skip/supported')
-    assert.equal(end({ supported: choice('yes', 0.89) }), 'plan/plan')
-    assert.equal(end({ supported: { choice: 'yes', confidence: 0.9, probabilities: {} } }), 'skip/supported')
+    assert.equal(end({ rejected: choice('yes', 0.9) }), 'skip/rejected')
+    assert.equal(end({ rejected: choice('yes', 0.89) }), 'plan/plan')
+    assert.equal(end({ rejected: { choice: 'yes', confidence: 0.9, probabilities: {} } }), 'skip/rejected')
     assert.equal(end({ worth: choice('no', 0.8) }), 'skip/low-value')
     assert.equal(end({ worth: choice('yes', 0.8) }), 'plan/plan')
     assert.equal(end({ duplicate: choice('#1180', 0.9) }), 'skip/duplicate')
@@ -284,8 +282,8 @@ describe('the questions', () => {
   it('asks ten of a fresh item, with the cards, modules and workflows this board has', () => {
     card(7, 'Themes')
     const asked = questionsFor([{ id: 7, title: 'Themes', file: '' }]) as Record<string, { criteria: Record<string, string> }>
-    assert.deepEqual(Object.keys(asked), ['worth', 'supported', 'rejected', 'duplicate', 'needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
-    for (const name of ['worth', 'supported', 'rejected', 'needsUser', 'small']) assert.deepEqual(Object.keys(asked[name]!.criteria), ['yes', 'no'])
+    assert.deepEqual(Object.keys(asked), ['worth', 'rejected', 'duplicate', 'needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
+    for (const name of ['worth', 'rejected', 'needsUser', 'small']) assert.deepEqual(Object.keys(asked[name]!.criteria), ['yes', 'no'])
     assert.deepEqual(asked.duplicate!.criteria, { '#7': 'Themes', none: 'no open card owns this work.' })
     assert.deepEqual(asked.modules!.criteria, { skill: 'the board machinery. `cli/`.', docs: 'the user guides.' })
     assert.deepEqual(Object.keys(asked.priority!.criteria), ['high', 'med', 'low'])
@@ -419,7 +417,7 @@ describe('the sort', () => {
 
     assert.equal(sent.length, 1)
     assert.equal(sent[0]!.url, `${API}/v1/judge`)
-    assert.deepEqual(Object.keys(sent[0]!.body.questions), ['worth', 'supported', 'rejected', 'duplicate', 'needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
+    assert.deepEqual(Object.keys(sent[0]!.body.questions), ['worth', 'rejected', 'duplicate', 'needsUser', 'small', 'modules', 'priority', 'roi', 'workflow'])
     assert.equal(sent[0]!.body.state.cards, undefined)
     assert.deepEqual(report.cards, [{ id: 100, title: '写一篇暗色模式的博客' }])
     assert.deepEqual(said, ['#100 写一篇暗色模式的博客', 'sorted 1 item: 1 card, 0 ignored, 0 left for you'])
@@ -464,11 +462,11 @@ describe('the sort', () => {
   it("judges another agent's item in full", async () => {
     signIn(true)
     const id = addedBy('qa-manager', 'Dark mode')
-    answer(jev({ supported: yes(0.99) }))
+    answer(jev({ rejected: yes(0.99) }))
     const { report } = await sort()
-    assert.equal(Object.keys(sent[0]!.body.questions).length, 10)
+    assert.equal(Object.keys(sent[0]!.body.questions).length, 9)
     assert.equal(report.ignored.length, 1)
-    assert.deepEqual([item(id).verdict, item(id).verdictReason], ['skip', 'supported'])
+    assert.deepEqual([item(id).verdict, item(id).verdictReason], ['skip', 'rejected'])
   })
 
   it('schedules a refine on a small card too, and writes no Source section', async () => {
@@ -535,7 +533,7 @@ describe('the sort', () => {
     const unsure = await waiting('Unsure')
     answer(jev({ needsUser: yes(0.7) }))
     await sortItems([held], () => {})
-    answer(jev({ worth: yes(0.57), supported: yes(0.4) }))
+    answer(jev({ worth: yes(0.57) }))
     const said: string[] = []
     done = { report: await sortItems([unsure], (line) => void said.push(line)), said }
     assert.deepEqual(done.report.held, [{ title: 'Unsure', reason: 'likely worth doing, 57% sure' }])
@@ -615,7 +613,7 @@ describe('the sort', () => {
     signIn(true)
     const fresh = await waiting('Fresh')
     const skipped = await waiting('Supported')
-    answer(jev({ supported: yes(0.95) }))
+    answer(jev({ rejected: yes(0.95) }))
     await sortItems([skipped], () => {})
     startCollecting()
     try {
@@ -709,12 +707,12 @@ describe('akb triage run', () => {
     const skip = await waiting('Already there')
     globalThis.fetch = (async (url: string, init?: RequestInit) => {
       const body = init?.body ? JSON.parse(String(init.body)) : null
-      return jev(String(body?.state?.item ?? '').includes(skip) ? { supported: yes(0.95) } : {})()
+      return jev(String(body?.state?.item ?? '').includes(skip) ? { rejected: yes(0.95) } : {})()
     }) as typeof fetch
     const { code, out, err } = await akb(['triage', 'run'])
     assert.equal(code, 0, err)
     assert.match(out, /#100 Dark mode/)
-    assert.match(out, /ignored: Already there — already supported/)
+    assert.match(out, /ignored: Already there — turned down before/)
     assert.match(out, /sorted 2 items: 1 card, 1 ignored, 0 left for you/)
   })
 

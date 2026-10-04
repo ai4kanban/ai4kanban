@@ -65,12 +65,6 @@ const WORTH = yesNo(
   'it is worth too little: cosmetic or speculative, outside what the product is for, or about something the product no longer has.',
 )
 
-const SUPPORTED = yesNo(
-  'Does the product already do what this `item` asks for?',
-  'the product, as described, already behaves the way the item asks.',
-  'the item asks for something the product does not do yet, or reports something still wrong.',
-)
-
 const REJECTED = yesNo(
   'Was the idea this `item` asks for turned down before, as the `rejected.md` notes record?',
   'a note records the same idea, or the kind of item it is, as turned down.',
@@ -172,7 +166,6 @@ export function questionsFor(cards: OpenCard[], asks: Asks = 'all'): Record<stri
         ? { needsUser: NEEDS_USER, small: SMALL }
         : {
             worth: WORTH,
-            supported: SUPPORTED,
             rejected: REJECTED,
             duplicate: {
               type: 'choice',
@@ -304,7 +297,7 @@ function duplicateOf(answer?: Answer): { odds: number; card: number | null } {
   return { odds: hundredths(Number.isFinite(none) ? 1 - none! : answer.confidence), card }
 }
 
-/** The four ends, read off the answers in a fixed order: the three facts that make an item not
+/** The four ends, read off the answers in a fixed order: the two facts that make an item not
  *  worth a card, then whether the user is needed, then its worth. A proposer's item is never
  *  ignored here: it is held when it needs the user, and carded otherwise. */
 export function verdictOf(answers: Record<string, Answer | undefined>, asks: Asks = 'all'): Verdict {
@@ -320,7 +313,6 @@ export function verdictOf(answers: Record<string, Answer | undefined>, asks: Ask
   const worth = yes(answers.worth)
   const duplicate = duplicateOf(answers.duplicate)
   const facts: [TriageReason, number][] = [
-    ['supported', yes(answers.supported)],
     ['rejected', yes(answers.rejected)],
     ['duplicate', duplicate.odds],
   ]
