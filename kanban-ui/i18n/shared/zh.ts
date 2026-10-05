@@ -10,6 +10,8 @@ const zh: SharedCopy = {
   saving: "正在保存…",
   delete: "删除",
   copy: "复制",
+  copyImage: "复制图片",
+  downloadImage: "下载图片",
   copied: "已复制",
   none: "—",
   stop: "。",

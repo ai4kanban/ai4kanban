@@ -1,12 +1,15 @@
 "use client";
 
 // One picture, whole, over everything else (#530, #979): the chat's pasted pictures, a
-// storyboard's frames and every markdown image open here.
+// storyboard's frames and every markdown image open here. The board's own pictures also take
+// a right click or a long press: copy, download (#1549).
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiMaximize2, FiX } from "react-icons/fi";
+import { FiCheck, FiCopy, FiDownload, FiMaximize2, FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
+import { canCopyImage, Copied, useCopyImage } from "./copy";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "./ui/context-menu";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 
@@ -30,6 +33,8 @@ export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // An image menu open over the picture answers its own keys.
+      if ((e.target as Element | null)?.closest?.('[role="menu"]')) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
@@ -64,14 +69,20 @@ export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; 
       >
         <FiX size={18} aria-hidden />
       </button>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine or a
-          markdown body's own URL. */}
-      <img
-        src={src}
-        alt={alt}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-full max-w-full rounded-[10px] object-contain shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-      />
+      <ImageMenu src={src}>
+        {(badge) => (
+          <span onClick={(e) => e.stopPropagation()} className="relative flex min-w-0 max-w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine or a
+                markdown body's own URL. Its height cap is the scrim's padding box. */}
+            <img
+              src={src}
+              alt={alt}
+              className="max-h-[calc(100dvh-80px)] max-w-full rounded-[10px] object-contain shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
+            />
+            {badge}
+          </span>
+        )}
+      </ImageMenu>
     </div>,
     document.body,
   );
@@ -102,46 +113,132 @@ export function ExpandableImage({
 
   return (
     <>
-      <span
-        role={ready ? "button" : undefined}
-        tabIndex={ready ? 0 : undefined}
-        aria-label={ready ? c.viewLarger : undefined}
-        title={ready && !hint ? c.viewLarger : undefined}
-        onClick={(e) => {
-          if (!ready) return;
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(ref.current?.currentSrc || src || null);
-        }}
-        onKeyDown={(e) => {
-          if (!ready || (e.key !== "Enter" && e.key !== " ")) return;
-          e.preventDefault();
-          setOpen(ref.current?.currentSrc || src || null);
-        }}
-        className={`group relative max-w-full ${className ?? "inline-block align-bottom"} ${ready ? "cursor-zoom-in rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent" : ""}`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- its own src, passed through. */}
-        <img
-          {...img}
-          alt={img.alt ?? ""}
-          ref={ref}
-          onLoad={(e) => {
-            setReady(true);
-            onLoad?.(e);
-          }}
-          onError={(e) => {
-            setReady(false);
-            onError?.(e);
-          }}
-        />
-        {hint && ready && (
-          <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-[6px] bg-nb-paper px-2 py-1 text-[11.5px] font-[700] text-nb-ink opacity-0 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            <FiMaximize2 size={12} aria-hidden />
-            {c.viewLarger}
+      <ImageMenu src={ready ? src : undefined}>
+        {(badge) => (
+          <span
+            role={ready ? "button" : undefined}
+            tabIndex={ready ? 0 : undefined}
+            aria-label={ready ? c.viewLarger : undefined}
+            title={ready && !hint ? c.viewLarger : undefined}
+            onClick={(e) => {
+              if (!ready) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(ref.current?.currentSrc || src || null);
+            }}
+            onKeyDown={(e) => {
+              if (!ready || (e.key !== "Enter" && e.key !== " ")) return;
+              e.preventDefault();
+              setOpen(ref.current?.currentSrc || src || null);
+            }}
+            className={`group relative max-w-full ${className ?? "inline-block align-bottom"} ${ready ? "cursor-zoom-in rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent" : ""}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- its own src, passed through. */}
+            <img
+              {...img}
+              alt={img.alt ?? ""}
+              ref={ref}
+              onLoad={(e) => {
+                setReady(true);
+                onLoad?.(e);
+              }}
+              onError={(e) => {
+                setReady(false);
+                onError?.(e);
+              }}
+            />
+            {badge ??
+              (hint && ready && (
+                <span className={`${CORNER} opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100`}>
+                  <FiMaximize2 size={12} aria-hidden />
+                  {c.viewLarger}
+                </span>
+              ))}
           </span>
         )}
-      </span>
+      </ImageMenu>
       {open && <ImagePreview src={open} alt={img.alt ?? ""} onClose={() => setOpen(null)} />}
     </>
   );
+}
+
+/** The tag in a picture's top right corner: "View larger" on hover, "Copied" after a copy. */
+const CORNER =
+  "pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-[6px] bg-nb-paper px-2 py-1 text-[11.5px] font-[700] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)]";
+
+/** Copy and download on a right click or a long press of `children`, which draws `badge` in
+ *  its top right corner and is positioned for it. Only for a picture this page serves: one
+ *  from another site keeps the browser's own menu. Copy is left out where the clipboard takes
+ *  no pictures. */
+export function ImageMenu({
+  src,
+  children,
+}: {
+  src: string | undefined;
+  children: (badge: React.ReactNode) => React.ReactElement;
+}) {
+  const c = useCopy().shared;
+  const { copied, copy } = useCopyImage();
+  const [can, setCan] = useState<{ copy: boolean } | null>(null);
+  useEffect(() => setCan(src && sameOrigin(src) ? { copy: canCopyImage() } : null), [src]);
+
+  const badge = copied && (
+    <span className={CORNER}>
+      <FiCheck size={12} aria-hidden />
+      {c.copied}
+    </span>
+  );
+  // The menu is portaled, but React still bubbles its events through the picture: a pick
+  // must not also open the preview or follow the picture's link.
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  // Disabled rather than left out, so the picture is not remounted when it turns on.
+  return (
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild disabled={!can} style={can ? undefined : { WebkitTouchCallout: "default" }}>
+          {children(badge || null)}
+        </ContextMenuTrigger>
+        {can && src && (
+          <ContextMenuContent onClick={stop} onKeyDown={stop} onContextMenu={stop}>
+            {can.copy && (
+              <ContextMenuItem onSelect={() => copy(src)}>
+                <FiCopy size={13} aria-hidden />
+                {c.copyImage}
+              </ContextMenuItem>
+            )}
+            <ContextMenuItem onSelect={() => download(src)}>
+              <FiDownload size={13} aria-hidden />
+              {c.downloadImage}
+            </ContextMenuItem>
+          </ContextMenuContent>
+        )}
+      </ContextMenu>
+      <Copied on={copied} />
+    </>
+  );
+}
+
+function sameOrigin(src: string): boolean {
+  try {
+    return new URL(src, location.href).origin === location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/** Saved under the file's own name. The desktop app asks where, as Electron does by default. */
+function download(src: string) {
+  const a = document.createElement("a");
+  a.href = src;
+  a.download = fileName(src);
+  a.click();
+}
+
+function fileName(src: string): string {
+  const last = new URL(src, location.href).pathname.split("/").pop() ?? "";
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
 }

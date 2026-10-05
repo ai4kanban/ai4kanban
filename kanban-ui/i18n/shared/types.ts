@@ -10,6 +10,9 @@ export type SharedCopy = {
   delete: string;
   copy: string;
   copied: string;
+  /** A board picture's right-click menu (#1549). */
+  copyImage: string;
+  downloadImage: string;
   /** The dash a row shows where a field has no value. */
   none: string;
   /** The full stop that closes a sentence a button or a link ends. */

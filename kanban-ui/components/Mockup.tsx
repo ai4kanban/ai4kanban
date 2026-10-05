@@ -31,6 +31,7 @@ import { mockupHref, mockupViewHref, SCREENS, type Device, type MockupView } fro
 import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
+import { ImageMenu } from "./image-preview";
 
 const { w: W, h: H } = SCREENS.desktop;
 const PHONE = SCREENS.mobile;
@@ -183,23 +184,28 @@ function Drawing({ text }: { text: string }) {
  *  inline styles win over `.nb-md img`, whose border and corners are for prose images. */
 function Picture({ image, src, alt }: { image: string; src: string; alt: string }) {
   return (
-    <Link href={mockupHref(src)} className="block bg-nb-wash" style={{ containerType: "inline-size" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
-      <img
-        src={image}
-        alt={alt}
-        style={{
-          display: "block",
-          width: "100%",
-          height: "auto",
-          maxWidth: "100%",
-          maxHeight: `min(${H}px, ${(H / W) * 100}cqw)`,
-          objectFit: "contain",
-          border: 0,
-          borderRadius: 0,
-        }}
-      />
-    </Link>
+    <ImageMenu src={image}>
+      {(badge) => (
+        <Link href={mockupHref(src)} className="relative block bg-nb-wash" style={{ containerType: "inline-size" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+          <img
+            src={image}
+            alt={alt}
+            style={{
+              display: "block",
+              width: "100%",
+              height: "auto",
+              maxWidth: "100%",
+              maxHeight: `min(${H}px, ${(H / W) * 100}cqw)`,
+              objectFit: "contain",
+              border: 0,
+              borderRadius: 0,
+            }}
+          />
+          {badge}
+        </Link>
+      )}
+    </ImageMenu>
   );
 }
 

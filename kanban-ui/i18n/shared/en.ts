@@ -10,6 +10,8 @@ const en: SharedCopy = {
   saving: "Saving…",
   delete: "Delete",
   copy: "Copy",
+  copyImage: "Copy image",
+  downloadImage: "Download image",
   copied: "Copied",
   none: "—",
   stop: ".",
