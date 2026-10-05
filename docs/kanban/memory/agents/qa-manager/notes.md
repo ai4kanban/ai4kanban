@@ -85,7 +85,7 @@
 - **「上一版」可以自己构建**：`git archive <上一个提交> cli telemetry skill scripts | tar -x -C /tmp/x`，把 `cli/node_modules` 软链过去后 `node scripts/build.mjs`；主检出不一定停在上一版。
 - **上一版第一次建周期任务卡会崩**：`todo/recurring/` 不存在，先 `mkdir`；真实的「Fetch triage items」卡用 `endpoint.mjs` 顶替接口、跑一次上一版的 `akb triage fetch` 得到（`config.md` 加 `- **Triage endpoint** — <url>`，`docs/kanban/.env` 写 `TRIAGE_ENDPOINT_TOKEN`）。
 - **`ui.config.json` 不能整份覆盖**：工作流的周期、启用状态就存在里面；接替身 Agent 要把 `harness` / `harnessSettings` 并进去（`runtimes[].settings.command` 也写上）。
-- **停用的周期 Agent「立即运行」被拒绝**（#1414 实测，和卡片、文档说的相反）：命令行回 `switched off`，界面的提示出现在「配置」窗口后面的看板顶上；要截它得先关窗口。
+- **停用的周期 Agent 也能「立即运行」**（#1543 起实测）：会真的跑并留下提交；「QA 管理员」在界面里改叫「质检员」，默认周期是「自动」。
 - **界面打开约一分钟后才迁移**：巡检第一次走才动 `todo/recurring/`；要截「迁移前」就在头几秒内截，之后轮询 `agents/<名字>/AGENT.md` 出现再继续。
 - **「定期运行」框要滚动才看全**：从「+」往上找 `scrollHeight > clientHeight` 的祖先，`scrollTop = scrollHeight`。
 - **官网截图视口设 1280×1000、裁 810 高**：视口正好 810 时左下角的 Next 开发角标会进图。
@@ -102,3 +102,23 @@
 - **#1494 加了一个用例**：`skill/leave-qa-work-to-the-qa-manager-after-a-card-lands/`；第 3 步失败已记待筛选——`scheduled` 等事实只在 `printFlow` 里，看板起的 `reflect` 运行只拿到提示词，也没有 `--print` 入口。
 - **起 proposer 运行**：用例目录的 `start-reflect.mjs` 调 `nextWork()` 和 `startRun()`；卡片落地后 `ui.config.json` 的 `reflectQueue` 就有它。替身加 `STAND_IN_TRACE=<目录>` 会把启动参数写下来，最后一个是提示词。
 - **marketing 模块已补写（2026-10-03）**：没有场景，理由写在索引里；下一个待补写的是 local-ui，其后 site、cloud、telemetry。
+- **site 模块已补写（2026-10-04）**：下载、定价、联系表单、预约培训、切换语言五个用例；下一个待补写的是 local-ui，其后 cloud、telemetry。
+- **官网表单用页面内替身**：`/contact`、`/training` 从浏览器直连 `api.ai4kanban.dev`，线上只放行官网来源，本地页面读不到；用例目录的 `api-stand-in.js` 经 `Page.addScriptToEvaluateOnNewDocument` 换掉 `fetch`，可预约时段照抄 `curl -H "Origin: https://ai4kanban.dev"` 的真实回答，提交一律不外发。
+- **官网截图用高视口、不滚动**：窗口设 1280×1600 后从 `scrollTo(0,0)` 按包围盒裁，避开吸顶页头盖住内容；页头的语言菜单有两个同名 `details`，取宽度大于 0 的那个。
+- **telemetry 的 `npm run numbers -- --dev` 跑不通**：开发库的 `wrangler d1 execute` 报错；生产库全是真实用量，不能进证据，所以 telemetry 还没补写。
+- **子运行里 `ScheduleWakeup` 不会续跑**：#1523 的 skill 子运行排了一小时后台等待就结束了，后台脚本也被杀；接手时看 `/tmp/<目录>` 里的脚本和半成品日志。「描述项目」的周期可在 `ui.config.json` 写 `projectDescription.cadence: "1m"`，不必等一天。
+- **`akb run wait` 不带 id 会立刻返回已结束的那个**：要等某个子运行就带上它的 id。
+- **#1538 只改了一步**：`skill/a-finished-card-not-a-commit-starts-a-scheduled-agent/` 第 7 步（`describe-project --help`）从失败改成通过；官网那句文案不在任何截图里。
+- **local-ui 已补写（2026-10-04）**：加了「把一个想法变成卡片」「切换界面语言」；桌面应用安装没写，理由在索引里。下一个待补写的是 cloud，其后 telemetry。
+- **「新想法」能用替身走通**：讨论里的 Agent 带 `KANBAN_DISCUSSION`，替身见到它就 `akb raw plan new` 存方案；点「规划任务」后的提示是 ``Add task(s) from the plan at `plans/…` ``。方案占一个卡号，新卡是 #3 不是 #2。见 `local-ui/turn-an-idea-into-a-card-on-the-board/stand-in.mjs`。
+- **界面里切语言当场生效并写进 `settings.json`**：不用重启 `next dev`；重启只在手改 `settings.json` 时才需要。
+- **cloud 已补写（2026-10-04）**：登录、打开工作区看板、查看套餐并购买 Pro、退出登录四个用例；只剩 telemetry 待补写。
+- **Cloud 看板网站本地实跑**：`cloud-ui`、`kanban-ui` 的 `node_modules` 软链到主检出，`env -i` 下 `next dev -p 3790`；`cloud/sign-in-to-the-hosted-board/stand-in.mjs` 一个进程顶替 Supabase Auth、GitHub 授权（立即同意）、`api.ai4kanban.dev` 和 Creem。替身放 `127.0.0.1`、网站用 `localhost`，两者才算跨站。
+- **网站语言看 `Accept-Language`**：CDP 的 `Emulation.setUserAgentOverride` 带 `acceptLanguage: 'zh-CN'`；账号菜单是 `button[aria-label="账号"]`，开发模式下要等水合完再点，点不开就重试。
+- **`Runtime.evaluate` 别返回 DOM 节点**：`returnByValue` 会报「Object reference chain is too long」，等待条件包成 `!!(…)`。
+- **第一次打开看板会弹「功能导览」**：按「跳过」才看到看板；清过浏览器存储就会再弹。
+- **cloud-ui 的 `/favicon.ico` 落进 `[workspace]` 路由**：退出后它会开始一次登录（已记待筛选 `cloud-favicon-signs-back-in`），抓导航日志时别把它当成自己点出来的。
+- **`akb run list` 空闲时打印 `nothing is running…`**：等待循环要匹配 `nothing (is )?running`；`start-reflect.mjs --later <小时>` 只报告看板定时器到时会起什么，不必真等。
+- **`skill/run-a-workflow-agent-on-a-schedule/` 第 1 步已过时**：`qa-manager` 现在列为 `auto` 而非 `every 1d`，不是 #1543 改的，等下一张相关卡片再重做。
+- **按钮要先滚到可见**：停用的自建 Agent 排在列表最底下，先 `scrollIntoView` 再点。
+- **看板自带 Agent 的周期小控件**：`aria-label` 以「定期回顾 / 定期整理 / 定期更新」开头，不是「运行周期」。

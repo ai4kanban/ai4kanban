@@ -20,3 +20,7 @@ own entries live in its folder beside this file.
 ## Eval collection
 
 - ❌ **靠团队进入用户环境逐案提取上下文** → ✅ 合作用户及其本地 agent 自主提交，团队独立复现。
+
+## Calling spec agents
+
+- ❌ **以「只改一句」「不是新功能」为由跳过 user-docs** → ✅ 卡片只要改动用户文档的文字，就调 user-docs（#1538）。

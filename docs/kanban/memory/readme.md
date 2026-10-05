@@ -5,6 +5,7 @@ covers it, or a plain-words note.
 
 ## skill
 
+- Claude Code 的卡片运行在后台任务跑着时不再被沉默上限结束：一直等到后台任务结束、结论写进同一次运行，只在纯等后台时最长等 2 小时（「沉默多久后结束运行」为 0 时不设上限）：`web/content/docs/connectors.mdx`。
 - 自动分拣不再问「已经做到了吗」；它建的卡在第一次规划（免规划的卡在开工）时先对照代码，产品已做到或所涉及的东西已不存在的，直接带着依据移进归档，不问你：`web/content/docs/triage.mdx`。
 - 提案者写进待筛选的条目，自动分拣不再判「已做到」「否决过」「值不值得」「与未完成卡重复」，只问要不要你和是否免规划，再定卡片的模块、优先级、ROI 和工作流；除非留给你或没有工作流能做，一律建卡，不合适的在看板上否决：`web/content/docs/triage.mdx`。
 - 构建和规划中发现的跟进不再直接建卡，改为进待筛选（`akb triage add`），离开待筛选时才判断值不值得做；只需改另一张未完成卡的，改为对那张卡启动修订。「建议后续任务」回顾时发现未完成卡的计划已过时，也直接修订它而不提新条目。你直接提的需求照你说的建卡，不再查重：`web/content/docs/triage.mdx`。
@@ -27,7 +28,7 @@ covers it, or a plain-words note.
 - 工作流负责人的 `AGENT.md` 还在、只是被看板拒用时（旧写法 `stage`/`kind`/`lead: true`、缺文件、重名、文件夹名与 `name` 不一致、其他文件错误），开始卡片的报错和 `akb workflow list` 的 `!` 行改为一句话说明是哪个负责人、为什么用不了、改哪一行，界面按中英文显示；名字确实不存在时仍报「没有这个 agent」。
 - 否决卡片时给的原因随卡片存进归档（frontmatter 的 `rejected_reason`，分组的子任务也带）：看板发起的否决自动保存，手动执行用 `akb raw reject <id> --reason <text>`，`card reject --print` 打印的收尾命令已带好转义后的原因。此前的否决卡不补。
 - Cloud 看板上没有 `archived:` 日期的归档卡片（该字段出现前归档的旧卡片、手工放进归档的卡片）现在按 Cloud 记录的归档时间满 30 天后删除，此前这类卡片及其所在分组永远不会被清理；导入的这类卡片从导入那一刻算起。
-- 构建后的 hook 会被告知看板目录和卡片文件的绝对路径；QA 手册每个场景一个文件夹 `docs/qa/<module>/<case>/case.md`，证据放在 `case.md` 旁边，模块只取自看板的 `modules.md`，清单为空时放在 `docs/qa/<case>/case.md`：`web/content/docs/daily-loop.mdx`。
+- 构建后的 hook 会被告知看板目录和卡片文件的绝对路径；QA 手册每个场景一个文件夹 `docs/qa/<module>/<case>/case.md`，截图、GIF、日志只存在本机项目的 `.akb/qa/<module>/<case>/`、不进 git（证据都不在本机时测试用例页只标一次「这台电脑上没有截图和日志」），模块只取自看板的 `modules.md`，清单为空时放在 `docs/qa/<case>/case.md`：`web/content/docs/daily-loop.mdx`。
 - 清空卡片对话、给它换 agent、或归档卡片时，没审过的对话会在本机留底，卡片归档后由记忆审阅读一次再删除，最久 30 天；被拒绝或丢弃的卡片当场删除：`web/content/docs/chat.mdx`。
 - 记忆审阅改为卡片归档后只审一次它的对话，每次运行最多 10 张卡、接连跑完；对某个 agent 产出的纠正写进该 agent 自己的记忆。被拒绝的卡片不审，讨论也不再审——讨论定下的内容留在它生成的卡片里，想长期保留的偏好要在卡片对话里再说一次：`web/content/docs/agents.mdx`。
 - `AGENT.md` 的 `akb:` 下用一个键声明角色：`lead: plan`、`lead: execute`、`hook: plan`、`hook: execute` 四选一；旧的 `stage`、`kind`、`lead: true/false` 不再读取，报错里写出该换成的那一行，自建 agent 要手动改：`akb guide write-agent`。
@@ -163,10 +164,17 @@ covers it, or a plain-words note.
 - 内置 Agent `qa-manager` 的中文名改为「质检员」，内置 Agent 的中文描述只写「它做什么」。
 - 执行后 hook 已删除：构建完成后交付直接合入（或等你提交），不再等待任何 Agent；工作流配置里残留的执行后 Agent 被忽略，`akb.hook: execute` 的 agent 会报错并提示改成 `hook: schedule` 加 `reads: archived-cards`，配置界面的「执行后」一栏也去掉了。见 `web/content/docs/agents.mdx`。
 - 剪辑、封面设计和脚本作者不再写 `media.md`：素材只用自己制作或生成的、仓库里的和开源许可的，其余（包括 Apple、Windows 等平台标志）先提问；生成封面的模型和提示词和封面源文件放在一起，范例不再附来源记录。
-- 定期运行的 Agent 不再依赖 git 判断要不要跑：「描述项目」改为在上次运行后有卡片归档（或还没有项目描述）时运行；`akb.reads` 去掉 `commits`，旧 `AGENT.md` 里写的 `commits` 按 `archived-cards` 处理。见 `web/content/docs/agents.mdx`。
+- 定期运行的 Agent 不再依赖 git 判断要不要跑：「描述项目」改为在上次运行后有卡片归档（或还没有项目描述）时运行；`akb.reads` 去掉 `commits`，旧 `AGENT.md` 里写的 `commits` 按 `archived-cards` 处理；`akb describe-project --help` 与文档「日常流程」页已同步此说法。见 `web/content/docs/agents.mdx`。
+- 编码流程新增规划钩子「用户文档」（`user-docs`）：卡片改变用户能看到或能做的事时，在规划阶段写出要改的用户文档（已有页给 diff，新页给整段 Markdown），确认后由构建者照写；内部文档、宣传文案和界面文字不归它。个人写作偏好记在它的记忆 `writing.md`。实现阶段不再加载 `document-feature` 指南。见 `web/content/docs/agents.mdx`。
 
 ## local-ui
 
+- Claude Code 的对话里，后台任务在跑时回复照常结束、可以继续发消息；输入框上方显示「N 个后台任务进行中 · 中止」，任务结束后的结论以「后台任务结束后」单独一条接在对话末尾：`web/content/docs/connectors.mdx`。
+- 右键（触屏长按）卡片、计划、文档里看板自己的图片——正文图片、放大后的大图、mockup 预览图——弹出「复制图片」「下载图片」菜单，下载沿用原文件名，复制成功后图片右上角短暂显示「已复制」；外链图片保持浏览器原有右键。
+- 定时代理频率菜单的「自动」一项下方用一行小字说明它对该代理意味着什么（如「有新对话后，最多每 6 小时一次」「每天一次」），看板自带的和工作流的定时代理都有；等待新输入的代理在「自动」下最多每 6 小时跑一次（原为每小时）。
+- 执行中的卡片页「差异」显示 Agent 已写入工作目录的改动（含新建文件），点开该页签即重新读取；没有改动时显示「还没有改动」；归档卡片页可直接查看已合入那次提交的「差异」。
+- 讨论写成的卡片链接按卡片当前状态显示：进行中为「→ 已写成」，归档后为「✓ 已完成」并淡化，被拒绝为「已放弃」；归档后仍显示标题、可点开，找不到文件的旧卡片只显示编号。
+- 待筛选里由 Agent 写入的条目（如 qa-manager 跑 QA 手册时发现的问题），来源显示为该 Agent 名，同一 Agent 的条目归为一组并可在来源筛选中选择；「未注明来源」只留给确实没有来源的条目。
 - 欢迎导览翻页时像洗一叠卡片：前进时当前卡向左滑出、塞到底下，后退时底下那张从左侧抽回到最前；手机上整页滑出、下一页浮起；系统开启「减少动态效果」时直接切换。
 - 桌面应用从别的程序切回窗口时，看板、卡片页、待筛选页及其计数、归档、记忆、测试用例等页面都会重新读取，不必切页；点进页内模型图再点回来不算离开。
 - 在「待筛选」页再点一次顶栏的「待筛选」按钮，会回到点开前所在的页面；直接打开该页时回到看板。
@@ -335,9 +343,9 @@ covers it, or a plain-words note.
 - `project.md` 的说明改为「what the project is」：`web/content/docs/daily-loop.mdx`、Kanban for Claude Code 和 Kanban for Codex 两页的记忆文件表格。
 - 看板描述文件改名为 `docs/kanban/memory/project.md`、助手改名为 Describe the project：`web/content/docs/agents.mdx`、`daily-loop.mdx`、`chat.mdx`。
 - 周期任务卡并入定期运行的 agent、停用时也能立即运行：`web/content/docs/agents.mdx` 的「Run an agent on a schedule」；`triage.mdx`、`daily-loop.mdx` 里周期任务卡的说法已去掉。
-- 清空过的卡片对话去了哪、何时被审、何时删除：`web/content/docs/chat.mdx`、`web/content/docs/agents.mdx`。
 - 待筛选接口的条目可带可选的 `slug`，它是条目的文件名，也是之后卡片的文件名：`web/content/docs/triage-endpoint.mdx`。
 - 「What makes a good goal」页已删，旧地址重定向到文档首页；方向如何确定见 `web/content/docs/daily-loop.mdx`，助手见 `web/content/docs/agents.mdx`。
+- 用户文档精简为只讲能做什么、怎么用、什么能设置及在哪设置，删去内部机制和默认数值（`agents.mdx` 332 → 111 行）：`web/content/docs/`。
 - Both READMEs are app-first: download first, `akb` second, the skill optional:
   `README.md`, `README-zh.md`.
 - One page per topic under `web/content/docs/`; commands stay in `akb --help`.
@@ -362,7 +370,7 @@ covers it, or a plain-words note.
 - Email changes are written by `email-planner` on a Coding card; the Email workflow is gone:
   `scripts/email/README.md`.
 - The "see it first, then build it" product video exists in English and Chinese, 16:9, for
-  YouTube and Xiaohongshu.
+  YouTube and Xiaohongshu: animation-led, with short real-app clips as evidence.
 
 ## cloud
 

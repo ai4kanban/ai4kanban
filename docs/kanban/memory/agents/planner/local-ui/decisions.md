@@ -71,6 +71,7 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 - The chat rail shows one conversation at a time, following what you are reading.
 - The board keeps its 20 most recent discussions, dropping the oldest silently; a row's menu holds only Archive.
 - Plan files are machine-local state, not in the repository.
+- **Background tasks in a chat**: the chat stays free while the agent's background tasks run; their results arrive later as their own message.
 - Propose tasks is gone: unasked-for cards are rarely trusted; new work comes from idea extraction on a named source.
 
 ## Notifications
