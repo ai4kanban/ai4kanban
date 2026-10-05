@@ -283,6 +283,9 @@ const en: CardCopy = {
     notes: "Speaker notes",
     noPreview: "No preview",
     emptySlides: "No slides yet",
+    downloadAll: "Download all",
+    packing: "Packing…",
+    downloadFailed: "Download failed, click to retry",
   },
 };
 

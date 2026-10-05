@@ -274,6 +274,9 @@ const zh: CardCopy = {
     notes: "演讲备注",
     noPreview: "暂无预览",
     emptySlides: "尚无页面",
+    downloadAll: "全部下载",
+    packing: "正在打包…",
+    downloadFailed: "下载失败，点击重试",
   },
 };
 

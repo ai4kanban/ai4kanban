@@ -301,5 +301,8 @@ export type CardCopy = {
     notes: string;
     noPreview: string;
     emptySlides: string;
+    downloadAll: string;
+    packing: string;
+    downloadFailed: string;
   };
 };

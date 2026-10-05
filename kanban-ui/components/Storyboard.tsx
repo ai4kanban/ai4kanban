@@ -9,9 +9,10 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { FiCheck, FiChevronRight, FiCopy, FiRotateCw } from "react-icons/fi";
+import { FiAlertTriangle, FiCheck, FiChevronRight, FiCopy, FiDownload, FiLoader, FiRotateCw } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { formatDiagnostic } from "@/lib/storyboard-check";
+import { zip } from "@/lib/zip";
 import type { StoryboardFrameView, StoryboardShotView, StoryboardSlideView, StoryboardView } from "@/lib/storyboard";
 import { useCopyText } from "./copy";
 import { ExpandableImage } from "./image-preview";
@@ -35,6 +36,65 @@ function Reload() {
   );
 }
 
+/** Every picture that loads, as one zip (#1554). Numbered by place in the storyboard, so a
+ *  missing page leaves a gap rather than renumbering the rest. */
+function DownloadAll({ hrefs, name }: { hrefs: (string | null)[]; name: string }) {
+  const c = useCopy().card.storyboard;
+  const [state, setState] = useState<"idle" | "packing" | "failed">("idle");
+  if (!hrefs.some(Boolean)) return null;
+
+  const pack = async () => {
+    setState("packing");
+    const pad = Math.max(2, String(hrefs.length).length);
+    const files = await Promise.all(
+      hrefs.map(async (href, k) => {
+        if (!href) return null;
+        try {
+          const res = await fetch(href);
+          if (!res.ok) return null;
+          const ext = new URL(href, location.href).pathname.match(/\.\w+$/)?.[0] ?? "";
+          return { name: `${String(k + 1).padStart(pad, "0")}${ext}`, bytes: new Uint8Array(await res.arrayBuffer()) };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const found = files.filter((f) => f !== null);
+    if (!found.length) return setState("failed");
+    const url = URL.createObjectURL(zip(found));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    setState("idle");
+  };
+
+  const tip = state === "packing" ? c.packing : state === "failed" ? c.downloadFailed : c.downloadAll;
+  return (
+    <button
+      type="button"
+      disabled={state === "packing"}
+      onClick={pack}
+      aria-label={tip}
+      title={tip}
+      className={`${SOFT_BUTTON} self-center !px-2 ${state === "packing" ? "cursor-default opacity-70" : ""}`}
+    >
+      {state === "packing" ? (
+        <FiLoader size={14} aria-hidden className="animate-spin" />
+      ) : state === "failed" ? (
+        <FiAlertTriangle size={14} aria-hidden className="text-nb-peach-ink" />
+      ) : (
+        <FiDownload size={14} aria-hidden />
+      )}
+    </button>
+  );
+}
+
+/** `<card>-<label>`, with what a file name cannot hold swapped out. */
+const zipName = (card: number, label: string | undefined) =>
+  `${card}-${(label?.trim() || "storyboard").replace(/[\\/:*?"<>|\x00-\x1f]+/g, "-")}`;
+
 function Heading({ title, children }: { title?: string; children?: React.ReactNode }) {
   const c = useCopy().card.storyboard;
   return (
@@ -57,8 +117,9 @@ export function StoryboardUnavailable({ label }: { label?: string }) {
 }
 
 export function Storyboard({ view, label }: { view: StoryboardView; label?: string }) {
-  if (view.slides) return <Slides slides={view.slides} ratio={view.ratio} label={label} />;
-  return view.shots ? <Shots shots={view.shots} ratio={view.ratio} label={label} /> : <Broken view={view} label={label} />;
+  const name = zipName(view.card, label);
+  if (view.slides) return <Slides slides={view.slides} ratio={view.ratio} label={label} name={name} />;
+  return view.shots ? <Shots shots={view.shots} ratio={view.ratio} label={label} name={name} /> : <Broken view={view} label={label} />;
 }
 
 function Broken({ view, label }: { view: StoryboardView; label?: string }) {
@@ -110,7 +171,7 @@ function Thumb({ frame, ratio, current }: { frame: StoryboardFrameView; ratio: n
   );
 }
 
-function Shots({ shots, ratio, label }: { shots: StoryboardShotView[]; ratio: number; label?: string }) {
+function Shots({ shots, ratio, label, name }: { shots: StoryboardShotView[]; ratio: number; label?: string; name: string }) {
   const c = useCopy().card.storyboard;
   const base = useId();
   const [current, setCurrent] = useState(0);
@@ -127,6 +188,7 @@ function Shots({ shots, ratio, label }: { shots: StoryboardShotView[]; ratio: nu
       <Heading title={label}>
         {shots.length > 0 && <span className="text-nb-ink-soft">{c.summary(shots.length, seconds(total))}</span>}
         <span className="ml-auto text-[11px] text-nb-ink-soft">{c.sketch}</span>
+        <DownloadAll hrefs={shots.flatMap((s) => s.frames.map((f) => f.href))} name={name} />
       </Heading>
       {shots.length === 0 ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.empty}</div>
@@ -250,7 +312,7 @@ function Frame({ frame, ratio, missing }: { frame: StoryboardFrameView; ratio: n
   );
 }
 
-function Slides({ slides, ratio, label }: { slides: StoryboardSlideView[]; ratio: number; label?: string }) {
+function Slides({ slides, ratio, label, name }: { slides: StoryboardSlideView[]; ratio: number; label?: string; name: string }) {
   const c = useCopy().card.storyboard;
   const base = useId();
   const [current, setCurrent] = useState(0);
@@ -265,6 +327,8 @@ function Slides({ slides, ratio, label }: { slides: StoryboardSlideView[]; ratio
     <div className="nb-storyboard @container min-w-0 text-[13px] leading-5">
       <Heading title={label ?? c.slidesHeading}>
         {slides.length > 0 && <span className="text-nb-ink-soft">{c.pages(slides.length)}</span>}
+        <span className="ml-auto" />
+        <DownloadAll hrefs={slides.map((s) => s.preview.href)} name={name} />
       </Heading>
       {slides.length === 0 ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.emptySlides}</div>

@@ -30,6 +30,7 @@ export type StoryboardSlideView = Omit<StoryboardSlide, "preview"> & { preview: 
  *  file; empty when nothing is wrong. */
 export type StoryboardView = {
   src: string;
+  card: number;
   /** The page shape a missing picture is drawn in: the first readable picture's, else 16:9. */
   ratio: number;
   shots: StoryboardShotView[] | null;
@@ -69,7 +70,7 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
     const named = assetName(src, cardId, ["json"]);
     if (!("name" in named)) {
       const diagnostics = [{ file: src, code: "storyboard-src", pointer: "", ...named }];
-      set[src] = { src, ratio: 16 / 9, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, lead || "scriptwriter", diagnostics) };
+      set[src] = { src, card: cardId, ratio: 16 / 9, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, lead || "scriptwriter", diagnostics) };
       continue;
     }
     const json = dir ? inside(dir, named.name) : null;
@@ -104,6 +105,7 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
     const first = [...(slides?.map((s) => s.preview) ?? []), ...(shots?.flatMap((s) => s.frames) ?? [])].find((f) => f.ratio);
     set[src] = {
       src,
+      card: cardId,
       ratio: first?.ratio ?? 16 / 9,
       shots,
       slides,
