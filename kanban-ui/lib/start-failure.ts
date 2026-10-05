@@ -92,6 +92,8 @@ export function reasonPart(r: RunReason, t: UiCopy): ReasonPart | undefined {
       return { line: c.resumeUnstarted };
     case "silent":
       return { line: c.silent(a.n ?? "") };
+    case "backgroundSilent":
+      return { line: c.backgroundSilent(a.n ?? "") };
     case "takenOver":
       return { line: c.takenOver };
     case "notInstalled":

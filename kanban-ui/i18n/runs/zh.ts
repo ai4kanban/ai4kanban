@@ -136,6 +136,7 @@ const zh: RunsCopy = {
     reason: {
       resumeUnstarted: "未能继续本次运行。",
       silent: (n) => `Agent 连续 ${n} 分钟没有输出，运行已结束。`,
+      backgroundSilent: (n) => `后台任务 ${n} 小时未结束，运行已结束。`,
       takenOver: "另一台电脑接手了这张卡片，本次运行已结束。它写到看板上的内容已丢弃，项目中的改动保持不变。",
       notInstalled: (cmd, install) => `找不到 ${cmd}：可能尚未安装，或不在本次运行的 PATH 中。安装命令：${install}`,
       format: "卡片格式未通过校验。",

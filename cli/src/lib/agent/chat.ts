@@ -49,15 +49,16 @@ import {
   runtimeModel,
   runtimeName,
   skillPrompt,
+  type ActiveRun,
   type RunPlan,
 } from './resolve'
 import { caseOffered, dropCase } from '../case'
 import { DISCUSSION_ROLE, FEEDBACK_ROLE } from './roles'
 import { chatRuleBlock } from './rules'
 import { readRuntimes, runtimeById } from './runtimes'
-import { memoryReview } from './settings'
+import { BACKGROUND_WAIT, memoryReview } from './settings'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
-import { createStderrFilter } from './wire'
+import { createStderrFilter, type StreamTurn } from './wire'
 import { caseEnv, discussionEnv } from './env'
 import { endAgent, markEnv, stopMark, trackAgent } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
@@ -138,6 +139,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
       model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       images: imagesOf(entry.images),
       fromBoard: entry.fromBoard === true ? true : undefined,
+      afterBackground: entry.afterBackground === true ? true : undefined,
     })
   }
   return {
@@ -269,6 +271,8 @@ export function forgetCardChat(cardId: number): boolean {
 }
 
 function dropChat(cardId: ChatTarget): boolean {
+  // Its background tasks belonged to the conversation going with it (#1540).
+  liveChats.get(keyOf(cardId))?.stop()
   // The pictures go with the transcript that named them (#441) — the ones already sent and
   // the ones still waiting in the box, which is the whole of what this folder holds.
   fs.rmSync(imagesDir(cardId), { recursive: true, force: true })
@@ -664,6 +668,9 @@ export function carriedForward(held: Chat, since: Chat | null): Chat {
   held.pendingCards = since.pendingCards
   held.triage = since.triage
   held.reviewedAt = since.reviewedAt
+  // Replies the background wrote while this turn ran (#1540).
+  const had = new Set(held.messages.map((m) => m.at))
+  held.messages.push(...since.messages.filter((m) => m.afterBackground && !had.has(m.at)))
   return held
 }
 
@@ -741,6 +748,7 @@ const blockedView = (why: RunRefusal | undefined): Pick<ChatView, 'blocked' | 'b
 export function readChatView(cardId: ChatTarget): ChatView {
   const chat = readChat(cardId)
   const agent = chatAgent(runtimeOf(chat))
+  const background = liveChats.get(keyOf(cardId))?.background()
   return {
     cardId,
     chat,
@@ -753,6 +761,7 @@ export function readChatView(cardId: ChatTarget): ChatView {
     // A screen reads it to keep up with a reply it never started, and with the board that
     // reply is changing as it goes.
     answering: answeringOn(cardId),
+    ...(background ? { background } : {}),
     ...blockedView(blockedBy(cardId, chat)),
     pick: pickOf(chat),
     discussion: chat?.from ? handedMessages(chat.from) : undefined,
@@ -1018,6 +1027,8 @@ export function takeChatSession(key: string, fork = false): ChatSession | RunRef
   const blocked = blockedBy(target, chat)
   if (blocked) return blocked
   if (!chat?.resumeId) return noSession()
+  // Its own process is still up for its background tasks (#1540).
+  if (liveChats.has(key)) return chatBusy()
   const runtime = runtimeOf(chat)
   const session = { harness: chat.harness, resumeId: chat.resumeId }
   const plan = (cwd: string, sessionId: string) =>
@@ -1444,8 +1455,12 @@ export async function sendChatMessage(
 
     const asked = Date.now()
     const onText = options.onText ?? (() => {})
+    // The process still up for its background tasks takes the message (#1540).
+    const alive = liveChats.get(keyOf(cardId))
+    const carryOn = alive && held.resumeId && alive.resumeId === held.resumeId ? alive : undefined
     const turn = (as: RunPlan, words: string, write: (chunk: string) => void) =>
       speak({
+        target: cardId,
         plan: as,
         prompt: words,
         restart,
@@ -1479,6 +1494,8 @@ export async function sendChatMessage(
         before = undefined
         spoken = await turn(fresh, chatPrompt(cardId, text, { ...say, ...opening(true) }), onText)
       }
+    } else if (carryOn) {
+      spoken = await carryOn.ask(prompt, { onText, onOpen: options.onOpen })
     } else {
       spoken = await turn(plan, prompt, onText)
     }
@@ -1638,7 +1655,8 @@ function chatEnv(
   return next
 }
 
-async function speak(io: {
+interface SpeakIo {
+  target: ChatTarget
   plan: RunPlan
   prompt: string
   /** What to send instead when the session being carried on is gone and a fresh one opens
@@ -1655,7 +1673,9 @@ async function speak(io: {
   caseKey?: string
   onText(chunk: string): void
   onOpen?(stop: () => void): void
-}): Promise<Spoken> {
+}
+
+async function speak(io: SpeakIo): Promise<Spoken> {
   const active = openPlan(io.plan)
   const takes = active.images
   // Ahead of the prompt, which is always the last argument: for Codex the flags belong to
@@ -1664,6 +1684,7 @@ async function speak(io: {
     takes?.as === 'args' ? (io.pictures ?? []).flatMap((file) => takes.args(file)) : []
   const [cmd, ...args] = [...active.argv, ...shots]
   const client = active.client
+  if (!client && active.stdinPrompt && active.renderer) return converse(io, active, cmd!, args)
   let text = ''
   const push = (chunk: string): void => {
     if (!chunk) return
@@ -1844,6 +1865,227 @@ async function speak(io: {
 
     child.on('close', (code) => finish(code === 0, code === null ? undefined : `the agent exited with code ${code}`))
   })
+}
+
+// ---- a conversation kept up past its reply (#1540) ---------------------------
+//
+// An agent that reads its turns off stdin keeps its process while its background tasks run.
+// A reply still ends at its own turn; the next message goes into the same process; and a
+// turn the agent takes by itself when a background task ends is saved as a reply of its own.
+
+const BACKGROUND_SAID = (): string =>
+  `the agent's background tasks did not finish within ${BACKGROUND_WAIT.minutes / 60} hours, so they were stopped.`
+
+interface LiveChat {
+  resumeId?: string
+  ask(prompt: string, io: { onText(chunk: string): void; onOpen?(stop: () => void): void }): Promise<Spoken>
+  background(): number
+  stop(): void
+}
+
+const liveChats = new Map<string, LiveChat>()
+
+/** End this conversation's background tasks, and the agent holding them (#1540). */
+export function stopChatBackground(cardId: ChatTarget): void {
+  liveChats.get(keyOf(cardId))?.stop()
+}
+
+interface Asking {
+  text: string
+  onText(chunk: string): void
+  done(spoken: Spoken): void
+}
+
+function converse(io: SpeakIo, active: ActiveRun, cmd: string, args: string[]): Promise<Spoken> {
+  const key = keyOf(io.target)
+  const renderer = active.renderer!
+  const toStdin = active.stdinPrompt!
+  const mark = stopMark()
+  let child: ChildProcessByStdio<Writable, Readable, Readable>
+  try {
+    child = spawn(cmd, args, {
+      cwd: REPO_ROOT,
+      env: markEnv(chatEnv(active.env, io), mark),
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+  } catch (e) {
+    return Promise.resolve({ ok: false, text: '', error: String(e) })
+  }
+  trackAgent(child, mark)
+  child.stdin.on('error', () => {})
+
+  const resumeId = io.plan.resumeId ?? undefined
+  let model: string | undefined
+  let spawnError: string | undefined
+  // The turns asked for and not yet answered, in the order they went in, and the one the
+  // agent is writing now — a background one when nobody asked.
+  const waiting: Asking[] = []
+  let current: Asking | undefined
+  let seen = 0
+  let over = false
+  let ended: 'stopped' | 'silent' | 'background' | undefined
+  let idle: ReturnType<typeof setTimeout> | undefined
+
+  const unasked = (): Asking => {
+    const at = Date.now()
+    return { text: '', onText: () => {}, done: (said) => keepBackgroundReply(io.target, resumeId, io.plan.harness, said, at) }
+  }
+  const route = (chunk: string): void => {
+    if (!chunk) return
+    current ??= waiting.shift() ?? unasked()
+    current.text += chunk
+    current.onText(chunk)
+  }
+  const spoken = (t: Asking, turn?: StreamTurn, error?: string): Spoken => ({
+    ok: !!turn && !turn.failure,
+    text: t.text,
+    result: turn?.result,
+    error: turn ? turn.failure : error,
+    model,
+    usage: turn?.usage,
+    costUsd: turn?.costUsd,
+    context: renderer.context?.(),
+    resumeId,
+    stopped: ended === 'stopped',
+  })
+
+  let inputOpen = true
+  const endInput = (): void => {
+    if (!inputOpen) return
+    inputOpen = false
+    if (liveChats.get(key) === live) liveChats.delete(key)
+    child.stdin.end()
+  }
+  const closeTurns = (): void => {
+    const turns = renderer.turns?.() ?? []
+    for (; seen < turns.length; seen++) {
+      const turn = turns[seen]!
+      const t = current ?? waiting.shift() ?? unasked()
+      current = undefined
+      t.done(spoken(t, turn))
+      if (!turn.background && !waiting.length) endInput()
+    }
+  }
+  const errs = createStderrFilter(active.quietStderr)
+  const end = (): void => {
+    if (over) return
+    over = true
+    if (idle) clearTimeout(idle)
+    endInput()
+    route(renderer.flush())
+    route(noted(errs.flush()))
+    closeTurns()
+    const why =
+      spawnError ??
+      (ended === 'stopped'
+        ? 'you stopped the reply.'
+        : ended === 'background'
+          ? BACKGROUND_SAID()
+          : ended === 'silent'
+            ? SILENCE_SAID
+            : 'the reply stopped before the agent had finished.')
+    for (const t of [current, ...waiting]) t?.done(spoken(t, undefined, why))
+    current = undefined
+    waiting.length = 0
+  }
+  const giveUp = (why: 'stopped' | 'silent' | 'background'): void => {
+    if (over) return
+    ended ??= why
+    endInput()
+    endAgent(child, mark, CLOSE_GRACE_MS)
+    const t = setTimeout(end, CLOSE_GRACE_MS)
+    if (typeof t.unref === 'function') t.unref()
+  }
+  // Every byte restarts it; background tasks still running wait longer.
+  const touch = (): void => {
+    if (over) return
+    if (idle) clearTimeout(idle)
+    const background = renderer.background?.() ?? 0
+    idle = setTimeout(() => {
+      // Nothing asked, nothing running: the agent has nothing left to say.
+      if (inputOpen && !current && !waiting.length && !background) {
+        endInput()
+        touch()
+        return
+      }
+      // Waiting on the background alone, the reason still needs a reply to stand in.
+      if (background && !current && !waiting.length) current = unasked()
+      giveUp(background ? 'background' : 'silent')
+    }, background ? BACKGROUND_WAIT.minutes * 60_000 : SILENCE_MS)
+    if (typeof idle.unref === 'function') idle.unref()
+  }
+
+  child.stdout.on('data', (d: Buffer) => {
+    route(renderer.push(d.toString()))
+    model ??= renderer.model?.()
+    closeTurns()
+    touch()
+  })
+  child.stderr.on('data', (d: Buffer) => {
+    route(noted(errs.push(d.toString())))
+    touch()
+  })
+  child.on('error', (err) => {
+    spawnError =
+      (err as NodeJS.ErrnoException)?.code === 'ENOENT'
+        ? `${cmd} isn't installed, or isn't on this command's PATH. Install it with: ${active.install}`
+        : String(err)
+  })
+  child.on('close', end)
+
+  const live: LiveChat = {
+    resumeId,
+    ask: (prompt, said) =>
+      new Promise<Spoken>((resolve) => {
+        if (!inputOpen) return resolve({ ok: false, text: '', error: 'the reply stopped before the agent had finished.' })
+        waiting.push({ text: '', onText: said.onText, done: resolve })
+        child.stdin.write(toStdin(prompt))
+        said.onOpen?.(() => giveUp('stopped'))
+        touch()
+      }),
+    background: () => (over ? 0 : (renderer.background?.() ?? 0)),
+    stop: () => giveUp('stopped'),
+  }
+  liveChats.set(key, live)
+  if (active.startNote) route(`${noted(active.startNote)}\n`)
+  return live.ask(io.prompt, io)
+}
+
+/** A turn the agent took by itself, when a background task ended, saved as its own reply. */
+function keepBackgroundReply(target: ChatTarget, resumeId: string | undefined, harness: string, spoken: Spoken, at: number): void {
+  const chat = readChat(target)
+  // A conversation cleared or started over since is not the one this was said into.
+  if (!chat || !resumeId || chat.resumeId !== resumeId) return
+  const text = spoken.text.trim() || spoken.result?.trim() || ''
+  const stoppedWhy = spoken.ok ? undefined : spoken.error
+  if (!text && (!stoppedWhy || spoken.stopped)) return
+  const landed = Date.now()
+  const costUsd = ownCost(spoken.costUsd, lastSessionTotal(resumeId, readRuns()))
+  const model = spoken.model ?? chat.model
+  chat.messages.push({
+    role: 'agent',
+    text,
+    at: landed,
+    stoppedWhy,
+    afterBackground: true,
+    ms: landed - at,
+    usage: spoken.usage,
+    costUsd,
+    ...(spoken.costUsd !== undefined ? { sessionCostUsd: spoken.costUsd } : {}),
+    harness,
+    model,
+  })
+  chat.updatedAt = landed
+  writeChat(chat)
+  try {
+    recordReplyUsage(
+      { key: `chat:${keyOf(target)}:${landed}`, kind: 'chat', at: landed, harness, model, usage: spoken.usage, costUsd },
+      readRuns,
+    )
+  } catch {
+    // The reply is kept either way.
+  }
 }
 
 /** The first line of what was typed, cut to something a rail row can hold. What a discussion

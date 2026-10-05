@@ -11,6 +11,7 @@ import {
   setPartnerFeedbackAction,
   shareOfferedAction,
   stopChatAction,
+  stopChatBackgroundAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
@@ -112,6 +113,9 @@ export interface ChatRail {
   /** End the reply being written, keeping what arrived. Nothing to stop is quietly
    *  ignored. */
   stop(): Promise<void>;
+  /** The agent's background tasks running in this conversation (#1540), and the way to end them. */
+  background: number;
+  stopBackground(): Promise<void>;
   /** What the user has typed and not yet sent. */
   draft: string;
   setDraft(text: string): void;
@@ -555,6 +559,15 @@ export function useChatRail({
     el.setSelectionRange(end, end);
   }, [focusAt, open, draft]);
 
+  const stopBackground = useCallback(async () => {
+    try {
+      await stopChatBackgroundAction(cardId);
+    } catch {
+      // The next read still shows them running.
+    }
+    kickRef.current();
+  }, [cardId]);
+
   const stop = useCallback(async () => {
     // Nothing to stop is nothing to do — a reply that landed between the paint and the
     // click is quietly ignored.
@@ -836,6 +849,8 @@ export function useChatRail({
     answering,
     stopped,
     stop,
+    background: shown?.background ?? 0,
+    stopBackground,
     draft,
     setDraft: type,
     box,

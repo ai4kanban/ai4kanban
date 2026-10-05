@@ -57,6 +57,7 @@ export type RunsCopy = {
     reason: {
       resumeUnstarted: string;
       silent: (minutes: string) => string;
+      backgroundSilent: (hours: string) => string;
       takenOver: string;
       notInstalled: (cmd: string, install: string) => string;
       format: string;

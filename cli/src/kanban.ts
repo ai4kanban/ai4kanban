@@ -111,6 +111,7 @@ export {
   readChat,
   readChatView,
   sendChatMessage,
+  stopChatBackground,
 } from './lib/agent/chat'
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 

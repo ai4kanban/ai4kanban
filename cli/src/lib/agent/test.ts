@@ -88,7 +88,9 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
   // prompt on its command line and judged by its exit code, and one that answers back is
   // asked the same small question inside a conversation and judged by how the turn ended.
   const client = run.client
-  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
+  // One that reads its turns off stdin (#1540) is handed the question there, and that is all.
+  const stdinPrompt = client ? undefined : run.stdinPrompt
+  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client || stdinPrompt ? 'pipe' : 'ignore', 'pipe', 'pipe']
 
   return new Promise<ConnectionTest>((resolve) => {
     let events = ''
@@ -126,7 +128,7 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
     // stdout and stderr are pipes whichever shape this is; only stdin differs.
     let child: ChildProcessByStdio<Writable | null, Readable, Readable>
     try {
-      child = spawn(cmd!, client ? args : [...args, TEST_PROMPT], {
+      child = spawn(cmd!, client || stdinPrompt ? args : [...args, TEST_PROMPT], {
         // The project, not wherever this process happens to be sitting. Inside the app the
         // board is found through KANBAN_BOARD_DIR and the server's own cwd is its bundled
         // folder — an agent started there is outside the repo, and codex refuses to run at
@@ -144,6 +146,10 @@ export function testConnection(pin?: string): Promise<ConnectionTest> {
       return
     }
     trackAgent(child, mark)
+    if (stdinPrompt && child.stdin) {
+      child.stdin.on('error', () => {})
+      child.stdin.end(stdinPrompt(TEST_PROMPT))
+    }
 
     const timer = setTimeout(() => {
       endAgent(child, mark, KILL_AFTER_MS)

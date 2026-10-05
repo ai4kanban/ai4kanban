@@ -22,6 +22,7 @@ import { agentOf, currentSession, opencodeSessionOf, probes, terminalSession } f
 import { withStore } from '../src/lib/agent/store.ts'
 import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { move, uiConfigOf } from './helpers/board.ts'
+import { PROMPT_OF } from './helpers/fake-agent.ts'
 
 const DISCUSSION = 'discussion-00000000-0000-0000-0000-000000000001'
 
@@ -39,10 +40,12 @@ function board(harness = 'claude-code', failFork = false): void {
   fs.writeFileSync(
     file,
     `import fs from 'node:fs'
-const args = process.argv.slice(2)
+${PROMPT_OF}
+const args = [...process.argv.slice(2), await promptOf()]
 fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify(args) + '\\n')
 const forking = args.includes('--fork-session') || args.includes('fork') || args.includes('--fork')
 if (${failFork} && forking) { process.stderr.write('No conversation found\\n'); process.exit(1) }
+console.log(JSON.stringify({ type: 'result', result: '' }))
 `,
   )
   const kanban = path.join(root, 'docs', 'kanban')

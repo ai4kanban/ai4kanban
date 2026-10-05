@@ -134,6 +134,10 @@ export function setAutoCommit(on: boolean): Saved {
 /** The limit a board that hasn't said otherwise runs on, in minutes. */
 export const SILENCE_MINUTES = 10
 
+/** How long a run or a chat waits, saying nothing, on the agent's background tasks (#1540).
+ *  An object so a test can shorten it. */
+export const BACKGROUND_WAIT = { minutes: 120 }
+
 /** How long a run may produce nothing before the board ends it, in minutes. `0` never ends
  *  one. A missing, negative or unreadable value is the default: a file nobody can parse is
  *  not a reason to leave hung runs holding their cards forever. */

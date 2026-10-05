@@ -65,6 +65,24 @@ export interface StreamRenderer {
    *  the run starts and leaves this out. The registry polls it while the stream
    *  runs and saves the id with the session the moment it arrives. */
   resumeId?(): string | undefined
+  /** How many background tasks the agent has running now (#1540). Undefined until its
+   *  stream names any. Only Claude Code implements it. */
+  background?(): number | undefined
+  /** Every turn closed so far, in order, for a CLI that takes more than one per process
+   *  (#1540). Only Claude Code implements it. */
+  turns?(): StreamTurn[]
+}
+
+/** One turn of a CLI that takes several, as its closing event reported it. */
+export interface StreamTurn {
+  result?: string
+  failure?: string
+  /** The session's running total, not this turn's. */
+  costUsd?: number
+  /** This turn's own tokens. */
+  usage?: TokenUsage
+  /** The background tasks still running when the turn closed. */
+  background: number
 }
 
 /** Drop a harness's own housekeeping lines from its stderr as they arrive (see

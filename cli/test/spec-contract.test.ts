@@ -12,6 +12,7 @@ import { setBoardProvider } from '../src/lib/board'
 import type { AgentAction } from '../src/lib/agent/types'
 import { watchRun } from '../src/lib/agent/watch'
 import { move, refuses } from './helpers/board'
+import { PROMPT_OF } from './helpers/fake-agent'
 
 let root: string
 let file: string
@@ -206,10 +207,11 @@ describe("a human-facing agent's own section (#868)", () => {
 
 async function fakeRun(repairable: boolean, action: AgentAction = 'clarify') {
   const script = path.join(root, 'fake-agent.cjs')
-  fs.writeFileSync(script, `
+  fs.writeFileSync(script, `${PROMPT_OF}
+    (async () => {
     const fs = require('node:fs');
     const file = ${JSON.stringify(file)};
-    const prompt = process.argv.at(-1);
+    const prompt = await promptOf();
     fs.appendFileSync(${JSON.stringify(path.join(root, 'prompts.log'))}, JSON.stringify(prompt) + '\\n');
     fs.appendFileSync(${JSON.stringify(path.join(root, 'args.log'))}, JSON.stringify(process.argv) + '\\n');
     let text = fs.readFileSync(file, 'utf8');
@@ -218,6 +220,7 @@ async function fakeRun(repairable: boolean, action: AgentAction = 'clarify') {
     fs.writeFileSync(file, text);
     const turns = fs.readFileSync(${JSON.stringify(path.join(root, 'prompts.log'))}, 'utf8').trim().split('\\n').length;
     console.log(JSON.stringify({type: 'result', result: 'Done', total_cost_usd: turns * 0.1, usage: {input_tokens: 10, output_tokens: 5}}));
+    })();
   `)
   fs.writeFileSync(path.join(root, 'docs/kanban/ui.config.json'), JSON.stringify({ harness: 'claude-code', harnessSettings: { 'claude-code': { command: `${process.execPath} ${script}` } } }))
   const opened = openRun({ action, id: 1, ...(action === 'spec' ? { specAgent: 'ui-designer' } : {}) }, 'Write the spec.', [])

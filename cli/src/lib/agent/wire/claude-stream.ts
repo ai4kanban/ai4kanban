@@ -6,7 +6,7 @@
 // once the session completes and folds the event lines away.
 
 import { argHint, num, obj, str } from './json'
-import { createLineReader, frame, type StreamRenderer } from './stream'
+import { createLineReader, frame, type StreamRenderer, type StreamTurn } from './stream'
 import type { ContextWindow, TokenUsage } from '../types'
 
 // The argument a human would recognise a call by, across the tools Claude Code ships.
@@ -71,6 +71,9 @@ export function createStreamRenderer(): StreamRenderer {
   let context: ContextWindow | undefined
   let failure: string | undefined
   let offStream: string | undefined
+  let background: number | undefined
+  const turns: StreamTurn[] = []
+  const backgrounded = new Set<string>()
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return ''
@@ -105,43 +108,46 @@ export function createStreamRenderer(): StreamRenderer {
         }
         return out.join('')
       }
-      case 'result':
+      case 'result': {
+        // One per turn, and a process reading its turns off stdin takes several (#1540).
         if (typeof ev.result === 'string') final = ev.result
-        // `total_cost_usd` is claude's own arithmetic — the run's tokens at list
-        // prices, worked out locally. A run on a subscription plan still reports
-        // one even though nothing was charged for it, which is exactly why the UI
-        // calls it an estimate. Only a positive, finite number counts; anything
+        // `total_cost_usd` is claude's own arithmetic — the session's tokens at list
+        // prices, worked out locally and running on across turns. A run on a subscription
+        // plan still reports one even though nothing was charged for it, which is exactly
+        // why the UI calls it an estimate. Only a positive, finite number counts; anything
         // else means the run has no cost to show (task #90).
         if (typeof ev.total_cost_usd === 'number' && Number.isFinite(ev.total_cost_usd) && ev.total_cost_usd > 0) {
           cost = ev.total_cost_usd
         }
-        // The same event carries the token counts the cost was worked out from:
-        // `usage.input_tokens` and friends, totals for the whole run. All-zero
-        // counts read as "reported nothing" — no numbers over four zeros.
-        {
-          const u = ev.usage as Record<string, unknown> | undefined
-          if (u && typeof u === 'object') {
-            const parsed: TokenUsage = {
-              input: num(u.input_tokens),
-              cacheCreation: num(u.cache_creation_input_tokens),
-              cacheRead: num(u.cache_read_input_tokens),
-              output: num(u.output_tokens),
-            }
-            if (parsed.input + parsed.cacheCreation + parsed.cacheRead + parsed.output > 0) {
-              usage = parsed
-            }
-          }
-        }
+        // The same event carries this turn's token counts. All-zero counts read as
+        // "reported nothing" — no numbers over four zeros. The run's are the turns' sum.
+        const turnUsage = usageOf(ev.usage)
+        if (turnUsage) usage = usage ? addUsage(usage, turnUsage) : turnUsage
         // The one thing on this stream the exit code doesn't already say. `claude -p` exits
         // 0 on a result that failed — a budget it ran out of, a limit it hit — so without
         // this the run closes as done, the card advances, and the refinements behind it
         // fire on work that never happened. Every other agent the board runs exits non-zero
-        // for the same thing, which is why only this renderer reports one.
-        if (ev.is_error === true) {
-          failure = whyItFailed(ev)
-          return `${denials(ev)}[error] ${failure}\n`
+        // for the same thing, which is why only this renderer reports one. The last turn's
+        // verdict is the run's.
+        failure = ev.is_error === true ? whyItFailed(ev) : undefined
+        turns.push({
+          ...(typeof ev.result === 'string' ? { result: ev.result } : {}),
+          ...(failure ? { failure } : {}),
+          ...(cost !== undefined ? { costUsd: cost } : {}),
+          ...(turnUsage ? { usage: turnUsage } : {}),
+          background: background ?? 0,
+        })
+        return failure ? `${denials(ev)}[error] ${failure}\n` : denials(ev)
+      }
+      case 'system':
+        // The whole list every time, so its length is the count (#1540).
+        if (ev.subtype === 'background_tasks_changed' && Array.isArray(ev.tasks)) background = ev.tasks.length
+        if (ev.subtype === 'task_started' && ev.is_backgrounded === true) backgrounded.add(str(ev.task_id))
+        // A foreground command reports one too; only a background one is news.
+        if (ev.subtype === 'task_notification' && backgrounded.has(str(ev.task_id)) && str(ev.summary)) {
+          return `⏺ ${str(ev.summary)}\n`
         }
-        return denials(ev)
+        return ''
       default:
         // system/init banners and tool results are noise in a tail.
         return ''
@@ -157,5 +163,26 @@ export function createStreamRenderer(): StreamRenderer {
     model: () => model,
     failure: () => failure,
     offStream: () => offStream,
+    background: () => background,
+    turns: () => turns,
   }
 }
+
+function usageOf(raw: unknown): TokenUsage | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const u = raw as Record<string, unknown>
+  const parsed: TokenUsage = {
+    input: num(u.input_tokens),
+    cacheCreation: num(u.cache_creation_input_tokens),
+    cacheRead: num(u.cache_read_input_tokens),
+    output: num(u.output_tokens),
+  }
+  return parsed.input + parsed.cacheCreation + parsed.cacheRead + parsed.output > 0 ? parsed : undefined
+}
+
+const addUsage = (a: TokenUsage, b: TokenUsage): TokenUsage => ({
+  input: a.input + b.input,
+  cacheCreation: a.cacheCreation + b.cacheCreation,
+  cacheRead: a.cacheRead + b.cacheRead,
+  output: a.output + b.output,
+})

@@ -16,7 +16,7 @@
 // Import from `./wire`, not from a file inside it: the files below are this folder's own
 // business and the split between them will keep moving.
 
-export { createStderrFilter, type StreamRenderer } from './stream'
+export { createStderrFilter, type StreamRenderer, type StreamTurn } from './stream'
 export { createStreamRenderer } from './claude-stream'
 export { createCodexStreamRenderer } from './codex-stream'
 export { createCursorStreamRenderer } from './cursor-stream'

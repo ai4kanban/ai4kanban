@@ -142,6 +142,10 @@ export interface Harness
    *  (agent/wire/opencode-session.ts). Left out by the one call that has no run behind it —
    *  ./check's load-time probe — so a renderer treats it as it does a missing file. */
   renderer?(cwd: string, binary?: string): StreamRenderer
+  /** How the prompt goes in on stdin, for a printing CLI whose `argv` asks it to read its
+   *  turns there and keep going while stdin stays open (#1540). Undefined when this argv
+   *  takes the prompt on the command line. */
+  stdinPrompt?(argv: string[]): ((prompt: string) => string) | undefined
   /** True for a stderr line that is this CLI's own housekeeping — chatter about its caches
    *  and background refreshes, printed on nearly every turn, that says nothing about the
    *  work and nothing a user could act on.

@@ -25,6 +25,11 @@ export type ChatCopy = {
   worked: (time: string) => string;
   working: (time: string) => string;
   workHint: string;
+  /** The line over the box while the agent's background tasks run (#1540), and the fold
+   *  over the reply it writes when one ends. */
+  background: (count: number) => string;
+  stopBackground: string;
+  afterBackground: string;
   /** The button back to the newest line, and how many arrived while the reader was away. */
   newLines: (count: number) => string;
   toFoot: string;

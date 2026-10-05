@@ -46,6 +46,11 @@ table.
 A run that stops producing output ends by itself; set how long in **End a silent run after**
 under **Configuration → General**.
 
+**Background tasks** — while Claude Code waits on work it started in the background, it
+is not silent: it waits up to 2 hours, then ends with the reason. A run carries on when
+the work finishes. In a chat you can keep talking meanwhile; the line above the message
+box counts the tasks and stops them, and their results arrive as a new message.
+
 ## What a run may touch
 
 Codex, OpenCode, DeepSeek Harness and Grok Build write only inside the project. Claude Code,

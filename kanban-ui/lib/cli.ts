@@ -330,6 +330,8 @@ export interface BoardRules {
   // the same reason as the moves below: a project can be running rules older than the
   // release that added them, and the chat says so rather than the window failing to draw.
   readChatView?(cardId: ChatTarget): ChatView;
+  /** End a conversation's background tasks (#1540). */
+  stopChatBackground?(cardId: ChatTarget): void;
   sendChatMessage?(
     cardId: ChatTarget,
     message: string,

@@ -34,6 +34,8 @@ export interface ChatRead {
   /** A reply is coming, from this window or from a terminal. `live` only knows about one
    *  this window asked for; this knows about any of them. */
   answering: boolean;
+  /** The agent's background tasks still running in this conversation (#1540). */
+  background: number;
   /** When the reply in flight was sent, so the rail can count the seconds up while it is
    *  written. Null when nothing of ours is in flight — a reply a terminal started is
    *  followed, but this server never saw it begin and invents no start for it. */
@@ -117,6 +119,7 @@ const NOTHING: ChatRead = {
   live: null,
   stopped: null,
   answering: false,
+  background: 0,
   liveSince: null,
   stamp: null,
   cardGone: false,
@@ -154,6 +157,7 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     // Our own reply in flight, or anyone's — a conversation carried on from a terminal is
     // writing this same board, and the window follows it the same way.
     answering: stopping ? false : Boolean(flight) || view.answering === true,
+    background: view.background ?? 0,
     liveSince: stopping || !flight ? null : flight.startedAt,
     stamp: rules.boardStamp ? await rules.boardStamp() : null,
     // Asked of the board rather than remembered: the card may have gone at any moment, and
@@ -340,6 +344,18 @@ export async function stopChat(cardId: ChatTarget): Promise<{ ok: boolean }> {
   flight.stopped = true;
   // Missing only in the gap before the agent is running; `onOpen` spends it then instead.
   flight.stop?.();
+  return { ok: true };
+}
+
+/** End this conversation's background tasks, and any reply in flight with them (#1540). */
+export async function stopChatBackground(cardId: ChatTarget): Promise<{ ok: boolean }> {
+  const flight = flights().live.get(keyOf(cardId));
+  if (flight) flight.stopped = true;
+  try {
+    (await boardRules()).stopChatBackground?.(cardId);
+  } catch {
+    // No rules, so nothing of ours is running.
+  }
   return { ok: true };
 }
 

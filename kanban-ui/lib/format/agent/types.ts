@@ -434,6 +434,7 @@ export const refusal = (reason: RunRefusalKind, error: string, args?: RefusalArg
 export type RunReasonKind =
   | 'resumeUnstarted'
   | 'silent'
+  | 'backgroundSilent'
   | 'takenOver'
   | 'notInstalled'
   | 'format'
@@ -1003,6 +1004,8 @@ export interface ChatMessage {
    *  the mark existed — guessing from "a reply with no message in front of it" would throw
    *  away real replies. */
   fromBoard?: boolean
+  /** A reply nobody asked for (#1540): the agent's background tasks ended and it answered them. */
+  afterBackground?: boolean
 }
 
 /** What a conversation is about: the whole board, one card, the board's first run (#280),
@@ -1289,6 +1292,8 @@ export interface ChatView {
    *  machine. A screen watches it to follow a conversation held in a terminal, and to keep
    *  the board it is changing up to date while it writes. */
   answering: boolean
+  /** The agent's background tasks still running in this conversation (#1540). Absent at none. */
+  background?: number
   /** Why a message can't be sent right now, when something is in the way: the agent can't
    *  hold a conversation, this one belongs to another agent, or a reply is still coming. */
   blocked?: string

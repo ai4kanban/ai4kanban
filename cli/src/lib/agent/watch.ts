@@ -25,7 +25,7 @@ import { cleanupDiscardedCards } from '../../commands/remove'
 import { discardedCardsPrompt } from './prompts'
 import { contextLimit, refreshCatalog } from './catalog'
 import { boardCommand } from './command'
-import { silenceMinutes } from './settings'
+import { BACKGROUND_WAIT, silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { endAgent, killMarked, runMark } from './stop'
@@ -99,6 +99,9 @@ const STOP_FINISH_MS = 10_000
 // before it begins, and one that never says a word is still ended.
 const silenceSaid = (minutes: number): string =>
   `the agent said nothing for ${minutes} minute${minutes === 1 ? '' : 's'}, so the run was ended.`
+// And the wait on its background tasks (#1540), which outlasts the silence limit.
+const backgroundSaid = (minutes: number): string =>
+  `the agent's background tasks did not finish within ${minutes / 60} hours, so the run was ended.`
 
 // What a run on a Cloud board says about the board it wrote (#398). A run on a Local board
 // says neither: there is nothing to take its card away, and its edits are already the record.
@@ -241,13 +244,16 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     : record.resumedFrom ? restartPrompt(requestOf(record), record.deliveryId)
     : record.continues && !record.continues.fork ? spec.prompt : undefined
   const restart = restartBase ? [restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n') : undefined
+  // A printing agent that reads its turns off stdin (#1540) is handed the prompt there, and
+  // stdin stays open until a turn ends with nothing left in the background.
+  const stdinPrompt = client ? undefined : active.stdinPrompt
   // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
   // for a conversation and closed for a command that only prints.
-  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
+  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client || stdinPrompt ? 'pipe' : 'ignore', 'pipe', 'pipe']
   // stdout and stderr are pipes whichever shape this is; only stdin differs.
   let child: ChildProcessByStdio<Writable | null, Readable, Readable>
   try {
-    child = spawn(cmd!, client ? args : [...args, prompt], {
+    child = spawn(cmd!, client || stdinPrompt ? args : [...args, prompt], {
       // Where this run works: the project, or — inside a delivery with a worktree of its
       // own (#303) — that worktree. Settled when the run was planned and written down with
       // it, so the spawn, the connector's own folder flag and `PWD` are one answer.
@@ -284,6 +290,24 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   const renderer = active.renderer
   const append = (str: string) => {
     if (str) log.write(str)
+  }
+  let inputOpen = !!stdinPrompt && !!child.stdin
+  const endInput = () => {
+    if (!inputOpen) return
+    inputOpen = false
+    child.stdin?.end()
+  }
+  if (inputOpen) {
+    child.stdin!.on('error', () => {})
+    child.stdin!.write(stdinPrompt!(prompt))
+  }
+  // A turn that ends with nothing left in the background is the last one.
+  let turnsSeen = 0
+  const afterTurn = () => {
+    const turns = renderer?.turns?.() ?? []
+    if (turns.length === turnsSeen) return
+    turnsSeen = turns.length
+    if (!turns.at(-1)!.background) endInput()
   }
   // Both ids are written into the record the first time the stream names them, and never
   // looked for again — every write takes the record's lock, and a run's output arrives in
@@ -332,12 +356,15 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // conversation's protocol is still the agent talking.
   let touch = (): void => {}
   child.stdout.on('data', (d: Buffer) => {
+    if (renderer) {
+      append(renderer.push(d.toString()))
+      gotResumeId(renderer.resumeId?.())
+      gotModel(renderer.model?.())
+      gotContext(renderer.context?.())
+      afterTurn()
+    }
+    // After the render, so the window it restarts knows what is in the background now.
     touch()
-    if (!renderer) return
-    append(renderer.push(d.toString()))
-    gotResumeId(renderer.resumeId?.())
-    gotModel(renderer.model?.())
-    gotContext(renderer.context?.())
   })
   const errs = createStderrFilter(active.quietStderr)
   child.stderr.on('data', (d: Buffer) => {
@@ -372,8 +399,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     // How the conversation ended, on a run the board talked to. It stands in for
     // everything a printing agent's own output would have said.
     let spoken: TurnEnd | undefined
-    // The silence window: whether it ran out, and the timer it runs on.
+    // The silence window: whether it ran out, and the timer it runs on. `waited` is set
+    // when it ran out on background tasks (#1540).
     let silent = false
+    let waited = false
     let idle: ReturnType<typeof setTimeout> | undefined
     // Whether this run's card stopped being this machine's while it went (#398). The one
     // ending that drops what the run wrote to the board rather than sending it.
@@ -644,8 +673,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       const errorWhy: RunReason[] = takenOver ? [{ kind: 'takenOver' }] : [
         ...(contractError ? [{ kind: 'format' as const }] : []),
         ...(spawnWhy ? [spawnWhy] : []),
-        ...(saidOurs ? [{ kind: 'silent' as const, args: { n: String(silenceFor) } }] : []),
+        ...(saidOurs ? [waited
+          ? { kind: 'backgroundSilent' as const, args: { n: String(BACKGROUND_WAIT.minutes / 60) } }
+          : { kind: 'silent' as const, args: { n: String(silenceFor) } }] : []),
       ]
+      const quietSaid = waited ? backgroundSaid(BACKGROUND_WAIT.minutes) : silenceSaid(silenceFor)
       // The close and every follow-up it starts go inside the try, and Cloud is told the
       // card stopped being worked in the finally (#611). The card is held at work for all
       // of it: the close writes the board itself — the stage put back —
@@ -657,7 +689,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           status,
           ok: asked ? undefined : status === 'done',
           code: asked ? null : code,
-          error: spawnError ?? (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure)),
+          error: spawnError ?? (asked ? undefined : silent ? quietSaid : (spoken?.error ?? failure)),
           errorWhy,
           endedAt,
         })
@@ -678,7 +710,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           error: takenOver
             ? TAKEN_OVER(record.cardId)
             : joinNotes(contractError, tickedNothingSaid, spawnError ??
-              (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
+              (asked ? undefined : silent ? quietSaid : (spoken?.error ?? failure))),
           note,
           errorWhy,
           noteWhy,
@@ -816,9 +848,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     // started here, a tick after the spawn — so a run that never says a word runs out too.
     // A limit of 0 switches it off. Unref'd, like every other timer here: a window still
     // open cannot hold this process past the run it was watching.
+    // Background tasks still running (#1540) wait longer, on the same switch.
     touch = () => {
       if (done || !silenceMs) return
       if (idle) clearTimeout(idle)
+      const background = renderer?.background?.() ?? 0
       idle = setTimeout(() => {
         if (done || stopped || silent) return
         // A run waiting on its sub-runs says nothing, and is not silent (#1421).
@@ -826,10 +860,17 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           touch()
           return
         }
+        // The background emptied and no turn followed: the agent has nothing left to say.
+        if (inputOpen && turnsSeen && !background) {
+          endInput()
+          touch()
+          return
+        }
         silent = true
-        log.write(`\n[board] ${silenceSaid(silenceFor)}\n`)
+        waited = background > 0
+        log.write(`\n[board] ${waited ? backgroundSaid(BACKGROUND_WAIT.minutes) : silenceSaid(silenceFor)}\n`)
         giveUp(false)
-      }, silenceMs)
+      }, background ? BACKGROUND_WAIT.minutes * 60_000 : silenceMs)
       if (typeof idle.unref === 'function') idle.unref()
     }
     touch()

@@ -533,6 +533,8 @@ export interface ActiveRun extends RunPlan {
   renderer?: StreamRenderer
   /** Talks to this agent over its own pipes (agent/wire/). */
   client?: RunClient
+  /** The prompt as a stdin line, for a printing agent that reads its turns there (#1540). */
+  stdinPrompt?: (prompt: string) => string
   /** This agent's own housekeeping chatter on stderr, which the log leaves out
    *  (agent/harnesses/types.ts). Undefined for a harness that has none. */
   quietStderr?: (line: string) => boolean
@@ -655,6 +657,8 @@ export function openPlan(plan: RunPlan): ActiveRun {
     // need — because for a connector that talks, a setting is something the conversation
     // opens with rather than something argv carries.
     client: harness.client?.(effectiveValues(resolved)),
+    // Read off the argv, so a plan written before the CLI took its turns on stdin still runs.
+    stdinPrompt: harness.stdinPrompt?.(argv),
     quietStderr: harness.quietStderr,
     images: harness.images,
     transient: harness.transient?.bind(harness),

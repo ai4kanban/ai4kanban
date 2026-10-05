@@ -66,6 +66,7 @@ import {
   readChat,
   sendChat,
   stopChat,
+  stopChatBackground,
 } from "@/lib/chat";
 import {
   addRunPicture,
@@ -573,6 +574,7 @@ export async function readChatAction(cardId: ChatTarget): Promise<ChatRead> {
       live: null,
       stopped: null,
       answering: false,
+      background: 0,
       liveSince: null,
       stamp: null,
       cardGone: false,
@@ -696,6 +698,12 @@ export async function stopChatAction(cardId: ChatTarget): Promise<{ ok: boolean;
   const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   return stopChat(target);
+}
+
+export async function stopChatBackgroundAction(cardId: ChatTarget): Promise<{ ok: boolean; error?: string }> {
+  const target = await chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  return stopChatBackground(target);
 }
 
 export async function clearChatAction(cardId: ChatTarget): Promise<{ ok: boolean; error?: string }> {

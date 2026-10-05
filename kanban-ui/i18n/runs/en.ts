@@ -138,6 +138,7 @@ const en: RunsCopy = {
     reason: {
       resumeUnstarted: "The run could not be picked up again.",
       silent: (n) => `The agent said nothing for ${n} minutes, so the run was ended.`,
+      backgroundSilent: (n) => `The agent's background tasks didn't finish within ${n} hours, so the run was ended.`,
       takenOver:
         "Another machine took over this card, so the run was ended. What it wrote to the board was dropped; its changes in the project are kept.",
       notInstalled: (cmd, install) => `${cmd} isn't installed, or this run can't find it. Install it with: ${install}`,

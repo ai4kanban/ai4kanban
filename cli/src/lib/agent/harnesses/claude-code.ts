@@ -17,9 +17,20 @@ const MODEL_ALIASES = ['opus', 'sonnet', 'haiku', 'fable']
 // tail would stay empty the whole time. Ask claude to stream NDJSON events instead
 // (stream.ts renders them into log lines). Every claude run wants these — a fresh one and
 // a resumed one alike.
+//
+// And its turns come in on stdin (#1540): with stdin held open, work it put in the background
+// outlives the reply, and its result comes back as another turn. One-shot, Claude Code kills
+// a background command seconds after answering.
 function claudeStreamArgs(argv: string[]): string[] {
-  return argv.includes('--output-format') ? [] : ['--output-format', 'stream-json', '--verbose']
+  if (argv.includes('--output-format')) return []
+  return ['--output-format', 'stream-json', '--verbose', ...(argv.includes('--input-format') ? [] : ['--input-format', 'stream-json'])]
 }
+
+const readsStdin = (argv: string[]): boolean =>
+  argv.includes('--input-format=stream-json') || argv[argv.indexOf('--input-format') + 1] === 'stream-json'
+
+const userMessage = (prompt: string): string =>
+  `${JSON.stringify({ type: 'user', message: { role: 'user', content: prompt } })}\n`
 
 export const CLAUDE_CODE: Harness = {
   name: 'claude-code',
@@ -255,6 +266,8 @@ export const CLAUDE_CODE: Harness = {
   transient: ({ failure, result, offStream }) => providerBlip(failure, cliSaid(offStream), cliSaid(result)),
 
   renderer: createStreamRenderer,
+
+  stdinPrompt: (argv) => (readsStdin(argv) ? userMessage : undefined),
 
   // `--session-id` above makes Claude Code run under the id we generated, so our key IS
   // its resume id — no waiting for the stream to report one.

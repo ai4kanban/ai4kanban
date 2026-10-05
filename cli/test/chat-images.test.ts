@@ -26,6 +26,7 @@ import {
 import { addRunPicture, pictureBox, runPictureFile } from '../src/lib/agent/pictures.ts'
 import { CHATS_DIR, setBoardRoot, SESSIONS_DIR } from '../src/lib/paths.ts'
 import { restoreMachineHome, uiConfigOf } from './helpers/board.ts'
+import { PROMPT_OF } from './helpers/fake-agent.ts'
 
 let root = ''
 let home = ''
@@ -56,7 +57,8 @@ function spy(harness: string): string {
   fs.writeFileSync(
     agent,
     `import fs from 'node:fs'\n` +
-      `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify(process.argv.slice(2)))\n`,
+      PROMPT_OF +
+        `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify([...process.argv.slice(2), await promptOf()]))\n`,
   )
   config(harness, { command: `node ${agent}` })
   return seen
@@ -246,7 +248,8 @@ describe('how one reaches the agent', () => {
     fs.writeFileSync(
       agent,
       `import fs from 'node:fs'\n` +
-        `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify(process.argv.slice(2)))\n`,
+        PROMPT_OF +
+        `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify([...process.argv.slice(2), await promptOf()]))\n`,
     )
     fs.writeFileSync(
       uiConfigOf(root, 'docs', 'kanban'),

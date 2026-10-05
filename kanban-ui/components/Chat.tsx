@@ -587,9 +587,9 @@ const Said = memo(
     const again = sent !== null && (message.stoppedWhy !== undefined || said === "");
     const spent = spentOn(message, log);
     return (
-      <div className="group">
+      <div className={`group ${message.afterBackground ? "mt-3" : ""}`}>
         {message.text ? (
-          <Reply text={message.text} copyCode ms={message.ms} />
+          <Reply text={message.text} copyCode ms={message.ms} fold={message.afterBackground ? c.afterBackground : undefined} />
         ) : (
           <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>
         )}
@@ -836,11 +836,14 @@ function Reply({
   ms,
   live,
   onStep,
+  fold,
 }: {
   text: string;
   copyCode?: boolean;
   ms?: number;
   live?: boolean;
+  /** The fold's own label, in place of how long the turn took. */
+  fold?: string;
   /** The agent is on a step right now, so the fold pulses the one it named last. */
   onStep?: boolean;
 }) {
@@ -855,7 +858,7 @@ function Reply({
   const answer = blocks.filter((block, i) => i > last && block.kind === "said");
   return (
     <div className="flex flex-col gap-2">
-      {work.length > 0 && <Work blocks={work} ms={ms} live={live} onStep={onStep} />}
+      {(work.length > 0 || fold) && <Work blocks={work} ms={ms} live={live} onStep={onStep} label={fold} />}
       {answer.map((block, i) =>
         block.kind === "said" ? (
           <Markdown key={i} body={block.text} className="nb-sessionlog-md" copyCode={copyCode} />
@@ -873,11 +876,13 @@ function Work({
   ms,
   live,
   onStep,
+  label,
 }: {
   blocks: Block[];
   ms?: number;
   live?: boolean;
   onStep?: boolean;
+  label?: string;
 }) {
   const c = useCopy().chat;
   const log = useCopy().runs.log;
@@ -901,7 +906,7 @@ function Work({
           className={`shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
         />
         <span className={`truncate text-[11.5px] ${open ? "font-[700]" : "font-[600] text-nb-ink-soft"}`}>
-          {time === undefined ? c.workHint : live ? c.working(time) : c.worked(time)}
+          {label ?? (time === undefined ? c.workHint : live ? c.working(time) : c.worked(time))}
         </span>
       </button>
       {open && (
@@ -1159,6 +1164,23 @@ function Composer({
   const ask = card === null ? c.ask : c.askCard(card);
   return (
     <div className="relative shrink-0 px-2.5 pb-0.5 pt-1.5">
+      {rail.background > 0 && (
+        <div className="mb-2 flex items-center gap-1.5 px-1.5 text-[11px] text-nb-ink-soft">
+          <span
+            className="size-[7px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
+            aria-hidden
+          />
+          <span className="font-[700] uppercase tracking-[0.06em]">{c.background(rail.background)}</span>
+          <span aria-hidden>·</span>
+          <button
+            type="button"
+            onClick={() => void rail.stopBackground()}
+            className="cursor-pointer font-[600] text-nb-ink-soft underline-offset-2 hover:text-nb-ink hover:underline"
+          >
+            {c.stopBackground}
+          </button>
+        </div>
+      )}
       <MessageBox
         value={rail.draft}
         onChange={rail.setDraft}
