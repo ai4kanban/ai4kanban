@@ -5,7 +5,7 @@ import { agentInfo, NO_AGENT } from "@/lib/agent";
 import { feedbackSent, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
-import { moduleOrder, qaRoot } from "@/lib/qa";
+import { evidenceRoot, moduleOrder, qaRoot } from "@/lib/qa";
 import { listCases, readCase } from "@/lib/test-cases";
 import type { Board } from "@/lib/types";
 
@@ -37,7 +37,7 @@ export default async function Page({ params }: { params: Promise<{ path?: string
     const picked = list.modules.find((m) => m.name === segments[0]);
     if (picked) view = { kind: "module", list, module: picked };
   } else if (segments.length === depth) {
-    const file = readCase(root, segments);
+    const file = readCase(root, segments, evidenceRoot());
     if (file) view = { kind: "case", list, file, sent: await feedbackSent(file) };
   }
   if (!view) notFound();

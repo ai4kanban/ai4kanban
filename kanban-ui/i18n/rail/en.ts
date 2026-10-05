@@ -72,6 +72,7 @@ const en: RailCopy = {
     feedback: "Feedback",
     feedbackBy: "Written by the QA manager after running this case",
     missing: (file) => `File not found: ${file}`,
+    noEvidence: "No screenshots or logs on this computer",
     showAll: (lines) => `Show all ${lines} lines`,
     fold: "Show less",
     send: "Send to Triage",

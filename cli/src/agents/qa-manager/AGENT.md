@@ -23,7 +23,9 @@ reproducible and backed by proof.
 - **Case**: a title naming what the user is doing, the setup, numbered steps each giving one
   action and its expected result, and a closing `## Feedback`.
 - **Proof**: every step links one record of what the user sees — a screenshot, a GIF only
-  where motion matters, or a log for a command — saved beside its `case.md`.
+  where motion matters, or a log for a command — by its bare file name. Save it in the
+  project's `.akb/qa/`, in the same `<module>/<case>/` folder as its `case.md`: proof is never
+  committed. Rerunning a case empties its folder there first.
 - **Language**: a new file follows the board's language; an existing file keeps its own.
 
 ## Each run

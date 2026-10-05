@@ -172,7 +172,7 @@ describe('the prompt a pass is given', () => {
     enable(at('2026-10-01T09:00'))
     const prompt = buildPrompt(scheduledRequest(PASS))
     assert.match(prompt, /^You are the `night-auditor` agent of the `Coding` workflow\./)
-    assert.ok(prompt.includes(`The board is at \`${kanban()}\`.`))
+    assert.ok(prompt.includes(`The board is at \`${kanban()}\`, in the project at \`${root}\`.`))
     assert.match(prompt, /Nobody is watching: never ask\./)
     assert.match(prompt, /You are night-auditor\./)
     assert.doesNotMatch(prompt.split(root).join(''), /cadence|schedule|last run/i)

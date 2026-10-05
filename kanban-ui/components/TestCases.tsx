@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiCheck, FiChevronDown, FiChevronLeft, FiChevronRight, FiClock, FiInbox, FiMessageCircle } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronLeft, FiChevronRight, FiClock, FiInbox, FiMessageCircle } from "react-icons/fi";
 import { sendFeedbackAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { CaseFile, CaseList, CaseModule, CaseSummary } from "@/lib/test-cases";
@@ -185,6 +185,7 @@ function CaseView({ list, file, sent }: { list: CaseList; file: CaseFile; sent: 
   const caseFiles: CaseFiles = useMemo(
     () => ({
       files: file.evidence,
+      none: Object.values(file.evidence).length > 0 && Object.values(file.evidence).every((e) => e.kind === "missing"),
       base: ["/test-case-file", ...[file.module, file.slug].filter(Boolean).map(encodeURIComponent)].join("/"),
     }),
     [file.evidence, file.module, file.slug],
@@ -212,6 +213,12 @@ function CaseView({ list, file, sent }: { list: CaseList; file: CaseFile; sent: 
           <FiClock style={{ width: 10, height: 10, flex: "0 0 auto" }} aria-hidden />
           {day(file.updated)}
         </span>
+        {caseFiles.none && (
+          <span className="nb-chip" style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}>
+            <FiAlertCircle style={{ width: 10, height: 10, flex: "0 0 auto" }} aria-hidden />
+            {c.noEvidence}
+          </span>
+        )}
         {file.feedback && (
           <a
             href="#feedback"

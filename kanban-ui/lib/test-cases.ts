@@ -1,5 +1,6 @@
-// The project's test cases (#1422): `docs/qa/<module>/<case>/case.md` and the evidence beside
-// it, read straight off disk. Read-only, and kept free of the app's own imports so a plain
+// The project's test cases (#1422): `docs/qa/<module>/<case>/case.md`, read straight off disk.
+// Their evidence sits in the same folder under `.akb/qa/`, kept out of git (#1550); one still
+// beside its case.md is read from there. Read-only, and kept free of the app's own imports so a plain
 // `node --test` can load it.
 
 import { execFileSync } from "node:child_process";
@@ -336,7 +337,7 @@ export function resolveIn(qaRoot: string, segments: string[]): string | null {
 }
 
 /** One case, by its address segments — `[module, case]`, or `[case]` with no modules. */
-export function readCase(qaRoot: string, segments: string[]): CaseFile | null {
+export function readCase(qaRoot: string, segments: string[], evidenceRoot?: string): CaseFile | null {
   const dir = resolveIn(qaRoot, segments);
   const file = dir && path.join(dir, CASE_FILE);
   if (!file || !isFile(file) || !inside(qaRoot, file)) return null;
@@ -354,8 +355,11 @@ export function readCase(qaRoot: string, segments: string[]): CaseFile | null {
     } catch {
       name = target;
     }
-    const at = path.join(dir, name);
-    if (!inside(qaRoot, at) || !isFile(at)) evidence[target] = { kind: "missing" };
+    const at = [evidenceRoot, qaRoot]
+      .filter((root): root is string => !!root)
+      .map((root) => ({ root, file: path.join(root, ...segments, name) }))
+      .find(({ root, file }) => inside(root, file) && isFile(file))?.file;
+    if (!at) evidence[target] = { kind: "missing" };
     else if (IMAGE_TYPES[ext]) evidence[target] = { kind: "image" };
     else {
       const raw = fs.readFileSync(at, "utf8");
@@ -378,9 +382,9 @@ export function readCase(qaRoot: string, segments: string[]): CaseFile | null {
   };
 }
 
-/** The bytes of one file in a case folder: an image, or text. */
-export function serveCaseFile(qaRoot: string, segments: string[]): Response {
-  const file = resolveIn(qaRoot, segments);
+/** The bytes of one file in a case folder: an image, or text, from the first root holding it. */
+export function serveCaseFile(roots: string[], segments: string[]): Response {
+  const file = roots.map((root) => resolveIn(root, segments)).find((f) => f && isFile(f));
   const ext = extOf(segments[segments.length - 1] ?? "");
   const type = IMAGE_TYPES[ext] ?? (TEXT_TYPES.has(ext) ? "text/plain; charset=utf-8" : null);
   if (!file || !type || !isFile(file)) return new Response(null, { status: 404 });

@@ -9,7 +9,7 @@ import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { PLANNER, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
-import { ARCHIVE, boardText, KANBAN, rel, MEMORY, PROJECT_MD } from '../paths'
+import { ARCHIVE, boardText, KANBAN, rel, MEMORY, PROJECT_MD, REPO_ROOT } from '../paths'
 import {
   agentFilesBlock,
   agentMemoryBlock,
@@ -175,6 +175,7 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
 // after `boardText`, whose `docs/kanban` swap would rewrite an absolute path.
 const BOARD_FOLDER = '<board folder>'
 const CARD_FILE = '<card file>'
+const PROJECT_FOLDER = '<project folder>'
 
 function cardFileOf(id: number | undefined): string {
   const found = id === undefined ? null : locate(id)
@@ -183,7 +184,13 @@ function cardFileOf(id: number | undefined): string {
 
 function realPaths(text: string, req: AgentRequest): string {
   if (req.action !== 'scheduled' && req.action !== 'sub') return text
-  return text.split(BOARD_FOLDER).join(KANBAN).split(CARD_FILE).join(cardFileOf(req.id))
+  return text
+    .split(BOARD_FOLDER)
+    .join(KANBAN)
+    .split(CARD_FILE)
+    .join(cardFileOf(req.id))
+    .split(PROJECT_FOLDER)
+    .join(REPO_ROOT)
 }
 
 // What one workflow asks of a hook it runs, on top of the agent's own instructions
@@ -678,7 +685,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `You are the \`${req.specAgent}\` agent of the \`${flow?.name ?? req.workflow ?? ''}\` workflow.`,
-          `The board is at \`${BOARD_FOLDER}\`.`,
+          `The board is at \`${BOARD_FOLDER}\`, in the project at \`${PROJECT_FOLDER}\`.`,
           `Nobody is watching: never ask.`,
         ].join(' '),
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
@@ -699,7 +706,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `You are a sub-run: ${whose} \`${req.parentId ?? ''}\` started you and works beside you in this same folder.`,
-          `The board is at \`${BOARD_FOLDER}\`.`,
+          `The board is at \`${BOARD_FOLDER}\`, in the project at \`${PROJECT_FOLDER}\`.`,
           `Nobody is watching: never ask.`,
         ].join(' '),
         'Do only the task below, and finish with one message saying what you did and what you could not do: it is all the run that started you will read.',

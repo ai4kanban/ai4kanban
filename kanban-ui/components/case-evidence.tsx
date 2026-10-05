@@ -14,6 +14,8 @@ export interface CaseFiles {
   files: Record<string, Evidence>;
   /** Where the case folder's files are served — `/test-case-file/<module>/<case>`. */
   base: string;
+  /** None of them is on this computer: the case says so once, not at every link. */
+  none: boolean;
 }
 
 export const CaseFilesContext = createContext<CaseFiles | null>(null);
@@ -61,6 +63,7 @@ export function EvidenceNode(props: any) {
   const ev = ctx?.files[target];
   if (!ctx || !ev) return null;
   if (ev.kind === "missing") {
+    if (ctx.none) return null;
     return (
       <p className="my-2.5 flex items-center gap-1.5 rounded-[9px] bg-nb-peach-soft px-2.5 py-2 text-[12px] font-[600] text-nb-peach-ink">
         <FiAlertCircle size={13} className="shrink-0" aria-hidden />

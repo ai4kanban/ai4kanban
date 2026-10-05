@@ -84,6 +84,7 @@ export type RailCopy = {
     feedback: string;
     feedbackBy: string;
     missing: (file: string) => string;
+    noEvidence: string;
     showAll: (lines: number) => string;
     fold: string;
     /** One feedback note's button (#1459), its mark once sent, and the line when sending failed. */

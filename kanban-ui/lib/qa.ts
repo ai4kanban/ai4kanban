@@ -6,6 +6,9 @@ import { modulesPath, repoRoot } from "./paths";
 
 export const qaRoot = (): string => path.join(repoRoot(), "docs", "qa");
 
+/** Where the cases' screenshots and logs are: kept out of git (#1550). */
+export const evidenceRoot = (): string => path.join(repoRoot(), ".akb", "qa");
+
 /** The module names in the board's module map, in its order. */
 export function moduleOrder(): string[] {
   try {

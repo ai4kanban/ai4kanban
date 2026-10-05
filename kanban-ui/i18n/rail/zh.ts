@@ -63,6 +63,7 @@ const zh: RailCopy = {
     feedback: "使用感受",
     feedbackBy: "质检员完成这个用例后写下的感受",
     missing: (file) => `找不到文件 ${file}`,
+    noEvidence: "这台电脑上没有截图和日志",
     showAll: (lines) => `展开全部 ${lines} 行`,
     fold: "收起",
     send: "送进待筛选",

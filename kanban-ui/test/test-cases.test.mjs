@@ -109,14 +109,14 @@ test("paths that climb out of docs/qa/ are no such thing", async () => {
   const { qa } = project();
   assert.equal(readCase(qa, ["..", ".."]), null);
   assert.equal(readCase(qa, ["skill", "../local-ui/open-the-board"]), null);
-  assert.equal(serveCaseFile(qa, ["..", "..", "secret.txt"]).status, 404);
-  assert.equal(serveCaseFile(qa, ["skill", "..%2F..%2Fsecret.txt"]).status, 404);
+  assert.equal(serveCaseFile([qa], ["..", "..", "secret.txt"]).status, 404);
+  assert.equal(serveCaseFile([qa], ["skill", "..%2F..%2Fsecret.txt"]).status, 404);
   fs.symlinkSync(path.join(qa, "..", "..", "secret.txt"), path.join(qa, "skill", "reject-a-card", "link.txt"));
-  assert.equal(serveCaseFile(qa, ["skill", "reject-a-card", "link.txt"]).status, 404);
-  const ok = serveCaseFile(qa, ["skill", "reject-a-card", "01-run.log"]);
+  assert.equal(serveCaseFile([qa], ["skill", "reject-a-card", "link.txt"]).status, 404);
+  const ok = serveCaseFile([qa], ["skill", "reject-a-card", "01-run.log"]);
   assert.equal(ok.status, 200);
   assert.equal(await ok.text(), "$ akb run\nok\n");
-  assert.equal(serveCaseFile(qa, ["skill", "reject-a-card", "case.exe"]).status, 404);
+  assert.equal(serveCaseFile([qa], ["skill", "reject-a-card", "case.exe"]).status, 404);
 });
 
 test("evidence: text read in, pictures found, missing files said", () => {
@@ -126,6 +126,21 @@ test("evidence: text read in, pictures found, missing files said", () => {
   assert.deepEqual(file.evidence["02-page.png"], { kind: "image" });
   assert.deepEqual(file.evidence["03-gone.log"], { kind: "missing" });
   assert.deepEqual(file.evidence["04-gone.png"], { kind: "missing" });
+});
+
+test("evidence kept out of git: read and served from .akb/qa/, the case folder still counts", async () => {
+  const { root, qa } = project();
+  const kept = path.join(root, ".akb", "qa");
+  write(path.join(kept, "skill", "reject-a-card", "03-gone.log"), "kept\n");
+  write(path.join(kept, "skill", "reject-a-card", "04-gone.png"), "png");
+  const file = readCase(qa, ["skill", "reject-a-card"], kept);
+  assert.deepEqual(file.evidence["01-run.log"], { kind: "text", text: "$ akb run\nok", lines: 2 });
+  assert.deepEqual(file.evidence["03-gone.log"], { kind: "text", text: "kept", lines: 1 });
+  assert.deepEqual(file.evidence["04-gone.png"], { kind: "image" });
+  assert.equal(await serveCaseFile([kept, qa], ["skill", "reject-a-card", "03-gone.log"]).text(), "kept\n");
+  assert.equal(serveCaseFile([kept, qa], ["skill", "reject-a-card", "01-run.log"]).status, 200);
+  fs.symlinkSync(path.join(root, "secret.txt"), path.join(kept, "skill", "reject-a-card", "link.txt"));
+  assert.equal(serveCaseFile([kept, qa], ["skill", "reject-a-card", "link.txt"]).status, 404);
 });
 
 test("Setup with a table and a code block stays one section, as written", () => {
