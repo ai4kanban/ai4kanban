@@ -18,11 +18,10 @@ export const AUTHOR = {
   role: "Builder of AI4Kanban",
 } as const;
 
-// The topics a post can be filed under. A category is a *label* on the card and
-// on the post — there is no per-category page and no filter, because a static
-// export has no query string to filter on and four half-empty index pages are
-// worse than none. Add a slug here before a post can use it; the loader rejects
-// anything else rather than inventing a topic silently.
+// The topics a post can be filed under. A category is a label on the post and a
+// tab on the index, which filters in the browser by `?topic=` — there is no
+// per-category page. Add a slug here before a post can use it; the loader
+// rejects anything else rather than inventing a topic silently.
 export const BLOG_CATEGORIES = [
   { slug: "board", label: "The board" },
   { slug: "agents", label: "Coding agents" },
