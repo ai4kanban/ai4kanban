@@ -84,9 +84,11 @@ export function WeekGrid({
 
   return (
     <>
+      {/* `relative` keeps the cells' sr-only labels inside the frame; without
+          it they escape the scroll clip and widen the page on a phone. */}
       <div
         ref={scroller}
-        className="mt-3 max-h-[520px] overflow-auto rounded-xl border-2 border-border bg-elev"
+        className="relative mt-3 max-h-[520px] overflow-auto rounded-xl border-2 border-border bg-elev"
       >
         <table className="w-full min-w-[720px] table-fixed border-collapse text-center text-xs">
           <caption className="sr-only">{t.booking.gridLabel}</caption>
