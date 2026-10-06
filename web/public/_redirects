@@ -1,7 +1,7 @@
 # Cloudflare Pages redirects. Copied into the export as-is, like `_headers`.
 
-# English lives at the root, not under a prefix — `/vs-linear`, not
-# `/en/vs-linear`. Nothing on the site links to `/en/…`, but readers and
+# English lives at the root, not under a prefix — `/vs-multica`, not
+# `/en/vs-multica`. Nothing on the site links to `/en/…`, but readers and
 # crawlers guess it once they've seen `/zh/…` and `/fr/…`, and it would
 # otherwise 404. Send them to the page they meant.
 /en / 301
@@ -19,3 +19,17 @@
 
 # The triage endpoint contract was taken down; Triage covers the ways items arrive.
 /docs/triage-endpoint /docs/triage 301
+
+# The GitHub Issues and Linear comparisons were taken down.
+/vs-github-issues / 301
+/vs-github-issues.md / 301
+/vs-linear / 301
+/vs-linear.md / 301
+/zh/vs-github-issues /zh 301
+/zh/vs-linear /zh 301
+/es/vs-github-issues /es 301
+/es/vs-linear /es 301
+/ja/vs-github-issues /ja 301
+/ja/vs-linear /ja 301
+/fr/vs-github-issues /fr 301
+/fr/vs-linear /fr 301

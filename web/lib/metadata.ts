@@ -44,7 +44,7 @@ export function pageMetadata({
   translated = true,
 }: PageMeta & {
   locale: Locale;
-  /** Route path, e.g. "/vs-github-issues". Empty string for the home page. */
+  /** Route path, e.g. "/vs-multica". Empty string for the home page. */
   path: string;
   type?: "website" | "article" | "profile";
   /** Page-specific alt text for the shared social image. */

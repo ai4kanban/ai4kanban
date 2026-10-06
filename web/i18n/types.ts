@@ -1,6 +1,6 @@
 // The shape of the site's copy: the pieces every page reuses, and `SiteCopy`,
 // which joins one folder's type per page. Each page's own shape lives beside
-// its words — `home/types.ts`, `vs-linear/types.ts`, and so on.
+// its words — `home/types.ts`, `vs-multica/types.ts`, and so on.
 //
 // Every language declares these same types, so a key English adds and a
 // language hasn't translated yet is a build error rather than a silently
@@ -13,10 +13,8 @@ import type { SharedCopy } from "./shared/types";
 import type { HomeCopy } from "./home/types";
 import type { DownloadCopy } from "./download/types";
 import type { ContactCopy } from "./contact/types";
-import type { VsGithubCopy } from "./vs-github-issues/types";
 import type { VsHermesCopy } from "./vs-hermes-kanban/types";
 import type { VsVibeCopy } from "./vs-vibe-kanban/types";
-import type { VsLinearCopy } from "./vs-linear/types";
 import type { VsMulticaCopy } from "./vs-multica/types";
 import type { VsTaskMasterCopy } from "./vs-task-master/types";
 
@@ -77,10 +75,8 @@ export type SiteCopy = {
   home: HomeCopy;
   download: DownloadCopy;
   contact: ContactCopy;
-  vsGithub: VsGithubCopy;
   vsHermes: VsHermesCopy;
   vsVibe: VsVibeCopy;
-  vsLinear: VsLinearCopy;
   vsMultica: VsMulticaCopy;
   vsTaskMaster: VsTaskMasterCopy;
 };

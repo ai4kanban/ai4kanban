@@ -8,10 +8,8 @@
 // name per level. So `app/(en)/vs-x/page.tsx` stays a directory each — but a
 // three-line one, with the copy key and the `<head>` coming from here.
 import type { Metadata } from "next";
-import { PATH as githubPath, VsGithubPage } from "@/components/pages/VsGithubPage";
 import { PATH as hermesPath, VsHermesPage } from "@/components/pages/VsHermesPage";
 import { PATH as vibePath, VsVibePage } from "@/components/pages/VsVibePage";
-import { PATH as linearPath, VsLinearPage } from "@/components/pages/VsLinearPage";
 import {
   PATH as multicaPath,
   VsMulticaPage,
@@ -29,7 +27,7 @@ import { pageMetadata } from "@/lib/metadata";
 type VsCopyKey = Extract<keyof SiteCopy, `vs${string}`>;
 
 export type Comparison = {
-  /** Route path, e.g. "/vs-github-issues". */
+  /** Route path, e.g. "/vs-multica". */
   path: string;
   /** Where this page's words live in `SiteCopy`. */
   copy: VsCopyKey;
@@ -37,15 +35,13 @@ export type Comparison = {
 };
 
 export const COMPARISONS: readonly Comparison[] = [
-  { path: githubPath, copy: "vsGithub", Page: VsGithubPage },
   { path: hermesPath, copy: "vsHermes", Page: VsHermesPage },
   { path: vibePath, copy: "vsVibe", Page: VsVibePage },
-  { path: linearPath, copy: "vsLinear", Page: VsLinearPage },
   { path: multicaPath, copy: "vsMultica", Page: VsMulticaPage },
   { path: taskMasterPath, copy: "vsTaskMaster", Page: VsTaskMasterPage },
 ];
 
-/** The `[vs]` segment of each comparison route — "vs-github-issues", and so on. */
+/** The `[vs]` segment of each comparison route — "vs-multica", and so on. */
 export function comparisonSlugs(): string[] {
   return COMPARISONS.map((c) => c.path.slice(1));
 }

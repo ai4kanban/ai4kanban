@@ -29,10 +29,8 @@ import shared from "./shared";
 import home from "./home";
 import download from "./download";
 import contact from "./contact";
-import vsGithub from "./vs-github-issues";
 import vsHermes from "./vs-hermes-kanban";
 import vsVibe from "./vs-vibe-kanban";
-import vsLinear from "./vs-linear";
 import vsMultica from "./vs-multica";
 import vsTaskMaster from "./vs-task-master";
 
@@ -43,10 +41,8 @@ export function getCopy(locale: Locale): SiteCopy {
     home: home[locale],
     download: download[locale],
     contact: contact[locale],
-    vsGithub: vsGithub[locale],
     vsHermes: vsHermes[locale],
     vsVibe: vsVibe[locale],
-    vsLinear: vsLinear[locale],
     vsMultica: vsMultica[locale],
     vsTaskMaster: vsTaskMaster[locale],
   };
