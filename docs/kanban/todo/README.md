@@ -35,3 +35,4 @@ the number at the front of a filename is the task id.
 - [#1545 Stop the Cloud tab icon from signing the browser back in](1545-cloud-favicon-signs-back-in.md)
 - [#1546 Write the newsletter issue for 0.10.0](1546-newsletter-0-10-0.md)
 - [#1551 Carousel post: review the UI, not the wall of text](1551-carousel-review-ui-not-text.md)
+- [#1552 博客：让 AI 先给你看 UI，再让它写代码](1552-blog-ui-as-plan.md)

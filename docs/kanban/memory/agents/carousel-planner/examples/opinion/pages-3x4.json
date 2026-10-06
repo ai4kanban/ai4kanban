@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "slides": [
+    {
+      "id": "cover",
+      "title": "别再读 AI 的冗长输出了",
+      "copy": [
+        "先审 UI，再开工"
+      ],
+      "layout": "封面：文字墙 vs 界面草图",
+      "assets": [
+        ".assets/1551/logo.svg"
+      ],
+      "preview": {
+        "src": ".assets/1551/page-3x4-01.png",
+        "alt": "封面：左边被橙色斜杠划掉的文字墙，右边盖着\"审过\"章的界面草图"
+      }
+    },
+    {
+      "id": "pain",
+      "title": "AI 给的太多，而且全是字",
+      "copy": [
+        "Andrej Karpathy 前几天也吐槽过：AI 输出又多又乱。对人来说，文字不是最好的信息载体，图和表才是。"
+      ],
+      "layout": "标题 + 示意图 + 说明",
+      "assets": [],
+      "preview": {
+        "src": ".assets/1551/page-3x4-02.png",
+        "alt": "塞满灰线、向下渐隐的 AI 对话气泡"
+      }
+    },
+    {
+      "id": "bottleneck",
+      "title": "一旦同时处理多项工作，审批就成了瓶颈",
+      "copy": [
+        "一次规划 10 个功能，每个都附一份长计划。卡住进度的不是 AI，是你读不完的字。"
+      ],
+      "layout": "标题 + 示意图 + 说明",
+      "assets": [],
+      "preview": {
+        "src": ".assets/1551/page-3x4-03.png",
+        "alt": "10 份文档挤进漏斗，窄口处是\"你\""
+      }
+    },
+    {
+      "id": "html-prd",
+      "title": "HTML 就是新的 PRD",
+      "copy": [
+        "比起 plan mode、spec 驱动开发的长文档，一页 HTML 设计稿更直观、更精炼：人一眼看懂，Agent 也读得懂。符合预期就开工。"
+      ],
+      "layout": "标题 + 示意图 + 说明",
+      "assets": [],
+      "preview": {
+        "src": ".assets/1551/page-3x4-04.png",
+        "alt": "渐隐的 PRD.md 指向浏览器里的设计稿，下方签\"开工\""
+      }
+    },
+    {
+      "id": "example",
+      "title": "相信 Agent 能充分意会 UI 里的信息",
+      "copy": [
+        "设计稿里加一个\"每日活跃用户\"页面，对应的数据库字段 AI 会自己设计好，不用再写一段话解释。"
+      ],
+      "layout": "标题 + 示意图 + 说明",
+      "assets": [],
+      "preview": {
+        "src": ".assets/1551/page-3x4-05.png",
+        "alt": "每日活跃用户页面草图指向虚线数据表，标注\"AI 自己补\""
+      }
+    },
+    {
+      "id": "beyond-ui",
+      "title": "这个方法不只适用于 UI",
+      "copy": [
+        "不涉及 UI 的改动，就让 AI 用图表或重点清单摆出来。比如 prompt：线上写错一句，单个用户单个任务就可能多花几美元。把 prompt 改动直接放进计划里审。"
+      ],
+      "layout": "标题 + 示意图 + 说明",
+      "assets": [],
+      "preview": {
+        "src": ".assets/1551/page-3x4-06.png",
+        "alt": "计划卡片里的 prompt 改动对比，旁边是每任务花费小图表"
+      }
+    },
+    {
+      "id": "review-focus",
+      "title": "细节不必全定，重点必须审完",
+      "copy": [
+        "事事定死反而限制 AI 发挥。世界已经是个巨大的草台班子，别再给它加包袱。"
+      ],
+      "layout": "标题 + 示意图 + 说明",
+      "assets": [],
+      "preview": {
+        "src": ".assets/1551/page-3x4-07.png",
+        "alt": "勾选的 UI、Prompt、你在意的重点，其余灰色条目归到\"交给 AI\""
+      }
+    },
+    {
+      "id": "ai4kanban",
+      "title": "讨论 → 计划 → 草稿，一条工作流",
+      "copy": [
+        "AI4Kanban 把开工前的规划，用你最快能审完的方式摆出来，让每个任务花的精力最少，交付又快又稳。"
+      ],
+      "layout": "标题 + 流程图 + 品牌",
+      "assets": [
+        ".assets/1551/logo.svg"
+      ],
+      "preview": {
+        "src": ".assets/1551/page-3x4-08.png",
+        "alt": "讨论、计划、草稿三步流程，下方 AI4Kanban logo 和 ai4kanban.dev"
+      }
+    }
+  ]
+}

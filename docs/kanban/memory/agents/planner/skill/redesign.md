@@ -2,12 +2,6 @@
 
 Design mistakes to avoid when writing a card: the mistake, then the design we want.
 
-- ❌ **拆出助手 agent，却仍让主导者替它定细节、读它的产物、写它的记忆** → ✅ 主导者只说要证明什么并读回报，其余细节和记忆都归助手。
-- ❌ **给工作流记忆加需要持续维护的索引或清单（文章索引、素材清单）** → ✅ 每次从源头现读，记忆只存推不出来的偏好。
-- ❌ **把产品行为（界面显示什么）写进给 agent 的提示词** → ✅ 提示词只写 agent 要做的事，产品行为由程序处理。
-- ❌ **界面报错嵌入命令行的英文原句、写成一大段** → ✅ 一句话给出修法；面向用户的文字默认走中英文翻译。
-- ❌ **改名只改文件名，agent、命令、界面名称照旧；或职责变宽了，文件名还停在旧职责** → ✅ 名称跟着职责走：一个概念改名或扩大范围时，所有指向它的名称一起改。
-
 ## Card format
 
 - ❌ **Card state kept outside the card** → ✅ every fact is a frontmatter field the command writes, stamped as an optional field the moment it becomes true.
@@ -19,7 +13,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 
 ## Planning a card
 
-- ❌ **Every test as "check by hand"** → ✅ agent-executable checks in `## Todo`; user-visible cases belong to the QA manual the build updates, and a card carries no human checks.
+- ❌ **Every test as "check by hand"** → ✅ agent-executable checks in `## Todo`; user-visible cases belong to the QA manager's test cases, and a card carries no human checks.
 - ❌ **An agent-proposed material change hidden in the folded half** → ✅ keep accepted behavior by default and raise every new user-facing scope choice as a `[user]` question.
 - ❌ **A run doing its own follow-up in its own session** → ✅ each step is its own run the user can see, read and stop.
 - ❌ **Inferring unblocked cards after every run** → ✅ a card saves a one-shot refine when it first becomes blocked; finishing the blocker only makes it eligible.
@@ -37,7 +31,9 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 
 ## Agents and workflows
 
-- ❌ **Exposing hypothetical hook support** → ✅ expose only supported stages.
+- ❌ **拆出助手 agent，却仍让主导者替它定细节、读它的产物、写它的记忆** → ✅ 主导者只说要证明什么并读回报，其余细节和记忆都归助手。
+- ❌ **给工作流记忆加需要持续维护的索引或清单（文章索引、素材清单）** → ✅ 每次从源头现读，记忆只存推不出来的偏好。
+- ❌ **把产品行为（界面显示什么）写进给 agent 的提示词** → ✅ 提示词只写 agent 要做的事，产品行为由程序处理。
 - ❌ **认为只补数据行、不改措辞就不算改 prompt，不请 `prompt-writer`** → ✅ 凡改变运行实际收到的提示，都请 `prompt-writer` 给出 diff。
 - ❌ **Fixing a long agent output by changing its format** → ✅ distil the content: final copy first, then only notes that affect the user's call.
 - ❌ **A service token as a required user connection step** → ✅ the integration owns authorization; connector management stays separate from collection.
@@ -45,6 +41,8 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 
 ## The command and its guides
 
+- ❌ **界面报错嵌入命令行的英文原句、写成一大段** → ✅ 一句话给出修法；面向用户的文字默认走中英文翻译。
+- ❌ **改名只改文件名，agent、命令、界面名称照旧；或职责变宽了，文件名还停在旧职责** → ✅ 名称跟着职责走：一个概念改名或扩大范围时，所有指向它的名称一起改。
 - ❌ **Finding the board from the command's own file location** → ✅ find it from the working directory.
 - ❌ **Publishing bookkeeping verbs as the typed command** → ✅ publish the UI's actions; a published verb is a contract forever.
 - ❌ **One word meaning different things at different layers** → ✅ one meaning per word and one name per level (delivery, run, session); never reuse a coding agent's own word.
@@ -75,6 +73,4 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 ## Connectors
 
 - ❌ **Pinning one exercised version and checking every connector** → ✅ only version-sensitive connectors declare a range; mature ones declare nothing.
-- ❌ **Standalone CLI paths taken as Desktop coverage** → ✅ scan the Desktop cache paths too, hashed folders included.
 - ❌ **Scoping by an assumed harness format limit** → ✅ the agent reads the file itself; surface a read failure as a gap rather than a per-harness parser.
-- ❌ **A second handled-ID list beside retained results** → ✅ scan the files once; limit the UI range without deleting dedup evidence.

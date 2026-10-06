@@ -2,8 +2,6 @@
 
 Settled user-facing answers for marketing. Read before proposing.
 
-- **周报发送**：随版本发布，由用户手动发送；agent 只准备到测试邮件通过为止。
-
 ## How the work runs
 
 - **Content work runs on the ordinary board** and default workflow; no second board or flow set.
@@ -23,6 +21,7 @@ Settled user-facing answers for marketing. Read before proposing.
 
 ## The newsletter
 
+- **周报发送**：随版本发布，由用户手动发送；agent 只准备到测试邮件通过为止。
 - **Sending**: Resend free tier from `newsletter@ai4kanban.dev` on the verified root domain;
   outgrowing the free tier is a decision to revisit later.
 - **Subscriber list**: one local file on the user's machine with an encrypted backup, never in git

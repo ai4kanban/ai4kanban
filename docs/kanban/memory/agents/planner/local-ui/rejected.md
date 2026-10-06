@@ -2,14 +2,9 @@
 
 Ideas we turned down, one line each with the reason. Read before proposing.
 
-- **Card age on board cards** — board cards show only the key elements; per-card details like how long a card has sat don't belong there.
-- **Spelling out why a workflow's lead file was refused, and the line to fix, on every screen that shows the workflow** — the agent design is new and will keep breaking; extra UI for files in an outdated format is over-designing for backward compatibility.
-- **Saying on the card why an auto-refine start was refused** — overdesign that only adds upkeep; a user who finds a card left unrefined opens it and sees the lead agent is missing.
-- **Cross-links between card pages and test cases (cards recording their cases, cases their source cards)** — too complicated for what it gives; overdesign.
-- **Rewording a refused new-agent name into the UI language** — the current message for a taken name is good enough; another error message adds nothing.
-
 ## The board
 
+- **Card age on board cards** — board cards show only the key elements.
 - **An expanded specialist-agent registration form and editor** — overdesigned.
 - **Cloud collaboration as just a storage switch or board-location picker** — it hides membership, questions, ownership, shared memory and delivery recovery.
 - **GitHub Projects as the team's board** — the shared board lives in Cloud; GitHub Issues only feeds proposals and receives progress.
@@ -17,7 +12,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **A "holds up N" badge on blocking cards** — the padlock says more; a group's map shows the chain.
 - **Switching projects from the browser UI** — a server serves the board it was started in.
 - **Multi-selecting cards into a release** — it builds the manual path we don't want.
-- **Routing every card read and write through the command** — the reads and writes that need one owner already go through it.
+- **Routing every card read and write through the command** — the ones that need one owner already go through it.
 - **Drawing a screen inside an open question** — questions live in frontmatter; drawings stay in the body.
 - **Dropping the card page's Edit button** — the chat rail is folded by default, so nothing else would be visible.
 - **Editing a card's title, body or links on its page** — only settings are direct; the rest is an approved spec.
@@ -25,9 +20,17 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Keyboard shortcuts for the board** — a shortcut set costs more than the mouse trips it saves.
 - **A `#` card picker in the chat box** — typing `#12` already points at a card.
 - **Serving the board to a phone from the user's machine** — Cloud reaches a phone anywhere, even with the machine asleep.
-- **A desktop pet that speaks notifications** — the system notification center already does it and gets out of the way.
+- **A desktop pet that speaks notifications** — the system notification center already does it.
 - **A card's screens side by side on a pan-and-zoom canvas** — trades scrolling for panning at the cost of a fixed viewport and a gesture layer.
-- **Tooltip polish (touch behavior, tap-to-read marks, bubble placement)** — overdesign; propose tooltip work only when the user asks for it.
+- **Cross-links between card pages and test cases** — too complicated for what it gives.
+- **Tooltip polish (touch behavior, tap-to-read marks, bubble placement)** — overdesign; propose tooltip work only when asked.
+
+## Explaining refusals
+
+- **Spelling out why a workflow's lead file was refused on every screen showing it** — the agent design keeps changing; UI for outdated files is over-designing for backward compatibility.
+- **Saying on the card why an auto-refine start was refused** — only adds upkeep; the card page shows the lead agent is missing.
+- **Rewording a refused new-agent name into the UI language** — the current message is good enough.
+- **Naming the broken file, bundled copy and fix when an agent CLI won't start** — users get a minimal UI; paths and exit codes are internal detail.
 
 ## Runs
 
@@ -37,15 +40,14 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Clickable run ids in chat replies** — saves one click, costs rules for what counts as an id.
 - **A view of everything uncommitted where a run worked** — it can't say what the run changed; the card's diff does.
 - **Letting the board start ready cards by itself** — needs limits on concurrency, card count and spend first.
-- **One long unattended run over a group's whole subtask graph** — one run builds one approved card and lands it; unattended work is not the product.
+- **One long unattended run over a group's whole subtask graph** — one run builds one approved card; unattended work is not the product.
 
 ## Connectors
 
-- **A Gemini CLI connector** — not wanted; more connectors wait for users to ask.
+- **A Gemini CLI connector** — more connectors wait for users to ask.
 - **A pi connector** — it never asks permission and nothing confines it to the project.
 - **A list of model ids in the Model field** — a kept list goes stale; used ids are empty on a fresh board.
 - **A login line in the agent dialog** — the board doesn't set up harnesses; Test says whether it connects.
-- **Naming the broken file, bundled copy and fix when an agent CLI won't start** — users get a minimal, Apple-like UI; file paths and exit-code diagnostics are internal detail.
 
 ## Setup
 

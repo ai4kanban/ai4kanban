@@ -23,4 +23,4 @@ own entries live in its folder beside this file.
 
 ## Calling spec agents
 
-- ❌ **以「只改一句」「不是新功能」为由跳过 user-docs** → ✅ 卡片只要改动用户文档的文字，就调 user-docs（#1538）。
+- ❌ **以「只改一句」「不是新功能」为由跳过 user-docs** → ✅ 卡片只要改动用户文档的文字，就调 user-docs。
