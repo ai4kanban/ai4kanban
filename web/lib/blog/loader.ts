@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import * as covers from "@/components/blog/covers";
 import { countReadMinutes } from "@/lib/read-minutes";
 import {
   isCategorySlug,
@@ -28,7 +29,8 @@ import {
 //   categories: ["board"]                   # slugs from BLOG_CATEGORIES
 //   tags: ["kanban", "claude-code"]         # optional, free text
 //   featured_image: "https://cdn.ai4kanban.dev/blog-x-v1.jpg"   # optional
-//   featured_image_alt: "..."               # optional, required with the image
+//   featured_cover: CardFlow                # optional — a component in components/blog/covers/, instead of the image
+//   featured_image_alt: "..."               # optional, required with the image or cover
 //   read_minutes: 6                         # optional — counted from the body
 //   draft: true                             # optional — see below
 //   seo:
@@ -102,11 +104,21 @@ function parsePost(slug: string, file: string): BlogPost {
   }
 
   const featuredImage = asString(data.featured_image);
+  const featuredCover = asString(data.featured_cover);
   const featuredImageAlt = asString(data.featured_image_alt);
-  // Alt text is not optional on an image the index page renders. An empty alt
+  if (featuredImage && featuredCover) {
+    fail(name, "`featured_image` and `featured_cover` cannot both be set");
+  }
+  if (featuredCover && !(featuredCover in covers)) {
+    fail(name, `"${featuredCover}" is not a cover in components/blog/covers/index.ts`);
+  }
+  // Alt text is not optional on a cover the index page renders. An empty alt
   // is right for decoration; a post's cover is not decoration.
   if (featuredImage && !featuredImageAlt) {
     fail(name, "`featured_image` needs a `featured_image_alt`");
+  }
+  if (featuredCover && !featuredImageAlt) {
+    fail(name, "`featured_cover` needs a `featured_image_alt`");
   }
 
   const override = typeof data.read_minutes === "number" ? data.read_minutes : 0;
@@ -124,6 +136,7 @@ function parsePost(slug: string, file: string): BlogPost {
     categories,
     tags: asStringArray(data.tags),
     featuredImage,
+    featuredCover,
     featuredImageAlt,
     seoDescription: asString(seo?.description) ?? excerpt,
     readMinutes: override > 0 ? Math.round(override) : countReadMinutes(parsed.content),

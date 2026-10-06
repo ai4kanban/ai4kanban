@@ -67,6 +67,8 @@ export type BlogPost = {
   tags: string[];
   /** An absolute CDN URL — the site keeps its large images off `public/`. */
   featuredImage?: string;
+  /** A component name from `components/blog/covers/`, instead of an image. */
+  featuredCover?: string;
   featuredImageAlt?: string;
   seoDescription: string;
   /** Counted from the body, unless the file overrides it. */

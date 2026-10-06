@@ -1,5 +1,6 @@
 import { PostMeta } from "./PostMeta";
 import { panel, framed } from "../styles";
+import * as covers from "./covers";
 import { postPath, type BlogPost } from "@/lib/blog";
 
 // The newest post, at the top of the index. The one framed panel on the page —
@@ -10,11 +11,15 @@ import { postPath, type BlogPost } from "@/lib/blog";
 // bare inside the card: a raised block is one object, so nothing in it draws a
 // second shadow or a second outline.
 export function FeaturedPost({ post }: { post: BlogPost }) {
+  const Cover = post.featuredCover
+    ? covers[post.featuredCover as keyof typeof covers]
+    : undefined;
+  const cover = "order-first aspect-[16/10] w-full overflow-hidden rounded-lg sm:order-none";
   return (
     <a href={postPath(post)} className={`${panel} ${framed} group block p-6 no-underline sm:p-8`}>
       <div
         className={
-          post.featuredImage
+          post.featuredImage || Cover
             ? "grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,42%)]"
             : ""
         }
@@ -39,8 +44,13 @@ export function FeaturedPost({ post }: { post: BlogPost }) {
           <img
             src={post.featuredImage}
             alt={post.featuredImageAlt}
-            className="order-first aspect-[16/10] w-full rounded-lg object-cover sm:order-none"
+            className={`${cover} object-cover`}
           />
+        )}
+        {Cover && (
+          <div className={cover}>
+            <Cover alt={post.featuredImageAlt ?? ""} />
+          </div>
         )}
       </div>
     </a>
