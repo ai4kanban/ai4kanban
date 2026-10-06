@@ -7,9 +7,12 @@ const ja: SharedCopy = {
     download: "ダウンロード",
     docs: "ドキュメント",
     blog: "ブログ",
+    blogNote: "AI エージェントと開発する現場のノート",
     compare: "比較",
     training: "トレーニング",
     pricing: "料金",
+    trainingNote: "プロジェクトのリリースまで手厚くサポート",
+    resources: "リソース",
     menu: "メニュー",
   },
   footer: {

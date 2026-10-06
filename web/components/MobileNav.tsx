@@ -1,20 +1,31 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { FiMenu } from "react-icons/fi";
 import { Dropdown } from "./Dropdown";
-import { buttonClass } from "./ui/Button";
-import { COMPARISONS } from "./CompareMenu";
-import { localeHref, publishedIn, type Locale } from "@/lib/i18n";
+import {
+  LOCALE_NAMES,
+  LOCALE_TAGS,
+  localeHref,
+  localePath,
+  localesFor,
+  publishedIn,
+  stripLocale,
+  type Locale,
+} from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
-// The header's links on a phone, behind one button, so the chrome stays a
-// single row instead of the three it wrapped to. Below `lg` this replaces the
-// nav; from `lg` up the nav is back and this is gone. The language switcher and
-// the GitHub button stay out in the row — see `Header.tsx`.
+// The header's links on a phone, behind one button. Below `lg` this replaces
+// the nav; GitHub and Download stay out in the row — see `Header.tsx`.
 //
-// The comparisons are listed flat under a heading rather than nested in
-// `CompareMenu` — a menu that opens a menu is a tap you can miss on a touch
-// screen, and the list is only a handful of lines.
+// The languages are listed flat under a heading rather than in their own menu:
+// a menu inside a menu is a tap you can miss on a touch screen.
 export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
   const nav = c.shared.nav;
+  // Stay on the page being read; a page in English alone links the landing page.
+  const base = stripLocale(usePathname() ?? "");
+  const path = publishedIn(base, locale) ? base : "";
+  const locales = localesFor(path);
 
   return (
     <Dropdown
@@ -22,45 +33,57 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       align="right"
       width="w-60"
       chevron={false}
-      // The same block as the GitHub button it stands next to — two icons that
-      // do the same job in the same row can't be a framed one and a bare one.
-      summaryClass={`${buttonClass("secondary", "icon")} cursor-pointer`}
-      label={<FiMenu className="h-4 w-4" aria-hidden="true" />}
+      summaryClass="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-ink transition-colors hover:bg-code"
+      label={<FiMenu className="h-5 w-5" aria-hidden="true" />}
     >
-      {/* Same links, same paths, as the wide nav — see `Header.tsx` for why
-          download is the only way in and why the docs never take a locale. */}
-      <a href={localeHref(locale, "/download")} className={item}>
-        {nav.download}
-      </a>
       <a href="/docs" className={item}>
         {nav.docs}
-      </a>
-      <a href="/blog" className={item}>
-        {nav.blog}
       </a>
       {publishedIn("/pricing", locale) && (
         <a href={localeHref(locale, "/pricing")} className={item}>
           {nav.pricing}
         </a>
       )}
+      <a href="/blog" className={item}>
+        {nav.blog}
+      </a>
       {publishedIn("/training", locale) && (
         <a href={localeHref(locale, "/training")} className={item}>
           {nav.training}
         </a>
       )}
 
-      <p className={heading}>{nav.compare}</p>
-      {COMPARISONS.map((x) => (
-        <a key={x.href} href={localeHref(locale, x.href)} className={item}>
-          vs {x.name}
-        </a>
-      ))}
+      {locales.length > 1 && (
+        <>
+          <p className={heading}>{c.shared.language.label}</p>
+          {locales.map((l) =>
+            l === locale ? (
+              <span
+                key={l}
+                aria-current="true"
+                className={`${item} bg-code font-semibold`}
+              >
+                {LOCALE_NAMES[l]}
+              </span>
+            ) : (
+              <a
+                key={l}
+                href={localePath(l, path)}
+                hrefLang={LOCALE_TAGS[l]}
+                lang={LOCALE_TAGS[l]}
+                className={item}
+              >
+                {LOCALE_NAMES[l]}
+              </a>
+            ),
+          )}
+        </>
+      )}
     </Dropdown>
   );
 }
 
-// Every row is the same tap target the other menus use, at a height a thumb can
-// hit without aiming.
+// A tap target a thumb can hit without aiming.
 const item =
   "flex items-center gap-2 rounded-lg px-3 py-2.5 text-[0.95rem] font-medium " +
   "text-ink no-underline transition-colors hover:bg-code";

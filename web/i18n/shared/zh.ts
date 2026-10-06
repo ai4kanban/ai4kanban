@@ -7,9 +7,12 @@ const zh: SharedCopy = {
     download: "下载",
     docs: "文档",
     blog: "博客",
+    blogNote: "用 AI 带队开发的实战笔记",
     compare: "对比",
     training: "培训",
     pricing: "定价",
+    trainingNote: "手把手带你的项目发布上线",
+    resources: "资源",
     menu: "菜单",
   },
   footer: {

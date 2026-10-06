@@ -41,3 +41,25 @@ body {
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
 }
+
+/* The header's Resources panel: rises and grows in; only fades with reduced motion. */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@keyframes menu-fade {
+  from {
+    opacity: 0;
+  }
+}
+.menu-in {
+  transform-origin: top center;
+  animation: menu-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-in {
+    animation-name: menu-fade;
+  }
+}

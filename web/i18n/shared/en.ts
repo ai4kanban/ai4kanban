@@ -7,9 +7,12 @@ const en: SharedCopy = {
     download: "Download",
     docs: "Documentation",
     blog: "Blog",
+    blogNote: "Field notes on building with AI agents",
     compare: "Compare",
     training: "Training",
     pricing: "Pricing",
+    trainingNote: "Hands-on help to ship your project",
+    resources: "Resources",
     menu: "Menu",
   },
   footer: {

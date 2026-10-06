@@ -13,6 +13,8 @@ export function Dropdown({
   drop = "down",
   width,
   chevron = true,
+  hover = false,
+  panelClass = "rounded-xl border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_var(--color-ink)]",
   summaryClass = "flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink",
   children,
 }: {
@@ -28,6 +30,10 @@ export function Dropdown({
   width: string;
   /** Off when the label is already a menu glyph — a hamburger needs no arrow. */
   chevron?: boolean;
+  /** Also open while a mouse rests on it, not only on click. */
+  hover?: boolean;
+  /** Replaces the panel's own look. */
+  panelClass?: string;
   /** Replaces the plain nav-link look, for a menu that has to be a button. */
   summaryClass?: string;
   children: ReactNode;
@@ -55,10 +61,27 @@ export function Dropdown({
     };
   }, []);
 
+  // Touch screens fire mouse events on tap too; only a real hover opens it.
+  const setHover = (open: boolean) => () => {
+    if (!hover || !ref.current) return;
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    ref.current.open = open;
+  };
+
   return (
-    <details ref={ref} className="group relative [&_summary]:list-none">
+    <details
+      ref={ref}
+      onMouseEnter={setHover(true)}
+      onMouseLeave={setHover(false)}
+      className="group relative [&_summary]:list-none"
+    >
       <summary
         aria-label={ariaLabel}
+        // A click on a menu the pointer already opened keeps it open.
+        onClick={(event) => {
+          if (hover && event.detail > 0 && window.matchMedia("(hover: hover)").matches)
+            event.preventDefault();
+        }}
         className={`${summaryClass} [&::-webkit-details-marker]:hidden`}
       >
         {label}
@@ -69,12 +92,14 @@ export function Dropdown({
           />
         )}
       </summary>
+      {/* The gap to the label is padding, not margin, so a pointer crossing it
+          stays inside and a hover menu doesn't close on the way down. */}
       <div
-        className={`absolute z-20 rounded-xl border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_var(--color-ink)] ${
-          drop === "up" ? "bottom-full mb-2" : "mt-2"
+        className={`absolute z-20 ${
+          drop === "up" ? "bottom-full pb-2" : "top-full pt-2"
         } ${align === "right" ? "right-0" : "left-1/2 -translate-x-1/2"} ${width}`}
       >
-        {children}
+        <div className={panelClass}>{children}</div>
       </div>
     </details>
   );

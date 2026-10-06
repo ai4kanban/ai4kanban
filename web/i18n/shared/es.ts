@@ -7,9 +7,12 @@ const es: SharedCopy = {
     download: "Descargar",
     docs: "Documentación",
     blog: "Blog",
+    blogNote: "Notas prácticas de desarrollo con IA",
     compare: "Comparativas",
     training: "Formación",
     pricing: "Precios",
+    trainingNote: "Ayuda práctica para lanzar tu proyecto",
+    resources: "Recursos",
     menu: "Menú",
   },
   footer: {

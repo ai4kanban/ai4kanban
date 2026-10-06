@@ -9,6 +9,9 @@ export type SharedCopy = {
     docs: string;
     /** The blog index. English-only, like the docs. */
     blog: string;
+    /** One line under "Blog" in the header's Resources menu. */
+    blogNote: string;
+    /** Footer heading over the comparison pages. */
     compare: string;
     /** The training page. Published in English and Chinese only, so the link is
      *  drawn in those two and nowhere else — `PATH_LOCALES` in `lib/i18n.ts` is
@@ -16,6 +19,10 @@ export type SharedCopy = {
     training: string;
     /** The pricing page. English and Chinese only, like `training`. */
     pricing: string;
+    /** One line under "Training" in the header's Resources menu. */
+    trainingNote: string;
+    /** The header menu holding the blog and training. */
+    resources: string;
     /** Only read out loud: the label on the phone header's menu button. */
     menu: string;
   };

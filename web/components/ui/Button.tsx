@@ -57,12 +57,7 @@ const SIZE = {
 export type ButtonVariant = keyof typeof VARIANT;
 export type ButtonSize = keyof typeof SIZE;
 
-/**
- * The block on its own, for the one element that has to be this button without
- * being one: the `<summary>` the phone header's menu opens from, which sits
- * beside the GitHub button and would read as a stray glyph next to it. Reach
- * for `<Button>` everywhere else.
- */
+/** The block on its own, for an element that can't be a `<Button>`. */
 export function buttonClass(
   variant: ButtonVariant = "secondary",
   size: ButtonSize = "md",

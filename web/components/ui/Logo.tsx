@@ -24,17 +24,13 @@ const COLUMNS = [
 // The word runs about seven tenths of the block at every step, where its
 // cap-height reads level with the square's edges.
 //
-// The word's drop takes the block's *first* offset only — nine letterforms each
-// throwing two coloured copies is an orange fringe, not a shadow. It's built as
-// an ink copy down-right with a paper halo held between it and the letters:
-// text shadows stack whole strings under the type, so the paper copy cuts a
-// clean edge. The halo has to surround, not offset — the shadow a letter must
-// be kept out of is mostly its neighbour's, arriving from the left, and a
-// one-sided gap collapses by 36px.
+// At `md` and `lg` the word's drop takes the block's first offset only: an ink
+// copy down-right, with a paper halo all round the letters so a neighbour's
+// shadow can't touch them.
 //
 // `xs` is flat, square and word both: it names the product beside competitors'
-// marks on the comparison pages, where ours arriving with a shadow would be the
-// loudest thing in a row meant to read as a fair pair.
+// marks on the comparison pages. `sm`, the header's, keeps the square's shadow
+// but not the word's — at that size the drop read as a double image.
 const SIZE = {
   xs: {
     block: "h-5 w-5 rounded-md",
@@ -48,11 +44,6 @@ const SIZE = {
     // `text-xl`'s line box is exactly the 28px block, so the header row keeps
     // its height.
     word: "text-xl tracking-tight",
-    drop: {
-      paper:
-        "[text-shadow:1px_1px_0_var(--color-elev),-1px_1px_0_var(--color-elev),1px_-1px_0_var(--color-elev),-1px_-1px_0_var(--color-elev),2px_2px_0_var(--color-ink)]",
-      ink: "[text-shadow:1px_1px_0_var(--color-ink),-1px_1px_0_var(--color-ink),1px_-1px_0_var(--color-ink),-1px_-1px_0_var(--color-ink),2px_2px_0_var(--color-accent-deep)]",
-    },
   },
   md: {
     block:
@@ -116,16 +107,17 @@ export function Logo({
   tone?: Tone;
   className?: string;
 }) {
-  const drop = size === "xs" ? "" : SIZE[size].drop[tone];
+  const s = SIZE[size];
+  const drop = "drop" in s ? s.drop[tone] : "";
 
   return (
     // The word inherits its colour (ink on the page, paper in the dark footer);
     // the block always names its own.
     <span
-      className={`inline-flex items-center ${SIZE[size].gap} ${className}`}
+      className={`inline-flex items-center ${s.gap} ${className}`}
     >
       <LogoMark size={size} />
-      <span className={`${WORD} ${SIZE[size].word} ${drop}`}>AI4Kanban</span>
+      <span className={`${WORD} ${s.word} ${drop}`}>AI4Kanban</span>
     </span>
   );
 }

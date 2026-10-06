@@ -1,4 +1,3 @@
-import { COMPARISONS } from "./CompareMenu";
 import { GITHUB_URL } from "./content";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { BUILDER_PATH, FOOTER_SOCIALS } from "./social";
@@ -6,6 +5,14 @@ import { column } from "./styles";
 import { agentPath, getAgentPages } from "@/lib/agents";
 import { localePath, publishedIn, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
+
+// The comparison pages. The names are products, so only the heading is translated.
+const COMPARISONS = [
+  { href: "/vs-task-master", name: "Taskmaster" },
+  { href: "/vs-hermes-kanban", name: "Hermes Agent Kanban" },
+  { href: "/vs-vibe-kanban", name: "Vibe Kanban" },
+  { href: "/vs-multica", name: "Multica" },
+];
 
 // AI4Kanban's pages in the two directories that list it. Both badges are served
 // from `public/` rather than the directory: the other product marks on the site
@@ -91,7 +98,6 @@ export function SiteFooter({
     // Last, and six deep — a grid row is as tall as its tallest column, so the
     // one long list sits where it can't open a hole under the short ones.
     {
-      // The header's word for the same list, so one label is translated once.
       title: c.shared.nav.compare,
       links: COMPARISONS.map((x) => ({
         href: localePath(locale, x.href),

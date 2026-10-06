@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FiDownload, FiGithub } from "react-icons/fi";
+import { useEffect, useState, type ComponentType } from "react";
+import { FaGithub } from "react-icons/fa";
+import {
+  FiArrowRight,
+  FiBookOpen,
+  FiCompass,
+  FiDownload,
+} from "react-icons/fi";
 import { Button } from "./ui/Button";
 import { Logo } from "./ui/Logo";
 import { GITHUB_URL } from "./content";
-import { CompareMenu } from "./CompareMenu";
-import { HeaderLanguage } from "./HeaderLanguage";
+import { Dropdown } from "./Dropdown";
 import { MobileNav } from "./MobileNav";
+import { hairline } from "./styles";
 import { localeHref, localePath, publishedIn, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
-// Whether the page has moved at all. The header only draws itself once it has —
-// see the comment on the band below. A few pixels rather than 0, so a browser
-// restoring a scroll position of 1px doesn't open the page with a rule on it.
+// A few pixels rather than 0, so a browser restoring a scroll position of 1px
+// doesn't open the page with a rule on it.
 function useScrolled() {
   const [scrolled, setScrolled] = useState(false);
 
@@ -35,95 +40,53 @@ export function Header({
 }: {
   c: SiteCopy;
   locale: Locale;
-  /** For a page that opens on artwork (`blog/Backdrop.tsx`): the row draws no
-   *  fill until the page moves, so the plate runs behind it, then takes the
-   *  paper it has everywhere else once anything scrolls under it. */
+  /** For a page that opens on artwork (`blog/Backdrop.tsx`): no fill until the
+   *  page moves, so the plate runs behind the row. */
   overlay?: boolean;
 }) {
   const nav = c.shared.nav;
   const scrolled = useScrolled();
-  // The training page is published in English and Chinese only, so in the other
-  // three the link is not drawn at all — pointing a French reader at an English
-  // sales page is worse than not offering it.
+  // Training and pricing are English and Chinese only; elsewhere the links are
+  // not drawn at all.
   const training = publishedIn("/training", locale);
   const pricing = publishedIn("/pricing", locale);
 
   return (
-    // Sticky at every width — one row of chrome is cheap to pin, and on a phone
-    // the nav is behind `MobileNav` so it stays one row. `sticky` is also what
-    // makes the menus land on top of the page: only a positioned block gets a
-    // z-index, so without it an open dropdown went behind the hero headline no
-    // matter what `z-30` asked for.
-    //
-    // The fill is paper and never animates: it is the same white as the page
-    // ground, so at the top of the page the row still reads as the first line
-    // of the hero, and the moment anything slides under it there is no frame of
-    // half-transparent header for that content to show through. `overlay` is
-    // the one exception — there the page's own ground at the top is a plate,
-    // not paper, so the row starts with no fill and fades the paper in with the
-    // rule.
-    //
-    // Only the rule fades in. The rule is what a header is *for* — it says the
-    // row is floating over content that has gone under it — so it arrives only
-    // once something has. It is transparent rather than absent at the top: a
-    // border changes a box's height, and the row must not jump 2px the moment
-    // you scroll.
+    // Sticky, so the menus get a z-index over the page. The rule is transparent
+    // rather than absent at the top so the row doesn't jump when it appears.
     <header
-      className={`sticky top-0 z-30 border-b-2 transition-colors duration-200 ${
+      className={`sticky top-0 z-30 border-b transition-colors duration-150 ${
         scrolled
-          ? "border-border bg-elev"
-          : `border-transparent ${overlay ? "bg-transparent" : "bg-elev"}`
+          ? `${hairline} bg-elev/85 backdrop-blur-md`
+          : `border-transparent ${overlay ? "bg-transparent" : "bg-elev/85 backdrop-blur-md"}`
       }`}
     >
-      {/* Same `py-3` at every width, so the row a phone gets and the row a
-          desktop gets are the same height — the wide nav swaps items in, it
-          doesn't make the chrome taller. */}
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
         <a href={localePath(locale, "")} className="text-ink no-underline">
           <Logo size="sm" />
         </a>
 
-        {/* The phone header. Two things stay out in the row and the links go
-            behind the menu button: the language switcher, which a reader who
-            can't read the page needs to find without opening anything, and
-            GitHub, which is the page's one call to action and so is the same
-            block here as it is wide — just with the label dropped, since the
-            mark is the name.
-
-            The swap is at `lg`, not `sm` or `md`. `sm` is where the wide nav
-            first fits and nothing more — at 640px the items and the button fill
-            the row edge to edge, and one longer word (fr: "Installation",
-            "Comparatifs") breaks it. `md` held the short labels; "Documentation"
-            is the width `md` no longer has at any gap. */}
-        <div className="flex items-center gap-2.5 text-[0.95rem] text-muted lg:hidden">
-          <HeaderLanguage locale={locale} label={c.shared.language.label} />
-          {/* The footer's plain "GitHub", not the nav's — the nav string carries
-              a ↗ that a screen reader reads out as an arrow. */}
+        {/* Phone: the two actions stay out in the row, everything else is
+            behind the menu. The swap is at `lg`: French labels overflow `md`. */}
+        <div className="flex items-center gap-2.5 lg:hidden">
+          <GitHubButton label={c.shared.footer.github} />
           <Button
-            href={GITHUB_URL}
+            href={localeHref(locale, "/download")}
+            variant="ink"
             size="icon"
-            aria-label={c.shared.footer.github}
+            aria-label={nav.download}
           >
-            <FiGithub className="h-4 w-4" aria-hidden="true" />
+            <FiDownload className="h-4 w-4" aria-hidden="true" />
           </Button>
           <MobileNav c={c} locale={locale} />
         </div>
 
-        {/* The gap is tighter between `lg` and `xl` than above it. At 1024 the
-            row is four items and the button pair, and French is the longest set
-            of words in it — "Télécharger", "Documentation", "Comparatifs".
-            Sixteen pixels there buys forty back and reads the same at that
-            width; the full gap returns at `xl`, where there is room for it. */}
-        <nav className="hidden items-center justify-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
-          {/* The documentation and the blog are English-only, so neither link
-              ever takes a locale prefix. */}
+        <nav className="hidden items-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
+          {/* The docs and the blog are English-only, so they never take a
+              locale prefix. */}
           <a href="/docs" className="transition-colors hover:text-ink">
             {nav.docs}
           </a>
-          <a href="/blog" className="transition-colors hover:text-ink">
-            {nav.blog}
-          </a>
-          <CompareMenu label={nav.compare} locale={locale} />
           {pricing && (
             <a
               href={localeHref(locale, "/pricing")}
@@ -132,50 +95,95 @@ export function Header({
               {nav.pricing}
             </a>
           )}
-          {/* Last in the text run, a plain link like its neighbours: the row's
-              one filled block stays Download, so the training page is reached
-              the way the docs are rather than as a second call to action. */}
-          {training && (
-            <a
-              href={localeHref(locale, "/training")}
-              className="transition-colors hover:text-ink"
-            >
-              {nav.training}
-            </a>
-          )}
-          <HeaderLanguage locale={locale} label={c.shared.language.label} />
-          {/* The one way in, and the only filled block in the chrome. The
-              landing page also hands out the setup prompt, under `#install`,
-              but the header names a single way to get the product — two of them
-              in one row is a choice a reader has to make before they know what
-              either one is. It sits beside GitHub as its reverse: same square
-              block, fill inverted, so the pair reads as the destination and the
-              source rather than two equal links. */}
-          {/* The pair sits tighter than the nav gap — two blocks of the same
-              cut are one control group, and the nav's spacing between them
-              would read as two unrelated buttons. */}
+          <Dropdown
+            label={nav.resources}
+            hover
+            width="w-[340px]"
+            summaryClass="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink group-open:text-ink"
+            panelClass={`menu-in relative mt-1 rounded-xl border bg-elev p-1.5 shadow-[0_16px_40px_-16px_rgba(36,35,31,0.3)] ${hairline}`}
+          >
+            <span
+              aria-hidden="true"
+              className={`absolute -top-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-tl-[3px] border-l border-t bg-elev ${hairline}`}
+            />
+            <ResourceLink
+              href="/blog"
+              title={nav.blog}
+              note={nav.blogNote}
+              Icon={FiBookOpen}
+              tint="bg-accent/10 text-accent-deep"
+            />
+            {training && (
+              <ResourceLink
+                href={localeHref(locale, "/training")}
+                title={nav.training}
+                note={nav.trainingNote}
+                Icon={FiCompass}
+                tint="bg-growth/10 text-growth"
+              />
+            )}
+          </Dropdown>
+          {/* The one place to get the product, and its source beside it. */}
           <div className="flex items-center gap-2.5">
+            <GitHubButton label={c.shared.footer.github} />
             <Button
               href={localeHref(locale, "/download")}
               variant="ink"
-              size="icon"
-              aria-label={nav.download}
+              size="sm"
             >
               <FiDownload className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            {/* The plain "GitHub" from the footer is the accessible name — the
-                nav string carries a ↗ that a screen reader reads out as an
-                arrow. */}
-            <Button
-              href={GITHUB_URL}
-              size="icon"
-              aria-label={c.shared.footer.github}
-            >
-              <FiGithub className="h-4 w-4" aria-hidden="true" />
+              {nav.download}
             </Button>
           </div>
         </nav>
       </div>
     </header>
+  );
+}
+
+// The footer's plain "GitHub" is the name: the nav string carries a ↗ that a
+// screen reader reads out as an arrow.
+function GitHubButton({ label }: { label: string }) {
+  return (
+    <Button href={GITHUB_URL} size="icon" aria-label={label}>
+      <FaGithub className="h-4 w-4" aria-hidden="true" />
+    </Button>
+  );
+}
+
+function ResourceLink({
+  href,
+  title,
+  note,
+  Icon,
+  tint,
+}: {
+  href: string;
+  title: string;
+  note: string;
+  Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  tint: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="group/item flex items-center gap-3 rounded-lg p-2.5 no-underline transition-colors duration-200 hover:bg-band focus-visible:bg-band"
+    >
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 ease-out group-hover/item:scale-105 motion-reduce:transition-none motion-reduce:group-hover/item:scale-100 ${tint}`}
+      >
+        <Icon className="h-4 w-4" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-ink">{title}</span>
+        <span className="block text-[0.8rem] leading-snug text-muted">
+          {note}
+        </span>
+      </span>
+      <FiArrowRight
+        aria-hidden="true"
+        className="h-4 w-4 shrink-0 -translate-x-1 text-ink opacity-0 transition-all duration-200 ease-out group-hover/item:translate-x-0 group-hover/item:opacity-100 group-focus-visible/item:translate-x-0 group-focus-visible/item:opacity-100 motion-reduce:translate-x-0"
+      />
+    </a>
   );
 }
