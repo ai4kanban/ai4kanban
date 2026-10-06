@@ -1,0 +1,59 @@
+---
+title: "Visual specs for AI coding: show me before you build"
+title_tag: "Visual specs for AI coding: review the UI before the build"
+dek: "Ask AI to show the UI and the changes you care about before it writes code. Review those first, then leave the implementation to the agent."
+excerpt: "A text plan makes you picture the feature before you can judge it. A visual spec shows the screen, so you can check it against what you want and let the agent build the rest."
+date: 2026-10-06
+categories: ["workflow", "agents"]
+tags: ["visual-spec", "prototype-first-development", "coding-agents", "product-planning"]
+keywords: ["visual spec", "prototype-first development", "spec-driven development"]
+author: "AI4Kanban"
+featured_cover: ShowTheUiFirst
+featured_image_alt: "The headline “Show me before you build.” beside a fading plan.md marked with a cross above a daily active users visual spec marked with a check."
+seo:
+  description: "Review a visual spec before AI writes code. Check screens, charts and prompt changes against your expectations, then let the agent implement the feature."
+---
+
+AI produces more text than we want to read. Andrej Karpathy recently [raised the problem of understanding model output](https://x.com/karpathy/status/2105819303471976479). We have run into it in product planning too: reviewing ten features or product improvements in parallel means working through a lot of text just to decide what should be built.
+
+What we want to see first is what the feature will look like. If it matches our expectations, the agent can start building. A UI mockup is often a better way to review that decision than another page of prose.
+
+## Why ask for a UI before the code?
+
+A written plan describes the product; we still have to picture it. A UI mockup shows it directly. When several features need our attention, that makes the plans easier to review.
+
+![Ten text plans on the left and, on the right, ten empty dashed screens with question marks that the reviewer has to picture.](/blog/show-the-ui-first-fig-01.png)
+
+The useful question is whether the proposed feature is what we want. We care more about the product's UI than about the implementation underneath it. Asking the agent to show the screen first puts that decision in front of us before development starts.
+
+## Can the UI itself be the spec?
+
+In a useful sense, yes. A **visual spec** can be a development agreement between a person and a coding agent: we review the UI, and the agent uses it as the reference for implementation.
+
+For example, a mockup includes a page showing daily active users. We can review what it displays without spelling out every database field needed to support it. The agent can work out the corresponding data model. If we care about a detail the screen does not express, such as what counts as active, we still need to state it.
+
+We value spec-driven development: make a plan before writing code. Showing the UI makes the product part of that plan more direct and concise. An HTML prototype is especially useful because both the person reviewing it and the agent implementing it can work from the same artifact. That is the point of **prototype-first development** here: see the intended result before committing to the build.
+
+## What should AI show when there is no UI?
+
+Show whatever matters most to the review. Relationships or a process may be clearer as a diagram. For a prompt change, put the actual text in the plan.
+
+If you build agents, a bad prompt in production can increase the cost of a user's task. Even with regression tests, we want to read prompt changes carefully before they ship. Reviewing the proposed wording during planning gives us that chance before the rest of the feature is built.
+
+![A prompt change on an AI4Kanban card: the full text of a new agent guide, shown as a diff before the build.](/blog/show-the-ui-first-fig-03.png)
+
+The same principle applies: ask AI to present the parts you care about in the form that makes them easiest to judge.
+
+## How much do you need to decide before the build?
+
+You do not need to settle every detail. Specifying everything in advance can constrain the agent unnecessarily. Review the UI, the prompt changes and the other decisions you care about, then let AI handle the implementation.
+
+![What you approve — the UI, what counts as active and the prompt behavior — beside what AI implements: database fields and component structure.](/blog/show-the-ui-first-fig-05.png)
+
+If delivery quality matters to you, those reviews matter too. Delegating the implementation does not remove the need to check the result you are asking for.
+
+AI4Kanban brings discussion, planning and drafts into one workflow. You [discuss the idea](https://ai4kanban.dev/docs/chat), then review the UI mockups or prompt changes on its card. The workflow's [agents](https://ai4kanban.dev/docs/agents), such as `ui-designer` and `prompt-writer`, provide the relevant drafts. Ask for changes, and press **Build** when the important parts match your expectations.
+
+![An AI4Kanban card ready to build, with its prompt writer and UI designer drafts on the card.](/blog/show-the-ui-first-fig-04.png)
+
+For your next feature, ask AI to show you what matters before it writes the code. [Download AI4Kanban](https://ai4kanban.dev/download) to review those drafts alongside the plan.
