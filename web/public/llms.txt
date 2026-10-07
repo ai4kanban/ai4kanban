@@ -20,7 +20,7 @@ content — no navigation, styling, or scripts.
 - [AI4Kanban vs. Taskmaster](https://ai4kanban.dev/vs-task-master.md): Taskmaster splits a PRD you already wrote into an ordered backlog; AI4Kanban starts from one rough line and asks questions until the card is buildable. Covers the starting point, JSON file vs. one Markdown file per card, what carries over between runs, batch execution, editor and model reach, and licensing.
 - [AI4Kanban vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two agent kanban systems — a project-management agent that plans from goals and preserves product memory in diffable files vs. a durable, shared SQLite queue where named agents claim tasks. Covers harness support, memory vs. audit, autonomy, dashboards, and trade-offs.
 - [AI4Kanban vs. Vibe Kanban](https://ai4kanban.dev/vs-vibe-kanban.md): Vibe Kanban shut down when Bloop wound down in April 2026. A project-management agent that discovers and refines what to build vs. a cockpit for running many coding agents in parallel — the honest difference, and what carries over.
-- [AI4Kanban vs. Multica](https://ai4kanban.dev/vs-multica.md): Both products let agents execute tasks. AI4Kanban is a ready-to-use AI project-management system; Multica is a general-purpose multi-agent platform.
+- [AI4Kanban vs. Multica](https://ai4kanban.dev/vs-multica.md): AI4Kanban comes with specialist agents and workflows, ready out of the box: hand off your first piece of work in 10 minutes. Agents run in parallel, drafts keep the quality of every delivery in your hands, and they keep learning as they go.
 
 ## Documentation
 

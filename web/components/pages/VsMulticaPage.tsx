@@ -2,30 +2,15 @@ import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SectionHeading } from "@/components/SectionHeading";
 import { DecisionSection } from "@/components/vs/DecisionSection";
-import {
-  ComparisonIntro,
-  ComparisonTable,
-} from "@/components/vs/ComparisonTable";
-import { VsHeroSection } from "@/components/vs/VsHeroSection";
-import { WinColumns } from "@/components/vs/WinColumns";
-import { MulticaBacklog } from "@/components/vs-multica/MulticaBacklog";
-import { MulticaHorizon } from "@/components/vs-multica/MulticaHorizon";
-import {
-  KanbanHeroDiagram,
-  MulticaHeroDiagram,
-} from "@/components/vs-multica/MulticaDiagrams";
-import { MulticaLifecycle } from "@/components/vs-multica/MulticaLifecycle";
+import { ComparisonIntro } from "@/components/vs/ComparisonTable";
+import { MulticaHero } from "@/components/vs-multica/MulticaHero";
 import { MulticaMark } from "@/components/vs-multica/MulticaMark";
-import { MulticaMemory } from "@/components/vs-multica/MulticaMemory";
 import {
-  compareRows,
-  kanbanWinIcons,
-  kanbanWinOrder,
-  multicaWinIcons,
-  multicaWinOrder,
-} from "@/components/vs-multica/vs-multica-content";
+  MulticaTable,
+  type MulticaRow,
+} from "@/components/vs-multica/MulticaTable";
+import type { VsMulticaRowKey } from "@/i18n/vs-multica/types";
 import { getCopy } from "@/i18n";
-import { LogoMark } from "@/components/ui/Logo";
 import type { Locale } from "@/lib/i18n";
 import {
   APP_ID,
@@ -38,49 +23,22 @@ import {
 
 export const PATH = "/vs-multica";
 
+// Which side is stronger on each row; AI4Kanban's rows first.
+const ROWS: { key: VsMulticaRowKey; winner: MulticaRow["winner"] }[] = [
+  { key: "startingPoint", winner: "ours" },
+  { key: "refinement", winner: "ours" },
+  { key: "memory", winner: "ours" },
+  { key: "backlog", winner: "ours" },
+  { key: "license", winner: "ours" },
+  { key: "execution", winner: "theirs" },
+  { key: "teams", winner: "theirs" },
+];
+
 export function VsMulticaPage({ locale }: { locale: Locale }) {
   const c = getCopy(locale);
   const t = c.vsMultica;
-  const isChinese = locale === "zh";
   const rivalId = `${pageUrl(PATH)}#multica`;
   const multicaTag = <MulticaMark className="h-5 w-5" />;
-  const visibleCompareRows = isChinese
-    ? compareRows.filter(({ key }) =>
-        ["startingPoint", "execution", "teams", "storage", "license"].includes(
-          key,
-        ),
-      )
-    : compareRows;
-
-  const comparison = (
-    <section className="mt-24">
-      <SectionHeading
-        num={isChinese ? "02" : "03"}
-        {...t.comparison.heading}
-      />
-      <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
-      <ComparisonTable
-        ourLabel={t.comparison.ourLabel}
-        theirLabel={t.comparison.theirLabel}
-        rows={visibleCompareRows.map((row) => ({
-          key: row.key,
-          winner:
-            row.edge === "multica"
-              ? "theirs"
-              : row.edge === "kanban"
-                ? "ours"
-                : "neutral",
-          dimension: t.comparison.rows[row.key].dimension,
-          ours: t.comparison.rows[row.key].kanban,
-          theirs: t.comparison.rows[row.key].multica,
-        }))}
-      />
-    </section>
-  );
-
-  const backlog = (
-    <MulticaBacklog c={t.backlog} num={isChinese ? "03" : "02"} />
-  );
 
   const schema = jsonLd(
     webPage(PATH, t.meta.title, t.meta.description, { locale }),
@@ -90,7 +48,7 @@ export function VsMulticaPage({ locale }: { locale: Locale }) {
       headline: t.meta.socialTitle ?? t.meta.title,
       description: t.meta.description,
       datePublished: "2026-08-07",
-      dateModified: "2026-08-07",
+      dateModified: "2026-10-07",
       about: [{ "@id": APP_ID }, { "@id": rivalId }],
     }),
     softwareApplication({
@@ -114,50 +72,35 @@ export function VsMulticaPage({ locale }: { locale: Locale }) {
       />
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
-        <VsHeroSection
-          c={t.hero}
-          shared={c.shared}
-          theirsTag={multicaTag}
-          oursExtra={<KanbanHeroDiagram c={t.hero} />}
-          theirsExtra={<MulticaHeroDiagram c={t.hero} />}
-        />
-
-        <MulticaLifecycle c={t.boundary} />
-        {isChinese ? comparison : backlog}
-        {isChinese ? backlog : comparison}
-
-        <MulticaMemory c={t.memory} />
-        <MulticaHorizon c={t.horizon} />
+        <MulticaHero c={t.hero} />
 
         <section className="mt-24">
-          <SectionHeading num="06" {...t.wins.heading} />
-          <p className="text-ink">
-            {t.wins.lead}
-          </p>
-          <WinColumns
-            oursHeading={t.wins.oursHeading}
-            oursTag={<LogoMark size="xs" />}
-            ours={kanbanWinOrder.map((key) => ({
-              key,
-              icon: kanbanWinIcons[key],
-              ...t.wins.ours[key],
-            }))}
-            theirsHeading={t.wins.theirsHeading}
-            theirsTag={multicaTag}
-            theirs={multicaWinOrder.map((key) => ({
-              key,
-              icon: multicaWinIcons[key],
-              ...t.wins.theirs[key],
-            }))}
+          <SectionHeading num="01" {...t.comparison.heading} />
+          <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
+          <MulticaTable
+            ourLabel={t.comparison.ourLabel}
+            theirLabel={t.comparison.theirLabel}
+            rows={ROWS.map(({ key, winner }) => {
+              const row = t.comparison.rows[key];
+              return {
+                key,
+                winner,
+                dimension: row.dimension,
+                ours: row.kanban,
+                oursTip: row.kanbanTip,
+                theirs: row.multica,
+              };
+            })}
           />
         </section>
 
         <DecisionSection
-          num="07"
+          num="02"
           c={t.decision}
           shared={c.shared}
           locale={locale}
           theirsTag={multicaTag}
+          framed
         />
       </main>
       <SiteFooter c={c} locale={locale} path={PATH} />

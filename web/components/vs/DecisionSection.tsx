@@ -5,7 +5,7 @@ import { GITHUB_URL } from "../content";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { Button } from "../ui/Button";
-import { panelInset, panelStatic } from "../styles";
+import { framed as frame, hairline, panelInset, panelStatic } from "../styles";
 import type { SharedCopy } from "@/i18n/shared/types";
 import type { VsDecision } from "@/i18n/types";
 import { localeHref, type Locale } from "@/lib/i18n";
@@ -21,15 +21,15 @@ function Guide({
   tag,
   heading,
   items,
-  highlight,
+  surface,
 }: {
   tag: ReactNode;
   heading: string;
   items: string[];
-  highlight?: boolean;
+  surface: string;
 }) {
   return (
-    <div className={`${highlight ? panelStatic : panelInset} p-6`}>
+    <div className={`${surface} p-6`}>
       <div className="mb-4 flex items-center gap-2.5">
         <span className="text-xl" aria-hidden="true">
           {tag}
@@ -57,24 +57,34 @@ export function DecisionSection({
   shared,
   locale,
   theirsTag,
+  framed,
 }: {
   num: string;
   c: VsDecision;
   shared: SharedCopy;
   locale: Locale;
   theirsTag: ReactNode;
+  // Ours and the bottom line outlined in ink, theirs in a hairline on paper.
+  framed?: boolean;
 }) {
+  const ours = framed ? `${panelStatic} ${frame}` : panelStatic;
+  const theirs = framed ? `rounded-xl border bg-elev ${hairline}` : panelInset;
   return (
     <section className="mt-24">
       <SectionHeading num={num} {...c.heading} />
 
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Guide tag={<LogoMark size="xs" />} heading={c.oursHeading} items={c.ours} highlight />
-        <Guide tag={theirsTag} heading={c.theirsHeading} items={c.theirs} />
+        <Guide
+          tag={<LogoMark size={framed ? "tag" : "xs"} />}
+          heading={c.oursHeading}
+          items={c.ours}
+          surface={ours}
+        />
+        <Guide tag={theirsTag} heading={c.theirsHeading} items={c.theirs} surface={theirs} />
       </div>
 
       {/* Bottom line */}
-      <div className={`${panelInset} mt-8 p-6 sm:p-8`}>
+      <div className={`${framed ? ours : panelInset} mt-8 p-6 sm:p-8`}>
         <div className="flex items-center gap-3">
           <span className="h-5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
           <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
@@ -84,7 +94,7 @@ export function DecisionSection({
         <p className="mt-4 text-lg leading-relaxed text-ink">
           <Rich>{c.verdict}</Rich>
         </p>
-        <p className="mt-4 text-[0.95rem] text-muted">{c.note}</p>
+        {c.note && <p className="mt-4 text-[0.95rem] text-muted">{c.note}</p>}
         {/* The same two buttons the landing page ends on — the component, not a
             copy of its class list, so the pair can never drift from it again. */}
         <div className="mt-6 flex flex-wrap gap-3">

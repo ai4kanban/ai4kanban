@@ -1,161 +1,101 @@
 # AI4Kanban vs. Multica
 
-> Both products let agents execute tasks. **AI4Kanban is a ready-to-use AI
-> project-management system; Multica is a general-purpose multi-agent platform.**
+> AI4Kanban comes with specialist agents and workflows, ready out of the box:
+> hand off your first piece of work in 10 minutes. Agents run in parallel,
+> drafts keep the quality of every delivery in your hands, and they keep
+> learning as they go.
 
-- **AI4Kanban** — A planning loop in your repository. The agent proposes work,
-  develops vague ideas, orders the board, and remembers earlier decisions.
-- **Multica** — A project-operations system for human and agent teams. Assign an
-  issue, then queue, dispatch, observe, retry, and review the run.
+## Start working without designing the team first
 
-## 01 · The dividing line — Same board. Opposite sides of ready.
+Specialist agents come ready, so you hand off work on day one.
 
-A kanban board is only the surface. The lifecycle makes the actual boundary
-visible:
+- **AI4Kanban** — Built-in specialist agents and workflows cover software
+  development, blogs, social carousels, slide decks and product videos.
+- **Multica** — Apart from the coordinator Mika, you create and configure every
+  specialist agent yourself.
 
-| Before ready — AI4Kanban | After ready — Multica |
-| --- | --- |
-| Discover work | Assign the issue |
-| Refine the requirement | Run the agent |
-| Prioritize by value and dependency | Review the result |
+**Both have**
 
-**Multica decides which agent runs a task. AI4Kanban decides which tasks should
-exist.** That is the shortest useful answer to “aren't these the same idea?”
+- **Custom agents** — AI4Kanban lets you edit the built-in roles or add your own
+  agents. Multica's Agent Builder helps you create roles, then configure their
+  Instructions and Skills.
+- **Agents in parallel** — AI4Kanban runs several cards at once with coding
+  tools such as Claude Code or Codex. Multica runs agents in parallel, with
+  queues, retries and cost tracking.
 
-## 02 · The backlog test — What happens before Todo?
+## Worried about AI taking too many liberties? Review a draft before approving execution
 
-Multica's own task model makes the boundary concrete: an issue in **Backlog does
-not trigger an agent**. It is a parking lot until a person decides the work is
-real and moves it forward.
+Fix the direction before the run, not after it.
 
-**AI4Kanban — Backlog is active**
+- **AI4Kanban** — For any part where you want control over the direction, the
+  draft system can prepare a preview for your approval before execution and
+  delivery. AI4Kanban supports image, diagram, HTML/TSX, diff and storyboard
+  drafts.
+- **Multica** — You build the draft-review process yourself.
 
-1. Propose or capture an incomplete idea.
-2. Read the code and the planning memory, resolve context, and expose the real
-   decisions.
-3. Produce a build-ready card ordered by value and dependency.
+**Both have**
 
-**Multica — Backlog is parked**
+- **Previews** — AI4Kanban displays image, diagram, HTML/TSX, diff and
+  storyboard drafts on the card. Multica previews HTML, collects annotations
+  and compares versions.
+- **Task discussion** — AI4Kanban discusses and revises the plan in the card
+  chat. Multica discusses work with agents in issue comments.
 
-1. A person writes or accepts the issue, including the relevant files,
-   constraints, outcome, and acceptance criteria.
-2. A person moves the issue from Backlog to Todo.
-3. The daemon queues and dispatches the assignee.
+## Will you need to explain it again?
 
-Multica does include quick-create, but it is a one-shot transcriber: it formats
-free text into an issue and exits. It does not inspect the codebase, ask a
-question, or record an assumption.
+Preferences and decisions are kept per task, so you never repeat them.
 
-## 03 · Head to head — The shipped products, not the headlines
+- **AI4Kanban** — Each agent has a memory recipe designed for its own job: it
+  learns your preferences and decisions for that kind of task, not generic
+  lessons. Agents can also share memory with each other.
+- **Multica** — Long-term memory depends on the agent tool, for you to check and
+  set up.
+
+**Both have**
+
+- **Saved methods** — AI4Kanban gives every agent role rules you can edit.
+  Multica keeps methods in Instructions and Skills.
+- **Task history** — AI4Kanban keeps the plan, chat and run log on each card.
+  Multica keeps comments and run history.
+
+## 01 · Key differences — Compare the details
 
 | Dimension | AI4Kanban | Multica | Edge |
 | --- | --- | --- | --- |
-| Where the product starts | Before the task: inspect the project, propose work, and decide what belongs on the board. | After the task exists: accept an issue, assignee, priority, and execution instructions. | AI4Kanban |
-| Backlog behavior | The agent actively develops unready cards and can propose work nobody requested. | A parking lot. An issue in Backlog does not wake an assigned agent. | AI4Kanban |
-| From vague idea to spec | A repeated refine loop reads code and memory, makes assumptions explicit, and asks only unresolved product questions. | Descriptions are free text; the human is told to provide files, constraints, outcomes, and acceptance criteria. | AI4Kanban |
-| What compounds | Project decisions, redesign lessons, shipped work, and rejection reasons shape the next proposal. | Reusable Skills preserve working methods; issue activity and run history preserve execution provenance. | AI4Kanban |
-| Run operations | Hands implementation to the chosen coding harness; no native retry, replay, token-cost, or fleet layer. | Queues, dispatches, streams, meters, retries, replays, gates review, and links pull requests and CI. | Multica |
-| People and agent teams | Local-first and best for one developer or a small team collaborating through git. | Multiplayer workspaces, roles, squads, inboxes, comments, permissions, and notifications. | Multica |
-| Storage and infrastructure | Markdown in the repository; no database, account, board server, or MCP dependency. | PostgreSQL + pgvector, a Go server, local daemon, OAuth, and hosted or self-hosted deployment. | Trade-off |
-| License | Apache License 2.0, including commercial use, hosting, and embedding. | A source-available Multica License with restrictions on hosted services and commercial embedding. | AI4Kanban |
+| Built-in agents and workflows | Built-in specialist agents and workflows, with roles you can edit or add. Software development is free; blog, social carousel, slide deck and product video workflows require Pro. | Mika is included. Create specialist agents yourself or with Agent Builder, then give them Instructions and Skills. | AI4Kanban |
+| Reviewing drafts before execution | For any part where you want control over the direction, the draft system prepares a preview for your approval before execution and delivery: image, diagram, HTML/TSX, diff and storyboard drafts. | Preview HTML, annotate output and compare versions. You define which agent prepares each draft and when approval is needed before execution. | AI4Kanban |
+| Remembering edits and decisions | Each agent has a memory recipe designed for its own job: it learns your preferences and decisions for that kind of task, not generic lessons. Agents can also share memory with each other. | Long-term memory depends on the agent tool. Agents using Hermes each retain memory across tasks on the local runtime; it does not automatically sync across machines. Instructions and task history are also saved. | AI4Kanban |
+| What comes after delivery | After you finish a main piece of work, agents proactively suggest follow-ups to help fill gaps and catch omissions. | To get follow-up suggestions, request them in the task instructions. Autopilot runs automatically after you configure its runbook, assignee and schedule or webhook triggers. | AI4Kanban |
+| License | Apache-2.0, including commercial use, hosting, and embedding. | Source-available; hosted services and commercial embedding are restricted by the Multica License. | AI4Kanban |
+| Execution management | Run cards with Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode or Grok Build, with several cards in progress at once. | Runs multiple agents in parallel, with queues, retries, replay, cost tracking, review gates, and PR and CI links. | Multica |
+| Team collaboration | For individuals and small teams organizing tasks in one repository, with customizable agents and workflows. | Multi-user workspaces, roles, Squads, comments, permissions, and notifications. | Multica |
 
-## 04 · Two kinds of memory — How to do it vs. why we decided it
+## 02 · Recommendation — Which should you choose?
 
-Both systems accumulate knowledge, but on different axes.
+**Choose AI4Kanban if you**
 
-**AI4Kanban — project judgment.** Compact repository files are read before the
-agent proposes or refines work:
+- Want built-in specialist agents and workflows without configuring them from
+  scratch; some workflows require Pro.
+- Want to review key drafts before execution.
+- Want agents to remember useful edits and decisions across coding tools.
+- Want planning and follow-up suggestions included, with room to customize the
+  workflow.
 
-- `rejected.md` records an idea and why it was declined, so it stays out unless
-  new evidence changes the decision.
-- `redesign.md` records design mistakes and directions to avoid.
-- `decisions.md` records the calls that were settled, and why.
+**Choose Multica if you**
 
-This memory answers: **“Why did the board stop proposing idea X?”**
-
-**Multica — working method.** Skills are hand-authored or imported `SKILL.md`
-bundles shared across agents. Issue comments and execution history show what
-happened to a run, but completed work does not automatically become decision
-memory.
-
-This knowledge answers: **“How should this agent perform a security review?”**
-
-The distinction is procedure vs. judgment. A playbook can improve execution; a
-rejection record can stop the wrong work from being proposed again.
-
-## 05 · Vision vs. shipped — The overlap is coming closer
-
-Multica's `VISION.md` reaches upstream. It describes agents that structure
-intent, gather context, make uncertainty explicit, and keep decisions connected
-to outcomes. That is much closer to AI4Kanban's current thesis than Multica's
-current product is.
-
-| Shipped today | Declared direction |
-| --- | --- |
-| **Execute an issue.** Backlog waits. The daemon tells the assignee to read the issue and complete it. Refinement happens after code exists, through review and revision. | **Develop the intent.** Future agents are meant to turn intent into structured work and separate known facts from decisions still needed. |
-
-This is a real competitive threat, not a reason to credit unshipped features.
-The honest comparison is shipped vs. shipped, with the declared direction named
-plainly.
-
-## 06 · Trade-offs — Where each one is plainly ahead
-
-### AI4Kanban
-
-- **The agent helps decide the work** — It proposes from project context, turns
-  rough asks into buildable cards, and orders them by value and dependency
-  before execution begins.
-- **Rejected ideas stay rejected** — Decision and redesign memory shape later
-  planning, so the agent does not keep pitching a direction the project already
-  ruled out.
-- **The whole planning layer fits in git** — Cards and memory are readable,
-  diffable files beside the code, with no board service to operate and plain
-  Apache-2.0 terms.
-
-### Multica
-
-- **A serious execution control plane** — Run replay, retries, review gates, PR
-  and CI linkage, token metering, webhooks, attachments, and multiple
-  operational views are already shipped.
-- **Built for multiplayer work** — Workspaces, roles, squads, threaded
-  discussion, notifications, permissions, and persistent agent identities
-  support a real human-and-agent organization.
-- **Far broader runtime support** — Multica supports roughly twenty agent CLIs
-  through local daemons and cloud runtimes. AI4Kanban wires up Claude Code,
-  Codex, Cursor, OpenCode, DeepSeek Harness, ZCode, and Grok Build today.
-
-## 07 · The call — Which should you use?
-
-**Choose AI4Kanban when**
-
-- Your bottleneck is deciding and refining the right work, not dispatching it.
-- You want an agent to propose tasks from code and project memory.
-- You want rejection reasons and design decisions to shape future planning.
-- You prefer a small, repository-native system with no board infrastructure.
-- Plain Apache-2.0 terms matter for what you are building.
-
-**Choose Multica when**
-
-- The tasks already exist and your bottleneck is running them reliably.
-- Multiple people and named agents need one shared operational workspace.
-- You need retries, replay, cost metering, PR and CI linkage, or review gates.
-- You want broad agent-runtime support, squads, chat, webhooks, and mobile
-  access.
-- You are comfortable operating or buying a server-backed platform.
+- Need multi-user workspaces, permissions and notifications for a whole team
+  working on shared issues.
+- Need execution management such as queues, retries, replay, cost tracking, and
+  PR and CI links.
+- Want to configure Autopilot's runbook, assignee and triggers to start
+  recurring work on a schedule or from external events.
 
 ### Bottom line
 
-Choose AI4Kanban to **decide and develop the work before it is ready**. Choose
-Multica to **assign and operate the work after it is ready**. If you need both,
-the clean seam is simple: let AI4Kanban produce the approved card, then create
-the Multica issue for execution.
-
-The two can complement each other, but do not keep two live sources of truth for
-the same task state. Pick a clear handoff point.
+Choose AI4Kanban to **start with specialist agents, approve key drafts before
+execution, and keep your decisions remembered**. Choose Multica only if you
+**specifically need its multi-user workspace or execution management**.
 
 ---
 
 Install AI4Kanban · https://github.com/ai4kanban/ai4kanban
-
-Research checked 2026-08-07 against Multica's repository, product site, docs,
-changelog, `VISION.md`, shipped prompts, and migration history.

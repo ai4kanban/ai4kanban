@@ -2,243 +2,194 @@ import type { VsMulticaCopy } from "./types";
 
 const fr: VsMulticaCopy = {
   meta: {
-    title:
-      "AI4Kanban vs. Multica : gestion de projet par l’IA ou plateforme multi-agents",
+    title: "AI4Kanban vs. Multica : faire avancer vos projets avec des agents IA",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "AI4Kanban offre une gestion de projet par l’IA prête à l’emploi. Multica est une plateforme généraliste pour créer et piloter des équipes d’agents.",
+      "Comparez AI4Kanban et Multica : les problèmes que chacun résout, le travail de configuration et de relecture qu’ils vous évitent, et leurs façons différentes de travailler avec des agents IA.",
     social:
-      "Les deux permettent à des agents d’exécuter des tâches, mais répondent à des besoins distincts : l’un gère le projet, l’autre fournit la plateforme de l’équipe d’agents.",
+      "Les deux permettent de créer et d’organiser plusieurs équipes d’agents IA qui travaillent en parallèle. AI4Kanban fournit des agents, des workflows et une gestion de la mémoire prêts à l’emploi, et réduit l’effort de conception d’équipe et de réglage des prompts.",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs.\nMultica",
-    lead: "Les deux produits permettent à des agents d’exécuter des tâches. **AI4Kanban offre une gestion de projet par l’IA prête à l’emploi ; Multica est une plateforme multi-agents généraliste.**",
-    ours: {
-      name: "AI4Kanban",
-      body: "Les personnes fixent le cap, apportent les idées et tranchent les décisions clés. Les agents identifient les tâches, clarifient les besoins, établissent les priorités, exécutent le travail et versent les enseignements dans la mémoire du projet.",
-    },
-    theirs: {
-      name: "Multica",
-      body: "Vous créez plusieurs agents et configurez leurs responsabilités, leurs Skills et leur environnement d’exécution. Vous gérez ensuite au même endroit la répartition, l’exécution, les relances, la revue et la collaboration.",
-    },
-    oursDiagramAlt:
-      "Vous dites ce que vous voulez et le tableau planifie et exécute le travail lui-même : aucun agent à créer, nommer ou répartir.",
-    theirsDiagramAlt:
-      "Multica fournit la plateforme, pas l’équipe : chaque agent, c’est vous qui le créez, et chaque exécution vous revient pour être répartie, surveillée et relancée.",
-    oursDiagramTop: "vous dites ce que vous voulez",
-    oursDiagramBottom:
-      "le tableau planifie et exécute — aucun agent à configurer",
-    theirsDiagramTop: "chaque agent, c’est vous qui le créez",
-    theirsDiagramBottom:
-      "ensuite vous répartissez, surveillez et relancez",
-  },
-  boundary: {
-    heading: {
-      eyebrow: "Positionnement",
-      title: "Deux produits, deux besoins",
-    },
-    lead: "AI4Kanban aide les personnes et l’IA à gérer un projet ensemble. Multica aide les équipes à créer, organiser et exécuter plusieurs agents.",
-    stages: {
-      discover: "Fixer le cap",
-      refine: "Clarifier avec l’IA",
-      prioritize: "Avancer ensemble",
-      assign: "Créer les agents",
-      run: "Configurer l’équipe",
-      review: "Piloter les tâches",
-    },
-    oursLabel: "AI4Kanban",
-    theirsLabel: "Multica",
-    oursJob: "Gère le projet",
-    theirsJob: "Pilote les agents",
-  },
-  backlog: {
-    heading: {
-      eyebrow: "Prêt à l’emploi",
-      title: "Que contient chaque produit ?",
-    },
-    lead: "Les deux sont complets dès le premier jour, mais pas sur le même terrain. AI4Kanban livre la gestion de projet ; Multica livre la mécanique qui fait tourner les agents.",
-    ours: {
-      label: "AI4Kanban",
-      title: "La gestion de projet, prête à tourner",
-      items: [
-        "Une méthode de travail commune aux personnes et à l’IA",
-        "Un tableau couvrant tout le cycle d’une carte",
-        "Une mémoire du projet conservée dans le dépôt",
+    lead: "AI4Kanban est livré avec des agents spécialisés et des workflows prêts à l’emploi : confiez votre premier travail en 10 minutes. Les agents travaillent en parallèle, les brouillons vous laissent maîtriser la qualité de chaque livraison, et ils continuent d’apprendre à l’usage.",
+    sharedLabel: "Les deux proposent",
+    setup: {
+      heading: "Commencer sans concevoir l’équipe au préalable",
+      verdict:
+        "Les agents spécialisés sont prêts : vous confiez du travail dès le premier jour.",
+      ours: "Les agents spécialisés et workflows intégrés couvrent le développement logiciel, les blogs, les carrousels pour réseaux sociaux, les présentations et les vidéos produit.",
+      theirs:
+        "Hormis le coordinateur Mika, vous créez et configurez vous-même chaque agent spécialisé",
+      art: {
+        ours: ["Design UI", "Prompts", "Rédaction"],
+        theirs: {
+          title: "Nouvel agent",
+          fields: ["Nom", "Instructions", "Skills"],
+          slot: "À créer vous-même",
+        },
+      },
+      shared: [
+        {
+          title: "Agents personnalisés",
+          body: [
+            "AI4Kanban vous laisse modifier les rôles intégrés ou ajouter vos propres agents.",
+            "L’Agent Builder de Multica aide à créer des rôles, puis à configurer leurs Instructions et Skills.",
+          ],
+        },
+        {
+          title: "Agents en parallèle",
+          body: [
+            "AI4Kanban fait avancer plusieurs cartes à la fois avec des outils comme Claude Code ou Codex.",
+            "Multica exécute des agents en parallèle, avec files d’attente, relances et suivi des coûts.",
+          ],
+        },
       ],
     },
-    theirs: {
-      label: "Multica",
-      title: "L’infrastructure d’agents, prête à tourner",
-      items: [
-        "Identités d’agent, Instructions et Skills",
-        "Squads, chat et files de tâches",
-        "Automatisation, relances et historique d’exécution",
+    drafts: {
+      heading:
+        "Peur que l’IA prenne trop de libertés ? Relisez un brouillon avant d’approuver l’exécution",
+      verdict: "Corrigez la direction avant l’exécution, pas après.",
+      ours: "Pour toute partie dont vous voulez garder la direction, le système de brouillons prépare un aperçu à approuver avant l’exécution et la livraison. AI4Kanban prend en charge les brouillons image, schéma, HTML/TSX, diff et storyboard.",
+      theirs: "Le processus de relecture des brouillons est à construire vous-même",
+      art: {
+        ours: ["Brouillon", "Approuver", "Exécuter"],
+        theirs: {
+          title: "Approbation des brouillons",
+          fields: ["Qui le prépare", "Quand attendre", "Comment le transmettre"],
+          slot: "À construire vous-même",
+        },
+      },
+      shared: [
+        {
+          title: "Aperçus",
+          body: [
+            "AI4Kanban affiche sur la carte les brouillons image, schéma, HTML/TSX, diff et storyboard.",
+            "Multica prévisualise le HTML, recueille des annotations et compare les versions.",
+          ],
+        },
+        {
+          title: "Discussion de la tâche",
+          body: [
+            "AI4Kanban discute et révise le plan dans le chat de la carte.",
+            "Multica discute du travail avec les agents dans les commentaires de l’issue.",
+          ],
+        },
+      ],
+    },
+    memory: {
+      heading: "Faudra-t-il tout réexpliquer ?",
+      verdict:
+        "Préférences et décisions sont retenues par tâche : inutile de les répéter.",
+      ours: "Chaque agent a une recette de mémoire conçue pour son propre métier : il apprend vos préférences et décisions pour ce type de tâche, pas des leçons génériques. Les agents peuvent aussi partager leur mémoire.",
+      theirs:
+        "La mémoire à long terme dépend de l’outil d’agent, à vérifier et configurer vous-même",
+      art: {
+        ours: {
+          agents: ["Design UI", "Rédaction"],
+          notes: ["Préférences de design", "Choix de formulation"],
+          shared: "Partagée · projet",
+        },
+        theirs: {
+          title: "Mémoire à long terme",
+          fields: ["Quel outil", "Où elle est gardée", "Quand la relire"],
+          slot: "À configurer vous-même",
+        },
+      },
+      shared: [
+        {
+          title: "Méthodes enregistrées",
+          body: [
+            "AI4Kanban donne à chaque agent des règles de rôle modifiables.",
+            "Multica conserve les méthodes dans les Instructions et les Skills.",
+          ],
+        },
+        {
+          title: "Historique des tâches",
+          body: [
+            "AI4Kanban garde le plan, le chat et le journal d’exécution sur chaque carte.",
+            "Multica garde les commentaires et l’historique des exécutions.",
+          ],
+        },
       ],
     },
   },
   comparison: {
-    heading: {
-      eyebrow: "Différences clés",
-      title: "Ce qui compte vraiment",
-    },
-    lead: "Un {check} indique la solution la plus adaptée au besoin ; un **tiret** signale un compromis.",
+    heading: { eyebrow: "Différences clés", title: "Comparer en détail" },
+    lead: "Un {check} indique le côté le plus fort sur chaque ligne.",
     ourLabel: "AI4Kanban",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
-        dimension: "Positionnement",
+        dimension: "Agents et workflows intégrés",
         kanban:
-          "Un workflow complet de gestion de projet pour les personnes et l’IA, prêt à l’emploi.",
+          "Agents spécialisés et workflows intégrés, avec des rôles que vous pouvez modifier ou ajouter.",
+        kanbanTip:
+          "Le développement logiciel est gratuit ; les workflows blog, carrousel, présentation et vidéo produit nécessitent Pro.",
         multica:
-          "Un espace de travail généraliste pour équipes multi-agents ; l’utilisateur définit les rôles et les workflows.",
-      },
-      backlog: {
-        dimension: "Gestion proactive",
-        kanban:
-          "Les agents lisent le projet et sa mémoire, puis proposent, précisent et priorisent les tâches.",
-        multica:
-          "Possible avec des agents, Skills et Autopilots, mais à configurer soi-même.",
+          "Mika est inclus. Vous créez les agents spécialisés vous-même ou avec Agent Builder, puis leur donnez des Instructions et des Skills.",
       },
       refinement: {
-        dimension: "Clarification des besoins",
+        dimension: "Relire les brouillons avant exécution",
         kanban:
-          "Complète le contexte depuis le code et l’historique, puis ne soumet aux personnes que les arbitrages produit.",
+          "Pour toute partie dont vous voulez garder la direction, le système de brouillons prépare un aperçu à approuver avant l’exécution et la livraison. AI4Kanban prend en charge les brouillons image, schéma, HTML/TSX, diff et storyboard.",
         multica:
-          "Aucun workflow de clarification prêt à l’emploi ; il faut le définir dans les instructions de l’agent ou une Skill.",
+          "Aperçu HTML, annotations et comparaison de versions. Vous définissez quel agent prépare chaque brouillon et quand une approbation est requise avant l’exécution.",
       },
       memory: {
-        dimension: "Mémoire à long terme",
+        dimension: "Retenir modifications et décisions",
         kanban:
-          "Les décisions, motifs de rejet et enseignements de refonte alimentent directement les plans suivants.",
+          "Chaque agent a une recette de mémoire conçue pour son propre métier : il apprend vos préférences et décisions pour ce type de tâche, pas des leçons génériques. Les agents peuvent aussi partager leur mémoire.",
         multica:
-          "Les Skills conservent les méthodes ; les commentaires et l’historique gardent la trace de l’exécution.",
+          "La mémoire à long terme dépend de l’outil d’agent. Les agents qui utilisent Hermes gardent chacun une mémoire entre les tâches dans l’environnement local ; elle ne se synchronise pas automatiquement entre machines. Les instructions et l’historique des tâches sont aussi conservés.",
       },
-      execution: {
-        dimension: "Gestion de l’exécution",
+      backlog: {
+        dimension: "Après la livraison",
         kanban:
-          "Peut lancer Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode ou Grok Build sur une carte et suivre tout son cycle, de la proposition à l’archivage.",
+          "Quand vous terminez un travail principal, les agents proposent d’eux-mêmes des suites pour combler les manques et les oublis.",
         multica:
-          "Exécute plusieurs agents en parallèle avec files, relances, replay, mesure des coûts, contrôles de revue et liens PR et CI.",
-      },
-      teams: {
-        dimension: "Collaboration",
-        kanban:
-          "Local-first, adapté aux développeurs individuels et aux petites équipes qui collaborent avec git.",
-        multica:
-          "Espaces multiutilisateurs, rôles, Squads, commentaires, droits et notifications.",
-      },
-      storage: {
-        dimension: "Déploiement et stockage",
-        kanban:
-          "Cartes et mémoire vivent dans le dépôt ; aucune base de données, aucun compte ni serveur de tableau.",
-        multica:
-          "Utilise PostgreSQL, un serveur et un daemon local ; disponible en version hébergée ou autogérée.",
+          "Pour obtenir des propositions de suite, demandez-les dans les instructions de la tâche. Autopilot s’exécute seul une fois son runbook, son responsable et ses déclencheurs planifiés ou webhook configurés.",
       },
       license: {
         dimension: "Licence",
         kanban:
           "Apache-2.0, y compris pour l’usage commercial, l’hébergement et l’intégration.",
         multica:
-          "Code source consultable ; la Multica License limite les services hébergés et l’intégration commerciale.",
+          "Code source consultable ; la Multica License limite les services hébergés et l’intégration commerciale.",
       },
-    },
-  },
-  memory: {
-    heading: {
-      eyebrow: "Mémoire à long terme",
-      title: "Deux mémoires, deux usages",
-    },
-    lead: "Les deux gardent des notes d’une exécution à l’autre. Pas les mêmes notes.",
-    ours: {
-      eyebrow: "Jugement du projet",
-      title: "Pourquoi une décision a été prise",
-      examples: ["decisions.md", "rejected.md", "redesign.md"],
-      question: "Pourquoi le tableau ne propose-t-il plus l’idée X ?",
-      answer:
-        "`rejected.md` conserve le motif du rejet. Sans nouvel élément, l’idée ne revient pas.",
-    },
-    theirs: {
-      eyebrow: "Méthode de travail",
-      title: "Comment un agent doit travailler",
-      examples: ["Instructions", "SKILL.md", "historique d’exécution"],
-      question: "Comment cet agent doit-il mener une revue de sécurité ?",
-      answer:
-        "Associez une Skill contenant les étapes, les fichiers et les exigences de la revue.",
-    },
-    note: "",
-  },
-  horizon: {
-    heading: {
-      eyebrow: "À construire",
-      title: "Que faut-il ajouter dans Multica ?",
-    },
-    lead: "Vous pouvez créer un agent chef de projet sur Multica. Le créer est la partie rapide ; restent ces quatre questions, à trancher puis à retrancher à chaque évolution du projet.",
-    visionLabel: "À vous de construire",
-    visionTitle: "Le comportement de gestion de projet",
-    items: [
-      "Comment il comprend l’objectif du projet",
-      "Comment il repère le travail qui en vaut la peine",
-      "Comment il clarifie un besoin flou",
-      "Ce qu’il retient d’une exécution à l’autre",
-    ],
-    note: "",
-  },
-  wins: {
-    heading: {
-      eyebrow: "Points forts",
-      title: "Choisissez selon votre besoin",
-    },
-    lead: "AI4Kanban offre une solution ciblée, complète et prête à l’emploi. Multica est une plateforme généraliste et flexible pour piloter plusieurs agents.",
-    oursHeading: "AI4Kanban",
-    theirsHeading: "Multica",
-    ours: {
-      upstream: {
-        title: "Gestion de projet prête à l’emploi",
-        body: "Inutile de concevoir d’abord un agent chef de projet. Dès l’installation, personnes et agents peuvent planifier, clarifier et exécuter selon une même méthode.",
-      },
-      rejectionMemory: {
-        title: "Les idées rejetées ne reviennent pas",
-        body: "Les décisions passées façonnent les plans suivants et évitent de répéter les mêmes discussions.",
-      },
-      repoNative: {
-        title: "Tout vit dans git",
-        body: "Cartes et mémoire sont lisibles et comparables, sans service de tableau supplémentaire à exploiter.",
-      },
-    },
-    theirs: {
-      operations: {
-        title: "Contrôle complet de l’exécution",
-        body: "Files, relances, replay, revues, mesure des coûts et liens PR et CI sont intégrés.",
+      execution: {
+        dimension: "Gestion de l’exécution",
+        kanban:
+          "Exécutez les cartes avec Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode ou Grok Build, plusieurs cartes à la fois.",
+        multica:
+          "Exécute plusieurs agents en parallèle, avec files d’attente, relances, rejeu, suivi des coûts, étapes de revue et liens PR et CI.",
       },
       teams: {
-        title: "Conçu pour les personnes et plusieurs agents",
-        body: "Espaces, rôles, Squads, commentaires, droits et notifications sont réunis dans une seule plateforme.",
-      },
-      runtimeReach: {
-        title: "Compatibilité plus large",
-        body: "Un daemon local relie de nombreuses CLI d’agents. AI4Kanban prend aujourd’hui en charge Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode et Grok Build.",
+        dimension: "Travail en équipe",
+        kanban:
+          "Pour les personnes et petites équipes qui organisent leurs tâches dans un dépôt, avec agents et workflows personnalisables.",
+        multica:
+          "Espaces de travail multi-utilisateurs, rôles, Squads, commentaires, permissions et notifications.",
       },
     },
   },
   decision: {
-    heading: { eyebrow: "Recommandation", title: "Lequel choisir ?" },
+    heading: { eyebrow: "Recommandation", title: "Lequel choisir ?" },
     oursHeading: "Choisissez AI4Kanban si",
     theirsHeading: "Choisissez Multica si",
     ours: [
-      "Vous voulez une méthode prête à l’emploi pour gérer un projet avec des personnes et l’IA.",
-      "Vous avez besoin d’agents pour la planification, la clarification et l’exécution.",
-      "Vous voulez que décisions et rejets influencent les plans suivants.",
-      "Vous préférez un système léger, natif du dépôt et sans service supplémentaire.",
+      "Vous voulez des agents spécialisés et des workflows intégrés sans tout configurer de zéro ; certains workflows nécessitent Pro.",
+      "Vous voulez relire les brouillons clés avant l’exécution.",
+      "Vous voulez que les agents retiennent les modifications et décisions utiles, même en changeant d’outil.",
+      "Vous voulez la planification et les propositions de suite incluses, avec la liberté d’adapter le workflow.",
     ],
     theirs: [
-      "Vous devez créer et piloter plusieurs agents aux rôles distincts.",
-      "Personnes et agents doivent partager espace, issues et historique d’exécution.",
-      "Vous avez besoin de relances, replay, coûts ou intégrations PR et CI.",
-      "Vous pouvez définir votre propre agent de gestion, ses Skills et ses workflows.",
+      "Vous avez besoin d’espaces multi-utilisateurs, de permissions et de notifications pour toute une équipe travaillant sur des issues partagées.",
+      "Vous avez besoin de gestion de l’exécution : files d’attente, relances, rejeu, suivi des coûts, liens PR et CI.",
+      "Vous voulez configurer le runbook, le responsable et les déclencheurs d’Autopilot pour lancer un travail récurrent selon un calendrier ou des événements externes.",
     ],
     verdict:
-      "Choisissez AI4Kanban pour une **gestion de projet par l’IA prête à l’emploi**. Choisissez Multica pour une **plateforme généraliste où créer et piloter une équipe multi-agents**. Les deux permettent à des agents d’exécuter des tâches : l’un gère le projet, l’autre pilote plusieurs agents.",
+      "Choisissez AI4Kanban pour **démarrer avec des agents spécialisés, approuver les brouillons clés avant l’exécution et faire retenir vos décisions**. Choisissez Multica seulement si vous **avez précisément besoin de son espace multi-utilisateurs ou de sa gestion de l’exécution**.",
     note: "",
   },
 };

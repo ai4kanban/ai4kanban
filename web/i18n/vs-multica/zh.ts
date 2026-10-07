@@ -2,203 +2,185 @@ import type { VsMulticaCopy } from "./types";
 
 const zh: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica：AI 项目管理，还是多智能体平台",
+    title: "AI4Kanban vs. Multica：如何用 AI 智能体推进项目？",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "AI4Kanban 是开箱即用的 AI 项目管理方案；Multica 是用于搭建和运营多个智能体的通用工作平台。",
+      "了解 AI4Kanban 与 Multica 分别替你解决了什么问题，省去哪些工作，以及两者的方案有什么不同。",
     social:
-      "两者都能让智能体执行任务，但服务的场景不同：一个管项目，一个搭建智能体团队。",
+      "两者都能创建并组织多组 AI 智能体并行工作。AI4Kanban 提供开箱即用的智能体、工作流和记忆管理方案，减少团队架构设计、Prompt 调优等配置工作。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs.\nMultica",
-    lead: "两者都能让智能体执行任务。**AI4Kanban 是一套开箱即用的 AI 项目管理方案；Multica 是一个通用的多智能体工作平台。**",
-    ours: {
-      name: "AI4Kanban",
-      body: "人提供方向、想法和关键判断；智能体负责发现任务、澄清需求、安排优先级、执行工作，并把项目经验写回记忆。",
-    },
-    theirs: {
-      name: "Multica",
-      body: "你创建多个智能体，为它们配置职责、Skills 和运行环境，再统一管理分工、执行、重试、评审和团队协作。",
-    },
-    oursDiagramAlt: "你说想做什么，看板自己规划并推进；没有需要你创建、命名或调度的智能体。",
-    theirsDiagramAlt:
-      "Multica 给的是平台不是团队：每个智能体都要你自己创建，跑完之后的分派、监控和重试也都回到你手上。",
-    oursDiagramTop: "你说想要做什么",
-    oursDiagramBottom: "看板自己规划、自己推进 — 不用配置智能体",
-    theirsDiagramTop: "每个智能体都要你自己创建",
-    theirsDiagramBottom: "之后的分派、盯进度、重试也都归你",
-  },
-  boundary: {
-    heading: { eyebrow: "定位", title: "两种产品，解决两种问题" },
-    lead: "AI4Kanban 帮助人和 AI 一起管理项目。Multica 帮助团队创建、组织和运行多个智能体。",
-    stages: {
-      discover: "人给方向",
-      refine: "智能体澄清",
-      prioritize: "共同推进",
-      assign: "创建智能体",
-      run: "配置团队",
-      review: "运营任务",
-    },
-    oursLabel: "AI4Kanban",
-    theirsLabel: "Multica",
-    oursJob: "把项目管起来",
-    theirsJob: "把智能体跑起来",
-  },
-  backlog: {
-    heading: { eyebrow: "默认能力", title: "两边各自带了什么？" },
-    lead: "两者装好都能直接用，但完整的东西不一样：AI4Kanban 自带项目管理，Multica 自带运行智能体的一整套设施。",
-    ours: {
-      label: "AI4Kanban",
-      title: "项目管理，装好就能跑",
-      items: [
-        "一套人和 AI 共用的工作方式",
-        "一块管完卡片全生命周期的看板",
-        "存在仓库里的项目记忆",
+    lead: "AI4Kanban 内置专业智能体和工作流，开箱即用，10 分钟即可交付你的第一项工作；多智能体并行，通过草稿系统精准把控交付质量，持续学习进化。",
+    sharedLabel: "两者都支持",
+    setup: {
+      heading: "开箱即用，少做团队配置",
+      verdict: "专业角色和流程已配好，第一天就能交任务。",
+      ours: "内置多种专业智能体和配套工作流，覆盖软件开发、博客、社交轮播、演示文稿和产品视频。",
+      theirs: "除协调智能体 Mika 外，每个专业智能体都要你自己创建",
+      art: {
+        ours: ["UI 设计", "Prompt", "文案"],
+        theirs: {
+          title: "新建智能体",
+          fields: ["名称", "Instructions", "Skills"],
+          slot: "由你创建",
+        },
+      },
+      shared: [
+        {
+          title: "自定义智能体",
+          body: [
+            "AI4Kanban 可以修改内置角色，也可以添加自己的智能体。",
+            "Multica 的 Agent Builder 协助创建角色，再为其配置 Instructions 和 Skills。",
+          ],
+        },
+        {
+          title: "多智能体并行",
+          body: [
+            "AI4Kanban 同时推进多张卡片，可选 Claude Code、Codex 等编码工具执行。",
+            "Multica 并行运行多个智能体，并提供排队、重试和成本统计。",
+          ],
+        },
       ],
     },
-    theirs: {
-      label: "Multica",
-      title: "智能体设施，装好就能跑",
-      items: [
-        "智能体身份、Instructions 和 Skills",
-        "Squad、聊天和任务队列",
-        "自动化、重试和运行历史",
+    drafts: {
+      heading: "担心 AI 自由发挥？先看草稿，再批准执行",
+      verdict: "方向在执行前确认，不必跑完再返工。",
+      ours: "所有你担心 AI 过度自由发挥的部分，都可以先让草稿系统提供预览，审批后再执行交付。AI4Kanban 支持图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
+      theirs: "先审草稿的流程要你自己搭建",
+      art: {
+        ours: ["草稿", "确认", "执行任务"],
+        theirs: {
+          title: "草稿审批流程",
+          fields: ["谁准备草稿", "何时等待确认", "怎样交给下一步"],
+          slot: "由你搭建",
+        },
+      },
+      shared: [
+        {
+          title: "预览成果",
+          body: [
+            "AI4Kanban 在卡片中展示图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
+            "Multica 可以预览 HTML、添加批注和比较版本。",
+          ],
+        },
+        {
+          title: "任务讨论",
+          body: [
+            "AI4Kanban 在卡片对话里讨论并修改计划。",
+            "Multica 在 issue 评论里与智能体讨论。",
+          ],
+        },
+      ],
+    },
+    memory: {
+      heading: "下次还要再解释一遍吗？",
+      verdict: "偏好和决定按任务记住，不必每次重讲。",
+      ours: "每个智能体都有针对自身场景单独设计的记忆配方，学习你对特定任务的偏好和决策，而非通用经验。多智能体之间也能共享记忆。",
+      theirs: "长期记忆取决于所用的 Agent 工具，要你自己检查和设置",
+      art: {
+        ours: {
+          agents: ["UI 设计", "文案"],
+          notes: ["设计偏好", "用词决定"],
+          shared: "共享 · 项目背景",
+        },
+        theirs: {
+          title: "长期记忆",
+          fields: ["用哪个工具", "记在哪里", "何时再读"],
+          slot: "由你设置",
+        },
+      },
+      shared: [
+        {
+          title: "保存做事方法",
+          body: [
+            "AI4Kanban 的每个智能体都有可编辑的角色规则。",
+            "Multica 用 Instructions 和 Skills 保存做事方法。",
+          ],
+        },
+        {
+          title: "保留任务历史",
+          body: [
+            "AI4Kanban 的卡片保留计划、对话和运行记录。",
+            "Multica 保留评论和运行历史。",
+          ],
+        },
       ],
     },
   },
   comparison: {
-    heading: { eyebrow: "关键对比", title: "先看这五项" },
-    lead: "{check} 表示更适合该场景；**短横线**表示各有取舍。",
+    heading: { eyebrow: "关键对比", title: "逐项比较" },
+    lead: "{check} 标出每一项更强的一方。",
     ourLabel: "AI4Kanban",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
-        dimension: "产品定位",
-        kanban: "面向人和 AI 协作的项目管理方案，自带完整工作流程。",
-        multica: "面向多智能体团队的通用工作平台，角色和流程由用户定义。",
-      },
-      backlog: {
-        dimension: "主动管理项目",
-        kanban: "智能体会读取项目和记忆，主动提出、完善和安排任务。",
-        multica: "可以通过 Agent、Skill 和 Autopilot 实现，但需要自行配置。",
+        dimension: "内置智能体与工作流",
+        kanban: "内置多种专业智能体及配套工作流，可修改或添加自己的角色。",
+        kanbanTip:
+          "软件开发工作流免费；博客、社交轮播、演示文稿和产品视频工作流需 Pro。",
+        multica:
+          "已有协调智能体 Mika；你自己或通过 Agent Builder 创建专业角色，再配置 Instructions 和 Skills。",
       },
       refinement: {
-        dimension: "需求澄清",
-        kanban: "结合代码和项目记录补齐背景，只把需要取舍的问题交给人。",
-        multica: "没有现成的项目澄清流程，需要写进 Agent Instructions 或 Skill。",
+        dimension: "执行前审阅草稿",
+        kanban:
+          "所有你担心 AI 过度自由发挥的部分，都可以先让草稿系统提供预览，审批后再执行交付。AI4Kanban 支持图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
+        multica:
+          "可以预览 HTML、批注成果和比较版本；由你指定谁准备草稿，以及何时必须确认才能开始执行。",
       },
       memory: {
-        dimension: "长期记忆",
-        kanban: "保存项目决策、否决原因和改版经验，供下次规划直接使用。",
-        multica: "Skills 保存做事方法，评论和运行历史保存执行过程。",
+        dimension: "记住修改和决定",
+        kanban:
+          "每个智能体都有针对自身场景单独设计的记忆配方，它们学习用户对特定任务的偏好、决策，而非通用经验。多智能体之间也能共享记忆。",
+        multica:
+          "长期记忆取决于所用的 Agent 工具。使用 Hermes 的智能体各自在本机保留跨任务记忆；这份记忆不会自动跨机器同步。指令和任务历史也会保存。",
       },
-      execution: {
-        dimension: "执行管理",
-        kanban: "可以启动 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 或 Grok Build 执行卡片，并管理任务从提出到归档的完整状态。",
-        multica: "可以并行运行多个智能体，并提供排队、重试、重放、成本统计、评审门禁，以及 PR 和 CI 关联。",
-      },
-      teams: {
-        dimension: "团队协作",
-        kanban: "本地优先，适合个人开发者和通过 git 协作的小团队。",
-        multica: "提供多人工作区、角色、Squad、评论、权限和通知。",
-      },
-      storage: {
-        dimension: "部署与存储",
-        kanban: "卡片和记忆都在仓库内，无需数据库、账户或看板服务器。",
-        multica: "使用 PostgreSQL、服务端和本地守护进程，可选择托管或自行部署。",
+      backlog: {
+        dimension: "交付之后",
+        kanban:
+          "在你完成一项主线工作后，智能体自主提出跟进项，帮你补缺补漏。",
+        multica:
+          "要让智能体提出跟进项，需在任务指令中要求；Autopilot 需先配置任务指令、执行者及定时或 webhook 触发器，再自动运行。",
       },
       license: {
         dimension: "许可证",
         kanban: "Apache-2.0，允许商业使用、托管和嵌入。",
         multica: "源码可见；托管服务和商业嵌入受 Multica License 限制。",
       },
-    },
-  },
-  memory: {
-    heading: { eyebrow: "长期记忆", title: "两边记住的东西不同" },
-    lead: "两边都会在多次运行之间留下记录，但记的东西不一样。",
-    ours: {
-      eyebrow: "项目判断",
-      title: "为什么这样决定",
-      examples: ["decisions.md", "rejected.md", "redesign.md"],
-      question: "为什么不再提出想法 X？",
-      answer: "`rejected.md` 保存了否决原因；没有新证据时，这个想法不会再次出现。",
-    },
-    theirs: {
-      eyebrow: "工作方法",
-      title: "智能体该怎么做",
-      examples: ["Instructions", "SKILL.md", "运行历史"],
-      question: "智能体应该怎样做安全评审？",
-      answer: "挂载一个包含步骤、文件和要求的 Skill。",
-    },
-    note: "",
-  },
-  horizon: {
-    heading: { eyebrow: "自行搭建", title: "用 Multica 做同类项目管理，还缺什么？" },
-    lead: "用 Multica 也能搭一个项目经理智能体。创建 Agent 是快的那一步；真正要你回答的是下面四个问题，而且项目一变就得重新回答。",
-    visionLabel: "仍需自己搭",
-    visionTitle: "项目管理的做事方式",
-    items: [
-      "怎样理解项目目标",
-      "怎样找出值得做的事",
-      "怎样把含糊的需求问清楚",
-      "两次运行之间记住什么",
-    ],
-    note: "",
-  },
-  wins: {
-    heading: { eyebrow: "各自强项", title: "按你的问题来选" },
-    lead: "AI4Kanban 胜在具体、完整、开箱即用；Multica 胜在通用、灵活，适合运营多个智能体。",
-    oursHeading: "AI4Kanban",
-    theirsHeading: "Multica",
-    ours: {
-      upstream: {
-        title: "项目管理开箱即用",
-        body: "不用先设计项目经理 Agent。安装后，人和智能体就能按同一套方法规划、澄清和执行。",
-      },
-      rejectionMemory: {
-        title: "不会反复提出已否决的方向",
-        body: "过去的决定会影响下一轮规划，减少重复讨论。",
-      },
-      repoNative: {
-        title: "所有内容都在 git 里",
-        body: "卡片和记忆可读、可 diff，不需要额外运行看板服务。",
-      },
-    },
-    theirs: {
-      operations: {
-        title: "完整的执行控制",
-        body: "排队、重试、重放、评审、成本统计，以及 PR 和 CI 关联都已提供。",
+      execution: {
+        dimension: "执行管理",
+        kanban:
+          "可用 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 或 Grok Build 执行卡片，同时推进多张卡片。",
+        multica:
+          "可以并行运行多个智能体，并提供排队、重试、重放、成本统计、评审门禁，以及 PR 和 CI 关联。",
       },
       teams: {
-        title: "适合多人和多个智能体协作",
-        body: "工作区、角色、Squad、评论、权限和通知集中在同一平台。",
-      },
-      runtimeReach: {
-        title: "支持更多智能体运行环境",
-        body: "可通过本地守护进程连接多种智能体 CLI；AI4Kanban 目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 和 Grok Build。",
+        dimension: "团队协作",
+        kanban:
+          "面向在同一个仓库中组织任务的个人和小团队，智能体和工作流均可自定义。",
+        multica: "提供多人工作区、角色、Squad、评论、权限和通知。",
       },
     },
   },
   decision: {
-    heading: { eyebrow: "选择建议", title: "直接怎么选？" },
+    heading: { eyebrow: "选择建议", title: "如何选择？" },
     oursHeading: "选择 AI4Kanban，如果你",
     theirsHeading: "选择 Multica，如果你",
     ours: [
-      "想直接使用一套人和 AI 协作的项目管理方法。",
-      "需要智能体参与规划、澄清和执行整个任务生命周期。",
-      "希望项目决策和否决原因影响后续规划。",
-      "偏好仓库原生、无需额外服务的轻量方案。",
+      "想直接使用多种专业智能体和配套工作流，无需从头配置；部分工作流需 Pro。",
+      "想在执行前审阅关键部分的草稿。",
+      "想让有用的修改和决定被记住，换编码工具后也能继续参考。",
+      "希望已有规划和后续建议，也能自行调整工作流。",
     ],
     theirs: [
-      "需要创建和运营多个职责不同的智能体。",
-      "需要多人、多智能体共享工作区、Issue 和运行记录。",
-      "需要重试、重放、成本统计、PR 或 CI 集成。",
-      "愿意自己定义项目管理 Agent、Skills 和工作流程。",
+      "需要多人工作区、权限和通知，让整个团队在共享 issue 上协作。",
+      "需要排队、重试、重放、成本统计，以及 PR 和 CI 关联等执行管理功能。",
+      "愿意配置 Autopilot 的任务指令、执行者和触发器，让重复工作按定时或外部事件自动启动。",
     ],
     verdict:
-      "想要一套**现成的 AI 项目管理方案**，选 AI4Kanban。想要一个**搭建和运营多智能体团队的通用平台**，选 Multica。两者都支持智能体执行任务，分别适合项目管理和多智能体运营。",
+      "**想让专业智能体直接开工、在执行前确认关键草稿、并记住你的决定**，选 AI4Kanban。只有当你**明确需要 Multica 的多人工作区或执行管理功能**时，再选 Multica。",
     note: "",
   },
 };

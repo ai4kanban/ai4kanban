@@ -30,10 +30,18 @@ const COLUMNS = [
 //
 // `xs` is flat, square and word both: it names the product beside competitors'
 // marks on the comparison pages. `sm`, the header's, keeps the square's shadow
-// but not the word's — at that size the drop read as a double image.
+// but not the word's — at that size the drop read as a double image. `tag` is
+// `xs` with the full double shadow, for the one page that sets AI4Kanban's side
+// above the rival's rather than beside it.
 const SIZE = {
   xs: {
     block: "h-5 w-5 rounded-md",
+    gap: "gap-2",
+    word: "text-sm tracking-tight",
+  },
+  tag: {
+    block:
+      "h-6 w-6 rounded-md shadow-[1.5px_1.5px_0_0_var(--color-accent-deep),3px_3px_0_0_var(--color-ink)]",
     gap: "gap-2",
     word: "text-sm tracking-tight",
   },

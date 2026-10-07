@@ -1,59 +1,55 @@
-import type {
-  Heading,
-  PageMeta,
-  TitleBody,
-  VsDecision,
-  VsHero,
-  VsHeroDiagrams,
-} from "../types";
+import type { Heading, PageMeta, VsDecision } from "../types";
 
 export type VsMulticaRowKey =
   | "startingPoint"
-  | "backlog"
   | "refinement"
   | "memory"
+  | "backlog"
+  | "license"
   | "execution"
-  | "teams"
-  | "storage"
-  | "license";
+  | "teams";
 
-export type VsMulticaKanbanWinKey =
-  | "upstream"
-  | "rejectionMemory"
-  | "repoNative";
+/** A capability both have: one line on how each product does it. */
+export type MulticaSharedItem = {
+  title: string;
+  /** AI4Kanban's line, then Multica's. */
+  body: [string, string];
+};
 
-export type VsMulticaWinKey = "operations" | "teams" | "runtimeReach";
+/** Multica's side of a topic: a blank form, and what filling it in makes. */
+export type MulticaForm = {
+  title: string;
+  fields: [string, string, string];
+  slot: string;
+};
 
-export type VsMulticaStageKey =
-  | "discover"
-  | "refine"
-  | "prioritize"
-  | "assign"
-  | "run"
-  | "review";
+/** One hero topic: where AI4Kanban wins, what that saves you, and what both share. */
+export type MulticaTopic<Art> = {
+  heading: string;
+  verdict: string;
+  ours: string;
+  theirs: string;
+  art: { ours: Art; theirs: MulticaForm };
+  shared: [MulticaSharedItem, MulticaSharedItem];
+};
 
 export type VsMulticaCopy = {
   meta: PageMeta;
-  hero: VsHero & VsHeroDiagrams;
-  boundary: {
-    heading: Heading;
+  hero: {
+    badge: string;
+    /** `\n` marks the line break in the H1. */
+    title: string;
     lead: string;
-    stages: Record<VsMulticaStageKey, string>;
-    oursLabel: string;
-    theirsLabel: string;
-    // The one line each product's three stages add up to. It is the only thing
-    // in the diagram set large, because it is the only thing a reader who
-    // glances at this section needs to leave with.
-    oursJob: string;
-    theirsJob: string;
-  };
-  backlog: {
-    heading: Heading;
-    lead: string;
-    // What is in each box on day one. Not the steps — those are the section
-    // above, and listing them twice is what made this one read as filler.
-    ours: { label: string; title: string; items: [string, string, string] };
-    theirs: { label: string; title: string; items: [string, string, string] };
+    sharedLabel: string;
+    /** Agent names under the three built-in specialists. */
+    setup: MulticaTopic<[string, string, string]>;
+    /** Draft, approve, run. */
+    drafts: MulticaTopic<[string, string, string]>;
+    memory: MulticaTopic<{
+      agents: [string, string];
+      notes: [string, string];
+      shared: string;
+    }>;
   };
   comparison: {
     heading: Heading;
@@ -62,47 +58,8 @@ export type VsMulticaCopy = {
     theirLabel: string;
     rows: Record<
       VsMulticaRowKey,
-      { dimension: string; kanban: string; multica: string }
+      { dimension: string; kanban: string; multica: string; kanbanTip?: string }
     >;
-  };
-  memory: {
-    heading: Heading;
-    lead: string;
-    // `title` is the whole point of the card — one side keeps the why, the
-    // other the how — so it is short enough to set large and read at a glance.
-    ours: {
-      eyebrow: string;
-      title: string;
-      examples: [string, string, string];
-      question: string;
-      answer: string;
-    };
-    theirs: {
-      eyebrow: string;
-      title: string;
-      examples: [string, string, string];
-      question: string;
-      answer: string;
-    };
-    note: string;
-  };
-  // Only the gap. What Multica already provides is the section above; this one
-  // would repeat it if it named it again.
-  horizon: {
-    heading: Heading;
-    lead: string;
-    visionLabel: string;
-    visionTitle: string;
-    items: [string, string, string, string];
-    note: string;
-  };
-  wins: {
-    heading: Heading;
-    lead: string;
-    oursHeading: string;
-    theirsHeading: string;
-    ours: Record<VsMulticaKanbanWinKey, TitleBody>;
-    theirs: Record<VsMulticaWinKey, TitleBody>;
   };
   decision: VsDecision;
 };
