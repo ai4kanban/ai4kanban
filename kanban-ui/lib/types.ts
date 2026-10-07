@@ -29,6 +29,7 @@ export type {
   AgentInfo,
   AgentRequest,
   AgentView,
+  GlobalMemoryView,
   Chat,
   ChatMessage,
   ChatPick,

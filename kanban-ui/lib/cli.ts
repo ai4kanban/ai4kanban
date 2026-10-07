@@ -16,6 +16,7 @@ import type {
   AgentInfo,
   AgentRequest,
   AgentView,
+  GlobalMemoryView,
   CommandRequest,
   ChatReply,
   ChatTarget,
@@ -287,6 +288,12 @@ export interface BoardRules {
   createAgent?(name: string, stage?: AgentSlot): Promise<WriteResult & { agent?: string }>;
   saveAgentFile?(name: string, text: string): Promise<WriteResult>;
   deleteAgent?(name: string): Promise<WriteResult & { removed?: string[] }>;
+
+  // global memories (#1575). Optional together, like the four above.
+  readGlobalMemories?(): Promise<GlobalMemoryView[]>;
+  createGlobalMemory?(name: string, description: string, rules: string): Promise<WriteResult>;
+  saveGlobalMemory?(name: string, description: string, rules: string): Promise<WriteResult>;
+  deleteGlobalMemory?(name: string): Promise<WriteResult>;
 
   // the workflows a card runs through (#715). Optional: a project on older rules has no
   // workflows at all, and the pane says so rather than drawing an empty list.

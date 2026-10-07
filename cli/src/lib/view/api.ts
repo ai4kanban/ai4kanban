@@ -222,6 +222,22 @@ export async function deleteAgent(name: string, opts?: WriteOptions): Promise<Wr
   return flat<{ removed: string[] }>(await envelopeFor({ board: true }, opts, (env) => board().deleteAgent(name, env)))
 }
 
+// ---- global memories (#1575) ------------------------------------------------
+
+export const readGlobalMemories = () => board().readGlobalMemories()
+
+export async function createGlobalMemory(name: string, description: string, rules: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().createGlobalMemory(name, description, rules, env)))
+}
+
+export async function saveGlobalMemory(name: string, description: string, rules: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveGlobalMemory(name, description, rules, env)))
+}
+
+export async function deleteGlobalMemory(name: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().deleteGlobalMemory(name, env)))
+}
+
 // ---- setup ------------------------------------------------------------------
 
 /** Save what the project is, and tick setup's `project` box. */

@@ -227,3 +227,17 @@ describe('where a note goes', () => {
     assert.equal(memoryTarget('readme.md', 'skill').file, memory('readme.md'))
   })
 })
+
+describe('a global memory (#1575)', () => {
+  it('is never taken for a module’s old notes', () => {
+    write(memory('competitors', 'README.md'), '# Competitors\n\n- [Trello](trello.md): boards.\n')
+    write(memory('interviews', 'MEMORY.md'), '---\nname: interviews\ndescription: Interviews.\n---\n\nOne file each.\n')
+    write(memory('interviews', 'README.md'), '# Interviews\n')
+
+    migrateMemory()
+
+    assert.match(read(memory('competitors', 'README.md')), /Trello/)
+    assert.equal(read(memory('interviews', 'README.md')), '# Interviews\n')
+    assert.doesNotMatch(read(memory('readme.md')), /Trello|Interviews/)
+  })
+})

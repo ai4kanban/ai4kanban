@@ -14,6 +14,11 @@ import path from 'node:path'
 import { rel, warn, AGENT_MEMORY, MEMORY } from './paths'
 import { specAgentNames } from './spec-agent-names'
 import { moduleNames } from './validate'
+import { BUNDLED_MEMORY_FILES } from '../memories/bundled'
+
+// Read here rather than from ./memories.ts, which imports this file.
+const isGlobalMemory = (name: string): boolean =>
+  name in BUNDLED_MEMORY_FILES || fs.existsSync(path.join(MEMORY, name, 'MEMORY.md'))
 
 // What a scaffold made: the path, the files it wrote, and whether the folder itself is new.
 export interface Scaffolded {
@@ -419,12 +424,12 @@ function liftModuleTopics(name: string, modules: string[]): string[] {
 }
 
 /** The module folders an older board kept memory in — everything under `memory/` but the
- *  agents' own. */
+ *  agents' own and the global memories (#1575). */
 function legacyModuleDirs(): string[] {
   try {
     return fs
       .readdirSync(MEMORY, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && e.name !== RESERVED_MEMORY_DIR)
+      .filter((e) => e.isDirectory() && e.name !== RESERVED_MEMORY_DIR && !isGlobalMemory(e.name))
       .map((e) => e.name)
   } catch {
     return []

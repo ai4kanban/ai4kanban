@@ -42,6 +42,7 @@ import { cmdMigrate, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove, type RemoveOptions } from '../../commands/remove'
 import { cmdAgentFile } from '../../commands/agent-file'
+import { cmdMemoryFile } from '../../commands/memory-file'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdDiscussion, type DiscussionOptions } from '../../commands/discussion'
 import { cmdCase, type CaseOptions } from '../../commands/case'
@@ -74,6 +75,7 @@ import { patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
 import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '../view/first-run'
 import { deliveryRules, setAgentRule } from '../agent/rules'
 import { createAgent, deleteAgent, readAgents, saveAgentFile } from '../agents/roster'
+import { createGlobalMemory, deleteGlobalMemory, readGlobalMemories, saveGlobalMemory } from '../memories'
 import { readMemoryFile, readMemoryOwners, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
 import { allCards, findCard, readBoard, readSetupState } from '../view/read'
@@ -135,6 +137,7 @@ const MOVES: Record<string, RunMove> = {
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
   'agent-file': ({ args }) => cmdAgentFile(args[0] ?? '', args[1] ?? ''),
+  'memory-file': ({ args }) => cmdMemoryFile(args[0] ?? ''),
   plan: ({ args, opts }) => cmdPlan(args, as<PlanOptions>(opts)),
   case: ({ args, opts }) => cmdCase(args, as<CaseOptions>(opts)),
   'chats-reviewed': ({ args }) => cmdChatsReviewed(args),
@@ -167,7 +170,7 @@ export const BOARD_MOVES: ReadonlySet<string> = new Set(Object.keys(MOVES))
 
 /** The moves that only read. They take no lock and no envelope — nothing they do can be
  *  half-written, and a board someone is mid-write on is still readable. */
-export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'peek', 'metrics', 'setup-status', 'validate', 'agent-file'])
+export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'peek', 'metrics', 'setup-status', 'validate', 'agent-file', 'memory-file'])
 
 // ---- the provider ----------------------------------------------------------
 
@@ -470,6 +473,29 @@ export function localBoard(): BoardProvider {
         const res = deleteAgent(name)
         if (!res.ok) throw new Error(res.error)
         return { removed: res.removed ?? [] }
+      }),
+
+    readGlobalMemories: () => Promise.resolve(readGlobalMemories()),
+
+    createGlobalMemory: (name, description, rules, env) =>
+      mutate({ board: true }, env, () => {
+        const res = createGlobalMemory(name, description, rules)
+        if (!res.ok) throw new Error(res.error)
+        return {}
+      }),
+
+    saveGlobalMemory: (name, description, rules, env) =>
+      mutate({ board: true }, env, () => {
+        const res = saveGlobalMemory(name, description, rules)
+        if (!res.ok) throw new Error(res.error)
+        return {}
+      }),
+
+    deleteGlobalMemory: (name, env) =>
+      mutate({ board: true }, env, () => {
+        const res = deleteGlobalMemory(name)
+        if (!res.ok) throw new Error(res.error)
+        return {}
       }),
 
     deliveryRules: () => Promise.resolve(deliveryRules()),

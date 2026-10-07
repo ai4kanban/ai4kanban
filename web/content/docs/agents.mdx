@@ -69,6 +69,20 @@ Some agents remember your corrections and choices, so their next plan starts fro
 agent's page lists its memory files, kept in `docs/kanban/memory/agents/<agent>/`; edit them
 like any other file.
 
+## Share a memory between agents
+
+A **global memory** is one folder of notes that several agents read and keep, such as what
+your competitors offer. You write its rules once — what it holds, how each entry reads, how
+its `README.md` index reads, and when to check an entry again — and every agent that uses it
+follows them.
+
+- **Create one**: press **+** in **Configuration → Global memory**, then fill in its name,
+  description and rules. It is kept in `docs/kanban/memory/<name>/`.
+- **Let an agent use it**: add `memory: [<name>]` under `akb:` in the agent's `AGENT.md`.
+- **Built-in**: **Competitors** ships with the board, one file per competitor. Its rules
+  update with each release and can't be edited.
+- **Delete**: on its page, removes the folder and everything in it.
+
 ## Let the memory review remember for you
 
 Chats don't save memory as you talk. Once a card is archived, **Review chats** reads its whole

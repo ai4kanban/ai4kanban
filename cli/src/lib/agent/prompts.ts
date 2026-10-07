@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { PLANNER, planningMemoryFiles } from '../memory'
+import { globalMemoryBlock } from '../memories'
 import { findGuide } from '../guide'
 import { ARCHIVE, boardText, KANBAN, rel, MEMORY, PROJECT_MD, REPO_ROOT } from '../paths'
 import {
@@ -262,6 +263,7 @@ export function leadBlock(req: AgentRequest): string {
   const agent = name ? findSpecAgent(name) : null
   if (!agent?.canLead) return ''
   const files = agentFilesBlock(agent)
+  const shared = globalMemoryBlock(agent)
   const human = agent.stage === 'plan'
   return boardText(
     [
@@ -270,6 +272,7 @@ export function leadBlock(req: AgentRequest): string {
         ? `Your output is reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show yet, write one line saying so.`
         : '',
       files ? `——— your own files ———\n\n${files}` : '',
+      shared ? `——— global memories ———\n\n${shared}` : '',
     ]
       .filter(Boolean)
       .join('\n\n'),
@@ -636,6 +639,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       // What this agent remembers (#421, #833) — after its instructions, so the board's own
       // words end before the agent's do.
       const memory = agent ? agentMemoryBlock(agent) : ''
+      const shared = agent ? globalMemoryBlock(agent) : ''
       // A card written before this agent was renamed heads that section with the old name
       // (#858, #945). Say so, or a rerun leaves a second section beside the first.
       const wasCalled = agent ? specAgentNames(agent.name).slice(1) : []
@@ -657,6 +661,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
+        shared ? `——— global memories ———\n\n${shared}` : '',
         // What THIS workflow asks of it here (#715) — the assignment's own words, after the
         // agent's instructions and its memory, because it is written on top of them and never
         // in place of them. A card whose workflow does not call this agent in has none.
@@ -672,6 +677,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
       const memory = agent ? agentMemoryBlock(agent) : ''
+      const shared = agent ? globalMemoryBlock(agent) : ''
       const flow = workflowById(req.workflow ?? '')
       const extra = flow ? scheduledAgent(flow.id, req.specAgent ?? '')?.extra.trim() : ''
       return [
@@ -684,6 +690,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
+        shared ? `——— global memories ———\n\n${shared}` : '',
       ]
         .filter(Boolean)
         .join('\n\n')
@@ -694,6 +701,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
       const memory = agent ? agentMemoryBlock(agent) : ''
+      const shared = agent ? globalMemoryBlock(agent) : ''
       const whose = agent ? `the \`${agent.name}\` agent's run` : 'run'
       return [
         [
@@ -706,6 +714,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         own?.files ? `——— your own files ———\n\n${own.files}` : '',
         memory ? `——— what you remember ———\n\n${memory}` : '',
+        shared ? `——— global memories ———\n\n${shared}` : '',
       ]
         .filter(Boolean)
         .join('\n\n')

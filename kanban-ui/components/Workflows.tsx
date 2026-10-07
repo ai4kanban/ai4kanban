@@ -47,6 +47,7 @@ import type {
   WorkflowView,
 } from "@/lib/types";
 import { AgentDetail, type AgentSchedule, Character, NewAgentRow, useAgentRoster } from "./Agents";
+import { useGlobalMemories } from "./GlobalMemories";
 import { useWorkflowTip } from "./WorkflowTip";
 import { useWorkflows, workflows } from "@/lib/window-state";
 import { goPro, ProPill, proLock, useProAccess } from "./pro";
@@ -149,6 +150,13 @@ export function WorkflowsPanel({
   const nameOf = useWorkflowName();
   const agentName = useAgentName();
   const roster = useAgentRoster(onError);
+  const { memories } = useGlobalMemories();
+  // A row's warning: the first global memory its agent names that does not exist.
+  const warn = (name: string): string | undefined => {
+    const declared = roster.agents?.find((a) => a.name === name)?.globalMemory ?? [];
+    const missing = memories && declared.find((m) => !memories.some((one) => one.name === m));
+    return missing ? ca.memoryMissing(missing) : undefined;
+  };
   const read = useWorkflows();
   const flows = read?.workflows ?? null;
   const loaded = !!read;
@@ -390,6 +398,7 @@ export function WorkflowsPanel({
             name={h.agent}
             agent={{ name: h.agent, title: h.title, gloss: h.gloss, builtIn: h.builtIn }}
             note={!h.off && h.waiting && isAuto(h.cadence) ? waits[h.waiting] : undefined}
+            problem={warn(h.agent)}
             held={shown === h.agent}
             off={h.off}
             onOpen={() => void select(h.agent)}
@@ -438,6 +447,7 @@ export function WorkflowsPanel({
             key={h.agent}
             name={h.agent}
             agent={one.candidates.find((a) => a.name === h.agent)}
+            problem={warn(h.agent)}
             held={shown === h.agent}
             off={h.off}
             onOpen={() => void select(h.agent)}
@@ -470,6 +480,7 @@ export function WorkflowsPanel({
                 <StageRow
                   name={one.lead}
                   agent={one.candidates.find((a) => a.name === one.lead)}
+                  problem={warn(one.lead)}
                   held={shown === one.lead}
                   onOpen={() => void select(one.lead)}
                   swap={flow.builtIn ? undefined : c.pickLead}
@@ -848,6 +859,7 @@ function StageRow({
   name,
   agent,
   note,
+  problem,
   held,
   off,
   onOpen,
@@ -857,6 +869,8 @@ function StageRow({
   agent: WorkflowCandidate | undefined;
   /** The small line under the name: why a scheduled agent is waiting (#1476). */
   note?: string;
+  /** Why this agent can't run as set up — a warning icon on its row. */
+  problem?: string;
   held: boolean;
   off?: boolean;
   onOpen: () => void;
@@ -892,6 +906,7 @@ function StageRow({
           )}
         </span>
       </button>
+      {problem && <FiAlertCircle size={14} role="img" aria-label={problem} className="shrink-0 text-nb-peach-ink" />}
       {swap && (
         <PopoverTrigger asChild>
           <button

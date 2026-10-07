@@ -379,6 +379,17 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('agent-file', this, [agent, file], this.opts(), cli)
     })
 
+  move('memory-file')
+    .argument('<name>', 'the global memory')
+    .summary("print one global memory's rules, its MEMORY.md")
+    .description(
+      "A run is told which global memories its agent keeps and reads one's rules when the work calls for it. " +
+        "A built-in memory's rules ship inside the command, so this is the only way to open them.",
+    )
+    .action(async function (this: Command, name: string) {
+      await dispatch('memory-file', this, [name], this.opts(), cli)
+    })
+
   move('list')
     .summary('the open cards: id, title, meta, summary, path — or, with --archived, the cards that landed')
     .description(

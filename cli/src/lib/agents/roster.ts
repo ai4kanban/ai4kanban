@@ -53,6 +53,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       enabled: !entry.switchable || specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),
       memory: entry.memory,
+      ...(agent?.memory.length ? { globalMemory: agent.memory } : {}),
       settings: role ? roleSettingsView(role) : [],
       values: role ? roleSettings(role, entries).values : {},
       // The runtime it runs, read the way a run reads it (#467) — one row, carrying its

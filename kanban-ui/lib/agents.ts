@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
-import type { AgentSlot, AgentView, SpecAgentView, WriteResult } from "./types";
+import type { AgentSlot, AgentView, GlobalMemoryView, SpecAgentView, WriteResult } from "./types";
 
 // --- the spec agents (#191, #403, #419) --------------------------------------
 // A spec agent fills one part of a card's spec — the screen it changes, the library it
@@ -110,4 +110,30 @@ export async function deleteAgent(name: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.deleteAgent) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
   return await rules.deleteAgent(name);
+}
+
+// --- global memories (#1575) -------------------------------------------------
+
+/** Every global memory, built-in first. `null` on rules older than global memories. */
+export async function globalMemories(): Promise<GlobalMemoryView[] | null> {
+  const rules = await boardRules();
+  return rules.readGlobalMemories ? await rules.readGlobalMemories() : null;
+}
+
+export async function createGlobalMemory(name: string, description: string, text: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.createGlobalMemory) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.createGlobalMemory(name, description, text);
+}
+
+export async function saveGlobalMemory(name: string, description: string, text: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.saveGlobalMemory) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.saveGlobalMemory(name, description, text);
+}
+
+export async function deleteGlobalMemory(name: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.deleteGlobalMemory) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.deleteGlobalMemory(name);
 }

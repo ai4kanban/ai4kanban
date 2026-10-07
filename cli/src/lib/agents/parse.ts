@@ -28,6 +28,9 @@ export interface SpecAgent {
   /** The new input a scheduled agent runs on (#1475) — `akb.reads`. Absent: it runs on its
    *  cadence alone. */
   reads?: ScheduleReads
+  /** The global memories it keeps (#1575) — `akb.memory`, by name. A name no memory has is
+   *  kept here and skipped where the run is written. */
+  memory: string[]
   /** Everything else in its folder, by agent-relative path (#860) — named in every run and
    *  read on demand, so `AGENT.md` can point at long material instead of carrying it. */
   files: string[]
@@ -71,7 +74,7 @@ export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /** Every `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts holds
  *  the written key table to it. */
-export const AGENT_KEYS = ['lead', 'hook', 'reads', 'i18n'] as const
+export const AGENT_KEYS = ['lead', 'hook', 'reads', 'memory', 'i18n'] as const
 
 /** What `akb.reads` names (#1475): the new input whose arrival makes a scheduled agent due. */
 export const SCHEDULE_READS = ['archived-cards', 'chats', 'dismissals'] as const
@@ -184,6 +187,7 @@ export function parseSpecAgent(
       stage,
       schedule,
       ...(declaredReads ? { reads: declaredReads as ScheduleReads } : {}),
+      memory: names(akb.memory),
       files: list(),
       body: instructions,
       from,
@@ -222,6 +226,10 @@ function replacementLine(stage: string, kind: string, lead: string): string | nu
 }
 
 const isStage = (value: string): value is WorkflowStage => (WORKFLOW_STAGES as readonly string[]).includes(value)
+
+// A list of names, or one name written bare.
+const names = (value: YamlValue | undefined): string[] =>
+  [...new Set((Array.isArray(value) ? value : [value]).map((v) => str(v as YamlValue)).filter(Boolean))]
 
 const str = (value: YamlValue | undefined): string => (typeof value === 'string' ? value.trim() : '')
 

@@ -27,7 +27,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiCreditCard, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiBookOpen, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiCreditCard, FiGitCommit, FiLayers, FiSettings, FiSliders, FiTerminal, FiTool, FiX, FiZap } from "react-icons/fi";
 import {
   hasWorkspaceAction,
   workflowsOfferedAction,
@@ -62,6 +62,7 @@ import type {
 import { TOOL_BTN } from "./chrome";
 import { AgentsPanel } from "./Agents";
 import { WorkflowsPanel } from "./Workflows";
+import { MemoriesPanel } from "./GlobalMemories";
 import { CloudPanel } from "./Cloud";
 import { CloudMigration, useMigrating } from "./CloudMigration";
 import { Dialog } from "./Dialog";
@@ -128,6 +129,7 @@ type Section =
   | "general"
   | "runtimes"
   | "workflows"
+  | "memories"
   | "upkeep"
   | "workspace"
   | "cloud"
@@ -152,6 +154,8 @@ const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
   // stage assigns, in the one entry. Only on a board that picks workflows at all — where it
   // doesn't, the group goes with it.
   { id: "workflows", group: "customize", icon: FiGitCommit },
+  // Folders of material several agents share (#1575).
+  { id: "memories", group: "customize", icon: FiBookOpen },
 ];
 const NAV_GROUPS: NavGroup[] = ["settings", "customize"];
 
@@ -381,6 +385,9 @@ export function Configuration({
                 }}
                 onError={onError}
               />
+            )}
+            {section === "memories" && (
+              <MemoriesPanel openOn={pickAgent} onOpened={() => setPickAgent("")} onError={onError} />
             )}
             {/* The agents that belong to the BOARD rather than to any workflow — the
                 discussion, material triage, follow-up suggestions,

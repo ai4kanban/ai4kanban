@@ -41,6 +41,14 @@ akb:
   reads: archived-cards
 ```
 
+An agent that shares material with others names the global memories it keeps:
+
+```yaml
+akb:
+  # Optional; global memories under `docs/kanban/memory/<name>/`, by name.
+  memory: [competitors]
+```
+
 Everything under the frontmatter is the agent's instructions, read fresh on every run —
 a file with none is refused.
 
@@ -100,6 +108,8 @@ correction should change the agent's next output. Otherwise say in `AGENT.md`:
 - **When**: which file to apply before which step, and which answers or corrections to record.
 - **What goes in**: lasting preferences, decisions and corrections only — never raw feedback,
   run history, or what the instructions already say.
+- **Shared material**: what other agents also use goes in a global memory under `akb.memory`;
+  its rules arrive with every run, so `AGENT.md` never restates them.
 
 ## Output
 

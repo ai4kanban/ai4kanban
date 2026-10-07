@@ -204,8 +204,12 @@ import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/ski
 import {
   agents as boardAgents,
   createAgent,
+  createGlobalMemory,
   deleteAgent,
+  deleteGlobalMemory,
+  globalMemories,
   saveAgentFile,
+  saveGlobalMemory,
   setAgentRule,
   setSpecAgentEnabled,
   setSpecAgentSetting,
@@ -235,6 +239,7 @@ import { isDiscussion, WORKFLOW_STAGES } from "@/lib/types";
 import type {
   AgentInfo,
   AgentView,
+  GlobalMemoryView,
   ArchivedCard,
   BoardScreen,
   Signal,
@@ -1821,6 +1826,46 @@ export async function deleteAgentAction(name: string): Promise<WriteResult> {
   if (typeof name !== "string") return { ok: false, error: "an agent is deleted by name" };
   try {
     return await deleteAgent(name);
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
+  }
+}
+
+// --- global memories (#1575) -------------------------------------------------
+
+/** Every global memory. `memories` is `null` on rules older than global memories. */
+export async function globalMemoriesAction(): Promise<{ memories: GlobalMemoryView[] | null; error?: string }> {
+  try {
+    return { memories: await globalMemories() };
+  } catch (e) {
+    return { memories: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+const memoryArgs = (...values: unknown[]): boolean => values.every((v) => typeof v === "string");
+
+export async function createGlobalMemoryAction(name: string, description: string, rules: string): Promise<WriteResult> {
+  if (!memoryArgs(name, description, rules)) return { ok: false, error: "a global memory is created by name, description and rules" };
+  try {
+    return await createGlobalMemory(name, description, rules);
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
+  }
+}
+
+export async function saveGlobalMemoryAction(name: string, description: string, rules: string): Promise<WriteResult> {
+  if (!memoryArgs(name, description, rules)) return { ok: false, error: "a global memory is saved by name, description and rules" };
+  try {
+    return await saveGlobalMemory(name, description, rules);
+  } catch (e) {
+    return { ok: false, ...(await saidThrown(e)) };
+  }
+}
+
+export async function deleteGlobalMemoryAction(name: string): Promise<WriteResult> {
+  if (typeof name !== "string") return { ok: false, error: "a global memory is deleted by name" };
+  try {
+    return await deleteGlobalMemory(name);
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };
   }

@@ -90,6 +90,7 @@ export { refinementRequest } from './lib/agent/refine'
 // They are board operations like every other write (#315), so a Cloud board reads and
 // writes its team where the board is and both clients call the same thing.
 export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } from './lib/view/api'
+export { createGlobalMemory, deleteGlobalMemory, readGlobalMemories, saveGlobalMemory } from './lib/view/api'
 
 // What each agent that is a file is CALLED (#756), by name, in the language this machine
 // reads. `readAgents` above carries the same name, and everything else with it; this is the

@@ -14,6 +14,8 @@ docs/kanban/
 ├── memory/         all memory — see "Who owns a memory file"
 │   ├── readme.md   what shipped — the board's own record
 │   ├── project.md  what the project is today — written only by `akb describe-project`
+│   ├── <name>/     a global memory: `MEMORY.md` (its rules, unless built in), `README.md`
+│   │               (its index) and its entries
 │   └── agents/     one folder per agent that keeps memory, named after it —
 │                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
@@ -126,6 +128,8 @@ move the files into the group's folder:
   Flows that only judge — triage, a reflection — read them and write none.
 - **`memory/agents/proposer/missed.md`**: kinds of follow-up the proposer failed to propose —
   written only by the memory review (`akb guide review-memory`), read by every reflection.
+- **`memory/<name>/`**: a global memory, kept by every agent listing it under `akb.memory`
+  by the rules each run is given. Only the user changes its `MEMORY.md`, from the board UI.
 - **`memory/agents/<agent>/`**: an agent keeps only the files and split paths its own AGENT.md
   declares (`akb guide update-questions`). An agent whose instructions name none keeps none.
 

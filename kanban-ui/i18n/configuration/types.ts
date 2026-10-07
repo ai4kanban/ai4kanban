@@ -31,12 +31,41 @@ export type ConfigurationCopy = {
     workflows: string;
     /** The agents that belong to the board rather than to any workflow. */
     upkeep: string;
+    /** Folders of material several agents share (#1575). */
+    memories: string;
     cloud: string;
     /** The plan, its invoices and the plans page behind them (#1109). */
     billing: string;
     notifications: string;
     /** The workspace a Cloud board lives in (#317). Only ever on a Cloud board. */
     workspace: string;
+  };
+  /** Configuration → Global memory (#1575): the list on the left, the open one beside it. */
+  memories: {
+    loading: string;
+    tooOld: string;
+    add: string;
+    builtIn: string;
+    folder: string;
+    copyPath: string;
+    agents: string;
+    noAgents: string;
+    rules: string;
+    rulesBuiltIn: string;
+    save: string;
+    saved: string;
+    del: string;
+    confirmTitle: (name: string) => string;
+    confirmBody: (agents: number) => string;
+    cancel: string;
+    create: string;
+    newTitle: string;
+    name: string;
+    nameHint: string;
+    nameTaken: string;
+    description: string;
+    descriptionHint: string;
+    rulesHint: string;
   };
   /** Configuration → Workflows (#715): every workflow this board runs down the left, and
    *  the selected one's three stages beside it. A workflow says WHO runs each stage; the
@@ -277,6 +306,11 @@ export type ConfigurationCopy = {
 
     /** What this agent runs (#467): one runtime, which carries its harness and its model. */
     runtime: string;
+    /** The global memories its `AGENT.md` names (#1575), each opening its page. */
+    globalMemory: string;
+    openMemory: (name: string) => string;
+    /** A name it declares that no global memory has. */
+    memoryMissing: (name: string) => string;
     /** The right-end note on the list's first entry — an agent that named none runs
      *  Global default. Every other row notes its model id there. */
     boardsOwn: string;

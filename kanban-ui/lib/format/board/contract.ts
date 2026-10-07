@@ -26,7 +26,7 @@
 // This file is pure types and imports nothing that touches a filesystem, so it is copied
 // into the board UI by scripts/sync-format.mjs and both sides name one contract.
 
-import type { AgentRequest, AgentView, DeliveryCarryOn, DeliveryRecord } from '../agent/types'
+import type { AgentRequest, AgentView, DeliveryCarryOn, DeliveryRecord, GlobalMemoryView } from '../agent/types'
 import type { AgentSlot } from '../agent/types'
 import type {
   ArchiveList,
@@ -229,6 +229,13 @@ export interface BoardProvider {
   /** Delete one agent this project added, with everything the board kept for it — its
    *  folder, its rule, its memory and its settings. Reports what it removed, board-relative. */
   deleteAgent(name: string, env: OpEnvelope): Promise<OpResult<{ removed: string[] }>>
+  /** The global memories (#1575): the built-in ones, then the board's own. */
+  readGlobalMemories(): Promise<GlobalMemoryView[]>
+  /** Create, rewrite or delete one of the board's own global memories. A built-in one is
+   *  refused: its rules ship inside the command. */
+  createGlobalMemory(name: string, description: string, rules: string, env: OpEnvelope): Promise<OpResult>
+  saveGlobalMemory(name: string, description: string, rules: string, env: OpEnvelope): Promise<OpResult>
+  deleteGlobalMemory(name: string, env: OpEnvelope): Promise<OpResult>
   /** The rules a delivery freezes when it starts, keyed by the agent that carries each —
    *  read once, the way it reads the card it was approved to build. Editing a rule afterwards
    *  changes the next delivery, never one in flight. */

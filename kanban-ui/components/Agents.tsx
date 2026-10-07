@@ -71,10 +71,12 @@ import type {
 import { cn } from "@/lib/utils";
 import type { CadenceCopy, RoleSettingCopy } from "@/i18n/configuration/types";
 import { Button } from "./button";
-import { AgentMark, useRuntimeName } from "./Configuration";
+import { AgentMark, configDialog, useRuntimeName } from "./Configuration";
+import { AgentMemoryLinks, useAgentMemories } from "./GlobalMemories";
 import { ConfirmationPopover } from "./confirm-popover";
 import { useCopyText } from "./copy";
 import {
+  Alert,
   DANGER_BTN,
   FLAT_CONTROL,
   Loading,
@@ -730,7 +732,7 @@ function PickRow({
 
 // The one press that puts an agent's file path on the clipboard, so it can be opened in the
 // editor the person actually uses.
-function CopyPath({ path }: { path: string }) {
+export function CopyPath({ path }: { path: string }) {
   const c = useCopy().configuration.agents;
   const copy = useCopyText();
   return (
@@ -932,6 +934,7 @@ function Page({
   // owns only the words appended to its runs.
   const writesRule = !agent.file;
   const off = !agent.enabled || schedule?.view?.enabled === false;
+  const shared = useAgentMemories(agent.globalMemory);
   const settings = agent.settings.map((setting) => roleSettingWords(setting, role?.settings?.[setting.key]));
 
   // The page fills the pane and the box you write in takes whatever the rest of it leaves.
@@ -1001,6 +1004,16 @@ function Page({
         </div>
       </div>
 
+      {shared.missing.length > 0 && (
+        <Alert>
+          {shared.missing.map((name) => (
+            <span key={name} className="block">
+              {c.memoryMissing(name)}
+            </span>
+          ))}
+        </Alert>
+      )}
+
       <hr className="shrink-0 border-nb-ink/10" />
 
       {/* Everything this agent is set to, as rows: what the setting is on the left, its
@@ -1008,7 +1021,7 @@ function Page({
           resolves to, what the pick costs. The runtime row is absent on rules older than the
           release that added it (#469), rather than drawn empty with a list that could only
           fail. */}
-      {(agent.runs || settings.length > 0) && (
+      {(agent.runs || settings.length > 0 || shared.known.length > 0) && (
         <div className="flex shrink-0 flex-col gap-5">
           {agent.runs && (
             <SettingRow
@@ -1030,6 +1043,12 @@ function Page({
                   />
                 )
               }
+            />
+          )}
+          {shared.known.length > 0 && (
+            <SettingRow
+              label={c.globalMemory}
+              control={<AgentMemoryLinks memories={shared.known} onOpen={(name) => configDialog.open("memories", name)} />}
             />
           )}
           {settings.map((setting: SpecAgentSettingView) => (

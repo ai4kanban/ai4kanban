@@ -1702,6 +1702,24 @@ export interface SpecAgentView {
   harness: string
 }
 
+/** One global memory as Configuration → Global memory draws it (#1575). */
+export interface GlobalMemoryView {
+  name: string
+  /** What it is called in the language this machine reads; its name when it says none. */
+  title: string
+  /** Its `description`, as written — what a custom one's page edits. */
+  description: string
+  /** Its description in the language this machine reads. */
+  gloss: string
+  /** Its `MEMORY.md` body: the rules every agent keeping it follows. */
+  rules: string
+  builtIn: boolean
+  /** Its folder, repo-relative, ending in `/`. */
+  folder: string
+  /** The agents whose `akb.memory` names it. */
+  agents: string[]
+}
+
 /** One agent as the Agents pane draws it (#422): a role the board ships, or a specialist a
  *  card asks for. One shape for both, because the pane draws one roster — what parts them is
  *  `kind` and whether there is a switch, not two lists. */
@@ -1736,6 +1754,8 @@ export interface AgentView {
   rule: string
   /** The memory files it owns, repo-relative. The pane shows them; nothing edits one here. */
   memory: string[]
+  /** The global memories its `akb.memory` names (#1575), whether or not each exists. */
+  globalMemory?: string[]
   settings: SpecAgentSettingView[]
   values: Record<string, string>
   /** What this agent runs, and the model settings under it (#443) — the connector is the
