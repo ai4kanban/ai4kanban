@@ -153,7 +153,7 @@ describe('an agent with a runtime of its own', () => {
     assert.deepEqual(specAgentEntries()['ui-designer'], { enabled: true, extra: { mockupStyle: 'ascii' } })
     const view = readSpecAgents().find((s) => s.name === 'ui-designer')
     assert.equal(view?.enabled, true)
-    assert.deepEqual(Object.keys(view!.values), ['output'])
+    assert.deepEqual(view!.values, {})
     assert.equal(view?.harness, 'codex')
   })
 

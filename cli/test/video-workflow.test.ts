@@ -123,7 +123,7 @@ describe('the hyperframes-video workflow', () => {
 
     const refine = printed('refine', video)
     assert.match(refine, /you, the `scriptwriter` agent[\s\S]*## By `scriptwriter` agent/)
-    assert.match(refine, /Your output is set to be reviewed by me: write it in ``## By `scriptwriter` agent``, above `<!-- agent -->`/)
+    assert.match(refine, /Your output is reviewed by me: write it in ``## By `scriptwriter` agent``, above `<!-- agent -->`/)
     assert.ok(refine.indexOf('`scriptwriter` agent —') > refine.indexOf('——— akb guide'))
     assert.match(refine, /hyperframes-editor/)
     assert.doesNotMatch(refine, /ui-designer|tech-stack-advisor/)

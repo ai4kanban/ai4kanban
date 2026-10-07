@@ -14,15 +14,13 @@ Every flow writes a card in this order:
                              <- answered material decisions building turned up; written
                                 by the build, omit when empty. Never approved delivery scope
 
-## By `<name>` agent         <- here when that agent's output is set to human review, or
-                                while a [user] question points at one set to agent use
+## By `<name>` agent         <- every spec agent's section
 
 <!-- agent -->               <- boundary
 
 ## Today
 ## Scope                     <- requirements, not rationale
 ## Todo                      <- one build step per checkbox
-## By `<name>` agent
 ## Decided by the agent
 - **<question the decision settles>**: <answer>
 ### Overruled by the user    <- always last

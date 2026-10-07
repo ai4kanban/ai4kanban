@@ -24,7 +24,7 @@ import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import type { WriteResult } from '../view/types'
 import { BUNDLED_AGENT_FILES } from './bundled'
 import { agentFileReader, specAgentCatalog } from './catalog'
-import { agentSettingsView, roleSettings, roleSettingsView, specAgentEnabled, specAgentSettings } from './index'
+import { roleSettings, roleSettingsView, specAgentEnabled } from './index'
 import { AGENT_NAME, parseSpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
@@ -53,8 +53,8 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       enabled: !entry.switchable || specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),
       memory: entry.memory,
-      settings: agent ? agentSettingsView(agent) : role ? roleSettingsView(role) : [],
-      values: agent ? specAgentSettings(agent, entries).values : role ? roleSettings(role, entries).values : {},
+      settings: role ? roleSettingsView(role) : [],
+      values: role ? roleSettings(role, entries).values : {},
       // The runtime it runs, read the way a run reads it (#467) — one row, carrying its
       // harness and its model.
       runs: agentRun(entry.name, table),

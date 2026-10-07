@@ -8,7 +8,7 @@
 // Only a flow is named, never a pass: a refine's `clarify`, `resolve` and `writing` passes
 // belong to the flow that spawned them, and so to the same agent.
 
-import { findSpecAgent, specAgentOutput } from '../agents'
+import { findSpecAgent } from '../agents'
 import { flowByAction } from './flows'
 import { agentImageView } from './resolve'
 import { roleForFlow } from './roles'
@@ -51,12 +51,12 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
   return roleForFlow(flowOf(ask, action), workflowForRun(ask))?.name
 }
 
-/** The agent of this run when its output is the user's to review (#868), and whether the run
- *  is one it leads — only then must it write its section. */
+/** The agent of this run when it writes a section for the user to review (#868, #1574): a
+ *  plan-stage agent. A run it leads must write one. */
 export function humanSectionFor(ask: RunAsk): { agent: string; required: boolean } | null {
   const name = agentForRun(ask)
   const agent = name ? findSpecAgent(name) : null
-  if (!agent || specAgentOutput(agent) !== 'human') return null
+  if (agent?.stage !== 'plan') return null
   return { agent: agent.name, required: agent.canLead && !SPECIALIST_ACTIONS.has(ask.action!) }
 }
 

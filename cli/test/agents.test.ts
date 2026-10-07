@@ -17,14 +17,12 @@ import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import {
   agentLines,
-  agentSettingsView,
   findSpecAgent,
   readSpecAgents,
   setSpecAgentSetting,
   specAgentCatalog,
   specAgentInstructions,
   specAgentList,
-  specAgentOutput,
   specAgentSelector,
   specHookAgents,
 } from '../src/lib/agents/index.ts'
@@ -171,9 +169,9 @@ describe('the agents this command ships', () => {
     assert.equal(ui.builtIn, true)
   })
 
-  it("draws only the board's own row on `ui-designer`, and names its reference as a file", () => {
+  it('draws no setting on `ui-designer`, and names its reference as a file', () => {
     const agent = findSpecAgent('ui-designer')!
-    assert.deepEqual(agentSettingsView(agent).map((s) => s.key), ['output'])
+    assert.deepEqual(readSpecAgents().find((a) => a.name === 'ui-designer')?.settings, [])
     assert.ok(agent.files.includes('references/rendered-screen.md'))
     assert.match(agent.body, /Read `references\/rendered-screen\.md` before you draw/)
   })
@@ -193,8 +191,7 @@ describe('an agent the project adds', () => {
     assert.ok(agents.some((a) => a.name === 'api-contract'))
     const view = readSpecAgents().find((s) => s.name === 'api-contract')
     assert.equal(view?.enabled, true)
-    // It declares no setting of its own, so the only row on its page is the board's.
-    assert.deepEqual(view?.settings.map((s) => s.key), ['output'])
+    assert.deepEqual(view?.settings, [])
   })
 
   // An `akb.settings:` block is read by nothing (#1003). A board that still carries one keeps
@@ -221,7 +218,7 @@ describe('an agent the project adds', () => {
     })
     assert.deepEqual(specAgentCatalog().problems, [])
     const agent = findSpecAgent('api-contract')!
-    assert.deepEqual(agentSettingsView(agent).map((s) => s.key), ['output'])
+    assert.deepEqual(readSpecAgents().find((a) => a.name === 'api-contract')?.settings, [])
     assert.equal(setSpecAgentSetting('api-contract', 'style', 'prose').ok, false)
     // The file it named is an ordinary file beside `AGENT.md` now, offered by its path.
     assert.ok(agent.files.includes('references/openapi.md'))
@@ -631,18 +628,6 @@ describe("an agent's memory folder", () => {
     assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'hyperframes-editor')), false)
   })
 
-  // A run setting the board saved under the old name still reaches the agent, and the new
-  // name wins where both are there — neither is overwritten.
-  it('reads a setting saved under the name it had before, new name first', () => {
-    const setting = (cfg: Record<string, unknown>): void =>
-      fs.writeFileSync(uiConfigOf(kanban()), JSON.stringify({ specAgents: cfg }))
-    setting({ 'video-assets': { output: 'human' } })
-    assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), /reviewed by me/)
-    setting({ 'video-assets': { output: 'human' }, 'hyperframes-editor': { output: 'agent' } })
-    assert.match(buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), /read by the agent that builds this/)
-    assert.match(fs.readFileSync(uiConfigOf(kanban()), 'utf8'), /video-assets/)
-  })
-
   it('is no longer written by `spec-write`', async () => {
     let help = ''
     const write = process.stdout.write.bind(process.stdout)
@@ -655,41 +640,53 @@ describe("an agent's memory folder", () => {
     } finally {
       process.stdout.write = write
     }
-    assert.match(help, /--half/)
+    assert.doesNotMatch(help, /--half/)
     assert.doesNotMatch(help, /--redesign|--decisions/)
     card(12)
     await refuses(root, ['spec-write', '12', 'ui-designer', '--text', 'a screen', '--redesign', 'x.md'], /redesign/)
   })
 })
 
-// Who a spec agent's finished output is for (#445): the board's own row on every spec agent,
-// saved beside `enabled` and `runtime`, and since #1003 the only row on its page.
-describe("who a spec agent's output is for", () => {
+// Where a spec agent's section goes (#1574): above the boundary, for every hook. There is no
+// setting for it, and what a board saved for the old one stays in the file, acting on nothing.
+describe("where a spec agent's section goes", () => {
   const saved = (): Record<string, Record<string, unknown>> =>
     JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8')).specAgents
 
-  it('is the first row on every spec agent, whoever wrote it', () => {
+  it('is no setting on any spec agent, whoever wrote it', async () => {
     project('api-contract', { 'AGENT.md': AGENT })
-    for (const name of ['ui-designer', 'tech-stack-advisor', 'api-contract']) {
-      const [row] = agentSettingsView(findSpecAgent(name)!)
-      assert.equal(row?.key, 'output', name)
-      assert.deepEqual(
-        row!.choices.map((c) => c.value),
-        ['human', 'agent'],
-        name,
-      )
-      // No word about the card's halves: a user picks who reads it, not where it lands.
-      assert.doesNotMatch(JSON.stringify(row), /agent half|human half|<!-- agent -->/)
-    }
-    assert.equal(readSpecAgents().find((a) => a.name === 'ui-designer')?.values.output, 'human')
-  })
-
-  it("is on the spec agents in the pane's roster, and on none of the roles", async () => {
     const rows = async (name: string): Promise<string[]> =>
       (await readAgents()).agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
-    assert.deepEqual(await rows('ui-designer'), ['output'])
-    assert.deepEqual(await rows('tech-stack-advisor'), ['output'])
-    assert.deepEqual(await rows('software-planner'), [])
+    for (const name of ['ui-designer', 'tech-stack-advisor', 'hyperframes-editor', 'api-contract']) {
+      assert.deepEqual(await rows(name), [], name)
+    }
+    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, false)
+    assert.doesNotMatch(specAgentList('akb'), /Output:/)
+  })
+
+  it('tells every spec run nothing about halves, and lands above the boundary', () => {
+    board({ specAgents: { 'hyperframes-editor': { output: 'agent' } } })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' })
+    assert.doesNotMatch(prompt, /Your output is set to/)
+    assert.match(prompt, /put your section above `<!-- agent -->`/)
+    assert.deepEqual(humanSectionFor({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), {
+      agent: 'hyperframes-editor',
+      required: false,
+    })
+  })
+
+  it('loads an `AGENT.md` that still declares `akb.output`, and ignores it', () => {
+    project('api-contract', { 'AGENT.md': AGENT.replace('  hook: plan', '  hook: plan\n  output: nobody') })
+    assert.deepEqual(specAgentCatalog().problems, [])
+    assert.ok(findSpecAgent('api-contract'))
+  })
+
+  // A `runtime` left by a board written before #443 goes: named runtimes are gone, and the
+  // agent it pointed at runs the connector the board gives it now.
+  it('leaves a key the board no longer reads exactly where it is, and drops a stale runtime', () => {
+    board({ specAgents: { proposer: { runtime: 'cheap', output: 'agent' } } })
+    assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'auto').ok, true)
+    assert.deepEqual(saved().proposer, { output: 'agent', 'small-fixes': 'auto' })
   })
 
   // A role's own settings (#1469): saved under its entry by key, and the picked choice's words
@@ -716,113 +713,40 @@ describe("who a spec agent's output is for", () => {
     assert.equal(setSpecAgentSetting('proposer', 'small-fixes', 'always').ok, false)
     assert.equal(setSpecAgentSetting('builder', 'small-fixes', 'auto').ok, false)
   })
-
-  it('starts `ui-designer` at human review and every other agent at agent use', () => {
-    project('api-contract', { 'AGENT.md': AGENT })
-    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
-    assert.equal(specAgentOutput(findSpecAgent('tech-stack-advisor')!), 'agent')
-    assert.equal(specAgentOutput(findSpecAgent('api-contract')!), 'agent')
-  })
-
-  it("saves under the entry's own key, and drops it when it goes back to the default", () => {
-    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, true)
-    assert.deepEqual(saved()['ui-designer'], { output: 'agent' })
-    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'agent')
-    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'human').ok, true)
-    assert.equal(saved(), undefined)
-    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
-  })
-
-  // A `runtime` left by a board written before #443 goes: named runtimes are gone, and the
-  // agent it pointed at runs the connector the board gives it now.
-  it('leaves a key the board no longer reads exactly where it is, and drops a stale runtime', () => {
-    board({ specAgents: { 'ui-designer': { runtime: 'cheap', mockupStyle: 'ascii' } } })
-    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, true)
-    assert.deepEqual(saved()['ui-designer'], { output: 'agent', mockupStyle: 'ascii' })
-  })
-
-  it('refuses a word it does not offer, and runs the default when the file holds one', () => {
-    const refused = setSpecAgentSetting('ui-designer', 'output', 'nobody')
-    assert.equal(refused.ok, false)
-    assert.match(refused.error!, /not one of the choices for Output/)
-    board({ specAgents: { 'ui-designer': { output: 'nobody' } } })
-    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
-  })
-
-  it('refuses an `akb.output` naming nobody', () => {
-    project('api-contract', { 'AGENT.md': AGENT.replace('  hook: plan', '  hook: plan\n  output: nobody') })
-    assert.match(specAgentCatalog().problems.join('\n'), /`akb\.output: nobody`/)
-  })
-
-  it('tells the run which half it writes in, and prints it where a flow can read it', () => {
-    assert.match(
-      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }),
-      /put your section above `<!-- agent -->`/,
-    )
-    assert.match(specAgentList('akb'), /Output: Human review/)
-    board({ specAgents: { 'ui-designer': { output: 'agent' } } })
-    assert.match(
-      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }),
-      /put your section below `<!-- agent -->`/,
-    )
-    assert.match(specAgentList('akb'), /Output: Agent use/)
-  })
-
-  it('is drawn in the language the reader reads, from the board rather than the agent', () => {
-    const [row] = agentSettingsView(findSpecAgent('ui-designer')!, 'zh')
-    assert.equal(row?.label, '\u4ea7\u51fa')
-    for (const choice of row!.choices) {
-      assert.match(choice.label, /[\u4e00-\u9fa5]/, choice.value)
-      assert.match(choice.cost, /[\u4e00-\u9fa5]/, choice.value)
-    }
-    assert.equal(agentSettingsView(findSpecAgent('ui-designer')!, 'en')[0]?.label, 'Output')
-  })
 })
 
-// A lead's `akb.output` (#868): only its file says it, and a human-facing lead is told where
-// its section goes and that it has to write one.
-describe("a lead agent's output", () => {
-  const outliner = (output: string): void =>
+// A lead's own section (#868, #1574): a plan lead writes one above the boundary, an execute
+// lead none, whatever its file or the board says.
+describe("a lead agent's section", () => {
+  const outliner = (stage: string, extra = ''): void =>
     project('outliner', {
-      'AGENT.md': ['---', 'name: outliner', 'description: d', 'akb:', '  lead: plan', ...(output ? [`  output: ${output}`] : []), '---', '', 'You outline.', ''].join('\n'),
+      'AGENT.md': ['---', 'name: outliner', 'description: d', 'akb:', `  lead: ${stage}`, ...(extra ? [extra] : []), '---', '', 'You outline.', ''].join('\n'),
     })
-  /** Card 12, on a workflow the outliner leads the planning of. */
-  const led = (): void => {
+  /** Card 12, on a workflow the outliner leads one stage of. */
+  const led = (stage: 'plan' | 'execute'): void => {
     const mine = createWorkflow('Mine').id!
-    assert.equal(setWorkflowLead(mine, 'plan', 'outliner').ok, true)
+    assert.equal(setWorkflowLead(mine, stage, 'outliner').ok, true)
     const file = card(12)
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('questions: []', `questions: []\nworkflow: ${mine}`))
   }
   const refine = { action: 'clarify', id: 12, refineRound: 1 } as const
 
-  it('is read from its file, a word it does not know refused', () => {
-    outliner('human')
-    assert.equal(findSpecAgent('outliner')?.output, 'human')
-    outliner('nobody')
-    assert.match(specAgentCatalog().problems.join('\n'), /`akb\.output: nobody`/)
-  })
-
-  it('ignores a value left saved for it', () => {
-    outliner('human')
+  it('makes a plan run it leads write its section above the boundary, and tells it so', () => {
+    outliner('plan', '  output: agent')
     board({ specAgents: { outliner: { output: 'agent' } } })
-    assert.equal(specAgentOutput(findSpecAgent('outliner')!), 'human')
-  })
-
-  it('makes a run it leads write its section above the boundary, and tells it so', () => {
-    outliner('human')
-    led()
+    led('plan')
     assert.deepEqual(humanSectionFor(refine), { agent: 'outliner', required: true })
     assert.match(buildPrompt({ action: 'clarify', id: 12 }), /write it in ``## By `outliner` agent``, above `<!-- agent -->`/)
   })
 
-  it('changes nothing for a lead whose output is for the agent', () => {
-    outliner('')
-    led()
-    assert.equal(humanSectionFor(refine), null)
-    assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 12 }), /Your output is set to be reviewed by me/)
+  it('changes nothing for an execute lead, or a card no agent leads', () => {
+    outliner('execute', '  output: human')
+    led('execute')
+    assert.equal(humanSectionFor({ action: 'implement', id: 12 }), null)
+    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 12 }), /Your output is reviewed by me/)
     card(13)
     assert.equal(humanSectionFor({ action: 'clarify', id: 13, refineRound: 1 }), null)
-    assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 13 }), /Your output is set to be reviewed by me/)
+    assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 13 }), /Your output is reviewed by me/)
   })
 
   it('checks where a spec run puts its section, and never asks it for one', () => {

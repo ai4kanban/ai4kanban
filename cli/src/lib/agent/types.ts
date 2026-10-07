@@ -1658,24 +1658,12 @@ export interface SpecAgentChoice {
   prompt?: string
 }
 
-/** Who a spec agent's finished output is for (#445) — the board's own setting, on every spec
- *  agent whether or not its `AGENT.md` says a word.
- *
- *  `human` puts the section above `<!-- agent -->`, where the card is reviewed; `agent` puts
- *  it below, with the rest of what the build reads. The two words are the card's halves, and
- *  are the same ones `spec-write --half` takes. */
-export const SPEC_OUTPUTS = ['human', 'agent'] as const
-export type SpecOutput = (typeof SPEC_OUTPUTS)[number]
-
-export const isSpecOutput = (value: unknown): value is SpecOutput =>
-  typeof value === 'string' && (SPEC_OUTPUTS as readonly string[]).includes(value)
-
 /** One setting on a spec agent's page (#255, #1003) — `HarnessSetting` above, for the agent
  *  that fills part of a card's spec rather than the CLI a run spawns. It is always a pick
  *  from named choices: never free text, never a number.
  *
- *  Every one of them is the board's own: a spec agent's output (./agents/output.ts), or a
- *  role's (./roles.ts, #1469). An `AGENT.md` declares none: two ways of working is two agents. */
+ *  Every one of them is a role's (./roles.ts, #1469). An `AGENT.md` declares none: two ways of
+ *  working is two agents. */
 export interface SpecAgentSetting {
   /** The key it saves under inside that agent's entry in ui.config.json. */
   key: string

@@ -168,9 +168,6 @@ export interface AgentSchedule {
   reload: () => void | Promise<void>;
 }
 
-// The board's own "who is the output for" row, on every spec agent (#445).
-const OUTPUT_KEY = "output";
-
 /** The roster, and every write that touches it — read once and shared by the two panes that
  *  draw an agent (#944). Configuration → Board lists the agents the board runs itself;
  *  Configuration → Workflows lists the ones a workflow assigns, stage by stage. Both open
@@ -935,11 +932,7 @@ function Page({
   // owns only the words appended to its runs.
   const writesRule = !agent.file;
   const off = !agent.enabled || schedule?.view?.enabled === false;
-  // In a workflow the one box on the page is where instructions go (#976): the board-wide
-  // rule and who the output is for stay as saved, edited elsewhere.
-  const settings = (inStage ? agent.settings.filter((s) => s.key !== OUTPUT_KEY) : agent.settings).map((setting) =>
-    roleSettingWords(setting, role?.settings?.[setting.key]),
-  );
+  const settings = agent.settings.map((setting) => roleSettingWords(setting, role?.settings?.[setting.key]));
 
   // The page fills the pane and the box you write in takes whatever the rest of it leaves.
   // Everything above the box is fixed-height — who the agent is, and what it runs — so the

@@ -31,9 +31,7 @@ that agent, request each matching agent whose description says it follows it and
 section is missing or says it is waiting.
 
 When an answer selects one of several options in a spec-agent section, remove the rejected
-options and their spec-tmp files. Leave the surviving section in the half that agent's
-`Output` setting names — `akb spec` prints it — so a section only set to agent use goes back
-below the boundary once no unanswered `[user]` question points at it.
+options and their spec-tmp files.
 
 ## Say what the answers did to a build in flight
 

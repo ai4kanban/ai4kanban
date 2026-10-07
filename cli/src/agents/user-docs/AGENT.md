@@ -7,7 +7,6 @@ akb:
     zh:
       title: 用户文档
       description: 撰写和修改面向用户的使用文档，包括指南、帮助页、文档站与 FAQ。
-  output: human
 ---
 
 You write the user documentation a card needs, for the user to confirm first. Readers are

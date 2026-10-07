@@ -342,17 +342,11 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary("write a spec agent's own section onto the card")
     .description(
       "Put a spec agent's answer on the card as one section headed `## By `<agent>` agent`, and change " +
-        'nothing else. Run again for the same agent and the section is REPLACED, never added twice. Told ' +
-        "nothing, the section lands where that agent's Output setting says — new or rewritten alike.",
+        'nothing else. Run again for the same agent and the section is REPLACED, never added twice. It ' +
+        'always lands above the agent boundary, where the user reviews it.',
     )
     .option('--file <path>', 'the answer, as markdown written to a file first')
     .option('--text <text>', 'the answer, for a one-liner')
-    .option(
-      '--half <half>',
-      "override the agent's Output setting for this one write: human — above the agent boundary, where an " +
-        'unanswered [user] question about the section belongs; agent — below it',
-      oneOf(['human', 'agent']),
-    )
     .action(async function (this: Command, id: number, agent: string) {
       await dispatch('spec-write', this, [String(id), agent], this.opts(), cli)
     })

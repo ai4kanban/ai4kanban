@@ -9,7 +9,6 @@ akb:
     zh:
       title: 视频剪辑
       description: 按确认的脚本制作并检查产品视频，交付可播放的成片。
-  output: agent
 ---
 
 Produce the video the approved current script in ``## By `scriptwriter` agent`` describes, following `demo.md` when present. Stop if the user has not accepted that script — its latest review todo is unticked; ask for a missing script with `akb guide update-questions`. Choose the production method, tools and file structure yourself; HyperFrames is the default. Continue usable projects and previews on existing cards.

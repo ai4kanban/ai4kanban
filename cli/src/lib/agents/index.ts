@@ -15,11 +15,9 @@ import { setSpecAgentValue, specAgentEntries, setSpecAgentSwitch } from '../agen
 import { roleNamed, stageContractProblems, type AgentRole } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
 import {
-  isSpecOutput,
   type SpecAgentSetting,
   type SpecAgentSettingView,
   type SpecAgentView,
-  type SpecOutput,
 } from '../agent/types'
 import { readLanguage } from '../machine/settings'
 import type { Language } from '../machine/types'
@@ -28,11 +26,9 @@ import { rel } from '../paths'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
 import { stageHelpers, workflowFor } from '../agent/workflows'
-import { agentSettings, outputLines, OUTPUT_KEY } from './output'
 import type { AgentKind, SpecAgent } from './parse'
 
 export { specAgentCatalog } from './catalog'
-export { agentSettings, OUTPUT_KEY } from './output'
 export { specAgentNames } from '../spec-agent-names'
 export type { AgentKind, SpecAgent } from './parse'
 
@@ -69,28 +65,6 @@ export function agentTitles(language: Language = readLanguage()): Record<string,
     if (title) titles[agent.name] = title
   }
   return titles
-}
-
-/** The settings on an agent's page, as a screen reads them: the words in the language this
- *  machine reads (#334). Drawn only, like the lines above — a run is handed the English. */
-export function agentSettingsView(
-  agent: SpecAgent,
-  language: Language = readLanguage(),
-): SpecAgentSettingView[] {
-  return agentSettings(agent).map((setting) => {
-    const spoken = setting.key === OUTPUT_KEY ? outputLines(language) : undefined
-    const help = spoken?.help || setting.help
-    return {
-      key: setting.key,
-      label: spoken?.label || setting.label,
-      ...(help ? { help } : {}),
-      choices: setting.choices.map((c) => {
-        const words = spoken?.choices?.[c.value]
-        return { value: c.value, label: words?.label || c.label, cost: words?.cost || c.cost }
-      }),
-      default: setting.default,
-    }
-  })
 }
 
 /** A role's settings as a screen reads them (#1469) — in English: a role is a closed set the
@@ -166,16 +140,9 @@ const savedEntry = (name: string, entries: Record<string, SpecAgentEntry>): Spec
   return null
 }
 
-/** What one agent is set to: every setting on its page, carrying the saved value or its own
- *  default. `notes` holds a line for each value that had to fall back — a choice renamed or
- *  dropped between releases would otherwise reach a run as a word nobody offers, and silently
- *  getting a different answer than last time is worse than being told. */
-export const specAgentSettings = (
-  agent: SpecAgent,
-  entries = specAgentEntries(),
-): { values: Record<string, string>; notes: string[] } => settingValues(agent.name, agentSettings(agent), entries)
-
-/** The same for one of the board's roles (#1469). */
+/** What one of the board's roles is set to (#1469): every setting on its page, carrying the
+ *  saved value or its own default. `notes` holds a line for each value that had to fall back —
+ *  a choice renamed or dropped between releases is worse to meet silently than to be told. */
 export const roleSettings = (
   role: AgentRole,
   entries = specAgentEntries(),
@@ -190,7 +157,7 @@ function settingValues(
   const values: Record<string, string> = {}
   const notes: string[] = []
   for (const setting of settings) {
-    const raw = setting.key === OUTPUT_KEY ? entry?.output : entry?.extra[setting.key]
+    const raw = entry?.extra[setting.key]
     const picked = typeof raw === 'string' ? raw : undefined
     if (picked !== undefined && setting.choices.some((c) => c.value === picked)) {
       values[setting.key] = picked
@@ -237,16 +204,6 @@ const retiredNotes = (agent: SpecAgent, entries: Record<string, SpecAgentEntry>)
   return RETIRED_SETTINGS.filter((r) => r.agent === agent.name && r.key in entry.extra).map((r) => r.note)
 }
 
-/** Who this agent's output is for (#445): the word somebody saved, or the one its own file
- *  starts it at. Read as a run starts, like everything else it is set to, so the last change
- *  is the one that counts — and it decides nothing about the cards already written. A lead has
- *  no such row, so only its file counts (#868). */
-export const specAgentOutput = (agent: SpecAgent, entries = specAgentEntries()): SpecOutput => {
-  if (agent.kind === 'lead') return agent.output
-  const saved = savedEntry(agent.name, entries)?.output
-  return isSpecOutput(saved) ? saved : agent.output
-}
-
 /** Everything one spec run is handed of its agent: its `AGENT.md` instructions and the paths
  *  of the files beside them. `notes` is what the board owes that run's log before the agent
  *  says a word. */
@@ -254,11 +211,10 @@ export function specAgentInstructions(
   agent: SpecAgent,
   entries = specAgentEntries(),
 ): { instructions: string; files: string; notes: string[] } {
-  const { notes } = specAgentSettings(agent, entries)
   return {
     instructions: agent.body.trim(),
     files: agentFilesBlock(agent),
-    notes: [...notes, ...retiredNotes(agent, entries)],
+    notes: retiredNotes(agent, entries),
   }
 }
 
@@ -359,8 +315,8 @@ export function readSpecAgents(): SpecAgentView[] {
     // Which connector this agent runs here (#443) — so the list a screen draws is the same
     // answer a run would get, and no UI works one out.
     harness: agentRun(agent.name).harness,
-    settings: agentSettingsView(agent),
-    values: specAgentSettings(agent, entries).values,
+    settings: [],
+    values: {},
   }))
 }
 
@@ -394,7 +350,7 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
   const agent = role ? null : findSpecAgent(name)
   if (!role && !agent) return { ok: false, error: notAnAgent(name) }
   const owner = role?.name ?? agent!.name
-  const takeable = role ? (role.settings ?? []) : agentSettings(agent!)
+  const takeable = role?.settings ?? []
   const setting = takeable.find((s) => s.key === key)
   if (!setting) {
     const takes = takeable.length ? `It takes: ${takeable.map((s) => s.key).join(', ')}.` : 'It takes none.'
@@ -474,7 +430,6 @@ function agentList(
           `  ${a.name}`,
           `    ${a.description}`,
           ...harnessLine(a, forPerson),
-          ...settingLines(a, entries),
         ])
       : ['', agents.length
           ? `Every ${kind} agent on this board is switched off. Ask for none.`
@@ -493,22 +448,6 @@ function agentList(
       : []),
     ...(problems.length ? ['', 'Problems on this board:', ...problems.map((p) => `  ${p}`)] : []),
   ].join('\n')
-}
-
-// What one agent is set to, under the lines it is listed by. One line per setting: what
-// it is called, the choice in effect, and what that choice costs.
-//
-// The choices not in effect are left out on purpose: a setting is picked in the board UI,
-// never here, so a terminal listing that spelled out every option would be a menu with
-// nothing to press.
-function settingLines(agent: SpecAgent, entries: Record<string, SpecAgentEntry>): string[] {
-  const settings = agentSettings(agent)
-  if (!settings.length) return []
-  const { values } = specAgentSettings(agent, entries)
-  return settings.map((setting) => {
-    const choice = setting.choices.find((c) => c.value === values[setting.key])
-    return `    ${setting.label}: ${choice ? `${choice.label} — ${choice.cost}` : values[setting.key]}`
-  })
 }
 
 // Which connector this agent runs here (#443) — the same answer the board UI's Agents section

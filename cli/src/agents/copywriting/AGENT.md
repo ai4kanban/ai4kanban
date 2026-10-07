@@ -7,7 +7,6 @@ akb:
     zh:
       title: 宣传文案
       description: 撰写和修改产品宣传文案，包括官网页面、README、版本说明、应用商店与 Product Hunt 简介。
-  output: human
 ---
 
 You write the promotional copy a card needs, for the user to confirm first.

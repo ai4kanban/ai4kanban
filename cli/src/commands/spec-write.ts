@@ -15,8 +15,7 @@ import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
 import { die, rel, TODO, warn } from '../lib/paths'
-import { findSpecAgent, notAnAgent, specAgentOutput, specHeading, specHeadingRe, specAgentNames } from '../lib/agents'
-import type { SpecOutput } from '../lib/agent/types'
+import { findSpecAgent, notAnAgent, specHeading, specHeadingRe, specAgentNames } from '../lib/agents'
 import type { MoveResult } from '../lib/types'
 
 // The sections a spec agent's own goes in FRONT of. They are the card's tail — what the
@@ -27,21 +26,12 @@ const TAIL_HEADINGS = [/^##\s+Decided by the agent\s*$/i, /^##\s+Source\s*$/i]
 // The line dividing a card's two halves (`akb guide writing`).
 const MARKER = /^<!--\s*agent\s*-->$/
 
-/** Which half the section goes in — the same two words the agent's `Output` setting is set
- *  to (#445), because they are the same answer: who the section is written for. */
-type Half = SpecOutput
-
-/** `akb raw spec-write`, as its command declares it (lib/cli/board.ts). Told no `--half`,
- *  the section lands where that agent's `Output` setting says, whether it is new or a
- *  rewrite — the setting is the answer to who reads it, so a spec agent no longer decides
- *  that for itself. `--half` is for the one case the setting cannot cover: an unanswered
- *  `[user]` question pointing at a section set to `agent`, which is lifted into the card
- *  until that question is answered. An agent's memory is not written here: it edits its own
- *  files directly (#833). */
+/** `akb raw spec-write`, as its command declares it (lib/cli/board.ts). The section always
+ *  lands above the boundary, for the user to review (#1574). An agent's memory is not written
+ *  here: it edits its own files directly (#833). */
 export interface SpecWriteOptions {
   file?: string
   text?: string
-  half?: Half
 }
 
 export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOptions): MoveResult {
@@ -50,14 +40,13 @@ export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOpti
   const name = agent.name
 
   const section = readSection(flags.file, flags.text)
-  const half = flags.half ?? specAgentOutput(agent)
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
 
-  const { body: next, replaced } = splice(body, name, section, half)
+  const { body: next, replaced } = splice(body, name, section)
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + next)
   say(`${replaced ? 'rewrote' : 'wrote'} the \`${name}\` section on #${id} (${rel(file)})`)
   return { id, specAgent: name, replaced, file: rel(file) }
@@ -103,14 +92,14 @@ function readSection(file: string | undefined, text: string | undefined): string
   return spaced
 }
 
-// Put the section on the card, in the half it belongs to. Everything else in the body is
+// Put the section on the card. Everything else in the body is
 // untouched — this is a splice, never a rewrite.
-function splice(body: string, name: string, section: string, half: Half): { body: string; replaced: boolean } {
+function splice(body: string, name: string, section: string): { body: string; replaced: boolean } {
   const lines = body.split('\n')
   const block = [specHeading(name), '', section, '']
   const headings = specAgentNames(name).map(specHeadingRe)
   const at = lines.findIndex((l) => headings.some((heading) => heading.test(l.trim())))
-  if (at < 0) return { body: place(lines, block, half), replaced: false }
+  if (at < 0) return { body: place(lines, block), replaced: false }
 
   // From its heading to whatever comes next — that span is the agent's, and only that
   // span. The boundary marker ends it too: it divides the card, so a section sitting
@@ -118,18 +107,15 @@ function splice(body: string, name: string, section: string, half: Half): { body
   let end = at + 1
   while (end < lines.length && !/^##\s/.test(lines[end]!) && !MARKER.test(lines[end]!.trim())) end++
   const cut = [...lines.slice(0, at), ...lines.slice(end)]
-  return { body: place(cut, block, half), replaced: true }
+  return { body: place(cut, block), replaced: true }
 }
 
-// Where a section goes: above the boundary for the human half, and otherwise in front of the
-// card's tail below it, or at the end. A card with no boundary yet takes it where it has
-// always gone — its next refine places it.
-function place(lines: string[], block: string[], half: Half): string {
+// Where a section goes: right above the boundary. A card with no boundary yet takes it in
+// front of its tail, or at the end — its next refine places it.
+function place(lines: string[], block: string[]): string {
   const marker = lines.findIndex((l) => MARKER.test(l.trim()))
-  if (half === 'human' && marker >= 0) {
-    return [...lines.slice(0, marker), ...block, ...lines.slice(marker)].join('\n')
-  }
-  const tail = lines.findIndex((l, i) => i > marker && TAIL_HEADINGS.some((re) => re.test(l.trim())))
+  if (marker >= 0) return [...lines.slice(0, marker), ...block, ...lines.slice(marker)].join('\n')
+  const tail = lines.findIndex((l) => TAIL_HEADINGS.some((re) => re.test(l.trim())))
   if (tail >= 0) return [...lines.slice(0, tail), ...block, ...lines.slice(tail)].join('\n')
   return `${lines.join('\n').trimEnd()}\n\n${block.join('\n').trimEnd()}\n`
 }

@@ -9,7 +9,6 @@ akb:
     zh:
       title: 封面设计
       description: 按确认的脚本为产品视频做一张封面。
-  output: agent
 ---
 
 Make one cover image for the video the approved current script in ``## By `scriptwriter` agent`` describes, using the cover method its Brief names. Stop if the user has not accepted that script or the Brief names no method; ask for what is missing with `akb guide update-questions`. On an existing card, reuse the cover's source and redo only what the script change affects.

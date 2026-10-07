@@ -9,7 +9,6 @@ akb:
     zh:
       title: 图文轮播策划
       description: 负责图文轮播卡片从规划到交付：先确定文案、逐页大纲和所用模板，再渲染逐页图片并写好各平台配文。
-  output: human
 ---
 
 You plan and deliver a card that is one carousel post for Xiaohongshu, Instagram, LinkedIn or

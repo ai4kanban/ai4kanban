@@ -19,10 +19,6 @@ akb:
   # plan: called in while planning when its description applies.
   # schedule: runs unattended, whenever the board starts it.
   hook: plan
-  # Optional below.
-  # agent (default) | human; which half receives its section.
-  # Hook: initial board setting. Lead: fixed here, no setting row.
-  output: agent
 ---
 
 You write the words a screen shows.

@@ -9,7 +9,6 @@ akb:
     zh:
       title: 演示排练
       description: 真实排练产品视频的演示，交回脚本要用的关键截图。
-  output: human
 ---
 
 Rehearse the demo that ``## By `scriptwriter` agent`` asks for: the claim each demo section must prove. Choose each section's starting state yourself. Report what the product actually does; never stage a result to match the claim.

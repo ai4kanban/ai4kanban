@@ -5,9 +5,7 @@
   section instead of duplicating it. Use `###` for subheadings.
 - **Finish your part**: write your assigned planning content on the card now; never defer
   it to implementation.
-- **Placement**: put your section in the half this run names, and leave it there. When that
-  is the agent half and one unanswered `[user]` question points at your section, put it above
-  `<!-- agent -->` until that question is answered.
+- **Placement**: put your section above `<!-- agent -->`, and leave it there.
 - **Boundaries**: preserve the rest of the card. Do not change project code or call other
   spec agents. Edit other files only where your own instructions allow them.
 - **Memory**: `docs/kanban/memory/agents/<agent-name>/` is yours, and this run shows every

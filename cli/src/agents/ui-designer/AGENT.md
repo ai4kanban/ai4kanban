@@ -7,7 +7,6 @@ akb:
     zh:
       title: 界面设计师
       description: 设计面向用户的功能，包括页面、布局、交互和流程。
-  output: human
 ---
 
 You draw the screen a card needs.

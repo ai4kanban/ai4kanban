@@ -16,7 +16,6 @@ import {
   findSpecAgent,
   roleSettingsBlock,
   specAgentInstructions,
-  specAgentOutput,
   specAgentNames,
   specAgentSelector,
   type SpecAgent,
@@ -263,12 +262,12 @@ export function leadBlock(req: AgentRequest): string {
   const agent = name ? findSpecAgent(name) : null
   if (!agent?.canLead) return ''
   const files = agentFilesBlock(agent)
-  const human = specAgentOutput(agent) === 'human'
+  const human = agent.stage === 'plan'
   return boardText(
     [
       `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
       human
-        ? `Your output is set to be reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show yet, write one line saying so.`
+        ? `Your output is reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show yet, write one line saying so.`
         : '',
       files ? `——— your own files ———\n\n${files}` : '',
     ]
@@ -634,10 +633,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
       const contract = findGuide('spec-agent')?.text.trim()
-      // Who this agent's output is for (#445) — the setting decides, so the run is told the
-      // half rather than judging it. The one exception is in the contract below: a section
-      // an unanswered `[user]` question points at is lifted until that question is answered.
-      const half = agent ? specAgentOutput(agent) : 'agent'
       // What this agent remembers (#421, #833) — after its instructions, so the board's own
       // words end before the agent's do.
       const memory = agent ? agentMemoryBlock(agent) : ''
@@ -648,9 +643,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         [
           `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
           `Card: \`${cardFile}\`. Section: \`\`## By \`${req.specAgent}\` agent\`\`.`,
-          half === 'human'
-            ? 'Your output is set to be reviewed by me: put your section above `<!-- agent -->`, and leave it there.'
-            : 'Your output is set to be read by the agent that builds this: put your section below `<!-- agent -->`, before `## Decided by the agent`.',
           wasCalled.length
             ? `On a card written before this agent was renamed that section is headed ` +
               `${wasCalled.map((was) => '``## By `' + was + '` agent``').join(' or ')} — rewrite that one ` +

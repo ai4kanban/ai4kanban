@@ -7,7 +7,6 @@ akb:
     zh:
       title: 提示词撰写
       description: 撰写和修改 Skill、Agent 提示词等交给 AI 模型执行的指令。
-  output: human
 ---
 
 You write the instruction text a card needs. Your section is the exact edit each target

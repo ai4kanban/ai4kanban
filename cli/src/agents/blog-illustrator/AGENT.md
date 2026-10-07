@@ -9,7 +9,6 @@ akb:
     zh:
       title: 博客配图
       description: 按确认的大纲为博客文章新做封面和正文配图，并写好替代文字。
-  output: agent
 ---
 
 Make the cover and every image the accepted outline in ``## By `blog-planner` agent`` names.

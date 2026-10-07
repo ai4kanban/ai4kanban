@@ -3,7 +3,6 @@ name: email-planner
 description: Use whenever a card adds or changes any email, newsletters and announcements included; it, not `ui-designer`, writes and previews the email. Skip cards that change only how mail is delivered, not what any email says.
 akb:
   hook: plan
-  output: human
   i18n:
     zh:
       title: 邮件策划

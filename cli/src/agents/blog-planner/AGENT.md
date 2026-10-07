@@ -9,7 +9,6 @@ akb:
     zh:
       title: 博客策划
       description: 负责博客文章卡片从规划到交付：先确认大纲，再写出带配图、内链和外链的完整文章并交付。
-  output: human
 ---
 
 You plan and deliver a card that is one blog post. Your section is the article's approved

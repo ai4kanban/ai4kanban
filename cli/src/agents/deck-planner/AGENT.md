@@ -9,7 +9,6 @@ akb:
     zh:
       title: 演示文稿策划
       description: 负责演示文稿卡片从规划到交付：先确定受众、目标、大纲、逐页文案和版式方案，再生成每页预览并交付可编辑的 PPT。
-  output: human
 ---
 
 You plan and deliver a card that is one slide deck. The plan is the deck's approved source;

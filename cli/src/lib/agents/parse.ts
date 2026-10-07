@@ -1,6 +1,5 @@
 // Read and validate an agent’s frontmatter and instructions.
 
-import { isSpecOutput, SPEC_OUTPUTS, type SpecOutput } from '../agent/types'
 import { WORKFLOW_STAGES, type WorkflowStage } from '../agent/workflows'
 import { parseYamlBlock, splitFrontmatter } from './yaml'
 import type { YamlValue } from './yaml'
@@ -29,9 +28,6 @@ export interface SpecAgent {
   /** The new input a scheduled agent runs on (#1475) — `akb.reads`. Absent: it runs on its
    *  cadence alone. */
   reads?: ScheduleReads
-  /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
-   *  the board's own `output` setting starts at, and a lead's for good. `agent` unless `akb.output` says so. */
-  output: SpecOutput
   /** Everything else in its folder, by agent-relative path (#860) — named in every run and
    *  read on demand, so `AGENT.md` can point at long material instead of carrying it. */
   files: string[]
@@ -58,16 +54,6 @@ export interface AgentLines {
   description?: string
 }
 
-/** One setting's user-facing words in another language, keyed by each choice's own `value` —
- *  anything left out falls back to the English the setting declares. Every setting is the
- *  board's own (#1003), so these live beside it (../agents/output.ts) rather than in an
- *  `AGENT.md`. */
-export interface SettingLines {
-  label?: string
-  help?: string
-  choices?: Record<string, { label?: string; cost?: string }>
-}
-
 /** What an agent is: `spec` is a hook — it fills one part of a card's spec, or runs on a
  *  schedule; `lead` runs a workflow's plan or execute stage, its body printed
  *  after the shared flow (#822). */
@@ -84,8 +70,8 @@ const ROLE_LINES = [...WORKFLOW_STAGES.map((stage) => `\`lead: ${stage}\``), '`h
 export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /** Every `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts holds
- *  both written key tables to it. */
-export const AGENT_KEYS = ['lead', 'hook', 'reads', 'output', 'i18n'] as const
+ *  the written key table to it. */
+export const AGENT_KEYS = ['lead', 'hook', 'reads', 'i18n'] as const
 
 /** What `akb.reads` names (#1475): the new input whose arrival makes a scheduled agent due. */
 export const SCHEDULE_READS = ['archived-cards', 'chats', 'dismissals'] as const
@@ -181,21 +167,12 @@ export function parseSpecAgent(
     return bad(`\`${name}\` declares \`akb.reads: ${declaredReads}\` — it is \`${SCHEDULE_READS.join('` or `')}\``)
   }
 
-  // Who its output is for, to start with. A spec agent's is the board's setting from here on;
-  // a lead's stays what its file says (#868). Saying nothing gets `agent`, which is where a
-  // section has always gone.
-  const declaredOutput = str(akb.output)
-  if (declaredOutput && !isSpecOutput(declaredOutput)) {
-    return bad(`\`${name}\` declares \`akb.output: ${declaredOutput}\` — it is \`${SPEC_OUTPUTS.join('` or `')}\``)
-  }
-  const output = isSpecOutput(declaredOutput) ? declaredOutput : 'agent'
-
   const instructions = body.trim()
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
-  // `akb.settings` is read by nothing (#1003). A file on a board that still declares one is
-  // left on the board rather than refused: the key does nothing, and taking the agent away
-  // over a dead line would cost more than it says.
+  // `akb.settings` and `akb.output` are read by nothing (#1003, #1574). A file that still
+  // declares one is left on the board rather than refused: the key does nothing, and taking
+  // the agent away over a dead line would cost more than it says.
 
   return {
     agent: {
@@ -207,7 +184,6 @@ export function parseSpecAgent(
       stage,
       schedule,
       ...(declaredReads ? { reads: declaredReads as ScheduleReads } : {}),
-      output,
       files: list(),
       body: instructions,
       from,
