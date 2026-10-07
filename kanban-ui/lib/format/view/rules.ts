@@ -232,6 +232,7 @@ export function scheduleRefusal(card: Card, action: ScheduledAction): string | n
   if (action === 'implement' && !canImplement(card)) {
     return `#${card.id} is not a card to build${card.isGroup ? ' — a group is built by finishing its subtasks' : ''}.`
   }
+  if (action === 'revise' && allTicked(card)) return `#${card.id} is already built, so there is nothing to revise.`
   return null
 }
 
@@ -245,8 +246,12 @@ export function scheduleRefusal(card: Card, action: ScheduledAction): string | n
  */
 export function scheduleWouldDoNothing(card: Card): boolean {
   if (!card.schedule) return false
-  return card.schedule.action === 'refine' ? !canRefine(card) : !canImplement(card)
+  const { action } = card.schedule
+  if (action === 'revise') return allTicked(card)
+  return action === 'refine' ? !canRefine(card) : !canImplement(card)
 }
+
+const allTicked = (card: Card): boolean => card.todos.total > 0 && card.todos.done === card.todos.total
 
 /** What a scheduled card will do, in one line: `implement · waiting on #57`, or
  *  `refine · queued` once nothing is in its way. Empty on a card with no schedule. */

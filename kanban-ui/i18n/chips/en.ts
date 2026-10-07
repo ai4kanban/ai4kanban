@@ -13,7 +13,7 @@ const en: ChipsCopy = {
   },
   pending: "pending",
   schedule: {
-    action: { implement: "build", refine: "refine" },
+    action: { implement: "build", refine: "refine", revise: "revise" },
     waiting: (action, ids) => `${action} · waiting on ${ids}`,
     queued: (action) => `${action} · queued`,
   },

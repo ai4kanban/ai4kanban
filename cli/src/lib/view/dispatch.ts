@@ -226,8 +226,10 @@ export function setBoardSchedule(key: BoardScheduleKey, next: { enabled: boolean
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
 // words a run is started by, so it carries straight over. The notes typed when it was
 // scheduled ride along and reach the agent.
+const RUN_FOR = { implement: 'implement', revise: 'edit' } as const
+
 const scheduledRequest = (card: Card): AgentRequest => ({
-  action: card.schedule!.action === 'refine' ? refinementStep(card) as 'clarify' : 'implement',
+  action: card.schedule!.action === 'refine' ? refinementStep(card) as 'clarify' : RUN_FOR[card.schedule!.action],
   id: card.id,
   title: card.title,
   notes: card.schedule!.notes || undefined,

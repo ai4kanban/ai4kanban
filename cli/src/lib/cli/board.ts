@@ -35,6 +35,9 @@ import {
 } from './shared'
 import { Option } from 'commander'
 
+// A new card has nothing to revise yet.
+const CREATE_SCHEDULES = SCHEDULED_ACTIONS.filter((a) => a !== 'revise')
+
 /** What the door hands in — see `runBoard`. */
 export interface BoardCliOptions {
   program: string
@@ -176,8 +179,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--source <ref>', "where it came from: a plan's path, plan:<id>, #<id> or a URL. Repeatable", collect)
     .option(
       '--schedule <action>',
-      `hand the new card's first run to the board: ${SCHEDULED_ACTIONS.join(' | ')}`,
-      oneOf(SCHEDULED_ACTIONS),
+      `hand the new card's first run to the board: ${CREATE_SCHEDULES.join(' | ')}`,
+      oneOf(CREATE_SCHEDULES),
     )
     .action(async function (this: Command) {
       refuseRecurring(this)

@@ -22,7 +22,7 @@ import { yamlScalar, unquote } from './yaml'
 import type { CardSchedule, ScheduledAction } from './view/types'
 
 /** The actions a card can be scheduled for, in the words the card and the messages use. */
-export const SCHEDULED_ACTIONS: ScheduledAction[] = ['implement', 'refine']
+export const SCHEDULED_ACTIONS: ScheduledAction[] = ['implement', 'refine', 'revise']
 
 /** One action name as the board writes it, or null when it isn't one the board can start.
  *  Null is what a damaged or hand-typed line gives, and it means the card is simply not

@@ -13,7 +13,7 @@ const zh: ChipsCopy = {
   },
   pending: "排队中",
   schedule: {
-    action: { implement: "执行", refine: "细化" },
+    action: { implement: "执行", refine: "细化", revise: "修订" },
     waiting: (action, ids) => `${action} · 等待 ${ids}`,
     queued: (action) => `${action} · 排队中`,
   },

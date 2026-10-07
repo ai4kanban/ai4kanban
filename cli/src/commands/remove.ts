@@ -14,7 +14,7 @@ import { insideRun } from '../lib/agent/env'
 import { withCreationLock } from '../lib/agent/creation-lock'
 import { withBoardLock } from '../lib/lock'
 import { creationRefusal, planDeliverables, planDeliveryGap } from '../lib/view/rules'
-import { findCard } from '../lib/view/read'
+import { allCards, findCard } from '../lib/view/read'
 import { recordCompletion } from '../lib/view/cheer'
 import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, REPO_ROOT } from '../lib/paths'
@@ -146,6 +146,61 @@ function stampLeaving(cards: { id: number; file: string }[], rejection: Rejectio
   }
 }
 
+// ---- revise the cards that waited on it (#1578) ----------------------------
+
+// A leaving card as a waiting card's revise note names it.
+interface Leaver {
+  id: number
+  title: string
+  archived: string
+}
+
+function leavers(cards: { id: number; file: string }[], found: Found, dest: string | null): Leaver[] {
+  if (!dest) return []
+  return cards.map((card) => {
+    const { meta } = parseFrontmatter(fs.existsSync(card.file) ? fs.readFileSync(card.file, 'utf8') : '')
+    const archived = card.file === found.target ? dest : path.join(dest, path.relative(found.target, card.file))
+    return { id: card.id, title: meta?.title ?? '', archived: rel(archived) }
+  })
+}
+
+function reviseNote(card: Leaver, metric: Metric): string {
+  const named = `#${card.id} ${JSON.stringify(card.title)}`
+  return metric === 'completed'
+    ? `${named} was archived (${card.archived}). Check this card against what it shipped and update whatever it assumed about it; change nothing if the card still holds.`
+    : `${named} was rejected (${card.archived}). Remove what this card relied on from it; if the card cannot stand without it, ask the user an open question instead.`
+}
+
+// The open cards waiting on a leaving card, read before `dropCrossRefs` forgets the link.
+// A card being built, being created or held by a delivery is left alone.
+function waitingCards(gone: Leaver[]): { id: number; relPath: string; on: Leaver[] }[] {
+  if (!gone.length) return []
+  const runs = readRuns()
+  return allCards().flatMap((card) => {
+    const on = gone.filter((g) => card.blocked_by.includes(g.id))
+    if (!on.length || card.creation || heldByDelivery(card.id)) return []
+    if (runs.some((r) => r.cardId === card.id && r.sessionId !== insideRun() && runIsLive(r))) return []
+    return [{ id: card.id, relPath: card.relPath, on }]
+  })
+}
+
+// Queue a revise on each waiting card, or append to the run it already has queued: the
+// action stays, and that run reads the note before it does anything else.
+function queueRevisions(waiting: { id: number; relPath: string; on: Leaver[] }[], metric: Metric): { id: number; action: string }[] {
+  const done: { id: number; action: string }[] = []
+  for (const w of waiting) {
+    const file = path.join(TODO, w.relPath)
+    if (!fs.existsSync(file)) continue
+    const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+    if (!meta) continue
+    const notes = [meta.schedule?.notes, ...w.on.map((g) => reviseNote(g, metric))].filter(Boolean).join('\n')
+    meta.schedule = { action: meta.schedule?.action ?? 'revise', notes }
+    fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+    done.push({ id: w.id, action: meta.schedule.action })
+  }
+  return done
+}
+
 export interface RemoveOptions {
   /** This removal is the board closing a group root under its last subtask (#299). The
    *  root's own enclosing group is not chased any further, and no memory note is asked
@@ -259,6 +314,7 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   const groupRoot = found.kind === 'file' && !options.closing ? enclosingGroupRoot(found.target) : null
   // The last write the cards get, and it has to happen before the move: after it there is
   // no card under `todo/` left to write.
+  const gone = options.cleanupDiscarded ? [] : leavers(leaving, found, dest)
   if (dest) {
     stampLeaving(leaving, metric === 'rejected' ? { reason: options.reason?.trim() ?? '', discard: options.discard === true } : null)
     fs.mkdirSync(ARCHIVE, { recursive: true })
@@ -275,7 +331,9 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   }
   // The card is off the board now, so every blocked_by/related pointing at it is stale.
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
+  const waiting = waitingCards(gone)
   const unlinked = [...new Set(leftIds.flatMap((gone) => dropCrossRefs(gone)))]
+  const revisions = queueRevisions(waiting, metric)
   const droppedChats = dropChats(leftIds, metric === 'completed')
   if (!options.cleanupDiscarded) {
     bumpMetric(metric)
@@ -296,6 +354,9 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   else say('  no README entry (subtask or untracked)')
   if (marked) say(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot!)}`)
   for (const card of unlinked) say(`  unlinked #${id} from ${card}`)
+  for (const r of revisions) {
+    say(r.action === 'revise' ? `  queued a revise of #${r.id}` : `  added #${id}'s outcome to the ${r.action} queued on #${r.id}`)
+  }
   for (const chatId of droppedChats) say(`  forgot the conversation about #${chatId}`)
   // The group closes with its last subtask (#299). Taken before the mentions below, so a
   // sentence in a root that left with this card is never handed over to be rewritten.
@@ -308,16 +369,17 @@ function removeCard(id: number, metric: Metric, options: RemoveOptions): MoveRes
   // the shipped line, and the sentences other cards wrote about an id that just left the
   // board. A rejection hands neither over — the rejection review learns from its reason, and
   // a stale sentence is fixed when its card is next refined (#1497).
-  const gone = closed?.archived_to ? [id, closed.id] : [id]
+  const named = closed?.archived_to ? [id, closed.id] : [id]
   const handsOver = !options.closing && metric === 'completed'
-  const mentions = handsOver ? findMentions(gone) : []
-  const note = handsOver ? printHandoff(gone, cardMeta, mentions) : null
+  const mentions = handsOver ? findMentions(named) : []
+  const note = handsOver ? printHandoff(named, cardMeta, mentions) : null
   return {
     id,
     action: metric === 'completed' ? 'archived' : 'rejected',
     card: found.rel,
     archived_to: dest ? rel(dest) : null,
     unlinked,
+    revisions,
     also_removed: alsoRemoved,
     chats_removed: droppedChats,
     // The group this card's departure closed, or the rule that kept a finished-looking root

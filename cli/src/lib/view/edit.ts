@@ -17,7 +17,7 @@ import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { repointReadmeLink } from '../readme'
 import { setSubtreeRelease, validRelease } from '../releases'
 import { cardCreation } from '../agent/store'
-import { normalizeSchedule } from '../schedule'
+import { normalizeSchedule, SCHEDULED_ACTIONS } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
 import { findCard } from './read'
 import { canRefine, creationRefusal, scheduleRefusal } from './rules'
@@ -86,7 +86,8 @@ export function patchCard(id: number, patch: CardPatch): void {
 export function setCardSchedule(id: number, schedule: CardSchedule | null): CardSchedule | null {
   if (!Number.isInteger(id)) die('a card is scheduled by its number', 'bad-id')
   const wanted = normalizeSchedule(schedule)
-  if (schedule && !wanted) die('a schedule names the action to run: implement or refine', 'bad-schedule')
+  if (schedule && !wanted) die(`a schedule names the action to run: ${SCHEDULED_ACTIONS.join(', ')}`, 'bad-schedule')
+  if (wanted?.action === 'revise' && !wanted.notes) die('a revise needs notes saying what to revise', 'bad-schedule')
   const found = locate(id)
   if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
   // A run queued onto a card still being created would fire on half a plan (#564). Both

@@ -63,10 +63,11 @@ export interface CardRef {
 
 /** The action a card can be scheduled to run once nothing is standing in its way.
  *
- *  The two the board runs on a one-shot card without stopping for anybody: `implement`
- *  builds it, `refine` sharpens its plan. Resolve is not one — it waits on the user's
- *  answers, so a run nobody is watching would only sit there. */
-export type ScheduledAction = 'implement' | 'refine'
+ *  The ones the board runs on a one-shot card without stopping for anybody: `implement`
+ *  builds it, `refine` sharpens its plan, `revise` rewrites it by its notes (#1578). Resolve
+ *  is not one — it waits on the user's answers, so a run nobody is watching would only sit
+ *  there. */
+export type ScheduledAction = 'implement' | 'refine' | 'revise'
 
 /** What a card is waiting to do, once the last card in its way leaves the board.
  *
