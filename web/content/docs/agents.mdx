@@ -48,6 +48,8 @@ choice only you can make, it leaves an open question on the card.
 - **`prompt-writer`** — instructions an AI model follows: skills and agent prompts.
 - **`email-planner`** — every email the card adds or changes, previewed on desktop and mobile.
 - **`user-docs`** — the user documentation the card changes.
+- **`competitor-research`** — on a card that adds a feature or reworks a core flow, compares how
+  the closest competitors do it with your design in one short table. Ask for it on any card.
 - **`demo-rehearser`** — Product video only: rehearses each demo for real and shows the results.
 - **`hyperframes-editor`** — Product video only: makes the film once you approve the script.
 - **`cover-designer`** — Product video only: makes the video's cover.
@@ -79,8 +81,8 @@ follows them.
 - **Create one**: press **+** in **Configuration → Global memory**, then fill in its name,
   description and rules. It is kept in `docs/kanban/memory/<name>/`.
 - **Let an agent use it**: add `memory: [<name>]` under `akb:` in the agent's `AGENT.md`.
-- **Built-in**: **Competitors** ships with the board, one file per competitor. Its rules
-  update with each release and can't be edited.
+- **Built-in**: **Competitors** ships with the board, one file per competitor, kept by
+  `competitor-research`. Its rules update with each release and can't be edited.
 - **Delete**: on its page, removes the folder and everything in it.
 
 ## Let the memory review remember for you
