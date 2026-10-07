@@ -1,0 +1,36 @@
+{
+  "subject": "AI4Kanban 0.10.0 — Build sooner, catch gaps",
+  "preheader": "Start small features sooner, let agents check completed work, and sort ideas with Jev before planning.",
+  "eyebrow": "AI4KANBAN 0.10.0",
+  "headline": "Build sooner. Catch gaps.",
+  "intro": "Update to 0.10.0 to start small features with less planning, schedule QA and follow-ups, and sort ideas before deciding what to build.",
+  "hero": {
+    "src": "https://cdn.ai4kanban.dev/newsletter/0.10.0/ui-hero-v3.jpg",
+    "alt": "AI4Kanban’s recurring QA manager and Triage screens."
+  },
+  "highlights": [
+    {
+      "label": "LIGHTER PLANNING",
+      "title": "Start small features sooner",
+      "body": "Small features can now move from discussion straight to implementation. Follow-ups and QA run on a recurring schedule instead of adding work to every card’s planning stage. Task breakdowns and visual specs are still available when you need them, while background agents look for gaps once the work is complete. In our small, single-run, unattended 0.10.0 test, AI4Kanban’s development workflow cost 1.1–2.1 times as much as completing the same tasks directly with Claude Code. Including one background QA run brought the total to about 1.8–2.6 times the Claude Code baseline."
+    },
+    {
+      "label": "ONGOING CHECKS",
+      "title": "Let agents check completed work",
+      "body": "When several agents build at once, keeping up with their work can become the bottleneck. The QA manager runs on a schedule, checks user-facing changes in completed tasks, and updates repeatable test cases with evidence and feedback. It sends bugs to Triage for review, so you can work from documented findings instead of starting every check from scratch."
+    },
+    {
+      "label": "TRIAGE BEFORE PLANNING",
+      "title": "Sort ideas with Jev before you plan",
+      "body": "Suppose you have collected 50 ideas from the internet. You can put them in Triage without planning all 50. Triage brings ideas, suggested follow-up work, and QA findings together before they become tasks. Pro’s Auto-sort uses Jev to assess which items are worth pursuing and which to dismiss, leaving uncertain cases for you to decide. That gives you a shorter list to review before committing to detailed plans."
+    }
+  ],
+  "cta": {
+    "label": "Get 0.10.0",
+    "href": "https://ai4kanban.dev/download"
+  },
+  "releaseNotes": {
+    "label": "Read the 0.10.0 release notes",
+    "href": "https://github.com/ai4kanban/ai4kanban/releases/tag/v0.10.0"
+  }
+}
