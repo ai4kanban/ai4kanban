@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**你掌舵，AI 带队。**<br>从产品开发到内容营销，<br>AI 项目经理替你带好 Agent 团队，让你一个人也能推进更大的项目。
+**你把关关键点，Agent 完成其余工作。**<br>先看草稿、定好方向，再交给 Agent 执行。
 
 [![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-24231f?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-24231f?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
 
@@ -12,86 +12,80 @@
 
 </div>
 
-一个人，也能带起一支团队。AI4Kanban 是你的 AI 项目经理，替你安排 Agent 的工作、跟进执行、把关成果。你专注方向和关键决策，腾出精力推进更大的项目。
+AI4Kanban 帮你同时推进更多工作：Agent 先把需要你拍板的部分做成草稿，你审过后，它再完成任务。它还会记住你的偏好，主动跟进后续工作。
 
-## 我们的哲学
+## 我们要解决的问题
 
-让人在每一个项目任务上投入的精力最小化。
+AI Agent 已经让一个人的工作效率提高了 10 倍。AI4Kanban 的目标，是在这个基础上，把**效率再提高 10 倍**。
 
-我们的目标，是让你驾驭十倍规模的 AI Agent 团队，推进十倍规模的项目。为此，AI 不仅要执行任务，还要接手团队的协调、跟进和检查，把你的精力留给方向、关键决策和成果验收。
+好的 Agent 能把一个明确的需求做好。但当执行变快，新的瓶颈就出现了：人来不及规划。你需要不断提出想法、明确要求，把它们变成 Agent 能执行的计划，才能让更多工作同时推进。
 
-AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
-
-## 它是如何工作的
+AI4Kanban 要解决的，就是这个问题。
 
 <p align="center">
-<img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding、中间层工具与 kanban coding">
+<img src="https://cdn.ai4kanban.dev/readme/bottleneck-zh-v1.gif" width="680" alt="瓶颈从执行前移到规划">
 </p>
 
-1. 你可以把 AI4Kanban 当做是一个项目经理，一个中层管理。它是人和 Agent 之间的桥梁。
+## 我们的解法
 
-2. 首先 AI4Kanban 会给每一个用户输入的模糊想法创建一张卡片。接着我们会通过 refine 流程去将卡片进行澄清、拆解与规划。
+### 1. 先草稿，再执行
 
-3. 如果单个 spec 太长，需要考虑的问题太多，我们会把一张卡片再拆解成子卡片；每个子卡片又可以递归拆解，直到单张卡片上的问题足够具体、可落地。
+要同时推进很多工作，你就不能盯着每一个细节。你需要把精力放在关键点上：哪些地方必须按你的想法来，不能让 Agent 自己决定。
 
-4. 我们会通过类似于 [grill-me](https://github.com/mattpocock/skills) 或 [wayfinder](https://github.com/mattpocock/skills) 的流程，让 Agent 自己提出问题，并且自己进行回答，一直循环到它认为整个方案没有重大缺漏了为止。如果有一些重大的产品决策，涉及品味、产品方向和商业考量等，Agent 会请求人类做出决策。
+AI4Kanban 会先把这些部分做成草稿，让你在执行前就能判断方向对不对。
 
-5. 通常大部分的产品细节，我们允许 Agent 自行作答，最后交给人类决策的，往往只有两三个问题。规划在卡片就绪或应用完你的回答后就停下；开发由你发起，并且总是在单独的会话里进行。
+| 辅助 Agent | 负责什么 | 你先审什么 |
+| --- | --- | --- |
+| `ui-designer` | 界面布局与交互 | 界面原型 |
+| `prompt-writer` | Skill、Agent 提示词等模型指令 | 提示词修改 diff |
+| `copywriting` | 官网、README、版本说明等宣传文案 | 文案草稿 |
+| `email-planner` | 新增或修改的邮件 | 桌面和手机上的邮件预览 |
 
-6. 每张卡片会被拆分为两部分：一部分交给人类 review，另一部分是 Agent 需要参照的执行计划。人类 review 的部分更像是一个简报，它只包含一些需要被人类关注的部分。
+以上是部分辅助 Agent，完整名单和分工见 [Agent 文档](https://ai4kanban.dev/docs/agents)。
 
-7. 简单来说，人类所需要做的就是提出想法，做选择题，最后 review 极扼要的简报。剩下的事情全都交给 AI。
+你只审这些关键点。方向定下来后，其余细节交给 Agent，在你给定的范围内自行处理。
+
+### 2. 多智能体，持续学习
+
+不同的工作，需要把关的地方也不同。AI4Kanban 内置 5 类工作流、10+ Agent，分工处理各自负责的部分。
+
+比如，UI 设计师负责起草界面原型。你每次提出修改意见，它都会记下来，用在后续设计中。随着合作增多，它会越来越了解你的偏好，你也不用反复解释同样的要求。
+
+### 3. 智能体自主跟进细节
+
+一个人同时推进很多开发任务，难免漏掉一些设计或测试。AI4Kanban 的后台 Agent 会定期回顾进展，提出需要跟进的工作；质检员 Agent 会测试近期改动，从用户的角度找出问题。
+
+这些遗漏不用全靠你自己发现。Agent 会帮你找出来，提出建议，交给你决定下一步。
+
+### 4. 基础能力：任务管理与 Agent 调度
+
+要让多个 Agent 同时工作，还需要把任务和执行安排好。AI4Kanban 提供任务拆解、优先级、任务信息和状态管理，以及定时任务、事件通知、Git worktree 并行执行和冲突处理。
+
+这些基础工作由 AI4Kanban 管起来，你就能把更多精力放在想法、方向和关键决策上。
 
 ![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
 
-## 看板就是团队大脑
+## 快速开始
 
-- 你的每一个决策都会被记录到项目的记忆中。规划 Agent 会按需读取。
+1. [下载桌面端](https://ai4kanban.dev/zh/download)，打开你的项目，看板会建在项目的 `docs/kanban/` 下。
+2. 写下一个想法。Agent 开始规划，把需要你审的草稿和问题推给你。
+3. 审完草稿，Agent 动手实现；做完后，它会提出值得继续的后续工作。
 
-- 从零开始的项目通常只有一个模块，所有记忆都会放在这个模块里。随着项目演进，一个项目中可能包含多个独立进化的模块，它们的记忆也会被自动拆分。这样，每个模块的改动和决策都只会影响对应模块的记忆。
+偏好命令行，也可以在项目里运行 `npx ai4kanban@latest install`。
 
-- 看板是所有团队成员的共享工作区，所有人共享所有的记忆。
-
-## Harness 无关
-
-- 我们支持 8 个常见的 Harness。如果你所使用的 Harness 不在我们的列表中，请创建 issue 告诉我们，这对我们非常有帮助。
+## 支持的 Harness
 
 ![AI4Kanban 支持的 8 个 Harness](https://cdn.ai4kanban.dev/readme/harnesses-v1.png)
 
-- 所有 Harness 都运行在你自己的电脑上，这意味着你可以使用自己的 AI 订阅。我们不额外收取任何 token 费用。
-
-- 每个 Agent 都可以配置各自的 Harness 和模型，考虑到不同角色所需的智能等级不同。
-
-- 我们建议你使用至少一个 200 美金的月度 AI 订阅。用上 AI4Kanban 之后，你的使用限额会以非常高效的方式耗光。
-
-- 如果你同时订阅了 OpenAI 和 Claude，我们建议用 Fable 做规划，用 GPT 做讨论，用 Opus 做编码。
-
-- 支持 Skill 和 CLI，你可以按照自己的喜好打造专属你的看板 UI，符合你的习惯。
-
-## 异步通知
-
-- 当你拥有了一个 AI 项目经理，你不需要再盯着 Coding Agent 干活。AI4Kanban 会把进度汇报给你，在你需要做决策的时候告诉你。
-
-- 基于最小精力原则，每个通知里只会包含必要信息。
-
-- 我们支持桌面通知，以及 Slack 通知。其他 IM 工具的支持后续会陆续提供。
+- **8 个常见 Harness**：你用的不在列表里，欢迎提 issue 告诉我们。
+- **用你自己的订阅**：所有 Harness 都跑在你的电脑上，我们不额外收取 token 费用。
+- **按角色配模型**：每个 Agent 可以单独选择 Harness 和模型。
 
 ## 开源协议
 
 - 桌面端、`akb` CLI、看板 UI 与 Cloud 服务端都按 [Apache-2.0](LICENSE) 授权。
-
 - [`web/`](web/) 目录采用单独的[源码可见许可](web/LICENSE)。它公开是为了可读、可审计，但不是开源许可，不授予部署或再分发的权利。
 
-## 独立开发者：拓展你的大脑
+## 联系我们
 
-所有人都说，营销和分发是创业者最重要的事。但实际中，许多项目在开发上就至少需要 3 个月，甚至一年，才能真正被用户使用。否则，它们始终会停留在 demo 阶段，或者只能作为极其细分的产品，缺乏远见和产品竞争力。这种情况该谈何营销？
-
-AI4Kanban 致力于帮助独立开发者和小团队：
-
-- 在 2–3 周内完成一个生产可用的产品；
-- 在 30 天内单人完成 500 个提交；
-- 每周完成一次大的版本迭代。
-
-让你的产品在最短时间内，以一个构思完整、闭环的形态面向市场，这样用户不会被因为你的产品缺陷而失去兴趣。
-
-如果你的产品在使用 AI4Kanban 之后无法实现这个迭代速度，我们很乐意为你提供 60 分钟的上手指导。欢迎联系 [support@ai4kanban.dev](mailto:support@ai4kanban.dev)。
+使用中遇到问题，欢迎提 issue，或写信到 [support@ai4kanban.dev](mailto:support@ai4kanban.dev)。
