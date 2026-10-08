@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**You set the direction. AI leads the team.**<br>From product development to content marketing,<br>your AI project manager leads your agents so you can take on bigger projects.
+**You review what matters. Agents do the rest.**<br>See the drafts and set the direction before agents build.
 
 [![Download for macOS](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/download) [![Download for Windows](https://img.shields.io/badge/Windows-24231f?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/download) [![Download for Linux](https://img.shields.io/badge/Linux-24231f?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/download)
 
@@ -12,86 +12,80 @@
 
 </div>
 
-One person. A whole team behind you. AI4Kanban is your AI project manager: it assigns work to your agents, tracks progress, and reviews results. You focus on direction and key decisions, with more room to take on bigger projects.
+AI4Kanban helps you move more work forward at once. Agents first draft the parts you need to decide on, then finish the task once you've reviewed them. They also remember your preferences and suggest follow-up work.
 
-## Our philosophy
+## The problem we solve
 
-Make every task demand less of your time and attention.
+AI agents have already made one person 10× more productive. AI4Kanban aims to multiply that by **another 10×**.
 
-Our goal is to help you manage 10× larger AI agent teams and take on projects 10× the size. That means AI taking on coordination, follow-ups, and reviews alongside execution, leaving you free to focus on direction, key decisions, and final approval.
+A good agent does a well-defined task well. But as execution gets faster, a new bottleneck appears: people can't plan fast enough. To keep more work moving at once, you have to keep coming up with ideas, pin down requirements, and turn them into plans agents can carry out.
 
-Our early adopters report 3–6× higher development productivity.
-
-## How it works
+That is the problem AI4Kanban solves.
 
 <p align="center">
-<img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding, the middle of the curve, and kanban coding">
+<img src="https://cdn.ai4kanban.dev/readme/bottleneck-en-v1.gif" width="680" alt="The bottleneck moves from execution to planning">
 </p>
 
-1. Think of AI4Kanban as your project manager. It coordinates your agents so you don’t have to babysit them.
+## How we solve it
 
-2. AI4Kanban turns each rough idea into a card. The `refine` workflow clarifies the requirements, breaks down the task, and produces a plan.
+### 1. Draft first, then build
 
-3. If a plan gets too long or has too many open questions, the card is broken into subtasks. Those can be broken down further until each card describes a concrete, actionable task.
+To move many things at once, you can't watch every detail. Your attention belongs on the key points: the parts that must follow your judgment, not the agent's.
 
-4. The agent tests the plan by asking questions, much like [grill-me](https://github.com/mattpocock/skills) or [wayfinder](https://github.com/mattpocock/skills). It raises questions, finds answers, and repeats until it sees no major gaps. Decisions about taste, product direction, or business priorities come back to you.
+AI4Kanban drafts these parts first, so you can tell whether the direction is right before anything gets built.
 
-5. Agents work out most product details themselves, usually leaving just 2–3 questions for you per task. Planning stops once the card is ready or your answers are applied; you start the build, and it always runs in a session of its own.
+| Helper agent | What it covers | What you review first |
+| --- | --- | --- |
+| `ui-designer` | Screen layout and interaction | UI mockups |
+| `prompt-writer` | Skills, agent prompts, and other model instructions | Prompt diffs |
+| `copywriting` | Promotional copy for the website, README, and release notes | Copy drafts |
+| `email-planner` | New or changed emails | Email previews on desktop and mobile |
 
-6. Each card has two parts: a human brief with only what needs your attention, and an agent execution plan.
+These are some of the helper agents. See the [agent docs](https://ai4kanban.dev/docs/agents) for the full list.
 
-7. You bring the ideas, make the choices, and review a short brief. AI does the rest.
+You review only these key points. Once the direction is set, agents handle the remaining details within the bounds you gave them.
+
+### 2. Specialist agents that keep learning
+
+Different work needs different checks. AI4Kanban comes with 5 workflows and 10+ agents, each handling its own part.
+
+For example, the UI designer drafts mockups. It remembers every revision you ask for and applies it to later designs. The more you work together, the better it knows your preferences, so you don't have to repeat yourself.
+
+### 3. Agents follow up on the details
+
+When one person drives many tasks at once, some design or testing work is bound to slip. AI4Kanban's background agents review progress regularly and suggest follow-up work, and the QA agent tests recent changes to find problems from a user's point of view.
+
+You don't have to catch every gap yourself. Agents find them, make suggestions, and leave the next step to you.
+
+### 4. The foundation: task management and agent scheduling
+
+Coordinating multiple agents takes task management and agent scheduling. AI4Kanban handles task breakdown, priorities, task lifecycle management, scheduled tasks, notifications, parallel runs in Git worktrees, and conflict resolution.
+
+With that groundwork handled, you can spend more of your attention on ideas, direction, and key decisions.
 
 ![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
 
-## Your team’s shared brain
+## Quick start
 
-- Every decision is saved in project memory. Planning agents read it as needed.
+1. [Download the desktop app](https://ai4kanban.dev/download) and open your project. The board lives in your project's `docs/kanban/`.
+2. Write down an idea. Agents start planning and send you the drafts and questions to review.
+3. Once you've reviewed the drafts, agents build it, then suggest follow-up work worth doing.
 
-- New projects usually start with one module that holds all project memory. As modules grow and evolve independently, their memory is auto-splitted, so each module’s changes and decisions affect only its own memory.
+Prefer the command line? Run `npx ai4kanban@latest install` in your project.
 
-- Everyone on the team works from the same board and has access to the same project memory.
-
-## Harness-agnostic
-
-- We support 8 harnesses. Don’t see yours? Open an issue to help us prioritize support.
+## Supported harnesses
 
 ![The 8 harnesses AI4Kanban supports](https://cdn.ai4kanban.dev/readme/harnesses-v1.png)
 
-- Harnesses run on your computer using your own AI subscriptions. We charge no additional token fees.
-
-- Choose a harness and model for each agent to match the demands of its role.
-
-- We recommend at least one $200/month AI subscription. With AI4Kanban, you will hit the usage limits very effectively 😉.
-
-- If you subscribe to both OpenAI and Claude, we recommend Fable for planning, GPT for discussion, and Opus for coding.
-
-- You can also work with the board through the skill and CLI, or build a custom UI that fits your workflow.
-
-## Stay up to date without watching every run
-
-- You don’t need to watch your coding agents work. AI4Kanban keeps you posted and notifies you when it needs a decision.
-
-- Notifications contain just what you need to know.
-
-- Get notifications on your desktop or in Slack. More IM integrations are planned.
+- **8 popular harnesses**: Don't see yours? Open an issue to let us know.
+- **Your own subscriptions**: Every harness runs on your computer. We charge no additional token fees.
+- **A model for each role**: Choose the harness and model for each agent.
 
 ## License
 
 - The desktop app, the `akb` CLI, the board UI, and the Cloud service are all licensed under [Apache-2.0](LICENSE).
+- [`web/`](web/) carries its own [source-available license](web/LICENSE). You can read and audit the code, but it is not an open-source license and does not permit deployment or redistribution.
 
-- [`web/`](web/) carries its own [source-available license](web/LICENSE). You can read and audit the code, but the license does not permit deployment or redistribution.
+## Contact us
 
-## Solo developers, scale your brain
-
-Founders are told to focus on marketing and distribution. But it can take 3–12 months to build a product users want. Until then, many projects remain demos or very niche tools that aren’t developed enough to compete. How can marketing help at that stage?
-
-AI4Kanban aims to help solo developers and small businesses:
-
-- Build a production-ready product in 2–3 weeks.
-- Make 500 commits per person in 30 days.
-- Ship a major release every week.
-
-Launch sooner with a coherent product that users can use from start to finish, so their feedback tells you whether the idea works—not just what’s broken or missing.
-
-If you’re using AI4Kanban and struggling to ship at that pace, we’d be happy to help with a 60-minute onboarding session. Contact us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
+Questions or problems? Open an issue or email [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
