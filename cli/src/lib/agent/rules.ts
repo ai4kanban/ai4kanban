@@ -23,7 +23,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { rel, RULES } from '../paths'
-import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
+import { canonicalSpecAgent, FOLDED_SPEC_AGENTS, specAgentNames } from '../spec-agent-names'
 import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import { agentNames, hiddenRole, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
@@ -224,7 +224,8 @@ export function migrateFlowRules(): string[] {
 
 // A rule is saved under the agent's name, so an agent renamed between releases would leave
 // its file behind. Move it onto the new name, once, and only when nothing is saved there
-// yet — the file under the current name is the one the user last wrote.
+// yet — the file under the current name is the one the user last wrote. A folded agent's rule
+// is appended to the one already there instead.
 const RENAMED_ROLES: Record<string, string> = { 'product-writer': 'project-writer' }
 
 function adoptRenamedRules(): void {
@@ -238,9 +239,15 @@ function adoptRenamedRules(): void {
     if (!file.endsWith('.md')) continue
     const was = file.slice(0, -'.md'.length)
     const now = RENAMED_ROLES[was] ?? canonicalSpecAgent(was)
-    if (now === was || fs.existsSync(rulePath(now))) continue
+    if (now === was) continue
     try {
-      fs.renameSync(rulePath(was), rulePath(now))
+      if (!fs.existsSync(rulePath(now))) fs.renameSync(rulePath(was), rulePath(now))
+      else if (FOLDED_SPEC_AGENTS.has(was)) {
+        const kept = ruleFile(now)
+        const carried = ruleFile(was)
+        if (carried && !kept.includes(carried)) fs.writeFileSync(rulePath(now), `${[kept, carried].filter(Boolean).join('\n\n')}\n`)
+        fs.rmSync(rulePath(was), { force: true })
+      }
     } catch {
       // Never fatal: the read goes on with whatever is under the current name.
     }

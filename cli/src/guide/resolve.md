@@ -21,14 +21,17 @@ akb raw update-questions <id> --drop <n[,n...]>
 When an answer accepts a step the user was asked to review and asks for no changes, tick that
 step's review todo; an answer asking for changes leaves it unticked.
 
-Once no question is left and no delivery is building the card, judge whether it can now be
-built as written: if so, run `akb raw update <id> --status ready`; otherwise leave it in To do
-and say what still needs planning.
-
 When an answer sends an agent's (`agent:`) section back for rework that the user must confirm
 again, keep or `--update` the question instead of dropping it. Once no question is left for
 that agent, request each matching agent whose description says it follows it and whose
 section is missing or says it is waiting.
+
+When an answer approves an agent's draft and that agent has a next stage, run
+`akb spec <agent> <id>` for it, choosing the session as `akb guide refine` says.
+
+Once no question is left and no delivery is building the card, judge whether it can now be
+built as written: if so, run `akb raw update <id> --status ready`; otherwise leave it in To do
+and say what still needs planning.
 
 When an answer selects one of several options in a spec-agent section, remove the rejected
 options and their spec-tmp files.

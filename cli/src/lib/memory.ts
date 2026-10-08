@@ -218,8 +218,36 @@ function adoptRenamedMemory(agent: string): void {
   // Planning memory is the board's, whoever leads planning (#858). A folder in
   // `KEPT_MEMORY_FOLDERS` needs no filter here: both names resolve to the same folder.
   for (const was of specAgentNames(agent).slice(1).filter((name) => name !== PLANNER)) {
-    moveMemory(agentMemoryDir(was), agentMemoryDir(agent))
+    if (FOLDED_UNDER[was]) foldMemory(was, agent, FOLDED_UNDER[was])
+    else moveMemory(agentMemoryDir(was), agentMemoryDir(agent))
     moveMemory(legacyAgentMemoryFile(was), legacyAgentMemoryFile(agent))
+  }
+}
+
+// An agent folded into another (#1582) adds its notes to the other's same-named file, under
+// one heading, and only what is not already there.
+const FOLDED_UNDER: Record<string, string> = { 'user-docs': '## Docs' }
+
+function foldMemory(was: string, agent: string, heading: string): void {
+  for (const name of writtenMemoryNames(was)) {
+    const from = agentMemoryFile(was, name)
+    try {
+      const carried = fs.readFileSync(from, 'utf8').trim()
+      const into = agentMemoryFile(agent, name)
+      const kept = fs.existsSync(into) ? fs.readFileSync(into, 'utf8').trim() : ''
+      if (carried && !kept.includes(carried)) {
+        fs.mkdirSync(agentMemoryDir(agent), { recursive: true })
+        fs.writeFileSync(into, `${[kept, `${heading}\n\n${carried}`].filter(Boolean).join('\n\n')}\n`)
+      }
+      fs.rmSync(from, { force: true })
+    } catch {
+      warn(`couldn't fold ${from} into ${agentMemoryDir(agent)}/ — reading what is there`)
+    }
+  }
+  try {
+    fs.rmdirSync(agentMemoryDir(was))
+  } catch {
+    // Not empty, or not there: either way nothing of it is lost.
   }
 }
 

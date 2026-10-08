@@ -25,6 +25,7 @@ import deckPlanner from '../../agents/deck-planner/AGENT.md'
 import slidesExample from '../../agents/deck-planner/references/slides.example.json'
 import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
 import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
+import illustrator from '../../agents/illustrator/AGENT.md'
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import hyperframesRecorder from '../../agents/hyperframes-editor/record.mjs' with { type: 'text' }
 import promptWriter from '../../agents/prompt-writer/AGENT.md'
@@ -44,7 +45,6 @@ import compositionWorkflowsIntegrations from '../../agents/scriptwriter/referenc
 import compositionShaderTransitions from '../../agents/scriptwriter/references/composition/shader-transitions.md'
 import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md'
 import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
-import userDocs from '../../agents/user-docs/AGENT.md'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
@@ -68,6 +68,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'email-planner/scripts/render.mjs': emailRenderer,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'hyperframes-editor/record.mjs': hyperframesRecorder,
+  'illustrator/AGENT.md': illustrator,
   'prompt-writer/AGENT.md': promptWriter,
   'qa-manager/AGENT.md': qaManager,
   'scriptwriter/AGENT.md': scriptwriter,
@@ -86,7 +87,6 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/references/composition/shader-transitions.md': compositionShaderTransitions,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
-  'user-docs/AGENT.md': userDocs,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,

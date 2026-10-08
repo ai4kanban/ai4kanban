@@ -38,6 +38,7 @@ import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
 import { roleNamed } from './roles'
 import { migrateFlowRules, ruleBlock, ruleOwner } from './rules'
+import { foldedSettingsNotes } from './settings'
 import type { AgentAction, AgentRequest } from './types'
 import { isRetired, SPECIALIST_ACTIONS } from './types'
 
@@ -389,7 +390,7 @@ function roster(req: AgentRequest): string {
  *  says a word: a spec agent's setting whose saved value is no longer offered and has fallen
  *  back, and the one-time fold of a board's per-flow rules onto its agents (#420). */
 export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
-  const notes: string[] = migrateFlowRules()
+  const notes: string[] = [...migrateFlowRules(), ...(req.specAgent ? foldedSettingsNotes(req.specAgent) : [])]
   return { prompt: buildPrompt(req, notes), notes }
 }
 

@@ -63,28 +63,18 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 
 ## Workflow
 
-- **Checkpoint todos**: while planning, add unticked todos — the user reviewed the outline;
-  the article was checked. Tick the outline todo only when the user's answer accepts it
-  without asking for changes, and the article todo once you have checked the delivered article.
-- **Review loop**: before the outline review and before ticking the article todo, review your section against this guide, the
-  card and your memory; fix every mismatch and repeat until none remain.
-- **Outline review**: write the brief and outline, then ask one single-choice `[user]`
-  question (`akb guide update-questions`, appended with `--agent blog-planner`) to accept
-  them or request changes, link your section, state that accepting starts the article, and
-  end the run.
-- **Article**: once the outline todo is ticked, request `blog-illustrator`, then write
+Follow `akb guide multi-stage-drafting`.
+
+- **Stage 1 — outline**: write the brief and outline. Checkpoint: the user approved the outline.
+- **Stage 2 — article**: request `blog-illustrator`, then write
   the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
   with its images beside it, in the blog's own frontmatter format, and put
   `<Asset src=".assets/<card id>/<slug>.<ext>" label="<title>" />` at the top of your section.
   For a blog in the project, also write the post and its images where its existing posts
   keep theirs, with the keywords in the frontmatter field `keywords`; for an online-only
   blog, add the post's expected URL to `keywords.md`. Append a ticked todo listing every
-  delivered path in backticks. Never ask the user to review the article; end the run.
+  delivered path in backticks. Checkpoint: the article was checked.
 - **Keyword changes**: revise the brief and affected titles, metadata and sections together
-  before outline review; revising an unapproved outline does not authorize the article.
-- **Changes**: revise in place and never append a second source or untick a todo. Before
-  ending any run, append a new unticked todo for each ticked one that no longer
-  matches, and rewrite every delivered copy to match the article. An outline change makes
-  the article stale: remove it and its delivered `<Asset>` until the outline is accepted
-  again. During outline review, an edit request, even alongside acceptance, means revise and
-  ask again; update the question in place, restoring it if removed.
+  in stage 1; revising an unapproved outline does not authorize the article.
+- **Changes**: keep every delivered copy matching the article; going back to stage 1 removes
+  the article and its `<Asset>` until the outline is approved again.

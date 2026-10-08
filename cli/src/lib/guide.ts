@@ -31,6 +31,7 @@ import followUp from '../guide/follow-up.md'
 import implement from '../guide/implement.md'
 import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
+import multiStageDrafting from '../guide/multi-stage-drafting.md'
 import nextCard from '../guide/next-card.md'
 import planRelease from '../guide/plan-release.md'
 import pruneMemory from '../guide/prune-memory.md'
@@ -83,6 +84,7 @@ export const GUIDES: Guide[] = [
   { name: 'review-rejections', when: 'learn what the user does not want from their rejection and dismissal reasons', text: reviewRejections },
   { name: 'reflect', when: 'propose the work just-completed cards leave behind', text: reflect },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
+  { name: 'multi-stage-drafting', when: "take an agent's work through drafts the user approves before the final one", text: multiStageDrafting },
   { name: 'write-agent', when: 'create or change an agent, including one built from a skill — its AGENT.md, files, memory, and how to check it', text: writeAgent },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },

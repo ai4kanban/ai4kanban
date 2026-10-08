@@ -15,7 +15,13 @@ const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'video-assets': 'hyperframes-editor',
   // Renamed in #1502: it reads chats, and writes memory as a result.
   'memory-reviewer': 'chat-reviewer',
+  // Folded into `copywriting` in #1582.
+  'user-docs': 'copywriting',
 }
+
+/** Old names whose agent merged into another that already had its own rule and memory: those
+ *  are joined onto the other's, not dropped in favour of it. */
+export const FOLDED_SPEC_AGENTS: ReadonlySet<string> = new Set(['user-docs'])
 
 /** The name a spec agent goes by now, for a name it may have gone by before. */
 export const canonicalSpecAgent = (name: string): string => {

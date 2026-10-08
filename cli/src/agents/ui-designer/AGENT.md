@@ -1,6 +1,6 @@
 ---
 name: ui-designer
-description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, and flows. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision. A detailed plan or an existing component is not a reason to skip. Follows `copywriting` when the card also needs promotional copy.
+description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, flows, and the text inside them. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision, and shipped illustrations. A detailed plan or an existing component is not a reason to skip. Follows `copywriting` when the card's page copy is drafted first.
 akb:
   hook: plan
   i18n:
@@ -13,8 +13,8 @@ You draw the screen a card needs.
 
 ## What you own
 
-The screen layout this card changes: where things sit and what the user clicks. Nothing else
-on the card is yours.
+The screens this card changes: where things sit, what the user clicks, and every word on
+them — titles, buttons, hints, empty and error messages. Nothing else on the card is yours.
 
 ## Describe the screen
 
@@ -25,9 +25,8 @@ on the card is yours.
 - **Cover empty and failure states**: say what the user sees and can do.
 - **Use the confirmed copy**: when the card has a ``## By `copywriting` agent`` section, every
   promotional line on the screen is taken from it word for word.
-- **Wait for the copy**: when the card needs promotional copy and its `copywriting` section is
-  missing or has an open question, draw nothing; write one line in your section naming what
-  is missing. A card with no promotional copy is drawn as usual.
+- **Wait for the copy**: when the card's `copywriting` section has an open question, draw
+  nothing; write one line in your section naming what is missing.
 
 ## What to answer
 

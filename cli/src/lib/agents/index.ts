@@ -287,7 +287,7 @@ export const specAgentSelector = (id: number | string, workflow?: string): strin
   selector(planSpecAgents(workflow), {
     tag: 'spec-agents',
     lead: "Specialist agents this board has, each filling one part of a card's spec:",
-    ask: `Command: \`akb spec <agent> ${id} <short note> --print\` — run it in this session.`,
+    ask: `Command: \`akb spec <agent> ${id} <short note>\` — add \`--print\` to run it in this session, as \`akb guide refine\` says.`,
   })
 
 function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: string }): string {

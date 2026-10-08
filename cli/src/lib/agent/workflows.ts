@@ -539,16 +539,24 @@ function renameSavedAgents(cfg: Record<string, unknown>): boolean {
         const one = { ...configBlock(value) }
         if (typeof one.lead === 'string') one.lead = canonicalSpecAgent(one.lead)
         if (Array.isArray(one.helpers)) {
-          // A stage that saved BOTH names keeps one assignment, the first written — the old
-          // name's own extra requirements are not dropped onto the new one.
-          const seen = new Set<string>()
+          // A stage that saved BOTH names keeps one assignment, the first written, carrying the
+          // other's extra requirements and on while either was (#1582).
+          const kept = new Map<string, Record<string, unknown>>()
           one.helpers = one.helpers.flatMap((h) => {
             const row = configBlock(h)
             if (typeof row.agent !== 'string') return [h]
             const agent = canonicalSpecAgent(row.agent)
-            if (seen.has(agent)) return []
-            seen.add(agent)
-            return [{ ...row, agent }]
+            const first = kept.get(agent)
+            if (!first) {
+              const own = { ...row, agent }
+              kept.set(agent, own)
+              return [own]
+            }
+            const extra = typeof row.extra === 'string' ? row.extra.trim() : ''
+            const had = typeof first.extra === 'string' ? first.extra.trim() : ''
+            if (extra && !had.includes(extra)) first.extra = had ? `${had}\n${extra}` : extra
+            if (!row.off) delete first.off
+            return []
           })
         }
         mine[stage] = one
@@ -667,15 +675,16 @@ function splitSharedAgents(cfg: Record<string, unknown>): boolean {
 //
 // A board that wrote a workflow's plan helpers down would get a new built-in there disabled.
 // The ones below join their workflow enabled instead, once: `shipped` records each, so
-// removing one sticks.
+// removing one sticks. One with `beside` joins every workflow whose plan lists that agent,
+// in its state.
 
-const SHIPPED_ON: { agent: string; flow: string }[] = [
+const SHIPPED_ON: { agent: string; flow?: string; beside?: string }[] = [
   { agent: 'prompt-writer', flow: DEFAULT_WORKFLOW },
   { agent: 'email-planner', flow: DEFAULT_WORKFLOW },
-  { agent: 'user-docs', flow: DEFAULT_WORKFLOW },
   { agent: 'competitor-research', flow: DEFAULT_WORKFLOW },
   { agent: 'cover-designer', flow: 'hyperframes-video' },
   { agent: 'demo-rehearser', flow: 'hyperframes-video' },
+  { agent: 'illustrator', beside: 'ui-designer' },
 ]
 const SHIPPED = 'shipped'
 
@@ -701,13 +710,17 @@ function addShippedAgents(cfg: Record<string, unknown>): boolean {
     const block = configBlock(raw.workflows)
     const all = configBlock(block.stages)
     const add = fresh.filter((s) => !listedAnywhere(raw, s.agent))
-    for (const { agent, flow } of add) {
-      const stages = configBlock(all[flow])
-      const plan = { ...configBlock(stages.plan) }
-      if (!Array.isArray(plan.helpers)) continue
-      plan.helpers = [...plan.helpers, { agent, extra: '' }]
-      all[flow] = { ...stages, plan }
-      block.stages = all
+    for (const { agent, flow, beside } of add) {
+      for (const id of flow ? [flow] : Object.keys(all)) {
+        const stages = configBlock(all[id])
+        const plan = { ...configBlock(stages.plan) }
+        if (!Array.isArray(plan.helpers)) continue
+        const next = beside ? plan.helpers.find((h) => configBlock(h).agent === beside) : {}
+        if (!next) continue
+        plan.helpers = [...plan.helpers, { agent, extra: '', ...(configBlock(next).off ? { off: true } : {}) }]
+        all[id] = { ...stages, plan }
+        block.stages = all
+      }
     }
     block[SHIPPED] = [...done, ...fresh.map((s) => s.agent)]
     raw.workflows = block

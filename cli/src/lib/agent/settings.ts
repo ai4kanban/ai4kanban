@@ -31,7 +31,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { AUTO_CADENCE, CADENCE_FORMS, formatStamp, isAuto, parseCadence } from '../cadence'
-import { ENV_FILE, KANBAN_GITIGNORE, LEGACY_UI_CONFIG, UI_CONFIG } from '../paths'
+import { ENV_FILE, KANBAN_GITIGNORE, LEGACY_UI_CONFIG, rel, UI_CONFIG } from '../paths'
+import { FOLDED_SPEC_AGENTS, specAgentNames } from '../spec-agent-names'
 import { refusal, type CadenceSchedule, type MemoryReviewState, type Saved } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
@@ -243,6 +244,28 @@ export function specAgentEntries(): Record<string, SpecAgentEntry> {
     if (entry) saved[name] = entry
   }
   return saved
+}
+
+/** Where an agent folded into this one (#1582) saved settings of its own that differ: this
+ *  agent's are the ones used, and the old entry stays in the file for the user to read. */
+export function foldedSettingsNotes(agent: string): string[] {
+  let cfg: Record<string, unknown>
+  try {
+    cfg = readConfigRaw()
+  } catch {
+    return []
+  }
+  const [now, ...before] = specAgentNames(agent)
+  return before
+    .filter((was) => FOLDED_SPEC_AGENTS.has(was))
+    .flatMap((was) =>
+      ['specAgents', 'agentRuntime'].flatMap((key) => {
+        const block = configBlock(cfg[key])
+        if (block[was] === undefined || block[now!] === undefined) return []
+        if (JSON.stringify(block[was]) === JSON.stringify(block[now!])) return []
+        return [`\`${was}\` is part of \`${now}\` now and saved different \`${key}\` settings: \`${now}\`'s are used, and \`${was}\`'s stay in ${rel(UI_CONFIG)}.`]
+      }),
+    )
 }
 
 /** Save one spec agent's switch, keeping whatever it is set to. Every other key in the file
