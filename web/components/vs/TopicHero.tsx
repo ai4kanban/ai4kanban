@@ -1,27 +1,18 @@
 import type { ReactNode } from "react";
 import { FiCheck, FiX } from "react-icons/fi";
 import { LogoMark } from "@/components/ui/Logo";
-import type {
-  MulticaSharedItem,
-  VsMulticaCopy,
-} from "@/i18n/vs-multica/types";
+import type { VsSharedItem, VsTopicsHero } from "@/i18n/types";
 import { Rich } from "../Rich";
 import { framed, hairline, heroTop, panelStatic } from "../styles";
 import { HeroBackdrop } from "./HeroBackdrop";
-import { MulticaMark } from "./MulticaMark";
-import {
-  DraftsOurs,
-  DraftsTheirs,
-  MemoryOurs,
-  MemoryTheirs,
-  SetupOurs,
-  SetupTheirs,
-} from "./HeroVisuals";
+import { DraftsOurs, MemoryOurs, SetupOurs } from "./HeroVisuals";
 
 // The title, then the three topics AI4Kanban wins, each drawn the same way:
-// heading, verdict, one card with both sides and what they share.
+// heading, verdict, one card with both sides and what they share. The rival's
+// page supplies its name, mark and art.
 
-type Hero = VsMulticaCopy["hero"];
+type TopicKey = "setup" | "drafts" | "memory";
+export type Rival = { name: string; mark: ReactNode; art: Record<TopicKey, ReactNode> };
 
 const Badge = ({ win }: { win: boolean }) => (
   <span
@@ -48,20 +39,22 @@ function Topic({
   theirsArt,
   shared,
   sharedLabel,
+  rival,
 }: {
   heading: string;
-  verdict: string;
+  verdict?: string;
   ours: string;
   theirs: string;
   oursArt: ReactNode;
   theirsArt: ReactNode;
-  shared: MulticaSharedItem[];
+  shared: VsSharedItem[];
   sharedLabel: string;
+  rival: Rival;
 }) {
   return (
     <div className="mt-16">
       <h2 className="text-2xl font-bold tracking-tight">{heading}</h2>
-      <p className="mt-2 text-lg text-muted">{verdict}</p>
+      {verdict && <p className="mt-2 text-lg text-muted">{verdict}</p>}
       <div className={`${panelStatic} ${framed} mt-6 overflow-hidden`}>
         <div className="grid sm:grid-cols-2">
           <div className="bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-elev))] p-5 sm:p-6">
@@ -75,41 +68,43 @@ function Topic({
           </div>
           <div className="p-5 sm:p-6">
             <div className="flex items-center gap-2">
-              <MulticaMark className="h-5 w-5" />
-              <span className="font-semibold text-muted">Multica</span>
+              {rival.mark}
+              <span className="font-semibold text-muted">{rival.name}</span>
               <Badge win={false} />
             </div>
             <p className="mt-2 text-sm text-muted sm:min-h-[2.5rem]">{theirs}</p>
             <div className="mt-2">{theirsArt}</div>
           </div>
         </div>
-        <div className={`border-t px-5 py-5 sm:px-6 ${hairline}`}>
-          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-            {sharedLabel}
-          </p>
-          <div className="mt-3 grid gap-5 sm:grid-cols-2">
-            {shared.map((item) => (
-              <div key={item.title}>
-                <p className="font-semibold text-ink">{item.title}</p>
-                <ul className="mt-2 space-y-2 text-sm text-muted">
-                  {item.body.map((line) => (
-                    <li key={line} className="flex items-start gap-1.5">
-                      <FiCheck className="mt-0.5 h-4 w-4 shrink-0 text-growth" aria-hidden="true" />
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+        {shared.length > 0 && (
+          <div className={`border-t px-5 py-5 sm:px-6 ${hairline}`}>
+            <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
+              {sharedLabel}
+            </p>
+            <div className="mt-3 grid gap-5 sm:grid-cols-2">
+              {shared.map((item) => (
+                <div key={item.title}>
+                  <p className="font-semibold text-ink">{item.title}</p>
+                  <ul className="mt-2 space-y-2 text-sm text-muted">
+                    {item.body.map((line) => (
+                      <li key={line} className="flex items-start gap-1.5">
+                        <FiCheck className="mt-0.5 h-4 w-4 shrink-0 text-growth" aria-hidden="true" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function MulticaHero({ c }: { c: Hero }) {
-  const topic = { sharedLabel: c.sharedLabel };
+export function TopicHero({ c, rival }: { c: VsTopicsHero; rival: Rival }) {
+  const topic = { sharedLabel: c.sharedLabel, rival };
   return (
     <section className={heroTop}>
       <div className="relative isolate py-16 text-center sm:py-20">
@@ -129,19 +124,19 @@ export function MulticaHero({ c }: { c: Hero }) {
         {...topic}
         {...c.setup}
         oursArt={<SetupOurs c={c.setup.art.ours} />}
-        theirsArt={<SetupTheirs c={c.setup.art.theirs} />}
+        theirsArt={rival.art.setup}
       />
       <Topic
         {...topic}
         {...c.drafts}
         oursArt={<DraftsOurs c={c.drafts.art.ours} />}
-        theirsArt={<DraftsTheirs c={c.drafts.art.theirs} />}
+        theirsArt={rival.art.drafts}
       />
       <Topic
         {...topic}
         {...c.memory}
         oursArt={<MemoryOurs c={c.memory.art.ours} />}
-        theirsArt={<MemoryTheirs c={c.memory.art.theirs} />}
+        theirsArt={rival.art.memory}
       />
     </section>
   );

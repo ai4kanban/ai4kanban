@@ -1,55 +1,22 @@
-import type {
-  Heading,
-  PageMeta,
-  TitleBody,
-  VsDecision,
-  VsHero,
-  VsHeroDiagrams,
-} from "../types";
+import type { Heading, PageMeta, VsDecision, VsTopicsHero } from "../types";
 
 export type VsTaskMasterRowKey =
   | "startingPoint"
-  | "vagueRequest"
-  | "board"
-  | "setup"
-  | "execution"
+  | "planning"
+  | "drafts"
+  | "discussion"
   | "memory"
-  | "reach"
-  | "teams"
-  | "license";
-
-export type VsTaskMasterKanbanWinKey =
-  | "asksFirst"
-  | "diffablePlan"
-  | "remembers"
-  | "nothingToWire";
-
-export type VsTaskMasterWinKey =
-  | "everywhere"
+  | "followUps"
+  | "interface"
+  | "execution"
+  | "testFirst"
   | "research"
-  | "batchRuns"
-  | "proven";
+  | "reach"
+  | "license";
 
 export type VsTaskMasterCopy = {
   meta: PageMeta;
-  hero: VsHero & VsHeroDiagrams;
-  summary: {
-    heading: Heading;
-    lead: string;
-    panel: string;
-    // Facts with a date on them: how a reader tells a live project from a
-    // parked one without taking our word for it.
-    note: string;
-  };
-  start: {
-    heading: Heading;
-    lead: string;
-    // Three steps a side, in the order the work happens. The titles carry the
-    // argument, so they stay short enough to read at a glance.
-    ours: { label: string; title: string; steps: [string, string, string] };
-    theirs: { label: string; title: string; steps: [string, string, string] };
-    note: string;
-  };
+  hero: VsTopicsHero;
   comparison: {
     heading: Heading;
     lead: string;
@@ -59,25 +26,6 @@ export type VsTaskMasterCopy = {
       VsTaskMasterRowKey,
       { dimension: string; kanban: string; taskMaster: string }
     >;
-  };
-  // The file trees themselves are file names, not words — they stay with the
-  // component. Only what the reader is meant to take from them is copy.
-  boardShape: {
-    heading: Heading;
-    lead: string;
-    oursLabel: string;
-    theirsLabel: string;
-    oursCaption: string;
-    theirsCaption: string;
-    note: string;
-  };
-  wins: {
-    heading: Heading;
-    lead: string;
-    oursHeading: string;
-    theirsHeading: string;
-    ours: Record<VsTaskMasterKanbanWinKey, TitleBody>;
-    theirs: Record<VsTaskMasterWinKey, TitleBody>;
   };
   decision: VsDecision;
 };

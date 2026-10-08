@@ -4,216 +4,210 @@ import type { VsTaskMasterCopy } from "./types";
 
 const zh: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster：需求是你写，还是它问出来",
+    title: "AI4Kanban vs. Taskmaster：如何减少指导 AI 和返工的精力？",
     socialTitle: "AI4Kanban vs. Taskmaster",
-    description:
-      "对比 AI4Kanban 与 Taskmaster。Taskmaster 把你写好的 PRD 拆成有依赖顺序的任务；AI4Kanban 从一句模糊的想法开始，一路追问到卡片可以直接开工。",
-    social:
-      "Taskmaster 需要你先写好 PRD 才能开始；AI4Kanban 只要你说一句话，剩下的它来问。看看哪种起点更贴合你的实际工作方式。",
+    description: "相比 Taskmaster，AI4Kanban 在任务管理之外，还内置专业工作流、关键草稿审批和偏好记忆，帮你提前确认方向，减少返工和重复解释。",
+    social: "AI4Kanban 能拆分和管理任务，还能让你先审阅 UI、Prompt 或文案草稿，再执行，并让后续任务复用你的偏好和决策。Taskmaster 没有内置这套草稿审批和偏好记忆。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs.\nTaskmaster",
-    lead: "两者都用任务列表代替聊天窗，把活交给 coding agent。Taskmaster 接收你写好的需求文档，把它拆成有依赖顺序的任务。AI4Kanban 从更前面一步开始：你只说一句粗略的话，它不断提问，直到问出一个值得开工的需求。",
-    ours: {
-      name: "AI4Kanban",
-      body: "仓库里的 Markdown 看板。智能体自主提出任务，遇到定不了的就问你，做完则归档。",
-    },
-    theirs: {
-      name: "Taskmaster",
-      body: "面向各类 AI 编辑器的任务引擎。解析 PRD，展开为子任务，再逐个消化待办。",
-    },
-    oursDiagramAlt:
-      "一句粗略的话交给 AI4Kanban，它把自己回答不了的问题抛回给你，然后交出一张写完整的卡片。",
-    theirsDiagramAlt:
-      "一份写好的需求文档交给 Taskmaster，返回的是按依赖顺序编号的任务列表。",
-    oursDiagramTop: "输入：一句粗略的话",
-    oursDiagramBottom: "它先追问，再写出卡片",
-    theirsDiagramTop: "输入：你已写好的文档",
-    theirsDiagramBottom: "输出：按依赖顺序编号的任务",
-  },
-  summary: {
-    heading: {
-      eyebrow: "简要结论",
-      title: "区别在于：你必须先拿出什么。",
-    },
-    lead: "Taskmaster 是面向 coding agent 的任务管理工具，在 GitHub 上获得了超过 28k 个 star。它会读入一份产品需求文档，拆成带依赖关系的任务，为每个任务的复杂度打分，把重的展开成子任务，再把下一个没有阻塞的任务交给你。如果你本来就会写需求文档，这基本够用了。",
-    panel:
-      "AI4Kanban 假设你还没有需求文档。你只给一句话，它去读代码和项目记忆，能自己定的就自己定，只把真正悬而未决的问题抛回给你，如此反复，直到卡片具体到可以开工。**提问本身就是产品。**看板则是答案留存的地方。",
-    note: "2026 年 8 月 10 日核实：Taskmaster 最新版本是 0.43.1（2026 年 3 月 31 日），`main` 分支最后一次提交在 2026 年 4 月 23 日，同一团队正在开发托管产品 Hamster。它每月仍有约 78,000 次安装——这是一个使用广泛、但仓库趋于安静的工具，而不是一个已被废弃的项目。",
-  },
-  start: {
-    heading: {
-      eyebrow: "起点",
-      title: "在两者能帮上忙之前，你得先拿出什么",
-    },
-    lead: "目标是一样的：产出一个 coding agent 不用猜就能做完的任务。区别在于起步时各自要求你先准备什么——这几乎就是全部差异。",
-    ours: {
-      label: "AI4Kanban",
-      title: "一句话就够",
-      steps: [
-        "说出粗略的想法。不限格式，不用文档，也没有模板。",
-        "智能体读代码、读项目过往的决策，能定的自己定，只把仍然悬而未决的问题拿来问你。",
-        "它写出卡片，按价值和依赖关系排进看板，并把你的答案留给下一次。",
+    lead: "内置专业工作流、草稿审批和偏好记忆，减少指导智能体的精力和返工。",
+    sharedLabel: "两者都支持",
+    setup: {
+      heading: "专业智能体和工作流，开箱即用",
+      ours: "内置智能体和工作流覆盖软件开发、博客、社交轮播、演示文稿和产品视频；你也可以创建自定义智能体和工作流。",
+      theirs: "围绕编码任务推进；没有内置 UI 设计、文案或内容制作的专业智能体及配套工作流。",
+      art: {
+        ours: [
+          "UI 设计",
+          "Prompt",
+          "文案",
+        ],
+        theirs: {
+          title: "专业工作流",
+          fields: [
+            "UI 设计",
+            "文案",
+            "内容制作",
+          ],
+          slot: "未内置",
+        },
+      },
+      shared: [
+        {
+          title: "任务拆解与依赖管理",
+          body: [
+            "AI4Kanban 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
+            "Taskmaster 可从 PRD 生成任务和子任务，并管理依赖关系。",
+          ],
+        },
+        {
+          title: "CLI 接入",
+          body: [
+            "AI4Kanban 提供 CLI，可由编码智能体调用；没有 MCP 服务。",
+            "Taskmaster 同时提供 CLI 和 MCP 服务。",
+          ],
+        },
       ],
     },
-    theirs: {
-      label: "Taskmaster",
-      title: "先写好一份文档",
-      steps: [
-        "先写需求文档。官方指南建议先和聊天模型一起把它写出来，再保存为 `.taskmaster/docs/prd.txt`。",
-        "`parse-prd` 把它拆成带依赖关系的任务，`expand` 展开为子任务，`analyze-complexity` 打分找出还需要继续拆的部分。",
-        "`next` 把当前没有阻塞、优先级最高的任务交给你。",
+    drafts: {
+      heading: "关键草稿，先审阅再实现",
+      ours: "选择你要审阅的 UI、Prompt、文案等关键部分；智能体先准备可预览、可修改的草稿，再按你确认的内容执行。",
+      theirs: "能审阅任务描述、实现细节和测试策略；没有关键成果草稿的内置预览与执行前审批流程。",
+      art: {
+        ours: [
+          "关键草稿",
+          "确认方向",
+          "执行任务",
+        ],
+        theirs: {
+          title: "任务详情",
+          fields: [
+            "需求描述",
+            "实现细节",
+            "测试策略",
+          ],
+          slot: "文字任务详情",
+        },
+      },
+      shared: [
       ],
     },
-    note: "两条路都不难。但如果文档本身含糊，Taskmaster 拆出来的也是含糊的任务——你当然可以用 `update-task` 补充上下文，research 模型也能去查资料，但整个流程里没有一步会主动问你到底想要什么。",
+    memory: {
+      heading: "让后续任务复用你的偏好",
+      ours: "设计智能体记住你的设计偏好，文案智能体记住你的用词选择；智能体之间也能共享项目背景。",
+      theirs: "能保存规则和任务笔记；没有从用户修改和否决中自动积累偏好、供后续任务复用的记忆系统。",
+      art: {
+        ours: {
+          agents: [
+            "UI 设计",
+            "文案",
+          ],
+          notes: [
+            "设计偏好",
+            "用词决定",
+          ],
+          shared: "共享项目背景",
+        },
+        theirs: {
+          title: "规则与任务笔记",
+          fields: [
+            "项目约束",
+            "进度记录",
+            "补充上下文",
+          ],
+          slot: "仅保存规则和笔记",
+        },
+      },
+      shared: [
+        {
+          title: "可编辑的规则",
+          body: [
+            "AI4Kanban 的专业智能体有可编辑的角色规则。",
+            "Taskmaster 提供面向不同编辑器的规则文件。",
+          ],
+        },
+        {
+          title: "保留工作上下文",
+          body: [
+            "AI4Kanban 的卡片保留计划、对话和运行记录。",
+            "Taskmaster 的任务保留描述、实现细节和子任务笔记。",
+          ],
+        },
+      ],
+    },
   },
   comparison: {
-    heading: { eyebrow: "逐项对比", title: "AI4Kanban vs. Taskmaster" },
-    lead: "{check} 表示这一项更适合谁；**横杠**表示取决于你的工作方式。Taskmaster 更强的是**覆盖面、批量执行和联网调研**；AI4Kanban 更强的是**把模糊想法变成真正的需求，并把已经定下的结论留住**。",
+    heading: {
+      eyebrow: "关键对比",
+      title: "逐项比较",
+    },
+    lead: "从专业工作流、草稿审批到工具接入，看看哪些功能已经内置。",
     ourLabel: "AI4Kanban",
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
-        dimension: "任务从哪里来",
-        kanban:
-          "你的一句粗略描述；也可以是智能体读过代码和看板之后自己提出的提案。",
-        taskMaster:
-          "你先写好的需求文档，解析成任务；也可以用一段提示逐个新增任务。",
+        dimension: "内置智能体与工作流",
+        kanban: "内置开发、内容等专业智能体和工作流，也可创建自定义智能体和工作流；内容工作流需 Pro。",
+        taskMaster: "内置任务执行、测试和代码清理等编码流程；没有设计、文案或内容制作的专业智能体及配套工作流。",
       },
-      vagueRequest: {
-        dimension: "需求含糊时",
-        kanban:
-          "澄清循环先用记忆和代码回答能回答的，剩下的问你；只要还有问题悬着，卡片就不算就绪。",
-        taskMaster:
-          "文档有多具体，任务就有多具体。你可以更新任务、展开任务，或让 research 模型去查资料。",
+      planning: {
+        dimension: "任务拆解与依赖管理",
+        kanban: "AI4Kanban 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
+        taskMaster: "Taskmaster 可从 PRD 生成任务和子任务，并管理依赖关系。",
       },
-      board: {
-        dimension: "看板在磁盘上的样子",
-        kanban:
-          "`docs/kanban/` 下一张卡片一个 Markdown 文件，外加纯文本的记忆文件。diff 读起来就是人话。",
-        taskMaster:
-          "一个 `.taskmaster/tasks/tasks.json` 装下全部任务和子任务；`generate` 还能为每个任务另写一份文本文件。",
+      drafts: {
+        dimension: "执行前审阅关键草稿",
+        kanban: "支持图片、图表、HTML/TSX、diff 和 storyboard 草稿；你确认的关键内容进入后续执行依据。",
+        taskMaster: "能审阅任务描述、实现细节和测试策略；没有关键成果草稿的内置预览与执行前审批流程。",
       },
-      setup: {
-        dimension: "需要配置什么",
-        kanban:
-          "一条 prompt。不需要 MCP 服务，不需要 API key，也不需要配置模型——思考由你的 coding agent 自己的模型完成。",
-        taskMaster:
-          "MCP 服务或 CLI，外加 main、research、fallback 三个模型角色。Claude Code 和 Codex 这两个 provider 不需要额外的 key，其余大多需要。",
-      },
-      execution: {
-        dimension: "谁来跑这些活",
-        kanban:
-          "由你的智能体实现卡片并归档。没有批量执行器，也不强制某一种测试流程。",
-        taskMaster:
-          "`loop` 会连续开启全新的 Claude Code 会话，自带测试、lint、去重等预设；`autopilot` 在独立分支上跑 red-green-commit 的 TDD 循环。",
+      discussion: {
+        dimension: "任务内对话",
+        kanban: "在卡片内与智能体讨论需求、修改计划；对话随卡片保留。",
+        taskMaster: "没有内置任务聊天界面；需要在 Cursor 等工具的智能体聊天中讨论任务。",
       },
       memory: {
-        dimension: "什么会沉淀下来",
-        kanban:
-          "规划记忆：决策、被否决的想法、设计纠偏和已交付的工作，按智能体各自保存。下次提案前先读一遍，所以否决过的不会再被提出来。",
-        taskMaster:
-          "追加到子任务上的带时间戳的笔记、保存下来的调研文件，以及用 tag 区隔的多份任务列表。",
+        dimension: "偏好记忆",
+        kanban: "智能体记住你的设计偏好、用词选择等决策，也能共享项目背景。",
+        taskMaster: "能保存规则和任务笔记；没有从用户修改和否决中自动积累偏好、供后续任务复用的记忆系统。",
+      },
+      followUps: {
+        dimension: "交付后的建议",
+        kanban: "主线工作完成后，智能体提出后续工作，由你接受、修改或否决。",
+        taskMaster: "next 只能选择已有任务；没有交付后自动提出新跟进项的流程。",
+      },
+      interface: {
+        dimension: "看板与操作界面",
+        kanban: "独立桌面看板，集中查看卡片、草稿、对话和运行状态。",
+        taskMaster: "官方可视化看板是 VS Code 扩展；核心任务管理也可通过 CLI/MCP 使用。",
+      },
+      execution: {
+        dimension: "执行与验证",
+        kanban: "独立卡片可在后台并行执行，也可通过依赖关系按顺序执行；开发任务用 git worktree 隔离，并运行必要检查。",
+        taskMaster: "loop 每轮启动新的 Claude Code 会话，逐项完成任务，并运行测试和类型检查。",
+      },
+      testFirst: {
+        dimension: "内置测试先行流程",
+        kanban: "开发任务运行必要检查；没有内置 RED → GREEN → COMMIT 流程。",
+        taskMaster: "autopilot 引导每个子任务先写失败测试，再实现到测试通过，最后提交；跟踪阶段并检查上报的测试结果。",
+      },
+      research: {
+        dimension: "调研",
+        kanban: "智能体可用 Claude Code、Codex 等执行工具提供的能力做调研；没有独立调研命令或调研模型设置。",
+        taskMaster: "research 可带入任务和文件上下文，使用单独配置的调研模型，并将结果保存到任务或调研文件。",
       },
       reach: {
-        dimension: "能在哪里用",
-        kanban:
-          "目前是 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 和 Grok Build。看板就是纯文件，换一个 harness 不需要新格式，只需要接上。",
-        taskMaster:
-          "Cursor、Windsurf、VS Code、Claude Code、Codex、Kiro、Amazon Q 等，通过 MCP 或 CLI 接入，支持十五种以上的模型 provider。",
-      },
-      teams: {
-        dimension: "多人协作",
-        kanban:
-          "协作方式就是 git：开分支、在 pull request 里评审计划、合并。没有实时同步。",
-        taskMaster:
-          "开源版同样是本地的，但同一团队还提供托管产品 Hamster，含共享 brief 与同步，每位 creator 每月 40 美元起。",
+        dimension: "CLI 与 MCP",
+        kanban: "提供 CLI，可由 Claude Code、Codex 等编码工具调用；没有 MCP 服务。",
+        taskMaster: "同时提供 CLI 和 MCP 服务，可在兼容 MCP 的编辑器或编码智能体中使用。",
       },
       license: {
         dimension: "许可证",
-        kanban:
-          "Apache-2.0。可以使用、可以 fork，也可以拿它做出来的东西去卖，没有附加条件。",
-        taskMaster:
-          "MIT 附带 Commons Clause：个人、商业和学术使用均免费，但不得出售 Taskmaster 本身，也不得把它作为托管服务对外提供。",
-      },
-    },
-  },
-  boardShape: {
-    heading: {
-      eyebrow: "落到磁盘上",
-      title: "一个 JSON 文件，还是一张卡片一个文件",
-    },
-    lead: "两块看板都放在仓库里，都随代码一起进版本管理。区别在于 diff 给人看到的是什么。",
-    oursLabel: "AI4Kanban",
-    theirsLabel: "Taskmaster",
-    oursCaption:
-      "一张卡片一个 Markdown 文件。pull request 里看到的是计划本身在变，是你能读、也能反驳的文字。",
-    theirsCaption:
-      "一个文件装下整个待办列表。diff 里是 JSON——准确，但本来就不是写给人读的。",
-    note: "Taskmaster 在 0.42.0 加入了跨进程文件锁，避免两个进程同时写入导致数据丢失。分成多个文件就没有这种争用：只有两次运行改到同一张卡片时才会撞上。",
-  },
-  wins: {
-    heading: { eyebrow: "取舍", title: "各自的长处" },
-    lead: "Taskmaster 覆盖更广、能在无人值守下跑更久，还能联网查资料。AI4Kanban 刻意更窄：它要赢的是「还没有任务之前」的那一段。",
-    oursHeading: "AI4Kanban",
-    theirsHeading: "Taskmaster",
-    ours: {
-      asksFirst: {
-        title: "先问，再动手",
-        body: "智能体把一句粗略的话变成一串问题，能从代码和过往决策里找到答案的自己解决，只把别人替不了的交给你。",
-      },
-      diffablePlan: {
-        title: "计划就是能读的文字",
-        body: "每张卡片都是一个 Markdown 文件。评审计划和评审代码一样——在 diff 里、用文字、在写下第一行代码之前。",
-      },
-      remembers: {
-        title: "它记得你否决过什么",
-        body: "决策、被否决的想法和设计纠偏都写在规划师自己的记忆里，下次提案前先读，所以看板不会把同一件事提第二遍。",
-      },
-      nothingToWire: {
-        title: "没有东西需要搭",
-        body: "不用 MCP 服务，不用 API key，不用配置模型角色，也不会在每次对话里塞进一堆工具定义。一条 prompt 就装进仓库。",
-      },
-    },
-    theirs: {
-      everywhere: {
-        title: "几乎在哪都能跑",
-        body: "Cursor、Windsurf、VS Code、Claude Code、Codex、Kiro 等，通过 MCP 或 CLI 接入，支持十五种以上的模型 provider，含本地模型。",
-      },
-      research: {
-        title: "自带联网调研",
-        body: "独立的 research 角色可以在写任务或展开任务时引入最新资料，并把查到的内容保存在任务旁边。",
-      },
-      batchRuns: {
-        title: "你睡觉时它也能干活",
-        body: "`loop` 为每个任务开启全新的智能体会话，自带测试、lint、去重和坏味道等预设；`autopilot` 在独立分支上跑严格的 TDD 循环。",
-      },
-      proven: {
-        title: "大家已经在用的那一个",
-        body: "约 28,000 个 GitHub star，每月约 78,000 次 npm 安装，还有文档、Discord 和多年沉淀下来、可以照抄的工作流。",
+        kanban: "Apache-2.0，允许商业使用、托管和嵌入。",
+        taskMaster: "MIT + Commons Clause，限制出售 Taskmaster 本身及提供托管服务。",
       },
     },
   },
   decision: {
-    heading: { eyebrow: "怎么选", title: "哪一个更适合你？" },
-    oursHeading: "选 AI4Kanban，如果",
-    theirsHeading: "选 Taskmaster，如果",
+    heading: {
+      eyebrow: "选择建议",
+      title: "如何选择？",
+    },
+    oursHeading: "选择 AI4Kanban，如果你",
+    theirsHeading: "选择 Taskmaster，如果你",
     ours: [
-      "你的想法往往只有一句话，卡住你的正是把需求写清楚这一步。",
-      "你希望计划和它背后的理由都能在 diff 里评审，就放在代码旁边。",
-      "你希望看板记住已有的决策和否决，别再来回问同样的问题。",
-      "你不想再多跑一个 MCP 服务、多管一批 API key、多配一套模型。",
+      "希望直接使用专业智能体和工作流，也能创建自己的。",
+      "希望在完整执行前确认 UI、Prompt 或文案等关键草稿。",
+      "希望后续任务复用偏好，并收到值得考虑的跟进建议。",
     ],
     theirs: [
-      "你本来就会写需求文档，只想把它拆好、排好顺序。",
-      "你在 Cursor、Windsurf、VS Code 或 Kiro 里工作，希望看板就在编辑器里。",
-      "你需要开箱即用的批量无人值守执行，或者严格的测试先行流程。",
-      "你希望规划过程自带联网调研，或者要用我们尚未支持的某个模型 provider。",
+      "希望通过 MCP 在现有编辑器或编码智能体中管理任务。",
+      "希望用独立调研命令，带入任务背景并单独配置调研模型。",
+      "希望用内置流程引导编码：先写失败测试，再实现到通过，最后提交。",
     ],
-    verdict:
-      "Taskmaster 从你的需求文档写完的地方开始；AI4Kanban 从它之前开始——它要做的就是从一个模糊想法到一个值得交给智能体的任务这一段。如果你文档写得好，Taskmaster 今天就能帮你多做完一些事；如果那份文档永远也写不出来，那这一段才是该先补上的。",
-    note: "两者并不互斥：拿一张打磨好的 AI4Kanban 卡片去写 PRD，解析起来一样顺。但任务状态必须由其中一块看板说了算，否则你就得同时维护两块。",
+    verdict: "需要**专业工作流、草稿审批和偏好记忆**，选 AI4Kanban；需要 **MCP 接入、独立调研命令和内置测试先行编码流程**，选 Taskmaster。",
+    note: "本页比较开源 Taskmaster。Hamster 是同团队的托管产品，其团队功能不计入本页对比。",
   },
 };
 

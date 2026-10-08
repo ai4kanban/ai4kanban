@@ -3,12 +3,15 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SectionHeading } from "@/components/SectionHeading";
 import { DecisionSection } from "@/components/vs/DecisionSection";
 import { ComparisonIntro } from "@/components/vs/ComparisonTable";
-import { MulticaHero } from "@/components/vs-multica/MulticaHero";
-import { MulticaMark } from "@/components/vs-multica/MulticaMark";
 import {
-  MulticaTable,
-  type MulticaRow,
-} from "@/components/vs-multica/MulticaTable";
+  EmptyAgent,
+  EmptySlot,
+  FormScene,
+} from "@/components/vs/HeroVisuals";
+import { TopicHero } from "@/components/vs/TopicHero";
+import { VsTable, type VsRow } from "@/components/vs/VsTable";
+import { MulticaMark } from "@/components/vs-multica/MulticaMark";
+import { FiPlus } from "react-icons/fi";
 import type { VsMulticaRowKey } from "@/i18n/vs-multica/types";
 import { getCopy } from "@/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -24,7 +27,7 @@ import {
 export const PATH = "/vs-multica";
 
 // Which side is stronger on each row; AI4Kanban's rows first.
-const ROWS: { key: VsMulticaRowKey; winner: MulticaRow["winner"] }[] = [
+const ROWS: { key: VsMulticaRowKey; winner: VsRow["winner"] }[] = [
   { key: "startingPoint", winner: "ours" },
   { key: "refinement", winner: "ours" },
   { key: "memory", winner: "ours" },
@@ -72,12 +75,40 @@ export function VsMulticaPage({ locale }: { locale: Locale }) {
       />
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
-        <MulticaHero c={t.hero} />
+        <TopicHero
+          c={t.hero}
+          rival={{
+            name: "Multica",
+            mark: multicaTag,
+            // Every topic on Multica's side: a blank form you fill in.
+            art: {
+              setup: (
+                <FormScene c={t.hero.setup.art.theirs}>
+                  <EmptyAgent />
+                </FormScene>
+              ),
+              drafts: (
+                <FormScene c={t.hero.drafts.art.theirs}>
+                  <EmptySlot>
+                    <FiPlus aria-hidden="true" />
+                  </EmptySlot>
+                </FormScene>
+              ),
+              memory: (
+                <FormScene c={t.hero.memory.art.theirs}>
+                  <EmptySlot>
+                    <FiPlus aria-hidden="true" />
+                  </EmptySlot>
+                </FormScene>
+              ),
+            },
+          }}
+        />
 
         <section className="mt-24">
           <SectionHeading num="01" {...t.comparison.heading} />
           <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
-          <MulticaTable
+          <VsTable
             ourLabel={t.comparison.ourLabel}
             theirLabel={t.comparison.theirLabel}
             rows={ROWS.map(({ key, winner }) => {

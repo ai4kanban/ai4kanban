@@ -58,6 +58,44 @@ export type VsHeroDiagrams = {
   theirsDiagramBottom: string;
 };
 
+/** A capability both have: AI4Kanban's line, then the rival's. */
+export type VsSharedItem = { title: string; body: [string, string] };
+
+/** The rival's side of a topic: a form, and what it leaves you with. */
+export type VsForm = {
+  title: string;
+  fields: [string, string, string];
+  slot: string;
+};
+
+/** One hero topic AI4Kanban wins, and what both share. */
+export type VsTopic<Art> = {
+  heading: string;
+  verdict?: string;
+  ours: string;
+  theirs: string;
+  art: { ours: Art; theirs: VsForm };
+  shared: VsSharedItem[];
+};
+
+/** A hero of three topics: specialists, drafts, memory. */
+export type VsTopicsHero = {
+  badge: string;
+  /** `\n` marks the line break in the H1. */
+  title: string;
+  lead: string;
+  sharedLabel: string;
+  /** Names under the three built-in specialists. */
+  setup: VsTopic<[string, string, string]>;
+  /** Draft, approve, run. */
+  drafts: VsTopic<[string, string, string]>;
+  memory: VsTopic<{
+    agents: [string, string];
+    notes: [string, string];
+    shared: string;
+  }>;
+};
+
 /** The closing "which should you use?" section. */
 export type VsDecision = {
   heading: Heading;

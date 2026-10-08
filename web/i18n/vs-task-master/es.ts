@@ -4,216 +4,210 @@ import type { VsTaskMasterCopy } from "./types";
 
 const es: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster — escribir la especificación o que te la pregunten",
+    title: "AI4Kanban vs. Taskmaster: menos guía y menos retrabajo con agentes de IA",
     socialTitle: "AI4Kanban vs. Taskmaster",
-    description:
-      "Compara AI4Kanban y Taskmaster. Taskmaster divide el PRD que ya escribiste en un backlog ordenado. AI4Kanban parte de una idea vaga y pregunta hasta que la tarjeta se puede construir.",
-    social:
-      "Taskmaster necesita un PRD para poder ayudarte. AI4Kanban parte de una sola frase y te pregunta el resto. Descubre qué punto de partida encaja con tu forma de trabajar.",
+    description: "AI4Kanban añade flujos especializados, aprobación de borradores y memoria de preferencias a la gestión de tareas. Descubre cómo reduce el retrabajo frente a Taskmaster.",
+    social: "AI4Kanban desglosa y gestiona tareas, te deja aprobar borradores de UI, prompts o textos antes de ejecutarlos y reutiliza tus preferencias y decisiones en el trabajo futuro. Taskmaster no incluye aprobación de borradores ni memoria de preferencias.",
   },
   hero: {
-    badge: "Comparación",
+    badge: "Comparativa",
     title: "AI4Kanban vs.\nTaskmaster",
-    lead: "Ambos le dan al agente de código una lista de tareas en lugar de una ventana de chat. Taskmaster toma el documento de requisitos que escribiste y lo divide en un backlog ordenado. AI4Kanban empieza un paso antes: le das una frase imprecisa y pregunta hasta que hay algo que merece construirse.",
-    ours: {
-      name: "AI4Kanban",
-      body: "Un tablero Markdown en tu repositorio. El agente propone trabajo, pregunta lo que no puede resolver y archiva lo entregado.",
-    },
-    theirs: {
-      name: "Taskmaster",
-      body: "Un motor de tareas para cualquier editor con IA. Analiza un PRD, lo expande en subtareas y va vaciando el backlog.",
-    },
-    oursDiagramAlt:
-      "Una frase imprecisa entra en AI4Kanban, que devuelve las preguntas que no puede responder solo y entrega una tarjeta terminada.",
-    theirsDiagramAlt:
-      "Un documento de requisitos terminado entra en Taskmaster y vuelve dividido en tareas numeradas en orden de dependencia.",
-    oursDiagramTop: "entra una frase imprecisa",
-    oursDiagramBottom: "pregunta y luego escribe la tarjeta",
-    theirsDiagramTop: "entra el documento que escribiste",
-    theirsDiagramBottom: "tareas numeradas, en orden de dependencia",
-  },
-  summary: {
-    heading: {
-      eyebrow: "En resumen",
-      title: "La diferencia está en lo que tienes que aportar.",
-    },
-    lead: "Taskmaster es un gestor de tareas para agentes de código con más de 28k estrellas en GitHub. Lee un documento de requisitos, lo divide en tareas con dependencias, puntúa la complejidad de cada una, expande las más pesadas en subtareas y te entrega la siguiente tarea sin bloqueos. Si ya escribes especificaciones, eso es casi todo lo que necesitas.",
-    panel:
-      "AI4Kanban da por hecho que todavía no tienes la especificación. Le das una frase. Lee el código y la memoria del proyecto, resuelve lo que puede por su cuenta, te pregunta solo lo que queda realmente abierto y repite hasta que la tarjeta es lo bastante concreta para construirla. **Las preguntas son el producto.** El tablero es donde quedan las respuestas.",
-    note: "Comprobado el 10 de agosto de 2026: la última versión de Taskmaster es la 0.43.1 (31 de marzo de 2026) y el commit más reciente en `main` es del 23 de abril de 2026, mientras el mismo equipo desarrolla Hamster, un espacio de planificación alojado. El paquete se sigue instalando unas 78 000 veces al mes: es una herramienta muy usada con un repositorio tranquilo, no un proyecto abandonado.",
-  },
-  start: {
-    heading: {
-      eyebrow: "Día uno",
-      title: "Qué tienes que aportar antes de que cualquiera de los dos sirva",
-    },
-    lead: "El objetivo es el mismo: una tarea que un agente de código pueda terminar sin adivinar. Cada herramienta pide algo distinto al empezar, y ahí está casi toda la comparación.",
-    ours: {
-      label: "AI4Kanban",
-      title: "Basta con una frase",
-      steps: [
-        "Di la idea a grandes rasgos. Sin formato, sin documento, sin plantilla.",
-        "El agente lee el código y las decisiones anteriores del proyecto, resuelve lo que puede y te pregunta solo lo que sigue abierto.",
-        "Escribe la tarjeta, la coloca frente al resto del tablero por valor y dependencia, y guarda tus respuestas para la próxima vez.",
+    lead: "Los flujos especializados, la aprobación de borradores y la memoria de preferencias incluidos te ayudan a guiar a los agentes con menos esfuerzo y a reducir el retrabajo.",
+    sharedLabel: "Ambos ofrecen",
+    setup: {
+      heading: "Agentes y flujos especializados, listos para usar",
+      ours: "Los agentes y flujos incluidos cubren desarrollo de software, blogs, carruseles para redes sociales, presentaciones y vídeos de producto. También puedes crear tus propios agentes y flujos.",
+      theirs: "Centrado en tareas de programación. No incluye agentes ni flujos especializados para diseño de UI, redacción o producción de contenido.",
+      art: {
+        ours: [
+          "Diseño UI",
+          "Prompts",
+          "Redacción",
+        ],
+        theirs: {
+          title: "Flujos especializados",
+          fields: [
+            "Diseño UI",
+            "Redacción",
+            "Producción de contenido",
+          ],
+          slot: "No incluido",
+        },
+      },
+      shared: [
+        {
+          title: "Desglose de tareas y dependencias",
+          body: [
+            "AI4Kanban divide el trabajo en tarjetas y subtareas, y las dependencias deciden el orden de ejecución.",
+            "Taskmaster puede generar tareas y subtareas a partir de un PRD y gestionar sus dependencias.",
+          ],
+        },
+        {
+          title: "Integración por CLI",
+          body: [
+            "AI4Kanban ofrece una CLI que los agentes de programación pueden llamar. No tiene servidor MCP.",
+            "Taskmaster ofrece una CLI y un servidor MCP.",
+          ],
+        },
       ],
     },
-    theirs: {
-      label: "Taskmaster",
-      title: "Primero, un documento escrito",
-      steps: [
-        "Escribe el documento de requisitos. Su guía sugiere redactarlo junto a un modelo de chat y guardarlo como `.taskmaster/docs/prd.txt`.",
-        "`parse-prd` lo divide en tareas con dependencias, `expand` las desglosa en subtareas y `analyze-complexity` puntúa cuáles hay que desglosar más.",
-        "`next` te entrega la tarea de mayor prioridad que nada esté bloqueando.",
+    drafts: {
+      heading: "Revisa los borradores clave antes de implementar",
+      ours: "Elige la UI, los prompts, los textos u otras partes clave que quieras revisar. Los agentes preparan borradores que puedes previsualizar y editar, y luego trabajan a partir de lo que apruebas.",
+      theirs: "Puedes revisar descripciones de tareas, detalles de implementación y estrategias de prueba. No hay un flujo integrado para previsualizar y aprobar borradores de los resultados clave antes de ejecutar.",
+      art: {
+        ours: [
+          "Borrador clave",
+          "Aprobar el rumbo",
+          "Ejecutar la tarea",
+        ],
+        theirs: {
+          title: "Detalles de la tarea",
+          fields: [
+            "Requisitos",
+            "Implementación",
+            "Estrategia de prueba",
+          ],
+          slot: "Detalles en texto",
+        },
+      },
+      shared: [
       ],
     },
-    note: "Ninguno de los dos caminos es difícil. Pero cuando el documento es vago, Taskmaster divide un documento vago: siempre puedes ejecutar `update-task` con más contexto, y el modelo de investigación puede ir a documentarse, pero nada en el bucle te pregunta qué querías decir en realidad.",
+    memory: {
+      heading: "Lleva tus preferencias a la siguiente tarea",
+      ours: "Los diseñadores recuerdan tus preferencias de diseño; los redactores, tus elecciones de redacción. Los agentes también pueden compartir el contexto del proyecto.",
+      theirs: "Guarda reglas y notas de tareas. No tiene un sistema de memoria que aprenda automáticamente preferencias de tus ediciones y rechazos para tareas futuras.",
+      art: {
+        ours: {
+          agents: [
+            "Diseñador UI",
+            "Redactor",
+          ],
+          notes: [
+            "Preferencias de diseño",
+            "Decisiones de redacción",
+          ],
+          shared: "Contexto compartido del proyecto",
+        },
+        theirs: {
+          title: "Reglas y notas de tareas",
+          fields: [
+            "Restricciones del proyecto",
+            "Notas de progreso",
+            "Contexto añadido",
+          ],
+          slot: "Solo reglas y notas",
+        },
+      },
+      shared: [
+        {
+          title: "Reglas editables",
+          body: [
+            "Los agentes especializados de AI4Kanban tienen reglas de rol editables.",
+            "Taskmaster ofrece archivos de reglas para distintos editores.",
+          ],
+        },
+        {
+          title: "Conservar el contexto del trabajo",
+          body: [
+            "AI4Kanban guarda en la tarjeta los planes, las conversaciones y los registros de ejecución.",
+            "Taskmaster conserva descripciones de tareas, detalles de implementación y notas de subtareas.",
+          ],
+        },
+      ],
+    },
   },
   comparison: {
-    heading: { eyebrow: "Cara a cara", title: "AI4Kanban vs. Taskmaster" },
-    lead: "Un {check} marca la opción más clara para esa necesidad; un **guion** significa que depende de cómo trabajes. Taskmaster es más fuerte en **alcance, ejecución por lotes e investigación en vivo**. AI4Kanban es más fuerte en **llegar de una idea vaga a una especificación real y conservar lo decidido**.",
+    heading: {
+      eyebrow: "Diferencias clave",
+      title: "Compara los detalles",
+    },
+    lead: "Mira qué flujos, pasos de revisión e integraciones incluye cada producto.",
     ourLabel: "AI4Kanban",
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
-        dimension: "De dónde sale una tarea",
-        kanban:
-          "Una frase imprecisa tuya, o una propuesta que el agente hace por su cuenta tras leer el código y el tablero.",
-        taskMaster:
-          "Un documento de requisitos que escribes primero y se analiza en tareas. También puedes añadir tareas de una en una desde un prompt.",
+        dimension: "Agentes y flujos incluidos",
+        kanban: "Agentes y flujos especializados incluidos para desarrollo y contenido. Crea tus propios agentes y flujos. Los flujos de contenido requieren Pro.",
+        taskMaster: "Flujos de programación para ejecutar tareas, probar y limpiar código. No incluye agentes ni flujos especializados para diseño, redacción o producción de contenido.",
       },
-      vagueRequest: {
-        dimension: "Cuando la petición es vaga",
-        kanban:
-          "Un bucle de refinamiento responde lo que la memoria y el código permiten, te pregunta el resto y no da la tarjeta por lista mientras quede una pregunta abierta.",
-        taskMaster:
-          "Las tareas salen tan concretas como entró el documento. Puedes actualizar una tarea, expandirla o enviar al modelo de investigación a consultar algo.",
+      planning: {
+        dimension: "Desglose de tareas y dependencias",
+        kanban: "AI4Kanban divide el trabajo en tarjetas y subtareas, y las dependencias deciden el orden de ejecución.",
+        taskMaster: "Taskmaster puede generar tareas y subtareas a partir de un PRD y gestionar sus dependencias.",
       },
-      board: {
-        dimension: "Qué es el tablero en disco",
-        kanban:
-          "Un archivo Markdown por tarjeta bajo `docs/kanban/`, más archivos de memoria en texto plano. Un diff se lee como una frase.",
-        taskMaster:
-          "Un único `.taskmaster/tasks/tasks.json` con todas las tareas y subtareas; `generate` también puede escribir un archivo de texto por tarea.",
+      drafts: {
+        dimension: "Revisión de borradores clave antes de ejecutar",
+        kanban: "Borradores de imagen, diagrama, HTML/TSX, diff y storyboard. El contenido clave aprobado pasa a formar parte de los requisitos de ejecución.",
+        taskMaster: "Puedes revisar descripciones de tareas, detalles de implementación y estrategias de prueba. No hay un flujo integrado para previsualizar y aprobar borradores de los resultados clave antes de ejecutar.",
       },
-      setup: {
-        dimension: "Qué hay que configurar",
-        kanban:
-          "Un prompt. Sin servidor MCP, sin claves de API, sin configurar modelos: piensa el propio modelo de tu agente de código.",
-        taskMaster:
-          "Un servidor MCP o la CLI, más los modelos principal, de investigación y de reserva. Los proveedores Claude Code y Codex no piden clave extra; la mayoría de los demás sí.",
-      },
-      execution: {
-        dimension: "Ejecutar el trabajo",
-        kanban:
-          "Tu agente implementa la tarjeta y la archiva. No hay ejecutor por lotes ni un flujo de pruebas obligatorio.",
-        taskMaster:
-          "`loop` lanza sesiones nuevas de Claude Code una tras otra, con presets para pruebas, linting y duplicación; `autopilot` conduce un ciclo TDD rojo-verde-commit en su propia rama.",
+      discussion: {
+        dimension: "Chat sobre una tarea",
+        kanban: "Comenta requisitos y revisa planes con los agentes en la tarjeta. Las conversaciones se quedan en la tarjeta.",
+        taskMaster: "No incluye una interfaz de chat por tarea. Las tareas se comentan en el chat del agente de herramientas como Cursor.",
       },
       memory: {
-        dimension: "Qué se conserva",
-        kanban:
-          "Memoria de planificación: decisiones, ideas rechazadas, correcciones de diseño y trabajo entregado, guardados por agente y leídos antes de la siguiente propuesta, así que un no sigue siendo un no.",
-        taskMaster:
-          "Notas con marca de tiempo añadidas a las subtareas, archivos de investigación guardados y etiquetas que mantienen separadas varias listas de tareas.",
+        dimension: "Memoria de preferencias",
+        kanban: "Los agentes recuerdan tus preferencias de diseño, tus elecciones de redacción y otras decisiones, y pueden compartir el contexto del proyecto.",
+        taskMaster: "Guarda reglas y notas de tareas. No tiene un sistema de memoria que aprenda automáticamente preferencias de tus ediciones y rechazos para tareas futuras.",
+      },
+      followUps: {
+        dimension: "Sugerencias tras la entrega",
+        kanban: "Los agentes proponen trabajo de seguimiento al terminar una tarea principal. Tú lo aceptas, lo cambias o lo descartas.",
+        taskMaster: "next solo selecciona tareas existentes. No hay un flujo integrado que proponga automáticamente nuevas tareas de seguimiento tras la entrega.",
+      },
+      interface: {
+        dimension: "Tablero e interfaz",
+        kanban: "Un tablero de escritorio independiente para tarjetas, borradores, conversaciones y estado de las ejecuciones.",
+        taskMaster: "El tablero Kanban visual oficial es una extensión de VS Code. La gestión de tareas básica también funciona por CLI/MCP.",
+      },
+      execution: {
+        dimension: "Ejecución y validación",
+        kanban: "Ejecuta tarjetas independientes en paralelo en segundo plano, o usa dependencias para ejecutarlas en orden. Las tareas de desarrollo usan git worktrees aislados y las comprobaciones necesarias.",
+        taskMaster: "loop inicia una nueva sesión de Claude Code en cada iteración, completa una tarea cada vez y ejecuta pruebas y comprobaciones de tipos.",
+      },
+      testFirst: {
+        dimension: "Flujo test-first incluido",
+        kanban: "Las tareas de desarrollo ejecutan las comprobaciones necesarias. No incluye un flujo RED → GREEN → COMMIT.",
+        taskMaster: "autopilot guía cada subtarea por una prueba que falla, la implementación hasta que las pruebas pasan y un commit. Sigue las fases y comprueba los resultados de prueba informados.",
+      },
+      research: {
+        dimension: "Investigación",
+        kanban: "Los agentes pueden investigar con las herramientas disponibles en Claude Code, Codex u otra herramienta de ejecución. Sin comando de investigación dedicado ni ajuste de modelo de investigación.",
+        taskMaster: "research acepta contexto de tareas y archivos, usa un modelo de investigación configurado aparte y puede guardar los resultados en una tarea o en un archivo de investigación.",
       },
       reach: {
-        dimension: "Dónde funciona",
-        kanban:
-          "Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode y Grok Build hoy. El tablero son archivos planos, así que otro entorno no necesita un formato nuevo, solo integración.",
-        taskMaster:
-          "Cursor, Windsurf, VS Code, Claude Code, Codex, Kiro, Amazon Q y más, por MCP o CLI, con más de quince proveedores de modelos.",
-      },
-      teams: {
-        dimension: "Más de una persona",
-        kanban:
-          "La colaboración es git: rama, revisión del plan en un pull request, merge. Nada se sincroniza en tiempo real.",
-        taskMaster:
-          "El tablero de código abierto también es local, pero el mismo equipo vende Hamster, un espacio alojado con briefs compartidos y sincronización, desde 40 dólares por creador al mes.",
+        dimension: "CLI y MCP",
+        kanban: "Una CLI que pueden llamar herramientas de programación como Claude Code y Codex. Sin servidor MCP.",
+        taskMaster: "CLI y MCP, para usarlo con editores y agentes de programación compatibles con MCP.",
       },
       license: {
         dimension: "Licencia",
-        kanban:
-          "Apache-2.0. Úsalo, bifúrcalo, vende algo construido con él: sin condiciones adicionales.",
-        taskMaster:
-          "MIT con la Commons Clause: gratis para uso personal, comercial y académico, pero no puedes vender Taskmaster en sí ni ofrecerlo como servicio alojado.",
-      },
-    },
-  },
-  boardShape: {
-    heading: {
-      eyebrow: "En disco",
-      title: "Un archivo JSON, o un archivo por tarjeta",
-    },
-    lead: "Los dos tableros viven en tu repositorio, así que ambos se versionan con el código. Lo que cambia es lo que un diff le enseña a una persona.",
-    oursLabel: "AI4Kanban",
-    theirsLabel: "Taskmaster",
-    oursCaption:
-      "Una tarjeta, un archivo Markdown. Un pull request muestra el plan cambiando en palabras que puedes leer y discutir.",
-    theirsCaption:
-      "Un archivo contiene todo el backlog. El diff muestra JSON: exacto, y no escrito para leerse.",
-    note: "Taskmaster añadió bloqueo de archivos entre procesos en la 0.42.0 para que dos procesos escribiendo a la vez no pierdan datos. Los archivos separados no comparten esa contención: dos ejecuciones solo chocan si editan la misma tarjeta.",
-  },
-  wins: {
-    heading: { eyebrow: "Contrapartidas", title: "Dónde gana cada uno" },
-    lead: "Taskmaster llega más lejos, aguanta más tiempo sin ti y sabe ir a informarse. AI4Kanban es más estrecho a propósito: se gana su sitio en la parte del trabajo que ocurre antes de que exista una tarea.",
-    oursHeading: "AI4Kanban",
-    theirsHeading: "Taskmaster",
-    ours: {
-      asksFirst: {
-        title: "Pregunta antes de construir",
-        body: "El agente convierte una frase imprecisa en preguntas, responde lo que puede con el código y las decisiones pasadas, y te deja solo lo que nadie más puede resolver.",
-      },
-      diffablePlan: {
-        title: "El plan es prosa legible",
-        body: "Cada tarjeta es un archivo Markdown. Revisas un plan igual que revisas código: en un diff, con palabras, antes de que se escriba nada.",
-      },
-      remembers: {
-        title: "Recuerda lo que rechazaste",
-        body: "Decisiones, ideas descartadas y correcciones de diseño viven en la memoria del propio planificador y se leen antes de la siguiente propuesta, así el tablero deja de sugerir lo mismo dos veces.",
-      },
-      nothingToWire: {
-        title: "Nada que montar",
-        body: "Sin servidor MCP, sin claves de API, sin roles de modelo que configurar, sin esquemas de herramientas en cada conversación. Un prompt lo instala en un repositorio.",
-      },
-    },
-    theirs: {
-      everywhere: {
-        title: "Funciona casi en todas partes",
-        body: "Cursor, Windsurf, VS Code, Claude Code, Codex, Kiro y más, por MCP o CLI, contra más de quince proveedores de modelos, incluidos los locales.",
-      },
-      research: {
-        title: "Trae investigación incorporada",
-        body: "Un rol de investigación dedicado puede aportar información actual mientras se escriben o expanden las tareas, y guarda lo encontrado junto a ellas.",
-      },
-      batchRuns: {
-        title: "Puede trabajar mientras duermes",
-        body: "`loop` lanza una sesión nueva por tarea con presets para pruebas, linting, duplicación y malos olores de código; `autopilot` ejecuta un ciclo TDD estricto en su propia rama.",
-      },
-      proven: {
-        title: "Es el que la gente ya conoce",
-        body: "Unas 28 000 estrellas en GitHub y unas 78 000 instalaciones de npm al mes, con documentación, un Discord y años de flujos de trabajo compartidos que copiar.",
+        kanban: "Apache-2.0, que permite uso comercial, alojamiento e integración.",
+        taskMaster: "MIT con Commons Clause, que restringe vender Taskmaster en sí y ofrecerlo como servicio alojado.",
       },
     },
   },
   decision: {
-    heading: { eyebrow: "La decisión", title: "¿Cuál encaja con tu forma de trabajar?" },
-    oursHeading: "Elige AI4Kanban cuando",
-    theirsHeading: "Elige Taskmaster cuando",
+    heading: {
+      eyebrow: "Recomendación",
+      title: "¿Cuál deberías elegir?",
+    },
+    oursHeading: "Elige AI4Kanban si",
+    theirsHeading: "Elige Taskmaster si",
     ours: [
-      "Tus ideas empiezan como una frase y escribir la especificación es lo que te frena.",
-      "Quieres revisar el plan y su razonamiento en un diff, junto al código.",
-      "Quieres que el tablero recuerde decisiones y rechazos y deje de preguntar lo mismo.",
-      "Prefieres no levantar otro servidor MCP, guardar más claves de API ni configurar modelos.",
+      "Quieres agentes y flujos especializados incluidos, o crear los tuyos.",
+      "Quieres aprobar borradores clave de UI, prompts o textos antes de la ejecución completa.",
+      "Quieres que las tareas futuras reutilicen tus preferencias y sugieran trabajo de seguimiento útil.",
     ],
     theirs: [
-      "Ya escribes documentos de requisitos y quieres dividirlos y ordenarlos bien.",
-      "Trabajas en Cursor, Windsurf, VS Code o Kiro y quieres el tablero en el editor.",
-      "Quieres ejecuciones autónomas por lotes o un flujo estricto de pruebas primero, sin montar nada.",
-      "Quieres investigación en vivo dentro de la planificación, o un proveedor de modelos que nosotros no cubrimos.",
+      "Quieres gestionar tareas por MCP desde tu editor o agente de programación actual.",
+      "Quieres un comando de investigación dedicado, con contexto de tareas y un modelo de investigación aparte.",
+      "Quieres un flujo integrado que guíe la programación por pruebas que fallan, pruebas que pasan y commits.",
     ],
-    verdict:
-      "Taskmaster empieza donde termina tu especificación. AI4Kanban empieza antes: su trabajo es justo el tramo entre una idea vaga y una tarea que merezca entregarse a un agente. Si escribes buenos documentos, Taskmaster hará más cosas hoy. Si esos documentos son lo que nunca llega a escribirse, ese hueco es lo primero que hay que resolver.",
-    note: "No son excluyentes: un PRD escrito a partir de una tarjeta refinada de AI4Kanban se analiza perfectamente. Pero un solo tablero debe ser el dueño del estado de las tareas, o acabarás manteniendo dos.",
+    verdict: "Elige AI4Kanban por **los flujos especializados, la aprobación de borradores y la memoria de preferencias**; elige Taskmaster por **la integración MCP, un comando de investigación dedicado y un flujo de programación test-first incluido**.",
+    note: "Esta página compara la versión de código abierto de Taskmaster. Hamster es un producto alojado del mismo equipo; sus funciones de equipo quedan fuera de esta comparativa.",
   },
 };
 

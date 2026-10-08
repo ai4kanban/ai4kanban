@@ -1,13 +1,12 @@
 import { FiCheck, FiMinus } from "react-icons/fi";
-import type { Winner } from "../vs/ComparisonTable";
+import type { Winner } from "./ComparisonTable";
 
 // One open table: a column head once, hairlines between rows. The stronger side
-// takes a green check; the other a dash, since on every row it can be
-// configured rather than missing.
+// takes a green check; the other a dash. A neutral row dashes both.
 
-export type MulticaRow = {
+export type VsRow = {
   key: string;
-  winner: Exclude<Winner, "neutral">;
+  winner: Winner;
   dimension: string;
   ours: string;
   oursTip?: string;
@@ -48,12 +47,12 @@ function Cell({
 const GRID = "sm:grid sm:grid-cols-[11rem_1fr_1fr]";
 const RULE = "border-[color-mix(in_srgb,var(--color-ink)_12%,transparent)]";
 
-export function MulticaTable({
+export function VsTable({
   rows,
   ourLabel,
   theirLabel,
 }: {
-  rows: MulticaRow[];
+  rows: VsRow[];
   ourLabel: string;
   theirLabel: string;
 }) {
