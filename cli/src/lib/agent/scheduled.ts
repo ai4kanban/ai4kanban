@@ -5,7 +5,7 @@
 
 import { specAgentCatalog } from '../agents/catalog'
 import { proGate, type ProAccess } from '../cloud/pro'
-import { agentsWithBacklog, autoSchedule, building, readsNew, scheduleDue, stampMs, type DueAnswer } from './due'
+import { autoSchedule, building, readsNew, scheduleDue, stampMs, type DueAnswer } from './due'
 import { insideRun } from './env'
 import { flowNodes } from './stages'
 import { readStore, type Store } from './store'
@@ -60,7 +60,6 @@ export function scheduledWait(
   pass: ScheduledPass,
   one: WorkflowScheduled,
   store: Store = readStore(),
-  backlog: () => Set<string> = agentsWithBacklog,
   now: Date = new Date(),
 ): DueAnswer {
   const reads = specAgentCatalog().agents.find((a) => a.name === one.agent)?.reads
@@ -73,7 +72,6 @@ export function scheduledWait(
       from: stampMs(scheduledClock(one)),
       attempts: store.runs.filter((r) => isPass(r, pass)),
       newWork: () => !reads || readsNew(reads, lastRun),
-      backlog: () => backlog().has(one.agent),
       building: () => building(store),
     },
     now.getTime(),
@@ -98,8 +96,6 @@ export async function dueScheduledAgents(
   now: Date = new Date(),
 ): Promise<AgentRequest[]> {
   const store = readStore()
-  let held: Set<string> | undefined
-  const backlog = () => (held ??= agentsWithBacklog())
   const due: AgentRequest[] = []
   for (const flow of workflows()) {
     for (const one of scheduledMembers(flow)) {
@@ -109,7 +105,7 @@ export async function dueScheduledAgents(
         startScheduledClock(flow.id, one.agent, now)
         continue
       }
-      if (scheduledWait(pass, one, store, backlog, now).wait) continue
+      if (scheduledWait(pass, one, store, now).wait) continue
       if (scheduledBusy(pass, store)) continue
       if (await proGate(flow, ask)) continue
       due.push(scheduledRequest(pass))

@@ -18,7 +18,6 @@ const ask = (over: Partial<DueAsk> = {}): DueAsk => ({
   from: T0,
   attempts: [],
   newWork: () => true,
-  backlog: () => false,
   ...over,
 })
 
@@ -93,10 +92,6 @@ describe('once its time has come', () => {
 
   it('gives no reason while only its time is still to come', () => {
     assert.equal(scheduleDue(ask(), T0 + GAP - 60_000).reason, undefined)
-  })
-
-  it('waits while what it sent to triage is unhandled', () => {
-    assert.equal(scheduleDue(ask({ backlog: () => true }), T0 + GAP).reason, 'unsorted')
   })
 
   it('waits while a card is being built', () => {

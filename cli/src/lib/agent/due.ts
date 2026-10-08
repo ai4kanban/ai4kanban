@@ -1,8 +1,8 @@
 // When a scheduled agent may start (#1475) — the board's own and a workflow's alike.
 //
 // A pass is due once its gap has passed since the later of its clock and its newest attempt,
-// there is something new for it to read, nothing it sent to triage is still unhandled, and —
-// for a workflow's agent — no build is running or landing. The gap is the user's cadence, or
+// there is something new for it to read and — for a workflow's agent — no build is running or
+// landing. The gap is the user's cadence, or
 // in `auto` six hours for an agent that reads something and its own default for one that does
 // not. Failures in a row double it, up to a day.
 
@@ -11,8 +11,7 @@ import fs from 'node:fs'
 import { formatDay, formatStamp, isAuto, nextDue, parseStamp } from '../cadence'
 import { walkMd } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
-import { ARCHIVE, CHATS_DIR, TODO } from '../paths'
-import { readArchived, readInbox } from '../signals/inbox'
+import { ARCHIVE, CHATS_DIR } from '../paths'
 import type { ScheduleReads } from '../agents/parse'
 import { chatOfKey, lastSpoken, readChat } from './chat'
 import { rejectionWorkWaiting } from './dismissal-review'
@@ -37,7 +36,6 @@ export interface DueAsk {
   /** A round that passed with work still listed goes on at once. */
   goesOn?: boolean
   newWork: () => boolean
-  backlog: () => boolean
   building?: () => boolean
 }
 
@@ -83,11 +81,9 @@ export function scheduleDue(ask: DueAsk, now: number = Date.now()): DueAnswer {
         : 'tooSoon'
       : !ask.newWork()
         ? 'nothingNew'
-        : ask.backlog()
-          ? 'unsorted'
-          : ask.building?.()
-            ? 'building'
-            : null
+        : ask.building?.()
+          ? 'building'
+          : null
   const reason = !wait || wait === 'tooSoon' ? undefined : wait === 'nothingNew' ? ask.reads : wait
   return { next, wait, ...(reason ? { reason } : {}) }
 }
@@ -143,30 +139,6 @@ function chatsSince(since: number): boolean {
 }
 
 // ---- what holds a pass back --------------------------------------------------
-
-/** The agents whose triage items are still unhandled: waiting in triage, or made into a card
- *  nobody has started building. Read once per pass over the board. */
-export function agentsWithBacklog(): Set<string> {
-  const out = new Set<string>()
-  const carded = new Map<string, string>()
-  try {
-    for (const item of readInbox()) if (item.agent) out.add(item.agent)
-    for (const item of readArchived()) if (item.agent && !out.has(item.agent)) carded.set(item.sourceId, item.agent)
-  } catch {
-    return out
-  }
-  if (!carded.size || !fs.existsSync(TODO)) return out
-  for (const file of walkMd(TODO)) {
-    try {
-      const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
-      const agent = meta?.triage ? carded.get(meta.triage) : undefined
-      if (agent && meta!.status !== 'implementing') out.add(agent)
-    } catch {
-      continue
-    }
-  }
-  return out
-}
 
 /** Whether a card is being built or landed — what a workflow's scheduled agent waits out. */
 export function building(store: Store): boolean {

@@ -294,7 +294,7 @@ const en: ConfigurationCopy = {
         gloss: "Proposes the work a finished card leaves behind.",
         trigger: "When cards finish",
         rule: 'Added to the end of every reflection it makes — "never propose more tests".',
-        when: "cards have finished, at most every 6 hours. It reads them and puts what should follow in Triage, to sort like anything else that arrives. It waits while what it added last time is still unsorted.",
+        when: "cards have finished, at most every 6 hours. It reads them and puts what should follow in Triage, to sort like anything else that arrives.",
         settings: {
           "small-fixes": {
             label: "Small fixes",
@@ -446,7 +446,6 @@ const en: ConfigurationCopy = {
         "archived-cards": "Runs when a card is finished",
         chats: "Runs after new chats",
         dismissals: "Runs after new rejection or dismissal reasons",
-        unsorted: "Runs once triage is cleared",
         building: "Runs when builds finish",
         retrying: "Last run failed, retrying soon",
       },

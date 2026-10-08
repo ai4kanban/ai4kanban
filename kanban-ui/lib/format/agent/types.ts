@@ -1803,13 +1803,13 @@ export type MemoryPruneSchedule = CadenceSchedule
 export type BoardScheduleKey = 'memoryPrune' | 'dismissalReview' | 'projectDescription' | 'memoryReview'
 
 /** Why a scheduled agent that is on is not starting right now (#1475): its gap has not
- *  passed, an `auto` one is backing off a failed run, nothing new arrived, what it last sent
- *  to triage is unhandled, or a card is being built. */
-export type ScheduleWait = 'tooSoon' | 'retrying' | 'nothingNew' | 'unsorted' | 'building'
+ *  passed, an `auto` one is backing off a failed run, nothing new arrived, or a card is being
+ *  built. */
+export type ScheduleWait = 'tooSoon' | 'retrying' | 'nothingNew' | 'building'
 
 /** That wait as a screen says it (#1476): nothing new reads as what the agent reads. A gap
  *  still to pass is no reason — the next run's time says it. */
-export type ScheduleReason = 'archived-cards' | 'chats' | 'dismissals' | 'retrying' | 'unsorted' | 'building'
+export type ScheduleReason = 'archived-cards' | 'chats' | 'dismissals' | 'retrying' | 'building'
 
 /** What `auto` runs one agent on (#1543): its least gap, and the input it waits for, if any. */
 export interface AutoSchedule {

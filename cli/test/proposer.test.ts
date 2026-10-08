@@ -23,7 +23,6 @@ import { reflectQueue } from '../src/lib/agent/settings.ts'
 import { logPathOf, withStore } from '../src/lib/agent/store.ts'
 import { chatFile } from '../src/lib/agent/chat.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { agentsWithBacklog } from '../src/lib/agent/due.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
 import { cmdTriageAdd, type TriageAddOptions } from '../src/commands/triage.ts'
 import { readSignals } from '../src/lib/signals/index.ts'
@@ -248,7 +247,7 @@ describe("the board's timer (#1475)", () => {
     assert.deepEqual(await reflections(), [])
   })
 
-  it('waits while what it proposed is still in triage', async () => {
+  it('signs what it proposes', async () => {
     open(1)
     const before = openNow()
     complete(1)
@@ -262,7 +261,6 @@ describe("the board's timer (#1475)", () => {
       delete process.env.KANBAN_RUN
     }
     assert.equal(readSignals().signals.find((s) => s.title === 'Follow it up')?.agent, 'proposer')
-    assert.equal(agentsWithBacklog().has('proposer'), true)
   })
 })
 

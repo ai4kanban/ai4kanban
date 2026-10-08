@@ -37,7 +37,7 @@ import {
   setProjectDescription,
   stampLeftoverPrune,
 } from '../agent/settings'
-import { agentsWithBacklog, AUTO_GAP, autoSchedule, readsNew, scheduleDue, stampMs, type DueAnswer, type DueAsk } from '../agent/due'
+import { AUTO_GAP, autoSchedule, readsNew, scheduleDue, stampMs, type DueAnswer, type DueAsk } from '../agent/due'
 import { projectDescribed } from '../agent/project'
 import { anyChatToReview } from '../agent/memory-review'
 import { nextReflection, REFLECT_BATCH } from '../agent/propose'
@@ -80,7 +80,7 @@ interface BoardSchedule {
   /** What it runs on in `auto` when it reads nothing. */
   fallback: string
   /** Null while off. `write` lets the pruner's first look stamp where it counts from. */
-  ask: (runs: RunView[], write: boolean) => Omit<DueAsk, 'attempts' | 'backlog' | 'reads' | 'fallback'> | null
+  ask: (runs: RunView[], write: boolean) => Omit<DueAsk, 'attempts' | 'reads' | 'fallback'> | null
 }
 
 const own = (runs: RunView[], action: AgentRequest['action']): RunView[] => runs.filter((r) => r.action === action)
@@ -166,16 +166,16 @@ const SCHEDULES: Record<ScheduleName, BoardSchedule> = {
 }
 
 /** When one may next start and what holds it, or null while it is off. */
-function scheduleAnswer(name: ScheduleName, runs: RunView[], write: boolean, backlog: () => Set<string>): DueAnswer | null {
+function scheduleAnswer(name: ScheduleName, runs: RunView[], write: boolean): DueAnswer | null {
   const schedule = SCHEDULES[name]
   const ask = schedule.ask(runs, write)
   if (!ask) return null
-  return scheduleDue({ ...ask, reads: schedule.reads, fallback: schedule.fallback, attempts: own(runs, schedule.action), backlog: () => backlog().has(schedule.agent) })
+  return scheduleDue({ ...ask, reads: schedule.reads, fallback: schedule.fallback, attempts: own(runs, schedule.action) })
 }
 
-function scheduleDueNow(name: ScheduleName, runs: RunView[], backlog: () => Set<string>): boolean {
+function scheduleDueNow(name: ScheduleName, runs: RunView[]): boolean {
   if (runs.some((r) => r.action === SCHEDULES[name].action && r.status === 'running')) return false
-  const due = scheduleAnswer(name, runs, true, backlog)
+  const due = scheduleAnswer(name, runs, true)
   return !!due && !due.wait
 }
 
@@ -189,10 +189,8 @@ export async function boardSchedules(): Promise<Record<BoardScheduleKey, BoardSc
     // no record to read — every clock counts from its last pass alone
   }
   const saved = { memoryPrune: memoryPrune(), memoryReview: memoryReview(), dismissalReview: dismissalReview(), projectDescription: projectDescription() }
-  let held: Set<string> | undefined
-  const backlog = () => (held ??= agentsWithBacklog())
   const view = (key: BoardScheduleKey): BoardScheduleView => {
-    const due = scheduleAnswer(key, runs, false, backlog)
+    const due = scheduleAnswer(key, runs, false)
     return {
       enabled: saved[key].enabled,
       cadence: saved[key].cadence,
@@ -399,9 +397,7 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
 
   // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two
   // above: it touches no card, so nothing it does can queue behind them or they behind it.
-  let held: Set<string> | undefined
-  const backlog = () => (held ??= agentsWithBacklog())
-  if (scheduleDueNow('memoryPrune', runs, backlog)) work.push({ action: 'prune-memory' })
+  if (scheduleDueNow('memoryPrune', runs)) work.push({ action: 'prune-memory' })
 
   // What cards off the board for a week still hold in .akb (#1177), and the archived cards
   // past their month (#1335), once a day. Stamped
@@ -418,11 +414,11 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
 
   // And the day's review of what the conversations settled (#748). A slot of its own for the
   // same reason: it touches no card, so nothing it does can queue behind a card's run.
-  if (scheduleDueNow('memoryReview', runs, backlog)) work.push({ action: 'review-memory' })
-  if (scheduleDueNow('dismissalReview', runs, backlog)) work.push({ action: 'review-dismissals' })
-  if (scheduleDueNow('projectDescription', runs, backlog)) work.push({ action: 'describe-project' })
+  if (scheduleDueNow('memoryReview', runs)) work.push({ action: 'review-memory' })
+  if (scheduleDueNow('dismissalReview', runs)) work.push({ action: 'review-dismissals' })
+  if (scheduleDueNow('projectDescription', runs)) work.push({ action: 'describe-project' })
   // And the proposer's next batch (#1467): it touches no card either.
-  if (scheduleDueNow('proposer', runs, backlog)) {
+  if (scheduleDueNow('proposer', runs)) {
     const reflect = nextReflection()
     if (reflect) work.push(reflect)
   }

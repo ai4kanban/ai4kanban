@@ -252,23 +252,13 @@ describe('what a scheduled agent waits for (#1475)', () => {
     assert.equal(one().cadence, 'auto')
   })
 
-  it('waits while what it sent to triage is waiting, or carded and not started', async () => {
+  it('claims what it sends to triage, and does not wait for it to be sorted', async () => {
     enable(new Date(Date.now() - 3 * DAY))
     process.env[RUN_ENV] = open()
     await triageShut(() => cmdTriageAdd({ title: 'A gap', text: 'Something to do.' }))
     delete process.env[RUN_ENV]
-    const [item] = readInbox()
-    assert.equal(item!.agent, PASS.agent)
-    assert.equal(scheduledWait(PASS, one(), undefined, undefined, later()).wait, 'unsorted')
-
-    const card = path.join(kanban(), 'todo', '9-a-gap.md')
-    const write = (status: string) =>
-      fs.writeFileSync(card, ['---', 'title: A gap', `status: ${status}`, `triage: ${item!.sourceId}`, '---', '', 'Body.', ''].join('\n'))
-    write('todo')
-    assert.equal(archiveInboxItem(item!.sourceId, 9).ok, true)
-    assert.equal(scheduledWait(PASS, one(), undefined, undefined, later()).wait, 'unsorted')
-    write('implementing')
-    assert.notEqual(scheduledWait(PASS, one(), undefined, undefined, later()).wait, 'unsorted')
+    assert.equal(readInbox()[0]!.agent, PASS.agent)
+    assert.equal(scheduledWait(PASS, one(), undefined, later()).wait, null)
   })
 
   it('leaves an item added outside a run unclaimed', async () => {

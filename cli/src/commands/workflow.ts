@@ -44,7 +44,7 @@ import type { MoveResult } from '../lib/types'
 
 const cadenceLine = (one: WorkflowScheduled): string => (one.off ? 'off' : isAuto(one.cadence) ? 'auto' : `every ${one.cadence}`)
 
-const WAITS = { tooSoon: '', retrying: 'retrying after a failed run', nothingNew: 'nothing new yet', unsorted: 'its last items are not handled yet', building: 'waits for the build to finish' }
+const WAITS = { tooSoon: '', retrying: 'retrying after a failed run', nothingNew: 'nothing new yet', building: 'waits for the build to finish' }
 
 const nextLine = (due: DueAnswer | null): string =>
   !due ? '' : ` · next after ${formatStamp(due.next)}${due.wait && WAITS[due.wait] ? ` (${WAITS[due.wait]})` : ''}`

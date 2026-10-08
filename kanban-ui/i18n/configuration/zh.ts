@@ -380,7 +380,7 @@ const zh: ConfigurationCopy = {
         gloss: "从已完成的卡片中提出接下来要做的事。",
         trigger: "有新完成的卡片时",
         rule: "会附加到每次回顾的末尾，例如「不要提补测试的事」。",
-        when: "有新完成的卡片时，最多每 6 小时一次。读取这些卡片，把接下来要做的事放进待筛选，由你像处理其他条目一样筛选；上次放进的还没处理完时，先不运行。",
+        when: "有新完成的卡片时，最多每 6 小时一次。读取这些卡片，把接下来要做的事放进待筛选，由你像处理其他条目一样筛选。",
         settings: {
           "small-fixes": {
             label: "小改动",
@@ -532,7 +532,6 @@ const zh: ConfigurationCopy = {
         "archived-cards": "有新完成的卡片后运行",
         chats: "有新对话后运行",
         dismissals: "有新的拒绝或忽略原因后运行",
-        unsorted: "处理完待筛选后运行",
         building: "开发结束后运行",
         retrying: "上次失败，稍后重试",
       },
