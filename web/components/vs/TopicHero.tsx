@@ -1,18 +1,21 @@
 import type { ReactNode } from "react";
 import { FiCheck, FiX } from "react-icons/fi";
 import { LogoMark } from "@/components/ui/Logo";
-import type { VsSharedItem, VsTopicsHero } from "@/i18n/types";
+import type { VsQuestionsHero, VsSharedItem, VsTopicsHero } from "@/i18n/types";
 import { Rich } from "../Rich";
 import { framed, hairline, heroTop, panelStatic } from "../styles";
 import { HeroBackdrop } from "./HeroBackdrop";
-import { DraftsOurs, MemoryOurs, SetupOurs } from "./HeroVisuals";
+import { DraftsOurs, MemoryOurs, QuestionsOurs, SetupOurs } from "./HeroVisuals";
 
 // The title, then the three topics AI4Kanban wins, each drawn the same way:
 // heading, verdict, one card with both sides and what they share. The rival's
 // page supplies its name, mark and art.
 
-type TopicKey = "setup" | "drafts" | "memory";
-export type Rival = { name: string; mark: ReactNode; art: Record<TopicKey, ReactNode> };
+export type Rival = {
+  name: string;
+  mark: ReactNode;
+  art: { setup: ReactNode; drafts: ReactNode; memory?: ReactNode; questions?: ReactNode };
+};
 
 const Badge = ({ win }: { win: boolean }) => (
   <span
@@ -103,7 +106,7 @@ function Topic({
   );
 }
 
-export function TopicHero({ c, rival }: { c: VsTopicsHero; rival: Rival }) {
+export function TopicHero({ c, rival }: { c: VsTopicsHero | VsQuestionsHero; rival: Rival }) {
   const topic = { sharedLabel: c.sharedLabel, rival };
   return (
     <section className={heroTop}>
@@ -132,12 +135,21 @@ export function TopicHero({ c, rival }: { c: VsTopicsHero; rival: Rival }) {
         oursArt={<DraftsOurs c={c.drafts.art.ours} />}
         theirsArt={rival.art.drafts}
       />
-      <Topic
-        {...topic}
-        {...c.memory}
-        oursArt={<MemoryOurs c={c.memory.art.ours} />}
-        theirsArt={rival.art.memory}
-      />
+      {"memory" in c ? (
+        <Topic
+          {...topic}
+          {...c.memory}
+          oursArt={<MemoryOurs c={c.memory.art.ours} />}
+          theirsArt={rival.art.memory}
+        />
+      ) : (
+        <Topic
+          {...topic}
+          {...c.questions}
+          oursArt={<QuestionsOurs c={c.questions.art.ours} />}
+          theirsArt={rival.art.questions}
+        />
+      )}
     </section>
   );
 }

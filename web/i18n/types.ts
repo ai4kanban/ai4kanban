@@ -78,8 +78,7 @@ export type VsTopic<Art> = {
   shared: VsSharedItem[];
 };
 
-/** A hero of three topics: specialists, drafts, memory. */
-export type VsTopicsHero = {
+type VsTopicsBase = {
   badge: string;
   /** `\n` marks the line break in the H1. */
   title: string;
@@ -89,11 +88,21 @@ export type VsTopicsHero = {
   setup: VsTopic<[string, string, string]>;
   /** Draft, approve, run. */
   drafts: VsTopic<[string, string, string]>;
+};
+
+/** A hero of three topics: specialists, drafts, memory. */
+export type VsTopicsHero = VsTopicsBase & {
   memory: VsTopic<{
     agents: [string, string];
     notes: [string, string];
     shared: string;
   }>;
+};
+
+/** The same hero with settled requirements in place of memory. */
+export type VsQuestionsHero = VsTopicsBase & {
+  /** Clarify, approve key points, run. */
+  questions: VsTopic<[string, string, string]>;
 };
 
 /** The closing "which should you use?" section. */

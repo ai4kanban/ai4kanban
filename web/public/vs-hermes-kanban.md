@@ -1,218 +1,108 @@
 # AI4Kanban vs. Hermes Agent Kanban
 
-> Two agent-facing kanban boards with a lot of overlap. The difference is where
-> the board sits in the stack: ai4kanban is a lean *board layer* you run
-> any agent on top of; Hermes Agent Kanban fuses that board into its own runtime.
+> Built-in specialist workflows and draft approval put your judgment before the
+> build, so you correct less afterwards.
 
-- **AI4Kanban** — A plain-Markdown board in your repo. The runtime, execution,
-  and even maintenance layer on top — swap the agent, keep the board.
-- **Hermes Agent Kanban** — The board, dispatcher, and named agents are one
-  integrated runtime — durable and bundled, but the board doesn't detach from
-  Hermes.
+## Specialist agents and workflows, ready to use
 
-## 01 · The short version — So why not just use Hermes Kanban?
+- **AI4Kanban** — Built-in agents and workflows cover software development,
+  blogs, social carousels, slide decks and product videos. You can also create
+  your own.
+- **Hermes Kanban** — Workers are Hermes profiles you set up with a model and
+  skills. No built-in specialist workflows for UI design, copywriting or content
+  production.
 
-Fair question — the two overlap a lot. Both are kanban boards agents plan and work
-from, so think of ai4kanban as **a lightweight alternative to Hermes
-Kanban**: the same board idea, minus the bundled runtime. The difference is
-what's underneath.
+**Both support**
 
-**AI4Kanban — a board made of files**
+- **Task breakdown and dependencies** — AI4Kanban splits work into cards and
+  subtasks, with dependencies controlling execution order. Hermes Kanban breaks
+  a one-line task into child tasks and runs a child once its parents are done.
+- **Parallel runs in git worktrees** — AI4Kanban runs independent cards side by
+  side, each in its own git worktree. Hermes Kanban runs tasks in parallel, with
+  a git worktree per task.
 
-- Plain Markdown in your repo — every task and plan change is a reviewable diff.
-- No infrastructure: nothing to install, nothing to keep running.
-- Execution comes from whatever harness you already use — Claude Code, Codex,
-  Cursor, even Hermes.
+## Review key drafts before implementation
 
-**Hermes Kanban — a board inside a runtime**
+- **AI4Kanban** — Choose the UI, prompts, copy or other key parts you want to
+  review. Agents prepare drafts you can preview and edit, then build from what
+  you approve.
+- **Hermes Kanban** — Tasks start from a text spec. Its docs describe no preview
+  and approval of key drafts before execution.
 
-- A durable SQLite queue at ~/.hermes/kanban.db, shared by many named agents and
-  humans.
-- A dispatcher hands ready tasks to agents and recovers crashed runs.
-- Tied to the Hermes / Nous stack and its kanban_* tools.
+**Both support**
 
-**When to use ai4kanban.** Pick the skill when you want the board
-**versioned with your code**, when you're staying in a harness you already run,
-or when you don't want to operate a runtime just to get a task board. Reach for
-Hermes Kanban when **you already work deeply with Hermes** — its board plugs
-straight into the dispatcher, named profiles, and chat control you've set up.
-Both are durable queues in the end; the skill's is files in git, Hermes's is rows
-in SQLite.
+- **A written spec** — AI4Kanban cards hold the scope and build steps. Hermes
+  Kanban can rewrite a task into a goal, approach and acceptance criteria.
+- **Feedback on the task** — AI4Kanban takes your changes in the card chat and
+  updates the plan. Hermes Kanban takes your notes to the worker in task
+  comments.
 
-## 02 · Harness support — Which agents can run the board?
+## Settle the requirements first, then stop watching
 
-The clearest single difference. The skill's board is plain files, so **any agent
-that can read a repo can run it** — including Hermes itself. Hermes Kanban's board
-sits behind the runtime's `kanban_*` tools, so only Hermes can.
+Watching less doesn’t mean lower quality: drafts, questions and key-point
+summaries keep the result on track.
 
-| Board | Claude Code | Codex | Cursor | OpenClaw | Hermes |
-| --- | --- | --- | --- | --- | --- |
-| AI4Kanban (any file-reading agent) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Hermes Kanban (Hermes only) | ❌ | ❌ | ❌ | ❌ | ✅ |
+- **AI4Kanban** — It doesn’t start blind. It first asks the questions that
+  matter and pins down what the delivery must meet, then builds. You approve the
+  key points and leave the details to agents, so you don’t have to watch every
+  run, and you can ship more work in a day.
+- **Hermes Kanban** — Light planning, fast execution: work starts as soon as it
+  is broken down, the bar is adjusted along the way, and fixes are made in the
+  worktree. That is a valid way to work, but it relies on you checking in as it
+  runs, which limits how much work you can ship in a day.
 
-…and the skill's row keeps going — Windsurf, OpenCode, Gemini CLI, anything that
-reads files. Hermes Kanban has no way in for other agents.
+**Both support**
 
-## 03 · Head to head — AI4Kanban vs. Hermes Kanban
+- **Agents that learn as they work** — AI4Kanban’s specialist agents note the
+  drafts you send back or overrule, and finished cards are reviewed for
+  decisions and preferences. Each Hermes profile keeps memory notes and writes
+  its own skills from what it learns, including your corrections.
+- **Task history** — AI4Kanban keeps plans, conversations and run records on the
+  card. Hermes Kanban keeps a comment thread and run history on the task.
 
-A check is a clear win; a dash is a trade-off. The skill wins on simplicity and
-portability, Hermes on the durable shared queue and scale — the rest is a draw.
+## 01 · Key differences — Compare the details
+
+A ✓ marks the stronger side on each row.
 
 | Dimension | AI4Kanban | Hermes Kanban | Edge |
 | --- | --- | --- | --- |
-| What it is | A file-based kanban layer — the board is plain Markdown in your repo. | A kanban feature of the Hermes agent runtime — a durable SQLite board. | Trade-off |
-| Infrastructure | None of its own — the board is just plain Markdown files in your repo. | A running gateway, a SQLite database, and a dispatcher loop. | AI4Kanban |
-| Where the board lives | In your repo, under version control — every task and plan change is a reviewable diff. | In a SQLite DB at ~/.hermes/kanban.db; changes go to an event log, not diffs. | AI4Kanban |
-| Setup | One prompt: a skill file and a small script. | Install the Hermes runtime, configure profiles, run the gateway. | AI4Kanban |
-| Parallel & scheduled runs | Your harness drives it — Claude Code spawns parallel subagents when you kick things off; scheduled work is done by agents the board starts as often as you set. | The runtime drives it — the dispatcher picks up ready tasks on its own and spawns a worker process per task. | Trade-off |
-| Crash recovery | No per-task queue — a run that dies mid-task just reruns on the next scheduled tick. | A durable queue auto-recovers in-flight work — claim TTLs, heartbeats, stale-claim reclaim, retries. | Hermes |
-| Task decomposition | A card breaks into todos and a task graph — group, blocked-by, related — with deps worked out as it's written. | The dispatcher auto-runs an LLM decomposer, fanning a task into a child-task graph routed to specialists. | Trade-off |
-| Review & memory | Memory is pruned to why-rejected and what-shipped so the agent proposes forward — curated, not a full log. | Keeps a full append-only event log and per-attempt run history for audit. | Trade-off |
-| Dashboard GUI | A local web board where card actions — implement, review, archive — hand the work to an agent. | A live web board with drag-drop and a side drawer, plus control from chat apps. | Trade-off |
-| Scale & reach | A solo board; grep gets unwieldy as it grows. | Scales to many agents across many boards — multi-tenant, with control from Discord / Slack / email / SMS. | Hermes |
+| Built-in agents and workflows | Built-in specialist agents and workflows for development and content. Create your own. Content workflows require Pro. | General-purpose Hermes profiles you set up. No built-in specialist workflows for UI design, copywriting or content production. | AI4Kanban |
+| Before work starts | Planning settles what it can and asks you what is still open. Nothing is built until you start it. | A model breaks the task into a task graph without asking you; child tasks start on their own unless you turn that off. | AI4Kanban |
+| Key draft review before execution | Image, diagram, HTML/TSX, diff and storyboard drafts. Approved content becomes part of the execution requirements. | A text spec with goal, approach and acceptance criteria. No draft preview before execution in its docs. | AI4Kanban |
+| Questions for you | Asked while planning or mid-build, each with options and a recommended answer; only dependent work waits, and it continues once you answer. | A worker pauses the whole task with a written reason; you comment, unblock it, and the worker starts again. | AI4Kanban |
+| What agents remember | Each specialist agent notes the drafts you send back or overrule; finished cards are reviewed for decisions and preferences. | Each profile keeps memory notes and writes its own skills from what it learns, including your corrections. | Even |
+| Work after delivery | Agents review what shipped and suggest follow-up work with reasons; a QA agent tests recent changes daily. Suggestions wait in triage for your decision. | Workers create child tasks to split up work in progress. Follow-up after delivery is a new task you create. | AI4Kanban |
+| Merging parallel work | Each finished build is rebased and merged in turn; an agent resolves conflicts. | Worktrees are kept after the task. Merging back is not documented; conflicts go to a separate reconciliation task. | AI4Kanban |
+| Recurring work | Scheduled agents run on a cadence you set. | One-off scheduled starts. Recurring work needs your own cron job. | AI4Kanban |
+| Running Claude Code or Codex | Claude Code, Codex, Cursor, OpenCode and other coding agents run the work directly, on your own subscriptions; choose one per agent. | Workers are Hermes agents; a bundled skill lets one call Claude Code or Codex from the terminal. | AI4Kanban |
+| Board and interface | A desktop app for cards, drafts, conversations and run status. | A CLI, a web dashboard and a Desktop app plugin. | Even |
+| Checking the work | Claude Code or Codex run tests and check the requirements as they build; AI4Kanban adds no second review pass, to avoid over-testing. | A reviewer profile checks each acceptance criterion and runs tests, sending work back until it passes. | Even |
+| Control from chat apps | Notifications, Slack and Lark need Cloud, which is in invite-only preview. | Manage the board with /kanban from Telegram, Discord, Slack, WhatsApp, Signal and more, with task notifications. | Hermes Kanban |
+| Recovery from failed runs | Provider errors are retried automatically. A stopped run waits for you to resume it. | Heartbeats reclaim stalled tasks, and a task that keeps failing is put on hold. | Hermes Kanban |
+| API and extensions | A CLI that coding agents call. No public API. | A REST and WebSocket API, plus plugin hooks for task events. | Hermes Kanban |
 
-## 04 · Memory vs. audit — What each board remembers
+## 02 · Recommendation — Which should you choose?
 
-The essential difference: the skill's memory is an **input to planning** — it
-exists so the next proposal is smarter. Hermes's log is an **output of
-execution** — it exists so the past can be replayed.
+**Choose AI4Kanban if you**
 
-**AI4Kanban — remembers conclusions, forgets the rest.** A handful of small
-files, pruned on purpose, in two layers. The board keeps its own record —
-`readme.md` (what shipped) and `project.md` (what the project is) — and
-every agent that remembers has a folder of its own: the planner's holds
-`decisions.md` (the calls that were settled, and why), `rejected.md` (what we
-turned down, and why) and `redesign.md` (design mistakes not to repeat). A
-module is a heading inside those files, not a folder. The agent reads them all
-before proposing or writing a card; the full history is git's job.
+- Want built-in specialist agents and workflows, or to create your own.
+- Want to approve key UI, prompt or copy drafts before full execution.
+- Want agents to suggest follow-up work after each delivery.
 
-> "Why isn't idea X on the board?" — One line in `rejected.md`: the idea and why
-> it was turned down. Dead ideas stay dead.
+**Choose Hermes Kanban if you**
 
-**Hermes Kanban — remembers every event, summarizes nothing.** Every state
-transition lands in an append-only log; every attempt keeps its exit code and
-full worker output. Built for audit and crash recovery, not for steering the next
-idea.
-
-> "What happened to task 42 overnight?" — `claimed → crashed → reclaimed →
-> completed`, with per-attempt logs to read.
-
-Curated memory makes the agent smarter next time; the audit log makes the past
-reconstructable. Neither substitutes for the other.
-
-## 05 · Autonomy level — How much autonomy does the agent get?
-
-Hermes Kanban promises **"drop a one-liner, walk away"** — full autonomy.
-ai4kanban is **agent-assisted**, and it starts earlier than plan mode: you
-save a half-formed idea to the board, `refine` turns it into concrete
-requirements, and you approve before any code is written.
-
-The spectrum, from "you plan everything" to "agent plans everything":
-
-- **No autonomy · Human-driven — Traditional kanban.** You think of every task
-  and break it down — Trello or Jira just records it.
-- **Semi autonomy · Agent-assisted — AI4Kanban.** Each `refine` digs into the
-  missing pieces and fills in requirements. You review before anything is built.
-- **Full autonomy · Fire-and-forget — Hermes Kanban.** One line in, a task tree
-  out — decomposed and worked unattended until done. Claude Code's `/goal` makes
-  the same bet.
-
-Worst case, per level:
-
-- **Fire-and-forget:** a small early misunderstanding grows into a whole tree of
-  wrong tasks — built, tokens spent.
-- **Agent-assisted:** a wrong Markdown card — caught when you review it, before
-  anything is built.
-
-One refine fills in missing steps, splits side ideas into their own cards, ticks
-off todos that already landed, and leaves the taste calls to you as questions.
-When none are left, the card flips to **ready** — read it, then build it.
-
-## 06 · The dashboards — Kanban Board GUI
-
-Both ship a web board, but they play different roles. The skill's board is a
-**control surface for your agent** — card actions kick off runs. Hermes's board is
-a **live window onto the dispatcher** — it shows what the fleet is doing right now.
-
-- **AI4Kanban — local board.** A local web board over the Markdown files. Card
-  actions — *implement, review, archive* — hand the work to an agent, and you
-  watch its log stream back with human-in-the-loop prompts.
-- **Hermes Kanban — live dispatcher view.** A live board that tails the event
-  log — drag-drop between columns, a side drawer with run history and exit-status
-  badges, and the same board steerable from Discord, Slack, or SMS.
-
-## 07 · Trade-offs — Where each one wins
-
-Neither is strictly better. ai4kanban optimizes for a lean, file-based
-board with no infra of its own; Hermes Kanban optimizes for a durable, shared
-work queue that many agents run against, unattended. Harness features — parallel
-runs, orchestration, a dashboard — are on both sides, so they aren't listed here.
-
-### AI4Kanban
-
-- **No infrastructure of its own** — No database, no gateway, no daemon. Beyond
-  the agent you already run, the board is plain Markdown files — nothing extra to
-  install or keep alive, works on a plane.
-- **Files you can diff and version** — The board lives in the repo and travels
-  with it, under whatever version control you use. Every task and plan change is a
-  reviewable diff — no SQLite outside your project, no event log to query, no
-  lock-in to one agent stack.
-- **Memory that self-prunes** — It records why an idea was rejected and what got
-  shipped, so the agent proposes forward instead of re-floating dead work. It
-  keeps only what steers the next task, not a full audit log.
-- **Installs in one prompt** — A skill file and a small script — no profiles to
-  configure, no dispatcher to tune. It meets any file-reading agent where it
-  already is, Hermes included.
-
-### Hermes Kanban
-
-- **One board, many named agents** — A single durable board that multiple named
-  agents — and humans — claim tasks and hand off work on. The dispatcher polls
-  ready tasks and spawns the assigned agent for each. The skill's board is driven
-  by whatever single harness you're in.
-- **Self-healing task queue** — The queue tracks each task through crashes: claim
-  TTLs, heartbeats, stale-claim reclaim, retries, and circuit breakers. A worker
-  can die mid-task and the board reclaims and retries it — the skill's files are
-  durable, but a dead run just waits for the next scheduled tick.
-- **Auto-decomposes tasks** — Drop in a rough task and the dispatcher's LLM
-  decomposer fans it into a child-task graph, each child routed to a specialist
-  agent — no manual breakdown. The skill splits a card into todos and a
-  hand-tended task graph.
-- **Fleet reach and scale** — Built for many agents across many boards,
-  multi-tenant, with control from Discord, Telegram, Slack, email, and SMS. The
-  skill is a lean solo board that stays in your repo and terminal.
-
-## 08 · The call — Which should you use?
-
-**Reach for ai4kanban when**
-
-- You want a file-based board — every task and plan change is a reviewable diff.
-- You want no infra of its own: plain files, offline, portable, no lock-in.
-- You want it agent-agnostic — Claude Code, Cursor, even Hermes itself.
-- You're solo and value a lean board over a bundled engine.
-
-**Reach for Hermes Kanban when**
-
-- You already work deeply with Hermes — profiles, gateway, and chat control are
-  set up.
-- You want one durable board that many named agents — and people — share.
-- You want a queue that auto-recovers in-flight tasks across crashes.
-- You want the dispatcher to auto-decompose tasks and route them to specialists.
-- You run fleet workloads across many boards and chat platforms.
+- Already run Hermes Agent and want the board inside it.
+- Want to manage tasks from Telegram, Slack, Discord or other chat apps.
+- Want automatic recovery of stalled tasks and an API to build on.
 
 ### Bottom line
 
-They overlap more than the names suggest — both are agent kanban boards. The split
-is what's bundled: ai4kanban is a **file-based board with automation left
-to your harness**; Hermes Agent Kanban is that board **wrapped in a durable,
-shared work queue**. If you want one board many agents share, surviving crashes,
-use Hermes. If you want a lean board in your repo you extend only when you need
-to, use ai4kanban.
+Choose AI4Kanban for **specialist workflows, draft approval before the build and
+suggested follow-up work**; choose Hermes Kanban for **chat-app control,
+automatic recovery and an API**.
 
-They can even sit side by side — the skill as the lightweight place you plan and
-prune in git, Hermes as the durable queue that runs the heavy, shared work once
-you've decided what it is.
+Compared against the Hermes Agent v0.21.6 documentation, checked October 2026.
 
 ---
 
-Install ai4kanban · https://github.com/ai4kanban/ai4kanban
+Install AI4Kanban · https://github.com/ai4kanban/ai4kanban

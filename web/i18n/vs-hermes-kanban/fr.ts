@@ -4,279 +4,229 @@ import type { VsHermesCopy } from "./types";
 
 const fr: VsHermesCopy = {
   meta: {
-    title:
-      "AI4Kanban vs. Hermes Agent Kanban — planification dans le dépôt ou runtime d'agents intégré",
+    title: "AI4Kanban vs. Hermes Agent Kanban : relisez les parties clés avant que les agents construisent",
     socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description:
-      "Comparaison entre le tableau Markdown d'AI4Kanban, intégré au dépôt, et Hermes Agent Kanban de Nous Research. Le premier rend la planification portable et révisable ; le second réunit une file SQLite partagée, un répartiteur et un runtime multi-agents.",
-    social:
-      "Deux kanbans pour agents, deux choix d'architecture : un tableau Markdown portable compatible avec tout agent de code, ou une file durable et partagée intégrée au runtime Hermes.",
+    description: "Vous utilisez déjà Claude Code ou Codex et voulez voir l’UI, le prompt ou les textes avant que les agents les construisent ? AI4Kanban vous convient. Vous utilisez déjà Hermes Agent et voulez gérer vos tâches depuis Telegram ou Slack ? Hermes Kanban vous convient. Voyez où chacun est le plus fort, ligne par ligne.",
+    social: "Hermes Kanban met vos agents Hermes au travail et vous laisse les piloter depuis vos applications de chat. AI4Kanban met Claude Code ou Codex au travail et vous montre d’abord les brouillons des parties clés. Lequel correspond à votre façon de travailler ?",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Les deux produits proposent un kanban aux agents, mais leur frontière d'architecture diffère. AI4Kanban conserve le tableau comme *couche projet* portable dans le dépôt ; Hermes Agent Kanban l'intègre au runtime Hermes.",
-    ours: {
-      name: "AI4Kanban",
-      body: "Un tableau Markdown conservé avec le code. Vous pouvez changer l'agent qui l'exécute sans migrer ni reconstruire le tableau.",
+    lead: "Workflows spécialisés intégrés et approbation des brouillons : votre jugement intervient avant la construction, et vous corrigez moins après.",
+    sharedLabel: "Les deux proposent",
+    setup: {
+      heading: "Des agents et workflows spécialisés, prêts à l’emploi",
+      ours: "Les agents et workflows intégrés couvrent le développement logiciel, les blogs, les carrousels pour réseaux sociaux, les présentations et les vidéos produit. Vous pouvez aussi créer les vôtres.",
+      theirs: "Les workers sont des profils Hermes que vous configurez avec un modèle et des skills. Aucun workflow spécialisé intégré pour le design d’UI, la rédaction ou la production de contenu.",
+      art: {
+        ours: [
+          "Design UI",
+          "Prompts",
+          "Rédaction",
+        ],
+        theirs: {
+          title: "Profil de worker",
+          fields: [
+            "Nom",
+            "Modèle",
+            "Skills",
+          ],
+          slot: "À configurer vous-même",
+        },
+      },
+      shared: [
+        {
+          title: "Découpage des tâches et dépendances",
+          body: [
+            "AI4Kanban découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
+            "Hermes Kanban découpe une tâche d’une ligne en tâches enfants et lance chacune dès que ses tâches parentes sont terminées.",
+          ],
+        },
+        {
+          title: "Exécutions parallèles dans des git worktrees",
+          body: [
+            "AI4Kanban exécute côte à côte les cartes indépendantes, chacune dans son propre git worktree.",
+            "Hermes Kanban exécute les tâches en parallèle, avec un git worktree par tâche.",
+          ],
+        },
+      ],
     },
-    theirs: {
-      name: "Hermes Agent Kanban",
-      body: "Le tableau, le répartiteur et les agents nommés fonctionnent dans un même système Hermes durable.",
+    drafts: {
+      heading: "Relire les brouillons clés avant l’implémentation",
+      ours: "Choisissez l’UI, les prompts, les textes ou les autres parties clés à relire. Les agents préparent des brouillons à prévisualiser et modifier, puis s’appuient sur ce que vous approuvez.",
+      theirs: "Les tâches partent d’une spécification texte. Sa documentation ne décrit ni prévisualisation ni approbation des brouillons clés avant l’exécution.",
+      art: {
+        ours: [
+          "Brouillon clé",
+          "Approuver la direction",
+          "Exécuter la tâche",
+        ],
+        theirs: {
+          title: "Spécification de la tâche",
+          fields: [
+            "Objectif",
+            "Approche",
+            "Critères d’acceptation",
+          ],
+          slot: "Texte seulement",
+        },
+      },
+      shared: [
+        {
+          title: "Une spécification écrite",
+          body: [
+            "Les cartes AI4Kanban contiennent le périmètre et les étapes de construction.",
+            "Hermes Kanban peut réécrire une tâche en objectif, approche et critères d’acceptation.",
+          ],
+        },
+        {
+          title: "Retours sur la tâche",
+          body: [
+            "AI4Kanban reçoit vos modifications dans le chat de la carte et met le plan à jour.",
+            "Hermes Kanban transmet vos notes au worker dans les commentaires de la tâche.",
+          ],
+        },
+      ],
     },
-    oursDiagramAlt:
-      "Le kanban est un tableau Markdown tout en bas ; le runtime de l'agent, l'exécution et la maintenance forment une couche interchangeable empilée par-dessus.",
-    theirsDiagramAlt:
-      "Un runtime Hermes intégré, avec le tableau SQLite, le répartiteur et les agents nommés fondus à l'intérieur.",
-    taskLayer: "couche tâches · exécution + maintenance",
-    boardLayer: "kanban · fichiers Markdown (git)",
-  },
-  summary: {
-    heading: {
-      eyebrow: "En bref",
-      title: "La différence concrète",
+    questions: {
+      heading: "Fixez d’abord les exigences, puis cessez de surveiller",
+      verdict: "Surveiller moins ne veut pas dire moins de qualité : brouillons, questions et synthèses des points clés gardent le résultat sur la bonne voie.",
+      ours: "Il ne démarre pas à l’aveugle. Il pose d’abord les questions qui comptent et fixe ce que la livraison doit respecter, puis il construit. Vous approuvez les points clés et laissez les détails aux agents : inutile de surveiller chaque exécution, et vous livrez plus de travail dans la journée.",
+      theirs: "Planification légère, exécution rapide : le travail démarre dès qu’il est découpé, le niveau d’exigence s’ajuste en cours de route et les corrections se font dans le worktree. C’est une façon de travailler valable, mais elle suppose que vous suiviez l’exécution, ce qui limite la quantité de travail livrée dans la journée.",
+      art: {
+        ours: [
+          "Clarifier",
+          "Approuver les points clés",
+          "Exécuter",
+        ],
+        theirs: {
+          title: "Tâche en cours",
+          fields: [
+            "Démarrer",
+            "Ajuster l’exigence",
+            "Corriger dans le worktree",
+          ],
+          slot: "Suivi pendant l’exécution",
+        },
+      },
+      shared: [
+        {
+          title: "Des agents qui apprennent en travaillant",
+          body: [
+            "Les agents spécialisés d’AI4Kanban notent les brouillons que vous renvoyez ou rejetez, et les cartes terminées sont relues pour en extraire décisions et préférences.",
+            "Chaque profil Hermes conserve des notes de mémoire et écrit ses propres skills à partir de ce qu’il apprend, y compris vos corrections.",
+          ],
+        },
+        {
+          title: "Historique de la tâche",
+          body: [
+            "AI4Kanban conserve sur la carte les plans, les conversations et les journaux d’exécution.",
+            "Hermes Kanban conserve sur la tâche un fil de commentaires et l’historique des exécutions.",
+          ],
+        },
+      ],
     },
-    lead: "Les deux produits répondent largement au même besoin, mais à des niveaux différents. AI4Kanban est **un système de planification portable pour l'environnement d'agents que vous utilisez déjà**. Hermes Kanban est **une file opérationnelle dans Hermes**, conçue pour coordonner plusieurs workers et reprendre le travail interrompu.",
-    oursHeading: "AI4Kanban — la planification appartient au projet",
-    theirsHeading: "Hermes Kanban — l'exécution appartient au runtime",
-    ours: [
-      "Du Markdown brut dans votre dépôt : chaque changement de tâche ou de plan se relit dans un diff.",
-      "Aucune infrastructure : rien à installer, rien à maintenir allumé.",
-      "L'exécution vient de l'environnement que vous utilisez déjà : Claude Code, Codex, Cursor, et même Hermes.",
-    ],
-    theirs: [
-      "Une file SQLite durable dans ~/.hermes/kanban.db, partagée par de nombreux agents nommés et par des humains.",
-      "Un répartiteur confie les tâches prêtes aux agents et récupère les exécutions qui ont planté.",
-      "Lié à la pile Hermes / Nous et à ses outils kanban_*.",
-    ],
-    whenLabel: "Comment choisir",
-    when: "Choisissez AI4Kanban si vous voulez une planification **versionnée avec le code**, si vous préférez conserver votre environnement d'agents actuel ou si vous n'avez pas besoin d'un service d'orchestration dédié. Choisissez Hermes Kanban si **Hermes est déjà votre environnement d'exploitation** et que vous souhaitez son répartiteur, ses profils nommés, son pilotage par chat et son modèle de reprise. La persistance diffère également : AI4Kanban s'appuie sur des fichiers et git ; Hermes stocke l'état de la file dans SQLite.",
-  },
-  harness: {
-    heading: {
-      eyebrow: "Environnements compatibles",
-      title: "Quels agents peuvent faire tourner le tableau ?",
-    },
-    lead: "C'est la distinction la plus nette. AI4Kanban utilise des fichiers ordinaires du dépôt : **tout agent capable de lire et modifier le projet peut utiliser le tableau**, y compris Hermes. Hermes Kanban est exposé par les outils `kanban_*` du runtime et reste donc propre à Hermes.",
-    oursSub: "n'importe quel agent qui lit des fichiers",
-    theirsSub: "Hermes uniquement",
-    supported: "compatible",
-    notSupported: "non compatible",
-    note: "AI4Kanban fonctionne aussi avec Windsurf, OpenCode, Gemini CLI et les autres outils capables de lire les fichiers du projet. Hermes Kanban n'est accessible que par le runtime Hermes.",
   },
   comparison: {
-    heading: { eyebrow: "Face à face", title: "AI4Kanban vs. Hermes Kanban" },
-    lead: "Un {check} signale un avantage net ; un **tiret**, un compromis. AI4Kanban privilégie la portabilité et la simplicité d'exploitation. Hermes privilégie l'exécution coordonnée et récupérable entre plusieurs agents.",
+    heading: {
+      eyebrow: "Différences clés",
+      title: "Comparer en détail",
+    },
+    lead: "Un {check} indique le côté le plus fort sur chaque ligne.",
     ourLabel: "AI4Kanban",
     theirLabel: "Hermes Kanban",
     rows: {
-      whatItIs: {
-        dimension: "Ce que c'est",
-        kanban:
-          "Une couche kanban en fichiers : le tableau, c'est du Markdown brut dans votre dépôt.",
-        hermes:
-          "Une fonction kanban du runtime d'agents Hermes : un tableau SQLite durable.",
+      startingPoint: {
+        dimension: "Agents et workflows intégrés",
+        kanban: "Agents et workflows spécialisés intégrés pour le développement et le contenu. Créez les vôtres. Les workflows de contenu nécessitent Pro.",
+        hermes: "Des profils Hermes généralistes que vous configurez. Aucun workflow spécialisé intégré pour le design d’UI, la rédaction ou la production de contenu.",
       },
-      infrastructure: {
-        dimension: "Infrastructure",
-        kanban:
-          "Aucune en propre : le tableau, ce ne sont que des fichiers Markdown dans votre dépôt.",
-        hermes:
-          "Une passerelle en fonctionnement, une base SQLite et une boucle de répartition.",
+      planning: {
+        dimension: "Avant le début du travail",
+        kanban: "La planification règle ce qu’elle peut et vous pose les questions encore ouvertes. Rien n’est construit avant que vous le lanciez.",
+        hermes: "Un modèle découpe la tâche en graphe de tâches sans vous consulter ; les tâches enfants démarrent seules, sauf si vous désactivez cette option.",
       },
-      whereBoardLives: {
-        dimension: "Où vit le tableau",
-        kanban:
-          "Dans votre dépôt, sous contrôle de version : chaque changement de tâche ou de plan se relit dans un diff.",
-        hermes:
-          "Dans une base SQLite à ~/.hermes/kanban.db ; les changements vont dans un journal d'événements, pas dans des diffs.",
+      drafts: {
+        dimension: "Relecture des brouillons clés avant l’exécution",
+        kanban: "Brouillons image, schéma, HTML/TSX, diff et storyboard. Le contenu approuvé rejoint les exigences d’exécution.",
+        hermes: "Une spécification texte avec objectif, approche et critères d’acceptation. Sa documentation ne prévoit aucun aperçu de brouillon avant l’exécution.",
       },
-      setup: {
-        dimension: "Mise en place",
-        kanban: "Un prompt : un fichier de skill et un petit script.",
-        hermes:
-          "Installer le runtime Hermes, configurer les profils, lancer la passerelle.",
+      questions: {
+        dimension: "Questions qui vous sont posées",
+        kanban: "Posées pendant la planification ou en cours de construction, chacune avec des options et une réponse recommandée ; seul le travail qui en dépend attend, et il reprend dès que vous répondez.",
+        hermes: "Un worker met toute la tâche en pause avec une raison écrite ; vous commentez, la débloquez, et le worker repart du début.",
       },
-      parallelRuns: {
-        dimension: "Exécutions parallèles et planifiées",
-        kanban:
-          "C'est votre environnement qui mène : Claude Code lance des sous-agents en parallèle quand vous démarrez quelque chose ; les travaux planifiés sont confiés à des agents que le tableau lance à la fréquence que vous fixez.",
-        hermes:
-          "C'est le runtime qui mène : le répartiteur prend de lui-même les tâches prêtes et lance un processus par tâche.",
+      memory: {
+        dimension: "Ce que retiennent les agents",
+        kanban: "Chaque agent spécialisé note les brouillons que vous renvoyez ou rejetez ; les cartes terminées sont relues pour en extraire décisions et préférences.",
+        hermes: "Chaque profil conserve des notes de mémoire et écrit ses propres skills à partir de ce qu’il apprend, y compris vos corrections.",
       },
-      crashRecovery: {
-        dimension: "Reprise après plantage",
-        kanban:
-          "Pas de file par tâche : une exécution qui meurt en cours repasse simplement au prochain créneau planifié.",
-        hermes:
-          "Une file durable récupère seule le travail en cours : TTL de prise, battements de cœur, reprise des prises expirées, nouvelles tentatives.",
+      followUps: {
+        dimension: "Travail après la livraison",
+        kanban: "Les agents relisent ce qui a été livré et suggèrent du travail de suivi, raisons à l’appui ; un agent QA teste chaque jour les changements récents. Les suggestions attendent votre décision dans une file de tri.",
+        hermes: "Les workers créent des tâches enfants pour découper le travail en cours. Le suivi après livraison est une nouvelle tâche que vous créez.",
       },
-      decomposition: {
-        dimension: "Découpage des tâches",
-        kanban:
-          "Une carte se découpe en points à cocher et en graphe de tâches (groupe, bloquée-par, liée), les dépendances étant démêlées à l'écriture.",
-        hermes:
-          "Le répartiteur lance seul un découpeur LLM qui déploie une tâche en un graphe de sous-tâches confiées à des spécialistes.",
+      landing: {
+        dimension: "Fusion du travail parallèle",
+        kanban: "Chaque construction terminée est rebasée et fusionnée à tour de rôle ; un agent résout les conflits.",
+        hermes: "Les worktrees sont conservés après la tâche. La fusion n’est pas documentée ; les conflits passent dans une tâche de réconciliation distincte.",
       },
-      reviewMemory: {
-        dimension: "Relecture et mémoire",
-        kanban:
-          "La mémoire est élaguée au pourquoi-c'est-écarté et au quoi-a-été-livré, pour que l'agent propose vers l'avant : sélectionnée, pas un journal complet.",
-        hermes:
-          "Conserve un journal d'événements complet en ajout seul et l'historique de chaque tentative, pour l'audit.",
+      recurring: {
+        dimension: "Travail récurrent",
+        kanban: "Des agents planifiés s’exécutent au rythme que vous fixez.",
+        hermes: "Démarrages planifiés ponctuels. Le travail récurrent demande votre propre tâche cron.",
       },
-      dashboard: {
-        dimension: "Interface de pilotage",
-        kanban:
-          "Un tableau web local où les actions d'une carte (implémenter, relire, archiver) confient le travail à un agent.",
-        hermes:
-          "Un tableau web en direct avec glisser-déposer et un tiroir latéral, plus le pilotage depuis des applis de chat.",
+      harness: {
+        dimension: "Exécution avec Claude Code ou Codex",
+        kanban: "Claude Code, Codex, Cursor, OpenCode et d’autres agents de code exécutent directement le travail, avec vos propres abonnements ; choisissez-en un par agent.",
+        hermes: "Les workers sont des agents Hermes ; une skill fournie permet à l’un d’eux d’appeler Claude Code ou Codex depuis le terminal.",
       },
-      scale: {
-        dimension: "Échelle et portée",
-        kanban: "Convient surtout à une personne ou une petite équipe travaillant dans un même dépôt.",
-        hermes:
-          "Monte à de nombreux agents répartis sur de nombreux tableaux : multi-locataire, pilotable depuis Discord / Slack / e-mail / SMS.",
+      interface: {
+        dimension: "Tableau et interface",
+        kanban: "Une application de bureau pour les cartes, les brouillons, les conversations et l’état des exécutions.",
+        hermes: "Une CLI, un tableau de bord web et un plugin pour l’application de bureau.",
       },
-    },
-  },
-  memory: {
-    heading: {
-      eyebrow: "Mémoire vs. audit",
-      title: "Deux formes d'historique, deux usages",
-    },
-    lead: "AI4Kanban conserve le **contexte de planification** afin que les propositions suivantes tiennent compte des décisions antérieures. Hermes conserve une **trace d'exécution** afin de comprendre et reconstituer ce qui s'est passé. Les deux sont utiles, mais pas pour le même objectif.",
-    ours: {
-      heading: "AI4Kanban",
-      verdict: "Conserve les décisions, pas chaque événement.",
-      body: "Quelques petits fichiers, **élagués volontairement**, sur deux niveaux. Le tableau tient son propre registre — `readme.md` (ce qui a été livré) et `project.md` (ce qu'est le projet) — et chaque agent qui se souvient a son dossier : celui du planificateur contient `decisions.md` (les décisions prises, et pourquoi), `rejected.md` (ce qu'on a écarté, et pourquoi) et `redesign.md` (les erreurs de conception à ne pas refaire). Un module est une section dans ces fichiers, pas un dossier. L'agent les lit tous avant de proposer ou d'écrire une carte ; l'historique complet, c'est l'affaire de git.",
-      q: "Pourquoi l'idée X n'est-elle pas sur le tableau ?",
-      a: "Une ligne dans `rejected.md` : l'idée, et pourquoi elle a été écartée. Les idées mortes restent mortes.",
-    },
-    theirs: {
-      heading: "Hermes Kanban",
-      verdict: "Conserve la trace complète des exécutions.",
-      body: "Chaque changement d'état atterrit dans un **journal en ajout seul** ; chaque tentative garde son code de sortie et toute la sortie du processus. C'est fait pour l'audit et la reprise après plantage, pas pour orienter l'idée suivante.",
-      q: "Qu'est-il arrivé à la tâche 42 cette nuit ?",
-      a: "`claimed → crashed → reclaimed → completed`, avec les journaux de chaque tentative à lire.",
-    },
-    note: "La mémoire sélectionnée éclaire la prochaine décision ; le journal d'audit explique la dernière exécution. Aucun ne remplace l'autre.",
-  },
-  autonomy: {
-    heading: {
-      eyebrow: "Niveau d'autonomie",
-      title: "Quelle autonomie donner à l'agent ?",
-    },
-    lead: "Hermes Kanban vise une exécution **« une phrase suffit, puis vous pouvez partir »**. AI4Kanban adopte une **autonomie soumise à validation** : vous consignez une idée incomplète, `refine` la transforme en exigences concrètes, puis l'implémentation attend votre accord.",
-    stops: {
-      traditional: {
-        level: "Aucune autonomie",
-        term: "Mené par l'humain",
-        heading: "Kanban classique",
-        detail:
-          "Vous pensez chaque tâche et vous la découpez ; Trello ou Jira ne fait que l'enregistrer.",
+      review: {
+        dimension: "Vérification du travail",
+        kanban: "Claude Code ou Codex exécutent les tests et vérifient les exigences pendant la construction ; AI4Kanban n’ajoute pas de seconde relecture, pour éviter de trop tester.",
+        hermes: "Un profil relecteur vérifie chaque critère d’acceptation et exécute les tests, en renvoyant le travail jusqu’à ce qu’il passe.",
       },
-      kanban: {
-        level: "Autonomie contrôlée",
-        term: "L'agent propose, l'humain valide",
-        heading: "AI4Kanban",
-        detail:
-          "Chaque `refine` creuse les pièces manquantes et complète les exigences. Vous relisez avant que quoi que ce soit soit construit.",
+      chat: {
+        dimension: "Pilotage depuis les applications de chat",
+        kanban: "Les notifications, Slack et Lark nécessitent Cloud, en aperçu sur invitation.",
+        hermes: "Gérez le tableau avec /kanban depuis Telegram, Discord, Slack, WhatsApp, Signal et d’autres, avec des notifications de tâches.",
       },
-      hermes: {
-        level: "Autonomie totale",
-        term: "Exécution sans surveillance",
-        heading: "Hermes Kanban",
-        detail:
-          "Une ligne en entrée, un arbre de tâches en sortie : découpé et traité sans surveillance jusqu'au bout. Le `/goal` de Claude Code fait le même pari.",
+      recovery: {
+        dimension: "Reprise après un échec d’exécution",
+        kanban: "Les erreurs du fournisseur sont relancées automatiquement. Une exécution arrêtée attend que vous la repreniez.",
+        hermes: "Les battements de cœur récupèrent les tâches bloquées, et une tâche qui échoue sans cesse est mise en attente.",
       },
-    },
-    scaleLeft: "Vous planifiez tout",
-    scaleMiddle: "L'agent planifie, vous validez",
-    scaleRight: "L'agent planifie tout",
-    worstCaseLabel: "Le risque à chaque niveau",
-    worstCaseTheirs:
-      "**Exécution sans surveillance :** un malentendu initial peut se propager dans tout l'arbre de tâches avant une première relecture humaine.",
-    worstCaseOurs:
-      "**Autonomie contrôlée :** un plan Markdown imparfait arrive en relecture, mais l'implémentation n'a pas encore commencé.",
-    note: "Un passage de refinement comble les lacunes, sépare les idées voisines dans leurs propres cartes, reconnaît le travail déjà terminé et transforme les arbitrages en questions. Une fois ces questions résolues, la carte passe en **ready** pour validation finale et implémentation.",
-  },
-  gui: {
-    heading: { eyebrow: "Les interfaces", title: "Deux tableaux, deux rôles" },
-    lead: "Les deux proposent une interface web. Celle d'AI4Kanban est une **surface de commande du travail projet** : les actions d'une carte lancent les agents. Celle d'Hermes est une **vue opérationnelle du répartiteur** : elle affiche l'état actuel de la flotte d'agents.",
-    ours: {
-      heading: "AI4Kanban — tableau local",
-      body: "Un tableau web local posé sur les fichiers Markdown. Les actions d'une carte (*implémenter, relire, archiver*) confient le travail à un agent, et vous voyez son journal défiler avec des questions au passage.",
-      alt: "Le tableau web local d'AI4Kanban : un tableau clair avec les colonnes Blockers, UI, Skill, Docs et Distribution et un bouton pour créer une tâche.",
-    },
-    theirs: {
-      heading: "Hermes Kanban — vue en direct du répartiteur",
-      body: "Un tableau en direct qui suit le journal d'événements : glisser-déposer entre colonnes, un tiroir latéral avec l'historique des exécutions et des badges de statut de sortie, et le même tableau pilotable depuis Discord, Slack ou SMS.",
-      alt: "Le tableau de bord Kanban d'Hermes Agent : un tableau sombre avec les colonnes Triage, Todo, Scheduled et Ready et une barre d'orchestration.",
-    },
-  },
-  wins: {
-    heading: { eyebrow: "Compromis", title: "Où chacun l'emporte" },
-    lead: "Le meilleur choix dépend de votre mode d'exploitation. AI4Kanban réduit l'infrastructure au minimum et garde la planification portable. Hermes Kanban fournit une file partagée durable pour coordonner les exécutions sans surveillance. Les deux prennent en charge le parallélisme, l'orchestration et une interface ; les avantages ci-dessous sont ceux qui les distinguent réellement.",
-    oursHeading: "AI4Kanban",
-    theirsHeading: "Hermes Kanban",
-    ours: {
-      noInfra: {
-        title: "Aucun service de tableau à exploiter",
-        body: "Pas de base de données, pas de passerelle, pas de démon. À part l'agent que vous faites déjà tourner, le tableau n'est qu'un ensemble de fichiers Markdown : rien de plus à installer ni à maintenir en vie, et ça marche dans un avion.",
-      },
-      diffable: {
-        title: "Une planification qui voyage avec le code",
-        body: "Le tableau vit dans le dépôt et voyage avec lui, sous le contrôle de version que vous utilisez. Chaque changement de tâche ou de plan se relit dans un diff : pas de SQLite en dehors de votre projet, pas de journal d'événements à interroger, aucun enfermement dans une pile d'agents.",
-      },
-      selfPruning: {
-        title: "Une mémoire pensée pour les décisions à venir",
-        body: "Elle consigne pourquoi une idée a été écartée et ce qui a été livré, pour que l'agent propose vers l'avant au lieu de ressortir du travail mort. Elle ne garde que ce qui oriente la tâche suivante, pas un journal d'audit complet.",
-      },
-      onePrompt: {
-        title: "S'intègre à votre environnement d'agents",
-        body: "Un fichier de skill et un petit script : aucun profil à configurer, aucun répartiteur à régler. Elle rejoint n'importe quel agent qui lit des fichiers là où il est déjà, Hermes compris.",
-      },
-    },
-    theirs: {
-      manyAgents: {
-        title: "Une file partagée entre agents nommés",
-        body: "Un unique tableau durable sur lequel plusieurs agents nommés, et des humains, prennent des tâches et se passent le travail. Le répartiteur surveille les tâches prêtes et lance pour chacune l'agent assigné. Le tableau d'AI4Kanban, lui, est mené par le seul environnement dans lequel vous êtes.",
-      },
-      selfHealing: {
-        title: "Reprise automatique du travail en cours",
-        body: "La file suit chaque tâche à travers les plantages : TTL de prise, battements de cœur, reprise des prises expirées, nouvelles tentatives et coupe-circuits. Un processus peut mourir en cours et le tableau reprend la tâche et la réessaie. Les fichiers d'AI4Kanban sont durables aussi, mais une exécution morte attend simplement le prochain créneau planifié.",
-      },
-      autoDecompose: {
-        title: "Découpage et routage automatiques",
-        body: "Vous lâchez une tâche brute et le découpeur LLM du répartiteur la déploie en un graphe de sous-tâches, chacune confiée à un agent spécialiste, sans découpage manuel. AI4Kanban, lui, découpe une carte en points à cocher et en graphe de tâches entretenu à la main.",
-      },
-      fleetReach: {
-        title: "Exploitation multi-agents à grande échelle",
-        body: "Conçu pour de nombreux agents répartis sur de nombreux tableaux, multi-locataire, pilotable depuis Discord, Telegram, Slack, e-mail et SMS. AI4Kanban, lui, est un tableau solo et sobre qui reste dans votre dépôt et votre terminal.",
+      api: {
+        dimension: "API et extensions",
+        kanban: "Une CLI qu’appellent les agents de code. Pas d’API publique.",
+        hermes: "Une API REST et WebSocket, ainsi que des hooks de plugins pour les événements de tâches.",
       },
     },
   },
   decision: {
-    heading: { eyebrow: "Le choix", title: "Lequel utiliser ?" },
-    oursHeading: "Choisissez AI4Kanban si",
-    theirsHeading: "Choisissez Hermes Kanban si",
+    heading: {
+      eyebrow: "Recommandation",
+      title: "Lequel choisir ?",
+    },
+    oursHeading: "Choisissez AI4Kanban si vous",
+    theirsHeading: "Choisissez Hermes Kanban si vous",
     ours: [
-      "Vous voulez versionner et relire les tâches et les plans avec le code.",
-      "Vous préférez un tableau portable, utilisable hors ligne et sans service à exploiter.",
-      "Vous voulez choisir librement entre Claude Code, Codex, Cursor, Hermes ou un autre environnement.",
-      "Vous êtes seul ou en petite équipe et privilégiez une couche de planification ciblée.",
+      "Voulez des agents et workflows spécialisés intégrés, ou créer les vôtres.",
+      "Voulez approuver les brouillons clés d’UI, de prompts ou de textes avant l’exécution complète.",
+      "Voulez que les agents suggèrent du travail de suivi après chaque livraison.",
     ],
     theirs: [
-      "Hermes est déjà votre runtime principal, avec profils, passerelle et pilotage par chat en place.",
-      "Vous avez besoin d'une file durable partagée entre plusieurs agents nommés et des humains.",
-      "Vous avez besoin de reprendre automatiquement le travail interrompu.",
-      "Vous voulez que le répartiteur découpe les tâches et les confie à des agents spécialistes.",
-      "Vous exploitez de nombreux agents sur plusieurs tableaux et canaux de communication.",
+      "Utilisez déjà Hermes Agent et voulez le tableau à l’intérieur.",
+      "Voulez gérer vos tâches depuis Telegram, Slack, Discord ou d’autres applications de chat.",
+      "Voulez une reprise automatique des tâches bloquées et une API sur laquelle construire.",
     ],
-    verdict:
-      "Choisissez AI4Kanban pour une **couche de planification intégrée au dépôt et indépendante du runtime d'agents**. Choisissez Hermes Agent Kanban pour une **file partagée durable avec répartition, reprise et coordination multi-agents intégrées**. La vraie question n'est pas le nombre de fonctions, mais l'endroit auquel la planification doit appartenir : le projet ou le runtime.",
-    note: "Les deux peuvent aussi se compléter : affinez et validez le travail dans AI4Kanban avec git, puis confiez l'exécution partagée approuvée à la file durable d'Hermes.",
+    verdict: "Choisissez AI4Kanban pour **les workflows spécialisés, l’approbation des brouillons avant la construction et les suggestions de travail de suivi** ; choisissez Hermes Kanban pour **le pilotage depuis les applications de chat, la reprise automatique et une API**.",
+    note: "Comparaison établie d’après la documentation de Hermes Agent v0.21.6, vérifiée en octobre 2026.",
   },
 };
 

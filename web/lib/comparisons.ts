@@ -8,7 +8,7 @@
 // name per level. So `app/(en)/vs-x/page.tsx` stays a directory each — but a
 // three-line one, with the copy key and the `<head>` coming from here.
 import type { Metadata } from "next";
-import { PATH as hermesPath, VsHermesPage } from "@/components/pages/VsHermesPage";
+import { PATH as hermesPath, VsHermesKanbanPage } from "@/components/pages/VsHermesKanbanPage";
 import { PATH as vibePath, VsVibePage } from "@/components/pages/VsVibePage";
 import {
   PATH as multicaPath,
@@ -35,7 +35,7 @@ export type Comparison = {
 };
 
 export const COMPARISONS: readonly Comparison[] = [
-  { path: hermesPath, copy: "vsHermes", Page: VsHermesPage },
+  { path: hermesPath, copy: "vsHermes", Page: VsHermesKanbanPage },
   { path: vibePath, copy: "vsVibe", Page: VsVibePage },
   { path: multicaPath, copy: "vsMultica", Page: VsMulticaPage },
   { path: taskMasterPath, copy: "vsTaskMaster", Page: VsTaskMasterPage },

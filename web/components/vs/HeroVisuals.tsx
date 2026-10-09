@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { FiArrowRight, FiCheck, FiLock, FiShare2, FiX } from "react-icons/fi";
-import type { VsForm, VsTopicsHero } from "@/i18n/types";
+import type { VsForm, VsQuestionsHero, VsTopicsHero } from "@/i18n/types";
 
 // One scene per hero column. AI4Kanban's side uses its agents' pixel art, the
 // brand's mascot; the rival's side is drawn by its page from the parts below.
@@ -174,3 +174,23 @@ export function MemoryOurs({ c }: { c: Hero["memory"]["art"]["ours"] }) {
   );
 }
 
+// Questions settled, key points approved, then the builder runs.
+export function QuestionsOurs({ c }: { c: VsQuestionsHero["questions"]["art"]["ours"] }) {
+  return (
+    <Scene>
+      <Step label={c[0]}>
+        <Bot name="planner" />
+      </Step>
+      <Arrow />
+      <Step label={c[1]}>
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-growth text-elev">
+          <FiCheck className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+        </span>
+      </Step>
+      <Arrow />
+      <Step label={c[2]}>
+        <Bot name="builder" />
+      </Step>
+    </Scene>
+  );
+}
