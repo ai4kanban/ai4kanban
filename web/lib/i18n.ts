@@ -50,7 +50,6 @@ export const PATH_LOCALES: Record<string, readonly Locale[]> = {
   "/download": LOCALES,
   "/contact": LOCALES,
   "/vs-hermes-kanban": LOCALES,
-  "/vs-vibe-kanban": LOCALES,
   "/vs-multica": LOCALES,
   "/vs-task-master": LOCALES,
   "/training": ["en", "zh"],
@@ -79,7 +78,7 @@ export function isTranslatedLocale(value: string): value is TranslatedLocale {
 
 /**
  * Route for `path` in `locale`. English is unprefixed, so `("en", "")` is `/`
- * and `("zh", "/vs-vibe-kanban")` is `/zh/vs-vibe-kanban`.
+ * and `("zh", "/vs-multica")` is `/zh/vs-multica`.
  */
 export function localePath(locale: Locale, path: string): string {
   const prefix = locale === "en" ? "" : `/${locale}`;

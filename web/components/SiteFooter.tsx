@@ -10,7 +10,6 @@ import type { SiteCopy } from "@/i18n/types";
 const COMPARISONS = [
   { href: "/vs-task-master", name: "Taskmaster" },
   { href: "/vs-hermes-kanban", name: "Hermes Agent Kanban" },
-  { href: "/vs-vibe-kanban", name: "Vibe Kanban" },
   { href: "/vs-multica", name: "Multica" },
 ];
 

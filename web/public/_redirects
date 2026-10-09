@@ -20,16 +20,22 @@
 # The triage endpoint contract was taken down; Triage covers the ways items arrive.
 /docs/triage-endpoint /docs/triage 301
 
-# The GitHub Issues and Linear comparisons were taken down.
+# The GitHub Issues, Linear and Vibe Kanban comparisons were taken down.
 /vs-github-issues / 301
 /vs-github-issues.md / 301
 /vs-linear / 301
 /vs-linear.md / 301
+/vs-vibe-kanban / 301
+/vs-vibe-kanban.md / 301
 /zh/vs-github-issues /zh 301
 /zh/vs-linear /zh 301
+/zh/vs-vibe-kanban /zh 301
 /es/vs-github-issues /es 301
 /es/vs-linear /es 301
+/es/vs-vibe-kanban /es 301
 /ja/vs-github-issues /ja 301
 /ja/vs-linear /ja 301
+/ja/vs-vibe-kanban /ja 301
 /fr/vs-github-issues /fr 301
 /fr/vs-linear /fr 301
+/fr/vs-vibe-kanban /fr 301

@@ -9,7 +9,6 @@
 // three-line one, with the copy key and the `<head>` coming from here.
 import type { Metadata } from "next";
 import { PATH as hermesPath, VsHermesKanbanPage } from "@/components/pages/VsHermesKanbanPage";
-import { PATH as vibePath, VsVibePage } from "@/components/pages/VsVibePage";
 import {
   PATH as multicaPath,
   VsMulticaPage,
@@ -36,7 +35,6 @@ export type Comparison = {
 
 export const COMPARISONS: readonly Comparison[] = [
   { path: hermesPath, copy: "vsHermes", Page: VsHermesKanbanPage },
-  { path: vibePath, copy: "vsVibe", Page: VsVibePage },
   { path: multicaPath, copy: "vsMultica", Page: VsMulticaPage },
   { path: taskMasterPath, copy: "vsTaskMaster", Page: VsTaskMasterPage },
 ];

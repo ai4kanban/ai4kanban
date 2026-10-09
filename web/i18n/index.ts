@@ -30,7 +30,6 @@ import home from "./home";
 import download from "./download";
 import contact from "./contact";
 import vsHermes from "./vs-hermes-kanban";
-import vsVibe from "./vs-vibe-kanban";
 import vsMultica from "./vs-multica";
 import vsTaskMaster from "./vs-task-master";
 
@@ -42,7 +41,6 @@ export function getCopy(locale: Locale): SiteCopy {
     download: download[locale],
     contact: contact[locale],
     vsHermes: vsHermes[locale],
-    vsVibe: vsVibe[locale],
     vsMultica: vsMultica[locale],
     vsTaskMaster: vsTaskMaster[locale],
   };

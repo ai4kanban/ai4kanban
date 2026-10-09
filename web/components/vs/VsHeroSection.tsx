@@ -6,7 +6,7 @@ import type { SiteCopy, VsHero } from "@/i18n/types";
 
 // The compact two-chip header every comparison page opens with: it states the
 // framing before any detail — two different tools, not two takes on one. The
-// Hermes and Vibe Kanban pages pass a diagram into each chip via `oursExtra` /
+// Hermes page passes a diagram into each chip via `oursExtra` /
 // `theirsExtra`.
 
 function Chip({

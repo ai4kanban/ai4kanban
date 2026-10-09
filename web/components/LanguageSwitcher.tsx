@@ -24,7 +24,7 @@ export function LanguageSwitcher({
   label,
 }: {
   locale: Locale;
-  /** The route being viewed, e.g. "" or "/vs-vibe-kanban". */
+  /** The route being viewed, e.g. "" or "/vs-multica". */
   path: string;
   label: string;
 }) {

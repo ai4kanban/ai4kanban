@@ -14,7 +14,6 @@ import type { HomeCopy } from "./home/types";
 import type { DownloadCopy } from "./download/types";
 import type { ContactCopy } from "./contact/types";
 import type { VsHermesCopy } from "./vs-hermes-kanban/types";
-import type { VsVibeCopy } from "./vs-vibe-kanban/types";
 import type { VsMulticaCopy } from "./vs-multica/types";
 import type { VsTaskMasterCopy } from "./vs-task-master/types";
 
@@ -123,7 +122,6 @@ export type SiteCopy = {
   download: DownloadCopy;
   contact: ContactCopy;
   vsHermes: VsHermesCopy;
-  vsVibe: VsVibeCopy;
   vsMultica: VsMulticaCopy;
   vsTaskMaster: VsTaskMasterCopy;
 };
