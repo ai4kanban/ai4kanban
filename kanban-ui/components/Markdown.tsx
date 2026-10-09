@@ -102,7 +102,7 @@ function remarkMockups(mockups: MockupSet | null) {
         type: "mockup",
         data: {
           hName: "mockup",
-          hProperties: { "data-src": tag.src, "data-label": tag.label, "data-alt": tag.alt, "data-device": tag.device },
+          hProperties: { "data-src": tag.src, "data-label": tag.label, "data-alt": tag.alt, "data-device": tag.device, "data-loop": String(tag.loop) },
           hChildren: [],
         },
       }));
@@ -241,7 +241,7 @@ const MockupsContext = createContext<MockupSet | null>(null);
 function MockupNode(props: any) {
   const mockups = useContext(MockupsContext);
   const view = mockups?.[props["data-src"] as string];
-  return view ? <Mockup view={view} label={props["data-label"] || ""} alt={props["data-alt"] || ""} device={deviceOf(props["data-device"])} /> : null;
+  return view ? <Mockup view={view} label={props["data-label"] || ""} alt={props["data-alt"] || ""} device={deviceOf(props["data-device"])} loop={props["data-loop"] === "true"} /> : null;
 }
 
 const StoryboardsContext = createContext<StoryboardSet | null>(null);

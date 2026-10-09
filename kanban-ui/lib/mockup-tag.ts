@@ -19,6 +19,8 @@ export type MockupTag = {
   alt: string;
   /** The screen a `.tsx`/`.html` mockup is laid out on (#1097). Anything but `mobile` is desktop. */
   device: Device;
+  /** A bare `loop` (#1595): a video that plays muted, looping and without controls. */
+  loop: boolean;
 };
 
 export type Device = "mobile" | "desktop";
@@ -104,6 +106,7 @@ export type MockupSet = Record<string, MockupView>;
 // matcher with `mockupTags`, so no lastIndex is ever shared.
 const TAG = /<(?:Asset|Mockup)\b([^<>]*?)\/>/g;
 const ATTR = /(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*'([^']*)'/g;
+const LOOP = /(?:^|\s)loop(?=\s|$)/;
 
 /** Every mockup tag in a run of raw HTML, in the order they appear. */
 export function mockupTags(raw: string): MockupTag[] {
@@ -113,7 +116,9 @@ export function mockupTags(raw: string): MockupTag[] {
     for (const a of match[1]!.matchAll(ATTR)) {
       attrs[(a[1] ?? a[3])!] = (a[2] ?? a[4])!;
     }
-    if (attrs.src) found.push({ src: attrs.src, label: attrs.label ?? "", alt: attrs.alt ?? "", device: deviceOf(attrs.device) });
+    if (!attrs.src) continue;
+    const loop = LOOP.test(match[1]!.replace(ATTR, ""));
+    found.push({ src: attrs.src, label: attrs.label ?? "", alt: attrs.alt ?? "", device: deviceOf(attrs.device), loop });
   }
   return found;
 }
