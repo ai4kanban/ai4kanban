@@ -1,6 +1,6 @@
 ---
 name: ui-designer
-description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, flows, and the text inside them. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision, and shipped illustrations. A detailed plan or an existing component is not a reason to skip. Follows `copywriting` when the card's page copy is drafted first.
+description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, flows, and the text inside them. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision, and shipped illustrations. A detailed plan or an existing component is not a reason to skip. Follows `copywriting` or `illustrator` when the card's page copy or images are drafted first.
 akb:
   hook: plan
   i18n:
@@ -29,6 +29,8 @@ them — titles, buttons, hints, empty and error messages. Nothing else on the c
   source.
 - **Wait for the copy**: when the card's `copywriting` section has an open question, draw
   nothing; write one line in your section naming what is missing.
+- **Use the confirmed images**: when the card has a ``## By `illustrator` agent`` section,
+  place its approved images in the mockup as they are, never redrawn.
 
 ## What to answer
 

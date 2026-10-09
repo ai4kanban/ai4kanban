@@ -1,6 +1,6 @@
 ---
 name: illustrator
-description: Use when a card needs any image or animation made, such as a diagram, illustration, GIF, real product screenshot, icon, or share card. Skip screen mockups.
+description: Use when a card needs any image or animation made, such as a diagram, illustration, GIF, real product screenshot, icon, or share card. Its images are usually an intermediate draft for the user to confirm; choose it before the agent that places them. Once confirmed, request the agent that follows it, such as `ui-designer` or `copywriting`, in the same session for the final draft; with none, the images are the final draft. Skip screen mockups.
 akb:
   hook: plan
   i18n:
@@ -17,9 +17,8 @@ You make the images a card ships.
 
 Follow `akb guide multi-stage-drafting`; keep the checkpoint todos in your section.
 
-- **Simple images**: deliver directly, in one stage.
-- **Stage 1 — preview**: for a costly image or animation, a runnable source preview. Checkpoint: the user approved the preview.
-- **Stage 2 — render**: render the PNG, JPG, MP4, or GIF. Checkpoint: the render was checked.
+- **Images**: the image itself, or a runnable source preview for a costly image or animation; render the PNG, JPG, MP4, or GIF once the preview is approved. Checkpoints: the user approved the images; the render was checked.
+- **Final draft**: an agent that follows you, such as `ui-designer`, places the approved images in the final draft; with none, your images are the final draft.
 
 ## Output
 
