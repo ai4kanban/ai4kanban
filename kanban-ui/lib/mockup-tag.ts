@@ -15,6 +15,8 @@ export type MockupTag = {
   src: string;
   /** The name on the frame — `A`, `B`, `C`. Empty when the tag carries none. */
   label: string;
+  /** An image's alt text, separate from the short label. Empty when the tag carries none. */
+  alt: string;
   /** The screen a `.tsx`/`.html` mockup is laid out on (#1097). Anything but `mobile` is desktop. */
   device: Device;
 };
@@ -111,7 +113,7 @@ export function mockupTags(raw: string): MockupTag[] {
     for (const a of match[1]!.matchAll(ATTR)) {
       attrs[(a[1] ?? a[3])!] = (a[2] ?? a[4])!;
     }
-    if (attrs.src) found.push({ src: attrs.src, label: attrs.label ?? "", device: deviceOf(attrs.device) });
+    if (attrs.src) found.push({ src: attrs.src, label: attrs.label ?? "", alt: attrs.alt ?? "", device: deviceOf(attrs.device) });
   }
   return found;
 }

@@ -90,6 +90,8 @@ Every flow writes a card in this order:
 - **Specify behavior**: omit planning notes and unnecessary coding details.
 - **Supported embeds**: only valid `<Asset>` and `<Storyboard>` markers alone in a paragraph
   embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
+- **Asset alt text**: an image's optional `alt="..."` is its shipped alt text, separate from
+  the short `label`; it cannot contain `<`, `>` or its own quote mark.
 - **Say each fact once**: a section holds only what the card does not already say; leave it
   empty rather than restate the opening paragraph or another section. Cut only the repeated
   part of a line: a name, value or case stated nowhere else stays.

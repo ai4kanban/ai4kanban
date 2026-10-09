@@ -375,7 +375,7 @@ function useNearFetch<T>(box: React.RefObject<HTMLElement | null>, href: string 
 
 /** One mockup, framed: its label and its file over the screen, and the switch between the
  *  screen and the code the file holds. */
-export function Mockup({ view, label, device }: { view: MockupView; label: string; device: Device }) {
+export function Mockup({ view, label, alt = "", device }: { view: MockupView; label: string; alt?: string; device: Device }) {
   const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
@@ -441,7 +441,7 @@ export function Mockup({ view, label, device }: { view: MockupView; label: strin
       ) : view.media !== undefined ? (
         <MediaPlayer key={view.media.href} kind={view.media.kind} href={view.media.href} title={label || view.src} fill />
       ) : view.image !== undefined ? (
-        <Picture image={view.image} src={view.src} alt={label || view.src} />
+        <Picture image={view.image} src={view.src} alt={alt || label || view.src} />
       ) : view.text !== undefined ? (
         <Drawing text={view.text} />
       ) : showCode ? (
