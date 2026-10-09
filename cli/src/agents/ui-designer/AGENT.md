@@ -24,7 +24,9 @@ them — titles, buttons, hints, empty and error messages. Nothing else on the c
   is a row with its title and a Run button", not "a CardList of CardRows".
 - **Cover empty and failure states**: say what the user sees and can do.
 - **Use the confirmed copy**: when the card has a ``## By `copywriting` agent`` section, every
-  promotional line on the screen is taken from it word for word.
+  promotional line on the screen is taken from it word for word; once your mockup carries a
+  page's text, delete that text from the `copywriting` section, so the mockup is its only
+  source.
 - **Wait for the copy**: when the card's `copywriting` section has an open question, draw
   nothing; write one line in your section naming what is missing.
 

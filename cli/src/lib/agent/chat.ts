@@ -59,7 +59,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { BACKGROUND_WAIT, memoryReview } from './settings'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter, type StreamTurn } from './wire'
-import { caseEnv, discussionEnv } from './env'
+import { caseEnv, chatRuntimeEnv, discussionEnv } from './env'
 import { endAgent, markEnv, stopMark, trackAgent } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
 import { lastSessionTotal, ownCost, reportsSessionTotal } from './own-cost'
@@ -1466,6 +1466,7 @@ export async function sendChatMessage(
         restart,
         continuing: held.resumeId,
         pictures: files,
+        runtime: pin,
         // The discussion this turn is answering (#496), so `akb raw plan new` called from
         // inside it lands on this discussion rather than on the board's one conversation.
         discussion: isDiscussion(cardId) ? cardId : undefined,
@@ -1643,13 +1644,14 @@ function noted(text: string): string {
     .join('\n')
 }
 
-/** What a chat turn's agent is told about the board it is inside: the discussion it is
- *  answering, and the submission it is collecting for. Both absent on an ordinary turn. */
+/** What a chat turn's agent is told about the board it is inside: the runtime it runs on,
+ *  the discussion it is answering, and the submission it is collecting for. */
 function chatEnv(
   env: NodeJS.ProcessEnv,
-  io: { discussion?: string; caseKey?: string },
+  io: { runtime?: string; discussion?: string; caseKey?: string },
 ): NodeJS.ProcessEnv {
   let next = env
+  if (io.runtime) next = chatRuntimeEnv(next, io.runtime)
   if (io.discussion) next = discussionEnv(next, io.discussion)
   if (io.caseKey) next = caseEnv(next, io.caseKey)
   return next
@@ -1667,6 +1669,8 @@ interface SpeakIo {
    *  that takes a flag per file uses them here; one that reads them out of the words has
    *  them in the prompt already. */
   pictures?: string[]
+  /** The runtime this turn runs on (#1598), for the agent's own environment. */
+  runtime?: string
   /** The discussion this turn is answering (#496), for the agent's own environment. */
   discussion?: string
   /** The submission this turn is collecting for (#679), for the same environment. */

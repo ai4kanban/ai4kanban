@@ -15,10 +15,11 @@ import { cmdSpec } from '../src/commands/spec.ts'
 import { readRuns } from '../src/lib/agent/sessions.ts'
 import { cmdStartRun } from '../src/commands/run.ts'
 import { activeDelivery } from '../src/lib/agent/deliveries.ts'
-import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { CHAT_RUNTIME_ENV, RUN_ENV } from '../src/lib/agent/env.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
-import { setupInstruction } from '../src/lib/agent/resolve.ts'
+import { agentHarness, setupInstruction } from '../src/lib/agent/resolve.ts'
+import { addRuntime, setAgentRuntime } from '../src/lib/agent/runtimes.ts'
 import { ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { findGuide } from '../src/lib/guide.ts'
@@ -66,10 +67,12 @@ beforeEach(() => {
   setBoardRoot(root)
   fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'), card(1, 'card one'))
   delete process.env[RUN_ENV]
+  delete process.env[CHAT_RUNTIME_ENV]
 })
 
 afterEach(() => {
   delete process.env[RUN_ENV]
+  delete process.env[CHAT_RUNTIME_ENV]
   restoreMachineHome()
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
@@ -123,7 +126,41 @@ describe('in-session spec work', () => {
     assert.equal(JSON.stringify(readRuns()), before)
   })
 
+  // #1598: an agent set to another runtime than the caller's never runs in its session.
+  it('queues an agent on another runtime than the run asking for it', async () => {
+    process.env[RUN_ENV] = run('implement', 1)
+    setAgentRuntime('ui-designer', addRuntime('Other', 'codex').id!)
+    const sink = startCollecting()
+    try {
+      const result = await cmdSpec({ agent: 'ui-designer', id: 1, print: true })
+      assert.equal(result.queued, true)
+    } finally {
+      stopCollecting()
+    }
+    assert.match(sink.out.join('\n'), /asked for the ui-designer spec agent/)
+  })
 
+  it("prints in a chat turn on the agent's own runtime", async () => {
+    process.env[CHAT_RUNTIME_ENV] = agentHarness('ui-designer').runtime
+    startCollecting()
+    try {
+      assert.equal((await cmdSpec({ agent: 'ui-designer', id: 1, print: true })).mode, 'print')
+    } finally {
+      stopCollecting()
+    }
+    assert.equal(readRuns().length, 0)
+  })
+
+  it('prints when the caller names no runtime', async () => {
+    setAgentRuntime('ui-designer', addRuntime('Other', 'codex').id!)
+    startCollecting()
+    try {
+      assert.equal((await cmdSpec({ agent: 'ui-designer', id: 1, print: true })).mode, 'print')
+    } finally {
+      stopCollecting()
+    }
+    assert.equal(readRuns().length, 0)
+  })
 })
 
 describe('the files', () => {

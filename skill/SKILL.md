@@ -31,7 +31,7 @@ session without `--print`. Explicit user requests take precedence.
 | `card resolve <id> [note]` | In-session (`--print`) |
 | `card archive <id>` | In-session (`--print`) |
 | `card reject <id> <why>` (`--discard` to drop it with no reason) | Direct |
-| `spec <agent> <id> [note]` | In-session (`--print`) for small work; a separate session for work needing a fresh context; continue the parent workflow afterward |
+| `spec <agent> <id> [note]` | In-session (`--print`) by default; a separate session only as `akb guide refine` says; continue the parent workflow afterward |
 | `guide <topic>`, `help`, `spec`, `agent`, `raw …` | Direct |
 | `run list`, `run log`, `run stop`, `run resume` | Direct; resume restarts a separate run |
 | `delivery answered`, `delivery cancel`, `delivery resume`, `delivery discard` | Direct |

@@ -11,10 +11,9 @@ Plan one card in this session until it can be built. Change no project code.
   `--schedule refine`, and stop.
 - **Spec agents**: when an agent's `description` matches the scope and its section is missing
   or outdated, run `akb spec <agent> <id>`; order agents only when one's output is another's
-  input. Add `--print` to do small work here and save tokens; leave it off for work that
-  needs a fresh context, such as a screen drawn from scratch, and avoid mixing it with
-  another agent's work in one session. Once a mockup carries a page's text, delete that text
-  from the `copywriting` section; the mockup is its only source.
+  input. Add `--print` to run it in this session; start a separate session instead, with no
+  `--print`, when it writes its section from scratch or this session already ran another
+  agent.
 - **File name**: when the card's file name does not say in English what the card is, rename
   it with `akb raw update <id> --slug <short-english-slug>`; leave a group's root as it is.
 - **Stale mentions**: rewrite any sentence that relies on a card no longer on the board.

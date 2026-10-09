@@ -66,6 +66,21 @@ export function caseEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEn
   return { ...env, [CASE_ENV]: value }
 }
 
+/** The variable a chat turn puts on its agent, holding the runtime that turn runs on (#1598):
+ *  `akb spec --print` starts a separate run when the asked agent runs on another one. */
+export const CHAT_RUNTIME_ENV = 'KANBAN_CHAT_RUNTIME'
+
+/** The runtime of the chat turn this process is answering — otherwise null. */
+export function chatRuntime(): string | null {
+  const id = process.env[CHAT_RUNTIME_ENV]
+  return id && id.trim() ? id.trim() : null
+}
+
+/** Put that runtime into the environment its agent receives. */
+export function chatRuntimeEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
+  return { ...env, [CHAT_RUNTIME_ENV]: value }
+}
+
 /** The variable each CLI puts its own session id in for the commands it runs (#1222). The
  *  board drops them from every agent it spawns, so one never reads a session it inherited. */
 export const SESSION_VARS: Record<string, string> = {

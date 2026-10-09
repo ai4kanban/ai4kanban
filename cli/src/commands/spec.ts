@@ -1,6 +1,8 @@
 // Print specialist instructions here, or request a separate run.
 
+import { chatRuntime } from '../lib/agent/env'
 import { insideRun, printFlow } from '../lib/agent/flow'
+import { agentHarness } from '../lib/agent/resolve'
 import { askForSpec, readRuns } from '../lib/agent/sessions'
 import { proRefusal, startRun } from '../lib/agent/start'
 import { titleOf } from '../lib/agent/sessions'
@@ -82,11 +84,16 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     return { specAgent: name, cardId: id, queued: false, pending: true }
   }
 
-  if (opts.print === true && !inside) {
+  // An agent set to another runtime than the caller's runs on its own (#1598).
+  const caller = inside ? readRuns().find((r) => r.sessionId === inside)?.runtime : chatRuntime()
+  const ownRuntime = opts.print === true && !!caller && caller !== agentHarness(name).runtime
+  const print = opts.print === true && !ownRuntime
+
+  if (print && !inside) {
     const pro = await proRefusal(req)
     if (pro) die(pro.error, { kind: 'run-refused', action: 'spec', reason: pro.reason })
   }
-  if (opts.print === true) return printFlow(req, program)
+  if (print) return printFlow(req, program)
 
   // Separate requests from a board run start after its parent finishes.
   if (inside) {
@@ -109,6 +116,7 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   if ('error' in started) die(started.error, { kind: 'run-refused', action: 'spec' })
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })
+  if (ownRuntime) say(`${name} runs on its own runtime, so it started as a separate run — don't write its section yourself.`)
   say(`spec ${name} #${id} — run ${run.sessionId}`)
   say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${BOARD_FLAG}`)
   say(`  stop it:   ${program} run stop ${short(run.sessionId)}${BOARD_FLAG}`)
