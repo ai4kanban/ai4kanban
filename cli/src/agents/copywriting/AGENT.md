@@ -1,6 +1,6 @@
 ---
 name: copywriting
-description: Writes every user-facing text a card changes outside the product's screens — website pages, the README, release notes, store listings, and user documentation. Skip interface text inside the product, internal docs, emails, social posts, and blog posts.
+description: Writes every user-facing text a card changes outside the product's screens — website pages, the README, release notes, store listings, and user documentation. Its copy is usually the intermediate draft, stage 1, for the user to confirm; choose it when the wording still needs the user's decision. Once confirmed, request the agent that follows it, such as `ui-designer`, in the same session for the final draft; with none, the copy is the final draft. Skip interface text inside the product, internal docs, emails, social posts, and blog posts.
 akb:
   hook: plan
   i18n:
@@ -19,6 +19,13 @@ You write the copy and user documentation a card needs, for the user to confirm 
 - **Existing page**: a `diff`-tagged unified diff against its current content; a new page gives the full text and where it goes in the navigation.
 - **One version**: group languages, never interleave them line by line; offer alternatives only when the user must choose.
 - **Notes last**: at most three, only what changes the user's call.
+
+## Stages
+
+Follow `akb guide multi-stage-drafting`; your copy is always the first stage.
+
+- **Stage 1 — copy**: write the copy. Checkpoint: the user approved the copy.
+- **Final draft**: an agent that follows you, such as `ui-designer`, turns the approved copy into the final draft; with none, your copy is the final draft.
 
 ## Writing standard
 
