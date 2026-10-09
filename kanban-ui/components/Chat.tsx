@@ -1113,7 +1113,8 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
   }
   if (cardId === null) return null;
   return (
-    <div className="px-0.5 pt-3">
+    // pb-8: under an opened discussion this sits at the scroller's foot, right on the box.
+    <div className="px-0.5 pb-8 pt-3">
       <p className="text-[13px] font-[700] leading-snug text-nb-ink">{c.emptyLead}</p>
       <SampleAsks key={c.emptyCardAsks[0]} lead={c.emptyAskLead} asks={c.emptyCardAsks} />
     </div>
