@@ -4,6 +4,7 @@ import { BUILDER_PATH, FOOTER_SOCIALS } from "./social";
 import { column } from "./styles";
 import { agentPath, getAgentPages } from "@/lib/agents";
 import { localePath, publishedIn, type Locale } from "@/lib/i18n";
+import { workflowPath } from "@/lib/workflows";
 import type { SiteCopy } from "@/i18n/types";
 
 // The comparison pages. The names are products, so only the heading is translated.
@@ -41,69 +42,78 @@ export function SiteFooter({
 }) {
   const t = c.shared.footer;
 
-  // Grouped by what a visitor came for: get it, learn it, look behind it, read
-  // the fine print, weigh it against what they use now. The comparisons are
-  // named one per line rather than folded behind a single link — six product
-  // names is what fills the row, and each is a page worth landing on. GitHub is
-  // not a column: it is the mark on the base line, and one link is enough.
+  // Bento: each column stacks one or more groups, so the long comparison list
+  // fills a column of its own while short groups share one.
   //
   // The docs, the blog, the agent pages, the Cloud page, the
   // builder page and the two legal pages are English-only, so those links keep
-  // their bare paths. The download and comparison pages exist in every
+  // their bare paths. The download, workflow and comparison pages exist in every
   // language — point at this one.
-  const groups = [
-    {
-      title: t.groups.product,
-      links: [
-        { href: localePath(locale, "/download"), label: c.shared.nav.download },
-        { href: "/cloud", label: t.cloud },
-        // Two languages only, so in the other three the row is absent rather
-        // than pointing at a page that reader cannot use.
-        ...(publishedIn("/pricing", locale)
-          ? [{ href: localePath(locale, "/pricing"), label: t.pricing }]
-          : []),
-        ...(publishedIn("/training", locale)
-          ? [{ href: localePath(locale, "/training"), label: t.training }]
-          : []),
-        { href: localePath(locale, "/contact"), label: t.contact },
-      ],
-    },
-    {
-      title: t.groups.learn,
-      links: [
-        { href: "/docs", label: t.docs },
-        { href: "/blog", label: t.blog },
-        // Agent pages name a coding agent, so the label is the page's own name
-        // rather than a translated slot — the same rule the comparisons follow.
-        ...getAgentPages().map((page) => ({
-          href: agentPath(page),
-          label: page.navLabel,
+  const columns = [
+    [
+      {
+        title: t.groups.product,
+        links: [
+          { href: localePath(locale, "/download"), label: c.shared.nav.download },
+          { href: "/cloud", label: t.cloud },
+          // Two languages only, so in the other three the row is absent rather
+          // than pointing at a page that reader cannot use.
+          ...(publishedIn("/pricing", locale)
+            ? [{ href: localePath(locale, "/pricing"), label: t.pricing }]
+            : []),
+          ...(publishedIn("/training", locale)
+            ? [{ href: localePath(locale, "/training"), label: t.training }]
+            : []),
+          { href: localePath(locale, "/contact"), label: t.contact },
+        ],
+      },
+    ],
+    [
+      {
+        title: t.groups.solutions,
+        links: [
+          { href: localePath(locale, workflowPath("coding")), label: t.coding },
+        ],
+      },
+      {
+        title: t.groups.learn,
+        links: [
+          { href: "/docs", label: t.docs },
+          { href: "/blog", label: t.blog },
+          // Agent pages name a coding agent, so the label is the page's own name
+          // rather than a translated slot — the same rule the comparisons follow.
+          ...getAgentPages().map((page) => ({
+            href: agentPath(page),
+            label: page.navLabel,
+          })),
+        ],
+      },
+    ],
+    [
+      {
+        title: c.shared.nav.compare,
+        links: COMPARISONS.map((x) => ({
+          href: localePath(locale, x.href),
+          label: x.name,
         })),
-      ],
-    },
-    {
-      title: t.groups.project,
-      links: [
-        { href: BUILDER_PATH, label: t.builder },
-        { href: `${GITHUB_URL}/releases`, label: t.changelog, external: true },
-      ],
-    },
-    {
-      title: t.groups.legal,
-      links: [
-        { href: "/privacy", label: t.privacy },
-        { href: "/terms", label: t.terms },
-      ],
-    },
-    // Last, and six deep — a grid row is as tall as its tallest column, so the
-    // one long list sits where it can't open a hole under the short ones.
-    {
-      title: c.shared.nav.compare,
-      links: COMPARISONS.map((x) => ({
-        href: localePath(locale, x.href),
-        label: x.name,
-      })),
-    },
+      },
+    ],
+    [
+      {
+        title: t.groups.project,
+        links: [
+          { href: BUILDER_PATH, label: t.builder },
+          { href: `${GITHUB_URL}/releases`, label: t.changelog, external: true },
+        ],
+      },
+      {
+        title: t.groups.legal,
+        links: [
+          { href: "/privacy", label: t.privacy },
+          { href: "/terms", label: t.terms },
+        ],
+      },
+    ],
   ];
 
   // The icons carry no text, so each one needs its name read out loud.
@@ -117,25 +127,29 @@ export function SiteFooter({
     // last thing a long scroll leaves you with.
     <footer className="mt-28 overflow-hidden bg-ink text-sm text-elev/70">
       <div className={`${column} pt-14`}>
-        <nav className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4 lg:grid-cols-5">
-          {groups.map((group) => (
-            <div key={group.title}>
-              <h2 className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-elev/40">
-                {group.title}
-              </h2>
-              <ul className="mt-4 space-y-2.5">
-                {group.links.map((l) => (
-                  <li key={l.href}>
-                    <a
-                      href={l.href}
-                      rel={l.external ? "noopener" : undefined}
-                      className="transition-colors hover:text-elev"
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+        <nav className="grid grid-cols-2 gap-x-8 gap-y-10 lg:grid-cols-4">
+          {columns.map((groups) => (
+            <div key={groups[0].title} className="space-y-10">
+              {groups.map((group) => (
+                <div key={group.title}>
+                  <h2 className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-elev/40">
+                    {group.title}
+                  </h2>
+                  <ul className="mt-4 space-y-2.5">
+                    {group.links.map((l) => (
+                      <li key={l.href}>
+                        <a
+                          href={l.href}
+                          rel={l.external ? "noopener" : undefined}
+                          className="transition-colors hover:text-elev"
+                        >
+                          {l.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           ))}
         </nav>

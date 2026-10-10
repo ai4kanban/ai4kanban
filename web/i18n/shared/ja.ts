@@ -18,6 +18,7 @@ const ja: SharedCopy = {
   footer: {
     groups: {
       product: "製品",
+      solutions: "ソリューション",
       learn: "学ぶ",
       project: "プロジェクト",
       legal: "法務",
@@ -29,6 +30,7 @@ const ja: SharedCopy = {
     training: "トレーニング",
     pricing: "料金",
     contact: "お問い合わせ",
+    coding: "コーディング向け",
     changelog: "Changelog",
     builder: "Builder",
     privacy: "Privacy",

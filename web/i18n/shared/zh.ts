@@ -18,6 +18,7 @@ const zh: SharedCopy = {
   footer: {
     groups: {
       product: "产品",
+      solutions: "解决方案",
       learn: "学习",
       project: "项目",
       legal: "法律",
@@ -29,6 +30,7 @@ const zh: SharedCopy = {
     training: "培训",
     pricing: "定价",
     contact: "联系我们",
+    coding: "For coding",
     changelog: "Changelog",
     builder: "Builder",
     privacy: "Privacy",

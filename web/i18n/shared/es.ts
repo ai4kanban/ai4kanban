@@ -18,6 +18,7 @@ const es: SharedCopy = {
   footer: {
     groups: {
       product: "Producto",
+      solutions: "Soluciones",
       learn: "Aprender",
       project: "Proyecto",
       legal: "Legal",
@@ -29,6 +30,7 @@ const es: SharedCopy = {
     training: "Formación",
     pricing: "Precios",
     contact: "Contacto",
+    coding: "Para programar",
     changelog: "Changelog",
     builder: "Builder",
     privacy: "Privacy",

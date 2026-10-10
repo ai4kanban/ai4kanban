@@ -27,9 +27,10 @@ export type SharedCopy = {
     menu: string;
   };
   footer: {
-    /** Headings over the four link columns. */
+    /** Headings over the footer's link groups. */
     groups: {
       product: string;
+      solutions: string;
       learn: string;
       project: string;
       legal: string;
@@ -47,6 +48,8 @@ export type SharedCopy = {
     pricing: string;
     /** The contact page, in the footer's Product column. */
     contact: string;
+    /** The coding workflow page, under Solutions. */
+    coding: string;
     /** The GitHub releases page. */
     changelog: string;
     /** The builder page. English-only, like the blog. */
