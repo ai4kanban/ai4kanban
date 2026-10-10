@@ -24,6 +24,7 @@ import {
   readChat,
   setChatArchived,
   setChatTitle,
+  stopChatBackground,
 } from './chat'
 import { settlePlans } from './discuss'
 import { endBlocked, END_BLOCK_SAID, type EndBlock } from './share'
@@ -129,9 +130,9 @@ export function titleDiscussion(target: DiscussionTarget, title: string): void {
  *  A plan handed to a run stays. The cards that run wrote name it in `source:`, and that
  *  is the only way back to the file.
  *
- *  It is the rail's **End discussion** (#633), and it does only this: a card's conversation
- *  put away leaves the list and nothing else — it does not free a card its reply is holding,
- *  and the next message said into it brings the row back.
+ *  It is the rail's **End discussion** (#633): the agent still behind it is ended with what it
+ *  started (#1603). Beyond that, a card's conversation put away only leaves the list — it does
+ *  not free a card its reply is holding, and the next message said into it brings the row back.
  *
  *  Its transcript stays on disk — `akb chat --clear` is still the only thing that forgets a
  *  conversation.
@@ -145,6 +146,7 @@ export function archiveDiscussion(
   if (!chat) return { error: `no conversation called "${target}" on this board.` }
   const held = endBlocked(target)
   if (held) return { error: END_BLOCK_SAID[held], reason: held }
+  stopChatBackground(target)
   const dropped = (chat.plans ?? []).filter((p) => !p.run && dropPlan(p.path)).map((p) => p.path)
   setChatArchived(target, true)
   return { ok: true, plans: dropped }

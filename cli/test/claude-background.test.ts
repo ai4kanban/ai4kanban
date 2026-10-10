@@ -12,7 +12,8 @@ import { CHATS_DIR, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { openRun, patch, peekRun } from '../src/lib/agent/sessions.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
 import { watchRun } from '../src/lib/agent/watch.ts'
-import { readChat, readChatView, sendChatMessage, stopChatBackground } from '../src/lib/agent/chat.ts'
+import { readChat, readChatView, sendChatMessage, setChatShare, stopChatBackground } from '../src/lib/agent/chat.ts'
+import { archiveDiscussion, startDiscussion } from '../src/lib/agent/discussions.ts'
 import { BACKGROUND_WAIT } from '../src/lib/agent/settings.ts'
 import { forgetMachineState, restoreMachineHome, uiConfigOf } from './helpers/board.ts'
 
@@ -21,13 +22,17 @@ let home = ''
 const WAIT = BACKGROUND_WAIT.minutes
 
 // A stand-in Claude Code: one turn per stdin message. `start` puts a task in the background
-// that ends after `after` ms (never, at -1), `ping` answers at once. It exits when stdin closes.
+// that ends after `after` ms (never, at -1), `ping` answers at once, `leave` detaches a
+// command with `nohup` the way a shell `&` does and writes its pid to `left.pid`. It exits
+// when stdin closes.
 function fakeClaude(after: number): string {
   const script = path.join(root, 'claude.mjs')
   const spawns = path.join(root, 'spawns.log')
+  const left = path.join(root, 'left.pid')
   fs.writeFileSync(
     script,
     `import fs from 'node:fs'
+import { execSync } from 'node:child_process'
 fs.appendFileSync(${JSON.stringify(spawns)}, process.pid + '\\n')
 const out = (ev) => process.stdout.write(JSON.stringify(ev) + '\\n')
 let cost = 0
@@ -46,6 +51,12 @@ process.stdin.on('data', (d) => {
     const said = JSON.parse(buf.slice(0, end)).message.content
     buf = buf.slice(end + 1)
     if (said.endsWith('ping')) turn('PONG')
+    else if (said.endsWith('leave')) {
+      // A program of our own rather than \`sleep\`: macOS shows no environment for the ones it ships.
+      const pid = execSync('nohup ' + JSON.stringify(process.execPath) + ' -e "setInterval(() => {}, 1000)" >/dev/null 2>&1 & echo $!', { encoding: 'utf8' })
+      fs.writeFileSync(${JSON.stringify(left)}, pid.trim())
+      turn('LEFT')
+    }
     else {
       out({ type: 'system', subtype: 'task_started', task_id: 't1', is_backgrounded: true })
       turn('STARTED', [{ task_id: 't1' }])
@@ -175,5 +186,58 @@ describe('a chat with a background task', () => {
     assert.equal(readChatView(null).background, undefined)
     assert.ok(!readChat(null)!.messages.some((m) => m.afterBackground))
     assert.ok(fs.existsSync(CHATS_DIR))
+  })
+})
+
+const alive = (pid: number): boolean => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const firstSpawn = (): number => Number(fs.readFileSync(path.join(root, 'spawns.log'), 'utf8').trim().split('\n')[0])
+
+// #1603
+describe('what a chat agent leaves behind', () => {
+  it('a command it detached ends with the turn', async () => {
+    board(fakeClaude(-1), 5)
+    const reply = await sendChatMessage(null, 'leave')
+    assert.ok('text' in reply)
+    assert.equal(reply.text, 'LEFT')
+    const left = Number(fs.readFileSync(path.join(root, 'left.pid'), 'utf8'))
+    try {
+      await until(() => !alive(firstSpawn()) && !alive(left), 10_000)
+    } finally {
+      if (alive(left)) process.kill(left, 'SIGKILL')
+    }
+  })
+
+  it('End discussion ends the agent still holding a background task', async () => {
+    board(fakeClaude(-1), 5)
+    const target = startDiscussion()
+    await sendChatMessage(target, 'start')
+    assert.equal(readChatView(target).background, 1)
+    try {
+      assert.deepEqual(archiveDiscussion(target), { ok: true, plans: [] })
+      await until(() => !alive(firstSpawn()), 10_000)
+    } finally {
+      stopChatBackground(target)
+    }
+  })
+
+  it('an End discussion refused leaves the agent running', async () => {
+    board(fakeClaude(-1), 5)
+    const target = startDiscussion()
+    await sendChatMessage(target, 'start')
+    setChatShare(target, true)
+    const refused = archiveDiscussion(target)
+    assert.ok('error' in refused && refused.reason === 'share-needs-card')
+    await new Promise((r) => setTimeout(r, 300))
+    assert.ok(alive(firstSpawn()))
+    stopChatBackground(target)
+    await until(() => !alive(firstSpawn()), 10_000)
   })
 })

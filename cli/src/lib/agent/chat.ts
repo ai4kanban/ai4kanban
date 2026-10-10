@@ -60,7 +60,7 @@ import { BACKGROUND_WAIT, memoryReview } from './settings'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter, type StreamTurn } from './wire'
 import { caseEnv, chatRuntimeEnv, discussionEnv } from './env'
-import { endAgent, markEnv, stopMark, trackAgent } from './stop'
+import { endAgent, killMarked, markEnv, stopMark, trackAgent } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
 import { lastSessionTotal, ownCost, reportsSessionTotal } from './own-cost'
 import { recordReplyUsage } from './usage'
@@ -1709,6 +1709,7 @@ async function speak(io: SpeakIo): Promise<Spoken> {
   // stdout and stderr are pipes whichever shape this is; only stdin differs.
   const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
   const mark = stopMark()
+  const spawnedAt = Date.now()
   let child: ChildProcessByStdio<Writable | null, Readable, Readable>
   try {
     // A connector the board talks to is handed its prompt inside the conversation and needs
@@ -1867,7 +1868,11 @@ async function speak(io: SpeakIo): Promise<Spoken> {
       }
     }
 
-    child.on('close', (code) => finish(code === 0, code === null ? undefined : `the agent exited with code ${code}`))
+    child.on('close', (code) => {
+      // What it left running in the background has nobody left to end it.
+      killMarked(mark, child.pid ? { pid: child.pid, since: spawnedAt } : undefined)
+      finish(code === 0, code === null ? undefined : `the agent exited with code ${code}`)
+    })
   })
 }
 
@@ -1905,6 +1910,7 @@ function converse(io: SpeakIo, active: ActiveRun, cmd: string, args: string[]): 
   const renderer = active.renderer!
   const toStdin = active.stdinPrompt!
   const mark = stopMark()
+  const spawnedAt = Date.now()
   let child: ChildProcessByStdio<Writable, Readable, Readable>
   try {
     child = spawn(cmd, args, {
@@ -1977,6 +1983,7 @@ function converse(io: SpeakIo, active: ActiveRun, cmd: string, args: string[]): 
     over = true
     if (idle) clearTimeout(idle)
     endInput()
+    killMarked(mark, child.pid ? { pid: child.pid, since: spawnedAt } : undefined)
     route(renderer.flush())
     route(noted(errs.flush()))
     closeTurns()
