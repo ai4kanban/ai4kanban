@@ -174,6 +174,33 @@ export function MemoryOurs({ c }: { c: Hero["memory"]["art"]["ours"] }) {
   );
 }
 
+// Two specialists read one shared memory above them. Stacked so it fits a half-width card.
+export function MemoryStacked({ c }: { c: { agents: string[]; shared: string } }) {
+  const agent = (name: string, i: number) => (
+    <div className="flex flex-col items-center">
+      <span className="h-3 w-px bg-growth" aria-hidden="true" />
+      <Slot>
+        <Bot name={name} />
+      </Slot>
+      <Label tone="text-ink">{c.agents[i]}</Label>
+    </div>
+  );
+  return (
+    <div className="flex h-40 flex-col items-center justify-center">
+      <span className={`${chip} whitespace-nowrap border-growth`}>
+        <FiShare2 className="h-3 w-3 text-growth" aria-hidden="true" />
+        {c.shared}
+      </span>
+      <span className="h-3 w-px bg-growth" aria-hidden="true" />
+      <div className="relative grid w-full max-w-[20rem] grid-cols-2">
+        <span className="absolute inset-x-1/4 top-0 h-px bg-growth" aria-hidden="true" />
+        {agent("ui-designer", 0)}
+        {agent("copywriting", 1)}
+      </div>
+    </div>
+  );
+}
+
 // Questions settled, key points approved, then the builder runs.
 export function QuestionsOurs({ c }: { c: VsQuestionsHero["questions"]["art"]["ours"] }) {
   return (

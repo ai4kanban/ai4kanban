@@ -51,6 +51,7 @@ export const PATH_LOCALES: Record<string, readonly Locale[]> = {
   "/contact": LOCALES,
   "/vs-hermes-kanban": LOCALES,
   "/vs-multica": LOCALES,
+  "/vs-orca": LOCALES,
   "/vs-task-master": LOCALES,
   "/workflows/coding": LOCALES,
   "/training": ["en", "zh"],
