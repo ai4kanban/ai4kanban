@@ -47,7 +47,7 @@ afterEach(() => {
 describe('the roles', () => {
   it('gives every flow the board can start exactly one agent', () => {
     for (const flow of FLOWS) {
-      const owners = roles().filter((role) => role.name === agentForFlow(flow.command))
+      const owners = agentRoster().filter((agent) => agent.name === agentForFlow(flow.command))
       const hidden = roleNamed(agentForFlow(flow.command) ?? '') && !owners.length ? 1 : 0
       assert.equal(owners.length + hidden, 1, `${flow.command} is run by ${owners.length} agents`)
     }
@@ -64,7 +64,6 @@ describe('the roles', () => {
       roles().map((r) => r.name),
       [
         'discussion-helper',
-        'software-planner',
         'builder',
         'memory-pruner',
         'chat-reviewer',
@@ -100,7 +99,7 @@ describe('the roles', () => {
   // Memory belongs to whoever writes it (#805): all three planning files are the planner's,
   // and the builder — which never opened one — owns none.
   it('says what each role remembers, in files that are the board it is on', () => {
-    assert.deepEqual(roles().find((r) => r.name === 'software-planner')!.memory, [
+    assert.deepEqual(roleForFlow('refine')!.memory, [
       'memory/agents/planner/decisions.md',
       'memory/agents/planner/rejected.md',
       'memory/agents/planner/redesign.md',
@@ -124,7 +123,6 @@ describe('the roles', () => {
     )
     assert.deepEqual(agentNames(), [
       'discussion-helper',
-      'software-planner',
       'builder',
       'memory-pruner',
       'chat-reviewer',
@@ -145,6 +143,7 @@ describe('the roles', () => {
       'prompt-writer',
       'qa-manager',
       'scriptwriter',
+      'software-planner',
       'tech-stack-advisor',
       'ui-designer',
     ])
@@ -153,9 +152,8 @@ describe('the roles', () => {
 
   it('rosters the roles first, then the specialists the command ships', () => {
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 8), [
+    assert.deepEqual(names.slice(0, 7), [
       'discussion-helper',
-      'software-planner',
       'builder',
       'memory-pruner',
       'chat-reviewer',
@@ -163,7 +161,7 @@ describe('the roles', () => {
       'project-writer',
       'proposer',
     ])
-    assert.deepEqual(names.slice(8), [
+    assert.deepEqual(names.slice(7), [
       'blog-illustrator',
       'blog-planner',
       'carousel-planner',
@@ -178,16 +176,17 @@ describe('the roles', () => {
       'prompt-writer',
       'qa-manager',
       'scriptwriter',
+      'software-planner',
       'tech-stack-advisor',
       'ui-designer',
     ])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(8).fill('role'), 'spec', 'lead', 'lead', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec'],
+      [...Array(7).fill('role'), 'spec', 'lead', 'lead', 'spec', 'spec', 'spec', 'lead', 'spec', 'spec', 'spec', 'spec', 'spec', 'spec', 'lead', 'lead', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[9]!.flows, [])
+    assert.deepEqual(agentRoster()[8]!.flows, [])
     // No role has a switch (#1208), and no agent carrying a stage does (#749).
     assert.deepEqual(agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => a.name), [])
     assert.deepEqual(agentRoster().filter((a) => a.stage && a.switchable).map((a) => a.name), [])
@@ -224,7 +223,7 @@ describe('the board helpers are always on (#1208)', () => {
   })
 
   it('refuses to switch off a role the board runs on', async () => {
-    const refused = setSpecAgentEnabled('software-planner', false)
+    const refused = setSpecAgentEnabled('builder', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /can't be switched off/)
   })
@@ -294,7 +293,7 @@ describe('akb raw rule', () => {
   it('takes a spec agent by name too, and refuses a name no agent answers to', async () => {
     await move(root, ['rule', 'ui-designer', '--text', 'Keep to the existing palette.'])
     assert.equal(ruleText('ui-designer'), 'Keep to the existing palette.')
-    await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /software-planner, builder, memory-pruner/)
+    await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /discussion-helper, builder, memory-pruner/)
   })
 
   // The agent was renamed, and a rule is saved under the agent's name.

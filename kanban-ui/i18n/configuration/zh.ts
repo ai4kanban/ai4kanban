@@ -365,11 +365,6 @@ const zh: ConfigurationCopy = {
         rule: "会附加到你发给它的每条消息末尾，例如「最后总要问一个我没想到的问题」。",
         when: "你通过「新想法」或卡片页的「讨论」发起对话时。它和你一起把想法讨论成方案，之后各工作流的规划基于这段对话继续。",
       },
-      "software-planner": {
-        name: "软件规划师",
-        gloss: "撰写并细化你的卡片。",
-        rule: "会附加到每次新建、细化、修订、规划版本、更新日志和归档运行的末尾，例如「未决问题一律用编号列表列出」。",
-      },
       builder: {
         name: "开发",
         gloss: "执行卡片并合入。",
@@ -547,6 +542,8 @@ const zh: ConfigurationCopy = {
     specialistRule: {
       spec: (agent) => `会附加到卡片细化期间 ${agent} 每次运行的末尾，例如「遵循 app/globals.css 里的设计变量」。`,
       byAgent: {
+        "software-planner": () =>
+          "会附加到每次新建、细化、修订、规划版本、更新日志和归档运行的末尾，例如「未决问题一律用编号列表列出」。",
         scriptwriter: () => "会附加到产品视频卡片每次新建、细化和修订运行的末尾，例如「全片不超过 60 秒」。",
         "hyperframes-editor": (agent) => `会附加到制作产品视频时 ${agent} 每次运行的末尾，例如「录屏统一 1920×1080、30 帧」。`,
         "cover-designer": (agent) => `会附加到制作产品视频封面时 ${agent} 每次运行的末尾，例如「封面文字用产品主色」。`,

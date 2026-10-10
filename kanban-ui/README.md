@@ -755,7 +755,7 @@ match.
 "agentRuntime": { "builder": "cheap", "ui-designer": "cheap" }
 ```
 
-It covers the shipped roles (`discussion-helper`, `software-planner`, `builder`, `proposer`,
+It covers the shipped agents (`discussion-helper`, `software-planner`, `builder`, `proposer`,
 `triage` and the rest `akb agent` lists) and every agent in `docs/kanban/agents/`, and it travels with the
 repository — so planning can run on a stronger model than the builder on every checkout. Keys
 stay per machine. An unknown `id` falls back to **Global default** with a note in the log; a tool

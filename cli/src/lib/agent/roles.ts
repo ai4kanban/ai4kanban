@@ -169,12 +169,6 @@ const FEEDBACK: AgentRole = {
 
 const BOARD_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
-  {
-    name: 'software-planner',
-    stage: 'plan',
-    gloss: 'plans and refines cards',
-    memory: [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN],
-  },
   // It owns no memory (#805). `readme.md` is the board's record of what shipped rather than
   // anyone's taste, `redesign.md` is read by the planner's revise and by nothing a build
   // runs, and the module map is a map.

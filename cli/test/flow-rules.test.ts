@@ -192,7 +192,7 @@ describe('the files', () => {
   it('refuses a name no agent on this board answers to', async () => {
     const agent = setAgentRule('deployer', 'Ship it.')
     assert.equal(agent.ok, false)
-    assert.match(agent.error!, /software-planner, builder, memory-pruner/)
+    assert.match(agent.error!, /discussion-helper, builder, memory-pruner/)
   })
 
   it("carries each agent's rule on the roster, and nothing for the ones without one", async () => {

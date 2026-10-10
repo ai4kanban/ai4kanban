@@ -279,11 +279,6 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every message you send it — "always end with the one question I have not thought about".',
         when: "you talk to it — New idea, or Discuss on a card. It shapes an idea into a plan with you; each workflow's planning then carries that conversation on.",
       },
-      "software-planner": {
-        name: "Software planner",
-        gloss: "Writes and refines your cards.",
-        rule: 'Added to the end of every Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
-      },
       builder: {
         name: "Builder",
         gloss: "Builds a card and lands it.",
@@ -461,6 +456,8 @@ const en: ConfigurationCopy = {
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,
       byAgent: {
+        "software-planner": () =>
+          'Added to the end of every Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
         scriptwriter: () =>
           'Added to the end of every Create, Refine and Revise run on a product video card — "keep the whole video under 60 seconds".',
         "hyperframes-editor": (agent) =>

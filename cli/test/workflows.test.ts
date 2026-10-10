@@ -157,15 +157,18 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['software-planner', 'blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'scriptwriter', 'software-planner', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
     const mine = createWorkflow('Mine')
     assert.match(setWorkflowLead(mine.id!, 'execute', 'software-planner').error!, /is a plan agent/)
-    assert.equal(setWorkflowLead(mine.id!, 'plan', 'software-planner').ok, true)
-    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'software-planner')
-    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'software-planner').ok, false)
+    // The Software planner is Coding's, like any other lead (#1613).
+    assert.match(setWorkflowLead(mine.id!, 'plan', 'software-planner').error!, /belongs to the "Coding" workflow/)
+    stageAgent('outliner', 'plan', true)
+    assert.equal(setWorkflowLead(mine.id!, 'plan', 'outliner').ok, true)
+    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'outliner')
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'outliner').ok, false)
   })
 
   it('keeps the specialists the coding plan stage offers until the board chooses for it', () => {
@@ -232,7 +235,7 @@ describe('the leads of a workflow the command ships', () => {
     assert.equal(config().workflows.stages.coding.execute, undefined)
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
     assert.deepEqual(config().workflows.stages.coding.plan.helpers, [
-      { agent: 'software-planner', extra: 'x' },
+      { agent: 'software-planner-2', extra: 'x' },
       { agent: 'prompt-writer', extra: '' },
       { agent: 'email-planner', extra: '' },
       { agent: 'competitor-research', extra: '' },
@@ -241,7 +244,7 @@ describe('the leads of a workflow the command ships', () => {
 
   it('leaves a copy of one free to pick its own', () => {
     const copy = duplicateWorkflow('coding')
-    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'software-planner')
+    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'software-planner-2')
     assert.equal(setWorkflowLead(copy.id!, 'execute', 'test-writer').ok, true)
     assert.equal(workflowById(copy.id!)!.stages.execute.lead, 'test-writer')
     assert.equal(workflowById('coding')!.stages.execute.lead, 'builder')
@@ -607,7 +610,7 @@ describe('an agent a workflow no longer has', () => {
     // A LEAD nobody answers to is left exactly as assigned and reported, rather than quietly
     // running as somebody else.
     assert.equal(setWorkflowLead(copy.id!, 'plan', 'nobody-here').ok, false)
-    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'software-planner')
+    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'software-planner-2')
   })
 
   it('refuses to delete a workflow an open card still runs on, and says which', async () => {
@@ -903,7 +906,7 @@ describe('who may lead a stage (#846)', () => {
     const mine = createWorkflow('Mine')
     const leads = planView(mine.id!).candidates.filter((a) => a.canLead).map((a) => a.name)
     // Never another workflow's (#1095): the video and deck leads are theirs.
-    assert.deepEqual(leads, ['software-planner', 'outliner'])
+    assert.deepEqual(leads, ['outliner'])
     assert.deepEqual(
       stageCandidates('execute').filter((a) => a.canLead).map((a) => a.name),
       ['builder', 'test-writer'],

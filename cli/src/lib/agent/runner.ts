@@ -52,12 +52,11 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
 }
 
 /** The agent of this run when it writes a section for the user to review (#868, #1574): a
- *  plan-stage agent. A run it leads must write one. */
-export function humanSectionFor(ask: RunAsk): { agent: string; required: boolean } | null {
+ *  plan-stage agent. With nothing to show, it writes none. */
+export function humanSectionFor(ask: RunAsk): { agent: string } | null {
   const name = agentForRun(ask)
   const agent = name ? findSpecAgent(name) : null
-  if (agent?.stage !== 'plan') return null
-  return { agent: agent.name, required: agent.canLead && !SPECIALIST_ACTIONS.has(ask.action!) }
+  return agent?.stage === 'plan' ? { agent: agent.name } : null
 }
 
 // The flow this run belongs to. A pass belongs to the flow that spawned it, never to a flow

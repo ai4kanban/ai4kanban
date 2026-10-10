@@ -270,7 +270,7 @@ export function leadBlock(req: AgentRequest): string {
     [
       `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
       human
-        ? `Your output is reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show yet, write one line saying so.`
+        ? `Your output is reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show, leave the section out.`
         : '',
       files ? `——— your own files ———\n\n${files}` : '',
       shared ? `——— global memories ———\n\n${shared}` : '',

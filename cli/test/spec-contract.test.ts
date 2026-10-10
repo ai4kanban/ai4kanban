@@ -179,28 +179,23 @@ describe("a human-facing agent's own section (#868)", () => {
   const section = '## By `outliner` agent\n\nAn outline.\n\n'
   const above = valid.replace('<!-- agent -->', section + '<!-- agent -->')
   const below = valid.replace('## Decided by the agent', section + '## Decided by the agent')
-  const check = (text: string, required: boolean, cards = new Set([1])) => {
+  const check = (text: string, cards = new Set([1])) => {
     const before = snapshotSpecs()
     fs.writeFileSync(file, text)
-    return validateRunSpecs(before, snapshotSpecs(), 1, new Set(), new Set(), { agent: 'outliner', required, cards })
+    return validateRunSpecs(before, snapshotSpecs(), 1, new Set(), new Set(), { agent: 'outliner', cards })
   }
 
-  it('makes a run the agent leads write it, above the boundary', () => {
-    assert.match(check(valid, true).map((e) => e.message).join('\n'), /Missing ## By `outliner` agent\. Write it above <!-- agent -->/)
-    assert.match(check(below, true).map((e) => e.message).join('\n'), /Move ## By `outliner` agent above <!-- agent -->/)
-    assert.deepEqual(check(above, true), [])
-  })
-
-  it('lets a spec run leave it out, but not below the boundary', () => {
-    assert.deepEqual(check(valid, false), [])
-    assert.ok(check(below, false).some((e) => e.rule === 'human-section'))
+  it('lets a run leave it out, but not below the boundary', () => {
+    assert.deepEqual(check(valid), [])
+    assert.match(check(below).map((e) => e.message).join('\n'), /Move ## By `outliner` agent above <!-- agent -->/)
+    assert.deepEqual(check(above), [])
   })
 
   it('checks only the cards the run owns', () => {
-    assert.deepEqual(check(valid, true, new Set()), [])
+    assert.deepEqual(check(valid, new Set()), [])
     const other = path.join(path.dirname(file), '2-other.md')
     fs.writeFileSync(other, below)
-    assert.deepEqual(check(above, true).filter((e) => e.file.endsWith('2-other.md')), [])
+    assert.deepEqual(check(above).filter((e) => e.file.endsWith('2-other.md')), [])
     assert.deepEqual(validateSpec(other, below), [])
   })
 })

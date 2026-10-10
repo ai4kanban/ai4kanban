@@ -9,7 +9,6 @@ import type { AutoSchedule, ScheduleReason } from "@/lib/types";
  *  words. */
 export type AgentRoleName =
   | "discussion-helper"
-  | "software-planner"
   | "builder"
   | "proposer"
   | "memory-pruner"

@@ -85,7 +85,6 @@ describe('what a run is told', () => {
   it('names them on a leading run too', async () => {
     agent('clip-editor', ['  lead: execute'], { 'style.md': 'Cut on the beat.' })
     const flow = createWorkflow('Clips').id!
-    assert.equal(setWorkflowLead(flow, 'plan', 'software-planner').ok, true)
     assert.equal(setWorkflowLead(flow, 'execute', 'clip-editor').ok, true)
     const id = (await move(root, ['create', '--title', 'A clip', '--workflow', flow])).id as number
     const prompt = buildPrompt({ action: 'implement', id })

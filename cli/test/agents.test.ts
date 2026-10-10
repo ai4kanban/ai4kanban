@@ -159,7 +159,7 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'qa-manager', 'scriptwriter', 'tech-stack-advisor', 'ui-designer'],
+      ['blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'qa-manager', 'scriptwriter', 'software-planner', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.description, /^Use when/)
@@ -672,7 +672,6 @@ describe("where a spec agent's section goes", () => {
     assert.match(prompt, /put your section above `<!-- agent -->`/)
     assert.deepEqual(humanSectionFor({ action: 'spec', id: 12, specAgent: 'hyperframes-editor' }), {
       agent: 'hyperframes-editor',
-      required: false,
     })
   })
 
@@ -736,23 +735,23 @@ describe("a lead agent's section", () => {
     outliner('plan', '  output: agent')
     board({ specAgents: { outliner: { output: 'agent' } } })
     led('plan')
-    assert.deepEqual(humanSectionFor(refine), { agent: 'outliner', required: true })
+    assert.deepEqual(humanSectionFor(refine), { agent: 'outliner' })
     assert.match(buildPrompt({ action: 'clarify', id: 12 }), /write it in ``## By `outliner` agent``, above `<!-- agent -->`/)
   })
 
-  it('changes nothing for an execute lead, or a card no agent leads', () => {
+  it('changes nothing for an execute lead, and the Coding plan is the Software planner\'s', () => {
     outliner('execute', '  output: human')
     led('execute')
     assert.equal(humanSectionFor({ action: 'implement', id: 12 }), null)
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 12 }), /Your output is reviewed by me/)
     card(13)
-    assert.equal(humanSectionFor({ action: 'clarify', id: 13, refineRound: 1 }), null)
-    assert.doesNotMatch(buildPrompt({ action: 'clarify', id: 13 }), /Your output is reviewed by me/)
+    assert.deepEqual(humanSectionFor({ action: 'clarify', id: 13, refineRound: 1 }), { agent: 'software-planner' })
+    assert.match(buildPrompt({ action: 'clarify', id: 13 }), /You plan cards that change software\.[\s\S]*With nothing to show, leave the section out\./)
   })
 
   it('checks where a spec run puts its section, and never asks it for one', () => {
     card(12)
-    assert.deepEqual(humanSectionFor({ action: 'spec', id: 12, specAgent: 'ui-designer' }), { agent: 'ui-designer', required: false })
+    assert.deepEqual(humanSectionFor({ action: 'spec', id: 12, specAgent: 'ui-designer' }), { agent: 'ui-designer' })
     // A retired review on an old record puts nothing anywhere (#1203).
     assert.equal(humanSectionFor({ action: 'review', id: 12 }), null)
   })

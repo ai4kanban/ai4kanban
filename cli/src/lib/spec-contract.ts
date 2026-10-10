@@ -211,10 +211,9 @@ export function formatContractErrors(errors: readonly ContractError[]): string {
 }
 
 /** An agent whose output is the user's to review (#868): on the cards its own run owns, its
- *  section sits above the boundary, and `required` says a run it leads must write one. */
+ *  section, when it writes one, sits above the boundary. */
 export interface HumanSection {
   agent: string
-  required: boolean
   cards: ReadonlySet<number>
 }
 
@@ -234,7 +233,7 @@ export function validateRunSpecs(
   })
 }
 
-function validateHumanSection(file: string, text: string, { agent, required }: HumanSection): ContractError[] {
+function validateHumanSection(file: string, text: string, { agent }: HumanSection): ContractError[] {
   const title = `By \`${agent}\` agent`
   const lines = text.replace(/\r\n/g, '\n').split('\n')
   const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---')
@@ -256,9 +255,8 @@ function validateHumanSection(file: string, text: string, { agent, required }: H
     if (line.trim().startsWith('<!--')) { comment = !line.includes('-->'); continue }
     if (!heading && line.match(/^ {0,3}##\s+(.+?)\s*#*\s*$/)?.[1] === title) heading = i + 1
   }
-  if (markers.length !== 1) return []
+  if (markers.length !== 1 || !heading) return []
   const where = { file: rel(file), rule: 'human-section' }
-  if (!heading) return required ? [{ ...where, line: markers[0]!, message: `Missing ## ${title}. Write it above <!-- agent -->; with nothing to show yet, one line saying so.` }] : []
   if (heading > markers[0]!) return [{ ...where, line: heading, message: `Move ## ${title} above <!-- agent -->: the \`${agent}\` agent's output is for the user to review.` }]
   return []
 }
