@@ -314,3 +314,26 @@
   border: 0;
   border-radius: 0;
 }
+
+/* ```mermaid, drawn by MermaidDiagram. */
+.nb-mermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+.nb-mermaid text {
+  font-family: var(--font-sans);
+}
+.nb-mermaid .node rect {
+  rx: 8px;
+  ry: 8px;
+}
+.nb-mermaid .node[data-shape="diamond"] polygon {
+  stroke: var(--color-nb-accent);
+  stroke-width: 1.25;
+}
+.nb-mermaid .edge-label text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}

@@ -31,6 +31,7 @@ import { useCardHref } from "./board-links";
 import { CaseFilesContext, EvidenceNode, fileUrl, type CaseFiles } from "./case-evidence";
 import { Copied, useCopyText } from "./copy";
 import { ExpandableImage } from "./image-preview";
+import { MermaidDiagram } from "./MermaidDiagram";
 import { Mockup } from "./Mockup";
 import { Storyboard, StoryboardUnavailable } from "./Storyboard";
 import { useOpenIds } from "./open-ids";
@@ -331,6 +332,15 @@ function codeOf(node: ExtraProps["node"]): string {
   return text;
 }
 
+/** A ```mermaid block is drawn as its diagram (#1612); every other block as written. */
+function Pre({ node, ...rest }: React.ComponentProps<"pre"> & ExtraProps) {
+  const code = node?.children[0];
+  const classes = code?.type === "element" ? code.properties.className : undefined;
+  const pre = <pre {...rest} />;
+  if (!Array.isArray(classes) || !classes.includes("language-mermaid")) return pre;
+  return <MermaidDiagram code={codeOf(node)} fallback={pre} />;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Img({ node, ...rest }: React.ComponentProps<"img"> & ExtraProps) {
   return <ExpandableImage {...rest} />;
@@ -338,7 +348,7 @@ function Img({ node, ...rest }: React.ComponentProps<"img"> & ExtraProps) {
 
 // `mockup` is our own tag rather than an HTML one, so the map is cast: what
 // react-markdown looks up is the tag name, and it has no type for that one.
-const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, evidence: EvidenceNode, a: Anchor, img: Img } as Components;
+const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, evidence: EvidenceNode, a: Anchor, img: Img, pre: Pre } as Components;
 
 // Held apart as a constant rather than spread at render: a fresh `components` object every
 // render is a fresh component type, which React answers by remounting the whole subtree.
