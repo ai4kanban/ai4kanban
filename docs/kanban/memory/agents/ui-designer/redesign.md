@@ -31,6 +31,9 @@ One line per correction: the mistake, then the design to use instead.
 - **A form opened inside an item, or a new-item form as a panel under the list**: forms open outside the item; a new item is a row in the list, added by a control that matches the list.
 - **Menus crowded or oversized**: leave breathing room; a menu is as narrow as its items, widening only while editing.
 - **A turn-off item drawn like the rest of its menu**: set it apart as a warning.
+- **页面内容与页头边缘不齐**：带框带投影的卡片会缩进、投影出界；内容左缘对齐 logo，右缘对齐页头最右的按钮（#1559）。
+- **首屏标题缩进到正文栏、插画元素彼此离得远**：首屏、正文与页头同一容器，标题和正文都对齐 logo（文字限宽、配图通栏）；插画右缘对齐页头最右按钮，元素等距成一组，高度接近标题块，不用虚线拉远（#1052）。
+- **A secondary action laid over content drawn with a text label**: draw it icon-only, its name in the tooltip (#1554).
 
 ## Refusals, empty and after states
 
@@ -38,6 +41,7 @@ One line per correction: the mistake, then the design to use instead.
 - **A refusal naming agents shows each one's character**: an agent name can equal a step name.
 - **Removing a title row**: still keep a window name and a close.
 - **An empty list gives no instruction that cannot be followed**: one honest line where the space is.
+- **A config error drawn as an icon with a hover tip, or as its own greyed row in a list**: show it without hovering — a page banner stating the cause, a warning icon on its list row.
 - **Skipped the state after success**: draw it, saying what did NOT happen.
 - **A waiting state missing facts the failure state asks for**: one panel, one submit, and the "nothing was made, and where it stuck" path drawn.
 
@@ -57,6 +61,7 @@ One line per correction: the mistake, then the design to use instead.
 - **A crowded activity scene with permanent detail panes**: spacious room, recent successes only, details on demand; draw capacity and completion states.
 - **Labels stacked under a figure**: role and harness above the head, card id at the feet.
 - **A busy machine drawn as a still**: animate it, freezing on a working frame for reduced motion.
+- **A loop that opens on an empty frame**: start it on its telling frame (negative delay) so a still render, pre-CSS and reduced motion all show it; a device reads as one, e.g. a monitor with bezel and stand, never a bare block (#1052).
 
 ## Explainer animations
 
@@ -74,6 +79,10 @@ One line per correction: the mistake, then the design to use instead.
 
 ## Figures and charts
 
+- **AI4Kanban's pixel bots drawn for a rival or a generic agent**: the bots are our mascot; draw a generic agent figure.
+- **A rival drawn with a ready flow it lacks**: draw what the user must build, e.g. an empty form, so it never reads as equal support.
+- **Private memories drawn linked, as if shared**: each stays with its agent; shared memory connects only to the agents.
+- **A comparison with prose, uneven diagrams and many inner borders**: one verdict line per column, aligned diagrams, only the outer frame.
 - **Measured numbers and reported claims drawn alike**: a sourced figure links out; a reported one is unlinked and names who reported it.
 - **Chart labels and arrows that break at phone width**: label as a legend on the heading row; the arrow stays inside the sentence.
 - **A growing series drawn as bars**: use a line, with text kept outside the graphic.

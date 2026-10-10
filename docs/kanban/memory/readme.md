@@ -34,7 +34,8 @@ covers it, or a plain-words note.
 - 离开看板 7 天的卡每天清掉附件、旧 mockup、对话和已结束的交付工作区（记忆或未关闭卡引用的附件保留）；归档的卡满 30 天删除，仍属于未关闭版本的留到版本关闭。
 - `akb raw list --archived` 列出由看板落地并归档的卡（id、标题、工作流、落地时间与提交），可加 `--since`、`--workflow`、`--json`；`akb raw list --stale` 列出搁置的卡，看板不会自动改写或丢弃它们。
 - `memory/project.md` describes the project from its users' side, rewritten by **Describe the project** when cards were archived since its last run; planning, triage and releases read it: `akb guide describe-project`, `web/content/docs/agents.mdx`.
-- Built-in agents, workflows and specialists (Coding, Product video, Slide deck, Carousel post, Blog post, `user-docs`, `demo-rehearser` and the rest), which need Pro, agent memory and rules, and adding your own: `web/content/docs/agents.mdx`.
+- Built-in agents, workflows and specialists (Coding, Product video, Slide deck, Carousel post, Blog post, `illustrator`, `competitor-research`, `demo-rehearser` and the rest), which need Pro, agent memory and rules, and adding your own: `web/content/docs/agents.mdx`.
+- `copywriting` (Copy & docs) writes all copy outside the product's screens, user docs included (`user-docs` folded into it with its rule, memory and assignments); `ui-designer` writes the text in its mockups; `illustrator` makes every image a card needs except screen mockups — diagrams, GIFs, icons, share cards, and real screenshots, each shown on the card as the image alone with optional `alt` text. Agents with drafts to approve share `akb guide multi-stage-drafting`; when the wording still needs your call, the copy is a draft you confirm before `ui-designer` turns it into the final page; `illustrator`'s images are likewise a draft you confirm, then placed as they are by the agent that follows it, or kept as the final draft when none does: `web/content/docs/agents.mdx`.
 - Board helpers are always on, grouped as You start / On a schedule / On an event; scheduled agents (board-level and per workflow) run on **Auto**, a cadence or **Run now**, and replace the old recurring cards: `web/content/docs/agents.mdx`.
 - Writing an agent — the one `akb:` role key (`lead: plan|execute`, `hook: plan|schedule`), `reads:`, no settings of its own: `akb guide write-agent`. Old keys (`stage`, `kind`, `lead: true`, `hook: execute`) are refused with the line to change; there are no post-execute hooks.
 - 工作流负责人被拒用时，开始卡片的报错和 `akb workflow list` 用一句话说明是哪个负责人、为什么、改哪一行。
@@ -45,6 +46,7 @@ covers it, or a plain-words note.
 - 回答问题和修订在改动某个 agent 负责的 section 前先读它的 AGENT.md：`akb guide writing` 的 "Agent sections"。卡片 agent 半区只写别处没有的内容：`akb guide writing`。
 - 「建议后续任务」按批回顾已完成的卡（每轮至多 10 张、跨卡去重），对照讨论、交付、过去漏提的和拒绝记录，不提定时 Agent 自己会做的工作：`akb guide reflect`。
 - 「建议后续任务」的「小改动」设置：先问我（默认，进待筛选）、直接做完（直接建卡开做）、不提（只写在报告里）。
+- 定时 Agent（「建议后续任务」、工作流的定时 Agent）只看有没有新输入：待筛选里还有它上一轮放进的条目，也照常运行。
 - 看板界面开着时，写过或改过的卡会自动细化一次；失败不重试，规则生效前的旧卡要手动细化。等你回答的卡执行 `akb card refine` 会说明在等回答。
 - Planning questions are written for someone who has not seen the board — no card ids, agent names or board terms.
 - Standard planning QA checks the facts a plan turns on against authoritative sources, and revises or stays open when it cannot settle one.
@@ -63,6 +65,12 @@ covers it, or a plain-words note.
 - Codex runs with approvals and sandbox bypassed by default, works outside git, and a command you set yourself is left as is: `kanban-ui/README.md`.
 - PATH 上的 `codex` 起不来时（包括 ChatGPT.app 26.928 起的新位置），运行、对话、连接测试和登录检查改用 ChatGPT 里的那份，运行日志说明一句。
 - 看板设置（Agent、运行时、工作流等）每人本机一份，放在 `.akb/boards/<board>/ui.config.json`，不进 git、不上传 Cloud；旧的 `docs/kanban/ui.config.json` 首次读取时自动迁移。
+- 所有 spec agent 的小节都写在卡片分界线上方供你审阅，Agent 页不再有「产出」设置；规划阶段的 lead agent 同样另写自己的小节。
+- Global memories: folders under `docs/kanban/memory/<name>/` that agents opt into with `akb.memory`; built-in `competitors` ships first: `web/content/docs/agents.mdx`.
+- The scheduled competitor analysis shares the `competitors` memory with `competitor-research`, and re-reads a competitor once its `last_read` is over three months old.
+- 依赖卡归档或被拒时，还在等它的卡会自动排上一次「修订」（`akb raw schedule --action revise`），按依赖实际落地的内容或被拒的结果核对计划；已排了构建的卡则把说明附进那次构建，正在构建或交付中的卡不受影响。
+- 插图 Agent 的动图默认交静音循环的 H.264 MP4 加首帧封面（卡片上用 `<Asset ... loop />`），GIF 只用于 README 等不能放视频的地方。
+- Helper agents work in the card chat by default; one starts its own session only when it writes from scratch, the chat already ran another agent, or it is set to another runtime than the chat's: `akb guide refine`.
 
 ## local-ui
 
@@ -76,17 +84,20 @@ covers it, or a plain-words note.
 - Planning from a discussion continues the same agent session; the discussion stays hidden once planning or building starts.
 - A conversation stays on the agent that opened it; changing the helper's runtime affects only new conversations.
 - Closing the discussion panel only hides it; drafts, images and in-flight replies stay, per discussion.
+- 卡片对话展开「来自讨论」后，「关于这张卡片，想聊什么？」与输入框之间留有间距，不再贴着输入框。
 - 讨论或方案读取失败时显示「讨论载入失败。」和「重试」；回复中途退出或崩溃的，重开后可「重新发送」。
 - Returning to a card with Back or Forward shows it as it is on disk; the desktop app re-reads every page when you switch back to its window.
 - 桌面应用重启后保留同一项目的界面状态（草稿、聊天栏开合与宽度、已庆祝的里程碑、已提示的运行提醒）。
 - A card's **Revise** opens its chat with the first line typed.
 - Card assets play in place: videos, audio, shot previews, storyboards, slide decks with speaker notes, `.pptx` downloads, and mockups labelled by device.
+- An image `<Asset>` may carry `alt="..."`; the card page uses it as the image's alt text, falling back to `label`.
 - 分镜（轮播图、幻灯片、产品视频）可「全部下载」为一个按页序命名的 zip；托管看板没有。
 - 右键（触屏长按）看板自己的图片可「复制图片」「下载图片」，下载沿用原文件名；外链图片保持浏览器原有右键。
 - A delivery's **Diff** shows what the agent has written so far; an archived card shows its landed commit's diff.
 - A stopped-short run on a card nobody has dealt with stays visible on the card and in **Unfinished**; a failed run's log leads with the board's reason, and a run that cannot resume offers **Retry**: `web/content/docs/runs.mdx`.
 - A run or chat turn's cost is its own, not the session's running total: `kanban-ui/README.md`.
 - Notifications load 30 at a time; counts still include everything.
+- **Configuration → Global memory** creates, edits and deletes global memories; an agent's page lists the ones it uses and warns about a name that doesn't exist.
 - Built-in workflows explain themselves in the workflow picker and `akb workflow list`; an unavailable workflow says why.
 - Each agent belongs to one workflow; copying a workflow copies its agents, and copying an agent is the only way to change a built-in agent's instructions.
 - Configuration → Workflows lists each workflow's planning, execution, **Helpers** and **Scheduled** agents; a scheduled agent on **Auto** says what it is waiting for: `web/content/docs/agents.mdx`.
@@ -101,13 +112,17 @@ covers it, or a plain-words note.
 - 新用户设置完成后、老用户升级后首次打开时弹出一次「功能导览」，之后可从帮助菜单、「配置 → 通用」或 Cloud 设置页重看。
 - 看板为三种时刻欢呼：一个版本全部完成、一整组完成、当天第一个任务完成；每件事每个浏览器一次，手机宽度不显示。
 - 待筛选里由 Agent 写入的条目，来源显示为该 Agent 名，可按来源筛选。
+- 卡片上 `<Asset ... loop />` 的视频静音循环、无控制条，进入视野播放、离开暂停；“减少动态效果”时停在首帧并显示播放按钮。
 
 ## site
 
 - The landing and comparison pages are also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, and Markdown mirrors stay English.
 - Positioning is "you steer, AI leads the team": an AI project manager runs your agents and reports only what you need; wording limits in `positioning.md`.
 - The landing page's only way in is the app download; `/index.md` and `/llms.txt` mirror it.
-- `/vs-task-master`, `/vs-linear`, `/vs-vibe-kanban` and `/vs-hermes-kanban` say where the other tool is ahead and who should pick which.
+- `/vs-multica` argues three AI4Kanban wins (ready specialist agents, drafts approved before execution, per-agent memory), each with what both share, then a comparison table and a recommendation.
+- `/vs-task-master` and `/vs-hermes-kanban` say where the other tool is ahead and who should pick which.
+- `/vs-hermes-kanban` argues specialist workflows, draft review and settling requirements before agents build, then a row-by-row table against Hermes Agent v0.21.6 that grants Hermes chat-app control, stalled-task recovery and its API.
+- The GitHub Issues, Linear and Vibe Kanban comparisons are gone; their old URLs, in every language, go to that language's home page.
 - 官网没有 Recipes：`/recipes` 跳转到 `/docs/agents`。
 - [/cloud](https://ai4kanban.dev/cloud) says what Cloud is, what the relay carries and what stays on the machine.
 - [/privacy](https://ai4kanban.dev/privacy) and [/terms](https://ai4kanban.dev/terms) are English-only, name NULLREACH LTD as operator and the China company as training seller, and cover Pro: Creem as merchant of record, auto-renewal, 14-day refund, credits reset monthly.
@@ -116,6 +131,11 @@ covers it, or a plain-words note.
 - [/seed](https://ai4kanban.dev/seed) takes seed-partner applications (email, GitHub username, planned use), answered by hand; English and Chinese only.
 - `/contact` is one form for support and done-for-you agents.
 - The built-in demo video workflow is called "Product video" everywhere.
+- A blog post can take an SVG component from `web/components/blog/covers/` as its cover with `featured_cover: <name>` instead of `featured_image`; it may animate, and holds still under reduced motion.
+- `/blog` is a grid of posts with the newest featured on top, filtered by topic tabs (`?topic=<slug>`); the feed is `/blog/rss.xml`.
+- The training page no longer scrolls sideways on a phone; only the week grid scrolls inside its own frame.
+- The site header shows Docs, Pricing and a Resources menu (Blog, Training) with GitHub and Download buttons; comparisons and the language switcher live in the footer, and on a phone the languages are in the menu.
+- 官网动图用 `web/components/LoopVideo.tsx`：静音循环的 MP4 加封面，接近视野才加载和播放，离开暂停；“减少动态效果”或浏览器拒绝自动播放时停在封面并显示播放控件。
 
 ## docs
 
@@ -130,6 +150,10 @@ covers it, or a plain-words note.
 - [awesome-agent-kanban](https://github.com/neverchanje/awesome-agent-kanban) is a public CC0 directory of agent task tools, AI4Kanban listed on the same criteria as the rest.
 - Free shared video assets (music, UI sounds, paper backgrounds, CC0) are on `cdn.ai4kanban.dev/video/`.
 - The "see it first, then build it" product video exists in English and Chinese, 16:9, for YouTube and Xiaohongshu.
+- An 8-page Chinese Xiaohongshu carousel, "review the UI, not the wall of text", is ready to post (3:4, with caption).
+- The blog post "[Visual specs for AI coding: show me before you build](https://ai4kanban.dev/blog/show-the-ui-first)" is live.
+- The 0.10.0 newsletter issue, "Build sooner. Catch gaps.", is ready to send: `node scripts/newsletter-send.mjs --issue 2026-10-07`.
+- `README.md` and `README-zh.md` both lead with draft review ("You review what matters. Agents do the rest."): planning is the new bottleneck, drafts come first, then the build; matching sections and bottleneck animations in each language. Slack notifications and onboarding sessions are no longer mentioned.
 
 ## cloud
 

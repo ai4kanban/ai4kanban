@@ -9,6 +9,7 @@ settled call.
 - A user's answer or revision on a spec agent's section goes into that agent's memory right away.
 - **拒绝不起会话**：只从其他卡的 `blocked_by`/`related` 移除它，正文里提到它的句子留给那张卡的细化处理。
 - **清空的卡片对话留到记忆审阅**：清空对话或换 agent 不立即删除旧对话，清理跟着记忆审阅走，另设保留上限。
+- **竞品记忆忠实于竞品本身**：对比页是对外宣传，记忆是内部记录，两者重复无妨，不因对比页已写而不记。
 
 ## The goal
 
@@ -64,6 +65,7 @@ settled call.
 - A scheduled agent has no priority and no open questions: what it can't settle, and what it finds broken, goes to triage.
 - A scheduled agent never ships output that needs review (e.g. a blog post) itself; it writes that workflow's card.
 - A scheduled agent holds only the repeating batch; a one-off change to how it works is an ordinary card.
+- A scheduled agent runs on its cadence and new input alone, never gated on whether the user cleared earlier triage items; a user who wants it quiet turns it off or lengthens the cadence (#1580).
 - Each workflow may have its own triage automation and competitor analysis; this board's competitor analysis compares product features only, so it belongs to Coding.
 - An agent splits a run with board sub-runs, never the harness's own subagents: not every runtime has them, and cost, logs and status must show on the board.
 - Memory pruning is always on with a user-set cadence; the chat-memory review is always on and skips days with no conversation.
@@ -101,7 +103,10 @@ settled call.
 - **Two stages only**: each card runs plan → execute; spec agents are post-plan hooks; nothing runs after execute — checking finished work belongs to scheduled agents (such as QA) that read archived cards.
 - A built-in agent is an ordinary `AGENT.md`; adding one is writing a prompt, never command code. Scripts, references and validators ship with the agent; the core hard-codes no agent's checks.
 - Workflows only switch their agents on or off; helpers run only on request. Built-in flows can be configured or copied, not renamed or deleted.
-- An agent that writes text or files hands it over as final; the user edits the section to disagree. Copywriting alone asks, and has no house style.
+- An agent that writes text or files hands it over as final; the user edits the section to disagree. A draft is split into stages (`multi-stage-drafting`) only while an intermediate draft still holds something for the user to decide; the last stage is never confirmed, and a change to confirmed content is made in the later draft. Copywriting has no house style.
+- **文案是中间稿**：措辞还要用户定时才请 `copywriting`，不看改动大小；它的文字稿留确认问题，确认后由后续 agent（如 `ui-designer`）逐字采用、出最终稿并删掉文字稿；没有后续 agent 时文字稿就是最终稿，不再确认。
+- **助手 agent 默认在当前会话跑**：从零写或从零重写它那一节、或本会话已跑过别的 agent 时才另开会话；跟在 `copywriting` 后面的 agent 始终在同一会话（写在 `copywriting` 简介里，不写进核心 guide）。
+- **沿用 `copywriting`、`ui-designer` 的名字，扩大职责**：宣传文案和用户文档同归 `copywriting`，共用一份 `writing.md`，语气分段写。
 - The card is the brief: executors get its requirements as frozen at delivery start. The executor is never the planner; an external tool or person is an execute-stage agent with an "external" runtime.
 - An agent is harness-agnostic: its rules set the output standard and name no harness's tools or specific browser tool.
 - 内容类工作流（视频、PPT）各配专用的规划与制作代理，不复用 `software-planner` 与 `builder`。
@@ -119,6 +124,7 @@ settled call.
 - A card points at a mockup with a `<Mockup>` tag on its own line; a markdown link is never drawn as one.
 - Mockups are gitignored, so what a layout settled must be in the card's words.
 - 只产出渲染页面，不做字符草图，也不另建字符草图 agent。
+- **截图不列拍摄清单**：要拍什么由图片的 `alt` 说明，不在卡片待办里另列截图位、场景和尺寸。
 - One design system per app, picked from the card's module.
 - 手机设计稿的外框负责 iOS 真机布局（状态栏、安全区等），规划和 ui-designer 不用管。
 

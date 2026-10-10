@@ -23,4 +23,8 @@ own entries live in its folder beside this file.
 
 ## Calling spec agents
 
-- ❌ **以「只改一句」「不是新功能」为由跳过 user-docs** → ✅ 卡片只要改动用户文档的文字，就调 user-docs。
+- ❌ **以「只改一句」「不是新功能」为由跳过文档 agent** → ✅ 卡片只要改动用户文档的文字，就调 `copywriting`。
+
+## Settings
+
+- ❌ **保留一个用户不能选的设置或字段（如 spec agent 的 `output`）** → ✅ 用户不选就删掉，行为从已有信息推出。（#1574）

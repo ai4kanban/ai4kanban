@@ -16,6 +16,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Full rerun of the QA manual** — no point for now, so nothing gets built to reach it.
 - **Scheduled agent's first run catching up on earlier cards** — listing nothing on the first run is intended; the QA cases are seeded from the codebase, not backfilled from past cards or chats.
 - **Reporting or repairing recurring cards that fail to migrate to scheduled agents** — we assume users have none; no notice, retry UI or migration help.
+- **Migrating QA proof that user projects committed under `docs/qa/`**: none ever did; it was only this repo's dev material, and this repo's history is already purged (#1585)
 - **This board's notes-to-blog and composition-index jobs (#388, #983)** — dropped for good, never rebuilt as scheduled agents.
 - **Cards that run or schedule the user's own agents (e.g. a first run of the competitor analysis agent, then turning on its schedule)** — when and how to run their agents is the user's call, not the board's.
 - **Install or setup text announcing what runs in the background (e.g. the daily QA manager)** — overdesign; show the key background work as tutorial cards on a new board instead.

@@ -19,6 +19,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **A new expressive view replaces the plain list** → ✅ it sits beside the list, which never goes away.
 - ❌ **A control that starts a run offers only fixed choices** → ✅ add a free-text note carried into the run.
 - ❌ **A control is disabled with no reason shown** → ✅ every disabled state says why.
+- ❌ **A new screen gains an action nobody asked for (Customize on a built-in memory)** → ✅ scope only what the request names.
 - ❌ **Archiving the discussion you're viewing leaves it open** → ✅ return to New idea; archiving another never interrupts your view.
 
 ## Runs and deliveries

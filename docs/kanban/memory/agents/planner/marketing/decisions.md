@@ -28,6 +28,7 @@ Settled user-facing answers for marketing. Read before proposing.
   or a hosted service, so issues go out only from there.
 - **发送前站点须已部署**：logo 与退订链接都走站点，否则正式发送会停下。
 - **配图放 `cdn.ai4kanban.dev`**，不进仓库。
+- **宣传里的成本倍数**：取自 `test-ai4kanban` 的最新重测，结果记在它的 README。
 
 ## The demo video
 

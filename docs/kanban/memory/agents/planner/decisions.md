@@ -35,6 +35,12 @@ beside this file. Read before proposing so you don't re-ask a settled call.
   when the work is genuinely at risk.
 - **A finished delivery's worktree**: kept only when the user can really bring it back.
 
+## Memory
+
+- **全局记忆的位置**：每个全局记忆放在 `docs/kanban/memory/<名称>/`，与 `project.md`、`agents/` 同级。
+- **全局记忆和工作流、agent 一样由用户自建**：内置的与自建的格式完全相同；契约由创建者写，agent 只在 frontmatter 声明 `memory: [<名称>]`，AGENT.md 不重复契约；安装时不创建。
+- **全局记忆没有通用格式**：不统计、不显示条目数，界面不用「条目」这类词；记忆不存频率或排期，重查按文件里的读取日期判断。
+
 ## What a card can carry
 
 - **Card files**: mockups and rendered videos included, live in the board's one assets folder

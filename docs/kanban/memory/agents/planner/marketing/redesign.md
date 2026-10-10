@@ -13,6 +13,10 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **介绍功能时讲它怎么演变而来** → ✅ 只写它现在的样子。
 - ❌ **Newsletter copy listing UI details, vague metaphors, or bilingual/issue bookkeeping** → ✅ English throughout, naming each capability and its practical value.
 
+## Figures
+
+- ❌ **示意图把瓶颈画成消失、标 1×/10×/100× 这类倍数** → ✅ 结构忠实、比例示意：宽度代表速度，产出等于最窄一段；倍数只写在正文里。
+
 ## The newsletter
 
 - ❌ **Highlights from the last release or two under one hero picture** → ✅ draw from every release no issue has covered, one picture per highlight, never the same feature twice.

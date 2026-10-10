@@ -56,6 +56,7 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 ## Memory and retirement
 
 - ❌ **Seeding a file with a paragraph about what belongs in it** → ✅ start empty; explain where the user is asked.
+- ❌ **把共享记忆的契约和索引全文注入每次运行** → ✅ 只给已声明的记忆各一行（名称、路径、规则在哪读），内容由 agent 按需自己读。
 - ❌ **Parking agent judgement in a proposal for the user to accept** → ✅ the agent decides and writes; the log is the record, undo is asking it back.
 - ❌ **Another bookkeeping call to collect a measurement** → ✅ add the evidence to a call the flow already makes.
 - ❌ **Keeping a retired feature's record because other code touches it** → ✅ trace every reader and writer; if all feed the retired feature, the file goes too.
