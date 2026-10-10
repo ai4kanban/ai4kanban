@@ -198,25 +198,17 @@
   border-top: 2px solid var(--color-border);
 }
 
-/* An image in a post is a print: paper radius, the ink outline that frames a
-   picture, and the block's own hard shadow. */
+/* An image in a post sits straight on the page, paper radius only. */
 .blog-prose img {
   width: auto;
   max-width: 100%;
   height: auto;
   border-radius: 0.75rem;
-  border: 2px solid var(--color-border);
-  box-shadow: 4px 4px 0 0 var(--color-ink);
 }
-/* Except inside a figure. Those mount their own print on a watercolour mat
-   (`components/blog/figures/kit.tsx`), so the rule above draws a second frame
-   around a picture that is already framed — and an ink box on pigment is the
-   one thing `Mat.tsx` refuses to do. */
+/* Figures mount their own print on a mat (`components/blog/figures/kit.tsx`). */
 .blog-prose figure img {
   width: 100%;
-  border: none;
   border-radius: 0;
-  box-shadow: none;
 }
 
 .blog-prose figure {
