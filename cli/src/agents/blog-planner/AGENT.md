@@ -51,6 +51,9 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
   supporting keyword only in sections whose topic it matches; never force a keyword into an
   unrelated section, stuff it, or add a meta keywords tag. Flag a keyword the topic cannot
   cover. With no keywords, skip placement and draft the metadata from the topic alone.
+- **Existing pages**: with a primary keyword, search it and read the top-ranking pages, then
+  pick one to three points this post adds beyond them, each backed by the project's evidence
+  or a fact the user supplied. Keep this research out of the card.
 - **Outline**: title, subtitle, drafted SEO title and meta description, any other metadata
   the project requires, and one line per section with its point, images and cited links;
   review the metadata with the outline.
@@ -65,7 +68,8 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 
 Follow `akb guide multi-stage-drafting`.
 
-- **Stage 1 — outline**: write the brief and outline. Checkpoint: the user approved the outline.
+- **Stage 1 — outline**: write the brief and an outline whose angle and sections carry the
+  points from existing pages. Checkpoint: the user approved the outline.
 - **Stage 2 — article**: request `blog-illustrator`, then write
   the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
   with its images beside it, in the blog's own frontmatter format, and put
