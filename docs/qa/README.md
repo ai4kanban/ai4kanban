@@ -31,6 +31,9 @@
 - [在卡片聊天里请辅助 Agent：默认就地做，换了运行时的另开一次运行](skill/a-helper-on-another-runtime-runs-apart-from-the-card-chat/case.md)
 - [QA 管理员跑一遍，场景进 git，证据留在本机](skill/qa-proof-stays-on-this-machine/case.md)
 - [Claude Code 把命令放到后台后，继续聊天并等结论](skill/chat-while-claude-code-runs-a-background-task/case.md)
+- [让对话 Agent 起一个常驻服务，回复结束后它跟着结束](skill/a-dev-server-the-chat-agent-starts-ends-with-its-reply/case.md)
+- [规划一张纯文字卡片，看软件规划师画出示意图](skill/plan-a-text-only-card-and-get-an-explainer-diagram/case.md)
+- [让博客策划写一篇博客的大纲，它先读了排在前面的页面](skill/blog-planner-reads-the-top-pages-before-the-outline/case.md)
 
 ### local-ui
 
@@ -58,6 +61,8 @@
 - [在看板上读 QA 场景和它的截图](local-ui/read-qa-cases-and-their-evidence-on-the-board/case.md)
 - [Agent 的后台任务还在跑时继续对话](local-ui/keep-chatting-while-a-background-task-runs/case.md)
 - [在从讨论写成的卡片上展开「来自讨论」，开始聊这张卡](local-ui/chat-about-a-card-written-from-a-discussion/case.md)
+- [结束一段讨论，它的 Agent 和 Agent 起的进程一起停下](local-ui/end-a-discussion-and-its-agent-stops/case.md)
+- [在卡片页上看软件规划师画的示意图](local-ui/see-an-explainer-diagram-on-a-card/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 

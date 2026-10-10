@@ -3,8 +3,8 @@
 ## Setup
 
 - **看板**：一个刚用 `akb install` 建好的看板。
-- **Agent**：`docs/kanban/agents/docs-pruner/AGENT.md`，`name: docs-pruner`、一行 `description`，`akb:` 下写 `lead: execute`。
-- **工作流**：`akb workflow new Docs`（得到 `wf-2`），`akb workflow stage wf-2 --stage plan --lead software-planner`，`akb workflow stage wf-2 --stage execute --lead docs-pruner`。
+- **Agent**：`docs/kanban/agents/docs-pruner/AGENT.md`，`name: docs-pruner`、一行 `description`，`akb:` 下写 `lead: execute`；另有一个写法正确的规划负责人 `docs-planner`（`lead: plan`）。软件规划师只属于 Coding，`--lead software-planner` 会被拒绝（「create a new agent here instead」）。
+- **工作流**：`akb workflow new Docs`（得到 `wf-2`），`akb workflow stage wf-2 --stage plan --lead docs-planner`，`akb workflow stage wf-2 --stage execute --lead docs-pruner`。
 - **卡片**：`akb raw create --title "Trim the install guide" --workflow wf-2`，得到 #2。
 - **终端**：zsh 或 bash，在项目目录里；没有正在跑的看板运行。日志里的 `akb` 就是这次构建出的命令。
 
@@ -55,6 +55,7 @@
 - **照着改就好了**：旧写法这一句给了文件路径、要去掉的键和要换成的那一行，改完立刻能跑，不用再去翻别的页面。这是这次改动最值的地方。
 - **重名那句不说和谁重**：`takes a name already in use — rename one of the two` 没说另一个是谁；这里撞的是内置角色 `builder`，根本改不了「另一个」，「rename one of the two」是句误导。`akb spec` 里的原句反而说清了。
 - **「其他错误」要多跑一条命令**：只说文件有错、让人去跑 `akb spec`，而 `akb spec` 先打印整份 agent 清单，真正的原因在最后三行，容易漏看。
-- **只报第一个问题**：规划和实现报的是同一句，哪怕出问题的只是执行阶段的负责人；规划因此也被挡住，句子里没解释为什么规划也不能跑。
+- **只报第一个问题**：规划和实现报的是同一句，哪怕规划负责人 `docs-planner` 本身没问题、出问题的只是执行阶段的负责人；规划因此也被挡住，句子里没解释为什么规划也不能跑。
+- **借不到软件规划师**：自建工作流不能再让软件规划师领规划，得先自己写一个规划 Agent；拒绝的那句话说了该怎么做，但没说为什么。
 - **`Docs`' 的写法**：以 s 结尾的工作流名用了 `Docs'`，读起来像少了个字符，但不影响理解。
 - **没有跑到的**：仍放在旧位置（`.agents/…`）的 agent、两个项目 agent 互相重名、看板启动的真实运行（不带 `--print`），这次都没有验证。

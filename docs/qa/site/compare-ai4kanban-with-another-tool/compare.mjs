@@ -1,13 +1,13 @@
 import fs from 'node:fs'
 import { open } from './cdp.mjs'
 const D = process.argv[2] + '/'
-const B = 'http://127.0.0.1:4330'
+const B = process.env.SITE || 'http://127.0.0.1:4330'
 const p = await open(1280, 900)
 let log = ''
 await p.nav(B + '/', 5000)
 const col = `[...document.querySelectorAll('footer *')].find(e=>e.children.length===0&&e.textContent.trim().toUpperCase()==='COMPARE')`
 log += `# 1. Scroll to the footer of /\nCompare column: ${await p.ev(`[...(${col}).parentElement.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.getAttribute('href')).join(' | ')`)}\n`
-const fb = await p.box(`(${col}).parentElement`); await p.sleep(500)
+const fb = await p.box(`(${col}).parentElement`); await p.sleep(2000)
 const fb2 = await p.ev(`(()=>{const b=(${col}).parentElement.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height}})()`)
 const vp = await p.ev('scrollY')
 await p.shot(D + '01-footer-compare.png', { x: Math.max(0, fb2.x - 20), y: vp + fb2.y - 20, width: fb2.w + 40, height: fb2.h + 40 })
