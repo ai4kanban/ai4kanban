@@ -24,6 +24,13 @@
 - [查看、停止并继续一次运行](skill/see-stop-and-resume-a-run/case.md)
 - [在命令行开始一张卡，而它的工作流负责人文件被看板拒用](skill/start-a-card-whose-workflow-lead-is-refused/case.md)
 - [在 Cloud 看板上等没有归档日期的旧卡片满 30 天被清掉](skill/undated-archived-cards-expire-on-a-cloud-board/case.md)
+- [依赖卡归档或被否决后，等它的卡排上修订](skill/revise-the-cards-waiting-on-a-card-that-leaves/case.md)
+- [周期 Agent 上一轮的待筛选条目还没处理，它照样按周期运行](skill/a-scheduled-agent-runs-while-its-last-items-wait-in-triage/case.md)
+- [升级后，「用户文档」并入「文案与文档」，Coding 规划多出竞品调研和配图](skill/user-docs-folds-into-copy-and-docs-on-upgrade/case.md)
+- [让 Agent 接入全局记忆](skill/give-an-agent-a-shared-global-memory/case.md)
+- [在卡片聊天里请辅助 Agent：默认就地做，换了运行时的另开一次运行](skill/a-helper-on-another-runtime-runs-apart-from-the-card-chat/case.md)
+- [QA 管理员跑一遍，场景进 git，证据留在本机](skill/qa-proof-stays-on-this-machine/case.md)
+- [Claude Code 把命令放到后台后，继续聊天并等结论](skill/chat-while-claude-code-runs-a-background-task/case.md)
 
 ### local-ui
 
@@ -44,6 +51,13 @@
 - [切换看板界面的语言](local-ui/switch-the-board-language/case.md)
 - [在看板上把一个想法变成卡片](local-ui/turn-an-idea-into-a-card-on-the-board/case.md)
 - [在执行中的卡片上看「差异」，合入后在归档页再看一次](local-ui/watch-a-building-card-s-changes-in-the-diff-tab/case.md)
+- [右键卡片里的图片，复制或下载它](local-ui/right-click-an-image-to-copy-or-download-it/case.md)
+- [一键下载分镜的全部图片](local-ui/download-every-storyboard-image-in-one-zip/case.md)
+- [在卡片上看一段循环播放的视频](local-ui/watch-a-looping-video-on-a-card/case.md)
+- [新建一个全局记忆，让 Agent 接入它](local-ui/create-a-global-memory-and-let-an-agent-use-it/case.md)
+- [在看板上读 QA 场景和它的截图](local-ui/read-qa-cases-and-their-evidence-on-the-board/case.md)
+- [Agent 的后台任务还在跑时继续对话](local-ui/keep-chatting-while-a-background-task-runs/case.md)
+- [在从讨论写成的卡片上展开「来自讨论」，开始聊这张卡](local-ui/chat-about-a-card-written-from-a-discussion/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -55,6 +69,9 @@
 - [在隐私页查聊天回话会上报什么](site/read-what-usage-reporting-sends-for-a-chat-on-the-privacy-page/case.md)
 - [在联系页发一条消息](site/send-a-message-from-the-contact-page/case.md)
 - [切换官网语言](site/switch-the-site-language/case.md)
+- [按主题浏览博客](site/browse-the-blog-by-topic/case.md)
+- [在官网比较 AI4Kanban 和别的工具](site/compare-ai4kanban-with-another-tool/case.md)
+- [读软件开发方案页](site/read-the-coding-workflow-page/case.md)
 
 ### docs
 
@@ -76,12 +93,14 @@
 
 ### telemetry
 
-待补写。
-
 - [检查 main 上的 telemetry 改动是否已上线](telemetry/check-whether-telemetry-on-main-is-live/case.md)
 - [在用量数据上查看聊天回合的次数和花费](telemetry/read-chat-turn-cost-on-the-numbers-page/case.md)
 - [没有 Cloud 凭据时打开数据页](telemetry/open-the-numbers-page-without-cloud-credentials/case.md)
 - [在数据页上按能力、按用户查看托管 AI 的成本](telemetry/read-ai-cost-per-user-on-the-numbers-page/case.md)
+- [在命令行关掉、再打开用量上报](telemetry/turn-usage-reporting-off-from-the-command-line/case.md)
+- [在 README 上看安装数徽章](telemetry/read-the-installs-badge-on-the-readme/case.md)
+
+已补写（2026-10-10）。
 
 ### marketing
 
@@ -89,17 +108,15 @@
 
 ## 待补写
 
-每遍补写一个模块：写出下面的场景，真实走一遍并取证，然后把它从这里删掉，并去掉上面该模块的「待补写」。
-
-- **telemetry**：不预定场景，补写时从真实产品里选；没有用户会操作的行为时，标为已补写并写明原因。
+没有。新模块加进 `modules.md` 后列在这里，每遍补写一个。
 
 ## 取证环境
 
 - **临时项目和看板**：在 `/tmp` 下建临时 git 项目和临时看板，不碰本仓库的看板。
 - **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`。
-- **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/create-a-card-and-let-it-plan/stand-in.mjs) 顶替真实 agent，不花钱。
-- **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。
-- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next dev`；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
+- **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/chat-while-claude-code-runs-a-background-task/stand-in.mjs) 顶替真实 agent，不花钱。Claude Code 从 stdin 收提示词（#1540），从最后一个参数取提示词的旧替身认不出运行，重跑前照它改。
+- **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。几个 dev server 同时跑时各用一份 `kanban-ui` 拷贝：它们会轮流改写 `tsconfig.json`。
+- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION` 一起拷），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
 - **Cloud 看板网站**：`cloud-ui` 和 `kanban-ui` 的 `node_modules` 软链到主检出，`next dev`；登录、接口和结账用 [stand-in.mjs](cloud/sign-in-to-the-hosted-board/stand-in.mjs) 顶替，放在 `127.0.0.1` 上与网站跨站。
 - **截图**：只截相关区域。
 - **保密**：日志和截图里不出现密钥、账号和本机用户名路径。
