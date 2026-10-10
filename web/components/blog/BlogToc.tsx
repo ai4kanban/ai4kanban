@@ -91,7 +91,13 @@ function TocList({
 }
 
 /** The rail beside the column, from `lg` up. */
-export function TocRail({ items }: { items: TocItem[] }) {
+export function TocRail({
+  items,
+  label = "On this page",
+}: {
+  items: TocItem[];
+  label?: string;
+}) {
   const ids = useMemo(() => items.map((i) => i.id), [items]);
   const active = useActiveHeading(ids);
   // One heading is not a table of contents.
@@ -99,10 +105,10 @@ export function TocRail({ items }: { items: TocItem[] }) {
 
   return (
     <nav
-      aria-label="On this page"
+      aria-label={label}
       className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-8rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain"
     >
-      <p className={`${LABEL} mb-3 pl-3`}>On this page</p>
+      <p className={`${LABEL} mb-3 pl-3`}>{label}</p>
       <TocList items={items} active={active} />
     </nav>
   );
@@ -117,9 +123,11 @@ export function TocRail({ items }: { items: TocItem[] }) {
 export function TocBlock({
   items,
   noRail = false,
+  label = "On this page",
 }: {
   items: TocItem[];
   noRail?: boolean;
+  label?: string;
 }) {
   const ids = useMemo(() => items.map((i) => i.id), [items]);
   const active = useActiveHeading(ids);
@@ -135,7 +143,7 @@ export function TocBlock({
       className={`${panelInset} group mb-10 px-5 py-4 ${noRail ? "" : "lg:hidden"}`}
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-        <span className={LABEL}>On this page</span>
+        <span className={LABEL}>{label}</span>
         <span
           aria-hidden="true"
           className="text-lg leading-none text-accent-deep transition-transform duration-200 group-open:rotate-45"

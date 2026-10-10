@@ -57,7 +57,7 @@ function gitLastModified(...paths: string[]): Date | undefined {
 function routeSources(route: string, locale: string): string[] {
   const slug = route === "" ? "home" : route.slice(1).split("/")[0];
   const page = route === "" ? "app/(en)/page.tsx" : `app/(en)${route}/page.tsx`;
-  return [`components/${slug}`, page, `i18n/${slug}/${locale}.ts`];
+  return [`components/${slug}`, page, `i18n/${slug}/${locale}.ts`, `content${route}/${locale}.mdx`];
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {

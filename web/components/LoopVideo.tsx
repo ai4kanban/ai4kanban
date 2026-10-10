@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// A site animation (#1595): a muted, looping MP4 in place of a GIF. Nothing downloads
-// until it nears the viewport, so no `autoplay`. With reduced motion, or when the
-// browser refuses to start it, the poster stays up with the browser's own controls.
+// A site animation (#1595): a muted, looping MP4 in place of a GIF. Nothing downloads,
+// the poster included, until it nears the viewport, so no `autoplay`. With reduced
+// motion, or when the browser refuses to start it, the poster stays up with the
+// browser's own controls.
 export function LoopVideo({
   src,
   poster,
@@ -22,15 +23,17 @@ export function LoopVideo({
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [controls, setControls] = useState(false);
+  const [near, setNear] = useState(false);
 
   useEffect(() => {
     const el = video.current;
     if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setControls(true);
-      return;
-    }
-    const start = () => el.play().catch(() => setControls(true));
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (still) setControls(true);
+    const start = () => {
+      setNear(true);
+      if (!still) el.play().catch(() => setControls(true));
+    };
     if (typeof IntersectionObserver === "undefined") {
       start();
       return;
@@ -47,7 +50,7 @@ export function LoopVideo({
     <video
       ref={video}
       src={src}
-      poster={poster}
+      poster={near ? poster : undefined}
       width={width}
       height={height}
       aria-label={alt}

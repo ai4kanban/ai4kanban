@@ -1,0 +1,76 @@
+# AI4Kanban for coding
+
+> Review what matters. Then let agents build. Review key details on the task card before coding to reduce rework. AI4Kanban lets you see drafts first, then decide how the work should proceed.
+
+## Get the key details right before implementation.
+
+Some parts of a feature need to be exactly as you intended: the interface, agent instructions, copy or emails. Once those are right, agents can handle the rest of the implementation.
+
+Too often, you only see these details after the code is written—and have to ask for changes. AI4Kanban puts drafts on the task card before coding.
+
+Review them, make changes, and answer the questions. Your decisions become the plan agents build from.
+
+## Not sure a feature belongs? See a draft first.
+
+Would an invitation button clutter your product? Review the page prototype and invitation email before building the feature.
+
+Adjust the plan or drop the idea. You can decide before there are pages, APIs and tests to undo.
+
+## Preview each task without running the project.
+
+To review a page during development, you have to run the project. If unfinished changes break it, you cannot review the page.
+
+Each task card holds its own drafts: UI designs, prompt diffs, copy and emails. You can review them independently without running the project.
+
+AI4Kanban shows inline HTML/TSX visual specs on the task card, with both desktop and mobile-sized frames.
+
+## Read the brief. See the design.
+
+Reading long text specs is tedious, especially when you have many to review. A visual spec shows the result at a glance, without making you picture it in your head.
+
+**Text description**: A warm white homepage background with scattered orange and pale purple pixel blocks. Vary their sizes, give them a gentle floating feel, and leave clear space around the headline.
+
+**Visual design**: a page titled “Build your next idea”, with the line “See the direction before you build.” and a “Start exploring” button, over that background.
+
+Now you can say: “Too many blocks. Leave more space around the headline.”
+
+## Answer the questions that shape the feature.
+
+What permissions should an invited member get? Agents put questions like this, with options, on the card.
+
+They read your project and fill in the plan. You make the product decisions without writing every requirement yourself.
+
+## Specialist agents prepare the drafts.
+
+The coding workflow brings in the right agent for each part of the task.
+
+- **UI designer**: Phone and desktop prototypes, including empty and error states.
+- **Prompt writer**: Exact edits to skills and agent instructions, shown as diffs.
+- **Copy & docs**: Website copy, READMEs, release notes and user guides.
+- **Email planner**: Subjects, body copy, and phone and desktop previews.
+
+## Explain your preferences once.
+
+Each agent remembers preferences and corrections relevant to its work. The copywriter remembers “cover each topic once.” The email planner remembers “put the reader’s next step first.”
+
+These memories guide later drafts, so you spend less time repeating corrections.
+
+## Ship the feature. Find the gaps.
+
+After delivery, agents suggest follow-up work. Background agents review progress, and QA tests recent changes from a user’s perspective.
+
+For an invitation feature, that might mean a missing error state or test. Suggestions go to Triage. You choose which become tasks.
+
+## Small fixes stay simple. Bigger tasks get a plan.
+
+In our October 2026 test, the development workflow cost 1.07–2.08× direct Claude Code. The test used one unattended run per case and excluded background QA.
+
+The simple fix cost just 7–12% more, with similar acceptance scores. For bigger tasks, the extra work goes into breaking down the task, drafting and clarifying—so you can catch the wrong direction before implementation.
+
+## Keep your coding tools.
+
+Open your project and connect Claude Code, Codex or another [supported tool](https://ai4kanban.dev/docs/connectors). They run locally with your own subscriptions. AI4Kanban adds no token surcharge.
+
+Choose a tool and model for each agent, or use the skill and CLI from your coding-agent session.
+
+[Setup guide](https://ai4kanban.dev/docs) · [Agent guide](https://ai4kanban.dev/docs/agents)

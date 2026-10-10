@@ -23,6 +23,9 @@
 /vs-multica.md
   Link: <https://ai4kanban.dev/vs-multica>; rel="canonical"
 
+/workflows/coding.md
+  Link: <https://ai4kanban.dev/workflows/coding>; rel="canonical"
+
 /*.txt
   Content-Type: text/plain; charset=utf-8
 

@@ -1,0 +1,108 @@
+---
+title: "AI4Kanban para desarrollo de software"
+title_tag: "Flujo de trabajo de programación con IA - Soluciones - AI4Kanban"
+description: "Revisa los detalles clave en la tarjeta de la tarea antes de programar y reduce el retrabajo. AI4Kanban te muestra los borradores primero y luego decides cómo seguir."
+lead: "Revisa lo que importa. Luego deja que los agentes construyan."
+hero_alt: "Los agentes ponen un borrador de página y uno de correo en la tarjeta de la tarea; cuando ambos se aprueban, el agente de desarrollo empieza a programar."
+toc: "En esta página"
+---
+
+## Acierta con los detalles clave antes de implementar.
+
+Algunas partes de una función tienen que quedar exactamente como las imaginaste: la interfaz, las instrucciones de los agentes, los textos o los correos. Cuando esas partes están bien, los agentes pueden encargarse del resto de la implementación.
+
+Con demasiada frecuencia ves esos detalles solo después de escribir el código, y tienes que pedir cambios. AI4Kanban pone los borradores en la tarjeta de la tarea antes de programar.
+
+Revísalos, haz cambios y responde las preguntas. Tus decisiones se convierten en el plan con el que trabajan los agentes.
+
+<Clip src="coding-key-points-v1" alt="La tarjeta Invite members: sus preguntas, el prototipo de la página y el correo de invitación" />
+
+## ¿No sabes si una función encaja? Mira primero un borrador.
+
+¿Un botón de invitación recargaría tu producto? Revisa el prototipo de la página y el correo de invitación antes de construir la función.
+
+Ajusta el plan o descarta la idea. Puedes decidir antes de que haya páginas, APIs y pruebas que deshacer.
+
+<Screens
+  src="coding-draft-v1"
+  alt="El prototipo de la página de invitación en la tarjeta de la tarea"
+  src2="coding-email-v1"
+  alt2="La vista previa del correo de invitación en la tarjeta de la tarea"
+/>
+
+## Previsualiza cada tarea sin ejecutar el proyecto.
+
+Para revisar una página durante el desarrollo, tienes que ejecutar el proyecto. Si un cambio a medio hacer lo rompe, no puedes revisar la página.
+
+Cada tarjeta guarda sus propios borradores: diseños de UI, diffs de prompts, textos y correos. Puedes revisarlos por separado sin ejecutar el proyecto.
+
+AI4Kanban muestra especificaciones visuales en HTML/TSX directamente en la tarjeta, con marcos de escritorio y de móvil.
+
+<Screens
+  src="coding-preview-desktop-v1"
+  alt="La página de invitación en un marco de escritorio"
+  src2="coding-preview-phone-v1"
+  alt2="La página de invitación en un marco de móvil"
+  phone
+/>
+
+## Lee el brief. Mira el diseño.
+
+Leer especificaciones largas en texto es tedioso, sobre todo cuando tienes muchas que revisar. Una especificación visual muestra el resultado de un vistazo, sin obligarte a imaginarlo.
+
+<DraftCompare
+  textLabel="Descripción en texto"
+  designLabel="Diseño visual"
+  prompt="Un fondo blanco cálido para la página de inicio con bloques de píxeles naranjas y lila pálido dispersos. Varía sus tamaños, dales una ligera sensación de flotar y deja espacio libre alrededor del titular."
+  pageTitle="Construye tu próxima idea"
+  pageLead="Mira la dirección antes de construir."
+  pageButton="Empezar a explorar"
+  caption="Ahora puedes decir: «Demasiados bloques. Deja más espacio alrededor del titular»."
+/>
+
+## Responde las preguntas que definen la función.
+
+¿Qué permisos debe tener un miembro invitado? Los agentes ponen preguntas como esta, con opciones, en la tarjeta.
+
+Leen tu proyecto y completan el plan. Tú tomas las decisiones de producto sin escribir cada requisito.
+
+<Clip src="coding-questions-v1" alt="Una pregunta en la tarjeta con sus opciones y la respuesta recomendada" />
+
+## Agentes especializados preparan los borradores.
+
+El flujo de desarrollo incorpora al agente adecuado para cada parte de la tarea.
+
+- **Diseñador de UI**: prototipos para móvil y escritorio, incluidos los estados vacíos y de error.
+- **Redactor de prompts**: cambios exactos en skills e instrucciones de agentes, mostrados como diffs.
+- **Textos y documentación**: textos del sitio web, READMEs, notas de versión y guías de usuario.
+- **Planificador de correos**: asuntos, cuerpo del mensaje y vistas previas para móvil y escritorio.
+
+## Explica tus preferencias una sola vez.
+
+Cada agente recuerda las preferencias y correcciones relevantes para su trabajo. El redactor recuerda «trata cada tema una sola vez». El planificador de correos recuerda «pon primero el siguiente paso del lector».
+
+Esos recuerdos guían los borradores siguientes, así que dedicas menos tiempo a repetir correcciones.
+
+## Entrega la función. Encuentra lo que falta.
+
+Tras la entrega, los agentes sugieren trabajo de seguimiento. Agentes en segundo plano revisan el progreso, y QA prueba los cambios recientes desde el punto de vista del usuario.
+
+En una función de invitaciones, eso puede ser un estado de error o una prueba que faltan. Las sugerencias llegan a Triage. Tú eliges cuáles se convierten en tareas.
+
+<Screens src="coding-follow-ups-v1" alt="Sugerencias de seguimiento esperando en Triage" />
+
+## Los arreglos pequeños siguen siendo simples. Las tareas grandes tienen un plan.
+
+En nuestra prueba de octubre de 2026, el flujo de desarrollo costó entre 1,07 y 2,08 veces lo que costó usar Claude Code directamente. La prueba hizo una sola ejecución desatendida por caso y no incluyó el QA en segundo plano.
+
+El arreglo simple costó solo un 7–12 % más, con puntuaciones de aceptación similares. En las tareas grandes, el trabajo extra se dedica a desglosar la tarea, preparar borradores y aclarar dudas, para que detectes una dirección equivocada antes de implementar.
+
+## Sigue usando tus herramientas de programación.
+
+Abre tu proyecto y conecta Claude Code, Codex u otra [herramienta compatible](/docs/connectors). Se ejecutan en tu equipo con tus propias suscripciones. AI4Kanban no cobra recargo por tokens.
+
+Elige una herramienta y un modelo para cada agente, o usa la skill y la CLI desde la sesión de tu agente de programación.
+
+<Clip src="coding-tools-v1" alt="Cambiar la herramienta del diseñador de UI de Claude Code a Codex" />
+
+[Guía de configuración](/docs) · [Guía de agentes](/docs/agents)

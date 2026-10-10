@@ -22,11 +22,20 @@ export function ArticleLayout({
   header,
   body,
   extra,
+  backdrop = <Backdrop />,
+  rule = true,
+  tocLabel = "On this page",
 }: {
   header: ReactNode;
   body: string;
   /** One more tag this body may write than a post can — see `BlogMdx`. */
   extra?: ComponentProps<typeof BlogMdx>["extra"];
+  /** The plate behind the opening; it fills the full-bleed header block. */
+  backdrop?: ReactNode;
+  /** The rule under the opening. */
+  rule?: boolean;
+  /** "On this page", in the page's language. */
+  tocLabel?: string;
 }) {
   const toc = extractToc(body);
 
@@ -36,15 +45,15 @@ export function ArticleLayout({
         {/* Full-bleed so the plate is, but the rule stays in the column: it
             belongs to the opening, not to the page's edges. */}
         <header className="relative">
-          <Backdrop />
+          {backdrop}
           <div className="mx-auto max-w-5xl px-6 pt-10 lg:pt-16">
-            <div className="border-b-2 border-border pb-10">{header}</div>
+            <div className={rule ? "border-b-2 border-border pb-10" : ""}>{header}</div>
           </div>
         </header>
         <div className="mx-auto mt-12 max-w-5xl px-6 lg:grid lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
-          <TocRail items={toc} />
+          <TocRail items={toc} label={tocLabel} />
           <div className="min-w-0">
-            <TocBlock items={toc} />
+            <TocBlock items={toc} label={tocLabel} />
             <BlogMdx source={body} extra={extra} />
           </div>
         </div>

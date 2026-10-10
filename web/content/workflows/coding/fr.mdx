@@ -1,0 +1,108 @@
+---
+title: "AI4Kanban pour le développement logiciel"
+title_tag: "Workflow de codage IA - Solutions - AI4Kanban"
+description: "Relisez les points clés sur la carte de tâche avant de coder pour limiter les reprises. AI4Kanban vous montre d’abord les brouillons, puis vous décidez de la suite."
+lead: "Relisez ce qui compte. Puis laissez les agents construire."
+hero_alt: "Les agents posent un brouillon de page et un brouillon d’e-mail sur la carte de tâche ; une fois les deux approuvés, l’agent de développement commence à coder."
+toc: "Sur cette page"
+---
+
+## Fixez les points clés avant l’implémentation.
+
+Certaines parties d’une fonctionnalité doivent être exactement comme vous l’entendiez : l’interface, les instructions des agents, les textes ou les e-mails. Une fois ces parties justes, les agents peuvent se charger du reste de l’implémentation.
+
+Trop souvent, vous ne découvrez ces détails qu’une fois le code écrit, et vous devez demander des changements. AI4Kanban place les brouillons sur la carte de tâche avant le code.
+
+Relisez-les, modifiez-les et répondez aux questions. Vos décisions deviennent le plan que suivent les agents.
+
+<Clip src="coding-key-points-v1" alt="La carte Invite members : ses questions, le prototype de la page et l’e-mail d’invitation" />
+
+## Pas sûr qu’une fonctionnalité ait sa place ? Regardez d’abord un brouillon.
+
+Un bouton d’invitation surchargerait-il votre produit ? Relisez le prototype de la page et l’e-mail d’invitation avant de construire la fonctionnalité.
+
+Ajustez le plan ou abandonnez l’idée. Vous pouvez trancher avant d’avoir des pages, des API et des tests à défaire.
+
+<Screens
+  src="coding-draft-v1"
+  alt="Le prototype de la page d’invitation sur la carte de tâche"
+  src2="coding-email-v1"
+  alt2="L’aperçu de l’e-mail d’invitation sur la carte de tâche"
+/>
+
+## Prévisualisez chaque tâche sans lancer le projet.
+
+Pour relire une page en cours de développement, il faut lancer le projet. Si des changements inachevés le cassent, la page reste inaccessible.
+
+Chaque carte de tâche garde ses propres brouillons : maquettes d’interface, diffs de prompts, textes et e-mails. Vous pouvez les relire séparément, sans lancer le projet.
+
+AI4Kanban affiche des spécifications visuelles HTML/TSX directement sur la carte de tâche, dans un cadre ordinateur et un cadre mobile.
+
+<Screens
+  src="coding-preview-desktop-v1"
+  alt="La page d’invitation dans un cadre ordinateur"
+  src2="coding-preview-phone-v1"
+  alt2="La page d’invitation dans un cadre mobile"
+  phone
+/>
+
+## Lisez le brief. Voyez le design.
+
+Lire de longues spécifications écrites est fastidieux, surtout quand il y en a beaucoup à relire. Une spécification visuelle montre le résultat d’un coup d’œil, sans vous obliger à l’imaginer.
+
+<DraftCompare
+  textLabel="Description écrite"
+  designLabel="Design visuel"
+  prompt="Un fond blanc chaud pour la page d’accueil, parsemé de blocs de pixels orange et lilas pâle. Variez leurs tailles, donnez-leur une légère impression de flottement et laissez de l’espace autour du titre."
+  pageTitle="Concrétisez votre prochaine idée"
+  pageLead="Voyez la direction avant de construire."
+  pageButton="Commencer à explorer"
+  caption="Vous pouvez maintenant dire : « Trop de blocs. Laissez plus d’espace autour du titre. »"
+/>
+
+## Répondez aux questions qui façonnent la fonctionnalité.
+
+Quelles permissions donner à un membre invité ? Les agents posent ce genre de question, avec des options, sur la carte.
+
+Ils lisent votre projet et complètent le plan. Vous prenez les décisions produit sans rédiger chaque exigence vous-même.
+
+<Clip src="coding-questions-v1" alt="Une question sur la carte, avec ses options et la réponse recommandée" />
+
+## Des agents spécialisés préparent les brouillons.
+
+Le workflow de développement fait appel au bon agent pour chaque partie de la tâche.
+
+- **Designer d’interface** : prototypes mobile et ordinateur, y compris les états vides et d’erreur.
+- **Rédacteur de prompts** : modifications exactes des skills et des instructions d’agents, présentées en diffs.
+- **Textes et documentation** : textes du site, README, notes de version et guides utilisateur.
+- **Planificateur d’e-mails** : objets, corps du message et aperçus mobile et ordinateur.
+
+## Expliquez vos préférences une seule fois.
+
+Chaque agent retient les préférences et corrections utiles à son travail. Le rédacteur retient « traiter chaque sujet une seule fois ». Le planificateur d’e-mails retient « mettre d’abord la prochaine action du lecteur ».
+
+Ces souvenirs guident les brouillons suivants : vous passez moins de temps à répéter les mêmes corrections.
+
+## Livrez la fonctionnalité. Trouvez ce qui manque.
+
+Après la livraison, les agents suggèrent du travail de suivi. Des agents en arrière-plan passent en revue l’avancement, et la QA teste les changements récents du point de vue de l’utilisateur.
+
+Pour une fonctionnalité d’invitation, cela peut être un état d’erreur ou un test manquant. Les suggestions arrivent dans Triage. Vous choisissez celles qui deviennent des tâches.
+
+<Screens src="coding-follow-ups-v1" alt="Des suggestions de suivi en attente dans Triage" />
+
+## Les petits correctifs restent simples. Les grandes tâches ont un plan.
+
+Lors de notre test d’octobre 2026, le workflow de développement a coûté entre 1,07 et 2,08 fois l’usage direct de Claude Code. Le test comptait une seule exécution sans surveillance par cas et excluait la QA en arrière-plan.
+
+Le correctif simple n’a coûté que 7 à 12 % de plus, avec des scores d’acceptation similaires. Pour les grandes tâches, le travail supplémentaire sert à découper la tâche, rédiger des brouillons et clarifier, pour repérer une mauvaise direction avant l’implémentation.
+
+## Gardez vos outils de code.
+
+Ouvrez votre projet et connectez Claude Code, Codex ou un autre [outil pris en charge](/docs/connectors). Ils s’exécutent sur votre machine, avec vos propres abonnements. AI4Kanban n’ajoute aucun supplément sur les tokens.
+
+Choisissez un outil et un modèle pour chaque agent, ou utilisez la skill et la CLI depuis la session de votre agent de code.
+
+<Clip src="coding-tools-v1" alt="Passer l’outil du designer d’interface de Claude Code à Codex" />
+
+[Guide d’installation](/docs) · [Guide des agents](/docs/agents)
