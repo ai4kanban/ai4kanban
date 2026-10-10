@@ -60,7 +60,7 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 - **Links**: internal links go to existing posts or pages; external links go to primary
   sources. Check that every link resolves.
 - **Article**: under `### Article`, the full post in Markdown, each image as a standalone
-  `<Asset src=".assets/<card id>/<file>" label="<alt text>" />` line where it appears.
+  `<Asset src=".assets/<card id>/<file>" label="<a few words>" alt="<alt text>" />` line where it appears.
 - **Validation**: run `akb raw validate <card id> --json` after every change; fix every
   diagnostic.
 
@@ -73,7 +73,7 @@ Follow `akb guide multi-stage-drafting`.
 - **Stage 2 — article**: request `blog-illustrator`, then write
   the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
   with its images beside it, in the blog's own frontmatter format, and put
-  `<Asset src=".assets/<card id>/<slug>.<ext>" label="<title>" />` at the top of your section.
+  `<Asset src=".assets/<card id>/<slug>.<ext>" label="Article" />` at the top of your section.
   For a blog in the project, also write the post and its images where its existing posts
   keep theirs, with the keywords in the frontmatter field `keywords`; for an online-only
   blog, add the post's expected URL to `keywords.md`. Append a ticked todo listing every

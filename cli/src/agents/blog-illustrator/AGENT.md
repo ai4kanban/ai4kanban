@@ -28,7 +28,7 @@ Choose one per image:
 
 ## Rules
 
-- **Alt text**: one sentence per image saying what it shows.
+- **Alt text**: one sentence per image saying what it shows; draw it on each in-article image as its caption.
 - **Cover**: the aspect ratio the blog's existing covers use, 16:9 when there are none;
   legible at thumbnail size.
 - **Consistent**: one post's images share palette, fonts and treatment.

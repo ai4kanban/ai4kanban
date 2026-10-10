@@ -25,7 +25,7 @@ Follow `akb guide multi-stage-drafting`; keep the checkpoint todos in your secti
 - **Any medium**: default to TSX with Tailwind, which the card renders; HTML/CSS, SVG, a scripted animation, a mockup that replicates the real UI, or a real screenshot fit too; use image generation only when the user asks for it.
 - **Ship the source**: inline SVG or TSX where the destination supports it; otherwise the rendered file with its source and repository path.
 - **Animations**: render a muted, looping H.264 MP4 with a first-frame poster image, embedded with `<Asset ... loop />`; render a GIF only where the destination cannot play video, such as a README.
-- **Just the image**: above `<!-- agent -->`, each image is its `<Asset>` alone; add `alt` only when the image carries information, one sentence on what it conveys.
+- **Just the image**: above `<!-- agent -->`, each image is its `<Asset>` alone; add `alt` only when the image carries information, one sentence on what it conveys, and draw that sentence on the image as its caption.
 - **Look**: colours and fonts from the app's `design.md`.
 
 ## Files
