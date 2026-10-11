@@ -34,6 +34,9 @@
 - [让对话 Agent 起一个常驻服务，回复结束后它跟着结束](skill/a-dev-server-the-chat-agent-starts-ends-with-its-reply/case.md)
 - [规划一张纯文字卡片，看软件规划师画出示意图](skill/plan-a-text-only-card-and-get-an-explainer-diagram/case.md)
 - [让博客策划写一篇博客的大纲，它先读了排在前面的页面](skill/blog-planner-reads-the-top-pages-before-the-outline/case.md)
+- [让软件规划师换用自己的 Agent 规划](skill/let-the-software-planner-plan-on-its-own-agent/case.md)
+- [在卡片上读文案草稿，像读页面本身一样](skill/approve-a-copy-draft-that-reads-like-the-page/case.md)
+- [请产品配图先画一张示意图，再做一段 canvas 动画预览](skill/ask-the-illustrator-for-an-image-and-a-canvas-animation/case.md)
 
 ### local-ui
 
@@ -63,6 +66,8 @@
 - [在从讨论写成的卡片上展开「来自讨论」，开始聊这张卡](local-ui/chat-about-a-card-written-from-a-discussion/case.md)
 - [结束一段讨论，它的 Agent 和 Agent 起的进程一起停下](local-ui/end-a-discussion-and-its-agent-stops/case.md)
 - [在卡片页上看软件规划师画的示意图](local-ui/see-an-explainer-diagram-on-a-card/case.md)
+- [在卡片上看一份会动的样稿](local-ui/watch-a-scripted-mockup-move-on-a-card/case.md)
+- [给工作流的规划者单独选一个运行时](local-ui/pick-a-runtime-for-a-workflow-planner/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -77,6 +82,7 @@
 - [按主题浏览博客](site/browse-the-blog-by-topic/case.md)
 - [在官网比较 AI4Kanban 和别的工具](site/compare-ai4kanban-with-another-tool/case.md)
 - [读软件开发方案页](site/read-the-coding-workflow-page/case.md)
+- [读一篇带配图的博客文章](site/read-a-blog-post/case.md)
 
 ### docs
 
