@@ -13,7 +13,7 @@ content — no navigation, styling, or scripts.
 ## Pages
 
 - [Home — You set the direction. AI leads the team.](https://ai4kanban.dev/index.md): From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.
-- [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): How the software bottleneck moved from coding to requirements, why project decisions need durable memory outside chat, and why a kanban is the planning layer above coding agents.
+- [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): How Tao Wu went from trying to let agents plan a project on their own, through early users' feedback that it didn't feel faster, to having people confirm key drafts before agents build the rest.
 - [Kanban for Claude Code](https://ai4kanban.dev/agents/kanban-for-claude-code): How AI4Kanban turns rough ideas into Claude-ready tasks, shares project memory across tasks, coordinates dependencies and isolated worktrees, and reuses an existing local Claude Code setup.
 - [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex): How AI4Kanban turns rough ideas into Codex-ready tasks, preserves decisions across sessions, coordinates dependencies and isolated worktrees, distinguishes reasons for human attention, and reuses an existing local Codex setup.
 - [AI4Kanban for coding](https://ai4kanban.dev/workflows/coding.md): Review key details on the task card before coding to reduce rework: UI, prompt, copy and email drafts with phone and desktop previews, questions that shape the feature, preference memory per agent, follow-up suggestions after delivery, and what the workflow cost against direct Claude Code in a small October 2026 test.

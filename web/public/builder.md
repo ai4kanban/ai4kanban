@@ -1,36 +1,31 @@
 # Why I'm building AI4Kanban
 
-## Tao Wu
+Tao Wu
 
-Builder of AI4Kanban
+Founder of AI4Kanban
 
-I spent most of my career building [databases](https://github.com/risingwavelabs/risingwave), first as an engineer and later as a product manager. That combination taught me that software rarely fails because a team cannot write code. It fails when the work is unclear, context is scattered, and small decisions disappear before the next person needs them.
+Hi, I'm Tao. I'm building AI4Kanban full-time.
 
-Coding agents made that imbalance impossible to ignore. Give Claude Code or Codex a clear requirement and it can often deliver more than I expected. Give it a vague idea and the design space opens in every direction. The agent keeps moving, but speed only gets you to the wrong place faster.
+My first idea was to build a one-person startup with agents running the project on their own. Coding agents were already doing more of the implementation. I wanted to see if they could take on the planning too.
 
-The new bottleneck is not writing code. It is turning a rough goal into good work: deciding what matters next, clarifying the edges, preserving product judgment, and knowing when a choice genuinely needs a person.
+Our idea was simple: before building, the agent asks questions until the task is clear. It worked in the background. It broke an idea into tasks, found the missing details, and answered what it could on its own. Only the few choices that needed a person came back, as multiple-choice questions.
 
-I tried managing that work in chat. The decisions were there, but buried across long conversations. Every new session felt like onboarding a capable new teammate who had never met the product. More parallel agents created more conversations to supervise, not more leverage.
+*The agent asks first, settles what it can, and hands you the few real choices.*
 
-That led me to what I call **kanban engineering**: use the board as the planning layer above coding agents. A broad goal becomes a set of cards. Each card is questioned and refined until it is buildable. The decisions stay attached to the project, so the next card starts with more context than the last.
+We spent a lot of time trying to make it work. The agents did raise useful questions and make useful decisions. But early users told us **it didn't feel faster**. A coding agent shows results right away. Ours made them wait through planning and answer more questions, and it spent more tokens. A small task could turn into a long conversation.
 
-- Turn rough ideas into independent, buildable cards.
-- Let the agent settle ordinary details and raise the few choices that need judgment.
-- Keep goals, rejected paths, and product decisions in durable project memory.
-- Run ready work through the coding agent while people focus on users, direction, and taste.
+That feedback showed me what was wrong. We were asking people to settle everything before they had seen a result. But most people **don't know exactly what they want until they see a first version**. More questions upfront couldn't fix that.
 
-AI4Kanban is my open-source attempt to make that workflow real. It is a project-management agent shaped as a kanban board, not another dashboard for watching logs. You steer requirements and approve the important calls; the board plans, remembers, and coordinates the path to delivery.
+So AI4Kanban now shows you **drafts of the key parts first**: a UI mockup, the copy for a page, or a change to a prompt. You settle those, and the agent builds the rest.
 
-The [core is open source](https://github.com/ai4kanban/ai4kanban). I use it to manage its own development, because the only way to learn whether an autonomous board can improve a real project is to trust it with one.
+*You settle the key drafts. The agent builds the rest.*
 
-## Why a kanban instead of another chat window?
+Agents sometimes add features you never asked for. In a long written spec, those additions are easy to miss. In a UI draft, you can see the extra pages right away. You can say, 'I don't need these,' before the agent builds them. Sometimes, seeing the draft makes you rethink the whole idea.
 
-Chat is good for one task. A project is a long-lived tree of goals, dependencies, decisions, and rejected paths. A board gives that structure a stable home and lets people review the work from the level that matters.
+We had moved from trying to let AI do everything, to having people help AI, to having **AI help people**. Giving people more say over the direction made it easier to hand over the execution. Once the key drafts were agreed on, there was less left to keep checking.
 
-The board is primarily for the agent to plan from. People can stay with the small set of questions, reviews, and decisions that require them.
+My goal is simple: reduce the effort people spend on each task, and help them become **another 10 times more productive**. That's why I'm building AI4Kanban.
 
-## What does “AI4Kanban” mean?
+This took a few attempts to understand. I'm still building it. You can see where AI4Kanban is today on the [home page](https://ai4kanban.dev/), or follow the work on [GitHub](https://github.com/ai4kanban/ai4kanban).
 
-It means AI for the kanban: an agent drives each card from rough idea to clarified work, execution, and delivery. The kanban is no longer a passive list that waits for a person to update every column.
-
-The goal is simple: spend less time supervising agents and more time deciding what creates value.
+Tao
