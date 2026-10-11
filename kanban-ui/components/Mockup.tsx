@@ -3,10 +3,10 @@
 // A mockup on a card page (#239): the screen a `<Mockup>` tag points at, drawn where the
 // tag sits in the body.
 //
-// The screen itself is an iframe with an empty `sandbox`, which is the whole isolation:
-// nothing in it runs, it has no origin to reach the board with, and its styling and the
-// board's never meet — the board's fonts, colours and layout rules stop at the frame, and
-// a mockup's `<style>` stops there too.
+// The screen itself is a sandboxed iframe, which is the whole isolation: it has no origin to
+// reach the board with, and its styling and the board's never meet — the board's fonts,
+// colours and layout rules stop at the frame, and a mockup's `<style>` stops there too. Only
+// an `.html` page's inline scripts run (#1626); its own CSP keeps it off the network.
 //
 // A screen is drawn on its device's canvas — desktop unless the tag says `device="mobile"`
 // (#1097) — and scaled down to whatever width the card page gives it. A phone screen fills
@@ -99,12 +99,15 @@ function HomeIndicator({ ink }: { ink: string }) {
   );
 }
 
+/** Scripts only, never `allow-same-origin`: the page stays an opaque origin. */
+export const sandboxOf = (scripts?: boolean) => (scripts ? "allow-scripts" : "");
+
 const frameStyle = { border: 0, display: "block", position: "absolute", left: 0 } as const;
 
 /** A phone at `scale` showing `doc` as an iPhone 16 would (#1215): the page fills the
  *  393×852 screen, or sits inside its safe areas over its own background, and the status bar
  *  and home indicator are drawn over it. */
-export function Phone({ scale, doc, title }: { scale: number; doc: string; title: string }) {
+export function Phone({ scale, doc, title, scripts }: { scale: number; doc: string; title: string; scripts?: boolean }) {
   const screen = useMemo(() => phoneScreen(doc), [doc]);
   const ink = screen.light ? "#fff" : "#000";
   const inner = screen.cover ? PHONE.h : PHONE.h - SAFE_AREA.top - SAFE_AREA.bottom;
@@ -137,7 +140,7 @@ export function Phone({ scale, doc, title }: { scale: number; doc: string; title
             />
           )}
           <iframe
-            sandbox=""
+            sandbox={sandboxOf(scripts)}
             srcDoc={screen.doc}
             title={title}
             style={{ ...frameStyle, top: screen.cover ? 0 : SAFE_AREA.top, width: PHONE.w, height: inner }}
@@ -219,7 +222,7 @@ function PhoneBand({ children }: { children: React.ReactNode }) {
 }
 
 /** A phone screen at 3/4 size, shrunk further when the body is narrower than that. */
-function PhoneScreen({ doc, title }: { doc: string; title: string }) {
+function PhoneScreen({ doc, title, scripts }: { doc: string; title: string; scripts?: boolean }) {
   const box = useRef<HTMLSpanElement>(null);
   const [scale, setScale] = useState(PHONE_SCALE);
 
@@ -236,7 +239,7 @@ function PhoneScreen({ doc, title }: { doc: string; title: string }) {
   return (
     <PhoneBand>
       <span ref={box} className="flex w-full justify-center">
-        <Phone scale={scale} doc={doc} title={title} />
+        <Phone scale={scale} doc={doc} title={title} scripts={scripts} />
       </span>
     </PhoneBand>
   );
@@ -244,7 +247,7 @@ function PhoneScreen({ doc, title }: { doc: string; title: string }) {
 
 /** The picture: one desktop screen, scaled to the width it is given and never past its
  *  true size. The frame is that scaled height, so the card page reflows around it. */
-function Screen({ doc, title }: { doc: string; title: string }) {
+function Screen({ doc, title, scripts }: { doc: string; title: string; scripts?: boolean }) {
   const box = useRef<HTMLSpanElement>(null);
   // 0 until the width is measured, so the first paint is never a full-size screen that
   // then jumps to its scaled size.
@@ -267,9 +270,9 @@ function Screen({ doc, title }: { doc: string; title: string }) {
       style={{ height: scale ? H * scale : H }}
     >
       <iframe
-        // Empty sandbox: no scripts, no forms, no origin of its own. Everything else the
-        // mockup must not do — the network, the fonts — the document's own CSP stops.
-        sandbox=""
+        // No forms, no origin of its own. Everything else the mockup must not do — the
+        // network, the fonts — the document's own CSP stops.
+        sandbox={sandboxOf(scripts)}
         srcDoc={doc}
         title={title}
         style={{
@@ -474,9 +477,9 @@ export function Mockup({
         drawn.doc !== undefined && (
           <span className={deferred ? "a4k-reveal block" : "block"}>
             {shown === "mobile" ? (
-              <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} />
+              <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} />
             ) : (
-              <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} />
+              <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} />
             )}
           </span>
         )

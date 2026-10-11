@@ -239,8 +239,9 @@ Older cards use `<Mockup src=".mockups/…">`, which still works.
   built from, strips data, network and click handling, and changes only what the card changes. It
   may import React, `react-icons`, `next/link`, `next/image`, `next/navigation` and class-name
   helpers.
-- **Mockups are sandboxed**: nothing runs, loads from the network or answers a click. A missing or
-  unsupported file reads as a plain note.
+- **Mockups are sandboxed**: nothing loads from the network or reaches the board. An `.html`
+  asset may run inline scripts (animation, canvas, WebGL); inline any library it needs. A
+  missing or unsupported file reads as a plain note.
 
 A card pulled from another board shows its asset tags as notes until `ui-designer` draws them
 again.

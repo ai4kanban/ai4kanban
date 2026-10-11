@@ -19,8 +19,8 @@
 //   file   .pptx (#969), .md .mdx (#1126). A delivered file, offered as a download from app/asset-image.
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
-// in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
-// and the board's never meet.
+// in a sandboxed iframe, so nothing reaches the network or the board, and its styling and the
+// board's never meet. Only an `.html` page runs its own inline scripts (#1626).
 
 import type { MessagesCopy } from "@/i18n/messages/types";
 import { machineCopy } from "./language";
@@ -41,6 +41,7 @@ import { AUDIO_TYPES, FILE_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } fr
 import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
 import { hyperframeDocument } from "./hyperframe-document";
+import { pageDocument } from "./page-document";
 
 const IMAGE_EXTS = Object.keys(IMAGE_TYPES);
 const MEDIA_EXTS: Record<string, "video" | "audio"> = {
@@ -238,8 +239,8 @@ export async function readMockup(src: string, contain = true, defer = false): Pr
     if (ext === "html" && fileName.endsWith(".hf.html")) {
       return { src, code, doc: hyperframeDocument(code), hyperframe: true };
     }
-    const doc = ext === "tsx" ? await drawComponent(file, src, contain, c) : dressPage(code, contain, path.dirname(file));
-    return { src, code, doc };
+    if (ext === "tsx") return { src, code, doc: await drawComponent(file, src, contain, c) };
+    return { src, code, doc: dressPage(code, contain, path.dirname(file)), scripts: true };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     return { src, code, error: c.notDrawn(src, why) };
@@ -463,7 +464,7 @@ async function tailwindFor(
 
 // --- the document ------------------------------------------------------------
 
-// Only embedded assets load; scripts and network requests stay blocked.
+// A `.tsx` mockup is static markup: only embedded assets load, scripts and the network stay blocked.
 const CSP =
   "<meta http-equiv=\"Content-Security-Policy\" " +
   "content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:\">";
@@ -508,13 +509,7 @@ function inlineSheets(html: string, folder: string): string {
 }
 
 /** An `.html` mockup is a whole page already — it keeps its own markup and its own
- *  styling, and only gets the frame's own two rules put in front of them. */
+ *  styling, and only gets the frame's own rules put in front of them. */
 function dressPage(raw: string, contain: boolean, folder: string): string {
-  const html = inlineSheets(raw, folder);
-  const HEAD = head(contain);
-  const found = /<head[^>]*>/i.exec(html);
-  if (found) return html.slice(0, found.index + found[0].length) + HEAD + html.slice(found.index + found[0].length);
-  const open = /<html[^>]*>/i.exec(html);
-  if (open) return html.slice(0, open.index + open[0].length) + `<head>${HEAD}</head>` + html.slice(open.index + open[0].length);
-  return `<!doctype html><html><head>${HEAD}</head><body>${html}</body></html>`;
+  return pageDocument(inlineSheets(raw, folder), `<meta charset="utf-8">${frameCss(contain)}`);
 }

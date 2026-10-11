@@ -43,6 +43,8 @@ export type MockupView =
       doc: string;
       /** Explicit `.hf.html` composition, played in an isolated runtime. */
       hyperframe?: boolean;
+      /** An `.html` page, whose frame lets its inline scripts run (#1626). */
+      scripts?: boolean;
       /** The file's own text, for the switch to the code behind the picture. Absent on a
        *  card page, which loads it only when the switch is used (#906). */
       code?: string;
