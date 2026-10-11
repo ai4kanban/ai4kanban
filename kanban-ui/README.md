@@ -766,10 +766,12 @@ Every flow is run by its role: refine and `akb card resolve` by the software pla
 New idea, card discussions and `akb chat` by the Planning helper (`discussion-helper`); a `spec`
 run by the specialist it names.
 
-**Planning follows the Planning helper**: the software planner and every agent that may lead a
-workflow's planning run on `discussion-helper`'s runtime, so planning continues the session a
-discussion opened. An entry under a planning lead's own name is ignored, its page shows the runtime
-read-only, and `akb agent bind` refuses it.
+**Planning follows the Planning helper by default**: the software planner and every agent that may
+lead a workflow's planning run on `discussion-helper`'s runtime until they pick one of their own,
+so planning continues the session a discussion opened. A lead with its own pick on another CLI
+starts a fresh session and reads the discussion's outcome from the plan and the card. The first
+entry of a lead's runtime list, **Follow Planning helper**, clears its pick; so does
+`akb agent bind <lead> -`.
 
 **Terminal**: `akb agent` lists everything; `akb agent runtime add|rename|delete` edits rows;
 `akb agent set --runtime <id> <key> <value>` sets a value; `akb agent bind <agent> <id>` points an

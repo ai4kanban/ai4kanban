@@ -409,10 +409,8 @@ describe('turning an older board into runtimes', () => {
       readRuntimes().map((r) => r.id),
       ['global', 'codex', 'planner', 'builder'],
     )
-    // The planner's row is minted and named, and then not read: planning runs on the
-    // discussion's runtime (#1316).
     assert.equal((held().agentRuntime as Record<string, string>).planner, 'planner')
-    assert.equal(agentRun('planner').runtime, 'global')
+    assert.equal(agentRun('planner').runtime, 'planner')
     assert.equal(agentRun('builder').model, 'gpt-5.1-codex')
     assert.equal(agentRun('code-reviewer').runtime, 'global')
     // …and the block it moved is cleared, so a second update finds nothing.
@@ -523,8 +521,8 @@ describe('writing by harness name', () => {
   })
 })
 
-// Planning runs on the discussion's runtime (#1316), so a card's planning can carry on the
-// session a discussion opened. A lead's own pick stays in the file and is never read.
+// A planning lead with no pick runs the discussion's runtime (#1316), so a card's planning can
+// carry on the session a discussion opened; one with a pick of its own runs that (#1616).
 describe('an agent that may lead planning', () => {
   const board = {
     runtimes: [
@@ -534,8 +532,6 @@ describe('an agent that may lead planning', () => {
     ],
     agentRuntime: {
       'discussion-helper': 'strong',
-      'software-planner': 'cheap',
-      outliner: 'cheap',
       builder: 'cheap',
       'ui-designer': 'cheap',
     },
@@ -551,7 +547,7 @@ describe('an agent that may lead planning', () => {
     )
   })
 
-  it('runs the discussion’s runtime whatever it picked itself', () => {
+  it('runs the discussion’s runtime while it picked none', () => {
     for (const action of ['create', 'clarify', 'resolve'] as const) {
       const run = plan({ action, id: 1 })
       assert.equal(run.agent, 'software-planner')
@@ -560,6 +556,7 @@ describe('an agent that may lead planning', () => {
     }
     assert.deepEqual(agentRun('software-planner'), {
       follows: 'discussion-helper',
+      followsWhenUnset: { agent: 'discussion-helper', runtime: 'strong' },
       runtime: 'strong',
       runtimeName: 'strong',
       harness: 'claude-code',
@@ -580,31 +577,47 @@ describe('an agent that may lead planning', () => {
     assert.equal(setAgentRuntime('discussion-helper', '').ok, true)
     assert.equal(agentRun('software-planner').runtime, 'global')
     assert.equal(agentRun('software-planner').own, false)
-    // The old pick is still on file.
-    assert.equal((held().agentRuntime as Record<string, string>)['software-planner'], 'cheap')
+  })
+
+  it('runs its own pick once it has one, Global default included', () => {
+    assert.equal(setAgentRuntime('software-planner', 'cheap').ok, true)
+    assert.equal(plan({ action: 'clarify', id: 1 }).runtime, 'cheap')
+    const run = agentRun('software-planner')
+    assert.equal(run.follows, undefined)
+    assert.equal(run.runtime, 'cheap')
+    assert.deepEqual(run.followsWhenUnset, { agent: 'discussion-helper', runtime: 'strong' })
+    // A lead's Global default is a pick, not a way back to following.
+    assert.equal(setAgentRuntime('software-planner', 'global').ok, true)
+    assert.equal((held().agentRuntime as Record<string, string>)['software-planner'], 'global')
+    assert.equal(agentRun('software-planner').runtime, 'global')
+    assert.equal(agentRun('software-planner').follows, undefined)
+    assert.equal(setAgentRuntime('software-planner', '').ok, true)
+    assert.equal(agentRun('software-planner').follows, 'discussion-helper')
   })
 
   it('leaves the builder, the helpers and the discussion on their own picks', () => {
     for (const name of ['builder', 'ui-designer']) {
       assert.equal(agentRun(name).runtime, 'cheap')
       assert.equal(agentRun(name).follows, undefined)
+      assert.equal(agentRun(name).followsWhenUnset, undefined)
     }
     assert.equal(agentRun('discussion-helper').follows, undefined)
+    assert.equal(agentRun('discussion-helper').followsWhenUnset, undefined)
     assert.equal(agentRun('proposer').runtime, 'global')
   })
 
-  it('is not counted among the agents a runtime’s delete would move', () => {
-    const rows = agentInfo().runtimes
-    assert.equal(rows.find((r) => r.id === 'cheap')?.agents, 2)
-    assert.equal(rows.find((r) => r.id === 'strong')?.agents, 1)
+  it('is counted among the agents a runtime’s delete would move only with a pick of its own', () => {
+    assert.equal(agentInfo().runtimes.find((r) => r.id === 'cheap')?.agents, 2)
+    setAgentRuntime('outliner', 'cheap')
+    assert.equal(agentInfo().runtimes.find((r) => r.id === 'cheap')?.agents, 3)
   })
 
-  it('cannot be bound: the refusal names the agent to bind instead', async () => {
-    for (const name of ['software-planner', 'outliner']) {
-      await assert.rejects(cmdAgent(['bind', name, 'cheap']), /akb agent bind discussion-helper <runtime>/)
-    }
-    assert.deepEqual(held().agentRuntime, board.agentRuntime)
-    await cmdAgent(['bind', 'discussion-helper', 'cheap'])
+  it('is bound from the terminal, and "-" puts it back on the discussion’s runtime', async () => {
+    await cmdAgent(['bind', 'software-planner', 'cheap'])
     assert.equal(agentRun('software-planner').runtime, 'cheap')
+    assert.equal(agentRun('software-planner').follows, undefined)
+    await cmdAgent(['bind', 'software-planner', '-'])
+    assert.equal(agentRun('software-planner').follows, 'discussion-helper')
+    assert.equal(agentRun('software-planner').runtime, 'strong')
   })
 })

@@ -268,11 +268,13 @@ export interface HarnessAsk {
   harness?: string
 }
 
-// Whose pick an agent's runtime is read from: its own, or the discussion's for an agent that
-// may lead planning (#1316). A lead's own saved pick stays in the file, unread. A hidden role
-// has no pick to read and runs Global default.
-const runtimeOwner = (agent: string): string =>
-  hiddenRole(agent) ? '' : leadsPlanning(agent) ? DISCUSSION_ROLE : agent
+// Whose pick an agent's runtime is read from: its own, or — for a planning lead that picked
+// none — the discussion's (#1316, #1616). A hidden role has no pick and runs Global default.
+const runtimeOwner = (agent: string, table: Record<string, string>): string => {
+  if (hiddenRole(agent)) return ''
+  if (leadsPlanning(agent) && !runtimeOfAgent(specAgentNames(agent), table)) return DISCUSSION_ROLE
+  return agent
+}
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const cfg = safeConfig()
@@ -281,8 +283,9 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const list = readRuntimes(cfg)
   // Which runtime this agent runs, from the board and nowhere else: its own pick, or
   // **Global default** when it named none (agent/runtimes.ts).
-  const owner = agent ? runtimeOwner(agent) : ''
-  const picked = owner ? runtimeOfAgent(specAgentNames(owner), readAgentRuntime(cfg)) : undefined
+  const table = readAgentRuntime(cfg)
+  const owner = agent ? runtimeOwner(agent, table) : ''
+  const picked = owner ? runtimeOfAgent(specAgentNames(owner), table) : undefined
   // `pin` wins over the board: a run already committed to a runtime spawns that runtime,
   // whatever the settings have been changed to since.
   const asked = ask.pin ?? picked
@@ -907,9 +910,7 @@ export function agentInfo(): AgentInfo {
       // Which rows the agents have named, counted once for the whole list — a delete says how
       // many agents fall back to **Global default**, and that answer is the board's picks and
       // nothing else.
-      const named = Object.entries(readAgentRuntime())
-        .filter(([agent]) => !leadsPlanning(agent))
-        .map(([, pick]) => pick)
+      const named = Object.values(readAgentRuntime())
       return readRuntimes().map((runtime) => runtimeView(runtime, onPath, ran, named))
     })(),
     // Every harness's own settings go down with them, not just the running one's: switching a
@@ -998,11 +999,14 @@ function runtimeView(
 /** What one agent runs here, and whether that is its own pick or **Global default** (#467).
  *  The one answer the Agents pane and `akb agent` both draw. */
 export function agentRun(agent: string, table = readAgentRuntime()): HarnessRun {
-  const owner = runtimeOwner(agent)
+  const owner = runtimeOwner(agent, table)
   const picked = runtimeOfAgent(specAgentNames(owner), table)
   const resolved = resolveHarness({ agent })
   return {
     ...(owner !== agent ? { follows: owner } : {}),
+    ...(!hiddenRole(agent) && leadsPlanning(agent)
+      ? { followsWhenUnset: { agent: DISCUSSION_ROLE, runtime: resolveHarness({ agent: DISCUSSION_ROLE }).runtime.id } }
+      : {}),
     runtime: resolved.runtime.id,
     runtimeName: resolved.runtime.name,
     harness: resolved.harness.name,

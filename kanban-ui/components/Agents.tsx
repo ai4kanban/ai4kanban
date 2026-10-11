@@ -33,7 +33,6 @@ import {
   FiCheck,
   FiCopy,
   FiChevronDown,
-  FiChevronRight,
   FiClock,
   FiFileText,
   FiPlus,
@@ -99,8 +98,10 @@ import { sayFailure } from "@/lib/start-failure";
 // Literals rather than PRUNER: Configuration imports this file, so its exports are
 // not initialised yet when this is.
 const ON_A_SCHEDULE = ["chat-reviewer", "memory-pruner", "dismissal-reviewer", "project-writer", "proposer"];
-// Whose runtime every planning lead runs (#1316).
+// Whose runtime a planning lead runs when it picks none (#1316, #1616).
 const PLANNING_HELPER = "discussion-helper";
+// The runtime list's value for "follow the planning helper" — not a runtime id.
+const FOLLOW_HELPER = "@follow";
 
 // The board's scheduled agents (#1464): the key each is saved under, its words, the mark on
 // its Run now, and the action its passes run.
@@ -424,7 +425,6 @@ export function AgentDetail({
   extra,
   onDeleted,
   onRuntimes,
-  onFollowed,
   onError,
 }: {
   roster: AgentRoster;
@@ -442,8 +442,6 @@ export function AgentDetail({
   /** Run after the agent is gone, for a pane holding something else that named it. */
   onDeleted?: () => void | Promise<void>;
   onRuntimes?: () => void;
-  /** Cross to the page of the agent whose runtime this one runs (#1316). */
-  onFollowed?: (agent: string) => void;
   onError?: (msg: string) => void;
 }) {
   return (
@@ -466,7 +464,6 @@ export function AgentDetail({
       info={info}
       onRuntime={(runtime) => void roster.bind(agent, runtime)}
       onRuntimes={onRuntimes}
-      onFollowed={onFollowed}
       onError={onError}
       onDelete={async () => {
         await roster.remove(agent.name);
@@ -859,7 +856,6 @@ function Page({
   onPick,
   onRuntime,
   onRuntimes,
-  onFollowed,
   onError,
   onDelete,
   busySwitch,
@@ -886,7 +882,6 @@ function Page({
   onRuntime: (runtime: string) => void;
   /** Cross to Configuration → Runtimes, from the runtime row. */
   onRuntimes?: () => void;
-  onFollowed?: (agent: string) => void;
   /** Where a failure the page cannot show in place goes — the dialog's error strip. */
   onError?: (msg: string) => void;
   onDelete: () => Promise<void>;
@@ -1031,17 +1026,13 @@ function Page({
                 (agent.name === PLANNING_HELPER && c.runtimeShared)
               }
               control={
-                agent.runs.follows ? (
-                  <RuntimeFollowed agent={agent} info={info} onFollowed={onFollowed} />
-                ) : (
-                  <RuntimePick
-                    agent={agent}
-                    info={info}
-                    busy={busy("runtime")}
-                    onRuntime={onRuntime}
-                    onRuntimes={onRuntimes}
-                  />
-                )
+                <RuntimePick
+                  agent={agent}
+                  info={info}
+                  busy={busy("runtime")}
+                  onRuntime={onRuntime}
+                  onRuntimes={onRuntimes}
+                />
               }
             />
           )}
@@ -1864,6 +1855,11 @@ function RuntimePick({
   const nameOf = useRuntimeName();
   const [open, setOpen] = useState(false);
   const { picked, shown } = useRuntimeShown(agent, info);
+  // A planning lead's first entry runs what the planning helper runs (#1616); picking it
+  // clears the lead's own pick.
+  const lead = agent.runs.followsWhenUnset;
+  const helper = lead && info.runtimes.find((r) => r.id === lead.runtime);
+  const following = !!agent.runs.follows;
 
   return (
     // One control and nothing under it. What the pick resolves to is IN the closed trigger,
@@ -1877,9 +1873,9 @@ function RuntimePick({
     <Select
       open={open}
       onOpenChange={setOpen}
-      value={agent.runs.runtime}
+      value={following ? FOLLOW_HELPER : agent.runs.runtime}
       disabled={busy}
-      onValueChange={onRuntime}
+      onValueChange={(value) => onRuntime(value === FOLLOW_HELPER ? "" : value)}
     >
       <SelectTrigger
         aria-label={c.runtime}
@@ -1889,10 +1885,22 @@ function RuntimePick({
             AND what it resolves to, which is the whole answer to "what does this run on". */}
         <span className="flex min-w-0 items-center gap-1.5">
           {picked && <AgentMark src={picked.icon} size={13} />}
-          <span className="truncate">{shown}</span>
+          <span className="truncate">
+            {following && picked
+              ? [c.followHelper, picked.label, picked.model].filter(Boolean).join(" · ")
+              : shown}
+          </span>
         </span>
       </SelectTrigger>
       <SelectContent>
+        {lead && (
+          <SelectItem value={FOLLOW_HELPER} note={helper?.label}>
+            <span className="flex items-center gap-1.5">
+              {helper && <AgentMark src={helper.icon} size={13} />}
+              {c.followHelper}
+            </span>
+          </SelectItem>
+        )}
         {info.runtimes.map((row) => (
           <SelectItem
             key={row.id}
@@ -1923,39 +1931,6 @@ function RuntimePick({
         )}
       </SelectContent>
     </Select>
-  );
-}
-
-// A planning lead's runtime (#1316): the planning helper's, read-only, with the way to change it.
-function RuntimeFollowed({
-  agent,
-  info,
-  onFollowed,
-}: {
-  agent: AgentView;
-  info: AgentInfo;
-  onFollowed?: (agent: string) => void;
-}) {
-  const c = useCopy().configuration.agents;
-  const { picked, shown } = useRuntimeShown(agent, info);
-  const follows = agent.runs.follows;
-  return (
-    <div className="flex min-w-0 flex-col items-end gap-1 pt-[7px] max-sm:items-start max-sm:pt-0">
-      <span className="flex max-w-full items-center gap-1.5 text-[12.5px] text-nb-ink">
-        {picked && <AgentMark src={picked.icon} size={13} />}
-        <span className="truncate">{shown}</span>
-      </span>
-      {onFollowed && follows && (
-        <button
-          type="button"
-          onClick={() => onFollowed(follows)}
-          className="flex cursor-pointer items-center gap-0.5 rounded-[4px] text-[11.5px] font-[600] text-nb-accent-deep hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-        >
-          {c.runtimeFollows}
-          <FiChevronRight size={11} aria-hidden />
-        </button>
-      )}
-    </div>
   );
 }
 

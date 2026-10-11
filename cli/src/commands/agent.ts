@@ -354,14 +354,6 @@ function bindAgent(args: string[]): MoveResult {
       agent,
     })
   }
-  const follows = agentRun(agent).follows
-  if (follows) {
-    die(`\`${agent}\` leads planning, and planning runs on the runtime \`${follows}\` runs. Change that one: akb agent bind ${follows} <runtime>.`, {
-      kind: 'follows-agent',
-      agent,
-      follows,
-    })
-  }
   const asked = args[1]?.trim() ?? ''
   const known = readRuntimes()
   if (!asked) {
@@ -372,7 +364,7 @@ function bindAgent(args: string[]): MoveResult {
   const runs = agentRun(agent)
   say(
     asked === '-'
-      ? `\`${agent}\` runs Global default — ${runs.harness}${runs.model ? ` · ${runs.model}` : ''} here.`
+      ? `\`${agent}\` runs ${runs.follows ? `what \`${runs.follows}\` runs` : 'Global default'} — ${runs.harness}${runs.model ? ` · ${runs.model}` : ''} here.`
       : `\`${agent}\` runs "${runs.runtimeName}" — ${runs.harness}${runs.model ? ` · ${runs.model}` : ''} — on this board and every checkout of it.`,
   )
   return { agent, runtime: runs.runtime }

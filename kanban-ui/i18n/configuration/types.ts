@@ -315,10 +315,10 @@ export type ConfigurationCopy = {
     boardsOwn: string;
     /** The link across to Configuration → Runtimes, under the runtime control. */
     openRuntimes: string;
-    /** Under the planning helper's Runtime label: planning leads run this one too (#1316). */
+    /** Under the planning helper's Runtime label: planning leads with no pick run it too. */
     runtimeShared: string;
-    /** Under a planning lead's read-only runtime: the way to the planning helper's page. */
-    runtimeFollows: string;
+    /** A planning lead's first runtime entry: run what the planning helper runs (#1616). */
+    followHelper: string;
     /** The runtime the board holds for this agent is one it no longer has. */
     unknownHarness: (runtime: string) => string;
     harnessFailed: (agent: string) => string;

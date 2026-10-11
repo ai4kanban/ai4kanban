@@ -31,6 +31,7 @@ import { DEFAULT_HARNESS, HARNESSES, MODEL_KEY, harnessByName } from './harnesse
 import { LEGACY_UI_CONFIG, UI_CONFIG } from '../paths'
 import { configBlock, readConfigRaw, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
 import { specAgentNames } from '../spec-agent-names'
+import { leadsPlanning } from './roles'
 import type { Harness } from './harnesses'
 import { refusal, type RunRefusal, type Saved } from './types'
 
@@ -192,14 +193,19 @@ export function runtimeOfAgent(
   return undefined
 }
 
-/** Point one agent at a runtime, or back at **Global default** with an empty id. A pick left
- *  under a name the agent had before goes too, or it would win the next read. */
+// A planning lead with no pick follows the planning helper (#1616), so its pick of **Global
+// default** is a real pick and is written down.
+const keepsPick = (agent: string, id: string): boolean => !!id && (id !== GLOBAL_ID || leadsPlanning(agent))
+
+/** Point one agent at a runtime, or back at **Global default** with an empty id — a planning
+ *  lead back at the planning helper's. A pick left under a name the agent had before goes
+ *  too, or it would win the next read. */
 export function setAgentRuntime(agent: string, runtime: string): Saved {
   if (runtime && !runtimeById(runtime)) return { ok: false, ...noRuntime(runtime) }
   return writeConfig((cfg) => {
     const block = { ...readAgentRuntime(cfg) }
     for (const name of specAgentNames(agent)) delete block[name]
-    if (runtime && runtime !== GLOBAL_ID) block[agent] = runtime
+    if (keepsPick(agent, runtime)) block[agent] = runtime
     else delete block[agent]
     writePicks(cfg, block)
   })
@@ -372,12 +378,12 @@ function save(list: Runtime[]): Saved {
 
 // Each agent's pick as an id on the list being written — an `agentHarness` name resolves to the
 // row that harness's block became, and a pick nothing answers to falls back to **Global
-// default**, which is written down as no pick at all.
+// default**, which is written down as no pick at all except on a planning lead.
 function writePicks(cfg: Record<string, unknown>, picks: Record<string, string>, list = readRuntimes(cfg)): void {
   const block: Record<string, string> = {}
   for (const [agent, pin] of Object.entries(picks)) {
     const row = pickRuntime(list, pin)
-    if (row.id && row.id !== GLOBAL_ID) block[agent] = row.id
+    if (keepsPick(agent, row.id)) block[agent] = row.id
   }
   delete cfg.agentHarness
   if (Object.keys(block).length) cfg.agentRuntime = block

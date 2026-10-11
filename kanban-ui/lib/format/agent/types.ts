@@ -1598,6 +1598,9 @@ export interface HarnessRun {
   /** The agent whose pick this is, on an agent that has none of its own: a planning lead
    *  runs what the discussion runs (#1316). */
   follows?: string
+  /** On every planning lead (#1616): the agent it follows while it has no pick, and the
+   *  runtime that one runs. */
+  followsWhenUnset?: { agent: string; runtime: string }
   /** The runtime id the board holds for this agent, when the board no longer has that row.
    *  The fields around it are the runtime that runs instead. */
   unknownRuntime?: string

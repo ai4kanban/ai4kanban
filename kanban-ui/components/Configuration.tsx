@@ -379,10 +379,6 @@ export function Configuration({
               <WorkflowsPanel
                 info={agent}
                 onRuntimes={() => setSection("runtimes")}
-                onFollowed={(name) => {
-                  setPickAgent(name);
-                  setSection("upkeep");
-                }}
                 onError={onError}
               />
             )}
