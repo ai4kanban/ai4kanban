@@ -36,6 +36,15 @@ export const WASHES = {
 
 export type WashName = keyof typeof WASHES;
 
+// The paper a wash is painted on. `band` is `--color-band`, the landing page's;
+// `light` is a step brighter, for a mat that sits alone on a white page.
+export const PAPERS = {
+  band: [248, 245, 239],
+  light: [251, 249, 245],
+} as const satisfies Record<string, Rgb>;
+
+export type PaperName = keyof typeof PAPERS;
+
 // The same composition as CSS, for the ground under the canvas — inline in the
 // static HTML, and what stands if JS never runs. The radii are percentages of
 // the mat's box where the canvas works in mat widths, so the two drift apart on

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import type { WashName } from "./washes";
+import type { PaperName, WashName } from "./washes";
 
 // Two gates keep the canvas off the critical path, where the hero screenshot is
 // the LCP element: `ssr: false` puts it in its own chunk (shared by all five
@@ -14,9 +14,11 @@ const PixelWash = dynamic(() => import("./PixelWash"), { ssr: false });
 
 export function Wash({
   name,
+  paper,
   animated,
 }: {
   name: WashName;
+  paper?: PaperName;
   animated?: boolean;
 }) {
   const [awake, setAwake] = useState(false);
@@ -33,5 +35,5 @@ export function Wash({
     return () => window.clearTimeout(id);
   }, []);
 
-  return awake ? <PixelWash name={name} animated={animated} /> : null;
+  return awake ? <PixelWash name={name} paper={paper} animated={animated} /> : null;
 }

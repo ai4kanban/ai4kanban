@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import { Wash } from "./Wash";
-import { washGround, type WashName } from "./washes";
+import { PAPERS, washGround, type PaperName, type WashName } from "./washes";
 
 // A watercolour ground with a print mounted on it — how every picture on the
 // landing page is mounted. The ground ships as a CSS gradient; the canvas fades
 // in over it and paints the same picture in pixels.
 //
-// The paper the wash is painted on is `band`, not white: the prints are white,
-// and on a white page a white mat has neither an outer edge nor anything for
-// the print to sit against. It is the site's other use of the warm tone.
+// The paper the wash is painted on is never white: the prints are white, and on
+// a white page a white mat has neither an outer edge nor anything for the print
+// to sit against. It defaults to `band`, the site's other use of the warm tone.
 //
 // No border on either the mat or the print: an ink box around a watercolour
 // reads as a frame. The print's soft shadow is what lifts it, where every other
@@ -26,6 +26,7 @@ type Reveal = {
 
 type MatProps = Reveal & {
   wash: WashName;
+  paper?: PaperName;
   /** The hero's, and only the hero's — see `PixelWash.tsx`. */
   animated?: boolean;
   className?: string;
@@ -34,6 +35,7 @@ type MatProps = Reveal & {
 
 export function Mat({
   wash,
+  paper = "band",
   animated,
   className = "",
   children,
@@ -44,11 +46,11 @@ export function Mat({
       {...reveal}
       className={`relative overflow-hidden rounded-xl ${className}`}
       style={{
-        backgroundColor: "var(--color-band)",
+        backgroundColor: `rgb(${PAPERS[paper].join(" ")})`,
         backgroundImage: washGround(wash),
       }}
     >
-      <Wash name={wash} animated={animated} />
+      <Wash name={wash} paper={paper} animated={animated} />
       {/* Its own stacking context, so the canvas can never draw over a print.
           `w-full` is a no-op under a block mat and is what lets a print fill a
           mat that centres its content with flex. */}

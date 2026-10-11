@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { WASHES, type Wash, type WashName } from "./washes";
+import { PAPERS, WASHES, type PaperName, type Wash, type WashName } from "./washes";
 
 // Every watercolour on the landing page, painted instead of downloaded.
 //
@@ -18,10 +18,6 @@ import { WASHES, type Wash, type WashName } from "./washes";
 // one `ImageData`, stopping dead off-screen or in a hidden tab. See `Wash.tsx`
 // for how all of it is kept off the critical path.
 
-// `--color-band` #f8f5ef — the same paper `Mat.tsx` puts under this canvas. Any
-// drift between the two shows up as a seam while the canvas fades in.
-const PAPER = [248, 245, 239];
-
 // Six steps of wash plus bare paper, per pigment. This coarse *because* of the
 // dither: the weave is the drawing, not the palette.
 const LEVELS = 6;
@@ -33,11 +29,15 @@ const PEAK = 0.68;
 // The blooms are quantised separately and composited, so the table is square:
 // paper mixed toward the top pigment by one level, then the bottom by the other.
 const STRIDE = LEVELS + 1;
-const palettes = new Map<WashName, Uint8Array>();
-function paletteFor(name: WashName) {
-  const cached = palettes.get(name);
+// The paper is the same one `Mat.tsx` puts under this canvas; any drift between
+// the two shows up as a seam while the canvas fades in.
+const palettes = new Map<string, Uint8Array>();
+function paletteFor(name: WashName, paper: PaperName) {
+  const key = `${name}:${paper}`;
+  const cached = palettes.get(key);
   if (cached) return cached;
   const { top, bottom } = WASHES[name];
+  const PAPER = PAPERS[paper];
   const table = new Uint8Array(STRIDE * STRIDE * 3);
   for (let la = 0; la <= LEVELS; la++) {
     const ta = (la / LEVELS) * PEAK;
@@ -49,7 +49,7 @@ function paletteFor(name: WashName) {
       }
     }
   }
-  palettes.set(name, table);
+  palettes.set(key, table);
   return table;
 }
 
@@ -127,9 +127,11 @@ function bloom(dx: number, dy: number, rx: number, ry: number) {
 
 export default function PixelWash({
   name,
+  paper = "band",
   animated = false,
 }: {
   name: WashName;
+  paper?: PaperName;
   animated?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -142,7 +144,7 @@ export default function PixelWash({
     if (!canvas || !host || !ctx) return;
 
     const wash: Wash = WASHES[name];
-    const table = paletteFor(name);
+    const table = paletteFor(name, paper);
 
     let cols = 0;
     let rows = 0;
@@ -302,7 +304,7 @@ export default function PixelWash({
       document.removeEventListener("visibilitychange", sync);
       still.removeEventListener("change", sync);
     };
-  }, [name, animated]);
+  }, [name, paper, animated]);
 
   return (
     <canvas

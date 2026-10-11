@@ -1,13 +1,13 @@
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ArticleLayout } from "@/components/blog/ArticleLayout";
+import { Mat } from "@/components/home/Mat";
 import { getCopy } from "@/i18n";
 import type { Locale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { getWorkflowPage, workflowPath } from "@/lib/workflows";
 import { CodingHeroArt } from "./CodingHeroArt";
 import { DraftCompare, Clip, Screens } from "./Figures";
-import { HeroBackdrop } from "./HeroBackdrop";
 
 // /workflows/coding in every language. The body is `content/workflows/coding/<locale>.mdx`.
 export const PATH = workflowPath("coding");
@@ -29,11 +29,11 @@ export function CodingPage({ locale }: { locale: Locale }) {
 
   return (
     <>
-      <Header c={c} locale={locale} overlay />
+      <Header c={c} locale={locale} />
       <ArticleLayout
         body={page.body}
         extra={{ Screens, Clip, DraftCompare }}
-        backdrop={<HeroBackdrop />}
+        backdrop={null}
         rule={false}
         tocLabel={page.toc}
         header={
@@ -42,9 +42,11 @@ export function CodingPage({ locale }: { locale: Locale }) {
               {page.title}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted">{page.lead}</p>
-            <div className="mx-auto mt-8 max-w-2xl rounded-2xl bg-elev/75 p-6 shadow-[0_18px_50px_-20px_rgba(36,35,31,0.3)] backdrop-blur-md sm:mt-12 sm:p-12">
-              <CodingHeroArt label={page.heroAlt} />
-            </div>
+            <Mat wash="emberMint" paper="light" className="mx-auto mt-8 max-w-3xl p-3 sm:mt-12 sm:p-6">
+              <div className="overflow-hidden rounded-xl bg-elev p-4 sm:p-10">
+                <CodingHeroArt label={page.heroAlt} />
+              </div>
+            </Mat>
           </div>
         }
       />
