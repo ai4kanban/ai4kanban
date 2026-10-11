@@ -8,8 +8,8 @@
 // way back is a row in the rail and the link above the mockup, and both are ordinary
 // navigation: `router.back()` was neither, since a pasted address has nothing behind it.
 //
-// The mockup keeps the sandbox the card page's frame has — nothing loads, and only an
-// `.html` page's own inline scripts run (#1626). It is not scaled here, so a panel narrower
+// The mockup keeps the sandbox the card page's frame has — nothing loads, and only a
+// `.tsx` or `.html` page's own inline scripts run (#1626, #1628). It is not scaled here, so a panel narrower
 // than the screen it was drawn on scrolls. A phone screen (#1097) stands in its phone frame.
 //
 // A `.txt` mockup opens here too (#256), in the same monospaced block the card page shows

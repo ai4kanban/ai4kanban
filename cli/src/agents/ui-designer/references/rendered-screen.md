@@ -31,7 +31,10 @@ second, and design only what this card changes.
   copied into the folder as a file or trimmed out.
 - **A snapshot, not a link**: the copy is frozen where it was taken. It neither reaches the
   running app nor follows the app when the app changes.
-- **`.html`**: a complete self-styled page, for a screen that is not a component.
+- **Any framework**: a screen from Vue, Svelte or plain HTML is rewritten as `.tsx`, keeping
+  its markup and classes, and its stylesheet as plain `.css`.
+- **Script**: CSS animation runs. Only when the motion the card changes needs script, such as
+  canvas or WebGL, add one inline `<script dangerouslySetInnerHTML>`; it runs offline.
 
 Draw terminals and command output as monospaced text inside the mockup too.
 

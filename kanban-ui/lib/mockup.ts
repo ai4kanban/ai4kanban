@@ -20,7 +20,7 @@
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
 // in a sandboxed iframe, so nothing reaches the network or the board, and its styling and the
-// board's never meet. Only an `.html` page runs its own inline scripts (#1626).
+// board's never meet. Both run their own inline scripts (#1626, #1628).
 
 import type { MessagesCopy } from "@/i18n/messages/types";
 import { machineCopy } from "./language";
@@ -41,7 +41,7 @@ import { AUDIO_TYPES, FILE_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } fr
 import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
 import { hyperframeDocument } from "./hyperframe-document";
-import { pageDocument } from "./page-document";
+import { componentDocument, frameHead, pageDocument } from "./page-document";
 
 const IMAGE_EXTS = Object.keys(IMAGE_TYPES);
 const MEDIA_EXTS: Record<string, "video" | "audio"> = {
@@ -239,8 +239,8 @@ export async function readMockup(src: string, contain = true, defer = false): Pr
     if (ext === "html" && fileName.endsWith(".hf.html")) {
       return { src, code, doc: hyperframeDocument(code), hyperframe: true };
     }
-    if (ext === "tsx") return { src, code, doc: await drawComponent(file, src, contain, c) };
-    return { src, code, doc: dressPage(code, contain, path.dirname(file)), scripts: true };
+    const doc = ext === "tsx" ? await drawComponent(file, src, contain, c) : dressPage(code, contain, path.dirname(file));
+    return { src, code, doc, scripts: true };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     return { src, code, error: c.notDrawn(src, why) };
@@ -370,7 +370,7 @@ async function drawComponent(entry: string, src: string, contain: boolean, c: Me
   sandbox.__draw = () =>
     renderToStaticMarkup(React.createElement(Component as React.FunctionComponent));
   const markup = run("__draw()", context, src, deadline, c) as string;
-  return page(await tailwindFor(markup, graph.sheets, c), markup, contain);
+  return componentDocument(await tailwindFor(markup, graph.sheets, c), markup, contain);
 }
 
 /** One turn inside the sandbox, on what is left of the clock. Whatever comes back out is a
@@ -464,30 +464,6 @@ async function tailwindFor(
 
 // --- the document ------------------------------------------------------------
 
-// A `.tsx` mockup is static markup: only embedded assets load, scripts and the network stay blocked.
-const CSP =
-  "<meta http-equiv=\"Content-Security-Policy\" " +
-  "content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:\">";
-
-// Sideways is the one direction a mockup never scrolls: a layout that runs off the side is
-// one the user never sees whole. Up and down it scrolls inside its own frame.
-//
-// Where that scroll goes when the frame has no more to give is `contain`, and it is the
-// whole difference between the two places a mockup is shown. On a card page it stops at
-// the frame: a wheel over a picture must not move the card behind it. On the mockup's own
-// page the frame IS what the user came for, it is drawn at full size in a panel smaller
-// than it, and that panel is what scrolls — so containing the scroll there leaves a
-// picture whose edges cannot be reached at all.
-function frameCss(contain: boolean): string {
-  return `<style>html{overflow-x:hidden${contain ? ";overscroll-behavior:contain" : ""}}</style>`;
-}
-
-const head = (contain: boolean) => `<meta charset="utf-8">${CSP}${frameCss(contain)}`;
-
-function page(css: string, markup: string, contain: boolean): string {
-  return `<!doctype html><html><head>${head(contain)}<style>${css}</style></head><body>${markup}</body></html>`;
-}
-
 const STYLESHEET_LINK = /<link\b[^>]*>/gi;
 
 /** A `<link rel=stylesheet>` to a `.css` file in the mockup's own folder, swapped for the
@@ -511,5 +487,5 @@ function inlineSheets(html: string, folder: string): string {
 /** An `.html` mockup is a whole page already — it keeps its own markup and its own
  *  styling, and only gets the frame's own rules put in front of them. */
 function dressPage(raw: string, contain: boolean, folder: string): string {
-  return pageDocument(inlineSheets(raw, folder), `<meta charset="utf-8">${frameCss(contain)}`);
+  return pageDocument(inlineSheets(raw, folder), frameHead(contain));
 }

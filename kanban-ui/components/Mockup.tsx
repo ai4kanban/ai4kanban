@@ -5,8 +5,8 @@
 //
 // The screen itself is a sandboxed iframe, which is the whole isolation: it has no origin to
 // reach the board with, and its styling and the board's never meet — the board's fonts,
-// colours and layout rules stop at the frame, and a mockup's `<style>` stops there too. Only
-// an `.html` page's inline scripts run (#1626); its own CSP keeps it off the network.
+// colours and layout rules stop at the frame, and a mockup's `<style>` stops there too. A
+// `.tsx` or `.html` page's inline scripts run (#1626, #1628); its own CSP keeps it off the network.
 //
 // A screen is drawn on its device's canvas — desktop unless the tag says `device="mobile"`
 // (#1097) — and scaled down to whatever width the card page gives it. A phone screen fills
