@@ -18,7 +18,7 @@ seo:
 
 Spec-to-code means a coding agent writes code from a written spec that you have read and agreed to. The spec says what to build; the code is checked against it.
 
-The reason is simple. Hand an agent a one-line request and it may fill every gap itself — which screen changes, what counts as done, how an edge case behaves. You find out once the code exists. A spec moves those choices earlier, when changing them means editing a sentence, not rewriting code.
+The reason is simple. Hand an agent a one-line request and it may fill every gap itself — which screen changes, what counts as done, how an edge case behaves. You find out once the code exists. A spec settles those choices before any code exists. Changing one then costs a sentence, not a rewrite.
 
 ## How do today's tools write a spec?
 
@@ -26,8 +26,9 @@ Most spec-driven tools follow the same order: spec, then plan, then tasks, then 
 
 - **GitHub [Spec Kit](https://github.com/github/spec-kit)** provides a command for each step: `/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`.
 - **Kiro [specs](https://kiro.dev/docs/specs/)** use three files per feature: `requirements.md`, `design.md` and `tasks.md`.
+- **[Superpowers](https://github.com/obra/superpowers)** uses skills: `brainstorming` asks what you actually want and writes a design document, `writing-plans` breaks it into small tasks with exact file paths and code, and `executing-plans` carries them out.
 
-In both, the agent drafts long Markdown documents from your request, and you review them before any code is written.
+In all three, the agent drafts long Markdown documents from your request, and you review them before any code is written.
 
 ![The specify, plan and tasks steps each produce another Markdown file, all reviewed before the implement step writes any code.](https://cdn.ai4kanban.dev/spec-to-code/fig-01.webp)
 
@@ -37,7 +38,7 @@ The idea is sound. The experience often is not.
 
 - **The spec is too long to review.** Birgitta Böckeler tried Kiro and Spec Kit for [Martin Fowler's site](https://www.martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html): one small bug became "4 'user stories' with a total of 16 acceptance criteria", and Spec Kit produced Markdown files that were "repetitive, both with each other, and with the code that already existed". Her verdict: "I'd rather review code than all these markdown files." Colin Eberhardt [measured his Spec Kit run](https://blog.scottlogic.com/2025/11/26/putting-spec-kit-through-its-paces-radical-idea-or-reinvented-waterfall.html): 2,577 lines of Markdown and 3.5 hours of review for one feature increment. François Zaninotto [describes](https://marmelab.com/blog/2025/11/12/spec-driven-development-waterfall-strikes-back.html) showing the current date in an app turning into 8 files and 1,300 lines of text.
 - **Every change means reading it all again.** Reading the spec once is the easy part. You change a requirement, the agent rewrites the documents, and you review the whole thing again to see what changed.
-- **The agent decides for you, quietly.** A spec usually comes out of one round of discussion. Along the way the agent makes dozens of assumptions, and some are wrong. They sit in the prose looking as settled as everything else. The agent should ask about the decisions that matter and handle the rest.
+- **The agent decides for you, quietly.** A spec usually comes out of one round of discussion. Along the way the agent makes dozens of assumptions, and some are wrong. They sit in the prose looking as settled as everything else. Matt Pocock's [grilling skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md) tries to fix this: the agent asks its open questions round by round, each with a recommended answer, until there is "nothing left silently assumed". That is a trade-off. Either you answer dozens of questions, or you let the agent settle the minor ones and ask only about what matters — and some wrong guesses still get through.
 - **Nothing remembers your past decisions.** You have written many specs. You still forget choices you made months ago. So does the agent; its built-in memory does not reliably bring them back when they matter.
 
 ![Screenshots of Birgitta Böckeler's article on martinfowler.com and its Hacker News thread, with the complaints about spec length and complexity highlighted.](https://cdn.ai4kanban.dev/spec-to-code/fig-02.webp)
@@ -46,7 +47,7 @@ The idea is sound. The experience often is not.
 
 There are two ways to make a spec easier to review.
 
-**Visualise it.** Show the information in a form you read faster: a mockup instead of a screen description, a diagram instead of a list. [Answer me with HTML](https://answer-me-with-html.com/) is a recent example: it turns an agent's Markdown answer into a page with diagrams, charts and tables. This removes nothing. It is lossless compression: the same information, easier to digest.
+**Visualise it.** Show the information in a form you read faster: a mockup instead of text describing a screen, a diagram instead of a list. [Answer me with HTML](https://answer-me-with-html.com/) is a recent example: it turns an agent's Markdown answer into a page with diagrams, charts and tables. This removes nothing. It is lossless compression: the same information, easier to digest.
 
 **Fold it.** Pull out what you need to review, and fold away the rest for the agent. The details are still there. You just read less — lossy compression for the reader.
 
@@ -82,19 +83,19 @@ Both. It is the agreement on what to build. You read it to check that it says wh
 
 <FAQItem question="If I only review the key decisions, who checks the rest?">
 
-That is a trade-off. You might trust the agent with JavaScript syntax, for example, but want to review the UI yourself. Where you do not trust it, add an agent that pulls those parts out for you to review. AI4Kanban's coding workflow already has seven planning agents for different areas; you can [create your own](https://ai4kanban.dev/docs/agents#add-one-of-your-own) or contribute one to AI4Kanban.
+You choose what to check. You may leave JavaScript syntax to the agent, for example, and still want to see the UI yourself. Where you do not trust it, add an agent that pulls those parts out for you to review. AI4Kanban's coding workflow already has seven planning agents for different areas; you can [create your own](https://ai4kanban.dev/docs/agents#add-one-of-your-own) or contribute one to AI4Kanban.
 
 </FAQItem>
 
 <FAQItem question="Can a spec contain only key decisions and drafts?">
 
-No. You can skip the details; the agent cannot. The [VISTA benchmark](https://arxiv.org/html/2605.26144v3) for visual spec-to-web-app agents found that mockups do not say which elements are interactive, and its authors annotated 3,253 components by hand. A mockup needs notes beside it. AI4Kanban folds the part written for the agent, so you can read just the drafts and key decisions.
+No. You can skip the details; the agent cannot. A mockup shows how a screen looks, not what it does. As the [VISTA benchmark](https://arxiv.org/abs/2605.26144) for agents that build apps from designs puts it, "a screen that looks right is not an application that works." A mockup needs notes beside it. AI4Kanban folds the part written for the agent, so you can read just the drafts and key decisions.
 
 </FAQItem>
 
 <FAQItem question="Can I skip the drafts and review and just build?">
 
-Yes, if you can live with the result. Without a draft, the agent may build an ugly screen that meets your request word for word and still misses what you expected. Without the key decisions pulled out, you spend your attention on every small detail. You become the bottleneck. With both, you hand over the details and get your speed back. Full automation would need the agent to share your design taste, your business judgment and every subjective call you make. Agents cannot reliably make all those calls for you yet.
+Yes, if you can live with the result. Without a draft, the agent may build an ugly screen that meets your request word for word and still misses what you expected. Without the key decisions pulled out, you spend your attention on every small detail. You become the bottleneck. With both, you hand over the details and get your speed back. Full automation would need the agent to share your design taste, your business judgment and every subjective call you make. Today's agents cannot reliably make all those calls for you.
 
 </FAQItem>
 
