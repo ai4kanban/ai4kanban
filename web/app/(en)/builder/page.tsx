@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { GITHUB_URL } from "@/components/content";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SOCIALS, SOCIAL_URLS } from "@/components/social";
 import { buttonClass } from "@/components/ui/Button";
+import { AskingFirst } from "@/components/builder/AskingFirst";
+import { DraftsFirst } from "@/components/builder/DraftsFirst";
 import { getCopy } from "@/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { ORG_ID, PERSON_ID, jsonLd, pageUrl, webPage } from "@/lib/schema";
 
 const c = getCopy("en");
 
+const AVATAR = "https://cdn.dist0.com/images/tao.avatar.jpg";
+
 const PATH = "/builder";
-const TITLE = "AI4Kanban: Meet the builder";
+const TITLE = "Why I'm building AI4Kanban — Tao Wu";
 const DESCRIPTION =
-  "Meet Tao Wu and learn why he built AI4Kanban to move software teams beyond supervising coding agents and toward managing requirements, decisions, and goals.";
+  "I started AI4Kanban hoping AI could run a project. Trying it with early users changed my mind about which decisions I could hand over.";
 const SCHEMA_DESCRIPTION =
-  "Meet Tao Wu, the builder of AI4Kanban, an open-source project-management agent built around a kanban board. The page explains how faster coding moved the bottleneck to requirements, why project context needs durable memory, and why people should steer product judgment instead of watching agent logs.";
+  "The story of building AI4Kanban, from trying to let AI run a project to reviewing key drafts before execution.";
 
 export const metadata: Metadata = pageMetadata({
   locale: "en",
@@ -37,10 +42,9 @@ const schema = jsonLd(
     "@id": PERSON_ID,
     name: "Tao Wu",
     url: pageUrl(PATH),
-    image: "https://cdn.dist0.com/images/tao.avatar.jpg",
-    jobTitle: "Builder of AI4Kanban",
-    description:
-      "Tao Wu is the builder of AI4Kanban, an open-source project-management agent for turning rough product ideas into buildable work.",
+    image: AVATAR,
+    jobTitle: "Founder of AI4Kanban",
+    description: "Tao Wu is the founder of AI4Kanban.",
     worksFor: { "@id": ORG_ID },
     sameAs: SOCIAL_URLS,
   },
@@ -49,58 +53,7 @@ const schema = jsonLd(
 const linkClass =
   "text-ink underline decoration-2 decoration-accent underline-offset-[3px] transition-colors hover:text-accent-deep hover:decoration-accent-deep";
 
-function SocialLinks() {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {SOCIALS.map(({ href, label, Icon }) => (
-        <a
-          key={href}
-          href={href}
-          target="_blank"
-          rel="me noopener noreferrer"
-          aria-label={label}
-          className={buttonClass("secondary", "icon")}
-        >
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function Avatar({ priority = false }: { priority?: boolean }) {
-  return (
-    // The portrait is shared with Tao's personal site at its canonical URL.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="https://cdn.dist0.com/images/tao.avatar.jpg"
-      alt="Tao Wu"
-      width={174}
-      height={174}
-      loading={priority ? "eager" : "lazy"}
-      fetchPriority={priority ? "high" : "auto"}
-      className="block aspect-square h-full w-full object-cover"
-    />
-  );
-}
-
-function Question({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <aside className="rounded-xl bg-code p-6 sm:p-7">
-      <h3 className="text-lg font-bold leading-snug tracking-tight">{title}</h3>
-      <div className="mt-4 space-y-4 text-[0.95rem] leading-relaxed text-muted">
-        {children}
-      </div>
-    </aside>
-  );
-}
-
+// /builder as one letter: title, who is writing, the story, the signature.
 export default function BuilderPage() {
   return (
     <>
@@ -110,18 +63,8 @@ export default function BuilderPage() {
       />
       <Header c={c} locale="en" />
       <main className="px-6 pb-8 text-ink">
-        <section
-          aria-labelledby="builder-heading"
-          className="mx-auto max-w-3xl pb-14 pt-16 text-center sm:pb-20 sm:pt-24"
-        >
-          <p className="mb-5 inline-flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-            <span className="text-accent-deep">01</span>
-            Builder
-          </p>
-          <h1
-            id="builder-heading"
-            className="text-4xl font-bold leading-[1.08] tracking-[-0.035em] sm:text-5xl lg:text-6xl"
-          >
+        <article className="mx-auto max-w-[38rem] pt-14 sm:pt-24">
+          <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.035em] sm:text-5xl">
             Why I&apos;m building{" "}
             <span className="relative whitespace-nowrap">
               <span className="relative z-10">AI4Kanban</span>
@@ -131,173 +74,123 @@ export default function BuilderPage() {
               />
             </span>
           </h1>
-        </section>
 
-        <section aria-label="About Tao Wu" className="mx-auto max-w-4xl">
-          <div className="rounded-xl bg-code p-5 shadow-[4px_4px_0_0_var(--color-ink)] md:hidden">
-            <div className="flex items-center gap-5">
-              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-elev">
-                <Avatar priority />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-2xl font-bold tracking-tight">Tao Wu</h2>
-                <p className="mt-1 font-mono text-xs uppercase tracking-[0.14em] text-muted">
-                  Builder of AI4Kanban
-                </p>
-                <div className="mt-4">
-                  <SocialLinks />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10 grid grid-cols-1 gap-12 md:mt-0 md:grid-cols-[174px_minmax(0,580px)] md:justify-center md:gap-14">
-            <div className="hidden md:block">
-              <div className="overflow-hidden rounded-xl bg-code p-2.5 shadow-[4px_4px_0_0_var(--color-ink)]">
-                <div className="aspect-square overflow-hidden rounded-lg bg-elev">
-                  <Avatar priority />
-                </div>
-              </div>
-              <div className="mt-5">
-                <SocialLinks />
-              </div>
-            </div>
-
+          <div className="mt-8 flex items-center gap-4">
+            {/* The portrait is shared with Tao's personal site at its canonical URL. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={AVATAR}
+              alt="Tao Wu"
+              width={56}
+              height={56}
+              fetchPriority="high"
+              className="h-14 w-14 shrink-0 rounded-full object-cover"
+            />
             <div>
-              <div className="hidden md:block">
-                <h2 className="text-3xl font-bold leading-tight tracking-tight">
-                  Tao Wu
-                </h2>
-                <p className="mt-2 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Builder of AI4Kanban
-                </p>
-              </div>
-
-              <div className="space-y-5 text-[1.05rem] leading-[1.7] md:mt-7">
-                <p>
-                  I spent most of my career building{" "}
-                  <a
-                    href="https://github.com/risingwavelabs/risingwave"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={linkClass}
-                  >
-                    databases
-                  </a>
-                  , first as an engineer and later as a product manager. That
-                  combination taught me that software rarely fails because a
-                  team cannot write code. It fails when the work is unclear,
-                  context is scattered, and small decisions disappear before the
-                  next person needs them.
-                </p>
-
-                <p>
-                  Coding agents made that imbalance impossible to ignore. Give
-                  Claude Code or Codex a clear requirement and it can often
-                  deliver more than I expected. Give it a vague idea and the
-                  design space opens in every direction. The agent keeps moving,
-                  but speed only gets you to the wrong place faster.
-                </p>
-
-                <p>
-                  The new bottleneck is not writing code. It is turning a rough
-                  goal into good work: deciding what matters next, clarifying
-                  the edges, preserving product judgment, and knowing when a
-                  choice genuinely needs a person.
-                </p>
-
-                <p>
-                  I tried managing that work in chat. The decisions were there,
-                  but buried across long conversations. Every new session felt
-                  like onboarding a capable new teammate who had never met the
-                  product. More parallel agents created more conversations to
-                  supervise, not more leverage.
-                </p>
-
-                <p>
-                  That led me to what I call{" "}
-                  <span className="font-semibold underline decoration-2 decoration-accent underline-offset-[3px]">
-                    kanban engineering
-                  </span>
-                  : use the board as the planning layer above coding agents. A
-                  broad goal becomes a set of cards. Each card is questioned and
-                  refined until it is buildable. The decisions stay attached to
-                  the project, so the next card starts with more context than
-                  the last.
-                </p>
-
-                <ul className="space-y-3 pl-1">
-                  {[
-                    "Turn rough ideas into independent, buildable cards.",
-                    "Let the agent settle ordinary details and raise the few choices that need judgment.",
-                    "Keep goals, rejected paths, and product decisions in durable project memory.",
-                    "Run ready work through the coding agent while people focus on users, direction, and taste.",
-                  ].map((item) => (
-                    <li key={item} className="flex gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="mt-[0.72em] h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
-                      />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <p>
-                  AI4Kanban is my open-source attempt to make that workflow
-                  real. It is a project-management agent shaped as a kanban
-                  board, not another dashboard for watching logs. You steer
-                  requirements and approve the important calls; the board plans,
-                  remembers, and coordinates the path to delivery.
-                </p>
-
-                <p>
-                  The{" "}
-                  <a
-                    href={GITHUB_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={linkClass}
-                  >
-                    core is open source
-                  </a>
-                  . I use it to manage its own development, because the only way
-                  to learn whether an autonomous board can improve a real
-                  project is to trust it with one.
-                </p>
-              </div>
-
-              <div className="mt-10 space-y-5">
-                <Question title="Why a kanban instead of another chat window?">
-                  <p>
-                    Chat is good for one task. A project is a long-lived tree of
-                    goals, dependencies, decisions, and rejected paths. A board
-                    gives that structure a stable home and lets people review
-                    the work from the level that matters.
-                  </p>
-                  <p>
-                    The board is primarily for the agent to plan from. People
-                    can stay with the small set of questions, reviews, and
-                    decisions that require them.
-                  </p>
-                </Question>
-
-                <Question title="What does “AI4Kanban” mean?">
-                  <p>
-                    It means AI for the kanban: an agent drives each card from
-                    rough idea to clarified work, execution, and delivery. The
-                    kanban is no longer a passive list that waits for a person
-                    to update every column.
-                  </p>
-                  <p>
-                    The goal is simple: spend less time supervising agents and
-                    more time deciding what creates value.
-                  </p>
-                </Question>
-              </div>
+              <p className="font-semibold">Tao Wu</p>
+              <p className="text-sm text-muted">Founder of AI4Kanban</p>
             </div>
           </div>
-        </section>
+
+          <div className="mt-12 space-y-6 text-[1.125rem] leading-[1.8]">
+            <p>Hi, I&apos;m Tao. I&apos;m building AI4Kanban full-time.</p>
+            <p>
+              My first idea was to build a one-person startup with agents
+              running the project on their own. Coding agents were already
+              doing more of the implementation. I wanted to see if they could
+              take on the planning too.
+            </p>
+            <p>
+              Our idea was simple: before building, the agent asks questions
+              until the task is clear. It worked in the background. It broke an
+              idea into tasks, found the missing details, and answered what it
+              could on its own. Only the few choices that needed a person came
+              back, as multiple-choice questions.
+            </p>
+            <div className="py-2">
+              <AskingFirst />
+            </div>
+            <p>
+              We spent a lot of time trying to make it work. The agents did
+              raise useful questions and make useful decisions. But early users
+              told us <strong>it didn&apos;t feel faster</strong>. A coding
+              agent shows results right away. Ours made them wait through
+              planning and answer more questions, and it spent more tokens. A
+              small task could turn into a long conversation.
+            </p>
+            <p>
+              That feedback showed me what was wrong. We were asking people to
+              settle everything before they had seen a result. But most people{" "}
+              <strong>
+                don&apos;t know exactly what they want until they see a first
+                version
+              </strong>
+              . More questions upfront couldn&apos;t fix that.
+            </p>
+            <p>
+              So AI4Kanban now shows you{" "}
+              <strong>drafts of the key parts first</strong>: a UI mockup, the
+              copy for a page, or a change to a prompt. You settle those, and
+              the agent builds the rest.
+            </p>
+            <div className="py-2">
+              <DraftsFirst />
+            </div>
+            <p>
+              Agents sometimes add features you never asked for. In a long
+              written spec, those additions are easy to miss. In a UI draft, you
+              can see the extra pages right away. You can say, &apos;I
+              don&apos;t need these,&apos; before the agent builds them.
+              Sometimes, seeing the draft makes you rethink the whole idea.
+            </p>
+            <p>
+              We had moved from trying to let AI do everything, to having people
+              help AI, to having <strong>AI help people</strong>. Giving people
+              more say over the direction made it easier to hand over the
+              execution. Once the key drafts were agreed on, there was less left
+              to keep checking.
+            </p>
+            <p>
+              My goal is simple: reduce the effort people spend on each task,
+              and help them become{" "}
+              <strong>another 10 times more productive</strong>. That&apos;s why
+              I&apos;m building AI4Kanban.
+            </p>
+            <p>
+              This took a few attempts to understand. I&apos;m still building
+              it. You can see where AI4Kanban is today on the{" "}
+              <Link href="/" className={linkClass}>
+                home page
+              </Link>
+              , or follow the work on{" "}
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={linkClass}
+              >
+                GitHub
+              </a>
+              .
+            </p>
+          </div>
+
+          <p className="mt-12 text-xl font-semibold">Tao</p>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {SOCIALS.map(({ href, label, Icon }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="me noopener noreferrer"
+                aria-label={label}
+                className={buttonClass("secondary", "icon")}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+        </article>
       </main>
       <SiteFooter c={c} locale="en" path={PATH} />
     </>
