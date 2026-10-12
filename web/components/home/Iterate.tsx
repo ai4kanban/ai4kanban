@@ -359,7 +359,7 @@ const OUTPUT_ICONS: IconType[] = [FiTrendingUp, FiTag];
 
 // The agents the board can run, each with its own mark. No names in the block —
 // the logos carry it.
-const AGENT_LOGOS = [
+export const AGENT_LOGOS = [
   { src: "/agents/claude.svg", alt: "Claude Code" },
   { src: "/agents/codex.svg", alt: "Codex" },
   { src: "/agents/cursor.svg", alt: "Cursor" },

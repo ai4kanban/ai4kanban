@@ -7,7 +7,8 @@
 // undelayed step of that section's stagger. What follows it takes `data-delay`.
 // See `Reveal.tsx` — nothing that carries `data-reveal` may contain something
 // else that does, so a section never wraps this in one of its own.
-export function SectionTitle({ num, title }: { num: string; title: string }) {
+// `brand` is drawn just before the product name "AI4Kanban" in the title.
+export function SectionTitle({ num, title, brand }: { num: string; title: string; brand?: React.ReactNode }) {
   return (
     <div data-reveal className="mb-5">
       <div className="flex items-center gap-3">
@@ -16,8 +17,25 @@ export function SectionTitle({ num, title }: { num: string; title: string }) {
           {num}
         </span>
       </div>
+      {/* Each clause stays whole, so a narrow screen breaks at the comma
+          instead of orphaning the last character. */}
       <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-[2rem]">
-        {title}
+        {title.split(/(?<=，)/).map((part) => {
+          const at = brand ? part.indexOf("AI4Kanban") : -1;
+          return (
+            <span key={part} className="inline-block">
+              {at < 0 ? part : (
+                <>
+                  {part.slice(0, at)}
+                  <span className="whitespace-nowrap">
+                    <span className="mr-[0.25em]">{brand}</span>
+                    {part.slice(at)}
+                  </span>
+                </>
+              )}
+            </span>
+          );
+        })}
       </h2>
     </div>
   );

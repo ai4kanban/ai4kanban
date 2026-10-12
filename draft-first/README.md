@@ -1,4 +1,4 @@
-# draft-first
+<h1><img src="https://cdn.ai4kanban.dev/draft-first/logo-v1.svg" alt="draft-first" height="48"></h1>
 
 A skill for coding agents — Claude Code, Codex, Cursor, OpenCode and any agent that reads
 `.claude/skills/` or `.agents/skills/`. Use it instead of plan mode or writing a spec: before

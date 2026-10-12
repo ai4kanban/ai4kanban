@@ -34,6 +34,13 @@ const COLUMNS = [
 // `xs` with the full double shadow, for the one page that sets AI4Kanban's side
 // above the rival's rather than beside it.
 const SIZE = {
+  // Inside a line of text: cap-height, bottom on the baseline (a flex box's baseline is its
+  // glyph's bottom, hence the lift). The double shadow hangs below and moves nothing.
+  cap: {
+    block: "h-[1cap] w-[1cap] rounded-[0.2em] align-[0.217cap] shadow-[0.07cap_0.07cap_0_0_var(--color-accent-deep),0.14cap_0.14cap_0_0_var(--color-ink)]",
+    gap: "gap-2",
+    word: "",
+  },
   xs: {
     block: "h-5 w-5 rounded-md",
     gap: "gap-2",

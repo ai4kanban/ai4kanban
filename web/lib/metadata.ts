@@ -37,6 +37,7 @@ export function pageMetadata({
   socialTitle,
   social,
   socialImageAlt,
+  image = OG_IMAGE,
   type = "website",
   publishedTime,
   modifiedTime,
@@ -49,6 +50,8 @@ export function pageMetadata({
   type?: "website" | "article" | "profile";
   /** Page-specific alt text for the shared social image. */
   socialImageAlt?: string;
+  /** A share card of the page's own, in place of the site's. */
+  image?: typeof OG_IMAGE;
   /** ISO 8601. `article` only — the dates the page's JSON-LD already carries. */
   publishedTime?: string;
   modifiedTime?: string;
@@ -70,8 +73,8 @@ export function pageMetadata({
   const ogTitle = socialTitle ?? title;
   const ogDescription = social ?? description;
   const socialImage = socialImageAlt
-    ? { ...OG_IMAGE, alt: socialImageAlt }
-    : OG_IMAGE;
+    ? { ...image, alt: socialImageAlt }
+    : image;
 
   const openGraph = {
     url,
@@ -121,7 +124,7 @@ export function pageMetadata({
       card: "summary_large_image",
       title: ogTitle,
       description: ogDescription,
-      images: [{ url: OG_IMAGE.url, alt: socialImage.alt }],
+      images: [{ url: socialImage.url, alt: socialImage.alt }],
       creator: byTao ? X_HANDLE : undefined,
     },
   };

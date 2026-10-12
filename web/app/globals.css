@@ -19,6 +19,44 @@
     Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --font-pixel: Silkscreen, ui-monospace, monospace;
+
+  /* The draft-first review page's own tones, for the /draft-first drawings
+     (components/draft-first/), in step with draft-first/page/style.css. */
+  --color-nb-ink: #24231f;
+  --color-nb-ink-soft: #565550;
+  --color-nb-cream: #f7f7f4;
+  --color-nb-paper: #ffffff;
+  --color-nb-sheet: #fbfaf7;
+  --color-nb-wash: #f4f3ef;
+  --color-nb-accent: #dd4f1e;
+  --color-nb-accent-deep: #b83a12;
+  --color-nb-accent-soft: #f7ddce;
+  --color-nb-accent-wash: #fbf0e9;
+  --color-nb-mint: #7fca9c;
+  --color-nb-mint-soft: #e4f3ea;
+  --color-nb-mint-ink: #2f6b46;
+  --color-nb-sky: #7fb4e0;
+  --color-nb-peach-soft: #fbe9dd;
+  --color-nb-peach-ink: #8a4a28;
+}
+
+/* The review page's section and chip, for the same drawings. */
+.nb-section {
+  border-radius: 14px;
+}
+.nb-chip {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 2.5px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 /* Inlined Silkscreen subset for the footer wordmark. */
