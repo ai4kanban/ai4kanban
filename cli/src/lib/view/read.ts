@@ -72,6 +72,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     // Derived from the file exactly as it is on disk (lib/board/revision.ts), so a card
     // read here and a card read by the contract agree on what version this is.
     revision: revisionOf(text),
+    updatedAt: fs.statSync(file).mtime.toISOString(),
     relPath,
     title: meta.title,
     priority: meta.priority,

@@ -104,7 +104,7 @@ export interface BoardSnapshot {
 export interface ReaderBoard {
   revision: string
   workspace: { id: string; name: string; revision: string }
-  cards: { id: number; revision: string; data: Record<string, unknown> }[]
+  cards: { id: number; revision: string; updatedAt: string; data: Record<string, unknown> }[]
   documents: { path: string; body: string }[]
 }
 

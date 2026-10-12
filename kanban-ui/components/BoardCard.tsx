@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useContext, useEffect, useRef, useState } from "react";
-import { FiHelpCircle, FiPlay, FiTrash2 } from "react-icons/fi";
+import { FiClock, FiHelpCircle, FiPlay, FiTrash2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
@@ -55,8 +55,12 @@ export function BoardCard({
   liveSession,
   failedSession,
   creator,
+  staleDays,
 }: {
   card: Card;
+  /** Set in the Stale column (#1640): the card has left its module band, so its foot names
+   *  the module and how many days it has sat untouched. */
+  staleDays?: number;
   liveSession?: SessionView;
   /** The run on this card that stopped short and is still waiting on somebody (#809). */
   failedSession?: SessionView;
@@ -198,6 +202,20 @@ export function BoardCard({
       <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />
+        {staleDays !== undefined && card.modules[0] && (
+          <span className="text-[10px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
+            · {card.modules[0]}
+          </span>
+        )}
+        {staleDays !== undefined && (
+          <span
+            className="nb-tip ml-auto inline-flex shrink-0 items-center gap-1 text-[11px] font-[800] tabular-nums text-nb-peach-ink"
+            data-tip={t.board.queue.staleDaysTip(staleDays)}
+          >
+            <FiClock aria-hidden style={{ width: 11, height: 11 }} />
+            {t.board.queue.staleDays(staleDays)}
+          </span>
+        )}
       </div>
     </Link>
   );

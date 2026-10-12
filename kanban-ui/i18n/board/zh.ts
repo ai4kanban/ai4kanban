@@ -25,6 +25,10 @@ const zh: BoardCopy = {
     ready: "待执行",
     readyCount: (ready, implementing) => `${ready} 个待执行 · ${implementing} 个执行中`,
     notReady: "未就绪",
+    stale: "搁置",
+    staleEmpty: "没有搁置的卡片",
+    staleDays: (days) => `${days} 天`,
+    staleDaysTip: (days) => `${days} 天没有变动`,
     empty: "没有待办卡片",
     emptyBoard: {
       title: "看板还空着",

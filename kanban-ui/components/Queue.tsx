@@ -12,7 +12,8 @@ import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
 
 // The board's one layout (#70, and the kanban view's removal). It answers a
 // single question — what can I start now? — by splitting every open card into
-// two columns: work that is vetted, and work that isn't.
+// columns: work that is vetted, work that isn't, and work nobody has touched in
+// days (#1640).
 //
 // It is not a filter. Every card the board holds appears here, blockers and
 // group roots included: a group root shows while its subtasks stay on its own
@@ -27,7 +28,7 @@ import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
 // module map's own order. The column is the answer to "can I start this", the
 // band says "what part of the product is it" — so a card needs no module chip.
 //
-// The two columns are fixed width and the row scrolls sideways. A column that
+// The columns are fixed width and the row scrolls sideways. A column that
 // stretched to the window would rewrap its cards at every window size, and the
 // board would look like a different board on a laptop and on a monitor; fixed
 // widths mean two cards across in each half, always. What a
@@ -51,9 +52,21 @@ export const isReadyHalf = (card: Card) => card.status === "ready" || card.statu
  *
  *  Exported because a card page has to name the column it came from (#357), and there is
  *  one answer to which column a card is in. */
-export type ColumnKey = "ready" | "notReady";
+export type ColumnKey = "ready" | "notReady" | "stale";
 
-export const columnOf = (card: Card): ColumnKey => (isReadyHalf(card) ? "ready" : "notReady");
+const STALE_AFTER_DAYS = 5;
+const DAY_MS = 86_400_000;
+
+/** How many whole days a card has sat untouched, or 0 when it is not stale (#1640). A card
+ *  being built, or one with no known write time, never is. */
+export const staleDays = (card: Card, now: number): number => {
+  if (card.status === "implementing" || card.delivery || !card.updatedAt) return 0;
+  const idle = now - Date.parse(card.updatedAt);
+  return idle > STALE_AFTER_DAYS * DAY_MS ? Math.floor(idle / DAY_MS) : 0;
+};
+
+export const columnOf = (card: Card, now = Date.now()): ColumnKey =>
+  staleDays(card, now) > 0 ? "stale" : isReadyHalf(card) ? "ready" : "notReady";
 
 /** One module's cards within a column. Empty bands are dropped before drawing —
  *  a module with nothing on this side of the split has nothing to say. */
@@ -77,6 +90,15 @@ const bandsFor = (columns: Column[], keep: (card: Card) => boolean): Band[] =>
 // one card per row on its own. Neither is used at phone width — there a column
 // is the screen (SwipedColumns).
 const HALF_W = "w-[min(560px,calc(100vw-2rem))]";
+// One card across: a stale card is looked at, not picked from a grid.
+const STALE_W = "w-[min(300px,calc(100vw-2rem))]";
+
+// Every head is grey; only Ready's dot is green, and Stale's head is a shade darker.
+const HEAD: Record<ColumnKey, { bar: string; dot: string }> = {
+  ready: { bar: "bg-nb-wash", dot: "text-nb-mint" },
+  notReady: { bar: "bg-nb-wash", dot: "text-nb-ink/30" },
+  stale: { bar: "bg-nb-ink/12", dot: "text-nb-ink/60" },
+};
 
 /** A board with nothing on it (#437) — setup finished and wrote no seed card, or every card
  *  has been archived. The columns are three empty lists saying the same thing three times,
@@ -119,9 +141,16 @@ export function QueueView({
 }) {
   const c = useCopy().board.queue;
   const phone = usePhone();
-  const inColumn = (key: ColumnKey) => (card: Card) => columnOf(card) === key;
+  // Read once per draw so every card is judged against the same moment.
+  const [now] = useState(Date.now);
+  const inColumn = (key: ColumnKey) => (card: Card) => columnOf(card, now) === key;
   const ready = bandsFor(columns, inColumn("ready"));
   const notReady = bandsFor(columns, inColumn("notReady"));
+  // No module bands: one list, the longest-forgotten first.
+  const stale = columns
+    .flatMap((col) => col.cards.filter(inColumn("stale")))
+    .map((card) => ({ card, days: staleDays(card, now) }))
+    .sort((a, b) => b.days - a.days || byQueueOrder(a.card, b.card));
 
   // The ready column carries two numbers, because only the first is work waiting
   // on you — an implementing card is already being built and needs nothing.
@@ -147,6 +176,13 @@ export function QueueView({
       width: HALF_W,
       body: <Bands bands={notReady} sessions={sessions} />,
     },
+    {
+      key: "stale",
+      title: c.stale,
+      count: `${stale.length}`,
+      width: STALE_W,
+      body: <StaleList cards={stale} sessions={sessions} />,
+    },
   ];
 
   if (phone) return <SwipedColumns cols={cols} />;
@@ -164,6 +200,7 @@ export function QueueView({
       {cols.map((col) => (
         <QueueColumn
           key={col.key}
+          column={col.key}
           title={col.title}
           count={col.count}
           width={col.width}
@@ -177,7 +214,7 @@ export function QueueView({
 
 /** One column of the queue, drawn either way. */
 interface QueueCol {
-  key: string;
+  key: ColumnKey;
   title: string;
   count: string;
   /** The fixed width the window lays it out at. A phone gives it the screen instead. */
@@ -235,13 +272,13 @@ function SwipedColumns({ cols }: { cols: QueueCol[] }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
-        className="mx-2.5 mb-2.5 mt-2.5 flex h-10 shrink-0 items-center justify-between gap-2 rounded-[11px] bg-nb-wash pl-3 pr-1.5"
+        className={`mx-2.5 mb-2.5 mt-2.5 flex h-10 shrink-0 items-center justify-between gap-2 rounded-[11px] pl-3 pr-1.5 ${HEAD[here.key].bar}`}
       >
         {/* The column's name never gives: it is what the band is for. The count gives
             first, then the dots — which stay a thumb's height however narrow the row
             gets, because that is the part you press. */}
         <h2 className="nb-tag shrink-0 whitespace-nowrap">
-          <span className="text-nb-accent">●</span>
+          <span className={HEAD[here.key].dot}>●</span>
           {here.title}
         </h2>
         <span className="flex min-w-0 flex-1 items-center justify-end gap-1">
@@ -302,11 +339,13 @@ function SwipedColumns({ cols }: { cols: QueueCol[] }) {
 //
 // It still scrolls on its own, so filling one column never pushes the others off.
 function QueueColumn({
+  column,
   title,
   count,
   width,
   children,
 }: {
+  column: ColumnKey;
   title: string;
   count: string;
   width: string;
@@ -315,10 +354,10 @@ function QueueColumn({
   return (
     <section className={`flex min-h-0 shrink-0 flex-col ${width}`}>
       <div
-        className="mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] bg-nb-wash px-2.5"
+        className={`mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] px-2.5 ${HEAD[column].bar}`}
       >
         <h2 className="nb-tag">
-          <span className="text-nb-accent">●</span>
+          <span className={HEAD[column].dot}>●</span>
           {title}
         </h2>
         <span className="shrink-0 text-[12px] text-nb-ink-soft">{count}</span>
@@ -344,6 +383,25 @@ function Bands({ bands, sessions }: { bands: Band[]; sessions: SessionView[] }) 
     <div className="flex flex-col gap-2">
       {bands.map((band) => (
         <ModuleBand key={band.module} band={band} sessions={sessions} />
+      ))}
+    </div>
+  );
+}
+
+function StaleList({ cards, sessions }: { cards: { card: Card; days: number }[]; sessions: SessionView[] }) {
+  const c = useCopy().board.queue;
+  if (cards.length === 0) return <p className="px-2 text-[12px] italic text-nb-ink-soft">{c.staleEmpty}</p>;
+  return (
+    <div className="flex flex-col gap-3 px-2 pb-3 pt-2">
+      {cards.map(({ card, days }) => (
+        <BoardCard
+          key={card.id}
+          card={card}
+          staleDays={days}
+          liveSession={runningSessionForCard(sessions, card.id)}
+          failedSession={unhandledSessionForCard(sessions, card.id)}
+          creator={creatorOf(sessions, card)}
+        />
       ))}
     </div>
   );

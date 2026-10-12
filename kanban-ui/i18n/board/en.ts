@@ -29,6 +29,10 @@ const en: BoardCopy = {
     ready: "Ready to build",
     readyCount: (ready, implementing) => `${ready} ready · ${implementing} building`,
     notReady: "Not ready",
+    stale: "Stale",
+    staleEmpty: "No stale cards",
+    staleDays: (days) => `${days}d`,
+    staleDaysTip: (days) => `Untouched for ${days} days`,
     empty: "no open cards",
     emptyBoard: {
       title: "The board is empty",

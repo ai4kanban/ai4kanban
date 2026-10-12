@@ -332,6 +332,9 @@ export interface Card {
    *  someone else's edit. Opaque: nothing but equality may be read into it, and it is
    *  derived rather than stored, so it never reaches the card's portable frontmatter. */
   revision: string
+  /** When the card was last written (ISO): the file's mtime locally, `updatedAt` on Cloud.
+   *  Absent when unknown. What puts a card in the board's Stale column (#1640). */
+  updatedAt?: string
   /** Path relative to `docs/kanban/todo/`, e.g. `features/07-local-kanban-ui.md`. */
   relPath: string
   title: string

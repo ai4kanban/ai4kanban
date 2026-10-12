@@ -1447,6 +1447,8 @@ begin
     'the reader read lost the board''s own name';
   assert not (v_json -> 'cards' -> 0)::jsonb ? 'archivedAt',
     'the reader read carried a card field no hosted screen draws';
+  assert (v_json -> 'cards' -> 0)::jsonb ? 'updatedAt',
+    'the reader read lost when a card was last written';
 
   -- A conflict names one card, and that card is what a caller re-reads.
   assert (api.read_card(A, v_ws, 1) -> 'card' -> 'data' ->> 'title') = 'live one',

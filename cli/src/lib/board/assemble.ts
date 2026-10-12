@@ -35,6 +35,8 @@ import type { BoardScreen, BoardStanding, CardScreen, ScreenBoard } from './scre
 export interface ReadCard {
   id: number
   revision: string
+  /** When the card was last written; absent from a read that does not carry it. */
+  updatedAt?: string
   /** `{ path, meta, body }` — read defensively, since it arrives as JSON off a wire. */
   data: unknown
 }
@@ -237,6 +239,7 @@ function cardFrom(read: ReadCard): Card | null {
   return {
     id: read.id,
     revision: read.revision,
+    ...(typeof read.updatedAt === 'string' ? { updatedAt: read.updatedAt } : {}),
     relPath,
     title: text(meta.title),
     priority: text(meta.priority),

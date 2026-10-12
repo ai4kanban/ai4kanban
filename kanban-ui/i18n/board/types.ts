@@ -31,6 +31,11 @@ export type BoardCopy = {
     /** The ready column's two numbers: work waiting on you, and work already going. */
     readyCount: (ready: number, implementing: number) => string;
     notReady: string;
+    /** Cards untouched for over five days (#1640), and how long each has sat. */
+    stale: string;
+    staleEmpty: string;
+    staleDays: (days: number) => string;
+    staleDaysTip: (days: number) => string;
     /** A column with nothing on this side of the split. */
     empty: string;
     /** A board holding no card at all (#437) — the panel that stands in for the columns,
