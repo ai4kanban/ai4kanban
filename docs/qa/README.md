@@ -83,6 +83,7 @@
 - [在官网比较 AI4Kanban 和别的工具](site/compare-ai4kanban-with-another-tool/case.md)
 - [读软件开发方案页](site/read-the-coding-workflow-page/case.md)
 - [读一篇带配图的博客文章](site/read-a-blog-post/case.md)
+- [读创始人讲为什么做 AI4Kanban](site/read-why-tao-is-building-ai4kanban/case.md)
 
 ### docs
 

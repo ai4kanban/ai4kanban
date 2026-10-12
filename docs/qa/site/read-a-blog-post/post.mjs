@@ -8,7 +8,8 @@ const p = await open(1280, 900)
 let log = ''
 await p.nav(B + '/blog', 5000)
 await p.click(`[...document.querySelectorAll('main a[href="/blog/spec-to-code"]')].find(a=>a.getBoundingClientRect().height>0)`); await p.sleep(4000)
-log += `# 1. Open the post from /blog\nlocation: ${await p.ev('location.pathname')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nimages in the text: ${await p.ev(`document.querySelectorAll('.blog-prose img').length`)}\n`
+log += `# 1. Open the post from /blog\nlocation: ${await p.ev('location.pathname')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nimages in the text: ${await p.ev(`document.querySelectorAll('.blog-prose img').length`)}\n
+byline: ${JSON.stringify(await p.ev(`(()=>{const a=document.querySelector('main a[href="/builder"]');return a&&{text:a.innerText.replace(/\\n/g,' · '),href:a.getAttribute('href')}})()`))}\n`
 await p.shot(D + '01-post-top.png', { x: 0, y: 0, width: 1280, height: 900 })
 await p.ev(`${IMG}.scrollIntoView({block:'center'})`); await p.sleep(3000)
 const b = await p.ev(`(()=>{const r=${IMG}.getBoundingClientRect();return {x:r.x,y:r.y+scrollY,w:r.width,h:r.height}})()`)
