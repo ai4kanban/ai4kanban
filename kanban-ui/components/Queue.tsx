@@ -6,6 +6,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { usePhone } from "@/lib/media";
 import type { Card, Column, SessionView } from "@/lib/types";
 import { byQueueOrder } from "@/lib/pick-order";
+import { staleDays } from "@/lib/stale";
 import { BoardCard } from "./BoardCard";
 import { Button } from "./button";
 import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
@@ -53,17 +54,6 @@ export const isReadyHalf = (card: Card) => card.status === "ready" || card.statu
  *  Exported because a card page has to name the column it came from (#357), and there is
  *  one answer to which column a card is in. */
 export type ColumnKey = "ready" | "notReady" | "stale";
-
-const STALE_AFTER_DAYS = 5;
-const DAY_MS = 86_400_000;
-
-/** How many whole days a card has sat untouched, or 0 when it is not stale (#1640). A card
- *  being built, or one with no known write time, never is. */
-export const staleDays = (card: Card, now: number): number => {
-  if (card.status === "implementing" || card.delivery || !card.updatedAt) return 0;
-  const idle = now - Date.parse(card.updatedAt);
-  return idle > STALE_AFTER_DAYS * DAY_MS ? Math.floor(idle / DAY_MS) : 0;
-};
 
 export const columnOf = (card: Card, now = Date.now()): ColumnKey =>
   staleDays(card, now) > 0 ? "stale" : isReadyHalf(card) ? "ready" : "notReady";

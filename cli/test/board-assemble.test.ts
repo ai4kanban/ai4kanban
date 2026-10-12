@@ -108,6 +108,23 @@ describe('a board, assembled from one Cloud read', () => {
     ])
   })
 
+  it('hands each subtask its status and write time, so the root can judge the group as stale', () => {
+    const screen = boardScreenFrom(
+      read({
+        cards: [
+          card(10, 'todo/10-group/root.md'),
+          { ...card(11, 'todo/10-group/11-one.md', { status: 'implementing' }), updatedAt: '2026-10-01T00:00:00Z' },
+          card(12, 'todo/10-group/12-two.md'),
+        ],
+      }),
+    )
+    const root = screen.board!.columns[0]!.cards.find((c) => c.id === 10)!
+    assert.deepEqual(root.subtasks!.map((s) => [s.id, s.status, s.updatedAt]), [
+      [11, 'implementing', '2026-10-01T00:00:00Z'],
+      [12, 'todo', undefined],
+    ])
+  })
+
   it('links a subtask back to its root and resolves a blocker still on the board', () => {
     const board = read({
       cards: [

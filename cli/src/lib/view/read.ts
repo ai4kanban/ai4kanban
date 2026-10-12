@@ -139,6 +139,8 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
     release: c.release,
     todos: c.todos,
     blocked_by: c.blocked_by,
+    status: c.status,
+    ...(c.updatedAt ? { updatedAt: c.updatedAt } : {}),
   }))
   return { root, subCards }
 }

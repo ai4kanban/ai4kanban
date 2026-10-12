@@ -330,6 +330,8 @@ const subtaskOf = (card: Card): Subtask => ({
   release: card.release,
   todos: card.todos,
   blocked_by: card.blocked_by,
+  status: card.status,
+  ...(card.updatedAt ? { updatedAt: card.updatedAt } : {}),
 })
 
 // ---- the two screens --------------------------------------------------------

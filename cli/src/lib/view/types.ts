@@ -95,6 +95,9 @@ export interface Subtask {
    *  order. Raw rather than the card's `openBlockers`: those are attached after this list
    *  is built, and a finished subtask has already left the group folder anyway. */
   blocked_by: number[]
+  /** With `updatedAt`, what keeps a group out of the Stale column while a subtask moves. */
+  status: CardStatus
+  updatedAt?: string
 }
 
 /** One open card, read whole. */
