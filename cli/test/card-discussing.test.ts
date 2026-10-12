@@ -1,7 +1,7 @@
 // A card whose own chat is writing a reply is held (#633).
 //
-// The promise is that the card cannot be built, refined, answered, archived or rejected while
-// what it should say is still being talked about — and that the hold is exactly as long as
+// The promise is that the card cannot be built, refined, answered or archived while what it
+// should say is still being talked about — and that the hold is exactly as long as
 // the turn: the marker goes when the reply lands, is stopped, or its process disappears, so
 // nothing here can freeze a card for good.
 
@@ -11,12 +11,14 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { cardsDiscussing, noteChatMessage } from '../src/lib/agent/chat.ts'
+import { cardsDiscussing, noteChatMessage, readChat, sendChatMessage } from '../src/lib/agent/chat.ts'
 import { listConversations } from '../src/lib/agent/discussions.ts'
+import { rejectCard } from '../src/lib/agent/reject.ts'
 import { openResume, openRun, patch, peekRun } from '../src/lib/agent/sessions.ts'
 import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { findCard, readBoard } from '../src/lib/view/read.ts'
-import { forgetMachineState, move } from './helpers/board.ts'
+import { forgetMachineState, move, uiConfigOf } from './helpers/board.ts'
+import { PROMPT_OF } from './helpers/fake-agent.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-discussing-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -92,7 +94,7 @@ describe('a card reads as being discussed while its chat answers', () => {
 })
 
 describe('the runs a discussed card refuses', () => {
-  const refused = ['implement', 'clarify', 'resolve', 'archive', 'reject'] as const
+  const refused = ['implement', 'clarify', 'resolve', 'archive'] as const
 
   for (const action of refused) {
     it(`refuses ${action}, and says what frees it`, async () => {
@@ -130,12 +132,52 @@ describe('the runs a discussed card refuses', () => {
     }
   })
 
+  it('lets reject through', async () => {
+    const id = await card()
+    answering(id)
+    const out = await rejectCard(id, { discard: true })
+    assert.ok(out.ok, 'error' in out ? String(out.error) : '')
+    assert.equal(findCard(id), null)
+  })
+
   it('starts the same run once the reply has landed', async () => {
     const id = await card()
     answering(id)
     assert.ok('error' in openRun({ action: 'clarify', id }, 'a prompt'))
     fs.rmSync(path.join(CHATS_DIR, `card-${id}.answering`), { recursive: true })
     assert.ok(!('error' in openRun({ action: 'clarify', id }, 'a prompt')))
+  })
+})
+
+// Reject drops the conversation with the card (#1649), so the reply being written ends and
+// is not written back into a transcript that is gone.
+describe('a card rejected while its chat is replying', () => {
+  it('stops the reply and leaves no conversation behind', async () => {
+    const agent = path.join(root, 'agent.mjs')
+    fs.writeFileSync(
+      agent,
+      `${PROMPT_OF}await promptOf()\n` +
+        `console.log(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'thinking' }] } }))\n` +
+        `setInterval(() => {}, 1000)\n`,
+    )
+    fs.writeFileSync(
+      uiConfigOf(root, 'docs', 'kanban'),
+      JSON.stringify({ runtimes: [{ id: 'global', name: 'Global default', harness: 'claude-code', settings: { command: `node ${agent}` } }] }),
+    )
+    const id = await card()
+    let heard!: () => void
+    const spoke = new Promise<void>((done) => (heard = done))
+    const reply = sendChatMessage(id, 'rewrite the scope', { onText: () => heard() })
+    await spoke
+    assert.equal(findCard(id)?.discussing, true)
+
+    const out = await rejectCard(id, { discard: true })
+    assert.ok(out.ok, 'error' in out ? String(out.error) : '')
+    const started = Date.now()
+    await reply
+    assert.ok(Date.now() - started < 10_000, 'the reply ends rather than running to its own end')
+    assert.equal(readChat(id), null, 'nothing is written back')
+    assert.deepEqual([...cardsDiscussing()], [])
   })
 })
 

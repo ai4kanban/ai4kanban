@@ -1350,6 +1350,7 @@ export async function sendChatMessage(
 
   const release = startAnswering(cardId)
   if (!release) return chatBusy()
+  let watch: ReturnType<typeof setInterval> | undefined
   try {
     // Read off the conversation as it stood before this turn's message went into it, which is
     // exactly what `blockedBy` judged the send against.
@@ -1455,6 +1456,21 @@ export async function sendChatMessage(
 
     const asked = Date.now()
     const onText = options.onText ?? (() => {})
+    // A conversation dropped mid-reply — its card rejected (#1649), from this process or
+    // another — ends the reply, and nothing is written back.
+    let stopReply: (() => void) | undefined
+    let dropped = false
+    watch = setInterval(() => {
+      if (fs.existsSync(chatFile(cardId))) return
+      dropped = true
+      stopReply?.()
+    }, DROPPED_POLL_MS)
+    watch.unref?.()
+    const onOpen = (stop: () => void): void => {
+      stopReply = stop
+      if (dropped) stop()
+      options.onOpen?.(stop)
+    }
     // The process still up for its background tasks takes the message (#1540).
     const alive = liveChats.get(keyOf(cardId))
     const carryOn = alive && held.resumeId && alive.resumeId === held.resumeId ? alive : undefined
@@ -1473,7 +1489,7 @@ export async function sendChatMessage(
         // And the submission it is collecting for, on the one turn that collects (#679).
         caseKey: complaint?.share ? keyOf(cardId) : undefined,
         onText: write,
-        onOpen: options.onOpen,
+        onOpen,
       })
     // The session total this turn starts from (#1480): the forked session's, or this one's.
     const totals = reportsSessionTotal(held.harness)
@@ -1496,7 +1512,7 @@ export async function sendChatMessage(
         spoken = await turn(fresh, chatPrompt(cardId, text, { ...say, ...opening(true) }), onText)
       }
     } else if (carryOn) {
-      spoken = await carryOn.ask(prompt, { onText, onOpen: options.onOpen })
+      spoken = await carryOn.ask(prompt, { onText, onOpen })
     } else {
       spoken = await turn(plan, prompt, onText)
     }
@@ -1505,6 +1521,7 @@ export async function sendChatMessage(
     // made, in the order they went past. The closing message stands in only for an agent
     // that streamed nothing at all, so nothing is ever shown twice.
     const reply = spoken.text.trim() || spoken.result?.trim() || ''
+    if (dropped || !fs.existsSync(chatFile(cardId))) return { text: reply, stoppedWhy: 'the conversation was removed.', chat: held }
     const stoppedWhy = spoken.ok
       ? reply
         ? undefined
@@ -1564,6 +1581,7 @@ export async function sendChatMessage(
     }
     return { text: reply, stoppedWhy, model: spoken.model, chat: held }
   } finally {
+    clearInterval(watch)
     release()
   }
 }
@@ -1618,6 +1636,7 @@ const CLOSE_GRACE_MS = 3_000
 // genuinely stopped saying anything — long enough that a slow first token or a minutes-long
 // test run doesn't trip it.
 const SILENCE_MS = 5 * 60_000
+const DROPPED_POLL_MS = 1_000
 
 const SILENCE_SAID = `the agent said nothing for ${SILENCE_MS / 60_000} minutes, so the reply was given up on.`
 

@@ -663,18 +663,10 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
 
 // ---- starting --------------------------------------------------------------
 
-// The actions a card's own chat holds its card against (#633). Each one either builds the
-// card as it reads right now or takes it off the board — and the reply being written is about
-// to rewrite it, so none of them is a move on a settled card. Everything else goes
-// through — a landing and a delivery's own work are not judgments about what the
-// card should say, and neither is a specialist filling one section in.
-const HELD_BY_DISCUSSION = new Set<AgentAction>([
-  'implement',
-  'clarify',
-  'resolve',
-  'archive',
-  'reject',
-])
+// The actions a card's own chat holds its card against (#633): each one acts on the card as
+// it reads right now, and the reply being written is about to rewrite it. Reject goes through
+// (#1649) — it drops the card, and the reply and conversation with it.
+const HELD_BY_DISCUSSION = new Set<AgentAction>(['implement', 'clarify', 'resolve', 'archive'])
 
 // `clarify` is refine's own pass — the user asked for a refine, so that is what the refusal
 // names.

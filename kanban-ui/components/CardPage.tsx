@@ -1248,8 +1248,8 @@ export function CardPage({
   // The one line under the title band — see where it renders for what it says.
   const deliveryLine = !!delivery && (!justBuilding || !!delivery.supersedes || !!delivery.lost);
   // This card's own chat is writing a reply (#633), so the requirement is about to move:
-  // every control that builds the card as it reads now, or takes it off the board, is off
-  // until the turn ends. The board refuses the same runs (cli/src/lib/agent/sessions.ts), so
+  // every control that acts on the card as it reads now is off until the turn ends — all
+  // but Reject (#1649). The board refuses the same runs (cli/src/lib/agent/sessions.ts), so
   // a click that slipped through a stale read meets the same words the tooltip says.
   const discussing = !!card.discussing;
   // One test for every control the hold covers: a session on this card, a delivery on it, or
@@ -1792,8 +1792,9 @@ export function CardPage({
                       variant="ghost"
                       size="sm"
                       className={phone ? EXTRA : "ml-auto"}
-                      disabled={off}
-                      title={frozen ? frozenWhy : undefined}
+                      // A reply being written does not hold Reject (#1649): it goes with the card.
+                      disabled={busy || held}
+                      title={held ? heldWhy : undefined}
                       style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
                       onClick={() => setDialog({ kind: "reject", card })}
                     >
