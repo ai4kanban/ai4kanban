@@ -2,11 +2,13 @@
 
 import { useEffect, useState, type ComponentType } from "react";
 import { FaGithub } from "react-icons/fa";
+import { usePathname } from "next/navigation";
 import {
   FiArrowRight,
   FiBookOpen,
   FiCompass,
   FiDownload,
+  FiGlobe,
 } from "react-icons/fi";
 import { Button } from "./ui/Button";
 import { Logo } from "./ui/Logo";
@@ -14,7 +16,17 @@ import { GITHUB_URL } from "./content";
 import { Dropdown } from "./Dropdown";
 import { MobileNav } from "./MobileNav";
 import { hairline } from "./styles";
-import { localeHref, localePath, publishedIn, type Locale } from "@/lib/i18n";
+import {
+  LOCALES,
+  LOCALE_NAMES,
+  LOCALE_TAGS,
+  localeHref,
+  localePath,
+  localesFor,
+  publishedIn,
+  stripLocale,
+  type Locale,
+} from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
 // A few pixels rather than 0, so a browser restoring a scroll position of 1px
@@ -30,6 +42,26 @@ function useScrolled() {
   }, []);
 
   return scrolled;
+}
+
+// The browser's first language, when this page has a copy in it and it is not
+// the one being read. Decided after mount: the static HTML has no browser.
+function useSuggestedLocale(locale: Locale, path: string) {
+  const [suggested, setSuggested] = useState<Locale | null>(null);
+
+  useEffect(() => {
+    const first = (navigator.languages?.[0] ?? navigator.language ?? "")
+      .split("-")[0]
+      .toLowerCase();
+    const match = LOCALES.find((l) => l === first);
+    setSuggested(
+      match && match !== locale && localesFor(path).includes(match)
+        ? match
+        : null,
+    );
+  }, [locale, path]);
+
+  return suggested;
 }
 
 // The chrome on top of every page.
@@ -50,6 +82,8 @@ export function Header({
   // not drawn at all.
   const training = publishedIn("/training", locale);
   const pricing = publishedIn("/pricing", locale);
+  const path = stripLocale(usePathname() ?? "");
+  const suggested = useSuggestedLocale(locale, path);
 
   return (
     // Sticky, so the menus get a z-index over the page. The rule is transparent
@@ -123,6 +157,17 @@ export function Header({
               />
             )}
           </Dropdown>
+          {suggested && (
+            <a
+              href={localePath(suggested, path)}
+              lang={LOCALE_TAGS[suggested]}
+              hrefLang={LOCALE_TAGS[suggested]}
+              className="flex items-center gap-1.5 transition-colors hover:text-ink"
+            >
+              <FiGlobe className="h-4 w-4" aria-hidden="true" />
+              {LOCALE_NAMES[suggested]}
+            </a>
+          )}
           {/* The one place to get the product, and its source beside it. */}
           <div className="flex items-center gap-2.5">
             <GitHubButton label={c.shared.footer.github} />
