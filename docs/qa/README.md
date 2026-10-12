@@ -37,6 +37,8 @@
 - [让软件规划师换用自己的 Agent 规划](skill/let-the-software-planner-plan-on-its-own-agent/case.md)
 - [在卡片上读文案草稿，像读页面本身一样](skill/approve-a-copy-draft-that-reads-like-the-page/case.md)
 - [请产品配图先画一张示意图，再做一段 canvas 动画预览](skill/ask-the-illustrator-for-an-image-and-a-canvas-animation/case.md)
+- [把 draft-first 装进项目，再加一个自己的 helper](skill/install-draft-first-and-add-your-own-helper/case.md)
+- [让编码 agent 先出草稿，在浏览器里删、批注、导出后确认](skill/review-drafts-and-confirm-them-in-draft-first/case.md)
 
 ### local-ui
 
@@ -68,6 +70,7 @@
 - [在卡片页上看软件规划师画的示意图](local-ui/see-an-explainer-diagram-on-a-card/case.md)
 - [在卡片上看一份会动的样稿](local-ui/watch-a-scripted-mockup-move-on-a-card/case.md)
 - [给工作流的规划者单独选一个运行时](local-ui/pick-a-runtime-for-a-workflow-planner/case.md)
+- [放大卡片里的样稿和图片，看清小字](local-ui/zoom-a-mockup-or-image-on-a-card/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 

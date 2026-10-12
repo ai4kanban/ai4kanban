@@ -2,17 +2,17 @@
 
 ## Setup
 
-- **站点**：官网（`web/`）的静态构建用 `wrangler pages dev` 跑在本地，无头 Chrome，窗口 1280×900；脚本是 [language.mjs](language.mjs)（用 [cdp.mjs](cdp.mjs) 驱动浏览器）。
+- **站点**：官网（`web/`）的静态构建用 `wrangler pages dev` 跑在本地，无头 Chrome，窗口 1280×900；脚本是 [language.mjs](language.mjs)（用 [cdp.mjs](cdp.mjs) 驱动浏览器，用 CDP 的 `acceptLanguage` 改浏览器语言）。
 - **读者**：英文页面读着吃力、想换成母语的人。
 
 ## Steps
 
-1. 打开 `/pricing`，滚到页脚，点右下角带地球图标的「English」。
-   向上展开一个小菜单：当前的「English」高亮，下面只有「中文」——定价页只有中英两种。页头没有语言切换。
+1. 浏览器语言设为 `en-US,en`，打开 `/pricing`，滚到页脚，点右下角带地球图标的「English」。
+   页头是「Documentation · Pricing · Resources · Download」，没有语言链接；页脚向上展开一个小菜单：当前的「English」高亮，下面只有「中文」——定价页只有中英两种。
    ![页脚的语言菜单](01-footer-menu.png) · [switch.log](switch.log)
 
 2. 点「中文」。
-   跳到 `/zh/pricing`，`lang=zh-Hans`，标题「免费开启，Pro 更进一步」，页头变成「文档 · 定价 · 资源 · 下载」。
+   跳到 `/zh/pricing`，`lang=zh-Hans`，标题「免费开启，Pro 更进一步」。浏览器首选英文，页头多出一个带地球图标的「English」：「文档 · 定价 · 资源 · English · 下载」。
    ![中文定价页](02-zh-pricing.png)
 
 3. 再打开页脚的「中文」菜单，选「English」。
@@ -20,15 +20,37 @@
    [switch.log](switch.log)
 
 4. 打开首页，在页脚的语言菜单里选「日本語」。
-   首页的菜单有中文、Español、日本語、Français 四种；选日语后到 `/ja`，`lang=ja`，标题「舵を取るのはあなた。チームを率いるのは AI。」，页头只剩「ドキュメント · リソース · ダウンロード」，没有定价。
+   首页的菜单有中文、Español、日本語、Français 四种；选日语后到 `/ja`，`lang=ja`，标题「舵を取るのはあなた。チームを率いるのは AI。」，页头是「ドキュメント · リソース · English · ダウンロード」，没有定价。
    [switch.log](switch.log)
 
-5. 用 390px 宽的手机打开 `/pricing`，点页头右上角的菜单。
+5. 浏览器语言改成 `zh-CN,zh`，打开 `/pricing`。
+   页头「Resources」右边出现带地球图标的「中文」，指向 `/zh/pricing`。
+   ![页头建议中文](04-header-suggests-zh.png) · [switch.log](switch.log)
+
+6. 点页头的「中文」。
+   到 `/zh/pricing`，页头的语言链接消失——已经是首选语言。
+   [switch.log](switch.log)
+
+7. 依次换浏览器语言打开这些页面，看页头。
+   - `zh-CN` 打开只有英文的 `/blog`：没有链接。
+   - `zh-TW` 打开 `/`：显示「中文」→ `/zh`。
+   - `ja` 打开 `/pricing`：没有链接（定价页无日文）；打开 `/`：显示「日本語」→ `/ja`。
+   - `en-US,en` 打开 `/zh`：显示「English」→ `/`。
+   - `en-US,zh-CN` 打开 `/`：没有链接，只看首选语言。
+   ![中文页建议 English](05-header-suggests-en.png) · [switch.log](switch.log)
+
+8. 用 390px 宽、首选 `zh-CN` 的手机打开 `/pricing`。
+   顶栏仍只有 Logo、GitHub、下载和菜单，没有语言链接。
+   ![手机顶栏](06-phone-top-bar.png) · [switch.log](switch.log)
+
+9. 点页头右上角的菜单。
    抽屉里是文档、定价、博客、培训，下面一栏「LANGUAGE」列出 English 和中文；点「中文」到 `/zh/pricing`。
    ![手机菜单里的语言](03-phone-drawer.png) · [switch.log](switch.log)
 
 ## Feedback
 
-- **就地切换**：停在同一页的对应语言，菜单只列当前页真有的译本，不会点进 404。
-- **桌面上不好找**：语言切换只在页脚右下角，读不懂英文的人得先滚到底才看得到；手机上收在菜单里反而顺手。
-- **能选的语言随页面变**：首页有五种，定价页只有两种；选了日语后页头的「定价」消失，想看价格得先切回英文，页面上没有任何说明。
+- **桌面上找得到了**：浏览器是中文时，英文页页头直接写着「中文」，一眼看到、一下切过去，不用再滚到页脚。
+- **不打扰**：首选英文的人看不到任何多余东西；到了首选语言的页面，链接自己消失。
+- **只认第一语言**：`en-US,zh-CN` 这类双语用户在英文页看不到中文提示，只能去页脚找。
+- **能选的语言随页面变**：首页有五种，定价页只有两种；日语浏览器在定价页看不到任何建议，选了日语后页头的「定价」也消失，页面上没有任何说明。
+- **繁体也给简体**：`zh-TW` 显示「中文」并进简体页，对繁体读者够用，但没有提示是简体。
