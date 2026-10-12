@@ -257,7 +257,12 @@ const en: CardCopy = {
     download: "Download",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
-    fit: "Fit to width",
+        fit: "Fit to width",
+    article: "Article",
+    source: "Source",
+    expand: "Show full article",
+    collapse: "Collapse",
+    language: "Language",
   },
   storyboard: {
     heading: "Storyboard",

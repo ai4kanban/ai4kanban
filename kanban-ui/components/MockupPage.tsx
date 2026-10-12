@@ -17,14 +17,16 @@
 //
 // An image (#803) is shown at its own pixel size, with that size beside its name. A video
 // (#872) fits the panel's width, with its size and length there; audio shows its length.
+// A Markdown file (#1651) is its article in full.
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/i18n/use-copy";
-import { SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
+import { SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryOwner } from "@/lib/types";
+import { ArticleControls, ArticleFull, useArticle } from "./Article";
 import { clock, MediaPlayer, type MediaMeta } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 import { Phone, PHONE_W, sandboxOf } from "./Mockup";
@@ -40,6 +42,37 @@ const PAD = 48;
 
 /** The card a mockup belongs to — `.mockups/<card id>/` is where it is filed. */
 export type MockupCard = { id: number; title: string };
+
+function BackLink({ card }: { card: MockupCard }) {
+  const c = useCopy().card.mockup;
+  return (
+    <Link
+      href={`/${card.id}`}
+      className="inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
+    >
+      <FiArrowLeft aria-hidden className="shrink-0 text-[14px]" />
+      <span className="shrink-0">{c.back(card.id)}</span>
+      <span className="truncate font-[500]">{card.title}</span>
+    </Link>
+  );
+}
+
+/** A Markdown asset (#1651): the article in full, its language and source switch above it. */
+function ArticleMain({ files, src, card }: { files: ArticleFile[]; src: string; card: MockupCard | null }) {
+  const state = useArticle(files, src);
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-6 py-4">
+        {card && <BackLink card={card} />}
+        <span className="min-w-0 truncate font-mono text-[12px] text-nb-ink-soft">{state.file.src}</span>
+        <ArticleControls state={state} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
+        <ArticleFull state={state} />
+      </div>
+    </>
+  );
+}
 
 export function MockupPage({
   view,
@@ -132,119 +165,116 @@ export function MockupPage({
             </div>
           )}
 
-          {/* The way back, first thing on the page and named — a mockup is read on the way
-              through a card, and the card is where you were going. */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-6 py-4">
-            {card && (
-              <Link
-                href={`/${card.id}`}
-                className="inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
-              >
-                <FiArrowLeft aria-hidden className="shrink-0 text-[14px]" />
-                <span className="shrink-0">{c.back(card.id)}</span>
-                <span className="truncate font-[500]">{card.title}</span>
-              </Link>
-            )}
-            <span className="min-w-0 truncate font-mono text-[12px] text-nb-ink-soft">
-              {view.src}
-            </span>
-            {size && (
-              <span className="shrink-0 font-mono text-[12px] text-nb-ink-soft">
-                {size.w} × {size.h} px
-              </span>
-            )}
-            {meta && (
-              <span className="shrink-0 font-mono text-[12px] text-nb-ink-soft">
-                {[meta.width ? `${meta.width} × ${meta.height} px` : "", clock(meta.duration)]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            )}
-            <span className="ml-auto flex shrink-0 items-center gap-x-3">
-              {zoomable && <ZoomControls zoom={zoom} />}
-              {view.code && (
-                <button
-                  type="button"
-                  onClick={() => setShowCode((v) => !v)}
-                  disabled={!!view.error}
-                  className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep disabled:cursor-default disabled:opacity-40"
+          {view.article ? (
+            <ArticleMain files={view.article} src={view.src} card={card} />
+          ) : (
+            <>
+              {/* The way back, first thing on the page and named — a mockup is read on the way
+                  through a card, and the card is where you were going. */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-6 py-4">
+                {card && <BackLink card={card} />}
+                <span className="min-w-0 truncate font-mono text-[12px] text-nb-ink-soft">
+                  {view.src}
+                </span>
+                {size && (
+                  <span className="shrink-0 font-mono text-[12px] text-nb-ink-soft">
+                    {size.w} × {size.h} px
+                  </span>
+                )}
+                {meta && (
+                  <span className="shrink-0 font-mono text-[12px] text-nb-ink-soft">
+                    {[meta.width ? `${meta.width} × ${meta.height} px` : "", clock(meta.duration)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                )}
+                <span className="ml-auto flex shrink-0 items-center gap-x-3">
+                  {zoomable && <ZoomControls zoom={zoom} />}
+                  {view.code && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCode((v) => !v)}
+                      disabled={!!view.error}
+                      className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep disabled:cursor-default disabled:opacity-40"
+                    >
+                      {showCode ? c.screen : c.code}
+                    </button>
+                  )}
+                </span>
+              </div>
+
+              {view.error && (
+                <p
+                  className="nb-outline mx-6 mb-3 px-3 py-2.5 font-mono text-[12.5px] leading-[18px] text-nb-ink-soft"
+                  style={{ background: "var(--color-nb-peach-soft)" }}
                 >
-                  {showCode ? c.screen : c.code}
-                </button>
+                  {view.error}
+                </p>
               )}
-            </span>
-          </div>
 
-          {view.error && (
-            <p
-              className="nb-outline mx-6 mb-3 px-3 py-2.5 font-mono text-[12.5px] leading-[18px] text-nb-ink-soft"
-              style={{ background: "var(--color-nb-peach-soft)" }}
-            >
-              {view.error}
-            </p>
-          )}
-
-          {/* Full size, so the panel is what scrolls — both ways, since the screen is wider
-              than the body on most windows. */}
-          <div ref={panel} className="min-h-0 flex-1 overflow-auto px-6 pb-6">
-            {view.doc !== undefined && view.hyperframe && !showCode ? (
-              <HyperframePlayer key={view.src} doc={view.doc} title={view.src} />
-            ) : view.media !== undefined ? (
-              <MediaPlayer
-                key={view.media.href}
-                kind={view.media.kind}
-                href={view.media.href}
-                title={view.src}
-                fill={false}
-                onMeta={setMeta}
-              />
-            ) : view.image !== undefined ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
-              <img
-                src={view.image}
-                alt={view.src}
-                // An image already loaded before hydration fires no load event.
-                ref={measure}
-                onLoad={(e) => measure(e.currentTarget)}
-                className="block max-w-none bg-nb-wash"
-                style={size ? { width: size.w * scale, height: size.h * scale } : undefined}
-              />
-            ) : view.text !== undefined ? (
-              <pre className="w-max whitespace-pre bg-nb-wash p-4 font-mono text-[13px] leading-[19px]">
-                {view.text}
-              </pre>
-            ) : showCode ? (
-              <pre className="w-max whitespace-pre bg-nb-wash p-3 font-mono text-[12px] leading-[18px]">
-                {view.code}
-              </pre>
-            ) : (
-              view.doc &&
-              (device === "mobile" ? (
-                <span className="mx-auto block w-max">
-                  <Phone scale={scale} doc={view.doc} title={view.src} scripts={view.scripts} />
-                </span>
-              ) : (
-                <span
-                  className="block overflow-hidden"
-                  style={{ width: SCREENS.desktop.w * scale, height: SCREENS.desktop.h * scale }}
-                >
-                  <iframe
-                    sandbox={sandboxOf(view.scripts)}
-                    srcDoc={view.doc}
+              {/* Full size, so the panel is what scrolls — both ways, since the screen is wider
+                  than the body on most windows. */}
+              <div ref={panel} className="min-h-0 flex-1 overflow-auto px-6 pb-6">
+                {view.doc !== undefined && view.hyperframe && !showCode ? (
+                  <HyperframePlayer key={view.src} doc={view.doc} title={view.src} />
+                ) : view.media !== undefined ? (
+                  <MediaPlayer
+                    key={view.media.href}
+                    kind={view.media.kind}
+                    href={view.media.href}
                     title={view.src}
-                    style={{
-                      width: SCREENS.desktop.w,
-                      height: SCREENS.desktop.h,
-                      border: 0,
-                      display: "block",
-                      transform: scale === 1 ? undefined : `scale(${scale})`,
-                      transformOrigin: "top left",
-                    }}
+                    fill={false}
+                    onMeta={setMeta}
                   />
-                </span>
-              ))
-            )}
-          </div>
+                ) : view.image !== undefined ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
+                  <img
+                    src={view.image}
+                    alt={view.src}
+                    // An image already loaded before hydration fires no load event.
+                    ref={measure}
+                    onLoad={(e) => measure(e.currentTarget)}
+                    className="block max-w-none bg-nb-wash"
+                    style={size ? { width: size.w * scale, height: size.h * scale } : undefined}
+                  />
+                ) : view.text !== undefined ? (
+                  <pre className="w-max whitespace-pre bg-nb-wash p-4 font-mono text-[13px] leading-[19px]">
+                    {view.text}
+                  </pre>
+                ) : showCode ? (
+                  <pre className="w-max whitespace-pre bg-nb-wash p-3 font-mono text-[12px] leading-[18px]">
+                    {view.code}
+                  </pre>
+                ) : (
+                  view.doc &&
+                  (device === "mobile" ? (
+                    <span className="mx-auto block w-max">
+                      <Phone scale={scale} doc={view.doc} title={view.src} scripts={view.scripts} />
+                    </span>
+                  ) : (
+                    <span
+                      className="block overflow-hidden"
+                      style={{ width: SCREENS.desktop.w * scale, height: SCREENS.desktop.h * scale }}
+                    >
+                      <iframe
+                        sandbox={sandboxOf(view.scripts)}
+                        srcDoc={view.doc}
+                        title={view.src}
+                        style={{
+                          width: SCREENS.desktop.w,
+                          height: SCREENS.desktop.h,
+                          border: 0,
+                          display: "block",
+                          transform: scale === 1 ? undefined : `scale(${scale})`,
+                          transformOrigin: "top left",
+                        }}
+                      />
+                    </span>
+                  ))
+                )}
+              </div>
+            </>
+          )}
         </div>
       </Window>
     </OpenIdsProvider>

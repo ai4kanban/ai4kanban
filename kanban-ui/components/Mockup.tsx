@@ -18,7 +18,7 @@
 //
 // An image (#803) fits the width, never taller than a screen at that width, and links to its
 // own page at full size. Video and audio (#872) get the browser's own player. A delivered
-// file (#969) is a download.
+// file (#969) is a download, and a Markdown file (#1651) an article.
 //
 // A card page hands a screen over undrawn (#906): it is loaded once it scrolls near, and its
 // code only when the switch asks for it. Until then the frame holds its final size.
@@ -27,8 +27,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiAlertCircle, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { mockupHref, mockupViewHref, SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
+import { mockupHref, mockupViewHref, SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
+import { ArticleControls, ArticleFolded, useArticle } from "./Article";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 import { ImageMenu } from "./image-preview";
@@ -365,6 +366,36 @@ function Download({ file, label }: { file: { name: string; href: string }; label
   );
 }
 
+/** A `.md`/`.mdx` asset (#1651): the article, folded, under the same caption a screen has. */
+function ArticleAsset({ files, src, label }: { files: ArticleFile[]; src: string; label: string }) {
+  const c = useCopy().card.mockup;
+  const state = useArticle(files, src);
+  return (
+    <span className="my-4 block bg-nb-paper">
+      <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-0 py-2">
+        {label && (
+          <span
+            className="nb-chip shrink-0"
+            style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
+          >
+            {label}
+          </span>
+        )}
+        <Link
+          href={mockupHref(state.file.src)}
+          className="inline-flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-accent-deep"
+          title={c.openFull}
+        >
+          <span className="truncate">{state.file.src}</span>
+          <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
+        </Link>
+        <ArticleControls state={state} />
+      </span>
+      <ArticleFolded state={state} />
+    </span>
+  );
+}
+
 /** Fetch `href` once `box` is near the viewport; `null` until it arrives. A new `href`
  *  keeps the last answer on screen until its own one lands. */
 function useNearFetch<T>(box: React.RefObject<HTMLElement | null>, href: string | null, fail: T): T | null {
@@ -428,6 +459,7 @@ export function Mockup({
 
   if (drawn?.error !== undefined) return <Note text={drawn.error} />;
   if (view.file) return <Download file={view.file} label={label} />;
+  if (view.article) return <ArticleAsset files={view.article} src={view.src} label={label} />;
 
   return (
     // No frame around it: a mockup is a picture of a screen, and a box drawn round it is

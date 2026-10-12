@@ -16,7 +16,9 @@
 //          from app/asset-image, and an `<img>` never runs what an SVG holds.
 //   media  .mp4 .webm .mov, .mp3 .wav .m4a (#872). Not read here either: the page's own
 //          player streams them from app/asset-image.
-//   file   .pptx (#969), .md .mdx (#1126). A delivered file, offered as a download from app/asset-image.
+//   file   .pptx (#969). A delivered file, offered as a download from app/asset-image.
+//   .md .mdx  an article (#1651): the file's text, with its siblings in other languages
+//          (`copy.en.md`, `copy.zh.md`), drawn by the page as Markdown.
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
 // in a sandboxed iframe, so nothing reaches the network or the board, and its styling and the
@@ -35,7 +37,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server.browser";
 import { transform } from "sucrase";
 import { compile } from "tailwindcss";
-import type { MockupSet, MockupView } from "./mockup-tag";
+import type { ArticleFile, MockupSet, MockupView } from "./mockup-tag";
+import { articleName } from "./article";
 import { assetImageHref, mockupSources } from "./mockup-tag";
 import { AUDIO_TYPES, FILE_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } from "./asset-bytes";
 import { assetsDir, mockupsDir } from "./cli";
@@ -214,6 +217,7 @@ export async function readMockup(src: string, contain = true, defer = false): Pr
   if ("error" in at) return { src, error: at.error };
   const { file, ext, folder, fileName } = at;
   const media = MEDIA_EXTS[ext];
+  if (ext === "md" || ext === "mdx") return readArticle(src, file, folder, fileName, c);
   if (FILE_EXTS.includes(ext)) {
     return { src, file: { name: fileName, href: `${assetImageHref(folder, fileName)}?v=${Math.floor(fs.statSync(file).mtimeMs)}` } };
   }
@@ -245,6 +249,41 @@ export async function readMockup(src: string, contain = true, defer = false): Pr
     const why = e instanceof Error ? e.message : String(e);
     return { src, code, error: c.notDrawn(src, why) };
   }
+}
+
+// --- .md .mdx ---------------------------------------------------------------
+
+/** The file and every sibling that differs only in its language suffix. */
+function readArticle(src: string, file: string, folder: string, fileName: string, c: MessagesCopy["mockup"]): MockupView {
+  const own = articleName(fileName);
+  const dir = path.dirname(file);
+  let names = [fileName];
+  if (own?.lang) {
+    try {
+      names = fs
+        .readdirSync(dir)
+        .filter((n) => {
+          const a = articleName(n);
+          return a?.lang && a.base === own.base && a.ext === own.ext;
+        })
+        .sort();
+    } catch {
+      // Only the file itself, then.
+    }
+  }
+  const prefix = src.slice(0, src.length - fileName.length);
+  const files: ArticleFile[] = [];
+  for (const name of names) {
+    const at = path.join(dir, name);
+    try {
+      const text = fs.readFileSync(at, "utf8");
+      const href = `${assetImageHref(folder, name)}?v=${Math.floor(fs.statSync(at).mtimeMs)}`;
+      files.push({ src: prefix + name, lang: articleName(name)?.lang ?? null, text, href });
+    } catch {
+      if (name === fileName) return { src, error: c.missing(src) };
+    }
+  }
+  return { src, article: files };
 }
 
 // --- .tsx --------------------------------------------------------------------

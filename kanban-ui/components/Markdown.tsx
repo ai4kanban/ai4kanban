@@ -25,7 +25,7 @@ import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
 import { storyboardAttrs } from "@/lib/format/storyboard";
-import { deviceOf, mockupBlock, type MockupSet } from "@/lib/mockup-tag";
+import { assetImageHref, deviceOf, mockupBlock, type MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
 import { CaseFilesContext, EvidenceNode, fileUrl, type CaseFiles } from "./case-evidence";
@@ -109,6 +109,23 @@ function remarkMockups(mockups: MockupSet | null) {
       }));
       parent.children.splice(index, 1, ...drawn);
       return [SKIP, index + drawn.length];
+    });
+  };
+}
+
+// remark plugin, on an article asset only (#1651): raw HTML and MDX components are dropped, never
+// run, and a relative picture is read from the article's own asset folder.
+function remarkArticle(folder: string) {
+  return () => (tree: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree as any, (node: any, index: number | undefined, parent: any) => {
+      if (node.type === "html" && index != null && parent) {
+        parent.children.splice(index, 1);
+        return [SKIP, index];
+      }
+      if (node.type === "image" && !/^(?:[a-z][a-z0-9+.-]*:|\/|#)/i.test(node.url)) {
+        node.url = assetImageHref(folder, node.url.replace(/^\.\//, "").replace(/[?#].*$/, ""));
+      }
     });
   };
 }
@@ -367,6 +384,7 @@ export function Markdown({
   copyCode,
   memory,
   caseFiles,
+  articleFolder,
 }: {
   body: string;
   className?: string;
@@ -377,6 +395,8 @@ export function Markdown({
   memory?: MemoryLinks;
   /** Set on a test case page (#1422); hold it stable across renders. */
   caseFiles?: CaseFiles;
+  /** Set on an article asset (#1651): the card asset folder its pictures are read from. */
+  articleFolder?: string;
 }) {
   // Every markdown body on a page linkifies against the same set — see
   // OpenIdsProvider for why this is context rather than a prop.
@@ -385,12 +405,13 @@ export function Markdown({
   const plugins = useMemo(
     () => [
       remarkGfm,
+      ...(articleFolder ? [remarkArticle(articleFolder)] : []),
       remarkCardLinks(ids),
       remarkMockups(mockups ?? null),
       remarkStoryboards(storyboards ?? null),
       ...(caseFiles ? [remarkCaseFiles(caseFiles.files)] : []),
     ],
-    [ids, mockups, storyboards, caseFiles],
+    [ids, mockups, storyboards, caseFiles, articleFolder],
   );
   return (
     <MockupsContext.Provider value={mockups ?? null}>

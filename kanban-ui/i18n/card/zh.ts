@@ -248,7 +248,12 @@ const zh: CardCopy = {
     download: "下载",
     zoomIn: "放大",
     zoomOut: "缩小",
-    fit: "适应宽度",
+        fit: "适应宽度",
+    article: "文章",
+    source: "原文",
+    expand: "展开全文",
+    collapse: "收起",
+    language: "语言",
   },
   storyboard: {
     heading: "静态分镜",

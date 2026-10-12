@@ -274,7 +274,13 @@ export type CardCopy = {
     previewFailed: string;
     zoomIn: string;
     zoomOut: string;
-    fit: string;
+        fit: string;
+    /** A `.md`/`.mdx` asset (#1651): the switch between the article and its file's text. */
+    article: string;
+    source: string;
+    expand: string;
+    collapse: string;
+    language: string;
   };
   /** A `<Storyboard>` script (#963). */
   storyboard: {

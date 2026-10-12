@@ -54,6 +54,7 @@ export type MockupView =
       file?: undefined;
       error?: undefined;
       deferred?: undefined;
+      article?: undefined;
     }
   // A screen a card page draws only once it scrolls near (#906), from `mockupViewHref`.
   // `version` is the file's mtime, so a redrawn file loads again.
@@ -67,12 +68,13 @@ export type MockupView =
       media?: undefined;
       file?: undefined;
       error?: undefined;
+      article?: undefined;
     }
   // A `.txt` mockup (#256): the file IS the drawing, so it is shown exactly as it stands
   // and there is nothing behind the picture to switch to.
-  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined }
+  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined; article?: undefined }
   // An image (#803): the address of its bytes. Nothing behind it to switch to either.
-  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined }
+  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined; article?: undefined }
   // Video or audio (#872): the address its player streams from.
   | {
       src: string;
@@ -84,6 +86,7 @@ export type MockupView =
       code?: undefined;
       error?: undefined;
       deferred?: undefined;
+      article?: undefined;
     }
   // A delivered file (#969): the address it downloads from.
   | {
@@ -96,10 +99,27 @@ export type MockupView =
       code?: undefined;
       error?: undefined;
       deferred?: undefined;
+      article?: undefined;
+    }
+  // A `.md`/`.mdx` file drawn as an article (#1651): it and its siblings in other languages.
+  | {
+      src: string;
+      article: ArticleFile[];
+      file?: undefined;
+      media?: undefined;
+      image?: undefined;
+      text?: undefined;
+      doc?: undefined;
+      code?: undefined;
+      error?: undefined;
+      deferred?: undefined;
     }
   // The note in a mockup's place. It still carries the file's text when there was a file
   // to read — a mockup that would not draw is one you want to read the code of.
-  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined };
+  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined; article?: undefined };
+
+/** One language of an article: `lang` is null for a file with no language suffix. */
+export type ArticleFile = { src: string; lang: string | null; text: string; href: string };
 
 /** The mockups a page has already read, keyed by `src` exactly as the tag wrote it. */
 export type MockupSet = Record<string, MockupView>;
