@@ -88,5 +88,4 @@ Follow `akb guide multi-stage-drafting`.
 - **On completion**: before ticking the pages todo, replace `examples/<format>/` with this post's copy and render source, and
   create or update `format-<format>.md` from it. Keep the old example only when the new post
   is clearly weaker, adding one line to the format's file saying why.
-- **Changes**: going back to stage 1 removes the Storyboard embeds until the copy is approved
-  again; any other change re-renders only the affected pages.
+- **Changes**: re-render only the affected pages.

@@ -76,9 +76,8 @@ Follow `akb guide multi-stage-drafting`.
   `<Asset src=".assets/<card id>/<short-name>.pptx" label="<card title>" />`. Check every
   slide against the recipe, fit and editable rules; append a ticked todo with the deck's
   absolute path and the command that rebuilds it. Checkpoint: the slides and deck were checked.
-- **Changes**: going back to stage 1 removes the Storyboard embed until the content is
-  approved again, then regenerates the JSON keeping unchanged slide IDs; any other change
-  edits the JSON and re-renders only the affected slides.
+- **Changes**: after going back to stage 1, regenerate the JSON keeping unchanged slide IDs;
+  any other change edits the JSON and re-renders only the affected slides.
 - **Existing cards**: a card with approved previews but no `.pptx` resumes stage 2 from its
   existing `deck/` project; do not recreate unaffected work.
 

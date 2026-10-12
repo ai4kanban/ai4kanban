@@ -80,5 +80,4 @@ Follow `akb guide multi-stage-drafting`.
   delivered path in backticks. Checkpoint: the article was checked.
 - **Keyword changes**: revise the brief and affected titles, metadata and sections together
   in stage 1; revising an unapproved outline does not authorize the article.
-- **Changes**: keep every delivered copy matching the article; going back to stage 1 removes
-  the article and its `<Asset>` until the outline is approved again.
+- **Changes**: keep every delivered copy matching the article.

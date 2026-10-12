@@ -44,7 +44,7 @@ Follow `akb guide multi-stage-drafting`.
 - **Stage 2 — production**: request `hyperframes-editor`, then `cover-designer` once the cover method is recorded, in a later planning run. Checkpoint: the film, its recorded render command and the cover were checked.
 - **On completion**: before ticking the film todo, replace the example for this video's content type; keep the old example only when the new video is clearly weaker, adding one line at the top of its script saying why.
 - **Other questions**: ask for access or facts when needed, following `akb guide update-questions`; their answers never tick the script todo.
-- **Changes**: a changed demo claim reruns `demo-rehearser` for those sections only; going back to stage 1, including for a new voice, makes the film stale; a change to the title, core claim, Brief or cover method reruns `cover-designer`.
+- **Changes**: a changed demo claim reruns `demo-rehearser` for those sections only; a new voice goes back to stage 1; a change to the title, core claim, Brief or cover method reruns `cover-designer`.
 - **Existing cards**: keep usable JSON scripts, `demo.md`, projects and previews; do not recreate unaffected work.
 
 ## Memory
