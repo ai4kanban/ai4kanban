@@ -10,13 +10,13 @@
 //
 // A screen is drawn on its device's canvas — desktop unless the tag says `device="mobile"`
 // (#1097) — and scaled down to whatever width the card page gives it. A phone screen fills
-// a phone frame at 3/4 size, centered. Type too small to read is what the two links on the
-// frame are for: the code behind it, and the mockup on its own at full size.
+// a phone frame at 3/4 size, centered. Zooming (#1637) keeps the frame at that height and
+// scrolls inside it.
 //
 // A `.txt` mockup is not a screen and gets none of that (#256): it is the file's own
 // characters in a monospaced block, at full size, scrolled rather than scaled.
 //
-// An image (#803) fills the width, never taller than a screen at that width, and links to its
+// An image (#803) fits the width, never taller than a screen at that width, and links to its
 // own page at full size. Video and audio (#872) get the browser's own player. A delivered
 // file (#969) is a download.
 //
@@ -24,7 +24,7 @@
 // code only when the switch asks for it. Until then the frame holds its final size.
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiAlertCircle, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
@@ -32,6 +32,7 @@ import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 import { ImageMenu } from "./image-preview";
+import { useFitWidth, useZoom, ZoomControls, type Zoom } from "./zoom";
 
 const { w: W, h: H } = SCREENS.desktop;
 const PHONE = SCREENS.mobile;
@@ -39,7 +40,7 @@ const PHONE = SCREENS.mobile;
 /** The phone frame's bezel and the status bar and home indicator it overlays, at 1:1. */
 const BEZEL = 12;
 const STATUS_H = 54;
-const PHONE_W = PHONE.w + 2 * BEZEL;
+export const PHONE_W = PHONE.w + 2 * BEZEL;
 const PHONE_H = PHONE.h + 2 * BEZEL;
 /** A phone screen on a card page is never drawn larger than this. */
 const PHONE_SCALE = 0.75;
@@ -183,28 +184,58 @@ function Drawing({ text }: { text: string }) {
   );
 }
 
-/** An image, as wide as the body and no taller than a screen of that width would be. The
- *  inline styles win over `.nb-md img`, whose border and corners are for prose images. */
-function Picture({ image, src, alt }: { image: string; src: string; alt: string }) {
+/** The box a zoomed view scrolls in: as high as the view at fit, centering anything smaller. */
+function ZoomArea({ height, zoomed, children }: { height?: number; zoomed: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      className="flex w-full overflow-auto bg-nb-wash"
+      style={{ height, overscrollBehavior: zoomed ? "contain" : undefined }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** An image at fit: as wide as the body and no taller than a screen of that width would be.
+ *  The inline styles win over `.nb-md img`, whose border and corners are for prose images. */
+function Picture({ image, src, alt, zoom }: { image: string; src: string; alt: string; zoom: Zoom }) {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const measure = useCallback((img: HTMLImageElement | null) => {
+    if (!img?.complete || !img.naturalWidth) return;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    setSize((prev) => (prev?.w === w && prev.h === h ? prev : { w, h }));
+  }, []);
+  const fitOf = useMemo(
+    () => (size ? (width: number) => Math.min(width / size.w, Math.min(H, (width * H) / W) / size.h) : null),
+    [size],
+  );
+  const box = useFitWidth<HTMLSpanElement>(zoom.setFit, fitOf);
+  const { scale, fit } = zoom;
+  const img = (
+    // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
+    <img
+      src={image}
+      alt={alt}
+      // An image already loaded before hydration fires no load event.
+      ref={measure}
+      onLoad={(e) => measure(e.currentTarget)}
+      style={
+        size && scale
+          ? { display: "block", width: size.w * scale, height: size.h * scale, maxWidth: "none", margin: "auto", flexShrink: 0, border: 0, borderRadius: 0 }
+          : { display: "block", width: "100%", height: "auto", maxWidth: "100%", maxHeight: H, objectFit: "contain", border: 0, borderRadius: 0 }
+      }
+    />
+  );
   return (
     <ImageMenu src={image}>
       {(badge) => (
-        <Link href={mockupHref(src)} className="relative block bg-nb-wash" style={{ containerType: "inline-size" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
-          <img
-            src={image}
-            alt={alt}
-            style={{
-              display: "block",
-              width: "100%",
-              height: "auto",
-              maxWidth: "100%",
-              maxHeight: `min(${H}px, ${(H / W) * 100}cqw)`,
-              objectFit: "contain",
-              border: 0,
-              borderRadius: 0,
-            }}
-          />
+        <Link href={mockupHref(src)} className="relative block bg-nb-wash">
+          <span ref={box} className="block w-full">
+            <ZoomArea height={size && fit ? size.h * fit : undefined} zoomed={scale > fit}>
+              {img}
+            </ZoomArea>
+          </span>
           {badge}
         </Link>
       )}
@@ -221,68 +252,52 @@ function PhoneBand({ children }: { children: React.ReactNode }) {
   );
 }
 
+const phoneFit = (width: number) => Math.min(PHONE_SCALE, (width - 24) / PHONE_W);
+
 /** A phone screen at 3/4 size, shrunk further when the body is narrower than that. */
-function PhoneScreen({ doc, title, scripts }: { doc: string; title: string; scripts?: boolean }) {
-  const box = useRef<HTMLSpanElement>(null);
-  const [scale, setScale] = useState(PHONE_SCALE);
-
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const fit = () => setScale(Math.min(PHONE_SCALE, el.clientWidth / PHONE_W));
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
+function PhoneScreen({ doc, title, scripts, zoom }: { doc: string; title: string; scripts?: boolean; zoom: Zoom }) {
+  const box = useFitWidth<HTMLSpanElement>(zoom.setFit, phoneFit);
+  const { scale, fit } = zoom;
   return (
-    <PhoneBand>
-      <span ref={box} className="flex w-full justify-center">
-        <Phone scale={scale} doc={doc} title={title} scripts={scripts} />
-      </span>
-    </PhoneBand>
+    <span ref={box} className="block w-full">
+      <ZoomArea height={(fit ? PHONE_H * fit : PHONE_H * PHONE_SCALE) + 2 * BAND_PAD} zoomed={scale > fit}>
+        <span className="m-auto block shrink-0" style={{ padding: `${BAND_PAD}px 12px` }}>
+          {scale > 0 && <Phone scale={scale} doc={doc} title={title} scripts={scripts} />}
+        </span>
+      </ZoomArea>
+    </span>
   );
 }
 
-/** The picture: one desktop screen, scaled to the width it is given and never past its
+const screenFit = (width: number) => Math.min(1, width / W);
+
+/** The picture: one desktop screen, at fit scaled to the width it is given and never past its
  *  true size. The frame is that scaled height, so the card page reflows around it. */
-function Screen({ doc, title, scripts }: { doc: string; title: string; scripts?: boolean }) {
-  const box = useRef<HTMLSpanElement>(null);
+function Screen({ doc, title, scripts, zoom }: { doc: string; title: string; scripts?: boolean; zoom: Zoom }) {
+  const box = useFitWidth<HTMLSpanElement>(zoom.setFit, screenFit);
   // 0 until the width is measured, so the first paint is never a full-size screen that
   // then jumps to its scaled size.
-  const [scale, setScale] = useState(0);
-
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const fit = () => setScale(Math.min(1, el.clientWidth / W));
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
+  const { scale, fit } = zoom;
   return (
-    <span
-      ref={box}
-      className="block w-full overflow-hidden bg-nb-wash"
-      style={{ height: scale ? H * scale : H }}
-    >
-      <iframe
-        // No forms, no origin of its own. Everything else the mockup must not do — the
-        // network, the fonts — the document's own CSP stops.
-        sandbox={sandboxOf(scripts)}
-        srcDoc={doc}
-        title={title}
-        style={{
-          width: W,
-          height: H,
-          border: 0,
-          transform: scale === 1 ? undefined : `scale(${scale})`,
-          transformOrigin: "top left",
-        }}
-      />
+    <span ref={box} className="block w-full">
+      <ZoomArea height={fit ? H * fit : H} zoomed={scale > fit}>
+        <span className="m-auto block shrink-0 overflow-hidden" style={{ width: W * scale, height: H * scale }}>
+          <iframe
+            // No forms, no origin of its own. Everything else the mockup must not do — the
+            // network, the fonts — the document's own CSP stops.
+            sandbox={sandboxOf(scripts)}
+            srcDoc={doc}
+            title={title}
+            style={{
+              width: W,
+              height: H,
+              border: 0,
+              transform: scale === 1 ? undefined : `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+          />
+        </span>
+      </ZoomArea>
     </span>
   );
 }
@@ -393,6 +408,7 @@ export function Mockup({
 }) {
   const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
+  const zoom = useZoom();
   const box = useRef<HTMLSpanElement>(null);
   const deferred = view.deferred;
   const failed = useMemo(() => ({ src: view.src, error: c.previewFailed }) as MockupView, [view.src, c]);
@@ -407,6 +423,8 @@ export function Mockup({
   // Only a `.tsx`/`.html` screen is laid out on a device.
   const screen = deferred ? !deferred.hyperframe : view.doc !== undefined && !view.hyperframe;
   const shown: Device = screen ? device : "desktop";
+
+  const zoomable = !showCode && (view.image !== undefined || (drawn?.doc !== undefined && !drawn.hyperframe));
 
   if (drawn?.error !== undefined) return <Note text={drawn.error} />;
   if (view.file) return <Download file={view.file} label={label} />;
@@ -436,16 +454,19 @@ export function Mockup({
           <span className="truncate">{view.src}</span>
           <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
         </Link>
-        {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
-        {(deferred || view.doc !== undefined) && (
-          <button
-            type="button"
-            onClick={() => setShowCode((v) => !v)}
-            className="ml-auto shrink-0 cursor-pointer text-[11px] font-[800] uppercase tracking-[0.06em] text-nb-ink-soft hover:text-nb-accent-deep"
-          >
-            {showCode ? c.screen : c.code}
-          </button>
-        )}
+        <span className="ml-auto flex shrink-0 items-center gap-x-2.5">
+          {zoomable && <ZoomControls zoom={zoom} />}
+          {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
+          {(deferred || view.doc !== undefined) && (
+            <button
+              type="button"
+              onClick={() => setShowCode((v) => !v)}
+              className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep"
+            >
+              {showCode ? c.screen : c.code}
+            </button>
+          )}
+        </span>
       </span>
       {drawn === null || (showCode && code === null) ? (
         <Pending hyperframe={!showCode && !!deferred?.hyperframe} device={showCode ? "desktop" : shown} />
@@ -463,7 +484,7 @@ export function Mockup({
           loop={loop}
         />
       ) : view.image !== undefined ? (
-        <Picture image={view.image} src={view.src} alt={alt || label || view.src} />
+        <Picture image={view.image} src={view.src} alt={alt || label || view.src} zoom={zoom} />
       ) : view.text !== undefined ? (
         <Drawing text={view.text} />
       ) : showCode ? (
@@ -477,9 +498,9 @@ export function Mockup({
         drawn.doc !== undefined && (
           <span className={deferred ? "a4k-reveal block" : "block"}>
             {shown === "mobile" ? (
-              <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} />
+              <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} zoom={zoom} />
             ) : (
-              <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} />
+              <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} zoom={zoom} />
             )}
           </span>
         )

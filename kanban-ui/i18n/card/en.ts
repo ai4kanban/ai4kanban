@@ -255,6 +255,9 @@ const en: CardCopy = {
     back: (id) => `Back to #${id}`,
     unplayable: "Can't play this file: the browser doesn't support its format. Use MP4 (H.264), WebM or MP3.",
     download: "Download",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fit: "Fit to width",
   },
   storyboard: {
     heading: "Storyboard",

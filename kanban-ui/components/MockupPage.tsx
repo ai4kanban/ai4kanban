@@ -9,8 +9,8 @@
 // navigation: `router.back()` was neither, since a pasted address has nothing behind it.
 //
 // The mockup keeps the sandbox the card page's frame has — nothing loads, and only a
-// `.tsx` or `.html` page's own inline scripts run (#1626, #1628). It is not scaled here, so a panel narrower
-// than the screen it was drawn on scrolls. A phone screen (#1097) stands in its phone frame.
+// `.tsx` or `.html` page's own inline scripts run (#1626, #1628). It opens at 100% and zooms
+// (#1637), and a panel narrower than it scrolls. A phone screen (#1097) stands in its phone frame.
 //
 // A `.txt` mockup opens here too (#256), in the same monospaced block the card page shows
 // it in and at the size a drawing is read at. It never re-wraps either.
@@ -19,7 +19,7 @@
 // (#872) fits the panel's width, with its size and length there; audio shows its length.
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/i18n/use-copy";
@@ -27,12 +27,16 @@ import { SCREENS, type Device, type MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryOwner } from "@/lib/types";
 import { clock, MediaPlayer, type MediaMeta } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
-import { Phone, sandboxOf } from "./Mockup";
+import { Phone, PHONE_W, sandboxOf } from "./Mockup";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { Window } from "./Window";
+import { useFitWidth, useZoom, ZoomControls } from "./zoom";
+
+/** The panel's side padding, `px-6`. */
+const PAD = 48;
 
 /** The card a mockup belongs to — `.mockups/<card id>/` is where it is filed. */
 export type MockupCard = { id: number; title: string };
@@ -69,6 +73,19 @@ export function MockupPage({
     setSize((prev) => (prev?.w === w && prev.h === h ? prev : { w, h }));
   }, []);
   const [meta, setMeta] = useState<MediaMeta | null>(null);
+  const zoom = useZoom(1);
+  const { scale } = zoom;
+  const width =
+    view.image !== undefined
+      ? size?.w
+      : view.doc !== undefined && !view.hyperframe
+        ? device === "mobile"
+          ? PHONE_W
+          : SCREENS.desktop.w
+        : undefined;
+  const zoomable = !showCode && width !== undefined;
+  const fitOf = useMemo(() => (width ? (panel: number) => (panel - PAD) / width : null), [width]);
+  const panel = useFitWidth<HTMLDivElement>(zoom.setFit, fitOf);
   const refresh = useCallback(() => router.refresh(), [router]);
 
   // The same two triggers the memory page catches up on: a run finishing, and the window
@@ -143,16 +160,19 @@ export function MockupPage({
                   .join(" · ")}
               </span>
             )}
-            {view.code && (
-              <button
-                type="button"
-                onClick={() => setShowCode((v) => !v)}
-                disabled={!!view.error}
-                className="ml-auto shrink-0 cursor-pointer text-[11px] font-[800] uppercase tracking-[0.06em] text-nb-ink-soft hover:text-nb-accent-deep disabled:cursor-default disabled:opacity-40"
-              >
-                {showCode ? c.screen : c.code}
-              </button>
-            )}
+            <span className="ml-auto flex shrink-0 items-center gap-x-3">
+              {zoomable && <ZoomControls zoom={zoom} />}
+              {view.code && (
+                <button
+                  type="button"
+                  onClick={() => setShowCode((v) => !v)}
+                  disabled={!!view.error}
+                  className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep disabled:cursor-default disabled:opacity-40"
+                >
+                  {showCode ? c.screen : c.code}
+                </button>
+              )}
+            </span>
           </div>
 
           {view.error && (
@@ -166,7 +186,7 @@ export function MockupPage({
 
           {/* Full size, so the panel is what scrolls — both ways, since the screen is wider
               than the body on most windows. */}
-          <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
+          <div ref={panel} className="min-h-0 flex-1 overflow-auto px-6 pb-6">
             {view.doc !== undefined && view.hyperframe && !showCode ? (
               <HyperframePlayer key={view.src} doc={view.doc} title={view.src} />
             ) : view.media !== undefined ? (
@@ -187,6 +207,7 @@ export function MockupPage({
                 ref={measure}
                 onLoad={(e) => measure(e.currentTarget)}
                 className="block max-w-none bg-nb-wash"
+                style={size ? { width: size.w * scale, height: size.h * scale } : undefined}
               />
             ) : view.text !== undefined ? (
               <pre className="w-max whitespace-pre bg-nb-wash p-4 font-mono text-[13px] leading-[19px]">
@@ -200,15 +221,27 @@ export function MockupPage({
               view.doc &&
               (device === "mobile" ? (
                 <span className="mx-auto block w-max">
-                  <Phone scale={1} doc={view.doc} title={view.src} scripts={view.scripts} />
+                  <Phone scale={scale} doc={view.doc} title={view.src} scripts={view.scripts} />
                 </span>
               ) : (
-                <iframe
-                  sandbox={sandboxOf(view.scripts)}
-                  srcDoc={view.doc}
-                  title={view.src}
-                  style={{ width: SCREENS.desktop.w, height: SCREENS.desktop.h, border: 0, display: "block" }}
-                />
+                <span
+                  className="block overflow-hidden"
+                  style={{ width: SCREENS.desktop.w * scale, height: SCREENS.desktop.h * scale }}
+                >
+                  <iframe
+                    sandbox={sandboxOf(view.scripts)}
+                    srcDoc={view.doc}
+                    title={view.src}
+                    style={{
+                      width: SCREENS.desktop.w,
+                      height: SCREENS.desktop.h,
+                      border: 0,
+                      display: "block",
+                      transform: scale === 1 ? undefined : `scale(${scale})`,
+                      transformOrigin: "top left",
+                    }}
+                  />
+                </span>
               ))
             )}
           </div>

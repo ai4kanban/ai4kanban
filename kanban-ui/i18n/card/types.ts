@@ -272,6 +272,9 @@ export type CardCopy = {
     unmute: string;
     loadingPreview: string;
     previewFailed: string;
+    zoomIn: string;
+    zoomOut: string;
+    fit: string;
   };
   /** A `<Storyboard>` script (#963). */
   storyboard: {

@@ -246,6 +246,9 @@ const zh: CardCopy = {
     back: (id) => `返回 #${id}`,
     unplayable: "无法播放：浏览器不支持此文件的格式。请改用 MP4（H.264）、WebM 或 MP3。",
     download: "下载",
+    zoomIn: "放大",
+    zoomOut: "缩小",
+    fit: "适应宽度",
   },
   storyboard: {
     heading: "静态分镜",
