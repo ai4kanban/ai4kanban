@@ -39,6 +39,7 @@
 - [请产品配图先画一张示意图，再做一段 canvas 动画预览](skill/ask-the-illustrator-for-an-image-and-a-canvas-animation/case.md)
 - [把 draft-first 装进项目，再加一个自己的 helper](skill/install-draft-first-and-add-your-own-helper/case.md)
 - [让编码 agent 先出草稿，在浏览器里删、批注、导出后确认](skill/review-drafts-and-confirm-them-in-draft-first/case.md)
+- [卡片的 chat 正在回复时否决它](skill/reject-a-card-while-its-chat-is-replying/case.md)
 
 ### local-ui
 
@@ -71,6 +72,8 @@
 - [在卡片上看一份会动的样稿](local-ui/watch-a-scripted-mockup-move-on-a-card/case.md)
 - [给工作流的规划者单独选一个运行时](local-ui/pick-a-runtime-for-a-workflow-planner/case.md)
 - [放大卡片里的样稿和图片，看清小字](local-ui/zoom-a-mockup-or-image-on-a-card/case.md)
+- [在「搁置」列里找出放了好几天没动的卡](local-ui/find-cards-untouched-for-days-in-the-stale-column/case.md)
+- [卡片的对话还在回复时移除这张卡](local-ui/reject-a-card-while-its-chat-is-replying/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -105,6 +108,7 @@
 - [在 Cloud 看板网站查看套餐并购买 Pro](cloud/check-your-plan-and-subscription/case.md)
 - [在浏览器里退出 Cloud 看板](cloud/sign-out-of-the-hosted-board/case.md)
 - [在 Cloud 看板上，删掉的归档卡片带走它已结束的交付记录](cloud/deleted-archived-cards-take-their-deliveries-with-them/case.md)
+- [在 Cloud 看板上，子卡仍在推进的分组不进「搁置」列](cloud/a-group-stays-off-stale-while-a-subtask-moves/case.md)
 
 ### telemetry
 
@@ -131,7 +135,7 @@
 - **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`。
 - **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/chat-while-claude-code-runs-a-background-task/stand-in.mjs) 顶替真实 agent，不花钱。Claude Code 从 stdin 收提示词（#1540），从最后一个参数取提示词的旧替身认不出运行，重跑前照它改。
 - **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。几个 dev server 同时跑时各用一份 `kanban-ui` 拷贝：它们会轮流改写 `tsconfig.json`。
-- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION` 一起拷），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
+- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION` 和 `telemetry/contract.ts` 一起拷），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
 - **Cloud 看板网站**：`cloud-ui` 和 `kanban-ui` 的 `node_modules` 软链到主检出，`next dev`；登录、接口和结账用 [stand-in.mjs](cloud/sign-in-to-the-hosted-board/stand-in.mjs) 顶替，放在 `127.0.0.1` 上与网站跨站。
 - **截图**：只截相关区域。
 - **保密**：日志和截图里不出现密钥、账号和本机用户名路径。

@@ -2,7 +2,7 @@
 
 ## Setup
 
-- **站点**：官网（`web/`）的静态构建用 `wrangler pages dev` 跑在 `127.0.0.1:4330`，无头 Chrome 开远程调试（`CDP_PORT`）；脚本是 [blog.mjs](blog.mjs)（用 [cdp.mjs](cdp.mjs) 驱动浏览器），窗口 1280×900，手机 390×844。
+- **站点**：官网（`web/`）的静态构建用 `wrangler pages dev` 跑在本机（地址给 `SITE`，默认 `127.0.0.1:4330`；`_redirects` 只在这样跑时生效），无头 Chrome 开远程调试（`CDP_PORT`）；脚本是 [blog.mjs](blog.mjs)（用 [cdp.mjs](cdp.mjs) 驱动浏览器），窗口 1280×900，手机 390×844。封面图来自线上 `cdn.ai4kanban.dev`。
 - **读者**：想找某一类文章的人。
 
 ## Steps
@@ -12,24 +12,33 @@
    ![Resources 面板](01-resources.png) · [blog.log](blog.log)
 
 2. 点「Blog」。
-   到 `/blog`：标题下是主题标签「All · The board · Coding agents · Workflow」，最新一篇占一整行大图（这篇的封面是用代码画的「Show me before you build.」），其余文章排成三列网格，每篇有封面、主题、日期、阅读时长、标题和两行摘要。
-   ![博客首页](02-blog-index.png)
+   到 `/blog`：标题下是主题标签「All · The board · Coding agents · Workflow」，最新一篇「Why spec-to-code fails, and how we fix it」占一整行大图，其余 5 篇排成三列网格，每篇有封面、主题、日期、阅读时长、标题和两行摘要。
+   ![博客首页](02-blog-index.png) · [blog.log](blog.log)
 
-3. 点「The board」。
-   地址变成 `/blog?topic=board`，标签高亮，置顶大图消失，网格只剩一篇「Why project planning becomes the bottleneck with AI coding tools」。
-   ![按主题筛选](03-board-topic.png) · [blog.log](blog.log)
+3. 往下滚到网格。
+   6 篇的封面各不相同，都是同一种画法：左边一句大字标题（如「Show me before you build.」「Bring me decisions, not logs.」「Ten chats or one board.」），右边打叉的旧做法对比打勾的新做法；没有一张是界面截图。
+   ![网格里的封面](03-blog-covers.png) · [blog.log](blog.log)
 
-4. 按浏览器的后退。
+4. 点「The board」。
+   地址变成 `/blog?topic=board`，标签高亮，置顶大图消失，网格只剩一篇「Why project planning becomes the bottleneck with AI coding tools」，封面是「Code can’t say why.」。
+   ![按主题筛选](04-board-topic.png) · [blog.log](blog.log)
+
+5. 按浏览器的后退。
    回到 `/blog` 的全部文章，置顶大图回来。
    [blog.log](blog.log)
 
-5. 用 390px 宽的手机打开 `/blog?topic=agents`。
+6. 打开已下线文章的旧链接 `/blog/deepseek-harness-support`。
+   直接回到博客首页 `/blog`（301），不是 404；首页上也没有这篇。
+   [blog.log](blog.log)
+
+7. 用 390px 宽的手机打开 `/blog?topic=agents`。
    「Coding agents」高亮，文章排成一列；整页没有横向滚动（页面宽度 390），标签一行放不下时可以横向滑。
-   ![手机上的主题筛选](05-phone-agents.png)
+   ![手机上的主题筛选](07-phone-agents.png) · [blog.log](blog.log)
 
 ## Feedback
 
-- **筛选又快又能分享**：点一下就地筛，地址带上主题，能后退、能直接发链接。
+- **封面终于能分清文章**：每篇一句标题加一组对比图，扫一眼网格就知道各篇讲什么，比原来一排同样的看板截图好认得多。
+- **封面图里的小字看不清**：三列网格里每张封面约 350px 宽，右侧示意图上的「10 agents」「1 decision」等标注只有几像素高，基本只能当装饰看。
+- **旧链接悄悄落回首页**：下线文章跳回 `/blog` 不会 404，但读者看不到任何提示，会以为链接坏了、点错了。
 - **文章上的主题和所选主题对不上**：在「The board」下唯一那篇标着「WORKFLOW」，因为卡片只显示文章的第一个主题，第一眼像是筛错了。
 - **「Workflow」等于「All」**：所有文章都带 workflow 主题，点它只是去掉了置顶大图。
-- **封面大多一样**：除了置顶那篇，网格里的封面几乎都是同一张看板截图，靠图分不出文章。
