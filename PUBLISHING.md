@@ -11,6 +11,7 @@ repo directly.
 | --- | --- | --- |
 | Skill (`skill/`) + plugin/marketplace manifests | this repo | `git push` — nothing to publish |
 | Setup CLI | npm `ai4kanban` | `npm publish` from `cli/` |
+| draft-first skill | npm `draft-first` | `npm publish` from `draft-first/` — its own version in `draft-first/package.json`; `npx draft-first install` stamps it into the installed `review.mjs` |
 | Board app | GitHub release for the version tag | `npm run dist` from `desktop/`, then upload |
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
 | Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
