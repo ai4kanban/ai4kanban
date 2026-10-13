@@ -12,6 +12,7 @@ Plan one card in this session until it can be built. Change no project code.
 - **Spec agents**: when an agent's `description` matches the scope and its section is missing
   or outdated, run `akb spec <agent> <id> --print` and write its section in this session;
   run agents one at a time, in dependency order when one's output is another's input.
+  Skip a matching agent only for a reason its own description gives.
 - **File name**: when the card's file name does not say in English what the card is, rename
   it with `akb raw update <id> --slug <short-english-slug>`; leave a group's root as it is.
 - **Stale mentions**: rewrite any sentence that relies on a card no longer on the board.
