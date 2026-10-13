@@ -11,6 +11,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { openSort, runSort, triageWaiting } from '../src/lib/agent/auto-triage.ts'
+import { openRun } from '../src/lib/agent/sessions.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
 import { cmdTriageAdd, cmdTriageRestore } from '../src/commands/triage.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
@@ -486,6 +487,20 @@ describe('the sort', () => {
     answer(jev())
     await sort()
     assert.match(cardText('102-a-post.md'), /^workflow: blog-post$/m)
+  })
+
+  it("signs a scheduled agent's sub-run items with that agent", async () => {
+    const pass = openRun({ action: 'scheduled', workflow: 'coding', specAgent: 'qa-manager' }, 'prompt', [])
+    assert.ok(!('error' in pass))
+    const sub = openRun({ action: 'sub', parentId: pass.run.sessionId, specAgent: pass.run.agent }, 'prompt', [])
+    assert.ok(!('error' in sub))
+    process.env.KANBAN_RUN = sub.run.sessionId
+    try {
+      await waiting('Dark mode fails')
+    } finally {
+      delete process.env.KANBAN_RUN
+    }
+    assert.equal(readInbox().find((i) => i.title === 'Dark mode fails')?.agent, 'qa-manager')
   })
 
   it('schedules a refine on a small card too, and writes no Source section', async () => {

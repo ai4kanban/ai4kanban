@@ -124,11 +124,18 @@ export function insideScheduledPass(): ScheduledPass | null {
 }
 
 /** The agent this process is working as, inside a run the board started: a scheduled pass's,
- *  or the one a board flow names. Null anywhere else. */
+ *  the one a board flow names, or a sub-run's parent's (#1660). Null anywhere else. */
 export function runAgent(): string | null {
   const sessionId = insideRun()
-  const run = sessionId ? readStore().runs.find((r) => r.sessionId === sessionId) : undefined
+  const runs = sessionId ? readStore().runs : []
+  const run = runs.find((r) => r.sessionId === sessionId)
   if (!run) return null
+  if (run.action !== 'sub') return agentOf(run)
+  const parent = runs.find((r) => r.sessionId === run.parentId)
+  return parent ? agentOf(parent) : (run.specAgent ?? null)
+}
+
+function agentOf(run: RunRecord): string | null {
   if (run.action === 'scheduled') return run.specAgent ?? null
   return flowNodes().find((n) => n.flow === run.action)?.agent ?? null
 }
