@@ -49,6 +49,8 @@ export interface Billing {
   periodEnd: string | null
   /** The grant's end, while it lasts. */
   grantEnd: string | null
+  /** Whether the subscription shown is set to end and Creem can still resume it. */
+  resumable: boolean
 }
 
 /** Whether a subscription is being paid for — what stops a second checkout. */
@@ -91,14 +93,21 @@ export function billingOf(rows: SubscriptionRow[], grant: GrantRow | null = null
     .sort((a, b) => RANK[stateOf(a)]! - RANK[stateOf(b)]! || endOf(b) - endOf(a))
   const best = pro[0]
   if (best) {
-    return { plan: 'pro', state: stateOf(best), period: best.period, periodEnd: best.current_period_end, grantEnd }
+    return {
+      plan: 'pro',
+      state: stateOf(best),
+      period: best.period,
+      periodEnd: best.current_period_end,
+      grantEnd,
+      resumable: best.status === 'scheduled_cancel',
+    }
   }
   const plan = grantEnd ? 'pro' : 'free'
   const ended = (row: SubscriptionRow) => Date.parse(endedAt(row) ?? '') || 0
   const last = rows.filter(ended).sort((a, b) => ended(b) - ended(a))[0]
   return last
-    ? { plan, state: 'expired', period: last.period, periodEnd: endedAt(last), grantEnd }
-    : { plan, state: 'free', period: null, periodEnd: null, grantEnd }
+    ? { plan, state: 'expired', period: last.period, periodEnd: endedAt(last), grantEnd, resumable: false }
+    : { plan, state: 'free', period: null, periodEnd: null, grantEnd, resumable: false }
 }
 
 /** The routes under `/v1/billing`. */
@@ -130,7 +139,7 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     await recoverCheckouts(env, creem, session.subject, true)
     // One subscription per person: a subscriber manages theirs instead. A grant alone may buy.
     if (subscribed(await readBilling(env, session.subject))) {
-      return json({ url: `${CLOUD_UI_ORIGIN}/settings` })
+      return json({ url: `${CLOUD_UI_ORIGIN}/settings?checkout=subscribed` })
     }
     const checkout = await creem<{ id?: string; checkout_url?: string }>('POST', '/v1/checkouts', {
       product_id: period === 'monthly' ? env.CREEM_PRODUCT_MONTHLY : env.CREEM_PRODUCT_YEARLY,
@@ -160,6 +169,19 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     } catch (error) {
       console.error('cloud: checkout return not confirmed', error)
     }
+    return json({ billing: await readBilling(env, session.subject) })
+  }
+
+  // Undo a cancellation still inside its period, without the portal.
+  if (rest === 'resume') {
+    requireMethod(request, 'POST')
+    const rows = await call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: session.subject })
+    const ending = rows
+      .filter((row) => row.status === 'scheduled_cancel' && isPro(row))
+      .sort((a, b) => endOf(b) - endOf(a))[0]
+    if (!ending) throw notFound('This account has no renewal to resume.')
+    const sub = await creem<CreemSubscription>('POST', `/v1/subscriptions/${encodeURIComponent(ending.id)}/resume`)
+    await record(env, sub, session.subject)
     return json({ billing: await readBilling(env, session.subject) })
   }
 

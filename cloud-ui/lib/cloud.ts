@@ -204,6 +204,8 @@ export interface Billing {
   periodEnd: string | null;
   /** A seed partner's grant (#1039): its end while it runs. */
   grantEnd: string | null;
+  /** Cancelled but still in its period, so renewal can be turned back on (#1682). */
+  resumable: boolean;
 }
 
 /** Paying for Pro, as opposed to Pro on a grant alone. */
@@ -241,6 +243,11 @@ export async function confirmCheckout(token: string, subscriptionId: string): Pr
 /** Where to send the reader: a Creem checkout, or `/settings` for somebody already on Pro. */
 export async function startCheckout(token: string, period: "monthly" | "yearly"): Promise<string | null> {
   return (await post<{ url?: string }>("/v1/billing/checkout", token, { period }))?.url ?? null;
+}
+
+/** Turn renewal back on for a cancelled subscription still in its period. */
+export async function resumeRenewal(token: string): Promise<Billing | null> {
+  return (await post<{ billing?: Billing }>("/v1/billing/resume", token))?.billing ?? null;
 }
 
 export async function openPortal(token: string): Promise<string | null> {

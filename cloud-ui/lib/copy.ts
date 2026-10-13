@@ -77,6 +77,11 @@ export interface HostedCopy {
   planUnavailable: string;
   checkoutFailed: string;
   portalFailed: string;
+  /** Back from Get Pro while already subscribed (#1682). */
+  alreadyPro: string;
+  stillActive: string;
+  resume: string;
+  resumeFailed: string;
   /** The public page a desktop checkout lands on (#1109). */
   checkoutDone: string;
   checkoutDoneBody: string;
@@ -127,6 +132,10 @@ const en: HostedCopy = {
   planUnavailable: "Your plan could not be read just now. Try again shortly.",
   checkoutFailed: "Checkout could not start. Try again.",
   portalFailed: "Billing could not be opened. Try again.",
+  alreadyPro: "You're already on Pro. No need to buy again.",
+  stillActive: "Your Pro is still active. Resume renewal to keep it.",
+  resume: "Resume renewal",
+  resumeFailed: "Renewal could not be resumed. Try again.",
   checkoutDone: "Payment complete",
   checkoutDoneBody: "Head back to AI4Kanban. Pro unlocks there on its own — no need to sign in again.",
 };
@@ -175,6 +184,10 @@ const zh: HostedCopy = {
   planUnavailable: "暂时无法读取你的套餐，请稍后重试。",
   checkoutFailed: "无法开始结账，请重试。",
   portalFailed: "无法打开账单管理，请重试。",
+  alreadyPro: "你已是 Pro，无需再次购买。",
+  stillActive: "Pro 仍在有效期内，恢复续费即可继续使用。",
+  resume: "恢复续费",
+  resumeFailed: "无法恢复续费，请重试。",
   checkoutDone: "付款成功",
   checkoutDoneBody: "请回到 AI4Kanban，Pro 会自动解锁，无需再次登录。",
 };

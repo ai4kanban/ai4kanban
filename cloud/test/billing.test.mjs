@@ -133,6 +133,11 @@ beforeEach(async () => {
       const txs = /^\/v1\/transactions\/search\?customer_id=([^&]+)/.exec(path)
       if (txs && txDown) return json({ message: 'down' }, 500)
       if (txs) return json({ items: creemTxs.filter((tx) => tx.customer === txs[1]), pagination: {} })
+      const resume = /^\/v1\/subscriptions\/([^/]+)\/resume$/.exec(path)
+      if (resume && creemSubs.has(resume[1])) {
+        creemSubs.set(resume[1], { ...creemSubs.get(resume[1]), status: 'active' })
+        return json(creemSubs.get(resume[1]))
+      }
       if (path === '/v1/customers/billing') return json({ customer_portal_link: `https://creem.io/portal/${body.customer_id}` })
       const sub = /^\/v1\/subscriptions\?subscription_id=(.+)$/.exec(path)
       if (sub && creemSubs.has(sub[1])) return json(creemSubs.get(sub[1]))
@@ -178,23 +183,23 @@ describe('who is Pro', () => {
   })
 
   it('takes the best of several, and reads a lapsed one as expired', () => {
-    assert.deepEqual(billingOf([], null, NOW), { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null })
+    assert.deepEqual(billingOf([], null, NOW), { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false })
     assert.deepEqual(billingOf([row('expired', EARLIER)], null, NOW), {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: EARLIER, grantEnd: null,
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: EARLIER, grantEnd: null, resumable: false,
     })
     const best = billingOf(
       [row('past_due'), row('canceled', LATER, { id: 'sub_2' }), row('active', LATER, { id: 'sub_3', period: 'yearly' })],
       null,
       NOW,
     )
-    assert.deepEqual(best, { plan: 'pro', state: 'active', period: 'yearly', periodEnd: LATER, grantEnd: null })
+    assert.deepEqual(best, { plan: 'pro', state: 'active', period: 'yearly', periodEnd: LATER, grantEnd: null, resumable: false })
     assert.equal(billingOf([row('past_due'), row('scheduled_cancel')], null, NOW).state, 'canceled')
     assert.equal(billingOf([row('expired'), row('past_due')], null, NOW).state, 'pastDue')
   })
 
   it('makes a seed partner Pro until the grant ends, leaving the subscription’s state its own (#1039)', () => {
     const grant = { starts_at: EARLIER, ends_at: LATER }
-    assert.deepEqual(billingOf([], grant, NOW), { plan: 'pro', state: 'free', period: null, periodEnd: null, grantEnd: LATER })
+    assert.deepEqual(billingOf([], grant, NOW), { plan: 'pro', state: 'free', period: null, periodEnd: null, grantEnd: LATER, resumable: false })
     assert.deepEqual(billingOf([], { starts_at: EARLIER, ends_at: EARLIER }, NOW).plan, 'free')
 
     // A cancelled subscription that has run out: still Pro on the grant.
@@ -203,7 +208,7 @@ describe('who is Pro', () => {
     assert.equal(lapsed.state, 'expired')
     // A grant that has run out: still Pro on the subscription.
     const paying = billingOf([row('active')], { starts_at: EARLIER, ends_at: EARLIER }, NOW)
-    assert.deepEqual(paying, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    assert.deepEqual(paying, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
     // Both at once.
     assert.equal(billingOf([row('active')], grant, NOW).grantEnd, LATER)
   })
@@ -217,7 +222,7 @@ describe('who is Pro', () => {
     // A renewal after the refund is a later period.
     assert.equal(isPro(row('active', NEXT, refunded), NOW), true)
     assert.deepEqual(billingOf([row('canceled', LATER, refunded)], null, NOW), {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null,
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false,
     })
   })
 
@@ -311,7 +316,7 @@ describe('the signed-in billing routes', () => {
     rows.set('sub_9', { ...row('active'), id: 'sub_9', user_id: OTHER, period: 'yearly' })
     const res = await signedIn('GET', '/v1/billing')
     assert.equal(res.status, 200)
-    assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
   })
 
   it('shows Pro this month\'s credits, and nobody else any', async () => {
@@ -382,8 +387,44 @@ describe('the signed-in billing routes', () => {
   it('sends somebody already on Pro to settings instead of a second subscription', async () => {
     rows.set('sub_1', { ...row('scheduled_cancel'), user_id: SUBJECT })
     const res = await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })
-    assert.equal((await res.json()).url, 'https://cloud.ai4kanban.dev/settings')
+    assert.equal((await res.json()).url, 'https://cloud.ai4kanban.dev/settings?checkout=subscribed')
     assert.equal(creemCalls.length, 0)
+  })
+
+  it('says whether the subscription shown can be resumed, and only for a scheduled cancel', async () => {
+    rows.set('sub_1', { ...row('scheduled_cancel'), user_id: SUBJECT })
+    assert.equal((await (await signedIn('GET', '/v1/billing')).json()).billing.resumable, true)
+    rows.set('sub_1', { ...row('canceled'), user_id: SUBJECT })
+    assert.equal((await (await signedIn('GET', '/v1/billing')).json()).billing.resumable, false)
+  })
+
+  it('resumes a scheduled cancel and answers the renewing plan', async () => {
+    rows.set('sub_1', { ...row('scheduled_cancel'), user_id: SUBJECT })
+    creemSubs.set('sub_1', creemSub('scheduled_cancel'))
+    const res = await signedIn('POST', '/v1/billing/resume')
+    assert.equal(res.status, 200)
+    assert.equal(creemCalls[0].address, 'https://api.creem.io/v1/subscriptions/sub_1/resume')
+    assert.deepEqual((await res.json()).billing, {
+      plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false,
+    })
+    assert.equal(rows.get('sub_1').status, 'active')
+  })
+
+  it('refuses to resume with nothing to resume', async () => {
+    assert.equal((await signedIn('POST', '/v1/billing/resume')).status, 404)
+    rows.set('sub_1', { ...row('canceled'), user_id: SUBJECT })
+    rows.set('sub_2', { ...row('scheduled_cancel', EARLIER), id: 'sub_2', user_id: SUBJECT })
+    assert.equal((await signedIn('POST', '/v1/billing/resume')).status, 404)
+    assert.equal(creemCalls.length, 0)
+  })
+
+  it('leaves the row as it was when Creem cannot resume it', async () => {
+    rows.set('sub_1', { ...row('scheduled_cancel'), user_id: SUBJECT })
+    creemDown = true
+    const res = await signedIn('POST', '/v1/billing/resume')
+    assert.equal(res.status, 502)
+    assert.equal((await res.json()).error.code, 'billing_failed')
+    assert.equal(rows.get('sub_1').status, 'scheduled_cancel')
   })
 
   it('lets a seed partner subscribe early, and reports the grant (#1039)', async () => {
@@ -446,7 +487,7 @@ describe('a refund or chargeback', () => {
       creemTxs = [tx('tx_1', status)]
       await send(refundEvent)
       const { billing, credits } = await read()
-      assert.deepEqual(billing, { plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null })
+      assert.deepEqual(billing, { plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false })
       assert.equal(credits, null)
     })
   }
@@ -468,7 +509,7 @@ describe('a refund or chargeback', () => {
     creemTxs = [tx('tx_1', 'paid')]
     await send(refundEvent)
     const { billing, credits } = await read()
-    assert.deepEqual(billing, { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    assert.deepEqual(billing, { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
     assert.notEqual(credits, null)
   })
 
@@ -485,7 +526,7 @@ describe('a refund or chargeback', () => {
     creemTxs.push(tx('tx_2', 'paid', { period_end: Date.parse(NEXT) }))
     await send(JSON.stringify({ eventType: 'subscription.paid', object: { id: 'sub_1', object: 'subscription' } }))
     const { billing } = await read()
-    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: NEXT, grantEnd: null })
+    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: NEXT, grantEnd: null, resumable: false })
   })
 
   it('lets a revoked subscriber buy again', async () => {
@@ -532,7 +573,7 @@ describe('a checkout whose notification never came (#1251)', () => {
     pay()
     clock += MINUTE
     const { billing, credits } = await read()
-    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null })
+    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
     assert.notEqual(credits, null)
     assert.equal(rows.get('sub_1').user_id, SUBJECT)
     assert.equal(pending.size, 0)
@@ -551,7 +592,7 @@ describe('a checkout whose notification never came (#1251)', () => {
     pay('ch_1', { ...creemSub('canceled'), canceled_at: CANCELED_AT })
     creemTxs = [refundedTx]
     assert.deepEqual((await read()).billing, {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null,
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false,
     })
     assert.equal(pending.size, 0)
   })
@@ -573,7 +614,7 @@ describe('a checkout whose notification never came (#1251)', () => {
   it('sends a buyer who already paid to settings instead of a second checkout', async () => {
     await checkout()
     pay()
-    assert.equal(await checkout(), 'https://cloud.ai4kanban.dev/settings')
+    assert.equal(await checkout(), 'https://cloud.ai4kanban.dev/settings?checkout=subscribed')
     assert.equal(creemCalls.filter((c) => c.address.endsWith('/v1/checkouts')).length, 1)
     assert.equal(pending.size, 0)
   })

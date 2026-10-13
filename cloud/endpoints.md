@@ -178,18 +178,21 @@ carries no `CREEM_API_KEY` / `CREEM_WEBHOOK_SECRET`.
 
 - `GET /v1/billing` — `{ "billing": { "plan": "free" | "pro", "state": "free" | "active" |
   "canceled" | "pastDue" | "expired", "period": "monthly" | "yearly" | null, "periodEnd",
-  "grantEnd" } }`. `periodEnd` is the renewal date while `active` or `pastDue`, the end date
+  "grantEnd", "resumable" } }`. `periodEnd` is the renewal date while `active` or `pastDue`, the end date
   otherwise. Judged on read: `active`, `trialing`, `past_due` are Pro; `scheduled_cancel`,
   `canceled` until `periodEnd`; the best of several subscriptions wins. A seed partner's grant
   (#1039) also makes `plan` Pro and sets `grantEnd` while it runs; `state`, `period` and
-  `periodEnd` stay the subscription's. Also `"credits": { "total", "left",
+  `periodEnd` stay the subscription's. `resumable` is true only when the subscription shown is
+  Creem's `scheduled_cancel`. Also `"credits": { "total", "left",
   "resetsAt" }` for Pro, `null` otherwise: Pro's AI credits this UTC month (#1113), spent by every
   hosted capability at the rates in `src/credits.ts` (`cloud.credit_spends`).
 - `POST /v1/billing/checkout` — `{ "period": "monthly" | "yearly" }`: `{ "url" }`, a Creem
-  checkout returning to `/settings?checkout=done`, or `/settings` itself for somebody already
+  checkout returning to `/settings?checkout=done`, or `/settings?checkout=subscribed` for somebody already
   subscribed (`active`, `canceled` or `pastDue`). A grant alone may buy.
 - `POST /v1/billing/confirm` — `{ "subscriptionId" }` from that return: reads it from Creem,
   writes it when it is the caller's, and answers `billing`.
+- `POST /v1/billing/resume` — resumes the caller's `scheduled_cancel` subscription through
+  Creem and answers the new `billing`; 404 when there is none to resume.
 - `POST /v1/billing/portal` — `{ "url" }`, the caller's Creem customer portal.
 - `POST /v1/billing/webhook` — Creem's notification, no sign-in. `creem-signature` must be the
   HMAC-SHA256 of the raw body under `CREEM_WEBHOOK_SECRET`. The subscription is re-read from

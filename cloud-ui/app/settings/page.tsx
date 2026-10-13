@@ -78,6 +78,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Que
         billing={billing}
         checkoutFailed={one("checkout") === "failed"}
         portalFailed={one("portal") === "failed"}
+        resumeFailed={one("resume") === "failed"}
+        alreadySubscribed={one("checkout") === "subscribed"}
         refreshHref={here}
       />
       <TourRow />

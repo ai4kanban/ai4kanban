@@ -1,8 +1,8 @@
 // The plan panel on /settings (#1037). No script of its own: buying is a GET form to
-// /billing/checkout, and billing a POST form to /billing/portal.
+// /billing/checkout, billing a POST form to /billing/portal, resuming one to /billing/resume.
 
 import type { ReactNode } from "react";
-import { FiAlertCircle } from "react-icons/fi";
+import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import { Button } from "@/components/button";
 import type { Language } from "@/lib/format/machine/types";
 import type { Billing } from "../lib/cloud";
@@ -66,9 +66,9 @@ function Buy({ copy, failed }: { copy: HostedCopy; failed: boolean }) {
   );
 }
 
-function Portal({ label, accent }: { label: string; accent?: boolean }) {
+function Portal({ label, accent, action = "/billing/portal" }: { label: string; accent?: boolean; action?: string }) {
   return (
-    <form action="/billing/portal" method="post" className="shrink-0">
+    <form action={action} method="post" className="shrink-0">
       <Button type="submit" size="sm" variant={accent ? "accent" : "ghost"} className="whitespace-nowrap">
         {label}
       </Button>
@@ -97,6 +97,8 @@ export function PlanPanel({
   billing,
   checkoutFailed,
   portalFailed,
+  resumeFailed,
+  alreadySubscribed,
   refreshHref,
 }: {
   copy: HostedCopy;
@@ -105,6 +107,9 @@ export function PlanPanel({
   billing: Billing | null;
   checkoutFailed: boolean;
   portalFailed: boolean;
+  resumeFailed: boolean;
+  /** Back from Get Pro while already subscribed (#1682). */
+  alreadySubscribed: boolean;
   refreshHref: string;
 }) {
   const period = billing?.period ? (billing.period === "yearly" ? copy.yearly : copy.monthly) : undefined;
@@ -120,6 +125,16 @@ export function PlanPanel({
   const portalError = portalFailed && (
     <p className="text-[12.5px] font-[700] text-nb-peach-ink" role="alert">
       {copy.portalFailed}
+    </p>
+  );
+  const resumable = state === "canceled" && !!billing?.resumable;
+  const notice = alreadySubscribed && (state === "active" || state === "canceled" || state === "pastDue") && (
+    <p
+      className="flex items-center gap-2 rounded-[10px] bg-nb-mint-soft px-3 py-2 text-[12.5px] font-[700] text-nb-mint-ink"
+      role="status"
+    >
+      <FiCheckCircle className="shrink-0" size={14} aria-hidden />
+      {resumable ? copy.stillActive : copy.alreadyPro}
     </p>
   );
 
@@ -159,14 +174,28 @@ export function PlanPanel({
     case "canceled":
       body = (
         <>
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div
+            className={`flex flex-col items-start gap-3 ${resumable ? "" : "sm:flex-row sm:items-center sm:justify-between"}`}
+          >
             <div className="flex min-w-0 flex-col gap-1">
               <Title name={copy.pro} period={period} />
               {date && <Line>{(state === "active" ? copy.renews : copy.ends).replace("{date}", date)}</Line>}
               {alsoGifted}
             </div>
-            <Portal label={copy.manage} />
+            {resumable ? (
+              <div className="flex shrink-0 items-center gap-2">
+                <Portal label={copy.resume} accent action="/billing/resume" />
+                <Portal label={copy.manage} />
+              </div>
+            ) : (
+              <Portal label={copy.manage} />
+            )}
           </div>
+          {resumable && resumeFailed && (
+            <p className="text-[12.5px] font-[700] text-nb-peach-ink" role="alert">
+              {copy.resumeFailed}
+            </p>
+          )}
           {portalError}
         </>
       );
@@ -218,6 +247,7 @@ export function PlanPanel({
   return (
     <section className="nb-panel-sm flex flex-col gap-3 p-4">
       <h2 className={`${CAPTION} text-nb-ink-soft`}>{copy.plan}</h2>
+      {notice}
       {body}
     </section>
   );
