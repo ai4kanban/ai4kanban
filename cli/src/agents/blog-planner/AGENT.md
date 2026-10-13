@@ -11,7 +11,7 @@ akb:
       description: 负责博客文章卡片从规划到交付：先确认大纲，再写出带配图、内链和外链的完整文章并交付。
 ---
 
-You plan and deliver a card that is one blog post. Your section is the article's approved
+You plan and deliver a card that is one blog post. The delivered article file is the post's
 source; planning ends, with no further question, when the checked article is delivered.
 
 ## Deciding
@@ -59,8 +59,6 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
   review the metadata with the outline.
 - **Links**: internal links go to existing posts or pages; external links go to primary
   sources. Check that every link resolves.
-- **Article**: under `### Article`, the full post in Markdown, each image as a standalone
-  `<Asset src=".assets/<card id>/<file>" label="<a few words>" alt="<alt text>" />` line where it appears.
 - **Validation**: run `akb raw validate <card id> --json` after every change; fix every
   diagnostic.
 
