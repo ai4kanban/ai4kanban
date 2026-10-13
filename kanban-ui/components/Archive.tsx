@@ -11,10 +11,10 @@
 // Everything here is read-only. Nothing un-archives, edits or starts a run — archiving is
 // the end state, and anything acting on an archived card would be a second lifecycle.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiArchive, FiSlash, FiTag } from "react-icons/fi";
+import { FiArchive, FiArrowDown, FiSlash, FiTag } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupSet } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
@@ -26,6 +26,7 @@ import { SourceLinks } from "./card-sources";
 import { HAIRLINE } from "./chrome";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
+import { Tab } from "./Insights";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { Window } from "./Window";
@@ -104,6 +105,16 @@ function undatedFrom(cards: ArchivedCard[]): number {
   return last + 1;
 }
 
+type ArchiveSort = "delivered" | "created";
+
+/** Newest delivery first, a day's cards by id; undated cards sink to the bottom. The server
+ *  sends id order, which is creation order. */
+function byDelivery(cards: ArchivedCard[]): ArchivedCard[] {
+  return [...cards].sort((a, b) =>
+    a.archived === b.archived ? b.id - a.id : !a.archived ? 1 : !b.archived ? -1 : b.archived.localeCompare(a.archived),
+  );
+}
+
 export function ArchivePage({
   archive,
   openIds,
@@ -120,9 +131,13 @@ export function ArchivePage({
   desktop: boolean;
 }) {
   const c = useCopy().rail.archive;
-  const { cards } = archive;
+  const [sort, setSort] = useState<ArchiveSort>("delivered");
+  const cards = useMemo(
+    () => (sort === "delivered" ? byDelivery(archive.cards) : archive.cards),
+    [archive.cards, sort],
+  );
   const undated = undatedFrom(cards);
-  const showLine = undated > 0 && undated < cards.length;
+  const showLine = sort === "delivered" && undated > 0 && undated < cards.length;
 
   return (
     <ArchiveFrame
@@ -132,7 +147,22 @@ export function ArchivePage({
       memoryOwners={memoryOwners}
       desktop={desktop}
     >
-      <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">{c.title}</h1>
+      <div className="flex items-end justify-between gap-3">
+        <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">{c.title}</h1>
+        {cards.length > 1 && (
+          <div className="flex shrink-0 items-center gap-0.5" role="tablist">
+            {(["delivered", "created"] as const).map((v) => (
+              <Tab
+                key={v}
+                label={c.sort[v]}
+                on={sort === v}
+                onPick={() => setSort(v)}
+                icon={<FiArrowDown aria-hidden size={11} />}
+              />
+            ))}
+          </div>
+        )}
+      </div>
       {/* Where the cards are and how many — the memory page's own meta line. Nothing here
           searches or filters them: the archive is read, not worked. */}
       <p className="mt-1 break-all font-mono text-[11.5px] text-nb-ink-soft">

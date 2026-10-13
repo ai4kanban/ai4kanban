@@ -147,7 +147,17 @@ function InsightsBody() {
 }
 
 // The Notifications header's tabs.
-function Tab({ label, on, onPick }: { label: string; on: boolean; onPick: () => void }) {
+export function Tab({
+  label,
+  on,
+  onPick,
+  icon,
+}: {
+  label: string;
+  on: boolean;
+  onPick: () => void;
+  icon?: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -162,6 +172,7 @@ function Tab({ label, on, onPick }: { label: string; on: boolean; onPick: () => 
       style={on ? { background: "color-mix(in srgb, var(--color-nb-ink) 8%, transparent)" } : undefined}
     >
       {label}
+      {icon}
     </button>
   );
 }

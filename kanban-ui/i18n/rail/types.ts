@@ -61,6 +61,8 @@ export type RailCopy = {
     /** The point where the archived dates run out — every card below it left the board
      *  before the board stamped one. */
     undated: string;
+    /** The two orders the list can be read in, newest first. */
+    sort: { delivered: string; created: string };
     /** One archived card: the label over its title, what its two meta chips are, and the
      *  label over a rejected card's reason. */
     card: { label: string; release: string; archived: string; rejected: string; rejectedTip: string; reason: string };
