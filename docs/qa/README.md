@@ -44,6 +44,7 @@
 - [QA 管理员（或它的子运行）报出的条目，直接建成 Coding 卡](skill/a-qa-manager-item-becomes-a-coding-card/case.md)
 - [建一张只点名竞品的卡，让竞品调研拿整个产品对比](skill/research-a-named-competitor-against-the-whole-product/case.md)
 - [升级后，版本从看板上消失，卡片照常可读](skill/releases-leave-the-board-on-upgrade/case.md)
+- [建一张要求「复用现有组件」的界面卡，规划照样请界面设计师出稿](skill/plan-a-card-that-reuses-a-component-and-still-get-a-ui-draft/case.md)
 
 ### local-ui
 
@@ -82,6 +83,7 @@
 - [在归档页按交付时间或创建时间排序](local-ui/sort-the-archive-by-delivery-or-creation-time/case.md)
 - [只在用键盘移动时看到聚焦框](local-ui/see-a-focus-frame-only-when-moving-by-keyboard/case.md)
 - [升级后打开一个用过版本的旧看板](local-ui/open-a-board-that-used-releases-after-upgrading/case.md)
+- [在配置里凭角色图认出每个内置 Agent](local-ui/tell-built-in-agents-apart-by-their-art/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -118,6 +120,7 @@
 - [在浏览器里退出 Cloud 看板](cloud/sign-out-of-the-hosted-board/case.md)
 - [在 Cloud 看板上，删掉的归档卡片带走它已结束的交付记录](cloud/deleted-archived-cards-take-their-deliveries-with-them/case.md)
 - [在 Cloud 看板上，子卡仍在推进的分组不进「搁置」列](cloud/a-group-stays-off-stale-while-a-subtask-moves/case.md)
+- [在 Cloud 看板网站恢复已取消的 Pro 续费](cloud/resume-a-canceled-pro-renewal/case.md)
 
 ### telemetry
 
@@ -141,7 +144,7 @@
 ## 取证环境
 
 - **临时项目和看板**：在 `/tmp` 下建临时 git 项目和临时看板，不碰本仓库的看板。
-- **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`。
+- **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版；shim 指向的 `bin/ai4kanban.mjs` 要有执行权限，否则静默退回旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`；跑真实 Claude Code 时再带上 `http_proxy`/`https_proxy`，否则 403。
 - **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/chat-while-claude-code-runs-a-background-task/stand-in.mjs) 顶替真实 agent，不花钱。Claude Code 从 stdin 收提示词（#1540），从最后一个参数取提示词的旧替身认不出运行，重跑前照它改。
 - **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。几个 dev server 同时跑时各用一份 `kanban-ui` 拷贝：它们会轮流改写 `tsconfig.json`。
 - **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION` 和 `telemetry/contract.ts` 一起拷），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。

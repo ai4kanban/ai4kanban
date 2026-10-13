@@ -11,7 +11,9 @@ const port = Number(process.argv[2] || 8790)
 const ui = process.argv[3] || 'http://localhost:3790'
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
 
-let billing = { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null }
+let billing = { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false }
+// `node stand-in.mjs … --fail-resume` makes the first resume fail, as a Creem error would.
+let failResume = process.argv.includes('--fail-resume')
 const signedOut = new Set()
 
 const card = (id, path, meta, body) => ({ id, revision: `r${id}`, data: { path, meta, body } })
@@ -62,7 +64,11 @@ http.createServer(async (req, res) => {
   }
   if (p === '/creem/portal') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-    return res.end(`<!doctype html><title>Portal</title><body style="font:16px system-ui;padding:40px"><h1>Creem customer portal (stand-in)</h1></body>`)
+    return res.end(`<!doctype html><title>Portal</title><body style="font:16px system-ui;padding:40px"><h1>Creem customer portal (stand-in)</h1><a id="cancel" href="http://127.0.0.1:${port}/creem/cancel">Cancel renewal</a></body>`)
+  }
+  if (p === '/creem/cancel') {
+    billing = { ...billing, state: 'canceled', resumable: true }
+    res.writeHead(302, { location: `${ui}/settings` }); return res.end()
   }
 
   if (!p.startsWith('/v1/')) return json(res, 404, {})
@@ -79,12 +85,20 @@ http.createServer(async (req, res) => {
   if (p === '/v1/billing') return json(res, 200, { billing })
   if (p === '/v1/billing/checkout') {
     const { period } = JSON.parse((await bodyOf(req)) || '{}')
+    if (billing.state !== 'free' && billing.state !== 'expired') return json(res, 200, { url: `${ui}/settings?checkout=subscribed` })
     billing = { ...billing, period }
     return json(res, 200, { url: `http://127.0.0.1:${port}/creem/checkout?period=${period}` })
   }
   if (p === '/v1/billing/confirm') {
     await bodyOf(req)
-    billing = { plan: 'pro', state: 'active', period: billing.period || 'yearly', periodEnd: '2027-10-04T00:00:00Z', grantEnd: null }
+    billing = { plan: 'pro', state: 'active', period: billing.period || 'yearly', periodEnd: '2027-10-04T00:00:00Z', grantEnd: null, resumable: false }
+    return json(res, 200, { billing })
+  }
+  if (p === '/v1/billing/resume') {
+    await bodyOf(req)
+    if (failResume) { failResume = false; return json(res, 502, { error: { message: 'creem failed' } }) }
+    if (!billing.resumable) return json(res, 404, { error: { message: 'This account has no renewal to resume.' } })
+    billing = { ...billing, state: 'active', resumable: false }
     return json(res, 200, { billing })
   }
   if (p === '/v1/billing/portal') { await bodyOf(req); return json(res, 200, { url: `http://127.0.0.1:${port}/creem/portal` }) }

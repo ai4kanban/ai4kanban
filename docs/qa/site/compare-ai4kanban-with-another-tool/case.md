@@ -2,13 +2,13 @@
 
 ## Setup
 
-- **站点**：官网（`web/`）的静态构建用 `wrangler pages dev` 跑在本机（地址给 `SITE`，默认 `127.0.0.1:4330`），无头 Chrome 开远程调试（`CDP_PORT`）；脚本是 [compare.mjs](compare.mjs)、[orca.mjs](orca.mjs)（都用 [cdp.mjs](cdp.mjs) 驱动浏览器）和 [retired.sh](retired.sh)，窗口 1280×900。
-- **读者**：已经在看 Multica、Taskmaster、Hermes Agent Kanban 或 Orca，想知道该选哪个的人。
+- **站点**：官网（`web/`）的静态构建用 `wrangler pages dev` 跑在本机（地址给 `SITE`，默认 `127.0.0.1:4330`），无头 Chrome 开远程调试（`CDP_PORT`）；脚本是 [compare.mjs](compare.mjs)、[orca.mjs](orca.mjs)、[plannotator.mjs](plannotator.mjs)（都用 [cdp.mjs](cdp.mjs) 驱动浏览器）和 [retired.sh](retired.sh)，窗口 1280×900。
+- **读者**：已经在看 Multica、Taskmaster、Hermes Agent Kanban、Orca 或 Plannotator，想知道该选哪个的人。
 
 ## Steps
 
 1. 在首页滚到页脚。
-   「COMPARE」一栏有四项：Taskmaster、Hermes Agent Kanban、Multica、Orca。页头没有对比入口。
+   「COMPARE」一栏有五项：Taskmaster、Hermes Agent Kanban、Multica、Orca、Plannotator。页头没有对比入口。
    ![页脚的对比栏](01-footer-compare.png) · [compare.log](compare.log)
 
 2. 点「Multica」。
@@ -51,11 +51,36 @@
     中文页标题「AI4Kanban vs. Orca：细节放权，主导权仍在你手中」，各节小标题都已翻译；`.md` 版是同一篇正文的纯文本；`llms.txt` 多了一条「AI4Kanban vs. Orca」。
     ![中文版首屏](10-orca-zh-top.png) · [orca.log](orca.log)
 
+12. 回到首页，在页脚点「Plannotator」。
+    到 `/vs-plannotator`，标签页标题「AI4Kanban vs. Plannotator: review drafts, run tasks」；导语一句说 Plannotator 批注智能体的计划、文档和代码，AI4Kanban 用看板组织任务、先出关键草稿再并行执行；「What both support」列五项：执行前审计划、批注回传智能体、多种编码智能体、查看代码 diff、免费开源。
+    ![Plannotator 对比页首屏](11-plannotator-top.png) · [plannotator.log](plannotator.log)
+
+13. 往下读「01 Plannotator: review within your agent session」。
+    先说它经钩子在本地浏览器打开审阅页、审完回原会话继续；两个小节「Review more than plans」（批注文档/URL/HTML、审 PR 和 MR、AI 代码审阅）和「Share a review」（链接分享，开源版已进入弃用支持）；底部链接指向 plannotator.ai 和 GitHub README。
+    ![Plannotator 一节](12-plannotator-theirs.png) · [plannotator.log](plannotator.log)
+
+14. 读「02 AI4Kanban」的三张卡片，再把鼠标移到「You can also create custom agents and workflows.」后面的 ⓘ。
+    三张卡：草稿→确认→执行、三个任务并行（Login page / Pricing copy / API fix）、两个智能体共享项目背景的记忆，每张配像素小人。ⓘ 悬停前隐藏，悬停后弹出：软件开发工作流免费，博客、轮播图、幻灯片和产品视频工作流需要 Pro。
+    ![AI4Kanban 一节](13-plannotator-ours.png) · ![悬停 ⓘ 出现的 Pro 提示](13b-plannotator-pro-tip.png) · [plannotator.log](plannotator.log)
+
+15. 读「03 What comes built in」。
+    Plannotator 和 AI4Kanban 两列，首行用文字说工作方式，其余 13 行打勾或画短横：计划修订差异、AI 代码审阅、PR/MR 审阅、分享链接是 Plannotator 有、AI4Kanban 没有；图片和分镜草稿、任务看板、专业智能体、共享记忆、跟进建议反过来；分享链接旁注「Deprecated OSS support」。表下一行小字说明 Plannotator 的历史导出不算智能体记忆。
+    ![内置能力对比表](14-plannotator-table.png) · [plannotator.log](plannotator.log)
+
+16. 读「04 Which fits your work?」和结尾。
+    「Choose Plannotator」：围绕手头的智能体审计划、文档和代码，还要 PR 审阅或共享批注；「Choose AI4Kanban」加粗描边：同时推进多项任务、确认关键草稿、把偏好带到之后的任务。最后是「Download AI4Kanban」按钮。
+    ![选哪个](15-plannotator-which.png) · [plannotator.log](plannotator.log)
+
+17. 打开 `/zh/vs-plannotator`、`/ja`、`/es`、`/fr` 版、`/vs-plannotator.md` 和 `/llms.txt`。
+    中文页标题「AI4Kanban vs. Plannotator：先看草稿，同时推进多项任务」，各节小标题都已翻译；日、西、法三版都返回 200 并有各自语言的标题；`.md` 版是同一篇正文的纯文本；`llms.txt` 多了一条「AI4Kanban vs. Plannotator」。
+    ![中文版首屏](16-plannotator-zh-top.png) · [plannotator.log](plannotator.log)
+
 ## Feedback
 
-- **敢说谁赢**：每行都标出赢的一方，也老实承认对手赢的地方（Multica 的执行管理、Orca 的浏览器/SSH/手机控制），结尾直接告诉你什么情况选谁，比「各有千秋」有用得多。
-- **Orca 页换了思路，读起来更短**：先摆共同点，再说 Orca 和 Codex 的重叠，最后按「你愿意放多少权」给建议，正在并行跑智能体的人一眼能看到自己在哪一边；但它和另外三页版式不同，从 Multica 页过来要重新找「Compare the details」。
+- **敢说谁赢**：每行都标出赢的一方，也老实承认对手赢的地方（Multica 的执行管理、Orca 的浏览器/SSH/手机控制、Plannotator 的计划差异、PR 审阅和分享），结尾直接告诉你什么情况选谁，比「各有千秋」有用得多。
+- **Plannotator 页最公道**：13 行里对方赢 4 行，连「开源版分享已弃用」这种细节都写明，读者容易信；但表很长，「How work runs」这条真正的分水岭只是表头下第一行文字，很容易滑过去。
+- **五页三种版式**：Multica 等三页是主题+逐项表，Orca 和 Plannotator 是共同点+介绍+表+选择，在页面间来回比较时要重新找位置。
 - **Pro 限制藏在 ⓘ 里**：哪些工作流要付费只在悬停时出现，手机上或不习惯悬停的人容易错过。
-- **「10 倍」很显眼**：写成目标而非实测，但放在加粗卡片里，读者容易当成承诺。
-- **入口太深**：对比页只在页脚，正在比较工具的访客很难从页头找到；好在页脚改成四栏后「COMPARE」独占一栏，滚到底一眼能看到。
+- **「10 倍」很显眼**：Orca 页把它写成目标而非实测，但放在加粗卡片里，读者容易当成承诺。
+- **入口太深**：对比页只在页脚，正在比较工具的访客很难从页头找到；好在「COMPARE」独占一栏，滚到底一眼能看到。
 - **旧链接没说明就回首页**：从别处点进旧的 vs Linear 链接，直接落到首页，不知道那页去哪了。
