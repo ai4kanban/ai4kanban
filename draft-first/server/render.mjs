@@ -3,6 +3,7 @@
 //
 //   .tsx   a React component styled with Tailwind, run once in a bare `vm` and turned into markup
 //   .html  a whole page, its local stylesheets inlined
+//   .md    Markdown, drawn like the contract's own text
 //   .txt   shown as text
 //   image  loaded by the page from /files/
 
@@ -19,7 +20,7 @@ const require = createRequire(import.meta.url);
 const TAILWIND_CSS = require.resolve("tailwindcss/index.css");
 
 export const IMAGE_EXTS = ["png", "jpg", "jpeg", "webp", "gif", "svg"];
-const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS];
+const EXTS = ["tsx", "html", "md", "txt", ...IMAGE_EXTS];
 const SRC = new RegExp(`^\\.assets/(?!\\.)([^/\\\\]+)/(?!\\.)([^/\\\\]+)\\.(${EXTS.join("|")})$`, "i");
 const CODE_EXTS = [".tsx", ".ts", ".jsx", ".js", ".mjs"];
 const REQUIRES = /require\(\s*["']([^"']+)["']\s*\)/g;
@@ -80,6 +81,7 @@ export async function renderAsset(draftDir, { src, label = "", device = "desktop
     if (IMAGE_EXTS.includes(ext)) return { ...base, kind: "image", url: `/files/${src}` };
     const text = fs.readFileSync(file, "utf8");
     if (ext === "txt") return { ...base, kind: "text", text };
+    if (ext === "md") return { ...base, kind: "markdown", text };
     const html = ext === "tsx" ? await drawComponent(file) : inlineSheets(text, path.dirname(file));
     return { ...base, kind: "doc", html: shadowDoc(html, height) };
   } catch (e) {

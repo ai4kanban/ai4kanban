@@ -271,6 +271,7 @@ function assetView(a, i, exported, images) {
   if (a.kind === "error") return `<div class="df-broken" title="${esc(a.error)}">${t().broken}</div>`;
   const caption = a.label ? `<figcaption>${esc(a.label)}</figcaption>` : "";
   if (a.kind === "image") return `<figure class="df-frame"><img src="${esc(images?.[a.url] ?? a.url)}" alt="${esc(a.label)}" />${caption}</figure>`;
+  if (a.kind === "markdown") return `<figure class="df-md">${a.html}${caption}</figure>`;
   if (a.kind === "text") return `<figure class="df-frame"><pre>${esc(a.text)}</pre>${caption}</figure>`;
   const inner = exported ? `<template shadowrootmode="open">${a.html}</template>` : "";
   return `<figure class="df-frame ${a.device}"><div class="df-fit" data-w="${a.width}"><div class="df-screen" data-i="${i}" style="width:${a.width}px;min-height:${a.height}px">${inner}</div></div>${caption}</figure>`;

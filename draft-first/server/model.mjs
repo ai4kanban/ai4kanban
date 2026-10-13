@@ -108,7 +108,12 @@ export async function contractModel(draftDir, slug, text) {
   if (!sections.length) problems.push("The contract has no `##` section — with no key part, build directly instead.");
   if (!c.agent) problems.push("The contract has no `<!-- agent -->` line.");
 
-  const drawn = await Promise.all(assets.map((a) => renderAsset(draftDir, a)));
+  const drawn = await Promise.all(
+    assets.map(async (a) => {
+      const r = await renderAsset(draftDir, a);
+      return r.kind === "markdown" ? { ...r, html: md.parse(r.text) } : r;
+    }),
+  );
   for (const a of drawn) if (a.kind === "error") problems.push(`${a.src}: ${a.error}`);
 
   return {

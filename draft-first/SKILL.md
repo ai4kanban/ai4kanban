@@ -24,6 +24,8 @@ language:
 - **One `##` section per key part**: one line on what is being decided, then the draft its
   helper describes. Add up to two alternatives under `###` headings only when they differ in
   a way the user would care about.
+- **Long drafts**: put a draft over about 20 lines in `.draft-first/.assets/<slug>/<name>.md`
+  and embed it with `<Asset>`; put a shorter one in a code block.
 - **The agent half**: a line holding only `<!-- agent -->`, then `## Decided by the agent`
   with one line per choice the build depends on that you made alone.
 

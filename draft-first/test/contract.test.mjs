@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 import { confirmContract, parseContract } from "../server/contract.mjs";
 import { contractModel } from "../server/model.mjs";
@@ -54,4 +56,17 @@ test("a broken asset is a problem the agent is told about", async () => {
   const m = await contractModel(DIR, "x", "# X\n\n## A\n\nline\n\n<Asset src=\".assets/x/nope.tsx\" />\n\n<!-- agent -->\n");
   assert.equal(m.problems.length, 1);
   assert.match(m.problems[0], /nope\.tsx/);
+});
+
+test("a long draft in a .md asset is one draft, its headings drawn, not alternatives", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "df-"));
+  fs.mkdirSync(path.join(dir, ".assets/p"), { recursive: true });
+  fs.writeFileSync(path.join(dir, ".assets/p/prompt.md"), "### Sample A\n\nfirst\n\n### Sample B\n\nsecond\n");
+  const text = '# P\n\n## The prompt\n\n<Asset src=".assets/p/prompt.md" />\n\n<!-- agent -->\n';
+  assert.deepEqual(parseContract(text).sections[0].drafts.map((d) => d.heading), [null]);
+  const m = await contractModel(dir, "p", text);
+  assert.deepEqual(m.problems, []);
+  assert.equal(m.assets[0].kind, "markdown");
+  assert.match(m.assets[0].html, /<h3>Sample A<\/h3>[\s\S]*<h3>Sample B<\/h3>/);
+  assert.match(confirmContract(text), /^---\nstatus: confirmed\n---[\s\S]*prompt\.md/);
 });
