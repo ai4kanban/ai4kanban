@@ -35,6 +35,7 @@ const es: DraftFirstCopy = {
       ["Confirmar", "Guarda la versión a partir de la cual construirá tu agente."],
     ],
     export: "Exporta una imagen o un único archivo HTML para compartir. El archivo HTML se abre en el navegador; no se sube nada.",
+    workflow: ["Para el método detrás de estos borradores, lee sobre ", "draft-first development", " (en inglés)."],
   },
   helpers: {
     title: "Tú decides qué lleva borrador",

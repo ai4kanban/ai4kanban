@@ -18,7 +18,7 @@ export type DraftFirstCopy = {
     alt: string;
   };
   drafts: { title: string; lead: string; kinds: readonly Pair[]; more: string; closing: string };
-  review: { title: string; actions: readonly Pair[]; export: string };
+  review: { title: string; actions: readonly Pair[]; export: string; workflow: readonly [string, string, string] };
   /** Paths in `lead` are drawn as code. */
   helpers: { title: string; lead: string; example: string; file: string; description: string; body: string };
   upgrade: { title: string; lead: string; cards: readonly Pair[]; explore: string; download: string };

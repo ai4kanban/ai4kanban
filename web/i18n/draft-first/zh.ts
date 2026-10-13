@@ -34,6 +34,7 @@ const zh: DraftFirstCopy = {
       ["确认", "保存 agent 接下来要照着做的版本。"],
     ],
     export: "可导出图片或单个 HTML 文件分享。HTML 文件在浏览器里就能打开，内容不会上传。",
+    workflow: ["这些草稿背后的工作方式，见", "draft-first development", "（英文）。"],
   },
   helpers: {
     title: "需要草稿的地方，你来定",

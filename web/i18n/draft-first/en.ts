@@ -35,6 +35,7 @@ const en: DraftFirstCopy = {
       ["Confirm", "Save the version your agent will build from."],
     ],
     export: "Export an image or a single HTML file to share. The HTML file opens in a browser; nothing is uploaded.",
+    workflow: ["For the workflow behind these drafts, read about ", "draft-first development", "."],
   },
   helpers: {
     title: "You choose what gets drafted",

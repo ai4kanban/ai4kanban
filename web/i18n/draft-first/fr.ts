@@ -35,6 +35,7 @@ const fr: DraftFirstCopy = {
       ["Confirmer", "Enregistrez la version à partir de laquelle votre agent construira."],
     ],
     export: "Exportez une image ou un unique fichier HTML à partager. Le fichier HTML s’ouvre dans un navigateur ; rien n’est envoyé en ligne.",
+    workflow: ["Pour la méthode derrière ces brouillons, lisez ", "draft-first development", " (en anglais)."],
   },
   helpers: {
     title: "Vous choisissez ce qui passe par un brouillon",

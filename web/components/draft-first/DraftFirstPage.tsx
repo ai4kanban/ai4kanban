@@ -177,6 +177,13 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
               })}
             </div>
             <p className="mt-8 max-w-3xl text-[0.9rem] leading-relaxed text-muted">{c.review.export}</p>
+            <p className="mt-3 max-w-3xl text-[0.9rem] leading-relaxed text-muted">
+              {c.review.workflow[0]}
+              <a href="/blog/draft-first-development" className="text-ink underline underline-offset-2">
+                {c.review.workflow[1]}
+              </a>
+              {c.review.workflow[2]}
+            </p>
           </section>
 
           {/* 4. Adding a drafting agent */}
