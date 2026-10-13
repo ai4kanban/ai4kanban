@@ -30,7 +30,6 @@ function writeCard(id: number, meta: Partial<Meta> = {}, at = `${id}-card-${id}.
     priority: 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: [],
     related: [],
     modules: [],

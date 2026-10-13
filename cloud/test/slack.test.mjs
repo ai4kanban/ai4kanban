@@ -29,7 +29,6 @@ const anEvent = (over = {}) => ({
   boardName: 'ai4kanban',
   taskId: 329,
   taskTitle: 'Harden the Cloud event flow',
-  release: '0.8.0',
   revision: '4f2a19c',
   kind: 'ready_for_review',
   decision: 'implement',
@@ -201,10 +200,10 @@ describe('messageFor', () => {
       type: 'header',
       text: { type: 'plain_text', text: '#329 Harden the Cloud event flow', emoji: true },
     })
-    // The state, the board and the release are one line rather than three. The revision is
+    // The state and the board are one line rather than two. The revision is
     // on none of them: it binds the press, and says nothing to whoever reads the channel.
     assert.equal(blocks[1].type, 'context')
-    assert.match(blocks[1].elements[0].text, /:eyes: \*Ready for review\*.+ai4kanban.+release 0\.8\.0/)
+    assert.match(blocks[1].elements[0].text, /:eyes: \*Ready for review\*.+ai4kanban/)
     assert.doesNotMatch(blocks[1].elements[0].text, /4f2a19c/)
   })
 
@@ -259,11 +258,11 @@ describe('logFor', () => {
   it('is one line saying which event arrived, and who it is still asking', () => {
     const { text, blocks } = logFor(anEvent(), { actorId: 'U1' })
 
-    // No card words: the thread already opened on the card, and repeating its title, board
-    // and release under itself is what made one card scroll past the channel several times.
+    // No card words: the thread already opened on the card, and repeating its title and board
+    // under itself is what made one card scroll past the channel several times.
     assert.equal(blocks.length, 1)
     assert.doesNotMatch(textIn(blocks), /Harden the Cloud event flow/)
-    assert.doesNotMatch(textIn(blocks), /release 0\.8\.0/)
+    assert.doesNotMatch(textIn(blocks), /·  ai4kanban/)
     // A reply pings nobody, so the one account a press is accepted from is named — in a
     // section, because a mention in a context notifies nobody.
     assert.equal(blocks[0].type, 'section')

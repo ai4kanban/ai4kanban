@@ -56,7 +56,6 @@ function writeCard(id: number, over: Partial<Meta> = {}): void {
     priority: 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: [],
     related: [],
     modules: [],

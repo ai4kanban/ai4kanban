@@ -76,7 +76,6 @@ const NOTHING: NotificationCenter = {
   signedIn: false,
   enabled: false,
   boardId: "",
-  release: "",
   silenced: false,
   rows: [],
   unread: 0,
@@ -103,7 +102,7 @@ export interface BellRail {
   paging: Record<NotificationGroup, PageState>;
   grown: Record<NotificationGroup, boolean>;
   loadMore(tab: NotificationGroup): Promise<void>;
-  /** The scope change that filled the bell (#451), until the rail is folded. The server
+  /** The switch that filled the bell (#451), until the rail is folded. The server
    *  hands it out once, so it is held here — the switch is usually made with the rail down,
    *  and the line has to be there when it is opened. */
   filled: WatchFill | null;
@@ -230,7 +229,7 @@ export function useBellRail({
     }
   }, []);
 
-  // Every read hands out alerts and the scope-change line once, whichever read it was.
+  // Every read hands out alerts and the filled line once, whichever read it was.
   // A folded rail asks for no landed history, so opening it reads the newest page again (#1245).
   const readPage = useCallback(async (page: Record<NotificationGroup, number>) => {
     const next = await notificationCenterAction({
@@ -321,7 +320,7 @@ export function useBellRail({
     [readPage, setPage],
   );
 
-  // Back to the first page when the rail folds or it is showing another scope.
+  // Back to the first page when the rail folds or it is showing another board.
   const firstPage = useCallback(() => {
     pageEpoch.current++;
     setPaging(IDLE);
@@ -329,8 +328,7 @@ export function useBellRail({
     setPage(FIRST_PAGE);
     kickRef.current();
   }, [setPage]);
-  const scope = `${cloud.boardId}\n${cloud.release}`;
-  useEffect(() => firstPage(), [scope, firstPage]);
+  useEffect(() => firstPage(), [cloud.boardId, firstPage]);
 
   const openRow = useCallback(
     async (eventId: string) => {

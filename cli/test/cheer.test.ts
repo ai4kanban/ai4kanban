@@ -30,16 +30,9 @@ describe('what a day of archives cheers for', () => {
     assert.equal(cheers[1]!.kind, 'first')
   })
 
-  it('cheers a finished release, ahead of everything else', () => {
-    const shipped = done(12, { release: { id: 'v0.9', done: 12 } })
-    const cheers = cheersOf([done(9), done(10, { group: { id: 250, title: 'g', done: 2 } }), shipped], DAY)
-    assert.deepEqual(cheers.map((c) => c.kind), ['release', 'group', 'first'])
-    assert.deepEqual(cheers[0], { key: keyOf(shipped), at: shipped.at, kind: 'release', release: 'v0.9', count: 12 })
-  })
-
   it('says one thing for an archive that is several', () => {
-    const all = done(9, { group: { id: 250, title: 'g', done: 2 }, release: { id: 'v1', done: 3 } })
-    assert.deepEqual(cheersOf([all], DAY).map((c) => c.kind), ['release'])
+    const all = done(9, { group: { id: 250, title: 'g', done: 2 } })
+    assert.deepEqual(cheersOf([all], DAY).map((c) => c.kind), ['group'])
   })
 
   it('cheers nothing from yesterday, and lets today’s first be today’s', () => {

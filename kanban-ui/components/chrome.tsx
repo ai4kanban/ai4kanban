@@ -63,14 +63,13 @@ export const PULSE_DOT_INK =
 export const TOOL_BTN =
   "nb-tip nb-tip-below relative inline-flex h-full w-7 max-md:w-9 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]";
 
-/** The line between two segments of one framed control — the tools in a cluster,
- *  the release chip's picker and its ⋯ menu.
+/** The line between two segments of one framed control — the tools in a cluster.
  *
  *  It stops short of the frame at both ends. A rule run edge to edge cuts the
  *  sticker in two and reads as two buttons pushed together; an inset one reads
  *  as one control with a joint in it. And it is drawn in the control's own ink
- *  (`currentColor`), so the sky release chip gets a blue line and the paper tool
- *  cluster a charcoal one, at the same hairline weight in both. */
+ *  (`currentColor`), so a tinted control gets a line in its own ink at the same
+ *  hairline weight as the paper tool cluster's charcoal one. */
 export function SegmentDivider() {
   // `self-center` rather than the container's alignment: a flex item with a
   // height of its own is put at the top by `items-stretch`, not centred.

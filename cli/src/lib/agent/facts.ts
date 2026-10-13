@@ -23,7 +23,6 @@ export interface MetaBits {
   status: string
   priority: string
   roi: string
-  release: string
   modules: string[]
   blocked_by: number[]
   schedule: CardSchedule | null
@@ -36,7 +35,6 @@ export function metaLine(meta: MetaBits): string {
   const bits = [meta.status || 'todo']
   bits.push(`priority ${meta.priority}`)
   bits.push(`roi ${meta.roi}`)
-  if (meta.release) bits.push(`release ${meta.release}`)
   if (meta.modules.length) bits.push(`modules ${meta.modules.join(', ')}`)
   if (meta.blocked_by.length) bits.push(`blocked by ${meta.blocked_by.map((n) => `#${n}`).join(', ')}`)
   // The board is holding a run for this card already — worth saying, because doing that job

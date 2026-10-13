@@ -1,7 +1,6 @@
 // Which tasks a board raises a Cloud event about, and what that event carries (#319).
 //
-// What is asked here is the judgment, not the network: the two event rules and the
-// watched-release filter, the question winning when a task is both, the board's internal
+// What is asked here is the judgment, not the network: the two event rules, the question winning when a task is both, the board's internal
 // tags being stripped before anything leaves, and a card revised under a live event
 // fingerprinting differently so it is refreshed rather than raised again.
 //
@@ -16,14 +15,12 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import {
-  ALL_RELEASES,
   cloudBoardById,
   cloudBoardFor,
   defaultBoardDir,
   disableCloudBoard,
   enableCloudBoard,
   readCloudBoards,
-  setCloudBoardRelease,
 } from '../src/lib/cloud/boards.ts'
 import { bandLabel, CARD_BAND_STATES, CLOUD_EVENT_STATES, eventLabel, isFinalEventState, needsPerson } from '../src/lib/cloud/events.ts'
 import type { CloudEvent } from '../src/lib/cloud/events.ts'
@@ -55,13 +52,11 @@ const BOARD = {
   path: '/tmp/project',
   boardDir: '/tmp/project/docs/kanban',
   name: 'ai4kanban',
-  release: '0.8.0',
 }
 
 // A record is keyed by the board FOLDER, and every board here is the one its project holds —
 // so these say the project and name its folder for it (#407).
-const turnOn = (project: string, release: string) =>
-  enableCloudBoard(defaultBoardDir(project), project, release)
+const turnOn = (project: string) => enableCloudBoard(defaultBoardDir(project), project)
 const boardIn = (project: string) => cloudBoardFor(defaultBoardDir(project))
 
 function card(over: Partial<Card> = {}): Card {
@@ -73,7 +68,6 @@ function card(over: Partial<Card> = {}): Card {
     priority: 'high',
     roi: 'high',
     status: 'todo',
-    release: '0.8.0',
     blocked_by: [],
     related: [],
     questions: [],
@@ -107,7 +101,7 @@ const BODY = [
 const asked = (text: string, over: Partial<Question> = {}): Question => ({ text, ...over })
 
 describe('which tasks a board raises an event about', () => {
-  it('raises one for a task at ready in the watched release', () => {
+  it('raises one for a task at ready', () => {
     assert.equal(actionableKind(card({ status: 'ready' }), BOARD), 'ready_for_review')
   })
 
@@ -144,23 +138,6 @@ describe('which tasks a board raises an event about', () => {
 
   it('raises nothing for a question the board itself is meant to research', () => {
     assert.equal(actionableKind(card({ questions: [asked('an untriaged one')] }), BOARD), null)
-  })
-
-  it('raises nothing for a task in another release, or promised to none', () => {
-    assert.equal(actionableKind(card({ status: 'ready', release: '0.9.0' }), BOARD), null)
-    assert.equal(actionableKind(card({ status: 'ready', release: '' }), BOARD), null)
-  })
-
-  it('raises for every release once the board watches all of them', () => {
-    const all = { ...BOARD, release: ALL_RELEASES }
-    assert.equal(actionableKind(card({ status: 'ready', release: '0.9.0' }), all), 'ready_for_review')
-    assert.equal(actionableKind(card({ status: 'ready', release: '' }), all), 'ready_for_review')
-    // The width is the board's; the event still carries the card's own release.
-    assert.equal(snapshotFor(card({ status: 'ready', release: '0.9.0' }), all)?.release, '0.9.0')
-  })
-
-  it('raises nothing at all while the board is watching no release', () => {
-    assert.equal(actionableKind(card({ status: 'ready' }), { ...BOARD, release: '' }), null)
   })
 
   it('raises nothing for a plain todo', () => {
@@ -220,7 +197,6 @@ describe('what one event carries', () => {
 
     assert.equal(snapshot.taskId, 12)
     assert.equal(snapshot.taskTitle, 'A task')
-    assert.equal(snapshot.release, '0.8.0')
     assert.equal(snapshot.revision, 'r1')
     assert.ok(!carried.includes('never leaves this machine'), 'the plan must not travel')
     assert.ok(!carried.includes('## Scope'), 'the agent half must not travel')
@@ -289,20 +265,12 @@ describe('when a live event has to be refreshed', () => {
   })
 
   // A revision is a hash of the whole card file, so it moves for edits an event cannot see —
-  // a `release:` reset, a typo in a section it never carries (#182). It rides along on the
+  // a typo in a section it never carries (#182). It rides along on the
   // snapshot, because an action binds it, and is written through without waking anybody.
   it('stays put when only the revision moves, so a card edit is not news', () => {
     const moved = card({ status: 'ready', revision: 'r2' })
     assert.equal(snapshotFor(ready, BOARD)!.fingerprint, snapshotFor(moved, BOARD)!.fingerprint)
     assert.equal(snapshotFor(moved, BOARD)!.revision, 'r2')
-  })
-
-  it('stays put when only the release does', () => {
-    const all = { ...BOARD, release: ALL_RELEASES }
-    const promised = card({ status: 'ready', release: '0.8.0' })
-    const unpromised = card({ status: 'ready', release: '' })
-    assert.equal(snapshotFor(promised, all)!.fingerprint, snapshotFor(unpromised, all)!.fingerprint)
-    assert.equal(snapshotFor(unpromised, all)!.release, '')
   })
 
   it('moves when the title does', () => {
@@ -382,7 +350,6 @@ describe('a card built while it was still asking', () => {
       boardName: 'ai4kanban',
       taskId: 642,
       taskTitle: 'Built with a question open',
-      release: '',
       revision: 'r1',
       kind: 'question',
       decision: 'implement',
@@ -429,7 +396,7 @@ describe('the machine’s list of enabled boards', () => {
   })
 
   it('mints an id that means nothing outside Cloud, and keeps the path here', () => {
-    const board = turnOn('/tmp/project', '0.8.0')
+    const board = turnOn('/tmp/project')
 
     assert.match(board.id, /^[0-9a-f-]{36}$/)
     assert.equal(board.path, path.resolve('/tmp/project'))
@@ -438,23 +405,16 @@ describe('the machine’s list of enabled boards', () => {
   })
 
   it('keeps a board’s id across being turned off and on, so its events are never orphaned', () => {
-    const first = turnOn('/tmp/project', '0.8.0')
-    const again = turnOn('/tmp/project', '0.9.0')
+    const first = turnOn('/tmp/project')
+    const again = turnOn('/tmp/project')
 
     assert.equal(again.id, first.id)
-    assert.equal(again.release, '0.9.0')
     assert.equal(readCloudBoards().length, 1)
   })
 
-  it('swaps the release it watches', () => {
-    turnOn('/tmp/project', '0.8.0')
-    assert.equal(setCloudBoardRelease(defaultBoardDir('/tmp/project'), '0.9.0')?.release, '0.9.0')
-    assert.equal(boardIn('/tmp/project')?.release, '0.9.0')
-  })
-
   it('forgets a board that is turned off, and leaves the rest', () => {
-    turnOn('/tmp/project', '0.8.0')
-    turnOn('/tmp/other', '1.0')
+    turnOn('/tmp/project')
+    turnOn('/tmp/other')
 
     assert.equal(disableCloudBoard(defaultBoardDir('/tmp/project'))?.name, 'project')
     assert.equal(boardIn('/tmp/project'), null)
@@ -531,7 +491,7 @@ describe('a delivery that starts before its click is recorded', () => {
 
 describe('the card link in a message', () => {
   it('leads to the board it names, on this machine', () => {
-    const board = turnOn('/tmp/project-a', ALL_RELEASES)
+    const board = turnOn('/tmp/project-a')
 
     assert.deepEqual(readCloudCardLink(`ai4kanban://card/${board.id}/12`), {
       ok: true,
@@ -546,7 +506,7 @@ describe('the card link in a message', () => {
   })
 
   it('leads to this machine’s copy of a workspace the hosted page named (#364)', () => {
-    const board = turnOn('/tmp/project-w', ALL_RELEASES)
+    const board = turnOn('/tmp/project-w')
     rememberBoardCopy(board.path, {
       workspaceId: WORKSPACE,
       revision: '1',

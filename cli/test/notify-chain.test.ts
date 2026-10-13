@@ -18,7 +18,7 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 import { closeRun, openResume, openRun, patch } from '../src/lib/agent/sessions.ts'
 import { watchRun } from '../src/lib/agent/watch.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
-import { ALL_RELEASES, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
+import { defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import { afterBoardWrite, flushCloudOutbox } from '../src/lib/cloud/publish.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot, SESSIONS_DIR } from '../src/lib/paths.ts'
@@ -37,7 +37,6 @@ title: A feature
 priority: med
 roi: high
 status: todo
-release: ""
 blocked_by: []
 related: []
 modules: []
@@ -84,7 +83,7 @@ beforeEach(() => {
     expiresAt: Date.now() + 60 * 60_000,
     subject: '11111111-1111-4111-8111-111111111111',
   })
-  enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+  enableCloudBoard(defaultBoardDir(root), root)
 })
 
 afterEach(() => {

@@ -6,8 +6,7 @@ run, or adds a field.
 ## 1. Read the board
 
 - **`akb raw list --json`** — every open card with its `status`, `priority`, `roi`,
-  `release`, `blocked_by`, `isRoot` and file path.
-- **`akb raw release list`** — the open releases, in ship order.
+  `blocked_by`, `isRoot` and file path.
 - **`akb run list`** — a run shown as `implement #<id>` is a card already being built.
 
 ## 2. Keep only the buildable cards
@@ -22,12 +21,7 @@ A candidate is `status: ready` with an empty `blocked_by`. Drop these whatever t
 
 1. **Priority** — `high` before `med` before `low`.
 2. **ROI** — the same order, within one priority.
-3. **Release** — the release shipping next first, later releases after it, no release last.
-4. **Id** — the lowest, so the same board always answers with the same three.
-
-Priority outranks the release, so a high-priority card in a later release beats a
-lower-priority one in the release shipping next. The list can name work the current release
-does not contain.
+3. **Id** — the lowest, so the same board always answers with the same three.
 
 ## 4. Answer
 
@@ -35,7 +29,7 @@ Name up to **three**, best first — id, title, and one line saying why it won, 
 disagree in one step:
 
 ```text
-#267 Show a run's cost while it runs — high priority and high ROI, in 0.9.0, the release shipping next
+#267 Show a run's cost while it runs — high priority and high ROI
 ```
 
 - **Nothing qualifies**: say what is in the way, with counts — "Nothing is ready to build: 4

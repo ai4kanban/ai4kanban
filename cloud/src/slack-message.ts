@@ -36,7 +36,7 @@ import {
   stateOf,
   unwrap,
   waitingLine,
-  watchingLine,
+  WATCHING_LINE,
   WATCH_SUMMARY_BODY,
   type Question,
   type WatchSummary,
@@ -132,8 +132,7 @@ function minimized(event: EventRow): Block {
 }
 
 /**
- * The one line under the title: where this stands, which board it is on, and which release
- * it is promised to.
+ * The one line under the title: where this stands, and which board it is on.
  *
  * The revision is not on it. It is what a press binds — it travels in the button's value and
  * refuses one made against a card that has moved — but eight opaque characters tell a person
@@ -142,7 +141,6 @@ function minimized(event: EventRow): Block {
 function facts(event: EventRow): string {
   const { key, label } = stateOf(event)
   const parts = [`${MARKS[key] ?? ''} *${escape(label)}*`, escape(event.boardName || 'this board')]
-  if (event.release) parts.push(`release ${escape(event.release)}`)
   return parts.join('  ·  ')
 }
 
@@ -182,9 +180,9 @@ export function logFor(
 export function watchSummaryFor(summary: WatchSummary): { text: string; blocks: Block[] } {
   const said = waitingLine(summary.cards)
   return {
-    text: `${watchingLine(summary)}: ${said}`,
+    text: `${WATCHING_LINE}: ${said}`,
     blocks: [
-      header(watchingLine(summary)),
+      header(WATCHING_LINE),
       context(
         [`:bell: *${escape(said)}*`, escape(summary.boardName || 'this board')].join('  ·  '),
       ),

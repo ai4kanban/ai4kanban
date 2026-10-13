@@ -186,7 +186,6 @@ export type CardCopy = {
     deletedWorkflow: string;
     deletedHint: string;
     modules: string;
-    release: string;
     priority: string;
     roi: string;
     todos: string;

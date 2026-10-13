@@ -10,13 +10,12 @@ import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { countBoardEvent, type BoardCount } from '../lib/machine/usage'
-import { slugify, validModules, parseIdList, normalizeRelease, dependencyCycle } from '../lib/validate'
+import { slugify, validModules, parseIdList, dependencyCycle } from '../lib/validate'
 import { DEFAULT_WORKFLOW, knownWorkflow } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { locate, enclosingGroupRoot } from '../lib/cards'
 import { hasSourceSection, sourceRefFrom } from '../lib/source'
-import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { cardCreation, readStore } from '../lib/agent/store'
 import { insideRun } from '../lib/agent/env'
@@ -63,7 +62,6 @@ export interface CreateOptions {
   title: string
   priority?: string
   roi?: string
-  release?: string
   blockedBy?: string[]
   related?: string[]
   modules?: string[]
@@ -127,9 +125,6 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   if (!title) die('--title must not be empty')
   const priority = opts.priority ?? 'med'
   const roi = opts.roi ?? 'med'
-  // No --release means no release: the card is wanted, not promised to a version. Any
-  // other value has to name a release on the list — a typo must not invent a version.
-  const release = validRelease(normalizeRelease(opts.release))
   const start = readNextId()
   const blocked_by = parseIdList(opts.blockedBy ?? [], 'blocked-by', start)
   const related = parseIdList(opts.related ?? [], 'related', start)
@@ -153,7 +148,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   writeNextId(start + 1)
   bumpMetric('created')
   countBoardEvent(triage ? 'cards_created_proposed' : 'cards_created_asked')
-  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, triage, source, questions }
+  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', blocked_by, related, modules, workflow, triage, source, questions }
   const scaffolded = !written && opts.body !== false
   const body = written ?? (scaffolded ? defaultBody() : '')
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
@@ -185,7 +180,6 @@ export interface UpdateOptions {
   priority?: string
   roi?: string
   status?: string
-  release?: string
   blockedBy?: string[]
   related?: string[]
   addBlockedBy?: string[]
@@ -257,11 +251,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     meta.status = flags.status
     changes.push('status')
   }
-  // `--release ""` — an empty value — takes the card back out of a version.
-  if (flags.release !== undefined) {
-    meta.release = validRelease(normalizeRelease(flags.release))
-    changes.push(`release→${meta.release || '(none)'}`)
-  }
   const ceiling = readNextId()
   const hadBlockedBy = meta.blocked_by
   if (flags.blockedBy !== undefined) {
@@ -322,13 +311,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (moving && fs.existsSync(dest)) die(`${rel(dest)} already exists`)
 
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
-  // Putting a group root in a release puts the whole group in it — every subtask, and
-  // the subtasks of a nested group too. Taking the root out takes them all out. Done
-  // after the root is written so the group ends up on one release either way.
-  if (flags.release !== undefined && found.kind === 'group') {
-    const ids = setSubtreeRelease(found.target, meta.release)
-    if (ids.length) changes.push(`release on ${ids.length} subtask${ids.length === 1 ? '' : 's'} (${ids.map((n) => `#${n}`).join(', ')})`)
-  }
   if (moving) fs.renameSync(file, dest)
   if (isSubtask) {
     // A subtask never owns a top-level README entry — fix its nested bullet in place.

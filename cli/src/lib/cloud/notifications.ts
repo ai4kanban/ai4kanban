@@ -2,16 +2,16 @@
 //
 // Signed in means on. Notifications are not a setting the user carries: a machine signed in
 // to Cloud raises this board's actionable cards, so `ensureBoardNotifications` registers the
-// board rather than a switch somebody has to find. What is left to choose is how wide it
-// watches — every release, or one — and which machine runs its approvals.
+// board rather than a switch somebody has to find. What is left to choose is which machine
+// runs its approvals.
 //
 // Each move here is whole: enabling registers the board and fills the bell with what it is
-// already holding, swapping the release republishes against the new one, and turning them
-// off retires this board's live events before the record of them is dropped.
+// already holding, and turning them off retires this board's live events before the record of
+// them is dropped.
 //
-// On a Cloud checkout the switch and the release are not this machine's (#328). They belong to
-// the MEMBER inside the workspace, so they follow them to every machine they open the board on
-// and Cloud can resolve which members are watching a release when a card raises a decision.
+// On a Cloud checkout the switch is not this machine's (#328). It belongs to the MEMBER inside
+// the workspace, so it follows them to every machine they open the board on and Cloud can
+// resolve which members to tell when a card raises a decision.
 // This machine's record becomes the mirror of that answer — every read pulls it down, every
 // move writes through — and the first read hands over whatever the record already held.
 //
@@ -19,40 +19,25 @@
 // in the bell read, raises nothing, and costs one summary in the chat instead of a message a
 // card. Only a card that starts waiting after the switch is raised.
 
-import { board } from '../board'
 import { KANBAN, REPO_ROOT } from '../paths'
 import type { WriteResult } from '../view/types'
-import {
-  ALL_RELEASES,
-  cloudBoardFor,
-  disableCloudBoard,
-  enableCloudBoard,
-  mirrorWatch,
-  setCloudBoardRelease,
-  type CloudBoard,
-} from './boards'
+import { cloudBoardFor, disableCloudBoard, enableCloudBoard, mirrorWatch, type CloudBoard } from './boards'
 import { carryWorkspaceWatch, readWorkspaceWatch, setWorkspaceWatch } from './client'
 import { readPointer } from './pointer'
 import { publishBoardEvents, retireBoardEvents, startPublishing } from './publish'
 import { attachBoardServer, detachBoardServer, readBoardServer, type BoardServer } from './servers'
 import { readSession } from './session'
 
-/** What this board's Cloud notifications are set to, and what it can watch. */
+/** What this board's Cloud notifications are set to. */
 export interface BoardNotifications {
   /** Notifications are on for this board. */
   enabled: boolean
-  /** What it watches: `ALL_RELEASES`, or one open release. Empty on an enabled board whose
-   *  watched release has closed. */
-  release: string
-  /** The open releases it could narrow to. Empty is a board with no open release — every
-   *  card still raises, since watching all of them needs no release to exist. */
-  releases: string[]
   /** Nobody is signed in on this machine, so this board raises nothing. */
   signedIn: boolean
   /** Which machine runs this board's work (#318) — an approval taken anywhere else runs
    *  there and nowhere else. */
   server: BoardServer
-  /** This board lives in a workspace, so the switch and the release above are this member's
+  /** This board lives in a workspace, so the switch above is this member's
    *  inside it and not this machine's (#328). What a screen says about them is the same
    *  either way; what changes is who else the same answer follows. */
   shared: boolean
@@ -78,10 +63,10 @@ async function pullWatch(workspaceId: string, held: CloudBoard): Promise<void> {
   if (!read.ok) return
   let watch = read.value.watch
   // Only a record the user actually chose is worth carrying. A teammate who has just cloned
-  // the repository holds the every-release default a signed-in machine mints for any board,
-  // and handing that over would overwrite the narrower default an owner adding them set.
+  // the repository holds the default a signed-in machine mints for any board, and handing
+  // that over would overwrite the default an owner adding them set.
   if (!watch.carried && held.chosen) {
-    const carried = await carryWorkspaceWatch(workspaceId, !held.watchOff, held.release)
+    const carried = await carryWorkspaceWatch(workspaceId, !held.watchOff)
     if (carried.ok) watch = carried.value.watch
   }
   mirrorWatch(KANBAN, watch)
@@ -89,8 +74,8 @@ async function pullWatch(workspaceId: string, held: CloudBoard): Promise<void> {
 
 /** Write a move through to the workspace, and mirror what it answers. The workspace is the
  *  authority: a move this machine could not get out is a move that did not happen. */
-async function pushWatch(workspaceId: string, notify: boolean, release: string): Promise<WriteResult> {
-  const written = await setWorkspaceWatch(workspaceId, notify, release)
+async function pushWatch(workspaceId: string, notify: boolean): Promise<WriteResult> {
+  const written = await setWorkspaceWatch(workspaceId, notify)
   if (!written.ok) return { ok: false, error: written.error }
   mirrorWatch(KANBAN, written.value.watch)
   return { ok: true }
@@ -100,13 +85,11 @@ async function pushWatch(workspaceId: string, notify: boolean, release: string):
  * Turn this board's notifications on because the machine is signed in.
  *
  * Idempotent, and cheap enough for every poll: a board already on reads one small file and
- * returns. It starts on every release — a board yet to cut its first one still has cards that
- * need a person, and narrowing is the choice the user makes, not one made for them. The first
- * fill runs in the background: nothing on screen waits for Cloud.
+ * returns. The first fill runs in the background: nothing on screen waits for Cloud.
  */
 export async function ensureBoardNotifications(): Promise<void> {
   if (!readSession() || cloudBoardFor(KANBAN)) return
-  enableCloudBoard(KANBAN, REPO_ROOT, ALL_RELEASES)
+  enableCloudBoard(KANBAN, REPO_ROOT)
   void startPublishing().catch(() => {})
 }
 
@@ -118,19 +101,11 @@ export async function readBoardNotifications(): Promise<BoardNotifications> {
     await pullWatch(workspace, held)
     held = cloudBoardFor(KANBAN)
   }
-  let releases: string[] = []
-  try {
-    releases = await board().readReleases()
-  } catch {
-    // A board we cannot read this second offers no releases; the section says so.
-  }
   return {
     // On a Cloud checkout the record is kept while the switch is off, because it is the mirror
     // of an answer that lives in the workspace — so the switch is what it says, not whether
     // the record is there.
     enabled: !!held && !held.watchOff,
-    release: held?.release ?? '',
-    releases,
     signedIn: !!readSession(),
     server: await readBoardServer(),
     shared: !!workspace,
@@ -150,45 +125,17 @@ export async function setBoardServer(on: boolean, takeOver = false): Promise<Wri
   return on ? attachBoardServer(takeOver) : detachBoardServer()
 }
 
-/** Every release, or one that is open — the only two answers either move accepts. */
-async function watchable(release: string): Promise<boolean> {
-  if (release === ALL_RELEASES) return true
-  return !!release && (await board().readReleases()).includes(release)
-}
-
-const NOT_WATCHABLE = 'Watch every release, or one of this board’s open ones.'
-
-/** Turn them on, watching every release or one open one. The bell fills with whatever this
- *  board is already holding actionable, and nothing is raised for any of it. */
-export async function enableBoardNotifications(release: string): Promise<WriteResult> {
+/** Turn them on. The bell fills with whatever this board is already holding actionable, and
+ *  nothing is raised for any of it. */
+export async function enableBoardNotifications(): Promise<WriteResult> {
   if (!readSession()) return { ok: false, error: 'Sign in to Cloud first.' }
-  if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
-  enableCloudBoard(KANBAN, REPO_ROOT, release, true)
+  enableCloudBoard(KANBAN, REPO_ROOT, true)
   const workspace = workspaceHere()
   if (workspace) {
-    const written = await pushWatch(workspace, true, release)
+    const written = await pushWatch(workspace, true)
     if (!written.ok) return written
   }
   await startPublishing()
-  return { ok: true }
-}
-
-/** Watch something else — a narrower release, or every one. What the rail asks for when the
- *  release being watched closed.
- *
- *  Whatever the wider scope brings in was already waiting, so none of it is raised (#451). */
-export async function watchRelease(release: string): Promise<WriteResult> {
-  const held = cloudBoardFor(KANBAN)
-  if (!held || held.watchOff) return { ok: false, error: 'Notifications are off for this board.' }
-  if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
-  const workspace = workspaceHere()
-  if (workspace) {
-    const written = await pushWatch(workspace, true, release)
-    if (!written.ok) return written
-  } else {
-    setCloudBoardRelease(KANBAN, release)
-  }
-  await publishBoardEvents({ reconcile: true, broughtIn: true })
   return { ok: true }
 }
 
@@ -207,7 +154,7 @@ export async function setBoardNotify(on: boolean): Promise<WriteResult> {
   if (!held) return { ok: false, error: 'Notifications are off for this board.' }
   const workspace = workspaceHere()
   if (!workspace) return { ok: false, error: 'Only a board in a workspace carries that switch.' }
-  const written = await pushWatch(workspace, on, held.release)
+  const written = await pushWatch(workspace, on)
   if (!written.ok) return written
   if (on) await publishBoardEvents({ reconcile: true, broughtIn: true })
   return { ok: true }
@@ -226,7 +173,7 @@ export async function disableBoardNotifications(): Promise<WriteResult> {
   // A board that raises no events has no approvals to run either, so this machine stops
   // being its server (#318). Whatever is already building here finishes where it is.
   await detachBoardServer()
-  if (workspace) return pushWatch(workspace, false, held.release)
+  if (workspace) return pushWatch(workspace, false)
   disableCloudBoard(KANBAN)
   return { ok: true }
 }

@@ -49,14 +49,11 @@ export async function recordWatchSummary(
   const input = (body ?? {}) as Record<string, unknown>
   const cards = Number(input.cards)
   if (!Number.isInteger(cards) || cards < 1) throw badRequest('That switch brought no card in.')
-  const watching = typeof input.watching === 'string' ? input.watching.trim() : ''
-  if (!watching) throw badRequest('That summary names no watched scope.')
 
   const recorded = await mutate<RecordedSummary | null>(env, 'record_watch_summary', {
     p_subject: owner.accountId,
     p_op_id: text(input.opId, 'attempt id'),
     p_board: uuid(input.boardId),
-    p_watching: watching.slice(0, 100),
     p_cards: cards,
   })
   // A board Cloud has never heard of has no summary to send. The publisher registers the

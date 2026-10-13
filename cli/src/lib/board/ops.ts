@@ -67,7 +67,7 @@ export async function leaseAnd<T>(
 // ---- which resource a named move writes -------------------------------------
 
 /** The `akb raw` moves that name a card by its first numeric argument. Everything else is
- *  about the board itself — a release, the project's own files, a setup box. */
+ *  about the board itself — the project's own files, a setup box. */
 const CARD_MOVES = new Set([
   'update',
   'update-questions',

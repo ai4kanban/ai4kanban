@@ -64,7 +64,7 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
     if (fields.has(key)) add(i + 1, 'duplicate-field', `Field ${key} is repeated. Keep one ${key}: entry.`)
     fields.set(key, { line: i + 1, value: match[2]! })
   }
-  for (const key of ['title', 'priority', 'roi', 'status', 'release', 'blocked_by', 'related', 'modules', 'questions']) {
+  for (const key of ['title', 'priority', 'roi', 'status', 'blocked_by', 'related', 'modules', 'questions']) {
     if (!fields.has(key)) add(1, 'missing-field', `Missing ${key}: in frontmatter. Restore it with the board's metadata commands.`)
   }
   const { meta } = parseFrontmatter(text)

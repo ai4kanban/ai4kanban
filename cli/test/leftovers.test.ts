@@ -30,7 +30,7 @@ const write = (file: string, text = 'x'): void => {
 }
 
 const card = (title: string, extra = ''): string =>
-  `---\ntitle: ${title}\npriority: med\nroi: med\nstatus: todo\nrelease: ""\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n${extra}---\n\nBody.\n`
+  `---\ntitle: ${title}\npriority: med\nroi: med\nstatus: todo\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n${extra}---\n\nBody.\n`
 
 const archivedDay = (daysAgo: number): string => `archived: ${formatDay(new Date(Date.now() - daysAgo * DAY))}\n`
 const archived = (name: string): string => path.join(KANBAN, '.archive', name)
@@ -187,31 +187,16 @@ describe('pruning archived cards', () => {
     assert.equal(fs.existsSync(path.join(ASSETS, '54')), false)
   })
 
-  it('keeps a card whose release is still on the list', () => {
-    write(path.join(KANBAN, 'releases.md'), '# Releases\n\n- **v2** — the next one\n')
-    archive(55, 40, 'release: v2\n')
-    archive(56, 40, 'release: v1\n')
-
-    pruneLeftovers()
-
-    assert.equal(fs.existsSync(archived('55-gone.md')), true)
-    assert.equal(fs.existsSync(archived('56-gone.md')), false)
-  })
-
   it('removes a group folder whole, by its newest archive day', () => {
     write(archived('60-old-group/root.md'), card('Old group', archivedDay(31)))
     write(archived('60-old-group/61-piece.md'), card('Piece', archivedDay(45)))
     write(archived('62-new-group/root.md'), card('New group', archivedDay(10)))
     write(archived('62-new-group/63-piece.md'), card('Piece', archivedDay(45)))
-    write(path.join(KANBAN, 'releases.md'), '- **v2**\n')
-    write(archived('64-held-group/root.md'), card('Held group', archivedDay(45)))
-    write(archived('64-held-group/65-piece.md'), card('Piece', archivedDay(45) + 'release: v2\n'))
 
     const out = pruneLeftovers()
 
     assert.equal(fs.existsSync(archived('60-old-group')), false)
     assert.equal(fs.existsSync(archived('62-new-group/63-piece.md')), true)
-    assert.equal(fs.existsSync(archived('64-held-group/root.md')), true)
     assert.deepEqual(out.removed, ['docs/kanban/.archive/60-old-group'])
   })
 
@@ -255,16 +240,6 @@ describe('pruning a deleted card’s delivery records', () => {
       'docs/kanban/deliveries/done.json',
       'docs/kanban/deliveries/dropped.json',
     ])
-  })
-
-  it('keeps the records of a card its open release still holds', () => {
-    write(path.join(KANBAN, 'releases.md'), '- **v2**\n')
-    archive(72, 40, 'release: v2\n')
-    delivery('shipped', 72, 'finished', '')
-
-    pruneLeftovers()
-
-    assert.equal(fs.existsSync(record('shipped')), true)
   })
 })
 

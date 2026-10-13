@@ -7,7 +7,7 @@
 // written beside each command in `akb help`, so it is read where the choice is made.
 //
 // What comes out is filled in from THIS board: the card's own path, the steps it has left,
-// the memory file its modules point at, the tracks this project uses, the release it is in.
+// the memory file its modules point at, the tracks this project uses.
 // A page of general advice is a page the reader has to go and look everything up from.
 //
 // And it is only what the job needs — asking about one card never prints the manual. The
@@ -36,7 +36,6 @@ import { parseStamp } from '../cadence'
 import { PLANNER, agentMemoryDir, memoryFile, proposerMissedFile } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, KANBAN, MEMORY, MODULES_MD, PROJECT_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
 import { workflowRefusal } from './start'
-import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
@@ -313,7 +312,7 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
 }
 
 // The `update` flags a card takes.
-const EDITABLE_FIELDS = '--title|--priority|--roi|--release|--modules|--blocked-by|--related'
+const EDITABLE_FIELDS = '--title|--priority|--roi|--modules|--blocked-by|--related'
 
 // What to do with the body a card was created with.
 const bodyScaffoldClose = (lead = 'fill the existing'): string[] =>
@@ -472,10 +471,6 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   resolve: ['board', 'writing', 'resolve', 'update-questions'],
   edit: ['writing', 'revise', 'update-questions'],
   create: ['board', 'evaluate-task', 'add-task'],
-  'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
-  // A changelog run gets its own flow and NOT `board`: it writes no card, so the card
-  // format, the memory set and the tracks are a page of rules about work it cannot do.
-  changelog: ['changelog'],
   archive: ['board'],
   setup: ['board', 'setup', 'add-task'],
   // A prune gets the memory set's own definition and the rules for squeezing it, and NOT
@@ -649,22 +644,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    case 'create':
-    case 'plan-release': {
+    case 'create': {
       facts.push(...field('modules', (moduleNames() ?? []).join(', ') || `(none — ${rel(MODULES_MD)})`))
-      if (req.action === 'plan-release') {
-        const entry = readReleaseEntries().find((e) => e.id === req.release)
-        facts.push(
-          ...field('release', entry ? `${entry.id} — ${entry.goal || '(no goal on its line)'}` : `${req.release} — not on the release list`),
-        )
-      } else {
-        const releases = readReleaseEntries().map((e) => e.id)
-        facts.push(...field('releases', releases.join(', ') || '(none open)'))
-      }
       close.push(
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
         // to nothing, and every card would be named `<id>-task.md`.
-        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
+        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         ...bodyScaffoldClose('then fill only the existing'),
       )
       break
@@ -714,36 +699,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'the last tick deletes the checklist by itself — never delete it, and never edit it by hand',
       )
       next.push(refineNext('<id>', 'for each of the first cards, once the board is set up'))
-      break
-    }
-    // One closed version's changelog (#232). The facts are the section the close wrote —
-    // its goal and its shipped cards — because that section IS the source, and a run that
-    // has it printed here needs no read to start.
-    case 'changelog': {
-      const version = req.release ?? ''
-      const record = readNewestClose(version)
-      const refusal = changelogRefusal(version)
-      facts.push(...field('version', version || '(none named)'))
-      if (refusal) {
-        facts.push(...field('nothing', refusal))
-        close.push('write nothing — say the line above and stop')
-        break
-      }
-      facts.push(...field('summary', `${record!.file} — ${record!.heading}`))
-      facts.push(...field('goal', record!.goal || '(the release had no goal)'))
-      facts.push(
-        ...field('shipped', [
-          `${record!.shipped.length} card${record!.shipped.length === 1 ? '' : 's'}:`,
-          ...record!.shipped.map((line) => `  ${line}`),
-        ]),
-      )
-      if (record!.hasChangelog) {
-        facts.push(...field('already', 'that section carries a changelog — writing again replaces it'))
-      }
-      close.push(
-        `write the lines to a file, then ${raw} release changelog ${quoteId(version)} --file <path> — it owns the placement, and running it again replaces the changelog rather than adding one`,
-        'change nothing else — not a card, not the release list, not the code',
-      )
       break
     }
     // Squeezing the memory back down (#514). The facts are the files, because the files
@@ -866,8 +821,6 @@ function leadLine(req: AgentRequest, program: string): string {
       ? `#${req.id}`
       : req.deliveryId
         ? `delivery ${req.deliveryId}`
-        : req.release
-          ? `"${req.release}"`
           : ''
   return `${req.action}${what ? ` ${what}` : ''} — printed, not started. Do it here, in this session (${program}).`
 }

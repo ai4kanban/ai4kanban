@@ -65,7 +65,7 @@ export type RailCopy = {
     sort: { delivered: string; created: string };
     /** One archived card: the label over its title, what its two meta chips are, and the
      *  label over a rejected card's reason. */
-    card: { label: string; release: string; archived: string; rejected: string; rejectedTip: string; reason: string };
+    card: { label: string; archived: string; rejected: string; rejectedTip: string; reason: string };
   };
   testCases: {
     /** The row under Archive, and the heading of the page it opens (#1422). */

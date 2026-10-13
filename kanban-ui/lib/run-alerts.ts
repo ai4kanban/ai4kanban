@@ -2,7 +2,7 @@
 //
 // The rail used to be Cloud's alone: no account, no rows, and a board that had never signed
 // in drew a signed-out end where the list goes. But a run breaking on this machine is this
-// machine's own event — it owes nothing to an account, a workspace or a watched release —
+// machine's own event — it owes nothing to an account or a workspace —
 // and it is exactly the kind of thing the rail exists for. So it fills the same list,
 // through the same shape a Cloud event fills it with.
 //

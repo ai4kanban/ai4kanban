@@ -1,8 +1,8 @@
 // ---- the board, read whole -------------------------------------------------
 //
 // One pass over `docs/kanban/todo/` that gives back every open card, the columns they fall
-// into, and the handful of board-wide facts a screen draws around them — the releases and
-// what each is for, the archive's topics, how far setup got.
+// into, and the handful of board-wide facts a screen draws around them — the archive's
+// topics and how far setup got.
 //
 // This is the reading half of what the writing commands own. It is the ONE reader: a board
 // UI asks for this rather than walking the files itself, so a card can never say one thing
@@ -24,14 +24,12 @@ import { idPrefix, isGroupFolder, isLegacyRecurring, subtaskLines } from '../car
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { parseFrontmatter } from '../frontmatter'
 import { moduleNames } from '../validate'
-import { readReleaseEntries } from '../releases'
 import { readSetupChecklist } from '../setup'
 // The reading rules a hosted page shares (#322): what a `## Todo` counts, what really blocks
 // a card, and how the bands are laid out.
 import {
   attachBlockers,
   columnsFrom,
-  countByRelease,
   countTodos,
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
@@ -78,7 +76,6 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     priority: meta.priority,
     roi: meta.roi,
     status: meta.status as CardStatus,
-    release: meta.release,
     blocked_by: meta.blocked_by,
     related: meta.related,
     questions: meta.questions,
@@ -136,7 +133,6 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   root.subtasks = subCards.map<Subtask>((c) => ({
     id: c.id,
     title: c.title,
-    release: c.release,
     todos: c.todos,
     blocked_by: c.blocked_by,
     status: c.status,
@@ -398,17 +394,11 @@ export function readSetupState(): SetupState | null {
 /** The whole board in one read. */
 export function readBoard(): Board {
   const { board, every } = collectCards()
-  const entries = readReleaseEntries()
-  const releaseGoals: Record<string, string> = {}
-  for (const entry of entries) if (entry.goal) releaseGoals[entry.id] = entry.goal
   return {
     columns: columnsFrom(board, moduleNames() ?? []),
     archive: readArchiveNotes(),
     // Linkify every open id, subtasks included — not just the cards the columns show.
     openIds: Array.from(new Set(every.map((card) => card.id))),
-    releases: entries.map((e) => e.id),
-    releaseGoals,
-    releaseCounts: countByRelease(every),
     memoryOwners: readMemoryOwners(),
     setup: readSetupState(),
   }

@@ -21,10 +21,6 @@ import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
 // page, and a blocker splits by status like any other card. The split only
 // regroups the same cards.
 //
-// That is why it takes the board's `columns` rather than the board: the release
-// dropdown (#104) hides cards before this draws them, so what the columns hold
-// and what is on screen can never disagree.
-//
 // Inside a column the cards keep their modules, banded one under another in the
 // module map's own order. The column is the answer to "can I start this", the
 // band says "what part of the product is it" — so a card needs no module chip.

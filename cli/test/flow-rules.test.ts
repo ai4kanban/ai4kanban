@@ -43,7 +43,6 @@ const card = (id: number, title: string): string =>
     'priority: med',
     'roi: med',
     'status: ready',
-    'release: ""',
     'blocked_by: []',
     'related: []',
     'modules: []',
@@ -423,7 +422,6 @@ describe('the prompt', () => {
         triage: { sourceId: 'feedback/x', file: 'docs/kanban/triage/x.md' },
       }).guides as string[]
       assert.deepEqual(fromTriage, ['board', 'evaluate-task', 'add-task'])
-      assert.ok((printFlow({ action: 'plan-release', release: 'v1' }).guides as string[]).includes('evaluate-task'))
     } finally {
       stopCollecting()
     }
@@ -591,8 +589,8 @@ describe("the board's language", () => {
     setLanguage('zh')
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.match(prompt, /Write this board's prose in 中文/)
-    // The boundary rides in the ask itself: `writing`, `refine`, `revise`, `spec-agent`
-    // and `changelog` are never given `akb guide board`.
+    // The boundary rides in the ask itself: `writing`, `refine`, `revise` and `spec-agent`
+    // are never given `akb guide board`.
     assert.match(prompt, /section headings/)
     assert.match(prompt, /--slug/)
     assert.match(prompt, /keeps the language that file is already in/)
@@ -618,8 +616,8 @@ describe("the board's language", () => {
   })
 
   it('says nothing at all on an English machine', () => {
-    for (const action of ['implement', 'create', 'changelog'] as const) {
-      assert.doesNotMatch(buildPrompt({ action, id: 1, title: 'card one', release: '0.1.0' }), /board's prose/)
+    for (const action of ['implement', 'create'] as const) {
+      assert.doesNotMatch(buildPrompt({ action, id: 1, title: 'card one' }), /board's prose/)
     }
     assert.doesNotMatch(chatPrompt(1, 'and the other one?', { resuming: true }), /board's prose/)
     assert.equal(setupInstruction(), '/kanban. Set up this board — follow docs/kanban/setup-checklist.md.')
@@ -647,11 +645,5 @@ describe("the board's language", () => {
     assert.match(guide, /Prose in frontmatter is still prose/)
     assert.match(guide, /A memory file holding only its seeded header is empty/)
     assert.match(guide, /An edit follows the file, not the setting/)
-  })
-
-  it('makes the changelog follow the run over the goal, and the goal when there is no run language', () => {
-    const guide = findGuide('changelog')!.text
-    assert.match(guide, /Write in the language this run was told to write the board in/)
-    assert.match(guide, /Told no language, write in the language of the goal/)
   })
 })

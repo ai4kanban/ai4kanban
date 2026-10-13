@@ -52,12 +52,11 @@ card sinks, a blocker rises. A blocked card carries a **lock** marker — hover 
 the way. Nothing is hidden or gated by it. Columns are a fixed width and the row scrolls sideways.
 On a touch screen, tap wherever this file says hover: the tip stays until you tap elsewhere.
 
-Click a card to open it: the body, its meta (workflow, modules, release, priority, ROI, blockers),
+Click a card to open it: the body, its meta (workflow, modules, priority, ROI, blockers),
 open questions and buttons.
 
 The header carries:
 
-- **The release dropdown** — see [Releases](#releases).
 - **New idea** (bulb) — a full-screen sheet: share an idea, ask how things are going, or ask it
   to move or start a card. Sending always starts a [discussion](#new-idea). An unsent draft is kept; Esc or ✕ returns to the board. To
   write a card straight from a sentence, use `akb create`.
@@ -80,8 +79,8 @@ It never shows in **Runs**.
 - **The plan**: once an outcome is agreed, the agent writes it to
   `docs/kanban/plans/<id>-<slug>.md` (the problem and the agreed behavior, 30–50 lines), shown in
   a resizable panel on the right and rewritten as the discussion moves.
-- **Plan tasks** starts the run that writes the cards, in the release on screen, each naming
-  the plan in `source:`, which the card page shows as a **Source** link.
+- **Plan tasks** starts the run that writes the cards, each naming the plan in `source:`, which
+  the card page shows as a **Source** link.
 - **Start now** asks first, then one run writes a single card from the plan and builds it — no
   refine.
 - **Not yet** leaves it. You can also type any of the three.
@@ -143,7 +142,7 @@ settings, and a card it names is a link.
 - **It changes the board**: once a change is settled it writes, rewords, answers, moves, archives
   or drops cards straight away, then says what it did. A card a run holds is refused, naming the
   run.
-- **Work goes to a run**: building, sharpening a card or filling a release starts a run in
+- **Work goes to a run**: building or sharpening a card starts a run in
   **Runs**. It never writes your project's code itself.
 - **It is not a run**: it locks no card, so you can talk about a card an agent is building.
 - **Typing while it replies**: the box stays live; only sending waits. Nothing is queued or sent
@@ -196,11 +195,10 @@ board never opens the file for you.
 ### The archive
 
 **Archive**, at the foot of the rail, lists every card that left the board, in
-`docs/kanban/.archive/`, newest first: number, title, release and archive date. A rejected or
-discarded card is filed here too, wearing **Rejected** where the release would sit; it is not
-counted as shipped by any release. Dates start from when the board began recording them; older
-rows are marked. Click a row to read the card; a rejected card shows the reason it was given,
-word for word, under its chips. It is read-only: nothing un-archives.
+`docs/kanban/.archive/`, newest first: number, title and archive date. A rejected or
+discarded card is filed here too, wearing **Rejected**. Dates start from when the board began
+recording them; older rows are marked. Click a row to read the card; a rejected card shows the
+reason it was given, word for word, under its chips. It is read-only: nothing un-archives.
 
 ### Test cases
 
@@ -245,36 +243,6 @@ Older cards use `<Mockup src=".mockups/…">`, which still works.
 
 A card pulled from another board shows its asset tags as notes until `ui-designer` draws them
 again.
-
-## Releases
-
-A release is a version in `docs/kanban/releases.md`. The header dropdown picks which one the board
-shows; its **⋯** menu describes, fills, closes or drops it.
-
-- **Putting a card in one**: the card's **Release** box. The dash means no release. A group root
-  moves its whole group; a subtask can move alone. A card naming a version no longer listed reads
-  **not on the list**.
-- **One release at a time**: picking one hides every other release's cards, except blockers,
-  which always stay visible. **No release** is where the board opens. Each entry counts its open
-  cards and shows its goal. Your pick is remembered in the browser, never in the files.
-- **New release** (last entry): a version id, then either **From a goal** (a sentence or two the
-  release is planned against), or **No goal**, with an optional switch that moves in every
-  unplanned high-priority card that is unblocked and not a group root. The board switches to the
-  new release.
-- **Fill from its goal**: moves in the open cards that ship the goal and writes the ones it lacks,
-  each refined afterwards. It is a run: stoppable, logged, and **it is being planned** shows
-  across the board. It only adds, so running it again is safe. Terminal: "plan release v1".
-- **What it is for**: edits the goal. Empty removes it. Terminal: `akb release new v1 --goal ".."`,
-  `akb release goal v1 ".."`.
-- **Close release**: lists the open cards that come out, and names any card whose todos are all
-  ticked but which was never archived — archive it first, since a closed release cannot reopen.
-  Confirming runs `akb release close v1`: a dated **Closed** section in
-  `docs/kanban/.release-summaries/`, the open cards leave the version, and its line comes off the
-  list. An agent then writes a short changelog into that section. If it fails, run
-  `akb release changelog v1`.
-- **Drop release**: for a version that won't ship. Runs `akb release drop v1`: no summary, open
-  cards return to no release, archived cards stay archived.
-- **Rename or reorder**: edit `releases.md` by hand.
 
 ## The first run
 
@@ -342,7 +310,7 @@ several sessions under one delivery id, shown on the card and in `akb run list`.
 - **It builds the card as approved**: the requirements are copied when it starts, so later edits
   to the card don't change it.
 - **The card is held**: Edit, Refine, Resolve, Archive and Remove are off, except **Resolve**
-  while the delivery waits on you. Priority, ROI, release, modules and todos stay editable.
+  while the delivery waits on you. Priority, ROI, modules and todos stay editable.
 - **Controls**: while a run is live, **Stop run** ends that run only. Once nothing runs,
   **Resume** continues the delivery and **Discard** ends it, removing its worktree and branch
   (after naming them).
@@ -502,7 +470,6 @@ A group task is a folder with a `root.md` and subtasks. The root is a tracking c
 - **No Implement**: the group is finished by finishing its subtasks.
 - **Archive** appears once every subtask is done or rejected, and closes the whole group. A root
   with no subtasks is closed with **Remove**.
-- **Release** moves the whole group.
 
 The root records each outcome: an archived subtask's line is ticked, a rejected one struck
 through.

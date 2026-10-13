@@ -14,10 +14,6 @@ import path from 'node:path'
 
 import { machineHome } from '../machine/home'
 
-/** Watch every card, whatever release it is promised to — the default a board starts on. Not
- *  a release name: `*` cannot be one, so it never collides with a board's own versions. */
-export const ALL_RELEASES = '*'
-
 /** One board Cloud is on for. */
 export interface CloudBoard {
   /** The opaque id Cloud knows this board by. */
@@ -33,10 +29,6 @@ export interface CloudBoard {
   /** What to call it in the bell — the project folder's own name, and where in it a second
    *  board sits (`boardName`). */
   name: string
-  /** What this board raises events for: `ALL_RELEASES`, or one open release, where a task in
-   *  any other release — or in none — raises nothing. Empty when a watched release closed and
-   *  the user has not picked another: the filling stops and the rail asks. */
-  release: string
   /** This machine's server row for this board, as Cloud minted it (#318). It is what an
    *  approval taken elsewhere is claimed under, and what names this board's private Realtime
    *  topic. Empty when this machine does not run this board's work — nothing is claimed then,
@@ -50,7 +42,7 @@ export interface CloudBoard {
    *  is whether this record exists at all, while a workspace member's lives in the workspace
    *  (#328) and this is the mirror of it the publisher reads without reaching the network. */
   watchOff?: boolean
-  /** The user picked this release themselves, rather than it being the every-release default a
+  /** The user turned notifications on themselves, rather than it being the default a
    *  signed-in machine starts a board on. It is what a checkout has to CARRY into a workspace
    *  (#328): a teammate who has just cloned the repository is carrying nothing, and the
    *  workspace's own default for an added member is what they should start on. */
@@ -83,7 +75,6 @@ function held(): Held {
             typeof b.name === 'string' && b.name
               ? b.name
               : boardName(b.path, b.boardDir || defaultBoardDir(b.path)),
-          release: typeof b.release === 'string' ? b.release : '',
           serverId: typeof b.serverId === 'string' ? b.serverId : undefined,
           serverOff: b.serverOff === true ? true : undefined,
           watchOff: b.watchOff === true ? true : undefined,
@@ -167,17 +158,15 @@ export function cloudBoardById(id: string): CloudBoard | null {
   return held().boards.find((b) => b.id === id) ?? null
 }
 
-/** Turn notifications on for this board, watching one open release. Idempotent: a board
- *  already on keeps its Cloud ID, so turning it off and on again does not orphan its
- *  events.
+/** Turn notifications on for this board. Idempotent: a board already on keeps its Cloud ID,
+ *  so turning it off and on again does not orphan its events.
  *
- *  `chosen` is the user picking the release rather than the machine starting the board on
- *  every one of them — the difference between a record worth carrying into a workspace and
+ *  `chosen` is the user turning them on rather than the machine starting the board — the
+ *  difference between a record worth carrying into a workspace and
  *  one that is only a default (#328). */
 export function enableCloudBoard(
   boardDir: string,
   project: string,
-  release: string,
   chosen = false,
 ): CloudBoard {
   const folder = canonical(boardDir)
@@ -185,7 +174,6 @@ export function enableCloudBoard(
   const state = held()
   const existing = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (existing) {
-    existing.release = release
     existing.path = root
     existing.boardDir = folder
     if (chosen) existing.chosen = true
@@ -197,7 +185,6 @@ export function enableCloudBoard(
     path: root,
     boardDir: folder,
     name: boardName(root, folder),
-    release,
     ...(chosen ? { chosen: true } : {}),
   }
   state.boards.push(board)
@@ -237,20 +224,6 @@ export function stopCloudBoardServer(boardDir: string): CloudBoard | null {
   return board
 }
 
-/** Which release this board watches. Empty stops the filling and is what a closed release
- *  leaves behind. */
-export function setCloudBoardRelease(boardDir: string, release: string): CloudBoard | null {
-  const folder = canonical(boardDir)
-  const state = held()
-  const board = state.boards.find((b) => canonical(b.boardDir) === folder)
-  if (!board) return null
-  board.release = release
-  // The user picked it, so it is worth carrying into a workspace this board later joins.
-  board.chosen = true
-  write(state)
-  return board
-}
-
 /**
  * What the WORKSPACE says this member is told about, written down here (#328).
  *
@@ -259,12 +232,11 @@ export function setCloudBoardRelease(boardDir: string, release: string): CloudBo
  * into this machine's record and read from there. The record is never the authority: every
  * pull overwrites it.
  */
-export function mirrorWatch(boardDir: string, watch: { notify: boolean; watching: string }): CloudBoard | null {
+export function mirrorWatch(boardDir: string, watch: { notify: boolean }): CloudBoard | null {
   const folder = canonical(boardDir)
   const state = held()
   const board = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (!board) return null
-  board.release = watch.watching
   if (watch.notify) delete board.watchOff
   else board.watchOff = true
   write(state)

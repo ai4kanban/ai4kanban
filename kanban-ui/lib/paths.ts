@@ -133,17 +133,9 @@ export function archivePath(): string {
 export function modulesPath(): string {
   return path.join(kanbanDir(), "modules.md");
 }
-export function releasesPath(): string {
-  return path.join(kanbanDir(), "releases.md");
-}
-// The finished cards, moved here by `archive`. Read-only for the UI — dropping a
-// release lists the cards archived under it in the summary it writes.
+// The finished cards, moved here by `archive`. Read-only for the UI.
 export function archiveDir(): string {
   return path.join(kanbanDir(), ".archive");
-}
-// What a closed or dropped release left behind, one file per version id.
-export function releaseSummariesDir(): string {
-  return path.join(kanbanDir(), ".release-summaries");
 }
 // The board's one place for API keys (#94). Kept out of git by the .gitignore below,
 // which the board writes whenever it writes a key.

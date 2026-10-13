@@ -34,7 +34,6 @@ beforeEach(() => {
   write('next-id', '44\n')
   write('config.md', '# Project\n\n- **Name**: Test board\n')
   write('modules.md', '- **cloud** — the service\n- **skill** — the command\n')
-  write('releases.md', '- 0.9.0\n')
   write('memory/readme.md', '# What shipped\n')
   write('todo/README.md', '# The board\n')
 })
@@ -69,7 +68,6 @@ function card(rel: string, id: number, over: Partial<Meta> = {}): void {
     priority: 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: [],
     related: [],
     modules: [],
@@ -379,7 +377,6 @@ describe('packing a board', () => {
     const kinds = new Map(packBoard().documents.map((d) => [d.path, d.kind]))
     assert.equal(kinds.get('config.md'), 'config')
     assert.equal(kinds.get('modules.md'), 'config')
-    assert.equal(kinds.get('releases.md'), 'config')
     assert.equal(kinds.get('todo/README.md'), 'config')
     // The ignore list travels too: a board restored without it would commit the keys and run
     // state it is there to keep out of git.
@@ -476,7 +473,7 @@ describe('packing a board', () => {
 
 describe('writing a board back out', () => {
   beforeEach(() => {
-    card('todo/features/12-first.md', 12, { status: 'ready', release: '0.9.0', modules: ['cloud'] })
+    card('todo/features/12-first.md', 12, { status: 'ready', modules: ['cloud'] })
     card('.archive/9-shipped.md', 9)
     write('rules/revise.md', 'Say what changed.\n')
   })

@@ -25,7 +25,6 @@ import {
   usageStateFile,
 } from '../src/lib/machine/telemetry.ts'
 import { withStore } from '../src/lib/agent/store.ts'
-import { addRelease, closeRelease } from '../src/lib/releases.ts'
 import { BOARD_STATE, setBoardRoot } from '../src/lib/paths.ts'
 import {
   reportAppOpen,
@@ -333,7 +332,7 @@ describe("a board's own counts", () => {
     setBoardRoot(project)
   })
 
-  it('counts cards, questions, decisions and releases, and sends them once', async () => {
+  it('counts cards, questions and decisions, and sends them once', async () => {
     await akb('create', '--title', 'asked')
     await akb('create', '--title', 'proposed', '--triage', 'derived-1')
     const body = path.join(project, 'body.md')
@@ -356,8 +355,6 @@ describe("a board's own counts", () => {
 
     await akb('archive', '3')
     await akb('reject', '1')
-    addRelease('v1', 'first')
-    await quietly(async () => (closeRelease('v1'), 0))
 
     assert.deepEqual(board().counts, {
       cards_created_asked: 2,
@@ -369,7 +366,6 @@ describe("a board's own counts", () => {
       decisions_stood: 2,
       decisions_overruled: 1,
       cards_rejected: 1,
-      releases_closed: 1,
     })
 
     reportBoardNumbers(() => 0)
@@ -389,7 +385,6 @@ describe("a board's own counts", () => {
       questions_closed_verify: 1,
       decisions_stood: 2,
       decisions_overruled: 1,
-      releases_closed: 1,
     })
     assert.equal(board().counts, undefined)
   })

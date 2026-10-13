@@ -49,9 +49,8 @@
 // state saying which tab has been looked at. The tabs do not remember: the rail opens on
 // **To do** every time, rather than on last week's successes.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FiBell, FiBellOff, FiCheck, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
-import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
 import type { NotificationsCopy } from "@/i18n/notifications/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useBell } from "@/lib/card-event";
@@ -59,12 +58,11 @@ import { LEAVES_SHEET } from "@/lib/create-open";
 import type { BellRail, PageState } from "@/lib/bell-rail";
 import { statusLabel } from "@/lib/notification-status";
 import type { NotificationRow } from "@/lib/notifications";
-import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
+import { notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE } from "./chrome";
 import { Loading, QUIET_BTN } from "./settings";
-import { sayFailure } from "@/lib/start-failure";
 
 /**
  * The bell, and its unread count beside it.
@@ -170,23 +168,17 @@ export function BellPane({ rail }: { rail: BellRail }) {
       ) : !center.enabled && rows.length === 0 ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
-          title={c.noRelease.title}
-          body={c.noRelease.body}
+          title={c.off.title}
+          body={c.off.body}
         />
       ) : (
         <>
-          {/* The watched release closed, so the filling stopped. The prompt is here rather
-              than only in Configuration, because here is where it stopped. */}
-          {center.enabled && !center.release && <PickRelease c={c} onPicked={rail.refresh} />}
-          {/* The scope just moved and brought cards in (#451). One line above the rows it
-              filled, saying why none of them raised anything. */}
+          {/* Notifications just turned on and brought cards in (#451). One line above the rows
+              it filled, saying why none of them raised anything. */}
           {rail.filled && (
             <div className="mx-1 mb-2 shrink-0 rounded-[9px] bg-nb-sky-soft px-3 py-2">
               <p className="text-[11.5px] font-[700] leading-[16px] text-nb-sky-ink">
-                {c.filled(
-                  rail.filled.release === ALL_RELEASES ? c.everyRelease : rail.filled.release,
-                  rail.filled.cards,
-                )}
+                {c.filled(rail.filled.cards)}
               </p>
             </div>
           )}
@@ -457,52 +449,6 @@ function ago(changedAt: string, c: NotificationsCopy): string {
   const h = Math.round(m / 60);
   if (h < 24) return c.hoursAgo(h);
   return c.daysAgo(Math.round(h / 24));
-}
-
-/** The watched release closed. One line and what to watch instead, where the filling stopped
- *  — the same choice Configuration offers, so nobody has to remember a version id to type.
- *  **All** leads, and is the one answer a board with no open release left still has. */
-function PickRelease({ c, onPicked }: { c: NotificationsCopy; onPicked: () => void }) {
-  const [releases, setReleases] = useState<string[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void boardNotificationsAction().then((state) => setReleases(state.releases));
-  }, []);
-
-  const watch = async (release: string) => {
-    if (busy || !release) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const done = await watchReleaseAction(release);
-      if (!done.ok) setError(sayFailure(done, c.closed.failed));
-      else onPicked();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="mx-1 mb-2 rounded-[9px] bg-nb-peach-soft px-3 py-2.5">
-      <p className="text-[12px] font-[800] text-nb-peach-ink">{c.closed.title}</p>
-      <p className="mt-1 text-[11.5px] leading-[16px] text-nb-ink">{c.closed.body}</p>
-      {releases && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <Button size="sm" disabled={busy} onClick={() => void watch(ALL_RELEASES)}>
-            {c.closed.all}
-          </Button>
-          {releases.map((release) => (
-            <Button key={release} size="sm" disabled={busy} onClick={() => void watch(release)}>
-              {release}
-            </Button>
-          ))}
-        </div>
-      )}
-      {error && <p className="mt-1.5 text-[11px] leading-[15px] text-nb-peach-ink">{error}</p>}
-    </div>
-  );
 }
 
 /** The rail's ends. One mark, one line of what would fill it, and — where there is one — the

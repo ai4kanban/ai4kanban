@@ -16,7 +16,7 @@ stay in the app.
 | Path | What it draws |
 | --- | --- |
 | `/` | The signed-in account's workspace, or the list when it reaches more than one |
-| `/<workspace-id>` | That workspace's board — the columns and the release picker |
+| `/<workspace-id>` | That workspace's board — the columns |
 | `/<workspace-id>/<card-id>` | One card, whole: the human half, the folded agent half, its subtasks and its open questions — with Implement and Resolve where the board is raising a decision for it |
 | `/<workspace-id>/<card-id>/decide` | Where a press is recorded. A route handler, because the session is an `httpOnly` cookie the page cannot read |
 | `/settings` | The signed-in account, and the line saying board and machine settings are the app's. Nothing on it is writable (#575) |
@@ -52,9 +52,9 @@ that path.
 ## The reads
 
 `GET api.ai4kanban.dev/v1/workspaces/<id>/read` — the workspace's name, its live cards and
-the four configuration documents these two screens draw. `cloud/migrations/0018_reader_read.sql`
+the three configuration documents these two screens draw. `cloud/migrations/0018_reader_read.sql`
 is what leaves everything else behind: the memory set, the per-flow rules, the archive,
-closed releases' summaries, the history files, the trail, the delivery records and the
+the history files, the trail, the delivery records and the
 execution nodes are served to no browser.
 
 `GET .../v1/workspaces/<id>/events` — the decisions that board is raising, one live event per

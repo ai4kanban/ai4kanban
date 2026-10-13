@@ -51,7 +51,7 @@ All reusable colors are tokens in the `@theme` block of `app/globals.css`.
   read off it. `-wash` is a whole section's ground, quiet enough to carry body text.
   Never use `-wash` for a chip or `-soft` for a section.
 - **A neutral fill is a step of ink, not a colour**: a chip that means nothing in
-  particular (`low`, no release, no cadence) fills with `ink 7%` over whatever is under
+  particular (`low`, no cadence) fills with `ink 7%` over whatever is under
   it. An opaque near-wash fill vanishes on every ground but paper.
 - **Prefer the neutral ramp**: cream, paper, and wash should carry ordinary hierarchy
   before color is introduced.
@@ -208,8 +208,8 @@ shadow. Shadows never blur or change direction.
 Under `md` (48rem) the board is laid out for a phone. All of it is that width only: at
 window width the rail, the header and the side-by-side columns are unchanged.
 
-- **The top row is the card search**: the box in the mark's place, then the release
-  picker, the bell and Create task, on paper with a hairline under it — no cream band, no
+- **The top row is the card search**: the box in the mark's place, then Triage, the bell
+  and Create task, on paper with a hairline under it — no cream band, no
   rounded panel.
 - **The rail becomes a bottom tab bar**: Board and More, on every screen the phone reaches.
   More holds Insights and Memory as rows, and names what is done at the computer.

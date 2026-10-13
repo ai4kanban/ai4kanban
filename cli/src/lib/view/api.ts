@@ -1,7 +1,7 @@
 // ---- the board, as a front end asks for it ---------------------------------
 //
-// One door onto everything a screen does with the board: read it, edit a card, plan and end
-// a release, save the goal, tick a setup box, and ask what to start on its own.
+// One door onto everything a screen does with the board: read it, edit a card, save the
+// goal, tick a setup box, and ask what to start on its own.
 //
 // Every call here is one operation of the board's contract (../board/contract.ts) and
 // nothing else — the same operations `akb raw`, the run engine and the board timer use,
@@ -25,15 +25,12 @@ import {
   type CardOp,
   type OpEnvelope,
   type OpResult,
-  type ReleaseFill,
   type Revision,
 } from '../board'
 import type { DeliveryCarryOn } from '../agent/types'
 import type { AgentSlot } from '../agent/types'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
 import type { CardPatch, SaveProjectResult, WriteResult } from './types'
-
-export type { ReleaseFill }
 
 // ---- reads -----------------------------------------------------------------
 //
@@ -50,16 +47,12 @@ export const readSetupState = () => board().readSetupState()
 export const readSetupDraft = () => board().readSetupDraft()
 export const readModules = () => board().readModules()
 export const readMetricsView = (days?: number) => board().readMetricsView(days)
-export const readReleases = () => board().readReleases()
 export const readMemoryFile = (name: string, agent = '') => board().readMemoryFile(name, agent)
 export const readMemoryOwners = () => board().readMemoryOwners()
 export const readAgents = () => board().readAgents()
 export const deliveryPlan = (cardId?: number) => board().deliveryPlan(cardId)
 export const deliveryDiff = (deliveryId: string) => board().deliveryDiff(deliveryId)
 export const nextWork = () => board().nextWork()
-export const fillPlan = () => board().fillPlan()
-export const closePlan = (id: string) => board().closePlan(id)
-export const dropPlan = (id: string) => board().dropPlan(id)
 
 // ---- the envelope a screen writes with -------------------------------------
 
@@ -107,7 +100,7 @@ const flat = <T>(res: OpResult<T>): WriteResult & Partial<T> & { kind: string; c
 
 // ---- a card ----------------------------------------------------------------
 
-/** Apply a direct edit to one card: its title, body, priority, roi, release, cadence. */
+/** Apply a direct edit to one card: its title, body, priority, roi, cadence. */
 export async function patchCard(id: number, patch: CardPatch, opts?: WriteOptions): Promise<WriteResult> {
   return flat(await envelopeFor({ card: id }, opts, (env) => board().patchCard(id, patch, env)))
 }
@@ -138,46 +131,6 @@ export async function setSchedule(id: number, action: string, notes = '', opts?:
  *  the button and the mark it takes off are drawn from a read that can be a moment old. */
 export async function clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult> {
   return flat(await envelopeFor({ card: id }, opts, (env) => board().setSchedule(id, null, env)))
-}
-
-// ---- releases --------------------------------------------------------------
-
-/**
- * Start a release: one line appended to `docs/kanban/releases.md`, in ship order, carrying
- * what the version is for when one was given.
- *
- * `fill` asks for the release to be filled as it is made. Which way that happens is decided
- * by the board, not by the caller — a goal is what an agent can plan against, and a release
- * without one has nothing for an agent to decide, so it takes the plain rule instead.
- */
-export async function newRelease(
-  id: string,
-  goal = '',
-  fill = false,
-  opts?: WriteOptions,
-): Promise<WriteResult & { fill?: ReleaseFill }> {
-  return flat<{ fill: ReleaseFill }>(
-    await envelopeFor({ board: true }, opts, (env) => board().newRelease(id, goal, fill, env)),
-  )
-}
-
-/** Change what a release is for, after it was made. An empty goal clears it — a release
- *  with no goal is a state the board works over, so unsaying it has to be possible too. */
-export async function setReleaseGoal(id: string, goal: string, opts?: WriteOptions): Promise<WriteResult> {
-  return flat(await envelopeFor({ board: true }, opts, (env) => board().setReleaseGoal(id, goal, env)))
-}
-
-/** Close a shipped release: one dated section in its summary file, the open cards' release
- *  cleared, the line off the list. `shipped` is how many cards the close counted, so the
- *  caller knows whether a changelog run has anything to write (#232). */
-export async function closeRelease(id: string, opts?: WriteOptions): Promise<WriteResult & { shipped?: number }> {
-  return flat<{ shipped: number }>(await envelopeFor({ board: true }, opts, (env) => board().closeRelease(id, env)))
-}
-
-/** Give up on a release: the open cards' release cleared and the line off the list, with no
- *  summary written. */
-export async function dropRelease(id: string, opts?: WriteOptions): Promise<WriteResult> {
-  return flat(await envelopeFor({ board: true }, opts, (env) => board().dropRelease(id, env)))
 }
 
 // ---- memory and the rules --------------------------------------------------

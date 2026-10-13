@@ -7,7 +7,7 @@ lead: "Keep each Grill Me plan on a researched card that agents can refine, exec
 eyebrow: "Grill Me workflow guide"
 social_image_alt: "AI4Kanban scaling Grill Me across dependent cards and parallel coding agents."
 schema:
-  description: "AI4Kanban is Kanban for Grill Me: a shared workspace where each card maps to one researched plan. It records important agent decisions, adds dependencies, priorities, modules, releases, and todos around cards, and coordinates parallel agents with selective human review."
+  description: "AI4Kanban is Kanban for Grill Me: a shared workspace where each card maps to one researched plan. It records important agent decisions, adds dependencies, priorities, modules, and todos around cards, and coordinates parallel agents with selective human review."
 ---
 
 Matt Pocock's [grill me](https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me) workflow stress-tests a plan through focused questions until its decision tree is resolved. It researches answers available in the codebase, gives a recommendation with each genuine decision, and turns a vague idea into shared understanding.
@@ -33,7 +33,7 @@ AI4Kanban starts from the same principle and keeps the same unit of work.
 | --- | --- |
 | `grill-me` | Investigates and resolves 1 plan |
 | `grill-with-docs` | Keeps domain documentation and decision records current while resolving that plan |
-| An AI4Kanban card | Keeps 1 plan as a durable card, then adds dependencies, priority, modules, release, todos, notable answers, and delivery state |
+| An AI4Kanban card | Keeps 1 plan as a durable card, then adds dependencies, priority, modules, todos, notable answers, and delivery state |
 
 For software projects, AI4Kanban replaces the standalone Grill Me session with a durable card while keeping the same unit of work: 1 plan. Those independently reviewable cards then form the larger project.
 
@@ -50,7 +50,6 @@ AI4Kanban starts from individual cards. Each card can hold 1 Grill Me plan and i
 | Dependencies | Which cards must wait and which can run together |
 | Priority | What should be prepared or delivered next |
 | Modules | Which product areas the card changes, and which memory topics apply |
-| Release | Which outcome the card contributes to |
 | Todo | What must be true before the card is complete |
 
 <RequirementCascade caption="Independent cards form a project graph; the arrows make the safe parallel paths explicit." />
@@ -90,7 +89,7 @@ This keeps autonomy high without hiding meaningful product calls. The human revi
 
 Yes. Here, Kanban is a project-management method for turning a vague idea into actionable work. The visual board is one interface, not the source of the method.
 
-Traditional boards are designed mainly to help people scan status. AI4Kanban's board is also read and updated by agents. Its Markdown cards make outcomes, dependencies, questions, decisions, modules, releases, and todos explicit enough for either side to continue the work.
+Traditional boards are designed mainly to help people scan status. AI4Kanban's board is also read and updated by agents. Its Markdown cards make outcomes, dependencies, questions, decisions, modules, and todos explicit enough for either side to continue the work.
 
 The result is a shared workspace where:
 

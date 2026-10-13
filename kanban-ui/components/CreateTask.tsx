@@ -51,9 +51,6 @@ import { useChatRailHere } from "./Chat";
 import { CreateSheet } from "./CreateSheet";
 import { sessionsPanel, useAgentSessions } from "./sessions";
 
-// `release` is the version the board is showing (#104), or null for the whole
-// board. A card written while one release is on screen ships in it, so it doesn't
-// vanish the moment it is written.
 // A discussion as a key, and the one conversation of a board whose rules predate the list as
 // the empty string — no `DiscussionTarget` is that, so the two never collide.
 const askedOn = (discussion: DiscussionTarget | null): string => discussion ?? "";
@@ -75,10 +72,8 @@ function forget(discussion: DiscussionTarget | null) {
 }
 
 export function CreateTask({
-  release = null,
   projectRoot,
 }: {
-  release?: string | null;
   /** Which board this is — the sheet's Discuss reads the board's own conversation, which on
    *  a card's page is not the one the window is holding. */
   projectRoot: string;
@@ -293,7 +288,7 @@ export function CreateTask({
       const said = answer === "build" ? plan.build : plan.start;
       const runs: { path: string | null; res: StartResult }[] = [];
       if (answer === "build") {
-        const res = await startPlanBuildAction(release ?? undefined, on, said, undefined, picks);
+        const res = await startPlanBuildAction(on, said, undefined, picks);
         runs.push(...(res.each ?? [{ path: null, result: res }]).map((e) => ({ path: e.path, res: e.result })));
       }
       // A connector that can't take the discussion into the build plans it instead (#1246).
@@ -303,7 +298,7 @@ export function CreateTask({
         runs.length = 0;
       }
       if (answer === "plan") {
-        runs.push({ path: null, res: await startPlanningAction(release ?? undefined, on, said, undefined, picks) });
+        runs.push({ path: null, res: await startPlanningAction(on, said, undefined, picks) });
       }
       asking.delete(key);
       createSheet.starting(key, null);
@@ -341,7 +336,7 @@ export function CreateTask({
       if (on && !phone) createSheet.startFailed(on, failureText(whys[0]!.why));
       else setError(failureText(whys[0]!.why));
     },
-    [release, discussion, watch, freshen, phone, plan, setError],
+    [discussion, watch, freshen, phone, plan, setError],
   );
 
   // One card written (#1213): the discussion is over, and its card's chat carries it on.

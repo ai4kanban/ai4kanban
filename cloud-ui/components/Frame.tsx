@@ -3,7 +3,7 @@
 // The frame these pages are drawn in (#322, #364).
 //
 // It is the app's window with everything that ACTS taken out. Around the board: the board's
-// name and the release picker. Around a card: the board's name, the way back, and the way
+// name. Around a card: the board's name, the way back, and the way
 // into the app for a machine that holds a copy of this workspace. Nothing else — no rail, no
 // chat, no Create task — and the board page stays a read.
 //
@@ -26,15 +26,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useCopy } from "@/i18n/use-copy";
-import type { ReleasePick } from "@/lib/release-pick";
 import { accountAddress, accountName, type HostedAccount } from "../lib/cloud";
 import type { HostedCopy } from "../lib/copy";
 
@@ -53,10 +44,6 @@ export const useHostedCopy = (): HostedCopy => useContext(CopyContext)!;
 const AccountContext = createContext<HostedAccount | null>(null);
 
 export const AccountProvider = AccountContext.Provider;
-
-/** Radix refuses an empty value, so No release carries one no version id can be — a release
- *  line is cut at an em dash, so an id can never hold one. */
-const NONE = "—none—";
 
 /**
  * The top row. The same 43px the app's own row is (`kanban-ui/components/Header.tsx`), so a
@@ -247,49 +234,6 @@ function SignIn() {
     <Link href="/signin" className={`${WAY_OUT} ${CHROME}`}>
       {copy.signIn}
     </Link>
-  );
-}
-
-/**
- * Which release the board is showing. The app's picker (`ReleasePicker.tsx`) is the app's: it
- * makes, fills, drops and closes a version, and every one of those is a write. This is the
- * half a reader gets — what to look at, and nothing that changes anything.
- */
-export function Releases({
-  releases,
-  goals,
-  counts,
-  value,
-  onChange,
-}: {
-  releases: string[];
-  goals: Record<string, string>;
-  counts: Record<string, number>;
-  value: ReleasePick;
-  onChange: (r: ReleasePick) => void;
-}) {
-  const c = useCopy().board.release;
-  return (
-    <Select value={value ?? NONE} onValueChange={(next) => onChange(next === NONE ? null : next)}>
-      <SelectTrigger aria-label={c.which} className="h-7 w-[168px] text-[12px] font-[700] max-md:h-9">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>{c.none(counts[""] ?? 0)}</SelectItem>
-        {releases.map((id) => (
-          <SelectItem key={id} value={id}>
-            <span className="flex flex-col items-start">
-              {`${id} (${counts[id] ?? 0})`}
-              {goals[id] && (
-                <span className="max-w-[42ch] truncate text-[11px] font-[400] text-nb-ink-soft">
-                  {goals[id]}
-                </span>
-              )}
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }
 

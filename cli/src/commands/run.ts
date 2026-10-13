@@ -38,7 +38,6 @@ import path from 'node:path'
 import { say } from '../lib/io'
 import { die, BOARD_FLAG } from '../lib/paths'
 import { holdCloudClaims } from '../lib/cloud/requests'
-import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import { creationRefusal, openOf } from '../lib/view/rules'
 import type { MoveResult } from '../lib/types'
@@ -210,7 +209,6 @@ function sayBeforeStart(req: CommandRequest, program: string): void {
 export interface StartOptions {
   print?: boolean
   follow?: boolean
-  release?: string
   /** create: the workflow the new cards run on. */
   workflow?: string
   /** The runtime this one run spawns on (#518), on the two flows that take one. */
@@ -236,8 +234,7 @@ function readRequest(
     return text.trim() || undefined
   }
 
-  // The four actions that name no card. Two name nothing at all; planning a release and
-  // writing one up each name a version.
+  // The actions that name no card.
   if (action === 'create') {
     const workflow = opts.workflow === undefined ? undefined : knownWorkflow(opts.workflow)
     const fromCard = opts.fromCard === undefined ? undefined : Number(opts.fromCard)
@@ -245,25 +242,12 @@ function readRequest(
       die(`--from-card: no open card #${opts.fromCard}`, { kind: 'card-not-found', id: opts.fromCard })
     }
     return {
-      req: { action, description: words(0)!, release: opts.release, workflow, runtime: opts.runtime, origin: currentSession(), fromCard },
+      req: { action, description: words(0)!, workflow, runtime: opts.runtime, origin: currentSession(), fromCard },
       follow,
       print,
     }
   }
-  if (action === 'plan-release') {
-    return { req: { action, release: words(0)! }, follow, print }
-  }
-  // Writing one closed version's changelog (#232). Refused here rather than left to the
-  // agent when the version has no closed record or shipped nothing: there is no changelog
-  // to be had either way, and a run that only reads that and stops costs money for nothing.
-  if (action === 'changelog') {
-    const release = words(0)!
-    const refusal = changelogRefusal(release)
-    if (refusal) die(refusal, { kind: 'no-changelog', release })
-    return { req: { action, release }, follow, print }
-  }
-  // The last of them: setting the board up names nothing at all. The checklist says what is
-  // left.
+  // Setting the board up names nothing at all. The checklist says what is left.
   if (action === 'setup') return { req: { action }, follow, print }
 
   // A delivery verb is aimed at the delivery its command already looked up (#428) — never

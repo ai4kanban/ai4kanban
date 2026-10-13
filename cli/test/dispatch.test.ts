@@ -43,7 +43,6 @@ function body(
     priority: opts.priority ?? 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: opts.blockedBy ?? [],
     related: [],
     modules: [],

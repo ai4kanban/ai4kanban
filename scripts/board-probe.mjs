@@ -105,23 +105,6 @@ run(['tag', '5', '1', 'user'])
 run(['tag', '5', '9', 'user'])
 run(['tag', '5', '1', 'wat'])
 
-// ---- releases ---------------------------------------------------------------
-run(['release'])
-run(['release', 'list'])
-run(['release', 'new', 'v1', '--goal', 'the first version worth showing someone'])
-run(['release', 'new', 'v1'])
-run(['release', 'new', 'v2', '--fill'])
-run(['release', 'goal', 'v2', 'the second one'])
-run(['release', 'goal', 'v2'])
-run(['release', 'list'])
-run(['update', '4', '--release', 'v1'])
-run(['update', '4', '--release', 'nope'])
-run(['release', 'list'])
-run(['release', 'close', 'v1'])
-run(['release', 'drop', 'v2'])
-run(['release', 'close', 'ghost'])
-run(['release', 'bogus'])
-
 // ---- repeating work is no card (#1414) --------------------------------------
 run(['create', '--title', 'A repeating job', '--recurring'])
 run(['update', '4', '--cadence', '3h'])

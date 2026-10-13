@@ -54,7 +54,7 @@ describe('the roles', () => {
   })
 
   it('leaves the planner every flow that writes a card', () => {
-    for (const flow of ['refine', 'resolve', 'plan-release', 'changelog', 'create']) {
+    for (const flow of ['refine', 'resolve', 'create']) {
       assert.equal(roleForFlow(flow)!.name, 'software-planner')
     }
   })

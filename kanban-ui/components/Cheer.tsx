@@ -1,7 +1,7 @@
 "use client";
 
-// The corner office that cheers a milestone (#1331): a finished release, a closed group, or
-// the day's first finished task. One at a time, each once per browser, and gone on its own.
+// The corner office that cheers a milestone (#1331): a closed group, or the day's first
+// finished task. One at a time, each once per browser, and gone on its own.
 //
 // Nothing here asks for attention — no bell, no unread, no focus. The art and its stylesheet
 // load only when there is something to cheer for.
@@ -125,12 +125,7 @@ function Corner({ cheer, Scene, now, onDone }: { cheer: Cheer; Scene: Scene; now
   }, [count, hold]);
 
   const named = `#${cheer.id} ${cheer.title ?? ""}`;
-  const [reason, detail] =
-    cheer.kind === "release"
-      ? [c.release(cheer.release ?? ""), c.releaseCount(cheer.count ?? 0)]
-      : cheer.kind === "group"
-        ? [c.group(cheer.count ?? 0), named]
-        : [c.first, named];
+  const [reason, detail] = cheer.kind === "group" ? [c.group(cheer.count ?? 0), named] : [c.first, named];
 
   return (
     <button

@@ -48,8 +48,8 @@ export const LOCAL_STANDING: BoardStanding = {
 /** What every screen carries whatever it is showing: which board this is, and how it stands. */
 export interface ScreenBoard {
   /** What this board is called — the checkout it lives in, or the workspace it is a copy
-   *  of. Opaque: it keys what one browser remembers per board (the release on screen, the
-   *  cards it has open) and means nothing outside that. */
+   *  of. Opaque: it keys what one browser remembers per board (the cards it has open) and
+   *  means nothing outside that. */
   id: string
   standing: BoardStanding
 }
@@ -82,12 +82,11 @@ export interface CardHold {
 }
 
 /** Everything a card page draws. The board fields beside the card are the ones the page
- *  itself needs — the ids it may link to, the releases its picker offers, the modules
+ *  itself needs — the ids it may link to, and the modules
  *  memory is kept for. */
 export interface CardScreen extends ScreenBoard {
   card: Card
   openIds: number[]
-  releases: string[]
   memoryOwners: MemoryOwner[]
   /** What an Implement click would do from here (#307) — the branch it lands on. */
   plan: DeliveryPlan

@@ -13,8 +13,7 @@
 //
 // `command` is the flow's NAME, not the line a person types: it names the flow's rule file,
 // keys the rules a delivery freezes, and keys which runtime the flow runs on. It stays put
-// when the command line is rearranged — `plan-release` is still `plan-release` on disk now
-// that it is typed `akb release plan`, so no board loses a rule to a rename and no delivery
+// when the command line is rearranged, so no board loses a rule to a rename and no delivery
 // in flight loses the rules it froze.
 //
 // `group` and `verb` are the line a person types. A flow with a group is typed under that
@@ -25,10 +24,10 @@ import type { AgentAction, CommandAction } from './types'
 
 /** The nouns the commands are grouped under. A flow acts on one of these, or on nothing
  *  yet — see `Flow.group`. */
-export type FlowGroup = 'card' | 'delivery' | 'release' | 'triage'
+export type FlowGroup = 'card' | 'delivery' | 'triage'
 
 /** One option a flow takes, as its command declares it. `flags` is Commander's own
- *  notation, so `--release <version>` takes a value and `--discard` does not. */
+ *  notation, so `--workflow <id>` takes a value and `--discard` does not. */
 export interface FlowOption {
   flags: string
   description: string
@@ -52,7 +51,7 @@ export interface Flow {
   argument: string
   /** What the argument is, for the help. Empty when there is no argument. */
   argumentNote?: string
-  /** One clause of plain words: what the flow is. `plan-release` and `run` name
+  /** One clause of plain words: what the flow is. Some flow names say
    *  nothing a user can guess at, so every flow carries one. */
   gloss: string
   /** The rest of what the flow's own help says about it. */
@@ -119,31 +118,9 @@ export const FLOWS: Flow[] = [
     argumentNote: 'what you want, in your own words',
     gloss: 'write the card(s) for it',
     options: [
-      { flags: '--release <version>', description: 'the version the new cards ship in' },
       { flags: '--workflow <id>', description: 'the workflow the new cards run on' },
       { flags: '--from-card <id>', description: 'the card this came up on, to link the new cards to' },
       RUNTIME_OPTION,
-    ],
-  },
-  {
-    command: 'plan-release',
-    group: 'release',
-    verb: 'plan',
-    action: 'plan-release',
-    argument: '<version>',
-    argumentNote: 'the version to fill',
-    gloss: 'fill a release from its goal',
-  },
-  {
-    command: 'changelog',
-    group: 'release',
-    action: 'changelog',
-    argument: '<version>',
-    argumentNote: 'the closed version to write up',
-    gloss: "write a closed version's changelog into its summary file",
-    more: [
-      'It is written from the goal and the cards its close wrote down — the close starts this itself, so ' +
-        'run it only to rewrite one.',
     ],
   },
   {
@@ -212,7 +189,7 @@ export const RUN_COMMANDS: Record<string, CommandAction> = Object.fromEntries(
 /** The word typed under the flow's noun. */
 export const flowVerb = (flow: Flow): string => flow.verb ?? flow.command
 
-/** The line a person types, without the command's own name — `card refine`, `release plan`,
+/** The line a person types, without the command's own name — `card refine`, `delivery conflict`,
  *  `create`. What every message and every doc spells. */
 export const flowPath = (flow: Flow): string => (flow.group ? `${flow.group} ${flowVerb(flow)}` : flowVerb(flow))
 

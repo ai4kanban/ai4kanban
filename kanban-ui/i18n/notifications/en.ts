@@ -9,11 +9,8 @@ const en: NotificationsCopy = {
   close: "Close notifications",
   silenced: "silenced",
   silencedTip: "System notifications are silenced for every board on this machine.",
-  filled: (scope, cards) =>
-    cards === 1
-      ? `Watching ${scope} — 1 card was already waiting for you`
-      : `Watching ${scope} — ${cards} cards were already waiting for you`,
-  everyRelease: "every release",
+  filled: (cards) =>
+    cards === 1 ? "1 card was already waiting for you" : `${cards} cards were already waiting for you`,
   tabs: { todo: "To do", landed: "Landed" },
   tabNew: "something new",
   status: {
@@ -48,9 +45,9 @@ const en: NotificationsCopy = {
     body: "Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do.",
     hint: "Configuration → Notifications",
   },
-  noRelease: {
-    title: "No open release",
-    body: "The bell watches one open release. Start one from the version picker in the header.",
+  off: {
+    title: "Notifications are off",
+    body: "Turn them on in Configuration → Notifications.",
   },
   empty: {
     title: "Nothing waiting",
@@ -65,12 +62,6 @@ const en: NotificationsCopy = {
     changes === 1
       ? "Cloud is out of step: 1 change never reached it. This board is the one that is right."
       : `Cloud is out of step: ${changes} changes never reached it. This board is the one that is right.`,
-  closed: {
-    title: "The release you were watching closed.",
-    body: "Nothing new fills the bell until you pick what to watch.",
-    all: "All releases",
-    failed: "that release could not be watched",
-  },
 };
 
 export default en;

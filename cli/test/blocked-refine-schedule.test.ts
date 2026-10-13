@@ -44,7 +44,6 @@ function writeCard(
     priority: 'med',
     roi: 'med',
     status: opts.status ?? 'todo',
-    release: '',
     blocked_by: opts.blockedBy ?? [],
     related: [],
     modules: [],

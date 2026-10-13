@@ -23,7 +23,6 @@ import {
 } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import {
-  NO_RELEASE,
   type Card,
   type CardDelivery,
   type CardDeliveryStage,
@@ -53,7 +52,6 @@ import {
   LevelSelect,
   ModuleChip,
   PendingPill,
-  ReleaseSelect,
   StatusPill,
   TodoProgress,
 } from "./chips";
@@ -996,10 +994,10 @@ export function LandedBlock({
 // --- the workflow this card runs through (#715) -------------------------------
 //
 // Read-only: a card's workflow is fixed at creation (#744). Drawn borderless — the strip
-// beside it already spends mint on the module, sky on the release and peach on the levels,
-// and a fourth tint there stops being read — so this one is ink and an icon. Chip type
-// exactly (#757): a bigger, heavier value read as the strip's heading instead of its first
-// label, and the taller line box dropped it off the baseline the other five share.
+// beside it already spends mint on the module and peach on the levels, and a third tint
+// there stops being read — so this one is ink and an icon. Chip type exactly (#757): a
+// bigger, heavier value read as the strip's heading instead of its first label, and the
+// taller line box dropped it off the baseline the others share.
 function WorkflowItem({ card }: { card: Card }) {
   const c = useCopy().card;
   const w = useCopy().configuration.workflows;
@@ -1128,7 +1126,7 @@ export function CardPage({
   // tags as the plain links they are.
   const mockups = useMachine()?.mockups ?? {};
   const storyboards = useMachine()?.storyboards;
-  const { card, openIds, releases, plan, diff, hold, standing: boardState } = screen;
+  const { card, openIds, plan, diff, hold, standing: boardState } = screen;
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   // The open-questions panel is answering rather than being read. Held here rather than
@@ -1860,7 +1858,7 @@ export function CardPage({
             <div className="nb-section relative flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5 max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:px-3.5 max-md:py-3">
               {/* The workflow this card runs through (#715). First in the strip: it is what
                   decides who plans, who builds and who reviews this card, so it is read
-                  before the module or the release. */}
+                  before the module. */}
               <WorkflowItem card={card} />
 
               {card.modules.length > 0 && (
@@ -1870,23 +1868,6 @@ export function CardPage({
                       <ModuleChip key={m} module={m} />
                     ))}
                   </span>
-                </MetaItem>
-              )}
-
-              {/* Release (#105) — the version this card ships in, picked from the
-                  open releases plus a bare "—" for none. A board that plans no
-                  versions says nothing about them at all, so the column is gone
-                  rather than stuck on the dash; a card left pointing at a release
-                  someone deleted from the list still shows its own value, so
-                  nothing goes quiet. */}
-              {(releases.length > 0 || card.release !== NO_RELEASE) && (
-                <MetaItem label={c.meta.release}>
-                  <ReleaseSelect
-                    value={card.release}
-                    releases={releases}
-                    disabled={busy || !fieldWrites}
-                    onChange={(v) => patchCard(card.id, { release: v })}
-                  />
                 </MetaItem>
               )}
 

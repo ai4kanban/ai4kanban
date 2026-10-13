@@ -65,7 +65,6 @@ function card(id: number, { modules = [], where = 'archived', day = TODAY, rejec
       'priority: med',
       'roi: med',
       'status: todo',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       `modules: [${modules.join(', ')}]`,

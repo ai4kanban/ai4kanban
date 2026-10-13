@@ -97,10 +97,9 @@ export interface NotificationAlert {
   kind: 'actionable' | 'outcome'
 }
 
-/** One scope change, as the line above the rows says it: what is watched now, and how many
- *  cards it brought in. The same sentence the chat's summary carries. */
+/** One scope change, as the line above the rows says it: how many cards it brought in. The
+ *  same sentence the chat's summary carries. */
 export interface WatchFill {
-  release: string
   cards: number
 }
 
@@ -120,9 +119,6 @@ export interface NotificationCenter {
   /** This board's own Cloud id — every row below is one of its own. Empty when it has none,
    *  and then there are no rows. */
   boardId: string
-  /** The release this board watches. Empty on an enabled board whose release has closed —
-   *  the rail asks for another where the filling stopped. */
-  release: string
   silenced: boolean
   /** This board's live events, newest change first. The rail draws the ones marked `onRail`;
    *  the card page reads the rest for its own title band. */
@@ -473,7 +469,6 @@ export function readCloudCenter(page?: CenterPage): NotificationCenter {
     // says rather than whether the record is there.
     enabled: !!enabled && !enabled.watchOff,
     boardId,
-    release: enabled?.release ?? '',
     silenced: notificationsSilenced(),
     ...paged,
     unread,

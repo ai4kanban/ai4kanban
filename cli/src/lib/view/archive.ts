@@ -36,7 +36,6 @@ function readFile(file: string): { row: ArchivedCard; body: string; meta: Meta }
     row: {
       id,
       title: meta.title,
-      release: meta.release,
       archived: meta.archived,
       rejected: meta.rejected,
       relPath: rel(file).split(path.sep).join('/'),

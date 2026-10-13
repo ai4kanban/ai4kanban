@@ -2,8 +2,8 @@
 //
 // `view/read.ts` walks `docs/kanban/` and the tests around it cover that path. This covers
 // the other caller of the same rules: a browser holding nothing but what
-// `GET /v1/workspaces/<id>/read` handed back. The group shape, the bands, the release
-// picker and the two refusals are all worked out here rather than by the service, so a
+// `GET /v1/workspaces/<id>/read` handed back. The group shape, the bands and the two
+// refusals are all worked out here rather than by the service, so a
 // wrong answer here is a wrong board on screen.
 
 import assert from 'node:assert/strict'
@@ -21,7 +21,6 @@ const meta = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
   priority: 'med',
   roi: 'med',
   status: 'todo',
-  release: '',
   blocked_by: [],
   related: [],
   questions: [],
@@ -45,7 +44,6 @@ const read = (over: Partial<BoardRead> = {}): BoardRead => ({
 })
 
 const MODULES = '- **cloud** — the service\n- **local-ui** — the board UI\n'
-const RELEASES = '- **0.9.0** — the browser release\n- **1.0.0**\n'
 
 describe('a board, assembled from one Cloud read', () => {
   it('bands the cards in module-map order, with the untagged band last and empties dropped', () => {
@@ -90,7 +88,7 @@ describe('a board, assembled from one Cloud read', () => {
       read({
         cards: [
           card(10, 'todo/10-group/root.md', {}, '## Todo\n- [x] one #11\n- [ ] two #12\n'),
-          card(11, 'todo/10-group/11-one.md', { release: '0.9.0' }, '- [x] a\n- [ ] b\n'),
+          card(11, 'todo/10-group/11-one.md', {}, '- [x] a\n- [ ] b\n'),
           card(12, 'todo/10-group/12-two.md', { blocked_by: [11] }),
           card(13, 'todo/13-loose.md'),
         ],
@@ -102,9 +100,9 @@ describe('a board, assembled from one Cloud read', () => {
     const root = screen.board!.columns[0]!.cards.find((c) => c.id === 10)!
     assert.equal(root.isGroup, true)
     assert.deepEqual(root.subtaskLines, { total: 2, resolved: 1 })
-    assert.deepEqual(root.subtasks!.map((s) => [s.id, s.release, s.todos]), [
-      [11, '0.9.0', { total: 2, done: 1 }],
-      [12, '', { total: 0, done: 0 }],
+    assert.deepEqual(root.subtasks!.map((s) => [s.id, s.todos]), [
+      [11, { total: 2, done: 1 }],
+      [12, { total: 0, done: 0 }],
     ])
   })
 
@@ -137,22 +135,6 @@ describe('a board, assembled from one Cloud read', () => {
     assert.deepEqual(screen.card.parent, { id: 10, title: 'The group' })
     // 99 left the board and 12 names itself: neither can ever clear, so neither blocks.
     assert.deepEqual(screen.card.openBlockers, [{ id: 11, title: 'Card 11' }])
-  })
-
-  it('fills the release picker off releases.md and counts every open card, subtasks included', () => {
-    const screen = boardScreenFrom(
-      read({
-        cards: [
-          card(10, 'todo/10-group/root.md', { release: '0.9.0' }, '- [ ] one #11\n'),
-          card(11, 'todo/10-group/11-one.md', { release: '1.0.0' }),
-          card(12, 'todo/12-loose.md'),
-        ],
-        documents: [{ path: 'releases.md', body: RELEASES }],
-      }),
-    )
-    assert.deepEqual(screen.board!.releases, ['0.9.0', '1.0.0'])
-    assert.deepEqual(screen.board!.releaseGoals, { '0.9.0': 'the browser release' })
-    assert.deepEqual(screen.board!.releaseCounts, { '0.9.0': 1, '1.0.0': 1, '': 1 })
   })
 
   it('serves nothing the two screens do not draw', () => {
@@ -205,7 +187,6 @@ describe('one card, assembled from the same read', () => {
         card(10, 'todo/10-group/root.md', {}, '- [ ] one #11\n'),
         card(11, 'todo/10-group/11-one.md'),
       ],
-      documents: [{ path: 'releases.md', body: RELEASES }],
     })
     // A subtask is never a board card, but it is still a page of its own.
     assert.equal(cardScreenFrom(board, 11)!.card.id, 11)
@@ -214,19 +195,17 @@ describe('one card, assembled from the same read', () => {
     assert.equal(cardScreenFrom(board, 99), null)
   })
 
-  it('carries the ids it may link to and the releases its picker offers, and nothing of a machine', () => {
+  it('carries the ids it may link to, and nothing of a machine', () => {
     const screen = cardScreenFrom(
       read({
         cards: [
           card(10, 'todo/10-group/root.md', {}, '- [ ] one #11\n'),
           card(11, 'todo/10-group/11-one.md'),
         ],
-        documents: [{ path: 'releases.md', body: RELEASES }],
       }),
       10,
     )!
     assert.deepEqual(screen.openIds, [10, 11])
-    assert.deepEqual(screen.releases, ['0.9.0', '1.0.0'])
     assert.deepEqual(screen.memoryOwners, [])
     assert.equal(screen.diff, null)
     assert.deepEqual(screen.plan, { commitMode: 'manual' })

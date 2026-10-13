@@ -5,18 +5,6 @@ import type { BoardCopy } from "./types";
 const zh: BoardCopy = {
   reading: "正在读取看板…",
   notice: {
-    planning: (release) =>
-      `正在规划 **${release}**：Agent 会移入实现该版本目标的卡片，并补写看板上还没有的卡片，它们会陆续出现在这里。`,
-    watchRun: "查看运行",
-    planNotStarted: (release, why) => `${release} 已创建，但未能开始按目标填充：${why}`,
-    changelogMissing: (release, why) => `**${release}** 已关闭，但未能写出更新日志（${why}）。`,
-    changelogStopped: "运行已中止",
-    changelogUnfinished: "运行未完成",
-    changelogWriteIt: (command) => `可以用 \`${command}\` 补写。`,
-    dismiss: "知道了",
-    allPlanned: "所有待办卡片都已归入某个版本，没有等待规划的内容。在上方选择一个版本查看。",
-    releaseEmpty: (release) => `**${release}** 没有待办卡片。`,
-    showNoRelease: "查看未归入版本的卡片",
     offline: (lastRead) =>
       `暂时无法连接 Cloud。当前显示的是 ${lastRead} 读取的副本，可以查看看板，但在 Cloud 恢复前无法保存。`,
     offlineNeverRead: "暂时无法连接 Cloud，且这个项目文件夹从未读取过 Cloud 工作区，没有可显示的看板副本。",
@@ -128,101 +116,7 @@ const zh: BoardCopy = {
   },
   cheer: {
     group: (count) => `${count} 个任务整组完成`,
-    release: (release) => `${release} 的任务全部完成`,
-    releaseCount: (count) => `${count} 个任务`,
     first: "今天第一个任务完成",
-  },
-  release: {
-    which: "显示哪个版本",
-    whichHint: "一次查看一个版本，或只看未归入版本的卡片；阻塞项始终显示",
-    none: (count) => `不属于任何版本（${count}）`,
-    noneHint: "尚未承诺给任何版本",
-    new: "新建版本…",
-    menu: (release) => `对 ${release} 的操作`,
-    whatItIsFor: "这个版本要做什么",
-    fillFromGoal: "按目标填充",
-    close: "关闭版本",
-    drop: "废弃版本",
-    goal: {
-      title: (release) => `${release} 要做什么`,
-      blurb:
-        "用一两句话写下这个版本想交付什么，按目标填充时以此为依据。也可以留空。",
-      placeholder: "第一个值得展示的版本：一个能完整运行的看板。",
-      saveFailed: "目标保存失败",
-    },
-    plan: {
-      title: (release) => `按目标填充 ${release}`,
-      blurb: (release) =>
-        `Agent 会读取 **${release}** 要做什么，把实现它的待办卡片移入该版本，并补写目标需要而看板上还没有的卡片。整个过程自主决策，无需你参与。`,
-      background:
-        "在后台运行，可在运行面板中查看移动和补写了哪些卡片。已归入其他版本的卡片保持不动，因此重复填充只会新增，不会覆盖。",
-      start: "填充版本",
-      starting: "正在启动…",
-      startFailed: "运行未能启动",
-    },
-    closing: {
-      title: (release) => `关闭 ${release}`,
-      blurb: (release) =>
-        `**${release}** 已经交付。交付内容会被记录下来，版本从列表中永久移除，关闭后无法重新打开。`,
-      reading: "正在读取本次关闭会记录的内容…",
-      shippedNone: "该版本下没有已归档的卡片，将记为未交付任何内容。",
-      shippedOne: "1 张已归档卡片会记为已交付。",
-      shippedMany: (n) => `${n} 张已归档卡片会记为已交付。`,
-      changelogNone: "没有可写的内容，不会写更新日志。",
-      changelog:
-        "随后 Agent 会写一段简短的更新日志，说明这个版本的改动。它在后台运行，可在运行面板中查看。",
-      unarchivedOne:
-        "这张待办卡片的所有待办项都已勾选，但从未归档，因此记为未交付。如果它确实已经交付，请取消本次关闭并先归档。",
-      unarchivedMany: (n) =>
-        `这 ${n} 张待办卡片的所有待办项都已勾选，但从未归档，因此记为未交付。如果它们确实已经交付，请取消本次关闭并先归档。`,
-      leftNone: "该版本下没有待办卡片，不会有任何变动。",
-      leftOne: "这张待办卡片将不再属于任何版本，但仍会保留在看板上：",
-      leftMany: (n) => `这 ${n} 张待办卡片将不再属于任何版本，但仍会保留在看板上：`,
-      confirm: "关闭版本",
-      closing: "正在关闭…",
-      failed: "版本关闭失败",
-    },
-    dropping: {
-      title: (release) => `废弃 ${release}`,
-      blurb: (release) =>
-        `**${release}** 不会交付。版本将从列表中移除，不留交付记录，其中的待办卡片不再属于任何版本。已经在该版本下归档的卡片保持归档。`,
-      reading: "正在读取本次废弃会影响的内容…",
-      archivedNone: "没有卡片在该版本下归档。",
-      archivedOne: "这张已归档卡片继续归档在该版本下：",
-      archivedMany: (n) => `这 ${n} 张已归档卡片继续归档在该版本下：`,
-      leftNone: "该版本下没有待办卡片，不会有任何变动。",
-      leftOne: "这张待办卡片将不再属于任何版本，但仍会保留在看板上：",
-      leftMany: (n) => `这 ${n} 张待办卡片将不再属于任何版本，但仍会保留在看板上：`,
-      confirm: "废弃版本",
-      dropping: "正在废弃…",
-      failed: "版本废弃失败",
-    },
-    make: {
-      title: "新建版本",
-      fromGoal: "按目标规划",
-      noGoal: "不设目标",
-      blurb:
-        "取一个版本号，如 `v1`、`0.5.0` 或 `august`。看板会切换到该版本，之后新写的卡片会归入其中。",
-      idPlaceholder: "v1",
-      goalAsk: "这个版本要做什么？用一两句话写下来，Agent 会据此规划版本。",
-      goalPlaceholder: "第一个值得展示的版本：一个能完整运行的看板。",
-      goalReady:
-        "Agent 会移入实现该目标的待办卡片，并补写看板上还没有的卡片。版本会立即创建，运行在后台继续，可在运行面板中查看。",
-      goalMissing:
-        "请说明这个版本要做什么，或改用「不设目标」创建。此栏为空时没有规划依据。",
-      confirm: "创建版本",
-      making: "正在创建…",
-      failed: "版本创建失败",
-    },
-    autoFill: {
-      reading: "正在读取未规划的高优先级卡片…",
-      on: "把所有未规划的高优先级卡片放进来",
-      nothingToMove: "没有未规划的高优先级卡片，这个版本将为空",
-      goesInOne: "将放入 1 张卡片",
-      goesInMany: (n) => `将放入 ${n} 张卡片`,
-      skippedOne: "，另有 1 张因阻塞或属于任务组而保持未规划",
-      skippedMany: (n) => `，另有 ${n} 张因阻塞或属于任务组而保持未规划`,
-    },
   },
 };
 

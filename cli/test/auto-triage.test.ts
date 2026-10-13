@@ -75,7 +75,6 @@ function cardNaming(id: number, sourceId: string): void {
       'priority: med',
       'roi: med',
       'status: todo',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: []',

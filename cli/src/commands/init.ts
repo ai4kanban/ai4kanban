@@ -5,11 +5,11 @@
 
 import fs from 'node:fs'
 
-import { warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
+import { warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, ARCHIVE, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
 import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
-import { writeReleasesIfMissing } from '../lib/releases'
+import { walkMd } from '../lib/cards'
 import { PLANNER, agentMemoryDir, migrateMemory, renameProductFile, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { migratePruneMemoryCard, migrateRecurringCards, recurringMigrationLines } from '../lib/recurring'
@@ -113,17 +113,39 @@ function writeSkeletonIfMissing(): string[] {
   return added
 }
 
+// Releases are retired (#1671): drop `releases.md` and every card's `release:` line, open or
+// archived. `.release-summaries/` stays as the record of what each closed release held.
+function retireReleases(): string {
+  const done: string[] = []
+  if (fs.existsSync(RELEASES)) {
+    fs.rmSync(RELEASES)
+    done.push(`deleted ${rel(RELEASES)}`)
+  }
+  let cards = 0
+  for (const dir of [TODO, ARCHIVE]) {
+    if (!fs.existsSync(dir)) continue
+    for (const file of walkMd(dir)) {
+      const text = fs.readFileSync(file, 'utf8')
+      const end = text.startsWith('---\n') ? text.indexOf('\n---', 3) : -1
+      if (end < 0) continue
+      const head = text.slice(0, end).replace(/\nrelease:[^\n]*/, '')
+      if (head.length === end) continue
+      fs.writeFileSync(file, head + text.slice(end))
+      cards++
+    }
+  }
+  if (cards) done.push(`cleared the release on ${cards} card${cards === 1 ? '' : 's'}`)
+  return done.join(', ')
+}
+
 /** Scaffold this board, or repair one an older version made. */
 export function cmdInit(): MoveResult {
   if (fs.existsSync(KANBAN)) {
     // Re-running `init` is the repair step for a board made by an older version: it adds
     // whatever that version never wrote — docs/kanban/config.md if the board predates the
-    // move out of the skill folder, modules.md if it predates the module map, releases.md
-    // if it predates releases, the .gitignore that keeps the keys file out of git if it
-    // predates that — and never touches any of them once they're filled in. The
-    // release list arrives empty even when cards already name a version: reading the ids
-    // off them would invent a ship order nobody chose. `release list` names those ids
-    // instead, so the user adds back the ones they meant.
+    // move out of the skill folder, modules.md if it predates the module map, the
+    // .gitignore that keeps the keys file out of git if it predates that — and never
+    // touches any of them once they're filled in.
     //
     // The setup checklist is deliberately NOT among them. It is written once, by the
     // scaffold below; a board that was set up long ago has no file and must stay quiet,
@@ -139,7 +161,6 @@ export function cmdInit(): MoveResult {
       ...writeSkeletonIfMissing(),
       writeConfigIfMissing() && rel(CONFIG),
       writeModulesIfMissing() && rel(MODULES_MD),
-      writeReleasesIfMissing() && rel(RELEASES),
       writeGitignoreIfMissing() && rel(KANBAN_GITIGNORE),
       writeRootIgnoreIfMissing() && rel(ROOT_GITIGNORE),
     ].filter(Boolean) as string[]
@@ -165,10 +186,11 @@ export function cmdInit(): MoveResult {
     const goalRetired = retireGoal()
     const prunedCard = migratePruneMemoryCard()
     const recurring = migrateRecurringCards()
+    const releasesRetired = retireReleases()
     say(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
-        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired || projectRenamed || recurring.agents.length || recurring.removed.length ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired || projectRenamed || releasesRetired || recurring.agents.length || recurring.removed.length ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (movedMemory.length) {
@@ -177,6 +199,7 @@ export function cmdInit(): MoveResult {
     }
     if (projectRenamed) say(`  ${projectRenamed}`)
     if (goalRetired) say(`  docs/kanban/memory/goal.md is retired: ${goalRetired}`)
+    if (releasesRetired) say(`  releases are retired: ${releasesRetired}`)
     if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Board); its cadence is kept there, switched off`)
     for (const line of recurringMigrationLines(recurring)) say(`  ${line}`)
     if (added.includes(rel(MODULES_MD))) {
@@ -192,7 +215,6 @@ export function cmdInit(): MoveResult {
   writeGitignoreIfMissing()
   writeRootIgnoreIfMissing()
   writeNextId(1)
-  writeReleasesIfMissing()
   // Setup's remaining steps, written now so a user who installs and stops there still
   // opens the board onto a list of what is left instead of one that looks finished.
   // The questions card comes right after `next-id` is seeded, so it takes id 1 and sorts

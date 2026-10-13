@@ -27,10 +27,9 @@ build.
 
 - **Read the plan first**: given a plan's path or a triage item's file, that file is the
   requirement — read it, and everything below reads "the plan" for "the sentence".
-- **Create it first**: `akb raw create --title ".."`, plus `--release` when the prompt names
-  one. The title is one short line read off the sentence, or the plan's own title, in its own
-  language — add `--slug <short-english-slug>` when that is not English, because filenames are
-  ASCII. No `--modules`, no `--question`, no `--schedule` — nothing has evaluated this idea.
+- **Create it first**: `akb raw create --title ".."`. The title is one short line read off
+  the sentence, or the plan's own title, in its own language — add
+  `--slug <short-english-slug>` when that is not English, because filenames are ASCII. No `--modules`, no `--question`, no `--schedule` — nothing has evaluated this idea.
 - **The requirement is the summary**: replace the scaffold's opening paragraph with the
   sentence, or the plan's whole text, verbatim, in a fenced code block. Open the fence with
   more backticks than the longest run inside it, or the card fails validation on an unclosed

@@ -37,7 +37,6 @@ function card(id: number, body = 'One idea.'): void {
       'priority: low',
       'roi: low',
       'status: todo',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: []',

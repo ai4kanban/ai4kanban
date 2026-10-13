@@ -185,7 +185,7 @@ const LIFE = [
  * A retirement carries only `stale` today, so every stale row in the database has an empty
  * reason and a sample off one would preview the fallback rather than the design. This is what
  * the publisher's own retirement test already knows and throws away — a card goes quiet
- * because a run picked it up, it left `ready`, a blocker opened, or its release closed.
+ * because a run picked it up, it left `ready`, or a blocker opened.
  */
 const PENDING_REASON = { stale: 'Picked up by a run on this board.' }
 

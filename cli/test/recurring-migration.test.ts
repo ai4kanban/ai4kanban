@@ -44,7 +44,6 @@ const recurringCard = (name: string, bits: CardBits = {}): void =>
       'priority: med',
       'roi: med',
       'status: todo',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: []',
@@ -57,7 +56,7 @@ const recurringCard = (name: string, bits: CardBits = {}): void =>
   )
 
 const plainCard = (name: string, front: string[]): void =>
-  write(`todo/${name}.md`, ['---', 'title: A task', 'priority: med', 'roi: med', 'status: todo', 'release: ""', ...front, 'modules: []', 'questions: []', '---', '', 'Body.', ''].join('\n'))
+  write(`todo/${name}.md`, ['---', 'title: A task', 'priority: med', 'roi: med', 'status: todo', ...front, 'modules: []', 'questions: []', '---', '', 'Body.', ''].join('\n'))
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-recurring-'))

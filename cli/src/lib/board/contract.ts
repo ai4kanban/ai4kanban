@@ -32,11 +32,8 @@ import type {
   Card,
   CardPatch,
   CardSchedule,
-  ClosePlan,
   DeliveryDiff,
   DeliveryPlan,
-  DropPlan,
-  FillPlan,
   MemoryFile,
   MemoryOwner,
   MetricsResult,
@@ -59,7 +56,7 @@ export const NO_REVISION: Revision = ''
 // ---- the writer lease ------------------------------------------------------
 
 /** A lease over one card, or over the board itself for the moves that are not about a
- *  single card (a release, the project, a setup box). */
+ *  single card (the project, a setup box). */
 export type LeaseTarget = { card: number } | { board: true }
 
 export type LeaseId = string
@@ -144,7 +141,7 @@ export type BoardKind = 'local' | 'cloud'
  * Every read and every write of a board, in one interface.
  *
  * Grouped the way the work falls: snapshots, card reads, the lease, lifecycle and
- * frontmatter, releases, memory and setup, the delivery lifecycle, and the named
+ * frontmatter, memory and setup, the delivery lifecycle, and the named
  * `akb raw` moves. Adding a board that lives elsewhere means one more class here.
  */
 export interface BoardProvider {
@@ -161,7 +158,6 @@ export interface BoardProvider {
   readArchive(): Promise<ArchiveList>
   /** One archived card in full, or null when the archive holds none with that id. */
   readArchivedCard(id: number): Promise<ArchivedCardFile | null>
-  readReleases(): Promise<string[]>
   readModules(): Promise<string[]>
   readMemoryFile(name: string, agent?: string): Promise<MemoryFile | null>
   /** What the memory panel draws: the board's own record, then every agent that keeps memory. */
@@ -169,9 +165,6 @@ export interface BoardProvider {
   readSetupState(): Promise<SetupState | null>
   readSetupDraft(): Promise<SetupDraft>
   readMetricsView(days?: number): Promise<MetricsResult>
-  fillPlan(): Promise<FillPlan>
-  closePlan(id: string): Promise<ClosePlan>
-  dropPlan(id: string): Promise<DropPlan>
   /** What the board would start on its own this minute. It writes as it answers — the mark
    *  comes off a scheduled card in the same pass that hands its run back — so it is an
    *  operation, not a read. */
@@ -193,12 +186,6 @@ export interface BoardProvider {
   skipQuestion(id: number, question: string, skipped: boolean, env: OpEnvelope): Promise<CardOp>
   archiveCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
   rejectCard(id: number, env: OpEnvelope, how?: { reason?: string; discard?: boolean }): Promise<OpResult<{ data: MoveOutput }>>
-
-  // ---- releases ------------------------------------------------------------
-  newRelease(id: string, goal: string, fill: boolean, env: OpEnvelope): Promise<OpResult<{ fill: ReleaseFill }>>
-  setReleaseGoal(id: string, goal: string, env: OpEnvelope): Promise<OpResult>
-  closeRelease(id: string, env: OpEnvelope): Promise<OpResult<{ shipped: number }>>
-  dropRelease(id: string, env: OpEnvelope): Promise<OpResult>
 
   // ---- memory and setup ----------------------------------------------------
   saveProject(name: string, description: string, env: OpEnvelope): Promise<SaveProjectResult>
@@ -283,6 +270,3 @@ export interface MoveInput {
   args: string[]
   opts: Record<string, unknown>
 }
-
-/** How a new release was filled — the plain rule, or a run somebody still has to start. */
-export type ReleaseFill = 'none' | 'fill' | 'agent'

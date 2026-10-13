@@ -10,7 +10,6 @@
 //   card <verb> <id>    the card on the board
 //   delivery <verb>     the build in flight on one
 //   run <verb>          the agent processes
-//   release <verb>      a version being planned
 //   triage <verb>       what is waiting to be sorted
 //
 // A command that acts on nothing yet is typed bare — `create`, `setup`.
@@ -156,7 +155,6 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       'A run is one agent working once. A delivery is made of several, so ending a run leaves the ' +
         `delivery in flight — \`${cli.program} delivery cancel\` is what ends that.`,
     ),
-    release: noun('release', 'a version being planned'),
     // What is waiting to be sorted (#453, #499), and the flow that sorts it (#561).
     triage: noun(
       'triage',

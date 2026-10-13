@@ -447,7 +447,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // is quoted here rather than pointed at, and the run's first act is the card it holds.
     // Answered off the plan handoff it is a plan instead (#481), named the way a create off one
     // is: the words are in the file, and a copy pasted in here would go stale.
-    // The release the board was showing comes with it, exactly as it does on a create.
     case 'implement':
       if (req.id === undefined) {
         // **Start now** on a triage item (#1193): the item is the requirement, and it leaves
@@ -470,7 +469,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           req.plan
             ? `Follow \`akb guide implement\` — write its card first, from that plan, then build it.`
             : `Follow \`akb guide implement\` — write its card first, from that sentence, then build it.`,
-          req.release ? `Put the new card in the "${req.release}" release: \`--release ${req.release}\`.` : '',
           createWorkflowNote(req),
           `Resolve routine choices yourself; record blockers needing user action on the card following \`akb guide update-questions\`.`,
         ]
@@ -517,10 +515,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
         req.fromCard ? `This came up on card #${req.fromCard}; record its dependency on the new card(s) as add-task says.` : '',
         "Cover what the requests asks for, DONT OVER DESIGN IT.",
-        // The board was showing one release when this was asked for, so the card ships in
-        // it — otherwise it would land in no release, off the screen of the person who
-        // just wrote it.
-        req.release ? `Put the new card(s) in the "${req.release}" release: \`--release ${req.release}\`.` : '',
         // The workflow the sheet was on when this was asked for (#715), when it is not the
         // board's default. A card written without it runs on the default, which is exactly
         // what every card written before workflows existed does.
@@ -529,29 +523,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
-    // Plan one release against its goal. The run reads the goal off the release's own line,
-    // moves in the open cards that ship it, and writes the cards the goal needs that the
-    // board hasn't got — deciding all of it on its own, and saying in its log what it
-    // moved, what it wrote, and what it left.
-    //
-    // The release id is all this prompt carries: the goal is on the board, and a copy
-    // pasted in here would go stale the moment the user changed it.
-    case 'plan-release':
-      return [
-        `${kb}. Plan the "${req.release || ''}" release following \`akb guide plan-release\`:`,
-        `move in the open cards that ship its goal, and write the cards the goal needs that the board is missing.`,
-        `Create the cards only, don't implement them.`,
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ].join(' ')
-    // Write one closed version's changelog (#232). Like a plan run it carries only the
-    // version id: the goal and the cards are in the file the close just wrote, and a copy
-    // pasted in here would be a second reading of it.
-    case 'changelog':
-      return [
-        `${kb}. Write the changelog for the "${req.release || ''}" release following \`akb guide changelog\`.`,
-        `Change nothing but that version's summary file, and write it with \`akb raw release changelog\`.`,
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ].join(' ')
     case 'clarify': {
       return [
         `${kb}. Plan task ${req.id} ${named} in this one session following \`akb guide refine\`.`,

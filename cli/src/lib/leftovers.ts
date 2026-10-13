@@ -4,7 +4,7 @@
 // nor the worktree of a delivery that ended. Once a card has been off the board for a week
 // its assets, old mockups, chats and ended delivery worktrees go, except the asset files a
 // memory note or an open card still points at. The archived card itself goes after 30 days
-// (#1335), unless it names a release still on the list, and its ended delivery records with
+// (#1335), and its ended delivery records with
 // it (#1520); an ended record whose card is in neither goes a week after its last write
 // (#1524). A cleared chat kept for the memory review (#1345) goes after 30 days unread,
 // whatever became of its card.
@@ -17,8 +17,6 @@ import { git, removeWorktree, dropEmptyWorktreeFolders, pruneWorktreeMetadata, w
 import { idPrefix, walkDirs, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { AKB_DIR, ARCHIVE, ASSETS, CHATS_DIR, DELIVERIES, KANBAN, MEMORY, MOCKUPS, TODO, rel } from './paths'
-import { readReleases } from './releases'
-import { normalizeRelease } from './validate'
 
 const KEEP_DAYS = 7
 const KEEP_CARD_DAYS = 30
@@ -61,7 +59,6 @@ function openIds(): Set<number> {
 interface ArchivedFile {
   /** Its `archived:` day, or null when it has none that reads. */
   at: number | null
-  release: string
 }
 
 function readArchived(file: string): ArchivedFile {
@@ -69,7 +66,6 @@ function readArchived(file: string): ArchivedFile {
   const day = String(meta?.archived ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
   return {
     at: day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])).getTime() : null,
-    release: normalizeRelease(meta?.release),
   }
 }
 
@@ -94,11 +90,9 @@ export interface DueArchived {
 }
 
 /** Each archived card file, and each group folder whole, whose newest card has been archived
- *  for KEEP_CARD_DAYS. A card naming a release still on the list keeps its entry: closing
- *  that release reads the archive for what shipped. `undated` is when a card with no
+ *  for KEEP_CARD_DAYS. `undated` is when a card with no
  *  `archived:` day was archived, by id; a card it does not name goes by its file's mtime. */
 export function dueArchivedCards(now = Date.now(), undated?: ReadonlyMap<number, number>): DueArchived[] {
-  const open = new Set(readReleases())
   const due: DueArchived[] = []
   for (const entry of fs.existsSync(ARCHIVE) ? fs.readdirSync(ARCHIVE, { withFileTypes: true }) : []) {
     if (idPrefix(entry.name) === null) continue
@@ -110,7 +104,6 @@ export function dueArchivedCards(now = Date.now(), undated?: ReadonlyMap<number,
       file,
       id: idPrefix(path.basename(file) === 'root.md' ? path.basename(path.dirname(file)) : path.basename(file)),
     }))
-    if (cards.some((c) => open.has(c.release))) continue
     const newest = Math.max(...cards.map((c) => c.at ?? (c.id !== null ? undated?.get(c.id) : undefined) ?? mtime(c.file)))
     if (now - newest < KEEP_CARD_DAYS * DAY) continue
     due.push({ path: full, ids: cards.map((c) => c.id).filter((id): id is number => id !== null) })

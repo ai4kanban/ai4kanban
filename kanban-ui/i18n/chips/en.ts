@@ -29,7 +29,6 @@ const en: ChipsCopy = {
   group: "Group task — open its page for subtasks",
   blockedOne: (ids) => `Blocked — ${ids} is still open`,
   blockedMany: (ids) => `Blocked — ${ids} are still open`,
-  releaseStale: (version) => `${version} — not on the list`,
   question: { needsYou: "needs you", new: "new" },
 };
 

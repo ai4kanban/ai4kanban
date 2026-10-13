@@ -38,7 +38,6 @@ interface Row {
   status: string
   priority: string
   roi: string
-  release: string
   blocked_by: number[]
   modules: string[]
   questions: Question[]
@@ -87,7 +86,6 @@ function openRows(): Row[] {
       status: (meta && meta.status) || 'todo',
       priority: level(meta?.priority),
       roi: level(meta?.roi),
-      release: (meta && meta.release) || '',
       blocked_by: (meta && meta.blocked_by) || [],
       modules: (meta && meta.modules) || [],
       questions: (meta && meta.questions) || [],
@@ -251,7 +249,6 @@ export function cmdList(opts: ListOptions): MoveResult {
   for (const r of rows) {
     const meta = [r.status, `priority ${r.priority}`, `roi ${r.roi}`]
     if (r.isRoot) meta.push('group root')
-    if (r.release) meta.push(`release ${r.release}`)
     if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
     const open = openOf(r.questions).length
     if (open) meta.push(plural(open, 'open question'))

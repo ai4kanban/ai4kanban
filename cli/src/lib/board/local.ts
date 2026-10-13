@@ -39,7 +39,6 @@ import {
 import { cmdInit } from '../../commands/init'
 import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, type MigrateOptions } from '../../commands/misc'
-import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove, type RemoveOptions } from '../../commands/remove'
 import { cmdAgentFile } from '../../commands/agent-file'
 import { cmdMemoryFile } from '../../commands/memory-file'
@@ -55,18 +54,6 @@ import { afterBoardWrite } from '../cloud/publish'
 import { quietly, say } from '../io'
 import { withBoardLock } from '../lock'
 import { METRICS, readNextId } from '../paths'
-import {
-  addRelease,
-  closeRelease as closeReleaseMove,
-  dropRelease as dropReleaseMove,
-  endingCards,
-  fillCandidates,
-  fillRelease as fillReleaseMove,
-  foldGoal,
-  readReleases,
-  setReleaseGoal as setReleaseGoalMove,
-  type CardRow,
-} from '../releases'
 import { tickSetupStep } from '../setup'
 import { readArchive, readArchivedCard } from '../view/archive'
 import { deliveryDiff } from '../view/diff'
@@ -80,7 +67,6 @@ import { readMemoryFile, readMemoryOwners, writeMemoryFile } from '../view/memor
 import { readMetricsView } from '../view/metrics'
 import { allCards, findCard, readBoard, readSetupState } from '../view/read'
 import { boardStamp } from '../view/stamp'
-import { NO_RELEASE, normalizeRelease } from '../validate'
 import type { Typed } from '../cli/shared'
 import type {
   BoardProvider,
@@ -94,13 +80,12 @@ import type {
   OpEnvelope,
   OpRefused,
   OpResult,
-  ReleaseFill,
   Revision,
 } from './contract'
 import { leaseAnd, moveTarget, opConflict, opOk, opRefused, sameTarget, targetName } from './ops'
 import { migrateRecurringCards, recurringCardsLeft } from '../recurring'
 import { boardRevision, cardRevision } from './revision'
-import type { CardPatch, CardSchedule, PlanCard, SaveProjectResult } from '../view/types'
+import type { CardPatch, CardSchedule, SaveProjectResult } from '../view/types'
 
 // ---- the named moves -------------------------------------------------------
 //
@@ -130,7 +115,6 @@ const MOVES: Record<string, RunMove> = {
   schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
   tag: ({ args }) => cmdTag(Number(args[0]), args[1] ?? '', args[2] ?? ''),
   list: ({ opts }) => cmdList(as<ListOptions>(opts)),
-  release: ({ args, opts }) => cmdRelease(args, as<ReleaseOptions>(opts)),
   migrate: ({ opts }) => cmdMigrate(as<MigrateOptions>(opts)),
   archive: ({ args }) => cmdRemove(Number(args[0]), 'completed'),
   reject: ({ args, opts }) => cmdRemove(Number(args[0]), 'rejected', as<RemoveOptions>(opts)),
@@ -240,18 +224,6 @@ export function localBoard(): BoardProvider {
     }
   }
 
-  /** One read that may refuse, answered with a fallback where a screen has somewhere
-   *  sensible to fall back to: an empty picker, an empty plan. */
-  function read<T>(fn: () => T, fallback: T): Promise<T> {
-    try {
-      return Promise.resolve(quietly(fn))
-    } catch {
-      return Promise.resolve(fallback)
-    }
-  }
-
-  const planCard = (card: CardRow): PlanCard => ({ id: card.id, title: card.title })
-
   const provider: BoardProvider = {
     kind: 'local',
 
@@ -269,7 +241,6 @@ export function localBoard(): BoardProvider {
     readCards: () => Promise.resolve(allCards()),
     readArchive: () => Promise.resolve(readArchive()),
     readArchivedCard: (id) => Promise.resolve(readArchivedCard(id)),
-    readReleases: () => read(readReleases, []),
     readModules: () => Promise.resolve(readModules()),
     readMemoryFile: (name, agent = '') => Promise.resolve(readMemoryFile(name, agent)),
     readMemoryOwners: () => Promise.resolve(readMemoryOwners()),
@@ -277,32 +248,6 @@ export function localBoard(): BoardProvider {
     readSetupDraft: () => Promise.resolve(readSetupDraft()),
     readMetricsView: (days) => Promise.resolve(readMetricsView(days)),
 
-    fillPlan: () =>
-      read(
-        () => {
-          const { fill, skipped } = fillCandidates()
-          return { fill: fill.map(planCard), skipped: skipped.map((c) => ({ ...planCard(c), reason: c.reason })) }
-        },
-        { fill: [], skipped: [] },
-      ),
-
-    closePlan: (id) =>
-      read(
-        () => {
-          const { archived, left } = endingCards(id)
-          return { left: left.map((c) => ({ ...planCard(c), done: c.done })), shipped: archived.length }
-        },
-        { left: [], shipped: 0 },
-      ),
-
-    dropPlan: (id) =>
-      read(
-        () => {
-          const { archived, left } = endingCards(id)
-          return { archived: archived.map(planCard), left: left.map(planCard) }
-        },
-        { archived: [], left: [] },
-      ),
 
     // The board timer's one write goes through this contract like every other: the mark
     // comes off a scheduled card by the same operation a screen would use.
@@ -377,34 +322,6 @@ export function localBoard(): BoardProvider {
     archiveCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'completed') || {} })),
     rejectCard: (id, env, how) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'rejected', how) || {} })),
 
-    // ---- releases -----------------------------------------------------------
-
-    newRelease: (id, goal, fill, env) =>
-      mutate({ board: true }, env, () => {
-        const made = addRelease(id, goal)
-        if (!fill) return { fill: 'none' as ReleaseFill }
-        // A goal is what an agent can plan against; a release without one takes the plain
-        // rule instead, there and then.
-        if (foldGoal(goal)) return { fill: 'agent' as ReleaseFill }
-        fillReleaseMove(made)
-        return { fill: 'fill' as ReleaseFill }
-      }),
-
-    setReleaseGoal: (id, goal, env) =>
-      mutate({ board: true }, env, () => {
-        setReleaseGoalMove(id.trim(), goal)
-        return {}
-      }),
-
-    closeRelease: (id, env) =>
-      mutate({ board: true }, env, () => ({ shipped: closeReleaseMove(id.trim()).shipped.length })),
-
-    dropRelease: (id, env) =>
-      mutate({ board: true }, env, () => {
-        dropReleaseMove(id.trim())
-        return {}
-      }),
-
     // ---- memory and setup ---------------------------------------------------
 
     async saveProject(
@@ -445,7 +362,7 @@ export function localBoard(): BoardProvider {
     readAgents: () => readAgents(),
 
     // A rule is the board's, not one card's, so it is written under the board's own lease
-    // like the module map and the release list beside it. An agent's own file and the
+    // like the module map beside it. An agent's own file and the
     // template a new one starts as are the same kind of write.
     saveAgentRule: (agent, text, env) =>
       mutate({ board: true }, env, () => {

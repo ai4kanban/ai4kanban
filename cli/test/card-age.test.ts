@@ -39,7 +39,6 @@ function card(title: string, fields: Fields = {}): string {
     'priority: med',
     'roi: med',
     `status: ${fields.status ?? 'todo'}`,
-    'release: ""',
     `blocked_by: [${(fields.blocked_by ?? []).join(', ')}]`,
     'related: []',
     'modules: []',

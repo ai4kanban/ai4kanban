@@ -16,7 +16,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
-import { ALL_RELEASES, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
+import { defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import {
   fetchCloudCenter,
   readCloudCenter,
@@ -56,7 +56,7 @@ beforeEach(() => {
     expiresAt: Date.now() + 60 * 60_000,
     subject: SUBJECT,
   })
-  enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+  enableCloudBoard(defaultBoardDir(root), root)
 })
 
 afterEach(() => {
@@ -75,7 +75,7 @@ afterEach(() => {
   delete process.env.AI4KANBAN_CLOUD_URL
 })
 
-const BOARD = () => enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+const BOARD = () => enableCloudBoard(defaultBoardDir(root), root)
 
 const ok = (body: unknown): Response =>
   new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
@@ -89,7 +89,6 @@ const event = (id: string, over: Partial<CloudEvent> = {}): CloudEvent =>
     boardName: 'ai4kanban',
     taskId: 12,
     taskTitle: 'A task',
-    release: '0.8.0',
     revision: 'r1',
     kind: 'ready_for_review',
     decision: 'implement',
@@ -247,15 +246,14 @@ describe('the catch-up read under a joined socket', () => {
 })
 
 describe('the start read (#1245)', () => {
-  /** A board watching every release — a named one this temporary board never cut reads as
-   *  closed and stops the pass — holding one card that is not #12. */
+  /** A board with notifications on, holding one card that is not #12. */
   function board(): string {
-    const id = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES).id
+    const id = enableCloudBoard(defaultBoardDir(root), root).id
     const dir = path.join(root, 'docs', 'kanban', 'todo')
     fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(
       path.join(dir, '99-other.md'),
-      '---\ntitle: Other\npriority: high\nroi: high\nstatus: todo\nrelease: ""\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n---\n\nSomething else.\n',
+      '---\ntitle: Other\npriority: high\nroi: high\nstatus: todo\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n---\n\nSomething else.\n',
     )
     return id
   }
@@ -342,13 +340,13 @@ describe('the periodic read retires what nobody waits on (#1272)', () => {
   /** A board holding card 99 alone, joined against an empty Cloud; `later` is what the next
    *  five-minute read finds. Answers every call it made. */
   async function readLater(later: (boardId: string) => CloudEvent, withCard = true): Promise<string[]> {
-    const boardId = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES).id
+    const boardId = enableCloudBoard(defaultBoardDir(root), root).id
     if (withCard) {
       const dir = path.join(root, 'docs', 'kanban', 'todo')
       fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(
         path.join(dir, '99-other.md'),
-        '---\ntitle: Other\npriority: high\nroi: high\nstatus: todo\nrelease: ""\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n---\n\nSomething else.\n',
+        '---\ntitle: Other\npriority: high\nroi: high\nstatus: todo\nblocked_by: []\nrelated: []\nmodules: []\nquestions: []\n---\n\nSomething else.\n',
       )
     }
     const open: CloudEvent[] = []

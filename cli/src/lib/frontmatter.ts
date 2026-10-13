@@ -3,7 +3,7 @@
 // The card's `--- ... ---` meta block. Only needs to read what this script (and
 // `migrate`) write. The questions' shape is documented in ./questions.ts.
 
-import { STATUSES, normalizeRelease } from './validate'
+import { STATUSES } from './validate'
 import { yamlScalar, unquote } from './yaml'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
@@ -17,7 +17,6 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   out.push(`priority: ${m.priority}`)
   out.push(`roi: ${m.roi}`)
   out.push(`status: ${STATUSES.includes(String(m.status)) ? m.status : 'todo'}`)
-  out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`)
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
@@ -141,22 +140,20 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   if (!Array.isArray(meta.questions)) {
     meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : ([] as Question[])
   }
-  // The release the card ships in. Missing, empty or damaged reads as no release, so a
-  // card written before this field — or one whose line was blanked by hand — still opens.
-  meta.release = normalizeRelease(meta.release)
-  // How this card ranks. A missing one reads as empty rather than as a level nobody chose —
-  // the same shape `release` takes.
+  // How this card ranks. A missing one reads as empty rather than as a level nobody chose.
   for (const key of ['priority', 'roi']) {
     meta[key] = typeof meta[key] === 'string' && (meta[key] as string).trim() ? (meta[key] as string).trim() : ''
   }
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
-  // Retired fields: `channels:` (#718), `decided:` (#1255) and `verify:` (#1329). A card still
-  // carrying one reads as the ordinary card it now is, and the field drops out on the next rewrite.
+  // Retired fields: `channels:` (#718), `decided:` (#1255), `verify:` (#1329) and `release:`
+  // (#1671). A card still carrying one reads as the ordinary card it now is, and the field
+  // drops out on the next rewrite.
   // `cadence:` and `last_run:` (#1414) are left as read: ../recurring.ts carries them over.
   delete meta.channels
   delete meta.decided
   delete meta.verify
+  delete meta.release
   // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''

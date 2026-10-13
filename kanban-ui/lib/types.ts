@@ -5,7 +5,7 @@
 // the browser can name what the server hands it without a second set of shapes drifting out
 // of step. This file is the one name the app imports them under.
 //
-//   format/view/types   the board: cards, columns, releases, setup, the daily numbers
+//   format/view/types   the board: cards, columns, setup, the daily numbers
 //   format/agent/types  a run: which agents there are, what each one takes, what it cost
 //   format/skill/types  the coding agent skill: whether this project has one, and what
 //                       adding it wrote
@@ -100,14 +100,9 @@ export type {
   CardRef,
   CardSchedule,
   CardStatus,
-  ClosePlan,
-  ClosePlanCard,
   Column,
   DeliveryDiff,
   DeliveryPlan,
-  DropPlan,
-  FillPlan,
-  FillSkip,
   InboxAddResult,
   InboxDrop,
   Level,
@@ -122,7 +117,6 @@ export type {
   Cheer,
   UsageRow,
   UsageView,
-  PlanCard,
   Question,
   QuestionMode,
   QuestionTag,
@@ -146,7 +140,7 @@ import type { WriteResult as BoardWriteResult } from "./format/view/types";
 /** A board write as a screen gets it: `raw` marks an `error` the server could not put in the
  *  reader's language, which the screen lists under its own summary (#955). */
 export type WriteResult = BoardWriteResult & { raw?: boolean };
-export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
+export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS } from "./format/view/types";
 
 // The one read each screen makes (#374) — what the board screen draws, and what a card page
 // draws. The server fills them (lib/board.ts) and the screens take them as one prop.
@@ -206,12 +200,6 @@ export {
   notificationGroup,
 } from "./format/cloud/events";
 
-/** Watch every card, whatever release it is promised to — mirrored from the rules' own
- *  `ALL_RELEASES`, since the release picker has to name it before any rules are loaded.
- *  It lives here, not in lib/notifications.ts, because that module reaches the CLI: a
- *  browser importing a constant out of it would drag `node:fs` into the client bundle. */
-export const ALL_RELEASES = "*";
-
 export type { Language, PartnerFeedback, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
@@ -236,8 +224,7 @@ export interface SessionView {
   agent?: string;
   /** On a scheduled agent's run (#1401): the workflow it belongs to, by id. */
   workflow?: string;
-  /** The card this run touches, or null for a run that names none (create, propose,
-   *  plan-release). */
+  /** The card this run touches, or null for a run that names none (create, propose). */
   cardId: number | null;
   /** What that card is called, so a view of the run can say which task it is on rather than
    *  its id alone (#725). The card's title as it reads now, falling back to the title its

@@ -35,7 +35,6 @@ const write = (body: string, status = 'ready'): void =>
       'priority: med',
       'roi: med',
       `status: ${status}`,
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: [skill]',

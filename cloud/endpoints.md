@@ -36,9 +36,8 @@ deleting it, and registering or renewing a node repeat safely and carry no `opId
   only. Leaving no owner is refused.
 - `POST /v1/workspaces/<id>/members/<account>/remove` — `{ "opId": "…" }`. Owner only. Their
   next write and delivery confirmation are refused, and their watch goes with the membership.
-- `GET|POST /v1/workspaces/<id>/watch` — the caller's own `{ "notify": true, "watching": "1.0"
-  }`; `watching` is `*` for every release, one release, or `""` once the watched one closed.
-  The read also carries `releases` (the open ones) and `carried`.
+- `GET|POST /v1/workspaces/<id>/watch` — the caller's own `{ "notify": true }`. The read also
+  carries `carried`.
 - `POST /v1/workspaces/<id>/watch/carry` — a machine handing over its own watch the first time
   it opens the workspace. Taken **once**; later calls answer the current watch and write nothing.
 - `GET /v1/workspaces/<id>/cards` — every card, each with its own revision.
@@ -59,7 +58,7 @@ deleting it, and registering or renewing a node repeat safely and carry no `opId
 - `GET /v1/workspaces/<id>/snapshot` — the live board under one cursor: the workspace, live
   cards and working documents. Leaves out the archive, the trail and delivery records.
 - `GET /v1/workspaces/<id>/read` — what the hosted pages (`../cloud-ui/`) draw: the name, live
-  cards, and `config.md`, `modules.md`, `releases.md`, `todo/README.md`. Nothing more is served
+  cards, and `config.md`, `modules.md`, `todo/README.md`. Nothing more is served
   to a browser; the limit is in the migration, not the Worker.
 - `GET /v1/workspaces/<id>/events` — one live event per card waiting on somebody.
 - `GET /v1/workspaces/<id>/archive` — the cards that have left the board.

@@ -45,7 +45,6 @@ function card(id: number, workflow = ''): void {
       'priority: med',
       'roi: med',
       'status: ready',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: []',

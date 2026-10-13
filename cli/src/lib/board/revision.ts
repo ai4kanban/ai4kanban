@@ -47,8 +47,8 @@ export function cardRevision(id: number): Revision {
   }
 }
 
-/** The revision of the board as a whole, for the moves that are not about one card — a
- *  release, the project, a setup box. It is the same fingerprint a screen polls. */
+/** The revision of the board as a whole, for the moves that are not about one card — the
+ *  project, a setup box. It is the same fingerprint a screen polls. */
 export function boardRevision(): Revision {
   try {
     return boardStamp()

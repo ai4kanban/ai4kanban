@@ -46,7 +46,7 @@ beforeEach(() => {
     expiresAt: Date.now() + 60 * 60_000,
     subject: SUBJECT,
   })
-  enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+  enableCloudBoard(defaultBoardDir(root), root)
 })
 
 afterEach(() => {
@@ -60,7 +60,7 @@ afterEach(() => {
   delete process.env.AI4KANBAN_CLOUD_URL
 })
 
-const BOARD = () => enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+const BOARD = () => enableCloudBoard(defaultBoardDir(root), root)
 
 const event = (id: string, over: Partial<CloudEvent> = {}): CloudEvent =>
   ({
@@ -70,7 +70,6 @@ const event = (id: string, over: Partial<CloudEvent> = {}): CloudEvent =>
     boardName: 'ai4kanban',
     taskId: 12,
     taskTitle: 'A task',
-    release: '0.8.0',
     revision: 'r1',
     kind: 'ready_for_review',
     decision: 'implement',

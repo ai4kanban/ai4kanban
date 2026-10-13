@@ -26,7 +26,6 @@ title: A feature
 priority: med
 roi: high
 status: implementing
-release: ""
 blocked_by: []
 related: []
 modules: []

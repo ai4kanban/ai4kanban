@@ -457,7 +457,7 @@ const en: ConfigurationCopy = {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,
       byAgent: {
         "software-planner": () =>
-          'Added to the end of every Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
+          'Added to the end of every Create, Refine, Revise and Archive run — "always leave the open questions as a numbered list".',
         scriptwriter: () =>
           'Added to the end of every Create, Refine and Revise run on a product video card — "keep the whole video under 60 seconds".',
         "hyperframes-editor": (agent) =>
@@ -621,7 +621,7 @@ const en: ConfigurationCopy = {
     thisBoard: "This board",
     preview: "Invite-only preview",
     boardHint:
-      "Cloud holds the cards, memory, releases and history. The repository keeps the pointer.",
+      "Cloud holds the cards, memory and history. The repository keeps the pointer.",
     rename: "Rename",
     save: "Save",
     cancel: "Cancel",
@@ -668,7 +668,7 @@ const en: ConfigurationCopy = {
     deleteButton: "Delete…",
     deleteTitle: (name) => `Delete ${name}?`,
     deleteBlurb:
-      "The cards, the archive, the releases, the memory and the whole history go — for every machine that opens this workspace, and this checkout stops pointing at it. The preview keeps no backups.",
+      "The cards, the archive, the memory and the whole history go — for every machine that opens this workspace, and this checkout stops pointing at it. The preview keeps no backups.",
     offerTitle: "Take the copy out of the repository",
     offerBlurb: (cards) =>
       cards === 1
@@ -692,7 +692,7 @@ const en: ConfigurationCopy = {
     reopen: "Reopen this board",
     deleted: (name) => `${name} is gone, and this checkout no longer points at it.`,
     boundary:
-      "A workspace holds this board and nothing else — its cards, memory, releases and history. Cloud never receives your repository, never runs an agent, and never reads a card the board has not published.",
+      "A workspace holds this board and nothing else — its cards, memory and history. Cloud never receives your repository, never runs an agent, and never reads a card the board has not published.",
     folderPlaceholder: "Folder to write the board into",
   },
   cloud: {
@@ -867,14 +867,6 @@ const en: ConfigurationCopy = {
       notifyOff: "Tell me what this board needs a person for — off",
       notifyBlurb:
         "Yours on every machine you open this board on. Your teammates are told either way.",
-      watching: "Watching",
-      allReleases: "All",
-      pickRelease: "— pick a release —",
-      anyRelease: "Every card raises, whatever release it is promised to.",
-      onlyThisRelease: "Cards in any other release raise nothing.",
-      releaseClosed:
-        "The release you were watching closed. Nothing fills the bell until you pick another.",
-      sharedWatch: "Yours on every machine you open this board on.",
       saveFailed: "that could not be saved",
     },
   },

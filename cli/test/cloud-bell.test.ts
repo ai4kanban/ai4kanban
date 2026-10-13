@@ -31,7 +31,6 @@ const event = (over: Partial<CloudEvent> = {}): CloudEvent =>
     boardName: 'ai4kanban',
     taskId: 12,
     taskTitle: 'A task',
-    release: '0.8.0',
     revision: 'r1',
     kind: 'ready_for_review',
     decision: 'implement',

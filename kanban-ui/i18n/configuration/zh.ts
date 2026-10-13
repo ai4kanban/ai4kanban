@@ -543,7 +543,7 @@ const zh: ConfigurationCopy = {
       spec: (agent) => `会附加到卡片细化期间 ${agent} 每次运行的末尾，例如「遵循 app/globals.css 里的设计变量」。`,
       byAgent: {
         "software-planner": () =>
-          "会附加到每次新建、细化、修订、规划版本、更新日志和归档运行的末尾，例如「未决问题一律用编号列表列出」。",
+          "会附加到每次新建、细化、修订和归档运行的末尾，例如「未决问题一律用编号列表列出」。",
         scriptwriter: () => "会附加到产品视频卡片每次新建、细化和修订运行的末尾，例如「全片不超过 60 秒」。",
         "hyperframes-editor": (agent) => `会附加到制作产品视频时 ${agent} 每次运行的末尾，例如「录屏统一 1920×1080、30 帧」。`,
         "cover-designer": (agent) => `会附加到制作产品视频封面时 ${agent} 每次运行的末尾，例如「封面文字用产品主色」。`,
@@ -694,7 +694,7 @@ const zh: ConfigurationCopy = {
     checking: "正在读取工作区…",
     thisBoard: "这个看板",
     preview: "邀请制预览",
-    boardHint: "卡片、记忆、版本和历史都由 Cloud 保存，仓库中只保留 `.ai4kanban.json`。",
+    boardHint: "卡片、记忆和历史都由 Cloud 保存，仓库中只保留 `.ai4kanban.json`。",
     rename: "重命名",
     save: "保存",
     cancel: "取消",
@@ -736,7 +736,7 @@ const zh: ConfigurationCopy = {
     deleteButton: "删除…",
     deleteTitle: (name) => `删除 ${name}？`,
     deleteBlurb:
-      "卡片、归档、版本、记忆和全部历史都将删除，所有打开该工作区的电脑都会受影响，这个项目文件夹也不再指向它。预览版不保留任何备份。",
+      "卡片、归档、记忆和全部历史都将删除，所有打开该工作区的电脑都会受影响，这个项目文件夹也不再指向它。预览版不保留任何备份。",
     offerTitle: "将看板文件移出仓库",
     offerBlurb: (cards) =>
       `一次提交：${cards} 个看板文件不再由 git 跟踪，新增 .ai4kanban.json，并把 docs/kanban/ 加进根目录的 .gitignore。项目文件夹中的其他改动不会包含在内。`,
@@ -753,7 +753,7 @@ const zh: ConfigurationCopy = {
     reopen: "重新打开这个看板",
     deleted: (name) => `${name} 已删除，这个项目文件夹不再指向它。`,
     boundary:
-      "工作区只保存这个看板的卡片、记忆、版本和历史。Cloud 不会接收你的仓库，不会运行 Agent，也不会读取看板尚未发布的卡片。",
+      "工作区只保存这个看板的卡片、记忆和历史。Cloud 不会接收你的仓库，不会运行 Agent，也不会读取看板尚未发布的卡片。",
     folderPlaceholder: "写入看板的文件夹",
   },
   cloud: {
@@ -916,13 +916,6 @@ const zh: ConfigurationCopy = {
       notifyOn: "这个看板需要我处理时提醒我 · 已开启",
       notifyOff: "这个看板需要我处理时提醒我 · 已关闭",
       notifyBlurb: "对你打开这个看板的所有电脑生效，不影响队友收到提醒。",
-      watching: "跟踪",
-      allReleases: "全部",
-      pickRelease: "选择一个版本",
-      anyRelease: "所有卡片都会提醒你，无论它属于哪个版本。",
-      onlyThisRelease: "属于其他版本的卡片不会提醒。",
-      releaseClosed: "你跟踪的版本已关闭。选择新版本前，不会有新通知。",
-      sharedWatch: "对你打开这个看板的所有电脑生效。",
       saveFailed: "保存失败",
     },
   },

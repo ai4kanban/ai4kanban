@@ -89,18 +89,16 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // batch, and so wait for one another. A single card write does NOT belong here: `raw
 // create` allocates the id and writes all three under the board lease, so two of them
 // interleave safely. What needs the whole run serialized is a run that writes several
-// cards off one read of the board — plan-release, setup — plus archive/reject, which
-// reconcile the index against the board they read.
-const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'plan-release', 'setup'])
+// cards off one read of the board — setup — plus archive/reject, which reconcile the index
+// against the board they read.
+const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'setup'])
 
 // Actions that may run only one at a time across the whole board. The per-card rule can't
-// catch a duplicate of any of them — the first five name no card at all — and each reads the
-// whole board to decide what to write: two plan-releases write the same missing cards, and
-// two setups work down the same checklist side by side. A create is not one of them — it
+// catch a duplicate of any of them — none names a card — and each reads the whole board to
+// decide what to write: two setups work down the same checklist side by side. A create is not one of them — it
 // writes the one card it was handed, and its id and index entry are the board lease's
 // problem, not this lock's.
 const SINGLETON_ACTIONS = new Set<AgentAction>([
-  'plan-release',
   'setup',
   'prune-memory',
   'review-memory',
@@ -146,7 +144,6 @@ const VERB: Record<AgentAction, string> = {
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
 // "a task is already being …" sentence doesn't fit.
 const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
-  'plan-release': 'a release is already being planned',
   setup: 'this board is already being set up',
   'prune-memory': 'the memory is already being pruned',
   'review-memory': 'the conversations are already being reviewed',
@@ -481,14 +478,10 @@ function retryAsk(r: RunRecord): AgentRequest | undefined {
     origin: r.origin,
     refineRound: r.refineRound,
     flowId: r.flowId,
-    release: r.release,
     workflow: r.workflow,
     cards: r.cards,
   }
   switch (r.action) {
-    case 'plan-release':
-    case 'changelog':
-      return r.input ? { ...base, release: r.input } : undefined
     case 'create':
       return r.input || r.triage ? { ...base, description: r.input } : undefined
     case 'implement':
@@ -673,13 +666,12 @@ const HELD_BY_DISCUSSION = new Set<AgentAction>(['implement', 'clarify', 'resolv
 const REFINE_PASS = new Set<AgentAction>(['clarify'])
 
 // The locks every new run passes, whether it's a fresh action or a resumed one: one live
-// run per card, and one live plan-release across the whole board. Checked
+// run per card, and one live singleton across the whole board. Checked
 // with the record's lock held, so two processes can't both slip past.
 function lockedBy(
   runs: RunRecord[],
   action: AgentAction,
   cardId: number | null,
-  release?: string,
   /** This run is a delivery's own work being carried on. The discussion hold lets it by. */
   inDelivery = false,
   discard = false,
@@ -731,13 +723,6 @@ function lockedBy(
     const live = runs.find((r) => r.status === 'running' && r.action === action)
     if (live) return { error: SINGLETON_BUSY[action] ?? `a task is already being ${VERB[action]}` }
   }
-  // One changelog per version, not one across the board: two runs on two versions write two
-  // different files, and only two on the SAME version would write over each other. The
-  // version a run is for is its input, which is what it was written down as.
-  if (action === 'changelog' && release) {
-    const live = runs.find((r) => r.status === 'running' && r.action === 'changelog' && r.input === release)
-    if (live) return { error: `a changelog for ${release} is already being written` }
-  }
   return undefined
 }
 
@@ -745,7 +730,7 @@ function lockedBy(
  *  way in. The run asking, if any, is not in its own way. */
 export function rejectRefusal(cardId: number, discard: boolean): RunRefusal | undefined {
   const self = insideRun()
-  return lockedBy(readRuns().filter((r) => r.sessionId !== self), 'reject', cardId, undefined, false, discard)
+  return lockedBy(readRuns().filter((r) => r.sessionId !== self), 'reject', cardId, false, discard)
 }
 
 /** Why this card can't be changed from outside a run this second — a live run is working on
@@ -769,15 +754,9 @@ export async function heldByRun(cardId: number): Promise<string | undefined> {
   )
 }
 
-// The text the user typed for a run, pulled from whichever field carries it. A plan-release
-// or changelog run was never given text — the user named a version, and that version is what
-// the run is about, so it stands in. It is also what tells two changelog runs apart, so the
-// second one on the same version can be refused.
+// The text the user typed for a run, pulled from whichever field carries it.
 function runInput(req: AgentRequest): string | undefined {
-  const text =
-    req.action === 'plan-release' || req.action === 'changelog'
-      ? req.release ?? ''
-      : req.description ?? req.reason ?? req.notes ?? ''
+  const text = req.description ?? req.reason ?? req.notes ?? ''
   return text.trim() || undefined
 }
 
@@ -947,7 +926,7 @@ export function openRun(
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
     triage: req.action === 'create' || (req.action === 'implement' && cardId === null) ? req.triage : undefined,
     ...(req.action === 'create' || (req.action === 'implement' && cardId === null)
-      ? { release: req.release?.trim() || undefined, workflow: req.workflow?.trim() || undefined }
+      ? { workflow: req.workflow?.trim() || undefined }
       : {}),
     ...(req.action === 'scheduled' ? { workflow: req.workflow?.trim() || undefined } : {}),
     fromCard: req.action === 'create' ? req.fromCard : undefined,
@@ -966,7 +945,7 @@ export function openRun(
     ...(parent ? { parentId: parent.sessionId, deliveryId: parent.deliveryId, specAgent: req.specAgent } : {}),
   }
   const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
-    const locked = lockedBy(store.runs, req.action, cardId, req.release, false, req.discard)
+    const locked = lockedBy(store.runs, req.action, cardId, false, req.discard)
     if (locked) return locked
     store.runs.push(record)
     if (req.action === 'clarify' && cardId !== null) noteRefineTried(store, cardId)
@@ -1243,7 +1222,7 @@ async function resumeHeld(
     // No `input` on a resume: the note the user typed is already in the conversation being
     // resumed — repeating it would read as a second instruction they never gave. A retry is
     // the ask itself again, so it keeps everything the ask was written down with.
-    ...(retry ? { input: prev.input, triage: prev.triage, release: prev.release, workflow: prev.workflow } : {}),
+    ...(retry ? { input: prev.input, triage: prev.triage, workflow: prev.workflow } : {}),
     harness: plan.harness,
     runtime: plan.runtime,
     agent: plan.agent,
@@ -1295,7 +1274,7 @@ async function resumeHeld(
     }
     const heldCreation = all.find((r) => runIsLive(r) && (r.cardId !== null && (latest.createdCardIds ?? []).includes(r.cardId) || (r.createdCardIds ?? []).some((id) => (latest.createdCardIds ?? []).includes(id))))
     if (heldCreation) return refusal('creationHeld', 'A card from this creation is already being worked on. Wait for that run to finish.')
-    const locked = lockedBy(all, prev.action, prev.cardId, prev.input, resuming?.status === 'active', prev.discard)
+    const locked = lockedBy(all, prev.action, prev.cardId, resuming?.status === 'active', prev.discard)
     if (locked) return locked
     all.push(record)
     // Resume carries the DELIVERY on, rather than starting a second one: one delivery id
@@ -1817,7 +1796,7 @@ function dropSpec(sessionId: string): void {
  *  time across every process on this board. */
 export const needsIndexLock = (action: AgentAction): boolean => INDEX_ACTIONS.has(action)
 
-// How long a queued run waits for its turn before giving up. A plan-release ahead of it is
+// How long a queued run waits for its turn before giving up. A setup ahead of it is
 // a real agent run, so this is measured in the length of one of those, not in the
 // milliseconds a board write takes.
 const INDEX_WAIT_MS = 60 * 60_000

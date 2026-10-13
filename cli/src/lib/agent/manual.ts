@@ -14,7 +14,7 @@ export const HELP_AFTER = {
 Print it, or run it
   --print     say what to do and start nothing. What it prints is filled in for this board:
               the card's own path, the steps it has left, the memory file its modules point
-              at, the release it is in, the flows the job is done by in full, and the
+              at, the flows the job is done by in full, and the
               command that closes the job — because nothing is watching you finish.
   (no flag)   start a run: a second agent, its own context, working on its own.
 

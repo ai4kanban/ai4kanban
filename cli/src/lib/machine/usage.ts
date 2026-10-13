@@ -219,7 +219,6 @@ const BOARD_COUNTS = [
   'questions_closed_verify',
   'decisions_stood',
   'decisions_overruled',
-  'releases_closed',
 ] as const
 
 export type BoardCount = (typeof BOARD_COUNTS)[number]

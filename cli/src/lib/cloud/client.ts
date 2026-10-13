@@ -90,7 +90,6 @@ export interface PublishBody {
   boardName: string
   taskId: number
   taskTitle: string
-  release: string
   revision: string
   kind: 'ready_for_review' | 'question'
   decision: CloudEventDecision
@@ -117,7 +116,6 @@ export interface PublishBody {
 export const postWatchSummary = (body: {
   opId: string
   boardId: string
-  watching: string
   cards: number
 }): Promise<CloudCall<{ summary: { summaryId: string; posted: boolean } }>> =>
   send('POST', '/v1/watch-summary', body)
@@ -326,7 +324,7 @@ export const readWorkspaceCard = (
 ): Promise<CloudCall<{ revision: string; card: WireWorkspaceCard }>> =>
   send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/cards/${cardId}`)
 
-/** The cards that have left the board. Never in a snapshot; closing a release is what
+/** The cards that have left the board. Never in a snapshot; the archive screen is what
  *  fetches it. */
 export const readWorkspaceArchive = (
   workspaceId: string,
@@ -475,17 +473,13 @@ export const setWorkspaceMemberRole = (
 
 // ---- what this member is told about (#328) ------------------------------------
 
-/** One member's notification switch and watched release inside one workspace. It lives in the
- *  workspace rather than in `~/.ai4kanban/`, so it follows them to every machine and Cloud can
- *  resolve who is watching a release. */
+/** One member's notification switch inside one workspace. It lives in the workspace rather
+ *  than in `~/.ai4kanban/`, so it follows them to every machine and Cloud can resolve who is
+ *  told about a card. */
 export interface WireWatch {
   notify: boolean
-  /** `*` for every release, one release's name, or empty when the watched one closed. */
-  watching: string
   /** A machine of theirs has already handed its own record over. */
   carried: boolean
-  /** The open releases it could narrow to, off the workspace's own `releases.md`. */
-  releases: string[]
 }
 
 export const readWorkspaceWatch = (
@@ -496,9 +490,8 @@ export const readWorkspaceWatch = (
 export const setWorkspaceWatch = (
   workspaceId: string,
   notify: boolean,
-  watching: string,
 ): Promise<CloudCall<{ watch: WireWatch }>> =>
-  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch`, { notify, watching })
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch`, { notify })
 
 /** Hand this machine's own record over the first time it opens the workspace. The service
  *  takes it once: a record carried on every start-up would overwrite a change the member made
@@ -506,9 +499,8 @@ export const setWorkspaceWatch = (
 export const carryWorkspaceWatch = (
   workspaceId: string,
   notify: boolean,
-  watching: string,
 ): Promise<CloudCall<{ watch: WireWatch }>> =>
-  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch/carry`, { notify, watching })
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch/carry`, { notify })
 
 /** Claim a new workspace for one source board, by the fingerprint the machine derived from
  *  it. A workspace already holding a board is refused unless it holds this one. */

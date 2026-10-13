@@ -45,8 +45,8 @@ cloud/
   no grace period and no backup.
 - **No code or credentials are stored**: no repository, branch, worktree, commit or model key.
   A delivery record's repository half is stripped by `cloud.portable_delivery` in the database.
-- **A workspace holds the whole board**: cards, `config.md`, `modules.md`, `releases.md`,
-  memory, per-flow rules, archive, summaries, history and delivery records, each under the
+- **A workspace holds the whole board**: cards, `config.md`, `modules.md`, memory,
+  per-flow rules, archive, summaries, history and delivery records, each under the
   path it exports to. API keys, run records, chats, mockups and `ui.config.json` stay local.
 - **Browsers read less**: `/read` serves `../cloud-ui/` only the name, live cards and four
   config documents, and opens no write path.

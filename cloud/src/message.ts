@@ -96,9 +96,9 @@ export function stateNote(event: EventRow): string {
     // rather than sending anybody to a machine with nothing left on it to resume.
     case 'interrupted':
       return 'The machine that took this on stopped carrying it.'
-    // A card goes quiet because a run picked it up, because it left `ready`, because a
-    // blocker opened, or because its release did — and three of those four are good news. The
-    // board knows which; the state name cannot say it, so the retirement carries it.
+    // A card goes quiet because a run picked it up, because it left `ready`, or because a
+    // blocker opened. The board knows which; the state name cannot say it, so the retirement
+    // carries it.
     case 'stale':
       return event.reason || 'The board stopped asking about this card.'
     default:
@@ -127,24 +127,15 @@ export const cardUrl = (event: EventRow): string =>
 // bell. The words are here for the reason every other message's are — a second connector is
 // a second implementation, never a second wording.
 
-/** What the board watches when it watches every release. `cli/src/lib/cloud/boards.ts`'s
- *  `ALL_RELEASES`, said again because the Worker cannot import the board's rules. */
-const ALL_RELEASES = '*'
-
 /** One scope change, as a message says it. */
 export interface WatchSummary {
   boardName: string
-  /** `*` for every release, or the one release now watched. */
-  watching: string
   /** How many waiting cards the switch brought in. Never zero. */
   cards: number
 }
 
-/** The message's heading: what is watched now. */
-export const watchingLine = (summary: WatchSummary): string =>
-  summary.watching === ALL_RELEASES
-    ? 'Watching every release'
-    : `Watching release ${summary.watching}`
+/** The message's heading. */
+export const WATCHING_LINE = 'Notifications on'
 
 /** The line under it: how many cards that turned out to be. */
 export const waitingLine = (cards: number): string =>

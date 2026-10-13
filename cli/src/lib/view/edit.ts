@@ -1,9 +1,8 @@
 // ---- a direct edit to one card ---------------------------------------------
 //
 // The fields a person changes from a screen rather than by asking an agent: the title, the
-// body, priority, roi, the release, and the action a blocked
-// card is waiting to run. Everything else about a card — its track, its links, its
-// questions — stays with the agents and the commands.
+// body, priority, roi, and the action a blocked card is waiting to run. Everything else about
+// a card — its track, its links, its questions — stays with the agents and the commands.
 //
 // It is one write, in the frontmatter serializer every other writer uses, so a card edited
 // from a board and a card edited by `update` come out byte-identical.
@@ -15,18 +14,17 @@ import { die, rel, TODO } from '../paths'
 import { locate } from '../cards'
 import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { repointReadmeLink } from '../readme'
-import { setSubtreeRelease, validRelease } from '../releases'
 import { cardCreation } from '../agent/store'
 import { normalizeSchedule, SCHEDULED_ACTIONS } from '../schedule'
-import { LEVELS, normalizeRelease } from '../validate'
+import { LEVELS } from '../validate'
 import { findCard } from './read'
 import { canRefine, creationRefusal, scheduleRefusal } from './rules'
 import type { Meta } from '../types'
 import type { CardPatch, CardSchedule } from './types'
 
 /** Apply a direct edit to card `id`. Refuses — by throwing the board's own refusal, which
- *  the surface above turns into a line — when the id is unknown, a level is not one of the
- *  three, or the release is not on the list. */
+ *  the surface above turns into a line — when the id is unknown, or a level is not one of the
+ *  three. */
 export function patchCard(id: number, patch: CardPatch): void {
   if (!Number.isInteger(id)) die('a card is edited by its number', 'bad-id')
   const found = locate(id)
@@ -52,17 +50,9 @@ export function patchCard(id: number, patch: CardPatch): void {
     if (!LEVELS.includes(value)) die(`${field} must be one of ${LEVELS.join(' | ')}`)
     meta[field] = value
   }
-  // A card only moves onto a release that exists, the same check `update` makes — a typo
-  // must not quietly invent a version. Empty is always allowed: it means no release, so
-  // writing it is how a card comes back out of one.
-  if (patch.release !== undefined) meta.release = validRelease(normalizeRelease(patch.release))
   const newBody = patch.body !== undefined ? patch.body : body
   const normalized = newBody.replace(/^\n+/, '').replace(/\s+$/, '')
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + normalized + '\n')
-
-  // A group root's release is the whole group's: putting the root in a version puts every
-  // subtask in it, and taking the root out takes them all out.
-  if (patch.release !== undefined && found.kind === 'group') setSubtreeRelease(found.target, meta.release)
 
   // The index carries the title, so a retitle follows it there. The bullet keeps its place
   // — only the link text changes.

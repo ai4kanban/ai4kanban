@@ -138,10 +138,9 @@ export function CloudPage() {
               </span>{" "}
               Cloud is off until you sign in with GitHub inside the app. The
               boards you open on that machine then raise their events, and each
-              one watches what you pick — every release, or one. On a board you
-              share, that choice is yours on every machine you open it on, and
-              it is what decides whether the board&apos;s news reaches you at
-              all. Sign out and the machine raises none.
+              board has one switch for its notifications. On a board you share,
+              that switch is yours on every machine you open it on. Sign out and
+              the machine raises none.
             </p>
           </section>
         </div>
@@ -179,7 +178,6 @@ export function CloudPage() {
               <h3 className="text-lg font-bold">Goes with each event</h3>
               <ul className="mt-4 space-y-3 text-[0.95rem] leading-relaxed">
                 <Point lead="The card's number and title" />
-                <Point lead="The release it is promised to" />
                 <Point lead="Its opening paragraph" />
                 <Point lead="Its review notes">
                   the card&apos;s <Term>Worth noting</Term> sections, which is

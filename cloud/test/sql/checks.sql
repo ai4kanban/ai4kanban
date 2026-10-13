@@ -99,7 +99,7 @@ begin
   perform api.register_board(A, BOARD_A, 'a-board', BUDGET);
   perform api.register_board(B, BOARD_B, 'b-board', BUDGET);
 
-  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', '0.8.0', 'r1',
+  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   v_event := (v_json ->> 'id')::uuid;
   v_json := api.attach_server(A, BOARD_A, MACHINE_A, 'a-machine', false, '[]'::jsonb, BUDGET);
@@ -131,8 +131,8 @@ begin
     format('select api.register_board(%L, %L, %L, %s)', B, BOARD_A, 'stolen', BUDGET),
     'AKB02', 'register_board');
   perform pg_temp.refuses(
-    format('select api.publish_event(%L, %L, null, 1, %L, %L, %L, %L, %L, %L, %L, %L, %L, false, %s)',
-           B, BOARD_A, 't', '', 'r9', 'ready_for_review', 'implement', '[]', '', '', 'f9', BUDGET),
+    format('select api.publish_event(%L, %L, null, 1, %L, %L, %L, %L, %L, %L, %L, %L, false, %s)',
+           B, BOARD_A, 't', 'r9', 'ready_for_review', 'implement', '[]', '', '', 'f9', BUDGET),
     'AKB02', 'publish_event');
   perform pg_temp.refuses(
     format('select api.attach_server(%L, %L, %L, %L, false, %L, %s)',
@@ -227,11 +227,11 @@ begin
   -- -------------------------------------------------------------------------
 
   -- The same snapshot again writes nothing and raises nothing.
-  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', '0.8.0', 'r1',
+  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'an unchanged snapshot raised a second row';
 
-  -- An edit the event cannot see — a `release:` reset, a typo in a section it never carries
+  -- An edit the event cannot see — a typo in a section it never carries
   -- — moves the revision and nothing else (#182). Cloud takes it, because an action binds
   -- the revision, and says nothing: `changed_at` stays put so the row stays as read as it
   -- was, and `content_at` moves so Slack's message is rewritten to match.
@@ -242,11 +242,10 @@ begin
                           content_at = now() - interval '1 hour'
    where id = v_event;
   select changed_at, content_at into v_changed, v_content from cloud.events where id = v_event;
-  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', '', 'r2',
+  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', 'r2',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'a quiet refresh raised a second row';
   assert (v_json ->> 'revision') = 'r2', 'a quiet refresh did not write the revision through';
-  assert (v_json ->> 'release') = '', 'a quiet refresh did not write the release through';
   assert (v_json ->> 'changedAt')::timestamptz = v_changed,
     'an edit the event cannot see marked the row unread again';
   assert (select content_at from cloud.events where id = v_event) > v_content,
@@ -254,7 +253,7 @@ begin
 
   -- What the person is asked to decide moving IS news: the same row, refreshed, and
   -- `changed_at` with it.
-  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', '', 'r2',
+  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', 'r2',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why moved', 'notes', 'f2', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'a revised card raised a second row';
   assert (v_json ->> 'changedAt')::timestamptz > v_changed, 'a card that moved did not refresh the row';
@@ -277,7 +276,7 @@ begin
   -- A card that stops needing a person is content moving too. A retirement that left
   -- `content_at` alone would owe the chat nothing, and the ask would sit there with an
   -- Implement on it that `record_event_action` then refuses.
-  v_json := api.publish_event(A, BOARD_A, null, 330, 'A card nobody gets to', '', 'r1',
+  v_json := api.publish_event(A, BOARD_A, null, 330, 'A card nobody gets to', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', '', 'f1', false, BUDGET);
   v_retired := (v_json ->> 'id')::uuid;
   update cloud.events set content_at = now() - interval '1 hour' where id = v_retired;
@@ -302,7 +301,7 @@ begin
   -- that one is left out of the look-up — but only the machine carrying the delivery names
   -- it, so a second machine publishing the same stop still raises nothing.
 
-  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops',
                               'r1', 'ready_for_review', 'implement', '[]'::jsonb, 'why', '', 'f1',
                               false, BUDGET);
   v_delivering := (v_json ->> 'id')::uuid;
@@ -312,14 +311,14 @@ begin
 
   -- Review sends the work back with a question. A machine that is not carrying this delivery
   -- names nothing, finds the running row, and leaves it exactly as it is.
-  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops',
                               'r2', 'question', 'answer', '[{"text":"Which shade?"}]'::jsonb, 'why',
                               '', 'f2', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_delivering, 'a publication naming nothing moved the delivery''s row';
   assert (v_json ->> 'state') = 'running', 'a publication naming nothing refreshed a running row';
 
   -- The machine carrying it names it, and the card asks on a row of its own.
-  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops',
                               'r2', 'question', 'answer', '[{"text":"Which shade?"}]'::jsonb, 'why',
                               '', 'f2', false, BUDGET, v_delivering);
   v_asking := (v_json ->> 'id')::uuid;
@@ -339,7 +338,7 @@ begin
 
   -- And a second stop revives the row the first one left, rather than adding a third.
   perform api.record_event_outcome(A, 'op-647-again', v_delivering, 'running', '', 900, BUDGET);
-  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops',
                               'r3', 'question', 'answer', '[{"text":"And the other one?"}]'::jsonb,
                               'why', '', 'f3', false, BUDGET, v_delivering);
   assert (v_json ->> 'id')::uuid = v_asking, 'a second stop asked on a third row';
@@ -477,7 +476,7 @@ begin
   assert v_text = 'finished', 'a finished delivery left its request open';
 
   -- A task that needs a person again is new work, and the finished row stays as history.
-  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', '0.8.0', 'r3',
+  v_json := api.publish_event(A, BOARD_A, null, 329, 'Harden the Cloud event flow', 'r3',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f3', false, BUDGET);
   v_second := (v_json ->> 'id')::uuid;
   assert v_second <> v_event, 'a finished event was reused rather than kept as history';
@@ -819,12 +818,12 @@ begin
   perform api.register_board(A, BOARD, 'watch-board', BUDGET);
 
   -- The publisher's mark reaches storage, and ordinary news does not carry it.
-  v_json := api.publish_event(A, BOARD, null, 601, 'Already waiting', '1.0', 'r1',
+  v_json := api.publish_event(A, BOARD, null, 601, 'Already waiting', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, '', '', 'w1', true, BUDGET);
   v_quiet := (v_json ->> 'id')::uuid;
   assert (v_json ->> 'broughtIn')::boolean, 'a scope change did not mark what it brought in';
 
-  v_json := api.publish_event(A, BOARD, null, 602, 'Started waiting afterwards', '1.0', 'r1',
+  v_json := api.publish_event(A, BOARD, null, 602, 'Started waiting afterwards', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, '', '', 'n1', false, BUDGET);
   v_news := (v_json ->> 'id')::uuid;
   assert not (v_json ->> 'broughtIn')::boolean, 'ordinary news was marked as brought in';
@@ -856,12 +855,12 @@ begin
 
   -- A quiet refresh is not the card moving, so it leaves the mark where it is: writing the
   -- revision through must not turn a quiet fill into an interruption.
-  v_json := api.publish_event(A, BOARD, null, 601, 'Already waiting', '1.0', 'r2',
+  v_json := api.publish_event(A, BOARD, null, 601, 'Already waiting', 'r2',
                               'ready_for_review', 'implement', '[]'::jsonb, '', '', 'w1', false, BUDGET);
   assert (v_json ->> 'broughtIn')::boolean, 'a quiet refresh raised what a scope change had quietened';
 
   -- What the person is asked to decide moving IS news, and the mark goes with it.
-  v_json := api.publish_event(A, BOARD, null, 601, 'Already waiting', '1.0', 'r3',
+  v_json := api.publish_event(A, BOARD, null, 601, 'Already waiting', 'r3',
                               'ready_for_review', 'implement', '[]'::jsonb, 'moved', '', 'w2', false, BUDGET);
   assert not (v_json ->> 'broughtIn')::boolean, 'a card that moved after the switch stayed quiet';
   assert (api.connector_jobs('slack', v_quiet, 10, 5) -> 0) is not null,
@@ -870,7 +869,7 @@ begin
   -- The mark says how the publication ARRIVED, so it is read only while the row is still
   -- asking. A delivery taken on such a card ends as news like any other — an outcome nobody
   -- is told about is a delivery that finished in silence.
-  v_json := api.publish_event(A, BOARD, null, 604, 'Implemented after the switch', '1.0', 'r1',
+  v_json := api.publish_event(A, BOARD, null, 604, 'Implemented after the switch', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, '', '', 'y1', true, BUDGET);
   v_ended := (v_json ->> 'id')::uuid;
   assert (v_json ->> 'broughtIn')::boolean, 'a scope change did not mark what it brought in';
@@ -883,12 +882,12 @@ begin
 
   -- The round trip: narrowing retires the row, widening revives that same one, and the
   -- revival carries the mark. `0.9 → all → 0.9 → all` costs no row and no interruption.
-  v_json := api.publish_event(A, BOARD, null, 603, 'In and out of scope', '1.0', 'r1',
+  v_json := api.publish_event(A, BOARD, null, 603, 'In and out of scope', 'r1',
                               'question', 'answer', '[]'::jsonb, '', '', 'x1', true, BUDGET);
   v_round := (v_json ->> 'id')::uuid;
   assert (api.retire_event(A, v_round, BUDGET) ->> 'state') = 'stale',
     'narrowing did not retire what left the scope';
-  v_json := api.publish_event(A, BOARD, null, 603, 'In and out of scope', '1.0', 'r1',
+  v_json := api.publish_event(A, BOARD, null, 603, 'In and out of scope', 'r1',
                               'question', 'answer', '[]'::jsonb, '', '', 'x1', true, BUDGET);
   assert (v_json ->> 'id')::uuid = v_round, 'a round trip left a second row behind';
   assert (v_json ->> 'broughtIn')::boolean, 'widening again raised the bell for the same card';
@@ -897,19 +896,18 @@ begin
   -- The switch's own summary
   -- -------------------------------------------------------------------------
 
-  v_json := api.record_watch_summary(A, 'sum-1', BOARD, '*', 12, BUDGET);
+  v_json := api.record_watch_summary(A, 'sum-1', BOARD, 12, BUDGET);
   assert (v_json ->> 'posted')::boolean, 'the switch''s summary was not written down';
   assert (v_json ->> 'cards')::integer = 12, 'the summary lost the count it brought in';
-  assert (v_json ->> 'watching') = '*', 'the summary lost the scope it was about';
   -- A retry of an attempt that already landed posts nothing.
-  v_json := api.record_watch_summary(A, 'sum-1', BOARD, '*', 12, BUDGET);
+  v_json := api.record_watch_summary(A, 'sum-1', BOARD, 12, BUDGET);
   assert not (v_json ->> 'posted')::boolean, 'a retried summary would have posted a second message';
   assert (select count(*) from cloud.watch_summaries where op_id = 'sum-1') = 1,
     'a retried summary left a second row';
 
   -- It is another account's board, so it is not theirs to say anything about.
   perform pg_temp.refuses(
-    format('select api.record_watch_summary(%L, %L, %L, %L, 3, %s)', B, 'sum-b', BOARD, '*', BUDGET),
+    format('select api.record_watch_summary(%L, %L, %L, 3, %s)', B, 'sum-b', BOARD, BUDGET),
     'AKB02', 'record_watch_summary');
 
   -- It is addressed to the switching account and nobody else.
@@ -1437,9 +1435,9 @@ begin
   assert json_array_length(v_json -> 'cards') = 2, 'the reader read carried the archive';
   assert not exists (
     select 1 from json_array_elements(v_json -> 'documents') d
-     where (d ->> 'path') not in ('config.md', 'modules.md', 'releases.md', 'todo/README.md')),
+     where (d ->> 'path') not in ('config.md', 'modules.md', 'todo/README.md')),
     'the reader read carried a board file no hosted screen draws';
-  assert json_array_length(v_json -> 'documents') = 3,
+  assert json_array_length(v_json -> 'documents') = 2,
     'the reader read did not carry the board''s configuration documents';
   assert not (v_json -> 'workspace')::jsonb ? 'ownerId',
     'the reader read named the account a workspace belongs to';
@@ -1530,8 +1528,8 @@ begin
     'a lock''s holder could not give it up';
   assert json_array_length(api.list_locks(A, v_ws)) = 0, 'a released lock was still listed';
 
-  -- The board's own lock is one lock, over what is not a card: the memory set, releases, the
-  -- module map, the per-flow rules.
+  -- The board's own lock is one lock, over what is not a card: the memory set, the module
+  -- map, the per-flow rules.
   v_json := api.take_lock(A, v_ws, v_node, null, null, 1800, BUDGET);
   v_lease := (v_json ->> 'leaseId')::uuid;
   assert (v_json ->> 'cardId') is null, 'the board''s own lock named a card';
@@ -2037,7 +2035,7 @@ begin
   -- One live row per workspace card, however many machines publish it
   -- -------------------------------------------------------------------------
 
-  v_json := api.publish_event(OWNER_A, null, v_ws, 364, 'Review in the browser', '0.9.0', 'r1',
+  v_json := api.publish_event(OWNER_A, null, v_ws, 364, 'Review in the browser', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   v_event := (v_json ->> 'id')::uuid;
   assert (v_json ->> 'workspaceId')::uuid = v_ws, 'the event did not name the workspace it belongs to';
@@ -2046,7 +2044,7 @@ begin
 
   -- The owner's second machine publishing the same card finds the same row. This is the
   -- two-machine case the move exists for: one card, one decision, not two.
-  assert (api.publish_event(MEMBER_B, null, v_ws, 364, 'Review in the browser', '0.9.0', 'r1',
+  assert (api.publish_event(MEMBER_B, null, v_ws, 364, 'Review in the browser', 'r1',
                             'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET)
           ->> 'id')::uuid = v_event,
     'a second machine raised a second event for one workspace card';
@@ -2058,15 +2056,15 @@ begin
   perform api.register_board('ee000000-3333-4333-8333-000000000006',
                              'ff000000-3333-4333-8333-000000000007', 'a-local-board', BUDGET);
   assert (api.publish_event('ee000000-3333-4333-8333-000000000006',
-                            'ff000000-3333-4333-8333-000000000007', null, 364, 'Another #364', '', 'r1',
+                            'ff000000-3333-4333-8333-000000000007', null, 364, 'Another #364', 'r1',
                             'ready_for_review', 'implement', '[]'::jsonb, '', '', 'f1', false, BUDGET)
           ->> 'id')::uuid <> v_event,
     'a Local board''s card was folded into a workspace''s event';
 
   -- An event names one home and never both.
   perform pg_temp.refuses(
-    format('select api.publish_event(%L, %L, %L, 9, %L, %L, %L, %L, %L, %L, %L, %L, %L, false, %s)',
-           OWNER_A, 'ff000000-3333-4333-8333-000000000007', v_ws, 't', '', 'r1',
+    format('select api.publish_event(%L, %L, %L, 9, %L, %L, %L, %L, %L, %L, %L, %L, false, %s)',
+           OWNER_A, 'ff000000-3333-4333-8333-000000000007', v_ws, 't', 'r1',
            'ready_for_review', 'implement', '[]', '', '', 'f2', BUDGET),
     'AKB10', 'publish_event naming both a board and a workspace');
 
@@ -2178,7 +2176,6 @@ declare
   OWNER_C constant uuid := 'a3280000-3333-4333-8333-000000000002';
   MEMBER_B constant uuid := 'a3280000-3333-4333-8333-000000000003';
   MEMBER_D constant uuid := 'a3280000-3333-4333-8333-000000000004';
-  ALL_WATCHED constant text := '*';
   BUDGET constant integer := 100000;
   v_ws uuid;
   v_ready uuid;
@@ -2189,45 +2186,34 @@ begin
     (OWNER_A, 'n-owner'), (OWNER_C, 'n-owner-2'), (MEMBER_B, 'n-member'), (MEMBER_D, 'n-member-2');
   v_ws := (api.create_workspace(OWNER_A, 'n-create', 'A team board', BUDGET) ->> 'id')::uuid;
 
-  -- The board is shipping 1.0 — `releases.md` lists the open releases in ship order, so the
-  -- newest is its last line.
-  insert into cloud.workspace_documents (workspace_id, path, kind, body)
-  values (v_ws, 'releases.md', 'config',
-          E'# Releases\n\n- **0.9.0** — the one before\n- **1.0** — what we are shipping\n');
-  assert cloud.newest_open_release(v_ws) = '1.0',
-    format('the newest open release read as %L', cloud.newest_open_release(v_ws));
-
   -- -------------------------------------------------------------------------
   -- The watch lives in the workspace
   -- -------------------------------------------------------------------------
 
-  -- Whoever turned Cloud on watches every release, like a checkout does.
+  -- Whoever turned Cloud on is told, like a checkout is.
   v_watch := api.read_watch(OWNER_A, v_ws);
   assert (v_watch ->> 'notify')::boolean, 'the account that created the workspace was left silent';
-  assert (v_watch ->> 'watching') = '*', 'the creator did not start on every release';
+  -- What a checkout older than #1671 mirrors as what it raises.
+  assert (v_watch ->> 'watching') = '*', 'the watch stopped answering every card to an older checkout';
 
-  -- A member an owner adds starts with the switch ON, watching the newest open release.
+  -- A member an owner adds starts with the switch ON.
   perform api.add_member(OWNER_A, v_ws, 'n-add-b', 'n-member', 'member', BUDGET);
   v_watch := api.read_watch(MEMBER_B, v_ws);
   assert (v_watch ->> 'notify')::boolean, 'a member an owner added started silent';
-  assert (v_watch ->> 'watching') = '1.0',
-    format('an added member started watching %L rather than the newest open release', v_watch ->> 'watching');
-  assert (v_watch -> 'releases')::text like '%0.9.0%1.0%',
-    format('the watch offered %s to narrow to', (v_watch -> 'releases')::text);
 
   -- A machine hands its own record over ONCE. A second start-up answers the watch as it
   -- stands, so a change made in a browser is not overwritten by whatever a laptop believes.
-  assert (api.carry_watch(MEMBER_B, v_ws, true, '0.9.0', BUDGET) ->> 'watching') = '0.9.0',
+  assert not (api.carry_watch(MEMBER_B, v_ws, false, BUDGET) ->> 'notify')::boolean,
     'a machine could not hand its own watch over';
-  assert (api.carry_watch(MEMBER_B, v_ws, true, '*', BUDGET) ->> 'watching') = '0.9.0',
+  assert not (api.carry_watch(MEMBER_B, v_ws, true, BUDGET) ->> 'notify')::boolean,
     'a second start-up overwrote the watch the workspace holds';
-  assert (api.set_watch(MEMBER_B, v_ws, true, '1.0', BUDGET) ->> 'watching') = '1.0',
+  assert (api.set_watch(MEMBER_B, v_ws, true, BUDGET) ->> 'notify')::boolean,
     'a member could not change their own watch';
 
   -- A member changes their own and nobody else's — reading or writing one from outside the
   -- workspace is the membership refusal.
   perform pg_temp.refuses(
-    format('select api.set_watch(%L, %L, true, %L, %s)', MEMBER_D, v_ws, '*', BUDGET),
+    format('select api.set_watch(%L, %L, true, %s)', MEMBER_D, v_ws, BUDGET),
     'AKB13', 'set_watch from outside the workspace');
   perform pg_temp.refuses(
     format('select api.read_watch(%L, %L)', MEMBER_D, v_ws), 'AKB13', 'read_watch');
@@ -2239,15 +2225,15 @@ begin
   perform api.add_member(OWNER_A, v_ws, 'n-add-c', 'n-owner-2', 'owner', BUDGET);
   -- Answering for themselves is the last word: this owner has carried nothing, and a machine
   -- of theirs waking up with an older record hands nothing over afterwards.
-  assert (api.set_watch(OWNER_C, v_ws, true, '1.0', BUDGET) ->> 'carried')::boolean,
+  assert (api.set_watch(OWNER_C, v_ws, true, BUDGET) ->> 'carried')::boolean,
     'a watch the member set themselves is not marked as answered';
-  assert (api.carry_watch(OWNER_C, v_ws, true, ALL_WATCHED, BUDGET) ->> 'watching') = '1.0',
+  assert (api.carry_watch(OWNER_C, v_ws, false, BUDGET) ->> 'notify')::boolean,
     'a machine handed its record over after the member had answered for themselves';
 
-  v_ready := (api.publish_event(MEMBER_B, null, v_ws, 328, 'Ready for review', '1.0', 'r1',
+  v_ready := (api.publish_event(MEMBER_B, null, v_ws, 328, 'Ready for review', 'r1',
                                 'ready_for_review', 'implement', '[]'::jsonb, '', '', 'f1', false, BUDGET)
               ->> 'id')::uuid;
-  v_question := (api.publish_event(MEMBER_B, null, v_ws, 329, 'Which one?', '1.0', 'r1',
+  v_question := (api.publish_event(MEMBER_B, null, v_ws, 329, 'Which one?', 'r1',
                                    'question', 'answer', '[]'::jsonb, '', '', 'f2', false, BUDGET)
                  ->> 'id')::uuid;
 
@@ -2268,18 +2254,18 @@ begin
     'somebody outside the workspace read its events';
 
   -- -------------------------------------------------------------------------
-  -- The watch filters both audiences
+  -- The switch filters both audiences
   -- -------------------------------------------------------------------------
 
-  perform api.set_watch(OWNER_C, v_ws, true, '0.9.0', BUDGET);
+  perform api.set_watch(OWNER_C, v_ws, false, BUDGET);
   assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_question) = 1,
-    'an owner watching another release was told about a 1.0 question';
-  perform api.set_watch(OWNER_A, v_ws, false, '*', BUDGET);
+    'an owner whose switch is off was told about a question';
+  perform api.set_watch(OWNER_A, v_ws, false, BUDGET);
   assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_question) = 0,
     'a question no owner is watching for reached somebody anyway';
   assert json_array_length(api.list_events(OWNER_A) -> 'events') = 0,
     'a member whose switch is off still read the workspace''s events';
-  perform api.set_watch(OWNER_A, v_ws, true, '*', BUDGET);
+  perform api.set_watch(OWNER_A, v_ws, true, BUDGET);
 
   -- -------------------------------------------------------------------------
   -- One message per distinct destination
@@ -2327,7 +2313,7 @@ begin
   -- -------------------------------------------------------------------------
 
   perform api.remove_member(OWNER_A, v_ws, 'n-remove', MEMBER_B, BUDGET);
-  -- Only OWNER_A is left of the three: OWNER_C is watching another release.
+  -- Only OWNER_A is left of the three: OWNER_C's switch is off.
   assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_ready) = 1,
     'a removed member was still in the audience';
   assert json_array_length(api.list_events(MEMBER_B) -> 'events') = 0,
@@ -2386,7 +2372,7 @@ begin
   -- Implement pressed on a card that is still asking
   -- -------------------------------------------------------------------------
 
-  v_json := api.publish_event(OWNER, BOARD, null, 6421, 'Asking, and built anyway', '', 'r1',
+  v_json := api.publish_event(OWNER, BOARD, null, 6421, 'Asking, and built anyway', 'r1',
                               'question', 'answer', ASKED, '', '', 'f1', false, BUDGET);
   v_asking := (v_json ->> 'id')::uuid;
   assert (v_json ->> 'decision') = 'answer',
@@ -2405,7 +2391,7 @@ begin
   -- An approved answer still reads as an answer
   -- -------------------------------------------------------------------------
 
-  v_json := api.publish_event(OWNER, BOARD, null, 6422, 'Asking, and answered', '', 'r1',
+  v_json := api.publish_event(OWNER, BOARD, null, 6422, 'Asking, and answered', 'r1',
                               'question', 'answer', ASKED, '', '', 'f2', false, BUDGET);
   v_answering := (v_json ->> 'id')::uuid;
   perform api.record_event_action(OWNER, 'a-op-3', v_answering, 'answer', 'r1',
@@ -2418,7 +2404,7 @@ begin
   -- An event nobody has acted on reports what it is asking
   -- -------------------------------------------------------------------------
 
-  v_json := api.publish_event(OWNER, BOARD, null, 6423, 'Still waiting', '', 'r1',
+  v_json := api.publish_event(OWNER, BOARD, null, 6423, 'Still waiting', 'r1',
                               'ready_for_review', 'implement', '[]'::jsonb, '', '', 'f3', false, BUDGET);
   v_untouched := (v_json ->> 'id')::uuid;
   assert (v_json ->> 'decision') = 'implement',
@@ -2969,10 +2955,10 @@ begin
   -- A workspace's events reach its audience and nobody else.
   v_ws := (api.create_workspace(OWNER, 'p-create', 'Paged team', BUDGET) ->> 'id')::uuid;
   perform api.add_member(OWNER, v_ws, 'p-add', 'p-member', 'member', BUDGET);
-  perform api.set_watch(MEMBER, v_ws, true, '*', BUDGET);
-  perform api.publish_event(OWNER, null, v_ws, 7, 'Team review', '1.0', 'r1',
+  perform api.set_watch(MEMBER, v_ws, true, BUDGET);
+  perform api.publish_event(OWNER, null, v_ws, 7, 'Team review', 'r1',
                             'ready_for_review', 'implement', '[]'::jsonb, '', '', 'tw', false, BUDGET);
-  perform api.publish_event(OWNER, null, v_ws, 8, 'Owners only', '1.0', 'r1',
+  perform api.publish_event(OWNER, null, v_ws, 8, 'Owners only', 'r1',
                             'question', 'answer', '[]'::jsonb, '', '', 'tq', false, BUDGET);
   assert json_array_length(api.list_events(MEMBER, 'open') -> 'events') = 1,
     'a member read a question addressed to the owners';

@@ -4,7 +4,7 @@
 // ---- a board, assembled from one read ---------------------------------------
 //
 // The board's own reading rules as plain functions: what a `## Todo` counts, what a group
-// folder is, how the columns are laid out, which release list a picker draws. `view/read.ts`
+// folder is, how the columns are laid out. `view/read.ts`
 // applies them to `docs/kanban/`; a hosted page applies them to what a Cloud read hands back
 // (#322), and neither invents a second set.
 //
@@ -163,47 +163,7 @@ export function columnsFrom(cards: Card[], known: string[]): Column[] {
     .filter((col) => col.cards.length > 0)
 }
 
-/** How many open cards name each release, with the empty key for the cards in none. */
-export function countByRelease(cards: Card[]): Record<string, number> {
-  const counts: Record<string, number> = {}
-  for (const card of cards) counts[card.release] = (counts[card.release] ?? 0) + 1
-  return counts
-}
-
-// ---- the two board files a read parses --------------------------------------
-
-/** One release on the list, and what it is for. */
-export interface ReleaseEntry {
-  id: string
-  goal: string
-}
-
-/**
- * One line of `releases.md`. It reads `- **v1** — what it is for` (what the script writes),
- * `- **v1**` (a release with no goal) and a bare `- v1` (what a hand edit leaves). Only the
- * FIRST em dash splits the line, so a goal holding one of its own reads back whole.
- */
-export function releaseLineEntry(line: string): ReleaseEntry | null {
-  const m = line.match(/^\s*[-*]\s+(.*)$/)
-  if (!m) return null
-  const cut = m[1]!.indexOf('—')
-  const head = (cut === -1 ? m[1]! : m[1]!.slice(0, cut)).trim()
-  const goal = cut === -1 ? '' : m[1]!.slice(cut + 1).trim()
-  const bold = head.match(/^\*\*(.+?)\*\*$/)
-  const id = (bold ? bold[1]! : head).trim()
-  return id ? { id, goal } : null
-}
-
-/** Every release on the list with its goal, in file order. A duplicate can only come from a
- *  hand edit; the first line wins so the order holds. */
-export function releaseEntriesFrom(text: string): ReleaseEntry[] {
-  const out: ReleaseEntry[] = []
-  for (const line of text.split('\n')) {
-    const entry = releaseLineEntry(line)
-    if (entry && !out.some((e) => e.id === entry.id)) out.push(entry)
-  }
-  return out
-}
+// ---- the board file a read parses --------------------------------------
 
 /** The module map's names — the **bolded name** at the front of each line, nothing else. */
 export function moduleNamesFrom(text: string): string[] {
@@ -248,7 +208,6 @@ function cardFrom(read: ReadCard): Card | null {
     priority: text(meta.priority),
     roi: text(meta.roi),
     status: text(meta.status) as CardStatus,
-    release: text(meta.release),
     blocked_by: ids(meta.blocked_by),
     related: ids(meta.related),
     questions: (Array.isArray(meta.questions) ? meta.questions : []) as Question[],
@@ -330,7 +289,6 @@ function attachSources(cards: Card[], read: BoardRead): void {
 const subtaskOf = (card: Card): Subtask => ({
   id: card.id,
   title: card.title,
-  release: card.release,
   todos: card.todos,
   blocked_by: card.blocked_by,
   status: card.status,
@@ -359,17 +317,11 @@ const documentBody = (read: BoardRead, path: string): string =>
 /** The whole board, as the board screen draws it. */
 function boardFrom(read: BoardRead): Board {
   const { board, every } = collectCards(read)
-  const releases = releaseEntriesFrom(documentBody(read, 'releases.md'))
-  const releaseGoals: Record<string, string> = {}
-  for (const entry of releases) if (entry.goal) releaseGoals[entry.id] = entry.goal
   return {
     columns: columnsFrom(board, moduleNamesFrom(documentBody(read, 'modules.md'))),
     // Read on demand where the board is, and not served to a browser (#322).
     archive: [],
     openIds: Array.from(new Set(every.map((card) => card.id))),
-    releases: releases.map((e) => e.id),
-    releaseGoals,
-    releaseCounts: countByRelease(every),
     // The memory set is the board's own and no screen here draws it; the setup checklist is
     // a run on the machine holding the board.
     memoryOwners: [],
@@ -387,12 +339,10 @@ export function cardScreenFrom(read: BoardRead, id: number): CardScreen | null {
   const every = collectCards(read).every
   const card = every.find((c) => c.id === id)
   if (!card) return null
-  const releases = releaseEntriesFrom(documentBody(read, 'releases.md'))
   return {
     ...screenBoardOf(read),
     card,
     openIds: Array.from(new Set(every.map((c) => c.id))),
-    releases: releases.map((e) => e.id),
     memoryOwners: [],
     // A plan is about a checkout and a diff is a commit — both the machine's, neither a
     // board's, and no control here would use either.

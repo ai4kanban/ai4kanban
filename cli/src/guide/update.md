@@ -31,9 +31,10 @@ Run it from the project root. It does the whole mechanical part:
   skill now — the command comes from npm, so the update is two deletions to commit. It never
   adds a folder that isn't there: the skill is an extra a project opts into, so a project
   without one is not broken, and `akb skill install` is how it is added,
-- adds what an older version never wrote: `config.md`, `modules.md`, `releases.md` (empty —
-  the board never guesses a ship order), the planner's memory folder,
+- adds what an older version never wrote: `config.md`, `modules.md`, the planner's memory folder,
   an empty `docs/kanban/memory/project.md`,
+- deletes `releases.md` and every card's `release` field, keeping
+  `.release-summaries/` as a record,
 - renames `docs/kanban/memory/product.md` to `project.md`,
 - moves a goal the user wrote in `docs/kanban/memory/goal.md` to the top of the planner's
   `decisions.md` and deletes the file,

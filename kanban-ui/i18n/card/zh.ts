@@ -180,7 +180,6 @@ const zh: CardCopy = {
     deletedWorkflow: "已删除的工作流",
     deletedHint: "该工作流已被删除，任务无法开始",
     modules: "模块",
-    release: "版本",
     priority: "优先级",
     roi: "ROI",
     todos: "待办项",

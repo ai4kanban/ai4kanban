@@ -47,7 +47,6 @@ function archived(id: number, body = 'What it did.'): void {
     'priority: med',
     'roi: med',
     'status: todo',
-    'release: ""',
     'blocked_by: []',
     'related: []',
     'modules: []',

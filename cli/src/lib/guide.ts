@@ -21,7 +21,6 @@
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
 import cardChat from '../guide/card-chat.md'
-import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
 import describeProject from '../guide/describe-project.md'
 import discussIdea from '../guide/discuss-idea.md'
@@ -33,13 +32,11 @@ import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
 import multiStageDrafting from '../guide/multi-stage-drafting.md'
 import nextCard from '../guide/next-card.md'
-import planRelease from '../guide/plan-release.md'
 import pruneMemory from '../guide/prune-memory.md'
 import reviewMemory from '../guide/review-memory.md'
 import reviewRejections from '../guide/review-rejections.md'
 import refine from '../guide/refine.md'
 import reflect from '../guide/reflect.md'
-import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
 import setup from '../guide/setup.md'
@@ -75,9 +72,6 @@ export const GUIDES: Guide[] = [
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },
-  { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
-  { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },
-  { name: 'changelog', when: "write a closed version's changelog from what its close wrote down", text: changelog },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'review-memory', when: 'read what the conversations settled, and write it into memory', text: reviewMemory },
   { name: 'describe-project', when: 'rewrite the description of what the project is today', text: describeProject },

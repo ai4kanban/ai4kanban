@@ -43,24 +43,11 @@ export interface StartAnswer {
   reason?: string;
 }
 
-/** Making a release can also start the run that fills it from its goal (#165). The release
- *  is made either way, so a run that would not start is reported rather than refused. */
-export interface ReleaseMade extends WriteResult {
-  planSessionId?: string;
-  planError?: string;
-}
-
-/** Closing one starts the changelog run the same way (#232). */
-export interface ReleaseClosed extends WriteResult {
-  changelogSessionId?: string;
-  changelogError?: string;
-}
-
 /**
  * Everything the board screen and a card page can do.
  *
  * Grouped the way the work falls: reading the board again, a card's own fields, the
- * releases, the runs, and a delivery. Every one of them is something the board answers —
+ * runs, and a delivery. Every one of them is something the board answers —
  * nothing here needs a filesystem in front of it, so a board somewhere else implements the
  * same interface and the screens are unchanged.
  */
@@ -83,13 +70,6 @@ export interface ScreenActions {
   /** The plan or triage item a source link opens (#1306). Only the machine holding the board
    *  can read one, and only there does a card carry such a link. */
   readCardSource?(cardId: number, kind: string, ref: string): Promise<SourceDocument | null>;
-
-  // ---- releases ------------------------------------------------------------
-  createRelease(id: string, fill: boolean, goal: string): Promise<ReleaseMade>;
-  planRelease(id: string): Promise<StartAnswer>;
-  dropRelease(id: string): Promise<WriteResult>;
-  closeRelease(id: string): Promise<ReleaseClosed>;
-  setReleaseGoal(id: string, goal: string): Promise<WriteResult>;
 
   // ---- the runs ------------------------------------------------------------
   listSessions(): Promise<SessionView[]>;

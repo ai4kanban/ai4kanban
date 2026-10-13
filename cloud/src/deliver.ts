@@ -44,7 +44,7 @@ export interface ConnectorJob<Posts> {
   destination?: string
   /** When any field of the event last moved, as it was when this job was read — `content_at`,
    *  not `changed_at`: a message follows a quiet refresh too, because an edit in a chat pings
-   *  nobody and a message naming the wrong release is one somebody would review from.
+   *  nobody and a stale message is one somebody would review from.
    *  Recorded with a message that gets through, so an event that moved while the chat was
    *  answering is still due.
    *

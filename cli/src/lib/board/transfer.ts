@@ -121,7 +121,7 @@ function kindOf(rel: string): DocumentKind | null {
   // at nothing. It has no kind of its own — a Cloud that has never heard of one would refuse
   // the whole import over a document nothing routes differently anyway.
   if (rel.startsWith('plans/')) return 'config'
-  if (rel === 'config.md' || rel === 'modules.md' || rel === 'releases.md') return 'config'
+  if (rel === 'config.md' || rel === 'modules.md') return 'config'
   if (rel === 'setup-checklist.md' || rel === 'todo/README.md') return 'config'
   // The board's own ignore list is board configuration too: a restore without it is a board
   // that would commit the keys and run state the list is there to keep out of git.

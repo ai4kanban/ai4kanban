@@ -5,7 +5,7 @@
 // `Board` is the screen. It is handed no `ScreenActions` and no `ScreenMachine`, so every
 // control that would write is gone rather than dead, no runs are polled, and nothing in this
 // path reaches a filesystem, git or the coding agent. What is left around it is the frame:
-// the board's name and the release picker.
+// the board's name.
 
 import type { ReactNode } from "react";
 import { Board, type BoardChrome } from "@/components/Board";
@@ -13,23 +13,14 @@ import { BoardBaseProvider } from "@/components/board-links";
 import type { BoardScreen } from "@/lib/format/board/screen";
 import type { HostedAccount } from "../lib/cloud";
 import type { HostedCopy } from "../lib/copy";
-import { AccountProvider, CopyProvider, Releases, TopRow } from "./Frame";
+import { AccountProvider, CopyProvider, TopRow } from "./Frame";
 
 /** Declared here rather than inside the component below: a shell built during a render is a
  *  new component type every time, and React would tear the board down and build it again. */
 function Shell({ children, ...chrome }: BoardChrome & { children: ReactNode }) {
-  const board = chrome.screen.board;
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <TopRow workspaceName={chrome.screen.standing.workspaceName}>
-        <Releases
-          releases={board?.releases ?? []}
-          goals={board?.releaseGoals ?? {}}
-          counts={board?.releaseCounts ?? {}}
-          value={chrome.release}
-          onChange={chrome.onReleaseChange}
-        />
-      </TopRow>
+      <TopRow workspaceName={chrome.screen.standing.workspaceName} />
       {children}
     </div>
   );

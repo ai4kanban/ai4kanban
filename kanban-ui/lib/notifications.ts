@@ -70,10 +70,9 @@ export interface CenterPage {
   cards?: number[];
 }
 
-/** One scope change, as the line above the rows says it (#451): what is watched now, and how
- *  many cards were already waiting when it moved. */
+/** The switch that just turned on, as the line above the rows says it (#451): how many cards
+ *  were already waiting. */
 export interface WatchFill {
-  release: string;
   cards: number;
 }
 
@@ -82,7 +81,6 @@ export interface NotificationCenter {
   enabled: boolean;
   /** This board's own Cloud id — every row below is one of its own. */
   boardId: string;
-  release: string;
   silenced: boolean;
   rows: NotificationRow[];
   /** How many rows waiting for a person have not been opened — the bell's count. Landed
@@ -117,15 +115,13 @@ export interface BoardServer {
   thisMachine: string;
 }
 
-/** What this board's Cloud section shows: whether notifications are on, how wide they watch,
- *  which releases they could narrow to, and which machine runs their approvals. */
+/** What this board's Cloud section shows: whether notifications are on, and which machine
+ *  runs their approvals. */
 export interface BoardNotifications {
   enabled: boolean;
-  release: string;
-  releases: string[];
   signedIn: boolean;
   server: BoardServer;
-  /** The board lives in a workspace, so the switch and the release are this member's rather
+  /** The board lives in a workspace, so the switch is this member's rather
    *  than this machine's (#328) — they follow them wherever they open it. False on a Local
    *  board, and on rules that predate this. */
   shared: boolean;
@@ -135,7 +131,6 @@ const OFF: NotificationCenter = {
   signedIn: false,
   enabled: false,
   boardId: "",
-  release: "",
   silenced: false,
   rows: [],
   unread: 0,
@@ -188,26 +183,12 @@ export async function setSilenced(on: boolean): Promise<{ ok: boolean; error?: s
 export async function boardNotifications(): Promise<BoardNotifications> {
   const rules = await boardRules();
   if (!rules.readBoardNotifications) {
-    return {
-      enabled: false,
-      release: "",
-      releases: [],
-      signedIn: false,
-      server: NO_SERVER,
-      shared: false,
-    };
+    return { enabled: false, signedIn: false, server: NO_SERVER, shared: false };
   }
   const state = await rules.readBoardNotifications();
   // Rules that predate the board's server say nothing about one, and the row draws as
   // "no machine runs this" rather than failing to draw the section.
   return { ...state, server: state.server ?? NO_SERVER, shared: state.shared === true };
-}
-
-/** Watch a different release — what the rail asks for when the last one closed. */
-export async function watchRelease(release: string): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.watchRelease) return { ok: false, error: await tooOld() };
-  return rules.watchRelease(release);
 }
 
 /** Be told about a shared board, or not (#328). A Local board has no such switch: signed in

@@ -38,7 +38,7 @@ import { cardsAwaitingAnswer } from '../agent/deliveries'
 import { cardsAtWork, cardsBeingCreated, cardsWithLiveRun } from '../agent/store'
 import { board } from '../board'
 import { KANBAN } from '../paths'
-import { ALL_RELEASES, cloudBoardFor, type CloudBoard } from './boards'
+import { cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
   listOpenEvents,
@@ -118,11 +118,11 @@ const FLUSH_ON_EXIT_MS = 4_000
 
 const newOpId = (): string => crypto.randomUUID()
 
-/** Whether this board publishes at all: notifications on, a release to watch, and a machine
- *  signed in. Each of the three is checked here rather than in five callers. */
+/** Whether this board publishes at all: notifications on and a machine signed in. Each is
+ *  checked here rather than in five callers. */
 function publishing(): CloudBoard | null {
   const enabled = cloudBoardFor(KANBAN)
-  if (!enabled || !enabled.release) return null
+  if (!enabled) return null
   // A workspace member whose own switch is off publishes nothing from this machine (#328),
   // exactly as a Local board with notifications off does. `watchOff` is the mirror of the
   // answer the workspace holds; a Local board's switch is whether the record exists at all.
@@ -186,12 +186,7 @@ export async function recordBoardEvents({
   // take a row out from under the teammates still waiting on it.
   if (enabled.watchOff) return
   try {
-    // A workspace board goes through the pass whatever this member watches — including the
-    // nothing a closed release leaves (#328). Only a Local board's empty release means the
-    // machine has stopped raising events and its own rows come down.
-    if (enabled.release || eventHome(enabled).workspaceId) {
-      await queueDifference(enabled, onCloud, broughtIn)
-    } else retireLive()
+    await queueDifference(enabled, onCloud, broughtIn)
   } catch {
     // A board we could not read this second is a board the next write reads again.
   }
@@ -301,23 +296,15 @@ async function queueDifference(
   // The deliveries that stopped for an answer, read once for the pass like the rest: each
   // hands its event over below, which is what frees the card to be raised again (#647).
   const stopped = cardsAwaitingAnswer()
-  // What the BOARD still holds a decision for, whatever this member watches. On a Local board
-  // that is the same thing as what this machine raises. On a workspace board it is not: the
-  // event belongs to the team, so a card outside this member's release is one they are not
-  // told about (`cloud.event_audience`) and never one whose row they take down (#328).
-  const team = home.workspaceId ? { ...enabled, release: ALL_RELEASES } : enabled
   const seen = new Set<number>()
   // How many cards this switch brought into view — what the summary counts, and what says
   // whether there is a summary at all.
   let broughtInCount = 0
 
   for (const card of cards) {
-    const snapshot = snapshotFor(card, team, raising, home)
+    const snapshot = snapshotFor(card, enabled, raising, home)
     if (!snapshot) continue
     seen.add(card.id)
-    // Raised from THIS machine only while its own member watches the card's release. What
-    // the rest of the team watches is theirs to raise, and the row stays either way.
-    if (enabled.release !== ALL_RELEASES && card.release !== enabled.release) continue
     // A delivery that stopped for an answer hands its event over (#647). That event goes on
     // standing for the delivery — the Implement it carries, and the landing it will report —
     // and the card falls through to the publication below as the question it now is. The
@@ -365,9 +352,8 @@ async function queueDifference(
   }
 
   // Everything on record whose task stopped being one this board raises events for — it
-  // left `ready`, lost its user-owned questions, left the watched release, or a run picked
-  // it up. One test, not four, and the same one a closed release or a swapped one comes
-  // down to. A card put down for the last of those is picked up again when the run ends,
+  // left `ready`, lost its user-owned questions, or a run picked it up. One test, not three.
+  // A card put down for the last of those is picked up again when the run ends,
   // and that is the interruption the bell is for.
   //
   // …unless the board came back with NO cards at all while this one is holding live events.
@@ -389,10 +375,9 @@ async function queueDifference(
       kind: 'summary',
       attempts: 0,
       boardId: enabled.id,
-      release: enabled.release,
       cards: broughtInCount,
     })
-    noteWatchFill(enabled.release, broughtInCount)
+    noteWatchFill(broughtInCount)
   }
 
   if (onCloud) reconcileAgainstCloud(onCloud, home, seen, atWork)
@@ -411,7 +396,6 @@ const isLive = (held: PublishedEvent | undefined): boolean =>
 // nothing is said again later to make up for a bell nobody opened.
 
 interface WatchFill {
-  release: string
   cards: number
 }
 
@@ -424,8 +408,8 @@ const fill = (): { held?: WatchFill } => {
   return g.__akbWatchFill
 }
 
-const noteWatchFill = (release: string, cards: number): void => {
-  fill().held = { release, cards }
+const noteWatchFill = (cards: number): void => {
+  fill().held = { cards }
 }
 
 /** The last switch's line, taken away as it is read. */
@@ -955,21 +939,13 @@ async function boardNow(): Promise<BoardNow> {
   const enabled = cloudBoardFor(KANBAN)
   if (!enabled || enabled.watchOff) return NOTHING_READ
   const home = eventHome(enabled)
-  // The same board the pass judges — including a workspace board this member watches no
-  // release of (#328). Reading only a board with a release left that one passing everything
-  // through, which is the one board where the queue holds the team's rows.
-  if (!enabled.release && !home.workspaceId) return NOTHING_READ
   try {
     const cards = await board().readCards()
     // A board does not empty; a read does. See the sweep in `queueDifference`.
     if (cards.length === 0) return NOTHING_READ
-    // What the BOARD holds a decision for, as `queueDifference` reads it. The question here
-    // is whether the card still needs a person, not whose release it is in: the item was
-    // this member's to raise when it was written down.
-    const team = home.workspaceId ? { ...enabled, release: ALL_RELEASES } : enabled
     const raising = silenced(cardsAtWork())
     const needed = new Set<number>()
-    for (const card of cards) if (snapshotFor(card, team, raising, home)) needed.add(card.id)
+    for (const card of cards) if (snapshotFor(card, enabled, raising, home)) needed.add(card.id)
     return { needed, read: true }
   } catch {
     return NOTHING_READ
@@ -988,7 +964,7 @@ function describe(item: Pending): string {
     case 'action':
       return `action ${item.eventId} ${item.decision} at ${item.revision}`
     case 'summary':
-      return `summary ${item.release} brought ${item.cards} in`
+      return `summary brought ${item.cards} in`
     default:
       return `outcome ${item.eventId} ${item.outcome}`
   }
@@ -1004,7 +980,6 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       boardName: snapshot.boardName,
       taskId: snapshot.taskId,
       taskTitle: snapshot.taskTitle,
-      release: snapshot.release,
       revision: snapshot.revision,
       kind: snapshot.kind,
       decision: snapshot.decision,
@@ -1032,7 +1007,6 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
     const answer = await postWatchSummary({
       opId: item.opId,
       boardId: item.boardId,
-      watching: item.release,
       cards: item.cards,
     })
     if (!answer.ok) return answer

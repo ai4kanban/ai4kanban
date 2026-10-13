@@ -75,7 +75,7 @@ const BOARD_STAGES: StageContract[] = [
   },
   {
     stage: 'plan',
-    flows: ['create', 'refine', 'resolve', 'revise', 'plan-release', 'changelog', 'archive', 'reject', 'setup'],
+    flows: ['create', 'refine', 'resolve', 'revise', 'archive', 'reject', 'setup'],
     input: 'the card as it stands, the product description, and what planning remembers',
     output: 'a card someone can build from without asking anything else',
     done: "nothing is left open on it but the calls that are the user's to make",

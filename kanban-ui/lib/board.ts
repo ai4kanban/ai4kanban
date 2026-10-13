@@ -41,8 +41,7 @@ import type {
 // smaller reads fall back instead: an empty module list means a picker doesn't show, and
 // that is better than a dialog that won't open.
 
-/** The whole board: the columns, the archive notes, the releases and what each is for, how
- *  far setup got. */
+/** The whole board: the columns, the archive notes, how far setup got. */
 export async function readBoard(): Promise<Board> {
   return (await boardRules()).readBoard();
 }
@@ -123,7 +122,6 @@ export async function cardScreen(id: number): Promise<CardScreen | null> {
     ...head,
     card,
     openIds: board.openIds,
-    releases: board.releases,
     memoryOwners: board.memoryOwners,
     plan,
     diff,
@@ -273,15 +271,6 @@ export async function searchCards(query: string): Promise<CardRef[]> {
 export async function readModules(): Promise<string[]> {
   try {
     return await (await boardRules()).readModules();
-  } catch {
-    return [];
-  }
-}
-
-/** The open releases, in ship order. */
-export async function readReleases(): Promise<string[]> {
-  try {
-    return await (await boardRules()).readReleases();
   } catch {
     return [];
   }

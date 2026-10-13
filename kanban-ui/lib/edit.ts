@@ -1,19 +1,11 @@
 import { getCopy } from "@/i18n";
 import { boardRules } from "./cli";
 import { DEFAULT_LANGUAGE } from "./types";
-import type {
-  CardPatch,
-  ClosePlan,
-  DropPlan,
-  FillPlan,
-  SaveProjectResult,
-  WriteResult,
-} from "./types";
+import type { CardPatch, SaveProjectResult, WriteResult } from "./types";
 
 // --- writing the board, through the CLI (#169) -------------------------------
-// Every change a button makes: a card's fields and body, a
-// release opened, given a goal, closed or dropped, the project and its
-// tracks, a setup box ticked. Each one is the CLI's own move — the same code `akb` runs —
+// Every change a button makes: a card's fields and body, the project and its tracks, a setup
+// box ticked. Each one is the CLI's own move — the same code `akb` runs —
 // so a card edited from a screen and a card edited from a terminal come out identical.
 //
 // Two things they all share, and both belong to the CLI rather than to this file: a write
@@ -85,50 +77,6 @@ export async function clearSchedule(id: number, expect = ""): Promise<WriteResul
   }
 }
 
-/** Start a release. `fill` asks for it to be filled as it is made; which way that happens
- *  is the CLI's call — a release with a goal is planned against it by an agent, one without
- *  takes the plain rule there and then — and the answer says which, so the caller knows
- *  whether a run still has to be started. */
-export async function newRelease(
-  id: string,
-  goal = "",
-  fill = false,
-): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }> {
-  try {
-    return await (await boardRules()).newRelease(id, goal, fill);
-  } catch (e) {
-    return refused(e);
-  }
-}
-
-/** Change what a release is for, after it was made. An empty goal clears it. */
-export async function setReleaseGoal(id: string, goal: string): Promise<WriteResult> {
-  try {
-    return await (await boardRules()).setReleaseGoal(id, goal);
-  } catch (e) {
-    return refused(e);
-  }
-}
-
-/** Close a shipped release. `shipped` is how many cards it counted, so the caller knows
- *  whether a changelog run has anything to write (#232). */
-export async function closeRelease(id: string): Promise<WriteResult & { shipped?: number }> {
-  try {
-    return await (await boardRules()).closeRelease(id);
-  } catch (e) {
-    return refused(e);
-  }
-}
-
-/** Give up on a release. */
-export async function dropRelease(id: string): Promise<WriteResult> {
-  try {
-    return await (await boardRules()).dropRelease(id);
-  } catch (e) {
-    return refused(e);
-  }
-}
-
 /** Save what the project is and what tracks its work falls into — setup's `project` step,
  *  folders and board index included. */
 export async function saveProject(name: string, description: string): Promise<SaveProjectResult> {
@@ -145,33 +93,5 @@ export async function finishSetupStep(name: string): Promise<WriteResult> {
     return await (await boardRules()).finishSetupStep(name);
   } catch (e) {
     return refused(e);
-  }
-}
-
-// ---- what a release move would do, before it does it ------------------------
-// Read as a dialog opens, so the user sees the move before anything is changed. A board
-// with no rules to read gives an empty plan; the move itself is what says why.
-
-export async function fillPlan(): Promise<FillPlan> {
-  try {
-    return await (await boardRules()).fillPlan();
-  } catch {
-    return { fill: [], skipped: [] };
-  }
-}
-
-export async function closePlan(id: string): Promise<ClosePlan> {
-  try {
-    return await (await boardRules()).closePlan(id);
-  } catch {
-    return { left: [], shipped: 0 };
-  }
-}
-
-export async function dropPlan(id: string): Promise<DropPlan> {
-  try {
-    return await (await boardRules()).dropPlan(id);
-  } catch {
-    return { archived: [], left: [] };
   }
 }

@@ -9,8 +9,7 @@ const zh: NotificationsCopy = {
   close: "关闭通知",
   silenced: "已静音",
   silencedTip: "这台电脑上所有看板的系统通知都已静音。",
-  filled: (scope, cards) => `跟踪范围已改为「${scope}」，已有 ${cards} 张卡片待你处理`,
-  everyRelease: "全部版本",
+  filled: (cards) => `已有 ${cards} 张卡片待你处理`,
   tabs: { todo: "待处理", landed: "已完成" },
   tabNew: "有新记录",
   status: {
@@ -45,9 +44,9 @@ const zh: NotificationsCopy = {
     body: "登录后，这个看板的卡片动态会显示在这里。登录前，不会有任何数据离开这台电脑。",
     hint: "配置 → 通知",
   },
-  noRelease: {
-    title: "没有进行中的版本",
-    body: "通知只跟踪一个进行中的版本，可在顶栏的版本选择器中新建。",
+  off: {
+    title: "通知已关闭",
+    body: "可在「配置 → 通知」中开启。",
   },
   empty: {
     title: "没有待处理事项",
@@ -59,12 +58,6 @@ const zh: NotificationsCopy = {
   },
   unreachable: (why) => `无法连接 Cloud：${why}。以下是最后一次获取的记录。`,
   unsent: (changes) => `Cloud 数据未同步：有 ${changes} 项改动未能送达，请以这个看板为准。`,
-  closed: {
-    title: "你跟踪的版本已经关闭。",
-    body: "选择新的跟踪版本前，不会有新通知。",
-    all: "全部版本",
-    failed: "该版本无法跟踪",
-  },
 };
 
 export default zh;

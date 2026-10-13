@@ -34,7 +34,6 @@ function card(id: number, title: string, modules: string[] = []): string {
     priority: 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: [],
     related: [],
     modules,

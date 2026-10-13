@@ -77,7 +77,6 @@ const card = (id: number): string => {
       'priority: med',
       'roi: med',
       'status: ready',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: [skill]',

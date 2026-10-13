@@ -144,9 +144,9 @@ describe('Retry is offered', () => {
   })
 
   it('keeps the mark through a read of the record', () => {
-    run({ sessionId: 'kept', unspawned: true, release: 'v2', workflow: 'quick' })
+    run({ sessionId: 'kept', unspawned: true, workflow: 'quick' })
     const [kept] = readStore().runs
-    assert.deepEqual([kept.unspawned, kept.release, kept.workflow], [true, 'v2', 'quick'])
+    assert.deepEqual([kept.unspawned, kept.workflow], [true, 'quick'])
   })
 })
 

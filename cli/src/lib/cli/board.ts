@@ -162,7 +162,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     // No default here: `create` falls back to `med` itself.
     .option('--priority <level>', `how much it matters: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
     .option('--roi <level>', `what it is worth: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
-    .option('--release <version>', 'the version it ships in. Left off, the card is wanted, not promised to one')
     .option('--blocked-by <ids>', 'ids of open cards this one waits on', collectList)
     .option('--related <ids>', 'ids of open cards this one relates to', collectList)
     .option('--modules <names>', 'the parts of the project it touches, validated against modules.md', collectList)
@@ -192,14 +191,12 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary("rewrite a card's fields")
     .description(
       "Rewrite a card's frontmatter fields. --slug renames it. Body and questions are left " +
-        'untouched — those have their own moves. Putting a group root in a release puts every subtask in ' +
-        'it too.',
+        'untouched — those have their own moves.',
     )
     .option('--title <title>', 'what the card is called')
     .option('--priority <level>', LEVELS.join(' | '), oneOf(LEVELS))
     .option('--roi <level>', LEVELS.join(' | '), oneOf(LEVELS))
     .option('--status <status>', STATUSES.join(' | '), oneOf(STATUSES))
-    .option('--release <version>', 'the version it ships in; "" takes it back out of one')
     .option('--blocked-by <ids>', 'ids of open cards this one waits on', collectList)
     .option('--related <ids>', 'ids of open cards this one relates to', collectList)
     .option('--add-blocked-by <ids>', 'append ids to blocked_by, keeping the ids already there', collectList)
@@ -397,7 +394,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary('the open cards: id, title, meta, summary, path — or, with --archived, the cards that landed')
     .description(
       'The open cards at a glance — one block per card with its id, title, meta (status, priority, roi, ' +
-        'release, blockers, open questions), summary line and file path.\n\n' +
+        'blockers, open questions), summary line and file path.\n\n' +
         "`--stale` asks the other question: which cards have sat untouched past the board's **Stale after** " +
         'setting (config.md, 30 days by default), stalest first, each with the days it has sat and what is ' +
         'holding it — a blocker, an unanswered [user] question, or a build. Age is the date git last saw ' +
@@ -439,8 +436,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary('drop a card')
     .description(
       'The same clean-up as archive: the file or folder moves to .archive/, marked `rejected: true`, and ' +
-        'the card counts as rejected. It stays readable there, is listed as rejected, and is never counted ' +
-        'as shipped by a release. A reason is kept on the card, and on each subtask a group takes with it.',
+        'the card counts as rejected. It stays readable there and is listed as rejected. A reason is kept ' +
+        'on the card, and on each subtask a group takes with it.',
     )
     .option('--discard', 'just drop it: nothing learns from it')
     .option('--reason <text>', 'why, kept on the archived card as `rejected_reason` and shown on its page')
@@ -448,104 +445,13 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('reject', this, [String(id)], this.opts(), cli)
     })
 
-  // ---- releases ------------------------------------------------------------
-
-  const release = withShared(program.command('release'))
-    .summary('the versions being planned')
-    .description(
-      'Add a release, say what it is for, read the list, close one that shipped, or drop one that will ' +
-        'not. There is no rename and no reorder — docs/kanban/releases.md is a line or two a person can ' +
-        'edit faster than any command could.',
-    )
-  const sub = (name: string) => withShared(release.command(name))
-
-  sub('new')
-    .argument('<version>', 'free text (v1, 0.5.0, august), kept as typed; it has to work as a filename')
-    .summary('add a release, last in ship order')
-    .description(
-      'Add a release to the end of docs/kanban/releases.md — the open releases, in the order they ship. ' +
-        'Refused: an empty id, and one already on the list.',
-    )
-    .option('--goal <text>', "what the version is for, in the user's own words. Folded to one line")
-    .option(
-      '--fill',
-      'put the high-priority cards with no release in as the release is made: a card goes in when its ' +
-        'priority is high, nothing open is blocking it, and it is not a group root',
-    )
-    .action(async function (this: Command, version: string) {
-      await dispatch('release', this, ['new', version], this.opts(), cli)
-    })
-
-  sub('goal')
-    .argument('<version>')
-    .argument('<goal>', 'what the version is for; "" clears it')
-    .summary('change what a release is for')
-    .description('Change what a release is for, after it was made. An empty goal ("") clears it.')
-    .action(async function (this: Command, version: string, goal: string) {
-      await dispatch('release', this, ['goal', version, goal], this.opts(), cli)
-    })
-
-  sub('list')
-    .summary('the releases in ship order, with their open and ready counts')
-    .description(
-      'The releases in ship order, each with what it is for, how many open cards name it and how many of ' +
-        'those are ready to build; the cards in no release are counted last. Names any card pointing at a ' +
-        'release that is not on the list.',
-    )
-    .action(async function (this: Command) {
-      await dispatch('release', this, ['list'], this.opts(), cli)
-    })
-
-  sub('close')
-    .argument('<version>')
-    .summary('the version shipped')
-    .description(
-      'Write what it held to docs/kanban/.release-summaries/<version>.md (what shipped, from the archived ' +
-        "cards naming it; what didn't, from the open ones), clear the release off every card still open in " +
-        'it, and take its line off the list. Always allowed, whatever is still open. There is no second ' +
-        'run — afterwards the id is unknown and no card names it. The summary is a card list, so the close ' +
-        'then starts the run that writes what the version changed at the top of it.',
-    )
-    .action(async function (this: Command, version: string) {
-      await dispatch('release', this, ['close', version], this.opts(), cli)
-    })
-
-  sub('drop')
-    .argument('<version>')
-    .summary('the version will not ship')
-    .description(
-      'Report the cards archived under it and the open ones sent back, clear the release off every open ' +
-        'card in it, and take its line off the list. Writes no summary file or section; an existing ' +
-        'summary for a reused id is left untouched.',
-    )
-    .action(async function (this: Command, version: string) {
-      await dispatch('release', this, ['drop', version], this.opts(), cli)
-    })
-
-  sub('changelog')
-    .argument('<version>')
-    .summary("put a changelog at the top of that version's newest closed section")
-    .description(
-      'Write a few plain lines saying what the version changed into the newest ## Closed section of its ' +
-        'summary file, under a heading of their own, above the goal and the card list. Every line must ' +
-        'read as one thing the user can now see or do; six lines at most. Run it again for the same ' +
-        'version and the changelog is REPLACED, never added twice. Refused for a version the board holds ' +
-        'no closed record of, and for one that shipped no card. `akb release changelog <version>` is the run that ' +
-        'writes it.',
-    )
-    .option('--file <path>', 'the changelog, as markdown written to a file first')
-    .option('--text <text>', 'the changelog, for a one-liner')
-    .action(async function (this: Command, version: string) {
-      await dispatch('release', this, ['changelog', version], this.opts(), cli)
-    })
-
   // ---- the board itself ----------------------------------------------------
 
   move('init')
     .summary('scaffold docs/kanban/; on an existing board add only what is missing')
     .description(
-      "Scaffold the board — the folders, the board's own memory in memory/ with the planner's beside it, and a blank config.md " +
-        'and releases.md. On an existing board it only adds the files that are missing, so it is safe to ' +
+      "Scaffold the board — the folders, the board's own memory in memory/ with the planner's beside it, and a blank config.md. " +
+        'On an existing board it only adds the files that are missing, so it is safe to ' +
         're-run and is the repair step for a board written by an older version.',
     )
     .action(async function (this: Command) {

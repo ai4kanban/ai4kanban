@@ -1,11 +1,11 @@
 "use client";
 
-import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiMessageSquare, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiMessageSquare, FiPlayCircle, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { ChipsCopy } from "@/i18n/chips/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { QuestionTag } from "@/lib/questions";
-import { NO_RELEASE, type CardStatus } from "@/lib/types";
+import type { CardStatus } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Meaning-coded chips + level selects, all built from the design language's
@@ -22,7 +22,7 @@ const CHIP_TRIGGER =
   " max-md:h-9 max-md:px-2.5";
 const CHIP_ITEM = "py-1.5 pr-7 text-[10px] font-[700] uppercase tracking-[0.04em]";
 
-/** The fill of a chip that means nothing in particular — low, no release, no cadence.
+/** The fill of a chip that means nothing in particular — low, no cadence.
  *  A step of ink INTO whatever is under it rather than the wash colour, because these
  *  chips are dropped on paper cards, on cream, and on the card page's tinted sections,
  *  and an opaque near-wash fill disappears on all but the first. */
@@ -353,81 +353,6 @@ export function ModuleChip({ module }: { module: string }) {
   );
 }
 
-// The card page's release picker — the version this card ships in (#105), made
-// pickable the way LevelSelect makes the priority chip pickable. A tag icon,
-// since a release is a name pinned on the work rather than a kind of work (the
-// part of the product (the module). It draws only here: the board
-// cards don't carry the version (see BoardCard). The options are the open
-// releases plus a bare "—" last for a card in no release — the "Release" label
-// beside the chip says what the dash means, and the file value it writes is
-// empty. Nothing can be typed, so a version id can't be misspelled into
-// existence; making a release stays a CLI job.
-//
-// `releases` is the list as it is right now. A card can name a version that is no
-// longer on it — the list is a file a person edits — so that value is kept as a
-// first option and the card goes on saying what it says. Re-picking it is a
-// no-op (same value, no change event), which is exactly right: the card is
-// already there, and the only move on offer is onto a release that exists.
-//
-// Radix refuses an empty item value, so the "no release" item carries the dash
-// itself as its value — an em dash can never be a real version id (those are
-// letters, numbers, dot, dash, underscore) — and it maps back to the empty
-// string on the way out.
-const NO_RELEASE_ITEM = "—";
-
-export function ReleaseSelect({
-  value,
-  releases,
-  disabled,
-  onChange,
-}: {
-  value: string;
-  releases: string[];
-  disabled?: boolean;
-  onChange: (v: string) => void;
-}) {
-  const copy = useCopy().chips;
-  const planned = value !== NO_RELEASE;
-  const stale = planned && !releases.includes(value);
-  return (
-    <Select
-      value={planned ? value : NO_RELEASE_ITEM}
-      disabled={disabled}
-      onValueChange={(v) => onChange(v === NO_RELEASE_ITEM ? NO_RELEASE : v)}
-    >
-      {/* stopPropagation: the chip sits on a clickable card row — opening the
-          list must not also open the card. The portaled list is outside the
-          row's DOM, so its clicks never reach it. */}
-      <SelectTrigger
-        onClick={(e) => e.stopPropagation()}
-        className={CHIP_TRIGGER}
-        style={{
-          background: planned ? "var(--color-nb-sky-soft)" : NEUTRAL_FILL,
-          color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
-        }}
-      >
-        <FiTag aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {stale && (
-          <SelectItem value={value} className={CHIP_ITEM}>
-            {copy.releaseStale(value)}
-          </SelectItem>
-        )}
-        {releases.map((r) => (
-          <SelectItem key={r} value={r} className={CHIP_ITEM}>
-            {r}
-          </SelectItem>
-        ))}
-        <SelectItem value={NO_RELEASE_ITEM} className={CHIP_ITEM}>
-          —
-        </SelectItem>
-      </SelectContent>
-    </Select>
-  );
-}
-
 // Who owns an open question — parsed from its `[user]` tag. `user` is a
 // judgment call waiting on the human (accent, so it stands out on the card);
 // an untagged question is freshly raised and not yet triaged (a quiet wash).
@@ -484,7 +409,9 @@ export function LevelSelect({
   const copy = useCopy().chips;
   return (
     <Select value={value} disabled={disabled} onValueChange={onChange}>
-      {/* stopPropagation — see ReleaseSelect above. */}
+      {/* stopPropagation: the chip sits on a clickable card row — opening the
+          list must not also open the card. The portaled list is outside the
+          row's DOM, so its clicks never reach it. */}
       <SelectTrigger
         onClick={(e) => e.stopPropagation()}
         className={CHIP_TRIGGER}

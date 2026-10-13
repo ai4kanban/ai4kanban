@@ -38,7 +38,6 @@ import {
   startLarkConnectAction,
   startSlackConnectAction,
   setBoardNotifyAction,
-  watchReleaseAction,
 } from "@/app/actions";
 import { useLanguage } from "@/components/language";
 import { Rich } from "@/i18n/rich";
@@ -46,7 +45,6 @@ import { useCopy } from "@/i18n/use-copy";
 import type { BoardNotifications } from "@/lib/notifications";
 import type { CloudStorage } from "@/lib/workspace";
 import {
-  ALL_RELEASES,
   LANGUAGE_TAGS,
   type CloudAccount,
   type Language,
@@ -76,7 +74,7 @@ import {
   Status,
   Switch,
 } from "./settings";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import { sayFailure } from "@/lib/start-failure";
 import { accountChanged, cloudAccount } from "@/lib/window-state";
 
@@ -1149,11 +1147,9 @@ function Lark({
 
 // --- this board's own tier (#319) ---------------------------------------------
 // Signed in means on: a board raises its events the moment this machine has an account, so
-// there is nothing to switch here — only which open release it watches, since a `ready` task
-// in another release, or promised to none, is not what the user asked to be told about.
+// a Local board has nothing to switch here. A shared board has the member's own switch.
 //
-// A caption carries the scope that a paragraph used to. Rules too old to answer draw no
-// caption either: an empty heading reads worse than nothing.
+// Rules too old to answer draw no caption either: an empty heading reads worse than nothing.
 
 function Notifications() {
   const c = useCopy().configuration.cloud.notifications;
@@ -1164,9 +1160,7 @@ function Notifications() {
   // and then Cloud, which is long enough that a control redrawn only on the answer reads as
   // a control that did not take the press. Cleared once the board has been re-read, so what
   // is on screen after a refusal is what the board actually holds.
-  const [pending, setPending] = useState<
-    Partial<Pick<BoardNotifications, "release">> & { here?: boolean; notify?: boolean }
-  >({});
+  const [pending, setPending] = useState<{ here?: boolean; notify?: boolean }>({});
   const busy = Object.keys(pending).length > 0;
 
   const load = useCallback(async () => setState(await boardNotificationsAction()), []);
@@ -1175,7 +1169,7 @@ function Notifications() {
   }, [load]);
 
   const move = async (
-    shown: { release: string } | { here: boolean } | { notify: boolean },
+    shown: { here: boolean } | { notify: boolean },
     run: () => Promise<{ ok: boolean; error?: string }>,
   ) => {
     if (busy) return;
@@ -1194,7 +1188,6 @@ function Notifications() {
   // the way back on, and it lives here.
   if (!state || (!state.enabled && !state.shared)) return null;
 
-  const release = pending.release ?? state.release;
   const notify = pending.notify ?? state.enabled;
 
   return (
@@ -1212,45 +1205,6 @@ function Notifications() {
             />
           </Row>
         )}
-
-        {/* How wide this board watches. `All` is always there — it needs no release to exist —
-            so the only empty answer left is a board resting on a release that closed, which
-            shows the placeholder and the same prompt the rail gives where the filling stopped. */}
-        <Row
-          label={c.watching}
-          hint={
-            pending.release !== undefined
-              ? saving
-              : `${release === ALL_RELEASES ? c.anyRelease : release ? c.onlyThisRelease : c.releaseClosed}${
-                  // On a team board the watch is this member's rather than this machine's
-                  // (#328), and where it applies is not something the row could otherwise say.
-                  state.shared ? ` ${c.sharedWatch}` : ""
-                }`
-          }
-        >
-          <Select
-            value={release || undefined}
-            disabled={busy}
-            onValueChange={(picked) => void move({ release: picked }, () => watchReleaseAction(picked))}
-          >
-            <SelectTrigger
-              aria-label={c.watching}
-              className={`${FLAT_CONTROL} h-8 w-auto rounded-[8px] py-0 font-mono text-[12px] font-[700]`}
-            >
-              <SelectValue placeholder={c.pickRelease} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_RELEASES} className="font-mono text-[12px]">
-                {c.allReleases}
-              </SelectItem>
-              {state.releases.map((option) => (
-                <SelectItem key={option} value={option} className="font-mono text-[12px]">
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Row>
 
         {/* Which machine runs this board's work (#318). */}
         <ServerRow state={state} here={pending.here ?? state.server.here} busy={busy} onMove={move} />
@@ -1278,7 +1232,7 @@ function ServerRow({
   here: boolean;
   busy: boolean;
   onMove: (
-    shown: { release: string } | { here: boolean },
+    shown: { here: boolean },
     run: () => Promise<{ ok: boolean; error?: string }>,
   ) => Promise<void>;
 }) {

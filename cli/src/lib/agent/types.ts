@@ -43,9 +43,7 @@ export type AgentAction =
   /** Retired (#438). No flow starts one; it stays here so the propose runs already
    *  recorded still read back as what they were. */
   | 'propose'
-  /** Fill one release with the open cards that ship its goal, and write the ones the goal
-   *  needs that the board is missing. It touches no single card, so it carries a release
-   *  id instead of a card id. */
+  /** Retired (#1671) with releases. Kept so the runs already recorded still read back. */
   | 'plan-release'
   /** Plan one card in a single session (`akb guide refine`): settle every gap the session
    *  can settle itself, and leave only the decisions that are the user's. */
@@ -58,7 +56,7 @@ export type AgentAction =
   | 'gate'
   | 'decide'
   /** Finish setting the board up — every step still unticked on
-   *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
+   *  `docs/kanban/setup-checklist.md`, in one run. It names no card: the
    *  checklist is the plan, and the run starts at its first unticked box, so a run started
    *  again after a failure carries on from where the last one stopped. */
   | 'setup'
@@ -66,9 +64,7 @@ export type AgentAction =
    *  `specAgent`, it starts clean, and it writes one section of that card and nothing
    *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
   | 'spec'
-  /** Write one closed version's changelog (#232) — a few plain lines saying what the
-   *  version changed, from the goal and the cards the close wrote down. It touches no
-   *  card, so it carries a release id, and the close that made the record starts it. */
+  /** Retired (#1671) with releases. Kept so the runs already recorded still read back. */
   | 'changelog'
   /** Retired (#1203): nothing reviews a delivery any more. Kept for the runs recorded. */
   | 'review'
@@ -174,11 +170,6 @@ export interface AgentRequest {
   /** create: the card this came up on (#1273), whose dependency on the new card(s) the run
    *  records. */
   fromCard?: number
-  /** create, and implement with no `id`: the version the new card(s) ship in — a
-   *  **Start now** writes one card and it ships in the release on screen like any other
-   *  (#470). plan-release: the version being planned, and changelog: the version being
-   *  written up — the whole of what either run is about, since neither names a card. */
-  release?: string
   /** create, and implement with no `id`: the pictures pasted into the create sheet (#517).
    *  `box` is the folder they were written to as they were pasted and `shots` their names in
    *  the order they went into the box. `startRun` renames that folder after the run and
@@ -236,9 +227,9 @@ export interface TriageAsk {
 export type StartableAction = Exclude<AgentAction, RetiredAction>
 
 /** The actions no flow starts any more. */
-export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run' | 'reject' | 'hook'
+export type RetiredAction = 'propose' | 'writing' | 'gate' | 'decide' | 'review' | 'unstick' | 'run' | 'reject' | 'hook' | 'plan-release' | 'changelog'
 
-const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run', 'reject', 'hook'])
+const RETIRED: ReadonlySet<AgentAction> = new Set<RetiredAction>(['propose', 'writing', 'gate', 'decide', 'review', 'unstick', 'run', 'reject', 'hook', 'plan-release', 'changelog'])
 
 /** Whether nothing starts this action any more — it only reads back off an old record. */
 export const isRetired = (action: AgentAction): action is RetiredAction => RETIRED.has(action)
@@ -480,8 +471,8 @@ export interface RunRecord {
    *  for what an unwatched run left behind (#1313). */
   agentPid?: number
   agentStartedAt?: number
-  /** The text the user typed for this run — a create's description, an action's notes, a
-   *  reject's reason, or the release a plan run was pointed at. */
+  /** The text the user typed for this run — a create's description, an action's notes, or
+   *  a reject's reason. */
   input?: string
   ok?: boolean
   code?: number | null
@@ -564,9 +555,8 @@ export interface RunRecord {
   /** The agent's process never started (#1321), so no session stands behind this run —
    *  even under a connector that takes our id. */
   unspawned?: boolean
-  /** create, and implement with no card: the release and the workflow the sheet named
-   *  (#1321), kept so a retry asks for the same thing. */
-  release?: string
+  /** create, and implement with no card: the workflow the sheet named (#1321), kept so a
+   *  retry asks for the same thing. */
   workflow?: string
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */

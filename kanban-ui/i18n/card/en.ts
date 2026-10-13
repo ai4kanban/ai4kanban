@@ -189,7 +189,6 @@ const en: CardCopy = {
     deletedWorkflow: "Deleted workflow",
     deletedHint: "This workflow was deleted, so the task can't start",
     modules: "Modules",
-    release: "Release",
     priority: "Priority",
     roi: "ROI",
     todos: "Todos",

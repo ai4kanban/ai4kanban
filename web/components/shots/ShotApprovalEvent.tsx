@@ -100,8 +100,7 @@ export function ShotApprovalEvent() {
           #357 Lay the board out for a phone screen
         </h2>
         <p style={{ margin: `${em(6)} 0 ${em(12)}`, color: NB.inkSoft, fontSize: em(12.5) }}>
-          👀 <strong style={{ color: NB.ink }}>Ready for review</strong> · ai4kanban ·
-          release 0.9.0
+          👀 <strong style={{ color: NB.ink }}>Ready for review</strong> · ai4kanban
         </p>
 
         <p style={{ margin: 0, fontSize: em(13), lineHeight: 1.6 }}>

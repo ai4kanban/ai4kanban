@@ -29,7 +29,6 @@ const zh: ChipsCopy = {
   group: "任务组 · 打开查看子任务",
   blockedOne: (ids) => `阻塞：${ids} 尚未完成`,
   blockedMany: (ids) => `阻塞：${ids} 尚未完成`,
-  releaseStale: (version) => `${version} 不在版本列表中`,
   question: { needsYou: "待你决定", new: "新" },
 };
 

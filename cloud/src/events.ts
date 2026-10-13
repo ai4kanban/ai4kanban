@@ -26,7 +26,6 @@ export interface EventRow {
   boardName: string
   taskId: number
   taskTitle: string
-  release: string
   revision: string
   kind: 'ready_for_review' | 'question'
   decision: 'implement' | 'answer' | 'archive'
@@ -97,7 +96,6 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
     p_workspace: workspace,
     p_task_id: taskId,
     p_task_title: text(input.taskTitle, 'task title', 500),
-    p_release: typeof input.release === 'string' ? input.release.slice(0, 100) : '',
     p_revision: text(input.revision, 'revision', 200),
     p_kind: kind,
     p_decision: decision,

@@ -30,7 +30,6 @@ import {
   readMetrics,
   readUsage,
   readCheers,
-  readReleases,
   readSetupDraft,
   readSetupState,
   readCardSource,
@@ -147,7 +146,6 @@ import {
   setBoardNotify,
   setBoardServer,
   setSilenced,
-  watchRelease,
   type BoardNotifications,
   type CenterPage,
   type NotificationCenter,
@@ -165,16 +163,9 @@ import {
 import { ensureDispatcher } from "@/lib/dispatcher";
 import {
   clearSchedule,
-  closePlan,
-  closeRelease,
-  dropPlan,
-  dropRelease,
-  fillPlan,
   finishSetupStep,
-  newRelease,
   patchCard,
   saveProject,
-  setReleaseGoal,
   setSchedule,
   skipQuestion,
 } from "@/lib/edit";
@@ -249,7 +240,6 @@ import type {
   CloudAccount,
   CloudEventAnswer,
   CloudMove,
-  ClosePlan,
   ProAccess,
   BillingLink,
   BillingRead,
@@ -259,10 +249,8 @@ import type {
   ConversationRow,
   DiscussionTarget,
   DiscussRead,
-  DropPlan,
   CaseRecord,
   PartnerFeedback,
-  FillPlan,
   HarnessOption,
   Language,
   LarkChat,
@@ -367,12 +355,6 @@ const ACTIONS = new Set([
   "create",
   "resolve",
   "refine",
-  // Fill a release from its goal (#165) — started from the New release dialog and from a
-  // release's ⋯ menu, never from a card.
-  "plan-release",
-  // Write a closed version's changelog (#232) — started by the close, never from a card.
-  // Its own refusals live in changelogAction below.
-  "changelog",
   // Finish setting the board up (#173) — from the guided run's closing screen and from the
   // setup strip. Started through startSetupRunAction below, which is where its own refusals
   // live.
@@ -382,11 +364,9 @@ const ACTIONS = new Set([
 ]);
 
 // create touches no existing card — it makes one — so it carries no `id`, and every other
-// action needs one. plan-release is the second: it moves and writes many cards, and names a
-// release instead. A setup run is the third and names nothing at all: the checklist is what
-// it works from. A changelog run is the fourth, and names a version too — the one it writes
-// up.
-const CARDLESS = new Set(["create", "plan-release", "changelog", "setup", "triage"]);
+// action needs one. A setup run names nothing at all either: the checklist is what it works
+// from. Nor does a triage run.
+const CARDLESS = new Set(["create", "setup", "triage"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
@@ -406,12 +386,6 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   const buildNow = req.action === "implement" && !!req.description?.trim();
   if (!CARDLESS.has(req.action) && !buildNow && !Number.isInteger(req.id)) {
     throw new Error("action needs a card id");
-  }
-  if (req.action === "plan-release" && !req.release?.trim()) {
-    throw new Error("planning a release needs a version id");
-  }
-  if (req.action === "changelog" && !req.release?.trim()) {
-    throw new Error("a changelog needs a version id");
   }
   const { cloudRevision, cloudAnswers, ...request } = req;
   // The card page acts on the spot, exactly as it always has, and the same durable action
@@ -456,27 +430,6 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
 export interface CloudDecision {
   cloudRevision?: string;
   cloudAnswers?: CloudEventAnswer[];
-}
-
-// Fill a release from its goal (#165): a normal board run — it shows in the runs panel, can
-// be stopped, and keeps its log — that moves the open cards shipping the goal into the
-// release and writes the cards the goal needs that the board hasn't got.
-//
-// It returns the moment the run is spawned, never when the run is done: the release is
-// already on the list, and what the run did is read in its log. Refused for a release the
-// list doesn't hold — a stale tab shouldn't send an agent after a version that has been
-// closed or dropped since.
-export async function planReleaseAction(id: string): Promise<StartResult> {
-  const release = typeof id === "string" ? id.trim() : "";
-  if (!release) return { ok: false, error: "no release named" };
-  if (!(await readReleases()).includes(release)) {
-    return {
-      ok: false,
-      error: `"${release}" is not on the release list — it may already have been closed or dropped.`,
-    };
-  }
-  const req: AgentRequest = { action: "plan-release", release };
-  return startSession(req, await buildPrompt(req));
 }
 
 // Continue a failed run: a fresh run on the same card and the same action, spawned with
@@ -811,11 +764,9 @@ export interface PlanPick {
  * every open one, which is what a screen older than per-plan handoff sends.
  *
  * Only the paths are taken from the browser, and only ones this discussion is still waiting
- * to hand off: a path reaches a prompt. `release` is what the board was showing, so the cards
- * land in it.
+ * to hand off: a path reaches a prompt.
  */
 export async function startPlanningAction(
-  release?: string,
   discussion: string | null = null,
   answer?: string,
   workflow?: string,
@@ -825,7 +776,7 @@ export async function startPlanningAction(
   const plans = await pickedPlans(target, picks, workflow);
   if (!Array.isArray(plans)) return plans;
   const workflows = new Set(plans.map((p) => p.workflow ?? ""));
-  return startFromPlan("create", "plan", target, plans, release, answer, {
+  return startFromPlan("create", "plan", target, plans, answer, {
     // One workflow for the run; several go one per plan.
     ...(workflows.size === 1 && plans[0]!.workflow ? { workflow: plans[0]!.workflow } : {}),
     ...(workflows.size > 1
@@ -841,7 +792,6 @@ export async function startPlanningAction(
  * refusal, or the first run.
  */
 export async function startPlanBuildAction(
-  release?: string,
   discussion: string | null = null,
   answer?: string,
   workflow?: string,
@@ -852,7 +802,7 @@ export async function startPlanBuildAction(
   if (!Array.isArray(plans)) return plans;
   const each: { path: string; result: StartResult }[] = [];
   for (const plan of plans) {
-    const result = await startFromPlan("implement", "build", target, [plan], release, each.length ? undefined : answer, {
+    const result = await startFromPlan("implement", "build", target, [plan], each.length ? undefined : answer, {
       ...(plan.workflow ? { workflow: plan.workflow } : {}),
     });
     each.push({ path: plan.path, result });
@@ -892,7 +842,6 @@ async function startFromPlan(
   answer: PlanAnswer,
   target: ChatTarget | null,
   plans: PlanPick[],
-  release?: string,
   said?: string,
   flow: { workflow?: string; planWorkflows?: Record<string, string> } = {},
 ): Promise<StartResult> {
@@ -900,7 +849,6 @@ async function startFromPlan(
   const request = await prepareAgentRequest({
     action,
     ...(paths.length === 1 ? { plan: paths[0] } : { plans: paths }),
-    release: typeof release === "string" && release.trim() ? release.trim() : undefined,
     // The workflow the new card(s) run through (#715); none is the board's default.
     ...flow,
     // Plan tasks is said into the discussion's own session (#1026); Start now forks it (#1246).
@@ -993,108 +941,6 @@ export async function startSetupRunAction(): Promise<StartResult> {
   if (!setup) return { ok: false, error: "this board is already set up" };
   const req: AgentRequest = { action: "setup" };
   return startSession(req, await buildPrompt(req));
-}
-
-// ---- releases ---------------------------------------------------------------
-
-// Start a release from the header's New release entry (#115) — one line appended to
-// docs/kanban/releases.md, the same line `release new` writes, carrying what the version is
-// for (#164) when the dialog's goal box was filled in.
-//
-// No agent run to make one: a release is a name and its place in the order, so there is
-// nothing for an agent to decide, and a run answers minutes later in a log — which cannot
-// refuse a bad name in the dialog the user is still typing in.
-//
-// `fill` is what the dialog's tab asked for (#106, #165). Which of the two fills that means
-// is the CLI's call, not this file's: a release WITH a goal is planned against it by an
-// agent run, one with NO goal takes the plain rule there and then. Either way the release is
-// written first, so making one never waits on an agent and a refused name moves nothing.
-//
-// The release stands whatever the run does: a run that can't start — another is already
-// going — still leaves the version on the list, so that comes back as `planError` beside
-// `ok`, for the board to say out loud rather than as a failure that would keep the dialog
-// open on a release it already made. A run that DID start comes back as `planSessionId`, so
-// the board can take it on as a run this tab started.
-export async function createReleaseAction(
-  id: string,
-  fill = false,
-  goal = "",
-): Promise<WriteResult & { planning?: boolean; planSessionId?: string; planError?: string }> {
-  if (typeof id !== "string") return { ok: false, error: "a version id is text" };
-  const made = await newRelease(id, typeof goal === "string" ? goal : "", fill === true);
-  if (!made.ok || made.fill !== "agent") return made;
-  const run = await planReleaseAction(id.trim());
-  return {
-    ok: true,
-    planning: run.ok,
-    planSessionId: run.ok ? run.sessionId : undefined,
-    planError: run.ok ? undefined : run.error,
-  };
-}
-
-// Change what a release is for, after it was made (#164) — the ⋯ menu's goal dialog, the
-// same write `release goal` makes. An empty goal clears it, which is why only the id is
-// refused for being empty.
-export async function setReleaseGoalAction(id: string, goal: string): Promise<WriteResult> {
-  if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
-  if (typeof goal !== "string") return { ok: false, error: "a goal is text" };
-  return setReleaseGoal(id.trim(), goal);
-}
-
-// What the fill would do right now — the New release dialog reads this as it opens, so the
-// toggle carries the number of cards before the release is made.
-export async function fillPlanAction(): Promise<FillPlan> {
-  return fillPlan();
-}
-
-// Which archived cards stay put and which open cards a drop strips of their release — the
-// confirm dialog reads this as it opens (#131), so the user sees the move before anything
-// is changed.
-export async function dropPlanAction(id: string): Promise<DropPlan> {
-  if (typeof id !== "string" || !id) return { archived: [], left: [] };
-  return dropPlan(id);
-}
-
-// Give up on a release from the header's picker (#131) — the same move `release drop`
-// makes: clear the open cards' release and take the line off the list, without touching a
-// summary file (#166). A stale board — the release already gone — comes back as
-// { ok:false, error } for the dialog to show.
-export async function dropReleaseAction(id: string): Promise<WriteResult> {
-  if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
-  return dropRelease(id.trim());
-}
-
-// What a close would write down and move — the confirm dialog reads this as it opens
-// (#136). It carries the open cards with every todo ticked, since a close counts those as
-// not shipped and cannot be undone; seeing them here is what lets the user cancel, archive
-// the card, and close after.
-export async function closePlanAction(id: string): Promise<ClosePlan> {
-  if (typeof id !== "string" || !id) return { left: [], shipped: 0 };
-  return closePlan(id);
-}
-
-// Close a shipped release from the header's picker (#136) — the same move `release close`
-// makes: one dated `## Closed` section in the summary file, the open cards' release
-// cleared, the line off the list.
-//
-// Then the changelog (#232). The close is finished either way — it has already written the
-// card list — so the run is started behind it and never waited for: a run that couldn't
-// start comes back as `changelogError` for the board to say out loud, and a version that
-// shipped nothing gets no run at all, since there would be nothing to write from.
-export async function closeReleaseAction(
-  id: string,
-): Promise<WriteResult & { changelogSessionId?: string; changelogError?: string }> {
-  if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
-  const release = id.trim();
-  const closed = await closeRelease(release);
-  if (!closed.ok || !closed.shipped) return closed;
-  const req: AgentRequest = { action: "changelog", release };
-  const run = await startSession(req, await buildPrompt(req));
-  return {
-    ...closed,
-    changelogSessionId: run.ok ? run.sessionId : undefined,
-    changelogError: run.ok ? undefined : run.error,
-  };
 }
 
 // ---- a card, and the numbers -------------------------------------------------
@@ -2586,7 +2432,6 @@ export async function notificationCenterAction(page?: CenterPage): Promise<Notif
       signedIn: false,
       enabled: false,
       boardId: "",
-      release: "",
       silenced: false,
       rows: [],
       unread: 0,
@@ -2637,22 +2482,10 @@ export async function boardNotificationsAction(): Promise<BoardNotifications> {
   } catch {
     return {
       enabled: false,
-      release: "",
-      releases: [],
       signedIn: false,
       server: { attached: false, here: false, machineName: "", thisMachine: "" },
       shared: false,
     };
-  }
-}
-
-/** Watch a different release — the rail's own prompt when the last one closed. */
-export async function watchReleaseAction(release: string): Promise<WriteResult> {
-  if (typeof release !== "string") return { ok: false, error: "that is not a release" };
-  try {
-    return await watchRelease(release.trim());
-  } catch (e) {
-    return { ok: false, ...(await saidThrown(e)) };
   }
 }
 

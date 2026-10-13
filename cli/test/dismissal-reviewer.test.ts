@@ -54,7 +54,7 @@ function item(
 function rejected(id: number, how: { by?: 'user' | 'agent' | ''; reason?: string; at?: number } = {}): void {
   const dir = path.join(kanban(), '.archive')
   fs.mkdirSync(dir, { recursive: true })
-  const lines = ['---', `title: card ${id}`, 'priority: low', 'roi: low', 'status: todo', 'release: ""', 'blocked_by: []', 'related: []', 'modules: []', 'archived: 2026-09-01', 'rejected: true']
+  const lines = ['---', `title: card ${id}`, 'priority: low', 'roi: low', 'status: todo', 'blocked_by: []', 'related: []', 'modules: []', 'archived: 2026-09-01', 'rejected: true']
   if (how.reason) lines.push(`rejected_reason: ${how.reason}`)
   if (how.by !== '') lines.push(`rejected_at: '${new Date(how.at ?? Date.now()).toISOString()}'`, `rejected_by: ${how.by ?? 'user'}`)
   lines.push('questions: []', '---', '', `what card ${id} says`, '')

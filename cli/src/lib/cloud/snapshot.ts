@@ -1,10 +1,8 @@
 // Which tasks a board raises an event about, and what that event carries (#319).
 //
-// Three rules and one filter, in one place, so the publisher, the reconciliation at start
-// and the retirement test are the same judgment rather than three that agree until they
-// don't:
+// Two rules, in one place, so the publisher, the reconciliation at start and the retirement
+// test are the same judgment rather than three that agree until they don't:
 //
-//   • a task the board's watch covers — every card, or one release's, and
 //   • either at `ready`, or carrying questions only the user can answer, and
 //   • nothing in its way: no run over it, and no open card it waits on.
 //
@@ -14,8 +12,7 @@
 // (#565, #646), while a specialist run holds no card and still goes in, because the card
 // page offers no way to answer one while it runs (#568).
 //
-// Narrowed to one release, a task in another — or promised to none — is not what the user
-// asked to be told about. A task that is BOTH `ready` and asking raises the question:
+// A task that is BOTH `ready` and asking raises the question:
 // answering it rewrites the card and moves its revision, so an approval granted first would
 // bind a revision about to change.
 //
@@ -29,7 +26,7 @@ import crypto from 'node:crypto'
 
 import { openOf, parseQuestion, planDeliveryGap } from '../view/rules'
 import type { Card } from '../view/types'
-import { ALL_RELEASES, type CloudBoard } from './boards'
+import type { CloudBoard } from './boards'
 import { decisionFor, type CloudEventDecision, type CloudEventKind, type CloudEventQuestion } from './events'
 import { eventHome, type EventHome } from './home'
 
@@ -50,7 +47,6 @@ export interface EventSnapshot {
   boardName: string
   taskId: number
   taskTitle: string
-  release: string
   revision: string
   kind: CloudEventKind
   decision: CloudEventDecision
@@ -100,8 +96,6 @@ export function actionableKind(
   board: CloudBoard,
   atWork?: ReadonlySet<number>,
 ): CloudEventKind | null {
-  if (!board.release) return null
-  if (board.release !== ALL_RELEASES && card.release !== board.release) return null
   if (atWork?.has(card.id)) return null
   if (card.openBlockers?.length) return null
   if (userQuestions(card).length > 0) return 'question'
@@ -130,7 +124,6 @@ export function snapshotFor(
     boardName: board.name,
     taskId: card.id,
     taskTitle: card.title,
-    release: card.release,
     revision: card.revision,
     kind,
     decision: decisionFor(kind, card.deliversIn),
@@ -145,11 +138,11 @@ export function snapshotFor(
  * What the person is being asked to decide, and nothing else. This is what tells a refresh
  * that interrupts somebody from one that must not.
  *
- * `revision` and `release` are deliberately out of it. A revision is a hash of the WHOLE card
- * file (../board/revision.ts), so putting it in here would make every edit news — retitling a
- * heading, resetting `release`, fixing a typo in a section an event never carries. Both still
- * travel on the snapshot and Cloud still stores them: an action binds the revision, so Cloud
- * must hold the current one. They are written through without moving the event's
+ * `revision` is deliberately out of it. A revision is a hash of the WHOLE card file
+ * (../board/revision.ts), so putting it in here would make every edit news — retitling a
+ * heading, fixing a typo in a section an event never carries. It still travels on the
+ * snapshot and Cloud still stores it: an action binds the revision, so Cloud must hold the
+ * current one. It is written through without moving the event's
  * `changed_at`, which is what re-marks a row unread.
  *
  * `broughtIn` is out of it for the other reason: it says how this publication arrived, not

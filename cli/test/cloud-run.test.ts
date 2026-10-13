@@ -86,7 +86,6 @@ const meta = (over: Partial<Meta> = {}): Meta =>
     priority: 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: [],
     related: [],
     modules: [],

@@ -40,22 +40,6 @@ export function validStatus(v: unknown): void {
   if (!STATUSES.includes(String(v))) die(`--status must be one of ${STATUSES.join(' | ')} (got "${v}")`)
 }
 
-// The release a card ships in. A card that names none is simply in no release — wanted,
-// but not promised to a version. The empty string is that state. Declared with the reader's
-// shapes so a front end and a command mean the same thing by "no release".
-export { NO_RELEASE } from './view/types'
-import { NO_RELEASE } from './view/types'
-
-// A version id is free text (`v1`, `0.5.0`, `august`) — the board never parses it. It's
-// kept exactly as typed minus the spaces at each end, and its case stands, the way a
-// module name does: `V1` and `v1` are two different names. An empty, blank or
-// damaged value reads as no release, so an old or hand-edited card still opens.
-export function normalizeRelease(raw: unknown): string {
-  if (raw === undefined || raw === null || typeof raw === 'object') return NO_RELEASE
-  if (typeof raw === 'boolean') return NO_RELEASE
-  return String(raw).trim()
-}
-
 // The module map (docs/kanban/modules.md) lists the project's parts, one per line,
 // each led by its **bolded name**. Parse just that bolded name at the front of a line —
 // nothing else on the line. Returns null when there's no map yet (a pre-map install), so

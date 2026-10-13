@@ -67,11 +67,10 @@ export type Pending =
       reason?: string
     })
   /** The one message a scope change sends (#451). It belongs to no card, so it names none:
-   *  what is watched now, and how many waiting cards the switch brought in. */
+   *  how many waiting cards the switch brought in. */
   | (Queued & {
       kind: 'summary'
       boardId: string
-      release: string
       cards: number
     })
 
@@ -327,7 +326,7 @@ const subject = (p: Pending): string => {
 /** Whether a queued item and a new one about the same subject would send the same thing. A
  *  publication is its fingerprint AND its revision — the revision is not news, but Cloud
  *  stores it, so a queued snapshot must not hold back the one the card reads at now. A
- *  summary is the scope and the count. Nothing else carries a payload that can move. */
+ *  summary is the count. Nothing else carries a payload that can move. */
 const unchanged = (queued: Pending, next: Pending): boolean => {
   if (queued.kind === 'publish' && next.kind === 'publish') {
     return (
@@ -336,7 +335,7 @@ const unchanged = (queued: Pending, next: Pending): boolean => {
     )
   }
   if (queued.kind === 'summary' && next.kind === 'summary') {
-    return queued.release === next.release && queued.cards === next.cards
+    return queued.cards === next.cards
   }
   return true
 }

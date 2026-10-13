@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { useCopy } from "@/i18n/use-copy";
 import { LEAVES_SHEET } from "@/lib/create-open";
-import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo } from "@/lib/types";
 import { ChatButton } from "./Chat";
 import { ToolCluster } from "./chrome";
@@ -13,7 +12,6 @@ import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
 import { BellButton } from "./Notifications";
 import { HeaderFind } from "./Phone";
-import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
 import { TriageButton } from "./TriageButton";
 
@@ -45,22 +43,13 @@ import { TriageButton } from "./TriageButton";
 // weight is its state: a ghost block when there is nothing, filled ember with the count in
 // white when there is. New idea stays the only button that is always orange.
 //
-// The release dropdown (#104) is the one thing that isn't on both pages, on
-// board-only terms: it says which version the columns are
-// showing, and a card page shows one card whatever is picked. It also decides
-// where a card made from here lands — a card written while `v1` is on screen
-// ships in `v1`, so it doesn't vanish the moment it is written. It is on every
-// board now, a board with no releases included (#115): its last entry is how a
-// release is started, so hiding it on an empty board hid the feature from the
-// only user who hadn't met it.
-//
 // On a narrow screen the row has to stay one line, so the text that is only
 // context gives way first: the path badge drops to the folder name and Create
 // task goes icon-only. Nothing is removed — every control is still there, just
 // without its label.
 //
-// At phone width (#357, #1198) the row holds the card search in the mark's place, then the
-// release picker, Triage, the bell and Create task; everything else moves to the More tab
+// At phone width (#357, #1198) the row holds the card search in the mark's place, then
+// Triage, the bell and Create task; everything else moves to the More tab
 // (components/Phone.tsx). It is the same row with the rest hidden in CSS, every control grown
 // to 36px for a thumb.
 //
@@ -88,58 +77,11 @@ export function Header({
   agent,
   projectRoot,
   onError,
-  releases = [],
-  releaseGoals = {},
-  releaseCounts = {},
-  release = null,
-  onReleaseChange,
-  onCreateRelease,
-  onPlanRelease,
-  onDropRelease,
-  onCloseRelease,
-  onSetReleaseGoal,
-  createRelease = null,
   desktop = false,
 }: {
   agent: AgentInfo;
   projectRoot: string;
   onError?: (msg: string) => void;
-  /** The open releases in ship order. Empty is a board that plans no versions —
-   *  the dropdown still shows, resting on No release (which is then every card)
-   *  and offering New release, so the first one can be started from here. */
-  releases?: string[];
-  /** What each release is for (#164), keyed by version id — shown under the
-   *  version in the dropdown. A release with no goal is absent. */
-  releaseGoals?: Record<string, string>;
-  /** How many open cards each release holds, keyed by version id, with the empty
-   *  key for the cards in no release — the count the first entry wears. */
-  releaseCounts?: Record<string, number>;
-  release?: ReleasePick;
-  onReleaseChange?: (r: ReleasePick) => void;
-  /** Make a release and put the board on it (#115). `fill` is what the dialog's
-   *  tab asked for: from a goal, an agent run planned against it (#165); with no
-   *  goal, the plain high-priority rule (#106).
-   *  Passed with `onReleaseChange` or not at all — a card page has neither. */
-  onCreateRelease?: (id: string, fill: boolean, goal: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Fill a release that already exists from its goal (#165) — the ⋯ menu's
-   *  entry. The board starts the run so it can take it on: the runs panel has it
-   *  from the moment it starts. Board-only, like the other release handlers. */
-  onPlanRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Give up on the release the board is showing (#131): no shipped record, its
-   *  open cards' release cleared, its line off the list. Board-only, like the
-   *  other release handlers. */
-  onDropRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Close the release the board is showing (#136): what shipped written down,
-   *  its open cards' release cleared, its line off the list. Board-only, like the
-   *  other release handlers. */
-  onCloseRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Change what the release on screen is for (#164). Board-only, like the other
-   *  release handlers. */
-  onSetReleaseGoal?: (id: string, goal: string) => Promise<{ ok: boolean; error?: string }>;
-  /** The version a card made from here ships in — the release on screen, or null
-   *  when the whole board is showing and the new card lands wherever the agent
-   *  puts it. A card page passes nothing: it shows one card, not a release. */
-  createRelease?: string | null;
   /** Whether this board is running inside the desktop app (#175). All it changes
    *  here is the folder badge: in the app it opens another project, since there
    *  is no terminal to restart the board from. */
@@ -206,20 +148,6 @@ export function Header({
               nothing on this board. */}
           <GitHubLink />
         </span>
-        {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
-          <ReleasePicker
-            releases={releases}
-            goals={releaseGoals}
-            counts={releaseCounts}
-            value={release}
-            onChange={onReleaseChange}
-            onCreate={onCreateRelease}
-            onPlan={onPlanRelease}
-            onDrop={onDropRelease}
-            onCloseRelease={onCloseRelease}
-            onSetGoal={onSetReleaseGoal}
-          />
-        )}
         <span className="hidden items-center gap-2 md:flex">
           <ToolCluster>
             <Insights />
@@ -240,7 +168,7 @@ export function Header({
             Memory Pruner's page. It portals to the body, so mounting a second copy inside a
             `md:` branch would paint two. */}
         <Configuration agent={agent} onError={onError} />
-        <CreateTask release={createRelease} projectRoot={projectRoot} />
+        <CreateTask projectRoot={projectRoot} />
       </div>
     </header>
   );

@@ -25,7 +25,6 @@ import {
   MOCKUPS,
   MODULES_MD,
   NEXT_ID,
-  RELEASES,
   SETUP_CHECKLIST,
   TODO,
 } from '../paths'
@@ -39,7 +38,7 @@ const MAX_DEPTH = 4
 export function boardStamp(): string {
   const parts: string[] = []
   for (const dir of [TODO, MEMORY, ASSETS, MOCKUPS, path.join(KANBAN, '.mockups')]) walk(dir, parts, 0)
-  for (const file of [RELEASES, MODULES_MD, ARCHIVE_MD, CONFIG, SETUP_CHECKLIST, NEXT_ID]) {
+  for (const file of [MODULES_MD, ARCHIVE_MD, CONFIG, SETUP_CHECKLIST, NEXT_ID]) {
     stamp(file, parts)
   }
   return hash(parts.join('\n'))

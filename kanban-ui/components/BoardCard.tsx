@@ -45,11 +45,6 @@ import { sayFailure } from "@/lib/start-failure";
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a
 // chip repeating it on every card says nothing the reader can't already see.
-//
-// The release is NOT on the card. The release picker at the top of the board is
-// how you look at one version, and the card page is where a card says and
-// changes which one it is in — a version stamped on every card as well is a
-// third place saying the same thing, and it crowds out what the card is for.
 export function BoardCard({
   card,
   liveSession,

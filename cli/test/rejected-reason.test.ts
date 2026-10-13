@@ -40,7 +40,7 @@ after(() => {
 })
 
 const cardText = (id: number, body: string): string =>
-  ['---', `title: Card ${id}`, 'priority: low', 'roi: low', 'status: todo', 'release: ""', 'blocked_by: []', 'related: []', 'modules: []', 'questions: []', '---', '', body, ''].join('\n')
+  ['---', `title: Card ${id}`, 'priority: low', 'roi: low', 'status: todo', 'blocked_by: []', 'related: []', 'modules: []', 'questions: []', '---', '', body, ''].join('\n')
 
 function card(id: number): void {
   fs.writeFileSync(path.join(todo, `${id}-an-idea.md`), cardText(id, 'One idea.'))

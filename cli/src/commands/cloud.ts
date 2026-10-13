@@ -72,9 +72,8 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
     say('')
     say(`Notifications are on for ${boards.length === 1 ? 'one board' : `${boards.length} boards`}:`)
     for (const board of boards) {
-      const watching = board.release ? `watching ${board.release}` : 'no release picked, so nothing is raised'
       const server = servers.get(board.id)
-      say(`  ${board.name} — ${watching}`)
+      say(`  ${board.name}`)
       say(`    ${board.path}`)
       say(`    ${serverLine(server, machine?.name ?? '')}`)
     }

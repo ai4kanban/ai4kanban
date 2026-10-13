@@ -1,6 +1,6 @@
 ---
 name: kanban
-description: Manage the file-based task board with akb. Use for creating and planning tasks, revising or implementing cards, planning releases, and managing background runs; also for "what's next" and "what's running".
+description: Manage the file-based task board with akb. Use for creating and planning tasks, revising or implementing cards, and managing background runs; also for "what's next" and "what's running".
 ---
 
 # Kanban board

@@ -19,7 +19,7 @@ export default async function Page() {
   // of a plain message.
   if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} desktop={isDesktop()} />;
 
-  // The one read the board screen makes (#374) — the columns, the releases, how the board
+  // The one read the board screen makes (#374) — the columns, how the board
   // stands. Nothing machine-only is in it.
   const screen = await boardScreen();
   // …and what only this machine can answer, for the window drawn around that screen. The

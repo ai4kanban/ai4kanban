@@ -58,7 +58,6 @@ const card = (id: number, workflow: string, schedule?: 'refine' | 'implement'): 
       'priority: med',
       'roi: med',
       'status: todo',
-      'release: ""',
       'blocked_by: []',
       'related: []',
       'modules: []',

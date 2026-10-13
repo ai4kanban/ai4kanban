@@ -836,8 +836,8 @@ export type ConfigurationCopy = {
       switchOn: string;
       switchOff: string;
     };
-    /** This board's own settings — the one open release it watches, and the machine
-     *  that runs its work. On as soon as this machine is signed in. */
+    /** This board's own settings — whether it notifies, and the machine that runs its
+     *  work. On as soon as this machine is signed in. */
     notifications: {
       /** The caption over the board's rows. */
       title: string;
@@ -846,17 +846,6 @@ export type ConfigurationCopy = {
       notifyOn: string;
       notifyOff: string;
       notifyBlurb: string;
-      watching: string;
-      /** The picker's widest entry — every card, whatever release. */
-      allReleases: string;
-      /** The picker's own entry while the watched release has closed. */
-      pickRelease: string;
-      /** Beside the picker: what each width means, and what a closed release
-       *  leaves. */
-      anyRelease: string;
-      onlyThisRelease: string;
-      releaseClosed: string;
-      sharedWatch: string;
       saveFailed: string;
     };
   };

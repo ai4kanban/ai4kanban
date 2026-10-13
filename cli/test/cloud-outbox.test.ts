@@ -16,16 +16,9 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { board, setBoardProvider } from '../src/lib/board/index.ts'
-import { closeRelease, dropRelease } from '../src/lib/releases.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { DeliveryRecord, RunRecord } from '../src/lib/agent/types.ts'
-import {
-  ALL_RELEASES,
-  cloudBoardFor,
-  defaultBoardDir,
-  enableCloudBoard,
-  setCloudBoardRelease,
-} from '../src/lib/cloud/boards.ts'
+import { cloudBoardFor, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server.ts'
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
 import {
@@ -54,7 +47,6 @@ import {
   disableBoardNotifications,
   readBoardNotifications,
   setBoardNotify,
-  watchRelease,
 } from '../src/lib/cloud/notifications.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { snapshotFor } from '../src/lib/cloud/snapshot.ts'
@@ -105,7 +97,7 @@ function signIn(): void {
   })
 }
 
-const BOARD = () => enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+const BOARD = () => enableCloudBoard(defaultBoardDir(root), root)
 
 function card(over: Partial<Card> = {}): Card {
   return {
@@ -116,7 +108,6 @@ function card(over: Partial<Card> = {}): Card {
     priority: 'high',
     roi: 'high',
     status: 'ready',
-    release: '0.8.0',
     blocked_by: [],
     related: [],
     questions: [],
@@ -570,7 +561,7 @@ describe('an action Cloud refuses for good', () => {
   it('retires the row once the card is archived, though the click was refused (#1272)', async () => {
     await refused('stale_revision', { state: 'actionable', acted: false })
     // Another card keeps the board from reading as empty.
-    writeCard(13, '0.8.0')
+    writeCard(13)
     fs.rmSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '12-a-task.md'))
 
     await recordBoardEvents()
@@ -632,11 +623,9 @@ describe('an answer approved on this machine', () => {
 describe('an action nothing on this board is carrying any more', () => {
   const ENDED = '/v1/events/e-1/outcome'
 
-  /** The reconciliation at start, against a Cloud holding one event for card 12. The board
-   *  watches every release: this temporary one has cut none, so a named release would read
-   *  as closed and stop the pass before it reconciles. */
+  /** The reconciliation at start, against a Cloud holding one event for card 12. */
   async function reconcileAgainst(over: Record<string, unknown> = {}): Promise<string[]> {
-    const held = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    const held = enableCloudBoard(defaultBoardDir(root), root)
     writeCardFile()
     notePublication(12, 'e-1', (over.state as CloudEventState) ?? 'accepted')
     const event = {
@@ -689,11 +678,11 @@ describe('an action nothing on this board is carrying any more', () => {
 /** The card `card()` describes, on disk, so the publisher has a board to read. */
 
 // ---------------------------------------------------------------------------
-// Changing the watched scope raises nothing that was already waiting (#451)
+// Turning notifications back on raises nothing that was already waiting (#451)
 // ---------------------------------------------------------------------------
 
-/** One more card, in whichever release, so a switch has something to bring in. */
-function writeCard(id: number, release: string, title = `Card ${id}`): void {
+/** One more card, so a switch has something to bring in. */
+function writeCard(id: number, title = `Card ${id}`): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(
@@ -704,7 +693,6 @@ function writeCard(id: number, release: string, title = `Card ${id}`): void {
       'priority: high',
       'roi: high',
       'status: ready',
-      `release: "${release}"`,
       'blocked_by: []',
       'related: []',
       'modules: []',
@@ -723,20 +711,22 @@ const publications = () =>
 const summaries = () =>
   duePending().filter((p): p is Extract<Pending, { kind: 'summary' }> => p.kind === 'summary')
 
-describe('widening the watched scope', () => {
+describe('bringing waiting cards into view', () => {
+  const bringIn = () => publishBoardEvents({ reconcile: true, broughtIn: true })
+
   beforeEach(() => {
     writeCardFile()
-    writeCard(13, '1.0')
-    writeCard(14, '1.0')
+    writeCard(13)
+    writeCard(14)
     BOARD()
   })
 
   it('brings the waiting cards in quietly, and raises what starts waiting afterwards', async () => {
-    // The board is already holding 0.8.0's card, published as ordinary news.
+    // The board is already holding one card, published as ordinary news.
     notePublication(12, 'e-12', 'actionable')
     fakeCloud(unreachable)
 
-    await watchRelease(ALL_RELEASES)
+    await bringIn()
 
     const quiet = publications()
     assert.deepEqual(quiet.map((p) => p.snapshot.taskId).sort(), [13, 14])
@@ -746,7 +736,7 @@ describe('widening the watched scope', () => {
     )
 
     // A card that starts waiting after the switch is ordinary news, mark and all.
-    writeCard(15, '1.0')
+    writeCard(15)
     await afterBoardWrite()
     const fresh = publications().find((p) => p.snapshot.taskId === 15)
     assert.equal(fresh?.snapshot.broughtIn, false)
@@ -765,18 +755,18 @@ describe('widening the watched scope', () => {
       return ok({})
     })
 
-    await watchRelease(ALL_RELEASES)
+    await bringIn()
 
     assert.equal(sent.length, 1)
-    assert.equal(sent[0]?.watching, ALL_RELEASES)
+    assert.equal('watching' in sent[0]!, false)
     assert.equal(sent[0]?.cards, 2)
   })
 
   it('says the same thing in one line at the top of the bell, once', async () => {
     fakeCloud(unreachable)
-    await watchRelease(ALL_RELEASES)
+    await bringIn()
 
-    assert.deepEqual(takeWatchFill(), { release: ALL_RELEASES, cards: 3 })
+    assert.deepEqual(takeWatchFill(), { cards: 3 })
     assert.equal(takeWatchFill(), null, 'the line is handed out once')
   })
 
@@ -786,7 +776,7 @@ describe('widening the watched scope', () => {
     notePublication(14, 'e-14', 'actionable')
     fakeCloud(unreachable)
 
-    await watchRelease(ALL_RELEASES)
+    await bringIn()
 
     assert.equal(summaries().length, 0)
     assert.equal(takeWatchFill(), null)
@@ -794,7 +784,7 @@ describe('widening the watched scope', () => {
 
   it('drops a summary that runs out of attempts rather than saying the board is out of step', async () => {
     fakeCloud(unreachable)
-    await watchRelease(ALL_RELEASES)
+    await bringIn()
     assert.equal(summaries().length, 1)
 
     for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
@@ -815,12 +805,12 @@ describe('widening the watched scope', () => {
 
 // The watch a Cloud checkout does not own (#328).
 //
-// On a board that lives in a workspace, the switch and the release belong to the MEMBER
-// inside it rather than to this machine, so they follow them everywhere they open the board.
+// On a board that lives in a workspace, the switch belongs to the MEMBER inside it rather
+// than to this machine, so it follows them everywhere they open the board.
 // This machine's record becomes the mirror of that answer: every read pulls it down, every
 // move writes through, and the publisher — which cannot reach the network — reads the mirror.
 describe('a shared board’s watch', () => {
-  /** A checkout pointed at a workspace, with a card waiting in `0.8.0`. */
+  /** A checkout pointed at a workspace, with a card waiting. */
   function shared(): void {
     fs.writeFileSync(
       path.join(root, '.ai4kanban.json'),
@@ -833,7 +823,7 @@ describe('a shared board’s watch', () => {
 
   /** What the workspace answers for this member's watch. */
   const watch = (over: Record<string, unknown> = {}) =>
-    ok({ watch: { notify: true, watching: '0.8.0', carried: true, releases: ['0.8.0'], ...over } })
+    ok({ watch: { notify: true, carried: true, ...over } })
 
   /** The Worker, answering the watch and whatever else the section reads on the way. */
   const cloud = (over: Record<string, unknown> = {}) =>
@@ -846,8 +836,8 @@ describe('a shared board’s watch', () => {
 
   it('is pulled down into this machine’s record, and hands a chosen one over once', async () => {
     shared()
-    // The user picked this release on this machine, so it is worth carrying up.
-    setCloudBoardRelease(defaultBoardDir(root), '0.8.0')
+    // The user turned them on on this machine, so it is worth carrying up.
+    enableCloudBoard(defaultBoardDir(root), root, true)
     const seen = cloud({ carried: false })
 
     const state = await readBoardNotifications()
@@ -858,31 +848,30 @@ describe('a shared board’s watch', () => {
     )
     assert.equal(state.shared, true)
     assert.equal(state.enabled, true)
-    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '0.8.0')
   })
 
   it('hands nothing over from a fresh clone, so an added member keeps the default', async () => {
     shared()
-    const seen = cloud({ carried: false, watching: '1.0' })
+    const seen = cloud({ carried: false })
 
     await readBoardNotifications()
 
     assert.equal(
       seen.filter((at) => at.endsWith('/watch/carry')).length,
       0,
-      'the every-release default a signed-in machine mints is not a choice worth carrying',
+      'the default a signed-in machine mints is not a choice worth carrying',
     )
-    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '1.0')
   })
 
   it('is not handed over a second time, so a change made elsewhere stands', async () => {
     shared()
-    const seen = cloud({ watching: ALL_RELEASES })
+    enableCloudBoard(defaultBoardDir(root), root, true)
+    const seen = cloud({ notify: false })
 
     await readBoardNotifications()
 
     assert.equal(seen.filter((at) => at.endsWith('/watch/carry')).length, 0)
-    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, ALL_RELEASES)
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.watchOff, true)
   })
 
   it('switched off, publishes nothing from this machine', async () => {
@@ -950,42 +939,6 @@ describe('a shared board’s watch', () => {
     )
   })
 
-  it('watching another release, leaves the team’s row where it is', async () => {
-    shared()
-    // The workspace's card is live and was published from this very machine. Its member has
-    // since narrowed to a release the card is not in.
-    notePublication(12, 'e-12', 'actionable')
-    cloud({ watching: '1.0' })
-
-    await readBoardNotifications()
-    await recordBoardEvents()
-
-    assert.deepEqual(
-      readOutbox().pending.filter((p) => p.kind === 'retire'),
-      [],
-      'a decision belongs to the workspace, so one member’s narrower watch must not take it down',
-    )
-    assert.deepEqual(
-      readOutbox().pending.filter((p) => p.kind === 'publish'),
-      [],
-      'this machine still raises only what its own member watches',
-    )
-  })
-
-  it('with nothing left to watch, still leaves them where they are', async () => {
-    shared()
-    notePublication(12, 'e-12', 'actionable')
-    // The release this member was watching closed and they have not picked another — #319's
-    // own state, and not a reason to empty the rest of the team's bell.
-    cloud({ watching: '' })
-
-    await readBoardNotifications()
-    await recordBoardEvents()
-
-    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '')
-    assert.deepEqual(readOutbox().pending.filter((p) => p.kind === 'retire'), [])
-  })
-
   it('carries no switch on a Local board, where signed in means on', async () => {
     BOARD()
     fakeCloud(() => ok({}))
@@ -1005,10 +958,10 @@ describe('a delivery stopped for an answer', () => {
 
   /** A card asking the user, with an active delivery on it shaped by `over`. */
   function stopped(over: Partial<DeliveryRecord> = {}): void {
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
-    writeCardFile('0.8.0', [ASKING])
+    enableCloudBoard(defaultBoardDir(root), root)
+    writeCardFile([ASKING])
     setBoardProvider({
-      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+      readCards: async () => [card({ status: 'implementing', questions: [{ text: ASKING }] })],
     } as never)
     withStore((store) =>
       store.deliveries.push({
@@ -1121,10 +1074,10 @@ describe('a delivery from a notification that stops for an answer', () => {
   /** A card asking the user, carried by an active delivery an Implement on Cloud started.
    *  `over` shapes the stop; `state` is what this board last knew that event to be. */
   function fromCloud(over: Partial<DeliveryRecord>, state: CloudEventState = 'running'): void {
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
-    writeCardFile('0.8.0', [ASKING])
+    enableCloudBoard(defaultBoardDir(root), root)
+    writeCardFile([ASKING])
     setBoardProvider({
-      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+      readCards: async () => [card({ status: 'implementing', questions: [{ text: ASKING }] })],
     } as never)
     withStore((store) =>
       store.deliveries.push({
@@ -1259,10 +1212,10 @@ describe('a delivery from a notification that stops for an answer', () => {
     // The same card, asking, on a second checkout: no delivery of its own, and no record of
     // the one somewhere else. It publishes naming nothing, which is how Cloud answers with
     // the running row and raises no second question for one stop.
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
-    writeCardFile('0.8.0', [ASKING])
+    enableCloudBoard(defaultBoardDir(root), root)
+    writeCardFile([ASKING])
     setBoardProvider({
-      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+      readCards: async () => [card({ status: 'implementing', questions: [{ text: ASKING }] })],
     } as never)
 
     await recordBoardEvents()
@@ -1280,13 +1233,12 @@ describe('a delivery from a notification that stops for an answer', () => {
 describe('a card a specialist run is drafting', () => {
   const ASKING = '[user] Which shade of blue?'
 
-  /** A card asking the user, in the watched release, with `drafting` deciding whether a
-   *  `spec` run is live over it. */
+  /** A card asking the user, with `drafting` deciding whether a `spec` run is live over it. */
   function asking({ drafting = false, landing = false } = {}): void {
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
-    writeCardFile('0.8.0', [ASKING])
+    enableCloudBoard(defaultBoardDir(root), root)
+    writeCardFile([ASKING])
     setBoardProvider({
-      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+      readCards: async () => [card({ status: 'implementing', questions: [{ text: ASKING }] })],
     } as never)
     if (landing) {
       withStore((store) =>
@@ -1364,10 +1316,10 @@ describe('a card that is not finished being created', () => {
 
   /** A card asking the user, written by a run that is still going or stopped short. */
   function askingMidCreation(state: 'creating' | 'unfinished'): void {
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
-    writeCardFile('0.8.0', [ASKING])
+    enableCloudBoard(defaultBoardDir(root), root)
+    writeCardFile([ASKING])
     setBoardProvider({
-      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+      readCards: async () => [card({ status: 'implementing', questions: [{ text: ASKING }] })],
     } as never)
     creating(12, state)
   }
@@ -1430,10 +1382,10 @@ describe('a card handed straight to the next agent', () => {
 
   /** A card asking the user, with `holder` deciding what is working it right now. */
   function asking(): void {
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
-    writeCardFile('0.8.0', [ASKING])
+    enableCloudBoard(defaultBoardDir(root), root)
+    writeCardFile([ASKING])
     setBoardProvider({
-      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+      readCards: async () => [card({ status: 'implementing', questions: [{ text: ASKING }] })],
     } as never)
   }
 
@@ -1547,19 +1499,16 @@ describe('a publication on its very first send', () => {
     assert.equal(readOutbox().published['12']?.eventId, 'e-1')
   })
 
-  it('is checked on a workspace board this member watches no release of', async () => {
-    // The pass itself runs on such a board (#328). The check used to read it as no board at
-    // all and let everything through, which is the one board where the queue holds the
-    // team's rows.
-    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+  it('is checked on a workspace board too', async () => {
+    // The queue there holds the team's rows (#328), so it must not let everything through.
+    enableCloudBoard(defaultBoardDir(root), root)
     fs.writeFileSync(
       path.join(root, '.ai4kanban.json'),
       `${JSON.stringify({ version: 1, workspace: WORKSPACE }, null, 2)}\n`,
     )
-    const snapshot = snapshotFor(card(), { ...cloudBoardFor(defaultBoardDir(root))!, release: ALL_RELEASES })
+    const snapshot = snapshotFor(card(), cloudBoardFor(defaultBoardDir(root))!)
     assert.ok(snapshot)
     queue({ opId: 'op-12', kind: 'publish', attempts: 0, snapshot })
-    setCloudBoardRelease(defaultBoardDir(root), '')
     setBoardProvider({ readCards: async () => [card()] } as never)
     working(12)
 
@@ -1594,7 +1543,7 @@ function creating(cardId: number, state: 'creating' | 'unfinished'): void {
   )
 }
 
-function writeCardFile(release = '0.8.0', questions: string[] = []): void {
+function writeCardFile(questions: string[] = []): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(
@@ -1605,7 +1554,6 @@ function writeCardFile(release = '0.8.0', questions: string[] = []): void {
       'priority: high',
       'roi: high',
       'status: ready',
-      `release: "${release}"`,
       'blocked_by: []',
       'related: []',
       'modules: []',
@@ -1658,7 +1606,6 @@ describe('what a publication carries', () => {
       'kind',
       'notes',
       'questions',
-      'release',
       'revision',
       'summary',
       'taskId',
@@ -1695,7 +1642,6 @@ describe('what a publication carries', () => {
       'notes',
       'opId',
       'questions',
-      'release',
       'revision',
       'summary',
       'taskId',
@@ -1771,16 +1717,14 @@ describe('a sign-in that ran out mid-delivery', () => {
 })
 
 // A revision is a hash of the whole card file, so any edit moves it — and #319 hashed the
-// revision into the fingerprint, which made every edit news. Resetting a card's `release`
-// re-marked its row unread over a change nobody was waiting on (#182).
+// revision into the fingerprint, which made every edit news — re-marking a row unread over a
+// change nobody was waiting on (#182).
 describe('an edit the event cannot see', () => {
-  /** The board on every release, one card published, and what the outbox holds for it. */
+  /** One card published, and what the outbox holds for it. */
   async function published(): Promise<{ fingerprint: string; revision: string }> {
-    const watching = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    const enabled = enableCloudBoard(defaultBoardDir(root), root)
     writeCardFile()
-    // Not `publishedEvent`: that helper re-enables the board on one release, and this is
-    // about a board watching all of them.
-    const event = { id: 'e-1', boardId: watching.id, taskId: 12, state: 'actionable', changedAt: 'now', acted: false }
+    const event = { id: 'e-1', boardId: enabled.id, taskId: 12, state: 'actionable', changedAt: 'now', acted: false }
     fakeCloud((url) => (url.endsWith('/v1/events') ? ok({ event }) : ok({})))
     await publishBoardEvents()
     const held = readOutbox().published['12']
@@ -1790,7 +1734,8 @@ describe('an edit the event cannot see', () => {
 
   it('sends the revision through without asking anybody to look again', async () => {
     const before = await published()
-    writeCardFile('')
+    const file = path.join(root, 'docs', 'kanban', 'todo', 'features', '12-a-task.md')
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('priority: high', 'priority: low'))
 
     await recordBoardEvents()
 
@@ -1799,14 +1744,13 @@ describe('an edit the event cannot see', () => {
     assert.equal(
       queued?.kind === 'publish' ? queued.snapshot.fingerprint : '',
       before.fingerprint,
-      'a release reset is not something to decide, so the fingerprint holds',
+      'a priority change is not something to decide, so the fingerprint holds',
     )
     assert.notEqual(
       queued?.kind === 'publish' ? queued.snapshot.revision : '',
       before.revision,
       'the revision moved, and Cloud refuses an action against one it does not hold',
     )
-    assert.equal(queued?.kind === 'publish' ? queued.snapshot.release : 'x', '')
   })
 
   it('queues nothing at all when the card has not moved', async () => {
@@ -1833,47 +1777,6 @@ describe('a machine that is not signed in', () => {
   })
 })
 
-
-describe('release watch durability', () => {
-  for (const fails of [false, true]) {
-    it(`keeps publishing when the release list ${fails ? 'fails' : 'is temporarily empty'}`, async () => {
-      BOARD()
-      writeCardFile()
-      setBoardProvider({ ...board(), readReleases: async () => {
-        if (fails) throw new Error('unavailable')
-        return []
-      } })
-      await recordBoardEvents()
-      assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '0.8.0')
-      assert.ok(duePending().some((p) => p.kind === 'publish' && p.snapshot.taskId === 12))
-    })
-  }
-
-  it('retires existing events after an explicit close pauses publishing', async () => {
-    writeCardFile()
-    fs.writeFileSync(path.join(root, 'docs/kanban/releases.md'), '- **0.8.0**\n')
-    BOARD()
-    notePublication(12, 'e-12', 'actionable')
-    fakeCloud(unreachable)
-    closeRelease('0.8.0')
-    await afterBoardWrite()
-    await flushCloudOutbox()
-    assert.ok(readOutbox().pending.some((p) => p.kind === 'retire' && p.eventId === 'e-12'))
-  })
-
-  for (const end of [closeRelease, dropRelease]) {
-    for (const watch of ['0.8.0', '0.9.0', ALL_RELEASES]) {
-      it(`${end.name} pauses only the watch for the ended release (${watch})`, () => {
-        writeCardFile()
-        fs.writeFileSync(path.join(root, 'docs/kanban/releases.md'), '- **0.8.0**\n- **0.9.0**\n')
-        enableCloudBoard(defaultBoardDir(root), root, watch)
-        end('0.8.0')
-        assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, watch === '0.8.0' ? '' : watch)
-      })
-    }
-  }
-})
-
 // Two boards in one project (#407): `marketing/kanban` beside `docs/kanban`. They share the
 // project, and so share `.akb/` — but they are two boards with two event streams, and a pass
 // over one that read the other's record found every one of its rows among cards it had never
@@ -1893,7 +1796,6 @@ describe('a second board in the same project', () => {
         'priority: high',
         'roi: high',
         'status: ready',
-        'release: "0.8.0"',
         'blocked_by: []',
         'related: []',
         'modules: []',
@@ -1914,7 +1816,7 @@ describe('a second board in the same project', () => {
     const dir = second()
 
     setBoardDir(dir, root)
-    const marketing = enableCloudBoard(dir, root, ALL_RELEASES)
+    const marketing = enableCloudBoard(dir, root)
     await recordBoardEvents()
 
     assert.notEqual(marketing.id, cloudBoardFor(defaultBoardDir(root))!.id, 'two boards, two ids')

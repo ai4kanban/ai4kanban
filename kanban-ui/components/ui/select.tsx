@@ -6,8 +6,8 @@
 // offset shadow, not the OS menu. Icons are react-icons' Fi set (we
 // deliberately avoid lucide).
 //
-// The default trigger is a 1px hairline box. A caller with its own frame — the header's
-// release sticker, a card's level chip, the Configuration dialog's frameless FLAT_CONTROL —
+// The default trigger is a 1px hairline box. A caller with its own frame — a card's level
+// chip, the Configuration dialog's frameless FLAT_CONTROL —
 // restyles it through className; `cn` lets those overrides win. The open list keeps the ink frame and the hard shadow: it floats over
 // everything, so it is a raised block of its own. The chevron and check are sized `1em`, so they follow the
 // trigger's/item's own font size instead of needing an override of their own.
@@ -118,8 +118,8 @@ const SelectLabel = React.forwardRef<
 ));
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
-// `hint` is a second line under the entry — what a release is for, under its
-// version id (#164). `note` is the same idea on the entry's right end, before the
+// `hint` is a second line under the entry — what a choice costs, under its name.
+// `note` is the same idea on the entry's right end, before the
 // check — the row's own aside, like a runtime's model id (#469). Both sit outside
 // ItemText on purpose: only ItemText is echoed into the closed trigger, so they
 // stay in the open list where there is room, and the trigger keeps saying just the

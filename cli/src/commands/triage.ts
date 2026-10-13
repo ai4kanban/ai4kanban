@@ -88,7 +88,7 @@ export interface TriageAddOptions {
 }
 
 /** Write one item into triage. The body comes from `--text` for a line or two and from
- *  `--file` when it is longer, the same pair `akb release changelog` takes. */
+ *  `--file` when it is longer, the same pair other writes take. */
 export async function cmdTriageAdd(opts: TriageAddOptions): Promise<MoveResult> {
   const title = (opts.title ?? '').trim()
   if (!title) die('say what it is: --title "<one line>"', { kind: 'needs-input' })

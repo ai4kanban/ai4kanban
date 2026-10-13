@@ -21,7 +21,6 @@ title: A feature
 priority: med
 roi: high
 status: todo
-release: ""
 blocked_by: []
 related: []
 modules: []
@@ -82,7 +81,7 @@ describe('the card format contract', () => {
     fs.writeFileSync(path.join(dir, '6-inner/root.md'), valid)
     const blocked = valid.replace('blocked_by: []', 'blocked_by: [1, 5]')
     const errors = validateSpec(path.join(dir, '6-inner/7-part.md'), blocked)
-    assert.deepEqual(errors.map((e) => [e.rule, e.line]), [['dependency-cycle', 7]])
+    assert.deepEqual(errors.map((e) => [e.rule, e.line]), [['dependency-cycle', 6]])
     assert.match(errors[0]!.message, /#5, a group this card is in/)
     assert.deepEqual(validateSpec(path.join(dir, 'root.md'), valid.replace('blocked_by: []', 'blocked_by: [6]')), [])
   })
@@ -99,7 +98,7 @@ describe('the card format contract', () => {
     card('8-x.md', '5')
     const member = card('5-outer/7-m.md', '8')
     const errors = validateSpec(path.join(todo, '5-outer/7-m.md'), member, 7)
-    assert.deepEqual(errors.map((e) => [e.rule, e.line]), [['dependency-cycle', 7]])
+    assert.deepEqual(errors.map((e) => [e.rule, e.line]), [['dependency-cycle', 6]])
     assert.match(errors[0]!.message, /#7 → #8 → #5 → #7/)
 
     const inner = card('5-outer/6-inner/root.md', '8')

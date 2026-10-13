@@ -8,8 +8,8 @@
 // board's prompts stay exactly as they were and cost nothing.
 //
 // The boundary rides in the line rather than only in `akb guide board`, because the flows
-// that write the most prose — `writing`, `refine`, `revise`, `spec-agent` and `changelog` —
-// are never given that guide. A run told to write Chinese without the boundary translates a
+// that write the most prose — `writing`, `refine`, `revise` and `spec-agent` — are never
+// given that guide. A run told to write Chinese without the boundary translates a
 // section heading, and that is a card the board can no longer read.
 
 import { readLanguage } from '../machine/settings'
@@ -28,7 +28,7 @@ export function languageNote(language: Language = readLanguage()): string {
   if (!translating(language)) return ''
   const name = LANGUAGE_NAMES[language]
   return [
-    `Write this board's prose in ${name}: card titles and bodies, open questions and their options, memory notes, changelogs, and what you say back to me.`,
+    `Write this board's prose in ${name}: card titles and bodies, open questions and their options, memory notes, and what you say back to me.`,
     `Keep English whatever the language: frontmatter keys and their fixed values, \`##\` and \`###\` section headings, the \`<!-- agent -->\` boundary, todo checkboxes, the \`[user]\` tag, track and module names, and card filenames. Never rename or translate a section title — the board matches those by literal English text, so a changed one is a card it can no longer read, and a title that is not English needs \`akb raw create --slug\` a short English slug.`,
     `Rewriting a card or a memory file that already exists keeps the language that file is already in; only what you write for me to read personally — an open question and its options — follows ${name} on every card, and so does the first note in a memory file still holding nothing but its seeded header.`,
     `This governs the board's prose alone: code, comments, commit messages and the repository's own documents follow the repository, not me. \`akb guide board\` carries the rule in full.`,

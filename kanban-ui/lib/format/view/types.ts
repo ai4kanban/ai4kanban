@@ -14,10 +14,6 @@
 /** How a card ranks. Unranked (empty or unknown) sorts after all of these. */
 export type Level = 'high' | 'med' | 'low'
 
-/** A card with no release — wanted, but not promised to a version. The empty string IS
- *  that state; there is no sentinel name for it. */
-export const NO_RELEASE = ''
-
 /** The stage a card rests in, saved on the card so it survives a restart. In order: `todo`
  *  (raw), `ready` (plan concrete, no open questions, someone could start now),
  *  `implementing`. Archiving and rejecting take the card off the board, so neither is a
@@ -89,10 +85,6 @@ export interface CardSchedule {
 export interface Subtask {
   id: number
   title: string
-  /** The release this subtask ships in. A subtask carries its own — the root is a tracking
-   *  card — and no column ever draws a subtask, so this is what lets a root stand in for a
-   *  group under a picked release. */
-  release: string
   todos: { total: number; done: number }
   /** The subtask's raw `blocked_by` ids, so the root page can draw the group's build
    *  order. Raw rather than the card's `openBlockers`: those are attached after this list
@@ -344,9 +336,6 @@ export interface Card {
   priority: string
   roi: string
   status: CardStatus
-  /** The release this card ships in — a free-text version id like `v1`, or empty for a
-   *  card in no release: wanted, not promised to a version. */
-  release: string
   blocked_by: number[]
   related: number[]
   /** The card's open questions, plain and options ones alike. */
@@ -505,16 +494,6 @@ export interface Board {
   /** Ids of every open card, subtasks included — used to linkify only the `#<id>`s that
    *  still exist. */
   openIds: number[]
-  /** The open releases from `docs/kanban/releases.md`, in ship order. Empty on a board that
-   *  plans no versions — then nothing about releases is drawn at all. */
-  releases: string[]
-  /** What each release is for, keyed by version id — the goal on its line in
-   *  `releases.md`. A release with no goal is absent, not an empty string. */
-  releaseGoals: Record<string, string>
-  /** How many open cards name each release, keyed by version id, with the empty key for the
-   *  cards in no release. Counted over every open card — subtasks answer for themselves —
-   *  so it is the number `release list` prints. A release with nothing open is absent. */
-  releaseCounts: Record<string, number>
   /** What the memory panel draws (#130, #805): the board's own record, then every agent
    *  that keeps memory. Never empty — the board's own group is always first. */
   memoryOwners: MemoryOwner[]
@@ -549,8 +528,6 @@ export interface CardPatch {
   body?: string
   priority?: string
   roi?: string
-  /** A version id from `releases.md`, or empty to take the card out of a release. */
-  release?: string
 }
 
 /** What turning an older board's recurring cards into scheduled agents did (#1414). */
@@ -565,45 +542,6 @@ export interface RecurringMigration {
 
 /** What a save of the project did. */
 export type SaveProjectResult = WriteResult
-
-/** A card named in a release plan. */
-export interface PlanCard {
-  id: number
-  title: string
-}
-
-/** A card a close would send back. `done` means every todo is ticked but it was never
- *  archived — such a card counts as not shipped, and a closed release can't be reopened to
- *  fix that, so the confirm names it while archiving it first is still possible. */
-export interface ClosePlanCard extends PlanCard {
-  done: boolean
-}
-
-export interface ClosePlan {
-  /** The open cards whose release the close clears, in id order. */
-  left: ClosePlanCard[]
-  /** How many archived cards the close would write down as shipped. */
-  shipped: number
-}
-
-export interface DropPlan {
-  /** The archived cards that stay archived under this release, in id order. */
-  archived: PlanCard[]
-  /** The open cards whose release the drop clears, in id order. */
-  left: PlanCard[]
-}
-
-/** A high-priority card the fill leaves out, with the test it failed. */
-export interface FillSkip extends PlanCard {
-  reason: string
-}
-
-export interface FillPlan {
-  /** The cards a fill would move, in id order. */
-  fill: PlanCard[]
-  /** The high-priority cards it would leave, each with why. */
-  skipped: FillSkip[]
-}
 
 // ---- the project's memory --------------------------------------------------
 
@@ -667,8 +605,6 @@ export interface MemoryFile extends MemoryRef {
 export interface ArchivedCard {
   id: number
   title: string
-  /** The version it shipped in, or empty on a card that named none. */
-  release: string
   /** The day it was archived, `YYYY-MM-DD`. Empty on every card archived before the board
    *  stamped one — nothing is backfilled, so the dates fill in over time rather than at
    *  once. */
@@ -748,17 +684,16 @@ export interface UsageView {
   empty: boolean
 }
 
-/** One moment the board cheers for (#1331): a release left with no open card, a group that
- *  closed, or the day's first finished task. `key` is stable, so a screen shows each once. */
+/** One moment the board cheers for (#1331): a group that closed, or the day's first
+ *  finished task. `key` is stable, so a screen shows each once. */
 export interface Cheer {
   key: string
-  kind: 'release' | 'group' | 'first'
+  kind: 'group' | 'first'
   at: number
   /** The group's root, or the day's first card. */
   id?: number
   title?: string
-  release?: string
-  /** Cards archived under the release, or subtasks the group finished. */
+  /** Subtasks the group finished. */
   count?: number
 }
 

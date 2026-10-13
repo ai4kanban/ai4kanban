@@ -58,7 +58,6 @@ export interface AgentReq {
   reason?: string;
   description?: string;
   title?: string;
-  release?: string; // create: the version the new card ships in
   /** create and Start now: the pictures pasted into the create sheet (#517) — the box they
    *  were written to and their names, in the order they went in. The board renames that
    *  folder after the run and hands the run their paths. */
@@ -907,8 +906,8 @@ function StopButton({ sessionId, ink }: { sessionId: string; ink?: boolean }) {
 }
 
 // What to call a run that names no card: what it is doing while it runs,
-// what it did once it's over. A plan-release carries its version id as its
-// input, so the title says which release it planned.
+// what it did once it's over. The retired plan-release and changelog runs carry their
+// version id as their input, so an old record still says which one it was.
 export function cardlessTitle(session: SessionView, c: RunsCopy["cardless"]): string {
   const running = session.status === "running";
   const of = session.input ? ` ${session.input}` : "";

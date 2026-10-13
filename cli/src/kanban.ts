@@ -16,7 +16,6 @@
 //   init | setup-done | setup-status                   the board itself
 //   create | update | update-questions | tag | list    a card's fields
 //   schedule                                           what a blocked card runs when freed
-//   release new | goal | list | close | drop           the versions being planned
 //   archive | reject | run | migrate | peek | metrics  taking a card off, and the rest
 //
 // It is the ONLY sanctioned writer of docs/kanban/next-id, of a card's frontmatter, and of
@@ -297,7 +296,7 @@ export type { SignalOutcome, SignalsAccess, TriageCheck, TriageStatus } from './
 
 // The Cloud notification center (#319): the events this machine's boards raise, and the bell
 // that carries every one of them. A board turns itself on as soon as this machine is signed
-// in — notifications are not a setting — so what is left to choose is the release it watches.
+// in — notifications are not a setting.
 //
 // A board server with a window on it calls `startCloudCenter(true)` and draws from
 // `readCloudCenter`; a backgrounded one calls neither and keeps publishing over `fetch`,
@@ -328,7 +327,6 @@ export {
   readBoardNotifications,
   setBoardNotify,
   setBoardServer,
-  watchRelease,
 } from './lib/cloud/notifications'
 export type { BoardNotifications } from './lib/cloud/notifications'
 
@@ -480,24 +478,18 @@ export {
 } from './lib/agents'
 export type * from './lib/agent/types'
 
-// …and the board itself: the columns, one card in full, the archive, the releases, the
-// metrics, the setup checklist, the board's memory (its own record and each agent's) — plus every write a screen makes and the
-// question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
+// …and the board itself: the columns, one card in full, the archive, the metrics, the setup
+// checklist, the board's memory (its own record and each agent's) — plus every write a screen
+// makes and the question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
 // run, so a button and a command can never disagree about what a card says.
 export {
   allCards,
   boardStamp,
   clearSchedule,
-  closePlan,
-  closeRelease,
   deliveryDiff,
   deliveryPlan,
-  dropPlan,
-  dropRelease,
-  fillPlan,
   findCard,
   finishSetupStep,
-  newRelease,
   nextWork,
   patchCard,
   readArchive,
@@ -507,11 +499,9 @@ export {
   readMemoryOwners,
   readMetricsView,
   readModules,
-  readReleases,
   readSetupDraft,
   readSetupState,
   saveProject,
-  setReleaseGoal,
   setSchedule,
   skipQuestion,
 } from './lib/view/api'

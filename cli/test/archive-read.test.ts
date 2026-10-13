@@ -47,7 +47,6 @@ const frontmatter = (id: number, extra: Record<string, string> = {}): string =>
     'priority: med',
     'roi: med',
     `status: ${extra.status ?? 'todo'}`,
-    `release: ${extra.release ?? '""'}`,
     'blocked_by: []',
     'related: []',
     'modules: []',
@@ -169,7 +168,7 @@ describe('the archive, read', () => {
 
   it('lists what it holds, highest id first', () => {
     card(91)
-    card(93, { release: '"0.9.0"' })
+    card(93)
     card(92)
     for (const id of [91, 92, 93]) remove(id, 'completed')
     const list = readArchive()
@@ -179,7 +178,6 @@ describe('the archive, read', () => {
     )
     const [newest] = list.cards
     assert.equal(newest!.title, 'Card 93')
-    assert.equal(newest!.release, '0.9.0')
     assert.equal(newest!.archived, today())
     assert.equal(newest!.relPath, 'docs/kanban/.archive/93-a-card.md')
   })
@@ -200,17 +198,15 @@ describe('the archive, read', () => {
     fs.writeFileSync(path.join(archive(), '80-an-old-one.md'), `${frontmatter(80)}\n\nFinished long ago.\n`)
     const [old] = readArchive().cards
     assert.equal(old!.archived, '')
-    assert.equal(old!.release, '')
   })
 })
 
 describe('one archived card', () => {
   it('comes back whole, body and all', () => {
-    card(91, { release: '"0.9.0"' })
+    card(91)
     remove(91, 'completed')
     const found = readArchivedCard(91)
     assert.equal(found!.title, 'Card 91')
-    assert.equal(found!.release, '0.9.0')
     assert.equal(found!.body, 'What it does.')
   })
 

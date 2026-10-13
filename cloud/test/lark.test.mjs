@@ -33,7 +33,6 @@ const anEvent = (over = {}) => ({
   boardName: 'ai4kanban',
   taskId: 351,
   taskTitle: 'Act on Cloud task events from Lark',
-  release: '0.8.0',
   revision: '4f2a19c',
   kind: 'ready_for_review',
   decision: 'implement',
@@ -100,9 +99,9 @@ describe('cardFor', () => {
     const card = cardFor(anEvent(), { openId: 'ou_1' })
 
     // The chat list and a phone's notification have nowhere but the title to name the card,
-    // so a reply keeps it. The board and release, which the topic already opened on, go.
+    // so a reply keeps it. The board, which the topic already opened on, goes.
     assert.match(card.header.title.content, /^#351 /)
-    assert.doesNotMatch(said(card), /release 0\.8\.0/)
+    assert.doesNotMatch(said(card), /·  ai4kanban/)
     // A topic reply subscribes nobody, so the one account a press is accepted from is named —
     // in a `div`, because a mention in a `note` notifies nobody.
     assert.equal(card.elements[0].tag, 'div')
@@ -841,7 +840,7 @@ describe('deliverLark', () => {
     assert.equal(posted.args.msg_type, 'interactive')
     const card = JSON.parse(posted.args.content)
     assert.match(card.elements[0].text.content, /<at id="ou_1"><\/at>/)
-    assert.doesNotMatch(said(card), /release 0\.8\.0/)
+    assert.doesNotMatch(said(card), /·  ai4kanban/)
     // Lark's reply endpoint takes no destination, so where a message sits travels in the
     // reference: without it a root left in a chat the account has left would be replied to.
     assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, 'oc_1:om_1')
@@ -863,7 +862,7 @@ describe('deliverLark', () => {
     assert.equal(edited.method, 'PATCH')
     // The chat rides in the reference; the message id is what Lark is asked for.
     assert.equal(edited.lark, 'im/v1/messages/om_1')
-    assert.match(said(JSON.parse(edited.args.content)), /release 0\.8\.0/, 'the card’s own message keeps its facts')
+    assert.match(said(JSON.parse(edited.args.content)), /·  ai4kanban/, 'the card’s own message keeps its facts')
   })
 
   it('keeps patching a message recorded before the chat was written beside it', async (t) => {
@@ -899,7 +898,7 @@ describe('deliverLark', () => {
     const posted = calls.find((c) => c.lark)
     assert.match(posted.lark, /^im\/v1\/messages\?receive_id_type=chat_id/)
     assert.equal(posted.args.receive_id, 'oc_1')
-    assert.match(said(JSON.parse(posted.args.content)), /release 0\.8\.0/, 'a topic of its own is a whole card')
+    assert.match(said(JSON.parse(posted.args.content)), /·  ai4kanban/, 'a topic of its own is a whole card')
   })
 
   it('starts a topic of its own when the card has no message left to reply to', async (t) => {
@@ -935,7 +934,7 @@ describe('deliverLark', () => {
     const posted = calls.find((c) => c.lark)
     assert.match(posted.lark, /receive_id_type=open_id/)
     assert.equal(posted.args.reply_in_thread, undefined)
-    assert.match(said(JSON.parse(posted.args.content)), /release 0\.8\.0/)
+    assert.match(said(JSON.parse(posted.args.content)), /·  ai4kanban/)
   })
 
   it('posts at the top level when Lark refuses the topic', async (t) => {

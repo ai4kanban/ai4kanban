@@ -28,7 +28,7 @@ import {
   stateOf,
   unwrap,
   waitingLine,
-  watchingLine,
+  WATCHING_LINE,
   WATCH_SUMMARY_BODY,
   type Question,
   type WatchSummary,
@@ -78,7 +78,7 @@ const STAR = '⭐'
  * place, and one event would leave a chat a message per state it passed through.
  *
  * `reply` is set for an event posted inside its card's 话题 (#353). The topic already opened
- * on the card's board and release, so a reply drops that line and says only where the work
+ * on the card's board, so a reply drops that line and says only where the work
  * stands — and, while it is still asking for a decision, who it is asking. The title stays:
  * it is the whole of what names the card in the chat list and in a phone's notification.
  */
@@ -125,7 +125,7 @@ export function watchSummaryFor(summary: WatchSummary): Record<string, unknown> 
   return {
     config: { wide_screen_mode: true, update_multi: true },
     header: {
-      title: { tag: 'plain_text', content: watchingLine(summary).slice(0, 150) },
+      title: { tag: 'plain_text', content: WATCHING_LINE },
       template: 'blue',
     },
     elements: [
@@ -136,8 +136,7 @@ export function watchSummaryFor(summary: WatchSummary): Record<string, unknown> 
 }
 
 /**
- * The one line under the title: where this stands, which board it is on, and which release
- * it is promised to.
+ * The one line under the title: where this stands, and which board it is on.
  *
  * The revision is not on it. It is what a press binds — it travels in the control's value and
  * refuses one made against a card that has moved — but eight opaque characters tell a person
@@ -147,7 +146,6 @@ function facts(event: EventRow): string {
   const { key, label } = stateOf(event)
   const [mark] = MARKS[key] ?? ['', '']
   const parts = [`${mark} **${label}**`, event.boardName || 'this board']
-  if (event.release) parts.push(`release ${event.release}`)
   return parts.join('  ·  ')
 }
 

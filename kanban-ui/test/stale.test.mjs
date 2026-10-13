@@ -5,7 +5,7 @@ import { staleDays } from "../lib/stale.ts";
 
 const NOW = Date.parse("2026-10-12T12:00:00Z");
 const ago = (days) => new Date(NOW - days * 86_400_000).toISOString();
-const sub = (over = {}) => ({ id: 2, title: "", release: "", todos: { total: 0, done: 0 }, blocked_by: [], status: "todo", ...over });
+const sub = (over = {}) => ({ id: 2, title: "", todos: { total: 0, done: 0 }, blocked_by: [], status: "todo", ...over });
 const root = (subtasks) => ({ status: "todo", updatedAt: ago(20), isGroup: true, subtasks });
 
 test("a lone card idle over 5 days is stale", () => {

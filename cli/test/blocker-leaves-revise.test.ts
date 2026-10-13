@@ -32,7 +32,6 @@ function writeCard(id: number, opts: { blockedBy?: number[]; schedule?: Meta['sc
     priority: 'med',
     roi: 'med',
     status: 'ready',
-    release: '',
     blocked_by: opts.blockedBy ?? [],
     related: [],
     modules: [],

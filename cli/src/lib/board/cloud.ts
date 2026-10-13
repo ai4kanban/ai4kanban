@@ -9,7 +9,7 @@
 //
 //   • **The workspace is the authority; the machine keeps a copy.** `docs/kanban/` is
 //     hydrated from one snapshot and the board's OWN rules run over that copy — the Local
-//     provider, unchanged, behind this one. Re-implementing lifecycle rules, release fill,
+//     provider, unchanged, behind this one. Re-implementing lifecycle rules,
 //     scoring and delivery state where the workspace is would be a second board.
 //   • **Every read is served from the copy.** It is refreshed after a successful write,
 //     after a write the workspace refused as stale, and when the user asks. Never on a
@@ -170,7 +170,7 @@ interface Context {
    *  the card's number and the document's board-relative path. */
   cardAt: Map<number, string>
   docAt: Map<string, string>
-  /** True once the archive has been pulled into the copy, so closing a release reads it. */
+  /** True once the archive has been pulled into the copy, so archive reads see it. */
   archiveIn: boolean
 }
 
@@ -284,7 +284,7 @@ const stateOf = (ctx: Context): CloudBoardState => ({
  * worked on now — and the history and summary files come beside it because the board's own
  * rules append to `metrics.csv` on almost every move and read `archive.md` on every board
  * draw. The ARCHIVE is the one part left out: this board holds three times as many archived
- * cards as live ones, and closing a release is the only thing that reads them.
+ * cards as live ones, and only the archive screen reads them.
  *
  * The copy is cleared first, so a checkout that still holds committed cards opens the
  * workspace's board and not a mixture of the two — unless a run on this machine is working
@@ -486,8 +486,8 @@ function cloudBoard(ctx: Context): BoardProvider {
     return read.value.cards
   }
 
-  /** Pull the archive into the copy, so the moves that read `.archive/` — closing and
-   *  dropping a release — see what the workspace holds. Once per hydration. */
+  /** Pull the archive into the copy, so the reads of `.archive/` see what the workspace
+   *  holds. Once per hydration. */
   const withArchive = async (): Promise<boolean> => ctx.archiveIn || (await pullArchive()) !== null
 
   /**
@@ -693,20 +693,15 @@ function cloudBoard(ctx: Context): BoardProvider {
     boardStamp: () => local.boardStamp(),
     readCard: async (id) => (await tryLive(), local.readCard(id)),
     readCards: async () => (await tryLive(), local.readCards()),
-    readReleases: () => local.readReleases(),
     readModules: () => local.readModules(),
     readMemoryFile: (name, agent) => local.readMemoryFile(name, agent),
     readMemoryOwners: () => local.readMemoryOwners(),
     readSetupState: () => local.readSetupState(),
     readSetupDraft: () => local.readSetupDraft(),
     readMetricsView: (days) => local.readMetricsView(days),
-    fillPlan: () => local.fillPlan(),
 
-    // All four read `.archive/` — the one part of the board a snapshot leaves out — so each
-    // pulls it into the copy first. Closing and dropping a release count what leaves the
-    // board; the other two are the archive itself (#380).
-    closePlan: async (id) => (await withArchive(), local.closePlan(id)),
-    dropPlan: async (id) => (await withArchive(), local.dropPlan(id)),
+    // Both read `.archive/` — the one part of the board a snapshot leaves out — so each
+    // pulls it into the copy first (#380).
     readArchive: async () => (await withArchive(), local.readArchive()),
     readArchivedCard: async (id) => (await withArchive(), local.readArchivedCard(id)),
 
@@ -796,23 +791,6 @@ function cloudBoard(ctx: Context): BoardProvider {
       through({ card: id }, env, (e) => local.skipQuestion(id, question, skipped, e)),
     archiveCard: (id, env) => through({ card: id }, env, (e) => local.archiveCard(id, e)),
     rejectCard: (id, env, how) => through({ card: id }, env, (e) => local.rejectCard(id, e, how)),
-
-    // ---- releases -----------------------------------------------------------
-
-    newRelease: (id, goal, fill, env) => through({ board: true }, env, (e) => local.newRelease(id, goal, fill, e)),
-    setReleaseGoal: (id, goal, env) => through({ board: true }, env, (e) => local.setReleaseGoal(id, goal, e)),
-
-    // Closing a release writes the shipped cards up from the archive, so the archive has to
-    // be in the copy before the move runs over it.
-    async closeRelease(id, env) {
-      if (!(await withArchive())) return opRefused(new Error(offlineLine()))
-      return through({ board: true }, env, (e) => local.closeRelease(id, e))
-    },
-
-    async dropRelease(id, env) {
-      if (!(await withArchive())) return opRefused(new Error(offlineLine()))
-      return through({ board: true }, env, (e) => local.dropRelease(id, e))
-    },
 
     // ---- memory and setup ---------------------------------------------------
 
@@ -969,8 +947,8 @@ const textOf = (card: CardPayload): string =>
 // presents that one lease while it goes, and the difference between the copy at the start and
 // the copy at the close is sent in one pass.
 
-/** The document halves a run's own edits travel in. The board's history and its closed
- *  releases are the board's own bookkeeping — every board move already sends them under the
+/** The document halves a run's own edits travel in. The board's history and its summary
+ *  files are the board's own bookkeeping — every board move already sends them under the
  *  move that changed them, so a run's close has nothing to say about either. */
 const RUN_DOCUMENTS = new Set<DocumentPayload['kind']>(['config', 'memory', 'rule'])
 

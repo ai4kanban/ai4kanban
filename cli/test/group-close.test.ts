@@ -40,7 +40,6 @@ const frontmatter = (id: number, questions: string[] = []): string =>
     'priority: med',
     'roi: med',
     'status: todo',
-    'release: ""',
     'blocked_by: []',
     'related: []',
     'modules: []',

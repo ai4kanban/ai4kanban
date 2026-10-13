@@ -26,7 +26,6 @@ export function searchLinkable(query: string): ArchivedCard[] {
   const open: ArchivedCard[] = allCards().map((card) => ({
     id: card.id,
     title: card.title,
-    release: card.release,
     archived: '',
     rejected: false,
     relPath: card.relPath,

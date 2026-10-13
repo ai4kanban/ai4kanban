@@ -48,11 +48,9 @@ export let CONFIG = ''
 // out of git, and it is the board's file, never the repo's root one: that one is the
 // user's, and a board that edits it is a board that surprises them.
 export let KANBAN_GITIGNORE = ''
-// The open releases, in the order they ship — one line each. A board that never plans a
-// version still works: no file means no releases yet (see lib/releases.ts).
+// Retired release list (#1671) — only the update that deletes it names it now.
 export let RELEASES = ''
-// What a closed release left behind, one file per version id. Closing takes the release
-// off the list, so this folder is the only record of what the version was meant to hold.
+// What a closed release left behind, kept as a record after releases were retired (#1671).
 export let RELEASE_SUMMARIES = ''
 // Setup's own checklist. Its presence is the flag: it exists while setup is unfinished,
 // and the tick that closes the last box deletes it. A board with no file is a board that

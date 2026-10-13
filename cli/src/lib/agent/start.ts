@@ -11,7 +11,7 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { dropRunCard, runCanStart, takeRunCard } from '../board'
+import { dropRunCard, takeRunCard } from '../board'
 import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
@@ -122,14 +122,6 @@ export function startSubRun(parentId: string, prompt: string, runtime?: string):
     },
     randomUUID(),
   )
-}
-
-/** The same, from inside a board move — where the board's own lock is held and nothing may be
- *  awaited. Only a run with NO card gets here (the changelog a close writes), so there is no
- *  card lock to take; what a Cloud board still refuses is a workspace out of reach. */
-export function startCardlessRun(req: AgentRequest): { run: RunRecord; spawned: boolean } | RunRefusal {
-  const can = runCanStart()
-  return can.ok ? open(req, randomUUID()) : can
 }
 
 /** What this run is written down from (#517): the pictures pasted into the create sheet

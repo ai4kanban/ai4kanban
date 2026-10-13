@@ -26,8 +26,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const cardId = Number(id);
   if (!Number.isInteger(cardId)) notFound();
 
-  // The one read a card page makes (#374) — the card, the ids it may link to, the releases
-  // its picker offers, what an Implement would do and what the delivery changed.
+  // The one read a card page makes (#374) — the card, the ids it may link to, what an
+  // Implement would do and what the delivery changed.
   //
   // The board is read through the CLI (#169). No copy of its rules to read it with is not a
   // missing card — the card may be sitting right there — so it says so and names the fix,

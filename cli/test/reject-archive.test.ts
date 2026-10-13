@@ -17,7 +17,6 @@ import { leftBoardOnLanding } from '../src/lib/agent/sessions.ts'
 import { parseFrontmatter } from '../src/lib/frontmatter.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { endingCards } from '../src/lib/releases.ts'
 import { validateSpec } from '../src/lib/spec-contract.ts'
 import type { MoveResult } from '../src/lib/types.ts'
 import { readArchive, readArchivedCard } from '../src/lib/view/archive.ts'
@@ -38,14 +37,13 @@ beforeEach(() => {
 
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
-const cardText = (id: number, release = '', status = 'todo'): string =>
+const cardText = (id: number, status = 'todo'): string =>
   [
     '---',
     `title: Card ${id}`,
     'priority: med',
     'roi: med',
     `status: ${status}`,
-    `release: "${release}"`,
     'blocked_by: []',
     'related: []',
     'modules: []',
@@ -56,8 +54,8 @@ const cardText = (id: number, release = '', status = 'todo'): string =>
     '',
   ].join('\n')
 
-function card(id: number, release = '', status = 'todo'): void {
-  fs.writeFileSync(path.join(todo(), `${id}-an-idea.md`), cardText(id, release, status))
+function card(id: number, status = 'todo'): void {
+  fs.writeFileSync(path.join(todo(), `${id}-an-idea.md`), cardText(id, status))
 }
 
 function remove(id: number, metric: 'completed' | 'rejected', discard = false): MoveResult & { receipt: string } {
@@ -74,7 +72,7 @@ const metaOf = (...parts: string[]) => parseFrontmatter(fs.readFileSync(path.joi
 describe('rejecting a card', () => {
   for (const discard of [false, true]) {
     it(`files it in the archive, marked rejected${discard ? ' — a discard too' : ''}`, () => {
-      card(80, '', 'implementing')
+      card(80, 'implementing')
       const res = remove(80, 'rejected', discard)
       assert.equal(fs.existsSync(path.join(todo(), '80-an-idea.md')), false)
       const meta = metaOf('80-an-idea.md')
@@ -133,16 +131,6 @@ describe('rejecting a card', () => {
 })
 
 describe('a rejected card in the archive', () => {
-  it('is not counted as shipped by its release', () => {
-    card(80, 'v1')
-    card(81, 'v1')
-    card(82, 'v1')
-    remove(80, 'rejected')
-    remove(81, 'rejected', true)
-    remove(82, 'completed')
-    assert.deepEqual(endingCards('v1').archived.map((row) => row.id), [82])
-  })
-
   it('starts no reflection and is not a landed card', () => {
     card(80)
     card(81)

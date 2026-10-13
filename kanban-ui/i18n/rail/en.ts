@@ -49,7 +49,7 @@ const en: RailCopy = {
     list: "Archived cards",
     undated: "Archived before the board kept a record",
     sort: { delivered: "Delivered", created: "Created" },
-    card: { label: "Archive", release: "Release", archived: "Archived", rejected: "Rejected", rejectedTip: "Rejected, not shipped", reason: "Reason" },
+    card: { label: "Archive", archived: "Archived", rejected: "Rejected", rejectedTip: "Rejected, not shipped", reason: "Reason" },
   },
   testCases: {
     row: "Test cases",

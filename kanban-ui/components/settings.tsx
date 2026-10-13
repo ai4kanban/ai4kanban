@@ -274,6 +274,6 @@ export const CONTROL =
   "w-full rounded-[10px] bg-nb-wash px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field disabled:cursor-wait";
 
 /** CONTROL for a `ui/select.tsx` trigger, which carries a framed version everywhere else in
- *  the app (the header's release picker, a card's chips). Passed by the dialog's own lists so
+ *  the app (a card's chips). Passed by the dialog's own lists so
  *  a list and a text box beside it still read as the same control. */
 export const FLAT_CONTROL = "border-0 bg-nb-wash";

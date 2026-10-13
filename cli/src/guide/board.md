@@ -28,7 +28,6 @@ docs/kanban/
 │   └── files/      dropped-in files
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
-├── releases.md     the open releases, in the order they ship — one line each
 ├── setup-checklist.md
 │                   setup's own steps, while setup is unfinished (`akb guide setup`) —
 │                   completing the last item deletes the file
@@ -50,7 +49,7 @@ id 4). Ids are global and never reused; only `akb raw create` allocates them.
 ## Never hand-write a card's frontmatter
 
 `akb raw create`, `update`, `update-questions`, and `schedule` manage
-the metadata: title, priority, roi, status, release, blocked_by, related, modules,
+the metadata: title, priority, roi, status, blocked_by, related, modules,
 source, questions, and schedule. Edit only the card's **body** by hand. `akb raw help`
 lists all operations; `akb raw help <move>` explains one operation.
 
@@ -64,7 +63,7 @@ A board run carries `KANBAN_RUN` in its environment. Never unset or bypass it (f
 A run is told which language to write the board's prose in; told nothing, write English.
 
 - **Follows the language**: card titles and bodies, open questions and their options, memory
-  notes, changelogs, and replies to the user.
+  notes, and replies to the user.
 - **Prose in frontmatter is still prose**: titles, questions, options.
 - **Stays English**: frontmatter keys and fixed values, `##`/`###` headings, the
   `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag, module names, and filenames.
@@ -72,7 +71,7 @@ A run is told which language to write the board's prose in; told nothing, write 
   `akb raw create --slug <short-english-slug>`, and a group folder an English slug.
 - **An edit follows the file, not the setting**: an existing card or memory file keeps its
   language. Open questions and their options follow the setting on every
-  card; so does a rewritten changelog (`akb guide changelog`).
+  card.
 - **A memory file holding only its seeded header is empty**: its first note follows the
   setting.
 - **Not the repository's**: code, comments, commit messages, and repository documents

@@ -153,7 +153,6 @@ export interface CloudEvent {
   boardName: string
   taskId: number
   taskTitle: string
-  release: string
   /** The card revision this event binds. An action against a revision that has moved is
    *  refused. */
   revision: string

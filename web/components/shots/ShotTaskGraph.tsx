@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { FiCheckCircle, FiChevronRight, FiGitCommit, FiTag } from "react-icons/fi";
+import { FiCheckCircle, FiChevronRight, FiGitCommit } from "react-icons/fi";
 import {
   CROP,
   Chip,
@@ -246,20 +246,6 @@ export function ShotTaskGraph() {
             </Chip>
             <Chip bg={NB.mintSoft} ink={NB.mintInk}>
               local-ui
-            </Chip>
-          </MetaItem>
-          <MetaItem label="Release">
-            <Chip
-              bg={NB.skySoft}
-              ink={NB.skyInk}
-              chevron
-              icon={
-                <ChipIcon>
-                  <FiTag style={{ width: "100%", height: "100%" }} />
-                </ChipIcon>
-              }
-            >
-              0.9.0
             </Chip>
           </MetaItem>
           <MetaItem label="Priority">

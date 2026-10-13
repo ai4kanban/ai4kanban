@@ -28,7 +28,6 @@ export interface Meta {
   priority: string
   roi: string
   status: string
-  release: string
   blocked_by: number[]
   related: number[]
   modules: string[]

@@ -121,8 +121,8 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
   // dialog. What the runs panel names turns on it, so it can't be a page-load value.
   const [agent, setAgent] = useState(machine.agent);
   const finishSetup = useFinishSetup(chrome.watch);
-  // A chat wrote the board while it was answering (#243) — a card written, moved into a
-  // release, archived. The chat's own poll notices within a few hundred milliseconds, so the
+  // A chat wrote the board while it was answering (#243) — a card written or
+  // archived. The chat's own poll notices within a few hundred milliseconds, so the
   // columns catch up while the reply is still arriving. The runs poll is woken too: the same
   // message may have started a run, and it belongs in the panel now rather than at the next
   // idle tick.
@@ -183,18 +183,6 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
           agent={agent}
           projectRoot={machine.projectRoot}
           onError={chrome.onError}
-          releases={board?.releases ?? []}
-          releaseGoals={board?.releaseGoals ?? {}}
-          releaseCounts={board?.releaseCounts ?? {}}
-          release={chrome.release}
-          onReleaseChange={chrome.onReleaseChange}
-          onCreateRelease={chrome.onCreateRelease}
-          onPlanRelease={chrome.onPlanRelease}
-          onDropRelease={chrome.onDropRelease}
-          onCloseRelease={chrome.onCloseRelease}
-          onSetReleaseGoal={chrome.onSetReleaseGoal}
-          // A card written while a version is on screen ships in that version.
-          createRelease={chrome.release}
           desktop={machine.desktop}
         />
       }

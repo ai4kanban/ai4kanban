@@ -69,11 +69,8 @@ import type {
   CardDeliveryState,
   CardPatch,
   Cheer,
-  ClosePlan,
   DeliveryDiff,
   DeliveryPlan,
-  DropPlan,
-  FillPlan,
   InboxAddResult,
   InboxDrop,
   MemoryFile,
@@ -89,10 +86,10 @@ import type {
 } from "./format/view/types";
 
 // --- the board's rules, loaded once (#168, #169) -----------------------------
-// Everything the board is — how a card is written, what a release does when it closes, how
-// the setup checklist reads, which cards a refine would move, which agent runs and what it
-// is sent — lives in the CLI, as one built file. This loads that file and hands the UI its
-// exports. The UI keeps no copy of any of it.
+// Everything the board is — how a card is written, how the setup checklist reads, which
+// cards a refine would move, which agent runs and what it is sent — lives in the CLI, as one
+// built file. This loads that file and hands the UI its exports. The UI keeps no copy of any
+// of it.
 //
 // Loading it rather than shelling out to it is the same one copy of the rules either way:
 // it IS `akb`'s own module, and a card written here is a card written there. What it buys
@@ -114,7 +111,7 @@ import type {
  *  at. A write against a revision that has moved comes back as a conflict and writes
  *  nothing, so the page re-reads that one card and repeats the change on what it says now.
  *
- *  Card writes pass it; board-level ones (a release, a memory file) deliberately
+ *  Card writes pass it; board-level ones (a memory file, the project) deliberately
  *  do not — the board's own revision moves whenever ANY card does, so a screen writing
  *  against the one it read would conflict with work it has nothing to do with. Those write
  *  against the revision their writer lease hands them. */
@@ -606,7 +603,6 @@ export interface BoardRules {
   readUsageView?(days: number): UsageResult;
   /** Today's moments worth cheering for (#1331). Optional: older rules cheer for nothing. */
   readCheers?(): Cheer[];
-  readReleases(): Promise<string[]>;
   /** One memory file, whole — the board's own record, or one an agent keeps when `agent`
    *  names one that holds it (#129, #130, #805). Optional: a board can be running rules older
    *  than the release that added it, and the memory page then says so rather than the whole
@@ -614,9 +610,6 @@ export interface BoardRules {
   readMemoryFile?(name: string, agent?: string): Promise<MemoryFile | null>;
   readSetupDraft(): Promise<SetupDraft>;
   readSetupState(): Promise<SetupState | null>;
-  fillPlan(): Promise<FillPlan>;
-  closePlan(id: string): Promise<ClosePlan>;
-  dropPlan(id: string): Promise<DropPlan>;
 
   // the board, written
   // Every card write takes the revision the screen read (#316). Rules older than the
@@ -627,12 +620,6 @@ export interface BoardRules {
   skipQuestion?(id: number, question: string, skipped: boolean, opts?: WriteOptions): Promise<WriteResult>;
   setSchedule(id: number, action: string, notes?: string, opts?: WriteOptions): Promise<WriteResult>;
   clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult>;
-  newRelease(id: string, goal?: string, fill?: boolean): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }>;
-  setReleaseGoal(id: string, goal: string): Promise<WriteResult>;
-  // `shipped` is how many cards the close counted, so the caller knows whether a changelog
-  // run has anything to write (#232). Absent on a copy of the rules that predates it.
-  closeRelease(id: string): Promise<WriteResult & { shipped?: number }>;
-  dropRelease(id: string): Promise<WriteResult>;
   saveProject(name: string, description: string): Promise<SaveProjectResult>;
   finishSetupStep(name: string): Promise<WriteResult>;
 
@@ -760,7 +747,6 @@ export interface BoardRules {
   readBoardNotifications?(): Promise<BoardNotifications>;
   /** Be told about a shared board, or not (#328). Absent from rules that predate it. */
   setBoardNotify?(on: boolean): Promise<{ ok: boolean; error?: string }>;
-  watchRelease?(release: string): Promise<WriteResult>;
   /** The one durable action a live event carries, recorded from a click on this machine.
    *  Never waits on the network: the board's own outbox retries it. */
   recordCloudActionFor?(

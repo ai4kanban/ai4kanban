@@ -75,7 +75,6 @@ const meta = (over: Partial<Meta> = {}): Meta =>
     priority: 'med',
     roi: 'med',
     status: 'todo',
-    release: '',
     blocked_by: [],
     related: [],
     modules: [],
@@ -418,16 +417,6 @@ describe('a write on a Cloud board', () => {
     assert.equal(sent.expect, '')
   })
 
-  it('reads the archive only when a release is closed', async () => {
-    const calls = worker()
-    pointed(false)
-    await openBoard(root)
-    assert.equal(calls.filter((c) => c.path.endsWith('/archive')).length, 0)
-
-    await board().closePlan('v1')
-    assert.equal(calls.filter((c) => c.path.endsWith('/archive')).length, 1)
-  })
-
   it('says who is holding a card another writer holds, and how long for', async () => {
     worker((call) => {
       if (call.method === 'POST' && call.path.endsWith('/locks')) {
@@ -579,15 +568,10 @@ describe('the daily prune on a Cloud board', () => {
   const ARCHIVE = [
     archivedCard(51, 40),
     archivedCard(52, 10),
-    archivedCard(53, 40, { release: 'v2' }),
     archivedCard(61, 40, {}, '.archive/61-a-group/root.md'),
     archivedCard(62, 35, {}, '.archive/61-a-group/features/62-a-part.md'),
   ]
   const stored = (call: Call): Response | undefined => {
-    if (call.path.endsWith('/snapshot')) {
-      const releases = { path: 'releases.md', kind: 'config', revision: 'c3', body: '# Releases\n\n- **v2** — the next one\n' }
-      return ok({ ...SNAPSHOT, documents: [...SNAPSHOT.documents, releases] })
-    }
     if (call.path.endsWith('/archive')) return ok({ revision: '7', cards: ARCHIVE })
     return undefined
   }
@@ -610,14 +594,13 @@ describe('the daily prune on a Cloud board', () => {
 
     const [sent, ...more] = deletes(calls)
     assert.equal(more.length, 0)
-    // A group goes whole; a young card and one on an open release are never sent.
+    // A group goes whole; a young card is never sent.
     assert.deepEqual([...(sent.body.cards as number[])].sort(), [51, 61, 62])
     assert.equal(sent.body.nodeId, 'node-1')
     assert.ok(sent.body.opId)
     assert.equal(copy('51-gone.md'), false)
     assert.equal(copy('61-a-group'), false)
     assert.equal(copy('52-gone.md'), true)
-    assert.equal(copy('53-gone.md'), true)
 
     // Once a day.
     await board().nextWork()

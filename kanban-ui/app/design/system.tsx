@@ -13,7 +13,6 @@ import {
   PendingPill,
   PriorityChip,
   QuestionTagBadge,
-  ReleaseSelect,
   RoiTag,
   StatusPill,
   TodoProgress,
@@ -115,7 +114,7 @@ const GROUPS: { title: string; note: string; tokens: { name: string; hex: string
       { name: "nb-mint-soft", hex: MINT_SOFT, use: "the ready pill, the module chip" },
       { name: "nb-mint-ink", hex: MINT_INK, use: "the text on those" },
       { name: "nb-sky", hex: SKY, use: "neutral — a stopped run" },
-      { name: "nb-sky-soft", hex: SKY_SOFT, use: "the release chip" },
+      { name: "nb-sky-soft", hex: SKY_SOFT, use: "a notice that states a fact" },
       { name: "nb-sky-ink", hex: SKY_INK, use: "the text on those" },
       { name: "nb-lilac", hex: LILAC, use: "a schedule's cast" },
       { name: "nb-lilac-soft", hex: LILAC_SOFT, use: "the group marker, the track chip" },
@@ -180,7 +179,7 @@ const PAIRS: {
     where: "the active tab's underline and the pulse dot — shape, never a label",
   },
   { fg: MINT_INK, bg: MINT_SOFT, label: "mint-ink on mint-soft", where: "the ready pill, a module chip" },
-  { fg: SKY_INK, bg: SKY_SOFT, label: "sky-ink on sky-soft", where: "the release chip" },
+  { fg: SKY_INK, bg: SKY_SOFT, label: "sky-ink on sky-soft", where: "a notice that states a fact" },
   { fg: LILAC_INK, bg: LILAC_SOFT, label: "lilac-ink on lilac-soft", where: "the group marker, a track chip" },
   { fg: PEACH_INK, bg: PEACH_SOFT, label: "peach-ink on peach-soft", where: "the blocked marker, a warning box" },
   { fg: PEACH_INK, bg: PAPER, label: "peach-ink on paper", where: "an error line beside a control" },
@@ -266,7 +265,6 @@ const CARD: Card = {
   roi: "med",
   status: "ready",
   workflow: "",
-  release: "v0.6",
   blocked_by: [17],
   related: [],
   questions: [{ text: "[user] Does /design ship in the desktop app, or stay a dev-only route?" }],
@@ -282,7 +280,7 @@ const CARD: Card = {
 const GROUP_CARD: Card = {
   ...CARD,
   id: 43,
-  title: "Rework the release picker",
+  title: "Rework the card search",
   status: "todo",
   priority: "med",
   roi: "high",
@@ -365,9 +363,8 @@ export function DesignSystem() {
   // Live state for the controls that only exist as controls — a select with
   // nothing to change is a picture of a select.
   const [level, setLevel] = useState("high");
-  const [release, setRelease] = useState("v0.6");
   const [agent, setAgent] = useState("claude-code");
-  const [tab, setTab] = useState<"goal" | "no-goal">("goal");
+  const [tab, setTab] = useState<"first" | "second">("first");
   const [pick, setPick] = useState("board");
   const [dialog, setDialog] = useState(false);
   const [phoneTab, setPhoneTab] = useState<PhoneTab>("board");
@@ -517,7 +514,7 @@ export function DesignSystem() {
             <Row>
               <Button size="sm">
                 <FiPlus aria-hidden />
-                New release
+                New card
               </Button>
               <Button variant="ghost" size="sm">
                 <FiSettings aria-hidden />
@@ -878,20 +875,19 @@ export function DesignSystem() {
             <Label>the same trigger at chip size — a card&apos;s editable meta</Label>
             <Row>
               <LevelSelect value={level} onChange={setLevel} />
-              <ReleaseSelect value={release} releases={["v0.6", "v0.7"]} onChange={setRelease} />
               <LevelSelect value={level} disabled onChange={() => {}} />
             </Row>
           </div>
           <div>
             {/* Replicas, not imports: the tab strip is drawn inline wherever it is
-                worn (New release, Create task) and the pick chips likewise. Change
+                worn (Create task) and the pick chips likewise. Change
                 them there and change them here. */}
             <Label>the tab strip — a hairline under both, an ember lap under the live one</Label>
             <div className="mb-4 flex max-w-md gap-5 border-b border-nb-ink/12" role="tablist">
               {(
                 [
-                  { key: "goal", label: "From a goal" },
-                  { key: "no-goal", label: "No goal" },
+                  { key: "first", label: "First plan" },
+                  { key: "second", label: "Second plan" },
                 ] as const
               ).map((t) => {
                 const active = tab === t.key;

@@ -37,8 +37,6 @@ export type ChipsCopy = {
   /** Something this card waits on is still open. */
   blockedOne: (ids: string) => string;
   blockedMany: (ids: string) => string;
-  /** A card naming a version the release list no longer holds. */
-  releaseStale: (version: string) => string;
   /** Who owns an open question. */
   question: { needsYou: string; new: string };
 };

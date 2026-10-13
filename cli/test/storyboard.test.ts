@@ -219,7 +219,6 @@ title: A video
 priority: med
 roi: high
 status: todo
-release: ""
 blocked_by: []
 related: []
 modules: []

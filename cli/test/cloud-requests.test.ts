@@ -58,7 +58,7 @@ beforeEach(() => {
     expiresAt: Date.now() + 60 * 60_000,
     subject: '11111111-1111-4111-8111-111111111111',
   })
-  enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+  enableCloudBoard(defaultBoardDir(root), root)
   setCloudBoardServer(defaultBoardDir(root), SERVER)
 })
 
@@ -81,7 +81,6 @@ const card = (over: Partial<Card> = {}): Card =>
     priority: 'high',
     roi: 'high',
     status: 'ready',
-    release: '0.8.0',
     blocked_by: [],
     related: [],
     questions: [],

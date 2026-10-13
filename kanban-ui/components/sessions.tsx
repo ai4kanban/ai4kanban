@@ -184,12 +184,9 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
     [],
   );
 
-  // Take on a run this tab caused but didn't start through `start` above.
-  // A plan-release run is the case (#165): the server starts it as part of
-  // writing the release, so the run id comes back from that action rather
-  // than from here. Same effect either way — onFinish fires for it, and the poll
-  // wakes at once, so the run joins the runs panel in the same moment the
-  // release does rather than up to a slow tick later.
+  // Take on a run this tab caused but didn't start through `start` above: the run id
+  // came back from some other action. onFinish fires for it, and the poll wakes at
+  // once, so the run joins the runs panel now rather than up to a slow tick later.
   const watch = useCallback((sessionId: string, label: string, removes = false) => {
     mine.current.set(sessionId, { sessionId, label, removes });
     kickRef.current();

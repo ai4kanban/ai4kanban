@@ -202,7 +202,7 @@ export function writeSetupQuestionsCard(): { id: number; file: string } | null {
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) return null
   writeNextId(id + 1)
-  const meta: Partial<Meta> = { title: SETUP_QUESTIONS_TITLE, priority: 'high', roi: 'high', status: 'todo', release: '', blocked_by: [], related: [], modules: [], questions: [] }
+  const meta: Partial<Meta> = { title: SETUP_QUESTIONS_TITLE, priority: 'high', roi: 'high', status: 'todo', blocked_by: [], related: [], modules: [], questions: [] }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + SETUP_QUESTIONS_BODY)
   addReadmeRef(id, SETUP_QUESTIONS_TITLE, fileRel)
   return { id, file }

@@ -212,7 +212,6 @@ describe('the prompt a restarted run is given', () => {
   })
 
   it('comes back with nothing for a run that names no card', () => {
-    assert.equal(restartPrompt({ action: 'plan-release', release: '0.1.0' }), undefined)
     assert.equal(restartPrompt({ action: 'setup' }), undefined)
   })
 })

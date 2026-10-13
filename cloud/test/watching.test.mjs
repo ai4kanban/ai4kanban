@@ -25,7 +25,6 @@ const recorded = (over = {}) => ({
   summaryId: SUMMARY,
   posted: true,
   boardName: 'ai4kanban',
-  watching: '*',
   cards: 12,
   ...over,
 })
@@ -67,7 +66,6 @@ describe('recordWatchSummary', () => {
     const answer = await recordWatchSummary(ENV, OWNER, {
       opId: 'op-1',
       boardId: BOARD,
-      watching: '*',
       cards: 12,
     })
 
@@ -76,7 +74,7 @@ describe('recordWatchSummary', () => {
     assert.equal(call.fn, 'record_watch_summary')
     assert.equal(call.args.p_op_id, 'op-1')
     assert.equal(call.args.p_board, BOARD)
-    assert.equal(call.args.p_watching, '*')
+    assert.ok(!('p_watching' in call.args))
     assert.equal(call.args.p_cards, 12)
   })
 
@@ -85,7 +83,7 @@ describe('recordWatchSummary', () => {
     const calls = fakeWorld({ record_watch_summary: recorded() })
 
     await assert.rejects(
-      recordWatchSummary(ENV, OWNER, { opId: 'op-1', boardId: BOARD, watching: '*', cards: 0 }),
+      recordWatchSummary(ENV, OWNER, { opId: 'op-1', boardId: BOARD, cards: 0 }),
       (e) => e.code === 'bad_request',
     )
     assert.equal(calls.length, 0)
@@ -96,7 +94,7 @@ describe('recordWatchSummary', () => {
     fakeWorld({ record_watch_summary: recorded() })
 
     await assert.rejects(
-      recordWatchSummary(ENV, OWNER, { opId: 'op-1', boardId: 'not-a-board', watching: '*', cards: 3 }),
+      recordWatchSummary(ENV, OWNER, { opId: 'op-1', boardId: 'not-a-board', cards: 3 }),
       (e) => e.code === 'bad_request',
     )
   })
@@ -126,7 +124,7 @@ describe('deliverWatchSummary', () => {
     const slack = calls.filter((c) => c.slack)
     assert.deepEqual(slack.map((c) => c.slack), ['chat.postMessage'], 'one message, not one per card')
     assert.equal(slack[0].args.channel, 'C1')
-    assert.match(JSON.stringify(slack[0].args.blocks), /Watching every release/)
+    assert.match(JSON.stringify(slack[0].args.blocks), /Notifications on/)
     assert.match(JSON.stringify(slack[0].args.blocks), /12 cards are waiting for you/)
 
     const posted = calls.filter((c) => c.lark && c.args?.msg_type === 'interactive')
@@ -187,15 +185,15 @@ describe('deliverWatchSummary', () => {
 })
 
 describe('the summary as each chat draws it', () => {
-  it('names one release when that is what is watched, and offers no control', () => {
-    const drawn = slackSummary({ boardName: 'ai4kanban', watching: '1.0', cards: 1 })
-    assert.match(JSON.stringify(drawn.blocks), /Watching release 1\.0/)
+  it('says notifications are on, and offers no control', () => {
+    const drawn = slackSummary({ boardName: 'ai4kanban', cards: 1 })
+    assert.match(JSON.stringify(drawn.blocks), /Notifications on/)
     assert.match(JSON.stringify(drawn.blocks), /1 card is waiting for you/)
     // It belongs to no card, so there is nothing to press and nothing to open.
     assert.equal(drawn.blocks.filter((b) => b.type === 'actions').length, 0)
 
-    const card = larkSummary({ boardName: 'ai4kanban', watching: '1.0', cards: 1 })
-    assert.equal(card.header.title.content, 'Watching release 1.0')
+    const card = larkSummary({ boardName: 'ai4kanban', cards: 1 })
+    assert.equal(card.header.title.content, 'Notifications on')
     assert.equal(card.elements.filter((e) => e.tag === 'action').length, 0)
   })
 })
