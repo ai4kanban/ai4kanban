@@ -84,6 +84,7 @@
 - [只在用键盘移动时看到聚焦框](local-ui/see-a-focus-frame-only-when-moving-by-keyboard/case.md)
 - [升级后打开一个用过版本的旧看板](local-ui/open-a-board-that-used-releases-after-upgrading/case.md)
 - [在配置里凭角色图认出每个内置 Agent](local-ui/tell-built-in-agents-apart-by-their-art/case.md)
+- [在桌面应用的账单面板里恢复已取消的 Pro 续费](local-ui/resume-a-canceled-pro-renewal-in-the-desktop-app/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
