@@ -92,6 +92,9 @@ Every flow writes a card in this order:
   embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
 - **Asset label and alt**: `label` is a tag of a few words; an image's caption goes in its
   optional `alt="..."`, its shipped alt text, which cannot contain `<`, `>` or its own quote mark.
+- **Asset variants**: versions of the same content, such as languages or devices, are one tag
+  with `variants='{"<label>": "<src>", ...}'`, `src` being the one shown first; alternatives the
+  user picks between stay separate tags.
 - **Say each fact once**: a section holds only what the card does not already say; leave it
   empty rather than restate the opening paragraph or another section. Cut only the repeated
   part of a line: a name, value or case stated nowhere else stays.

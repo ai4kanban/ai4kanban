@@ -262,7 +262,10 @@ const en: CardCopy = {
     source: "Source",
     expand: "Show full article",
     collapse: "Collapse",
-    language: "Language",
+    version: "Version",
+    versions: (n) => `${n} versions`,
+    copyPath: "Copy absolute path",
+    copied: "Copied",
   },
   storyboard: {
     heading: "Storyboard",

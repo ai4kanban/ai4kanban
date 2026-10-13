@@ -26,10 +26,10 @@ import { useRouter } from "next/navigation";
 import { useCopy } from "@/i18n/use-copy";
 import { SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryOwner } from "@/lib/types";
-import { ArticleControls, ArticleFull, useArticle } from "./Article";
+import { ArticleFull, SourceSwitch, useArticle } from "./Article";
 import { clock, MediaPlayer, type MediaMeta } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
-import { Phone, PHONE_W, sandboxOf } from "./Mockup";
+import { CopyPath, DownloadIcon, Phone, PHONE_W, sandboxOf } from "./Mockup";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
@@ -57,15 +57,19 @@ function BackLink({ card }: { card: MockupCard }) {
   );
 }
 
-/** A Markdown asset (#1651): the article in full, its language and source switch above it. */
-function ArticleMain({ files, src, card }: { files: ArticleFile[]; src: string; card: MockupCard | null }) {
-  const state = useArticle(files, src);
+/** A Markdown asset (#1651): the article in full, its source switch above it. */
+function ArticleMain({ file, src, path, card }: { file: ArticleFile; src: string; path?: string; card: MockupCard | null }) {
+  const state = useArticle(file, src);
   return (
     <>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-6 py-4">
         {card && <BackLink card={card} />}
-        <span className="min-w-0 truncate font-mono text-[12px] text-nb-ink-soft">{state.file.src}</span>
-        <ArticleControls state={state} />
+        <span className="min-w-0 truncate font-mono text-[12px] text-nb-ink-soft">{src}</span>
+        <span className="ml-auto flex shrink-0 items-center gap-x-2.5">
+          <SourceSwitch state={state} />
+          {path && <CopyPath path={path} />}
+          <DownloadIcon href={file.href} name={src.split("/").pop()!} />
+        </span>
       </div>
       <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
         <ArticleFull state={state} />
@@ -166,7 +170,7 @@ export function MockupPage({
           )}
 
           {view.article ? (
-            <ArticleMain files={view.article} src={view.src} card={card} />
+            <ArticleMain file={view.article} src={view.src} path={view.path} card={card} />
           ) : (
             <>
               {/* The way back, first thing on the page and named — a mockup is read on the way
@@ -200,6 +204,7 @@ export function MockupPage({
                       {showCode ? c.screen : c.code}
                     </button>
                   )}
+                  {view.path && <CopyPath path={view.path} />}
                 </span>
               </div>
 

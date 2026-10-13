@@ -5,9 +5,8 @@
   section instead of duplicating it. Use `###` for subheadings.
 - **Finish your part**: write your assigned planning content on the card now; never defer
   it to implementation.
-- **Long drafts**: put a draft over about 20 lines in `.assets/<card id>/<name>.md`, one
-  `<name>.<lang>.md` per language, and embed it with `<Asset>` instead of pasting it into your
-  section. Put a shorter one in a code block.
+- **Long drafts**: put a draft over about 20 lines in `.assets/<card id>/<name>.md` and embed
+  it with `<Asset>` instead of pasting it into your section. Put a shorter one in a code block.
 - **Placement**: put your section above `<!-- agent -->`, and leave it there.
 - **Boundaries**: preserve the rest of the card. Do not change project code or call other
   spec agents. Edit other files only where your own instructions allow them.

@@ -25,7 +25,7 @@ import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
 import { storyboardAttrs } from "@/lib/format/storyboard";
-import { assetImageHref, deviceOf, mockupBlock, type MockupSet } from "@/lib/mockup-tag";
+import { assetImageHref, deviceOf, mockupBlock, type MockupSet, type Variant } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
 import { CaseFilesContext, EvidenceNode, fileUrl, type CaseFiles } from "./case-evidence";
@@ -103,7 +103,7 @@ function remarkMockups(mockups: MockupSet | null) {
         type: "mockup",
         data: {
           hName: "mockup",
-          hProperties: { "data-src": tag.src, "data-label": tag.label, "data-alt": tag.alt, "data-device": tag.device, "data-loop": String(tag.loop) },
+          hProperties: { "data-src": tag.src, "data-label": tag.label, "data-alt": tag.alt, "data-device": tag.device, "data-loop": String(tag.loop), "data-variants": JSON.stringify(tag.variants) },
           hChildren: [],
         },
       }));
@@ -258,8 +258,14 @@ const MockupsContext = createContext<MockupSet | null>(null);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MockupNode(props: any) {
   const mockups = useContext(MockupsContext);
-  const view = mockups?.[props["data-src"] as string];
-  return view ? <Mockup view={view} label={props["data-label"] || ""} alt={props["data-alt"] || ""} device={deviceOf(props["data-device"])} loop={props["data-loop"] === "true"} /> : null;
+  const src = props["data-src"] as string;
+  const raw = props["data-variants"] as string | undefined;
+  const views = useMemo(() => {
+    const variants: Variant[] = raw ? JSON.parse(raw) : [];
+    const list = variants.length ? variants : [{ label: "", src }];
+    return list.flatMap((v) => (mockups?.[v.src] ? [{ label: v.label, view: mockups[v.src]! }] : []));
+  }, [mockups, raw, src]);
+  return views.length ? <Mockup views={views} first={Math.max(0, views.findIndex((v) => v.view.src === src))} label={props["data-label"] || ""} alt={props["data-alt"] || ""} device={deviceOf(props["data-device"])} loop={props["data-loop"] === "true"} /> : null;
 }
 
 const StoryboardsContext = createContext<StoryboardSet | null>(null);

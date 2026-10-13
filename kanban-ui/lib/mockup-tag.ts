@@ -4,7 +4,8 @@
 //   <Mockup src=".mockups/239/a.tsx" label="A" />
 //
 // `src` names one file in the card's asset folder. The board shows the screen or image it
-// holds where the tag sits.
+// holds where the tag sits. `variants='{"中文": "...", "English": "..."}'` (#1663) lists versions
+// of the same content; `src` is the one shown first.
 //
 // Client-safe on purpose: the remark plugin in Markdown.tsx runs in the browser, and the
 // reader in lib/mockup.ts runs on the server. Both agree on the tag here.
@@ -21,7 +22,11 @@ export type MockupTag = {
   device: Device;
   /** A bare `loop` (#1595): a video that plays muted, looping and without controls. */
   loop: boolean;
+  /** Declared versions, in written order — empty when the tag declares none or they don't parse. */
+  variants: Variant[];
 };
+
+export type Variant = { label: string; src: string };
 
 export type Device = "mobile" | "desktop";
 
@@ -35,8 +40,8 @@ export const SCREENS: Record<Device, { w: number; h: number }> = {
 export const deviceOf = (value: string | null | undefined): Device => (value === "mobile" ? "mobile" : "desktop");
 
 /** What the card page draws for one tag: the screen, the drawing, or the note saying why
- *  not. */
-export type MockupView =
+ *  not. `path` is the file on this machine, when there is one. */
+export type MockupView = { path?: string } & (
   | {
       src: string;
       /** A whole HTML document, ready for the frame's iframe. */
@@ -101,10 +106,10 @@ export type MockupView =
       deferred?: undefined;
       article?: undefined;
     }
-  // A `.md`/`.mdx` file drawn as an article (#1651): it and its siblings in other languages.
+  // A `.md`/`.mdx` file drawn as an article (#1651).
   | {
       src: string;
-      article: ArticleFile[];
+      article: ArticleFile;
       file?: undefined;
       media?: undefined;
       image?: undefined;
@@ -116,10 +121,11 @@ export type MockupView =
     }
   // The note in a mockup's place. It still carries the file's text when there was a file
   // to read — a mockup that would not draw is one you want to read the code of.
-  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined; article?: undefined };
+  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined; article?: undefined }
+);
 
-/** One language of an article: `lang` is null for a file with no language suffix. */
-export type ArticleFile = { src: string; lang: string | null; text: string; href: string };
+/** An article's text, and the address it downloads from. */
+export type ArticleFile = { text: string; href: string };
 
 /** The mockups a page has already read, keyed by `src` exactly as the tag wrote it. */
 export type MockupSet = Record<string, MockupView>;
@@ -140,9 +146,24 @@ export function mockupTags(raw: string): MockupTag[] {
     }
     if (!attrs.src) continue;
     const loop = LOOP.test(match[1]!.replace(ATTR, ""));
-    found.push({ src: attrs.src, label: attrs.label ?? "", alt: attrs.alt ?? "", device: deviceOf(attrs.device), loop });
+    found.push({ src: attrs.src, label: attrs.label ?? "", alt: attrs.alt ?? "", device: deviceOf(attrs.device), loop, variants: variantsOf(attrs.variants, attrs.src) });
   }
   return found;
+}
+
+/** `variants` as written: two or more, `src` among them — anything else is no variants. */
+export function variantsOf(raw: string | undefined, src: string): Variant[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+  const list = Object.entries(parsed).filter((e): e is [string, string] => typeof e[1] === "string" && !!e[1]);
+  if (list.length < 2 || !list.some(([, s]) => s === src)) return [];
+  return list.map(([label, s]) => ({ label, src: s }));
 }
 
 /** The tags in a block that holds nothing but tags — `null` when anything else is in
@@ -171,7 +192,7 @@ export function assetImageHref(card: string, name: string): string {
   return `/asset-image/${encodeURIComponent(card)}/${encodeURIComponent(name)}`;
 }
 
-/** Every `src` a body points at, deduplicated — what the server reads before drawing. */
+/** Every file a body points at, variants included, deduplicated — what the server reads before drawing. */
 export function mockupSources(body: string): string[] {
-  return [...new Set(mockupTags(body).map((t) => t.src))];
+  return [...new Set(mockupTags(body).flatMap((t) => [t.src, ...t.variants.map((v) => v.src)]))];
 }

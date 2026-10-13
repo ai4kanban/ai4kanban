@@ -1,6 +1,7 @@
 #!/bin/zsh
 # Builds the scratch project for this case: card #2 carries a blog post in English, Chinese
-# and Japanese (`post.<lang>.md`, long, with a relative picture) and a short `.mdx` note.
+# and Japanese (`post.<lang>.md` declared as variants, long, with a relative picture) and a short
+# `.mdx` note.
 # Usage: seed.sh <project dir> <path to cli/bin/ai4kanban.mjs>   (needs ffmpeg)
 set -e
 P=$1 CLI=$2
@@ -55,7 +56,7 @@ cat >> card.new <<'CARD'
 
 写一篇介绍周报自动化的博客，中英日三语。
 
-<Asset src=".assets/2/post.zh.md" label="博客原稿" />
+<Asset src=".assets/2/post.zh.md" label="博客原稿" variants='{"中文": ".assets/2/post.zh.md", "English": ".assets/2/post.en.md", "日本語": ".assets/2/post.ja.md"}' />
 
 <Asset src=".assets/2/launch.mdx" label="发布说明" />
 

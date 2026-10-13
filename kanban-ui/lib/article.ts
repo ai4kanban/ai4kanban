@@ -1,5 +1,5 @@
-// A `.md`/`.mdx` asset drawn as an article (#1651). Client-safe: the server finds the files,
-// the page reads them.
+// A `.md`/`.mdx` asset drawn as an article (#1651). Client-safe: the server reads the file,
+// the page parses it.
 
 const FRONTMATTER = /^﻿?---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 
@@ -41,23 +41,4 @@ export function parseArticle(text: string, mdx: boolean): { title?: string; dek?
     dek: m ? scalar(m[1]!, "dek") : undefined,
     body: mdx ? dropMdxLines(body) : body,
   };
-}
-
-/** A language as it names itself — `English`, `中文` — or `null` for a code that is none. */
-export function languageName(code: string): string | null {
-  try {
-    const name = new Intl.DisplayNames([code], { type: "language", fallback: "none" }).of(code);
-    return name ? name.charAt(0).toLocaleUpperCase(code) + name.slice(1) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** `copy.en.md` → `{ base: "copy", lang: "en", ext: "md" }`; a name with no language suffix
- *  has `lang: null`. */
-export function articleName(fileName: string): { base: string; lang: string | null; ext: string } | null {
-  const m = /^(.+?)(?:\.([a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*))?\.(mdx?)$/i.exec(fileName);
-  if (!m) return null;
-  const lang = m[2] && languageName(m[2].replace("_", "-")) ? m[2] : null;
-  return lang ? { base: m[1]!, lang, ext: m[3]!.toLowerCase() } : { base: fileName.replace(/\.mdx?$/i, ""), lang: null, ext: m[3]!.toLowerCase() };
 }

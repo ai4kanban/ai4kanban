@@ -280,7 +280,11 @@ export type CardCopy = {
     source: string;
     expand: string;
     collapse: string;
-    language: string;
+    /** The version switch of an asset with `variants` (#1663). */
+    version: string;
+    versions: (n: number) => string;
+    copyPath: string;
+    copied: string;
   };
   /** A `<Storyboard>` script (#963). */
   storyboard: {

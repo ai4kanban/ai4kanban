@@ -141,6 +141,9 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
       if (!/\bsrc="[^"]+"/.test(line) || !/\blabel="[^"]+"/.test(line)) add(i + 1, 'mockup-attributes', 'Add non-empty src="..." and label="..." attributes to the Asset tag.')
       const device = line.match(/\bdevice="([^"]*)"/)?.[1]
       if (device !== undefined && device !== 'mobile' && device !== 'desktop') add(i + 1, 'mockup-device', `device="${device}" is not a device. Use device="mobile" or device="desktop".`)
+      const variants = line.match(/\bvariants='([^']*)'/)?.[1]
+      const why = variants === undefined ? null : variantsProblem(variants, line.match(/\bsrc="([^"]*)"/)?.[1] ?? '', id)
+      if (why) add(i + 1, 'mockup-variants', why)
     }
     if (/^\s*<Storyboard\b/.test(line) && (storyboardTag(line) === null || lines[i - 1]?.trim() || lines[i + 1]?.trim())) {
       add(i + 1, 'storyboard-block', 'Put one self-closing <Storyboard src=".assets/<card id>/storyboard.json" /> tag on its own line, with blank lines around it.')
@@ -190,6 +193,31 @@ function inside(dir: string, name: string): string | null {
   } catch {
     return null
   }
+}
+
+/** What is wrong with an Asset tag's `variants` (#1663), or null. With `id`, every file must be
+ *  in that card's asset folder. */
+function variantsProblem(raw: string, src: string, id?: number): string | null {
+  const shape = `Write variants='{"<label>": ".assets/<card id>/<file>", ...}' with at least two versions.`
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return `variants is not valid JSON. ${shape}`
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return `variants is not a JSON object. ${shape}`
+  const files = Object.values(parsed)
+  if (files.length < 2 || !files.every((f) => typeof f === 'string' && f)) return `variants needs at least two labels, each naming a file. ${shape}`
+  if (!files.includes(src)) return `src="${src}" is not one of the variants. Set src to the version shown first.`
+  if (id === undefined) return null
+  const dir = path.join(ASSETS, String(id))
+  for (const f of files as string[]) {
+    const parts = f.split('/')
+    if (parts.length !== 3 || parts[0] !== '.assets' || parts[1] !== String(id) || !inside(dir, parts[2]!)) {
+      return `Variant ${f} names no file in this card's asset folder .assets/${id}/. Write the file there or fix the path.`
+    }
+  }
+  return null
 }
 
 /** Every storyboard the card points at is a JSON file in its asset folder. Its contents are the

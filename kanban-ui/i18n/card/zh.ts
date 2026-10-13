@@ -253,7 +253,10 @@ const zh: CardCopy = {
     source: "原文",
     expand: "展开全文",
     collapse: "收起",
-    language: "语言",
+    version: "版本",
+    versions: (n) => `共 ${n} 个版本`,
+    copyPath: "复制绝对路径",
+    copied: "已复制",
   },
   storyboard: {
     heading: "静态分镜",

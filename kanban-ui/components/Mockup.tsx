@@ -20,20 +20,24 @@
 // own page at full size. Video and audio (#872) get the browser's own player. A delivered
 // file (#969) is a download, and a Markdown file (#1651) an article.
 //
+// A tag with `variants` (#1663) shows one version at a time, switched from its caption.
+//
 // A card page hands a screen over undrawn (#906): it is loaded once it scrolls near, and its
 // code only when the switch asks for it. Until then the frame holds its final size.
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiDownload, FiImage, FiLayers, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
-import { ArticleControls, ArticleFolded, useArticle } from "./Article";
+import { ArticleFolded, SourceSwitch, useArticle } from "./Article";
+import { useCopyText } from "./copy";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 import { ImageMenu } from "./image-preview";
 import { useFitWidth, useZoom, ZoomControls, type Zoom } from "./zoom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 const { w: W, h: H } = SCREENS.desktop;
 const PHONE = SCREENS.mobile;
@@ -341,10 +345,87 @@ function Pending({ hyperframe, device }: { hyperframe: boolean; device: Device }
   );
 }
 
-function Download({ file, label }: { file: { name: string; href: string }; label: string }) {
+const ICON_BTN =
+  "nb-tip nb-tip-below relative inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-accent-deep";
+
+/** Puts the file's absolute path on the clipboard. */
+export function CopyPath({ path }: { path: string }) {
+  const c = useCopy().card.mockup;
+  const { copied, copy } = useCopyText();
+  const tip = copied ? c.copied : c.copyPath;
+  return (
+    <button type="button" onClick={() => copy(path)} className={ICON_BTN} data-tip={tip} aria-label={tip}>
+      {copied ? <FiCheck aria-hidden size={12} /> : <FiCopy aria-hidden size={12} />}
+    </button>
+  );
+}
+
+export function DownloadIcon({ href, name }: { href: string; name: string }) {
   const c = useCopy().card.mockup;
   return (
-    <span className="my-4 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+    <a href={href} download={name} className={ICON_BTN} data-tip={c.download} aria-label={c.download}>
+      <FiDownload aria-hidden size={13} />
+    </a>
+  );
+}
+
+export type Variants = { labels: string[]; at: number; pick: (i: number) => void };
+
+/** The version switch (#1663): the version shown, a badge counting them, and the menu. */
+function VariantSwitch({ variants }: { variants: Variants }) {
+  const c = useCopy().card.mockup;
+  const { labels, at, pick } = variants;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={c.version}
+          className="inline-flex min-w-0 shrink cursor-pointer items-center gap-1 rounded-[7px] border-[1.5px] border-nb-ink bg-nb-paper py-[2px] pl-2 pr-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-nb-wash"
+        >
+          <FiLayers aria-hidden size={13} className="shrink-0" />
+          <span className="truncate">{labels[at]}</span>
+          <span
+            className="inline-flex h-[16px] min-w-[16px] shrink-0 items-center justify-center rounded-full bg-nb-wash px-1 text-[10.5px] font-[700] text-nb-ink-soft"
+            title={c.versions(labels.length)}
+          >
+            {labels.length}
+          </span>
+          <FiChevronDown aria-hidden size={12} className="shrink-0" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {labels.map((label, i) => (
+          <DropdownMenuItem key={i} className="justify-between gap-3" onSelect={() => pick(i)}>
+            {label}
+            {i === at && <FiCheck aria-hidden size={12} />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The row over every asset: label and versions on the left; on the right the kind's own
+ *  switches (`children`), then copy path, full size and download. */
+function Caption({
+  label,
+  variants,
+  path,
+  full,
+  download,
+  children,
+}: {
+  label: string;
+  variants: Variants | null;
+  path?: string;
+  full?: string;
+  download?: { href: string; name: string };
+  children?: React.ReactNode;
+}) {
+  const c = useCopy().card.mockup;
+  return (
+    <span className="flex items-center gap-x-2 px-4 py-2">
       {label && (
         <span
           className="nb-chip shrink-0"
@@ -353,44 +434,39 @@ function Download({ file, label }: { file: { name: string; href: string }; label
           {label}
         </span>
       )}
-      <a
-        href={file.href}
-        download={file.name}
-        className="inline-flex min-w-0 items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]"
-        title={c.download}
-      >
-        <FiDownload aria-hidden className="shrink-0" style={{ width: 12, height: 12 }} />
-        <span className="truncate">{file.name}</span>
-      </a>
+      {variants && <VariantSwitch variants={variants} />}
+      <span className="ml-auto flex shrink-0 items-center gap-x-2.5">
+        {children}
+        {path && <CopyPath path={path} />}
+        {/* Opens in the board, not a separate browser: the desktop app hands any new
+            window to the system browser. */}
+        {full && (
+          <Link href={full} className={ICON_BTN} data-tip={c.openFull} aria-label={c.openFull}>
+            <FiMaximize2 aria-hidden size={12} />
+          </Link>
+        )}
+        {download && <DownloadIcon {...download} />}
+      </span>
     </span>
   );
 }
 
+const nameOf = (src: string) => src.split("/").pop()!;
+
 /** A `.md`/`.mdx` asset (#1651): the article, folded, under the same caption a screen has. */
-function ArticleAsset({ files, src, label }: { files: ArticleFile[]; src: string; label: string }) {
-  const c = useCopy().card.mockup;
-  const state = useArticle(files, src);
+function ArticleAsset({ file, view, label, variants }: { file: ArticleFile; view: MockupView; label: string; variants: Variants | null }) {
+  const state = useArticle(file, view.src);
   return (
     <span className="my-4 block bg-nb-paper">
-      <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-0 py-2">
-        {label && (
-          <span
-            className="nb-chip shrink-0"
-            style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
-          >
-            {label}
-          </span>
-        )}
-        <Link
-          href={mockupHref(state.file.src)}
-          className="inline-flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-accent-deep"
-          title={c.openFull}
-        >
-          <span className="truncate">{state.file.src}</span>
-          <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
-        </Link>
-        <ArticleControls state={state} />
-      </span>
+      <Caption
+        label={label}
+        variants={variants}
+        path={view.path}
+        full={mockupHref(view.src)}
+        download={{ href: file.href, name: nameOf(view.src) }}
+      >
+        <SourceSwitch state={state} />
+      </Caption>
       <ArticleFolded state={state} />
     </span>
   );
@@ -422,22 +498,49 @@ function useNearFetch<T>(box: React.RefObject<HTMLElement | null>, href: string 
   return got?.value ?? null;
 }
 
-/** One mockup, framed: its label and its file over the screen, and the switch between the
- *  screen and the code the file holds. */
+/** One tag, framed: one version at a time when it declares `variants` (#1663). Each version
+ *  keeps its own view state, reset as the switch moves. */
 export function Mockup({
-  view,
+  views,
+  first = 0,
   label,
   alt = "",
   device,
   loop = false,
 }: {
-  view: MockupView;
+  /** The versions in written order; one, with an empty label, for a tag with no variants. */
+  views: { label: string; view: MockupView }[];
+  /** The version `src` names, shown first. */
+  first?: number;
   label: string;
   alt?: string;
   device: Device;
   loop?: boolean;
 }) {
-  const c = useCopy().card.mockup;
+  const [at, setAt] = useState(first);
+  const labels = useMemo(() => views.map((v) => v.label), [views]);
+  const variants = views.length > 1 ? { labels, at, pick: setAt } : null;
+  const view = (views[at] ?? views[0]!).view;
+  return <One key={view.src} view={view} label={label} alt={alt} device={device} loop={loop} variants={variants} />;
+}
+
+/** One file, framed: its caption over the screen, and the switch between the screen and the
+ *  code the file holds. */
+function One({
+  view,
+  label,
+  alt,
+  device,
+  loop,
+  variants,
+}: {
+  view: MockupView;
+  label: string;
+  alt: string;
+  device: Device;
+  loop: boolean;
+  variants: Variants | null;
+}) {  const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
   const zoom = useZoom();
   const box = useRef<HTMLSpanElement>(null);
@@ -457,49 +560,51 @@ export function Mockup({
 
   const zoomable = !showCode && (view.image !== undefined || (drawn?.doc !== undefined && !drawn.hyperframe));
 
-  if (drawn?.error !== undefined) return <Note text={drawn.error} />;
-  if (view.file) return <Download file={view.file} label={label} />;
-  if (view.article) return <ArticleAsset files={view.article} src={view.src} label={label} />;
+  if (drawn?.error !== undefined)
+    return variants ? (
+      <span className="my-4 block bg-nb-paper">
+        <Caption label={label} variants={variants} />
+        <Note text={drawn.error} />
+      </span>
+    ) : (
+      <Note text={drawn.error} />
+    );
+  if (view.file)
+    return (
+      <span className="my-4 block bg-nb-paper">
+        <Caption label={label} variants={variants} path={view.path}>
+          <a
+            href={view.file.href}
+            download={view.file.name}
+            className="inline-flex min-w-0 items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]"
+            title={c.download}
+          >
+            <FiDownload aria-hidden className="shrink-0" style={{ width: 12, height: 12 }} />
+            <span className="truncate">{view.file.name}</span>
+          </a>
+        </Caption>
+      </span>
+    );
+  if (view.article) return <ArticleAsset file={view.article} view={view} label={label} variants={variants} />;
 
   return (
     // No frame around it: a mockup is a picture of a screen, and a box drawn round it is
     // one more edge competing with the edges inside it. The caption sits over the screen,
     // and the screen's own fill is what marks where it starts.
     <span ref={box} className="my-4 block bg-nb-paper">
-      <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-0 py-2">
-        {label && (
-          <span
-            className="nb-chip shrink-0"
-            style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
+      <Caption label={label} variants={variants} path={view.path} full={mockupHref(view.src, shown)}>
+        {zoomable && <ZoomControls zoom={zoom} />}
+        {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
+        {(deferred || view.doc !== undefined) && (
+          <button
+            type="button"
+            onClick={() => setShowCode((v) => !v)}
+            className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep"
           >
-            {label}
-          </span>
+            {showCode ? c.screen : c.code}
+          </button>
         )}
-        {/* The file name is the way to the mockup on its own, at full size — which is
-            where the words in it can be read. It opens in the board, not in a separate
-            browser: the desktop app hands any new window to the system browser. */}
-        <Link
-          href={mockupHref(view.src, shown)}
-          className="inline-flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-accent-deep"
-          title={c.openFull}
-        >
-          <span className="truncate">{view.src}</span>
-          <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
-        </Link>
-        <span className="ml-auto flex shrink-0 items-center gap-x-2.5">
-          {zoomable && <ZoomControls zoom={zoom} />}
-          {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
-          {(deferred || view.doc !== undefined) && (
-            <button
-              type="button"
-              onClick={() => setShowCode((v) => !v)}
-              className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep"
-            >
-              {showCode ? c.screen : c.code}
-            </button>
-          )}
-        </span>
-      </span>
+      </Caption>
       {drawn === null || (showCode && code === null) ? (
         <Pending hyperframe={!showCode && !!deferred?.hyperframe} device={showCode ? "desktop" : shown} />
       ) : drawn.doc !== undefined && drawn.hyperframe && !showCode ? (

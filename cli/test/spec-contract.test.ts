@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { setBoardRoot, SESSIONS_DIR } from '../src/lib/paths'
+import { ASSETS, setBoardRoot, SESSIONS_DIR } from '../src/lib/paths'
 import { parseFrontmatter } from '../src/lib/frontmatter'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs, validateSpec } from '../src/lib/spec-contract'
 import { openRun, openResume, patch, peekRun } from '../src/lib/agent/sessions'
@@ -156,6 +156,24 @@ describe('the card format contract', () => {
     const rules = (device: string) => validateSpec(file, tag(device)).map((e) => e.rule)
     for (const ok of ['', 'device="mobile" ', 'device="desktop" ']) assert.ok(!rules(ok).includes('mockup-device'), ok)
     assert.ok(rules('device="phone" ').includes('mockup-device'))
+  })
+
+  it('checks an Asset tag\'s variants (#1663)', () => {
+    const tag = (attrs: string) => valid.replace('- [ ] Implement it.', `- [ ] Implement it.\n\n<Asset src=".assets/1/a.zh.md" label="A" ${attrs} />\n`)
+    const rules = (attrs: string) => validateSpec(file, tag(attrs), 1).map((e) => e.rule)
+    fs.mkdirSync(path.join(ASSETS, '1'), { recursive: true })
+    for (const name of ['a.zh.md', 'a.en.md']) fs.writeFileSync(path.join(ASSETS, '1', name), '# A\n')
+    const ok = `variants='{"中文": ".assets/1/a.zh.md", "English": ".assets/1/a.en.md"}'`
+    assert.deepEqual(rules(ok), [])
+    assert.deepEqual(rules(''), [])
+    for (const bad of [
+      `variants='{bad'`,
+      `variants='[".assets/1/a.zh.md", ".assets/1/a.en.md"]'`,
+      `variants='{"中文": ".assets/1/a.zh.md"}'`,
+      `variants='{"English": ".assets/1/a.en.md", "日本語": ".assets/1/a.en.md"}'`,
+      `variants='{"中文": ".assets/1/a.zh.md", "日本語": ".assets/1/a.ja.md"}'`,
+      `variants='{"中文": ".assets/1/a.zh.md", "English": ".assets/2/a.en.md"}'`,
+    ]) assert.deepEqual(rules(bad), ['mockup-variants'], bad)
   })
 
   it('validates specialist sections while ignoring examples inside code fences', () => {
