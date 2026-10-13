@@ -85,6 +85,14 @@ the whole difference, and it has to be readable at 48px.
   with a sky title bar and a large cream `>_` prompt, the only exception to no text.
 - **`dismissal-reviewer.png`** — reviews dismissed ideas. Holding a **cream card stamped
   with an ember X** across the chest, and a **peach-rimmed magnifying glass** beside it.
+- **`project-writer.png`** — describes the project. Holding an **open cream book** across
+  the chest, its centre fold and both pages clear, with an **ember pencil** standing beside it.
+- **`competitor-research.png`** — researches competitors. Holding a compact pair of **grey
+  binoculars** at chest height, two sky lenses joined by a bridge, the face fully visible.
+- **`illustrator.png`** — draws a product's images. Holding a **cream instant camera**
+  across the chest, a large sky lens in its middle and an ember shutter button on top.
+- **`qa-manager.png`** — checks the product. Holding a **peach clipboard** with a cream
+  checklist of three green ticks.
 
 ## Checking a result
 
