@@ -15,6 +15,10 @@ import {
 } from "@/components/pages/VsMulticaPage";
 import { PATH as orcaPath, VsOrcaPage } from "@/components/pages/VsOrcaPage";
 import {
+  PATH as plannotatorPath,
+  VsPlannotatorPage,
+} from "@/components/pages/VsPlannotatorPage";
+import {
   PATH as taskMasterPath,
   VsTaskMasterPage,
 } from "@/components/pages/VsTaskMasterPage";
@@ -38,6 +42,7 @@ export const COMPARISONS: readonly Comparison[] = [
   { path: hermesPath, copy: "vsHermes", Page: VsHermesKanbanPage },
   { path: multicaPath, copy: "vsMultica", Page: VsMulticaPage },
   { path: orcaPath, copy: "vsOrca", Page: VsOrcaPage },
+  { path: plannotatorPath, copy: "vsPlannotator", Page: VsPlannotatorPage },
   { path: taskMasterPath, copy: "vsTaskMaster", Page: VsTaskMasterPage },
 ];
 

@@ -16,6 +16,7 @@ import type { ContactCopy } from "./contact/types";
 import type { VsHermesCopy } from "./vs-hermes-kanban/types";
 import type { VsMulticaCopy } from "./vs-multica/types";
 import type { VsOrcaCopy } from "./vs-orca/types";
+import type { VsPlannotatorCopy } from "./vs-plannotator/types";
 import type { VsTaskMasterCopy } from "./vs-task-master/types";
 
 /** Page `<title>` / description, plus the share-card variants when they differ. */
@@ -125,5 +126,6 @@ export type SiteCopy = {
   vsHermes: VsHermesCopy;
   vsMultica: VsMulticaCopy;
   vsOrca: VsOrcaCopy;
+  vsPlannotator: VsPlannotatorCopy;
   vsTaskMaster: VsTaskMasterCopy;
 };

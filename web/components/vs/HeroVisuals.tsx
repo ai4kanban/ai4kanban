@@ -221,3 +221,25 @@ export function QuestionsOurs({ c }: { c: VsQuestionsHero["questions"]["art"]["o
     </Scene>
   );
 }
+
+// Independent tasks run side by side, each with its own agent.
+export function ParallelOurs({ c }: { c: [string, string, string] }) {
+  const lane = (name: string, i: number) => (
+    <div className="flex flex-col items-center">
+      <Slot>
+        <Bot name={name} />
+      </Slot>
+      <span className="mt-1 inline-flex items-center gap-1.5 text-xs text-ink">
+        <span className="h-1.5 w-1.5 rounded-full bg-growth" aria-hidden="true" />
+        {c[i]}
+      </span>
+    </div>
+  );
+  return (
+    <Scene>
+      {lane("ui-designer", 0)}
+      {lane("copywriting", 1)}
+      {lane("builder", 2)}
+    </Scene>
+  );
+}

@@ -13,6 +13,7 @@ const COMPARISONS = [
   { href: "/vs-hermes-kanban", name: "Hermes Agent Kanban" },
   { href: "/vs-multica", name: "Multica" },
   { href: "/vs-orca", name: "Orca" },
+  { href: "/vs-plannotator", name: "Plannotator" },
 ];
 
 // AI4Kanban's pages in the two directories that list it. Both badges are served

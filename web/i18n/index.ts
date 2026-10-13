@@ -32,6 +32,7 @@ import contact from "./contact";
 import vsHermes from "./vs-hermes-kanban";
 import vsMultica from "./vs-multica";
 import vsOrca from "./vs-orca";
+import vsPlannotator from "./vs-plannotator";
 import vsTaskMaster from "./vs-task-master";
 
 /** Every word the site renders, in one language. */
@@ -44,6 +45,7 @@ export function getCopy(locale: Locale): SiteCopy {
     vsHermes: vsHermes[locale],
     vsMultica: vsMultica[locale],
     vsOrca: vsOrca[locale],
+    vsPlannotator: vsPlannotator[locale],
     vsTaskMaster: vsTaskMaster[locale],
   };
 }
