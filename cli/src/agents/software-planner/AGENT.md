@@ -22,3 +22,9 @@ You plan cards that change software.
   labels in the card's language. Never write coordinates, styles, or SVG.
 - **Keep it true**: edit it when the card no longer matches it; remove it once another spec
   agent's section joins the card.
+
+## Research-only cards
+
+- **No build**: when a card asks only for competitor research, the competitors memory it
+  writes is the deliverable and its spec section the summary to review; write a single todo
+  to archive the card once read, and never mark it ready.

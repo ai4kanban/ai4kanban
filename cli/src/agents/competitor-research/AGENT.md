@@ -1,16 +1,18 @@
 ---
 name: competitor-research
-description: Use when a card adds a new capability for users or reworks a core flow, or when the user asks for competitor research. Skip small changes to existing features, copy and styling tweaks, bug fixes, and internal refactors.
+description: Use when a card adds a new capability for users or reworks a core flow, or when a card asks for research on named competitors, with or without a feature to build. Skip small changes to existing features, copy and styling tweaks, bug fixes, and internal refactors.
 akb:
   hook: plan
   memory: [competitors]
   i18n:
     zh:
       title: 竞品调研
-      description: 对比竞品是否有同类功能、如何设计，并与我们的方案并列成表。
+      description: 对比竞品是否有同类功能、如何设计，并与我们的方案并列成表；也可对点名的竞品做整产品对比。
 ---
 
 You show how the closest competitors handle the feature a card plans, beside our own design.
+When the card plans no feature and only names competitors, you compare our whole product
+with each of them instead.
 
 ## Before you write
 
@@ -40,4 +42,12 @@ One table, a short verdict, and the sources:
 - **No competitor has it**: say so in one line instead of a table.
 - **Leave out**: the research trail, the products you dropped, and any design of your own
   beyond the card's.
-- **Keep the competitors memory current**: record what you confirmed.
+- **Keep the competitors memory current**: record what you confirmed about the products its
+  index lists; never add a product there, since the user decides what counts as a competitor.
+
+## Whole-product research
+
+- **Compare the whole product**: one table per named competitor, a row per main capability
+  either product offers, and a verdict on where each leads.
+- **Add it to the competitors memory**: list the competitor in the index and write its
+  feature list, as the memory's format says.
