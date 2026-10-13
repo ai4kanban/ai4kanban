@@ -8,7 +8,7 @@
 ## Steps
 
 1. 在首页滚到页脚，点「SOLUTIONS」下的「For coding」。
-   页脚四栏：「PRODUCT」；「SOLUTIONS」（只有「For coding」）叠在「LEARN」上面；「COMPARE」；「PROJECT」叠在「LEGAL」上面。手机上两栏，同样的顺序两两成行，页面不横向滚动。中文首页的分组叫「解决方案」，链接文字仍是「For coding」，指向 `/zh/workflows/coding`。点完到 `/workflows/coding`。
+   页脚四栏：「PRODUCT」；「SOLUTIONS」（「For coding」和「draft-first」）叠在「LEARN」上面；「COMPARE」；「PROJECT」叠在「LEGAL」上面。手机上两栏，同样的顺序两两成行，页面不横向滚动。中文首页的分组叫「解决方案」，链接文字仍是「For coding」「draft-first」，指向 `/zh/workflows/coding` 和 `/zh/draft-first`。点完到 `/workflows/coding`。
    ![桌面页脚](01-footer-solutions.png) · ![手机页脚](01b-footer-phone.png) · [coding.log](coding.log)
 
 2. 看首屏，再用 390px 宽的手机打开同一页。
@@ -34,7 +34,7 @@
 ## Feedback
 
 - **首屏终于安静**：动画背景去掉后，白底上只剩标题和一幅装框的插图，一眼就知道该看哪里；水彩只在画框四角，衬托而不抢戏。
-- **入口清楚**：页脚「SOLUTIONS」放在第二栏最上面，扫一眼就看到；但下面只有一条链接，空出一截才到「LEARN」，像没写完，页头「Resources」面板里也仍然没有这一页。
+- **入口清楚**：页脚「SOLUTIONS」放在第二栏最上面，扫一眼就看到；多了「draft-first」后不再像没写完，但页头「Resources」面板里仍然没有这一页。
 - **中文页脚中英混排**：分组标题是「解决方案」，链接却是「For coding」。
 - **手机上插图字太小**：画框缩到 342px，卡片里的「PAGE」「EMAIL」「Default role?」几乎读不清。
 - **看得到真东西**：每节配真实产品录屏，比示意图更可信；视频滚到附近才加载、离开就停，减少动态效果时改为手动播放。

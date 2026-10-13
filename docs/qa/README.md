@@ -40,6 +40,7 @@
 - [把 draft-first 装进项目，再加一个自己的 helper](skill/install-draft-first-and-add-your-own-helper/case.md)
 - [让编码 agent 先出草稿，在浏览器里删、批注、导出后确认](skill/review-drafts-and-confirm-them-in-draft-first/case.md)
 - [卡片的 chat 正在回复时否决它](skill/reject-a-card-while-its-chat-is-replying/case.md)
+- [批准博客大纲后，卡片上只留正文；回到大纲重来时，正文和配图一并撤掉](skill/approve-a-blog-outline-and-the-card-keeps-only-the-article/case.md)
 
 ### local-ui
 
@@ -74,6 +75,7 @@
 - [放大卡片里的样稿和图片，看清小字](local-ui/zoom-a-mockup-or-image-on-a-card/case.md)
 - [在「搁置」列里找出放了好几天没动的卡](local-ui/find-cards-untouched-for-days-in-the-stale-column/case.md)
 - [卡片的对话还在回复时移除这张卡](local-ui/reject-a-card-while-its-chat-is-replying/case.md)
+- [在卡片页把 Markdown 原稿当文章读，切换语言](local-ui/read-a-markdown-asset-as-an-article-on-a-card/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -90,6 +92,7 @@
 - [读软件开发方案页](site/read-the-coding-workflow-page/case.md)
 - [读一篇带配图的博客文章](site/read-a-blog-post/case.md)
 - [读创始人讲为什么做 AI4Kanban](site/read-why-tao-is-building-ai4kanban/case.md)
+- [读 draft-first 落地页并复制安装命令](site/read-the-draft-first-page/case.md)
 
 ### docs
 
