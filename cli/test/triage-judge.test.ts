@@ -469,6 +469,25 @@ describe('the sort', () => {
     assert.deepEqual([item(id).verdict, item(id).verdictReason], ['skip', 'rejected'])
   })
 
+  it("files a scheduled agent's item under that agent's workflow, whatever Jev picked", async () => {
+    signIn(true)
+    addedBy('qa-manager', 'Cover dark mode')
+    answer(jev())
+    await sort()
+    assert.doesNotMatch(cardText('100-cover-dark-mode.md'), /^workflow:/m)
+
+    addedBy('qa-manager', 'Cover themes')
+    answer(jev({ workflow: choice('none') }))
+    const done = await sort()
+    assert.deepEqual(done.report.cards, [{ id: 101, title: 'Cover themes' }])
+    assert.doesNotMatch(cardText('101-cover-themes.md'), /^workflow:/m)
+
+    addedBy('proposer', 'A post')
+    answer(jev())
+    await sort()
+    assert.match(cardText('102-a-post.md'), /^workflow: blog-post$/m)
+  })
+
   it('schedules a refine on a small card too, and writes no Source section', async () => {
     signIn(true)
     startCollecting()

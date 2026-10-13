@@ -1373,6 +1373,12 @@ export const scheduledAgent = (id: string, agent: string): WorkflowScheduled | u
   return flow ? scheduledMembers(flow).find((h) => h.agent === canonicalSpecAgent(agent.trim())) : undefined
 }
 
+/** The workflow listing this agent among its scheduled agents, or undefined when none does. */
+export const scheduledWorkflow = (agent: string): Workflow | undefined => {
+  const name = canonicalSpecAgent(agent.trim())
+  return workflows().find((flow) => scheduledMembers(flow).some((h) => h.agent === name))
+}
+
 /** The stamp one scheduled agent's cadence counts from: the later of its last pass and the
  *  moment it was first looked at or switched on. Empty when it has neither yet. */
 export const scheduledClock = (one: WorkflowScheduled): string =>

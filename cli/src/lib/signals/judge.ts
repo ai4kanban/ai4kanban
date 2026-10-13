@@ -15,7 +15,7 @@ import path from 'node:path'
 import os from 'node:os'
 
 import { nodeOfFlow } from '../agent/stages'
-import { builtinDescription, workflows } from '../agent/workflows'
+import { builtinDescription, scheduledWorkflow, workflows } from '../agent/workflows'
 import { runBoardMove } from '../board'
 import { idPrefix, walkMd } from '../cards'
 import { cloudEndpoints } from '../cloud/config'
@@ -508,6 +508,9 @@ export async function sortItem(item: Signal): Promise<Sorted> {
     sure = verdict
   }
   const picks = picksOf(answers)
+  // A scheduled agent's item is its own workflow's work, whatever Jev picked (#1658).
+  const owner = item.agent ? scheduledWorkflow(item.agent) : undefined
+  if (owner) picks.workflow = owner.id
   if (picks.workflow === null) return ignore({ verdict: 'skip', reason: 'no-workflow', card: null, confidence: sure.confidence, drop: sure.drop, do: sure.do })
   const card = await writeCard(item, picks)
   const filed = archiveInboxItem(item.sourceId, card.id)
