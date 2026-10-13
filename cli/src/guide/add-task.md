@@ -58,10 +58,7 @@ setup, fill only the opening paragraph—the background refinement completes the
 ## Refine
 
 Carry the request's constraints into refinement; a memory opt-out does not waive planning.
+Run `akb card refine <id> --print` and refine the card in this session. When this session
+created several cards, create each with `--schedule refine` instead.
 
-- **Inline**: when the source already supplies a concrete outcome, boundaries, and build
-  steps, run `akb card refine <id> --print` and continue in this session.
-- **Separate session**: otherwise, or when the user asks for background work, run
-  `akb card refine <id>`.
-
-During setup, start neither; the setup watcher starts refinement after setup exits.
+During setup, refine nothing; the setup watcher starts refinement after setup exits.

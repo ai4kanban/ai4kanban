@@ -1,7 +1,7 @@
 # Resolve questions
 
 Apply the answers the user supplied to existing `[user]` questions. Leave every unanswered
-question unchanged. During this phase, do not research it, choose for the user, raise
+question unchanged. While applying answers, do not research, choose for the user, raise
 another question, or change project code.
 
 ## Apply each answer
@@ -27,11 +27,7 @@ that agent, request each matching agent whose description says it follows it and
 section is missing or says it is waiting.
 
 When an answer approves an agent's draft and that agent has a next stage, run
-`akb spec <agent> <id>` for it, choosing the session as `akb guide refine` says.
-
-Once no question is left and no delivery is building the card, judge whether it can now be
-built as written: if so, run `akb raw update <id> --status ready`; otherwise leave it in To do
-and say what still needs planning.
+`akb spec <agent> <id> --print` for it in this session.
 
 When an answer selects one of several options in a spec-agent section, remove the rejected
 options and their spec-tmp files.
@@ -80,3 +76,11 @@ unchanged and keep the question open.
 
 Where the answer lands on a spec agent's section, also record it in that agent's memory —
 "An agent's memory" in `akb guide update-questions`.
+
+## Refine
+
+Once no question is left and no delivery is building the card, refine it in this session by
+`akb guide refine`, which decides readiness:
+
+- **Partial**: when the card was refined before, revisit only what the answers changed.
+- **Full**: when the answers reshape the card or its `## Scope` is still the creation scaffold.

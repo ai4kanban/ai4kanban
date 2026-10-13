@@ -12,7 +12,7 @@ Build the approved card. Preserve settled decisions and unrelated questions.
 - **Decisions made while building**: record an answered material decision the user could
   reasonably reverse under `## Worth noting after implementation`.
 - A printed, interactive implementation may stay uncommitted in the target checkout only
-  when the card still qualifies as "Inline" under "Refine" in `akb guide add-task`.
+  when the card already supplies a concrete outcome, boundaries, and build steps.
   Otherwise use the tracked implementation path. Background runs always keep their delivery
   path.
 - **Checks**: nothing reviews the build after you; run focused checks for the affected path

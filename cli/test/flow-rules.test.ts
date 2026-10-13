@@ -214,13 +214,24 @@ describe('the prompt', () => {
     assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
   })
 
-  it('has add-task refine inline only when the source is concrete', () => {
+  it('refines a single new card in the session that created it (#1661)', () => {
     const guide = findGuide('add-task')!.text
     assert.match(guide, /Repeating work[\s\S]*`schedule` agent[\s\S]*akb guide write-agent/)
     assert.match(guide, /open question[\s\S]*akb guide update-questions/)
     assert.doesNotMatch(guide, /Parallel|--effort/)
-    assert.match(guide, /Inline[\s\S]*source already supplies[\s\S]*akb card refine <id> --print/)
-    assert.match(guide, /Separate session[\s\S]*akb card refine <id>`/)
+    assert.match(guide, /akb card refine <id> --print/)
+    assert.match(guide, /several cards[\s\S]*--schedule refine/)
+    assert.doesNotMatch(guide, /Separate session|akb card refine <id>`/)
+  })
+
+  it('refines after the last answer, and runs spec agents in the same session (#1661)', () => {
+    const resolve = findGuide('resolve')!.text
+    assert.match(resolve, /no question is left[\s\S]*refine it in this session by\s+`akb guide refine`/)
+    assert.doesNotMatch(resolve, /--status ready/)
+    assert.match(resolve, /akb spec <agent> <id> --print/)
+    const refine = findGuide('refine')!.text
+    assert.match(refine, /akb spec <agent> <id> --print/)
+    assert.doesNotMatch(refine, /separate session/i)
   })
 
   it('keeps the question format in one guide', () => {

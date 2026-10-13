@@ -1015,10 +1015,10 @@ export function openRun(
 }
 
 /** The planning runs: each carries the card's planning session on (#1304). */
-const PLANNING = new Set<AgentAction>(['clarify', 'resolve'])
+const PLANNING = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
 
 /** The session a card's planning carries on (#1304): its last finished planning run's, resumed,
- *  or — before any — the one it was created in, forked. Only one its CLI would find from `cwd`;
+ *  or — before any — the one it was created in (a setup's seed cards: setup's), forked. Only one its CLI would find from `cwd`;
  *  otherwise `none` says why there is nothing to carry. */
 export function planningSession(cardId: number, cwd = REPO_ROOT): { session: AgentSession; fork: boolean } | { none: 'unrecorded' | 'elsewhere' } {
   const here = (dir: string | undefined): boolean => !dir || path.resolve(dir) === cwd
@@ -1032,7 +1032,7 @@ export function planningSession(cardId: number, cwd = REPO_ROOT): { session: Age
   }
   const planned = ended.find((r) => r.cardId === cardId && PLANNING.has(r.action))
   if (planned) return of(planned, false)
-  const run = ended.find((r) => r.action === 'create' && r.createdCardIds?.includes(cardId))
+  const run = ended.find((r) => (r.action === 'create' || r.action === 'setup') && r.createdCardIds?.includes(cardId))
   const created = run ? of(run, true) : undefined
   if (created && 'session' in created) return created
   const from = readChat(cardId)?.from

@@ -495,10 +495,13 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'edit':
       return [
         `${kb}. Revise task ${req.id} ${named}: "${req.notes || ''}" ${NO_IMPLEMENT}`,
+        carriedNote(req),
         `Apply the requested change following \`akb guide revise\`.`,
         `You can create new subtasks if it's a group task and the intent is to do so.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ].join(' ')
+      ]
+        .filter(Boolean)
+        .join(' ')
     case 'create':
       return [
         // A create off a plan (#427) names the file rather than carrying its words: the

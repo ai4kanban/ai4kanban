@@ -10,10 +10,8 @@ Plan one card in this session until it can be built. Change no project code.
   follow the group procedure in `akb guide add-task`, create each subtask with
   `--schedule refine`, and stop.
 - **Spec agents**: when an agent's `description` matches the scope and its section is missing
-  or outdated, run `akb spec <agent> <id>`; order agents only when one's output is another's
-  input. Add `--print` to run it in this session; start a separate session instead, with no
-  `--print`, when it writes its section from scratch or this session already ran another
-  agent.
+  or outdated, run `akb spec <agent> <id> --print` and write its section in this session;
+  run agents one at a time, in dependency order when one's output is another's input.
 - **File name**: when the card's file name does not say in English what the card is, rename
   it with `akb raw update <id> --slug <short-english-slug>`; leave a group's root as it is.
 - **Stale mentions**: rewrite any sentence that relies on a card no longer on the board.

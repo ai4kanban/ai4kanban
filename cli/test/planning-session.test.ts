@@ -127,6 +127,31 @@ describe('the planning after a create', () => {
   })
 })
 
+describe('the planning after a setup (#1661)', () => {
+  it('forks the setup session for a seed card', async () => {
+    const opened = openRun({ action: 'setup' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    recordCreatedCards(opened.run.sessionId, [1])
+    await end(opened.run.sessionId)
+    const run = await start({ action: 'clarify', id: 1 })
+    assert.deepEqual(run.continues, { resumeId: opened.run.sessionId, fork: true })
+  })
+})
+
+describe('the planning after a revise (#1661)', () => {
+  it('resumes the planning session, and the next step carries on from the revise', async () => {
+    await created([1])
+    const planned = await start({ action: 'clarify', id: 1 })
+    await end(planned.sessionId)
+    const revise = await start({ action: 'edit', id: 1, notes: 'x' })
+    assert.deepEqual(revise.continues, { resumeId: planned.sessionId })
+    assert.match(readSpec(revise.sessionId)!.prompt, /Revise task 1.*planned this card before/)
+    await end(revise.sessionId)
+    const answered = await start({ action: 'resolve', id: 1 })
+    assert.equal(after(answered.argv, '--resume'), planned.sessionId)
+  })
+})
+
 describe('the planning after an answer', () => {
   it('resumes the session that asked, round after round', async () => {
     await created([1])
@@ -210,11 +235,11 @@ describe('a new session, as before', () => {
     assert.equal(resumeSessionId(answered), 'kimi-planning')
   })
 
-  it('for a revise and a spec agent', async () => {
+  it('for a build and a spec agent', async () => {
     await created([1])
     const planned = await start({ action: 'clarify', id: 1 })
     await end(planned.sessionId)
-    for (const req of [{ action: 'edit', id: 1, notes: 'x' }, { action: 'spec', id: 1, specAgent: 'ui-designer' }] as AgentRequest[]) {
+    for (const req of [{ action: 'implement', id: 1 }, { action: 'spec', id: 1, specAgent: 'ui-designer' }] as AgentRequest[]) {
       const run = await start(req)
       assert.equal(run.continues, undefined)
       assert.ok(!run.argv?.includes('--resume'))

@@ -1010,8 +1010,7 @@ async function followUp(
 // They are the planning stage's helpers, and every one of them writes into the same card.
 // Two sessions rewriting one card at once is what a user reads as work being overwritten, so
 // only the first is started here; the rest are handed to it, and its own close starts the
-// next. The lead resumes when the last of them is done (`qaAfterSpec`), which is what makes
-// the sections one conclusion rather than several.
+// next.
 //
 // A helper that will not start is skipped rather than taking the queue down with it, and its
 // reason travels with the round to the planner, which asks again.
