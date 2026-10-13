@@ -18,9 +18,9 @@ const card = (id, path, meta, body) => ({ id, revision: `r${id}`, data: { path, 
 const read = (id, name) => ({
   workspace: { id, name },
   cards: [
-    card(21, 'todo/21-export-invoices-as-csv.md', { title: '导出发票为 CSV', priority: 'high', roi: 'high', status: 'ready', release: '', blocked_by: [], related: [], questions: [], modules: [] }, '让用户在账单页一键导出全部发票。\n\n## Todo\n\n- [x] 设计导出格式\n- [ ] 实现导出\n'),
-    card(22, 'todo/22-dark-mode.md', { title: '深色模式', priority: 'med', roi: 'med', status: 'todo', release: '', blocked_by: [], related: [], questions: [], modules: [] }, '跟随系统切换深色模式。\n'),
-    card(23, 'todo/23-faster-search.md', { title: '搜索提速', priority: 'low', roi: 'high', status: 'todo', release: '', blocked_by: [21], related: [], questions: [], modules: [] }, '搜索结果在 200ms 内出现。\n'),
+    card(21, 'todo/21-export-invoices-as-csv.md', { title: '导出发票为 CSV', priority: 'high', roi: 'high', status: 'ready', blocked_by: [], related: [], questions: [], modules: [] }, '让用户在账单页一键导出全部发票。\n\n## Todo\n\n- [x] 设计导出格式\n- [ ] 实现导出\n'),
+    card(22, 'todo/22-dark-mode.md', { title: '深色模式', priority: 'med', roi: 'med', status: 'todo', blocked_by: [], related: [], questions: [], modules: [] }, '跟随系统切换深色模式。\n'),
+    card(23, 'todo/23-faster-search.md', { title: '搜索提速', priority: 'low', roi: 'high', status: 'todo', blocked_by: [21], related: [], questions: [], modules: [] }, '搜索结果在 200ms 内出现。\n'),
   ],
   documents: [],
 })

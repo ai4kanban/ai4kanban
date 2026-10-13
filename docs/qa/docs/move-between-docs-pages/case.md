@@ -2,7 +2,7 @@
 
 ## Setup
 
-- **站点**：官网（`web/`）在本地跑起来，浏览器打开 `/docs/daily-loop`；第 1–4 步窗口 1280×1000，第 5–7 步模拟手机 390×844（触屏）。
+- **站点**：官网（`web/`）在本地跑起来，浏览器打开 `/docs/daily-loop`；第 1–4、8 步窗口 1280×1000，第 5–7 步模拟手机 390×844（触屏）。
 
 ## Steps
 
@@ -28,17 +28,22 @@
    ![手机上的折叠栏](05-phone-closed.png)
 
 6. 点折叠栏。
-   展开完整的文档目录，「Runs and agents」高亮，箭头朝上；「Using the board」下是 The daily loop、Chat、Releases、Agents、Runs and agents、Triage、Local and Cloud、Coding agents 八项，没有「Triage endpoint」。
+   展开完整的文档目录，「Runs and agents」高亮，箭头朝上；「Using the board」下是 The daily loop、Chat、Agents、Runs and agents、Triage、Local and Cloud、Coding agents 七项，没有「Releases」和「Triage endpoint」。
    ![展开的目录](06-phone-open.png)
 
 7. 点「Triage」。
    进入 `/docs/triage`，目录自动收起，折叠栏变成「Using the board / Triage」；正文第一句说 Triage 是顶栏铃铛左边的收件箱按钮，有条目等着时变红并带数字。
    ![跳到 Triage 后](07-phone-triage.png)
 
+8. 换回桌面宽度，打开旧地址 `/docs/releases`。
+   显示「404 / This page could not be found.」，没有页头、左栏，也没有跳转到别的文档页。
+   ![旧的 Releases 地址](08-old-releases-link.png)
+
 ## Feedback
 
 - **左栏、翻页、手机目录都顺手**：高亮总在当前页，跳页后从页顶开始，手机上选完目录自己收起，不用再点一下。
-- **页变短了**：「Runs and agents」只剩一张「你说什么」表和两节，翻到页底不用滚几屏，翻页卡更容易找到。
+- **目录更短了**：「Releases」拿掉后，「Using the board」只剩七项，手机上展开一屏就看完，Chat 后面直接是 Agents。
+- **旧链接是死路**：书签或外部文章里的 `/docs/releases` 只给一行 Next 默认的 404，没有页头、没有回文档的链接，也没有一句说明版本功能已去掉；`public/_redirects` 里也没有转到别处（这一步在本地 dev 服务上看到，线上 404 页的样子没核对）。
 - **正文链接开新标签页**：文档内部互相引用（如「the daily loop」）也用 `target="_blank"`，读几页就攒一排标签页；左栏和翻页都是原页打开，行为不一致。
 - **翻页卡的分组名重复**：前后两张都写「Using the board」，占地方却不提供信息。
 - **图标有重复**：「Agents」和「Local and Cloud」用的是同一个叠层图标，扫一眼分不开。

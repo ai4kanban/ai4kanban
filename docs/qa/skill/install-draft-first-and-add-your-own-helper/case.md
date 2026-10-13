@@ -3,7 +3,7 @@
 ## Setup
 
 - **项目**：一个已有提交的 git 仓库（一个小命令行 `mycli`），没有看板。
-- **命令**：`draft-first` 还没发布到 npm（#1632 推迟发布），日志里的 `npx draft-first` 由一个替身 `npx` 转到 [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first) 这次构建的 `bin/draft-first.mjs`；发布后直接用真的 `npx`。
+- **命令**：draft-first 已搬到独立的公开仓库 [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first)，npm 包还没发布。日志里的 `npx draft-first` 由一个替身 `npx` 转到该仓库克隆下来的 `bin/draft-first.mjs`；发布后直接用真的 `npx`。
 
 ## Steps
 
@@ -23,10 +23,16 @@
    `copywriting` 指向项目里的文件、描述换成自己写的；末尾多出 `config-key`；其余 5 个仍是自带的，共 7 个。
    [04-own-helpers.log](04-own-helpers.log)
 
+5. 打开 GitHub 上的 `ai4kanban/draft-first` 仓库，再查一下 npm。
+   `SKILL.md` 就在仓库根目录，带 `name: draft-first`；npm 上还查不到 `draft-first`（404）。
+   [05-repo-root.log](05-repo-root.log)
+
 ## Feedback
 
 - **一条命令装好两类 agent**：Claude Code 和其他 agent 各得一份，回执逐行写明给谁用，不用自己挑目录。
 - **装进去的东西很少**：只有说明、helper 和两个脚本，能放心随项目提交。
 - **自定义 helper 门槛低**：一个带 `description` 的 Markdown 文件就行，同名即覆盖，在子目录里也找得到。
 - **列表看不出谁被覆盖了**：被替换的 `copywriting` 只能从路径看出来源，没有「项目覆盖」之类的标记。
-- **现在还装不上**：包没发布，照 README 敲 `npx draft-first install` 会 404；这一步只能用本地包代替。
+- **独立仓库更好找**：`SKILL.md` 在根目录，按仓库收录 skill 的地方能直接认出它。
+- **现在还装不上**：包没发布，照 README 敲 `npx draft-first install` 会 404；这一步只能用克隆下来的仓库代替。
+- **没有跑到的**：按仓库地址安装（不走 npm）的 skill 目录站或安装器；Windows 上的安装。

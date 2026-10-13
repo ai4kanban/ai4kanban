@@ -6,7 +6,7 @@
 
 ### skill
 
-- [回答完卡片上最后一个问题，等看板自己细化它](skill/a-card-is-refined-once-its-question-is-answered/case.md)
+- [回答完卡片上最后一个问题，同一轮里细化到 ready](skill/a-card-is-refined-once-its-question-is-answered/case.md)
 - [在不是 git 仓库的项目里，靠归档卡片而不是新提交让周期 Agent 运行](skill/a-finished-card-not-a-commit-starts-a-scheduled-agent/case.md)
 - [往待筛选里加一条，忽略它，再恢复](skill/add-ignore-and-restore-a-triage-item/case.md)
 - [回答卡片的问题，然后让看板把它做完](skill/answer-a-card-then-build-it/case.md)
@@ -40,7 +40,10 @@
 - [把 draft-first 装进项目，再加一个自己的 helper](skill/install-draft-first-and-add-your-own-helper/case.md)
 - [让编码 agent 先出草稿，在浏览器里删、批注、导出后确认](skill/review-drafts-and-confirm-them-in-draft-first/case.md)
 - [卡片的 chat 正在回复时否决它](skill/reject-a-card-while-its-chat-is-replying/case.md)
-- [批准博客大纲后，卡片上只留正文；回到大纲重来时，正文和配图一并撤掉](skill/approve-a-blog-outline-and-the-card-keeps-only-the-article/case.md)
+- [批准博客大纲后，卡片上只留一个正文链接；回到大纲重来时，交付待办改回未勾选](skill/approve-a-blog-outline-and-the-card-keeps-only-the-article/case.md)
+- [QA 管理员（或它的子运行）报出的条目，直接建成 Coding 卡](skill/a-qa-manager-item-becomes-a-coding-card/case.md)
+- [建一张只点名竞品的卡，让竞品调研拿整个产品对比](skill/research-a-named-competitor-against-the-whole-product/case.md)
+- [升级后，版本从看板上消失，卡片照常可读](skill/releases-leave-the-board-on-upgrade/case.md)
 
 ### local-ui
 
@@ -76,6 +79,9 @@
 - [在「搁置」列里找出放了好几天没动的卡](local-ui/find-cards-untouched-for-days-in-the-stale-column/case.md)
 - [卡片的对话还在回复时移除这张卡](local-ui/reject-a-card-while-its-chat-is-replying/case.md)
 - [在卡片页把 Markdown 原稿当文章读，切换语言](local-ui/read-a-markdown-asset-as-an-article-on-a-card/case.md)
+- [在归档页按交付时间或创建时间排序](local-ui/sort-the-archive-by-delivery-or-creation-time/case.md)
+- [只在用键盘移动时看到聚焦框](local-ui/see-a-focus-frame-only-when-moving-by-keyboard/case.md)
+- [升级后打开一个用过版本的旧看板](local-ui/open-a-board-that-used-releases-after-upgrading/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
