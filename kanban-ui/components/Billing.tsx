@@ -10,6 +10,7 @@ import {
   openBillingPortalAction,
   readBillingAction,
   readInvoicesAction,
+  resumeRenewalAction,
   startCheckoutAction,
 } from "@/app/actions";
 import type { BillingCopy } from "@/i18n/configuration/types";
@@ -130,7 +131,7 @@ export function BillingPanel({
   ) : (
     <div className="flex flex-col gap-6">
       <Group title={t.plan.title}>
-        <Summary t={t} billing={billing} onUpgrade={() => setPage("plans")} />
+        <Summary t={t} billing={billing} onUpgrade={() => setPage("plans")} onResumed={read} />
       </Group>
       {billing.state === "ok" && billing.credits && <Credits t={t.credits} credits={billing.credits} />}
       <Invoices t={t} invoices={invoices} />
@@ -161,6 +162,27 @@ function usePortal() {
   return { busy, failed, open };
 }
 
+/** Turn renewal back on, then re-read so the plan shows it renewing. */
+function useResume(onResumed: () => Promise<void>) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const resume = async () => {
+    if (busy) return;
+    setBusy(true);
+    setFailed(false);
+    try {
+      const res = await resumeRenewalAction();
+      if (res.ok) await onResumed();
+      else setFailed(true);
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, failed, resume };
+}
+
 /** `UTC` for a date Cloud fixes in UTC, so it never reads as the day before west of it. */
 function useDay(timeZone?: "UTC") {
   const language = useLanguage();
@@ -175,10 +197,21 @@ function useDay(timeZone?: "UTC") {
       : "";
 }
 
-function Summary({ t, billing, onUpgrade }: { t: BillingCopy; billing: BillingRead; onUpgrade: () => void }) {
+function Summary({
+  t,
+  billing,
+  onUpgrade,
+  onResumed,
+}: {
+  t: BillingCopy;
+  billing: BillingRead;
+  onUpgrade: () => void;
+  onResumed: () => Promise<void>;
+}) {
   const p = t.plan;
   const day = useDay();
   const portal = usePortal();
+  const renewal = useResume(onResumed);
 
   if (billing.state !== "ok")
     return (
@@ -238,10 +271,17 @@ function Summary({ t, billing, onUpgrade }: { t: BillingCopy; billing: BillingRe
 
   const actions =
     b.state === "active" || b.state === "canceled" ? (
-      <Button size="sm" variant="ghost" disabled={portal.busy} onClick={() => void portal.open()}>
-        {p.manage}
-        {ext}
-      </Button>
+      <>
+        {b.state === "canceled" && b.resumable && (
+          <Button size="sm" disabled={renewal.busy} onClick={() => void renewal.resume()}>
+            {renewal.busy ? p.resuming : p.resume}
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" disabled={portal.busy} onClick={() => void portal.open()}>
+          {p.manage}
+          {ext}
+        </Button>
+      </>
     ) : b.state === "pastDue" ? (
       <div className="flex min-w-0 items-center gap-3 rounded-[10px] bg-nb-peach-soft py-2 pl-3.5 pr-2" role="status">
         <p className="flex min-w-0 items-start gap-2 text-[12.5px] leading-snug text-nb-ink">
@@ -287,6 +327,11 @@ function Summary({ t, billing, onUpgrade }: { t: BillingCopy; billing: BillingRe
       {portal.failed && (
         <p className={`${FAIL} mt-2 text-right`} role="alert">
           {p.portalFailed}
+        </p>
+      )}
+      {renewal.failed && (
+        <p className={`${FAIL} mt-2 text-right`} role="alert">
+          {p.resumeFailed}
         </p>
       )}
     </div>

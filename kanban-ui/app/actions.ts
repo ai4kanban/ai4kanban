@@ -86,6 +86,7 @@ import {
   proAccess,
   readBilling,
   readInvoices,
+  resumeRenewal,
   startCheckout,
   cloudCardLink,
   disconnectLark,
@@ -243,6 +244,7 @@ import type {
   ProAccess,
   BillingLink,
   BillingRead,
+  BillingResume,
   InvoicesRead,
   CommandState,
   ConnectionTest,
@@ -1956,6 +1958,14 @@ export async function startCheckoutAction(period: "monthly" | "yearly"): Promise
 export async function openBillingPortalAction(): Promise<BillingLink> {
   try {
     return await openBillingPortal();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function resumeRenewalAction(): Promise<BillingResume> {
+  try {
+    return await resumeRenewal();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

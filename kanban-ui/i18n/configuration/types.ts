@@ -920,6 +920,9 @@ export type BillingCopy = {
     updatePaymentBody: string;
     updatePayment: string;
     manage: string;
+    resume: string;
+    resuming: string;
+    resumeFailed: string;
     upgrade: string;
     current: string;
     unavailable: string;

@@ -167,6 +167,8 @@ export interface CloudBilling {
   /** A seed partner's grant (#1039): its end while it runs. `plan` is Pro on it even with no
    *  subscription; `state`, `period` and `periodEnd` are the subscription's alone. */
   grantEnd: string | null
+  /** Cancelled, still in its period, and Creem can still turn renewal back on. */
+  resumable: boolean
 }
 
 /** Pro's AI credits this UTC month (#1113). `resetsAt` is the next UTC month's first instant. */
@@ -194,3 +196,6 @@ export type InvoicesRead = { ok: true; invoices: CloudInvoice[] } | { ok: false 
 
 /** A page to open in the browser — Creem's checkout or its billing portal. */
 export type BillingLink = { ok: true; url: string } | { ok: false; error: string }
+
+/** Turning a cancelled subscription's renewal back on. */
+export type BillingResume = { ok: true } | { ok: false; error: string }

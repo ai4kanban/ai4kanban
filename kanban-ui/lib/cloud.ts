@@ -3,6 +3,7 @@ import { boardRules } from "./cli";
 import {
   type BillingLink,
   type BillingRead,
+  type BillingResume,
   type CloudAccount,
   type InvoicesRead,
   type CloudMove,
@@ -84,6 +85,12 @@ export async function openBillingPortal(): Promise<BillingLink> {
   const rules = await boardRules();
   if (!rules.openBillingPortal) return { ok: false, error: await tooOld() };
   return rules.openBillingPortal();
+}
+
+export async function resumeRenewal(): Promise<BillingResume> {
+  const rules = await boardRules();
+  if (!rules.resumeRenewal) return { ok: false, error: await tooOld() };
+  return rules.resumeRenewal();
 }
 
 /** The consent screen to open in the user's own browser. The secret half of the sign-in

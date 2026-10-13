@@ -164,6 +164,7 @@ export type {
 export type {
   BillingLink,
   BillingRead,
+  BillingResume,
   CloudAccount,
   CloudBilling,
   CloudCredits,

@@ -46,6 +46,7 @@ import type { CloudEventAnswer, CloudEventDecision, NotificationGroup } from "./
 import type {
   BillingLink,
   BillingRead,
+  BillingResume,
   CloudAccount,
   InvoicesRead,
   ProAccess,
@@ -685,6 +686,7 @@ export interface BoardRules {
   readInvoices?(): Promise<InvoicesRead>;
   startCheckout?(period: "monthly" | "yearly"): Promise<BillingLink>;
   openBillingPortal?(): Promise<BillingLink>;
+  resumeRenewal?(): Promise<BillingResume>;
   startCloudSignIn?(): { ok: true; url: string } | { ok: false; error: string };
   finishCloudSignIn?(callback: string): Promise<{ ok: boolean; error?: string }>;
   signOutOfCloud?(): { ok: true };

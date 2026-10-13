@@ -3,9 +3,9 @@
 
 import { cloudConfigured, cloudEndpoints } from './config'
 import { accessToken } from './session'
-import type { BillingLink, BillingRead, CloudBilling, CloudCredits, CloudInvoice, InvoicesRead } from './types'
+import type { BillingLink, BillingRead, BillingResume, CloudBilling, CloudCredits, CloudInvoice, InvoicesRead } from './types'
 
-export type { BillingLink, BillingRead, CloudBilling, CloudCredits, CloudInvoice, InvoicesRead }
+export type { BillingLink, BillingRead, BillingResume, CloudBilling, CloudCredits, CloudInvoice, InvoicesRead }
 
 const ASK_MS = 10_000
 
@@ -48,7 +48,8 @@ export async function readBilling(): Promise<BillingRead> {
   if (!asked.ok) return { state: asked.signedOut ? 'signed-out' : 'unavailable' }
   const billing = asked.body.billing as CloudBilling | undefined
   const credits = (asked.body.credits as CloudCredits | undefined) ?? null
-  return billing ? { state: 'ok', billing, credits } : { state: 'unavailable' }
+  if (!billing) return { state: 'unavailable' }
+  return { state: 'ok', billing: { ...billing, resumable: billing.resumable === true }, credits }
 }
 
 /** The account's charges, newest first. Never throws. */
@@ -73,4 +74,10 @@ export function startCheckout(period: 'monthly' | 'yearly'): Promise<BillingLink
 /** Creem's billing portal, where the plan is changed, cancelled or paid. */
 export function openBillingPortal(): Promise<BillingLink> {
   return link('/v1/billing/portal')
+}
+
+/** Turn renewal back on for a cancelled subscription still in its period. Never throws. */
+export async function resumeRenewal(): Promise<BillingResume> {
+  const asked = await ask('POST', '/v1/billing/resume')
+  return asked.ok ? { ok: true } : { ok: false, error: asked.error }
 }
