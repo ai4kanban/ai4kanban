@@ -934,8 +934,7 @@ function WorkflowPick({
             title={c.label}
             aria-label={c.label}
             disabled={disabled}
-            className={`${POPUP_TRIGGER} flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink`}
-            style={{ background: "var(--color-nb-accent-wash)" }}
+            className={`${POPUP_TRIGGER} flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink bg-nb-accent-wash`}
           >
             <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
             {mine.pro && <ProPill />}

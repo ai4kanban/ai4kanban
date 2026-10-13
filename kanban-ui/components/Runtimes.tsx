@@ -177,7 +177,7 @@ function RowAction({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`grid size-[26px] shrink-0 cursor-pointer place-items-center rounded-[7px] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 ${ink}`}
+      className={`grid size-[26px] shrink-0 cursor-pointer place-items-center rounded-[7px] transition-colors duration-100 nb-focus disabled:cursor-not-allowed disabled:opacity-40 ${ink}`}
     >
       {children}
     </button>
@@ -340,7 +340,7 @@ function Row({
                 if (e.key === "Enter") void rename();
                 if (e.key === "Escape") stopRename();
               }}
-              className="-ml-1.5 w-[220px] shrink-0 rounded-[8px] bg-transparent px-1.5 py-0.5 text-[13.5px] font-[700] text-nb-ink outline-2 outline-offset-1 outline-nb-accent focus:outline-2 disabled:cursor-wait"
+              className="-ml-1.5 w-[220px] shrink-0 rounded-[8px] bg-transparent px-1.5 py-0.5 text-[13.5px] font-[700] text-nb-ink nb-field disabled:cursor-wait"
             />
 
             {/* Where the pencil and the bin were, so the marks do not jump across the row when
@@ -382,7 +382,7 @@ function Row({
               type="button"
               onClick={onToggle}
               aria-expanded={open}
-              className="flex min-w-0 shrink cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+              className="flex min-w-0 shrink cursor-pointer items-center gap-2 text-left nb-focus"
             >
               {open ? (
                 <FiChevronDown className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
@@ -442,7 +442,7 @@ function Row({
               onClick={onToggle}
               aria-expanded={open}
               aria-label={nameOf(row)}
-              className="flex min-w-0 flex-1 cursor-pointer items-center justify-end gap-2 self-stretch text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+              className="flex min-w-0 flex-1 cursor-pointer items-center justify-end gap-2 self-stretch text-left nb-focus"
             >
               {!open && (
                 <>

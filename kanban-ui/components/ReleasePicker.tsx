@@ -70,16 +70,16 @@ const NONE = "—none—";
 const NEW = "—new—";
 
 // The goal box, in both dialogs that hold one (#164) — design.md's input rules:
-// paper fill inside a hairline, ember focus ring. Prose, not a version id, so it
+// paper fill inside a hairline, ink focus edge. Prose, not a version id, so it
 // is the dialogs' text size rather than the id box's mono.
 const GOAL_INPUT =
-  "w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+  "w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 nb-field disabled:cursor-wait";
 
 // What both halves of the chip do under the pointer, under the keyboard, and
 // while their menu is open: a wash of the chip's own ink (`currentColor`), so a
 // sky chip washes sky and a resting one washes charcoal. It used to be a flat
 // ink/10 on both, which on a blue chip reads as a grey smudge rather than as the
-// chip pressing. The accent focus ring is traded for the same wash — focus comes
+// chip pressing. The focus frame is traded for the same wash — focus comes
 // back to the trigger when the list closes, and a ring the width of the sticker
 // frame reads as the control shouting rather than as where the keyboard is.
 const SEGMENT_WASH =
@@ -829,7 +829,7 @@ function NewReleaseDialog({
         onKeyDown={(e) => {
           if (e.key === "Enter" && !saving) create();
         }}
-        className="w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 font-mono text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+        className="w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 font-mono text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field disabled:cursor-wait"
       />
       {/* What the version is for, on the tab that is about it. Enter makes a
           newline here, not the release — this is prose, and the id box above is

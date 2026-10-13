@@ -1035,7 +1035,7 @@ function WorkflowItem({ card }: { card: Card }) {
             data-tip={tip}
             aria-label={tip}
             onClick={() => configDialog.open("workflows")}
-            className="nb-tip nb-tip-start inline-flex cursor-pointer rounded-[5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+            className="nb-tip nb-tip-start inline-flex cursor-pointer rounded-[5px] nb-focus"
           >
             <Pill tone="peach">{w.notReady}</Pill>
           </button>

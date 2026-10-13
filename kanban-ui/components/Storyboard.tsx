@@ -23,7 +23,7 @@ const seconds = (n: number) => String(Number(n.toFixed(2)));
 const thumbWidth = (ratio: number) => Math.min(120, 96 * ratio);
 const PAGE_HEIGHT = "min(560px, 70vh)";
 const SOFT_BUTTON =
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:outline-2 focus-visible:outline-nb-accent";
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] nb-focus";
 
 function Reload() {
   const c = useCopy().card.storyboard;
@@ -203,7 +203,7 @@ function Shots({ shots, ratio, label, name }: { shots: StoryboardShotView[]; rat
                   onClick={() => go(k)}
                   aria-current={k === current ? "true" : undefined}
                   aria-label={`${shot.id} · ${seconds(shot.end - shot.start)}s`}
-                  className="shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                  className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
                   style={{ width: thumbWidth(shot.frames[0]?.ratio ?? ratio) }}
                 >
                   {shot.frames[0] && <Thumb frame={shot.frames[0]} ratio={ratio} current={k === current} />}
@@ -266,7 +266,7 @@ function Shot({ id, shot, ratio, current }: { id: string; shot: StoryboardShotVi
             <div>{shot.action}</div>
           </div>
           <details className="group">
-            <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft focus-visible:outline-2 focus-visible:outline-nb-accent">
+            <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft nb-focus">
               <FiChevronRight size={13} aria-hidden className="transition-transform group-open:rotate-90" />
               {c.details}
             </summary>
@@ -343,7 +343,7 @@ function Slides({ slides, ratio, label, name }: { slides: StoryboardSlideView[];
                   onClick={() => go(k)}
                   aria-current={k === current ? "true" : undefined}
                   aria-label={`${k + 1} · ${slide.title}`}
-                  className="shrink-0 cursor-pointer rounded-[5px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                  className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
                   style={{ width: thumbWidth(slide.preview.ratio ?? ratio) }}
                 >
                   <Thumb frame={slide.preview} ratio={ratio} current={k === current} />

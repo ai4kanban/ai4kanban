@@ -318,7 +318,7 @@ function Chart({ days, weekly }: { days: MetricsDay[]; weekly: boolean }) {
       </div>
       <div
         ref={plot}
-        className="relative rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
+        className="relative rounded-[6px] nb-focus"
         style={{ height: H }}
         tabIndex={0}
         role="group"
@@ -479,7 +479,7 @@ function DayRow({ days }: { days: MetricsDay[] }) {
     <>
       <div ref={box} className="flex min-h-0 flex-1 items-center justify-center">
         <div
-          className="flex flex-col gap-2 rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
+          className="flex flex-col gap-2 rounded-[4px] nb-focus"
           role="group"
           aria-label={c.heat.chart}
           {...frame(1, perRow)}
@@ -543,7 +543,7 @@ function WeekGrid({ days }: { days: MetricsDay[] }) {
           </div>
           <div ref={scroller} className={`min-w-0 ${phone ? "overflow-x-auto pb-2" : ""}`}>
             <div
-              className="w-max rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
+              className="w-max rounded-[4px] nb-focus"
               role="group"
               aria-label={c.heat.chart}
               {...frame(7, 1)}

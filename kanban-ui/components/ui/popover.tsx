@@ -23,10 +23,10 @@ export const POPUP_PANEL =
 export const POPUP_ROW =
   "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-left text-[13px] font-[600] text-nb-ink outline-none transition-colors duration-100 hover:bg-nb-wash focus-visible:bg-nb-wash data-[highlighted]:bg-nb-wash data-[active=true]:bg-nb-wash active:bg-nb-canvas disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 motion-reduce:transition-none";
 
-/** What opens a popup: a little darker under the pointer, pressed down on a click, and the
- *  ember ring while its popup is open. */
+/** What opens a popup: a little darker under the pointer, pressed down on a click; while its
+ *  popup is open it sits on the wash and its trailing chevron points up. */
 export const POPUP_TRIGGER =
-  "transition-[filter,transform] duration-100 enabled:hover:brightness-[0.96] enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent data-[state=open]:outline-2 data-[state=open]:outline-offset-1 data-[state=open]:outline-nb-accent aria-expanded:outline-2 aria-expanded:outline-offset-1 aria-expanded:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100";
+  "transition-[filter,transform] duration-100 enabled:hover:brightness-[0.96] enabled:active:scale-[0.98] nb-focus data-[state=open]:bg-nb-wash aria-expanded:bg-nb-wash [&>svg:last-child]:transition-transform [&[data-state=open]>svg:last-child]:rotate-180 aria-expanded:[&>svg:last-child]:rotate-180 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100";
 
 const Popover = PopoverPrimitive.Root;
 const PopoverTrigger = PopoverPrimitive.Trigger;
@@ -93,7 +93,7 @@ function PopoverSearch({ className, ...props }: React.ComponentProps<"input">) {
         spellCheck={false}
         autoComplete="off"
         className={cn(
-          "w-full rounded-[8px] bg-nb-wash py-1.5 pl-8 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent",
+          "w-full rounded-[8px] bg-nb-wash py-1.5 pl-8 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field",
           className,
         )}
         {...props}

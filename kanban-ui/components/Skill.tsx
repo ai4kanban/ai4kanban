@@ -176,7 +176,7 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
 
       {skill?.folders.length ? (
         <details className="group mt-3">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-ink nb-focus [&::-webkit-details-marker]:hidden">
             <FiChevronDown className="transition-transform duration-100 group-open:rotate-180" aria-hidden />
             {c.details}
           </summary>

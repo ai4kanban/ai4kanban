@@ -33,7 +33,7 @@ export const planDate = (iso: string | null, language: Language): string =>
 function Choice({ copy, period }: { copy: HostedCopy; period: "monthly" | "yearly" }) {
   const yearly = period === "yearly";
   return (
-    <label className="flex cursor-pointer flex-col gap-1 rounded-[11px] border-[1.5px] border-nb-ink/25 bg-nb-paper px-3 py-2.5 has-[:checked]:border-nb-accent-deep has-[:checked]:bg-nb-accent-wash has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-nb-accent">
+    <label className="flex cursor-pointer flex-col gap-1 rounded-[11px] border-[1.5px] border-nb-ink/25 bg-nb-paper px-3 py-2.5 has-[:checked]:border-nb-accent-deep has-[:checked]:bg-nb-accent-wash has-[:focus-visible]:outline-[1.5px] has-[:focus-visible]:-outline-offset-[1.5px] has-[:focus-visible]:outline-nb-ink">
       <input type="radio" name="period" value={period} defaultChecked={yearly} className="sr-only" />
       <span className="flex items-center justify-between gap-2 text-[12px] font-[700] text-nb-ink-soft">
         {yearly ? copy.yearly : copy.monthly}

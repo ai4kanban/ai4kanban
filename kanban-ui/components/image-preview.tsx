@@ -131,7 +131,7 @@ export function ExpandableImage({
               e.preventDefault();
               setOpen(ref.current?.currentSrc || src || null);
             }}
-            className={`group relative max-w-full ${className ?? "inline-block align-bottom"} ${ready ? "cursor-zoom-in rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent" : ""}`}
+            className={`group relative max-w-full ${className ?? "inline-block align-bottom"} ${ready ? "cursor-zoom-in rounded-[6px] nb-focus" : ""}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- its own src, passed through. */}
             <img

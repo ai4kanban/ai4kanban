@@ -372,7 +372,7 @@ export function WorkflowsPanel({
         aria-label={adding === slot ? ca.cancel : add}
         title={adding === slot ? ca.cancel : add}
         onClick={() => setAdding(adding === slot ? null : slot)}
-        className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink transition-colors duration-100 hover:bg-nb-ink/12 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-ink/45"
+        className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink transition-colors duration-100 hover:bg-nb-ink/12 nb-focus"
       >
         {adding === slot ? (
           <FiX aria-hidden strokeWidth={2.5} className="text-[13px]" />
@@ -844,7 +844,7 @@ function NameBox({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
       }}
-      className={`${CONTROL} h-[44px] px-3 text-[14px] font-[800] outline-2 outline-nb-accent`}
+      className={`${CONTROL} h-[44px] px-3 text-[14px] font-[800] nb-field`}
     />
   );
 }
@@ -886,7 +886,7 @@ function StageRow({
         type="button"
         aria-current={held}
         onClick={onOpen}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left nb-focus"
       >
         <span className={`flex size-[26px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}>
           <Character name={name} size={26} />

@@ -478,9 +478,9 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
         aria-label={c.search}
         spellCheck={false}
         autoComplete="off"
-        className={`h-[30px] w-full rounded-[8px] bg-nb-paper pl-[30px] text-[12.5px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 focus:outline-none ${
+        className={`h-[30px] w-full rounded-[8px] bg-nb-paper pl-[30px] text-[12.5px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 nb-field ${
           value ? "pr-7" : "pr-2"
-        } shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]`}
+        } shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]`}
       />
       {value && (
         <button

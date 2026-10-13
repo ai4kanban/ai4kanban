@@ -726,7 +726,7 @@ function EditSent({
             onCancel();
           }
         }}
-        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-ink/5 px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none"
+        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-ink/5 px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink nb-field"
       />
       <div className="mt-1 flex items-center justify-end gap-1">
         <Button variant="ghost" size="xs" onClick={onCancel}>
@@ -1279,7 +1279,7 @@ export function Pasted({ box }: { box: PictureBox }) {
                 title={c.openPicture}
                 aria-label={c.openPicture}
                 onClick={() => setShown(name)}
-                className="block cursor-pointer rounded-[8px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+                className="block cursor-pointer rounded-[8px] nb-focus"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
                     served by app/chat-image/ or app/create-image/. */}

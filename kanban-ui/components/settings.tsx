@@ -171,7 +171,7 @@ export function Switch({
       aria-label={label}
       disabled={held}
       onClick={() => void flip()}
-      className="inline-flex shrink-0 cursor-pointer rounded-full transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex shrink-0 cursor-pointer rounded-full transition-opacity duration-150 nb-focus disabled:cursor-not-allowed disabled:opacity-50"
     >
       <SwitchTrack on={on === true} />
     </button>
@@ -252,12 +252,12 @@ export function Loading({ children }: { children: React.ReactNode }) {
  *  under the sheet a card is: the dialog's whole neutral ramp is paper → sheet → wash →
  *  canvas, so a button reads on the pane and on a card alike without a grey plate. */
 export const QUIET_BTN =
-  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-wash px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,transform] duration-100 hover:bg-nb-canvas active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-wash px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,transform] duration-100 hover:bg-nb-canvas active:scale-[0.97] nb-focus disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** The same button, for the one move that takes something away — peach, the palette's
  *  attention signal, so Remove reads apart from Rename beside it without shouting. */
 export const DANGER_BTN =
-  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink transition-[background-color,transform] duration-100 hover:bg-nb-peach/45 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink transition-[background-color,transform] duration-100 hover:bg-nb-peach/45 active:scale-[0.97] nb-focus disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** The same button again, in the palette's own ember — for the one thing on a pane worth
  *  finding without looking for it. Test connection is the whole reason the pane is open on a
@@ -265,13 +265,13 @@ export const DANGER_BTN =
  *  one more field. Ember wash under the deeper ember ink, the pairing this dialog already uses
  *  wherever the accent has to carry text. */
 export const ACCENT_BTN =
-  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-accent-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-accent-deep transition-[background-color,transform] duration-100 hover:bg-nb-accent/28 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-accent-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-accent-deep transition-[background-color,transform] duration-100 hover:bg-nb-accent/28 active:scale-[0.97] nb-focus disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** The pane's one box to type in. Frameless like everything else in the dialog: the same
- *  faint ink fill marks it as a place to type, and the ember focus ring is what says it has
- *  focus. `disabled` here is always a save in flight, hence the wait cursor. */
+ *  faint ink fill marks it as a place to type, and the ink edge is what says it has focus.
+ *  `disabled` here is always a save in flight, hence the wait cursor. */
 export const CONTROL =
-  "w-full rounded-[10px] bg-nb-wash px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+  "w-full rounded-[10px] bg-nb-wash px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field disabled:cursor-wait";
 
 /** CONTROL for a `ui/select.tsx` trigger, which carries a framed version everywhere else in
  *  the app (the header's release picker, a card's chips). Passed by the dialog's own lists so

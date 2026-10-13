@@ -40,11 +40,9 @@ import { failureReason, noteParts, sayFailure, type ReasonPart } from "@/lib/sta
 // shared one (components/chrome.tsx) — the rail and the card page's subtasks say
 // "running" with the same mark.
 
-// The dialog textarea, styled per design.md's input rules: paper fill inside a
-// 1.5px ink border (borders are reserved for structural elements), ember focus
-// ring as the single accent.
+// The dialog textarea: paper fill inside a hairline that firms to ink on focus.
 const INPUT =
-  "w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
+  "w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field";
 
 // Shared rhythm for the one-liner that explains what the agent will do — quiet
 // ink-soft meta text under the bold ink title.

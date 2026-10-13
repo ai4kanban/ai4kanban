@@ -812,7 +812,7 @@ export function SignalsPage({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={c.search}
               aria-label={c.search}
-              className="h-7 w-[180px] min-w-[92px] rounded-[8px] bg-nb-wash pl-7 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none max-md:h-9 max-md:w-full max-md:pr-10 max-md:text-[13px]"
+              className="h-7 w-[180px] min-w-[92px] rounded-[8px] bg-nb-wash pl-7 pr-2.5 text-[12px] text-nb-ink placeholder:text-nb-ink-soft/70 nb-field max-md:h-9 max-md:w-full max-md:pr-10 max-md:text-[13px]"
             />
             <button
               type="button"
@@ -1494,7 +1494,7 @@ function IgnoredToast({
               }}
               placeholder={c.reasonHint}
               aria-label={c.addReason}
-              className="h-8 min-w-0 flex-1 rounded-[8px] bg-nb-paper px-3 text-[13px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none disabled:opacity-60"
+              className="h-8 min-w-0 flex-1 rounded-[8px] bg-nb-paper px-3 text-[13px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] placeholder:text-nb-ink-soft/70 nb-field disabled:opacity-60"
             />
             <Button size="xs" className="h-8" disabled={busy || !reason.trim()} onClick={() => void save()}>
               {c.save}
@@ -1869,7 +1869,7 @@ function SignalDetail({
                   }}
                   placeholder={c.reasonHint}
                   aria-label={c.dismissedWhy}
-                  className="h-8 w-full rounded-[8px] bg-nb-paper px-3 text-[13px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none disabled:opacity-60 max-md:h-11"
+                  className="h-8 w-full rounded-[8px] bg-nb-paper px-3 text-[13px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)] placeholder:text-nb-ink-soft/70 nb-field disabled:opacity-60 max-md:h-11"
                 />
                 {saveFailed && (
                   <p role="alert" className="text-[12px] leading-[16px] text-nb-accent-deep">

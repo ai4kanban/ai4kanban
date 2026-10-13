@@ -699,7 +699,7 @@ function PickRow({
         onClick={onOpen}
         // No frame and no marker: the ember wash is the whole of which row the page beside
         // the column belongs to, and a bar inside it says the same thing twice.
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left nb-focus"
       >
         <span
           className={`flex size-[26px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}
@@ -777,7 +777,7 @@ export function NewAgentRow({
 
   return (
     <div ref={row}>
-      <div className="flex w-full items-center gap-2 rounded-[9px] bg-nb-wash py-[5px] pl-2.5 pr-[5px] focus-within:outline-[1.5px] focus-within:outline-nb-ink/25">
+      <div className="flex w-full items-center gap-2 rounded-[9px] bg-nb-wash py-[5px] pl-2.5 pr-[5px] nb-field">
         <span aria-hidden className="size-[26px] shrink-0 rounded-[8px] border-[1.5px] border-dashed border-nb-ink/20" />
         <input
           autoFocus
@@ -807,7 +807,7 @@ export function NewAgentRow({
           type="button"
           disabled={busy || !name.trim()}
           onClick={() => void create()}
-          className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-paper px-2.5 py-[5px] text-[11.5px] font-[700] leading-[14px] text-nb-ink transition-colors duration-100 hover:bg-nb-canvas focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-ink/45 disabled:hover:bg-nb-paper ${
+          className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-paper px-2.5 py-[5px] text-[11.5px] font-[700] leading-[14px] text-nb-ink transition-colors duration-100 hover:bg-nb-canvas nb-focus disabled:hover:bg-nb-paper ${
             busy ? "disabled:cursor-wait disabled:text-nb-ink-soft" : "disabled:cursor-not-allowed disabled:text-nb-ink-soft/50"
           }`}
         >
@@ -1086,7 +1086,7 @@ function Page({
               spellCheck={false}
               aria-label={c.ruleLabel(agent.name)}
               placeholder={placeholder}
-              className="mt-2 min-h-[110px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-3 py-2.5 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+              className="mt-2 min-h-[110px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-3 py-2.5 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field"
             />
           ) : (
             <>
@@ -1098,7 +1098,7 @@ function Page({
                 onBlur={onLeave}
                 spellCheck={false}
                 aria-label={c.fileLabel(agent.name)}
-                className="mt-2 min-h-[190px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+                className="mt-2 min-h-[190px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink nb-field"
               />
               {/* The board reads the text the way its catalog reads an agent. A save it would
                   refuse keeps every word of it, keeps this page open, and says what is wrong. */}
@@ -1243,7 +1243,7 @@ function Clipped({ text }: { text: string }) {
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((was) => !was)}
-          className="ml-1.5 inline-flex cursor-pointer items-center gap-0.5 align-baseline font-[600] text-nb-ink transition-colors duration-100 hover:text-nb-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+          className="ml-1.5 inline-flex cursor-pointer items-center gap-0.5 align-baseline font-[600] text-nb-ink transition-colors duration-100 hover:text-nb-accent nb-focus"
         >
           {open ? c.hideRules : c.viewRules}
           <FiChevronDown
@@ -1330,7 +1330,7 @@ function SettingPick({
 // Compact, on the name row: the cadence chip, then Run now. The chip is neutral and the
 // accent is Run now's alone; a last run that failed tints the chip and says nothing more.
 const COMPACT_BTN =
-  "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-[7px] px-2 text-[11.5px] font-[700] transition-[background-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-[7px] px-2 text-[11.5px] font-[700] transition-[background-color,transform] duration-100 active:scale-[0.97] nb-focus disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** The list's first line: why it is waiting, else when the next run is. Empty while off. */
 function useNextRunLine(view: BoardScheduleView | null | undefined): string {
@@ -1749,7 +1749,7 @@ function CadenceEdit({
           onKeyDown={(e) => {
             if (e.key === "Enter" && canSave && !busy) void onSave(write(n, draft.unit, at));
           }}
-          className={`w-[56px] shrink-0 rounded-[8px] bg-nb-wash px-2.5 py-1.5 text-center text-[12.5px] font-[700] focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait ${
+          className={`w-[56px] shrink-0 rounded-[8px] bg-nb-wash px-2.5 py-1.5 text-center text-[12.5px] font-[700] nb-field disabled:cursor-wait ${
             wrong ? "text-nb-peach-ink" : "text-nb-ink"
           }`}
         />
@@ -1777,7 +1777,7 @@ function CadenceEdit({
             type="button"
             disabled={busy}
             onClick={() => onChange({ ...draft, time: "09:00" })}
-            className="mt-2 inline-flex cursor-pointer items-center gap-1 rounded-[8px] px-1 py-1 text-[12px] font-[600] text-nb-ink-soft hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait"
+            className="mt-2 inline-flex cursor-pointer items-center gap-1 rounded-[8px] px-1 py-1 text-[12px] font-[600] text-nb-ink-soft hover:text-nb-ink nb-focus disabled:cursor-wait"
           >
             <FiPlus size={12} aria-hidden />
             {copy.addTime}
@@ -1791,7 +1791,7 @@ function CadenceEdit({
               disabled={busy}
               aria-label={copy.atTime}
               onChange={(e) => onChange({ ...draft, time: e.target.value })}
-              className="shrink-0 rounded-[8px] bg-nb-wash px-2.5 py-1.5 text-center font-mono text-[12.5px] font-[700] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+              className="shrink-0 rounded-[8px] bg-nb-wash px-2.5 py-1.5 text-center font-mono text-[12.5px] font-[700] text-nb-ink nb-field disabled:cursor-wait"
             />
             <button
               type="button"
@@ -1799,7 +1799,7 @@ function CadenceEdit({
               aria-label={copy.dropTime}
               title={copy.dropTime}
               onClick={() => onChange({ ...draft, time: null })}
-              className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait"
+              className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink nb-focus disabled:cursor-wait"
             >
               <FiX size={13} aria-hidden />
             </button>
@@ -1922,7 +1922,7 @@ function RuntimePick({
                 setOpen(false);
                 onRuntimes();
               }}
-              className="flex w-full cursor-pointer items-center gap-1.5 rounded-[7px] py-1.5 pl-2.5 pr-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-wash hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+              className="flex w-full cursor-pointer items-center gap-1.5 rounded-[7px] py-1.5 pl-2.5 pr-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-wash hover:text-nb-ink nb-focus"
             >
               {c.openRuntimes}
               <FiArrowUpRight size={12} aria-hidden className="ml-auto shrink-0" />

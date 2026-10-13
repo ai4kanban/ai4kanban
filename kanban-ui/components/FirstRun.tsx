@@ -486,9 +486,9 @@ function ProjectTurn({
   if (proposal.unsure) {
     const u = c.project.unsure;
     const field = cn(
-      "mt-1.5 w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3.5 py-2.5",
+      "mt-1.5 w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3.5 py-2.5",
       "text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60",
-      "focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent",
+      "nb-field",
     );
     return (
       <>
@@ -576,9 +576,9 @@ function Box({
   return (
     <textarea
       className={cn(
-        "mt-5 w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3.5 py-3",
+        "mt-5 w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3.5 py-3",
         "text-[14px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60",
-        "focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent",
+        "nb-field",
       )}
       rows={rows}
       value={value}

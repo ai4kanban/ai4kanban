@@ -328,7 +328,7 @@ export function Configuration({
                         type="button"
                         aria-current={on}
                         onClick={() => setSection(id)}
-                        className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap ${
+                        className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 nb-focus max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap ${
                           on
                             ? "bg-nb-accent-soft text-nb-accent-deep"
                             : "text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
@@ -1300,7 +1300,7 @@ function Advanced({
           type="button"
           aria-expanded={open}
           onClick={onToggle}
-          className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+          className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:text-nb-ink nb-focus"
         >
           {open ? (
             <FiChevronDown className="shrink-0 text-[13px]" aria-hidden />

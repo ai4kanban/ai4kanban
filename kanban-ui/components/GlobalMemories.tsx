@@ -62,7 +62,7 @@ export function AgentMemoryLinks({ memories, onOpen }: { memories: GlobalMemoryV
           type="button"
           title={c.openMemory(one.title)}
           onClick={() => onOpen(one.name)}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-wash py-1 pl-1.5 pr-2 hover:bg-nb-canvas focus-visible:outline-2 focus-visible:outline-nb-accent"
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-wash py-1 pl-1.5 pr-2 hover:bg-nb-canvas nb-focus"
         >
           <FiBookOpen aria-hidden className="shrink-0 text-[12px] text-nb-ink-soft" />
           <span className="text-[12px] font-[700] text-nb-ink underline decoration-nb-ink/25 underline-offset-2">{one.title}</span>
@@ -113,7 +113,7 @@ export function MemoriesPanel({
             aria-label={m.add}
             title={m.add}
             onClick={() => setPicked(NEW)}
-            className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink hover:bg-nb-wash focus-visible:outline-2 focus-visible:outline-nb-accent"
+            className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[7px] bg-nb-canvas text-nb-ink hover:bg-nb-wash nb-focus"
           >
             <FiPlus aria-hidden strokeWidth={2.5} className="text-[13px]" />
           </button>
@@ -161,7 +161,7 @@ function ListRow({ title, builtIn, held, onOpen }: { title: string; builtIn?: bo
       type="button"
       aria-current={held}
       onClick={onOpen}
-      className={`flex w-full cursor-pointer items-center gap-2 rounded-[9px] px-2.5 py-[7px] text-left focus-visible:outline-2 focus-visible:outline-nb-accent ${
+      className={`flex w-full cursor-pointer items-center gap-2 rounded-[9px] px-2.5 py-[7px] text-left nb-focus ${
         held ? "bg-nb-accent-soft" : "hover:bg-nb-sheet"
       }`}
     >
@@ -290,7 +290,7 @@ function Page({
             }}
             spellCheck={false}
             aria-label={m.rules}
-            className="mt-2 min-h-[160px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-3 py-2.5 font-mono text-[12px] leading-[19px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+            className="mt-2 min-h-[160px] w-full flex-1 resize-none rounded-[10px] bg-nb-wash px-3 py-2.5 font-mono text-[12px] leading-[19px] text-nb-ink nb-field"
           />
         )}
         <div className="mt-2 flex shrink-0 items-center justify-between gap-3">

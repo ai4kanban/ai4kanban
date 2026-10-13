@@ -708,7 +708,7 @@ export function DesignSystem() {
                 13px, under the bold ink title. Then the input, then the buttons.
               </p>
               <textarea
-                className="w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+                className="w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field"
                 rows={3}
                 placeholder="What do you want to happen?"
               />

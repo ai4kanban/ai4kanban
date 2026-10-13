@@ -790,7 +790,7 @@ function Tip({
       role={role}
       tabIndex={tabIndex}
       onClick={onClick}
-      className={`a4k-nodrag nb-tip nb-tip-below nb-tip-start inline-flex shrink-0 rounded-[8px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent ${
+      className={`a4k-nodrag nb-tip nb-tip-below nb-tip-start inline-flex shrink-0 rounded-[8px] nb-focus ${
         onClick ? "cursor-pointer" : "cursor-default"
       }`}
     >

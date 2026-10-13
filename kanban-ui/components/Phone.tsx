@@ -137,9 +137,9 @@ export function HeaderFind() {
         aria-label={c.search}
         spellCheck={false}
         autoComplete="off"
-        className={`h-9 w-full rounded-[10px] bg-nb-paper pl-9 text-[14px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 focus:outline-none ${
+        className={`h-9 w-full rounded-[10px] bg-nb-paper pl-9 text-[14px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 nb-field ${
           query ? "pr-9" : "pr-3"
-        } shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]`}
+        } shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]`}
       />
       {query && (
         <button

@@ -49,7 +49,7 @@ export function ContextRing({
       type="button"
       // A button rather than a bare span so a keyboard reaches it: the ring writes nothing
       // down, and its whole purpose is the tip it carries.
-      className="nb-tip inline-flex shrink-0 cursor-default rounded-full p-0.5 outline-offset-1 focus-visible:outline-2 focus-visible:outline-nb-accent"
+      className="nb-tip inline-flex shrink-0 cursor-default rounded-full p-0.5 nb-focus"
       data-tip={label}
       aria-label={label}
     >

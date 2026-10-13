@@ -106,6 +106,32 @@ body {
     6px 6px 0 0 var(--color-nb-ink);
 }
 
+/* Focus, defined once. `nb-focus`: keyboard focus on a control takes `.nb-decide`'s lift —
+   an ink frame laid over its own edge, then the double offset shadow. `nb-field`: a text
+   field, or the box wrapping one, firms its edge to solid ink while you type in it. Anything
+   wearing neither gets a plain ink frame instead of the browser's ring. */
+@layer base {
+  :focus-visible {
+    outline: 1.5px solid var(--color-nb-ink);
+    outline-offset: 0;
+  }
+}
+@utility nb-focus {
+  &:focus-visible {
+    outline: 1.5px solid var(--color-nb-ink);
+    outline-offset: -1.5px;
+    box-shadow:
+      3px 3px 0 0 var(--color-nb-accent-soft),
+      6px 6px 0 0 var(--color-nb-ink);
+  }
+}
+@utility nb-field {
+  &:focus-within {
+    outline: 1.5px solid var(--color-nb-ink);
+    outline-offset: -1.5px;
+  }
+}
+
 /* Section kicker — clean borderless label */
 .nb-tag {
   display: inline-flex;

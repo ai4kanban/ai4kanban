@@ -134,7 +134,7 @@ export function MessageBox({
         className={
           over
             ? "rounded-[12px] bg-nb-accent-wash p-1.5 shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
-            : "rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-within:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
+            : "rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] nb-field"
         }
       >
         {head}

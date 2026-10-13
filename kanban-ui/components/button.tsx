@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // press effects are gated behind `enabled:` so a disabled button sits flat with
 // its resting shadow — no lift, no settle.
 const button = cva(
-  "inline-flex items-center justify-center border-[1.5px] border-nb-ink leading-none cursor-pointer transition-[transform,box-shadow,background-color] duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:-translate-x-px enabled:hover:-translate-y-px enabled:active:translate-x-px enabled:active:translate-y-px",
+  "inline-flex items-center justify-center border-[1.5px] border-nb-ink leading-none cursor-pointer nb-focus transition-[transform,box-shadow,background-color] duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:-translate-x-px enabled:hover:-translate-y-px enabled:active:translate-x-px enabled:active:translate-y-px",
   {
     variants: {
       variant: {
@@ -53,7 +53,7 @@ export function PanelAction({
   return (
     <button
       type="button"
-      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 max-md:h-11 max-md:px-3 text-[12px] font-[700] transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 max-md:h-11 max-md:px-3 text-[12px] font-[700] transition-colors nb-focus hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
       style={{ color: "var(--color-nb-accent-deep)" }}
       {...props}
     >
