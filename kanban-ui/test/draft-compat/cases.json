@@ -1,0 +1,21 @@
+[
+  {
+    "src": ".assets/compat/screen.tsx",
+    "kind": "doc",
+    "contains": [
+      "<main class=\"p-6 bg-brand\"><a href=\"/plans\" class=\"text-white underline\">Plans</a><span class=\"rounded-full bg-white px-2 text-sm\"><svg",
+      "</svg>Ready</span></main>",
+      "--color-brand: #123456",
+      ".bg-brand {"
+    ]
+  },
+  {
+    "src": ".assets/compat/page.html",
+    "kind": "doc",
+    "contains": [".hero { color: #654321; }", "<h1 class=\"hero\">Hello</h1>"]
+  },
+  { "src": ".assets/compat/sketch.txt", "kind": "text" },
+  { "src": ".assets/compat/copy.md", "kind": "text" },
+  { "src": ".assets/compat/blocked.tsx", "kind": "error", "contains": ["\"node:fs\""] },
+  { "src": ".assets/compat/missing.tsx", "kind": "error", "contains": [".assets/compat/missing.tsx"] }
+]

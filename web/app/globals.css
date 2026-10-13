@@ -21,7 +21,7 @@
   --font-pixel: Silkscreen, ui-monospace, monospace;
 
   /* The draft-first review page's own tones, for the /draft-first drawings
-     (components/draft-first/), in step with draft-first/page/style.css. */
+     (components/draft-first/), in step with page/style.css in ai4kanban/draft-first. */
   --color-nb-ink: #24231f;
   --color-nb-ink-soft: #565550;
   --color-nb-cream: #f7f7f4;

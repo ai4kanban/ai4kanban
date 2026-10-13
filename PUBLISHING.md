@@ -1,6 +1,6 @@
 # Publishing AI4Kanban
 
-Everything ships from this one repo. Two things need publishing on npm — the `ai4kanban`
+Everything but draft-first ships from this one repo. Two things need publishing on npm — the `ai4kanban`
 CLI, and the frozen `ai4kanban-ui` board UI — and the desktop app ships as files on the
 GitHub release. The plugin and the skill ship by pushing to GitHub; directories read the
 repo directly.
@@ -11,7 +11,7 @@ repo directly.
 | --- | --- | --- |
 | Skill (`skill/`) + plugin/marketplace manifests | this repo | `git push` — nothing to publish |
 | Setup CLI | npm `ai4kanban` | `npm publish` from `cli/` |
-| draft-first skill | npm `draft-first` | `npm publish` from `draft-first/` — its own version in `draft-first/package.json`; `npx draft-first install` stamps it into the installed `review.mjs` |
+| draft-first skill | npm `draft-first` | its own repo, [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first) — `npm publish` there |
 | Board app | GitHub release for the version tag | `npm run dist` from `desktop/`, then upload |
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
 | Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |

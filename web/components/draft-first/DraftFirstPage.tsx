@@ -26,6 +26,7 @@ import { MOMENT_H, MOMENT_W, MOMENTS } from "./ReviewMoments";
 export const PATH = "/draft-first";
 
 const COMMAND = "npx draft-first install";
+const REPO = "https://github.com/ai4kanban/draft-first";
 
 // Between a figure's term and its line.
 const COLON: Record<Locale, string> = { en: ": ", es: ": ", fr: "\u00a0: ", zh: "：", ja: "：" };
@@ -47,8 +48,8 @@ const VIDEO_W = 1340;
 const VIDEO_H = 705;
 const video = (locale: Locale, ext: string) => `${CDN}/draft-first/hero-${locale === "zh" ? "zh" : "en"}-v1.${ext}`;
 
-// /draft-first (#1635): the landing page of the draft-first skill (draft-first/ in this
-// repo). AI4Kanban is named in the body only from section 5 on.
+// /draft-first (#1635): the landing page of the draft-first skill (ai4kanban/draft-first).
+// AI4Kanban is named in the body only from section 5 on.
 export function DraftFirstPage({ locale }: { locale: Locale }) {
   const site = getCopy(locale);
   const c = draftFirst[locale];
@@ -83,7 +84,12 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
                   className="ml-1 h-9 rounded-[8px] bg-accent px-3 text-[0.8rem] font-bold text-white transition-colors hover:bg-accent-deep"
                 />
               </div>
-              <p className="mt-3 text-[0.8rem] text-muted">{c.hero.update}</p>
+              <p className="mt-3 text-[0.8rem] text-muted">
+                {c.hero.update} ·{" "}
+                <a href={REPO} className="text-ink underline underline-offset-2">
+                  GitHub
+                </a>
+              </p>
               <div className="mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-3 sm:gap-x-5">
                 <span className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted">
                   {c.hero.worksWith}

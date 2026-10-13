@@ -3,7 +3,7 @@
 ## Setup
 
 - **项目**：一个已有提交的 git 仓库（一个小命令行 `mycli`），没有看板。
-- **命令**：`draft-first` 还没发布到 npm（#1632 推迟发布），日志里的 `npx draft-first` 由一个替身 `npx` 转到这次构建的 `draft-first/bin/draft-first.mjs`；发布后直接用真的 `npx`。
+- **命令**：`draft-first` 还没发布到 npm（#1632 推迟发布），日志里的 `npx draft-first` 由一个替身 `npx` 转到 [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first) 这次构建的 `bin/draft-first.mjs`；发布后直接用真的 `npx`。
 
 ## Steps
 

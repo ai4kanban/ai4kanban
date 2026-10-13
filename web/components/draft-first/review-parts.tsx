@@ -1,7 +1,7 @@
 import { FiChevronDown, FiEdit3, FiTrash2 } from "react-icons/fi";
 
-// Pieces of the draft-first review page (draft-first/page/), drawn in React for the
-// /draft-first figures. The sample is the commit-message task in draft-first/test/fixture.
+// Pieces of the draft-first review page (page/ in ai4kanban/draft-first), drawn in React for
+// the /draft-first figures. The sample is the commit-message task in its test/fixture.
 // The review page itself speaks Chinese and English only, so the other languages draw it in English.
 
 export type Lang = "zh" | "en";

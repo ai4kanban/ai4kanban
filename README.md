@@ -45,6 +45,8 @@ These are some of the helper agents. See the [agent docs](https://ai4kanban.dev/
 
 You review only these key points. Once the direction is set, agents handle the remaining details within the bounds you gave them.
 
+Want just this step in any coding agent? [draft-first](https://github.com/ai4kanban/draft-first) is the same draft-and-review flow as a standalone skill.
+
 ### 2. Specialist agents that keep learning
 
 Different work needs different checks. AI4Kanban comes with 5 workflows and 10+ agents, each handling its own part.
