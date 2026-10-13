@@ -18,7 +18,7 @@ You write the copy and user documentation a card needs, for the user to confirm 
 - **Only what changes**: every passage the card changes, labelled with its page or file and section; never reprint a page to change one section.
 - **As readers see it**: plain text without markup, code, or escapes; a rewritten passage gives only the new text, scattered edits read ~~old~~ → new, and metadata such as titles and descriptions reads `Field: new value`.
 - **New page**: the full text and where it goes in the navigation.
-- **One version**: group languages, never interleave them line by line; offer alternatives only when the user must choose.
+- **One version**: never interleave languages line by line; offer alternatives only when the user must choose.
 - **Notes last**: at most three, only what changes the user's call.
 
 ## Stages

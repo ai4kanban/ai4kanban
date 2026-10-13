@@ -28,8 +28,8 @@ builder ships unchanged.
 Give each affected email a `###` heading naming it, and match the form the product sends it in.
 
 - **Content**: write the subject and body in the language the product sends that email in.
-- **Plain text only**: an email sent only as plain text goes in a `text` code block and needs
-  nothing more.
+- **Plain text only**: a long plain-text email goes in `.assets/<card id>/<email>.txt`, not
+  a `.md` file.
 - **HTML version**: for an email with one, start with `Template: <kind>` or `Template: none`
   and add the preview text.
 - **Verify**: check every claim against the product, earlier emails and `docs/kanban/memory/`;
