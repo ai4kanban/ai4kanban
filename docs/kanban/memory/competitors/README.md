@@ -2,6 +2,7 @@
 - [Task Master](task-master.md): 把 PRD 拆成任务清单、供编程智能体逐个执行的任务管理工具。
 - [Hermes Agent Kanban](hermes-agent-kanban.md): 让编程智能体按看板领取和推进任务的看板工具。
 - [Vibe Kanban](vibe-kanban.md): 在看板上给多个编程智能体分派任务并审查其改动的工具。
+- [Plannotator](plannotator.md): 在浏览器批注、审阅编程智能体的计划和代码 diff，并把反馈回传给智能体的开源工具。
 
 ## Not competitors (False positives)
 

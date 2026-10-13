@@ -23,14 +23,14 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **A desktop pet that speaks notifications** — the system notification center already does it.
 - **A card's screens side by side on a pan-and-zoom canvas** — trades scrolling for panning at the cost of a fixed viewport and a gesture layer.
 - **Cross-links between card pages and test cases** — too complicated for what it gives.
-- **Tooltip polish (touch behavior, tap-to-read marks, bubble placement)** — overdesign; propose tooltip work only when asked.
+- **Tooltip polish (touch behavior, tap-to-read marks, bubble placement)** — overdesign; only when asked.
 
 ## Explaining refusals
 
-- **Spelling out why a workflow's lead file was refused on every screen showing it** — the agent design keeps changing; UI for outdated files is over-designing for backward compatibility.
-- **Saying on the card why an auto-refine start was refused** — only adds upkeep; the card page shows the lead agent is missing.
+- **Spelling out why a workflow's lead file was refused on every screen showing it** — agent design keeps changing; UI for outdated files over-designs for backward compatibility.
+- **Saying on the card why an auto-refine start was refused** — upkeep only; the card page shows the lead agent is missing.
 - **Rewording a refused new-agent name into the UI language** — the current message is good enough.
-- **Naming the broken file, bundled copy and fix when an agent CLI won't start** — users get a minimal UI; paths and exit codes are internal detail.
+- **Naming the broken file, bundled copy and fix when an agent CLI won't start** — paths and exit codes are internal detail.
 
 ## Runs
 
@@ -52,7 +52,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 ## Setup
 
 - **An "I'll drive this board from my own coding agent" answer** — the board always has an agent to run.
-- **Requiring git before a folder becomes a project** — non-git builds already fall back to manual mode and say why.
+- **Requiring git before a folder becomes a project** — non-git builds fall back to manual mode and say why.
 
 ## Feedback
 

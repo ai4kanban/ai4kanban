@@ -13,7 +13,6 @@ own entries live in its folder beside this file.
 
 ## Where a rule lives
 
-- ❌ **同一条规则逐个流程各写一句** → ✅ 规则和例外写在诱因旁的一处。
 - ❌ **照一张卡的症状给指南补规则** → ✅ 只改通用的根因规则，症状规则会误伤合理用法。
 - ❌ **在启动提示里重复指南的指令** → ✅ 指南是唯一出处，重复的禁令会被放大成指南没打算的限制。
 
@@ -27,4 +26,4 @@ own entries live in its folder beside this file.
 
 ## Settings
 
-- ❌ **保留一个用户不能选的设置或字段（如 spec agent 的 `output`）** → ✅ 用户不选就删掉，行为从已有信息推出。（#1574）
+- ❌ **保留一个用户不能选的设置或字段（如 spec agent 的 `output`）** → ✅ 用户不选就删掉，行为从已有信息推出。

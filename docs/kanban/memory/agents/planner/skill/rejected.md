@@ -7,8 +7,8 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Connectors for more coding agents (e.g. Amp)** — people use only the top five or so; supporting every agent isn't worth the upkeep.
 - **Pro-only Proposer** — the Proposer and hand sorting stay free: they show why Triage matters; Pro sells only the relief of auto-sort.
 - **Keeping discussion chats for the memory review** — the review doesn't read discussions; only card chats become memory.
-- **Cards for Windows-only edge cases (e.g. interrupted-run cleanup holding the run record's lock)** — not at this stage; Windows-only cases and tests wait for bandwidth.
-- **Replacing Jev with agent triage** — on a 20-item eval in `evals/` neither sorted better, and Jev is much cheaper.
+- **Cards for Windows-only edge cases** — not at this stage; Windows-only cases and tests wait for bandwidth.
+- **Replacing Jev with agent triage** — on an eval neither sorted better, and Jev is much cheaper.
 - **Follow-up planning pinning the runtime of the session it continues** — overdesign; the planner's current runtime is fine.
 
 ## Scheduled and background agents
@@ -16,11 +16,11 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Full rerun of the QA manual** — no point for now, so nothing gets built to reach it.
 - **Scheduled agent's first run catching up on earlier cards** — listing nothing on the first run is intended; the QA cases are seeded from the codebase, not backfilled from past cards or chats.
 - **Reporting or repairing recurring cards that fail to migrate to scheduled agents** — we assume users have none; no notice, retry UI or migration help.
-- **Migrating QA proof that user projects committed under `docs/qa/`**: none ever did; it was only this repo's dev material, and this repo's history is already purged (#1585)
+- **Migrating QA proof user projects committed under `docs/qa/`** — none ever did; it was only this repo's dev material (#1585).
 - **This board's notes-to-blog and composition-index jobs (#388, #983)** — dropped for good, never rebuilt as scheduled agents.
-- **Cards that run or schedule the user's own agents (e.g. a first run of the competitor analysis agent, then turning on its schedule)** — when and how to run their agents is the user's call, not the board's.
-- **Install or setup text announcing what runs in the background (e.g. the daily QA manager)** — overdesign; show the key background work as tutorial cards on a new board instead.
-- **Treating an agent's stage as something users move (e.g. a refusal pointing a scheduled agent "back" to a stage)** — no such concept: a workflow's agents and their stages are fixed, and users' own agents are theirs to write.
+- **Cards that run or schedule the user's own agents** — when and how to run them is the user's call, not the board's.
+- **Install or setup text announcing what runs in the background** — overdesign; tutorial cards on a new board show the key background work.
+- **Treating an agent's stage as something users move** — a workflow's agents and their stages are fixed; users' own agents are theirs to write.
 - **Seeding a triage-fetch card or agent on the first fetch** — nobody used it; a board that wants scheduled fetching writes its own scheduled agent.
 
 ## Agents and connectors
@@ -60,7 +60,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 
 ## Storage and structure
 
-- **A file-storage-only backend layer for team work** — Cloud also owns revisions, leases, audit and lifecycle; collaboration needs identity, routing, single writers, shared memory and recovery too.
+- **A file-storage-only backend layer for team work** — collaboration needs identity, routing, single writers, revisions, audit, shared memory and recovery, which Cloud owns.
 - **GitHub Projects as the shared board** — Cloud is the shared board; GitHub Issues is intake and a progress mirror.
 - **Mirroring the board to a second backend** — two-way sync and conflicts; one backend per project.
 - **Moving every flow off Read/Grep onto board commands** — buys nothing on a file board.

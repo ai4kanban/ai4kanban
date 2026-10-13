@@ -8,12 +8,13 @@ One line per correction: the mistake, then the design to use instead.
 - **Drew a stale or partial view**: inspect the current screen; a revision refreshes every affected screen and shared copy at once.
 - **A second control for a job an existing one does**: reuse that feature's shape and interactions, changing only copy and actions.
 - **Restyled shared chrome, or redrew a sibling's from memory**: shared chrome is out of scope; reread the sibling's frame, since siblings are compared side by side.
+- **Changed a layer the user did not name** (asked for white paper, also removed the watercolour): change only what was named; when unsure, take the literal, smallest change.
 - **Invented the app's words**: take strings from the app's i18n in the board's language; CLI-supplied delivery text stays English.
+- **Invented branding, or a lookalike where a capture was wanted**: use the real logo and reference, or run the real surface and shoot it.
 - **Drew a frame the app never shows**: the board cut at the edge, a card page inside its rail and chat, a dialog over what is behind it.
 - **Split one moment into several screens**: find the one state where they co-exist.
 - **One language for a card asking for 中英文**: draw each surface in both, sized against the English, which runs about a quarter longer.
 - **A CLI workflow drawn as a screen**: keep commands as a short text block in the card.
-- **Invented branding, or a lookalike where a capture was wanted**: use the real logo and reference, or run the real surface and shoot it.
 - **A guide entry drawn as a link to the website**: reuse the app's in-place guide.
 - **手机稿另配按钮样式**：沿用桌面端的按钮样式，只缩尺寸。
 
@@ -29,11 +30,11 @@ One line per correction: the mistake, then the design to use instead.
 - **Split content into fields its agent's rules never require**: render it as Markdown; one agent's habit is not a format.
 - **Every item repeated actions and counts under stacked toolbars**: actions only on the focused item, one control row.
 - **A form opened inside an item, or a new-item form as a panel under the list**: forms open outside the item; a new item is a row in the list, added by a control that matches the list.
-- **Menus crowded or oversized**: leave breathing room; a menu is as narrow as its items, widening only while editing.
-- **A turn-off item drawn like the rest of its menu**: set it apart as a warning.
-- **页面内容与页头边缘不齐**：带框带投影的卡片会缩进、投影出界；内容左缘对齐 logo，右缘对齐页头最右的按钮（#1559）。
-- **首屏标题缩进到正文栏、插画元素彼此离得远**：首屏、正文与页头同一容器，标题和正文都对齐 logo（文字限宽、配图通栏）；插画右缘对齐页头最右按钮，元素等距成一组，高度接近标题块，不用虚线拉远（#1052）。
-- **A secondary action laid over content drawn with a text label**: draw it icon-only, its name in the tooltip (#1554).
+- **A secondary action laid over content drawn with a text label**: draw it icon-only, its name in the tooltip.
+- **页面内容与页头边缘不齐**：带框带投影的卡片会缩进、投影出界；内容左缘对齐 logo，右缘对齐页头最右的按钮。
+- **长文页首屏横排挤住标题**：用站内共享的文章框架（目录 + 正文），首屏竖排；插画元素等距成一组。
+- **手机上把一组图做成横滑**：后面几张没人看，改为单列竖排。
+- **首屏主视觉贴着底边截断**：上下留白一致，底部淡出收尾。
 
 ## Refusals, empty and after states
 
@@ -41,7 +42,7 @@ One line per correction: the mistake, then the design to use instead.
 - **A refusal naming agents shows each one's character**: an agent name can equal a step name.
 - **Removing a title row**: still keep a window name and a close.
 - **An empty list gives no instruction that cannot be followed**: one honest line where the space is.
-- **A config error drawn as an icon with a hover tip, or as its own greyed row in a list**: show it without hovering — a page banner stating the cause, a warning icon on its list row.
+- **A config error hidden behind a hover tip, or as its own greyed row**: a page banner stating the cause, a warning icon on its list row.
 - **Skipped the state after success**: draw it, saying what did NOT happen.
 - **A waiting state missing facts the failure state asks for**: one panel, one submit, and the "nothing was made, and where it stuck" path drawn.
 
@@ -56,12 +57,11 @@ One line per correction: the mistake, then the design to use instead.
 ## Characters and scenes
 
 - **Characters differ by silhouette, pose and prop**: never a recolour or swapped hat.
-- **Roster art comes from `kanban-ui/agent-art.md`**: an agent with none keeps its lettered card.
+- **Roster art comes from `kanban-ui/agent-art.md`**: an agent with none keeps its lettered card; an inherited art module must first inline what the new card needs.
 - **Correct a sprite sheet against the base art**: keep proportions and shading, change only what the sheet adds.
 - **A crowded activity scene with permanent detail panes**: spacious room, recent successes only, details on demand; draw capacity and completion states.
 - **Labels stacked under a figure**: role and harness above the head, card id at the feet.
-- **A busy machine drawn as a still**: animate it, freezing on a working frame for reduced motion.
-- **A loop that opens on an empty frame**: start it on its telling frame (negative delay) so a still render, pre-CSS and reduced motion all show it; a device reads as one, e.g. a monitor with bezel and stand, never a bare block (#1052).
+- **A busy machine drawn as a still, or a loop opening on an empty frame**: animate it and start on its telling frame (negative delay), so a still render and reduced motion show it working.
 
 ## Explainer animations
 
@@ -94,11 +94,9 @@ One line per correction: the mistake, then the design to use instead.
 ## Rendering a mockup
 
 - **Finished without looking at the render**: overflow only shows there; if no browser starts, say the frame was never seen.
-- **Art or media fetched at render time**: art is inline, media is drawn over its first frame.
-- **Theme set by inline variables, or a reset added**: they come out colourless; use the app's own classes.
+- **A recording flattened to a still**: embed it so it still plays.
 - **Boxes stretched to fill**: give fixed heights, or copied panes collapse or clip.
-- **An inherited art module missing roster art**: inline what the new card needs first.
-- **A Configuration dialog drawn from scratch**: start from an existing dialog mockup, rereading the sidebar sections first.
-- **An email drawn by hand**: run the product's own template; hide images without placeholders.
 - **Plain-text drawings re-wrapped**: hard-wrap them as the file would be.
-- **An `.html` asset's `#` links replaced the frame**: pin its base to the frame.
+- **Edited only a file the entry mockup imports**: the board redraws only when the entry file changes, so touch it too; and never leave an image slot as an empty box.
+- **Aligned an icon to text by eye**: measure it against the cap height in the DOM, and keep the logo's hard shadow.
+- **A switch that only fits two options**: a language or similar choice whose count can grow goes in a dropdown showing the current value, not side-by-side buttons.
