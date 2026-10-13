@@ -27,7 +27,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiDownload, FiImage, FiLayers, FiMaximize2 } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
@@ -371,7 +371,7 @@ export function DownloadIcon({ href, name }: { href: string; name: string }) {
 
 export type Variants = { labels: string[]; at: number; pick: (i: number) => void };
 
-/** The version switch (#1663): the version shown, a badge counting them, and the menu. */
+/** The version switch: the version shown, a muted count, and the menu. */
 function VariantSwitch({ variants }: { variants: Variants }) {
   const c = useCopy().card.mockup;
   const { labels, at, pick } = variants;
@@ -381,17 +381,13 @@ function VariantSwitch({ variants }: { variants: Variants }) {
         <button
           type="button"
           aria-label={c.version}
-          className="inline-flex min-w-0 shrink cursor-pointer items-center gap-1 rounded-[7px] border-[1.5px] border-nb-ink bg-nb-paper py-[2px] pl-2 pr-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-nb-wash"
+          className="inline-flex min-w-0 shrink cursor-pointer items-center gap-1 rounded-[6px] py-[2px] pl-1.5 pr-1 text-[12.5px] font-[600] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] data-[state=open]:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
         >
-          <FiLayers aria-hidden size={13} className="shrink-0" />
           <span className="truncate">{labels[at]}</span>
-          <span
-            className="inline-flex h-[16px] min-w-[16px] shrink-0 items-center justify-center rounded-full bg-nb-wash px-1 text-[10.5px] font-[700] text-nb-ink-soft"
-            title={c.versions(labels.length)}
-          >
+          <span className="shrink-0 text-[11px] font-[600] text-nb-ink-soft" title={c.versions(labels.length)}>
             {labels.length}
           </span>
-          <FiChevronDown aria-hidden size={12} className="shrink-0" />
+          <FiChevronDown aria-hidden size={12} className="shrink-0 text-nb-ink-soft" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
