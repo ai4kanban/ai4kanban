@@ -1,7 +1,6 @@
 import { SectionTitle } from "./SectionTitle";
 import { PlatformCta } from "../PlatformCta";
 import { Rich } from "../Rich";
-import { Chip } from "../ui/Chip";
 import { localeHref, type Locale } from "@/lib/i18n";
 import type { ResolvedSystem } from "../download/builds";
 import type { HomeCopy } from "@/i18n/home/types";
@@ -32,7 +31,7 @@ export function Start({
   return (
     // No top margin: this section sits in a `Band`, which owns its own air.
     <section id="install" className="scroll-mt-24">
-      <SectionTitle num="04" title={c.title} />
+      <SectionTitle num="06" title={c.title} />
       <p
         data-reveal
         data-delay="1"
@@ -53,11 +52,6 @@ export function Start({
           fallback={localeHref(locale, "/download")}
           place="start"
         />
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {c.notes.map((note) => (
-            <Chip key={note}>{note}</Chip>
-          ))}
-        </div>
       </div>
 
       {/* What a Mac user runs into on the very first open, beside the step it
@@ -72,9 +66,7 @@ export function Start({
         <Rich>{c.firstOpen}</Rich>
       </p>
 
-      {/* What the app brings with it, so a reader who wants a terminal knows
-          they already have one after the download. A line, not a block: the
-          command is a detail of the app, not a second way in. */}
+      {/* The terminal way in, as a line rather than a block: the app is the way in. */}
       <p
         data-reveal
         data-delay="3"

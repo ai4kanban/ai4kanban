@@ -4,114 +4,82 @@ import type { HomeCopy } from "./types";
 
 const en: HomeCopy = {
   meta: {
-    title: "AI project management for agent teams | AI4Kanban",
+    title: "See the draft before agents get to work | AI4Kanban",
     description:
-      "Take on bigger projects with AI4Kanban. Your AI project manager assigns work to agents, tracks progress, and brings key decisions and results back to you.",
+      "AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details, and you move more work forward on your own.",
+    socialTitle: "See the draft. Let agents do the rest.",
+    social: "A kanban board for AI agents that shows you the key drafts first, then lets agents finish the rest.",
     schema:
-      "AI4Kanban is an open-source, local-first AI project manager that helps solo founders, creators, and small teams tackle larger projects with an agent team. It assigns tasks, tracks progress, and reviews results in the development workflow. You set the direction, make key decisions, and give final approval. Product development and product video workflows are built in; other work needs additional workflows and agents.",
+      "AI4Kanban is an open-source, local-first kanban board for AI agents. It prepares the key drafts for each task — a UI mockup, a copy draft, a storyboard, figures — so you settle the direction first, then specialist agents finish the rest within the agreed scope. It covers product development and content creation, and connects to 8 tools such as Claude Code and Codex, running on your machine with your own subscriptions.",
   },
 
   hero: {
-    title: "You set the direction. AI leads the team.",
-    lead: "From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.",
+    title: "See the draft. Let agents do the rest.",
+    lead: "AI4Kanban prepares the key drafts for the tasks on your board. You check what matters, agents handle the details, and one person moves more work forward.",
     ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
+    image:
+      "A recording of the AI4Kanban demo board: planning tasks, reviewing the drafts on a card, then handing the work to agents.",
+  },
+
+  drafts: {
+    title: "Review the key drafts. Get the direction right.",
+    lead: "How a page is laid out, what an article says, how a video tells its story — agents turn the parts you care about into drafts on the task card. When you can see it, you can tell whether it's what you want. Change it right there, and settle the direction before the rest of the work starts.",
+    kinds: [
+      { label: "UI mockup", body: "See the layout and interactions before it's built." },
+      { label: "Copy draft", body: "Confirm the message and wording before the page takes shape." },
+      { label: "Storyboard", body: "See each shot's picture and voiceover before the video is made." },
+      { label: "Figures", body: "See what each figure shows before it's finished." },
+    ],
+    closing:
+      "You don't have to spell out every detail. Once the key drafts are approved, agents finish the rest within the agreed scope.",
+  },
+
+  agents: {
+    title: "Your feedback carries over to the next task.",
+    body: [
+      "A design agent prepares mockups, a copy agent polishes wording, a script agent plans the content. AI4Kanban comes with 5 workflows and 10+ specialist agents that split the work by task and remember the preferences and decisions you've made clear.",
+      'Say you ask for "more direct headlines." The copy agent applies that feedback to future drafts. The next task starts from what you\'ve already agreed, so you never explain it from scratch.',
+    ],
+    pro: "Product videos, slide decks, carousel posts, and blog posts require Pro.",
+    image: "You give a note once; the agent remembers it and every later draft follows it.",
+  },
+
+  followUps: {
+    title: "Let agents catch what you missed.",
+    body: [
+      "As tasks pile up, finding every gap shouldn't be on you alone. Background agents check progress on a schedule, and a QA agent tests recent changes the way a user would.",
+      "An overlooked error state or a missing test can become a follow-up suggestion on your board. You accept, revise or reject it, and agents carry on.",
+    ],
+    image: "The QA agent finds a gap and hands you a follow-up to accept or dismiss.",
+  },
+
+  parallel: {
+    title: "Many things at once. The key calls stay yours.",
+    body: [
+      "A product change, a launch post, an intro video — no need to finish one before starting the next. Independent tasks go to agents in parallel; you review the key drafts on the cards, make the calls, and keep your attention for what's worth doing next.",
+      "AI4Kanban handles task breakdown, priorities, progress and notifications, so you don't have to coordinate work across multiple chats.",
+    ],
     shots: {
-      board: { label: "Board", alt: "AI4Kanban local board: Board view" },
-      card: { label: "Card", alt: "AI4Kanban local board: a card and its spec" },
+      board: { label: "Board", alt: "The AI4Kanban board: Board view" },
+      card: { label: "Card", alt: "The AI4Kanban board: a card's details and requirements" },
       frontAria: "{view} view (current)",
-      flipAria: "Switch to {view} view",
+      flipAria: "Switch to the {view} view",
     },
   },
 
-  loop: {
-    title: "Less managing. More shipping.",
-    lead: "Hand over the planning, follow-ups, and coordination. Keep your attention on what the product should become.",
-    steps: [
-      {
-        title: "Rough idea in. Detailed plan out.",
-        body: "Describe what you want to build. AI4Kanban reads your code and project memory, fills in the requirements, and breaks the work into tasks with a clear order. You get a plan your agents can act on.",
-      },
-      {
-        title: "Make a few choices before the build.",
-        body: "The questions that need your judgment come with options and a recommendation. Choose the direction before coding starts, while changes are still cheap.",
-      },
-      {
-        title: "Move more work forward at once.",
-        body: "Independent tasks run in parallel across your agents, so one task finishing is no longer the cue to start the next. AI4Kanban handles dependencies and coordinates the work.",
-      },
-      {
-        title: "Plan the way you think.",
-        body: "Want a technical comparison or a working UI mockup before committing to a direction? Use the built-in spec agents or add your own, and let the board work through requirements using your approach.",
-      },
-      {
-        title: "Agents handle the details. You sign off.",
-        body: "Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and the go-ahead to build waiting for you in the app or Slack.",
-      },
-      {
-        title: "Let agents take care of your board.",
-        body: "With traditional kanban tools, you have to update everything by hand — tedious, time-consuming work. In AI4Kanban, agents take care of your board: they remember decisions from your conversations, regularly clear out outdated memory, and suggest follow-up tasks when a card is completed. You just handle the important approvals and decisions. You can adjust each agent to suit the way you work.",
-      },
-    ],
-  },
-
-  memory: {
-    title: "Understands you better as you build",
-    lead: "Your preferences, decisions, and rejected ideas carry into the next plan. As project memory grows, your agents have more context to work from, and you have less to explain.",
-    cards: [
-      {
-        title: "No need to repeat yourself",
-        body: "Established preferences and constraints carry straight into planning the next task.",
-      },
-      {
-        title: "Avoid the same dead ends",
-        body: "Rejected directions and known design problems are not proposed again.",
-      },
-      {
-        title: "Pick up where you left off",
-        body: "Before planning new work, it reads what has already shipped and checks the current code.",
-      },
-    ],
-    tree: {
-      project: "What the project is",
-      planner: "The planner's memory",
-      readme: "Shipped features",
-      decisions: "Product decisions",
-      rejected: "Reasons for rejection",
-      redesign: "Design lessons",
-    },
-  },
-
-  iterate: {
-    title: "Turn feedback into product improvements",
-    lead: "User feedback, competitor research, and industry discussions can all inform what to build next. AI4Kanban turns those insights into tasks aligned with your product goals, ready for your agents to work on.",
-    inputsLabel: "External inputs",
-    inputs: [
-      "User feedback",
-      "Competitor research",
-      "Industry reports",
-      "Reddit discussions",
-    ],
-    internalLabel: "Internal inputs",
-    internal: ["Product roadmap"],
-    board: {
-      columns: ["Ready to build", "Not ready"],
-      ready: "ready",
-    },
-    storage: "Project data",
-    outputsLabel: "Iteration outcomes",
-    outputs: ["Product improvements", "Release iterations"],
+  tools: {
+    title: "Keep the AI tools you already use.",
+    body: "Connect Claude Code, Codex and more; they run on your machine with your own subscriptions. 8 tools are supported, each agent can pick its own tool and model, and AI4Kanban charges no extra token fees.",
   },
 
   start: {
-    title: "Start with the desktop app",
-    lead: "Download AI4Kanban. Plan with precision, ship at speed.",
-    notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
+    title: "Write down an idea. See the draft first.",
+    lead: "Open a project and write what you want to do. Start from the first key draft, set the direction, and hand the rest to agents.",
     cta: "Download",
     firstOpen:
-      "Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning. The download page has the full steps for macOS, Windows, and Linux.",
-    command:
-      "The app includes the `akb` CLI and adds the coding-agent skills when you open a project. Neither is meant to be installed on its own.",
+      "Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then choose to continue in the warning. The download page has the full steps for macOS, Windows and Linux.",
+    command: "Prefer the command line? Run `npx ai4kanban@latest install` in your project.",
   },
 };
 

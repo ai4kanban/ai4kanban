@@ -84,10 +84,10 @@ export default function OgImage() {
           composition, with the board in front by default. */}
       <div className="absolute left-[636px] top-1/2 -translate-y-1/2">
         <div className="absolute left-13 top-13">
-          <Frame src={SHOTS.card} alt={c.hero.shots.card.alt} dim />
+          <Frame src={SHOTS.card} alt={c.parallel.shots.card.alt} dim />
         </div>
         <div className="relative">
-          <Frame src={SHOTS.board} alt={c.hero.shots.board.alt} />
+          <Frame src={SHOTS.board} alt={c.parallel.shots.board.alt} />
         </div>
       </div>
     </div>

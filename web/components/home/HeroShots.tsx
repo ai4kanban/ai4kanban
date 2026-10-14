@@ -9,7 +9,7 @@ import type { HomeCopy } from "@/i18n/home/types";
 // full size instead of shrinking them side by side, and nothing is drawn on top
 // of the capture.
 //
-// The deck is mounted on the hero's watercolour (`Hero.tsx`), so both cards are
+// The deck is mounted on a watercolour (`Parallel.tsx`), so both cards are
 // prints on a mat and take that treatment: `printFrame`'s soft shadow, and no
 // outline on either. They used to carry the site's hard ink offset and a 2px
 // ink frame on the front card, which is the right vocabulary on the page and
@@ -24,8 +24,8 @@ import type { HomeCopy } from "@/i18n/home/types";
 type Mode = "board" | "card";
 
 const SRC: Record<Mode, string> = {
-  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-board-view.jpg",
-  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-card-view.jpg",
+  board: "https://cdn.ai4kanban.dev/home/demo-board-v1.jpg",
+  card: "https://cdn.ai4kanban.dev/home/demo-card-v1.jpg",
 };
 
 function Frame({
@@ -61,7 +61,7 @@ function Frame({
 // shrink to a sliver, and it must not grow into a shelf on a wide deck.
 const PEEK = 40;
 
-export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
+export function HeroShots({ c }: { c: HomeCopy["parallel"]["shots"] }) {
   const [front, setFront] = useState<Mode>("board");
   const back: Mode = front === "board" ? "card" : "board";
   // Paint back-to-front so the front card wins the stacking order naturally.

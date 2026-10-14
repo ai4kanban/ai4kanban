@@ -4,124 +4,82 @@ import type { HomeCopy } from "./types";
 
 const es: HomeCopy = {
   meta: {
-    title: "Gestión de proyectos con IA para agentes | AI4Kanban",
+    title: "Revisa el borrador antes de que los agentes se pongan manos a la obra | AI4Kanban",
     description:
-      "Impulsa proyectos más ambiciosos con AI4Kanban. Tu gestor de proyectos con IA asigna tareas a los agentes, sigue su progreso y te trae decisiones clave y resultados.",
+      "AI4Kanban prepara los borradores clave de las tareas de tu tablero. Tú revisas lo importante, los agentes se encargan de los detalles y sacas adelante más trabajo por tu cuenta.",
+    socialTitle: "Revisa el borrador. Deja el resto a los agentes.",
+    social: "Un tablero kanban para agentes de IA que te muestra primero los borradores clave y deja que los agentes terminen el resto.",
     schema:
-      "AI4Kanban es un gestor de proyectos con IA de código abierto que prioriza el uso local y ayuda a emprendedores independientes, creadores y equipos pequeños a abordar proyectos más grandes con un equipo de agentes. Asigna tareas, sigue el progreso y revisa los resultados en el flujo de desarrollo. Tú marcas el rumbo, tomas las decisiones clave y das la aprobación final. Incluye flujos de desarrollo de producto y vídeo de demostración; otros trabajos requieren añadir sus propios flujos y agentes.",
+      "AI4Kanban es un tablero kanban para agentes de IA, de código abierto y que prioriza el uso local. Prepara los borradores clave de cada tarea —un prototipo de interfaz, un borrador de textos, un guion gráfico, ilustraciones— para que fijes primero el rumbo; después, agentes especializados terminan el resto dentro del alcance acordado. Abarca el desarrollo de producto y la creación de contenido, y se conecta con 8 herramientas como Claude Code y Codex, que se ejecutan en tu equipo con tus propias suscripciones.",
   },
 
   hero: {
-    title: "Tú marcas el rumbo. La IA dirige el equipo.",
-    lead: "Del desarrollo de producto al marketing de contenidos, tu gestor de proyectos con IA dirige a tus agentes para que puedas hacer realidad proyectos más ambiciosos.",
+    title: "Revisa el borrador. Deja el resto a los agentes.",
+    lead: "AI4Kanban prepara los borradores clave de las tareas de tu tablero. Tú revisas lo importante, los agentes se encargan de los detalles y una sola persona saca adelante más trabajo.",
     ctaDownload: "Descargar",
     ctaGithub: "Ver en GitHub ↗",
+    image:
+      "Grabación del tablero de demostración de AI4Kanban: planificar tareas, revisar los borradores de una tarjeta y pasar el trabajo a los agentes.",
+  },
+
+  drafts: {
+    title: "Revisa los borradores clave. Acierta con el rumbo.",
+    lead: "Cómo se organiza una página, qué cuenta un artículo, cómo narra un vídeo su historia: los agentes convierten las partes que te importan en borradores dentro de la tarjeta de la tarea. Si lo ves, puedes saber si es lo que quieres. Cámbialo ahí mismo y fija el rumbo antes de que empiece el resto del trabajo.",
+    kinds: [
+      { label: "Prototipo de interfaz", body: "Ve la disposición y las interacciones antes de construirla." },
+      { label: "Borrador de textos", body: "Confirma el mensaje y la redacción antes de que la página tome forma." },
+      { label: "Guion gráfico", body: "Ve la imagen y la locución de cada plano antes de producir el vídeo." },
+      { label: "Ilustraciones", body: "Ve qué muestra cada ilustración antes de terminarla." },
+    ],
+    closing:
+      "No tienes que detallarlo todo. Una vez aprobados los borradores clave, los agentes terminan el resto dentro del alcance acordado.",
+  },
+
+  agents: {
+    title: "Tus comentarios pasan a la siguiente tarea.",
+    body: [
+      "Un agente de diseño prepara prototipos, un agente de textos pule la redacción y un agente de guion planifica el contenido. AI4Kanban incluye 5 flujos de trabajo y más de 10 agentes especializados que se reparten el trabajo por tarea y recuerdan las preferencias y decisiones que has dejado claras.",
+      "Por ejemplo, si pides «titulares más directos», el agente de textos aplica ese comentario a los borradores siguientes. La próxima tarea parte de lo que ya habéis acordado, así que nunca lo explicas desde cero.",
+    ],
+    pro: "Los vídeos de producto, las presentaciones, los carruseles y las entradas de blog requieren Pro.",
+    image: "Das una indicación una vez; el agente la recuerda y todos los borradores siguientes la aplican.",
+  },
+
+  followUps: {
+    title: "Deja que los agentes detecten lo que se te escapó.",
+    body: [
+      "Cuando las tareas se acumulan, encontrar cada hueco no debería depender solo de ti. Los agentes en segundo plano revisan el progreso de forma periódica, y un agente de QA prueba los cambios recientes como lo haría un usuario.",
+      "Un estado de error olvidado o una prueba que falta pueden convertirse en una sugerencia de seguimiento en tu tablero. Tú la aceptas, la revisas o la rechazas, y los agentes continúan.",
+    ],
+    image: "El agente de QA detecta un hueco y te entrega un seguimiento para aceptarlo o descartarlo.",
+  },
+
+  parallel: {
+    title: "Muchas cosas a la vez. Las decisiones clave siguen siendo tuyas.",
+    body: [
+      "Un cambio de producto, un artículo de lanzamiento, un vídeo de presentación: no hace falta terminar uno para empezar el siguiente. Las tareas independientes pasan a los agentes en paralelo; tú revisas los borradores clave en las tarjetas, tomas las decisiones y reservas tu atención para lo siguiente que merece la pena.",
+      "AI4Kanban se ocupa del desglose de tareas, las prioridades, el seguimiento y las notificaciones, para que no tengas que coordinar el trabajo entre varios chats.",
+    ],
     shots: {
-      board: {
-        label: "Board",
-        alt: "Tablero local de AI4Kanban: vista Board",
-      },
-      card: {
-        label: "Card",
-        alt: "Tablero local de AI4Kanban: una tarjeta y su especificación",
-      },
+      board: { label: "Board", alt: "Tablero de AI4Kanban: vista Board" },
+      card: { label: "Card", alt: "Tablero de AI4Kanban: los detalles y requisitos de una tarjeta" },
       frontAria: "Vista {view} (actual)",
       flipAria: "Cambiar a la vista {view}",
     },
   },
 
-  loop: {
-    title: "Menos seguimiento. Más entregas.",
-    lead: "Delega la planificación, el seguimiento y la coordinación. Centra tu atención en el producto que quieres crear.",
-    steps: [
-      {
-        title: "De una idea vaga a un plan detallado.",
-        body: "Describe lo que quieres crear. AI4Kanban lee tu código y la memoria del proyecto, concreta los requisitos y organiza las tareas en el orden adecuado. Recibes un plan que tus agentes pueden ejecutar.",
-      },
-      {
-        title: "Toma unas pocas decisiones antes de empezar.",
-        body: "Las preguntas que necesitan tu criterio llegan con opciones y una recomendación. Elige el rumbo antes de escribir código, cuando cambiar aún cuesta poco.",
-      },
-      {
-        title: "Haz avanzar más trabajo a la vez.",
-        body: "Las tareas independientes se ejecutan en paralelo con tus agentes, sin esperar a que termine una para empezar la siguiente. AI4Kanban gestiona las dependencias y coordina el trabajo.",
-      },
-      {
-        title: "Analiza los requisitos a tu manera.",
-        body: "¿Quieres comparar opciones técnicas o probar un prototipo funcional antes de elegir un rumbo? Usa los agentes de especificación incluidos o añade los tuyos para que analicen los requisitos con tu método.",
-      },
-      {
-        title: "Los agentes resuelven los detalles. Tú apruebas.",
-        body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano; las decisiones de producto y el visto bueno para empezar a construir te esperan en la aplicación o en Slack.",
-      },
-      {
-        title: "Deja que los agentes se encarguen de tu tablero.",
-        body: "Con las herramientas kanban tradicionales, tienes que actualizarlo todo a mano: un trabajo tedioso que lleva tiempo. En AI4Kanban, los agentes se encargan de tu tablero: guardan en la memoria las decisiones de tus conversaciones, depuran periódicamente la memoria desactualizada y proponen nuevas tareas cuando se completa una tarjeta. Tú solo tienes que aprobar lo importante y tomar decisiones. Puedes ajustar cada agente a tu forma de trabajar.",
-      },
-    ],
-  },
-
-  memory: {
-    title: "Te conoce mejor con cada avance",
-    lead: "Tus preferencias, decisiones e ideas descartadas se incorporan al siguiente plan. A medida que crece la memoria del proyecto, tus agentes tienen más contexto para trabajar y tú tienes menos que explicar.",
-    cards: [
-      {
-        title: "No hace falta repetir lo mismo",
-        body: "Las preferencias y restricciones ya establecidas pasan directamente a la planificación de la siguiente tarea.",
-      },
-      {
-        title: "No vuelve a los mismos callejones sin salida",
-        body: "Las direcciones descartadas y los problemas de diseño ya conocidos no se vuelven a proponer.",
-      },
-      {
-        title: "Retoma el trabajo donde lo dejaste",
-        body: "Antes de planificar algo nuevo, lee qué se ha entregado y comprueba el código actual.",
-      },
-    ],
-    tree: {
-      project: "Qué es el proyecto",
-      planner: "La memoria del planificador",
-      readme: "Funciones entregadas",
-      decisions: "Decisiones de producto",
-      rejected: "Motivos del descarte",
-      redesign: "Lecciones de diseño",
-    },
-  },
-
-  iterate: {
-    title: "Convierte los comentarios en mejoras del producto",
-    lead: "Los comentarios de usuarios, el análisis de la competencia y las conversaciones del sector ayudan a decidir qué construir a continuación. AI4Kanban convierte esa información en tareas alineadas con los objetivos de tu producto, listas para tus agentes.",
-    inputsLabel: "Entradas externas",
-    inputs: [
-      "Comentarios de usuarios",
-      "Análisis de la competencia",
-      "Informes del sector",
-      "Conversaciones en Reddit",
-    ],
-    internalLabel: "Entradas internas",
-    internal: ["Hoja de ruta del producto"],
-    board: {
-      columns: ["Listo para empezar", "Sin preparar"],
-      ready: "listo",
-    },
-    storage: "Datos del proyecto",
-    outputsLabel: "Resultados de la iteración",
-    outputs: ["Mejoras de producto", "Nuevas versiones"],
+  tools: {
+    title: "Sigue usando las herramientas de IA que ya conoces.",
+    body: "Conecta Claude Code, Codex y otras; se ejecutan en tu equipo con tus propias suscripciones. Hay 8 herramientas compatibles, cada agente puede elegir su herramienta y su modelo, y AI4Kanban no cobra tarifas adicionales por tokens.",
   },
 
   start: {
-    title: "Empieza con la aplicación de escritorio",
-    lead: "Descarga AI4Kanban. Planifica con precisión, entrega con rapidez.",
-    notes: [
-      "Planificación autónoma",
-      "Local primero",
-      "Independiente del agente",
-    ],
+    title: "Escribe una idea. Mira primero el borrador.",
+    lead: "Abre un proyecto y escribe lo que quieres hacer. Empieza por el primer borrador clave, fija el rumbo y deja el resto a los agentes.",
     cta: "Descargar",
     firstOpen:
-      "Las compilaciones no están firmadas, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y luego acepta el aviso. La página de descarga tiene los pasos completos para macOS, Windows y Linux.",
-    command:
-      "La aplicación incluye la CLI `akb` y añade las skills del agente de código al abrir un proyecto. Ninguna de las dos está pensada para instalarse por separado.",
+      "Las versiones no están firmadas, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y elige continuar en el aviso. La página de descarga tiene los pasos completos para macOS, Windows y Linux.",
+    command: "¿Prefieres la línea de comandos? Ejecuta `npx ai4kanban@latest install` en tu proyecto.",
   },
 };
 

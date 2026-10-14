@@ -32,8 +32,7 @@ export function IconChip({
   icon: IconType;
   tone?: keyof typeof TONE;
   size?: keyof typeof SIZE;
-  // For a caller that animates the block — `Iterate.tsx` lights each one as the
-  // signal reaches it. The fill still comes from `tone`; this only adds to it.
+  // For a caller that animates the block. The fill still comes from `tone`; this only adds to it.
   className?: string;
 }) {
   return (

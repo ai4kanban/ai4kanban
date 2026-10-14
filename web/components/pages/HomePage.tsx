@@ -1,14 +1,16 @@
 import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
-import { Loop } from "@/components/home/Loop";
-import { Memory } from "@/components/home/Memory";
-import { Iterate } from "@/components/home/Iterate";
+import { Drafts } from "@/components/home/Drafts";
+import { Story } from "@/components/home/Story";
+import { Parallel } from "@/components/home/Parallel";
+import { Tools } from "@/components/home/Tools";
 import { Start } from "@/components/home/Start";
 import { Reveal } from "@/components/home/Reveal";
 import { SiteFooter } from "@/components/SiteFooter";
 import { releaseBuilds } from "@/components/download/builds";
 import { column } from "@/components/styles";
+import { CDN } from "@/lib/site";
 import { getCopy } from "@/i18n";
 import {
   APP_ID,
@@ -60,14 +62,34 @@ export function HomePage({ locale }: { locale: Locale }) {
       />
       <Reveal />
       <Header c={copy} locale={locale} />
-      {/* One band on a white page: `Start` takes it so the page warms on the
-          way into the ink footer. Everything above is pictures and type. */}
+      {/* One band on a white page: `Start` takes it on the way into the ink footer. */}
       <main>
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
-          <Loop c={c.loop} />
-          <Memory c={c.memory} />
-          <Iterate c={c.iterate} />
+          <Drafts c={c.drafts} locale={locale === "zh" ? "zh" : "en"} />
+          <Story
+            num="02"
+            title={c.agents.title}
+            body={c.agents.body}
+            note={c.agents.pro}
+            art={{ src: `${CDN}/home/agents-v1.png`, alt: c.agents.image, width: 1055, height: 431 }}
+          />
+          {/* Capped so its strokes match 02's. */}
+          <Story
+            num="03"
+            title={c.followUps.title}
+            body={c.followUps.body}
+            art={{
+              src: `${CDN}/home/followups-v1.png`,
+              alt: c.followUps.image,
+              width: 969,
+              height: 565,
+              className: "mx-auto max-w-md",
+            }}
+            flip
+          />
+          <Parallel c={c.parallel} />
+          <Tools c={c.tools} />
         </div>
         <Band flush>
           <Start c={c.start} locale={locale} systems={systems} version={VERSION} />

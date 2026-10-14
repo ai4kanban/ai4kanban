@@ -8,12 +8,10 @@ import { ShotCardQuestions } from "@/components/shots/ShotCardQuestions";
 import { ShotSessions } from "@/components/shots/ShotSessions";
 import { ShotSpecAgents } from "@/components/shots/ShotSpecAgents";
 import { ShotTaskGraph } from "@/components/shots/ShotTaskGraph";
-import en from "@/i18n/home/en";
 
 // The six loop drawings as one figure, 2 across — the README's "at a glance"
 // image. `scripts/capture-shots.mjs <base> /shots/grid/` clips the single
-// `data-shot` box. Same set and order as components/home/Loop.tsx; the titles
-// are the steps' own, so the figure and the page never drift.
+// `data-shot` box.
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
@@ -25,13 +23,13 @@ const PAD = 20;
 const GAP = 16;
 const CELL = 450;
 
-const SHOTS: { mat: WashName; art: ReactNode }[] = [
-  { mat: "mintSky", art: <ShotTaskGraph /> },
-  { mat: "peachEmber", art: <ShotCardQuestions /> },
-  { mat: "skyLilac", art: <ShotSessions /> },
-  { mat: "emberMint", art: <ShotSpecAgents /> },
-  { mat: "peachEmber", art: <ShotApprovalEvent /> },
-  { mat: "mintSky", art: <ShotAgentTeam /> },
+const SHOTS: { title: string; mat: WashName; art: ReactNode }[] = [
+  { title: "Rough idea in. Detailed plan out.", mat: "mintSky", art: <ShotTaskGraph /> },
+  { title: "Make a few choices before the build.", mat: "peachEmber", art: <ShotCardQuestions /> },
+  { title: "Move more work forward at once.", mat: "skyLilac", art: <ShotSessions /> },
+  { title: "Plan the way you think.", mat: "emberMint", art: <ShotSpecAgents /> },
+  { title: "Agents handle the details. You sign off.", mat: "peachEmber", art: <ShotApprovalEvent /> },
+  { title: "Let agents take care of your board.", mat: "mintSky", art: <ShotAgentTeam /> },
 ];
 
 export default function ShotGrid() {
@@ -48,8 +46,8 @@ export default function ShotGrid() {
         rowGap: 36,
       }}
     >
-      {SHOTS.map((shot, i) => (
-        <div key={en.loop.steps[i].title}>
+      {SHOTS.map((shot) => (
+        <div key={shot.title}>
           <h3
             style={{
               margin: "0 0 10px",
@@ -60,7 +58,7 @@ export default function ShotGrid() {
               color: "var(--color-ink)",
             }}
           >
-            {en.loop.steps[i].title}
+            {shot.title}
           </h3>
           <Mat wash={shot.mat} className="p-3">
             <div aria-hidden className={printFrame}>

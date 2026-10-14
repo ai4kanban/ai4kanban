@@ -2,7 +2,7 @@ import { FiDownload } from "react-icons/fi";
 import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
-import { AGENT_LOGOS } from "@/components/home/Iterate";
+import { AGENT_LOGOS } from "@/components/home/agentLogos";
 import { printFrame } from "@/components/home/Mat";
 import { Reveal } from "@/components/home/Reveal";
 import { SectionTitle } from "@/components/home/SectionTitle";

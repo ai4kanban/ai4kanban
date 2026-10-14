@@ -4,121 +4,82 @@ import type { HomeCopy } from "./types";
 
 const fr: HomeCopy = {
   meta: {
-    title: "Gestion de projet IA pour vos agents | AI4Kanban",
+    title: "Voyez le brouillon avant que les agents se mettent au travail | AI4Kanban",
     description:
-      "Voyez plus grand avec AI4Kanban. Votre chef de projet IA répartit les tâches entre vos agents, suit leur avancement et vous soumet décisions clés et résultats.",
+      "AI4Kanban prépare les brouillons clés des tâches de votre tableau. Vous vérifiez l'essentiel, les agents s'occupent des détails, et vous faites avancer davantage de travail par vous-même.",
+    socialTitle: "Voyez le brouillon. Laissez les agents faire le reste.",
+    social: "Un tableau kanban pour agents IA qui vous montre d'abord les brouillons clés, puis laisse les agents terminer le reste.",
     schema:
-      "AI4Kanban est un chef de projet IA open source qui privilégie le fonctionnement local et aide les entrepreneurs indépendants, les créateurs et les petites équipes à mener des projets plus vastes avec une équipe d'agents. Il répartit les tâches, suit leur avancement et vérifie les résultats dans le workflow de développement. Vous fixez le cap, prenez les décisions clés et validez les résultats. Les workflows de développement produit et de vidéo de démonstration sont intégrés ; les autres activités nécessitent l'ajout de workflows et d'agents adaptés.",
+      "AI4Kanban est un tableau kanban open source et local d'abord pour agents IA. Il prépare les brouillons clés de chaque tâche — une maquette d'interface, un brouillon de textes, un storyboard, des illustrations — pour que vous fixiez d'abord le cap ; des agents spécialisés terminent ensuite le reste dans le périmètre convenu. Il couvre le développement produit et la création de contenu, et se connecte à 8 outils comme Claude Code et Codex, qui tournent sur votre machine avec vos propres abonnements.",
   },
 
   hero: {
-    title: "Vous fixez le cap. L'IA mène l'équipe.",
-    lead: "Du développement produit au marketing de contenu, votre chef de projet IA dirige vos agents pour vous permettre de mener des projets plus vastes.",
+    title: "Voyez le brouillon. Laissez les agents faire le reste.",
+    lead: "AI4Kanban prépare les brouillons clés des tâches de votre tableau. Vous vérifiez l'essentiel, les agents s'occupent des détails, et une seule personne fait avancer davantage de travail.",
     ctaDownload: "Télécharger",
     ctaGithub: "Voir sur GitHub ↗",
+    image:
+      "Enregistrement du tableau de démonstration d'AI4Kanban : planifier les tâches, relire les brouillons d'une carte, puis confier le travail aux agents.",
+  },
+
+  drafts: {
+    title: "Relisez les brouillons clés. Prenez la bonne direction.",
+    lead: "La mise en page d'une page, le propos d'un article, la façon dont une vidéo raconte son histoire : les agents transforment les parties qui comptent pour vous en brouillons sur la carte de la tâche. Quand vous le voyez, vous savez si c'est ce que vous voulez. Modifiez-le sur place et fixez la direction avant que le reste du travail ne commence.",
+    kinds: [
+      { label: "Maquette d'interface", body: "Voyez la mise en page et les interactions avant le développement." },
+      { label: "Brouillon de textes", body: "Validez le message et la formulation avant que la page ne prenne forme." },
+      { label: "Storyboard", body: "Voyez l'image et la voix off de chaque plan avant de produire la vidéo." },
+      { label: "Illustrations", body: "Voyez ce que montre chaque illustration avant qu'elle soit finalisée." },
+    ],
+    closing:
+      "Inutile de tout préciser. Une fois les brouillons clés validés, les agents terminent le reste dans le périmètre convenu.",
+  },
+
+  agents: {
+    title: "Vos retours se retrouvent dans la tâche suivante.",
+    body: [
+      "Un agent de design prépare les maquettes, un agent de rédaction peaufine les textes, un agent de script planifie le contenu. AI4Kanban comprend 5 workflows et plus de 10 agents spécialisés qui se répartissent le travail par tâche et retiennent les préférences et décisions que vous avez clarifiées.",
+      "Par exemple, si vous demandez « des titres plus directs », l'agent de rédaction applique ce retour aux brouillons suivants. La tâche suivante part de ce qui est déjà convenu : vous n'avez jamais à tout réexpliquer.",
+    ],
+    pro: "Les vidéos produit, présentations, carrousels et articles de blog nécessitent Pro.",
+    image: "Vous donnez une consigne une fois ; l'agent la retient et chaque brouillon suivant la respecte.",
+  },
+
+  followUps: {
+    title: "Laissez les agents repérer ce qui vous a échappé.",
+    body: [
+      "Quand les tâches s'accumulent, repérer chaque oubli ne devrait pas reposer sur vous seul. Des agents en arrière-plan vérifient régulièrement l'avancement, et un agent QA teste les changements récents comme le ferait un utilisateur.",
+      "Un état d'erreur oublié ou un test manquant peut devenir une suggestion de suivi sur votre tableau. Vous l'acceptez, la modifiez ou la refusez, et les agents poursuivent.",
+    ],
+    image: "L'agent QA repère un oubli et vous remet un suivi à accepter ou à ignorer.",
+  },
+
+  parallel: {
+    title: "Plusieurs chantiers à la fois. Les décisions clés restent les vôtres.",
+    body: [
+      "Une évolution produit, un article de lancement, une vidéo de présentation : inutile d'en finir un pour commencer le suivant. Les tâches indépendantes partent aux agents en parallèle ; vous relisez les brouillons clés sur les cartes, tranchez, et gardez votre attention pour ce qui mérite d'être fait ensuite.",
+      "AI4Kanban s'occupe du découpage des tâches, des priorités, du suivi et des notifications : vous n'avez pas à coordonner le travail entre plusieurs conversations.",
+    ],
     shots: {
-      board: { label: "Board", alt: "Tableau local AI4Kanban : vue Board" },
-      card: {
-        label: "Card",
-        alt: "Tableau local AI4Kanban : une carte et sa spécification",
-      },
+      board: { label: "Board", alt: "Le tableau AI4Kanban : vue Board" },
+      card: { label: "Card", alt: "Le tableau AI4Kanban : les détails et exigences d'une carte" },
       frontAria: "Vue {view} (actuelle)",
       flipAria: "Passer à la vue {view}",
     },
   },
 
-  loop: {
-    title: "Moins de suivi. Plus de livraisons.",
-    lead: "Confiez la planification, le suivi et la coordination à AI4Kanban. Gardez votre attention sur le produit que vous voulez créer.",
-    steps: [
-      {
-        title: "Une idée floue devient un plan détaillé.",
-        body: "Décrivez ce que vous voulez créer. AI4Kanban lit votre code et la mémoire du projet, précise les exigences et organise les tâches dans le bon ordre. Vous obtenez un plan que vos agents peuvent exécuter.",
-      },
-      {
-        title: "Quelques choix avant de lancer le travail.",
-        body: "Les questions qui demandent votre jugement arrivent avec des options et une recommandation. Choisissez la direction avant de coder, quand les changements coûtent encore peu.",
-      },
-      {
-        title: "Faites avancer plusieurs tâches à la fois.",
-        body: "Les tâches indépendantes avancent en parallèle avec vos agents, sans attendre que l’une se termine pour lancer la suivante. AI4Kanban gère les dépendances et coordonne le travail.",
-      },
-      {
-        title: "Analysez les besoins à votre façon.",
-        body: "Vous voulez comparer des options techniques ou essayer une maquette fonctionnelle avant de choisir une direction ? Utilisez les agents de spécification intégrés ou ajoutez les vôtres pour qu’ils analysent les besoins selon votre méthode.",
-      },
-      {
-        title: "Les agents règlent les détails. Vous validez.",
-        body: "La plupart des détails sont réglés à partir du code et des décisions passées. Le travail avance en arrière-plan ; les choix produit et le feu vert pour lancer la réalisation vous attendent dans l’application ou sur Slack.",
-      },
-      {
-        title: "Confiez la gestion de votre tableau aux agents.",
-        body: "Avec les outils kanban traditionnels, vous devez tout mettre à jour à la main : un travail fastidieux qui prend du temps. Dans AI4Kanban, les agents gèrent votre tableau : ils gardent en mémoire les décisions prises dans vos conversations, font régulièrement le tri dans les informations mémorisées devenues obsolètes, et proposent des tâches de suivi lorsqu’une carte est terminée. Vous n’avez plus qu’à valider les points importants et à prendre les décisions. Vous pouvez adapter chaque agent à votre façon de travailler.",
-      },
-    ],
-  },
-
-  memory: {
-    title: "Vous comprend mieux au fil du projet",
-    lead: "Vos préférences, vos décisions et les idées écartées alimentent le prochain plan. À mesure que la mémoire du projet s’enrichit, vos agents disposent de plus de contexte et vous avez moins à expliquer.",
-    cards: [
-      {
-        title: "Plus besoin de vous répéter",
-        body: "Les préférences et contraintes déjà établies alimentent directement la planification de la prochaine tâche.",
-      },
-      {
-        title: "Ne plus retomber dans les mêmes impasses",
-        body: "Les pistes écartées et les problèmes de conception connus ne sont plus proposés.",
-      },
-      {
-        title: "Reprendre exactement où vous en étiez",
-        body: "Avant de planifier de nouveaux travaux, il lit ce qui a déjà été livré et examine le code actuel.",
-      },
-    ],
-    tree: {
-      project: "Ce qu'est le projet",
-      planner: "La mémoire du planificateur",
-      readme: "Fonctionnalités livrées",
-      decisions: "Décisions produit",
-      rejected: "Motifs de refus",
-      redesign: "Enseignements de conception",
-    },
-  },
-
-  iterate: {
-    title: "Transformez les retours en améliorations produit",
-    lead: "Les retours utilisateurs, l’analyse de la concurrence et les discussions du secteur aident à choisir la prochaine amélioration. AI4Kanban transforme ces informations en tâches adaptées à vos objectifs produit, prêtes à être confiées à vos agents.",
-    inputsLabel: "Sources externes",
-    inputs: [
-      "Retours utilisateurs",
-      "Analyse de la concurrence",
-      "Études sectorielles",
-      "Discussions sur Reddit",
-    ],
-    internalLabel: "Sources internes",
-    internal: ["Feuille de route produit"],
-    board: {
-      columns: ["Prêt à démarrer", "Pas prêt"],
-      ready: "prêt",
-    },
-    storage: "Données du projet",
-    outputsLabel: "Résultats de l’itération",
-    outputs: ["Améliorations produit", "Nouvelles versions"],
+  tools: {
+    title: "Gardez les outils d'IA que vous utilisez déjà.",
+    body: "Connectez Claude Code, Codex et d'autres ; ils tournent sur votre machine avec vos propres abonnements. 8 outils sont pris en charge, chaque agent peut choisir son outil et son modèle, et AI4Kanban ne facture aucun frais de tokens supplémentaire.",
   },
 
   start: {
-    title: "Commencez par l'application de bureau",
-    lead: "Téléchargez AI4Kanban. Planifiez avec précision, livrez rapidement.",
-    notes: [
-      "Planification autonome",
-      "Local d’abord",
-      "Indépendant de l’agent",
-    ],
+    title: "Notez une idée. Voyez d'abord le brouillon.",
+    lead: "Ouvrez un projet et écrivez ce que vous voulez faire. Partez du premier brouillon clé, fixez la direction, et confiez le reste aux agents.",
     cta: "Télécharger",
     firstOpen:
-      "Les binaires ne sont pas signés : macOS bloque la première ouverture. Faites glisser l'application depuis le `.dmg`, puis passez l'avertissement. La page de téléchargement donne les étapes complètes pour macOS, Windows et Linux.",
-    command:
-      "L'application embarque la CLI `akb` et ajoute les skills de l'agent de code à l'ouverture d'un projet. Ni l'une ni les autres ne sont à installer séparément.",
+      "Les versions ne sont pas signées, donc macOS bloque la première ouverture : glissez l'app depuis le `.dmg`, puis choisissez de continuer dans l'avertissement. La page de téléchargement détaille les étapes pour macOS, Windows et Linux.",
+    command: "Vous préférez la ligne de commande ? Lancez `npx ai4kanban@latest install` dans votre projet.",
   },
 };
 

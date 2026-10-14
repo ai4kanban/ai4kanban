@@ -10,8 +10,7 @@ import { ShotTaskGraph } from "@/components/shots/ShotTaskGraph";
 
 // A render-only page: the five loop drawings, each on its own mat at a fixed
 // size, one per `data-shot` box. `scripts/capture-shots.mjs` loads this page and
-// clips one screenshot per box for the README and social posts. Same set and
-// same mats as components/home/Loop.tsx — change one, change both. Kept out of
+// clips one screenshot per box for the README and social posts. Kept out of
 // search: it's an asset source, not content.
 export const metadata: Metadata = {
   robots: { index: false, follow: false },

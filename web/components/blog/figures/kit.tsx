@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { Mat, printFrame } from "@/components/home/Mat";
 import type { WashName } from "@/components/home/washes";
 
-// The vocabulary a blog figure is drawn in — the landing page's grammar
-// (`home/Iterate.tsx`) narrowed to what a 648px prose column can hold.
+// The vocabulary a blog figure is drawn in — the landing page's old iteration
+// diagram narrowed to what a 648px prose column can hold.
 //
-// Iterate is one wide SVG scaled like a photograph, which is right on a page
+// That diagram was one wide SVG scaled like a photograph, which is right on a page
 // that gives it the full width. A post's body is half that on a laptop and
 // ~290px on a phone, so a single wide drawing would land its 12px labels at
 // 6px. Every figure here is therefore a **pair of panels**: two prints on one
@@ -103,9 +103,8 @@ export function Panel({
   );
 }
 
-// A card off the board, drawn to `kanban-ui`'s own grammar the way Iterate
-// draws it: paper, a full ink outline, a hard shadow, an ember id, and a title
-// that is the lines it takes rather than the words on them. Two figures below
+// A card off the board, drawn to `kanban-ui`'s own grammar: paper, a full ink
+// outline, a hard shadow, an ember id, and a title that is the lines it takes rather than the words on them. Two figures below
 // use it, and both need it to be recognisably the same object in both of their
 // panels — so it lives here and not in either of them.
 
