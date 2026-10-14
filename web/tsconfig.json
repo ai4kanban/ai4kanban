@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@demo/screen": [
+        "./app/(demo)/demo/screen.d.ts"
       ]
     }
   },
@@ -38,6 +41,7 @@
     "./.next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "app/(demo)/demo"
   ]
 }

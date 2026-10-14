@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         // the loop drawings the READMEs embed from the CDN.
         "/og-image/",
         "/shots/",
+        "/demo",
         // The design system reference — a tool for building the site, not a page.
         "/design/",
       ],

@@ -260,30 +260,19 @@ function RecordEndsHere({ label, count }: { label: string; count: number }) {
 /** One archived card, whole. The body is drawn the way a card page draws one — the human
  *  half open, the agent half folded under it — and nothing else on the page acts on it. */
 export function ArchivedCardPage({
-  card,
-  mockups,
-  storyboards,
   openIds,
   agent,
   projectRoot,
   memoryOwners,
   desktop,
-  diff,
-}: {
-  card: ArchivedCardFile;
-  mockups?: MockupSet;
-  storyboards?: StoryboardSet;
+  ...view
+}: ArchivedCardViewProps & {
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
-  /** What its landed delivery changed, when the board still has the record. */
-  diff?: DeliveryDiff | null;
 }) {
-  const t = useCopy();
-  const c = t.rail.archive;
-  const meta = t.card.meta;
   return (
     <ArchiveFrame
       projectRoot={projectRoot}
@@ -292,6 +281,26 @@ export function ArchivedCardPage({
       memoryOwners={memoryOwners}
       desktop={desktop}
     >
+      <ArchivedCardView {...view} />
+    </ArchiveFrame>
+  );
+}
+
+interface ArchivedCardViewProps {
+  card: ArchivedCardFile;
+  mockups?: MockupSet;
+  storyboards?: StoryboardSet;
+  /** What its landed delivery changed, when the board still has the record. */
+  diff?: DeliveryDiff | null;
+}
+
+/** An archived card's content without the window around it — what the site's /demo draws. */
+export function ArchivedCardView({ card, mockups, storyboards, diff }: ArchivedCardViewProps) {
+  const t = useCopy();
+  const c = t.rail.archive;
+  const meta = t.card.meta;
+  return (
+    <>
       {/* Which list this card came out of, over its title — the same label the memory page
           wears over the owner whose file it is showing. Without it a finished card reads as
           an open one. */}
@@ -337,6 +346,6 @@ export function ArchivedCardPage({
           beforeAgent={card.landed && diff && <LandedBlock landed={card.landed} diff={diff} />}
         />
       </div>
-    </ArchiveFrame>
+    </>
   );
 }
