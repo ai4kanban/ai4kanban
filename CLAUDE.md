@@ -33,6 +33,7 @@ We discourage over-design.
   - `cd kanban-ui && npm run typecheck && npm run lint` — npm, never `pnpm install`: the
     desktop app packs this app's `node_modules`, and pnpm's symlinked layout makes a build
     that only runs on your machine.
+    The site's `/demo` draws these screens, so also run `cd web && pnpm typecheck`.
   - `cd cloud-ui && npm run lint` — its own files only; the screens it draws are
     `kanban-ui/`'s and are linted there.
   - `cd cli && npm run lint` — typechecks `src/`. The rules build to `cli/dist/kanban.mjs`,

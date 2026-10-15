@@ -4,15 +4,16 @@ description: Build the static export and deploy the ai4kanban landing page to Cl
 
 Deploy the latest version of this site to Cloudflare Pages (Direct Upload — no Git).
 
-Run all commands from the `web/` directory.
+Run all commands from the repository root.
 
 Steps:
 
 1. Build the static export:
    ```bash
-   cd web && npm run build
+   (cd kanban-ui && npm install) && cd web && npm run build
    ```
-   This regenerates `web/out/`. If the build fails, stop and report the error — do not deploy.
+   `/demo` draws kanban-ui's screens from its own install. This regenerates `web/out/`. If
+   the build fails, stop and report the error — do not deploy.
 
 2. Deploy `out/` to the `kanban-skill` Pages project. Unset proxy env vars for
    this command — a proxy in the environment makes Wrangler's uploads silently
