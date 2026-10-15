@@ -14,14 +14,18 @@ Settled user-facing answers for the public site. Read before re-asking a settled
 - **"No external tool"**: the board has charts; the promise is nothing outside your repo to sync with.
 - **No review claim**: coding deliveries get no second-agent review; the copy never promises one.
 - **不承诺「从想法到合入代码」**：编码工作流的卖点是执行前审关键草稿、记住偏好、交付后跟进，减少指导和返工。
+- **和只用 Claude Code 的差别**：人只负责把 UI 审到完全符合预期，其余细节交给 agent；边界清楚，同时待审的多个任务各只占少量注意力、少返工。只用 Claude Code 得自己起服务、逐步复现找问题。
 - **「3–6×」的证据**：首页里一段，不单开页——四个能点回公开源头的数字，配一条每日完成曲线。
 - **Plain words**: pricing rows say what a user gets ("Works with 8 coding agents", "No limit on concurrent tasks"), not developer terms.
 
 ## The home page
 
 - **首页叙事顺序**：Hero → 关键草稿 → 专业智能体（含偏好记忆）→ 主动跟进 → 多项工作并行 → 使用自己的工具 → 下载；任务管理与调度只作基础能力。
-- **首页主标题**：英文「See the draft before it's built.」，中文「先看草稿，再往下做」。
+- **首页主标题**：中文「先看草稿，再往下做」，英文「See the draft. Let agents do the rest.」。
+- **其他语言跟着实现走**：改版只出中英文稿；西语、日语、法语在实现时按英文稿翻译，不出预览，不审具体译文。
+- **首页入口**：首屏下载与 GitHub，不放草稿 skill 的安装命令，上线不等 `draft-first` 发布。
 - **顶栏**：桌面只留「文档」「定价」，博客、培训收进「资源」下拉；右侧只有 GitHub 和「下载」，现阶段引导 star 仓库；对比页只放页脚；语言切换桌面在页脚、手机在菜单抽屉。
+- **`/demo` 是脚本式演示**：从新想法一路走到规划、修订关键草稿、Build、交付后归档，按顺序进行，每步只能点高亮的那个控件。
 - **Shots follow the product**: each draws a real, recognizable page; when the product moves, the shot and its copy follow — never an old layout or a mix of two pages.
 - **页脚分组**：链接不重复品牌名（写 For coding，不写 AI4Kanban for coding）；for-<agent> 页单独成组，不混在「学习」里。
 - **Directory badges**: footer of the landing page only, shown even when the score is low — the listing is the claim, not the score.

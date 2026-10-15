@@ -4,6 +4,7 @@ One line per correction: the mistake, then the design to use instead.
 
 ## Before drawing
 
+- **Redrew a confirmed mockup for a later copy round**: the confirmed screen stays; the other language is aligned to it.
 - **Drew for a card that had already landed**: check the card is still in `todo/` first.
 - **Drew a stale or partial view**: inspect the current screen; a revision refreshes every affected screen and shared copy at once.
 - **A second control for a job an existing one does**: reuse that feature's shape and interactions, changing only copy and actions.
@@ -11,7 +12,7 @@ One line per correction: the mistake, then the design to use instead.
 - **Changed a layer the user did not name** (asked for white paper, also removed the watercolour): change only what was named; when unsure, take the literal, smallest change.
 - **Invented the app's words**: take strings from the app's i18n in the board's language; CLI-supplied delivery text stays English.
 - **Invented branding, or a lookalike where a capture was wanted**: use the real logo and reference, or run the real surface and shoot it.
-- **Drew a frame the app never shows**: the board cut at the edge, a card page inside its rail and chat, a dialog over what is behind it.
+- **Drew a frame the app never shows**: the board cut at the edge, a card page inside its rail and chat, a dialog over what is behind it, a landed card still on its card page (it moves to its archive page).
 - **Split one moment into several screens**: find the one state where they co-exist.
 - **One language for a card asking for 中英文**: draw each surface in both, sized against the English, which runs about a quarter longer.
 - **A CLI workflow drawn as a screen**: keep commands as a short text block in the card.
@@ -24,6 +25,7 @@ One line per correction: the mistake, then the design to use instead.
 - **A new fact earns a new mark or nothing**: never overload a slot; a mark needs a tip.
 - **A typed name lives in one box on its action**: generated text beside it never repeats it.
 - **A value to copy and its copy button read as one**: a long path is cut from the left.
+- **A focus style calmed until it vanished**: keyboard focus must look different from the control's resting style, and an open dropdown must read as open.
 - **Saving reads where the user typed**: an in-flight start relabels the pressed button.
 - **No bulk retry over failures**: each row is a different run.
 - **A source is a type plus key/value pairs**: never one free-text string.
@@ -72,6 +74,7 @@ One line per correction: the mistake, then the design to use instead.
 ## Wording and width
 
 - **Vague or childish phrasing about mistakes**: professional Chinese that names the issue, e.g. "需求理解偏差".
+- **提示与旁边的按钮自相矛盾**（「无需再次购买」配「恢复续费」）：按状态分别写提示，让文字和操作一致。
 - **界面说明照搬内部机制**：用户不需要知道的直接删，不换说法。
 - **A Chinese line written to its limit**: keep it a few characters under, or it orphans two or three.
 - **Event words stay English in Chinese notification rows**: ids stay lowercase.
@@ -79,6 +82,7 @@ One line per correction: the mistake, then the design to use instead.
 
 ## Figures and charts
 
+- **A home-page figure invented a surface or a fictional sample task**: draw only real product surfaces, with sample content from AI4Kanban's own work.
 - **AI4Kanban's pixel bots drawn for a rival or a generic agent**: the bots are our mascot; draw a generic agent figure.
 - **A rival drawn with a ready flow it lacks**: draw what the user must build, e.g. an empty form, so it never reads as equal support.
 - **Private memories drawn linked, as if shared**: each stays with its agent; shared memory connects only to the agents.

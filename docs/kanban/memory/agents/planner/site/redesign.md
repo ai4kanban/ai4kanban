@@ -16,7 +16,7 @@ Design mistakes to avoid when writing a site card: the mistake, then the design 
 - ❌ **Narrowing a comparison to coding because launch messaging starts with developers** → ✅ the scope follows what both products do.
 - ❌ **Leaving a rival's capability "unverified", or claiming it lacks one** → ✅ check its docs and source first; write the gap precisely.
 - ❌ **同名功能就判平手**（如对手的「建任务」只是执行中拆子任务，不是交付后建议跟进） → ✅ 比到机制：谁触发、何时发生、用户是否审批。
-- ❌ **对比表两栏都写成各自的做法，读起来像双赢** → ✅ 每行一项功能，一方没有就留空或画短横。
+- ❌ **对比表两栏都写成各自的做法，看不出有没有差异** → ✅ 每行一项能力，两边先写「有」或「无」，做法不同才补半句；双方都有的不写成差异。
 
 ## Copy work
 
@@ -26,3 +26,5 @@ Design mistakes to avoid when writing a site card: the mistake, then the design 
 - ❌ **Changing a page's composition, sections or interactions while revising its message** → ✅ copy work changes copy only, unless the user approves more.
 - ❌ **Leaving the privacy and terms pages to explain a feature** → ✅ give the feature its own page; legal pages state only the promise and link to it.
 - ❌ **Training copy drifting into product introduction and disclaimers** → ✅ lead with project guidance and outcomes; omit unsolicited qualifications.
+- ❌ **新一轮文案推翻已确认的 UI 稿** → ✅ 已确认的 UI 稿是基准，另一种语言按它对齐。
+- ❌ **首页配图画产品里没有的界面、用虚构示例任务** → ✅ 只用真实界面（截图或 React 复刻），示例取自 AI4Kanban 自己的工作。

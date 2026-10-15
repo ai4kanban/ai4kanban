@@ -11,6 +11,7 @@ covers it, or a plain-words note.
 - **draft-first long drafts**: a draft over about 20 lines goes in a `.md` asset the review page draws as Markdown, so headings inside it no longer count as alternatives that block Confirm; the prompt helper asks for diffs, not sample outputs: `SKILL.md` in [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first).
 - **Daily loop** — refine, build, finish, reject or discard, test cases; planning never builds; only Coding gets a branch and worktree: `web/content/docs/daily-loop.mdx`, `akb guide implement`.
 - **Refine, next card, module map**: `akb guide refine`, `akb guide next-card`, `akb guide module-map`.
+- **Spec agents in refine**: a spec agent whose description matches the card always runs; it is skipped only for a reason its own description gives: `akb guide refine`.
 - **Competitor research**: a card that only names competitors gets a whole-product comparison and adds them to the competitors memory; feature planning compares but never adds new competitors — the list is yours. Such a card is not built; read it and archive it.
 - **Start now** builds a sentence, a plan or a triage item, writing its card as it starts: `akb guide implement`.
 - **Long drafts**: a planning agent's draft over about 20 lines goes in a card asset, one `<name>.<lang>.md` per language, leaving the card body to the summary and the open questions: `akb guide spec-agent`.
@@ -60,6 +61,7 @@ covers it, or a plain-words note.
 - **Several plans per discussion**: **Plan tasks** hands them to one planning run, an unused plan returns to the discussion, and `akb raw plan drop` withdraws one.
 - **Workflow choice**: a new card picks its workflow by the work it delivers, falling back to the board default; `akb create --workflow <id>` sets it.
 - **`akb cloud image` / `akb cloud tts`** generate an image or narration on Pro credits; every agent can call them.
+- **Deck planning**: a slide deck card opens with a black-on-white wireframe storyboard plus three styled samples; stage 2 shows the final slides, and stage 3 puts the editable .pptx near the top of the card.
 - **Review todos**: video, slide deck, carousel and blog cards track each review as a todo ticked by a `[user]` answer; a change that makes a ticked todo stale adds a new one, and Archive is offered once all are ticked.
 - **Video script**: the first review is story, shots and exact lines; capture details and timing come after approval, and changing approved content reopens it. A retake restores and checks the shot's starting state first.
 - **Blog outline** shows the keyword-bearing title, section plan, SEO title and meta description; with a primary keyword, the planner reads the top-ranking pages first and builds around one to three points the post adds, keeping the research off the card.
@@ -74,6 +76,7 @@ covers it, or a plain-words note.
 - **动图**: 插图 Agent 默认交静音循环的 H.264 MP4 加首帧封面（`<Asset ... loop />`），GIF 只用于 README 等不能放视频的地方。
 - **定时 agent 的收件箱条目**：某工作流的定时 agent（如 Coding 的质检员）报进收件箱的条目（包括它的子运行报出的），整理时直接建成该工作流的卡片，不再由判断另选工作流或因「没有工作流能做」而忽略。
 - **版本已移除**: 看板不再有 release 命令、`--release`、`releases.md` 和更新日志；`akb update` 会删掉旧看板的 `releases.md` 和卡片的 `release` 字段，`.release-summaries/` 保留。
+- **Video clone**: a Pro workflow that turns a reference video made with code into an approved shot-by-shot recipe, then a reusable template that renders it; reproduced effects are kept for the next clone: `web/content/docs/agents.mdx`.
 
 ## local-ui
 
@@ -81,6 +84,7 @@ covers it, or a plain-words note.
 - **First run and Finish setup**: `kanban-ui/README.md`.
 - **Stale column**: cards untouched for over 5 days (not building) move to a third column, oldest first, showing how many days they have sat; a group counts as touched while any of its subtasks is edited or building.
 - **Markdown assets read as articles**: an `<Asset>` pointing at a `.md`/`.mdx` file shows the article on the card page, folded with Show full article, and in full on its own page; Source shows the file as written.
+- **Agent characters**: the built-in `project-writer`, `competitor-research`, `illustrator` and `qa-manager` agents now have their own pixel characters on the Agents page and in workflows instead of a lettered card.
 - **Asset versions**: one `<Asset>` can list versions of the same content (languages, devices) with `variants='{"<label>": "<src>", ...}'`; the caption shows the current version and a muted count as a quiet, borderless switch that opens a menu (`akb guide writing`). Every asset's caption copies the file's absolute path and opens it at full size from icons.
 - **Reject during a chat reply**: the card page's Reject stays available while its chat is replying; the reply stops with the card.
 - **Board, search, Insights, Memory, Archive, Test cases, New idea, Discuss, card buttons, Diff, run cost, resume**: `kanban-ui/README.md`, `web/content/docs/runs.mdx`.
@@ -107,6 +111,7 @@ covers it, or a plain-words note.
 - **Bell** carries every Cloud board's **To do** and **Landed**, and this board's stopped-short runs even without Cloud; bell and chat share one side rail.
 - **Several boards**: `web/content/docs/index.mdx`; another board opens in a new window.
 - **Pro**: **Upgrade to Pro** in Configuration → Billing; cards on Pro workflows read **Needs Pro** without it and start once Pro is active, and `akb` refuses them too.
+- **Resume renewal**: a cancelled Pro plan still in its period turns renewal back on from Configuration → Billing, without the billing portal.
 - **Live sync**: signing in or out, buying Pro and editing workflows update every open screen at once.
 - **功能导览**: 新用户设置完成后、老用户升级后首次打开时弹出一次，可从帮助菜单、「配置 → 通用」或 Cloud 设置页重看。
 - **欢呼**: 一整组完成、当天第一个任务完成时；每件事每个浏览器一次，手机宽度不显示。
@@ -122,11 +127,13 @@ covers it, or a plain-words note.
 ## site
 
 - **Languages**: landing and comparison pages also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, and Markdown mirrors stay English. The footer is fully translated in every language, even where its links lead to English-only pages. On desktop, the header names the visitor's preferred language when the page has a copy in it; one click opens it.
-- **Positioning** is "you steer, AI leads the team"; wording limits in `positioning.md`.
+- **Positioning** is "See the draft. Let agents do the rest." (中文「先看草稿，再往下做」); wording limits in `positioning.md`. The download page's search and share text, `llms.txt` and the home page's Markdown mirror (`/index.md`) tell the same story.
+- **Home page** walks key drafts (UI mockup, copy, storyboard, figures), feedback agents remember, follow-ups, parallel work and the 8 tools, under a looping `/demo` recording.
 - **Landing**: the only way in is the app download; `/index.md` and `/llms.txt` mirror it.
 - **`/vs-multica`** argues ready specialist agents, drafts approved before execution and per-agent memory, each with what both share, then a table and a recommendation.
 - **`/vs-task-master`, `/vs-hermes-kanban`** say where the other tool is ahead and who should pick which; Hermes's table is against v0.21.6 and grants chat-app control, stalled-task recovery and its API.
 - **`/vs-orca`**: Orca suits people who keep control of execution details; AI4Kanban suits those who let agents lead the details while they set direction.
+- **`/vs-plannotator`**: Plannotator suits review inside your current agent session (plan diffs, PR review, shared links); AI4Kanban suits key-draft review, parallel tasks on a board, memory and follow-ups.
 - **`/workflows/coding`** (five languages, mirror at `/workflows/coding.md`) explains the coding workflow with demo-board captures and a measured cost of 1.07–2.08× direct Claude Code.
 - **Removed pages**: the GitHub Issues, Linear and Vibe Kanban comparisons redirect to each language's home; `/recipes` redirects to `/docs/agents`. The DeepSeek Harness blog post redirects to `/blog`.
 - **[/cloud](https://ai4kanban.dev/cloud)** says what Cloud is, what the relay carries and what stays on the machine.
@@ -143,6 +150,8 @@ covers it, or a plain-words note.
 - **[/builder](https://ai4kanban.dev/builder)** is Tao's founder letter (English only) on moving from AI running the project to people reviewing key drafts first; `/builder.md` and `llms.txt` tell the same story, and blog and agent posts are signed "Founder of AI4Kanban".
 - **`/draft-first`** (all five languages) is the draft-first skill's page: install command, the four draft kinds, delete/note/confirm, adding a drafting agent, and the AI4Kanban upgrade; linked from the footer's Solutions, two blog posts and the skill README, not the header; the hero links to the skill's GitHub repo.
 - **[Draft-first development](https://ai4kanban.dev/blog/draft-first-development)**: blog post on reviewing drafts of key screens, copy and prompts before the build; `/draft-first` links to it.
+- **[Interactive demo](https://ai4kanban.dev/blog/interactive-demo)**: blog post on building `/demo` from reviewed UI drafts with Claude Code, without dedicated demo tools.
+- **[/demo](https://ai4kanban.dev/demo)** walks the desktop app through one fixed script (an idea becomes plan #38, its #39 is revised, built and archived), each step at `?step=<n>`; it is the source for board screenshots and recordings, kept out of navigation and search.
 
 ## docs
 
@@ -157,7 +166,7 @@ covers it, or a plain-words note.
 - **Marketing work** is an ordinary card on the default workflow; its delivery is the file in the repo.
 - **[awesome-agent-kanban](https://github.com/neverchanje/awesome-agent-kanban)** is a public CC0 directory of agent task tools, AI4Kanban listed on the same criteria as the rest.
 - **Video assets**: free shared music, UI sounds and paper backgrounds (CC0) are on `cdn.ai4kanban.dev/video/`.
-- **Shipped pieces**: the "see it first, then build it" product video (English and Chinese, 16:9); an 8-page Chinese Xiaohongshu carousel, "review the UI, not the wall of text"; the blog post "[Visual specs for AI coding](https://ai4kanban.dev/blog/show-the-ui-first)"; the 0.10.0 newsletter, "Build sooner. Catch gaps." (`node scripts/newsletter-send.mjs --issue 2026-10-07`).
+- **Shipped pieces**: the "see it first, then build it" product video (English and Chinese, 16:9); an 8-page Chinese Xiaohongshu carousel, "review the UI, not the wall of text"; the blog post "[Visual specs for AI coding](https://ai4kanban.dev/blog/show-the-ui-first)"; the 0.10.0 newsletter, "Build sooner. Catch gaps." (`node scripts/newsletter-send.mjs --issue 2026-10-07`); a 19-slide editable Chinese investor pitch deck, "人只审重点，其余交给 Agent" (`.akb/boards/docs/kanban/assets/1696/pitch-deck-responsibility-line.pptx`, rebuilt by `npm run build` in its `deck/`).
 
 ## cloud
 
@@ -171,6 +180,7 @@ covers it, or a plain-words note.
 - **Stale column** on the hosted board judges a group by its subtasks, the same as the desktop app.
 - **Lost payment notification**: a payment still becomes Pro if Billing, Upgrade or a Pro workflow is used within 24 hours of checkout, never opening a second checkout.
 - **通知只剩开关**: 开启后看板上所有卡片的待决事项都会通知，不再按版本筛选。
+- **Get Pro while already subscribed** lands on `cloud.ai4kanban.dev/settings` with a note saying so; a cancelled plan still in its period gets a Resume renewal button there, without the Creem portal.
 
 ## telemetry
 

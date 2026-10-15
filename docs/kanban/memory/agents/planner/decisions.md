@@ -12,6 +12,7 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 - **The "3–6× faster" claim**: stays without a citation, backed by this repository's own auditable figures.
 - **Local-first**: promises the default backend (markdown in git), not every backend a user can pick.
 - **记忆的卖点**：按 Agent 和模块切分，取用更精准、占用上下文更少；不说「粒度更细」这类术语。
+- **不走计划模式**：审阅都在卡片上，不需要「批注计划外的文档、网页」这类插件式审阅入口。
 - **不做无人值守**：主打验收前置（先给用户看最在意的部分，不靠谱当场放弃）和规划后置（漏掉的功能实现后由后台补卡）。
 
 ## Teams and Cloud
