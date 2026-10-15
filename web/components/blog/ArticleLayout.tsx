@@ -25,6 +25,7 @@ export function ArticleLayout({
   backdrop = <Backdrop />,
   rule = true,
   tocLabel = "On this page",
+  bodyGap = "mt-12",
 }: {
   header: ReactNode;
   body: string;
@@ -36,6 +37,8 @@ export function ArticleLayout({
   rule?: boolean;
   /** "On this page", in the page's language. */
   tocLabel?: string;
+  /** The space between the opening and the body. */
+  bodyGap?: string;
 }) {
   const toc = extractToc(body);
 
@@ -50,7 +53,7 @@ export function ArticleLayout({
             <div className={rule ? "border-b-2 border-border pb-10" : ""}>{header}</div>
           </div>
         </header>
-        <div className="mx-auto mt-12 max-w-5xl px-6 lg:grid lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
+        <div className={`mx-auto ${bodyGap} max-w-5xl px-6 lg:grid lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12`}>
           <TocRail items={toc} label={tocLabel} />
           <div className="min-w-0">
             <TocBlock items={toc} label={tocLabel} />

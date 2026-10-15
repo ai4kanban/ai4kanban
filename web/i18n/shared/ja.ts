@@ -31,6 +31,7 @@ const ja: SharedCopy = {
     pricing: "料金",
     contact: "お問い合わせ",
     coding: "コーディング向け",
+    saas: "SaaS向け",
     changelog: "更新履歴",
     builder: "創業者",
     privacy: "プライバシー",

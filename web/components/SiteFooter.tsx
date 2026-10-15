@@ -4,7 +4,7 @@ import { BUILDER_PATH, FOOTER_SOCIALS } from "./social";
 import { column } from "./styles";
 import { agentPath, getAgentPages } from "@/lib/agents";
 import { localePath, publishedIn, type Locale } from "@/lib/i18n";
-import { workflowPath } from "@/lib/workflows";
+import { SAAS_PATH, workflowPath } from "@/lib/workflows";
 import type { SiteCopy } from "@/i18n/types";
 
 // The comparison pages. The names are products, so only the heading is translated.
@@ -74,6 +74,7 @@ export function SiteFooter({
         title: t.groups.solutions,
         links: [
           { href: localePath(locale, workflowPath("coding")), label: t.coding },
+          { href: localePath(locale, SAAS_PATH), label: t.saas },
           // A product name, so not a translated slot.
           { href: localePath(locale, "/draft-first"), label: "draft-first" },
         ],

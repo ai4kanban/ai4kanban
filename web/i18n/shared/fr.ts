@@ -31,6 +31,7 @@ const fr: SharedCopy = {
     pricing: "Tarifs",
     contact: "Contact",
     coding: "Pour coder",
+    saas: "Pour le SaaS",
     changelog: "Nouveautés",
     builder: "Fondateur",
     privacy: "Confidentialité",

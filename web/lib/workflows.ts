@@ -29,23 +29,43 @@ export function workflowPath(slug: string): string {
   return `/workflows/${slug}`;
 }
 
-export function getWorkflowPage(slug: string, locale: Locale): WorkflowPage {
-  const file = path.join(process.cwd(), "content", "workflows", slug, `${locale}.mdx`);
+export const SAAS_PATH = "/solutions/saas";
+
+function readPage(dir: string, locale: Locale) {
+  const file = path.join(process.cwd(), "content", dir, `${locale}.mdx`);
   const { data, content } = matter(fs.readFileSync(file, "utf8"));
   const field = (key: string): string => {
     const value = data[key];
     if (typeof value !== "string" || !value.trim()) {
-      throw new Error(`[workflows] ${slug}/${locale}.mdx: \`${key}\` is required`);
+      throw new Error(`[workflows] ${dir}/${locale}.mdx: \`${key}\` is required`);
     }
     return value.trim();
   };
   return {
-    title: field("title"),
-    titleTag: field("title_tag"),
-    description: field("description"),
-    lead: field("lead"),
-    heroAlt: field("hero_alt"),
-    toc: field("toc"),
-    body: content,
+    field,
+    page: {
+      title: field("title"),
+      titleTag: field("title_tag"),
+      description: field("description"),
+      lead: field("lead"),
+      heroAlt: field("hero_alt"),
+      toc: field("toc"),
+      body: content,
+    },
+  };
+}
+
+export function getWorkflowPage(slug: string, locale: Locale): WorkflowPage {
+  return readPage(`workflows/${slug}`, locale).page;
+}
+
+/** `content/solutions/saas/<locale>.mdx`: a workflow page plus its share copy and schema line. */
+export function getSaasPage(locale: Locale) {
+  const { page, field } = readPage("solutions/saas", locale);
+  return {
+    ...page,
+    socialTitle: field("social_title"),
+    social: field("social"),
+    schema: field("schema"),
   };
 }

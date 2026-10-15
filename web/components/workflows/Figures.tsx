@@ -16,6 +16,8 @@ const SIZES: Record<string, [number, number]> = {
   "coding-key-points-v1": [1200, 674],
   "coding-questions-v1": [1200, 674],
   "coding-tools-v1": [1200, 674],
+  "coding-questions-poster-v1": [1200, 675],
+  "coding-tools-poster-v1": [1200, 675],
 };
 
 const band = "rounded-xl bg-band p-3 sm:p-6";

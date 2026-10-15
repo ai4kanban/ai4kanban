@@ -31,6 +31,7 @@ const zh: SharedCopy = {
     pricing: "定价",
     contact: "联系我们",
     coding: "编程",
+    saas: "SaaS",
     changelog: "更新日志",
     builder: "创始人",
     privacy: "隐私政策",

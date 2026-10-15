@@ -26,6 +26,9 @@
 /workflows/coding.md
   Link: <https://ai4kanban.dev/workflows/coding>; rel="canonical"
 
+/solutions/saas.md
+  Link: <https://ai4kanban.dev/solutions/saas>; rel="canonical"
+
 /*.txt
   Content-Type: text/plain; charset=utf-8
 

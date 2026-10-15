@@ -50,6 +50,8 @@ export type SharedCopy = {
     contact: string;
     /** The coding workflow page, under Solutions. */
     coding: string;
+    /** The SaaS solution page, after coding. */
+    saas: string;
     /** The GitHub releases page. */
     changelog: string;
     /** The builder page. English-only, like the blog. */
