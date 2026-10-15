@@ -438,7 +438,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .description(
       'Every card runs through one workflow: `plan → execute`, each stage led by one agent; ' +
         'while planning the lead also calls in its hooks when they apply. ' +
-        '`coding`, `hyperframes-video`, `slide-deck`, `carousel-post` and `blog-post` ship with the command: their leads are ' +
+        '`coding`, `hyperframes-video`, `slide-deck`, `carousel-post`, `blog-post` and `video-clone` ship with the command: their leads are ' +
         'fixed, their hooks can be changed, and they can be copied but not renamed or deleted. A card names its workflow in its own frontmatter ' +
         '(`akb raw create --workflow`), and a delivery freezes the one it started with.',
     )

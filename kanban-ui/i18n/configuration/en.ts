@@ -66,6 +66,7 @@ const en: ConfigurationCopy = {
       "slide-deck": "Slide deck",
       "carousel-post": "Carousel post",
       "blog-post": "Blog post",
+      "video-clone": "Video clone",
     },
     builtInDescriptions: {
       coding: "Plan and implement software changes.",
@@ -74,6 +75,7 @@ const en: ConfigurationCopy = {
       "carousel-post":
         "Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.",
       "blog-post": "Approve the outline, get the full article with its images and links, and archive it when you are happy.",
+      "video-clone": "Approve a shot-by-shot recipe, get a reusable template that renders it, and archive it when you are happy.",
     },
     about: (name) => `About ${name}`,
     stages: { plan: "Plan", execute: "Execute" },
@@ -474,6 +476,8 @@ const en: ConfigurationCopy = {
           'Added to the end of every Create, Refine and Revise run on a blog post card — "keep every post under 1,500 words".',
         "blog-illustrator": (agent) =>
           `Added to the end of every run ${agent} does while a blog post's images are being made — "draw diagrams on a white background".`,
+        "video-cloner": () =>
+          'Added to the end of every Create, Refine and Revise run on a video clone card — "keep every template at 1080×1920".',
       },
     },
     saved: "Saved",

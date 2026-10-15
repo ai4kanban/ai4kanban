@@ -121,8 +121,8 @@ afterEach(() => {
 })
 
 describe('the workflows a board has', () => {
-  it('ships five, configured by nobody, with both leads set', () => {
-    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video', 'slide-deck', 'carousel-post', 'blog-post'])
+  it('ships six, configured by nobody, with both leads set', () => {
+    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video', 'slide-deck', 'carousel-post', 'blog-post', 'video-clone'])
     assert.equal(workflowById('coding')!.name, 'Coding')
     assert.deepEqual(workflowProblems('coding'), [])
     const deck = workflowById('slide-deck')!
@@ -135,6 +135,9 @@ describe('the workflows a board has', () => {
     assert.deepEqual([blog.stages.plan.lead, blog.stages.execute.lead, blog.needsArtifact, blog.delivers], ['blog-planner', '', true, 'plan'])
     assert.deepEqual(blog.stages.plan.helpers.map((h) => h.agent), ['blog-illustrator'])
     assert.deepEqual(workflowProblems('blog-post'), [])
+    const clone = workflowById('video-clone')!
+    assert.deepEqual([clone.stages.plan.lead, clone.stages.execute.lead, clone.needsArtifact, clone.delivers], ['video-cloner', '', true, 'plan'])
+    assert.deepEqual(workflowProblems('video-clone'), [])
     // The illustrator is the blog's own, never one of Coding's specialists.
     assert.ok(!workflowById('coding')!.stages.plan.helpers.some((h) => h.agent === 'blog-illustrator'))
     // Nothing was written to make that true: a board that never opened the pane still runs.
@@ -157,7 +160,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'scriptwriter', 'software-planner', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'scriptwriter', 'software-planner', 'tech-stack-advisor', 'ui-designer', 'video-cloner'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {

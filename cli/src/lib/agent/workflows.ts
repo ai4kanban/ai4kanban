@@ -136,8 +136,8 @@ interface BuiltinWorkflow {
 // says so, which is why neither is required.
 //
 // `hyperframes-video` is one product video per card (#822, #1057), `slide-deck` one editable
-// `.pptx` (#969, #1075), `carousel-post` one multi-page social post (#1117) and `blog-post` one
-// article (#1126), each finished and checked during planning. Their leads are `lead` agents the command ships.
+// `.pptx` (#969, #1075), `carousel-post` one multi-page social post (#1117), `blog-post` one
+// article (#1126) and `video-clone` one reusable template of a reference video (#1692), each finished and checked during planning. Their leads are `lead` agents the command ships.
 const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
@@ -195,6 +195,18 @@ const BUILTINS: BuiltinWorkflow[] = [
     pro: true,
     stages: {
       plan: { lead: 'blog-planner', helpers: ['blog-illustrator'] },
+      execute: { lead: '', helpers: [] },
+    },
+  },
+  {
+    id: 'video-clone',
+    name: 'Video clone',
+    description: 'Approve a shot-by-shot recipe, get a reusable template that renders it, and archive it when you are happy.',
+    needsArtifact: true,
+    delivers: 'plan',
+    pro: true,
+    stages: {
+      plan: { lead: 'video-cloner', helpers: [] },
       execute: { lead: '', helpers: [] },
     },
   },

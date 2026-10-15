@@ -1,5 +1,5 @@
-// What a card finishing in planning has to carry before it is archived (#1057, #1117, #1126): a
-// finished video, deck or article, or a carousel's pages as a `<Storyboard>` of `pages-*.json`.
+// What a card finishing in planning has to carry before it is archived (#1057, #1117, #1126, #1692): a
+// finished video, template render, deck or article, or a carousel's pages as a `<Storyboard>` of `pages-*.json`.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -94,6 +94,39 @@ describe('archiving a blog post', () => {
     fs.mkdirSync(path.join(ASSETS, String(id)), { recursive: true })
     fs.writeFileSync(path.join(ASSETS, String(id), 'launch.md'), '# Launch\n')
     write(`${article}\n\n${images}\n\n## Todo\n- [x] Delivered \`.assets/${id}/launch.md\`\n- [x] The user reviewed the article`)
+    await move(root, ['archive', String(id)])
+  })
+})
+
+describe('archiving a video clone', () => {
+  let root = ''
+  const kanban = () => path.join(root, 'docs', 'kanban')
+
+  beforeEach(() => {
+    root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-clone-')))
+    fs.mkdirSync(path.join(root, '.git'), { recursive: true })
+    fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
+    fs.writeFileSync(path.join(kanban(), 'next-id'), '1\n')
+    fs.writeFileSync(path.join(kanban(), 'todo', 'README.md'), '# Tasks\n\n## Tasks\n')
+    fs.writeFileSync(path.join(kanban(), 'config.md'), '# Configuration\n\n- **Project** — a project.\n')
+    setBoardRoot(root)
+  })
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
+
+  it('is refused with only the recipe keyframes, and archived once the template render is on the card', async () => {
+    const id = (await move(root, ['create', '--title', 'Clone the launch film', '--workflow', 'video-clone'])).id as number
+    const file = path.join(kanban(), 'todo', fs.readdirSync(path.join(kanban(), 'todo')).find((f) => f.startsWith(`${id}-`))!)
+    const head = fs.readFileSync(file, 'utf8').split('\n---\n')[0]
+    const write = (body: string) => fs.writeFileSync(file, `${head}\n---\n\nA clone.\n\n${body}\n`)
+    const keyframe = `<Asset src=".assets/${id}/shot-1.png" label="Shot 1" />`
+    const todo = '## Todo\n- [x] Template rendered: `npx hyperframes render`'
+
+    write(`${keyframe}\n\n${todo}`)
+    await assert.rejects(move(root, ['archive', String(id)]), /no finished deliverable/)
+
+    fs.mkdirSync(path.join(ASSETS, String(id)), { recursive: true })
+    fs.writeFileSync(path.join(ASSETS, String(id), 'template.mp4'), '')
+    write(`<Asset src=".assets/${id}/template.mp4" label="Template" />\n\n${keyframe}\n\n${todo}`)
     await move(root, ['archive', String(id)])
   })
 })
