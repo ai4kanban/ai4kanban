@@ -1,72 +1,52 @@
-# AI4Kanban — AI project management for agent teams
+# AI4Kanban — See the draft. Let agents do the rest.
 
-> You set the direction. AI leads the team. From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.
+> AI4Kanban prepares the key drafts for the tasks on your board. You check what matters, agents handle the details, and one person moves more work forward.
 
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
-## Less managing. More shipping.
+## Review the key drafts. Get the direction right.
 
-Hand over the planning, follow-ups, and coordination. Keep your attention on what the product should become.
+How a page is laid out, what an article says, how a video tells its story — agents turn the parts you care about into drafts on the task card. When you can see it, you can tell whether it's what you want. Change it right there, and settle the direction before the rest of the work starts.
 
-### Rough idea in. Detailed plan out.
+- **UI mockup**: See the layout and interactions before it's built.
+- **Copy draft**: Confirm the message and wording before the page takes shape.
+- **Storyboard**: See each shot's picture and voiceover before the video is made.
+- **Figures**: See what each figure shows before it's finished.
 
-Describe what you want to build. AI4Kanban reads your code and project memory, fills in the requirements, and breaks the work into tasks with a clear order. You get a plan your agents can act on.
+You don't have to spell out every detail. Once the key drafts are approved, agents finish the rest within the agreed scope.
 
-### Make a few choices before the build.
+## Your feedback carries over to the next task.
 
-The questions that need your judgment come with options and a recommendation. Choose the direction before coding starts, while changes are still cheap.
+A design agent prepares mockups, a copy agent polishes wording, a script agent plans the content. AI4Kanban comes with 5 workflows and 10+ specialist agents that split the work by task and remember the preferences and decisions you've made clear.
 
-### Move more work forward at once.
+Say you ask for "more direct headlines." The copy agent applies that feedback to future drafts. The next task starts from what you've already agreed, so you never explain it from scratch.
 
-Independent tasks run in parallel across your agents, so one task finishing is no longer the cue to start the next. AI4Kanban handles dependencies and coordinates the work.
+Product videos, slide decks, carousel posts, and blog posts require Pro.
 
-### Plan the way you think.
+## Let agents catch what you missed.
 
-Want a technical comparison or a working UI mockup before committing to a direction? Use the built-in spec agents or add your own, and let the board work through requirements using your approach.
+As tasks pile up, finding every gap shouldn't be on you alone. Background agents check progress on a schedule, and a QA agent tests recent changes the way a user would.
 
-### Agents handle the details. You sign off.
+An overlooked error state or a missing test can become a follow-up suggestion on your board. You accept, revise or reject it, and agents carry on.
 
-Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and the go-ahead to build waiting for you in the app or Slack.
+## Many things at once. The key calls stay yours.
 
-### An agent team, working together.
+A product change, a launch post, an intro video — no need to finish one before starting the next. Independent tasks go to agents in parallel; you review the key drafts on the cards, make the calls, and keep your attention for what's worth doing next.
 
-Bring discussion, planning, building, and review into one team. Enable the specialists you need, choose a runtime and model for each role, and add your own instructions.
+AI4Kanban handles task breakdown, priorities, progress and notifications, so you don't have to coordinate work across multiple chats.
 
-## Understands you better as you build
+## Keep the AI tools you already use.
 
-Your preferences, decisions, and rejected ideas carry into the next plan. As project memory grows, your agents have more context to work from, and you have less to explain.
+Connect Claude Code, Codex and more; they run on your machine with your own subscriptions. 8 tools are supported, each agent can pick its own tool and model, and AI4Kanban charges no extra token fees.
 
-### No need to repeat yourself
+## Write down an idea. See the draft first.
 
-Established preferences and constraints carry straight into planning the next task.
+Open a project and write what you want to do. Start from the first key draft, set the direction, and hand the rest to agents.
 
-### Avoid the same dead ends
+Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then choose to continue in the warning. The download page has the full steps for macOS, Windows and Linux.
 
-Rejected directions and known design problems are not proposed again.
-
-### Pick up where you left off
-
-Before planning new work, it reads what has already shipped and checks the current code.
-
-## Turn feedback into product improvements
-
-User feedback, competitor research, and industry discussions can all inform what to build next. AI4Kanban turns those insights into tasks aligned with your product goals, ready for your agents to work on.
-
-User feedback, competitor research, industry reports, Reddit discussions, and your
-product roadmap feed tasks on the board. Ready tasks run through your agents to
-deliver product improvements and release iterations.
-
-## Start with the desktop app
-
-Download AI4Kanban. Plan with precision, ship at speed.
-
-Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`,
-then click through the warning. The download page has the full steps for macOS,
-Windows, and Linux.
-
-The app includes the `akb` CLI and adds the coding-agent skills when you open a
-project. Neither is meant to be installed on its own.
+Prefer the command line? Run `npx ai4kanban@latest install` in your project.
 
 Download the app: https://ai4kanban.dev/download
 

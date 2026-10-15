@@ -1,18 +1,17 @@
 # AI4Kanban
 
-> AI4Kanban is the AI project manager that manages your agent team. As a few agents
-> become ten, twenty, or more, it organizes the work, follows through on execution, and
-> checks the results, bringing you key updates, decisions that need your judgment, and
-> results to approve. Two workflows are built in, product development and product video;
-> other work needs its own workflows and agents added first. AI4Kanban writes and
-> produces; sending and publishing stay with you.
+> AI4Kanban is an open-source, local-first kanban board for AI agents. It prepares the
+> key drafts for each task — a UI mockup, a copy draft, a storyboard, figures — so you
+> settle the direction first, then specialist agents finish the rest within the agreed
+> scope. It covers product development and content creation, and connects to 8 tools
+> such as Claude Code and Codex, running on your machine with your own subscriptions.
 
 Each page below has a plain-Markdown mirror (the `.md` links) with the full page
 content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — You set the direction. AI leads the team.](https://ai4kanban.dev/index.md): From product development to content marketing, your AI project manager leads your agents so you can take on bigger projects.
+- [Home — See the draft. Let agents do the rest.](https://ai4kanban.dev/index.md): AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details, and you move more work forward on your own.
 - [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): How Tao Wu went from trying to let agents plan a project on their own, through early users' feedback that it didn't feel faster, to having people confirm key drafts before agents build the rest.
 - [Kanban for Claude Code](https://ai4kanban.dev/agents/kanban-for-claude-code): How AI4Kanban turns rough ideas into Claude-ready tasks, shares project memory across tasks, coordinates dependencies and isolated worktrees, and reuses an existing local Claude Code setup.
 - [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex): How AI4Kanban turns rough ideas into Codex-ready tasks, preserves decisions across sessions, coordinates dependencies and isolated worktrees, distinguishes reasons for human attention, and reuses an existing local Codex setup.
