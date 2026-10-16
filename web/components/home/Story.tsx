@@ -4,14 +4,12 @@ import { SectionTitle } from "./SectionTitle";
 // image serves every locale. The words always lead in reading order; `flip` puts the
 // drawing first on wide screens.
 export function Story({
-  num,
   title,
   body,
   note,
   art,
   flip = false,
 }: {
-  num: string;
   title: string;
   body: string[];
   note?: string;
@@ -21,7 +19,7 @@ export function Story({
   return (
     <section className="mt-28 grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
       <div className={flip ? "lg:col-start-2 lg:row-start-1" : ""}>
-        <SectionTitle num={num} title={title} />
+        <SectionTitle title={title} />
         {body.map((p) => (
           <p key={p} data-reveal data-delay="1" className="mt-4 text-[1.05rem] leading-[1.75] text-muted">
             {p}

@@ -16,7 +16,7 @@ const HARNESSES = [
 export function Tools({ c }: { c: HomeCopy["tools"] }) {
   return (
     <section className="mt-28">
-      <SectionTitle num="05" title={c.title} />
+      <SectionTitle title={c.title} />
       <p data-reveal data-delay="1" className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">
         {c.body}
       </p>

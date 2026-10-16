@@ -24,12 +24,12 @@ const en: HomeCopy = {
 
   drafts: {
     title: "Review the key drafts. Get the direction right.",
-    lead: "How a page is laid out, what an article says, how a video tells its story — agents turn the parts you care about into drafts on the task card. When you can see it, you can tell whether it's what you want. Change it right there, and settle the direction before the rest of the work starts.",
+    lead: "Agents put key drafts on the task card. Review and revise them before the rest of the work starts.",
     kinds: [
-      { label: "UI mockup", body: "See the layout and interactions before it's built." },
-      { label: "Copy draft", body: "Confirm the message and wording before the page takes shape." },
-      { label: "Storyboard", body: "See each shot's picture and voiceover before the video is made." },
-      { label: "Figures", body: "See what each figure shows before it's finished." },
+      { label: "UI mockup", body: "Preview layout and interactions." },
+      { label: "Copy draft", body: "Confirm the message and wording." },
+      { label: "Storyboard", body: "Review each shot and its voiceover." },
+      { label: "Figures", body: "Check what each figure shows." },
     ],
     closing:
       "You don't have to spell out every detail. Once the key drafts are approved, agents finish the rest within the agreed scope.",

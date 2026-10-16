@@ -5,12 +5,12 @@ import { ShotTaskGraph } from "../shots/ShotTaskGraph";
 import { ShotSessions } from "../shots/ShotSessions";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// 04: the Board / Card deck, then the task graph and the running sessions side by side. A
+// The Board / Card deck, then the task graph and the running sessions side by side. A
 // phone keeps only the sessions: the deck and the graph are unreadable at that width.
 export function Parallel({ c }: { c: HomeCopy["parallel"] }) {
   return (
     <section className="mt-28">
-      <SectionTitle num="04" title={c.title} />
+      <SectionTitle title={c.title} />
       {c.body.map((p) => (
         <p key={p} data-reveal data-delay="1" className="mt-4 max-w-3xl text-[1.05rem] leading-relaxed text-muted">
           {p}

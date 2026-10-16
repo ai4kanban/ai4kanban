@@ -3,7 +3,7 @@ import Image from "next/image";
 import { FiCheck, FiChevronRight, FiCopy, FiMaximize2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { CROP, Chip, HAIR, MONO, NB, SANS, Shot, em } from "../shots/nb";
 
-// 01's four drafts, each the open agent section of a real card page
+// The drafts section's four drafts, each the open agent section of a real card page
 // (CardBody.tsx's `AgentSection`): the UI designer's mockup from /demo, the copy
 // draft of #1050, a storyboard from #1694's script and the figures of #1684.
 // Only English and Chinese are drawn; every other locale shows English.

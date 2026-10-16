@@ -24,12 +24,12 @@ const fr: HomeCopy = {
 
   drafts: {
     title: "Relisez les brouillons clés. Prenez la bonne direction.",
-    lead: "La mise en page d'une page, le propos d'un article, la façon dont une vidéo raconte son histoire : les agents transforment les parties qui comptent pour vous en brouillons sur la carte de la tâche. Quand vous le voyez, vous savez si c'est ce que vous voulez. Modifiez-le sur place et fixez la direction avant que le reste du travail ne commence.",
+    lead: "Les agents placent les brouillons clés sur la carte de la tâche. Relisez-les et ajustez-les avant de poursuivre le travail.",
     kinds: [
-      { label: "Maquette d'interface", body: "Voyez la mise en page et les interactions avant le développement." },
-      { label: "Brouillon de textes", body: "Validez le message et la formulation avant que la page ne prenne forme." },
-      { label: "Storyboard", body: "Voyez l'image et la voix off de chaque plan avant de produire la vidéo." },
-      { label: "Illustrations", body: "Voyez ce que montre chaque illustration avant qu'elle soit finalisée." },
+      { label: "Maquette d'interface", body: "Vérifiez la mise en page et les interactions." },
+      { label: "Brouillon de textes", body: "Validez le message et la formulation." },
+      { label: "Storyboard", body: "Vérifiez chaque plan et sa voix off." },
+      { label: "Illustrations", body: "Vérifiez le contenu de chaque illustration." },
     ],
     closing:
       "Inutile de tout préciser. Une fois les brouillons clés validés, les agents terminent le reste dans le périmètre convenu.",

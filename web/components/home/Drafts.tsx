@@ -1,4 +1,5 @@
 import { SectionTitle } from "./SectionTitle";
+import { DraftKind } from "./DraftKind";
 import { Mat, printFrame } from "./Mat";
 import { DraftCopy, DraftIll, DraftScript, DraftUi, type Lang } from "./DraftCards";
 import { framed, panelStatic } from "../styles";
@@ -41,12 +42,12 @@ function Picture({ i, locale }: { i: number; locale: Lang }) {
   );
 }
 
-// 01: on a wide screen the title, the list and the picture pin while the page scrolls; the
+// On a wide screen the title, the list and the picture pin while the page scrolls; the
 // scroll only glides the highlight down the list and the pictures along with it.
 export function Drafts({ c, locale }: { c: HomeCopy["drafts"]; locale: Lang }) {
   const intro = (
     <>
-      <SectionTitle num="01" title={c.title} />
+      <SectionTitle title={c.title} />
       <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">{c.lead}</p>
     </>
   );
@@ -65,7 +66,7 @@ export function Drafts({ c, locale }: { c: HomeCopy["drafts"]; locale: Lang }) {
             </div>
           ))}
         </div>
-        <p className="mt-12 max-w-3xl text-[1.05rem] leading-relaxed text-muted">{c.closing}</p>
+        <p className="mt-12 max-w-3xl text-sm leading-relaxed text-muted">{c.closing}</p>
       </div>
 
       <div id="drafts-stage">
@@ -79,18 +80,14 @@ export function Drafts({ c, locale }: { c: HomeCopy["drafts"]; locale: Lang }) {
                   className={`absolute inset-x-0 top-0 ${panelStatic} ${framed}`}
                   style={{ height: `${ROW - 0.5}rem` }}
                 />
-                {c.kinds.map((k) => (
-                  <li
-                    key={k.label}
-                    className="relative flex flex-col justify-center px-5"
-                    style={{ height: `${ROW - 0.5}rem`, marginBottom: "0.5rem" }}
-                  >
+                {c.kinds.map((k, i) => (
+                  <DraftKind key={k.label} stop={i / last} style={{ height: `${ROW - 0.5}rem`, marginBottom: "0.5rem" }}>
                     <span className="text-lg font-semibold text-ink">{k.label}</span>
-                    <p className="mt-1 text-[0.95rem] leading-relaxed text-muted">{k.body}</p>
-                  </li>
+                    <span className="mt-1 text-[0.95rem] leading-relaxed text-muted">{k.body}</span>
+                  </DraftKind>
                 ))}
               </ul>
-              <p className="mt-6 px-5 text-[0.95rem] leading-relaxed text-muted">{c.closing}</p>
+              <p className="mt-6 px-5 text-sm leading-relaxed text-muted">{c.closing}</p>
             </div>
             <div
               className="overflow-hidden"

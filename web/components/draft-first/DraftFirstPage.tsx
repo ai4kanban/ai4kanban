@@ -134,7 +134,7 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
 
           {/* 2. Which parts get a draft */}
           <section className="mt-24 lg:mt-28">
-            <SectionTitle num="01" title={c.drafts.title} />
+            <SectionTitle title={c.drafts.title} />
             <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">{c.drafts.lead}</p>
             <div className="mt-10 grid gap-y-8 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-10">
               {c.drafts.kinds.map(([label, body], i) => {
@@ -163,7 +163,7 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
 
           {/* 3. Review, then build */}
           <section className="mt-24 lg:mt-28">
-            <SectionTitle num="02" title={c.review.title} />
+            <SectionTitle title={c.review.title} />
             <div className="mt-8 grid gap-8 sm:grid-cols-3 sm:gap-6">
               {c.review.actions.map(([term, body], i) => {
                 const Moment = MOMENTS[i];
@@ -195,7 +195,7 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
           {/* 4. Adding a drafting agent */}
           <section className="mt-24 grid grid-cols-1 items-center gap-10 lg:mt-28 lg:grid-cols-[5fr_6fr] lg:gap-14">
             <div>
-              <SectionTitle num="03" title={c.helpers.title} />
+              <SectionTitle title={c.helpers.title} />
               <p className="text-pretty text-[1.05rem] leading-relaxed text-muted">
                 <Paths text={c.helpers.lead} />
               </p>
@@ -230,7 +230,7 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
         {/* 5. The upgrade: the first place AI4Kanban is named in the page body. */}
         <Band>
           <section>
-            <SectionTitle num="04" title={c.upgrade.title} brand={<LogoMark size="cap" />} />
+            <SectionTitle title={c.upgrade.title} brand={<LogoMark size="cap" />} />
             <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">{c.upgrade.lead}</p>
             <div className="mt-10 grid gap-6 lg:grid-cols-3">
               {c.upgrade.cards.map(([title, body], i) => (
@@ -258,7 +258,7 @@ export function DraftFirstPage({ locale }: { locale: Locale }) {
         {/* 6. FAQ */}
         <div className={column}>
           <section className="mb-24 mt-24 lg:mb-28 lg:mt-28">
-            <SectionTitle num="05" title={c.faq.title} />
+            <SectionTitle title={c.faq.title} />
             <dl className={`max-w-3xl border-t ${hairline}`}>
               {c.faq.items.map(([q, a]) => (
                 <div key={q} className={`border-b py-6 ${hairline}`}>

@@ -68,15 +68,13 @@ export function HomePage({ locale }: { locale: Locale }) {
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
           <Drafts c={c.drafts} locale={locale === "zh" ? "zh" : "en"} />
           <Story
-            num="02"
             title={c.agents.title}
             body={c.agents.body}
             note={c.agents.pro}
             art={{ src: `${CDN}/home/agents-v1.png`, alt: c.agents.image, width: 1055, height: 431 }}
           />
-          {/* Capped so its strokes match 02's. */}
+          {/* Capped so its strokes match the drawing above. */}
           <Story
-            num="03"
             title={c.followUps.title}
             body={c.followUps.body}
             art={{

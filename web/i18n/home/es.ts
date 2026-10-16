@@ -24,12 +24,12 @@ const es: HomeCopy = {
 
   drafts: {
     title: "Revisa los borradores clave. Acierta con el rumbo.",
-    lead: "Cómo se organiza una página, qué cuenta un artículo, cómo narra un vídeo su historia: los agentes convierten las partes que te importan en borradores dentro de la tarjeta de la tarea. Si lo ves, puedes saber si es lo que quieres. Cámbialo ahí mismo y fija el rumbo antes de que empiece el resto del trabajo.",
+    lead: "Los agentes ponen los borradores clave en la tarjeta de la tarea. Revísalos y ajústalos antes de que empiece el resto del trabajo.",
     kinds: [
-      { label: "Prototipo de interfaz", body: "Ve la disposición y las interacciones antes de construirla." },
-      { label: "Borrador de textos", body: "Confirma el mensaje y la redacción antes de que la página tome forma." },
-      { label: "Guion gráfico", body: "Ve la imagen y la locución de cada plano antes de producir el vídeo." },
-      { label: "Ilustraciones", body: "Ve qué muestra cada ilustración antes de terminarla." },
+      { label: "Prototipo de interfaz", body: "Revisa la disposición y las interacciones." },
+      { label: "Borrador de textos", body: "Confirma el mensaje y la redacción." },
+      { label: "Guion gráfico", body: "Revisa cada plano y su locución." },
+      { label: "Ilustraciones", body: "Comprueba qué muestra cada ilustración." },
     ],
     closing:
       "No tienes que detallarlo todo. Una vez aprobados los borradores clave, los agentes terminan el resto dentro del alcance acordado.",

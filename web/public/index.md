@@ -7,12 +7,12 @@
 
 ## Review the key drafts. Get the direction right.
 
-How a page is laid out, what an article says, how a video tells its story — agents turn the parts you care about into drafts on the task card. When you can see it, you can tell whether it's what you want. Change it right there, and settle the direction before the rest of the work starts.
+Agents put key drafts on the task card. Review and revise them before the rest of the work starts.
 
-- **UI mockup**: See the layout and interactions before it's built.
-- **Copy draft**: Confirm the message and wording before the page takes shape.
-- **Storyboard**: See each shot's picture and voiceover before the video is made.
-- **Figures**: See what each figure shows before it's finished.
+- **UI mockup**: Preview layout and interactions.
+- **Copy draft**: Confirm the message and wording.
+- **Storyboard**: Review each shot and its voiceover.
+- **Figures**: Check what each figure shows.
 
 You don't have to spell out every detail. Once the key drafts are approved, agents finish the rest within the agreed scope.
 
