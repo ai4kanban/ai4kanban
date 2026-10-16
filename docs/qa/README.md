@@ -45,6 +45,8 @@
 - [建一张只点名竞品的卡，让竞品调研拿整个产品对比](skill/research-a-named-competitor-against-the-whole-product/case.md)
 - [升级后，版本从看板上消失，卡片照常可读](skill/releases-leave-the-board-on-upgrade/case.md)
 - [建一张要求「复用现有组件」的界面卡，规划照样请界面设计师出稿](skill/plan-a-card-that-reuses-a-component-and-still-get-a-ui-draft/case.md)
+- [规划一份演示文稿：先看线框稿和样张，再拿到可编辑的 PPT](skill/see-wireframe-slides-before-the-styled-deck/case.md)
+- [用「视频克隆」把一条程序化短片复刻成可复用的模板](skill/clone-a-programmatic-video-into-a-template/case.md)
 
 ### local-ui
 
@@ -84,6 +86,7 @@
 - [只在用键盘移动时看到聚焦框](local-ui/see-a-focus-frame-only-when-moving-by-keyboard/case.md)
 - [升级后打开一个用过版本的旧看板](local-ui/open-a-board-that-used-releases-after-upgrading/case.md)
 - [在配置里凭角色图认出每个内置 Agent](local-ui/tell-built-in-agents-apart-by-their-art/case.md)
+- [找到「视频克隆」工作流，看它要什么](local-ui/find-the-video-clone-workflow/case.md)
 - [在桌面应用的账单面板里恢复已取消的 Pro 续费](local-ui/resume-a-canceled-pro-renewal-in-the-desktop-app/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
@@ -102,6 +105,9 @@
 - [读一篇带配图的博客文章](site/read-a-blog-post/case.md)
 - [读创始人讲为什么做 AI4Kanban](site/read-why-tao-is-building-ai4kanban/case.md)
 - [读 draft-first 落地页并复制安装命令](site/read-the-draft-first-page/case.md)
+- [读官网首页](site/read-the-home-page/case.md)
+- [读 SaaS 方案页](site/read-the-saas-solution-page/case.md)
+- [在 /demo 走完一遍交互演示](site/walk-through-the-interactive-demo/case.md)
 
 ### docs
 
@@ -145,10 +151,10 @@
 ## 取证环境
 
 - **临时项目和看板**：在 `/tmp` 下建临时 git 项目和临时看板，不碰本仓库的看板。
-- **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`，并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版；shim 指向的 `bin/ai4kanban.mjs` 要有执行权限，否则静默退回旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`；跑真实 Claude Code 时再带上 `http_proxy`/`https_proxy`，否则 403。
+- **`akb`**：用仓库构建出的 `cli/dist/kanban.mjs`（拷到别处构建时连 `skill/` 一起拷），并在 PATH 最前放一个同名的 `akb` shim——否则运行会用到已安装的旧版；shim 指向的 `bin/ai4kanban.mjs` 要有执行权限，否则静默退回旧版。用 `env -i` 只留 `PATH`、`HOME`（空目录）和 `AI4KANBAN_HOME`；跑真实 Claude Code 时再带上 `http_proxy`/`https_proxy`，否则 403。
 - **替身 Agent**：要走规划、构建、续跑时，用 [stand-in.mjs](skill/chat-while-claude-code-runs-a-background-task/stand-in.mjs) 顶替真实 agent，不花钱。Claude Code 从 stdin 收提示词（#1540），从最后一个参数取提示词的旧替身认不出运行，重跑前照它改。
 - **`kanban-ui`**：用 `KANBAN_BOARD_DIR`、`AI4KANBAN_HOME` 指向临时看板，并去掉环境里的 `KANBAN_DESKTOP`。几个 dev server 同时跑时各用一份 `kanban-ui` 拷贝：它们会轮流改写 `tsconfig.json`。
-- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION` 和 `telemetry/contract.ts` 一起拷），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
+- **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION`、`telemetry/contract.ts` 和 `kanban-ui/` 一起拷，从 `/private/tmp/...` 构建，并把 `web/node_modules/ai4kanban-ui` 指向这份 `kanban-ui`——否则 `/demo` 读到主检出的 `kanban-ui`，报 `Can't resolve '@/…'`），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
 - **Cloud 看板网站**：`cloud-ui` 和 `kanban-ui` 的 `node_modules` 软链到主检出，`next dev`；登录、接口和结账用 [stand-in.mjs](cloud/sign-in-to-the-hosted-board/stand-in.mjs) 顶替，放在 `127.0.0.1` 上与网站跨站。
 - **截图**：只截相关区域。
 - **保密**：日志和截图里不出现密钥、账号和本机用户名路径。

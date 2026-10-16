@@ -1,8 +1,11 @@
+// Usage: SITE=127.0.0.1:4371 CDP_PORT=9371 OUT=<proof dir> node download.mjs
+import fs from 'node:fs'
 import { open, byText } from './cdp.mjs'
-const D = '/tmp/qa-site/download/'
+const D = (process.env.OUT || '.') + '/'
+const S = 'http://' + (process.env.SITE || '127.0.0.1:4330')
 const p = await open()
-await p.send('Storage.clearDataForOrigin', { origin: 'http://localhost:3761', storageTypes: 'all' })
-await p.nav('http://localhost:3761/download', 5000)
+await p.send('Storage.clearDataForOrigin', { origin: S, storageTypes: 'all' })
+await p.nav(S + '/download', 5000)
 let b = await p.box(`document.querySelector('main h1')`)
 await p.ev('scrollTo(0,0)'); await p.sleep(300)
 const all = await p.box(byText('main *', 'ALL DOWNLOADS'))
@@ -21,9 +24,18 @@ await p.close()
 // Windows visitor
 const w = await open()
 await w.send('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', platform: 'Win32' })
-await w.nav('http://localhost:3761/download', 5000)
+await w.nav(S + '/download', 5000)
 b = await w.box(`document.querySelector('main h1')`)
 await w.ev('scrollTo(0,0)'); await w.sleep(300)
 await w.shot(D + '03-windows-visitor.png', { x: 0, y: Math.max(0, b.y - 40), width: 1280, height: 260 })
 console.log('---', await w.ev(`[...document.querySelectorAll('main a')][0].innerText+' -> '+[...document.querySelectorAll('main a')][0].href`))
 await w.close()
+// What a shared link and an AI reader see
+let meta = ''
+for (const path of ['/download', '/zh/download']) {
+  const m = await open(); await m.nav(S + path, 3000)
+  meta += path + ' ' + await m.ev(`JSON.stringify({title:document.title,description:document.querySelector('meta[name=description]').content,ogTitle:document.querySelector('meta[property="og:title"]')?.content,ogDescription:document.querySelector('meta[property="og:description"]')?.content})`) + '\n'
+  await m.close()
+}
+for (const f of ['/llms.txt', '/index.md']) meta += `\n${f}:\n` + (await (await fetch(S + f)).text()).split('\n').slice(0, 14).join('\n') + '\n'
+fs.writeFileSync(D + '05-meta.log', meta); console.log(meta)
