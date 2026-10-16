@@ -5,7 +5,8 @@
 // It is assembled here, on the client side of the boundary, because a server component may
 // hand a client component only serializable props and Server Action references: an object of
 // actions cannot come down from a page. Every entry is a straight pass to the server action
-// of the same name; nothing is decided here.
+// of the same name, except the two run reads, which go to `app/poll/` (#1719); nothing is
+// decided here.
 //
 // This is the only module the board screen and the card page reach `@/app/actions` through.
 // A caller that is not this app builds its own object of the same shape — or none, and the
@@ -23,8 +24,6 @@ import {
   rejectCardAction,
   resumeDeliveryAction,
   getBoard,
-  getSessionAction,
-  listSessionsAction,
   patchCardAction,
   readCardSourceAction,
   resumeCloudRequestAction,
@@ -35,7 +34,9 @@ import {
   stopSessionAction,
   unscheduleCardAction,
 } from "@/app/actions";
+import { poll } from "@/lib/poll";
 import { ScreenActionsProvider, type ScreenActions } from "@/lib/screen";
+import type { SessionView } from "@/lib/types";
 
 export const appActions: ScreenActions = {
   readBoard: getBoard,
@@ -48,8 +49,8 @@ export const appActions: ScreenActions = {
   unscheduleCard: unscheduleCardAction,
   readCardSource: readCardSourceAction,
 
-  listSessions: listSessionsAction,
-  getSession: getSessionAction,
+  listSessions: () => poll<SessionView[]>("/poll/runs"),
+  getSession: (id) => poll<SessionView | null>(`/poll/run?id=${encodeURIComponent(id)}`),
   startAgent: startAgentAction,
   stopSession: stopSessionAction,
   resumeSession: resumeSessionAction,

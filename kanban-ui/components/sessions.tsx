@@ -282,7 +282,7 @@ export function unhandledSessionForCard(sessions: SessionView[], cardId: number)
 let unhandledFor: SessionView[] | null = null;
 let unhandled = new Map<number, SessionView>();
 
-// Tail one session's log. Polls getSessionAction while the session is live (task
+// Tail one session's log. Polls `getSession` while the session is live (task
 // #14 reuses the poll channel — no SSE, matching the run badges), then
 // fetches once more when it ends and stops. Pass null to watch nothing. Returns
 // the run with its log tail, or null while it hasn't loaded / the run is

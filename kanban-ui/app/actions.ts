@@ -65,7 +65,6 @@ import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, readDiscuss } f
 import {
   archiveDiscussion,
   asDiscussion,
-  listConversations,
   startDiscussion,
 } from "@/lib/discussions";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
@@ -162,7 +161,6 @@ import {
   discardDelivery,
   rejectCard,
   resumeDelivery,
-  getSession,
   listSessions,
   resumeSession,
   startSession,
@@ -234,7 +232,6 @@ import type {
   InvoicesRead,
   CommandState,
   ConnectionTest,
-  ConversationRow,
   DiscussionTarget,
   DiscussRead,
   HarnessOption,
@@ -355,7 +352,7 @@ const ACTIONS = new Set([
 const CARDLESS = new Set(["create", "setup", "triage"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
-// never waits for the child — the client polls listSessionsAction() to see the session's
+// never waits for the child — the client polls `/poll/runs` to see the session's
 // progress and outcome.
 export async function startAgentAction(req: CommandRequest & CloudDecision): Promise<StartResult> {
   // A tab left open across the upgrade that made refine the loop still posts the old name.
@@ -481,13 +478,6 @@ export async function resumeDeliveryAction(deliveryId: string): Promise<StartRes
 export async function listSessionsAction(): Promise<SessionView[]> {
   ensureDispatcher();
   return listSessions();
-}
-
-// One run with its log tail, read from the log file. The UI polls this while a run is
-// live to tail its output, and calls it once to open a finished run's log.
-export async function getSessionAction(sessionId: string): Promise<SessionView | null> {
-  if (typeof sessionId !== "string" || !sessionId) return null;
-  return getSession(sessionId);
 }
 
 // ---- the chat (#242) --------------------------------------------------------
@@ -663,10 +653,6 @@ export async function pickChatRuntimeAction(
 //
 // A board holds many at once. The rail lists them, Create task opens a new one on every
 // press, and a row's menu takes one out of the list.
-
-export async function listDiscussionsAction(): Promise<ConversationRow[]> {
-  return listConversations();
-}
 
 /** Open a discussion — what Create task presses. Nothing is written until the first message,
  *  so opening the sheet and closing it again leaves no row behind. */

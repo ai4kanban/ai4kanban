@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { archiveDiscussionAction, listDiscussionsAction } from "@/app/actions";
+import { archiveDiscussionAction } from "@/app/actions";
+import { poll } from "./poll";
 import { usePhone } from "./media";
 import type { ChatTarget, ConversationRow } from "./types";
 
@@ -52,7 +53,7 @@ export function useDiscussions(): DiscussionList {
       if (!alive || inFlight) return;
       inFlight = true;
       try {
-        const next = await listDiscussionsAction();
+        const next = await poll<ConversationRow[]>("/poll/discussions");
         if (alive) setRows((lastRows = next));
       } catch {
         // transient — the next tick tries again
