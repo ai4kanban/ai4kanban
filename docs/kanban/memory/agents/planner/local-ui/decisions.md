@@ -66,6 +66,7 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 
 - **Back/forward**: mouse buttons and a two-finger swipe wherever the system reports them, one covering layer per gesture.
 - **Another board of the same project**: opens in a new window.
+- **Opening a card**: no skeleton; stay on the current page until the card is read, trading instant feedback for speed.
 
 ## The app's language
 

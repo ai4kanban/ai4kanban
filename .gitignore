@@ -16,8 +16,7 @@ docs/kanban/triage/
 docs/kanban/rules/
 docs/kanban/memory/agents/scriptwriter
 /marketing/
-# UI templates cloned from outside references: local validation only, never published (#1707)
-/templates/ui/
+/templates/
 output/
 
 kanban-ui/.next-guide-test/

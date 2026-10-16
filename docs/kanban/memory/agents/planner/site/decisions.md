@@ -66,3 +66,7 @@ Settled user-facing answers for the public site. Read before re-asking a settled
 - **draft-first 的说法**：草稿是把关键点的返工提前到规划期；不说「不要计划」，不说消灭返工，也不说「提前交付」——草稿还不是交付。
 - **Newsletter unsubscribe**: lives on ai4kanban.dev, not the mail platform's page, so the site keeps a writable endpoint.
 - **博客封面图放 CDN**：渲染成 webp 上传到 `cdn.ai4kanban.dev/<博客名>/`，博客直接引用网址；图片不进 git。
+
+## Solution pages
+
+- **首屏主视觉**：各解决方案页共用 SaaS 页的 3D 首屏动画，暂不为每页单做。

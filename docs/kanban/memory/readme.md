@@ -8,6 +8,7 @@ covers it, or a plain-words note.
 - **Board, setup, update**: `akb guide board`, `akb guide setup`, `akb guide update`.
 - **draft-first**: a standalone skill that has any coding agent draft a task's key parts for review in the browser before building; lives in its own repo, [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first).
 - **Blog drafts**: a delivered blog post lives only in its article file, linked by one Article asset on the card; going back to the outline unticks the dropped stage's todos instead of appending cleanup ones: `akb guide multi-stage-drafting`.
+- **Copywriting drafts**: the `copywriting` agent writes each page or file as its own asset, one `<Asset>` per page on the card, with languages as its variants.
 - **draft-first long drafts**: a draft over about 20 lines goes in a `.md` asset the review page draws as Markdown, so headings inside it no longer count as alternatives that block Confirm; the prompt helper asks for diffs, not sample outputs: `SKILL.md` in [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first).
 - **Daily loop** — refine, build, finish, reject or discard, test cases; planning never builds; only Coding gets a branch and worktree: `web/content/docs/daily-loop.mdx`, `akb guide implement`.
 - **Refine, next card, module map**: `akb guide refine`, `akb guide next-card`, `akb guide module-map`.
@@ -82,6 +83,7 @@ covers it, or a plain-words note.
 
 - **Desktop app** reopens the last repo, finds your coding agent, installs `akb` and updates in the background: `desktop/README.md`, `kanban-ui/README.md`. The browser board is deprecated: `akb guide local-ui`.
 - **First run and Finish setup**: `kanban-ui/README.md`.
+- **Card opens**: opening a card no longer waits behind the background run and discussion polls.
 - **Stale column**: cards untouched for over 5 days (not building) move to a third column, oldest first, showing how many days they have sat; a group counts as touched while any of its subtasks is edited or building.
 - **Markdown assets read as articles**: an `<Asset>` pointing at a `.md`/`.mdx` file shows the article on the card page, folded with Show full article, and in full on its own page; Source shows the file as written.
 - **Agent characters**: the built-in `project-writer`, `competitor-research`, `illustrator` and `qa-manager` agents now have their own pixel characters on the Agents page and in workflows instead of a lettered card.
@@ -123,18 +125,20 @@ covers it, or a plain-words note.
 - **Focus**: a calm ink frame shows only on keyboard focus; text fields firm to an ink edge while typing, and an open dropdown keeps its frame with a flipped chevron.
 - **归档排序**: 归档页标题行可切换「交付时间 / 创建时间」，都是最近的在前，默认按交付时间。
 - **版本已移除**: 看板界面不再有版本选择器、筛选、徽章和建/关/放弃版本操作。
+- **反馈已移除**: 输入框下不再有「结束时分享给团队」开关和关联任务搜索，配置里不再有「伙伴反馈」开关。
 
 ## site
 
 - **Languages**: landing and comparison pages also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, and Markdown mirrors stay English. The footer is fully translated in every language, even where its links lead to English-only pages. On desktop, the header names the visitor's preferred language when the page has a copy in it; one click opens it.
-- **Positioning** is "See the draft. Let agents do the rest." (中文「先看草稿，再往下做」); wording limits in `positioning.md`. The download page's search and share text, `llms.txt` and the home page's Markdown mirror (`/index.md`) tell the same story.
-- **Home page** walks key drafts (UI mockup, copy, storyboard, figures), feedback agents remember, follow-ups, parallel work and the 8 tools, under a looping `/demo` recording.
+- **Positioning** is "See the draft. Let agents do the rest." (中文「先看草稿，再往下做」); wording limits in `positioning.md`. The download page's search and share text in every language, `site.webmanifest`, the docs overview, `llms.txt` and the home page's Markdown mirror (`/index.md`) tell the same story.
+- **Home page** walks key drafts (UI mockup, copy, storyboard, figures), feedback agents remember, follow-ups, parallel work and the 8 tools, under a looping `/demo` recording. Section titles carry no numbers (here and on `/draft-first`); on desktop the drafts section fits one screen and clicking a draft kind scrolls to it.
 - **Landing**: the only way in is the app download; `/index.md` and `/llms.txt` mirror it.
 - **`/vs-multica`** argues ready specialist agents, drafts approved before execution and per-agent memory, each with what both share, then a table and a recommendation.
 - **`/vs-task-master`, `/vs-hermes-kanban`** say where the other tool is ahead and who should pick which; Hermes's table is against v0.21.6 and grants chat-app control, stalled-task recovery and its API.
 - **`/vs-orca`**: Orca suits people who keep control of execution details; AI4Kanban suits those who let agents lead the details while they set direction.
 - **`/vs-plannotator`**: Plannotator suits review inside your current agent session (plan diffs, PR review, shared links); AI4Kanban suits key-draft review, parallel tasks on a board, memory and follow-ups.
-- **`/workflows/coding`** (five languages, mirror at `/workflows/coding.md`) explains the coding workflow with demo-board captures and a measured cost of 1.07–2.08× direct Claude Code.
+- **`/workflows/coding`** (five languages, mirror at `/workflows/coding.md`) explains the coding workflow with demo-board captures and a measured cost of 1.07–2.08× direct Claude Code, under the same CSS 3D hero as `/solutions/saas`.
+- **`/solutions/saas`** (five languages, mirror at `/solutions/saas.md`, footer "For SaaS" after "For coding") shows SaaS founders running product work and marketing on one board, under a CSS 3D hero of a card opening into its card page.
 - **Removed pages**: the GitHub Issues, Linear and Vibe Kanban comparisons redirect to each language's home; `/recipes` redirects to `/docs/agents`. The DeepSeek Harness blog post redirects to `/blog`.
 - **[/cloud](https://ai4kanban.dev/cloud)** says what Cloud is, what the relay carries and what stays on the machine.
 - **[/privacy](https://ai4kanban.dev/privacy), [/terms](https://ai4kanban.dev/terms)**: English only; NULLREACH LTD as operator, the China company as training seller; cover Pro (Creem as merchant of record, auto-renewal, 14-day refund, monthly credit reset).
@@ -152,6 +156,7 @@ covers it, or a plain-words note.
 - **[Draft-first development](https://ai4kanban.dev/blog/draft-first-development)**: blog post on reviewing drafts of key screens, copy and prompts before the build; `/draft-first` links to it.
 - **[Interactive demo](https://ai4kanban.dev/blog/interactive-demo)**: blog post on building `/demo` from reviewed UI drafts with Claude Code, without dedicated demo tools.
 - **[/demo](https://ai4kanban.dev/demo)** walks the desktop app through one fixed script (an idea becomes plan #38, its #39 is revised, built and archived), each step at `?step=<n>`; it is the source for board screenshots and recordings, kept out of navigation and search.
+- **[隐私政策](https://ai4kanban.dev/privacy)** 不再有反馈和伙伴反馈两节；此前提交的伙伴材料仍可凭反馈编号邮件申请删除。
 
 ## docs
 
@@ -185,4 +190,4 @@ covers it, or a plain-words note.
 ## telemetry
 
 - **Anonymous usage reporting**: `web/content/docs/local-and-cloud-boards.mdx`, `akb telemetry status|on|off`.
-- **Feedback** never requires a task; sharing its conversation is one switch, off by default.
+- **反馈已移除**: 除匿名使用统计外不再收集任何数据；反馈接口下线，已存的反馈文字和附件随之删除。
