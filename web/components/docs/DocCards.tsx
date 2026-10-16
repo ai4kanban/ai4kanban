@@ -137,3 +137,27 @@ export function Callout({
     </aside>
   );
 }
+
+// A runtime's mark for a table header; the name is the tooltip and the alt text.
+const RUNTIME_LOGOS: Record<string, string> = {
+  "Claude Code": "claude",
+  Codex: "codex",
+  Cursor: "cursor",
+  OpenCode: "opencode",
+  "Kimi Code": "kimi",
+  "DeepSeek Harness": "dsh",
+  ZCode: "zcode",
+  "Grok Build": "grok",
+};
+
+export function RuntimeLogo({ name }: { name: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/agents/${RUNTIME_LOGOS[name]}.svg`}
+      alt={name}
+      title={name}
+      className="runtime-logo"
+    />
+  );
+}

@@ -1,7 +1,7 @@
 import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
 import { BlogMdx } from "../blog/BlogMdx";
 import { hairline } from "../styles";
-import { Callout, Card, CardGroup, InstallBoard } from "./DocCards";
+import { Callout, Card, CardGroup, InstallBoard, RuntimeLogo } from "./DocCards";
 import { CopyPage } from "./CopyPage";
 import { DocTocBlock, DocTocRail } from "./DocToc";
 import { extractToc } from "@/lib/blog";
@@ -94,7 +94,7 @@ export function DocArticle({
           <BlogMdx
             source={doc.body}
             className="docs-prose"
-            extra={{ Callout, Card, CardGroup, InstallBoard }}
+            extra={{ Callout, Card, CardGroup, InstallBoard, RuntimeLogo }}
           />
         </div>
 
