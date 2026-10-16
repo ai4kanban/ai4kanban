@@ -1,6 +1,6 @@
 ---
 name: tech-stack-advisor
-description: Use when a card needs to choose or replace an outside library, tool, or service. Skip when it only uses an already settled dependency without a new selection decision.
+description: Use when a card makes a new pick of an outside library, tool, or service.
 akb:
   hook: plan
   i18n:
