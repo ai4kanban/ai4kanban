@@ -29,11 +29,11 @@
    ![能碰到什么](05-what-a-run-may-touch.png)
 
 6. 点目录里的「What each runtime reports」。
-   一张八个工具 × 七项能力的勾选表，八列在 1280 宽的窗口里都看得到；表下逐条解释每项能力，最后一段讲没有输出的运行多久后自动结束。
+   表上一句「`akb agent list` shows these too.」；一张八个工具 × 六项能力的勾选表（没有「Model name」行），表头是八个工具的 logo、不写名字，悬停时提示工具名；八列都在 1280 宽的表框里，没有横向滚动条；表下逐条解释每项能力，最后一段讲没有输出的运行多久后自动结束。
    ![能力表](06-what-each-runtime-reports.png)
 
 7. 在临时项目里跑 `akb agent list`，和第 6 步的表对照。
-   列出同样八个运行时，每个写着启动命令和 `lacks:` 缺的能力；表里每个「—」都能在对应的 `lacks:` 里找到。命令行多列了两项表上没有的（context window、pasted pictures），DeepSeek Harness 在这里叫「DSH」。
+   列出同样八个运行时，每个写着启动命令和 `lacks:` 缺的能力；表里每个「—」都能在对应的 `lacks:` 里找到。命令行多列了两项表上没有的（context window、pasted pictures），DeepSeek Harness 在这里叫「DSH」——和页上「shows these too」的说法对得上。
    [akb agent list 的输出](07-akb-agent-list.log)
 
 8. 打开 `/docs/runs`，滚到页底。
@@ -42,11 +42,11 @@
 
 ## Feedback
 
-- **入口和名字对上了**：首页卡片、左栏、页标题、Runs 页底的链接都叫 Multi-runtime（support），点进去就是操作指南，不再像工具对比。
+- **入口和名字对上了**：首页卡片、左栏、页标题、Runs 页底的链接都叫 Multi-runtime（support），点进去就是操作指南。
 - **顺序是照着做的顺序**：装好 → 添加 → 填设置 → Test，再讲每个 Agent 怎么绑定，四步读完就知道下一步按哪里。
-- **安装要跳出去**：八个工具只给官方文档链接，没有一行安装命令；省了维护，但第一次接 ZCode、Grok Build 这类小众工具的人得在别人的站上找。
-- **能力表在桌面宽度被截断**：第 6 步的表有九列，表格框只有 624px 宽、内容 677px，最右的 Grok Build 一列要在表内横向滚动才看得到，截图里只到 ZCode；而前一句刚说「All eight」。
-- **和命令行对得上，但不完全一样**：「—」与 `lacks:` 一一对应；可命令行把 DeepSeek Harness 叫 DSH，还多两项能力，「shows the same table」说得过满。
-- **权限一节有用**：直接点名哪些工具会写项目外，比以前的对比表更像该决定的事。
-- **描述的说法变了**：`/docs` 的描述改成「the kanban board for AI agents」，和首页导语「AI leads the team」两种口径并存，但只在搜索结果里看得到。
-- **没有跑到的**：真的接一个工具并按 Test、在界面里给 Agent 绑定运行时（要真实工具和账号）；窄屏。
+- **能力表一屏看全了**：换成 logo 表头、去掉全是 ✓ 的一行后，八列都在表框里，「All eight」不再自相矛盾。
+- **logo 要认得出才省事**：Claude、OpenAI、Cursor、X 一眼能认；OpenCode、DeepSeek Harness、ZCode 的小图标得悬停才知道是谁，而悬停提示在手机上看不到，读的人可能要回到上面的设置表去对顺序。
+- **和命令行的说法改准了**：「shows these too」不再说「同一张表」，命令行多两项、把 DeepSeek Harness 叫 DSH 也不算出入。
+- **安装要跳出去**：八个工具只给官方文档链接，没有一行安装命令；第一次接 ZCode、Grok Build 这类小众工具的人得在别人的站上找。
+- **权限一节有用**：直接点名哪些工具会写项目外，像该决定的事。
+- **没有跑到的**：真的接一个工具并按 Test、在界面里给 Agent 绑定运行时（要真实工具和账号）；窄屏；真鼠标悬停看提示框（只核对了 logo 带 `title` 和 `alt`）。
