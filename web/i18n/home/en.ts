@@ -14,8 +14,9 @@ const en: HomeCopy = {
   },
 
   hero: {
-    title: "See the draft. Let agents do the rest.",
-    lead: "AI4Kanban prepares the key drafts for the tasks on your board. You check what matters, agents handle the details, and one person moves more work forward.",
+    eyebrow: "An agent workspace for indie hackers",
+    title: "See the draft.\nLet agents do the rest.",
+    lead: "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there—without having to manage every detail.",
     ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
     image:

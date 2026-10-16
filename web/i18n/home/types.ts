@@ -16,7 +16,9 @@ export type HomeCopy = {
     schema: string;
   };
   hero: {
-    /** In English, each sentence takes its own line. */
+    /** Who the product is for, set small above the title. */
+    eyebrow: string;
+    /** Each `\n` starts a new line. */
     title: string;
     lead: string;
     /** The one thing the page is for: the app. Aimed at `/download`. */

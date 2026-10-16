@@ -25,13 +25,15 @@ export function Hero({
   return (
     <section className={heroTop}>
       <div className="mx-auto max-w-3xl text-center">
-        {/* `text-balance` keeps Chinese and Japanese from breaking mid-word. An English title
-            breaks after each sentence. */}
+        <p data-enter className="mb-5 text-sm font-semibold tracking-wide text-accent-deep">
+          {c.eyebrow}
+        </p>
+        {/* `text-balance` keeps Chinese and Japanese from breaking mid-word. */}
         <h1
           data-enter
           className="text-balance text-[2.5rem] font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.15]"
         >
-          {c.title.split(/(?<=\.) /).map((line) => (
+          {c.title.split("\n").map((line) => (
             <span key={line} className="block">
               {line}
             </span>

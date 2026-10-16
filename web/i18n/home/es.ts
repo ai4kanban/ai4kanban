@@ -14,8 +14,9 @@ const es: HomeCopy = {
   },
 
   hero: {
-    title: "Revisa el borrador. Deja el resto a los agentes.",
-    lead: "AI4Kanban prepara los borradores clave de las tareas de tu tablero. Tú revisas lo importante, los agentes se encargan de los detalles y una sola persona saca adelante más trabajo.",
+    eyebrow: "Un espacio de trabajo con agentes para emprendedores independientes",
+    title: "Revisa el borrador.\nDeja el resto a los agentes.",
+    lead: "Del desarrollo al marketing, AI4Kanban te prepara borradores de las partes que necesitan tu criterio. Revisa, ajusta y deja que los agentes sigan desde ahí, sin tener que supervisar cada detalle.",
     ctaDownload: "Descargar",
     ctaGithub: "Ver en GitHub ↗",
     image:

@@ -13,8 +13,9 @@ const zh: HomeCopy = {
   },
 
   hero: {
-    title: "先看草稿，再往下做",
-    lead: "为看板上的任务准备关键草稿。你把关重点，agent 完成细节，一个人也能推进更多事。",
+    eyebrow: "独立创业者的 Agent 工作台",
+    title: "先看草稿\n其余交给 Agent",
+    lead: "从开发到营销，AI4Kanban 挑出任务中需要你把关的部分，提前做成草稿。你改好关键部分，Agent 完成后续工作，让你不必每件事都亲自盯、来回改。",
     ctaDownload: "下载",
     ctaGithub: "查看 GitHub ↗",
     image: "AI4Kanban 演示看板的录屏：规划任务、审阅卡片上的草稿，再交给 agent 完成。",

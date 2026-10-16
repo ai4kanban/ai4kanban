@@ -14,8 +14,9 @@ const fr: HomeCopy = {
   },
 
   hero: {
-    title: "Voyez le brouillon. Laissez les agents faire le reste.",
-    lead: "AI4Kanban prépare les brouillons clés des tâches de votre tableau. Vous vérifiez l'essentiel, les agents s'occupent des détails, et une seule personne fait avancer davantage de travail.",
+    eyebrow: "Un espace de travail avec agents pour les indie hackers",
+    title: "Voyez le brouillon.\nLaissez les agents faire le reste.",
+    lead: "Du développement au marketing, AI4Kanban vous prépare des brouillons des parties qui demandent votre jugement. Relisez, ajustez, et laissez les agents prendre le relais, sans avoir à gérer chaque détail.",
     ctaDownload: "Télécharger",
     ctaGithub: "Voir sur GitHub ↗",
     image:
