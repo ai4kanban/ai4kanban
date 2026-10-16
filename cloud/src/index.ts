@@ -48,6 +48,7 @@ import {
 import { generateImage } from './image.ts'
 import { speak } from './speech.ts'
 import { judge } from './judge.ts'
+import { routeTemplates } from './templates.ts'
 import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
 import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
 import { routeWorkspace } from './workspaces.ts'
@@ -376,6 +377,11 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     const session = await readSession(request, env)
     return judge(env, session.subject, await bodyOf(request))
   }
+
+  // The shared template catalog (#1708). Any verified sign-in reads it; `src/templates.ts`
+  // says which reads need Pro and who publishes.
+  const templates = /^\/v1\/templates(?:\/(.*))?$/.exec(pathname)
+  if (templates) return routeTemplates(request, env, (templates[1] ?? '').replace(/\/+$/, ''))
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,
   // so a deploy shows the write budget and the read-only refusal working before a client

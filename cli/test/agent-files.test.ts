@@ -66,7 +66,7 @@ describe('what an agent offers', () => {
   })
 
   it('offers a reference file the way it offers any other file (#1003)', () => {
-    assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md'])
+    assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md', 'template-selection.md'])
   })
 })
 
@@ -113,7 +113,7 @@ describe('`akb raw agent-file`', () => {
   it("prints a built-in agent's file, which has no path to open", async () => {
     BUNDLED_AGENT_FILES['ui-designer/spacing.md'] = 'Eight pixels, or a multiple of it.'
     try {
-      assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md', 'spacing.md'])
+      assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md', 'spacing.md', 'template-selection.md'])
       const said = await move(root, ['agent-file', 'ui-designer', 'spacing.md'])
       assert.equal(said.text, 'Eight pixels, or a multiple of it.')
       assert.match(buildAsk({ action: 'spec', id: card, specAgent: 'ui-designer' }), /agent-file ui-designer spacing\.md/)

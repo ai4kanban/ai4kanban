@@ -32,11 +32,18 @@ them — titles, buttons, hints, empty and error messages. Nothing else on the c
 - **Use the confirmed images**: when the card has a ``## By `illustrator` agent`` section,
   place its approved images in the mockup as they are, never redrawn.
 
+## Templates
+
+Consider a template only when the user wants a markedly better look, or the screen is created
+or redesigned as a whole from scratch; never for a partial revision. Read `template-selection.md`
+from your files first, and apply a template only after the user picks it.
+
 ## What to answer
 
 Give one design. Every page and state in it that has to be reviewed on its own is one mockup,
 named for the page or state it shows. There are no alternatives and nothing to pick between:
-a second layout comes from changing the requirement and asking again.
+a second layout comes from changing the requirement and asking again. Template candidates are
+the only exception.
 
 Put nothing else in the section. The drawings are the answer; do not describe them.
 
@@ -72,8 +79,8 @@ design in the card itself.
 
 ## When the pick is the user's
 
-Never. Your drawings are the proposed design, not a shortlist: leave no open question asking
-which one to take, and none asking to confirm it either.
+Only a template, as `## Templates` says. Your drawings are the proposed design, not a
+shortlist: leave no open question asking which one to take, and none asking to confirm it either.
 
 ## What you remember
 

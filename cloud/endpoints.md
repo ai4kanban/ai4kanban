@@ -170,6 +170,33 @@ chat message carries depends on where the event lives.
   as narration. Any Pro sign-in; free — it spends no credits. Each call is recorded in
   `cloud.ai_calls` with its input tokens and upstream cost.
 
+## Templates
+
+The shared template catalog (#1708). Any verified sign-in, admitted or not. Metadata lives in
+`cloud.templates`, files in the private `TEMPLATES` R2 bucket; every route refuses with
+`templates_unavailable` when the build has none.
+
+- `GET /v1/templates/tags?category=ui` — `{ "tags": [{ "tag", "count" }] }`, the category's tags.
+- `GET /v1/templates?category=ui&tags=hero[,…]&q=<words>&limit=N` — templates carrying any of the
+  tags, those matching more topic words first. Default 5, at most 10. Metadata only:
+  `name`, `category`, `title`, `summary`, `description`, `tags`, `access`, `previews`
+  (`{ path, size }`), `publishedAt`.
+- `GET /v1/templates/<name>/previews` — `{ name, previews }`, its catalog previews;
+  `…/previews/<path>` reads one image.
+- `GET /v1/templates/<name>/source` — `{ name, source, evidence }`: where it came from, and the
+  captured evidence's files. `GET /v1/templates/<name>/evidence/<path>` reads one.
+- `GET /v1/templates/<name>` — the manifest: metadata, `source`, `files` and `evidence`, each
+  file `{ path, size, sha256 }`. `pro_required` for an `access: pro` template without Pro.
+- `GET /v1/templates/<name>/files/<path>` — one template file, on the same terms.
+- `POST /v1/templates` — publish, as multipart: `meta` (JSON: `name`, `category`, `tags`,
+  `title`, `summary`, `description`, `source`, `access`, `replace`) and one part per file named
+  `files:<path>`, `previews:<path>` or `evidence:<path>`. `template.md` is required; files at
+  most 50 MB, previews 3 images and 6 MB, evidence 10 files and 20 MB. `source` is
+  `{ "original": true }` or `{ site, references, captured, archives?, note }` with at least one
+  evidence file; `captured` carries its time zone. A taken name is `template_exists` unless
+  `replace` is true. Handles in `TEMPLATE_PUBLISHERS` (`src/config.ts`) only, else `owner_only`.
+- `DELETE /v1/templates/<name>` — take it out of the catalog, files included. Publishers only.
+
 ## Billing
 
 Pro, sold through Creem (#1037). Open to any verified sign-in, admitted or not: a subscription
@@ -249,7 +276,9 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
 | `image_unavailable` / `image_failed` | This build carries no image key, or the provider failed. Retry later. |
 | `judge_unavailable` / `judge_failed` | This build carries no key for judging, or the provider failed. Retry later. |
-| `pro_required` | Hosted voices, images and judging triage items need Pro. |
+| `pro_required` | Hosted voices, images, judging triage items and Pro templates' files need Pro. |
+| `template_exists` | Publishing under a name already taken, without `replace`. |
+| `templates_unavailable` | This build carries no template bucket. |
 | `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |

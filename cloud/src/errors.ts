@@ -36,6 +36,8 @@ export type RefusalCode =
   | 'judge_unavailable'
   | 'judge_failed'
   | 'pro_required'
+  | 'template_exists'
+  | 'templates_unavailable'
   | 'credits_used_up'
   | 'billing_unavailable'
   | 'billing_failed'
@@ -333,6 +335,13 @@ export const judgeFailed = () =>
 
 /** Hosted narration and images are Pro's (#1062), spending its monthly AI credits (#1113). */
 export const proRequired = () => new Refusal('pro_required', 403, 'This needs Pro.')
+
+/** The shared template catalog (#1708). */
+export const templateExists = (message = 'A template with this name already exists.') =>
+  new Refusal('template_exists', 409, message)
+
+export const templatesUnavailable = () =>
+  new Refusal('templates_unavailable', 503, 'Templates are not available right now.')
 
 export const creditsUsedUp = (now = Date.now()) =>
   new Refusal(

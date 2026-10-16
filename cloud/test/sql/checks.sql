@@ -3114,4 +3114,49 @@ begin
 end
 $prune$;
 
+-- The shared template catalog (#1708): a taken name is refused unless replaced, search is
+-- bounded and ranked by topic words, and tags are counted per category.
+do $templates$
+declare
+  BUDGET constant integer := 100000;
+  SRC constant jsonb := '{"original": true}';
+  FILES constant jsonb := '[{"path": "template.md", "size": 1, "sha256": "x"}]';
+  v_json json;
+begin
+  perform api.publish_template('neverchanje', 'hero-a', 'ui', array['hero', 'dark'], 'A', 'Dark hero.', 'Tilted screen.',
+    SRC, 'free', FILES, '[]', '[]', 'r1', false, BUDGET);
+  perform api.publish_template('neverchanje', 'hero-b', 'ui', array['hero'], 'B', 'Light hero.', 'Pricing table.',
+    SRC, 'pro', FILES, '[]', '[]', 'r2', false, BUDGET);
+  perform api.publish_template('neverchanje', 'intro-a', 'video', array['hero'], 'C', 'Intro.', 'Video.',
+    SRC, 'free', FILES, '[]', '[]', 'r3', false, BUDGET);
+
+  perform pg_temp.refuses(
+    format('select api.publish_template(%L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, false, %s)',
+      'neverchanje', 'hero-a', 'video', '{hero}', 'A2', 's', 'd', SRC, 'free', FILES, '[]', '[]', 'r4', BUDGET),
+    'AKB19', 'publishing over a taken name');
+  assert (select category from cloud.templates where name = 'hero-a') = 'ui', 'a refused publish changed the row';
+
+  v_json := api.publish_template('neverchanje', 'hero-a', 'ui', array['hero', 'dark'], 'A2', 'Dark hero.', 'Tilted screen.',
+    SRC, 'free', FILES, '[]', '[]', 'r5', true, BUDGET);
+  assert v_json ->> 'replaced' = 'r1', 'a replacement did not name the revision it superseded';
+  assert (select count(*) from cloud.templates where name = 'hero-a') = 1, 'a replacement made a second row';
+
+  v_json := api.search_templates('ui', array['hero'], array['pricing'], 5);
+  assert json_array_length(v_json) = 2, 'search left the category or missed a template';
+  assert v_json -> 0 ->> 'name' = 'hero-b', 'a topic word did not rank its match first';
+  assert v_json -> 0 -> 'hits' is null, 'search answered its ranking column';
+  assert json_array_length(api.search_templates('ui', array['hero'], null, 1)) = 1, 'search ignored its limit';
+  assert json_array_length(api.search_templates('ui', array['hero'], null, 50)) = 2, 'search lost rows over the cap';
+  assert json_array_length(api.search_templates('ui', array['nothing'], null, 5)) = 0, 'search widened past its tags';
+
+  v_json := api.template_tags('ui');
+  assert v_json -> 0 ->> 'tag' = 'hero' and (v_json -> 0 ->> 'count')::int = 2, 'tags were not counted per category';
+
+  assert api.delete_template('hero-b', BUDGET) ->> 'revision' = 'r2', 'a delete did not answer its revision';
+  assert api.delete_template('hero-b', BUDGET) is null, 'deleting a missing template answered a revision';
+
+  raise notice 'sql checks: #1708 template catalog checks passed';
+end
+$templates$;
+
 rollback;

@@ -20,5 +20,14 @@
     "CREEM_PRODUCT_YEARLY": "prod_ucjlzfwJe6sIRlbPH6JDT"
   },
 
+  // Shared templates' files, previews and evidence (#1708). Private: only the Worker reads it.
+  "r2_buckets": [
+    {
+      "binding": "TEMPLATES",
+      "bucket_name": "ai4kanban-templates",
+      "preview_bucket_name": "ai4kanban-templates-dev"
+    }
+  ],
+
   "observability": { "enabled": true }
 }

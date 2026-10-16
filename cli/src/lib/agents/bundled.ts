@@ -28,6 +28,7 @@ import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboa
 import illustrator from '../../agents/illustrator/AGENT.md'
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import hyperframesRecorder from '../../agents/hyperframes-editor/record.mjs' with { type: 'text' }
+import hyperframesTemplates from '../../agents/hyperframes-editor/template-selection.md'
 import promptWriter from '../../agents/prompt-writer/AGENT.md'
 import qaManager from '../../agents/qa-manager/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
@@ -48,6 +49,7 @@ import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overvi
 import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
+import uiDesignerTemplates from '../../agents/ui-designer/template-selection.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 import videoCloner from '../../agents/video-cloner/AGENT.md'
 
@@ -70,6 +72,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'email-planner/scripts/render.mjs': emailRenderer,
   'hyperframes-editor/AGENT.md': hyperframesEditor,
   'hyperframes-editor/record.mjs': hyperframesRecorder,
+  'hyperframes-editor/template-selection.md': hyperframesTemplates,
   'illustrator/AGENT.md': illustrator,
   'prompt-writer/AGENT.md': promptWriter,
   'qa-manager/AGENT.md': qaManager,
@@ -92,6 +95,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'software-planner/AGENT.md': softwarePlanner,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,
+  'ui-designer/template-selection.md': uiDesignerTemplates,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,
   'video-cloner/AGENT.md': videoCloner,
 }

@@ -219,6 +219,10 @@ export const TRAINING_TERMS_URL = 'https://ai4kanban.dev/terms#training'
  *  admits people who have nothing to do with the training service. */
 export const TRAINING_OPERATORS = ['neverchanje']
 
+/** The handles that may publish, replace and delete shared templates (#1708). Everyone else
+ *  signed in only reads them. */
+export const TEMPLATE_PUBLISHERS = ['neverchanje']
+
 // --- the site's contact form (#784) -------------------------------------------
 
 /** Submits one visitor address, or one sender email, may make inside one window. Either key

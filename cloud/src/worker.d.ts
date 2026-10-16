@@ -12,3 +12,26 @@ declare interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void
   passThroughOnException(): void
 }
+
+declare interface R2ObjectBody {
+  readonly size: number
+  readonly httpMetadata?: { contentType?: string }
+  readonly body: ReadableStream
+  arrayBuffer(): Promise<ArrayBuffer>
+}
+
+/** The parts of an R2 binding the template catalog uses (#1708). */
+declare interface R2Bucket {
+  get(key: string): Promise<R2ObjectBody | null>
+  put(
+    key: string,
+    value: ArrayBuffer | Uint8Array | string,
+    options?: { httpMetadata?: { contentType?: string } },
+  ): Promise<unknown>
+  delete(keys: string | string[]): Promise<void>
+  list(options?: { prefix?: string; cursor?: string }): Promise<{
+    objects: { key: string }[]
+    truncated: boolean
+    cursor?: string
+  }>
+}

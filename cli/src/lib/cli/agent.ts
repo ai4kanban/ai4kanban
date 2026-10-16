@@ -31,6 +31,15 @@ import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
 import { cloudImage, cloudTts, cmdCloud } from '../../commands/cloud'
+import {
+  templateDelete,
+  templateGet,
+  templatePreview,
+  templatePublish,
+  templateSearch,
+  templateSource,
+  templateTags,
+} from '../../commands/cloud-template'
 import { cmdGuide } from '../../commands/guide'
 import {
   cmdWorkflowDelete,
@@ -403,6 +412,73 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, text: string[]) {
       const o = this.opts() as { voice?: string; out?: string }
       await boardless(this, cli, (p) => cloudTts({ voice: o.voice, out: o.out, text: text.join(' ') }, p))
+    })
+
+  // The shared template catalog (#1708). Options are read in the handlers, so a missing one exits 2.
+  const template = withShared(cloud.command('template'))
+    .summary('the shared UI and video template catalog')
+    .action(function (this: Command) {
+      this.help()
+    })
+
+  withShared(template.command('list-tags'))
+    .summary("a category's tags, with how many templates carry each")
+    .option('--category <category>', 'ui, video, …')
+    .action(async function (this: Command) {
+      await boardless(this, cli, (p) => templateTags(this.opts() as { category?: string }, p))
+    })
+
+  withShared(template.command('search'))
+    .argument('[words...]', 'topic words that rank the matches')
+    .summary('templates carrying a tag: metadata only, 5 by default, at most 10')
+    .option('--category <category>', 'ui, video, …')
+    .option('--tags <tags>', 'comma-separated tags')
+    .option('--limit <n>', 'how many, at most 10')
+    .action(async function (this: Command, words: string[]) {
+      const o = this.opts() as { category?: string; tags?: string; limit?: string }
+      await boardless(this, cli, (p) => templateSearch({ ...o, words }, p))
+    })
+
+  withShared(template.command('preview'))
+    .argument('<name>', 'the template')
+    .summary("download a template's catalog previews, as <name>-<file>")
+    .option('--to <dir>', 'the folder to write them into')
+    .action(async function (this: Command, name: string) {
+      await boardless(this, cli, (p) => templatePreview(name, this.opts() as { to?: string }, p))
+    })
+
+  withShared(template.command('get'))
+    .argument('<name>', 'the template')
+    .summary('download every file of a template, checked against the catalog')
+    .option('--to <dir>', 'the folder to write it into; existing files are never overwritten')
+    .action(async function (this: Command, name: string) {
+      await boardless(this, cli, (p) => templateGet(name, this.opts() as { to?: string }, p))
+    })
+
+  withShared(template.command('source'))
+    .argument('<name>', 'the template')
+    .summary("where a template came from, and the evidence captured at the time")
+    .option('--to <dir>', 'download the evidence into this folder')
+    .action(async function (this: Command, name: string) {
+      await boardless(this, cli, () => templateSource(name, this.opts() as { to?: string }))
+    })
+
+  withShared(template.command('publish'))
+    .argument('<dir>', "the template's folder, holding template.md")
+    .summary('publish a template (maintainers only)')
+    .option('--preview <file>', 'a catalog preview image, kept outside the folder; repeat for more', (v: string, all: string[]) => [...all, v], [])
+    .option('--evidence <file>', "a capture of the reference, kept outside the folder; repeat for more", (v: string, all: string[]) => [...all, v], [])
+    .option('--replace', 'replace the template already published under this name')
+    .action(async function (this: Command, dir: string) {
+      const o = this.opts() as { preview: string[]; evidence: string[]; replace?: boolean }
+      await boardless(this, cli, () => templatePublish(dir, o))
+    })
+
+  withShared(template.command('delete'))
+    .argument('<name>', 'the template')
+    .summary('take a template out of the catalog (maintainers only)')
+    .action(async function (this: Command, name: string) {
+      await boardless(this, cli, () => templateDelete(name))
     })
 
   // ---- optional usage reporting ---------------------------------------------

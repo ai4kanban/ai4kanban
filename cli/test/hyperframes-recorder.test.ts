@@ -47,7 +47,7 @@ after(() => {
 
 describe('the agent ships it', () => {
   it('names it among its own files, to be saved with `akb raw agent-file`', () => {
-    assert.deepEqual(findSpecAgent('hyperframes-editor')!.files, ['record.mjs'])
+    assert.deepEqual(findSpecAgent('hyperframes-editor')!.files, ['record.mjs', 'template-selection.md'])
   })
 
   it('is a runnable script, not a description of one', () => {

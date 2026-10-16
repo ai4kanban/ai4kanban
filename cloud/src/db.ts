@@ -25,6 +25,7 @@ import {
   serviceUnavailable,
   staleRevision,
   storageLimitReached,
+  templateExists,
   trainingSlotTaken,
   trainingTooManyAttempts,
 } from './errors.ts'
@@ -82,6 +83,9 @@ export const PG_TRAINING_SLOT_TAKEN = 'AKB17'
 
 /** SQLSTATE a caller past the booking rate limit raises (#683). */
 export const PG_TRAINING_TOO_MANY_ATTEMPTS = 'AKB18'
+
+/** SQLSTATE publishing a template under a name already taken raises (#1708). */
+export const PG_TEMPLATE_EXISTS = 'AKB19'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -154,6 +158,7 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_LAST_OWNER) return lastOwner(error.message)
   if (error.code === PG_TRAINING_SLOT_TAKEN) return trainingSlotTaken()
   if (error.code === PG_TRAINING_TOO_MANY_ATTEMPTS) return trainingTooManyAttempts()
+  if (error.code === PG_TEMPLATE_EXISTS) return templateExists(error.message)
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

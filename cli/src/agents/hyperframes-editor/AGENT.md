@@ -33,6 +33,10 @@ Use the first available source for each file:
 - **Narration**: generate it from the exact scripted lines with the approved voice: `akb cloud tts` for a hosted voice, local Kokoro for a Kokoro ID, `af_heart` / `zf_xiaobei` when the source names none. Never switch voice or service silently; regenerate only narration whose voice changed. For a human voice, reuse the supplied recording or ask for it.
 - **Checks**: assets you make or generate and repository assets are trusted; use an outside asset only under an open license, checked for quality and match with the script. Remove secrets, personal data and private paths.
 
+## Templates
+
+Consider a template only when the user wants a markedly better look, or the video is created or redesigned as a whole from scratch; never for a partial revision. Read `template-selection.md` from your files first, and apply a template only after the user picks it.
+
 ## Build
 
 - **Pinned**: keep every tool the video uses as a project dependency with a lockfile. Name an unavailable system dependency in one `[user]` question and stop.

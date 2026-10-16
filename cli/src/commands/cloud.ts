@@ -210,9 +210,9 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
 
 // ---- generation ---------------------------------------------------------------------
 
-type Said = { zh: string; en: string }
+export type Said = { zh: string; en: string }
 
-const SAID = {
+export const SAID = {
   'signed-out': {
     zh: '未登录 AI4Kanban Cloud。请在 AI4Kanban 应用的“配置 → Cloud”中登录后重试。',
     en: 'Not signed in to AI4Kanban Cloud. Sign in from Configuration → Cloud in the AI4Kanban app, then try again.',
