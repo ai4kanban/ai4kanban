@@ -1,29 +1,75 @@
 ---
-title: "What each coding agent can do"
-title_tag: "AI4Kanban coding agents — Claude Code, Codex, Cursor, OpenCode, Kimi, DeepSeek, ZCode, Grok"
-description: "The board runs your work through one coding agent. What each of the eight reports back while it works, what a run may touch, and the settings each one takes."
-lead: "The board runs your work through one coding agent — Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode or Grok Build. All eight do the work; what differs is what they report back."
-last_updated: "October 4, 2026"
-nav_label: "Coding agents"
+title: "Multi-runtime support"
+title_tag: "AI4Kanban multi-runtime support — run Claude Code, Codex, Cursor and more"
+description: "Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch."
+lead: "Run the board on Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode or Grok Build — and give each agent the one that suits its work."
+last_updated: "October 16, 2026"
+nav_label: "Multi-runtime"
 icon: "cpu"
 ---
 
-A **runtime** names one of these and says how to reach it. Add one with `akb agent runtime add`
-and set it up in **Configuration → Runtimes**; point an agent at one on its own page, or with
-`akb agent bind <agent> <runtime>`.
+A **runtime** is one coding tool plus the settings the board uses to reach it. The tools run on
+your machine with your own subscriptions or keys.
 
-A new board picks the first agent already on your machine that answers, so there is nothing to
-fill in when you already run one. An agent that is installed but signed out reads **Logged out**,
-with the command that signs it back in.
+## Set up a runtime
 
-## Support
+1. **Install and sign in to the tool** by following its official docs:
+   [Claude Code](https://code.claude.com/docs), [Codex](https://developers.openai.com/codex),
+   [Cursor](https://cursor.com/docs/cli/overview), [OpenCode](https://opencode.ai/docs),
+   [Kimi Code](https://www.kimi.com/code/docs/en/),
+   [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness),
+   [ZCode](https://docs.z.ai/devpack/tool/zcode) or [Grok Build](https://docs.x.ai/build/overview).
+2. **Add it** in **Configuration → Runtimes**, or run `akb agent runtime add`. A new board picks
+   the first installed tool that answers. A tool that is installed but signed out shows
+   **Logged out** with the command that signs it in.
+3. **Fill in its settings** from the table below.
+4. **Press Test**, or run `akb agent test`. It sends one short message, so a bad sign-in shows up
+   now instead of on your next card.
 
-All eight do the work. What differs is what they report back. `akb agent list` shows the same
-table.
+## Give each agent its runtime
+
+Every agent uses the board's default runtime until you choose another on its page, or run
+`akb agent bind <agent> <runtime>`. For example, plan on one model and build on a cheaper one.
+See [Runs](/docs/runs#which-runtime-each-agent-runs-on). A [chat](/docs/chat#a-model-per-conversation)
+can switch the agent or model for one conversation.
+
+## Settings
+
+| Runtime | Settings |
+|---|---|
+| Claude Code | Provider (subscription, Anthropic API or a compatible gateway), model, reasoning effort |
+| Codex | Provider (ChatGPT subscription, OpenAI API or a Responses API gateway), model, reasoning effort |
+| Cursor | Model, Cursor key (optional). Put reasoning effort inside the model id, such as `claude-opus-4-8[effort=high]` |
+| OpenCode | Model as `provider/model`, reasoning effort. Keys come from `opencode auth login` |
+| Kimi Code | Provider (Kimi sign-in, or a custom endpoint in Kimi, Anthropic or OpenAI format), model |
+| DeepSeek Harness | Model, DeepSeek key (optional; otherwise the key `dsh` saved) |
+| ZCode | Model, **Z.AI Coding Plan key**. Board runs need the key; `zcode login` alone does not work |
+| Grok Build | Model, xAI key (optional; otherwise the key `grok login` saved) |
+
+Leave the model empty to use the tool's default. To use a gateway such as OpenRouter or LiteLLM,
+choose Claude Code for Anthropic format, Codex for the OpenAI Responses API, or Kimi Code for any
+of the three.
+
+## Decide what a run may touch
+
+Check each runtime's command and arguments before you start work:
+
+- **Restricted writes**: OpenCode, DeepSeek Harness and Grok Build keep writes inside the project
+  unless your permission settings widen them. Codex does the same when you choose its
+  workspace-write mode.
+- **Unrestricted**: Claude Code, Cursor, Kimi Code and ZCode run tools without approval prompts
+  and can write outside the project.
+- **Network**: every runtime can reach the network.
+
+If you need a hard boundary, run the board in a container.
+
+## What each runtime reports
+
+All eight can chat, run cards and resume a failed run. They differ in what they report in
+**Runs**. `akb agent list` shows the same table.
 
 | | Claude Code | Codex | Cursor | OpenCode | Kimi Code | DeepSeek Harness | ZCode | Grok Build |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Chat and resume | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Early-crash resume | ✓ | — | — | ✓ | — | ✓ | — | ✓ |
 | Run cost | ✓ | ✓ | — | ✓ | — | ✓ | — | ✓ |
 | Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -32,80 +78,22 @@ table.
 | Provider retry | ✓ | ✓ | — | — | — | — | — | — |
 | Direct skill call | ✓ | ✓ | — | — | — | — | — | — |
 
-- **Chat and resume**: talk to the board or a card, and pick up a failed run where it stopped.
-- **Early-crash resume**: a run that failed in its first seconds resumes; the others offer
+- **Early-crash resume**: resumes a run that failed in its first seconds. With the others, press
   **Retry**.
-- **Run cost, token counts, model name**: what **Runs** shows for a finished run. A cost is an
-  estimate, not a bill.
-- **Rate-limit exit**: a rate-limited run ends and frees the card; the others wait the limit
-  out.
-- **Provider retry**: a run that hits a passing provider failure picks itself back up.
-- **Direct skill call**: the agent loads the board skill by name; the others are asked to in
-  the prompt.
+- **Run cost**: an estimate, not a bill.
+- **Rate-limit exit**: ends a rate-limited run and frees the card. The others wait until the
+  limit lifts.
+- **Provider retry**: retries after a temporary provider failure.
+- **Direct skill call**: loads the board skill by name. The others are told to load it in the
+  prompt.
 
-A run that stops producing output ends by itself; set how long in **End a silent run after**
-under **Configuration → General**.
+A run that stops producing output ends on its own. Set how long to wait in
+**Configuration → General → End a silent run after**. When Claude Code is waiting on its own
+background tasks, the run does not count as silent. In a chat, the line above the message box
+shows those tasks and can stop them.
 
-**Background tasks** — while Claude Code waits on work it started in the background, it
-is not silent: it waits up to 2 hours, then ends with the reason. A run carries on when
-the work finishes. In a chat you can keep talking meanwhile; the line above the message
-box counts the tasks and stops them, and their results arrive as a new message.
+## Known limits
 
-## What a run may touch
-
-Codex, OpenCode, DeepSeek Harness and Grok Build write only inside the project. Claude Code,
-Cursor, Kimi Code and ZCode run their tools without asking and are not held to the project
-folder. All eight reach the network. Pick a fenced agent if that matters to you, or run the
-board in a container.
-
-## Settings
-
-Each agent's fields sit under the grid. Every run takes them, and every conversation starts on
-them; a single [chat](/docs/chat) can pick another agent or model.
-
-| Agent | Fields |
-|---|---|
-| Claude Code | Provider (subscription, Anthropic API, or a compatible gateway), model, reasoning effort |
-| Codex | Provider (ChatGPT subscription, OpenAI API, or a Responses-API gateway), model, reasoning effort |
-| Cursor | Model, Cursor key (optional). Reasoning goes inside the model id: `claude-opus-4-8[effort=high]` |
-| OpenCode | Model as `provider/model`, reasoning effort. Keys come from `opencode auth login` |
-| Kimi Code | Provider (Kimi sign-in, or a custom model endpoint in the Kimi, Anthropic or OpenAI format), model |
-| DeepSeek Harness | Model, DeepSeek key (optional — otherwise the one `dsh` saved) |
-| ZCode | Model, Z.AI Coding Plan key (a `zcode login` won't run the board) |
-| Grok Build | Model, xAI key (optional — otherwise the one `grok login` saved) |
-
-For a gateway such as OpenRouter or LiteLLM, use Claude Code (Anthropic format), Codex (OpenAI
-Responses API) or Kimi Code (any of the three).
-
-Press **Test** (or run `akb agent test`) to send one small message through the setup, so a bad
-login turns up here rather than on your next card.
-
-### Kimi Code
-
-- **Install**: `curl -LsSf https://code.kimi.com/install.sh | bash` — Kimi **Code**, not the
-  older `kimi-cli`.
-- **Sign in**: `kimi login`.
-- **Your own endpoint**: pick **Custom model endpoint** and fill in the model id, base URL and
-  key; **Endpoint format** picks Kimi's, Anthropic's or OpenAI's API.
-- **Model**: on the sign-in provider, an alias from your own `config.toml`. Empty runs Kimi's
-  default.
-- **Limitation**: not yet tested on a real card run.
-
-### ZCode
-
-ZCode is Z.ai's coding agent for its GLM models, and the way to run this board on a GLM Coding
-Plan.
-
-- **Install**: `npm install -g zcode-app-cli` — a community package that lifts the agent out of
-  ZCode Desktop.
-- **Sign in**: paste a Coding Plan key from [Z.ai](https://z.ai/subscribe) or
-  [BigModel](https://bigmodel.cn/glm-coding) into **Z.AI Coding Plan key**. A `zcode login`
-  does not work.
-- **Model**: `glm-5.3`, `glm-5-turbo` or another your plan reaches. Empty runs ZCode's default.
-- **Limitation**: a stopped run can't be resumed; start it again.
-
-### Grok Build
-
-- **Install**: `curl -fsSL https://x.ai/cli/install.sh | bash`.
-- **Sign in**: `grok login`, or an xAI key in **xAI API key** on a machine with no browser.
-- **Model**: `grok-4.6`, or another your key reaches. Empty runs Grok's default.
+- **Kimi Code**: not yet tested on a real card run.
+- **ZCode**: a run that fails before its first turn has no saved session to resume. Press
+  **Retry**.
