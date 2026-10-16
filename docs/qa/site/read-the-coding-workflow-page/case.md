@@ -11,12 +11,12 @@
    页脚四栏：「PRODUCT」；「SOLUTIONS」（「For coding」「For SaaS」「draft-first」）叠在「LEARN」上面；「COMPARE」；「PROJECT」叠在「LEGAL」上面。手机上两栏，同样的顺序两两成行，页面不横向滚动。中文首页的分组叫「解决方案」，链接是「编程」「SaaS」「draft-first」，指向 `/zh/workflows/coding`、`/zh/solutions/saas` 和 `/zh/draft-first`。点完到 `/workflows/coding`。
    ![桌面页脚](01-footer-solutions.png) · ![手机页脚](01b-footer-phone.png) · [coding.log](coding.log)
 
-2. 看首屏，再用 390px 宽的手机打开同一页。
-   页面和页头都是纯白，背后没有任何动画背景。标题「AI4Kanban for coding」，副标题「Review what matters. Then let agents build.」，下面是装在画框里的像素风主视觉：淡纸色衬底（`#fbf9f5`）四角晕着橙、绿两色像素水彩，中间一张白色印框，不带阴影，框里是「Invite members」卡片、页面和邮件草稿，设计、文案、构建三个小机器人围着它。画框桌面宽 768px、留边 24px；手机宽 342px、留边 12px，页面不横向滚动。往下才是左侧的「ON THIS PAGE」目录（手机上折叠成一条），列出十个小节。此时这一页还没有请求任何视频（日志里的 `hero-demo-v1.mp4` 是先前首页的），也没有 GIF。
-   ![首屏](02-hero.png) · ![手机首屏](02b-hero-phone.png) · [coding.log](coding.log)
+2. 看首屏，等几秒，再用 390px 宽的手机打开同一页。
+   页面和页头都是纯白，背后没有任何动画背景。标题「AI4Kanban for coding」，副标题「Review what matters. Then let agents build.」，下面直接是和 SaaS 方案页同一幅 3D 动画，不带画框：浅灰看板斜放在白底上，带橙色描边的卡片升起、展开成一张抽象的卡片页（标题、橙色执行按钮、一份页面草稿），之后收回到看板上；没有文字也没有机器人。图片说明是「A card lifts off the board and opens into its card page, where agents' drafts fill in; you press Run and the card starts building.」。动画桌面宽 896px，手机宽 342px，页面不横向滚动。往下才是左侧的「ON THIS PAGE」目录（手机上折叠成一条），列出十个小节。此时这一页还没有请求任何视频（日志里的 `hero-demo-v1.mp4` 是先前首页的），也没有 GIF。
+   ![卡片页展开](02-hero.png) · ![收回看板](02a-hero-board.png) · ![手机首屏](02b-hero-phone.png) · [coding.log](coding.log)
 
 3. 往下滚到第一段录屏。
-   滚到附近才开始下载 MP4；录屏静音、循环、没有控制条，自己播放（3 秒后进度从 3.7 秒到 7.1 秒），画面是演示项目里一张卡片的待答问题和草稿。
+   滚到附近才开始下载 MP4；录屏静音、循环、没有控制条，自己播放（3 秒后进度从 3.4 秒到 6.5 秒），画面是演示项目里一张卡片的待答问题和草稿。
    ![录屏在播放](03-recording-playing.png) · [coding.log](coding.log)
 
 4. 滚回顶部。
@@ -33,8 +33,9 @@
 
 ## Feedback
 
-- **首屏终于安静**：动画背景去掉后，白底上只剩标题和一幅装框的插图，一眼就知道该看哪里；水彩只在画框四角，衬托而不抢戏。
+- **首屏换成了会讲故事的动画**：原来元素很多的像素插图换成「卡片升起 → 展开成卡片页 → 执行」的 3D 动画，干净，也和 SaaS 页是同一套说法；但它很抽象，没读正文的人看不出浮起的是卡片页，画面颜色很淡，看板底部渐隐；卡片收回看板后，标题下空着一大块白。
+- **两个方案页首屏一模一样**：从 SaaS 页跳过来的人会以为点错了页面，只能靠标题区分。
 - **入口清楚**：页脚「SOLUTIONS」放在第二栏最上面，扫一眼就看到，三个方案页并排；中文页脚也已译成「编程」「SaaS」。页头「Resources」面板里仍然没有这一页。
-- **手机上插图字太小**：画框缩到 342px，卡片里的「PAGE」「EMAIL」「Default role?」几乎读不清。
+- **手机上更小**：动画缩到 342px，卡片页里的草稿只剩几根线条。
 - **看得到真东西**：每节配真实产品录屏，比示意图更可信；视频滚到附近才加载、离开就停，减少动态效果时改为手动播放。
 - **页内没有下载按钮**：读完想试，只能回到页头点「Download」。

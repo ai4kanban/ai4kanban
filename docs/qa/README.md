@@ -117,6 +117,7 @@
 - [在文档里查怎么让一个 Agent 定期运行](docs/read-how-to-run-an-agent-on-a-schedule-in-the-docs/case.md)
 - [在文档里查待筛选条目从哪来、怎么分拣](docs/read-how-triage-sorts-an-item-in-the-docs/case.md)
 - [在文档里查看板自带哪些 Agent、各自做什么](docs/read-the-agents-the-board-ships-in-the-docs/case.md)
+- [在文档里查怎么接入编码工具、给每个 Agent 选运行时](docs/set-up-a-runtime-for-each-agent-from-the-docs/case.md)
 - [在文档里查否决一张卡时写的原因去了哪里](docs/read-what-happens-to-a-rejection-reason-in-the-docs/case.md)
 
 ### cloud
@@ -157,4 +158,5 @@
 - **官网**：`web/node_modules` 软链到主检出，去掉 `__NEXT_PRIVATE_*`、`NEXT_DEPLOYMENT_ID`、`KANBAN_DESKTOP` 后 `next build`（拷到别处构建时连仓库根的 `VERSION`、`telemetry/contract.ts` 和 `kanban-ui/` 一起拷，从 `/private/tmp/...` 构建，并把 `web/node_modules/ai4kanban-ui` 指向这份 `kanban-ui`——否则 `/demo` 读到主检出的 `kanban-ui`，报 `Can't resolve '@/…'`），再用 `cloud/node_modules` 里的 wrangler `pages dev out`——`_redirects` 只在这样跑时生效；页面直连 `api.ai4kanban.dev` 的表单用用例目录里的 `api-stand-in.js` 顶替，不真的发信或占时段。
 - **Cloud 看板网站**：`cloud-ui` 和 `kanban-ui` 的 `node_modules` 软链到主检出，`next dev`；登录、接口和结账用 [stand-in.mjs](cloud/sign-in-to-the-hosted-board/stand-in.mjs) 顶替，放在 `127.0.0.1` 上与网站跨站。
 - **截图**：只截相关区域。
+- **出网请求**：取证脚本里 Node 的 `fetch` 要带 `NODE_USE_ENV_PROXY=1` 才走代理，否则请求 GitHub 等外站会一直挂着。
 - **保密**：日志和截图里不出现密钥、账号和本机用户名路径。

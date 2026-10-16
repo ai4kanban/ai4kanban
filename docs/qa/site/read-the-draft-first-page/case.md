@@ -13,7 +13,7 @@
    ![页脚入口](01-footer-link.png) · [draft-first.log](draft-first.log)
 
 2. 看首屏，再用 390px 宽的手机打开同一页。
-   页头是站点原有的 AI4Kanban 页头。主标题上方是举着剪贴板的小机器人和小写字标「draft-first」；标题两行「See the draft. / Then build.」，下面一行说明，然后是带「Copy」按钮的 `$ npx draft-first install` 和「Run again to update. · GitHub」，再下面「WORKS WITH」后一排七个灰色 logo（Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode、Grok Build）。再往下是浅灰水彩底里的一段录屏：静音、循环、自己播放（3 秒后从 5.9 秒走到 8.9 秒），录的是审阅页上删除、批注、确认的过程。手机上命令框不出屏，页面不横向滚动，录屏裁成 4:3。
+   页头是站点原有的 AI4Kanban 页头。主标题上方是举着剪贴板的小机器人和小写字标「draft-first」；标题两行「See the draft. / Then build.」，下面一行说明，然后是带「Copy」按钮的 `$ npx draft-first install` 和「Run again to update. · GitHub」，再下面「WORKS WITH」后一排七个灰色 logo（Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode、Grok Build）。再往下是浅灰水彩底里的一段录屏：静音、循环、自己播放（3 秒后从 6.9 秒走到 9.9 秒），录的是审阅页上删除、批注、确认的过程。手机上命令框不出屏，页面不横向滚动，录屏裁成 4:3。
    ![首屏](02-hero.png) · ![手机首屏](02b-hero-phone.png) · ![手机上的录屏](02c-video-phone.png) · [draft-first.log](draft-first.log)
 
 3. 点命令旁的「Copy」。
@@ -24,11 +24,11 @@
    链接在同一标签页打开公开仓库 `https://github.com/ai4kanban/draft-first`（返回 200），仓库根目录就是 `SKILL.md`、`README.md`、`page/`、`server/`、`test/` 等，仓库主页链接回 `ai4kanban.dev/draft-first`。站点的 `llms.txt` 里 draft-first 那条也以 `Source: https://github.com/ai4kanban/draft-first` 结尾。
    ![GitHub 链接](04-github-link.png) · [draft-first.log](draft-first.log)
 
-5. 往下读「01」到「03」三节。
-   「Draft the parts that matter」是 2×2 四张草稿缩略图：界面、Prompt 与样例输出、文案、配图，各配一行说明，下面一行带过技术选型和竞品对比，收在「Leave the rest to your agent.」。「Get the draft right. Then build from it.」是删除、批注、确认三张小图并排，导出只占一行字。「You choose what gets drafted」说内置六个草稿 agent，旁边是 `.draft-first/helpers/storyboard.md` 的示例和「Copy」按钮。到这里正文还没提 AI4Kanban。
+5. 往下读前三节。
+   各节标题上方没有编号。「Draft the parts that matter」是 2×2 四张草稿缩略图：界面、Prompt 与样例输出、文案、配图，各配一行说明，下面一行带过技术选型和竞品对比，收在「Leave the rest to your agent.」。「Get the draft right. Then build from it.」是删除、批注、确认三张小图并排，导出只占一行字。「You choose what gets drafted」说内置六个草稿 agent，旁边是 `.draft-first/helpers/storyboard.md` 的示例和「Copy」按钮。到这里正文还没提 AI4Kanban。
    ![草稿样例](05a-drafts.png) · ![审阅三步](05b-review.png) · ![添加草稿 agent](05c-helpers.png) · [draft-first.log](draft-first.log)
 
-6. 读「04」节。
+6. 读第四节。
    标题「Too many tasks? Bring them to AI4Kanban.」，「AI4Kanban」前有它的 logo；三张看板样式的图分别讲记住偏好、多任务并行、提出跟进项；下面「Download AI4Kanban」到 `/download`，「Explore AI4Kanban」到首页。
    ![升级到 AI4Kanban](06-upgrade.png) · [draft-first.log](draft-first.log)
 
@@ -54,5 +54,6 @@
 - **源码终于有入口**：命令下多了一个「GitHub」，想先看代码或提 issue 的人不用再去翻 AI4Kanban 主仓库；但它是一行小灰字，又在同一标签页打开，读到一半点进去就离开了落地页。
 - **图比字多，读得快**：四种草稿和审阅三步都是照真实界面画的图，比说明文字直观；AI4Kanban 到第四节才出现，不抢 draft-first 的主角位置。
 - **还是装不上**：页面上的主要行动仍是一条 404 的命令；仓库已公开、包却没发，读者只能自己从仓库手动装。
+- **节标题没了编号**：各节只剩标题，和首页一致，读起来更像一页介绍而不是一份目录。
 - **logo 栏要靠悬停**：七个灰色小图标没有文字，认不出 DeepSeek Harness、ZCode 的读者只能悬停看提示。
 - **手机上录屏字太小**：4:3 裁切后审阅页的文字几乎读不清，只能看个动作轮廓。

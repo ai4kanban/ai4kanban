@@ -32,10 +32,11 @@ console.log('---', await w.ev(`[...document.querySelectorAll('main a')][0].inner
 await w.close()
 // What a shared link and an AI reader see
 let meta = ''
-for (const path of ['/download', '/zh/download']) {
+for (const path of ['/download', '/zh/download', '/es/download', '/ja/download', '/fr/download']) {
   const m = await open(); await m.nav(S + path, 3000)
   meta += path + ' ' + await m.ev(`JSON.stringify({title:document.title,description:document.querySelector('meta[name=description]').content,ogTitle:document.querySelector('meta[property="og:title"]')?.content,ogDescription:document.querySelector('meta[property="og:description"]')?.content})`) + '\n'
   await m.close()
 }
+meta += '\n/site.webmanifest description: ' + (await (await fetch(S + '/site.webmanifest')).json()).description + '\n'
 for (const f of ['/llms.txt', '/index.md']) meta += `\n${f}:\n` + (await (await fetch(S + f)).text()).split('\n').slice(0, 14).join('\n') + '\n'
 fs.writeFileSync(D + '05-meta.log', meta); console.log(meta)

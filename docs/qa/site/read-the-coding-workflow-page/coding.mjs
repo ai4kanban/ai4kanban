@@ -25,12 +25,13 @@ log += `landed on: ${await p.ev('location.pathname')}\n`
 const media = () => p.ev(`[...document.querySelectorAll('main video')].map(v=>({src:(v.currentSrc||v.querySelector('source')?.src||v.getAttribute('src')||'').replace(location.origin,''),poster:(v.poster||'').replace(location.origin,''),muted:v.muted,loop:v.loop,controls:v.controls,paused:v.paused,t:+v.currentTime.toFixed(1)}))`)
 const vidReqs = () => reqs.filter(u => /\.(mp4|webm)(\?|$)/.test(u)).map(u => u.replace(/^https?:\/\/[^/]+/, ''))
 log += `\n# 2. The page\ntitle: ${await p.ev('document.title')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nh2s: ${await p.ev(`[...document.querySelectorAll('main h2')].map(h=>h.innerText).join(' | ')`)}\nvideos on page: ${JSON.stringify(await media())}\nvideo requests so far: ${JSON.stringify(vidReqs())}\ngif requests: ${reqs.filter(u=>/\.gif/.test(u)).length}\n`
-const hero = `(()=>{const art=document.querySelector('h1').parentElement.querySelector('svg,img,canvas');const mat=[...document.querySelectorAll('main div')].find(d=>d.style.backgroundImage&&d.contains(art));const print=mat?.querySelector('.bg-elev');const r=mat?.getBoundingClientRect();return {pageBg:getComputedStyle(document.body).backgroundColor,headerBg:getComputedStyle(document.querySelector('header')).backgroundColor,canvasesOutsideFrame:[...document.querySelectorAll('canvas')].filter(c=>!mat?.contains(c)).length,matPaper:mat?.style.backgroundColor,matWidth:Math.round(r?.width||0),matPadding:mat&&getComputedStyle(mat).padding,printBg:print&&getComputedStyle(print).backgroundColor,printShadow:print&&getComputedStyle(print).boxShadow,pageWidth:document.documentElement.scrollWidth}})()`
-await p.ev('scrollTo(0,0)'); await p.sleep(2500)
+const hero = `(()=>{const h=document.querySelector('.h3d');const r=h?.getBoundingClientRect();const img=h?.closest('[role=img],[aria-label]');return {pageBg:getComputedStyle(document.body).backgroundColor,headerBg:getComputedStyle(document.querySelector('header')).backgroundColor,art3d:!!h,label:img?.getAttribute('aria-label'),artWidth:Math.round(r?.width||0),artTop:Math.round((r?.top||0)+scrollY),matFrame:!!document.querySelector('main .bg-elev'),canvases:document.querySelectorAll('canvas').length,pageWidth:document.documentElement.scrollWidth}})()`
+await p.ev('scrollTo(0,0)'); await p.sleep(1200)
+await p.shot(D + '02-hero.png', { x: 0, y: 0, width: 1280, height: 900 }); await p.sleep(2500)
 log += `hero: ${JSON.stringify(await p.ev(hero))}\n`
-await p.shot(D + '02-hero.png', { x: 0, y: 0, width: 1280, height: 900 })
+await p.shot(D + '02a-hero-board.png', { x: 0, y: 0, width: 1280, height: 900 })
 const hp = await open(390, 844, true)
-await hp.nav(SITE + '/workflows/coding', 5000)
+await hp.nav(SITE + '/workflows/coding', 7000)
 log += `phone hero: ${JSON.stringify(await hp.ev(hero))}\n`
 await hp.shot(D + '02b-hero-phone.png', { x: 0, y: 0, width: 390, height: 844 })
 await hp.close()

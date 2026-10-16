@@ -23,10 +23,10 @@
    五个都指向 GitHub Releases 的 v0.10.1，跳转后都是 `200 application/octet-stream`。
    [04-links.log](04-links.log)
 
-5. 看把 `/download` 和 `/zh/download` 分享出去时的说明，再读站点给 AI 的摘要 `/llms.txt` 和 `/index.md`。
-   英文描述「AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details. Get the desktop app for macOS, Windows and Linux.」，分享说明「See the draft. Let agents do the rest. On macOS, Windows and Linux.」；中文描述「AI4Kanban 为看板上的任务准备关键草稿。你把关重点，agent 完成细节。获取 macOS、Windows 和 Linux 桌面应用。」，分享说明「先看草稿，再往下做。支持 macOS、Windows 和 Linux。」；页面标题和分享标题「Download AI4Kanban」「下载 AI4Kanban」不变。`llms.txt` 开头讲关键草稿和 8 种工具，首页条目是「Home — See the draft. Let agents do the rest.」；`index.md` 是新首页的纯文本镜像，从「Review the key drafts. Get the direction right.」开始，不再有「AI 项目经理」。
+5. 看把 `/download`、`/zh/download` 和西、日、法三种语言的下载页分享出去时的说明，再读安装清单 `/site.webmanifest`、站点给 AI 的摘要 `/llms.txt` 和 `/index.md`。
+   英文描述「AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details. Get the desktop app for macOS, Windows and Linux.」，分享说明「See the draft. Let agents do the rest. On macOS, Windows and Linux.」；中文描述「AI4Kanban 为看板上的任务准备关键草稿。你把关重点，agent 完成细节。获取 macOS、Windows 和 Linux 桌面应用。」，分享说明「先看草稿，再往下做。支持 macOS、Windows 和 Linux。」；页面标题和分享标题「Download AI4Kanban」「下载 AI4Kanban」不变。西、日、法三页的描述是同一句话的译文（如西语「AI4Kanban prepara los borradores clave de las tareas de tu tablero. Tú revisas lo importante, los agentes se encargan de los detalles. …」），分享说明分别是「Revisa el borrador. Deja el resto a los agentes. …」「下書きを見て、残りはエージェントに任せる。…」「Voyez le brouillon. Laissez les agents faire le reste. …」，五种语言都不再说「AI 项目经理」。安装清单的描述是「AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details.」。`llms.txt` 开头讲关键草稿和 8 种工具，首页条目是「Home — See the draft. Let agents do the rest.」；`index.md` 是新首页的纯文本镜像，从「Review the key drafts. Get the direction right.」开始，不再有「AI 项目经理」。
    [05-meta.log](05-meta.log)
 
 ## Feedback
 
-下载页做对了最要紧的事：认出系统，把对的包放在最大的按钮上，一点就下。Mac 的「首次打开」步骤写得很实在，提前告诉你会被拦、该去哪里放行；Windows 只有一句 SmartScreen 说明，够用但单薄。分享出去的说明已经和首页一个口径，读者从链接预览到首页不会看到两套说法，代价是下载页描述和首页几乎一样，看不出这是下载页。大按钮上的架构是页面猜的，这次只在 Apple Silicon 的 Mac 上跑过，Intel Mac 和 Safari 会拿到哪个包没有验证；猜错时按钮上也没有「不是这个？」的提示，只能往下找。
+下载页做对了最要紧的事：认出系统，把对的包放在最大的按钮上，一点就下。Mac 的「首次打开」步骤写得很实在，提前告诉你会被拦、该去哪里放行；Windows 只有一句 SmartScreen 说明，够用但单薄。分享出去的说明在五种语言里都和首页一个口径，西、日、法的读者也不会再在搜索结果里看到旧的「AI 项目经理」，代价是下载页描述和首页几乎一样，看不出这是下载页。大按钮上的架构是页面猜的，这次只在 Apple Silicon 的 Mac 上跑过，Intel Mac 和 Safari 会拿到哪个包没有验证；猜错时按钮上也没有「不是这个？」的提示，只能往下找。
