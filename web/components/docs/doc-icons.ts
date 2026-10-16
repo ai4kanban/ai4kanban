@@ -3,6 +3,7 @@ import {
   FiCompass,
   FiCpu,
   FiDownload,
+  FiEye,
   FiGitBranch,
   FiInbox,
   FiLayers,
@@ -31,6 +32,7 @@ const DOC_ICONS: Record<string, IconType> = {
   message: FiMessageSquare,
   package: FiPackage,
   download: FiDownload,
+  eye: FiEye,
 };
 
 export function docIcon(name?: string): IconType {

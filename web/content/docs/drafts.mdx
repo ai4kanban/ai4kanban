@@ -1,0 +1,48 @@
+---
+title: "Review drafts before execution"
+title_tag: "AI4Kanban drafts — approve the final version before the build"
+description: "See the final version of the parts you care about most, change it on the card, and approve what agents will build."
+lead: "Before anything is built, agents produce the final version of the parts you care about most. Approve it, change it, or drop the card."
+last_updated: "October 16, 2026"
+nav_label: "Draft review"
+icon: "eye"
+---
+
+## What gets drafted
+
+You don't have to ask. While planning a card, the board brings in the agents its changes call for, and each one puts its draft on the card:
+
+| Agent | What you review |
+| --- | --- |
+| `ui-designer` | Screen layouts, interactions and screen text |
+| `copywriting` | Website pages, README, release notes and user documentation |
+| `email-planner` | Email subjects, copy, and desktop and mobile previews |
+| `prompt-writer` | Diffs for skills, prompts and model instructions |
+| `illustrator` | Diagrams, illustrations, screenshots, icons and share cards |
+| `competitor-research` | How named competitors handle the feature |
+| `tech-stack-advisor` | The library, tool or service to adopt, and why |
+| `hyperframes-editor` | Product videos, rendered from their scripts |
+
+Video, slide, carousel and blog workflows bring in their own agents. See [Agents](/docs/agents#specialists) for the full list and how to add one by hand.
+
+## Open the draft
+
+Read each agent's section on the card. Drafts can be images, diagrams, HTML/TSX previews, diffs or storyboards. HTML/TSX previews show the proposed interface without running your project.
+
+A draft is not a sketch of the direction: it is the version the build follows. Check what appears, what it says and what users can do.
+
+## Request changes
+
+Use **Discuss** to say what should change and why:
+
+> Remove the second action. Keep the invitation button and explain who can use it.
+
+The agent updates the draft in place. Review the current version before approving it. If the draft shows the idea itself is wrong, revise the card or reject it.
+
+## Approve and build
+
+Draft approval appears as a question on the card. Open **Resolve**, choose the approval option or provide your own answer, then submit with **Resolve**.
+
+Some tasks have several stages, such as copy followed by screen design. Review each stage before the next starts. Approval updates the plan; you start implementation with **Build** once the required drafts and questions are settled.
+
+Afterward, compare the delivery with the approved draft and try the changed behavior. Follow [Your first card](/docs/first-card) for an example.

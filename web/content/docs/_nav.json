@@ -6,6 +6,10 @@
       "items": ["index", "first-card"]
     },
     {
+      "label": "How it works",
+      "items": ["drafts"]
+    },
+    {
       "label": "Using the board",
       "items": ["daily-loop", "chat", "agents", "runs", "triage", "local-and-cloud-boards", "connectors"]
     }
