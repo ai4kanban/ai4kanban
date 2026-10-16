@@ -1,27 +1,33 @@
 // Read the storyboards a card body points at (#963), checked by lib/storyboard-check.ts.
-// Frames are served by app/asset-image; only files that pass here get an address.
+// Frames are served by app/asset-image, a slide's HTML/TSX page by app/asset-view; only files
+// that pass here get an address.
 
 import fs from "node:fs";
 import path from "node:path";
-import { assetImageHref } from "./mockup-tag";
+import { assetImageHref, mockupViewHref } from "./mockup-tag";
 import { assetsDir } from "./cli";
 import { repoRoot } from "./paths";
 import { assetName, storyboardMarkers } from "./format/storyboard";
 import {
   checkStoryboard,
+  DEFAULT_SIZE,
   formatDiagnostics,
   FRAME_TYPES,
   frameProblem,
   imageSize,
+  isPage,
+  PAGE_TYPES,
   storyboardOwner,
   type StoryboardDiagnostic,
   type StoryboardFrame,
   type StoryboardShot,
+  type StoryboardSize,
   type StoryboardSlide,
 } from "./storyboard-check";
 
-/** `ratio` is the picture's width ÷ height, `null` when it could not be read. */
-export type StoryboardFrameView = { src: string; alt: string; href: string | null; ratio: number | null };
+/** `ratio` is the picture's width ÷ height, `null` when it could not be read. `page` marks an
+ *  HTML/TSX page, whose `href` is the `/asset-view` address it is drawn from. */
+export type StoryboardFrameView = { src: string; alt: string; href: string | null; ratio: number | null; page?: true };
 export type StoryboardShotView = Omit<StoryboardShot, "frames"> & { frames: StoryboardFrameView[] };
 export type StoryboardSlideView = Omit<StoryboardSlide, "preview"> & { preview: StoryboardFrameView };
 
@@ -33,6 +39,8 @@ export type StoryboardView = {
   card: number;
   /** The page shape a missing picture is drawn in: the first readable picture's, else 16:9. */
   ratio: number;
+  /** The canvas a page is laid out on before it is scaled. */
+  size: StoryboardSize;
   shots: StoryboardShotView[] | null;
   slides: StoryboardSlideView[] | null;
   diagnostics: StoryboardDiagnostic[];
@@ -70,7 +78,7 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
     const named = assetName(src, cardId, ["json"]);
     if (!("name" in named)) {
       const diagnostics = [{ file: src, code: "storyboard-src", pointer: "", ...named }];
-      set[src] = { src, card: cardId, ratio: 16 / 9, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, lead || "scriptwriter", diagnostics) };
+      set[src] = { src, card: cardId, ratio: 16 / 9, size: DEFAULT_SIZE, shots: null, slides: null, diagnostics, report: formatDiagnostics(src, lead || "scriptwriter", diagnostics) };
       continue;
     }
     const json = dir ? inside(dir, named.name) : null;
@@ -83,6 +91,10 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
       cardId,
       read: (name) => {
         const frame = inside(dir, name);
+        if (isPage(name)) {
+          if (frame) drawn.set(name, { href: mockupViewHref(`.assets/${cardId}/${name}`, Math.floor(fs.statSync(frame).mtimeMs)), ratio: null });
+          return frame ? new Uint8Array() : null;
+        }
         const bytes = frame ? fs.readFileSync(frame) : null;
         if (frame && bytes && !frameProblem(bytes)) {
           const size = imageSize(bytes);
@@ -94,9 +106,12 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
         return bytes;
       },
     });
-    const frame = ({ src: frameSrc, alt }: StoryboardFrame, nested = false) => {
-      const at = assetName(frameSrc, cardId, FRAME_TYPES, nested);
+    // A page, found or not, takes the canvas's shape.
+    const size = storyboard?.size ?? DEFAULT_SIZE;
+    const frame = ({ src: frameSrc, alt }: StoryboardFrame, slide = false): StoryboardFrameView => {
+      const at = assetName(frameSrc, cardId, slide ? [...FRAME_TYPES, ...PAGE_TYPES] : FRAME_TYPES, slide);
       const found = "name" in at ? drawn.get(at.name) : undefined;
+      if ("name" in at && isPage(at.name)) return { src: frameSrc, alt, href: found?.href ?? null, ratio: size.width / size.height, page: true };
       return { src: frameSrc, alt, href: found?.href ?? null, ratio: found?.ratio ?? null };
     };
     const shots = storyboard && "shots" in storyboard ? storyboard.shots.map((shot) => ({ ...shot, frames: shot.frames.map((f) => frame(f)) })) : null;
@@ -107,6 +122,7 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
       src,
       card: cardId,
       ratio: first?.ratio ?? 16 / 9,
+      size,
       shots,
       slides,
       diagnostics,

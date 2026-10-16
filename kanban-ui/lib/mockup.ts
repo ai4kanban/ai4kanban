@@ -53,11 +53,11 @@ const MEDIA_EXTS: Record<string, "video" | "audio"> = {
 const FILE_EXTS = Object.keys(FILE_TYPES);
 const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS, ...Object.keys(MEDIA_EXTS), ...FILE_EXTS];
 
-/** `.assets/<folder>/<file>.<ext>`, or `.mockups/...` / `mockups/...` on older cards, and
- *  nothing else — no `.`, no `..`, nothing that climbs. An asset is read off the user's disk,
- *  so the only files we open are the ones in a card's asset folder. */
+/** `.assets/<folder>/<file>.<ext>`, or `.mockups/...` / `mockups/...` on older cards, the file
+ *  maybe in a subfolder, and nothing else — no `.`, no `..`, nothing that climbs. An asset is
+ *  read off the user's disk, so the only files we open are the ones in a card's asset folder. */
 const SRC = new RegExp(
-  `^(?:\\.assets|\\.?mockups)/(?!\\.{1,2}/)([^/\\\\]+)/(?!\\.)([^/\\\\]+)\\.(${EXTS.join("|")})$`,
+  `^(?:\\.assets|\\.?mockups)/(?!\\.{1,2}/)([^/\\\\]+)/((?:(?!\\.)[^/\\\\]+/)*(?!\\.)[^/\\\\]+)\\.(${EXTS.join("|")})$`,
   "i",
 );
 
@@ -190,7 +190,7 @@ async function locate(src: string, c: MessagesCopy["mockup"]): Promise<Located |
   if (!match) return { error: c.notAMockup(src, EXTS.map((e) => `.${e}`).join(" ")) };
   const [, folder, name, rawExt] = match;
   const fileName = `${name}.${rawExt}`;
-  if (!SEGMENT.test(folder!) || !SEGMENT.test(fileName)) return { error: c.outside(src) };
+  if (!SEGMENT.test(folder!) || !fileName.split("/").every((part) => SEGMENT.test(part))) return { error: c.outside(src) };
   let file: string | null;
   try {
     file = await assetFile(folder!, fileName);

@@ -6,12 +6,17 @@
 import { assetName } from "./format/storyboard";
 
 const STORYBOARD_VERSION = 1
-const ROOT_FIELDS = ['version', 'shots', 'slides'] as const
+const ROOT_FIELDS = ['version', 'size', 'shots', 'slides'] as const
 const SHOT_FIELDS = ['id', 'start', 'end', 'voiceover', 'action', 'captions', 'details', 'frames'] as const
 const SLIDE_FIELDS = ['id', 'title', 'copy', 'notes', 'layout', 'assets', 'preview'] as const
 const FRAME_FIELDS = ['src', 'alt'] as const
 export const FRAME_TYPES = ['png', 'jpg', 'jpeg', 'webp', 'gif'] as const
 export const MAX_FRAME_WIDTH = 1280
+/** A slide preview may also be a static page, drawn on the deck's canvas (#1742). */
+export const PAGE_TYPES = ['html', 'tsx'] as const
+export const isPage = (name: string) => (PAGE_TYPES as readonly string[]).includes(name.split('.').pop()!.toLowerCase())
+/** The canvas a page is laid out on when the storyboard sets no `size`. */
+export const DEFAULT_SIZE = { width: 1920, height: 1080 }
 
 export type Voiceover = { mode: 'none' } | { mode: 'spoken'; text: string; source: string }
 export interface StoryboardFrame { src: string; alt: string }
@@ -35,7 +40,8 @@ export interface StoryboardSlide {
   assets: string[]
   preview: StoryboardFrame
 }
-export type Storyboard = { version: 1; shots: StoryboardShot[] } | { version: 1; slides: StoryboardSlide[] }
+export type StoryboardSize = { width: number; height: number }
+export type Storyboard = { version: 1; size?: StoryboardSize } & ({ shots: StoryboardShot[] } | { slides: StoryboardSlide[] })
 
 export interface StoryboardDiagnostic {
   /** The JSON file, as the caller named it. */
@@ -193,14 +199,25 @@ export function checkStoryboard(
   } else {
     required(data, '', 'version', `the number ${STORYBOARD_VERSION}`, (v) => v === STORYBOARD_VERSION)
   }
-  const frameAt = (frame: unknown, fat: string, nested: boolean) => {
+  if (data.size !== undefined && required(data, '', 'size', 'an object with width and height', isObject)) {
+    const size = data.size as Record<string, unknown>
+    fields(size, '/size', ['width', 'height'])
+    const pixels = (v: unknown) => Number.isInteger(v) && (v as number) > 0
+    required(size, '/size', 'width', 'a whole number of pixels above 0', pixels)
+    required(size, '/size', 'height', 'a whole number of pixels above 0', pixels)
+  }
+  const frameAt = (frame: unknown, fat: string, slide: boolean) => {
     if (!isObject(frame)) { add('invalid-value', fat, 'an object with src and alt', describe(frame)); return }
     fields(frame, fat, FRAME_FIELDS)
     required(frame, fat, 'alt', `${nonblank} describing the picture`, text)
     if (!required(frame, fat, 'src', `${nonblank}: the image path`, text)) return
-    const named = assetName(frame.src as string, cardId, FRAME_TYPES, nested)
+    const named = assetName(frame.src as string, cardId, slide ? [...FRAME_TYPES, ...PAGE_TYPES] : FRAME_TYPES, slide)
     if (!('name' in named)) { add('frame-path', `${fat}/src`, named.expected, named.actual); return }
     if (!read) return
+    if (isPage(named.name)) {
+      if (!read(named.name)) add('frame-missing', `${fat}/src`, 'a page in this card\'s asset folder', 'no such file')
+      return
+    }
     const problem = frameProblem(read(named.name))
     if (problem) add(problem.code, `${fat}/src`, `a readable image at most ${MAX_FRAME_WIDTH}px wide`, problem.actual)
   }

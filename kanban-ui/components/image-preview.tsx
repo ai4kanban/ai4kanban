@@ -13,11 +13,33 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 
-/** Fitted to the window and never past the picture's own pixels. Every way out — Esc, the ✕,
- *  the scrim, the swipe back — closes only this: Esc is taken in the capture phase and
+/** Fitted to the window and never past the picture's own pixels. */
+export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  return (
+    <PreviewDialog label={alt} onClose={onClose}>
+      <ImageMenu src={src}>
+        {(badge) => (
+          <span onClick={(e) => e.stopPropagation()} className="relative flex min-w-0 max-w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine or a
+                markdown body's own URL. Its height cap is the scrim's padding box. */}
+            <img
+              src={src}
+              alt={alt}
+              className="max-h-[calc(100dvh-80px)] max-w-full rounded-[10px] object-contain shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
+            />
+            {badge}
+          </span>
+        )}
+      </ImageMenu>
+    </PreviewDialog>
+  );
+}
+
+/** The dialog a preview opens in — a storyboard's HTML page too (#1742). Every way out — Esc,
+ *  the ✕, the scrim, the swipe back — closes only this: Esc is taken in the capture phase and
  *  stopped, because the screens underneath answer it too. Focus goes back to whatever opened
  *  it, without scrolling, if that is still on the page. */
-export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+export function PreviewDialog({ label, onClose, children }: { label: string; onClose: () => void; children: React.ReactNode }) {
   const c = useCopy().shared;
   const close = useRef<HTMLButtonElement>(null);
   useOverRail();
@@ -52,7 +74,7 @@ export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; 
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={alt || undefined}
+      aria-label={label || undefined}
       className="nb-scrim"
       style={{ alignItems: "center", zIndex: 60 }}
       onClick={(e) => {
@@ -69,20 +91,7 @@ export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; 
       >
         <FiX size={18} aria-hidden />
       </button>
-      <ImageMenu src={src}>
-        {(badge) => (
-          <span onClick={(e) => e.stopPropagation()} className="relative flex min-w-0 max-w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine or a
-                markdown body's own URL. Its height cap is the scrim's padding box. */}
-            <img
-              src={src}
-              alt={alt}
-              className="max-h-[calc(100dvh-80px)] max-w-full rounded-[10px] object-contain shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-            />
-            {badge}
-          </span>
-        )}
-      </ImageMenu>
+      {children}
     </div>,
     document.body,
   );
@@ -163,7 +172,7 @@ export function ExpandableImage({
 }
 
 /** The tag in a picture's top right corner: "View larger" on hover, "Copied" after a copy. */
-const CORNER =
+export const CORNER =
   "pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-[6px] bg-nb-paper px-2 py-1 text-[11.5px] font-[700] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_25%,transparent)]";
 
 /** Copy and download on a right click or a long press of `children`, which draws `badge` in
