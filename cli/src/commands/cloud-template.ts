@@ -69,7 +69,8 @@ function invalid(zh: string, en: string): never {
   refuse({ zh: `模板未通过校验：${zh}`, en: `The template is not valid: ${en}` })
 }
 
-/** One call to the catalog. A refusal is turned into the bilingual words for it. */
+/** One call to the catalog. A refusal is turned into the bilingual words for it. A 404 on a
+ *  route with no template name (tags, search) means the catalog itself is missing. */
 async function ask(route: string, init: RequestInit = {}, fallback?: Said): Promise<Response> {
   const token = await accessToken()
   if (!token.ok) refuse(SAID[token.reason], fallback)
@@ -86,7 +87,8 @@ async function ask(route: string, init: RequestInit = {}, fallback?: Said): Prom
   const { error } = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } }
   if (res.status === 401) refuse(SAID.expired, fallback)
   if (error?.code === 'pro_required') refuse(T.pro_required, fallback)
-  if (error?.code === 'not_found') refuse(T.not_found, fallback)
+  const named = route.startsWith('/') && !route.startsWith('/tags?')
+  if (error?.code === 'not_found' && named) refuse(T.not_found, fallback)
   if (error?.code === 'owner_only') refuse(T.publisher_only)
   if (error?.code === 'template_exists') refuse(T.exists)
   if (res.status === 400) invalid(error?.message ?? '', error?.message ?? '')

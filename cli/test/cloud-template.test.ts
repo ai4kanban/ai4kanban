@@ -132,6 +132,21 @@ describe('akb cloud template', () => {
     assert.equal(missing.code, 2)
   })
 
+  it('reads a 404 on tags as the catalog being unavailable, not as a missing template', async () => {
+    signIn()
+    serve({ '/tags': refusal(404, 'not_found') })
+    const tags = await akb(['cloud', 'template', 'list-tags', '--category', 'ui'])
+    assert.equal(tags.code, 1)
+    assert.match(tags.err, /模板库暂时无法使用，请稍后重试。\nTemplates are not available right now\. Try again later\./)
+    assert.match(tags.err, /可以不用模板继续。\nYou can continue without a template\./)
+    assert.doesNotMatch(tags.err, /没有这个模板|no template with this name/)
+
+    serve({ '/hero-tilted-screen': refusal(404, 'not_found') })
+    const named = await akb(['cloud', 'template', 'get', 'hero-tilted-screen', '--to', path.join(home, 'x')])
+    assert.equal(named.code, 1)
+    assert.match(named.err, /模板库里没有这个模板。/)
+  })
+
   it('fetches previews under the template’s name, apart from the template', async () => {
     signIn()
     serve({
