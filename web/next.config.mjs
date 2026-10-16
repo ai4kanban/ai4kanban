@@ -38,6 +38,13 @@ const nextConfig = {
       new webpack.NormalModuleReplacementPlugin(/^@demo\/screen$/, (resource) => {
         resource.request = path.join(demo, 'Screen.tsx');
       }),
+      // Its timed polls fetch `app/poll/`, which a static site does not have.
+      new webpack.NormalModuleReplacementPlugin(/poll$/, (resource) => {
+        if (!resource.context.startsWith(kanbanUi)) return;
+        if (path.resolve(resource.context, resource.request) === path.join(kanbanUi, 'lib', 'poll')) {
+          resource.request = path.join(demo, 'poll.ts');
+        }
+      }),
     );
     // Its server actions become the demo's stand-ins: a static site has no server to call.
     config.module.rules.push({

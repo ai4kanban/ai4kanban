@@ -5,12 +5,12 @@ import {
   clearChatAction,
   dropChatImageAction,
   pickChatRuntimeAction,
-  readChatAction,
   sendChatAction,
   stopChatAction,
   stopChatBackgroundAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
+import { poll } from "@/lib/poll";
 import type { ChatRead } from "./chat";
 import { useCardChatRequest } from "./chat-open";
 import type { ChatTarget } from "./types";
@@ -309,7 +309,9 @@ export function useChatRail({
       if (!alive || inFlight) return;
       inFlight = true;
       try {
-        const next = await readChatAction(cardId);
+        const next = await poll<ChatRead>(
+          cardId === null ? "/poll/chat" : `/poll/chat?card=${encodeURIComponent(cardId)}`,
+        );
         if (!alive) return;
         answeringNow = next.live !== null || next.answering;
         setRead(next);

@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import {
   getBoardsAction,
-  notificationCenterAction,
   openNotificationAction,
   readAllNotificationsAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
+import { poll } from "@/lib/poll";
 import { CHAT_MAX, CHAT_MIN, CHAT_W } from "./chat-rail";
 import { useMatches } from "./media";
 import type { NotificationAlert, NotificationCenter, NotificationRow, WatchFill } from "./notifications";
@@ -232,11 +232,11 @@ export function useBellRail({
   // Every read hands out alerts and the filled line once, whichever read it was.
   // A folded rail asks for no landed history, so opening it reads the newest page again (#1245).
   const readPage = useCallback(async (page: Record<NotificationGroup, number>) => {
-    const next = await notificationCenterAction({
-      ...page,
-      landed: openRef.current ? page.landed : 0,
-      cards: cardRef.current === null ? [] : [cardRef.current],
-    });
+    const landed = openRef.current ? page.landed : 0;
+    const cards = cardRef.current === null ? "" : String(cardRef.current);
+    const next = await poll<NotificationCenter>(
+      `/poll/notifications?todo=${page.todo}&landed=${landed}&cards=${cards}`,
+    );
     // Handed out once. Nothing is raised later to make up for a window that was focused
     // when one arrived — that is the whole of the second interruption's rule.
     if (next.alerts.length > 0) alertsRef.current?.(wordedAlerts(next.alerts, next.rows, copyRef.current));

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { readDiscussAction } from "@/app/actions";
+import { poll } from "./poll";
 import type { DiscussPlan, DiscussRead } from "./types";
 
 // The plan card on the Discuss screen (#427): the file the conversation is writing, whether
@@ -132,7 +132,9 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
       if (!alive || inFlight) return;
       inFlight = true;
       try {
-        const next = await readDiscussAction(discussion);
+        const next = await poll<DiscussRead & { supported: boolean }>(
+          discussion === null ? "/poll/discuss" : `/poll/discuss?discussion=${encodeURIComponent(discussion)}`,
+        );
         if (!alive) return;
         setSupported(next.supported);
         setRead(next);

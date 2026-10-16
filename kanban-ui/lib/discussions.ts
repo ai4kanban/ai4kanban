@@ -64,3 +64,11 @@ export async function asDiscussion(named: string): Promise<DiscussionTarget | nu
     return null;
   }
 }
+
+/** A card id, a discussion (#496), or null for the board's own conversation. Anything else
+ *  is not a chat this board has. */
+export async function chatTarget(cardId: unknown): Promise<ChatTarget | undefined> {
+  if (cardId === null) return null;
+  if (typeof cardId === "string") return (await asDiscussion(cardId)) ?? undefined;
+  return typeof cardId === "number" && Number.isInteger(cardId) ? cardId : undefined;
+}

@@ -46,12 +46,10 @@ import {
   type SignalsDone,
 } from "@/lib/board";
 import {
-  type ChatRead,
   addChatImage,
   clearChat,
   dropChatImage,
   pickChatRuntime,
-  readChat,
   sendChat,
   stopChat,
   stopChatBackground,
@@ -61,10 +59,10 @@ import {
   dropRunPicture,
   emptyRunBox,
 } from "@/lib/create-pictures";
-import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, readDiscuss } from "@/lib/discuss";
+import { DISCUSS_GUIDE, noteAnswer, planningStarted, readDiscuss } from "@/lib/discuss";
 import {
   archiveDiscussion,
-  asDiscussion,
+  chatTarget,
   startDiscussion,
 } from "@/lib/discussions";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
@@ -124,9 +122,9 @@ import { setAgentRuntime } from "@/lib/agent-harness";
 import {
   boardNotifications,
   cancelCloudRequest,
-  notificationCenter,
   openNotification,
   readAllNotifications,
+  readCenter,
   recordCloudAction,
   reportCloudStartFailure,
   resumeCloudRequest,
@@ -233,7 +231,6 @@ import type {
   CommandState,
   ConnectionTest,
   DiscussionTarget,
-  DiscussRead,
   HarnessOption,
   Language,
   LarkChat,
@@ -489,42 +486,6 @@ export async function listSessionsAction(): Promise<SessionView[]> {
 // window reads how far it has got, so folding the rail or walking to another card never
 // cuts one off.
 
-/** A card id, a discussion (#496), or null for the board's own conversation. Anything else
- *  is not a chat this board has.
- *
- *  A discussion is checked against the board rather than against a shape written here, so a
- *  string from a browser can only ever name a conversation this board itself wrote. */
-async function chatTarget(cardId: unknown): Promise<ChatTarget | undefined> {
-  if (cardId === null) return null;
-  if (typeof cardId === "string") return (await asDiscussion(cardId)) ?? undefined;
-  return typeof cardId === "number" && Number.isInteger(cardId) ? cardId : undefined;
-}
-
-export async function readChatAction(cardId: ChatTarget): Promise<ChatRead> {
-  const target = await chatTarget(cardId);
-  if (target === undefined) {
-    return {
-      chat: null,
-      live: null,
-      stopped: null,
-      answering: false,
-      background: 0,
-      liveSince: null,
-      stamp: null,
-      cardGone: false,
-      canChat: false,
-      agent: "",
-      able: [],
-      seesImages: false,
-      imagesAble: [],
-      missing: false,
-      pick: null,
-      blocked: "that is not a card on this board.",
-    };
-  }
-  return readChat(target);
-}
-
 /** `discuss` says the message was sent from the Discuss screen (#427), which puts the flow
  *  in front of it. Which flow that is is settled here rather than sent: nothing from a
  *  browser names a topic that reaches a prompt. */
@@ -678,12 +639,6 @@ export async function archiveDiscussionAction(
 // Three moves: read that plan, and hand it to one of the two runs its answers start — the one
 // that writes its cards, or the one that writes a single card from it and builds it (#481).
 // The answer that was pressed is written by the start itself, once the run is going (#706).
-
-export async function readDiscussAction(discussion: string | null = null): Promise<DiscussRead & { supported: boolean }> {
-  const target = await chatTarget(discussion);
-  const [read, supported] = await Promise.all([readDiscuss(target ?? null), canDiscuss()]);
-  return { ...read, supported };
-}
 
 /** One plan a handoff takes (#1442), and the workflow its cards run on — none is the board's
  *  default. */
@@ -2276,7 +2231,7 @@ export async function recordWelcomeTourAction(): Promise<void> {
 }
 
 // --- the notification center (#319) ------------------------------------------
-// The bell polls `notificationCenterAction` like every other panel polls its own read. It
+// The bell polls `app/poll/notifications`; this is the one-off read Cloud's switch makes. It
 // is the only place the account's Realtime connection is opened, because it is the read
 // every screen makes: the board server the window is showing subscribes, and a
 // backgrounded one keeps publishing without subscribing or interrupting anyone.
@@ -2285,27 +2240,7 @@ export async function recordWelcomeTourAction(): Promise<void> {
 // later to make up for a window that happened to be focused when one arrived.
 
 export async function notificationCenterAction(page?: CenterPage): Promise<NotificationCenter> {
-  try {
-    const count = (n: unknown) => (Number.isInteger(n) && (n as number) >= 0 ? (n as number) : 0);
-    return await notificationCenter(
-      page && {
-        todo: count(page.todo),
-        landed: count(page.landed),
-        cards: Array.isArray(page.cards) ? page.cards.filter((id) => Number.isInteger(id)) : [],
-      },
-    );
-  } catch (e) {
-    return {
-      signedIn: false,
-      enabled: false,
-      boardId: "",
-      silenced: false,
-      rows: [],
-      unread: 0,
-      alerts: [],
-      unavailable: e instanceof Error ? e.message : String(e),
-    };
-  }
+  return readCenter(page);
 }
 
 /** Opening a row marks it read and says where to go: the project this board belongs to on

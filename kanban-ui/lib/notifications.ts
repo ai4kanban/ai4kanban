@@ -152,6 +152,23 @@ export async function notificationCenter(page?: CenterPage): Promise<Notificatio
   return alertsAllowed() ? center : { ...center, alerts: [] };
 }
 
+/** `notificationCenter` for a page sent from the browser: bad counts read as 0, and a failure
+ *  answers as an unavailable bell rather than a throw. */
+export async function readCenter(page?: CenterPage): Promise<NotificationCenter> {
+  try {
+    const count = (n: unknown) => (Number.isInteger(n) && (n as number) >= 0 ? (n as number) : 0);
+    return await notificationCenter(
+      page && {
+        todo: count(page.todo),
+        landed: count(page.landed),
+        cards: Array.isArray(page.cards) ? page.cards.filter((id) => Number.isInteger(id)) : [],
+      },
+    );
+  } catch (e) {
+    return { ...OFF, unavailable: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Opening a row marks it read, and says where to go — the project this board belongs to on
  *  this machine, the board folder inside it, and the card to open. A project can hold more
  *  than one board (#407), so the two are not one answer. Null when the event has gone. */

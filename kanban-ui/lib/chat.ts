@@ -1,5 +1,6 @@
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
+import { chatTarget } from "./discussions";
 import { machineCopy, said } from "./language";
 import { type Chat, type ChatMessage, type ChatPick, type ChatTarget } from "./types";
 
@@ -131,6 +132,12 @@ const NOTHING: ChatRead = {
   missing: false,
   pick: null,
 };
+
+/** `readChat` for a target sent from the browser, which may name no chat this board has. */
+export async function readChatOf(cardId: unknown): Promise<ChatRead> {
+  const target = await chatTarget(cardId);
+  return target === undefined ? { ...NOTHING, blocked: "that is not a card on this board." } : readChat(target);
+}
 
 /** One conversation as the window draws it. Never throws: a board with no rules to read is
  *  a chat that says so, not a page that fails. */
