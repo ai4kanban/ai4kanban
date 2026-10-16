@@ -4,6 +4,7 @@ import path from 'node:path'
 import { enclosingGroupRoot, idPrefix, isLegacyRecurring, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { ASSETS, rel, TODO } from './paths'
+import { COMPARE_IMAGES, COMPARE_VIDEOS, compareAttrs, compareKind, shotsProblem } from './compare'
 import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
 import { dependencyCycle, LEVELS, STATUSES } from './validate'
 
@@ -148,6 +149,15 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
     if (/^\s*<Storyboard\b/.test(line) && (storyboardTag(line) === null || lines[i - 1]?.trim() || lines[i + 1]?.trim())) {
       add(i + 1, 'storyboard-block', 'Put one self-closing <Storyboard src=".assets/<card id>/storyboard.json" /> tag on its own line, with blank lines around it.')
     }
+    if (/^\s*<Compare\b/.test(line)) {
+      const attrs = compareAttrs(line)
+      if (!attrs || lines[i - 1]?.trim() || lines[i + 1]?.trim()) add(i + 1, 'compare-block', 'Put one self-closing <Compare a="..." b="..." label="..." /> tag on its own line, with blank lines around it.')
+      else if (!attrs.a || !attrs.b || !attrs.label) add(i + 1, 'compare-attributes', 'Add non-empty a="...", b="..." and label="..." attributes to the Compare tag.')
+      else if (id !== undefined) {
+        const why = compareProblem(attrs, id)
+        if (why) add(i + 1, why.rule, why.message)
+      }
+    }
   }
   if (fence) add(fence.line, 'code-fence', `Unclosed code block. Close it with ${fence.char.repeat(fence.length)} on its own line.`)
   if (comment) add(lines.length, 'comment', 'Unclosed HTML comment. Add --> so the rest of the card remains visible.')
@@ -218,6 +228,35 @@ function variantsProblem(raw: string, src: string, id?: number): string | null {
     }
   }
   return null
+}
+
+/** What is wrong with a Compare tag's files (#1740), or null: `a` and `b` are both images or both
+ *  videos in this card's asset folder, and `shots`, on videos only, is a valid shots list there. */
+function compareProblem(attrs: Record<string, string>, id: number): { rule: string; message: string } | null {
+  const dir = path.join(ASSETS, String(id))
+  const src = (message: string) => ({ rule: 'compare-src', message })
+  for (const side of ['a', 'b'] as const) {
+    const named = assetName(attrs[side]!, id, [...COMPARE_IMAGES, ...COMPARE_VIDEOS])
+    if (!('name' in named)) return src(`Compare ${side} is ${named.actual}; expected ${named.expected}.`)
+    if (!inside(dir, named.name)) return src(`Compare ${side} ${attrs[side]} names no file in this card's asset folder. Write the file there or fix the path.`)
+  }
+  const kind = compareKind(attrs.a!)
+  if (kind !== compareKind(attrs.b!)) return src('Compare a and b must both be images or both be videos.')
+  if (attrs.shots === undefined) return null
+  const shots = (message: string) => ({ rule: 'compare-shots', message })
+  if (kind !== 'video') return shots('shots is for videos only. Remove it from this Compare tag.')
+  const named = assetName(attrs.shots, id, ['json'])
+  if (!('name' in named)) return shots(`Compare shots is ${named.actual}; expected ${named.expected}.`)
+  const file = inside(dir, named.name)
+  if (!file) return shots(`Compare shots ${attrs.shots} names no file in this card's asset folder. Write the JSON there or fix the path.`)
+  let data: unknown
+  try {
+    data = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch {
+    return shots(`${attrs.shots} is not valid JSON.`)
+  }
+  const why = shotsProblem(data)
+  return why ? shots(`${attrs.shots}: ${why}`) : null
 }
 
 /** Every storyboard the card points at is a JSON file in its asset folder. Its contents are the

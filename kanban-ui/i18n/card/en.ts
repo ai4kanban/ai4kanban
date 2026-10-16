@@ -266,6 +266,13 @@ const en: CardCopy = {
     copyPath: "Copy absolute path",
     copied: "Copied",
   },
+  compare: {
+    speed: "Speed",
+    prevShot: "Previous shot",
+    nextShot: "Next shot",
+    mismatch: "Can't compare an image with a video. Use two images or two videos.",
+    unsupported: (name) => `Can't compare ${name}: only images and videos can be compared.`,
+  },
   storyboard: {
     heading: "Storyboard",
     summary: (shots, seconds) => `${shots} ${shots === 1 ? "shot" : "shots"} · ${seconds}s`,

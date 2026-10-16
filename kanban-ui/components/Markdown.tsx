@@ -24,10 +24,12 @@ import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
+import { compareTag } from "@/lib/format/compare";
 import { storyboardAttrs } from "@/lib/format/storyboard";
 import { assetImageHref, deviceOf, mockupBlock, type MockupSet, type Variant } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
 import { useCardHref } from "./board-links";
+import { Compare } from "./Compare";
 import { CaseFilesContext, EvidenceNode, fileUrl, type CaseFiles } from "./case-evidence";
 import { Copied, useCopyText } from "./copy";
 import { ExpandableImage } from "./image-preview";
@@ -153,6 +155,33 @@ function remarkStoryboards(storyboards: StoryboardSet | null) {
   };
 }
 
+// remark plugin: a `<Compare a=".." b=".." />` alone in its paragraph becomes the two files side by
+// side (#1740), where mockups are drawn. Anywhere else, or sharing a line, it stays text.
+function remarkCompares(mockups: MockupSet | null) {
+  return () => (tree: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree as any, "html", (node: any, index: number | undefined, parent: any) => {
+      if (index == null || !parent || !/<Compare\b/.test(node.value)) return;
+      const tag = mockups && parent.type === "root" ? compareTag(node.value) : null;
+      parent.children.splice(
+        index,
+        1,
+        tag === null
+          ? { type: "text", value: node.value }
+          : {
+              type: "compare",
+              data: {
+                hName: "compare",
+                hProperties: { "data-a": tag.a, "data-b": tag.b, "data-label": tag.label, "data-a-label": tag.aLabel, "data-b-label": tag.bLabel, "data-shots": tag.shots },
+                hChildren: [],
+              },
+            },
+      );
+      return [SKIP, index + 1];
+    });
+  };
+}
+
 // remark plugin, on a test case only (#1422): a link or picture naming a file of the case's own
 // is taken out of its paragraph and drawn as that file, and every line break in the prose is
 // kept, so a step's lines stay the lines it was written in.
@@ -268,6 +297,16 @@ function MockupNode(props: any) {
   return views.length ? <Mockup views={views} first={Math.max(0, views.findIndex((v) => v.view.src === src))} label={props["data-label"] || ""} alt={props["data-alt"] || ""} device={deviceOf(props["data-device"])} loop={props["data-loop"] === "true"} /> : null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CompareNode(props: any) {
+  const mockups = useContext(MockupsContext);
+  const a = mockups?.[props["data-a"] as string];
+  const b = mockups?.[props["data-b"] as string];
+  if (!a || !b) return null;
+  const shots = mockups?.[props["data-shots"] as string]?.shots;
+  return <Compare a={a} b={b} label={props["data-label"] || ""} aLabel={props["data-a-label"] || ""} bLabel={props["data-b-label"] || ""} shots={shots} />;
+}
+
 const StoryboardsContext = createContext<StoryboardSet | null>(null);
 
 // A card page reads every storyboard it has on disk; one it holds none for is a page with no
@@ -371,7 +410,7 @@ function Img({ node, ...rest }: React.ComponentProps<"img"> & ExtraProps) {
 
 // `mockup` is our own tag rather than an HTML one, so the map is cast: what
 // react-markdown looks up is the tag name, and it has no type for that one.
-const COMPONENTS = { mockup: MockupNode, storyboard: StoryboardNode, evidence: EvidenceNode, a: Anchor, img: Img, pre: Pre } as Components;
+const COMPONENTS = { mockup: MockupNode, compare: CompareNode, storyboard: StoryboardNode, evidence: EvidenceNode, a: Anchor, img: Img, pre: Pre } as Components;
 
 // Held apart as a constant rather than spread at render: a fresh `components` object every
 // render is a fresh component type, which React answers by remounting the whole subtree.
@@ -415,6 +454,7 @@ export function Markdown({
       remarkCardLinks(ids),
       remarkMockups(mockups ?? null),
       remarkStoryboards(storyboards ?? null),
+      remarkCompares(mockups ?? null),
       ...(caseFiles ? [remarkCaseFiles(caseFiles.files)] : []),
     ],
     [ids, mockups, storyboards, caseFiles, articleFolder],

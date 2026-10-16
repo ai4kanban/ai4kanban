@@ -78,6 +78,7 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //                            the old `## Source` section the card page leaves out.
 //   storyboard               the `<Storyboard>` marker and its same-card path (#963) —
 //                            `akb raw validate` and the card page find it the same way.
+//   compare                  the `<Compare>` marker and its shots list (#1740), likewise.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
@@ -93,6 +94,7 @@ const SHARED = [
   "board/screen.ts",
   "board/assemble.ts",
   "storyboard.ts",
+  "compare.ts",
   "source.ts",
 ];
 

@@ -20,7 +20,8 @@
 // own page at full size. Video and audio (#872) get the browser's own player. A delivered
 // file (#969) is a download, and a Markdown file (#1651) an article.
 //
-// A tag with `variants` (#1663) shows one version at a time, switched from its caption.
+// A tag with `variants` (#1663) shows one version at a time, switched from its caption. A
+// `<Compare>` (#1740) is drawn by Compare.tsx in the same frame.
 //
 // A card page hands a screen over undrawn (#906): it is loaded once it scrolls near, and its
 // code only when the switch asks for it. Until then the frame holds its final size.
@@ -162,7 +163,7 @@ export function Phone({ scale, doc, title, scripts }: { scale: number; doc: stri
 /** A missing file, a `src` pointing outside the mockups folder, a file in none of the
  *  three formats, or a `.tsx` the board could not draw. One plain note either way, naming
  *  the file, and the rest of the card carries on as usual. */
-function Note({ text }: { text: string }) {
+export function Note({ text }: { text: string }) {
   return (
     <span
       className="nb-outline my-3 flex items-start gap-2 px-3 py-2.5 text-[12.5px] leading-[18px] text-nb-ink-soft"
@@ -345,7 +346,7 @@ function Pending({ hyperframe, device }: { hyperframe: boolean; device: Device }
   );
 }
 
-const ICON_BTN =
+export const ICON_BTN =
   "nb-tip nb-tip-below relative inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-accent-deep";
 
 /** Puts the file's absolute path on the clipboard. */
@@ -404,7 +405,7 @@ function VariantSwitch({ variants }: { variants: Variants }) {
 
 /** The row over every asset: label and versions on the left; on the right the kind's own
  *  switches (`children`), then copy path, full size and download. */
-function Caption({
+export function Caption({
   label,
   variants,
   path,

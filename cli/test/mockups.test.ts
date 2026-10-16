@@ -21,6 +21,13 @@ describe('fixMockupBlocks', () => {
     )
   })
 
+  it('spaces a <Compare> tag the same way', () => {
+    assert.equal(
+      fixMockupBlocks('<Compare a=".assets/1740/a.mp4" b=".assets/1740/b.mp4" label="A" /> Source vs clone.'),
+      ['<Compare a=".assets/1740/a.mp4" b=".assets/1740/b.mp4" label="A" />', '', 'Source vs clone.'].join('\n'),
+    )
+  })
+
   it('spaces an <Asset> tag the same way', () => {
     assert.equal(
       fixMockupBlocks('<Asset src=".assets/803/a.png" label="A" /> Hero image.'),

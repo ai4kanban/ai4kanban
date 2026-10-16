@@ -88,8 +88,12 @@ Every flow writes a card in this order:
 - **Keep bullets atomic**: use `- **<short title>**: <one clear sentence>` for one rule per
   bullet.
 - **Specify behavior**: omit planning notes and unnecessary coding details.
-- **Supported embeds**: only valid `<Asset>` and `<Storyboard>` markers alone in a paragraph
-  embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
+- **Supported embeds**: only valid `<Asset>`, `<Compare>` and `<Storyboard>` markers alone in a
+  paragraph embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
+- **Compare**: to show two images or two videos against each other, such as a source and its
+  clone, write `<Compare a="<src>" b="<src>" label="..." a-label="..." b-label="..." />`;
+  never render a side-by-side file for it. For videos, add `shots="<src>"`: a JSON list of
+  `{ "id": "S1", "start": 0, "end": 2.25, "name": "..." }` covering the video in order.
 - **Asset label and alt**: `label` is a tag of a few words; an image's caption goes in its
   optional `alt="..."`, its shipped alt text, which cannot contain `<`, `>` or its own quote mark.
 - **Asset variants**: versions of the same content, such as languages or devices, are one tag

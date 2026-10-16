@@ -175,6 +175,29 @@ describe('the card format contract', () => {
     ]) assert.deepEqual(rules(bad), ['mockup-variants'], bad)
   })
 
+  it('checks a Compare tag (#1740)', () => {
+    const tag = (attrs: string, around = '\n') => valid.replace('- [ ] Implement it.', `- [ ] Implement it.\n${around}<Compare ${attrs} />\n`)
+    const rules = (attrs: string, around?: string) => validateSpec(file, tag(attrs, around), 1).map((e) => e.rule)
+    const dir = path.join(ASSETS, '1')
+    fs.mkdirSync(dir, { recursive: true })
+    for (const name of ['a.mp4', 'b.mp4', 'a.png', 'b.png']) fs.writeFileSync(path.join(dir, name), '')
+    const shots = (list: unknown) => fs.writeFileSync(path.join(dir, 'shots.json'), JSON.stringify(list))
+    shots([{ id: 'S1', start: 0, end: 2.25, name: 'Open' }, { id: 'S2', start: 2.25, end: 4, name: 'Close' }])
+    const videos = 'a=".assets/1/a.mp4" b=".assets/1/b.mp4" label="Source vs clone"'
+    assert.deepEqual(rules(`${videos} a-label="Source" b-label="Clone" shots=".assets/1/shots.json"`), [])
+    assert.deepEqual(rules('a=".assets/1/a.png" b=".assets/1/b.png" label="A"'), [])
+    assert.deepEqual(rules(videos, ''), ['compare-block'])
+    assert.deepEqual(rules('a=".assets/1/a.mp4" b=".assets/1/b.mp4"'), ['compare-attributes'])
+    assert.deepEqual(rules('a=".assets/1/a.mp4" b=".assets/1/c.mp4" label="A"'), ['compare-src'])
+    assert.deepEqual(rules('a=".assets/1/a.mp4" b=".assets/2/b.mp4" label="A"'), ['compare-src'])
+    assert.deepEqual(rules('a=".assets/1/a.mp4" b=".assets/1/b.png" label="A"'), ['compare-src'])
+    assert.deepEqual(rules('a=".assets/1/a.png" b=".assets/1/b.png" label="A" shots=".assets/1/shots.json"'), ['compare-shots'])
+    for (const bad of [[], [{ id: 'S1', start: 0, end: 2, name: 'A' }, { id: 'S1', start: 2, end: 3, name: 'B' }], [{ id: 'S1', start: 0, end: 2, name: 'A' }, { id: 'S2', start: 2.5, end: 3, name: 'B' }]]) {
+      shots(bad)
+      assert.deepEqual(rules(`${videos} shots=".assets/1/shots.json"`), ['compare-shots'], JSON.stringify(bad))
+    }
+  })
+
   it('validates specialist sections while ignoring examples inside code fences', () => {
     const example = '\n## By `ui-designer` agent\n\n### Layout\n\n````md\n```\n## Scope\n<!-- agent -->\n<Mockup broken>\n```\n````\n'
     assert.deepEqual(validateSpec(file, valid.replace('## Decided by the agent', example + '\n## Decided by the agent')), [])

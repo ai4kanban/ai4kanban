@@ -30,7 +30,7 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 - **Recipe**: write the format (size, frame rate, length) and each shot's time range, layout, elements, fonts and colours, motion and easing, transition, sound and caption style to `recipe.md` in the files folder; it is your working file, never shown on the card.
 - **Template**: build a project that renders the recipe, picking for each shot an animation library that fits its style; one project may combine several. Text, images, colours and shot lengths are variables in one file; the defaults reproduce the source.
 - **Check**: render it and compare it with the source shot by shot side by side. A shot that misses the source's timing, layout or motion means the template is wrong: fix it and render again, never hand over the breakdown instead.
-- **Card**: under your section heading, show only the rendered clone and the side-by-side comparison as `<Asset>`s, the render command, and each difference left in one line.
+- **Card**: under your section heading, show only the rendered clone as an `<Asset>`, the clone against the source as a `<Compare>` with `shots` built from the recipe's shots, the render command, and each difference left in one line, naming its shot id.
 - **Changes**: a change to a shot's content updates the recipe and only that shot in the template.
 
 ## Memory

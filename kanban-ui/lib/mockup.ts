@@ -37,7 +37,8 @@ import { renderToStaticMarkup } from "react-dom/server.browser";
 import { transform } from "sucrase";
 import { compile } from "tailwindcss";
 import type { MockupSet, MockupView } from "./mockup-tag";
-import { assetImageHref, mockupSources } from "./mockup-tag";
+import { assetImageHref, compareShots, mockupSources } from "./mockup-tag";
+import { parseShots } from "./format/compare";
 import { AUDIO_TYPES, FILE_TYPES, findIn, IMAGE_TYPES, SEGMENT, VIDEO_TYPES } from "./asset-bytes";
 import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
@@ -168,8 +169,17 @@ async function loadPackage(id: string, c: MessagesCopy["mockup"]): Promise<unkno
  *  leaves the rest of the card as usual, so a failure is a value here, never a throw. */
 export async function readMockups(body: string): Promise<MockupSet> {
   const set: MockupSet = {};
-  for (const src of mockupSources(body)) set[src] = await readMockup(src, true, true);
+  const shots = compareShots(body);
+  for (const src of mockupSources(body)) set[src] = shots.has(src) ? await readShots(src) : await readMockup(src, true, true);
   return set;
+}
+
+/** A `<Compare>` tag's shots list (#1740). A bad one is an error the player ignores: `akb raw validate` names the fault. */
+async function readShots(src: string): Promise<MockupView> {
+  const [, root, folder, name] = /^(\.assets)\/([^/\\]+)\/([^/\\]+\.json)$/.exec(src) ?? [];
+  const file = root && SEGMENT.test(folder!) && SEGMENT.test(name!) ? await assetFile(folder!, name!).catch(() => null) : null;
+  const shots = file ? parseShots(fs.readFileSync(file, "utf8")) : null;
+  return shots ? { src, shots } : { src, error: src };
 }
 
 type Located = { file: string; ext: string; folder: string; fileName: string };

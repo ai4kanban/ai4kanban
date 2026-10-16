@@ -257,6 +257,13 @@ const zh: CardCopy = {
     copyPath: "复制绝对路径",
     copied: "已复制",
   },
+  compare: {
+    speed: "倍速",
+    prevShot: "上一镜",
+    nextShot: "下一镜",
+    mismatch: "图片和视频无法对比，请使用两张图片或两段视频。",
+    unsupported: (name) => `无法对比 ${name}：只支持图片和视频。`,
+  },
   storyboard: {
     heading: "静态分镜",
     summary: (shots, seconds) => `${shots} 镜 · ${seconds} 秒`,

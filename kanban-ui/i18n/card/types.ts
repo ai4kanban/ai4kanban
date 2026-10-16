@@ -285,6 +285,15 @@ export type CardCopy = {
     copyPath: string;
     copied: string;
   };
+  /** A `<Compare>` block (#1740); play and pause come from `mockup`. */
+  compare: {
+    speed: string;
+    prevShot: string;
+    nextShot: string;
+    /** One side is an image and the other a video. */
+    mismatch: string;
+    unsupported: (name: string) => string;
+  };
   /** A `<Storyboard>` script (#963). */
   storyboard: {
     heading: string;

@@ -7,8 +7,13 @@
 // holds where the tag sits. `variants='{"中文": "...", "English": "..."}'` (#1663) lists versions
 // of the same content; `src` is the one shown first.
 //
+// `<Compare a=".." b=".." shots=".." />` (#1740) shows two images or two videos together; its
+// files are read the same way.
+//
 // Client-safe on purpose: the remark plugin in Markdown.tsx runs in the browser, and the
 // reader in lib/mockup.ts runs on the server. Both agree on the tag here.
+
+import { compareTag, type Shot } from "./format/compare";
 
 /** A mockup as a card body points at it. */
 export type MockupTag = {
@@ -60,6 +65,7 @@ export type MockupView = { path?: string } & (
       error?: undefined;
       deferred?: undefined;
       article?: undefined;
+      shots?: undefined;
     }
   // A screen a card page draws only once it scrolls near (#906), from `mockupViewHref`.
   // `version` is the file's mtime, so a redrawn file loads again.
@@ -74,12 +80,13 @@ export type MockupView = { path?: string } & (
       file?: undefined;
       error?: undefined;
       article?: undefined;
+      shots?: undefined;
     }
   // A `.txt` mockup (#256): the file IS the drawing, so it is shown exactly as it stands
   // and there is nothing behind the picture to switch to.
-  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined; article?: undefined }
+  | { src: string; text: string; doc?: undefined; code?: undefined; image?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined; article?: undefined; shots?: undefined }
   // An image (#803): the address of its bytes. Nothing behind it to switch to either.
-  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined; article?: undefined }
+  | { src: string; image: string; text?: undefined; doc?: undefined; code?: undefined; media?: undefined; file?: undefined; error?: undefined; deferred?: undefined; article?: undefined; shots?: undefined }
   // Video or audio (#872): the address its player streams from.
   | {
       src: string;
@@ -92,6 +99,7 @@ export type MockupView = { path?: string } & (
       error?: undefined;
       deferred?: undefined;
       article?: undefined;
+      shots?: undefined;
     }
   // A delivered file (#969): the address it downloads from.
   | {
@@ -105,11 +113,27 @@ export type MockupView = { path?: string } & (
       error?: undefined;
       deferred?: undefined;
       article?: undefined;
+      shots?: undefined;
     }
   // A `.md`/`.mdx` file drawn as an article (#1651).
   | {
       src: string;
       article: ArticleFile;
+      shots?: undefined;
+      file?: undefined;
+      media?: undefined;
+      image?: undefined;
+      text?: undefined;
+      doc?: undefined;
+      code?: undefined;
+      error?: undefined;
+      deferred?: undefined;
+    }
+  // A `<Compare>` tag's shots list (#1740).
+  | {
+      src: string;
+      shots: Shot[];
+      article?: undefined;
       file?: undefined;
       media?: undefined;
       image?: undefined;
@@ -121,7 +145,7 @@ export type MockupView = { path?: string } & (
     }
   // The note in a mockup's place. It still carries the file's text when there was a file
   // to read — a mockup that would not draw is one you want to read the code of.
-  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined; article?: undefined }
+  | { src: string; doc?: undefined; text?: undefined; image?: undefined; media?: undefined; file?: undefined; code?: string; error: string; deferred?: undefined; article?: undefined; shots?: undefined }
 );
 
 /** An article's text, and the address it downloads from. */
@@ -192,7 +216,18 @@ export function assetImageHref(card: string, name: string): string {
   return `/asset-image/${encodeURIComponent(card)}/${encodeURIComponent(name)}`;
 }
 
-/** Every file a body points at, variants included, deduplicated — what the server reads before drawing. */
+const COMPARE = /<Compare\b[^<>]*?\/>/g;
+
+/** The shots lists `<Compare>` tags in a body name. */
+export function compareShots(body: string): Set<string> {
+  return new Set([...body.matchAll(COMPARE)].map((m) => compareTag(m[0])?.shots).filter((s): s is string => !!s));
+}
+
+/** Every file a body points at, variants and `<Compare>` sides included, deduplicated — what the server reads before drawing. */
 export function mockupSources(body: string): string[] {
-  return [...new Set(mockupTags(body).flatMap((t) => [t.src, ...t.variants.map((v) => v.src)]))];
+  const compared = [...body.matchAll(COMPARE)].flatMap((m) => {
+    const tag = compareTag(m[0]);
+    return tag ? [tag.a, tag.b, ...(tag.shots ? [tag.shots] : [])] : [];
+  });
+  return [...new Set([...mockupTags(body).flatMap((t) => [t.src, ...t.variants.map((v) => v.src)]), ...compared])];
 }
