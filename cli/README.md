@@ -1,6 +1,6 @@
 # ai4kanban
 
-The CLI for AI4Kanban, your local-first AI project manager for agent teams.
+The CLI for AI4Kanban. See the draft. Let agents do the rest.
 
 See the [project README](https://github.com/ai4kanban/ai4kanban#readme) for the product overview and [documentation](https://ai4kanban.dev/docs) for setup and usage.
 
