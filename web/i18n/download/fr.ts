@@ -6,10 +6,9 @@ const fr: DownloadCopy = {
   meta: {
     title: "Télécharger AI4Kanban pour macOS, Windows et Linux",
     description:
-      "AI4Kanban est le chef de projet IA qui dirige votre équipe d’agents. Obtenez l’application de bureau pour macOS, Windows et Linux.",
+      "AI4Kanban prépare les brouillons clés des tâches de votre tableau. Vous vérifiez l’essentiel, les agents s’occupent des détails. Obtenez l’application de bureau pour macOS, Windows et Linux.",
     socialTitle: "Télécharger AI4Kanban",
-    social:
-      "Le chef de projet IA de votre équipe d’agents, sur macOS, Windows et Linux.",
+    social: "Voyez le brouillon. Laissez les agents faire le reste. Sur macOS, Windows et Linux.",
   },
 
   hero: {

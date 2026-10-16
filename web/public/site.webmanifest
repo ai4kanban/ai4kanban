@@ -1,7 +1,7 @@
 {
   "name": "AI4Kanban",
   "short_name": "AI4Kanban",
-  "description": "The AI project manager that runs your agent team.",
+  "description": "AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
