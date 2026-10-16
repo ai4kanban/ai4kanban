@@ -352,6 +352,10 @@
   border-radius: 0;
   vertical-align: middle;
 }
+.docs-prose video {
+  width: 100%;
+  border-radius: 0.5rem;
+}
 .docs-prose > .mdx-block,
 .docs-prose > .mdx-block + * {
   margin-top: 2rem;

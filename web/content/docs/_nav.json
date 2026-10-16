@@ -3,7 +3,7 @@
   "groups": [
     {
       "label": "Start here",
-      "items": ["index"]
+      "items": ["index", "first-card"]
     },
     {
       "label": "Using the board",

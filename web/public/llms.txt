@@ -31,6 +31,7 @@ Every documentation page carries a "Copy page" button that hands you its raw
 Markdown, so these need no separate mirror.
 
 - [Documentation overview](https://ai4kanban.dev/docs): How to run AI4Kanban, the kanban board for AI agents: install it, drive the daily loop, and pick the coding agent your work runs on.
+- [Your first card](https://ai4kanban.dev/docs/first-card): Follow an idea through planning, review the screen draft, request changes, then build and check the delivered work.
 - [The daily loop](https://ai4kanban.dev/docs/daily-loop): The rhythm once the board exists — pick what to work on, plan and close a release, add and refine cards, build one end to end, and the button that does the same thing.
 - [Multi-runtime support](https://ai4kanban.dev/docs/connectors): Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch.
 
