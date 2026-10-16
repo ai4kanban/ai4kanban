@@ -8,7 +8,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { jsonLd, webPage } from "@/lib/schema";
 import { SAAS_PATH, getSaasPage } from "@/lib/workflows";
 import { Action, Board, Closing, Plan } from "./Blocks";
-import { SaasHeroArt } from "./SaasHeroArt";
+import { SolutionHeroArt } from "./SolutionHeroArt";
 
 // /solutions/saas in every language: the coding page's shape with the body in
 // `content/solutions/saas/<locale>.mdx`. The H1's lines are the title's lines.
@@ -55,7 +55,7 @@ export function SaasPage({ locale }: { locale: Locale }) {
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-lg leading-relaxed text-muted">{page.lead}</p>
             <div className="mx-auto mt-4 max-w-4xl sm:mt-6">
-              <SaasHeroArt label={page.heroAlt} />
+              <SolutionHeroArt label={page.heroAlt} />
             </div>
           </div>
         }

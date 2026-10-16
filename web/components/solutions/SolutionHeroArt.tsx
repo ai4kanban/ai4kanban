@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
-// Hero art for /solutions/saas, in CSS 3D. One 10s loop: a card lifts off the board, opens
-// into its card page, the drafts fill in, Run is pressed, the page folds back and the card
-// starts running. It waits until it scrolls into view, then tilts gently with the pointer.
+// Hero art for /solutions/saas and /workflows/coding, in CSS 3D. One 10s loop: a card lifts
+// off the board, opens into its card page, the drafts fill in, Run is pressed, the page folds
+// back and the card starts running. It waits until it scrolls into view, then tilts gently with the pointer.
 // Never animate opacity or filter on anything in the 3D scene: Chrome flattens or drops it.
 const CSS = `
 .h3d{width:100%;container-type:inline-size;-webkit-mask-image:linear-gradient(to bottom,#000 64%,transparent);mask-image:linear-gradient(to bottom,#000 64%,transparent)}
@@ -89,7 +89,7 @@ function CardPage() {
   );
 }
 
-export function SaasHeroArt({ label }: { label: string }) {
+export function SolutionHeroArt({ label }: { label: string }) {
   const root = useRef<HTMLDivElement>(null);
   const cam = useRef<HTMLDivElement>(null);
 

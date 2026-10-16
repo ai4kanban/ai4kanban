@@ -1,12 +1,11 @@
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ArticleLayout } from "@/components/blog/ArticleLayout";
-import { Mat } from "@/components/home/Mat";
+import { SolutionHeroArt } from "@/components/solutions/SolutionHeroArt";
 import { getCopy } from "@/i18n";
 import type { Locale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { getWorkflowPage, workflowPath } from "@/lib/workflows";
-import { CodingHeroArt } from "./CodingHeroArt";
 import { DraftCompare, Clip, Screens } from "./Figures";
 
 // /workflows/coding in every language. The body is `content/workflows/coding/<locale>.mdx`.
@@ -36,17 +35,16 @@ export function CodingPage({ locale }: { locale: Locale }) {
         backdrop={null}
         rule={false}
         tocLabel={page.toc}
+        bodyGap="mt-6"
         header={
-          <div className="pb-6 pt-4 text-center lg:pb-16 lg:pt-8">
+          <div className="pb-2 pt-4 text-center lg:pb-4 lg:pt-8">
             <h1 className="text-4xl font-bold leading-[1.15] tracking-tight text-balance sm:text-6xl sm:leading-[1.05]">
               {page.title}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted">{page.lead}</p>
-            <Mat wash="emberMint" paper="light" className="mx-auto mt-8 max-w-3xl p-3 sm:mt-12 sm:p-6">
-              <div className="overflow-hidden rounded-xl bg-elev p-4 sm:p-10">
-                <CodingHeroArt label={page.heroAlt} />
-              </div>
-            </Mat>
+            <div className="mx-auto mt-4 max-w-4xl sm:mt-6">
+              <SolutionHeroArt label={page.heroAlt} />
+            </div>
           </div>
         }
       />
