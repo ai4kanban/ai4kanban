@@ -16,26 +16,19 @@
 // pressed through the step has one obvious place to go back to.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiFileText, FiShield } from "react-icons/fi";
+import { FiShield } from "react-icons/fi";
 import {
-  partnerFeedbackAction,
   recordUsageDisclosureAction,
-  setPartnerFeedbackAction,
   setUsageReportingAction,
   usageReportingAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
-import type { PartnerFeedback, UsageReporting } from "@/lib/types";
+import type { UsageReporting } from "@/lib/types";
 import { Button } from "./button";
 import { openLink } from "./desktop";
-import { Dialog } from "./Dialog";
 import { LogoMark } from "./Logo";
 import { Alert, Group, Panel, Row, Switch } from "./settings";
 import { sayFailure } from "@/lib/start-failure";
-
-/** The one address a deletion request goes to (#628). Written here rather than in the copy
- *  so both languages name the same one, and so no second address can creep in. */
-export const CASE_EMAIL = "support@ai4kanban.dev";
 
 /** The published page that lists every event and field — what "Privacy details" opens, and
  *  what the Configuration row links to. In the app it opens the user's browser. */
@@ -192,10 +185,7 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
   return (
     <Group title={caption}>
       <Panel>
-        {/* What this switch covers, and — under it — what it does not (#603). Feedback is a
-            press, not a report, and a reader who turned this off has to be able to see that
-            the button beside Create task still works. */}
-        <Row label={c.title} hint={c.body} below={<p className="text-[12px] leading-snug text-nb-ink-soft">{c.feedback}</p>}>
+        <Row label={c.title} hint={c.body}>
           {!tooOld && !unreadable && (
             <Switch
               on={held ? held.on : null}
@@ -204,10 +194,6 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
             />
           )}
         </Row>
-        {/* Beside it, never inside it (#628): partner feedback is its own answer, and a
-            reader who turned the numbers off has to be able to see that this one is a
-            different question with a different default. */}
-        <PartnerRow onError={onError} />
       </Panel>
 
       {tooOld ? (
@@ -216,146 +202,5 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
         <Alert>{c.unreadable}</Alert>
       ) : null}
     </Group>
-  );
-}
-
-// ---- partner feedback (#628) ------------------------------------------------
-
-/** The second row in the Privacy group. It is the opposite of the one above in every way
- *  that matters: it ships OFF, and turning it ON opens the terms first — what it shares is
- *  the conversation and the code behind one refine, not a count.
- *
- *  Turning it back off never asks. Nothing about it is a wall. */
-export function PartnerRow({ onError }: { onError?: (msg: string) => void }) {
-  const t = useCopy();
-  const c = t.configuration.partner;
-  const [held, setHeld] = useState<PartnerFeedback | null>(null);
-  const [tooOld, setTooOld] = useState(false);
-  // Which way the terms are open: to turn it on, or just to read them. Same page either
-  // way — a reader who has already said yes must be able to see what they said yes to.
-  const [terms, setTerms] = useState<null | "ask" | "read">(null);
-
-  const load = useCallback(async () => {
-    const answer = await partnerFeedbackAction();
-    setHeld(answer);
-    setTooOld(answer === null);
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const save = async (next: boolean) => {
-    const was = held;
-    setHeld(was ? { ...was, on: next } : was);
-    const res = await setPartnerFeedbackAction(next);
-    if (!res.ok) {
-      setHeld(was);
-      onError?.(sayFailure(res, (next ? c.failedOn : c.failedOff)));
-      return false;
-    }
-    await load();
-    return true;
-  };
-
-  if (tooOld) return null;
-  const unreadable = held?.unreadable === true;
-  return (
-    <>
-      <Row
-        label={c.title}
-        hint={c.body}
-        below={
-          <button
-            type="button"
-            onClick={() => setTerms("read")}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] bg-nb-wash px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-colors hover:brightness-95"
-          >
-            <FiFileText size={13} aria-hidden />
-            {c.terms}
-          </button>
-        }
-      >
-        {!unreadable && (
-          <Switch
-            on={held ? held.on : null}
-            label={(held?.on ? c.switchOn : c.switchOff)(c.title)}
-            // On reads the terms first; off is immediate. One switch, two different asks —
-            // saying yes to sharing code is not the same kind of answer as taking it back.
-            onFlip={async (next) => {
-              if (next) setTerms("ask");
-              else await save(false);
-            }}
-          />
-        )}
-      </Row>
-      {terms && (
-        <PartnerTerms
-          ask={terms === "ask"}
-          onClose={() => setTerms(null)}
-          onConfirm={async () => {
-            if (await save(true)) setTerms(null);
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-/** Shared disclosure for enabling partner feedback and reading its terms later. */
-export function PartnerTerms({
-  ask,
-  onClose,
-  onConfirm,
-}: {
-  /** Whether this is the ask before it goes on, or a read of terms already accepted. */
-  ask: boolean;
-  onClose: () => void;
-  onConfirm?: () => void | Promise<void>;
-}) {
-  const t = useCopy();
-  const c = t.configuration.partner.consent;
-  const [saving, setSaving] = useState(false);
-  return (
-    <Dialog title={c.title} onClose={onClose} width={560}>
-      <div className="flex flex-col gap-3.5">
-        <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-          {c.blurb} <strong className="font-[800] text-nb-ink">{c.choice}</strong>
-        </p>
-        <ul className="flex flex-col gap-2">
-          {c.terms.map((line) => (
-            <li key={line} className="flex items-start gap-2 text-[12.5px] leading-relaxed">
-              <span className="mt-[7px] size-[5px] shrink-0 rounded-full bg-nb-ink/35" aria-hidden />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-[11.5px] text-nb-ink-soft">{c.reversible}</span>
-          {ask ? (
-            <span className="flex items-center gap-2.5">
-              <Button variant="ghost" onClick={onClose}>
-                {c.cancel}
-              </Button>
-              <Button
-                disabled={saving}
-                onClick={async () => {
-                  setSaving(true);
-                  try {
-                    await onConfirm?.();
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-              >
-                {saving ? t.shared.saving : c.confirm}
-              </Button>
-            </span>
-          ) : (
-            <Button onClick={onClose}>{t.shared.close}</Button>
-          )}
-        </div>
-      </div>
-    </Dialog>
   );
 }

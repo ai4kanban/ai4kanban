@@ -158,8 +158,6 @@ export function readChat(cardId: ChatTarget): Chat | null {
     title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : undefined,
     archived: raw.archived === true,
     archivedBy: raw.archived === true && raw.archivedBy === 'board' ? 'board' : undefined,
-    shareOnEnd: raw.shareOnEnd === true,
-    linkedCard: Number.isInteger(raw.linkedCard) && (raw.linkedCard as number) > 0 ? raw.linkedCard : undefined,
     from: typeof cardId === 'number' ? handoffOf(raw.from) : undefined,
     pendingCards: isDiscussion(cardId) ? idsOf(raw.pendingCards) : undefined,
     triage: isDiscussion(cardId) && typeof raw.triage === 'string' && raw.triage ? raw.triage : undefined,
@@ -587,39 +585,6 @@ export function setChatArchived(cardId: ChatTarget, archived: boolean, by?: 'boa
   writeChat(chat)
 }
 
-/** Turn this conversation's team feedback on or off (#679). Nothing is collected either way
- *  — the switch only says what ending it does.
- *
- *  Turning it off drops the submission the end would have made, and the card it was to be
- *  filed under with it (#659): the link is only ever asked for by sharing, so turning sharing
- *  back on picks again from nothing. One already sent is not withdrawn by any of it; the
- *  number in it is how that one is deleted.
- *
- *  A conversation nobody has said anything into has no file yet, so there is nothing to write
- *  and nothing to forget: the screen holds the switch until the first message carries it. */
-export function setChatShare(cardId: ChatTarget, on: boolean): void {
-  const chat = readChat(cardId)
-  if (!chat) return
-  chat.shareOnEnd = on
-  if (!on) chat.linkedCard = undefined
-  writeChat(chat)
-  if (!on) dropCase(keyOf(cardId))
-}
-
-/** Turn the switch off because this conversation has ENDED (#685).
- *
- *  Not `setChatShare(target, false)`: that is the user withdrawing, which takes the end's
- *  submission and the card it was filed under away with it. This is the switch having done
- *  what it promised — the end it named has happened and is submitting right now, so the
- *  submission stays and only the promise is spent. Sharing again is a fresh answer, terms
- *  and all. */
-export function endChatShare(cardId: ChatTarget): void {
-  const chat = readChat(cardId)
-  if (!chat?.shareOnEnd) return
-  chat.shareOnEnd = false
-  writeChat(chat)
-}
-
 /** Mark one conversation as read by the memory review (#1322). False when there is none.
  *  Nothing was said, so `updatedAt` stays. */
 export function setChatReviewed(cardId: ChatTarget, at: number): boolean {
@@ -638,22 +603,12 @@ export function clearChatTriage(cardId: ChatTarget): void {
   writeChat(chat)
 }
 
-/** The card a discussion says its problem is about (#628). A card's own conversation never
- *  calls this — it is that card's already. */
-export function setChatCard(cardId: ChatTarget, card: number | null): void {
-  const chat = readChat(cardId)
-  if (!chat) return
-  chat.linkedCard = card ?? undefined
-  writeChat(chat)
-}
-
 /** What the turn is holding, brought up to what happened while it ran.
  *
  *  A turn reads the conversation when the message is sent and writes it back when the reply
  *  lands, so everything reachable in between is newer on disk than in hand: the plan the
- *  reply itself saved (#427), and what the user did on the row under the box while they
- *  waited (#679). Writing the older answer back would put a switch they turned off back on,
- *  and a conversation they ended back on the rail.
+ *  reply itself saved (#427), and what the user did while they waited. Writing the older
+ *  answer back would put a conversation they ended back on the rail.
  *
  *  A runtime is not among them — one is only picked between turns (#467).
  */
@@ -661,8 +616,6 @@ export function carriedForward(held: Chat, since: Chat | null): Chat {
   if (!since) return held
   held.plans = since.plans
   held.title = since.title ?? held.title
-  held.shareOnEnd = since.shareOnEnd
-  held.linkedCard = since.linkedCard
   held.archived = since.archived
   held.archivedBy = since.archivedBy
   held.pendingCards = since.pendingCards
@@ -1187,10 +1140,6 @@ export interface SendOptions {
    *  that may collect and submit. Every other turn carries it false, and the brief then says
    *  in so many words to collect nothing. */
   feedback?: { cardId: number; share?: boolean }
-  /** Where the switch under the box stands as this message is sent (#679). It is carried on
-   *  the message because a conversation nobody has spoken into yet has no file to write it
-   *  to — this is what makes the first message the one that records it. */
-  share?: boolean
   /** The triage item this discussion was started from (#1252), by source id. Kept by the
    *  first message only. */
   triage?: string
@@ -1389,11 +1338,6 @@ export async function sendChatMessage(
       held.archived = false
       held.archivedBy = undefined
     }
-    if (options.share !== undefined) held.shareOnEnd = options.share === true
-    // The card a discussion linked, written down with the first message too (#628): a card
-    // picked before anything was said had no file to be written to, and the end of a shared
-    // conversation reads it off this one.
-    if (options.feedback?.cardId) held.linkedCard = options.feedback.cardId
     if (options.triage && isDiscussion(cardId) && !chat?.messages.length) held.triage = options.triage
     held.updatedAt = now
     writeChat(held)

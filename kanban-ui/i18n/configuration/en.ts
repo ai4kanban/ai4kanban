@@ -582,37 +582,12 @@ const en: ConfigurationCopy = {
   privacy: {
     title: "Usage reporting",
     body: "Share anonymous feature use and failures — counts and names of events, nothing you write. Never code, card text, project names or file paths.",
-    feedback:
-      "Feedback is separate and this switch does not reach it: it carries what you wrote, it goes only when you press send, and it works with reporting off.",
     switchOn: (name) => `${name} is on`,
     switchOff: (name) => `${name} is off`,
     unreadable:
       "The settings file on this machine cannot be read, so nothing is reported and nothing can be saved. Fix or remove it, then reopen this.",
     failedOn: "usage reporting could not be turned on",
     failedOff: "usage reporting could not be turned off",
-  },
-  partner: {
-    title: "Partner feedback",
-    body: "Share the related conversation and code when you report a problem, so we can see where we misread what you meant.",
-    terms: "See what is shared",
-    consent: {
-      title: "Help us improve AI4Kanban",
-      blurb:
-        "When AI misunderstands your needs, you can share related material to help us improve requirements planning.",
-      choice: "You decide whether to share each time, in the discussion.",
-      terms: [
-        "Related conversations and project code are shared with the AI4Kanban team for analysis and improvement.",
-        "The analysis runs on the AI service you have set up.",
-        "Shared material is kept long-term.",
-      ],
-      reversible: "You can turn this off at any time in Settings.",
-      cancel: "Cancel",
-      confirm: "Turn on feedback",
-    },
-    switchOn: (name) => `${name} is on`,
-    switchOff: (name) => `${name} is off`,
-    failedOn: "partner feedback could not be turned on",
-    failedOff: "partner feedback could not be turned off",
   },
   language: {
     group: "Language",

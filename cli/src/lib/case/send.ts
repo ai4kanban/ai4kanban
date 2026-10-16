@@ -16,7 +16,7 @@ import type { CaseFailure } from './state'
 const SEND_TIMEOUT_MS = 120_000
 
 /** Where a case goes. `AI4KANBAN_CASE_URL` points a checkout at the development copy or at a
- *  test's own server, the way `AI4KANBAN_FEEDBACK_URL` points the feedback route. */
+ *  test's own server. */
 const endpoint = (): string => process.env.AI4KANBAN_CASE_URL || CASE_ENDPOINT.production
 
 export interface CaseSent {

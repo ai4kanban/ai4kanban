@@ -314,7 +314,6 @@ function DemoChat({ draft, messages, answering }: { draft: string; messages: Cha
     say: pending,
     pickRuntime: pending,
     clear: pending,
-    share: { offered: false, on: false, flip: noop, asking: false, cancel: noop, agree: pending },
     markRead: noop,
     panel,
     onLayoutChanged: noop,

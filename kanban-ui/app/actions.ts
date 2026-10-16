@@ -46,17 +46,6 @@ import {
   type SignalsDone,
 } from "@/lib/board";
 import {
-  dropCase,
-  readCase,
-  retryCase,
-  searchLinkable,
-  sendTextOnlyCase,
-  setChatCard,
-  setChatShare,
-  shareOffered,
-  shareOnEnd,
-} from "@/lib/feedback";
-import {
   type ChatRead,
   addChatImage,
   clearChat,
@@ -129,8 +118,6 @@ import {
   recordUsageDisclosure,
   recordWelcomeTour,
   reportAppOpen,
-  partnerFeedback,
-  setPartnerFeedback,
   setUsageReporting,
   usageReporting,
 } from "@/lib/telemetry";
@@ -232,7 +219,6 @@ import type {
   AgentInfo,
   AgentView,
   GlobalMemoryView,
-  ArchivedCard,
   BoardScreen,
   Signal,
   CardPatch,
@@ -251,8 +237,6 @@ import type {
   ConversationRow,
   DiscussionTarget,
   DiscussRead,
-  CaseRecord,
-  PartnerFeedback,
   HarnessOption,
   Language,
   LarkChat,
@@ -565,10 +549,8 @@ export async function sendChatAction(
    *  them into this conversation's folder. Left out by the rail, whose box IS this
    *  conversation's. */
   box?: string,
-  /** What this message says about team feedback: the card a discussion linked (#628), and
-   *  where the switch under the box stands as it goes (#679). The switch rides on the message
-   *  because a conversation nobody has spoken into yet has no file to write it to. */
-  feedback?: { cardId?: number; share?: boolean; triage?: string },
+  /** The triage item a discussion was opened from (#1252). */
+  triage?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -576,21 +558,11 @@ export async function sendChatAction(
   if (typeof message !== "string" || (!message.trim() && names.length === 0)) {
     return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
   }
-  // A linked card only counts in a discussion — a card's own chat is already about that card,
-  // and a complaint written there would name one twice. It hands the turn to the `feedback`
-  // agent; it never shares, which is the switch's own answer below.
-  const complaint =
-    feedback && Number.isInteger(feedback.cardId) && isDiscussion(target)
-      ? { cardId: feedback.cardId as number }
-      : undefined;
   return sendChat(target, message.trim(), {
     guide: discuss ? DISCUSS_GUIDE : undefined,
     images: names,
     box: names.length && typeof box === "string" ? box : undefined,
-    feedback: complaint,
-    share: feedback ? feedback.share === true : undefined,
-    // The triage item a discussion was opened from (#1252).
-    triage: typeof feedback?.triage === "string" && isDiscussion(target) ? feedback.triage : undefined,
+    triage: typeof triage === "string" && isDiscussion(target) ? triage : undefined,
   });
 }
 
@@ -703,42 +675,15 @@ export async function startDiscussionAction(): Promise<DiscussionTarget | null> 
 }
 
 /** Take one conversation out of the list — a discussion, or a card's own chat (#633). Its
- *  transcript stays on this machine.
- *
- *  It is also the end a shared conversation submits on (#679). The submission is started
- *  after the end and never waited on: the screen has already cleared, and a collection that
- *  takes a minute must not hold it there. */
+ *  transcript stays on this machine. */
 export async function archiveDiscussionAction(
   target: ChatTarget,
-): Promise<{ ok: boolean; error?: string; reason?: string }> {
+): Promise<{ ok: boolean; error?: string }> {
   const named = await chatTarget(target);
   if (named === undefined || named === null) {
     return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   }
-  const ended = await archiveDiscussion(named);
-  if (ended.ok) void shareOnEnd(named);
-  return ended;
-}
-
-/** Where the switch under the box stands on this conversation (#679). Nothing is collected
- *  either way — off drops the submission ending it would have made. */
-export async function setChatShareAction(target: ChatTarget, on: boolean): Promise<void> {
-  const named = await chatTarget(target);
-  if (named === undefined) return;
-  await setChatShare(named, on === true);
-}
-
-/** The card a discussion says its problem is about (#628), kept beside the transcript so the
- *  end knows what to file the submission under. */
-export async function setChatCardAction(target: ChatTarget, card: number | null): Promise<void> {
-  const named = await chatTarget(target);
-  if (named === undefined) return;
-  await setChatCard(named, Number.isInteger(card) ? (card as number) : null);
-}
-
-/** Whether this board's rules can hold the switch at all. */
-export async function shareOfferedAction(): Promise<boolean> {
-  return await shareOffered();
+  return await archiveDiscussion(named);
 }
 
 // ---- Discuss (#427) ---------------------------------------------------------
@@ -2342,80 +2287,6 @@ export async function recordUsageDisclosureAction(on: boolean): Promise<WriteRes
 /** The welcome tour was closed on this machine (#1500). */
 export async function recordWelcomeTourAction(): Promise<void> {
   await recordWelcomeTour().catch(() => undefined);
-}
-
-/** Whether this machine takes part in partner feedback (#628). Its own answer, never
- *  derived from the one above: that switch is about counts with no words in them. */
-export async function partnerFeedbackAction(): Promise<PartnerFeedback | null> {
-  try {
-    return await partnerFeedback();
-  } catch {
-    return null;
-  }
-}
-
-/** Turn it on or off. On is only ever called from the terms the user just read. */
-export async function setPartnerFeedbackAction(on: boolean): Promise<WriteResult> {
-  try {
-    return await setPartnerFeedback(on === true);
-  } catch (e) {
-    return { ok: false, ...(await saidThrown(e)) };
-  }
-}
-
-// --- partner feedback (#628) --------------------------------------------------
-// Two answers, asked separately and neither implying the other: whether this machine takes
-// part at all (`partnerFeedbackAction` above), and whether the user ticked share on this one
-// message. The rules hold that rule — nothing here decides it, and nothing here collects
-// anything.
-
-/** The cards a discussion can be linked to — open ones and archived ones, because a
- *  complaint about a spec is usually about the card in front of you. A board that would not
- *  read is a failure, never an empty result: "nothing matches" and "the board could not be
- *  read" are different things to tell a reader, and the second is worth a Try again. */
-export async function searchLinkableAction(
-  query: string,
-): Promise<{ ok: true; cards: ArchivedCard[] } | { ok: false }> {
-  if (typeof query !== "string") return { ok: true, cards: [] };
-  try {
-    return { ok: true, cards: await searchLinkable(query) };
-  } catch {
-    return { ok: false };
-  }
-}
-
-/** The submission this discussion is holding. Polled while a complaint is being answered:
- *  the agent submits from inside its own turn, so this is how the screen learns it landed. */
-export async function readCaseAction(discussion: string): Promise<CaseRecord | null> {
-  if (typeof discussion !== "string" || !discussion) return null;
-  try {
-    return await readCase(discussion);
-  } catch {
-    return null;
-  }
-}
-
-/** Post the same pack again, under the same id the user was already shown. */
-export async function retryCaseAction(discussion: string): Promise<CaseRecord | null> {
-  if (typeof discussion !== "string" || !discussion) return null;
-  return await retryCase(discussion);
-}
-
-/** Post the question description on its own. */
-export async function sendTextOnlyCaseAction(discussion: string): Promise<CaseRecord | null> {
-  if (typeof discussion !== "string" || !discussion) return null;
-  return await sendTextOnlyCase(discussion);
-}
-
-/** Take the submission off this discussion — what cancelling the link does. */
-export async function dropCaseAction(discussion: string): Promise<void> {
-  if (typeof discussion !== "string" || !discussion) return;
-  try {
-    await dropCase(discussion);
-  } catch {
-    // Nothing to drop, or a board that cannot be written. Either way the screen has already
-    // forgotten the link.
-  }
 }
 
 // --- the notification center (#319) ------------------------------------------

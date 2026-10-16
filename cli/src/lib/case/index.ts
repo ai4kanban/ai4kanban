@@ -10,7 +10,6 @@ import { buildCase, textOnlyCase, type CaseFindings } from './collect'
 import { sendCase } from './send'
 import { closeCase, readCase, readPack, savePack, type CaseRecord } from './state'
 
-export { searchLinkable } from './cards'
 export { refinesOf, type CaseClue, type CaseFindings, type CaseRefine } from './collect'
 export {
   dropCase,

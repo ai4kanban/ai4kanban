@@ -12,7 +12,7 @@ import { CHATS_DIR, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { openRun, patch, peekRun } from '../src/lib/agent/sessions.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
 import { watchRun } from '../src/lib/agent/watch.ts'
-import { readChat, readChatView, sendChatMessage, setChatShare, stopChatBackground } from '../src/lib/agent/chat.ts'
+import { readChat, readChatView, sendChatMessage, stopChatBackground } from '../src/lib/agent/chat.ts'
 import { archiveDiscussion, startDiscussion } from '../src/lib/agent/discussions.ts'
 import { BACKGROUND_WAIT } from '../src/lib/agent/settings.ts'
 import { forgetMachineState, restoreMachineHome, uiConfigOf } from './helpers/board.ts'
@@ -226,18 +226,5 @@ describe('what a chat agent leaves behind', () => {
     } finally {
       stopChatBackground(target)
     }
-  })
-
-  it('an End discussion refused leaves the agent running', async () => {
-    board(fakeClaude(-1), 5)
-    const target = startDiscussion()
-    await sendChatMessage(target, 'start')
-    setChatShare(target, true)
-    const refused = archiveDiscussion(target)
-    assert.ok('error' in refused && refused.reason === 'share-needs-card')
-    await new Promise((r) => setTimeout(r, 300))
-    assert.ok(alive(firstSpawn()))
-    stopChatBackground(target)
-    await until(() => !alive(firstSpawn()), 10_000)
   })
 })

@@ -1,21 +1,18 @@
 /**
- * The endpoint. One route takes batches, one takes feedback (#603), one takes a partner's
- * refine case (#628), one says the service is up, and one answers the installs total for the
+ * The endpoint. One route takes batches, one takes a partner's refine case (#628), one says the service is up, and one answers the installs total for the
  * README's badge (#728) — a single cumulative number, with no parameter to ask it anything
  * else. Every other number is read from this repository with the Cloudflare account we
  * already hold (`npm run numbers`, `npm run numbers:web`), which is what keeps #292's promise
  * that nobody outside the project reads them.
  *
- * The three posting routes never meet. A batch is taken whatever came of it, because a
- * number nobody notices losing is not worth a retry; a piece of feedback and a case are
- * answered honestly, because a person is waiting on the screen either was written on and is
- * told when it did not go.
+ * The two posting routes never meet. A batch is taken whatever came of it, because a
+ * number nobody notices losing is not worth a retry; a case is answered honestly, because a
+ * person is waiting on the screen it was written on and is told when it did not go.
  */
 
 import { INSTALLS_HEADER, LIMITS } from '../contract.ts'
 import { BadCase, storeCase, takeCase } from './case.ts'
 import { runDaily } from './daily.ts'
-import { BadFeedback, storeFeedback, takeFeedback } from './feedback.ts'
 import type { Env } from './env.ts'
 import { development } from './env.ts'
 import { BADGE_CACHE, READ_INSTALLS, badgeOf } from './installs.ts'
@@ -90,7 +87,6 @@ async function route(request: Request, env: Env, now: Date): Promise<Handled> {
     return said(200, { service: 'ai4kanban-telemetry', ok: true, ...(env.COMMIT ? { commit: env.COMMIT } : {}) })
   }
   if (pathname === '/v1/installs') return installs(request, env, said)
-  if (pathname === '/v1/feedback') return feedback(request, env, now, said)
   if (pathname === '/v1/case') return partnerCase(request, env, now, said)
   if (pathname !== '/v1/batch') return said(404, { ok: false })
   if (request.method === 'OPTIONS') return said(204, null)
@@ -159,50 +155,6 @@ async function installs(request: Request, env: Env, said: Said): Promise<Handled
     }),
     rowsWritten: 0,
     rowsRead,
-  }
-}
-
-/**
- * One piece of feedback, taken or refused in so many words.
- *
- * Its own size limit — a conversation alone is 10-20 kB, so a batch's 16 would refuse every
- * submission that carries one — and its own answer: 202 stored, 400 unreadable, 413 too
- * large, 500 the store failed. The sender says which of those happened and does not try
- * again.
- */
-async function feedback(request: Request, env: Env, now: Date, said: Said): Promise<Handled> {
-  if (request.method === 'OPTIONS') return said(204, null)
-  if (request.method !== 'POST') return said(405, { ok: false })
-
-  const origin = request.headers.get('origin')
-  if (origin && !allowed(origin, env)) return said(403, { ok: false })
-
-  if (Number(request.headers.get('content-length') ?? 0) > LIMITS.feedbackBytes) {
-    return said(413, { ok: false })
-  }
-  const bytes = await request.arrayBuffer()
-  if (bytes.byteLength > LIMITS.feedbackBytes) return said(413, { ok: false })
-
-  let taken
-  try {
-    const body: unknown = JSON.parse(new TextDecoder().decode(bytes))
-    taken = takeFeedback(body, now.toISOString().slice(0, 10))
-  } catch (error) {
-    if (error instanceof SyntaxError || error instanceof BadFeedback) return said(400, { ok: false })
-    throw error
-  }
-
-  const country = (request as CloudflareRequest).cf?.country ?? ''
-  try {
-    const stored = await storeFeedback(env.DB, taken, country, now.toISOString())
-    return {
-      answer: answered(request, env, 202, { ok: true }),
-      rowsWritten: stored.rowsWritten,
-      rowsRead: stored.rowsRead,
-    }
-  } catch (error) {
-    console.error('telemetry: feedback not stored', error)
-    return said(500, { ok: false })
   }
 }
 

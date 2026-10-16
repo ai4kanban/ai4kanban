@@ -108,19 +108,6 @@ const en: BoardCopy = {
       },
     },
   },
-  partner: {
-    expand: "Link a previous task",
-    search: "Search by number or title",
-    onBoard: "on the board",
-    empty: "No card matches.",
-    failed: "The board could not be read.",
-    retry: "Try again",
-    clear: "Unlink this task",
-    team: {
-      name: "Share with the team when it ends",
-      label: "Share this conversation with the AI4Kanban team",
-    },
-  },
   cheer: {
     group: (count) => `Group of ${count} done`,
     first: "First task done today",

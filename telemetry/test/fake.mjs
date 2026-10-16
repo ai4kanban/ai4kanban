@@ -38,6 +38,7 @@ export function fakeDatabase() {
   db.exec(readFileSync(new URL('../migrations/0001_events.sql', import.meta.url), 'utf8'))
   db.exec(readFileSync(new URL('../migrations/0002_feedback.sql', import.meta.url), 'utf8'))
   db.exec(readFileSync(new URL('../migrations/0003_installs.sql', import.meta.url), 'utf8'))
+  db.exec(readFileSync(new URL('../migrations/0004_drop_feedback.sql', import.meta.url), 'utf8'))
 
   const d1 = {
     sqlite: db,

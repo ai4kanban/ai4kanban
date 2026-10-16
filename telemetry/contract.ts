@@ -16,16 +16,6 @@ export const ENDPOINT = {
 } as const
 
 /**
- * Where a piece of feedback is posted (#603). Its own route on the same service, never
- * `/v1/batch`: a batch stores no free text at all, and the two are kept apart the whole way
- * down — own tables, own size limit, own retention, and out of the daily archive.
- */
-export const FEEDBACK_ENDPOINT = {
-  production: 'https://t.ai4kanban.dev/v1/feedback',
-  development: 'https://t-dev.ai4kanban.dev/v1/feedback',
-} as const
-
-/**
  * The one route that answers with a number (#728): installs that have ever reported a first
  * run, for the installs badge on the README. A GET with no parameters, and the body is a
  * shields.io endpoint badge — shields refuses a body carrying a key its own schema does not
@@ -62,15 +52,6 @@ export const LIMITS = {
   appBatchesPerDay: 1,
   /** How long a raw event is kept. #293's privacy page states the same number. */
   retentionDays: 90,
-  /** One posted piece of feedback (#603), body and attachments together. Far larger than a
-   *  batch, because a conversation on its own is 10-20 kB — and still small enough that one
-   *  submission is a handful of D1 rows. */
-  feedbackBytes: 1024 * 1024,
-  /** What one attachment may carry. The sender cuts a longer one off rather than dropping
-   *  it, and says in the preview that it did. */
-  feedbackPartBytes: 256 * 1024,
-  /** Characters of the feedback the user actually wrote. */
-  feedbackTextChars: 4_000,
   // A case (#628) has no limit of its own (#685). It is one shared conversation with the
   // traces and project files that reproduce it, and a case cut down to fit is a reproduction
   // that no longer reproduces — so nothing here truncates one, and the platform's own refusal
@@ -193,56 +174,11 @@ export interface SentBatch {
 /** The contract's own version, sent as `v`. A batch that names another is refused. */
 export const VERSION = 1
 
-// ---- feedback (#603) --------------------------------------------------------
-//
-// The one thing this service takes that a person wrote. It is not an event and shares
-// nothing with the tables above: the body is kept indefinitely, its attachments are swept
-// on the same 90 days a raw event gets, and neither is written into the daily archive.
-
-/** What a diagnostic attachment holds. The four are listed on screen with their sizes
- *  before anything is sent, each one previewable and each one removable on its own. */
-export const FEEDBACK_PARTS = ['card', 'chat', 'trace', 'environment'] as const
-
-export type FeedbackPart = (typeof FEEDBACK_PARTS)[number]
-
-/** Where the feedback was written. `task` is the block on New task; `board` is the Feedback
- *  button, which takes feedback about anything at all. */
-export const FEEDBACK_SOURCES = ['task', 'board'] as const
-
-export type FeedbackSource = (typeof FEEDBACK_SOURCES)[number]
-
-/** One attachment, as the sender posts it. */
-export interface SentFeedbackPart {
-  part: string
-  text: string
-}
-
-/**
- * One piece of feedback, as a sender posts it.
- *
- * `install` is this machine's EXISTING id and is absent when usage reporting is off — the
- * sender never makes one to send feedback. `card` is the archived card the feedback is
- * about, as its number on that board, and is absent when none was linked.
- */
-export interface SentFeedback {
-  v: number
-  install?: string
-  id: string
-  day: string
-  source: string
-  surface: string
-  version: string
-  card?: number
-  text: string
-  parts?: SentFeedbackPart[]
-}
-
 // ---- a partner's refine case (#628) -----------------------------------------
 //
-// The third thing this service takes, and the only one that carries project files. A piece
-// of feedback is a sentence and four small attachments; a case is everything needed to
+// The only thing this service takes that carries project files: everything needed to
 // REPRODUCE one refine going wrong — the raw traces of that refine's runs and the project
-// files those runs read. It shares nothing with the two above: its own route, its own private
+// files those runs read. It shares nothing with the batches above: its own route, its own private
 // bucket, its own deletion key, and no size limit at all (#685) — what the user shared is
 // stored whole, because a case cut down to fit reproduces nothing.
 //
@@ -250,8 +186,7 @@ export interface SentFeedback {
 // gets one, so the deletion request works from any machine — and the same id posted twice is
 // the same object, which is what makes a retry safe.
 
-/** Where one case is posted. Its own route, never `/v1/feedback`: that one is a handful of
- *  D1 rows and this is an object in a bucket nothing else writes. */
+/** Where one case is posted: an object in a bucket nothing else writes. */
 export const CASE_ENDPOINT = {
   production: 'https://t.ai4kanban.dev/v1/case',
   development: 'https://t-dev.ai4kanban.dev/v1/case',

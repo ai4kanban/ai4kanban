@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
-import { CASE_ENDPOINT, ENDPOINT, FEEDBACK_ENDPOINT } from '../contract.ts'
+import { CASE_ENDPOINT, ENDPOINT } from '../contract.ts'
 import { DATASET } from '../src/usage.ts'
 import { COPIES } from '../scripts/copies.mjs'
 
@@ -14,7 +14,7 @@ const config = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8
 
 describe('the deployed shape', () => {
   it('answers on the addresses the contract sends to', () => {
-    for (const address of [ENDPOINT, FEEDBACK_ENDPOINT, CASE_ENDPOINT].flatMap((e) => Object.values(e))) {
+    for (const address of [ENDPOINT, CASE_ENDPOINT].flatMap((e) => Object.values(e))) {
       assert.ok(config.includes(new URL(address).hostname), address)
     }
   })

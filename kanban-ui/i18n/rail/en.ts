@@ -21,7 +21,6 @@ const en: RailCopy = {
     menu: (name) => `What to do with ${name}`,
     archive: "End discussion",
     archiveFailed: "Could not end that discussion.",
-    archiveNeedsCard: "Open it to pick the task it shares, or turn sharing off.",
   },
   memory: {
     heading: "Memory",

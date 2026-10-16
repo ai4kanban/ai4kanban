@@ -8,9 +8,7 @@
  * disagree with. The eval cases a submission was later entered into live under the same
  * prefix, which is what makes "delete the pack and everything it became" one operation.
  *
- * Nothing about it touches D1. The feedback tables promise a 90-day sweep on their
- * attachments (#603) and a case is kept until it is asked for back, so the two never share a
- * store.
+ * Nothing about it touches D1: a case is kept until it is asked for back.
  */
 
 import { CASE_ID, DAY, LIMITS, SURFACES, TOKEN, VERSION } from '../contract.ts'

@@ -3,7 +3,7 @@
 The one service AI4Kanban runs: a Cloudflare Worker at `t.ai4kanban.dev` in front of a D1
 database. It takes small batches of usage events from the app, the `akb` command and the
 site, keeps the raw events 90 days, and writes one summary a day and one archive file a day
-that outlive them. It also takes feedback a person wrote (#603), on a route of its own.
+that outlive them.
 The one number it answers a request with is the installs total the README's badge reads
 (#728); every other number is read from this repository with the Cloudflare account we
 already hold — `npm run numbers` prints them, `npm run numbers:web` puts them on a page.
@@ -44,11 +44,6 @@ telemetry/
   dimension and never the rows, so a crossing nobody thought to store would be unanswerable
   once the sweep took the day. The archive is the answer, and the sweep may only take a day
   it already holds.
-- **Feedback is the one thing here a person wrote, and it is kept apart.** `/v1/feedback`
-  has its own size limit, its own two tables, and its own answer: a batch is taken whatever
-  came of it, while a submission that did not land is answered as such and the screen it was
-  written on says so. The body is kept indefinitely, its diagnostic attachments are swept at
-  90 days, and neither is written into the daily archive.
 - **One number leaves without the account, and it is a total.** `/v1/installs` answers
   installs that have ever reported a first run, as a shields.io endpoint badge and nothing
   else: the daily job writes the running total into a table of its own, the route reads one
@@ -101,7 +96,7 @@ npm run migrate            # the migrations alone, without deploying
 npm run check:live         # migrations to apply and Worker commits not live; exits 1 when behind
 npm run numbers            # the last 14 days; --days N, --dev, --json
 npm run numbers:web        # the same production numbers on a page, this machine only
-npm run forget -- <id>     # delete one install's events and feedback, archive files included
+npm run forget -- <id>     # delete one install's events, archive files included
 npm run forget:case -- <fb_id>  # delete one partner case and every eval case made from it
 npm run burst              # a bounded release-day burst, development copy only
 npm test                   # the Worker's checks, and the SQL against a real SQLite
@@ -133,8 +128,7 @@ an event that otherwise stores — silently for as long as the two are apart. Ad
 
 **Forgetting is asked for before reporting is switched off.** #293 shows the install id only
 while reporting is on, so someone who switches off first has no id left to give us. What goes
-is the raw events and every piece of feedback that install sent, and with the events that
-install's place in every day still open for late events; a settled day keeps the counts it
+is the raw events, and with them that install's place in every day still open for late events; a settled day keeps the counts it
 reported. `forget` then reads back every archive file the install could appear in and
 rewrites the ones that carried it, and says how many of each. That walk covers every day from `archiveFrom` to the retention edge, so it reads a few
 hundred megabytes and takes minutes.
@@ -156,9 +150,6 @@ on: an event taken before then was taken under a privacy page that promised dele
 ```
 events/2026-12-07.jsonl   one JSON object a line, uncompressed, ≈1 MB a day
 ```
-
-Events only. Feedback is never written here: a file kept indefinitely would put free text
-someone typed beyond the reach of the retention the privacy page states for it.
 
 Each line is one event row with every column it had, `fields` nested as an object rather than
 as JSON text. A day the service saw nothing on is an empty file, so a missing file means

@@ -27,7 +27,6 @@ import {
   stopChatBackground,
 } from './chat'
 import { settlePlans } from './discuss'
-import { endBlocked, END_BLOCK_SAID, type EndBlock } from './share'
 import { peekRun, titleOf } from './sessions'
 import { runIsLive } from './store'
 import {
@@ -135,17 +134,12 @@ export function titleDiscussion(target: DiscussionTarget, title: string): void {
  *  not free a card its reply is holding, and the next message said into it brings the row back.
  *
  *  Its transcript stays on disk — `akb chat --clear` is still the only thing that forgets a
- *  conversation.
- *
- *  It is one of the three ends a shared conversation submits on (#659), so it is also where
- *  one that cannot end yet is refused — with a code the screen writes its own words for. */
+ *  conversation. */
 export function archiveDiscussion(
   target: ChatTarget,
-): { ok: true; plans: string[] } | { error: string; reason?: EndBlock } {
+): { ok: true; plans: string[] } | { error: string } {
   const chat = readChat(target)
   if (!chat) return { error: `no conversation called "${target}" on this board.` }
-  const held = endBlocked(target)
-  if (held) return { error: END_BLOCK_SAID[held], reason: held }
   stopChatBackground(target)
   const dropped = (chat.plans ?? []).filter((p) => !p.run && dropPlan(p.path)).map((p) => p.path)
   setChatArchived(target, true)

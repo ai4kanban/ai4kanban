@@ -2,9 +2,8 @@
  * The one job the service runs on a clock, in the last hour of the UTC day so it spends what
  * the day's allowance has left rather than taking it from the senders first.
  *
- * Five steps today — write the expiring days out to the archive, delete what has expired,
- * sweep the diagnostic attachments feedback carried (#603), write the summaries, then add
- * them up into the installs total the badge reads (#728) — and each stands on its own: a step
+ * Four steps today — write the expiring days out to the archive, delete what has expired,
+ * write the summaries, then add them up into the installs total the badge reads (#728) — and each stands on its own: a step
  * that fails leaves the rest of the job standing. Two orders matter: the sweep may only take
  * a day the archive already holds, and the installs total is worked out from the summaries
  * this run just wrote. #400's daily pull of the public GitHub and npm counts is the next step,
@@ -38,10 +37,6 @@ const ARCHIVE_CHUNKS = 8
 /** Rows one delete takes. Small enough that a chunk that fails costs one statement. */
 const SWEEP_CHUNK = 2_500
 const SWEEP_CHUNKS = 10
-/** The feedback attachments' share. A handful of rows a day at most, so a few statements is
- *  more than the whole of it. */
-const FEEDBACK_CHUNK = 500
-const FEEDBACK_CHUNKS = 3
 /** The day list, the spreads, the totals, and the write — all of them for the whole window
  *  at once, so this is what the summaries cost whether the run writes one day or ninety. D1
  *  takes only five branches in one compound SELECT, so the spreads are several queries rather
@@ -56,13 +51,6 @@ const EXPIRED = 'SELECT day FROM events WHERE day < ?1 GROUP BY day ORDER BY day
 export const SWEEP = `
 DELETE FROM events WHERE (install_id, event_id) IN (
   SELECT install_id, event_id FROM events WHERE day = ?1 LIMIT ?2
-)`
-
-/** The attachments only. The body they came with is kept indefinitely and is not this
- *  deletion's business, which is why they live in a table of their own (#603). */
-export const SWEEP_FEEDBACK_FILES = `
-DELETE FROM feedback_files WHERE (install_id, feedback_id, part) IN (
-  SELECT install_id, feedback_id, part FROM feedback_files WHERE day < ?1 LIMIT ?2
 )`
 
 const SUMMARISED = 'SELECT day, settled FROM daily WHERE day >= ?1'
@@ -80,8 +68,6 @@ export interface DailyRun {
   /** Event rows those files carry. */
   archivedRows: number
   swept: number
-  /** Feedback attachments deleted (#603). Their bodies are untouched. */
-  sweptFeedbackFiles: number
   /** Expired days the sweep left where they are, waiting on their archive file. Anything but
    *  zero for long means the database is growing until the archive is fixed. */
   held: number
@@ -103,7 +89,6 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
     archived: [],
     archivedRows: 0,
     swept: 0,
-    sweptFeedbackFiles: 0,
     held: 0,
     summarised: [],
     countedInstalls: false,
@@ -156,16 +141,6 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
     run.failed.push('sweep')
   }
 
-  // Feedback's attachments, on the same 90 days a raw event gets (#603). Nothing archives
-  // them first: feedback is never written into the daily archive, so there is no frontier to
-  // wait on and `day < edge` here is the retention edge itself.
-  try {
-    left = await sweepFeedbackFiles(env, today, left, run)
-  } catch (error) {
-    console.error('telemetry: feedback sweep failed', error)
-    run.failed.push('feedback')
-  }
-
   try {
     left = await summarise(env, today, left, run)
   } catch (error) {
@@ -190,26 +165,6 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
   spent(env, today, run.rowsWritten, run.rowsRead)
   console.log('telemetry: daily', { ...run, budgetLeft: left })
   return run
-}
-
-/** The expired attachments, in chunks, for as much of the run's budget as they need. */
-async function sweepFeedbackFiles(
-  env: Env,
-  today: string,
-  budget: number,
-  run: DailyRun,
-): Promise<number> {
-  let left = budget
-  const before = shift(today, -LIMITS.retentionDays)
-  for (let chunk = 0; chunk < FEEDBACK_CHUNKS && left > 0; chunk += 1) {
-    left -= 1
-    const result = await env.DB.prepare(SWEEP_FEEDBACK_FILES).bind(before, FEEDBACK_CHUNK).run()
-    run.sweptFeedbackFiles += result.meta.changes
-    run.rowsWritten += result.meta.rows_written
-    run.rowsRead += result.meta.rows_read
-    if (result.meta.changes < FEEDBACK_CHUNK) break
-  }
-  return left
 }
 
 /**

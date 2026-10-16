@@ -144,26 +144,6 @@ export type BoardCopy = {
       };
     };
   };
-  /** Team feedback (#628, #679) — the switch under the box, and the card a discussion says
-   *  its problem is about. It says what the user did and what will happen; never an
-   *  endpoint, a storage, a flow id or a run. */
-  partner: {
-    /** The heading over the link area, which opens with sharing and folds nowhere. */
-    expand: string;
-    search: string;
-    /** Beside a card that has not been archived yet. */
-    onBoard: string;
-    empty: string;
-    failed: string;
-    retry: string;
-    clear: string;
-    /** The switch under the box: what it says — the same either way, because what it does
-     *  does not change — and the name it is read out by. */
-    team: {
-      name: string;
-      label: string;
-    };
-  };
   /** The corner office cheering a milestone (#1331): why, in bold, then what it names or
    *  counts. Says "done", never how the work got onto the branch. */
   cheer: {

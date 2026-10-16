@@ -129,12 +129,7 @@ export { createImageAgents } from './lib/agent/runner'
 // and letting a finished plan go. The plan file itself is `plans/<id>-<slug>.md`, numbered
 // off next-id by `akb raw plan new` — the one move that allocates an id and writes no card.
 export { readDiscuss, startedPlanning } from './lib/agent/discuss'
-export { clearChatPlan, noteChatMessage, setChatCard, setChatShare } from './lib/agent/chat'
-
-// What ending a shared conversation does (#659, #679). The switch under the box collects
-// nothing while the conversation is going; this is the whole of what it costs, and it is
-// called after the end has already happened so nothing of it holds the screen up.
-export { shareOnEnd } from './lib/agent/share'
+export { clearChatPlan, noteChatMessage } from './lib/agent/chat'
 
 // The discussions a board is holding (#496). A board holds many at once — each with its own
 // transcript, agent session and plans — so the rail lists them and Create task opens a new
@@ -427,36 +422,15 @@ export type { UsageReporting } from './lib/machine/types'
 export { reportAppOpen, reportUsage, sendUsage } from './lib/machine/usage'
 export type { Surface as UsageSurface } from './lib/machine/usage'
 
-// Feedback (#603) — what a person wrote, on its own route, awaited and answered. It does
-// NOT go through the queue above: nobody waits on a number, and somebody is waiting on this.
-// `readFeedbackDiagnostics` is what the screen lists before the second authorisation — the
-// four parts, their sizes, and exactly the text each one would send.
-export { sendFeedback } from './lib/machine/feedback'
-export type { FeedbackFailure, FeedbackSent, FeedbackToSend } from './lib/machine/feedback'
-export { readFeedbackDiagnostics } from './lib/view/feedback'
-export type { FeedbackAttachment, FeedbackDiagnostics } from './lib/view/feedback'
-export { FEEDBACK_PARTS } from '../../telemetry/contract'
-export type { FeedbackPart, FeedbackSource, SentFeedbackPart } from '../../telemetry/contract'
-
-// Partner feedback (#628) — the switch, and the submission one discussion is holding.
-//
-// It is NOT the route above. That one takes a sentence and four small attachments on this
-// machine's usage install id; this one takes a refine's raw traces and the project files
-// behind them, keyed by a submission id the user is shown and quotes to have it deleted. So
-// the switch is its own answer too: `readPartnerFeedback` is off until somebody turns it on,
-// which is the opposite default from the anonymous numbers and the opposite reason.
-//
-// `searchLinkable` is the Discuss link: open cards as well as archived ones, because a
-// complaint about a spec is usually about the card in front of you. It is offered whichever
-// way the switch is set — linking is what hands the turn to the `feedback` agent, and the
-// switch gates only what may be collected, which is this side's answer and not the screen's.
+// Partner feedback (#628) — the switch, and the submission one discussion is holding. It
+// takes a refine's raw traces and the project files behind them, keyed by a submission id
+// the user quotes to have it deleted. `readPartnerFeedback` is off until somebody turns it on.
 export { readPartnerFeedback, setPartnerFeedback } from './lib/machine/telemetry'
 export type { PartnerFeedback } from './lib/machine/types'
 export {
   dropCase,
   readCase,
   retryCase,
-  searchLinkable,
   sendTextOnlyCase,
 } from './lib/case'
 export type { CaseFailure, CaseRecord, CaseStatus } from './lib/case'

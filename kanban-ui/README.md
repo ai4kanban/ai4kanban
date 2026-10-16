@@ -93,20 +93,6 @@ It never shows in **Runs**.
 
 Plans are board content and travel with the board.
 
-### Sharing a conversation with the team
-
-**Share with the team when it ends**, under the New idea box and under a card's discussion, sends the
-whole conversation and the code behind it to the AI4Kanban team when the conversation ends.
-
-- **What ends it**: **Plan tasks**, **Start now**, or **End discussion** on the rail's **⋯**.
-  Closing the screen, Esc, or cancelling Start now does not.
-- **Off by default** on every conversation. The first time you turn it on, it shows what is
-  shared. Nothing is collected until the end, so turning it off or clearing the conversation
-  leaves nothing behind.
-- **A discussion needs a card**: turning the switch on opens **Link a previous task**. Until you
-  pick one or turn sharing off, the plan's buttons and **End discussion** are refused. A card's
-  chat is already about its card.
-
 ### Reading a card
 
 A card has two halves. The top is for you: what the task does and what is worth accepting or

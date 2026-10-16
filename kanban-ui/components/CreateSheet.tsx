@@ -3,7 +3,7 @@
 // Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
 // picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { useBodySlot } from "@/lib/body-slot";
@@ -29,7 +29,6 @@ import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
 import { configDialog } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
-import { DiscussFeedbackBlock, ShareRow, useDiscussFeedback, type DiscussFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
 import { blockedStages, useWorkflowName } from "./Workflows";
 import { useWorkflows } from "@/lib/window-state";
@@ -85,27 +84,7 @@ interface Props {
 export function CreateSheet(props: Props) {
   const onBoardChanged = useBoardChanged();
   const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion, onBoardChanged });
-  // The card this discussion is linked to (#628). Held beside the rail rather than inside
-  // the composer — and seeded from the rail's own read,
-  // because the link lives beside the transcript and comes back with it (#679).
-  const partner = useDiscussFeedback(props.discussion, rail.read?.chat?.linkedCard ?? null);
-  // Sharing is the only thing that ever asks for a card, so turning it off takes the card
-  // with it (#659) — the board drops it beside the transcript, and the screen lets go of it
-  // here, in the one place that holds both.
-  const shared = useMemo<ChatRail>(
-    () => ({
-      ...rail,
-      share: {
-        ...rail.share,
-        flip: (next) => {
-          if (!next) partner.forget();
-          rail.share.flip(next);
-        },
-      },
-    }),
-    [rail, partner],
-  );
-  return <Sheet {...props} rail={shared} partner={partner} />;
+  return <Sheet {...props} rail={rail} />;
 }
 
 function Sheet({
@@ -118,8 +97,7 @@ function Sheet({
   failures,
   rerouted,
   rail,
-  partner,
-}: Props & { rail: ChatRail; partner: DiscussFeedback }) {
+}: Props & { rail: ChatRail }) {
   const c = useCopy().board.create.sheet;
   const close = useCopy().shared.close;
   const plan = usePlanPanel(discussion);
@@ -215,11 +193,6 @@ function Sheet({
   const beside = plan.open && plan.beside && !plan.full;
   const collapsed = plan.open && !plan.beside && !plan.full;
   const over = plan.open && !beside && !collapsed;
-  // Sharing promises that ending submits, and a submission is filed under a card — so with
-  // the switch on and nothing linked, none of the three ends is allowed to happen (#659).
-  // Two of them are here. Nothing is said about it: the card search is open under the box,
-  // which is both the reason and the way out of it.
-  const endHeld = rail.share.offered && rail.share.on && partner.offered && !partner.linked;
   // The answers sit under the agent's own last word where the conversation has the
   // screen to itself, and under the plan's row where it does not — beside the box either
   // way, so a plan opened out never takes them away.
@@ -227,7 +200,6 @@ function Sheet({
     <Handoff
       plan={plan}
       rail={rail}
-      held={endHeld}
       rows={rows}
       starting={starting}
       failures={failures}
@@ -258,9 +230,6 @@ function Sheet({
       discuss: true,
       images: shots,
       box: shots.length ? pictures.box : undefined,
-      // The card this discussion is about (#628), which hands the turn to the `feedback`
-      // agent. Sharing is the switch under the box, and the rail carries that itself.
-      feedback: partner.sending,
       triage: discussion ? discussionTriage.get(discussion) : undefined,
     });
     setSending(false);
@@ -295,7 +264,6 @@ function Sheet({
       }}
       talking={talking || opening}
       onSend={() => void send()}
-      partner={rail.share.on ? partner : null}
     />
   );
 
@@ -472,7 +440,6 @@ function Composer({
   onText,
   talking,
   onSend,
-  partner,
   closed,
   shut,
 }: {
@@ -491,8 +458,6 @@ function Composer({
   onText(value: string): void;
   talking: boolean;
   onSend(): void;
-  /** The partner submission block (#628), while sharing is on. */
-  partner: DiscussFeedback | null;
 }) {
   const c = useCopy().board.create.sheet;
   const chat = useCopy().chat;
@@ -556,12 +521,7 @@ function Composer({
             {answering && <span className="shrink-0">{chat.sendingWaits}</span>}
           </span>
         }
-        // Opposite it, on the same line: whether ending this discussion shares it with the
-        // AI4Kanban team (#679).
-        aside={<ShareRow share={rail.share} />}
       />
-      {/* The card this complaint is about (#628), and what came of sharing it. */}
-      {partner && <DiscussFeedbackBlock feedback={partner} />}
     </>
   );
 }
@@ -576,7 +536,6 @@ function Composer({
 function Handoff({
   plan,
   rail,
-  held,
   rows,
   starting,
   failures,
@@ -589,9 +548,6 @@ function Handoff({
 }: {
   plan: PlanPanel;
   rail: ChatRail;
-  /** This discussion shares when it ends and has no card to share under (#659), so every
-   *  answer is down: Start now's "are you sure?" never opens, and no run starts. */
-  held: boolean;
   rows: HandoffRow[];
   starting: Starting | null;
   failures: Record<string, StartFailure>;
@@ -620,7 +576,7 @@ function Handoff({
   // nothing in it to act on.
   const answered = rail.read?.chat?.messages.at(-1)?.role === "agent" || rows.some((r) => r.run || r.cards?.length);
   const idle = plan.shown && !rail.answering && rail.live === null && answered;
-  const down = held || starting !== null || rows.some((r) => r.run?.running && r.run.answer === "plan");
+  const down = starting !== null || rows.some((r) => r.run?.running && r.run.answer === "plan");
   const pick = (r: HandoffRow): PlanPick => ({ path: r.path, workflow: workflowOf(r) || undefined });
   const lockedOf = (r: HandoffRow) => !!lock && !!flows?.find((f) => f.id === workflowOf(r))?.pro;
   const startingOn = (r: HandoffRow) =>

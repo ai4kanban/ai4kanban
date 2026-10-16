@@ -26,7 +26,6 @@ import { plansNamed } from '../card-sources'
 import { parseFrontmatter } from '../frontmatter'
 import { archivePlan, planFromText, planHeading, planPathInText, readPlan } from '../plans'
 import { archiveInboxItem } from '../signals/inbox'
-import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
 import {
   isDiscussion,
   type BecameCard,
@@ -110,18 +109,15 @@ function shown(plan: ChatPlan): DiscussPlan | null {
  *  Held on the discussion so reopening it says the run is still working.
  *
  *  Handing over the last plan still waiting ends the discussion (#551, #1442): it goes out of
- *  the rail, marked the board's own so a run that writes no card can put it back, and it
- *  submits (#659). A plan whose run ended with no card is waiting again. An end can be
- *  refused, and then nothing is handed over.
+ *  the rail, marked the board's own so a run that writes no card can put it back. A plan
+ *  whose run ended with no card is waiting again.
  */
 export function startedPlanning(
   sessionId: string,
   answer: PlanAnswer = 'plan',
   target: ChatTarget = null,
   paths?: string[],
-): { ok: true } | { error: string; reason: EndBlock } {
-  const held = endBlocked(target)
-  if (held) return { error: END_BLOCK_SAID[held], reason: held }
+): { ok: true } {
   // None named is every open one, which is what a screen older than #917 hands over.
   const rels = paths?.map(planFromText).filter((p): p is string => p !== null)
   const handed = setChatPlanRun(target, sessionId, answer, rels ?? openPlans(readChat(target)).map((p) => p.path))
@@ -131,12 +127,7 @@ export function startedPlanning(
     return id === sessionId || !run || runIsLive(run)
   }
   const waiting = openPlans(readChat(target)).some((p) => !p.run || !live(p.run))
-  if (handed && !waiting && isDiscussion(target)) {
-    setChatArchived(target, true, 'board')
-    // Never waited on. A run said into this discussion's session submits once it ends instead
-    // (#1026).
-    if (!peekRun(sessionId)?.chat) void shareOnEnd(target).catch(() => {})
-  }
+  if (handed && !waiting && isDiscussion(target)) setChatArchived(target, true, 'board')
   return { ok: true }
 }
 

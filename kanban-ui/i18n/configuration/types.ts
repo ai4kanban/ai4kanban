@@ -515,40 +515,12 @@ export type ConfigurationCopy = {
   privacy: {
     title: string;
     body: string;
-    /** That the switch above is about the anonymous numbers alone, and does not reach the
-     *  feedback a user sends (#603) — which carries what they wrote, on a press, either way. */
-    feedback: string;
     /** What the switch says to a screen reader — the switch itself is the only state on
      *  screen, the same as every other switch in this dialog. */
     switchOn: (name: string) => string;
     switchOff: (name: string) => string;
     /** The settings file is there and cannot be read, so nothing sends and nothing saves. */
     unreadable: string;
-    failedOn: string;
-    failedOff: string;
-  };
-  /** Partner feedback (#628) — the machine-level switch beside usage reporting, and the one
-   *  page of terms read before it goes on. It says what the user does and what is shared;
-   *  never an endpoint, a storage, a run id or a file path. */
-  partner: {
-    title: string;
-    /** The one line under the row's name. */
-    body: string;
-    /** Opens the terms, whichever way the switch is set. */
-    terms: string;
-    /** The page read before it is turned on. Turning it back off never shows it. */
-    consent: {
-      title: string;
-      blurb: string;
-      choice: string;
-      terms: string[];
-      /** Under the buttons — that this is not a one-way door. */
-      reversible: string;
-      cancel: string;
-      confirm: string;
-    };
-    switchOn: (name: string) => string;
-    switchOff: (name: string) => string;
     failedOn: string;
     failedOff: string;
   };

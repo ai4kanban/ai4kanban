@@ -201,7 +201,7 @@ export {
   notificationGroup,
 } from "./format/cloud/events";
 
-export type { Language, PartnerFeedback, UsageReporting } from "./format/machine/types";
+export type { Language, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
@@ -348,85 +348,4 @@ export interface SessionView {
    *  still in the live record (#417). It is what the panel groups a job by, so a run whose
    *  stored flow disagrees is drawn where it belongs without any record being rewritten. */
   deliveryId?: string;
-}
-
-// ---- feedback (#603) --------------------------------------------------------
-//
-// Declared here rather than copied from `lib/format/`: the rules' own modules reach for the
-// filesystem and the board's paths, so they are not shareable — these are the shapes the
-// screens name what comes back by.
-
-/** What a diagnostic attachment holds. Each is listed with its size, previewed, and removed
- *  on its own before anything is sent. */
-export type FeedbackPart = "card" | "chat" | "trace" | "environment";
-
-/** Where the feedback was written: the block on New task. */
-export type FeedbackSource = "task";
-
-/** One attachment, exactly as it would be sent — so the preview IS the submission. */
-export interface FeedbackAttachment {
-  part: FeedbackPart;
-  text: string;
-  /** What this machine holds, in bytes. Larger than `text` when it was cut. */
-  bytes: number;
-  cut: boolean;
-}
-
-/** What one archived card has to attach. A part with nothing behind it is absent. */
-export interface FeedbackDiagnostics {
-  cardId: number;
-  attachments: FeedbackAttachment[];
-}
-
-/** Why a submission did not go, as a name the screen says in its own language. */
-export type FeedbackFailure = "empty" | "too-large" | "refused" | "unreachable";
-
-export interface FeedbackSent {
-  ok: boolean;
-  reason?: FeedbackFailure;
-  /** The status or network error behind it. Never the whole of what a screen shows. */
-  detail?: string;
-}
-
-/** What a screen hands the sender. Everything optional is a separate authorisation. */
-export interface FeedbackToSend {
-  text: string;
-  source: FeedbackSource;
-  cardId?: number;
-  parts?: { part: FeedbackPart; text: string }[];
-}
-
-// ---- partner feedback (#628) ------------------------------------------------
-//
-// A different thing from the feedback above, and never mixed with it. That one is a sentence
-// and four small attachments the user reads before they go; this one is the material that
-// would REPRODUCE one refine going wrong — the raw traces of its runs and the project files
-// they read — collected by the `feedback` agent after the user says, in a discussion, that a
-// spec missed what they meant.
-//
-// Two answers are required and neither implies the other: this machine takes part at all
-// (Configuration → General → Partner feedback), and the user ticked share on this one
-// message. Either alone collects nothing.
-
-/** How far one submission has got. `collecting` also covers the agent having asked a
- *  question instead — nothing is settled, so nothing has been collected. */
-export type CaseStatus = "collecting" | "sent" | "failed";
-
-/** Why a submission did not go. */
-export type CaseFailure = "too-large" | "refused" | "unreachable" | "nothing-collected";
-
-/** One submission, as the discussion holds it. `id` is what the screen shows and what the
- *  user quotes to have the material deleted. */
-export interface CaseRecord {
-  id: string;
-  discussion: string;
-  cardId: number;
-  text: string;
-  status: CaseStatus;
-  reason?: CaseFailure;
-  /** Everything the pack could not establish — a trace already cleaned up, a file that only
-   *  went as this checkout's copy. Written down rather than dropped. */
-  gaps?: string[];
-  startedAt: number;
-  sentAt?: number;
 }

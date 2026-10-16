@@ -37,8 +37,7 @@ import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './l
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
 import { openPlan } from './resolve'
-import { chatOfKey, chatRunEnded, handOffToCards } from './chat'
-import { shareOnEnd } from './share'
+import { chatRunEnded, handOffToCards } from './chat'
 import { humanSectionFor } from './runner'
 import { planRetry, retryLine } from './retry'
 import {
@@ -765,13 +764,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         await reportRunEnded(sessionId, record.cardId, status)
       }
       // The conversation it was said into is free again (#1026) — unless a resume took the run
-      // over — and the end that handoff made submits only now.
+      // over.
       const left = record.chat ? peekRun(sessionId) : undefined
       if (record.chat && left) {
         chatRunEnded(record.chat, left.resumeId)
         handOffToCards(record.chat, left.createdCardIds ?? [])
-        const target = chatOfKey(record.chat)
-        if (target !== undefined) await shareOnEnd(target).catch(() => {})
       }
       resolve(status === 'done' ? 0 : 1)
     }

@@ -101,19 +101,6 @@ const zh: BoardCopy = {
       },
     },
   },
-  partner: {
-    expand: "关联之前的卡片",
-    search: "按编号或标题搜索",
-    onBoard: "进行中",
-    empty: "没有匹配的卡片。",
-    failed: "看板读取失败。",
-    retry: "重试",
-    clear: "取消关联",
-    team: {
-      name: "结束时分享给团队",
-      label: "把这段对话分享给 AI4Kanban 团队",
-    },
-  },
   cheer: {
     group: (count) => `${count} 个任务整组完成`,
     first: "今天第一个任务完成",

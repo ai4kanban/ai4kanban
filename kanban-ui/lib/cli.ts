@@ -6,13 +6,6 @@ import { getCopy } from "@/i18n";
 import { kanbanDir, repoRoot } from "./paths";
 import { DEFAULT_LANGUAGE } from "./types";
 import type {
-  CaseRecord,
-  FeedbackDiagnostics,
-  FeedbackSent,
-  FeedbackToSend,
-  PartnerFeedback,
-} from "./types";
-import type {
   AgentInfo,
   AgentRequest,
   AgentView,
@@ -63,7 +56,6 @@ import type { Language, UsageReporting } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
   ArchiveList,
-  ArchivedCard,
   ArchivedCardFile,
   Board,
   Card,
@@ -356,14 +348,6 @@ export interface BoardRules {
       /** The pictures pasted into this message (#441), as the names `addChatImage` filed
        *  them under. Rules from before it ignore them, and the words go on their own. */
       images?: string[];
-      /** The card this message is a complaint about (#628). The rules hand the turn to the
-       *  `feedback` agent on it — same session, same runtime, same transcript. Rules from
-       *  before it ignore it, and the turn is an ordinary discussion. */
-      feedback?: { cardId: number; share?: boolean };
-      /** Where the switch under the box stands as this message goes (#679). It rides on the
-       *  message because a conversation nobody has spoken into yet has no file to write it
-       *  to. Rules from before it ignore it, and the switch is not drawn on such a board. */
-      share?: boolean;
       /** The triage item a discussion was opened from (#1252). Rules from before it ignore
        *  it, and the item stays in triage. */
       triage?: string;
@@ -410,17 +394,14 @@ export interface BoardRules {
   /** The run this plan was handed to has started, and which of the handoff's answers handed
    *  it over (#481) — so reopening Discuss says it is still working rather than offering a
    *  second one, and names a build where that is what is working. Rules from before the third
-   *  answer take the id alone and record a planning run.
-   *
-   *  It is also an end, so it can be refused (#659): rules that answer `{ error }` did not
-   *  hand the plan over. Older rules answer nothing, which is the handoff they always made. */
+   *  answer take the id alone and record a planning run. */
   startedPlanning?(
     sessionId: string,
     answer?: PlanAnswer,
     target?: ChatTarget,
     /** The plans the run was pointed at (#917); rules older than that hand over the live one. */
     paths?: string[],
-  ): void | { ok: true } | { error: string; reason?: string };
+  ): void | { ok: true } | { error: string };
 
   // The discussions this board is holding (#496). The rail lists them, Create task opens a
   // new one on every press, and a row's menu takes one out of the list. Optional: rules from
@@ -431,7 +412,7 @@ export interface BoardRules {
    *  discussions alone. */
   listConversations?(): ConversationRow[];
   startDiscussion?(): DiscussionTarget;
-  archiveDiscussion?(target: ChatTarget): { ok: true; plans?: string[] } | { error: string; reason?: string };
+  archiveDiscussion?(target: ChatTarget): { ok: true; plans?: string[] } | { error: string };
   titleDiscussion?(target: DiscussionTarget, title: string): void;
   /** The discussion a string names, spelled either way — null for anything this board did
    *  not write, so nothing arriving from a browser can name a file of ours by accident. */
@@ -441,14 +422,6 @@ export interface BoardRules {
   /** Write one line into the transcript as something the user said, with no turn behind it:
    *  a pressed answer the board itself acts on. */
   noteChatMessage?(cardId: ChatTarget, text: string): void;
-
-  /** The switch under the box (#679): whether ending this conversation shares it with the
-   *  AI4Kanban team, and the card a discussion says its problem is about. Optional — a board
-   *  running older rules draws no switch. Nothing is collected by either; `shareOnEnd` is
-   *  what ending it costs, and it is called after the end rather than waited on. */
-  setChatShare?(target: ChatTarget, on: boolean): void;
-  setChatCard?(target: ChatTarget, card: number | null): void;
-  shareOnEnd?(target: ChatTarget): Promise<void>;
 
   // the board's first-run conversation (#280): the opening turn the board speaks itself,
   // and the reader that turns one reply into the two answers the project view draws. Both
@@ -543,30 +516,6 @@ export interface BoardRules {
    *  added them, and the archive then says so rather than reading as an empty archive. */
   readArchive?(): Promise<ArchiveList>;
   readArchivedCard?(id: number): Promise<ArchivedCardFile | null>;
-  /** Feedback (#603): what one archived card has to attach, and sending one piece. Optional
-   *  — a board running older rules offers no Feedback button and no block on New task, the
-   *  same way it offers no archive. */
-  readFeedbackDiagnostics?(cardId: number): FeedbackDiagnostics;
-  sendFeedback?(feedback: FeedbackToSend): Promise<FeedbackSent>;
-  /** Partner feedback (#628): the cards a discussion can be linked to, the submission one
-   *  discussion is holding, and the machine's own switch. Optional — a board running older
-   *  rules draws no Partner feedback row and offers no link area in Discuss.
-   *
-   *  The switch gates SHARING, not linking. Whether anything may be collected is the rules'
-   *  answer — the tick on the message is the other half of it, and the screen holds neither
-   *  rule. */
-  searchLinkable?(query: string): ArchivedCard[];
-  readCase?(discussion: string): CaseRecord | null;
-  /** Post the pack that was already collected, again, under the same id. */
-  retryCase?(discussion: string): Promise<CaseRecord | null>;
-  /** Post the question description on its own — what a pack too large to send leaves the
-   *  user able to do. */
-  sendTextOnlyCase?(discussion: string): Promise<CaseRecord | null>;
-  /** Take the submission off this discussion, which is what cancelling the link does. A pack
-   *  already sent is not withdrawn by it. */
-  dropCase?(discussion: string): void;
-  readPartnerFeedback?(): PartnerFeedback;
-  setPartnerFeedback?(on: boolean): WriteResult;
   /** Triage (#453, #894): whether it is open to this board and this account at all, what it
    *  holds, ignoring one with a reason and restoring one. Optional: a board can be running
    *  rules older than the release that added them, and the rail then offers no Triage row. */

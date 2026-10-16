@@ -59,7 +59,6 @@ describe('a partner case', () => {
     const env = fakeEnv()
     await post(env, one())
     assert.equal(env.ARCHIVE.held.size, 0)
-    assert.equal(env.DB.sqlite.prepare('SELECT * FROM feedback').all().length, 0)
     assert.equal(env.DB.sqlite.prepare('SELECT * FROM events').all().length, 0)
   })
 

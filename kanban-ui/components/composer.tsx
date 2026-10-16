@@ -30,7 +30,6 @@ export function MessageBox({
   label,
   sendLabel,
   hint,
-  aside,
   head,
   foot,
   guard,
@@ -55,9 +54,6 @@ export function MessageBox({
   sendLabel: string;
   /** The one short line under the box: the thing that matters right then, or nothing. */
   hint?: React.ReactNode;
-  /** The right end of that same line — the team feedback switch (#679). It keeps its place
-   *  whatever the hint says, and drops to a line of its own where the two will not fit. */
-  aside?: React.ReactNode;
   /** The strip above what is typed — the rail's pasted pictures, and what a paste it
    *  turned away has to say (#441). The sheet has none. */
   head?: React.ReactNode;
@@ -200,10 +196,9 @@ export function MessageBox({
           the control rather than a stray line under the page. The row holds its height
           whether or not there is anything to say in it, so the box never moves as a reply
           starts. */}
-      {hint !== undefined || aside !== undefined ? (
+      {hint !== undefined ? (
         <div className="mt-1.5 flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1 px-1.5 text-[11px] text-nb-ink-soft">
           {hint ? <span className="min-w-40 flex-1">{hint}</span> : null}
-          {aside}
         </div>
       ) : null}
     </>

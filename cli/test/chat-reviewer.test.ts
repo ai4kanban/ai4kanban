@@ -470,7 +470,7 @@ describe('a cleared card chat kept for the review', () => {
 
   it('keeps the words alone when cleared, and leaves no conversation behind', () => {
     card(1, { where: 'open' })
-    chat('card-1', Date.now(), { resumeId: 'session-1', shareOnEnd: true })
+    chat('card-1', Date.now(), { resumeId: 'session-1' })
     fs.mkdirSync(path.join(CHATS_DIR, 'card-1.images'))
     fs.writeFileSync(path.join(CHATS_DIR, 'card-1.images', 'a.png'), 'x')
 
