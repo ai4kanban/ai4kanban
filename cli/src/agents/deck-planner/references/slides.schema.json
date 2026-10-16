@@ -1,12 +1,21 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI4Kanban slide storyboard",
-  "description": "Structure only. This agent's `scripts/validate-storyboard.mjs` also checks unique slide IDs and that every preview is a readable same-card image at most 1280px wide. Array order is page order.",
+  "description": "Structure only. This agent's `scripts/validate-storyboard.mjs` also checks unique slide IDs and that every preview is a same-card page, or a readable image at most 1280px wide. Array order is page order; `size` is the slide canvas in pixels.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "slides"],
   "properties": {
     "version": { "const": 1 },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
     "slides": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/slide" } }
   },
   "$defs": {
@@ -27,7 +36,7 @@
           "additionalProperties": false,
           "required": ["src", "alt"],
           "properties": {
-            "src": { "type": "string", "pattern": "^\\.assets/[1-9][0-9]*/([^./\\\\][^/\\\\]*/)*[^./\\\\][^/\\\\]*\\.(png|jpe?g|webp|gif)$" },
+            "src": { "type": "string", "pattern": "^\\.assets/[1-9][0-9]*/([^./\\\\][^/\\\\]*/)*[^./\\\\][^/\\\\]*\\.(png|jpe?g|webp|gif|html|tsx)$" },
             "alt": { "$ref": "#/$defs/text" }
           }
         }

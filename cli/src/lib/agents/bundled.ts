@@ -25,6 +25,7 @@ import deckPlanner from '../../agents/deck-planner/AGENT.md'
 import slidesExample from '../../agents/deck-planner/references/slides.example.json'
 import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
 import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
+import slidesPacker from '../../agents/deck-planner/scripts/pack-pptx.mjs' with { type: 'text' }
 import illustrator from '../../agents/illustrator/AGENT.md'
 import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
 import hyperframesRecorder from '../../agents/hyperframes-editor/record.mjs' with { type: 'text' }
@@ -68,6 +69,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'deck-planner/references/slides.example.json': slidesExample as unknown as string,
   'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,
   'deck-planner/scripts/validate-storyboard.mjs': slidesValidator,
+  'deck-planner/scripts/pack-pptx.mjs': slidesPacker,
   'email-planner/AGENT.md': emailPlanner,
   'email-planner/scripts/render.mjs': emailRenderer,
   'hyperframes-editor/AGENT.md': hyperframesEditor,

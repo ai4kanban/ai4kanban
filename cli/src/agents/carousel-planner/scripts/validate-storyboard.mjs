@@ -6,7 +6,8 @@
 // Runtime: Node 18 or later, nothing else. Save it from a built-in agent with
 // `akb raw agent-file <agent> scripts/validate-storyboard.mjs > validate-storyboard.mjs`.
 // Previews are `.assets/<card id>/<path>` paths, read from the JSON's own folder, which is
-// named after the card; subfolders such as `previews/` are allowed. Exits 0 when the file
+// named after the card; subfolders such as `pages/` are allowed. A preview is an image or a
+// static `.html`/`.tsx` page; only images are measured. Exits 0 when the file
 // passes; otherwise prints one line per problem (or a JSON array with --json) and exits 1.
 // Exit 2 is a usage error.
 
@@ -14,17 +15,19 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const VERSION = 1
-const ROOT_FIELDS = ['version', 'slides']
+const ROOT_FIELDS = ['version', 'size', 'slides']
 const SLIDE_FIELDS = ['id', 'title', 'copy', 'notes', 'layout', 'assets', 'preview']
 const FRAME_FIELDS = ['src', 'alt']
 const FRAME_TYPES = ['png', 'jpg', 'jpeg', 'webp', 'gif']
+const PAGE_TYPES = ['html', 'tsx']
 const MAX_FRAME_WIDTH = 1280
 const SLIDE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const SEGMENT = /^(?!\.)[^/\\]+$/
 
 /** The file name a same-card `.assets/<card>/<name>` path points at, or why it may not. */
 function assetName(src, card) {
-  const expected = `.assets/${card}/<file>.{${FRAME_TYPES.join(',')}} in this card's asset folder`
+  const types = [...FRAME_TYPES, ...PAGE_TYPES]
+  const expected = `.assets/${card}/<file>.{${types.join(',')}} in this card's asset folder`
   if (/^[a-z][a-z0-9+.-]*:/i.test(src)) return { expected, actual: `an external address ${JSON.stringify(src)}` }
   const parts = src.split('/')
   if (parts[0] !== '.assets' || parts.length < 3) return { expected, actual: JSON.stringify(src) }
@@ -32,7 +35,7 @@ function assetName(src, card) {
   if (!parts.slice(2).every((part) => SEGMENT.test(part))) return { expected, actual: JSON.stringify(src) }
   const name = parts.slice(2).join('/')
   const ext = name.split('.').pop().toLowerCase()
-  if (!name.includes('.') || !FRAME_TYPES.includes(ext)) return { expected, actual: `file type ${JSON.stringify(name.includes('.') ? ext : '')}` }
+  if (!name.includes('.') || !types.includes(ext)) return { expected, actual: `file type ${JSON.stringify(name.includes('.') ? ext : '')}` }
   return { name }
 }
 
@@ -167,6 +170,12 @@ function validate(file) {
   fields(data, '', ROOT_FIELDS)
   if (typeof data.version === 'number' && data.version !== VERSION) add('unsupported-version', '/version', `version ${VERSION}`, describe(data.version))
   else required(data, '', 'version', `the number ${VERSION}`, (v) => v === VERSION)
+  if (data.size !== undefined && required(data, '', 'size', 'an object with width and height', isObject)) {
+    fields(data.size, '/size', ['width', 'height'])
+    const pixels = (v) => Number.isInteger(v) && v > 0
+    required(data.size, '/size', 'width', 'a whole number of pixels above 0', pixels)
+    required(data.size, '/size', 'height', 'a whole number of pixels above 0', pixels)
+  }
   if (!required(data, '', 'slides', 'an array of slides in page order', Array.isArray)) return diagnostics
   if (!data.slides.length) add('no-slides', '/slides', 'at least one slide', 'an empty array')
 
@@ -174,10 +183,14 @@ function validate(file) {
     if (!isObject(frame)) { add('invalid-value', at, 'an object with src and alt', describe(frame)); return }
     fields(frame, at, FRAME_FIELDS)
     required(frame, at, 'alt', `${nonblank} describing the picture`, text)
-    if (!required(frame, at, 'src', `${nonblank}: the image path`, text)) return
+    if (!required(frame, at, 'src', `${nonblank}: the page or image path`, text)) return
     const named = assetName(frame.src, card)
     if (!('name' in named)) { add('frame-path', `${at}/src`, named.expected, named.actual); return }
     const real = inside(dir, named.name)
+    if (PAGE_TYPES.includes(named.name.split('.').pop().toLowerCase())) {
+      if (!real) add('frame-missing', `${at}/src`, "a page in this card's asset folder", 'no such file')
+      return
+    }
     const expected = `a readable image at most ${MAX_FRAME_WIDTH}px wide`
     if (!real) { add('frame-missing', `${at}/src`, expected, 'no such file'); return }
     const width = imageWidth(fs.readFileSync(real))

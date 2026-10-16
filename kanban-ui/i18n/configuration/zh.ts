@@ -59,7 +59,7 @@ const zh: ConfigurationCopy = {
     builtInDescriptions: {
       coding: "规划并实现软件改动。",
       "hyperframes-video": "先确认脚本，再拿到成片，满意即可归档。",
-      "slide-deck": "先确认每页内容，再拿到可编辑的 PPT，满意即可归档。",
+      "slide-deck": "先确认每页内容，再拿到图片版 PPT（每页一张图，不能直接改字），满意即可归档。",
       "carousel-post": "先确认文案和逐页大纲，再拿到逐页图片和各平台配文，满意即可归档。",
       "blog-post": "先确认大纲，再拿到带配图和链接的完整文章，满意即可归档。",
       "video-clone": "拿到参考视频的复刻成片和可复用的视频模板，满意即可归档。",

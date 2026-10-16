@@ -170,22 +170,41 @@ describe("scriptwriter's storyboard script", () => {
 describe("deck-planner's storyboard script", () => {
   const slidesExample = BUNDLED_AGENT_FILES['deck-planner/references/slides.example.json']!
   const slidesSchema = JSON.parse(BUNDLED_AGENT_FILES['deck-planner/references/slides.schema.json']!)
-  const { codes } = runner('deck-planner', 969, { 'previews/cover.png': png(1280), 'previews/results.png': png(1280) })
+  const files: Record<string, Uint8Array> = { 'pages/cover.html': new Uint8Array([60]), 'pages/results.tsx': new Uint8Array([60]) }
+  const { codes } = runner('deck-planner', 969, files)
   const slideCodes = (change: (data: any) => void) => codes(edit(change, slidesExample))
 
   it('accepts the shipped example: pages with no timing, previews in a subfolder', () => {
     assert.deepEqual(codes(slidesExample), [])
   })
 
+  it('takes an HTML or TSX page unmeasured, and an image preview as before', () => {
+    files['previews/old.png'] = png(1280)
+    files['previews/wide.png'] = png(1281)
+    files['pages/huge.html'] = png(4000)
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/previews/old.png' }), [])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/pages/huge.html' }), [])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/previews/wide.png' }), ['/slides/0/preview/src frame-too-wide'])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/pages/gone.tsx' }), ['/slides/0/preview/src frame-missing'])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/pages/cover.jsx' }), ['/slides/0/preview/src frame-path'])
+  })
+
+  it('takes an optional size of whole pixels', () => {
+    assert.deepEqual(slideCodes((d) => { delete d.size }), [])
+    assert.deepEqual(slideCodes((d) => { d.size = { width: 1080, height: 0 } }), ['/size/height invalid-value'])
+    assert.deepEqual(slideCodes((d) => { d.size = { width: 19.5, height: 1080, depth: 1 } }), ['/size/depth unknown-field', '/size/width invalid-value'])
+    assert.deepEqual(slideCodes((d) => { d.size = [1920, 1080] }), ['/size invalid-value'])
+  })
+
   it('keeps the schema to the fields the script enforces, notes optional', () => {
-    assert.deepEqual(slidesSchema.required, fieldsOf('deck-planner', 'ROOT_FIELDS'))
+    assert.deepEqual(slidesSchema.required, fieldsOf('deck-planner', 'ROOT_FIELDS').filter((f) => f !== 'size'))
     assert.deepEqual(slidesSchema.$defs.slide.required, fieldsOf('deck-planner', 'SLIDE_FIELDS').filter((f) => f !== 'notes'))
     assert.deepEqual(slideCodes((d) => { delete d.slides[0].notes }), [])
     assert.deepEqual(slideCodes((d) => { d.slides[0].notes = 3 }), ['/slides/0/notes invalid-value'])
   })
 
-  it('ships the same files to carousel-planner', () => {
-    for (const file of ['references/slides.example.json', 'references/slides.schema.json', 'scripts/validate-storyboard.mjs']) {
+  it('ships the same contract to carousel-planner', () => {
+    for (const file of ['references/slides.schema.json', 'scripts/validate-storyboard.mjs']) {
       assert.equal(BUNDLED_AGENT_FILES[`carousel-planner/${file}`], BUNDLED_AGENT_FILES[`deck-planner/${file}`], file)
     }
   })
@@ -206,6 +225,7 @@ describe("deck-planner's storyboard script", () => {
 
   it('names a missing preview and never lets a path climb', () => {
     assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/previews/gone.png' }), ['/slides/0/preview/src frame-missing'])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/850/pages/cover.html' }), ['/slides/0/preview/src frame-path'])
     assert.deepEqual(slideCodes((d) => { d.slides[0].preview.src = '.assets/969/previews/../../x.png' }), ['/slides/0/preview/src frame-path'])
     assert.deepEqual(slideCodes((d) => { d.slides = [] }), ['/slides no-slides'])
   })

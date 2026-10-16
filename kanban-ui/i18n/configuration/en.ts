@@ -71,7 +71,7 @@ const en: ConfigurationCopy = {
     builtInDescriptions: {
       coding: "Plan and implement software changes.",
       "hyperframes-video": "Approve a script, get a finished product video, and archive it when you are happy.",
-      "slide-deck": "Approve the slides, get an editable PowerPoint deck, and archive it when you are happy.",
+      "slide-deck": "Approve the slides, get a PowerPoint deck with one image per slide (not editable), and archive it when you are happy.",
       "carousel-post":
         "Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.",
       "blog-post": "Approve the outline, get the full article with its images and links, and archive it when you are happy.",
