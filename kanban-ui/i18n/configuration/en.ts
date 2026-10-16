@@ -75,7 +75,7 @@ const en: ConfigurationCopy = {
       "carousel-post":
         "Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.",
       "blog-post": "Approve the outline, get the full article with its images and links, and archive it when you are happy.",
-      "video-clone": "Approve a shot-by-shot recipe, get a reusable template that renders it, and archive it when you are happy.",
+      "video-clone": "Get a rendered clone of a reference video and a reusable template that renders it, and archive it when you are happy.",
     },
     about: (name) => `About ${name}`,
     stages: { plan: "Plan", execute: "Execute" },

@@ -201,7 +201,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'video-clone',
     name: 'Video clone',
-    description: 'Approve a shot-by-shot recipe, get a reusable template that renders it, and archive it when you are happy.',
+    description: 'Get a rendered clone of a reference video and a reusable template that renders it, and archive it when you are happy.',
     needsArtifact: true,
     delivers: 'plan',
     pro: true,

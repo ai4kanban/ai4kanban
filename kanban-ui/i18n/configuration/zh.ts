@@ -62,7 +62,7 @@ const zh: ConfigurationCopy = {
       "slide-deck": "先确认每页内容，再拿到可编辑的 PPT，满意即可归档。",
       "carousel-post": "先确认文案和逐页大纲，再拿到逐页图片和各平台配文，满意即可归档。",
       "blog-post": "先确认大纲，再拿到带配图和链接的完整文章，满意即可归档。",
-      "video-clone": "先确认逐镜头的视频配方，再拿到可直接渲染的视频模板，满意即可归档。",
+      "video-clone": "拿到参考视频的复刻成片和可复用的视频模板，满意即可归档。",
     },
     about: (name) => `关于「${name}」`,
     stages: { plan: "规划", execute: "执行" },
