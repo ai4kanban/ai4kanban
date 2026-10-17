@@ -16,7 +16,7 @@
    ![Sort it 一节](02-sort-it.png)
 
 3. 滚到页底。
-   翻页卡：左「Previous / Runs and agents」，右「Next / Local and Cloud」。
+   翻页卡：左「Previous / Runs and runtimes」，右「Next / Local and Cloud」。
    ![页底的翻页](03-end-of-page.png)
 
 4. 打开旧地址 `/docs/triage-endpoint`。
@@ -30,4 +30,5 @@
 - **分拣依据只剩一句**：旧版逐条列出它问什么（否决过没有、是否已有卡在做、要不要你），现在只说「对照产品描述和否决过的东西」，想知道某条为什么被忽略的人只能看 **History** 里的原因。
 - **Proposer 条目的特殊处理没了**：旧版说它的条目不会被忽略；现在读者会以为 Proposer 的条目和别的一样可能被丢掉。
 - **`--source` 列了 reddit、xiaohongshu 等**：可页上没有任何从这些平台自动进条目的办法，读者会问「它们怎么进来的」——答案是你自己的脚本，这一点只能自己推。
+- **翻页跟着改了名**：上一页写「Runs and runtimes」，和左栏、Runs 页的新名字一致，没有残留旧叫法。
 - **没有跑到的**：线上站点的跳转（只在本地 `wrangler pages dev` 验证了规则）、窄屏、站内搜索。

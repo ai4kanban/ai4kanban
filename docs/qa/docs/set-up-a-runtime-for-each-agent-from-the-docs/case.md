@@ -37,7 +37,7 @@
    [akb agent list 的输出](07-akb-agent-list.log)
 
 8. 打开 `/docs/runs`，滚到页底。
-   最后一句「To set up the tools behind an agent, see Multi-runtime support.」，链接指向 `/docs/connectors`。
+   最后一段「See Multi-runtime support for supported tools, their settings and execution limits. A single chat can use a different agent or model.」，前一个链接指向 `/docs/connectors`，后一个指向 `/docs/chat#a-model-per-conversation`。
    ![Runs 页底的链接](08-runs-link.png)
 
 ## Feedback
@@ -46,6 +46,7 @@
 - **顺序是照着做的顺序**：装好 → 添加 → 填设置 → Test，再讲每个 Agent 怎么绑定，四步读完就知道下一步按哪里。
 - **能力表一屏看全了**：换成 logo 表头、去掉全是 ✓ 的一行后，八列都在表框里，「All eight」不再自相矛盾。
 - **logo 要认得出才省事**：Claude、OpenAI、Cursor、X 一眼能认；OpenCode、DeepSeek Harness、ZCode 的小图标得悬停才知道是谁，而悬停提示在手机上看不到，读的人可能要回到上面的设置表去对顺序。
+- **Runs 页底说清了去那页看什么**：链接前写明「supported tools, their settings and execution limits」，比原来的「the tools behind an agent」更知道点进去能找到什么；但同一段说对话能换「agent or model」，和 Chat 页的「runtime」说法不一。
 - **和命令行的说法改准了**：「shows these too」不再说「同一张表」，命令行多两项、把 DeepSeek Harness 叫 DSH 也不算出入。
 - **安装要跳出去**：八个工具只给官方文档链接，没有一行安装命令；第一次接 ZCode、Grok Build 这类小众工具的人得在别人的站上找。
 - **权限一节有用**：直接点名哪些工具会写项目外，像该决定的事。

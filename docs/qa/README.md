@@ -35,7 +35,7 @@
 - [规划一张纯文字卡片，看软件规划师画出示意图](skill/plan-a-text-only-card-and-get-an-explainer-diagram/case.md)
 - [让博客策划写一篇博客的大纲，它先读了排在前面的页面](skill/blog-planner-reads-the-top-pages-before-the-outline/case.md)
 - [让软件规划师换用自己的 Agent 规划](skill/let-the-software-planner-plan-on-its-own-agent/case.md)
-- [在卡片上读文案草稿，像读页面本身一样](skill/approve-a-copy-draft-that-reads-like-the-page/case.md)
+- [让文案 Agent 改两个页面：整页重写的给全文，只改一句的给 diff](skill/get-a-full-draft-for-a-rewrite-and-a-diff-for-a-small-edit/case.md)
 - [请产品配图先画一张示意图，再做一段 canvas 动画预览](skill/ask-the-illustrator-for-an-image-and-a-canvas-animation/case.md)
 - [把 draft-first 装进项目，再加一个自己的 helper](skill/install-draft-first-and-add-your-own-helper/case.md)
 - [让编码 agent 先出草稿，在浏览器里删、批注、导出后确认](skill/review-drafts-and-confirm-them-in-draft-first/case.md)
@@ -49,6 +49,8 @@
 - [用「视频克隆」把一条程序化短片的节奏做成能放自己产品画面的模板](skill/clone-a-programmatic-video-into-a-template/case.md)
 - [在命令行按标签找模板、看预览，再取回一个](skill/find-a-template-and-fetch-it-from-the-command-line/case.md)
 - [在卡片上手写 `<Compare>`，让 `akb raw validate` 指出写错的地方](skill/write-a-compare-on-a-card-and-validate-it/case.md)
+- [改版时给一张已规划好的卡加一张图，改版当场请配图画出来](skill/a-revision-that-adds-an-image-runs-the-illustrator/case.md)
+- [复制「视频克隆」工作流，给它配一个执行 Agent，卡片规划完就能开发](skill/give-a-copied-video-clone-workflow-a-build-agent/case.md)
 
 ### local-ui
 
@@ -93,6 +95,7 @@
 - [在卡片上把原片和复刻放在一起对比](local-ui/compare-a-source-and-its-clone-on-a-card/case.md)
 - [点附件标签把它收起，再点展开](local-ui/collapse-an-asset-by-clicking-its-label/case.md)
 - [做演示文稿：先看清交付的是图片版 PPT，再在卡片上直接翻 HTML 幻灯片](local-ui/see-html-slides-directly-in-the-storyboard/case.md)
+- [给复制的「视频克隆」工作流设置执行 Agent，让卡片可以执行](local-ui/give-a-copied-video-clone-workflow-a-build-agent/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -115,6 +118,7 @@
 - [在 /demo 走完一遍交互演示](site/walk-through-the-interactive-demo/case.md)
 - [AI 从 llms.txt 找到文档页](site/read-the-docs-list-in-llms-txt/case.md)
 - [读 Claude Code 介绍页，看先审草稿再交给 Claude Code 是怎么回事](site/read-the-claude-code-page/case.md)
+- [读 Grill Me 介绍页，看一个大想法怎么拆卡、逐卡规划、按依赖交付](site/read-the-grill-me-page/case.md)
 
 ### docs
 
@@ -130,6 +134,8 @@
 - [跟着「Your first card」把第一张卡从想法走到交付](docs/follow-your-first-card-from-idea-to-delivery/case.md)
 - [在文档里查规划时会出哪些草稿、怎么改、怎么批准](docs/review-drafts-before-a-build-in-the-docs/case.md)
 - [在文档里查 Agent 记住了什么、记忆怎么保持最新](docs/read-how-agents-remember-your-preferences-in-the-docs/case.md)
+- [在文档里查任务用哪个工作流、怎么自定义工作流](docs/read-which-workflow-a-task-uses-in-the-docs/case.md)
+- [在文档里查怎么看、停、续跑一次运行，以及给 Agent 换运行时](docs/watch-stop-and-resume-a-run-from-the-docs/case.md)
 
 ### cloud
 
