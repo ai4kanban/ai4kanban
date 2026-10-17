@@ -1,14 +1,14 @@
 # AI4Kanban for coding
 
-> Review what matters. Then let agents build. Review key details on the task card before coding to reduce rework. AI4Kanban lets you see drafts first, then decide how the work should proceed.
+> Coding in your agent workspace. Review the key drafts, then let agents build from what you approved. Catch the details you would otherwise keep correcting after coding. Review key drafts on the task card, then let agents build from what you approved.
 
 ## Get the key details right before implementation.
 
-Some parts of a feature need to be exactly as you intended: the interface, agent instructions, copy or emails. Once those are right, agents can handle the rest of the implementation.
+Most of the back-and-forth on a feature comes down to a few details: the interface, agent instructions, copy or emails. You want those right before agents handle the rest.
 
-Too often, you only see these details after the code is written—and have to ask for changes. AI4Kanban puts drafts on the task card before coding.
+AI4Kanban brings those details onto the task card as drafts before coding. Built-in specialists prepare the parts that need your approval, so you can catch problems before they become working code.
 
-Review them, make changes, and answer the questions. Your decisions become the plan agents build from.
+Review the drafts, make changes, and answer the questions. Agents build from the approved drafts and plan. Small fixes can go straight to implementation.
 
 ## Not sure a feature belongs? See a draft first.
 

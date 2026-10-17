@@ -1,73 +1,45 @@
 # AI4Kanban for SaaS
 
-> Build your SaaS. Keep marketing moving. A workspace for SaaS founders and small teams. Review key drafts, approve them, and let agents finish the details.
+> Build your SaaS. Keep marketing moving. An agent workspace for SaaS founders and small teams. Review key drafts for product and marketing; let agents finish the details.
 
 ## Product work and marketing, on the same board.
 
-A feature, a landing page, a launch video. Move independent tasks forward in parallel with built-in specialist agents and workflows. They work from your project context, so you spend less time explaining the same product in separate chats.
+A feature to ship, an article to write, a launch video to make. Built-in specialist agents and workflows help you move independent tasks forward in parallel, without designing a team or rewriting prompts for each one.
 
-You decide what matters. Agents prepare the parts that need your approval, then finish the work within the agreed scope.
-
-## Review the key drafts before building.
-
-Review the interface, copy, emails or agent instructions you care about before implementation. Built-in specialists prepare the relevant drafts; you do not have to design the team or keep rewriting prompts.
-
-If you are unsure a feature belongs, see a draft first. Fix what is wrong or drop the idea before there is a full implementation to undo.
-
-### See the design without building and running the project.
-
-Preview page prototypes on the task card in desktop and phone frames, independently of unfinished code or backend connections. Judge the layout and interactions from a visual draft instead of imagining them from a long text plan.
-
-### Answer the questions that change the product.
-
-Agents read the project, fill in the plan, and put the key questions on the card with options and a recommendation. You make the product decisions without writing every requirement yourself.
-
-### Keep small fixes simple.
-
-Small tasks can go straight to implementation. Bigger changes get the planning and key drafts they need, so you can review and approve them before agents build.
-
-[Explore the coding workflow](https://ai4kanban.dev/workflows/coding)
-
-## Give your product the illustrations it needs.
-
-The illustration agent works from your project and visual preferences to prepare diagrams and illustrations for documentation, landing pages, SEO blog posts and in-product guidance.
-
-Review what each image should communicate before it is finished. Carry the visual direction you have established into the next task.
-
-## Make time to explain what you are building.
-
-Building the product is only part of the work. Your website, launch copy and user documentation also need to explain who it helps and why it matters.
-
-The copy agent uses your project context and writing preferences to draft product and marketing copy. Confirm the message and wording before the page is built, with less time spent repeating what your product does and how you want it described.
-
-## See how your competitors handle a feature.
-
-Name the competitors you want to follow. When a feature is being planned, the research agent automatically checks how those products support it and brings the relevant findings to the task card.
-
-Compare their approaches before choosing your own. Keep the decision with the feature plan, where it can guide implementation.
-
-## Keep customers up to date.
-
-Prepare a product newsletter with an email agent: subject, body copy, and previews for desktop and phone. Review the message and the reader's next step before it goes out.
-
-Approve the draft, then send it through your email service.
+Agents use your project context. Review the parts that need your approval, then let agents complete the work from the drafts you confirmed. New decisions come back to you when needed.
 
 ## Turn product work into marketing material.
 
-Use the existing content workflows to explain a release, introduce a feature or show the product in use.
+Explain a new release, show how a feature works, or prepare a product introduction. Choose the workflow for the material you need:
 
-- **Carousel post**: Approve the copy, then get each page as an image with captions for a multi-page social post.
-- **Product video**: Approve the script and storyboard before the video is made, so the story is settled before production.
+- **Blog post**: Review the outline, then get a full article with images and links.
+- **Product video**: Review the script, then get a finished video and cover. Product demos are rehearsed in the real app before you approve the script.
+- **Slide deck**: Approve the content and slide previews, then get a PowerPoint with one image per slide. Individual text and shapes are not editable.
+- **Carousel post**: Approve the copy and page outline, then get each page as an image with captions for your chosen platforms.
 
-Plan the key content first, then let agents produce the assets while other independent work continues.
+Independent tasks can continue while these materials are produced. Work that depends on a feature's final behavior follows its delivery.
 
-Carousel posts and product videos require Pro. [See plans](https://ai4kanban.dev/pricing)
+Blog posts, product videos, slide decks and carousel posts require Pro. [See plans](https://ai4kanban.dev/pricing)
 
-## Your preferences carry over.
+## Give your launch a clear message.
 
-Each agent keeps the preferences and decisions relevant to its work. The copy agent learns how you describe the product; the illustration agent learns the visual direction you have chosen.
+Use the same project context to prepare your landing page, launch copy, illustrations and customer newsletter. Review the copy, image drafts and email previews before they become the page or message customers see.
 
-Agents can also share project knowledge. The next task starts from what you have already made clear, so you spend less time repeating corrections.
+You get the agreed copy and images, plus newsletter subjects, body copy and desktop and phone previews. Send the newsletter through your email service after approval.
+
+## Build the feature from the draft you approved.
+
+Review the interface, copy, email or agent instructions that need your judgment before implementation. Page prototypes open on the task card in desktop and phone frames, without running the project. Small fixes can go straight to implementation.
+
+Agents read the project and put the key questions on the card. For the competitors you specify, research can also inform the feature plan. You make the product decisions; agents build from the approved drafts and plan.
+
+[Explore the coding workflow](https://ai4kanban.dev/workflows/coding)
+
+## Your project context and preferences carry over.
+
+Each task uses the project background and the preferences and decisions relevant to its work. The copy agent remembers how you describe the product; the illustration agent remembers the visual style you chose. Agents can also share project knowledge.
+
+The next task starts with less to explain again. You still review its key drafts and make any new decisions it needs.
 
 [Meet the agents](https://ai4kanban.dev/docs/agents)
 
