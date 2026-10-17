@@ -1,48 +1,37 @@
 ---
-title: "Talk it over, and let it do it"
-title_tag: "AI4Kanban chat — talk about the board, and change it"
-description: "A conversation that already knows your board: decide what to build and why, understand a card, spot a duplicate — and make the change when you've settled it."
-lead: "Not every answer is a job. Open a conversation to think out loud — and when it lands on a change, the chat makes it."
-last_updated: "October 4, 2026"
+title: "Discuss ideas and update cards"
+title_tag: "AI4Kanban chat — discuss ideas, drafts and task changes"
+description: "Explore an idea, request draft changes or update a card in a conversation with your board's context."
+lead: "Think through the work with an agent, then turn the decisions into cards and changes."
+last_updated: "October 17, 2026"
 nav_label: "Chat"
 icon: "message"
 ---
 
-When you want to think out loud — what's worth doing next, what a card actually means, whether
-two cards are the same card — open a conversation instead of starting a run.
+Use **New idea** for a board-wide discussion or **Discuss** on a card for its conversation. Chat
+has project and open-card context; naming a card includes its full text.
 
 ```bash
 akb chat "what should I build next, and why?"
 akb chat 241 "what is still unclear about this card?"
-akb chat 241 "put it in v0.8 and drop the last todo"
-akb chat "start a build on 241"
+akb chat 241 "make the empty state friendlier"
 ```
 
-You explain nothing: a chat already knows your project, your open cards and, when you name one,
-that card in full. In the app a card's chat is the rail on the right of its page (**Discuss** in
-the header), and questions about the whole board go to **New idea**, on every page. A card's
-chat is one conversation either way, so you can start it in a terminal and carry it on in the app.
+A card's conversation continues across the terminal and app. When **Plan tasks** creates cards
+from a discussion, each card carries the discussion above its chat and links the plan under
+**Source**.
 
-A discussion that **Plan tasks** turns into cards carries on in them: each card's chat shows the
-discussion folded above it, and its page links the plan under **Source**.
+## Turn discussion into changes
 
-| You want | What happens |
-| --- | --- |
-| to decide what to build, or why | it answers — a question, not a job |
-| to understand a card before you approve it | it answers |
-| to compare two cards, or spot a duplicate | it answers |
-| a change you have already settled — reword it, put it in v1, archive it | it makes the change |
-| a preference or a correction that outlasts this card | the [memory review](/docs/agents#let-the-memory-review-remember-for-you) writes it down once the card is archived |
-| the card worked out, or the code written | it does the work here unless you ask for a background run |
+Most of the time, chat is where you [revise a draft](/docs/drafts#request-changes): say what to
+change, and the card is updated. You can also ask questions, answer open questions or start the
+build. Say to hold off if you only want to discuss.
 
-On a card, a change goes into the card, and an answer settles one of its open questions. Say to
-hold off and it leaves the card alone. A card a run is already working on is off limits.
-`--clear` starts a conversation fresh.
+A card a run is working on can't be changed in chat. `--clear` starts a fresh conversation.
 
 ## A model per conversation
 
-Each conversation picks its own agent and model, starting from the board's. Changing one moves
-nothing else, so a cheap model can take the quick questions while an expensive one takes the
-thinking. Changing the model keeps the conversation; changing the agent starts a new one.
-
-In the app both sit beside **Send**; in a terminal they are `--model` and `--agent`.
+Choose the coding agent and model beside **Send**, or with `--agent` and `--model` in the
+terminal. Each conversation has its own selection. Changing the model keeps the conversation;
+changing the coding agent starts a new one. See
+[Runs](/docs/runs#which-runtime-each-agent-runs-on) for board runtime settings.
