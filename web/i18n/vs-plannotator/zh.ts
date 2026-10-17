@@ -16,16 +16,16 @@ const zh: VsPlannotatorCopy = {
   },
   both: {
     title: "两者都支持",
-    items: ["执行前审阅计划", "将批注回传智能体", "接入多种编码智能体", "查看代码 diff", "免费开源"],
+    items: ["执行前审阅计划", "将批注回传 agent", "接入多种编码 agent", "查看代码 diff", "免费开源"],
   },
   theirs: {
-    title: "Plannotator：在智能体会话中审阅",
+    title: "Plannotator：在 agent 会话中审阅",
     intro:
-      "Plannotator 通过钩子和命令接入你正在使用的编码智能体。支持计划钩子的接入会自动打开本地浏览器审阅页；你可以批准计划或批注打回，再看计划 diff 确认改了哪里，由原会话继续执行。",
+      "Plannotator 通过钩子和命令接入你正在使用的编码 agent。支持计划钩子的接入会自动打开本地浏览器审阅页；你可以批准计划或批注打回，再看计划 diff 确认改了哪里，由原会话继续执行。",
     more: [
       {
         title: "不只审阅计划",
-        body: "可以批注 Markdown、文件夹、URL、HTML 草稿或智能体的上一条消息，也可以审阅本地代码改动与 GitHub PR、GitLab MR。审阅中可向 AI 提问，或运行 AI 代码审阅，让建议出现在 diff 上。",
+        body: "可以批注 Markdown、文件夹、URL、HTML 草稿或 agent 的上一条消息，也可以审阅本地代码改动与 GitHub PR、GitLab MR。审阅中可向 AI 提问，或运行 AI 代码审阅，让建议出现在 diff 上。",
       },
       {
         title: "分享审阅内容",
@@ -52,7 +52,7 @@ const zh: VsPlannotatorCopy = {
       body: "每个 agent 记住与自身工作相关的偏好和决策，也能与其他 agent 共享项目背景，让后续任务从已有共识继续。完成一项主线工作后，agent 自主提出跟进项，由你接受、修改或拒绝。",
       art: { agents: ["UI 设计", "文案"], shared: "共享 · 项目背景" },
     },
-    custom: "你也可以创建自定义智能体和工作流。",
+    custom: "你也可以创建自定义 agent 和工作流。",
     tipLabel: "提示",
     tip: "软件开发工作流免费；博客、社交轮播、演示文稿和产品视频工作流需 Pro。",
   },
@@ -63,8 +63,8 @@ const zh: VsPlannotatorCopy = {
     no: "无",
     how: {
       label: "工作方式",
-      theirs: "你在当前智能体会话里打开审阅页",
-      ours: "你从任务卡启动智能体，在后台执行",
+      theirs: "你在当前 agent 会话里打开审阅页",
+      ours: "你从任务卡启动 agent，在后台执行",
     },
     rows: {
       plans: { label: "执行前审阅计划、回传反馈" },
@@ -77,17 +77,17 @@ const zh: VsPlannotatorCopy = {
       prs: { label: "GitHub PR、GitLab MR 审阅" },
       share: { label: "分享审阅链接", theirs: "开源版已进入弃用支持" },
       board: { label: "带依赖与并行执行的任务看板" },
-      agents: { label: "内置的专业智能体和工作流" },
-      memory: { label: "偏好和决策记忆，可跨智能体共享" },
+      agents: { label: "内置的专业 agent 和工作流" },
+      memory: { label: "偏好和决策记忆，可跨 agent 共享" },
       followUps: { label: "完成主线任务后主动提出跟进项" },
     },
-    note: "只比较内置能力。Plannotator 的本地历史与 Obsidian、Bear 导出用于保存审阅记录，不等同于智能体在后续任务中沿用的偏好记忆。",
+    note: "只比较内置能力。Plannotator 的本地历史与 Obsidian、Bear 导出用于保存审阅记录，不等同于 agent 在后续任务中沿用的偏好记忆。",
   },
   decision: {
     title: "哪种方式适合你？",
     theirs: {
       name: "选 Plannotator",
-      body: "你希望围绕正在使用的编码智能体审计划、文档与代码，逐次确认修订；还需要 PR 审阅或分享批注。",
+      body: "你希望围绕正在使用的编码 agent 审计划、文档与代码，逐次确认修订；还需要 PR 审阅或分享批注。",
     },
     ours: {
       name: "选 AI4Kanban",

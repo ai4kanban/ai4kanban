@@ -15,7 +15,7 @@ const zh: VsHermesCopy = {
     lead: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
     sharedLabel: "两者都支持",
     setup: {
-      heading: "专业智能体和工作流，开箱即用",
+      heading: "专业 agent 和工作流，开箱即用",
       ours: "内置专业 agent 和工作流覆盖产品开发与营销内容。按任务使用对应工作流，不用自己设计团队分工。你也可以创建自定义 agent 和工作流。",
       theirs: "执行者是你自己配置模型和 skill 的 Hermes profile；没有内置 UI 设计、文案或内容制作的专业工作流。",
       art: {
@@ -111,9 +111,9 @@ const zh: VsHermesCopy = {
       },
       shared: [
         {
-          title: "边做边学的智能体",
+          title: "边做边学的 agent",
           body: [
-            "AI4Kanban 的专业智能体会记下你退回或否决的草稿，完成的卡片还会被回顾，提炼决定和偏好。",
+            "AI4Kanban 的专业 agent 会记下你退回或否决的草稿，完成的卡片还会被回顾，提炼决定和偏好。",
             "Hermes 的每个 profile 保留记忆笔记，并根据学到的经验（包括你的纠正）自己写 skill。",
           ],
         },
@@ -137,8 +137,8 @@ const zh: VsHermesCopy = {
     theirLabel: "Hermes Kanban",
     rows: {
       startingPoint: {
-        dimension: "内置智能体和工作流",
-        kanban: "内置开发和内容方向的专业智能体与工作流，也可自建；内容工作流需要 Pro。",
+        dimension: "内置 agent 和工作流",
+        kanban: "内置开发和内容方向的专业 agent 与工作流，也可自建；内容工作流需要 Pro。",
         hermes: "通用的 Hermes profile 由你配置；没有内置 UI 设计、文案或内容制作的专业工作流。",
       },
       planning: {
@@ -157,29 +157,29 @@ const zh: VsHermesCopy = {
         hermes: "执行者附上原因暂停整个任务；你评论并解除暂停后，执行者重新开始。",
       },
       memory: {
-        dimension: "智能体记住什么",
-        kanban: "每个专业智能体记下你退回或否决的草稿；完成的卡片会被回顾，提炼决定和偏好。",
+        dimension: "agent 记住什么",
+        kanban: "每个专业 agent 记下你退回或否决的草稿；完成的卡片会被回顾，提炼决定和偏好。",
         hermes: "每个 profile 保留记忆笔记，并根据学到的经验（包括你的纠正）自己写 skill。",
       },
       followUps: {
         dimension: "交付后的工作",
-        kanban: "智能体回顾已交付的内容，提出后续工作并说明理由；质检智能体每天测试近期改动。建议先进入待分拣，由你决定。",
+        kanban: "agent 回顾已交付的内容，提出后续工作并说明理由；质检 agent 每天测试近期改动。建议先进入待分拣，由你决定。",
         hermes: "执行者会创建子任务来拆分进行中的工作；交付后的后续工作需要你自己新建任务。",
       },
       landing: {
         dimension: "合并并行的工作",
-        kanban: "每次完成的构建依次变基并合并，冲突由智能体解决。",
+        kanban: "每次完成的构建依次变基并合并，冲突由 agent 解决。",
         hermes: "任务完成后保留 worktree；文档没有说明如何合并回去，冲突需另建一个协调任务处理。",
       },
       recurring: {
         dimension: "周期性工作",
-        kanban: "定时智能体按你设定的频率运行。",
+        kanban: "定时 agent 按你设定的频率运行。",
         hermes: "支持一次性的定时启动；周期性工作需要你自己配置 cron。",
       },
       harness: {
         dimension: "使用 Claude Code 或 Codex",
-        kanban: "Claude Code、Codex、Cursor、OpenCode 等编码智能体直接执行工作，使用你自己的订阅；每个智能体可单独选择。",
-        hermes: "执行者是 Hermes 智能体；内置 skill 可让它在终端里调用 Claude Code 或 Codex。",
+        kanban: "Claude Code、Codex、Cursor、OpenCode 等编码 agent 直接执行工作，使用你自己的订阅；每个 agent 可单独选择。",
+        hermes: "执行者是 Hermes agent；内置 skill 可让它在终端里调用 Claude Code 或 Codex。",
       },
       interface: {
         dimension: "看板与界面",
@@ -203,7 +203,7 @@ const zh: VsHermesCopy = {
       },
       api: {
         dimension: "API 与扩展",
-        kanban: "提供供编码智能体调用的 CLI；没有公开 API。",
+        kanban: "提供供编码 agent 调用的 CLI；没有公开 API。",
         hermes: "提供 REST 和 WebSocket API，以及任务事件的插件钩子。",
       },
     },

@@ -16,17 +16,17 @@ const zh: VsOrcaCopy = {
   },
   both: {
     title: "两者都支持",
-    items: ["接入多种编码智能体", "多个并行会话", "Git worktree 隔离", "审阅代码 diff"],
+    items: ["接入多种编码 agent", "多个并行会话", "Git worktree 隔离", "审阅代码 diff"],
   },
   orca: {
-    title: "Orca：在编码智能体上增加一层较薄的功能",
+    title: "Orca：在编码 agent 上增加一层较薄的功能",
     intro:
-      "Orca 在编码智能体上增加一层较薄的功能，把并行会话、终端、worktree、编辑和审阅集中到一个工作区，保留使用编码智能体的原有体验。",
+      "Orca 在编码 agent 上增加一层较薄的功能，把并行会话、终端、worktree、编辑和审阅集中到一个工作区，保留使用编码 agent 的原有体验。",
     introLink: "了解 Orca",
     introEnd: "。",
     body: [
-      "它适合希望自行管理各个智能体会话、参与执行细节的用户，例如分配任务、审阅修改和合并代码。给每个智能体多少自主权，仍由你决定。",
-      "它的 CLI 编排提供任务、派发和审批节点。任务说明和具体流程由你或你的协调智能体编写。",
+      "它适合希望自行管理各个 agent 会话、参与执行细节的用户，例如分配任务、审阅修改和合并代码。给每个 agent 多少自主权，仍由你决定。",
+      "它的 CLI 编排提供任务、派发和审批节点。任务说明和具体流程由你或你的协调 agent 编写。",
     ],
   },
   codex: {
@@ -34,7 +34,7 @@ const zh: VsOrcaCopy = {
     lead: "Orca 增加的部分能力，Codex 桌面应用等编码工具本身已经提供。",
     items: ["并行会话与 worktree", "diff 与 PR 审阅", "浏览器", "手机操控与 SSH"],
     agents:
-      "Codex 只运行 OpenAI 的模型；Orca 可运行 Codex、Claude Code 等命令行编码智能体。",
+      "Codex 只运行 OpenAI 的模型；Orca 可运行 Codex、Claude Code 等命令行编码 agent。",
     sources: {
       worktrees: "Codex worktree",
       review: "代码审阅",
@@ -47,10 +47,10 @@ const zh: VsOrcaCopy = {
     yes: "有",
     no: "没有",
     rows: {
-      planning: "智能体与你一起规划每个任务，只请你做关键决定",
-      team: "现成的专业智能体和工作流",
+      planning: "agent 与你一起规划每个任务，只请你做关键决定",
+      team: "现成的专业 agent 和工作流",
       drafts: "执行前审阅草稿：图片、HTML/TSX、storyboard",
-      memory: "记住你的偏好，智能体之间共享记忆",
+      memory: "记住你的偏好，agent 之间共享记忆",
       tools: "内置浏览器、SSH 与手机操控",
     },
   },
@@ -70,7 +70,7 @@ const zh: VsOrcaCopy = {
         shared: "共享 · 项目背景",
       },
     },
-    custom: "你也可以创建自己的智能体和工作流。",
+    custom: "你也可以创建自己的 agent 和工作流。",
     tipLabel: "提示",
     tip: "软件开发工作流免费；博客、社交轮播、演示文稿和产品视频工作流需 Pro。",
   },
@@ -79,9 +79,9 @@ const zh: VsOrcaCopy = {
     ifYou: "如果你希望",
     theirs: {
       name: "选 Orca",
-      points: ["自行管理每个编码智能体会话", "深入参与执行细节"],
+      points: ["自行管理每个编码 agent 会话", "深入参与执行细节"],
       onlyLabel: "仅 Orca 提供",
-      only: ["内置浏览器", "SSH 远程工作", "手机操控", "同一提示词发给多个智能体"],
+      only: ["内置浏览器", "SSH 远程工作", "手机操控", "同一提示词发给多个 agent"],
       link: "查看 Orca 功能",
     },
     ours: {

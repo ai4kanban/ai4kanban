@@ -15,9 +15,9 @@ const zh: VsTaskMasterCopy = {
     lead: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
     sharedLabel: "两者都支持",
     setup: {
-      heading: "专业智能体和工作流，开箱即用",
+      heading: "专业 agent 和工作流，开箱即用",
       ours: "内置专业 agent 和工作流覆盖产品开发与营销内容。按任务使用对应工作流，不用自己设计团队分工。你也可以创建自定义 agent 和工作流。",
-      theirs: "围绕编码任务推进；没有内置 UI 设计、文案或内容制作的专业智能体及配套工作流。",
+      theirs: "围绕编码任务推进；没有内置 UI 设计、文案或内容制作的专业 agent 及配套工作流。",
       art: {
         ours: [
           "UI 设计",
@@ -45,7 +45,7 @@ const zh: VsTaskMasterCopy = {
         {
           title: "CLI 接入",
           body: [
-            "AI4Kanban 提供 CLI，可由编码智能体调用；没有 MCP 服务。",
+            "AI4Kanban 提供 CLI，可由编码 agent 调用；没有 MCP 服务。",
             "Taskmaster 同时提供 CLI 和 MCP 服务。",
           ],
         },
@@ -104,7 +104,7 @@ const zh: VsTaskMasterCopy = {
         {
           title: "可编辑的规则",
           body: [
-            "AI4Kanban 的专业智能体有可编辑的角色规则。",
+            "AI4Kanban 的专业 agent 有可编辑的角色规则。",
             "Taskmaster 提供面向不同编辑器的规则文件。",
           ],
         },
@@ -128,9 +128,9 @@ const zh: VsTaskMasterCopy = {
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
-        dimension: "内置智能体与工作流",
-        kanban: "内置开发、内容等专业智能体和工作流，也可创建自定义智能体和工作流；内容工作流需 Pro。",
-        taskMaster: "内置任务执行、测试和代码清理等编码流程；没有设计、文案或内容制作的专业智能体及配套工作流。",
+        dimension: "内置 agent 与工作流",
+        kanban: "内置开发、内容等专业 agent 和工作流，也可创建自定义 agent 和工作流；内容工作流需 Pro。",
+        taskMaster: "内置任务执行、测试和代码清理等编码流程；没有设计、文案或内容制作的专业 agent 及配套工作流。",
       },
       planning: {
         dimension: "任务拆解与依赖管理",
@@ -144,17 +144,17 @@ const zh: VsTaskMasterCopy = {
       },
       discussion: {
         dimension: "任务内对话",
-        kanban: "在卡片内与智能体讨论需求、修改计划；对话随卡片保留。",
-        taskMaster: "没有内置任务聊天界面；需要在 Cursor 等工具的智能体聊天中讨论任务。",
+        kanban: "在卡片内与 agent 讨论需求、修改计划；对话随卡片保留。",
+        taskMaster: "没有内置任务聊天界面；需要在 Cursor 等工具的 agent 聊天中讨论任务。",
       },
       memory: {
         dimension: "偏好记忆",
-        kanban: "智能体记住你的设计偏好、用词选择等决策，也能共享项目背景。",
+        kanban: "agent 记住你的设计偏好、用词选择等决策，也能共享项目背景。",
         taskMaster: "能保存规则和任务笔记；没有从用户修改和否决中自动积累偏好、供后续任务复用的记忆系统。",
       },
       followUps: {
         dimension: "交付后的建议",
-        kanban: "主线工作完成后，智能体提出后续工作，由你接受、修改或否决。",
+        kanban: "主线工作完成后，agent 提出后续工作，由你接受、修改或否决。",
         taskMaster: "next 只能选择已有任务；没有交付后自动提出新跟进项的流程。",
       },
       interface: {
@@ -174,13 +174,13 @@ const zh: VsTaskMasterCopy = {
       },
       research: {
         dimension: "调研",
-        kanban: "智能体可用 Claude Code、Codex 等执行工具提供的能力做调研；没有独立调研命令或调研模型设置。",
+        kanban: "agent 可用 Claude Code、Codex 等执行工具提供的能力做调研；没有独立调研命令或调研模型设置。",
         taskMaster: "research 可带入任务和文件上下文，使用单独配置的调研模型，并将结果保存到任务或调研文件。",
       },
       reach: {
         dimension: "CLI 与 MCP",
         kanban: "提供 CLI，可由 Claude Code、Codex 等编码工具调用；没有 MCP 服务。",
-        taskMaster: "同时提供 CLI 和 MCP 服务，可在兼容 MCP 的编辑器或编码智能体中使用。",
+        taskMaster: "同时提供 CLI 和 MCP 服务，可在兼容 MCP 的编辑器或编码 agent 中使用。",
       },
       license: {
         dimension: "许可证",
@@ -202,7 +202,7 @@ const zh: VsTaskMasterCopy = {
       "希望 agent 沿用已明确的偏好，减少后续任务的重复修改。",
     ],
     theirs: [
-      "希望通过 MCP 在现有编辑器或编码智能体中管理任务。",
+      "希望通过 MCP 在现有编辑器或编码 agent 中管理任务。",
       "希望用独立调研命令，带入任务背景并单独配置调研模型。",
       "希望用内置流程引导编码：先写失败测试，再实现到通过，最后提交。",
     ],

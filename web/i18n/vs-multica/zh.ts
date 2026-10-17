@@ -18,28 +18,28 @@ const zh: VsMulticaCopy = {
       heading: "开箱即用，少做团队配置",
       verdict: "用内置工作流推进开发与营销，不用逐项安排交接。",
       ours: "内置专业 agent 和工作流覆盖产品开发与营销内容。按任务使用对应工作流，不用自己设计团队分工。你也可以创建自定义 agent 和工作流。",
-      theirs: "除协调智能体 Mika 外，每个专业智能体都要你自己创建",
+      theirs: "除协调 agent Mika 外，每个专业 agent 都要你自己创建",
       art: {
         ours: ["UI 设计", "Prompt", "文案"],
         theirs: {
-          title: "新建智能体",
+          title: "新建 agent",
           fields: ["名称", "Instructions", "Skills"],
           slot: "由你创建",
         },
       },
       shared: [
         {
-          title: "自定义智能体",
+          title: "自定义 agent",
           body: [
-            "AI4Kanban 可以修改内置角色，也可以添加自己的智能体。",
+            "AI4Kanban 可以修改内置角色，也可以添加自己的 agent。",
             "Multica 的 Agent Builder 协助创建角色，再为其配置 Instructions 和 Skills。",
           ],
         },
         {
-          title: "多智能体并行",
+          title: "多 agent 并行",
           body: [
             "AI4Kanban 同时推进多张卡片，可选 Claude Code、Codex 等编码工具执行。",
-            "Multica 并行运行多个智能体，并提供排队、重试和成本统计。",
+            "Multica 并行运行多个 agent，并提供排队、重试和成本统计。",
           ],
         },
       ],
@@ -69,7 +69,7 @@ const zh: VsMulticaCopy = {
           title: "任务讨论",
           body: [
             "AI4Kanban 在卡片对话里讨论并修改计划。",
-            "Multica 在 issue 评论里与智能体讨论。",
+            "Multica 在 issue 评论里与 agent 讨论。",
           ],
         },
       ],
@@ -78,7 +78,7 @@ const zh: VsMulticaCopy = {
       heading: "下次还要再解释一遍吗？",
       verdict: "后续任务沿用已经明确的项目背景、偏好和决策。",
       ours: "每个 agent 记住与自身工作相关的偏好和决策，也能与其他 agent 共享项目背景。后续任务从已有共识继续，减少重复解释。",
-      theirs: "长期记忆取决于所用的 Agent 工具，要你自己检查和设置",
+      theirs: "长期记忆取决于所用的 agent 工具，要你自己检查和设置",
       art: {
         ours: {
           agents: ["UI 设计", "文案"],
@@ -95,7 +95,7 @@ const zh: VsMulticaCopy = {
         {
           title: "保存做事方法",
           body: [
-            "AI4Kanban 的每个智能体都有可编辑的角色规则。",
+            "AI4Kanban 的每个 agent 都有可编辑的角色规则。",
             "Multica 用 Instructions 和 Skills 保存做事方法。",
           ],
         },
@@ -116,12 +116,12 @@ const zh: VsMulticaCopy = {
     theirLabel: "Multica",
     rows: {
       startingPoint: {
-        dimension: "内置智能体与工作流",
-        kanban: "内置多种专业智能体及配套工作流，可修改或添加自己的角色。",
+        dimension: "内置 agent 与工作流",
+        kanban: "内置多种专业 agent 及配套工作流，可修改或添加自己的角色。",
         kanbanTip:
           "软件开发工作流免费；博客、社交轮播、演示文稿和产品视频工作流需 Pro。",
         multica:
-          "已有协调智能体 Mika；你自己或通过 Agent Builder 创建专业角色，再配置 Instructions 和 Skills。",
+          "已有协调 agent Mika；你自己或通过 Agent Builder 创建专业角色，再配置 Instructions 和 Skills。",
       },
       refinement: {
         dimension: "执行前审阅草稿",
@@ -133,16 +133,16 @@ const zh: VsMulticaCopy = {
       memory: {
         dimension: "记住修改和决定",
         kanban:
-          "每个智能体都有针对自身场景单独设计的记忆配方，它们学习用户对特定任务的偏好、决策，而非通用经验。多智能体之间也能共享记忆。",
+          "每个 agent 都有针对自身场景单独设计的记忆配方，它们学习用户对特定任务的偏好、决策，而非通用经验。多 agent 之间也能共享记忆。",
         multica:
-          "长期记忆取决于所用的 Agent 工具。使用 Hermes 的智能体各自在本机保留跨任务记忆；这份记忆不会自动跨机器同步。指令和任务历史也会保存。",
+          "长期记忆取决于所用的 agent 工具。使用 Hermes 的 agent 各自在本机保留跨任务记忆；这份记忆不会自动跨机器同步。指令和任务历史也会保存。",
       },
       backlog: {
         dimension: "交付之后",
         kanban:
-          "在你完成一项主线工作后，智能体自主提出跟进项，帮你补缺补漏。",
+          "在你完成一项主线工作后，agent 自主提出跟进项，帮你补缺补漏。",
         multica:
-          "要让智能体提出跟进项，需在任务指令中要求；Autopilot 需先配置任务指令、执行者及定时或 webhook 触发器，再自动运行。",
+          "要让 agent 提出跟进项，需在任务指令中要求；Autopilot 需先配置任务指令、执行者及定时或 webhook 触发器，再自动运行。",
       },
       license: {
         dimension: "许可证",
@@ -154,12 +154,12 @@ const zh: VsMulticaCopy = {
         kanban:
           "可用 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 或 Grok Build 执行卡片，同时推进多张卡片。",
         multica:
-          "可以并行运行多个智能体，并提供排队、重试、重放、成本统计、评审门禁，以及 PR 和 CI 关联。",
+          "可以并行运行多个 agent，并提供排队、重试、重放、成本统计、评审门禁，以及 PR 和 CI 关联。",
       },
       teams: {
         dimension: "团队协作",
         kanban:
-          "面向在同一个仓库中组织任务的个人和小团队，智能体和工作流均可自定义。",
+          "面向在同一个仓库中组织任务的个人和小团队，agent 和工作流均可自定义。",
         multica: "提供多人工作区、角色、Squad、评论、权限和通知。",
       },
     },
