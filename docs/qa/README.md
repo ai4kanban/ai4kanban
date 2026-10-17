@@ -91,6 +91,7 @@
 - [找到「视频克隆」工作流，看它要什么](local-ui/find-the-video-clone-workflow/case.md)
 - [在桌面应用的账单面板里恢复已取消的 Pro 续费](local-ui/resume-a-canceled-pro-renewal-in-the-desktop-app/case.md)
 - [在卡片上把原片和复刻放在一起对比](local-ui/compare-a-source-and-its-clone-on-a-card/case.md)
+- [点附件标签把它收起，再点展开](local-ui/collapse-an-asset-by-clicking-its-label/case.md)
 - [做演示文稿：先看清交付的是图片版 PPT，再在卡片上直接翻 HTML 幻灯片](local-ui/see-html-slides-directly-in-the-storyboard/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
@@ -113,6 +114,7 @@
 - [读 SaaS 方案页](site/read-the-saas-solution-page/case.md)
 - [在 /demo 走完一遍交互演示](site/walk-through-the-interactive-demo/case.md)
 - [AI 从 llms.txt 找到文档页](site/read-the-docs-list-in-llms-txt/case.md)
+- [读 Claude Code 介绍页，看先审草稿再交给 Claude Code 是怎么回事](site/read-the-claude-code-page/case.md)
 
 ### docs
 

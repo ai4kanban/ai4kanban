@@ -15,13 +15,13 @@ const shotSection = async (file, sel) => {
 await p.nav(B + '/', 5000)
 const col = `[...document.querySelectorAll('footer *')].find(e=>e.children.length===0&&e.textContent.trim().toUpperCase()==='COMPARE')`
 await p.click(`[...(${col}).parentElement.querySelectorAll('a')].find(a=>a.textContent.trim()==='Orca')`); await p.sleep(4000)
-log += `# 6. Click "Orca" in the footer\nlocation: ${await p.ev('location.pathname')}  title: ${await p.ev('document.title')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nlead: ${await p.ev(`document.querySelector('h1').parentElement.querySelector('p')?.innerText ?? ''`)}\n${await p.ev(txt(`${h('h2', 'What both support')}.parentElement.parentElement`))}\n`
+log += `# 6. Click "Orca" in the footer\nlocation: ${await p.ev('location.pathname')}  title: ${await p.ev('document.title')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nlead: ${await p.ev(`document.querySelector('h1').nextElementSibling?.innerText ?? ''`)}\n${await p.ev(txt(`${h('h2', 'What both support')}.parentElement.parentElement`))}\n`
 await p.ev('scrollTo(0,0)'); await p.sleep(800)
 await p.shot(D + '06-orca-top.png', { x: 0, y: 0, width: 1280, height: 900 })
 const orca = `${h('h2', 'Orca: a thin layer')}.closest('section')`
 log += `\n# 7. Read section 01\n${await p.ev(txt(orca))}\nlinks: ${await p.ev(`[...${orca}.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.href).join(' | ')`)}\n`
 await shotSection('07-orca-codex.png', orca)
-const ours = `${h('h2', 'AI4Kanban: you set')}.closest('section')`
+const ours = `${h('h2', 'AI4Kanban: review the drafts')}.closest('section')`
 const rows = `[...${ours}.querySelectorAll('svg[aria-label]')].reduce((a,s,i)=>{const row=s.closest('.grid').parentElement;if(i%2===0)a.push(row.firstElementChild.innerText+' — AI4Kanban: '+s.getAttribute('aria-label'));else a[a.length-1]+=', Orca: '+s.getAttribute('aria-label');return a},[]).join('\\n')`
 log += `\n# 8. Read section 02's table, then hover the info icon\n${await p.ev(rows)}\n`
 await shotSection('08-ours-table.png', `${ours}.querySelector('svg[aria-label]').closest('.grid').parentElement.parentElement`)

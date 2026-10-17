@@ -17,13 +17,13 @@ const shotSection = async (file, sel, max = 900) => {
 await p.nav(B + '/', 5000)
 const col = `[...document.querySelectorAll('footer *')].find(e=>e.children.length===0&&e.textContent.trim().toUpperCase()==='COMPARE')`
 await p.click(`[...(${col}).parentElement.querySelectorAll('a')].find(a=>a.textContent.trim()==='Plannotator')`); await p.sleep(4000)
-log += `# 12. Click "Plannotator" in the footer\nlocation: ${await p.ev('location.pathname')}  title: ${await p.ev('document.title')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nlead: ${await p.ev(`document.querySelector('h1').parentElement.querySelector('p')?.innerText ?? ''`)}\n${await p.ev(txt(sec('What both support')))}\n`
+log += `# 12. Click "Plannotator" in the footer\nlocation: ${await p.ev('location.pathname')}  title: ${await p.ev('document.title')}\nh1: ${await p.ev(`document.querySelector('h1').innerText`)}\nlead: ${await p.ev(`document.querySelector('h1').nextElementSibling?.innerText ?? ''`)}\n${await p.ev(txt(sec('What both support')))}\n`
 await p.ev('scrollTo(0,0)'); await p.sleep(800)
 await p.shot(D + '11-plannotator-top.png', { x: 0, y: 0, width: 1280, height: 900 })
 const theirs = sec('Plannotator: review within')
 log += `\n# 13. Read section 01\n${await p.ev(txt(theirs))}\nlinks: ${await p.ev(`[...${theirs}.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.href).join(' | ')`)}\n`
 await shotSection('12-plannotator-theirs.png', theirs)
-const ours = sec('AI4Kanban: review key drafts')
+const ours = sec('AI4Kanban: from key drafts')
 log += `\n# 14. Read section 02, then hover the info icon\n${await p.ev(txt(ours))}\n`
 await shotSection('13-plannotator-ours.png', ours, 1400)
 const tip = `document.querySelector('button[aria-describedby=pro-tip]')`
