@@ -40,15 +40,6 @@ const en: PricingCopy = {
     ],
     button: "Get Pro",
   },
-  board: {
-    tags: { coding: "Coding", email: "Email", slides: "Slides", video: "Video" },
-    tasks: {
-      coding: ["Add dark mode", "Fix login redirect", "Export to CSV", "Speed up search"],
-      email: ["Welcome email", "Release notes"],
-      slides: ["Investor update", "Team offsite deck"],
-      video: ["Launch demo", "Onboarding walkthrough"],
-    },
-  },
   seed: {
     name: "Seed partner",
     body: "Share redacted sessions with us to improve AI4Kanban. Accepted partners get 6 months of Pro, with no charge afterwards.",

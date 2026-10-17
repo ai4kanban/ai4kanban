@@ -3,16 +3,17 @@
 import { useState, type ReactNode } from "react";
 import { FiArrowRight, FiCheck } from "react-icons/fi";
 import { Button } from "@/components/ui/Button";
-import type { PricingCopy, Workflow } from "@/i18n/pricing/types";
+import type { PricingCopy } from "@/i18n/pricing/types";
 
 type Billing = "yearly" | "monthly";
+type Workflow = "coding" | "email" | "slides" | "video";
 
 const CHECKOUT = "https://cloud.ai4kanban.dev/billing/checkout?period=";
 
 const focus =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-deep";
 
-// Background only: task cards glide right along faint lanes, and prices roll in
+// Background only: blank task cards glide right along faint lanes, and prices roll in
 // like an odometer. Reduced motion: the board stands still, the price shows as is.
 const MOTION = `
 @keyframes pr-roll { from { transform: translateY(0) } to { transform: translateY(var(--to)) } }
@@ -22,54 +23,50 @@ const MOTION = `
 .pr-lane { animation: pr-lane var(--dur) linear infinite }
 .pr-strike { background: linear-gradient(var(--color-accent-deep),var(--color-accent-deep)) no-repeat 0 55% / 100% 2px;
   animation: pr-strike .5s .9s ease-out both }
-.pr-board { mask-image: radial-gradient(closest-side, transparent 62%, #000 82%, transparent 100%);
-  -webkit-mask-image: radial-gradient(closest-side, transparent 62%, #000 82%, transparent 100%) }
+.pr-board { mask-image: radial-gradient(closest-side, transparent 70%, #000 88%, transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, transparent 70%, #000 88%, transparent 100%) }
 @media (prefers-reduced-motion: reduce) {
   .pr-digit, .pr-strike, .pr-lane { animation: none }
   .pr-digit { transform: translateY(var(--to)) }
 }`;
 
+// Category colour is the only information a backdrop card carries.
 const FLOW: Record<Workflow, string> = {
-  coding: "bg-[#e4f3ea] text-growth",
-  email: "bg-[#f7ddce] text-accent-deep",
-  slides: "bg-[#efe9fb] text-[#5a3f92]",
-  video: "bg-[#e6f1fb] text-[#2c5c86]",
+  coding: "bg-[#cfe9d9]",
+  email: "bg-[#f3cdb8]",
+  slides: "bg-[#ddd3f5]",
+  video: "bg-[#cfe2f5]",
 };
-const ORDER: Workflow[] = [
-  "coding", "email", "coding", "slides", "video", "coding", "email", "slides", "coding", "video",
-];
-const LANES = [60, 84, 70, 92, 76, 66, 88, 72, 80, 64, 90, 74, 86, 68];
+const ORDER: Workflow[] = ["coding", "email", "slides", "coding", "video", "email"];
+const WIDTHS = [64, 44, 80, 52, 72, 40];
+const LANES = [70, 88, 76, 94, 82, 72, 90];
 
-function Board({ board }: { board: PricingCopy["board"] }) {
-  const seen: Partial<Record<Workflow, number>> = {};
-  const tasks = ORDER.map((flow) => {
-    const n = seen[flow] ?? 0;
-    seen[flow] = n + 1;
-    return { flow, title: board.tasks[flow][n % board.tasks[flow].length] };
-  });
-
+function Board() {
   return (
     <div
       aria-hidden="true"
-      className="pr-board pointer-events-none absolute -inset-x-6 -top-8 -bottom-20 flex flex-col gap-9 overflow-hidden pt-2 opacity-80 md:-inset-x-40"
+      className="pr-board pointer-events-none absolute -inset-x-6 -top-8 -bottom-20 flex flex-col gap-14 overflow-hidden pt-4 opacity-70 md:-inset-x-40"
     >
       {LANES.map((dur, lane) => {
-        const cards = Array.from({ length: 10 }, (_, i) => tasks[(lane * 3 + i) % tasks.length]);
+        const cards = Array.from({ length: 6 }, (_, i) => (lane * 2 + i) % ORDER.length);
         return (
-          <div key={lane} className="shrink-0 py-2">
+          <div key={lane} className="shrink-0">
             <div
-              className="pr-lane flex w-max gap-5"
-              style={{ ["--dur" as string]: `${dur}s`, animationDelay: `-${lane * 5}s` }}
+              className="pr-lane flex w-max gap-10"
+              style={{ ["--dur" as string]: `${dur}s`, animationDelay: `-${lane * 7}s` }}
             >
-              {[...cards, ...cards].map((c, i) => (
+              {[...cards, ...cards].map((n, i) => (
                 <span
                   key={i}
-                  className="flex shrink-0 items-center gap-2 rounded-lg bg-elev px-3 py-2 shadow-[0_2px_6px_-2px_rgba(36,35,31,0.25)]"
+                  className="flex shrink-0 items-center gap-2.5 rounded-lg bg-elev px-3 py-2.5 shadow-[0_2px_6px_-2px_rgba(36,35,31,0.2)]"
                 >
-                  <span className={`rounded px-1.5 py-0.5 text-[0.7rem] font-semibold ${FLOW[c.flow]}`}>
-                    {board.tags[c.flow]}
+                  <span className={`h-3 w-7 rounded ${FLOW[ORDER[n]]}`} />
+                  <span className="flex flex-col gap-1.5">
+                    <span className="h-1.5 rounded-full bg-ink/10" style={{ width: WIDTHS[n] }} />
+                    {n % 2 === 0 && (
+                      <span className="h-1.5 rounded-full bg-ink/[0.06]" style={{ width: WIDTHS[n] * 0.6 }} />
+                    )}
                   </span>
-                  <span className="whitespace-nowrap text-[0.8rem] text-ink/75">{c.title}</span>
                 </span>
               ))}
             </div>
@@ -217,7 +214,7 @@ export function Plans({
       </div>
 
       <div className="relative mt-12">
-        <Board board={t.board} />
+        <Board />
         <div className="relative mx-auto grid max-w-4xl gap-6 md:grid-cols-2 md:gap-10">
           <Plan
             name={t.free.name}
