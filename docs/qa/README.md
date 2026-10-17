@@ -45,7 +45,7 @@
 - [建一张只点名竞品的卡，让竞品调研拿整个产品对比](skill/research-a-named-competitor-against-the-whole-product/case.md)
 - [升级后，版本从看板上消失，卡片照常可读](skill/releases-leave-the-board-on-upgrade/case.md)
 - [建一张要求「复用现有组件」的界面卡，规划照样请界面设计师出稿](skill/plan-a-card-that-reuses-a-component-and-still-get-a-ui-draft/case.md)
-- [规划一份演示文稿：先看线框稿和样张，再拿到可编辑的 PPT](skill/see-wireframe-slides-before-the-styled-deck/case.md)
+- [规划一份演示文稿：先看线框稿和样张，再拿到图片版 PPT](skill/see-wireframe-slides-before-the-styled-deck/case.md)
 - [用「视频克隆」把一条程序化短片复刻成可复用的模板](skill/clone-a-programmatic-video-into-a-template/case.md)
 - [在命令行按标签找模板、看预览，再取回一个](skill/find-a-template-and-fetch-it-from-the-command-line/case.md)
 - [在卡片上手写 `<Compare>`，让 `akb raw validate` 指出写错的地方](skill/write-a-compare-on-a-card-and-validate-it/case.md)
@@ -91,6 +91,7 @@
 - [找到「视频克隆」工作流，看它要什么](local-ui/find-the-video-clone-workflow/case.md)
 - [在桌面应用的账单面板里恢复已取消的 Pro 续费](local-ui/resume-a-canceled-pro-renewal-in-the-desktop-app/case.md)
 - [在卡片上把原片和复刻放在一起对比](local-ui/compare-a-source-and-its-clone-on-a-card/case.md)
+- [做演示文稿：先看清交付的是图片版 PPT，再在卡片上直接翻 HTML 幻灯片](local-ui/see-html-slides-directly-in-the-storyboard/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -125,6 +126,7 @@
 - [在文档里查否决一张卡时写的原因去了哪里](docs/read-what-happens-to-a-rejection-reason-in-the-docs/case.md)
 - [跟着「Your first card」把第一张卡从想法走到交付](docs/follow-your-first-card-from-idea-to-delivery/case.md)
 - [在文档里查规划时会出哪些草稿、怎么改、怎么批准](docs/review-drafts-before-a-build-in-the-docs/case.md)
+- [在文档里查 Agent 记住了什么、记忆怎么保持最新](docs/read-how-agents-remember-your-preferences-in-the-docs/case.md)
 
 ### cloud
 

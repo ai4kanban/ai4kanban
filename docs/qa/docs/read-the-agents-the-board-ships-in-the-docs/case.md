@@ -13,7 +13,7 @@
    ![Pro 一段](01-pro-plan.png)
 
 2. 点右侧目录里的「Roles」。
-   页面滚到「Roles」一节：一句「Roles run the board's own flows. You can't add, remove or switch one off.」，下面十一条，每条一句——Software planner、Builder、Scriptwriter、Deck planner、Carousel planner、Blog planner、**Video cloner**、Proposer、Review chats、Describe the project、Memory pruner。Video cloner 一句说它克隆用代码做的视频：直接拿到渲染好的复刻成片，和原片并排对比，外加渲染它的模板，文字、图片、配色、时长都能改；不再提先确认逐镜头配方。
+   页面滚到「Roles」一节：一句「Roles run the board's own flows. You can't add, remove or switch one off.」，下面十一条，每条一句——Software planner、Builder、Scriptwriter、Deck planner、Carousel planner、Blog planner、Video cloner、Proposer、Review chats、Describe the project、Memory pruner。Deck planner 一条写「you approve the content, then get an image-based `.pptx`, one image per slide」，不再说可编辑。
    ![Roles 一节](02-roles.png)
 
 3. 点目录里的「Specialists」。
@@ -26,10 +26,10 @@
 
 ## Feedback
 
-- **新工作流一眼找得到**：Video clone 同时出现在 Pro 那句和 Roles 清单里。
-- **Video cloner 承诺的是结果**：「拿到成片，和原片并排」比原来「先审配方」好懂，读的人知道最后看什么；但没说中间不会再问你，镜头编排方向错了要等成片出来才发现，这点文档没提。
-- **「clones a video made with code」有门槛**：没做过程序化视频的人看不出能不能丢一段普通实拍视频进去；「要在描述里写 mp4 路径」「实拍和 logo 只做占位」这些都不在文档里。
-- **Roles 写着「不能关」却越来越像工作流目录**：一半条目是某个工作流的规划者，读的人要自己对上哪个 Role 属于哪个工作流。
+- **演示文稿的交付物说实话了**：「image-based `.pptx`, one image per slide」一看就知道拿到的是图片版；但没直接说「PPT 里不能改字，要改就让 Agent 改页面重出」，习惯打开 PowerPoint 改错字的人要到手才发现。
+- **Video cloner 承诺的是结果**：拿到成片、和原片并排，读的人知道最后看什么；没说中间不会再问你。
+- **Roles 越来越像工作流目录**：一半条目是某个工作流的规划者，读的人要自己对上哪个 Role 属于哪个工作流。
+- **名字和配置页对不上**：这里叫「Memory pruner」，配置页和新的 Memory 文档页叫「Tidy memory」；Review chats 这里写「after a card is archived」，Memory 页写「every day」。
+- **记忆讲了两遍**：本页仍留着「What agents remember」「Share a memory between agents」「Let the memory review remember for you」三节，和新的 Memory 页内容重叠。
 - **数字对上了**：页上专员和 `akb spec` 都是 11 个。
-- **频率仍没写**：Describe the project、Review chats 不说多久跑一次。
-- **没有跑到的**：真的跑一次 Video clone（要 Pro 和真实 agent）；窄屏。
+- **没有跑到的**：真的跑一次 Slide deck 或 Video clone（要 Pro 和真实 agent）；窄屏。

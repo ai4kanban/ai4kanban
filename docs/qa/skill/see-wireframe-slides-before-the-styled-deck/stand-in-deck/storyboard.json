@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "size": { "width": 1920, "height": 1080 },
+  "slides": [
+    { "id": "cover", "title": "月底对账，少熬两个晚上", "copy": ["给会计师事务所的 Ledgerly 介绍"], "notes": "开场只说一件事：月底对账不再熬夜。", "layout": "封面", "assets": [],
+      "preview": { "src": ".assets/2/pages/cover.html", "alt": "封面：标题与副标题" } },
+    { "id": "paid", "title": "38% 的发票在首次提醒后 3 天内付清", "copy": ["38%", "2,400 位付费用户的真实数据"], "notes": "数字来自 README，强调首次提醒就有效。", "layout": "大数字", "assets": [],
+      "preview": { "src": ".assets/2/pages/paid.html", "alt": "大数字 38%，下方一行说明" } },
+    { "id": "plans", "title": "两档价格，14 天免费试用", "copy": ["Solo $9/月", "Studio $29/月 · 5 人"], "notes": "最后落到试用：14 天不用信用卡。", "layout": "两栏", "assets": [],
+      "preview": { "src": ".assets/2/pages/plans.html", "alt": "两张价格卡片" } }
+  ]
+}

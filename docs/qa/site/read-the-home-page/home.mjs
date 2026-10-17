@@ -12,7 +12,7 @@ const shotView = (f) => p.shot(`${OUT}/${f}`)
 const video = `(()=>{const v=document.querySelector('main video');return v&&{src:v.currentSrc,paused:v.paused,muted:v.muted,loop:v.loop,controls:v.controls,t:+v.currentTime.toFixed(1),poster:v.poster.split('/').pop()}})()`
 
 log('# step 1: /zh hero'); await p.nav(`${SITE}/zh`, 4000)
-log(await p.ev(`(()=>{const h=document.querySelector('main h1');const sec=h.closest('section')||h.parentElement.parentElement;return {h1:h.innerText,lead:h.nextElementSibling?.innerText,buttons:[...sec.querySelectorAll('a')].map(a=>a.innerText.replace(/\\s+/g,' ').trim()+' -> '+a.href.replace(/arm64|x64/,'<arch>'))}})()`))
+log(await p.ev(`(()=>{const h=document.querySelector('main h1');const sec=h.closest('section')||h.parentElement.parentElement;const e=h.previousElementSibling;return {eyebrow:e?.innerText,eyebrowAlign:e&&getComputedStyle(e).textAlign,eyebrowBorder:e&&getComputedStyle(e).borderLeftWidth,h1:h.innerText.replace(/\\n/g,' / '),lead:h.nextElementSibling?.innerText,buttons:[...sec.querySelectorAll('a')].map(a=>a.innerText.replace(/\\s+/g,' ').trim()+' -> '+a.href.replace(/arm64|x64/,'<arch>'))}})()`))
 log('video', await p.ev(video)); await p.sleep(3000); log('3s later', await p.ev(video))
 await shotView('01-zh-hero.png')
 
@@ -63,14 +63,16 @@ await shotView('08-zh-start.png')
 
 log('# step 7: English hero')
 await p.nav(`${SITE}/`, 3000)
-log(await p.ev(`({h1:document.querySelector('main h1').innerText.replace(/\\n/g,' / '),title:document.title,description:document.querySelector('meta[name=description]').content,kinds:[...document.querySelectorAll('#drafts-stage li:not([data-glide]) span')].map(s=>s.innerText)})`))
+log(await p.ev(`({eyebrow:document.querySelector('main h1').previousElementSibling?.innerText,lead:document.querySelector('main h1').nextElementSibling?.innerText,h1:document.querySelector('main h1').innerText.replace(/\\n/g,' / '),title:document.title,description:document.querySelector('meta[name=description]').content,kinds:[...document.querySelectorAll('#drafts-stage li:not([data-glide]) span')].map(s=>s.innerText)})`))
 await p.close()
 
 log('# step 8: phone')
 p = await open(390, 844, true); await p.nav(`${SITE}/zh`, 3500)
+log('hero', await p.ev(`(()=>{const h=document.querySelector('main h1'),e=h.previousElementSibling;return {eyebrow:e.innerText,align:getComputedStyle(e).textAlign,h1:h.innerText.replace(/\\n/g,' / '),lines:Math.round(h.getBoundingClientRect().height/parseFloat(getComputedStyle(h).lineHeight))}})()`))
+await shotView('09-phone-hero.png')
 await p.box(`document.getElementById('drafts-stack')`); await p.sleep(1500)
 log(await p.ev(`({stage:getComputedStyle(document.getElementById('drafts-stage')).display,stack:[...document.querySelectorAll('#drafts-stack h3')].map(h=>h.innerText+(h.parentElement.querySelector('[aria-hidden]')?' + picture':'')),overflow:document.documentElement.scrollWidth>innerWidth})`))
-await shotView('09-phone-drafts.png'); await p.close()
+await shotView('10-phone-drafts.png'); await p.close()
 
 log('# step 9: reduced motion')
 p = await open(W, H); await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })

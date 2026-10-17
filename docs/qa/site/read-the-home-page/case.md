@@ -8,7 +8,7 @@
 ## Steps
 
 1. 打开 `/zh`。
-   标题「先看草稿，再往下做」（不带句号），导语「为看板上的任务准备关键草稿。你把关重点，agent 完成细节，一个人也能推进更多事。」，两个按钮：「下载 — macOS」直接给 v0.10.1 的 `.dmg`，「查看 GitHub ↗」。下面是 `/demo` 的录屏：静音、循环、无控件，自己播放（3 秒后从 2.9 秒走到 5.9 秒）。
+   标题上方一行居中的橙色小字「独立创业者的 Agent 工作台」（左边没有竖线），标题分两行「先看草稿 / 其余交给 Agent」，导语「从开发到营销，AI4Kanban 挑出任务中需要你把关的部分，提前做成草稿。你改好关键部分，Agent 完成后续工作，让你不必每件事都亲自盯、来回改。」，两个按钮：「下载 — macOS」直接给 v0.10.1 的 `.dmg`，「查看 GitHub ↗」。下面是 `/demo` 的录屏：静音、循环、无控件，自己播放（3 秒后从 3.1 秒走到 6.1 秒）。
    ![中文首屏](01-zh-hero.png) · [home.log](home.log)
 
 2. 往下滚到「关键部分先看草稿，方向不对现在就改。」，继续滚。
@@ -32,12 +32,12 @@
    ![页尾](08-zh-start.png) · [home.log](home.log)
 
 7. 打开英文首页 `/`。
-   标题分两行「See the draft. / Let agents do the rest.」，页面标题「See the draft before agents get to work | AI4Kanban」；四种草稿叫 UI mockup、Copy draft、Storyboard、Figures，说明各一行（如「Preview layout and interactions.」）。
+   定位行「An agent workspace for indie hackers」，标题分两行「See the draft. / Let agents do the rest.」，导语「From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there—without having to manage every detail.」。页面标题「See the draft before agents get to work | AI4Kanban」，meta description 仍是旧定位（「AI4Kanban prepares key drafts for tasks on your board…」）。四种草稿叫 UI mockup、Copy draft、Storyboard、Figures，说明各一行（如「Preview layout and interactions.」）。
    [home.log](home.log)
 
-8. 用 390px 宽的手机打开 `/zh`，滚到草稿一节。
-   不再固定：四种类型上下排列，每种的说明下直接跟它的配图；页面不横向滚动。
-   ![手机上的草稿板块](09-phone-drafts.png) · [home.log](home.log)
+8. 用 390px 宽的手机打开 `/zh`，先看首屏，再滚到草稿一节。
+   首屏的定位行同样居中，标题占两行；草稿一节不再固定：四种类型上下排列，每种的说明下直接跟它的配图；页面不横向滚动。
+   ![手机首屏](09-phone-hero.png) · ![手机上的草稿板块](10-phone-drafts.png) · [home.log](home.log)
 
 9. 打开系统的「减少动态效果」后打开 `/zh`。
    首屏录屏不播放，停在首帧（`hero-demo-poster-v1.jpg`）。
@@ -45,7 +45,9 @@
 
 ## Feedback
 
-- **一句话讲清楚**：「先看草稿，再往下做」配一段真实的 `/demo` 录屏，几秒钟就能明白产品是做什么的。
+- **一眼知道给谁用**：新加的定位行「独立创业者的 Agent 工作台」先回答了「这是给谁的」，两行标题把分工说清——人看草稿，其余交给 Agent；配上真实的 `/demo` 录屏，几秒钟就明白产品做什么。
+- **导语偏长**：中文导语在桌面上占两行、手机上占四行，「挑出…提前做成草稿」「改好关键部分」两处意思和标题重复，扫读的人多半跳过。
+- **对外说法不一致**：页面标题、meta description 和 `llms.txt` 的 Home 一行还是旧定位，没提独立创业者和营销；搜索结果和 AI 摘要里看到的，和点进来看到的首屏不是一套话。
 - **草稿一节终于一屏装下**：去掉编号、说明压成一行后，标题、列表、配图和收尾句同时在眼前，配图不再沉到下面；左边四项能点，点一下直接跳到那一项，不用慢慢滚。
 - **还是费滚动**：不点的话，固定区要滚 1.5 屏才走完四种类型，滚轮快的人会觉得页面卡住了；点击跳转没有任何外观提示，只有鼠标变成手形。不支持滚动驱动动画的浏览器（如 Firefox）看到的是手机式排列，这次没在 Firefox 里实测。
 - **没了编号更清爽**：各节只剩标题，读起来不像在数章节；代价是长页面里少了一点「读到哪了」的感觉。

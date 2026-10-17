@@ -1,63 +1,55 @@
-# 规划一份演示文稿：先看线框稿和样张，再拿到可编辑的 PPT
+# 规划一份演示文稿：先看线框稿和样张，再拿到图片版 PPT
 
 ## Setup
 
-- **项目**：一次性 git 项目，`README.md` 写着 Ledgerly 的功能、价格（Solo $9/月、Studio $29/月 5 人、14 天试用）和两个数字（2,400 位付费用户、38% 的发票在首次提醒后 3 天内付清）；`akb install` 新装，删掉 `setup-checklist.md`、自带的 #1 和索引里它那一行后提交。
-- **账号**：已登录 Cloud 且是 Pro（本地假 Cloud 应答 `/v1/billing`）；「演示文稿」工作流需要 Pro。
-- **Agent**：真实的 Claude Code（`claude-opus-5-5`），界面语言中文。
-- **界面**：看板 UI（`kanban-ui`）指向这个项目，浏览器窗口 1440×900。
+- **项目**：一次性 git 项目，`README.md` 写着 Ledgerly 的价格（Solo $9/月、Studio $29/月 5 人、14 天试用）和两个数字（2,400 位付费用户、38% 的发票在首次提醒后 3 天内付清）；`akb install` 新装。
+- **卡片**：`akb raw create --title "给会计师事务所的 Ledgerly 介绍" --workflow slide-deck` 建出 #2。
+- **替身 deck-planner**：没有跑真实 agent。第二阶段的产物由替身照 `deck-planner` 的说明手写：卡片资产目录里的 `storyboard.json`（`size` 1920×1080，3 页，预览指向 `pages/<页>.html`）和 3 个静态 HTML 页面，见 [stand-in-deck/](stand-in-deck/)；卡片上是 `<Storyboard src=".assets/2/storyboard.json" />`。
+- **界面**：看板 UI（`kanban-ui`）指向这个项目，中文，浏览器窗口 1440×900。
 
 ## Steps
 
-1. 用「演示文稿」工作流建卡：`akb raw create --title "给会计师事务所的 Ledgerly 介绍" --workflow slide-deck --body-file body.md`（正文：给会计师事务所做一份 6 页左右的介绍，讲客户用 Ledgerly 开票后月底对账能省多少事，数字用 README 里的），再执行 `akb card refine 2`。
-   建出 #2，返回一次 `refine` 运行。
-   [01-refine.log](01-refine.log)
+1. 打开「配置 → 工作流」，展开工作流选择器，把鼠标停在「演示文稿」上。
+   提示气泡：「先确认每页内容，再拿到图片版 PPT（每页一张图，不能直接改字），满意即可归档。」
+   ![演示文稿工作流的说明](01-workflow-tip.png)
 
-2. 运行结束后（约 9 分钟，$1.73）看卡片和资产目录。
-   #2 只有一个问题：线框稿的内容和样张的外观可以吗。``## By `deck-planner` agent`` 一节是一句话的故事线、`<Storyboard src=".assets/2/storyboard.json" label="线框稿" />`、一句话和 `<Storyboard src=".assets/2/samples.json" label="样张" />`，再三条要点（听众、字体、币种）；没有大段的 Brief、Facts、Recipe。线框稿 6 页白底黑字，每页底部一个虚线框写「制作说明：版式…素材…动画…」；`samples.json` 是 3 页套用正式配色的样张（四格、大数字、流程）。
-   [02-card.log](02-card.log)
-   ![线框稿第 4 页](02-wireframe-month-end.png)
-   ![同一页的样张](02-sample-month-end.png)
+2. 执行 `akb raw agent-file deck-planner scripts/validate-storyboard.mjs` 和 `… scripts/pack-pptx.mjs`，各存成文件。
+   两个脚本都取到；`pack-pptx.mjs` 开头写明用法、只需 Node 18、每页取 `slides/<页>.png`、`notes` 进演讲者备注、缺图退出 1。
+   [02-scripts.log](02-scripts.log)
 
-3. 在看板 UI 打开 `/2`，看「线框稿」。
-   标题「线框稿 6 页」，上方一排缩略图，下面逐页大图配右侧「演讲备注」；每页图里能看到占位框和底部的制作说明。
-   ![线框稿](03-wireframes.png)
+3. 对卡片资产目录里的 `storyboard.json` 执行 `node validate-storyboard.mjs`，再执行 `akb raw validate 2 --json`。
+   预览是 `.html` 页面、带 `size` 的分镜报 `valid`；卡片校验通过。
+   [03-validate.log](03-validate.log)
 
-4. 往下看「样张」。
-   「样张 3 页」，青绿配色、页脚有「Ledgerly」和页码，同样配演讲备注。
-   ![样张](04-samples.png)
+4. 在看板 UI 打开 `/2`，展开「演示文稿策划」。
+   「幻灯片 3 页」，缩略图和逐页大图直接画出 HTML 页面，右侧是演讲备注。
+   ![由 HTML 页面画出的幻灯片](04-slides-from-pages.png)
 
-5. 执行 `akb card resolve 2 "通过"`。
-   返回一次 `resolve` 运行。
-   [05-approve.log](05-approve.log)
+5. 把每个页面在无头浏览器里按 1920×1080 截成 `slides/<页>.png`，再执行 `node pack-pptx.mjs <资产目录>/storyboard.json <资产目录>/ledgerly-for-accounting-firms.pptx`。
+   输出「3 slide(s), one image each」，退出码 0；压缩包里每页一张 `media/imageN.png`、一份 slide 和一份 notesSlide。
+   [05-pack.log](05-pack.log)
 
-6. 运行结束后（约 1 分钟，$0.63）看回话、卡片和资产目录。
-   第一阶段的待办打勾，新问题是「最终 6 页幻灯片可以交付了吗」；卡片上只剩一个 `<Storyboard src=".assets/2/storyboard.json" />`，预览从交付用的 `.pptx` 渲染；`samples.json`、样张预览和线框稿的中间文件都已删除。回话说明预览里粗体显示成常规字重、箭头只见横线，`.pptx` 里正常。
-   [06-stage2.log](06-stage2.log)
-   ![最终第 4 页](06-final-month-end.png)
+6. 读 `.pptx` 里的幻灯片尺寸、每页的图片和文字框、演讲者备注。
+   16:9；每页 1 张满版图片、0 个文字框、0 段文字；三页备注与 `storyboard.json` 的 `notes` 一致。
+   [06-inspect.log](06-inspect.log)
 
-7. 执行 `akb card resolve 2 "通过"`。
-   返回一次 `resolve` 运行。
-   [07-approve-final.log](07-approve-final.log)
+7. 在访达里用快速查看打开这份 `.pptx`。
+   第一页就是封面页面的图片，和看板 UI 上的预览一致。
+   ![快速查看里的第一页](07-quicklook-first-slide.png)
 
-8. 运行结束后（37 秒，$0.29）看回话、卡片和资产目录。
-   卡片 **ready**，待办 4/4；`<Asset src=".assets/2/ledgerly-for-accounting-firms.pptx" …/>` 放在卡片正文开头、`## Worth noting` 之上，不在 agent 那一节里；`.pptx` 里有 6 页。
-   [08-delivered.log](08-delivered.log)
+8. 拿走 `slides/plans.png`（第 3 页的预览是 `.html`，没有图片可退），再打包一次。
+   退出码 1：「1 slide(s) have no image. Render each page, then run this script again:」并点名 `slide 3 "plans"`；没有写出新的 `.pptx`。
+   [08-missing-image.log](08-missing-image.log)
 
-9. 在看板 UI 刷新 `/2`。
-   描述下面就是带下载图标的 `ledgerly-for-accounting-firms.pptx`；标题旁「可以开始执行」，按钮是「修订」「归档」。
+9. 在卡片描述下加上 `<Asset src=".assets/2/ledgerly-for-accounting-firms.pptx" … />`，刷新 `/2`。
+   描述下面是带下载图标的 `ledgerly-for-accounting-firms.pptx`。
    ![卡片顶部的 PPT](09-card-top.png)
-
-10. 展开「演示文稿策划」。
-    「幻灯片 6 页」，逐页是最终配色的预览和演讲备注。
-    ![最终幻灯片](10-final-slides.png)
 
 ## Feedback
 
-- **第一次规划就看得到页面**：线框稿把每页的版式、素材、动画直接写在页上，样张只做 3 页定调，比读一大段配方快得多，也知道要拍板的是什么。
-- **制作说明在卡片上太小**：虚线框里的字在卡片预览里几乎看不清，要点「放大查看」才读得到。
-- **确认后中间稿自己收拾干净**：样张和线框稿通过后就删了，卡片上只剩最终稿，不会混着看。
-- **成品放在最显眼的地方**：交付后的 `.pptx` 就在描述下面，一眼能下载。
-- **回话换成了英文**：看板语言是中文，第一轮规划的回话也是中文，但两次 `resolve` 的回话和交付时补进 `Decided by the agent` 的几条都是英文。
-- **预览和成品不完全一致**：预览里粗体变常规、箭头没有箭头头部，回话和卡片都提醒了，但第一次看预览还是会以为排版有问题。
-- **没有跑到的**：「要改」时只重渲改动的页；在 PowerPoint 里打开 `.pptx` 核对可编辑性。
+- **说明先把代价讲清**：工作流气泡直接写「每页一张图，不能直接改字」，选之前就知道拿到的不是可编辑 PPT，不会交付后才失望。
+- **预览就是成品**：看板上画的是页面本身，导出的图又是同一页面截出来的，快速查看里看到的和卡片上一模一样；旧流程里「预览粗体变常规、箭头没头」的落差没有了。
+- **打包脚本很省心**：零依赖、一条命令，缺图时点名是哪一页，不会悄悄打出少一页的 PPT。
+- **改一个字也得回到 agent**：拿到 PPT 后想改个错字，只能请 agent 改页面再重新导出；给客户临时改一句的场景会很别扭。
+- **备注还在**：演讲者备注照样写进 PPT，上台讲时不受影响。
+- **没有跑到的**：真实 `deck-planner` 的三个阶段（线框稿、样张、清理中间稿、把 `<Asset>` 放到卡片上）都是替身代做的，agent 是否照说明走没有验证；也没在 PowerPoint 或 Keynote 里放映核对。

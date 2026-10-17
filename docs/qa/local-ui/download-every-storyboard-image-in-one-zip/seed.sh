@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Adds this case's card to a scratch project (installing a fresh board there first if it has
-# none): a four-page carousel storyboard whose page 3 has no picture yet, plus a second
-# storyboard with no pictures at all. Needs ffmpeg to draw the pages.
+# none): a four-page carousel storyboard whose page 3 has no picture yet, a second storyboard
+# with no pictures at all, and a deck mixing HTML pages with one picture. Needs ffmpeg.
 # Usage: seed.sh <project dir> <path to cli/bin/ai4kanban.mjs>
 set -e
 P=$1 CLI=$2
@@ -34,6 +34,15 @@ $(slide cover 封面 草稿 cover $ID draft-1.png 草稿封面),
 $(slide end 结尾 草稿 cover $ID draft-2.png 草稿结尾)
 ]}
 JSON
+printf '<!doctype html><body style="margin:0;background:#264653;color:#fff;font:120px system-ui">%s</body>' 第一页 > $A/previews/deck-1.html
+printf '<!doctype html><body style="margin:0;background:#264653;color:#fff;font:120px system-ui">%s</body>' 第三页 > $A/previews/deck-3.html
+cat > $A/deck.json <<JSON
+{"version":1,"slides":[
+$(slide p1 第一页 HTML cover $ID deck-1.html 第一页),
+$(slide p2 第二页 图片 cover $ID 2-board.png 第二页),
+$(slide p3 第三页 HTML cover $ID deck-3.html 第三页)
+]}
+JSON
 perl -0pi -e 's/\n<one short paragraph.*//s' docs/kanban/todo/$ID-carousel.md
 cat >> docs/kanban/todo/$ID-carousel.md <<BODY
 
@@ -44,6 +53,8 @@ cat >> docs/kanban/todo/$ID-carousel.md <<BODY
 <Storyboard src=".assets/$ID/carousel.json" label="小红书 3:4" />
 
 <Storyboard src=".assets/$ID/draft.json" label="草稿" />
+
+<Storyboard src=".assets/$ID/deck.json" label="演示文稿" />
 
 <!-- agent -->
 
