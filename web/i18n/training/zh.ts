@@ -82,7 +82,7 @@ const zh: TrainingCopy = {
 
   coach: {
     heading: { eyebrow: "导师介绍", title: "Tao Wu，AI4Kanban 作者" },
-    body: "Tao Wu 拥有多年的数据库研发与产品管理经验。他开发了 AI4Kanban，帮助编程代理规划和管理开发任务，并用它推进 AI4Kanban 自身看板、桌面应用和网站的开发。",
+    body: "Tao Wu 拥有多年的数据库研发与产品管理经验。他开发了 AI4Kanban——独立创业者的 Agent 工作台，并用它推进 AI4Kanban 自身看板、桌面应用和网站的开发。",
     link: "阅读完整介绍（英文）→",
   },
 

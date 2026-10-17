@@ -85,7 +85,7 @@ const en: TrainingCopy = {
 
   coach: {
     heading: { eyebrow: "Your coach", title: "Tao Wu, creator of AI4Kanban" },
-    body: "Tao Wu has years of experience in database engineering and product management. He created AI4Kanban to help coding agents plan and manage development tasks, and uses it to develop the product's own board, desktop app and website.",
+    body: "Tao Wu has years of experience in database engineering and product management. He created AI4Kanban, an agent workspace for indie hackers, and uses it to develop the product's own board, desktop app and website.",
     link: "Why I built AI4Kanban →",
   },
 
