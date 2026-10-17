@@ -31,7 +31,8 @@ A card a run is working on can't be changed in chat. `--clear` starts a fresh co
 
 ## A model per conversation
 
-Choose the coding agent and model beside **Send**, or with `--agent` and `--model` in the
-terminal. Each conversation has its own selection. Changing the model keeps the conversation;
-changing the coding agent starts a new one. See
+Choose a runtime — a coding agent and its model — beside **Send**, or with `--runtime <id>` in
+the terminal; `akb agent` lists the ids and `--runtime ""` goes back to the board's. Each
+conversation keeps its own. Switching to a runtime on the same coding agent keeps the
+conversation; one on another coding agent starts a new one. See
 [Runs](/docs/runs#which-runtime-each-agent-runs-on) for board runtime settings.
