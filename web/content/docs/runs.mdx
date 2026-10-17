@@ -1,63 +1,56 @@
 ---
-title: "Runs, and the tool behind them"
-title_tag: "AI4Kanban runs — watch one, stop it, resume it, and pick what it runs on"
-description: "A run is an agent working on its own: what to say to watch, stop or resume one, and how each agent picks the coding tool and model it runs."
-lead: "A run is an agent working on its own — it survives a closed terminal, keeps its own log, and can be stopped. Here's how you drive one, and how each agent picks what it runs on."
-last_updated: "October 4, 2026"
-nav_label: "Runs and agents"
+title: "Manage runs and runtimes"
+title_tag: "AI4Kanban runs — watch, stop, resume and configure agents"
+description: "Monitor background work, recover a failed run and choose the coding tool and model each agent uses."
+lead: "Follow background work in Runs. Each run has a log and can be stopped; each agent can use its own coding tool and model."
+last_updated: "October 15, 2026"
+nav_label: "Runs and runtimes"
 icon: "terminal"
 ---
 
-Everything in [the daily loop](/docs/daily-loop) is a card. The rest of what the board app's
-buttons do can be asked for just as plainly, and your agent runs the matching command — the
-runs panel and `akb run` are the same list either way.
+## Watch or recover a run
 
-| You say | What happens |
+Open **Runs** or ask your coding agent **"what's running?"**. The app and `akb run` show the same
+runs.
+
+| You want | Action |
 | --- | --- |
-| "what's running?" | the runs going now, and what ran lately |
-| "show me that run's log" | its log, or `--follow` to watch it go |
-| "stop it" | the run ends, along with every command it started, and the card comes back |
-| "that run died — carry on" | it resumes where the agent left off |
-| "that run never got going — try again" | **Retry** starts the same ask again |
-| "use Codex instead" / "switch to Opus" | the board's agent, model, reasoning effort |
-| "check my setup works" | one small message through the setup, so a bad login turns up here rather than on your next card |
-| "save my API key" | it hands **you** the command to type yourself, so the key stays out of its transcript |
+| Read progress | Open the run's log; use `--follow` in the terminal to watch it. |
+| Stop work | Stop the run; this also ends commands it started and releases the card. |
+| Continue failed work | Use **Resume** where supported. |
+| Start the same request again | Use **Retry**, including when an early failure cannot resume. |
 
-When an ask can't run, the answer names the one line that fixes it.
+For interrupted card creation, choose **Resume creating** or **Discard** on the board. Discard
+archives the unfinished card as **Rejected**.
 
-If card creation fails or stops, choose **Resume creating** or **Discard** on the board. Discard
-moves the unfinished card to the archive, marked **Rejected**.
-
-Runs, logs and chats are kept on your machine, not in the repository. Move or rename the project
-and its board starts with an empty run history.
+Runs, logs and chats stay on your machine, outside the repository. Moving or renaming the project
+starts an empty run history.
 
 ## Sub-runs
 
-An agent inside a run can hand part of its work to a **sub-run** with `akb run start "<task>"`
-— the [QA manager](/docs/daily-loop#the-qa-manual) starts one per module. In **Runs** each sits
-under the step that started it, with its own log, cost and model. Its changes land with its
-parent's, and stopping the parent stops it.
+An agent can delegate part of its work with `akb run start "<task>"`. In **Runs**, a sub-run
+appears under its starting step with its own log, cost and model. Its changes land with the
+parent's; stopping the parent stops its sub-runs.
 
 ## Which runtime each agent runs on
 
-Every run belongs to one agent, and each agent names a **runtime**: the coding tool, provider,
-endpoint, key, model, reasoning level and any extra arguments it runs with. So planning can think
-on a stronger model than the builder writes with.
+A **runtime** specifies a coding tool, provider, model, reasoning effort and connection settings.
+Pick it on the agent's page under **Configuration → Workflows** or **Configuration → Board**.
 
-Pick an agent's runtime on its page under **Configuration → Workflows** or **Configuration →
-Board**. **Configuration → Runtimes** lists them, with a **Test** that says whether each one
-answers. The first row, **Global default**, is what an agent naming no runtime runs. A
-workflow's planner runs on the runtime of the **Planning helper** — the agent you talk to in
-**New idea** and **Discuss** — until you pick one of its own.
+Manage runtimes under **Configuration → Runtimes**. **Global default** supplies agents without a
+runtime of their own. A workflow's planner uses **Planning helper**'s runtime until you assign
+one.
 
 ```bash
-akb agent                                    # every runtime, then every agent and the row it runs
+akb agent
 akb agent runtime add "My gateway" claude-code
 akb agent set --runtime my_gateway baseUrl https://my-gateway.example.com
-akb agent bind builder my_gateway            # give one agent a runtime of its own
+akb agent bind builder my_gateway
 ```
 
-Runtimes and API keys are yours alone: git does not carry them and a Cloud workspace does not
-share them.
+Use **Test** or `akb agent test` to send a small test message. Enter API keys yourself in settings
+or the CLI; do not paste them into chat. Runtimes and keys are machine settings, shared by neither
+git nor a Cloud workspace.
 
-To set up the tools behind an agent, see [Multi-runtime support](/docs/connectors).
+See [Multi-runtime support](/docs/connectors) for supported tools, their settings and execution limits. A
+single [chat](/docs/chat#a-model-per-conversation) can use a different agent or model.
