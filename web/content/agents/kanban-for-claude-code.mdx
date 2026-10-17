@@ -14,12 +14,7 @@ AI4Kanban brings coding and marketing workflows into one agent workspace for ind
 
 Catch a wrong layout or message while it is still a draft, then let Claude Code complete the agreed work. You review the key details without managing every step, and independent tasks can move forward in parallel.
 
-<Shot
-  src="board-chat-v1"
-  wash="emberLilac"
-  alt="AI4Kanban discusses project dependencies and memory with Claude Code"
-  caption="Claude Code works through the board without making one chat the project's source of truth."
-/>
+<Clip src="coding-key-points-v1" alt="A task card with its open questions, page prototype and invitation email" />
 
 ## What can I review before Claude Code builds?
 
@@ -50,12 +45,7 @@ Claude Code is expected to settle factual questions itself. It inspects the code
 
 The finished card contains the outcome, boundaries, dependencies, edge cases, and verification criteria that the implementation run must follow. If the work is too large, Claude splits it into smaller cards and records the order in which they can run.
 
-<Shot
-  src="runs-v2"
-  wash="peachEmber"
-  alt="A Claude Code refinement run separates decisions settled from evidence from questions left for the user"
-  caption="A Claude Code refinement run records what it settled from repository evidence and what still needs your decision."
-/>
+<Clip src="coding-questions-v1" alt="A question on the card with its options and the recommended answer" />
 
 ## What project context survives between Claude Code sessions?
 
@@ -65,11 +55,6 @@ The finished card contains the outcome, boundaries, dependencies, edge cases, an
 
 The card tells agents what this task must deliver. Memory helps them follow what you have already settled when they work on the next task.
 
-<MemoryShot
-  alt="AI4Kanban's memory page: the board's own record and the planner's memory in the sidebar, with settled decisions open"
-  caption="Task history stays with the card. Shared decisions sit in small Markdown files, filed under whoever keeps them."
-/>
-
 [Claude Code's own instructions and memory](https://code.claude.com/docs/en/memory) still apply alongside AI4Kanban's project memory.
 
 ## Can I use Codex for writing and Claude Code for coding?
@@ -77,6 +62,8 @@ The card tells agents what this task must deliver. Memory helps them follow what
 Yes. Use Codex for copywriting and Claude Code for implementation, with both working from the same board and relevant project context. The approved copy stays on the card for Claude Code to follow when building the page.
 
 You can also choose Cursor, OpenCode or another supported runtime. The tools run on your machine with your own subscriptions or keys.
+
+<Clip src="coding-tools-v1" alt="Switching the UI designer’s runtime from Claude Code to Codex" />
 
 ## How do Claude Code subagents and agent teams fit?
 
@@ -93,13 +80,6 @@ No. AI4Kanban launches the Claude Code CLI already installed on your machine. Yo
 [Claude Code loads those extensions at different points in a session](https://code.claude.com/docs/en/features-overview). AI4Kanban invokes its `/kanban` skill directly and adds the current card plus the relevant project memory. It does not require an MCP server of its own.
 
 Choose the login already used by your Claude CLI, an Anthropic API key, or an Anthropic-compatible endpoint for Claude Code.
-
-<Shot
-  src="configuration-agents-v1"
-  wash="emberMint"
-  alt="AI4Kanban's Agents pane, with the builder set to Claude Code and its own model and reasoning effort"
-  caption="Each agent picks the coding tool and model it runs. The tool travels with the repository; the model stays on this computer."
-/>
 
 ## Can a failed card resume the same Claude Code session?
 

@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { ArticleLayout } from "@/components/blog/ArticleLayout";
 import { MemoryShot } from "@/components/blog/MemoryShot";
 import { Shot } from "@/components/blog/Shot";
+import { Clip } from "@/components/workflows/Figures";
 import { BUILDER_PATH } from "@/components/social";
 import { getCopy } from "@/i18n";
 import { AUTHOR } from "@/lib/blog";
@@ -83,7 +84,7 @@ export default async function AgentPage({ params }: Params) {
       <Header c={c} locale="en" overlay />
       <ArticleLayout
         body={page.body}
-        extra={{ Shot, MemoryShot }}
+        extra={{ Shot, MemoryShot, Clip }}
         header={
           <>
             <p className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-accent-deep">
