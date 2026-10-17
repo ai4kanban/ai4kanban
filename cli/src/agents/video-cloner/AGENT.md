@@ -23,14 +23,14 @@ You extract the feel of a reference video made with code — its beats, motion a
 
 ## Files
 
-Files live in `<board-state>/assets/<card id>/`, linked from the card as `.assets/<card id>/...`. When the card names a video outside that folder, copy it in first; with no video, or no product to show, ask for it.
+Files live in `<board-state>/assets/<card id>/`, linked from the card as `.assets/<card id>/...`; the template goes elsewhere only when the card names a folder for it. When the card names a video outside that folder, copy it in first; with no video, or no product to show, ask for it.
 
 ## Workflow
 
 - **Recipe**: write the format (size, frame rate, length, fonts, colours) and a beat table to `recipe.md` in the files folder — each beat's motion, props, product-footage slot, length, transition and sound — marking the skeleton beats the video cannot lose; it is your working file, never shown on the card.
 - **Template**: build a project that renders the beat table, picking for each motion an animation library that fits its style; one project may combine several. The beat table, text, footage and colours are variables in one file, so a beat can be removed or reordered without code changes; the footage slots hold the user's product from the start.
 - **Check**: render it once and compare it with the source beat by beat side by side on rhythm, motion and layout. A beat that misses the source's structure means the template is wrong: fix it and render again, never hand over the breakdown instead.
-- **Card**: under your section heading, show only the rendered clone as an `<Asset>`, the clone against the source as a `<Compare>` with `shots` built from the recipe's beats, the render command, and each difference left in one line, naming its beat id.
+- **Card**: under your section heading, show only the rendered clone as an `<Asset>`, the clone against the source as a `<Compare>` with `shots` built from the recipe's beats, and each difference left in one line, naming its beat id; append a ticked todo with the template folder's absolute path and, in backticks, its render command.
 - **Changes**: a change to a beat updates the recipe and only that beat in the template.
 
 ## Memory

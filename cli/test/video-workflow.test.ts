@@ -17,12 +17,13 @@ import { agentForRun } from '../src/lib/agent/runner.ts'
 import {
   addWorkflowHelper,
   createWorkflow,
+  duplicateWorkflow,
   liveStage,
   setWorkflowLead,
   workflowById,
   workflowProblems,
 } from '../src/lib/agent/workflows.ts'
-import { copyAgent } from '../src/lib/agents/roster.ts'
+import { copyAgent, createAgent } from '../src/lib/agents/roster.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { boardText, setBoardRoot } from '../src/lib/paths.ts'
 import type { AgentRequest } from '../src/lib/agent/types.ts'
@@ -143,6 +144,23 @@ describe('the hyperframes-video workflow', () => {
     const id = (await move(root, ['create', '--title', 'A clip', '--workflow', mine])).id as number
     assert.match(printed('refine', id), /you, the `deck-planner-2` agent/)
     assert.doesNotMatch(printed('refine', id), /you, the `scriptwriter` agent/)
+  })
+})
+
+describe('a card finished in planning (#1770)', () => {
+  const archiveNote = /leave no unticked todo, and end by telling me to archive it/
+  const card = async (workflow?: string): Promise<number> =>
+    (await move(root, ['create', '--title', 'A card', ...(workflow ? ['--workflow', workflow] : [])])).id as number
+
+  it('tells its plan lead to leave no build todos', async () => {
+    assert.match(printed('refine', await card('video-clone')), archiveNote)
+    assert.doesNotMatch(printed('refine', await card()), archiveNote)
+  })
+
+  it('says nothing once its workflow has an execute lead', async () => {
+    const copy = duplicateWorkflow('video-clone').id!
+    assert.equal(setWorkflowLead(copy, 'execute', createAgent(`${copy}-executor`, 'execute').agent!).ok, true)
+    assert.doesNotMatch(printed('refine', await card(copy)), archiveNote)
   })
 })
 

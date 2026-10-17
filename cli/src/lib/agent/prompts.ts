@@ -31,7 +31,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
-import { liveStage, scheduledAgent, scheduledMembers, workflowById, workflowFor, workflows } from './workflows'
+import { finishedInPlanning, liveStage, scheduledAgent, scheduledMembers, workflowById, workflowFor, workflows } from './workflows'
 import { specAgentCatalog } from '../agents/catalog'
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
@@ -272,12 +272,22 @@ export function leadBlock(req: AgentRequest): string {
       human
         ? `Your output is reviewed by me: write it in \`\`## By \`${agent.name}\` agent\`\`, above \`<!-- agent -->\`, and leave it there. With nothing to show, leave the section out.`
         : '',
+      human && planFinishedRun(req)
+        ? "This card is finished in planning, then archived, never built: leave no unticked todo, and end by telling me to archive it once I'm happy."
+        : '',
       files ? `——— your own files ———\n\n${files}` : '',
       shared ? `——— global memories ———\n\n${shared}` : '',
     ]
       .filter(Boolean)
       .join('\n\n'),
   )
+}
+
+// The delivery's frozen execute lead wins over the board's live one (#1770).
+function planFinishedRun(req: AgentRequest): boolean {
+  const flow = workflowFor(workflowForRun(req))
+  const frozen = deliveryFor(req)?.workflow
+  return frozen ? flow?.delivers === 'plan' && !frozen.stages.execute.lead : finishedInPlanning(flow)
 }
 
 /** The pictures pasted into the create sheet (#517), as files to open — that is the only
