@@ -55,4 +55,15 @@ await r.ev(`document.querySelector('main video')?.scrollIntoView({block:'center'
 log += `\n# 6. Same page with "reduce motion" on\nvideo: ${JSON.stringify(await r.ev(`(()=>{const v=document.querySelector('main video');return v&&{paused:v.paused,controls:v.controls,autoplay:v.autoplay,poster:!!v.poster,t:v.currentTime}})()`))}\n`
 await r.shot(D + '06-reduced-motion.png', { x: 0, y: await r.ev('scrollY'), width: 1280, height: 900 })
 await r.close()
+// the first section's copy, in English and Chinese
+const first = `(()=>{const h=document.querySelector('main h2');const ps=[];let e=h.nextElementSibling;while(e&&e.tagName!=='H2'){if(e.tagName==='P')ps.push(e.innerText);e=e.nextElementSibling}const b=h.getBoundingClientRect();return {title:document.title,description:document.querySelector('meta[name=description]').content,lead:document.querySelector('h1').nextElementSibling?.innerText,h2:h.innerText,paragraphs:ps,y:b.y+scrollY}})()`
+const f = await open(1280, 900)
+for (const path of ['/workflows/coding', '/zh/workflows/coding']) {
+  await f.nav(SITE + path, 5000)
+  for (let y = 0; y < 2400; y += 400) { await f.ev(`scrollTo(0,${y})`); await f.sleep(150) }
+  const s = await f.ev(first)
+  log += `\n# 2b. ${path}: title, lead and the first section\n${JSON.stringify({ ...s, y: undefined }, null, 1)}\n`
+  if (path === '/workflows/coding') { await f.ev(`document.querySelector('main h2').scrollIntoView({block:'start'})`); await f.sleep(1200); await f.shot(D + '02c-first-section.png', { x: 0, y: s.y - 40, width: 1280, height: 520 }) }
+}
+await f.close()
 fs.writeFileSync(D + 'coding.log', log); console.log(log)

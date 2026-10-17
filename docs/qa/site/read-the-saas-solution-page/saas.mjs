@@ -48,3 +48,10 @@ log('stage', await p.ev(stage)); await p.sleep(3000); await p.shot(`${OUT}/06-ph
 log('# 7. Reduced motion'); p = await open(1280, 900)
 await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
 await p.nav(`${SITE}/solutions/saas`, 3000); log('stage', await p.ev(stage)); await heroShot('07-reduced-motion.png'); await p.close()
+
+log('# 4b. The marketing-material section'); p = await open(1280, 900); await p.nav(`${SITE}/solutions/saas`, 4000)
+for (let y = 0; y < 3600; y += 400) { await p.ev(`scrollTo(0,${y})`); await p.sleep(150) }
+const sec = `(()=>{const h=[...document.querySelectorAll('main h2,article h2')].find(h=>/marketing material/.test(h.innerText));const hs=[...document.querySelectorAll('main h2,article h2')];const n=hs[hs.indexOf(h)+1];const a=h.getBoundingClientRect(),b=n.getBoundingClientRect();const r=document.createRange();r.setStartBefore(h);r.setEndBefore(n);return {y:a.y+scrollY,h:b.y-a.y,text:r.toString().replace(/\\s*\\n\\s*/g,' | ')}})()`
+await p.ev(`[...document.querySelectorAll('main h2,article h2')].find(h=>/marketing material/.test(h.innerText)).scrollIntoView({block:'start'})`); await p.sleep(1500)
+const m = await p.ev(sec); log(m.text)
+await p.shot(`${OUT}/03-marketing-material.png`, { x: 0, y: m.y - 30, width: 1280, height: m.h + 10 }); await p.close()

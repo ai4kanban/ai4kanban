@@ -8,7 +8,7 @@
 ## Steps
 
 1. 在首页滚到页脚，点「SOLUTIONS」下的「For SaaS」（排在「For coding」后面）。
-   到 `/solutions/saas`，页面标题「Build and market your SaaS | AI4Kanban」；小标「AI4KANBAN FOR SAAS」，大标题两行「Build your SaaS. / Keep marketing moving.」，导语「A workspace for SaaS founders and small teams. Review key drafts, approve them, and let agents finish the details.」
+   到 `/solutions/saas`，页面标题「Agent workspace for SaaS development and marketing | AI4Kanban」；小标「AI4KANBAN FOR SAAS」，大标题两行「Build your SaaS. / Keep marketing moving.」，导语「An agent workspace for SaaS founders and small teams. Review key drafts for product and marketing; let agents finish the details.」
    [saas.log](saas.log)
 
 2. 看标题下的插图，等几秒，再把鼠标移到插图右上角。
@@ -16,19 +16,19 @@
    ![开场](02a-hero-start.png) · ![卡片页展开](02b-hero-card-page.png) · [saas.log](saas.log)
 
 3. 往下读。
-   左侧「ON THIS PAGE」目录列出 14 项；正文 11 个大节，从「Product work and marketing, on the same board.」到「Make the workflow fit your SaaS.」，覆盖草稿审阅、配图、文案、竞品调研、客户邮件、营销素材、偏好记忆、交付后跟进、沿用自己的工具。
+   左侧「ON THIS PAGE」目录列出 8 项，和正文 8 个大节一一对应，依次是：同一看板上的产品与营销、把产品进展做成营销素材、发布的文案与客户邮件、按确认的草稿实现功能、项目背景与偏好延续、交付后的跟进、沿用自己的工具、按需定制。营销素材排在第二节，开发排到第四节。
    [saas.log](saas.log)
 
-4. 读到营销素材一节，看「Pro」那一行。
-   「Carousel posts and product videos require Pro. See plans」，「See plans」指向 `/pricing`。
-   [saas.log](saas.log)
+4. 读第二节「Turn product work into marketing material.」，看「Pro」那一行。
+   四种素材各一行，先审什么、拿到什么：Blog post（大纲 → 带图和链接的全文）、Product video（脚本 → 成片和封面）、Slide deck（内容和幻灯片预览 → 每页一张图的 PowerPoint，文字和形状不能单独改）、Carousel post（文案和页面大纲 → 每页一张图加配文）。下面一行「Blog posts, product videos, slide decks and carousel posts require Pro. See plans」，「See plans」指向 `/pricing`。
+   ![营销素材一节](03-marketing-material.png) · [saas.log](saas.log)
 
 5. 读到最后一节，点「Request customization」。
    到 `/contact?reason=customize`，标题「Talk to us」，联系原因已选好「customize」。
    ![定制入口](04-customize.png) · [saas.log](saas.log)
 
 6. 打开 `/zh/solutions/saas`，再打开 `/ja/solutions/saas`。
-   中文标题两行「一边开发产品 / 一边推进营销」，Pro 一行「轮播帖和产品视频需要 Pro。查看套餐」指向 `/zh/pricing`；日文标题「SaaS を作りながら、 / マーケティングも進める。」，Pro 一行没有套餐链接（日文没有定价页）。
+   中文标题两行「一边开发产品 / 一边推进营销」，导语「为 SaaS 创始人和小团队准备的 Agent 工作台。你把关产品与营销的关键草稿，agent 完成细节。」，Pro 一行「博客文章、产品视频、幻灯片和轮播帖需要 Pro。查看套餐」指向 `/zh/pricing`；日文标题「SaaS を作りながら、 / マーケティングも進める。」，Pro 一行「ブログ記事、製品動画、スライド、カルーセル投稿には Pro が必要です。」没有套餐链接（日文没有定价页）。
    ![中文首屏](05-zh-hero.png) · [saas.log](saas.log)
 
 7. 用 390px 宽的手机打开 `/solutions/saas`。
@@ -41,8 +41,9 @@
 
 ## Feedback
 
-- **说的是创始人的事**：标题一句话点出「做产品 + 做营销」，正文按真实任务（落地页、发布视频、客户邮件、竞品调研）组织，不像在推销一个不存在的 SaaS 工作流。
-- **插图克制好看**：浅灰加一点橙，3D 动起来有质感，一眼能看出「卡片 → 草稿 → 执行」；但它很抽象，没读正文前看不出那张浮起的是卡片页。
-- **页面很长**：11 节、14 条目录，一个忙碌的创始人很难读完；正文配图复用 coding 页截图，读过 coding 页的人会有重复感。
-- **定制入口顺手**：「Request customization」直达联系表单并预选原因，不用再填一遍。
-- **收尾有下一步**：页尾就有「Download」和「Setup guide」，读完能直接去试（coding 页没有）；但入口只在页脚，页头「Resources」里找不到这一页。
+- **短了，也更像创始人的一周**：从 11 节砍到 8 节，营销素材提到第二节，四种素材各一行「先审什么、拿到什么」，一眼能比较；配图、文案、竞品调研不再各占一节，读起来快很多。
+- **说清了限制**：幻灯片「每页一张图、文字不能单独改」直接写在列表里，不会买了才发现。
+- **Pro 范围对不上定价页**：这里说博客文章和轮播帖也要 Pro，定价页 Pro 的权益里只列了演示文稿和产品视频，想买的人会不确定博客和轮播帖算不算在内。
+- **中文大小写不一**：中文导语一句里先写「Agent 工作台」，后写「agent 完成细节」。
+- **插图克制好看**：浅灰加一点橙，3D 动起来有质感；但很抽象，没读正文前看不出那张浮起的是卡片页，而且和 coding 页首屏一模一样。
+- **定制入口顺手**：「Request customization」直达联系表单并预选原因；页尾就有「Download」和「Setup guide」。页头「Resources」里仍然找不到这一页。

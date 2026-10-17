@@ -46,7 +46,7 @@
 - [升级后，版本从看板上消失，卡片照常可读](skill/releases-leave-the-board-on-upgrade/case.md)
 - [建一张要求「复用现有组件」的界面卡，规划照样请界面设计师出稿](skill/plan-a-card-that-reuses-a-component-and-still-get-a-ui-draft/case.md)
 - [规划一份演示文稿：先看线框稿和样张，再拿到图片版 PPT](skill/see-wireframe-slides-before-the-styled-deck/case.md)
-- [用「视频克隆」把一条程序化短片复刻成可复用的模板](skill/clone-a-programmatic-video-into-a-template/case.md)
+- [用「视频克隆」把一条程序化短片的节奏做成能放自己产品画面的模板](skill/clone-a-programmatic-video-into-a-template/case.md)
 - [在命令行按标签找模板、看预览，再取回一个](skill/find-a-template-and-fetch-it-from-the-command-line/case.md)
 - [在卡片上手写 `<Compare>`，让 `akb raw validate` 指出写错的地方](skill/write-a-compare-on-a-card-and-validate-it/case.md)
 
@@ -124,6 +124,7 @@
 - [在文档里查怎么让一个 Agent 定期运行](docs/read-how-to-run-an-agent-on-a-schedule-in-the-docs/case.md)
 - [在文档里查待筛选条目从哪来、怎么分拣](docs/read-how-triage-sorts-an-item-in-the-docs/case.md)
 - [在文档里查看板自带哪些 Agent、各自做什么](docs/read-the-agents-the-board-ships-in-the-docs/case.md)
+- [在文档里查怎么在对话里讨论想法、改卡片](docs/read-how-to-discuss-a-card-in-the-docs/case.md)
 - [在文档里查怎么接入编码工具、给每个 Agent 选运行时](docs/set-up-a-runtime-for-each-agent-from-the-docs/case.md)
 - [在文档里查否决一张卡时写的原因去了哪里](docs/read-what-happens-to-a-rejection-reason-in-the-docs/case.md)
 - [跟着「Your first card」把第一张卡从想法走到交付](docs/follow-your-first-card-from-idea-to-delivery/case.md)
