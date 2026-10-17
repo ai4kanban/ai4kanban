@@ -18,8 +18,6 @@ const c = getCopy("en");
 const PATH = "/blog";
 const TITLE = "AI4Kanban Blog";
 const DESCRIPTION = "Articles from the AI4Kanban team.";
-const INTRO =
-  "Notes on planning and shipping software with coding agents, from the team behind AI4Kanban.";
 const RSS = "/blog/rss.xml";
 
 const base = pageMetadata({
@@ -85,9 +83,6 @@ export default function BlogIndexPage() {
               RSS
             </a>
           </div>
-          <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted sm:mt-3 sm:text-lg">
-            {INTRO}
-          </p>
         </section>
 
         {featured ? (
