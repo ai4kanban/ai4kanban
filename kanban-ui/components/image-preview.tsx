@@ -1,7 +1,7 @@
 "use client";
 
 // One picture, whole, over everything else (#530, #979): the chat's pasted pictures, a
-// storyboard's frames and every markdown image open here. The board's own pictures also take
+// storyboard's frames, every markdown image and a `<Compare>` at full size open here. The board's own pictures also take
 // a right click or a long press: copy, download (#1549).
 
 import { useEffect, useRef, useState } from "react";
@@ -61,9 +61,11 @@ export function PreviewDialog({ label, onClose, children }: { label: string; onC
         e.stopPropagation();
         onClose();
       } else if (e.key === "Tab") {
-        // The ✕ is the dialog's one control, so focus stays on it.
+        // Focus cycles through the dialog's own controls.
+        const all = [...(close.current?.parentElement?.querySelectorAll<HTMLElement>("button, a[href], video[controls], [tabindex]") ?? [])];
+        const at = all.indexOf(document.activeElement as HTMLElement);
         e.preventDefault();
-        close.current?.focus({ preventScroll: true });
+        all[at < 0 ? 0 : (at + (e.shiftKey ? -1 : 1) + all.length) % all.length]?.focus({ preventScroll: true });
       }
     };
     window.addEventListener("keydown", onKey, true);

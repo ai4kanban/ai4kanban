@@ -5,15 +5,17 @@
 // play bar: A leads, B follows muted, is pulled back when it drifts, and holds its last frame
 // once it runs out. With `shots` the bar is cut into one segment per shot.
 //
-// Full size puts the block in fullscreen, where each side may take half the screen.
+// Full size opens the block over the page, in this window (#1776); download picks a side.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight, FiMaximize2, FiPause, FiPlay } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiDownload, FiMaximize2, FiPause, FiPlay } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { Shot } from "@/lib/format/compare";
 import type { MockupView } from "@/lib/mockup-tag";
+import { PreviewDialog } from "./image-preview";
 import { clock } from "./MediaPlayer";
 import { Caption, ICON_BTN, Note, useFold } from "./Mockup";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 const nameOf = (src: string) => src.split("/").pop()!;
 const kindOf = (v: MockupView) => (v.image !== undefined ? "image" : v.media?.kind === "video" ? "video" : null);
@@ -45,28 +47,84 @@ export function Compare({
 type Ratios = [number | null, number | null];
 type PaneProps = { name: string; ratio: number | null; max: string; bg: string };
 
-/** How tall one side may be, so both fit one screen: stacked, half of it each. */
+/** How tall one side may be, so both fit one screen: stacked, half of it each. Full size takes
+ *  off the preview's padding, the caption and the play bar. */
 const maxHeight = (stacked: boolean, full: boolean, video: boolean) =>
   stacked
     ? full
-      ? `calc(50vh - ${video ? 60 : 25}px)`
+      ? `calc(50dvh - ${video ? 95 : 62}px)`
       : "max(180px, calc(50vh - 110px))"
     : full
-      ? `calc(100vh - ${video ? 120 : 50}px)`
+      ? `calc(100dvh - ${video ? 190 : 125}px)`
       : "max(320px, calc(100vh - 220px))";
 
-function Frame({ a, b, label, names, shots }: { a: MockupView; b: MockupView; label: string; names: [string, string]; shots?: Shot[] }) {
+type FrameProps = { a: MockupView; b: MockupView; label: string; names: [string, string]; shots?: Shot[] };
+
+function Frame(props: FrameProps) {
   const c = useCopy().card.mockup;
   const box = useRef<HTMLSpanElement>(null);
   const [full, setFull] = useState(false);
+  const fold = useFold();
+  const open = () => {
+    // One side plays with sound; the copy under the preview must not play along.
+    for (const v of box.current?.querySelectorAll("video") ?? []) v.pause();
+    setFull(true);
+  };
+  return (
+    <span ref={box} className="my-4 block bg-nb-paper">
+      <Caption label={props.label} variants={null} {...fold}>
+        <button type="button" onClick={open} className={ICON_BTN} data-tip={c.openFull} aria-label={c.openFull}>
+          <FiMaximize2 aria-hidden size={12} />
+        </button>
+        <Download {...props} />
+      </Caption>
+      {fold.open && <Body {...props} full={false} />}
+      {full && (
+        <PreviewDialog label={props.label} onClose={() => setFull(false)}>
+          <span onClick={(e) => e.stopPropagation()} className="block w-[calc(100vw-128px)] bg-nb-paper shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+            <Caption label={props.label} variants={null}>
+              <Download {...props} />
+            </Caption>
+            <Body {...props} full />
+          </span>
+        </PreviewDialog>
+      )}
+    </span>
+  );
+}
+
+/** Each side's own file, under its own name. */
+function Download({ a, b, names }: FrameProps) {
+  const c = useCopy().card.mockup;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={`${ICON_BTN} data-[state=open]:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] data-[state=open]:text-nb-accent-deep`}
+          data-tip={c.download}
+          aria-label={c.download}
+        >
+          <FiDownload aria-hidden size={13} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {[a, b].map((v, side) => (
+          <DropdownMenuItem key={side} asChild>
+            <a href={v.image ?? v.media!.href} download={nameOf(v.src)}>
+              {names[side]}
+            </a>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function Body({ a, b, names, shots, full }: FrameProps & { full: boolean }) {
+  const c = useCopy().card.mockup;
   const [ratios, setRatios] = useState<Ratios>([null, null]);
   const [failed, setFailed] = useState(false);
-  const fold = useFold();
-  useEffect(() => {
-    const on = () => setFull(document.fullscreenElement === box.current);
-    document.addEventListener("fullscreenchange", on);
-    return () => document.removeEventListener("fullscreenchange", on);
-  }, []);
   const ratio = useCallback(
     (side: 0 | 1, w: number, h: number) => {
       if (w && h) setRatios((r) => (r[side] === w / h ? r : side ? [r[0], w / h] : [w / h, r[1]]));
@@ -86,40 +144,25 @@ function Frame({ a, b, label, names, shots }: { a: MockupView; b: MockupView; la
   const stacked = (ratios[0] ?? 16 / 9) >= 1;
   const max = maxHeight(stacked, full, video);
   const panes = ([0, 1] as const).map((side) => ({ name: names[side], ratio: ratios[side], max, bg: video ? "#000" : "var(--color-nb-wash)" }));
-  return (
-    <span ref={box} className={`my-4 block bg-nb-paper ${full ? "overflow-auto" : ""}`}>
-      <Caption label={label} variants={null} {...fold}>
-        <button
-          type="button"
-          onClick={() => (full ? document.exitFullscreen() : box.current?.requestFullscreen())?.catch(() => {})}
-          className={ICON_BTN}
-          data-tip={c.openFull}
-          aria-label={c.openFull}
-        >
-          <FiMaximize2 aria-hidden size={12} />
-        </button>
-      </Caption>
-      {!fold.open ? null : video ? (
-        <Videos a={a.media!.href} b={b.media!.href} panes={panes} stacked={stacked} shots={shots} ratio={ratio} fail={fail} />
-      ) : (
-        <Sides stacked={stacked}>
-          {[a, b].map((v, side) => (
-            <Pane key={side} {...panes[side]!}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
-              <img
-                src={v.image}
-                alt={panes[side]!.name}
-                data-side={side}
-                ref={measure}
-                onLoad={(e) => measure(e.currentTarget)}
-                className="absolute inset-0 size-full object-contain"
-                style={{ width: "100%", height: "100%", maxWidth: "none", border: 0, borderRadius: 0 }}
-              />
-            </Pane>
-          ))}
-        </Sides>
-      )}
-    </span>
+  return video ? (
+    <Videos a={a.media!.href} b={b.media!.href} panes={panes} stacked={stacked} shots={shots} ratio={ratio} fail={fail} />
+  ) : (
+    <Sides stacked={stacked}>
+      {[a, b].map((v, side) => (
+        <Pane key={side} {...panes[side]!}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+          <img
+            src={v.image}
+            alt={panes[side]!.name}
+            data-side={side}
+            ref={measure}
+            onLoad={(e) => measure(e.currentTarget)}
+            className="absolute inset-0 size-full object-contain"
+            style={{ width: "100%", height: "100%", maxWidth: "none", border: 0, borderRadius: 0 }}
+          />
+        </Pane>
+      ))}
+    </Sides>
   );
 }
 
