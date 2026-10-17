@@ -256,6 +256,8 @@ const zh: CardCopy = {
     versions: (n) => `共 ${n} 个版本`,
     copyPath: "复制绝对路径",
     copied: "已复制",
+    collapseAsset: "收起",
+    expandAsset: "展开",
   },
   compare: {
     speed: "倍速",

@@ -265,6 +265,8 @@ const en: CardCopy = {
     versions: (n) => `${n} versions`,
     copyPath: "Copy absolute path",
     copied: "Copied",
+    collapseAsset: "Collapse",
+    expandAsset: "Expand",
   },
   compare: {
     speed: "Speed",

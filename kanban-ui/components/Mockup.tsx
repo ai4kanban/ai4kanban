@@ -28,7 +28,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
@@ -404,13 +404,16 @@ function VariantSwitch({ variants }: { variants: Variants }) {
 }
 
 /** The row over every asset: label and versions on the left; on the right the kind's own
- *  switches (`children`), then copy path, full size and download. */
+ *  switches (`children`), then copy path, full size and download. With `onToggle`, the label
+ *  folds the asset down to this row (#1759). */
 export function Caption({
   label,
   variants,
   path,
   full,
   download,
+  open = true,
+  onToggle,
   children,
 }: {
   label: string;
@@ -418,19 +421,34 @@ export function Caption({
   path?: string;
   full?: string;
   download?: { href: string; name: string };
+  open?: boolean;
+  onToggle?: () => void;
   children?: React.ReactNode;
 }) {
   const c = useCopy().card.mockup;
+  const chip = { background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" };
+  const tip = open ? c.collapseAsset : c.expandAsset;
+  const Arrow = open ? FiChevronDown : FiChevronRight;
   return (
     <span className="flex items-center gap-x-2 px-4 py-2">
-      {label && (
-        <span
-          className="nb-chip shrink-0"
-          style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
-        >
-          {label}
-        </span>
-      )}
+      {label &&
+        (onToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            data-tip={tip}
+            className="nb-chip nb-tip nb-tip-below relative inline-flex shrink-0 cursor-pointer items-center gap-1 hover:brightness-95"
+            style={chip}
+          >
+            <Arrow aria-hidden size={11} className="-ml-0.5 shrink-0" />
+            {label}
+          </button>
+        ) : (
+          <span className="nb-chip shrink-0" style={chip}>
+            {label}
+          </span>
+        ))}
       {variants && <VariantSwitch variants={variants} />}
       <span className="ml-auto flex shrink-0 items-center gap-x-2.5">
         {children}
@@ -450,8 +468,16 @@ export function Caption({
 
 const nameOf = (src: string) => src.split("/").pop()!;
 
+/** Whether an asset is unfolded, and the label's switch for it. */
+export function useFold() {
+  const [open, setOpen] = useState(true);
+  return { open, onToggle: useCallback(() => setOpen((v) => !v), []) };
+}
+
+type Fold = ReturnType<typeof useFold>;
+
 /** A `.md`/`.mdx` asset (#1651): the article, folded, under the same caption a screen has. */
-function ArticleAsset({ file, view, label, variants }: { file: ArticleFile; view: MockupView; label: string; variants: Variants | null }) {
+function ArticleAsset({ file, view, label, variants, fold }: { file: ArticleFile; view: MockupView; label: string; variants: Variants | null; fold: Fold }) {
   const state = useArticle(file, view.src);
   return (
     <span className="my-4 block bg-nb-paper">
@@ -461,10 +487,11 @@ function ArticleAsset({ file, view, label, variants }: { file: ArticleFile; view
         path={view.path}
         full={mockupHref(view.src)}
         download={{ href: file.href, name: nameOf(view.src) }}
+        {...fold}
       >
         <SourceSwitch state={state} />
       </Caption>
-      <ArticleFolded state={state} />
+      {fold.open && <ArticleFolded state={state} />}
     </span>
   );
 }
@@ -518,7 +545,8 @@ export function Mockup({
   const labels = useMemo(() => views.map((v) => v.label), [views]);
   const variants = views.length > 1 ? { labels, at, pick: setAt } : null;
   const view = (views[at] ?? views[0]!).view;
-  return <One key={view.src} view={view} label={label} alt={alt} device={device} loop={loop} variants={variants} />;
+  const fold = useFold();
+  return <One key={view.src} view={view} label={label} alt={alt} device={device} loop={loop} variants={variants} fold={fold} />;
 }
 
 /** One file, framed: its caption over the screen, and the switch between the screen and the
@@ -530,6 +558,7 @@ function One({
   device,
   loop,
   variants,
+  fold,
 }: {
   view: MockupView;
   label: string;
@@ -537,7 +566,9 @@ function One({
   device: Device;
   loop: boolean;
   variants: Variants | null;
-}) {  const c = useCopy().card.mockup;
+  fold: Fold;
+}) {
+  const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
   const zoom = useZoom();
   const box = useRef<HTMLSpanElement>(null);
@@ -560,8 +591,8 @@ function One({
   if (drawn?.error !== undefined)
     return variants ? (
       <span className="my-4 block bg-nb-paper">
-        <Caption label={label} variants={variants} />
-        <Note text={drawn.error} />
+        <Caption label={label} variants={variants} {...fold} />
+        {fold.open && <Note text={drawn.error} />}
       </span>
     ) : (
       <Note text={drawn.error} />
@@ -582,15 +613,15 @@ function One({
         </Caption>
       </span>
     );
-  if (view.article) return <ArticleAsset file={view.article} view={view} label={label} variants={variants} />;
+  if (view.article) return <ArticleAsset file={view.article} view={view} label={label} variants={variants} fold={fold} />;
 
   return (
     // No frame around it: a mockup is a picture of a screen, and a box drawn round it is
     // one more edge competing with the edges inside it. The caption sits over the screen,
     // and the screen's own fill is what marks where it starts.
     <span ref={box} className="my-4 block bg-nb-paper">
-      <Caption label={label} variants={variants} path={view.path} full={mockupHref(view.src, shown)}>
-        {zoomable && <ZoomControls zoom={zoom} />}
+      <Caption label={label} variants={variants} path={view.path} full={mockupHref(view.src, shown)} {...fold}>
+        {fold.open && zoomable && <ZoomControls zoom={zoom} />}
         {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
         {(deferred || view.doc !== undefined) && (
           <button
@@ -602,7 +633,7 @@ function One({
           </button>
         )}
       </Caption>
-      {drawn === null || (showCode && code === null) ? (
+      {!fold.open ? null : drawn === null || (showCode && code === null) ? (
         <Pending hyperframe={!showCode && !!deferred?.hyperframe} device={showCode ? "desktop" : shown} />
       ) : drawn.doc !== undefined && drawn.hyperframe && !showCode ? (
         <span className={deferred ? "a4k-reveal block" : "block"}>

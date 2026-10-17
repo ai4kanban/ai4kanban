@@ -13,7 +13,7 @@ import { useCopy } from "@/i18n/use-copy";
 import type { Shot } from "@/lib/format/compare";
 import type { MockupView } from "@/lib/mockup-tag";
 import { clock } from "./MediaPlayer";
-import { Caption, ICON_BTN, Note } from "./Mockup";
+import { Caption, ICON_BTN, Note, useFold } from "./Mockup";
 
 const nameOf = (src: string) => src.split("/").pop()!;
 const kindOf = (v: MockupView) => (v.image !== undefined ? "image" : v.media?.kind === "video" ? "video" : null);
@@ -61,6 +61,7 @@ function Frame({ a, b, label, names, shots }: { a: MockupView; b: MockupView; la
   const [full, setFull] = useState(false);
   const [ratios, setRatios] = useState<Ratios>([null, null]);
   const [failed, setFailed] = useState(false);
+  const fold = useFold();
   useEffect(() => {
     const on = () => setFull(document.fullscreenElement === box.current);
     document.addEventListener("fullscreenchange", on);
@@ -87,7 +88,7 @@ function Frame({ a, b, label, names, shots }: { a: MockupView; b: MockupView; la
   const panes = ([0, 1] as const).map((side) => ({ name: names[side], ratio: ratios[side], max, bg: video ? "#000" : "var(--color-nb-wash)" }));
   return (
     <span ref={box} className={`my-4 block bg-nb-paper ${full ? "overflow-auto" : ""}`}>
-      <Caption label={label} variants={null}>
+      <Caption label={label} variants={null} {...fold}>
         <button
           type="button"
           onClick={() => (full ? document.exitFullscreen() : box.current?.requestFullscreen())?.catch(() => {})}
@@ -98,7 +99,7 @@ function Frame({ a, b, label, names, shots }: { a: MockupView; b: MockupView; la
           <FiMaximize2 aria-hidden size={12} />
         </button>
       </Caption>
-      {video ? (
+      {!fold.open ? null : video ? (
         <Videos a={a.media!.href} b={b.media!.href} panes={panes} stacked={stacked} shots={shots} ratio={ratio} fail={fail} />
       ) : (
         <Sides stacked={stacked}>

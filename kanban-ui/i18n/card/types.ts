@@ -284,6 +284,9 @@ export type CardCopy = {
     versions: (n: number) => string;
     copyPath: string;
     copied: string;
+    /** The caption's label, folding the asset to its caption (#1759). */
+    collapseAsset: string;
+    expandAsset: string;
   };
   /** A `<Compare>` block (#1740); play and pause come from `mockup`. */
   compare: {
