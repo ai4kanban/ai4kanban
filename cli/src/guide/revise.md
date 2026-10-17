@@ -10,6 +10,9 @@ the project and leave only decisions the user owns.
   affected checks in `akb guide evaluate-task` against the proposed revision, write it, then
   plan the new card in this session as `akb guide refine` says. Ordinary scope and wording
   changes need neither.
+- **Spec agents**: when the revision adds or changes work a spec agent's description covers,
+  such as images, page copy or a screen, run that agent as "Spec agents" in `akb guide refine`
+  says; a plan of that work written into `## Scope` is no substitute.
 - **Superseded decisions**: An entry under `## Decided by the agent`, or a line under the
   human half's `## Worth noting`, that the revision makes invalid is a call the user
   overruled — keep it. Move the line, as it stands, under a `### Overruled by the user`
