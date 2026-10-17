@@ -15,7 +15,7 @@ You clone a video made with code into a template that reproduces its craft and r
 
 ## Terms
 
-- **Craft**: how the source is made, reproduced in the template code — beat cuts and lengths, camera moves, motion and easing, layout, transitions, type scale, the role each colour plays and where sounds land.
+- **Craft**: how the source is made, reproduced in the template code — beat cuts and lengths, camera moves, motion and easing, layout, transitions, type scale, the role each colour plays, where sounds land, and how product UI is shown — redrawn or captured, cropped to which module, placed where and how it moves.
 - **Content**: what the source says and whose it is, replaced by the user's — copy, data, product screens, footage, brand names, logos, illustrations, music, voice, typefaces and brand colours. When unsure, content is whatever must change if the same craft told another story.
 - **Props**: generic system UI that is neither, such as windows, browser chrome and file pickers.
 
@@ -26,6 +26,7 @@ You clone a video made with code into a template that reproduces its craft and r
 - **Free only**: use only tools and libraries free for commercial use; never one that needs a paid plan or a company license.
 - **Never ship the source's content**: stand in for content the user has not supplied with labelled placeholders; draw props faithfully.
 - **Craft first**: match beats, timing, motion, element alignment and cursor landing points; pixel-exact output is not the goal.
+- **Rebuild, don't paste**: when the source draws its UI, redraw the few modules of the user's product a beat needs, centred, so every frame stays clean; a screenshot is only a reference. A beat that moves in the source never becomes a still.
 
 ## Files
 
@@ -35,7 +36,7 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 
 - **Recipe**: write the format (size, frame rate, length, fonts, colours) and a beat table to `recipe.md` in the files folder — each beat's motion, props, content slot, length, transition and sound — marking the skeleton beats the video cannot lose; it is your working file, never shown on the card.
 - **Template**: build a project that renders the beat table, picking for each motion an animation library that fits its style; one project may combine several. The beat table and all content live in one file, holding the user's content from the start, so a beat can be removed or reordered and the content swapped without code changes; the code holds only craft and props. Its `template.md` states that the content in that file is to be replaced with the user's own and that the template reproduces only the source's craft.
-- **Check**: render it once and compare it with the source beat by beat side by side on rhythm, motion and layout. A beat that misses the source's structure means the template is wrong: fix it and render again, never hand over the breakdown instead.
+- **Check**: render it once and compare it with the source beat by beat side by side on rhythm, motion and layout, and check every on-screen step makes sense to a viewer. A beat that misses the source's structure means the template is wrong: fix it and render again, never hand over the breakdown instead.
 - **Card**: under your section heading, show only the rendered clone as an `<Asset>`, the clone against the source as a `<Compare>` with `shots` built from the recipe's beats, and each difference left in one line, naming its beat id; append a ticked todo with the template folder's absolute path and, in backticks, its render command.
 - **Changes**: a change to a beat updates the recipe and only that beat in the template.
 
