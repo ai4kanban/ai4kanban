@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**You review what matters. Agents do the rest.**<br>See the drafts and set the direction before agents build.
+**An agent workspace for indie hackers**<br>Review the drafts. Agents do the rest.
 
 [![Download for macOS](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/download) [![Download for Windows](https://img.shields.io/badge/Windows-24231f?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/download) [![Download for Linux](https://img.shields.io/badge/Linux-24231f?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/download)
 
@@ -12,81 +12,75 @@
 
 </div>
 
-AI4Kanban helps you move more work forward at once. Agents first draft the parts you need to decide on, then finish the task once you've reviewed them. They also remember your preferences and suggest follow-up work.
+AI4Kanban brings coding and marketing workflows into one agent workspace. Agents draft the parts that need your judgment—UI, copy, video scripts and more—for you to review and refine. Once you approve the drafts, agents take care of implementation and the details you delegate, so you can ship more features and publish more marketing content. Independent tasks move forward in parallel, with your project context and preferences carried into the next task.
 
-## The problem we solve
+[![Watch the AI4Kanban demo](https://cdn.ai4kanban.dev/home/hero-demo-poster-v1.jpg)](https://cdn.ai4kanban.dev/home/hero-demo-v1.mp4)
 
-AI agents have already made one person 10× more productive. AI4Kanban aims to multiply that by **another 10×**.
+## Build and market your product
 
-A good agent does a well-defined task well. But as execution gets faster, a new bottleneck appears: people can't plan fast enough. To keep more work moving at once, you have to keep coming up with ideas, pin down requirements, and turn them into plans agents can carry out.
+As an indie hacker, you need to build a product and get people to use it. Marketing can take as much time and attention as development—or more. Shipping more features and publishing more content, quickly and reliably, is hard when every detail needs your attention.
 
-That is the problem AI4Kanban solves.
+## How AI4Kanban helps
 
-<p align="center">
-<img src="https://cdn.ai4kanban.dev/readme/bottleneck-en-v1.gif" width="680" alt="The bottleneck moves from execution to planning">
-</p>
+### 1. A specialist team for coding and marketing
 
-## How we solve it
+![Six workflows and their specialist agent teams](https://cdn.ai4kanban.dev/readme/workflow-teams-en-v2.png)
 
-### 1. Draft first, then build
+AI4Kanban comes with **6 workflows and 10+ specialist agents** for the work indie hackers do every day. Each agent owns a specific part of a workflow, such as UI design or copywriting. No need to assemble an agent team before you start.
 
-To move many things at once, you can't watch every detail. Your attention belongs on the key points: the parts that must follow your judgment, not the agent's.
+The agents share your project context, while each specialist learns from your feedback in its own area. Design preferences stay with the design agent; wording preferences stay with the copy agent. Each can build on that experience in later tasks, so you spend less time repeating yourself.
 
-AI4Kanban drafts these parts first, so you can tell whether the direction is right before anything gets built.
+| Workflow | What agents deliver |
+| --- | --- |
+| Coding | Software changes, from UI updates to new features |
+| Slide deck | A PowerPoint deck with one image per slide; slide elements are not editable |
+| Product video | A finished product video and cover image |
+| Carousel post | Images for each slide and captions for each platform |
+| Blog post | A complete article with images and links |
+| Video clone | A recreated video and reusable template based on a reference made with code; footage, illustrations and logos use placeholders |
 
-| Helper agent | What it covers | What you review first |
-| --- | --- | --- |
-| `ui-designer` | Screen layout and interaction | UI mockups |
-| `prompt-writer` | Skills, agent prompts, and other model instructions | Prompt diffs |
-| `copywriting` | Promotional copy for the website, README, and release notes | Copy drafts |
-| `email-planner` | New or changed emails | Email previews on desktop and mobile |
+See the [agent docs](https://ai4kanban.dev/docs/agents) for the full team.
 
-These are some of the helper agents. See the [agent docs](https://ai4kanban.dev/docs/agents) for the full list.
+### 2. Set the standard in the draft, then delegate
 
-You review only these key points. Once the direction is set, agents handle the remaining details within the bounds you gave them.
+A feature can meet every requirement and still have an awkward UI. A video can be produced exactly as requested, yet have a stiff script that sounds AI-generated.
 
-Want just this step in any coding agent? [draft-first](https://github.com/ai4kanban/draft-first) is the same draft-and-review flow as a standalone skill.
+AI4Kanban identifies the parts of a task that need your judgment and brings in the right specialists to draft them. Review and refine the UI, copy or script until it meets your standards. Agents then build from what you approved.
 
-### 2. Specialist agents that keep learning
+This gives you a clear division of work: you shape the parts that need your care and precision; agents take on the execution and the details you choose to delegate. You can put your attention where it matters and leave the rest to agents.
 
-Different work needs different checks. AI4Kanban comes with 5 workflows and 10+ agents, each handling its own part.
+### 3. Break requests into tasks you can ship independently
 
-For example, the UI designer drafts mockups. It remembers every revision you ask for and applies it to later designs. The more you work together, the better it knows your preferences, so you don't have to repeat yourself.
+AI4Kanban breaks a request into tasks and identifies which can run independently. Agents can work on those tasks in parallel, with separate Git worktrees for coding. Prioritize urgent tasks and ship them as they're ready. Lower-priority work can continue without holding up the whole request.
 
-### 3. Agents follow up on the details
+### 4. Spot useful follow-up work
 
-When one person drives many tasks at once, some design or testing work is bound to slip. AI4Kanban's background agents review progress regularly and suggest follow-up work, and the QA agent tests recent changes to find problems from a user's point of view.
-
-You don't have to catch every gap yourself. Agents find them, make suggestions, and leave the next step to you.
-
-### 4. The foundation: task management and agent scheduling
-
-Coordinating multiple agents takes task management and agent scheduling. AI4Kanban handles task breakdown, priorities, task lifecycle management, scheduled tasks, notifications, parallel runs in Git worktrees, and conflict resolution.
-
-With that groundwork handled, you can spend more of your attention on ideas, direction, and key decisions.
+After completing a main task, agents suggest follow-up work to address gaps. The QA agent also reviews recent software changes from a user's perspective. You decide which suggestions to act on.
 
 ![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
 
 ## Quick start
 
-1. [Download the desktop app](https://ai4kanban.dev/download) and open your project. The board lives in your project's `docs/kanban/`.
-2. Write down an idea. Agents start planning and send you the drafts and questions to review.
-3. Once you've reviewed the drafts, agents build it, then suggest follow-up work worth doing.
+1. [Download the desktop app](https://ai4kanban.dev/download) and open your project. Your board is stored in your project's `docs/kanban/` directory. [Connect a supported tool](https://ai4kanban.dev/docs/connectors) using your own subscription or API key.
+2. Describe what you want to do and choose a workflow. Agents break down the work and bring in the specialists it needs.
+3. Review and refine any drafts that need your judgment, then approve them. Set task priorities and let agents carry out the work.
+
+Follow the [first-card walkthrough](https://ai4kanban.dev/docs/first-card) to take your first task from idea to completion.
 
 Prefer the command line? Run `npx ai4kanban@latest install` in your project.
 
-## Supported harnesses
+## Use the tools and models you prefer
 
 ![The 8 harnesses AI4Kanban supports](https://cdn.ai4kanban.dev/readme/harnesses-v1.png)
 
-- **8 popular harnesses**: Don't see yours? Open an issue to let us know.
-- **Your own subscriptions**: Every harness runs on your computer. We charge no additional token fees.
-- **A model for each role**: Choose the harness and model for each agent.
+- **8 supported tools**: Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode and Grok Build. See [setup instructions](https://ai4kanban.dev/docs/connectors).
+- **Your own subscriptions or API keys**: Agent runs use the tools on your computer. AI4Kanban charges no additional token fees.
+- **Choose a model for each agent**: Set the tool and model each agent uses.
 
 ## License
 
 - The desktop app, the `akb` CLI, the board UI, and the Cloud service are all licensed under [Apache-2.0](LICENSE).
-- [`web/`](web/) carries its own [source-available license](web/LICENSE). You can read and audit the code, but it is not an open-source license and does not permit deployment or redistribution.
+- [`web/`](web/) has a separate [source-available license](web/LICENSE). The code is available to read and audit. This is not an open-source license; it does not grant permission to deploy or redistribute the code.
 
 ## Contact us
 

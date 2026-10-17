@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**你把关关键点，Agent 完成其余工作。**<br>先看草稿、定好方向，再交给 Agent 执行。
+**独立创业者的 Agent 工作台**<br>先看草稿，其余交给 Agent
 
 [![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-24231f?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-24231f?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
 
@@ -12,74 +12,70 @@
 
 </div>
 
-AI4Kanban 帮你同时推进更多工作：Agent 先把需要你拍板的部分做成草稿，你审过后，它再完成任务。它还会记住你的偏好，主动跟进后续工作。
+AI4Kanban 将开发与营销工作流整合在同一个 agent 工作台中。agent 先把界面、文案、视频脚本等需要你判断的部分做成草稿，由你审阅、修改并把关质量。确认后，agent 按稿完成制作与执行细节，让你少盯过程，交付更多功能、发布更多营销内容。互不依赖的任务可以并行推进，项目背景和你的偏好也会延续到下一项任务。
 
-## 我们要解决的问题
+[![观看 AI4Kanban 演示](https://cdn.ai4kanban.dev/home/hero-demo-poster-v1.jpg)](https://cdn.ai4kanban.dev/home/hero-demo-v1.mp4)
 
-AI Agent 已经让一个人的工作效率提高了 10 倍。AI4Kanban 的目标，是在这个基础上，把**效率再提高 10 倍**。
+## 既做产品，也做营销
 
-好的 Agent 能把一个明确的需求做好。但当执行变快，新的瓶颈就出现了：人来不及规划。你需要不断提出想法、明确要求，把它们变成 Agent 能执行的计划，才能让更多工作同时推进。
+独立创业者既要开发产品，也要让用户看见它、愿意使用它。营销投入的时间和精力，可能与开发一样多，甚至更多。如果每个细节都要亲自盯，快速、稳定地交付更多功能、发布更多内容，就很难兼顾。
 
-AI4Kanban 要解决的，就是这个问题。
+## AI4Kanban 如何帮助你
 
-<p align="center">
-<img src="https://cdn.ai4kanban.dev/readme/bottleneck-zh-v1.gif" width="680" alt="瓶颈从执行前移到规划">
-</p>
+### 1. 开发与营销都有专业 agent 团队
 
-## 我们的解法
+![6 个工作流及各自的专业 agent 团队](https://cdn.ai4kanban.dev/readme/workflow-teams-zh-v2.png)
 
-### 1. 先草稿，再执行
+AI4Kanban 为独立创业者的日常工作内置了 **6 个工作流和 10+ agent**。每个 agent 负责工作流中的一部分，例如界面设计或文案。开始工作前，无需先搭建 agent 团队。
 
-要同时推进很多工作，你就不能盯着每一个细节。你需要把精力放在关键点上：哪些地方必须按你的想法来，不能让 Agent 自己决定。
+agent 共享项目背景，同时在各自的专业领域积累你的反馈。设计偏好由设计 agent 记住，用词偏好由文案 agent 记住。后续任务沿用这些经验，逐渐更符合你的要求，减少反复解释。
 
-AI4Kanban 会先把这些部分做成草稿，让你在执行前就能判断方向对不对。
+| 工作流 | agent 交付什么 |
+| --- | --- |
+| 开发 | 从界面调整到新功能的软件改动 |
+| 幻灯片 | 每页一张图片的 PowerPoint 文件，页内元素不可编辑 |
+| 产品视频 | 制作完成的产品视频与封面 |
+| 轮播帖 | 逐页图片与各平台配文 |
+| 博客文章 | 带配图和链接的完整文章 |
+| 视频克隆 | 基于代码制作的参考视频，交付复刻成片和可复用模板；实拍素材、插图和标志使用占位内容 |
 
-| 辅助 Agent | 负责什么 | 你先审什么 |
-| --- | --- | --- |
-| `ui-designer` | 界面布局与交互 | 界面原型 |
-| `prompt-writer` | Skill、Agent 提示词等模型指令 | 提示词修改 diff |
-| `copywriting` | 官网、README、版本说明等宣传文案 | 文案草稿 |
-| `email-planner` | 新增或修改的邮件 | 桌面和手机上的邮件预览 |
+完整团队见 [agent 文档](https://ai4kanban.dev/docs/agents)。
 
-以上是部分辅助 Agent，完整名单和分工见 [Agent 文档](https://ai4kanban.dev/docs/agents)。
+### 2. 你把关草稿，agent 完成其余工作
 
-你只审这些关键点。方向定下来后，其余细节交给 Agent，在你给定的范围内自行处理。
+按要求实现的功能，界面仍可能不好用；按要求制作的视频，脚本也可能生硬、带着明显的 AI 腔。
 
-### 2. 多智能体，持续学习
+AI4Kanban 会从任务中提取需要你判断的部分，请对应的专业 agent 做成草稿。你审阅、修改界面、文案或脚本，直到达到自己的要求，再让 agent 按确认的草稿制作。
 
-不同的工作，需要把关的地方也不同。AI4Kanban 内置 5 类工作流、10+ Agent，分工处理各自负责的部分。
+分工由此清晰：需要你亲自打磨、确保精确的部分，由你把关；执行和你愿意放权的细节，交给 agent。你把精力放在最在意的地方，其余工作让 agent 完成。
 
-比如，UI 设计师负责起草界面原型。你每次提出修改意见，它都会记下来，用在后续设计中。随着合作增多，它会越来越了解你的偏好，你也不用反复解释同样的要求。
+### 3. 自动拆解任务，分批交付
 
-### 3. 智能体自主跟进细节
+AI4Kanban 会将一个请求拆成任务，识别哪些可以独立推进。agent 并行执行这些任务，开发任务可使用不同的 Git worktree。你可以优先安排紧急任务，完成一部分就交付一部分；低优先级工作继续推进，不必拖住整个请求。
 
-一个人同时推进很多开发任务，难免漏掉一些设计或测试。AI4Kanban 的后台 Agent 会定期回顾进展，提出需要跟进的工作；质检员 Agent 会测试近期改动，从用户的角度找出问题。
+### 4. 主动发现值得跟进的工作
 
-这些遗漏不用全靠你自己发现。Agent 会帮你找出来，提出建议，交给你决定下一步。
-
-### 4. 基础能力：任务管理与 Agent 调度
-
-要让多个 Agent 同时工作，还需要把任务和执行安排好。AI4Kanban 提供任务拆解、优先级、任务信息和状态管理，以及定时任务、事件通知、Git worktree 并行执行和冲突处理。
-
-这些基础工作由 AI4Kanban 管起来，你就能把更多精力放在想法、方向和关键决策上。
+完成一项主线工作后，agent 会提出跟进项，帮你补缺补漏。质检 agent 也会从用户角度检查近期开发改动。哪些建议继续推进，由你决定。
 
 ![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
 
 ## 快速开始
 
-1. [下载桌面端](https://ai4kanban.dev/zh/download)，打开你的项目，看板会建在项目的 `docs/kanban/` 下。
-2. 写下一个想法。Agent 开始规划，把需要你审的草稿和问题推给你。
-3. 审完草稿，Agent 动手实现；做完后，它会提出值得继续的后续工作。
+1. [下载桌面端](https://ai4kanban.dev/zh/download)，打开你的项目。看板保存在项目的 `docs/kanban/` 下。使用自己的订阅或 API 密钥，[连接支持的工具](https://ai4kanban.dev/docs/connectors)。
+2. 描述你想完成的工作，选择工作流。agent 拆解任务，并自动请来相关的专业 agent。
+3. 对需要你判断的部分审阅、修改并确认草稿，安排任务优先级，再交给 agent 执行。
+
+跟随[第一张卡片教程](https://ai4kanban.dev/docs/first-card)，走完从想法到交付的过程。
 
 偏好命令行，也可以在项目里运行 `npx ai4kanban@latest install`。
 
-## 支持的 Harness
+## 支持多种运行环境
 
-![AI4Kanban 支持的 8 个 Harness](https://cdn.ai4kanban.dev/readme/harnesses-v1.png)
+![AI4Kanban 支持的 8 个工具](https://cdn.ai4kanban.dev/readme/harnesses-v1.png)
 
-- **8 个常见 Harness**：你用的不在列表里，欢迎提 issue 告诉我们。
-- **用你自己的订阅**：所有 Harness 都跑在你的电脑上，我们不额外收取 token 费用。
-- **按角色配模型**：每个 Agent 可以单独选择 Harness 和模型。
+- **支持 8 个工具**：Claude Code、Codex、Cursor、OpenCode、Kimi Code、DeepSeek Harness、ZCode 和 Grok Build。[查看配置方法](https://ai4kanban.dev/docs/connectors)。
+- **用自己的订阅或 API 密钥**：agent 通过你电脑上的工具运行，AI4Kanban 不对这些运行额外收取 token 费用。
+- **按分工选择模型**：每个 agent 可以单独选择运行环境与模型。
 
 ## 开源协议
 
