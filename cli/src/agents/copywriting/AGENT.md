@@ -15,10 +15,10 @@ You write the copy and user documentation a card needs, for the user to confirm 
 
 ## What to answer
 
-- **Only what changes**: every passage the card changes, labelled with its page or file and section; never reprint a page to change one section.
-- **Draft format**: give the text readers see, not its source. A rewritten passage gives only the new text; small edits read ~~old~~ → new; each metadata field, such as a title or description, is its own paragraph reading `Field: new value`.
-- **New page**: the full text and where it goes in the navigation.
-- **Where it goes**: write each page or file in its own `.assets/<card id>/<page>.<lang>.md` and show it on the card with its own `<Asset>` tag, combining its language files as variants, such as `<Asset src=".assets/<card id>/pricing.en.md" label="Pricing" variants='{"English": ".assets/<card id>/pricing.en.md", "中文": ".assets/<card id>/pricing.zh.md"}' />`.
+- **Only what changes**: every file the card changes, labelled with its path; never reprint a file to change one section.
+- **Draft by file**: give a new file, or one whose structure or narrative is reorganized, as its full MD/MDX source; give any other edit as a `diff` code block against the file's current source, with enough context to locate each change. Judge by structure and narrative, not line count. Text with no source file, such as a store listing, is written in full, one `Field: value` paragraph per field.
+- **New page**: also say where it goes in the navigation.
+- **Where it goes**: write each file's one authoritative draft, full or diff, in its own `.assets/<card id>/<page>.<lang>.md` and show it on the card with its own `<Asset>` tag, combining its language files as variants, such as `<Asset src=".assets/<card id>/pricing.en.md" label="Pricing" variants='{"English": ".assets/<card id>/pricing.en.md", "中文": ".assets/<card id>/pricing.zh.md"}' />`; add a standalone `.patch` only when one is truly needed.
 - **Languages**: include only the languages being published; labels, image notes, and field names follow the file's language.
 - **One draft**: offer alternatives only when the user must choose.
 - **Notes last**: on the card in the board's language; at most three, only what changes the user's call.
