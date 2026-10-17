@@ -6,9 +6,9 @@ const ja: DownloadCopy = {
   meta: {
     title: "AI4Kanban をダウンロード — macOS、Windows、Linux 対応",
     description:
-      "AI4Kanban はボード上のタスクに重要な下書きを用意します。要点はあなたが確認し、細部はエージェントが仕上げます。macOS、Windows、Linux 向けのデスクトップアプリを入手できます。",
+      "個人開発者のためのエージェントワークスペース、AI4Kanban をダウンロード。macOS、Windows、Linux に対応しています。",
     socialTitle: "AI4Kanban をダウンロード",
-    social: "下書きを見て、残りはエージェントに任せる。macOS、Windows、Linux に対応。",
+    social: "AI4Kanban は、個人開発者のためのエージェントワークスペースです。macOS、Windows、Linux 向けデスクトップアプリをダウンロードできます。",
   },
 
   hero: {

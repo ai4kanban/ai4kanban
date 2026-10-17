@@ -6,9 +6,9 @@ const fr: DownloadCopy = {
   meta: {
     title: "Télécharger AI4Kanban pour macOS, Windows et Linux",
     description:
-      "AI4Kanban prépare les brouillons clés des tâches de votre tableau. Vous vérifiez l’essentiel, les agents s’occupent des détails. Obtenez l’application de bureau pour macOS, Windows et Linux.",
+      "Téléchargez AI4Kanban, un espace de travail avec agents pour les indie hackers. Disponible sur macOS, Windows et Linux.",
     socialTitle: "Télécharger AI4Kanban",
-    social: "Voyez le brouillon. Laissez les agents faire le reste. Sur macOS, Windows et Linux.",
+    social: "AI4Kanban : un espace de travail avec agents pour les indie hackers. Téléchargez l’application pour macOS, Windows et Linux.",
   },
 
   hero: {

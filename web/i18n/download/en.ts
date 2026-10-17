@@ -6,9 +6,9 @@ const en: DownloadCopy = {
   meta: {
     title: "Download AI4Kanban for macOS, Windows and Linux",
     description:
-      "AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details. Get the desktop app for macOS, Windows and Linux.",
+      "Download AI4Kanban, an agent workspace for indie hackers. Available for macOS, Windows and Linux.",
     socialTitle: "Download AI4Kanban",
-    social: "See the draft. Let agents do the rest. On macOS, Windows and Linux.",
+    social: "AI4Kanban: an agent workspace for indie hackers. Download for macOS, Windows and Linux.",
   },
 
   hero: {

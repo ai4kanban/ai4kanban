@@ -6,9 +6,9 @@ const es: DownloadCopy = {
   meta: {
     title: "Descargar AI4Kanban para macOS, Windows y Linux",
     description:
-      "AI4Kanban prepara los borradores clave de las tareas de tu tablero. Tú revisas lo importante, los agentes se encargan de los detalles. Consigue la aplicación de escritorio para macOS, Windows y Linux.",
+      "Descarga AI4Kanban, un espacio de trabajo con agentes para emprendedores independientes. Disponible para macOS, Windows y Linux.",
     socialTitle: "Descargar AI4Kanban",
-    social: "Revisa el borrador. Deja el resto a los agentes. En macOS, Windows y Linux.",
+    social: "AI4Kanban: un espacio de trabajo con agentes para emprendedores independientes. Descarga la aplicación para macOS, Windows y Linux.",
   },
 
   hero: {
