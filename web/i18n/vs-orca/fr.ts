@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const fr: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca : déléguez les détails, gardez la main",
+    title: "AI4Kanban vs. Orca : validez puis déléguez les détails",
     socialTitle: "AI4Kanban vs. Orca",
     description:
-      "Vous faites déjà tourner des agents de code en parallèle ? Comparez Orca et AI4Kanban : gardez la main sur les détails d’exécution, ou laissez les agents les conduire pendant que vous fixez le cap.",
+      "Comparez AI4Kanban et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
     social:
-      "Orca ajoute une fine couche autour des agents de code. AI4Kanban vous donne une équipe prête à conduire les détails d’exécution, pendant que vous gardez la main sur le cap et les décisions clés.",
+      "Comparez AI4Kanban et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs. Orca",
-    lead: "Vous faites déjà tourner plusieurs agents de code en parallèle ? Orca réunit ces sessions dans un seul espace de travail. AI4Kanban va plus loin : les agents conduisent les détails d’exécution, pendant que vous fixez le cap et prenez les décisions clés.",
+    lead: "Comparez AI4Kanban et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
   },
   both: {
     title: "Ce que les deux proposent",
@@ -67,16 +67,16 @@ const fr: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban : vous fixez le cap, les agents gèrent les détails",
-    lead: "AI4Kanban s’adresse à ceux qui acceptent de laisser les agents conduire les détails d’exécution tout en gardant la main sur le cap et les décisions clés. Agents spécialisés, workflows et mémoire sont prêts à l’emploi : inutile de concevoir les rôles des agents ou d’ajuster leurs prompts vous-même. Vous participez à la planification et relisez les brouillons clés ; les agents règlent les détails et mènent le travail à son terme.",
+    title: "AI4Kanban : validez les brouillons, déléguez les détails",
+    lead: "Les spécialistes préparent les brouillons d'interface, de textes ou de script à valider. Une fois ces parties approuvées, le workflow mène la tâche à terme. Code, articles et vidéos sont intégrés ; les tâches indépendantes peuvent avancer en parallèle.",
     drafts: {
       title: "Relire les brouillons clés avant l’exécution",
-      body: "Vous craignez que l’IA prenne trop de libertés avec une interface, un prompt ou un texte ? Relisez un brouillon avant d’approuver l’exécution. Les brouillons peuvent être des images, des schémas, du HTML/TSX, des diffs ou des storyboards. La relecture des brouillons a lieu avant l’implémentation, pour valider la direction ; la relecture du code livré se fait comme d’habitude.",
+      body: "Les parties qui demandent votre jugement font d'abord l'objet d'un brouillon. Relisez-le et modifiez-le sur la carte ; les agents poursuivent à partir de la version validée et règlent les détails dans le périmètre convenu. Corriger les points clés à ce stade limite les reprises ultérieures.",
       art: ["Brouillon", "Approuver", "Exécution"],
     },
     memory: {
       title: "Reporter les décisions sur la tâche suivante",
-      body: "Chaque agent a une recette de mémoire conçue pour son métier, et apprend vos préférences et décisions pour ce type de tâche. Les agents peuvent partager leur mémoire. Une fois un travail principal terminé, ils proposent des suites pour combler les manques et repérer les oublis.",
+      body: "Chaque agent retient les préférences et décisions utiles à son travail et peut partager le contexte du projet avec les autres agents. Les tâches suivantes partent de ce qui a déjà été convenu. Après un travail principal, les agents proposent des suites que vous pouvez accepter, modifier ou refuser.",
       art: {
         agents: ["Design UI", "Rédaction"],
         shared: "Partagée · projet",
@@ -107,12 +107,12 @@ const fr: VsOrcaCopy = {
     ours: {
       name: "Choisir AI4Kanban",
       points: [
-        "Fixer le cap et prendre les décisions clés",
-        "Relire les brouillons importants",
-        "Laisser les agents conduire les détails d’exécution",
+        "Des agents et workflows prêts pour le code, les articles et les vidéos",
+        "Corriger les détails clés sur un brouillon avant la réalisation",
+        "Réutiliser vos préférences pour limiter les corrections des tâches suivantes",
       ],
       goalLabel: "L’objectif",
-      goal: "Encore 10× plus d’efficacité, au-delà du code en parallèle",
+      goal: "Faites avancer développement et marketing en limitant les reprises",
     },
   },
   start: {

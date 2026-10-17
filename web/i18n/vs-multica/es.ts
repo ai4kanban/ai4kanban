@@ -2,23 +2,23 @@ import type { VsMulticaCopy } from "./types";
 
 const es: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica: avanza tus proyectos con agentes de IA",
+    title: "AI4Kanban vs. Multica: agentes especializados listos",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "Compara AI4Kanban y Multica: los problemas que resuelve cada uno, el trabajo de configuración y revisión que te ahorran y cómo difieren en su forma de trabajar con agentes de IA.",
+      "Compara AI4Kanban y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
     social:
-      "Ambos permiten crear y organizar varios equipos de agentes de IA que trabajan en paralelo. AI4Kanban incluye agentes, flujos de trabajo y gestión de memoria listos para usar, y reduce el esfuerzo de diseñar un equipo y ajustar sus prompts.",
+      "Compara AI4Kanban y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
   },
   hero: {
     badge: "Comparativa",
     title: "AI4Kanban vs.\nMultica",
-    lead: "AI4Kanban incluye agentes especializados y flujos de trabajo listos para usar: delega tu primer trabajo en 10 minutos. Los agentes trabajan en paralelo, los borradores te dejan controlar la calidad de cada entrega y siguen aprendiendo con el uso.",
+    lead: "Compara AI4Kanban y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
     sharedLabel: "Ambos ofrecen",
     setup: {
       heading: "Empieza a trabajar sin diseñar antes el equipo",
       verdict:
-        "Los agentes especializados vienen listos, así que delegas trabajo desde el primer día.",
-      ours: "Los agentes especializados y flujos de trabajo incluidos cubren desarrollo de software, blogs, carruseles para redes sociales, presentaciones y vídeos de producto.",
+        "Usa los flujos integrados de desarrollo y marketing sin organizar cada traspaso de trabajo.",
+      ours: "Los agentes especializados y los flujos integrados cubren el desarrollo del producto y el contenido de marketing. Usa el flujo adecuado para cada tarea sin diseñar el equipo desde cero. También puedes crear agentes y flujos personalizados.",
       theirs:
         "Salvo el coordinador Mika, creas y configuras tú cada agente especializado",
       art: {
@@ -48,9 +48,9 @@ const es: VsMulticaCopy = {
     },
     drafts: {
       heading:
-        "¿Te preocupa que la IA se tome demasiadas libertades? Revisa un borrador antes de aprobar la ejecución",
-      verdict: "Corrige el rumbo antes de ejecutar, no después.",
-      ours: "En cualquier parte donde quieras controlar el rumbo, el sistema de borradores prepara una vista previa para que la apruebes antes de la ejecución y la entrega. AI4Kanban admite borradores de imagen, diagrama, HTML/TSX, diff y storyboard.",
+        "Revisa los borradores clave antes de que los agentes continúen",
+      verdict: "Corrige lo esencial en el borrador para reducir cambios tras la implementación.",
+      ours: "Las partes que necesitan tu criterio tienen un borrador primero. Revísalo y edítalo en la tarjeta; los agentes continúan desde la versión aprobada y resuelven los detalles dentro del alcance acordado. Corregir lo esencial aquí reduce lo que hay que rehacer después.",
       theirs: "El proceso de revisión de borradores lo montas tú",
       art: {
         ours: ["Borrador", "Aprobar", "Ejecutar"],
@@ -80,8 +80,8 @@ const es: VsMulticaCopy = {
     memory: {
       heading: "¿Tendrás que explicarlo otra vez?",
       verdict:
-        "Las preferencias y decisiones se guardan por tarea, así que no tienes que repetirlas.",
-      ours: "Cada agente tiene una receta de memoria diseñada para su propio trabajo: aprende tus preferencias y decisiones para ese tipo de tarea, no lecciones genéricas. Los agentes también pueden compartir memoria entre sí.",
+        "Las tareas posteriores parten del contexto del proyecto, las preferencias y las decisiones que ya has definido.",
+      ours: "Cada agente recuerda las preferencias y decisiones relevantes para su trabajo y puede compartir el contexto del proyecto con otros agentes. Las tareas posteriores parten de lo ya acordado para que tengas que repetir menos explicaciones.",
       theirs:
         "La memoria a largo plazo depende de la herramienta del agente; te toca revisarla y configurarla",
       art: {
@@ -178,10 +178,10 @@ const es: VsMulticaCopy = {
     oursHeading: "Elige AI4Kanban si",
     theirsHeading: "Elige Multica si",
     ours: [
-      "Quieres agentes especializados y flujos de trabajo incluidos sin configurarlos desde cero; algunos flujos requieren Pro.",
-      "Quieres revisar los borradores clave antes de ejecutar.",
-      "Quieres que los agentes recuerden cambios y decisiones útiles aunque cambies de herramienta.",
-      "Quieres planificación y propuestas de seguimiento incluidas, con margen para personalizar el flujo.",
+      "Quieres agentes y flujos listos para usar en tu producto y marketing.",
+      "Quieres aprobar los borradores que necesitan tu criterio antes de que los agentes continúen.",
+      "Quieres reutilizar el contexto del proyecto, tus preferencias y tus decisiones en tareas posteriores.",
+      "Quieres tareas independientes en paralelo y propuestas de seguimiento tras la entrega.",
     ],
     theirs: [
       "Necesitas espacios de trabajo multiusuario, permisos y notificaciones para todo un equipo que trabaja sobre issues compartidos.",
@@ -189,7 +189,7 @@ const es: VsMulticaCopy = {
       "Quieres configurar el runbook, el responsable y los disparadores de Autopilot para lanzar trabajo recurrente según un calendario o eventos externos.",
     ],
     verdict:
-      "Elige AI4Kanban para **empezar con agentes especializados, aprobar los borradores clave antes de ejecutar y que tus decisiones se recuerden**. Elige Multica solo si **necesitas específicamente su espacio de trabajo multiusuario o su gestión de la ejecución**.",
+      "Elige AI4Kanban para **avanzar con tu producto y marketing usando flujos listos para usar**, revisar borradores clave y conservar tus preferencias para tareas posteriores. Elige Multica solo si **necesitas específicamente su espacio de trabajo multiusuario o su gestión de la ejecución**.",
     note: "",
   },
 };

@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const zh: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator：先看草稿，同时推进多项任务",
+    title: "AI4Kanban vs. Plannotator：从关键草稿到任务交付",
     socialTitle: "AI4Kanban vs. Plannotator",
     description:
-      "Plannotator 让你批注编码智能体的计划、文档和代码。AI4Kanban 内置 UI 设计、文案等专业智能体，先出关键草稿供你确认，再并行推进多项任务。了解两者的草稿审阅、代码审阅、任务管理和记忆能力，选择适合你的工作方式。",
+      "对比 AI4Kanban 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
     social:
-      "Plannotator 帮你在编码智能体会话中审计划、文档与代码；AI4Kanban 帮你先确认关键草稿，再由专业智能体并行交付多项任务，记住偏好和决策并提出跟进项。",
+      "对比 AI4Kanban 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs. Plannotator",
-    lead: "Plannotator 让你批注编码智能体的计划、文档和代码。AI4Kanban 用看板组织多项任务：内置的专业智能体先出关键草稿供你确认，再在后台并行执行。",
+    lead: "对比 AI4Kanban 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
   },
   both: {
     title: "两者都支持",
@@ -35,21 +35,21 @@ const zh: VsPlannotatorCopy = {
     links: ["了解 Plannotator", "Plannotator README"],
   },
   ours: {
-    title: "AI4Kanban：先看关键草稿，同时推进多项任务",
-    lead: "AI4Kanban 用看板组织编码智能体的工作，内置 UI 设计、文案、竞品调研等专业智能体。你参与规划、确认关键草稿后，智能体在后台执行；互不依赖的任务可以同时推进。",
+    title: "AI4Kanban：从关键草稿到完成任务",
+    lead: "专业 agent 把需要你审阅的界面、文案或脚本做成草稿。关键部分确认后，由对应工作流完成后续任务。开发、博客、视频都有内置工作流，独立任务可并行推进。",
     drafts: {
       title: "先看你可能想改的部分",
-      body: "担心 AI 在界面、Prompt 或文案上自由发挥？需要你拍板的部分先出草稿，确认后智能体按草稿构建。除计划和 HTML 外，还能预览图片、图表与分镜；其余细节由智能体直接完成。",
+      body: "需要你判断的部分先出草稿。你在卡片上审阅、修改，agent 按确认的版本继续，在约定范围内完成其余细节。关键部分提前改好，减少后续返工。",
       art: ["草稿", "确认", "执行"],
     },
     parallel: {
       title: "同时推进多项任务",
-      body: "看板把任务、依赖和进展放在一起。需求确定后，互不依赖的任务并行执行，你能从卡片查看日志和代码 diff，执行阶段不用时刻盯着每个会话。",
+      body: "开发与营销任务放在同一看板，每张卡片保留草稿、决策与进度。需求明确后，独立任务可并行，有依赖的任务按顺序推进。",
       art: ["登录页", "定价文案", "API 修复"],
     },
     memory: {
       title: "下次少些重复说明",
-      body: "每个智能体都有针对自身工作设计的记忆，学习你的偏好和决策，智能体之间也能共享记忆。完成一项主线工作后，智能体自主提出跟进项，帮你补缺补漏。",
+      body: "每个 agent 记住与自身工作相关的偏好和决策，也能与其他 agent 共享项目背景，让后续任务从已有共识继续。完成一项主线工作后，agent 自主提出跟进项，由你接受、修改或拒绝。",
       art: { agents: ["UI 设计", "文案"], shared: "共享 · 项目背景" },
     },
     custom: "你也可以创建自定义智能体和工作流。",
@@ -91,7 +91,7 @@ const zh: VsPlannotatorCopy = {
     },
     ours: {
       name: "选 AI4Kanban",
-      body: "你希望同时推进多项任务：先审阅 UI、文案等关键草稿，再让智能体执行，并在后续任务中沿用你的偏好和决策。",
+      body: "在任务卡片上审关键草稿，再交给 agent 完成后续工作。开发与营销都有内置工作流，独立任务可以并行推进。后续任务沿用你的偏好，减少重复修改。",
     },
   },
   start: {

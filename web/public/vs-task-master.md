@@ -1,13 +1,14 @@
 # AI4Kanban vs. Taskmaster
 
-> Built-in specialist workflows, draft approval and preference memory help you
-> guide agents with less effort and reduce rework.
+> Compare AI4Kanban and Taskmaster on specialist workflows, draft review,
+> preference memory, and how tasks move from planning to execution.
 
 ## Specialist agents and workflows, ready to use
 
-- **AI4Kanban** — Built-in agents and workflows cover software development,
-  blogs, social carousels, slide decks and product videos. You can also create
-  custom agents and workflows.
+- **AI4Kanban** — Built-in specialist agents and workflows cover product
+  development and marketing content. Start with the workflow for your task
+  instead of designing the team yourself. You can also create custom agents and
+  workflows.
 - **Taskmaster** — Focused on coding tasks. No built-in specialist agents or
   workflows for UI design, copywriting or content production.
 
@@ -21,17 +22,20 @@
 
 ## Review key drafts before implementation
 
-- **AI4Kanban** — Choose the UI, prompts, copy or other key parts you want to
-  review. Agents prepare drafts you can preview and edit, then build from what
-  you approve.
+- **AI4Kanban** — Parts that need your judgment get a draft first. Review and
+  edit it on the card; agents build from the approved version and handle the
+  remaining details within the agreed scope. Catch changes here to reduce
+  rework later.
 - **Taskmaster** — You can review task descriptions, implementation details and
   test strategies. There is no built-in preview and approval workflow for key
   output drafts before execution.
 
 ## Carry your preferences into the next task
 
-- **AI4Kanban** — Designers remember your design preferences; copywriters
-  remember your wording choices. Agents can also share project context.
+- **AI4Kanban** — Each agent remembers preferences and decisions relevant to
+  its work and can share project context with other agents. Later tasks build
+  on what you have already agreed, so you spend less time explaining the same
+  background.
 - **Taskmaster** — It stores rules and task notes. It has no memory system that
   automatically learns preferences from user edits and rejections for future
   tasks.
@@ -67,9 +71,10 @@ See which workflows, review steps and integrations each product includes.
 
 **Choose AI4Kanban if you**
 
-- Want built-in specialist agents and workflows, or to create your own.
-- Want to approve key UI, prompt or copy drafts before full execution.
-- Want future tasks to reuse your preferences and suggest useful follow-up work.
+- Want ready-to-use specialist agents and workflows for coding, blogs and
+  videos.
+- Want to change key details in a draft before agents complete the work.
+- Want agents to reuse your preferences so later tasks need fewer corrections.
 
 **Choose Taskmaster if you**
 
@@ -81,9 +86,9 @@ See which workflows, review steps and integrations each product includes.
 
 ### Bottom line
 
-Choose AI4Kanban for **specialist workflows, draft approval and preference
-memory**; choose Taskmaster for **MCP integration, a dedicated research command
-and a built-in test-first coding workflow**.
+Choose AI4Kanban for **ready-to-use specialist workflows and key drafts that
+reduce rework**; choose Taskmaster for **MCP integration, a dedicated research
+command and a built-in test-first coding workflow**.
 
 This page compares open-source Taskmaster. Hamster is a hosted product from the
 same team; its team features are outside this comparison.

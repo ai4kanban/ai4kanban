@@ -2,23 +2,23 @@ import type { VsMulticaCopy } from "./types";
 
 const en: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica: move projects forward with AI agents",
+    title: "AI4Kanban vs. Multica: specialist agents, ready to use",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "Compare AI4Kanban and Multica: the problems each solves, the setup and review work they save you, and how their approaches to working with AI agents differ.",
+      "Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
     social:
-      "Both let you create and organize multiple teams of AI agents to work in parallel. AI4Kanban includes ready-to-use agents, workflows and memory management, reducing the effort of designing a team and tuning its prompts.",
+      "Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nMultica",
-    lead: "AI4Kanban comes with specialist agents and workflows, ready out of the box: hand off your first piece of work in 10 minutes. Agents run in parallel, drafts keep the quality of every delivery in your hands, and they keep learning as they go.",
+    lead: "Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
     sharedLabel: "Both have",
     setup: {
       heading: "Start working without designing the team first",
       verdict:
-        "Specialist agents come ready, so you hand off work on day one.",
-      ours: "Built-in specialist agents and workflows cover software development, blogs, social carousels, slide decks and product videos.",
+        "Use built-in workflows for development and marketing instead of arranging every handoff yourself.",
+      ours: "Built-in specialist agents and workflows cover product development and marketing content. Start with the workflow for your task instead of designing the team yourself. You can also create custom agents and workflows.",
       theirs:
         "Apart from the coordinator Mika, you create and configure every specialist agent yourself",
       art: {
@@ -48,9 +48,9 @@ const en: VsMulticaCopy = {
     },
     drafts: {
       heading:
-        "Worried about AI taking too many liberties? Review a draft before approving execution",
-      verdict: "Fix the direction before the run, not after it.",
-      ours: "For any part where you want control over the direction, the draft system can prepare a preview for your approval before execution and delivery. AI4Kanban supports image, diagram, HTML/TSX, diff and storyboard drafts.",
+        "Review key drafts before agents continue",
+      verdict: "Change the key parts in the draft to reduce rework after implementation.",
+      ours: "Parts that need your judgment get a draft first. Review and edit it on the card; agents build from the approved version and handle the remaining details within the agreed scope. Catch changes here to reduce rework later.",
       theirs: "You build the draft-review process yourself",
       art: {
         ours: ["Draft", "Approve", "Run the task"],
@@ -80,8 +80,8 @@ const en: VsMulticaCopy = {
     memory: {
       heading: "Will you need to explain it again?",
       verdict:
-        "Preferences and decisions are kept per task, so you never repeat them.",
-      ours: "Each agent has a memory recipe designed for its own job: it learns your preferences and decisions for that kind of task, not generic lessons. Agents can also share memory with each other.",
+        "Later tasks start with the project context, preferences and decisions you have already established.",
+      ours: "Each agent remembers preferences and decisions relevant to its work and can share project context with other agents. Later tasks build on what you have already agreed, so you spend less time explaining the same background.",
       theirs:
         "Long-term memory depends on the agent tool, for you to check and set up",
       art: {
@@ -177,10 +177,10 @@ const en: VsMulticaCopy = {
     oursHeading: "Choose AI4Kanban if you",
     theirsHeading: "Choose Multica if you",
     ours: [
-      "Want built-in specialist agents and workflows without configuring them from scratch; some workflows require Pro.",
-      "Want to review key drafts before execution.",
-      "Want agents to remember useful edits and decisions across coding tools.",
-      "Want planning and follow-up suggestions included, with room to customize the workflow.",
+      "Want ready-to-use specialist agents and workflows for your own product and marketing.",
+      "Want to approve drafts where your judgment matters before agents continue.",
+      "Want later tasks to reuse project context and your preferences and decisions.",
+      "Want independent tasks to run in parallel and follow-up suggestions after delivery.",
     ],
     theirs: [
       "Need multi-user workspaces, permissions and notifications for a whole team working on shared issues.",
@@ -188,7 +188,7 @@ const en: VsMulticaCopy = {
       "Want to configure Autopilot’s runbook, assignee and triggers to start recurring work on a schedule or from external events.",
     ],
     verdict:
-      "Choose AI4Kanban to **start with specialist agents, approve key drafts before execution, and keep your decisions remembered**. Choose Multica only if you **specifically need its multi-user workspace or execution management**.",
+      "Choose AI4Kanban to **move your product and marketing forward with ready-to-use workflows**, reviewing key drafts first and carrying preferences into later tasks. Choose Multica only if you **specifically need its multi-user workspace or execution management**.",
     note: "",
   },
 };

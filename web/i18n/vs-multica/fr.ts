@@ -2,23 +2,23 @@ import type { VsMulticaCopy } from "./types";
 
 const fr: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica : faire avancer vos projets avec des agents IA",
+    title: "AI4Kanban vs. Multica : des agents prêts à travailler",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "Comparez AI4Kanban et Multica : les problèmes que chacun résout, le travail de configuration et de relecture qu’ils vous évitent, et leurs façons différentes de travailler avec des agents IA.",
+      "Comparez AI4Kanban et Multica sur les agents spécialisés, la configuration des workflows, les brouillons, la mémoire des préférences et le travail en équipe.",
     social:
-      "Les deux permettent de créer et d’organiser plusieurs équipes d’agents IA qui travaillent en parallèle. AI4Kanban fournit des agents, des workflows et une gestion de la mémoire prêts à l’emploi, et réduit l’effort de conception d’équipe et de réglage des prompts.",
+      "Comparez AI4Kanban et Multica sur les agents spécialisés, la configuration des workflows, les brouillons, la mémoire des préférences et le travail en équipe.",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs.\nMultica",
-    lead: "AI4Kanban est livré avec des agents spécialisés et des workflows prêts à l’emploi : confiez votre premier travail en 10 minutes. Les agents travaillent en parallèle, les brouillons vous laissent maîtriser la qualité de chaque livraison, et ils continuent d’apprendre à l’usage.",
+    lead: "Comparez AI4Kanban et Multica sur les agents spécialisés, la configuration des workflows, les brouillons, la mémoire des préférences et le travail en équipe.",
     sharedLabel: "Les deux proposent",
     setup: {
       heading: "Commencer sans concevoir l’équipe au préalable",
       verdict:
-        "Les agents spécialisés sont prêts : vous confiez du travail dès le premier jour.",
-      ours: "Les agents spécialisés et workflows intégrés couvrent le développement logiciel, les blogs, les carrousels pour réseaux sociaux, les présentations et les vidéos produit.",
+        "Utilisez les workflows intégrés de développement et de marketing sans organiser chaque passage de relais.",
+      ours: "Les agents spécialisés et les workflows intégrés couvrent le développement du produit et le contenu marketing. Utilisez le workflow adapté à la tâche sans concevoir vous-même l’équipe. Vous pouvez aussi créer vos propres agents et workflows.",
       theirs:
         "Hormis le coordinateur Mika, vous créez et configurez vous-même chaque agent spécialisé",
       art: {
@@ -48,9 +48,9 @@ const fr: VsMulticaCopy = {
     },
     drafts: {
       heading:
-        "Peur que l’IA prenne trop de libertés ? Relisez un brouillon avant d’approuver l’exécution",
-      verdict: "Corrigez la direction avant l’exécution, pas après.",
-      ours: "Pour toute partie dont vous voulez garder la direction, le système de brouillons prépare un aperçu à approuver avant l’exécution et la livraison. AI4Kanban prend en charge les brouillons image, schéma, HTML/TSX, diff et storyboard.",
+        "Validez les brouillons clés avant que les agents poursuivent",
+      verdict: "Modifiez les points clés dans le brouillon pour limiter les reprises après réalisation.",
+      ours: "Les parties qui demandent votre jugement font d’abord l’objet d’un brouillon. Relisez-le et modifiez-le sur la carte ; les agents poursuivent à partir de la version validée et règlent les détails dans le périmètre convenu. Corriger les points clés à ce stade limite les reprises ultérieures.",
       theirs: "Le processus de relecture des brouillons est à construire vous-même",
       art: {
         ours: ["Brouillon", "Approuver", "Exécuter"],
@@ -80,8 +80,8 @@ const fr: VsMulticaCopy = {
     memory: {
       heading: "Faudra-t-il tout réexpliquer ?",
       verdict:
-        "Préférences et décisions sont retenues par tâche : inutile de les répéter.",
-      ours: "Chaque agent a une recette de mémoire conçue pour son propre métier : il apprend vos préférences et décisions pour ce type de tâche, pas des leçons génériques. Les agents peuvent aussi partager leur mémoire.",
+        "Les tâches suivantes reprennent le contexte du projet, les préférences et les décisions déjà établis.",
+      ours: "Chaque agent retient les préférences et décisions utiles à son travail et peut partager le contexte du projet avec les autres agents. Les tâches suivantes partent de ce qui a déjà été convenu, ce qui réduit les explications à répéter.",
       theirs:
         "La mémoire à long terme dépend de l’outil d’agent, à vérifier et configurer vous-même",
       art: {
@@ -178,10 +178,10 @@ const fr: VsMulticaCopy = {
     oursHeading: "Choisissez AI4Kanban si",
     theirsHeading: "Choisissez Multica si",
     ours: [
-      "Vous voulez des agents spécialisés et des workflows intégrés sans tout configurer de zéro ; certains workflows nécessitent Pro.",
-      "Vous voulez relire les brouillons clés avant l’exécution.",
-      "Vous voulez que les agents retiennent les modifications et décisions utiles, même en changeant d’outil.",
-      "Vous voulez la planification et les propositions de suite incluses, avec la liberté d’adapter le workflow.",
+      "Vous voulez des agents et workflows prêts à l’emploi pour votre produit et votre marketing.",
+      "Vous voulez valider les brouillons qui demandent votre jugement avant que les agents poursuivent.",
+      "Vous voulez réutiliser le contexte du projet, vos préférences et vos décisions dans les tâches suivantes.",
+      "Vous voulez des tâches indépendantes en parallèle et des propositions de suivi après livraison.",
     ],
     theirs: [
       "Vous avez besoin d’espaces multi-utilisateurs, de permissions et de notifications pour toute une équipe travaillant sur des issues partagées.",
@@ -189,7 +189,7 @@ const fr: VsMulticaCopy = {
       "Vous voulez configurer le runbook, le responsable et les déclencheurs d’Autopilot pour lancer un travail récurrent selon un calendrier ou des événements externes.",
     ],
     verdict:
-      "Choisissez AI4Kanban pour **démarrer avec des agents spécialisés, approuver les brouillons clés avant l’exécution et faire retenir vos décisions**. Choisissez Multica seulement si vous **avez précisément besoin de son espace multi-utilisateurs ou de sa gestion de l’exécution**.",
+      "Choisissez AI4Kanban pour **faire avancer votre produit et votre marketing avec des workflows prêts à l’emploi**, en validant les brouillons clés et en conservant vos préférences pour la suite. Choisissez Multica seulement si vous **avez précisément besoin de son espace multi-utilisateurs ou de sa gestion de l’exécution**.",
     note: "",
   },
 };

@@ -1,13 +1,14 @@
 # AI4Kanban vs. Hermes Agent Kanban
 
-> Built-in specialist workflows and draft approval put your judgment before the
-> build, so you correct less afterwards.
+> Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review,
+> chat-app control, parallel tasks and follow-up work.
 
 ## Specialist agents and workflows, ready to use
 
-- **AI4Kanban** — Built-in agents and workflows cover software development,
-  blogs, social carousels, slide decks and product videos. You can also create
-  your own.
+- **AI4Kanban** — Built-in specialist agents and workflows cover product
+  development and marketing content. Start with the workflow for your task
+  instead of designing the team yourself. You can also create custom agents and
+  workflows.
 - **Hermes Kanban** — Workers are Hermes profiles you set up with a model and
   skills. No built-in specialist workflows for UI design, copywriting or content
   production.
@@ -23,9 +24,10 @@
 
 ## Review key drafts before implementation
 
-- **AI4Kanban** — Choose the UI, prompts, copy or other key parts you want to
-  review. Agents prepare drafts you can preview and edit, then build from what
-  you approve.
+- **AI4Kanban** — Parts that need your judgment get a draft first. Review and
+  edit it on the card; agents build from the approved version and handle the
+  remaining details within the agreed scope. Catch changes here to reduce rework
+  later.
 - **Hermes Kanban** — Tasks start from a text spec. Its docs describe no preview
   and approval of key drafts before execution.
 
@@ -37,15 +39,15 @@
   updates the plan. Hermes Kanban takes your notes to the worker in task
   comments.
 
-## Settle the requirements first, then stop watching
+## Settle requirements, then let agents execute
 
-Watching less doesn’t mean lower quality: drafts, questions and key-point
-summaries keep the result on track.
+Approve key drafts to reduce rework, then check the delivery against the agreed
+requirements.
 
-- **AI4Kanban** — It doesn’t start blind. It first asks the questions that
-  matter and pins down what the delivery must meet, then builds. You approve the
-  key points and leave the details to agents, so you don’t have to watch every
-  run, and you can ship more work in a day.
+- **AI4Kanban** — Plan the work with agents and settle the requirements and key
+  drafts that need your decision. Agents then handle execution details, and
+  independent tasks can run in parallel. You return for decisions and delivery
+  checks without watching every session as it runs.
 - **Hermes Kanban** — Light planning, fast execution: work starts as soon as it
   is broken down, the bar is adjusted along the way, and fixes are made in the
   worktree. That is a valid way to work, but it relies on you checking in as it
@@ -85,9 +87,9 @@ A ✓ marks the stronger side on each row.
 
 **Choose AI4Kanban if you**
 
-- Want built-in specialist agents and workflows, or to create your own.
-- Want to approve key UI, prompt or copy drafts before full execution.
-- Want agents to suggest follow-up work after each delivery.
+- Want ready-to-use specialist agents and workflows for coding, blogs and videos.
+- Want to change key details in a draft before agents complete the work.
+- Want agents to reuse your preferences so later tasks need fewer corrections.
 
 **Choose Hermes Kanban if you**
 
@@ -97,9 +99,9 @@ A ✓ marks the stronger side on each row.
 
 ### Bottom line
 
-Choose AI4Kanban for **specialist workflows, draft approval before the build and
-suggested follow-up work**; choose Hermes Kanban for **chat-app control,
-automatic recovery and an API**.
+Choose AI4Kanban for **ready-to-use specialist workflows and key drafts that
+reduce rework**; choose Hermes Kanban for **chat-app control, automatic recovery
+and an API**.
 
 Compared against the Hermes Agent v0.21.6 documentation, checked October 2026.
 

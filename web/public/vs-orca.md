@@ -1,8 +1,7 @@
 # AI4Kanban vs. Orca
 
-> Already running several coding agents in parallel? Orca brings those sessions
-> into one workspace. AI4Kanban goes further: agents lead the execution details
-> while you set the direction and make the key decisions.
+> Compare AI4Kanban and Orca on session control, specialist workflows, draft
+> review and the work needed to coordinate execution.
 
 **What both support**
 
@@ -41,13 +40,11 @@ Sources: [Codex worktrees](https://learn.chatgpt.com/docs/environments/git-workt
 · [Remote connections](https://learn.chatgpt.com/docs/remote-connections)
 · [Orca features](https://github.com/stablyai/orca)
 
-## 02 · AI4Kanban: you set the direction, agents handle the details
+## 02 · AI4Kanban: review the drafts, hand off the details
 
-AI4Kanban is for people who are comfortable letting agents lead execution
-details while retaining control of direction and key decisions. Specialist
-agents, workflows and memory are ready to use, so you don't have to design agent
-roles or tune their prompts yourself. You discuss the plan and review key
-drafts; agents work out the details and carry the work through.
+Specialist agents prepare the UI, copy or script you need to review. After you
+approve those key parts, the workflow carries the task through. Coding, blog and
+video workflows are built in; independent tasks can run in parallel.
 
 | | AI4Kanban | Orca |
 | --- | --- | --- |
@@ -59,16 +56,16 @@ drafts; agents work out the details and carry the work through.
 
 ### Review key drafts before execution
 
-Worried about AI taking too many liberties with a UI, prompt or piece of copy?
-Review a draft before approving execution. Drafts can be images, diagrams,
-HTML/TSX, diffs or storyboards. Draft review comes before implementation to
-confirm the direction; reviewing the delivered code still happens as usual.
+Parts that need your judgment get a draft first. Review and edit it on the card;
+agents build from the approved version and handle the remaining details within
+the agreed scope. Catch changes here to reduce rework later.
 
 ### Carry decisions into the next task
 
-Each agent has a memory recipe for its own job, learning your preferences and
-decisions for that kind of task. Agents can share memory. After a main piece of
-work is finished, they suggest follow-ups to help fill gaps and catch omissions.
+Each agent remembers preferences and decisions relevant to its work and can
+share project context with other agents. Later tasks build on what you have
+already agreed. After a main piece of work is complete, agents suggest
+follow-ups for you to accept, revise or reject.
 
 You can also create your own agents and workflows.
 
@@ -87,11 +84,11 @@ agents. [See Orca's features](https://github.com/stablyai/orca)
 
 **Choose AI4Kanban if you want to**
 
-- Set the direction and make key decisions
-- Review important drafts
-- Let agents lead the execution details
+- Get ready-to-use specialist agents and workflows for coding, blogs and videos
+- Change key details in a draft before agents complete the work
+- Have agents reuse your preferences so later tasks need fewer corrections
 
-The goal: Another 10× gain in efficiency beyond parallel coding.
+The goal: Move development and marketing forward together, with less rework.
 
 ---
 

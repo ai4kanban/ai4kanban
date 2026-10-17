@@ -4,19 +4,19 @@ import type { VsHermesCopy } from "./types";
 
 const en: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Agent Kanban: review the key parts before agents build",
+    title: "AI4Kanban vs. Hermes Kanban: key drafts, less rework",
     socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "Already using Claude Code or Codex, and want to see the UI, prompt or copy before agents build it? AI4Kanban fits. Already running Hermes Agent, and want to manage tasks from Telegram or Slack? Hermes Kanban fits. See where each is stronger, row by row.",
-    social: "Hermes Kanban puts your Hermes agents to work and lets you steer them from chat apps. AI4Kanban puts Claude Code or Codex to work and shows you drafts of the key parts first. Which fits how you work?",
+    description: "Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
+    social: "Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Built-in specialist workflows and draft approval put your judgment before the build, so you correct less afterwards.",
+    lead: "Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
     sharedLabel: "Both support",
     setup: {
       heading: "Specialist agents and workflows, ready to use",
-      ours: "Built-in agents and workflows cover software development, blogs, social carousels, slide decks and product videos. You can also create your own.",
+      ours: "Built-in specialist agents and workflows cover product development and marketing content. Start with the workflow for your task instead of designing the team yourself. You can also create custom agents and workflows.",
       theirs: "Workers are Hermes profiles you set up with a model and skills. No built-in specialist workflows for UI design, copywriting or content production.",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const en: VsHermesCopy = {
     },
     drafts: {
       heading: "Review key drafts before implementation",
-      ours: "Choose the UI, prompts, copy or other key parts you want to review. Agents prepare drafts you can preview and edit, then build from what you approve.",
+      ours: "Parts that need your judgment get a draft first. Review and edit it on the card; agents build from the approved version and handle the remaining details within the agreed scope. Catch changes here to reduce rework later.",
       theirs: "Tasks start from a text spec. Its docs describe no preview and approval of key drafts before execution.",
       art: {
         ours: [
@@ -89,9 +89,9 @@ const en: VsHermesCopy = {
       ],
     },
     questions: {
-      heading: "Settle the requirements first, then stop watching",
-      verdict: "Watching less doesn’t mean lower quality: drafts, questions and key-point summaries keep the result on track.",
-      ours: "It doesn’t start blind. It first asks the questions that matter and pins down what the delivery must meet, then builds. You approve the key points and leave the details to agents, so you don’t have to watch every run, and you can ship more work in a day.",
+      heading: "Settle requirements, then let agents execute",
+      verdict: "Approve key drafts to reduce rework, then check the delivery against the agreed requirements.",
+      ours: "Plan the work with agents and settle the requirements and key drafts that need your decision. Agents then handle execution details, and independent tasks can run in parallel. You return for decisions and delivery checks without watching every session as it runs.",
       theirs: "Light planning, fast execution: work starts as soon as it is broken down, the bar is adjusted along the way, and fixes are made in the worktree. That is a valid way to work, but it relies on you checking in as it runs, which limits how much work you can ship in a day.",
       art: {
         ours: [
@@ -216,16 +216,16 @@ const en: VsHermesCopy = {
     oursHeading: "Choose AI4Kanban if you",
     theirsHeading: "Choose Hermes Kanban if you",
     ours: [
-      "Want built-in specialist agents and workflows, or to create your own.",
-      "Want to approve key UI, prompt or copy drafts before full execution.",
-      "Want agents to suggest follow-up work after each delivery.",
+      "Want ready-to-use specialist agents and workflows for coding, blogs and videos.",
+      "Want to change key details in a draft before agents complete the work.",
+      "Want agents to reuse your preferences so later tasks need fewer corrections.",
     ],
     theirs: [
       "Already run Hermes Agent and want the board inside it.",
       "Want to manage tasks from Telegram, Slack, Discord or other chat apps.",
       "Want automatic recovery of stalled tasks and an API to build on.",
     ],
-    verdict: "Choose AI4Kanban for **specialist workflows, draft approval before the build and suggested follow-up work**; choose Hermes Kanban for **chat-app control, automatic recovery and an API**.",
+    verdict: "Choose AI4Kanban for **ready-to-use specialist workflows and key drafts that reduce rework**; choose Hermes Kanban for **chat-app control, automatic recovery and an API**.",
     note: "Compared against the Hermes Agent v0.21.6 documentation, checked October 2026.",
   },
 };

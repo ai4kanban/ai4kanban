@@ -4,19 +4,19 @@ import type { VsHermesCopy } from "./types";
 
 const zh: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Agent Kanban：先审关键部分，再让智能体执行",
+    title: "AI4Kanban vs. Hermes Kanban：关键部分先看草稿，减少返工",
     socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "已经在用 Claude Code 或 Codex，想在智能体动手前先看看界面、Prompt 或文案？AI4Kanban 更合适。已经在用 Hermes Agent，想在 Telegram 或 Slack 里管理任务？Hermes Kanban 更合适。逐项看两者各自强在哪里。",
-    social: "Hermes Kanban 让你的 Hermes 智能体执行任务，可在聊天应用里随时操控；AI4Kanban 让 Claude Code、Codex 执行任务，并先把关键部分做成草稿给你看。哪个更适合你的工作方式？",
+    description: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
+    social: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "内置专业工作流和草稿审批，把你的判断放在执行之前，事后返工更少。",
+    lead: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
     sharedLabel: "两者都支持",
     setup: {
       heading: "专业智能体和工作流，开箱即用",
-      ours: "内置智能体和工作流覆盖软件开发、博客、社交轮播、演示文稿和产品视频；你也可以创建自己的智能体和工作流。",
+      ours: "内置专业 agent 和工作流覆盖产品开发与营销内容。按任务使用对应工作流，不用自己设计团队分工。你也可以创建自定义 agent 和工作流。",
       theirs: "执行者是你自己配置模型和 skill 的 Hermes profile；没有内置 UI 设计、文案或内容制作的专业工作流。",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const zh: VsHermesCopy = {
     },
     drafts: {
       heading: "关键草稿，先审阅再实现",
-      ours: "选择你要审阅的 UI、Prompt、文案等关键部分；智能体先准备可预览、可修改的草稿，再按你确认的内容执行。",
+      ours: "需要你判断的部分先出草稿。你在卡片上审阅、修改，agent 按确认的版本继续，在约定范围内完成其余细节。关键部分提前改好，减少后续返工。",
       theirs: "任务从一份文字规格开始；文档中没有执行前预览和审批关键草稿的流程。",
       art: {
         ours: [
@@ -89,9 +89,9 @@ const zh: VsHermesCopy = {
       ],
     },
     questions: {
-      heading: "先定交付要求，再放手执行",
-      verdict: "少盯不等于降低质量：草稿审阅、问答澄清和要点提取，让结果不跑偏。",
-      ours: "接到任务不盲目开工：先问清关键问题，把交付要求定下来再执行。你只审批要点，细节交给智能体，不用时刻盯着，一天也就能交付更多工作。",
+      heading: "先明确需求再让 agent 执行",
+      verdict: "先确认关键草稿以减少返工，再按约定要求验收交付。",
+      ours: "你与 agent 一起规划，明确需要你拍板的需求和关键草稿，再把执行细节交给 agent。独立任务可并行推进，你在需要决策和验收交付时回来，不用在执行阶段盯着每个会话。",
       theirs: "规划轻、执行快：任务拆好就开工，交付标准边做边调，出了偏差就在 worktree 里改。这也是一种可行的工作方式，但需要你在执行中持续跟进，一天能交付的工作也就更少。",
       art: {
         ours: [
@@ -216,16 +216,16 @@ const zh: VsHermesCopy = {
     oursHeading: "选择 AI4Kanban，如果你",
     theirsHeading: "选择 Hermes Kanban，如果你",
     ours: [
-      "想要内置的专业智能体和工作流，或自己创建。",
-      "想在完整执行前，先审批关键的 UI、Prompt 或文案草稿。",
-      "希望每次交付后，智能体主动提出后续工作。",
+      "希望直接使用开发、博客、视频的专业 agent 和工作流。",
+      "希望在草稿里改好关键部分，再让 agent 完成后续工作。",
+      "希望 agent 沿用已明确的偏好，减少后续任务的重复修改。",
     ],
     theirs: [
       "已经在用 Hermes Agent，希望看板就在其中。",
       "想在 Telegram、Slack、Discord 等聊天应用里管理任务。",
       "需要自动恢复卡住的任务，以及可二次开发的 API。",
     ],
-    verdict: "需要**专业工作流、执行前的草稿审批和后续工作建议**，选 AI4Kanban；需要**聊天应用操控、自动恢复和 API**，选 Hermes Kanban。",
+    verdict: "希望**直接使用专业工作流，先审关键草稿以减少返工**，选 AI4Kanban；需要**聊天应用操控、自动恢复和 API**，选 Hermes Kanban。",
     note: "依据 Hermes Agent v0.21.6 文档对比，核对于 2026 年 10 月。",
   },
 };

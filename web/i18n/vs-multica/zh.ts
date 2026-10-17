@@ -2,22 +2,22 @@ import type { VsMulticaCopy } from "./types";
 
 const zh: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica：如何用 AI 智能体推进项目？",
+    title: "AI4Kanban vs. Multica：专业 agent 与工作流开箱即用",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "了解 AI4Kanban 与 Multica 分别替你解决了什么问题，省去哪些工作，以及两者的方案有什么不同。",
+      "对比 AI4Kanban 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
     social:
-      "两者都能创建并组织多组 AI 智能体并行工作。AI4Kanban 提供开箱即用的智能体、工作流和记忆管理方案，减少团队架构设计、Prompt 调优等配置工作。",
+      "对比 AI4Kanban 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs.\nMultica",
-    lead: "AI4Kanban 内置专业智能体和工作流，开箱即用，10 分钟即可交付你的第一项工作；多智能体并行，通过草稿系统精准把控交付质量，持续学习进化。",
+    lead: "对比 AI4Kanban 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
     sharedLabel: "两者都支持",
     setup: {
       heading: "开箱即用，少做团队配置",
-      verdict: "专业角色和流程已配好，第一天就能交任务。",
-      ours: "内置多种专业智能体和配套工作流，覆盖软件开发、博客、社交轮播、演示文稿和产品视频。",
+      verdict: "用内置工作流推进开发与营销，不用逐项安排交接。",
+      ours: "内置专业 agent 和工作流覆盖产品开发与营销内容。按任务使用对应工作流，不用自己设计团队分工。你也可以创建自定义 agent 和工作流。",
       theirs: "除协调智能体 Mika 外，每个专业智能体都要你自己创建",
       art: {
         ours: ["UI 设计", "Prompt", "文案"],
@@ -45,9 +45,9 @@ const zh: VsMulticaCopy = {
       ],
     },
     drafts: {
-      heading: "担心 AI 自由发挥？先看草稿，再批准执行",
-      verdict: "方向在执行前确认，不必跑完再返工。",
-      ours: "所有你担心 AI 过度自由发挥的部分，都可以先让草稿系统提供预览，审批后再执行交付。AI4Kanban 支持图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
+      heading: "先审关键草稿再让 agent 继续",
+      verdict: "在草稿里改好关键部分，减少实现后的返工。",
+      ours: "需要你判断的部分先出草稿。你在卡片上审阅、修改，agent 按确认的版本继续，在约定范围内完成其余细节。关键部分提前改好，减少后续返工。",
       theirs: "先审草稿的流程要你自己搭建",
       art: {
         ours: ["草稿", "确认", "执行任务"],
@@ -76,8 +76,8 @@ const zh: VsMulticaCopy = {
     },
     memory: {
       heading: "下次还要再解释一遍吗？",
-      verdict: "偏好和决定按任务记住，不必每次重讲。",
-      ours: "每个智能体都有针对自身场景单独设计的记忆配方，学习你对特定任务的偏好和决策，而非通用经验。多智能体之间也能共享记忆。",
+      verdict: "后续任务沿用已经明确的项目背景、偏好和决策。",
+      ours: "每个 agent 记住与自身工作相关的偏好和决策，也能与其他 agent 共享项目背景。后续任务从已有共识继续，减少重复解释。",
       theirs: "长期记忆取决于所用的 Agent 工具，要你自己检查和设置",
       art: {
         ours: {
@@ -169,10 +169,10 @@ const zh: VsMulticaCopy = {
     oursHeading: "选择 AI4Kanban，如果你",
     theirsHeading: "选择 Multica，如果你",
     ours: [
-      "想直接使用多种专业智能体和配套工作流，无需从头配置；部分工作流需 Pro。",
-      "想在执行前审阅关键部分的草稿。",
-      "想让有用的修改和决定被记住，换编码工具后也能继续参考。",
-      "希望已有规划和后续建议，也能自行调整工作流。",
+      "希望用现成的专业 agent 和工作流推进自己的产品开发与营销。",
+      "希望需要自己判断的部分先审草稿，再让 agent 继续。",
+      "希望后续任务沿用项目背景、偏好和决策。",
+      "希望独立任务并行推进，交付后获得跟进建议。",
     ],
     theirs: [
       "需要多人工作区、权限和通知，让整个团队在共享 issue 上协作。",
@@ -180,7 +180,7 @@ const zh: VsMulticaCopy = {
       "愿意配置 Autopilot 的任务指令、执行者和触发器，让重复工作按定时或外部事件自动启动。",
     ],
     verdict:
-      "**想让专业智能体直接开工、在执行前确认关键草稿、并记住你的决定**，选 AI4Kanban。只有当你**明确需要 Multica 的多人工作区或执行管理功能**时，再选 Multica。",
+      "希望用**现成工作流推进自己的产品开发与营销**，先审关键草稿，让偏好延续到后续任务，选 AI4Kanban。只有当你**明确需要 Multica 的多人工作区或执行管理功能**时，再选 Multica。",
     note: "",
   },
 };

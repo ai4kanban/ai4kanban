@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const es: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca: delega los detalles, conserva el control",
+    title: "AI4Kanban vs. Orca: revisa borradores y delega detalles",
     socialTitle: "AI4Kanban vs. Orca",
     description:
-      "¿Ya ejecutas agentes de programación en paralelo? Compara Orca con AI4Kanban: controla tú los detalles de la ejecución, o deja que los agentes los dirijan mientras tú marcas el rumbo.",
+      "Compara AI4Kanban y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
     social:
-      "Orca añade una capa ligera sobre los agentes de programación. AI4Kanban te da un equipo listo para dirigir los detalles de la ejecución mientras tú conservas el control del rumbo y de las decisiones clave.",
+      "Compara AI4Kanban y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
   },
   hero: {
     badge: "Comparativa",
     title: "AI4Kanban vs. Orca",
-    lead: "¿Ya ejecutas varios agentes de programación en paralelo? Orca reúne esas sesiones en un solo espacio de trabajo. AI4Kanban va más allá: los agentes dirigen los detalles de la ejecución mientras tú marcas el rumbo y tomas las decisiones clave.",
+    lead: "Compara AI4Kanban y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
   },
   both: {
     title: "Lo que ambos ofrecen",
@@ -67,16 +67,16 @@ const es: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban: tú marcas el rumbo, los agentes se ocupan de los detalles",
-    lead: "AI4Kanban es para quien está dispuesto a que los agentes dirijan los detalles de la ejecución mientras conserva el control del rumbo y de las decisiones clave. Los agentes especializados, los flujos de trabajo y la memoria están listos para usar, así que no tienes que diseñar los roles de los agentes ni ajustar sus prompts. Tú participas en la planificación y revisas los borradores clave; los agentes resuelven los detalles y llevan el trabajo a término.",
+    title: "AI4Kanban: revisa borradores y delega los detalles",
+    lead: "Los agentes preparan borradores de la interfaz, los textos o el guion que debes revisar. Tras aprobar lo esencial, el flujo completa la tarea. Hay flujos integrados para código, blogs y vídeos; las tareas independientes pueden ejecutarse en paralelo.",
     drafts: {
       title: "Revisa los borradores clave antes de ejecutar",
-      body: "¿Te preocupa que la IA se tome demasiadas libertades con una interfaz, un prompt o un texto? Revisa un borrador antes de aprobar la ejecución. Los borradores pueden ser imágenes, diagramas, HTML/TSX, diffs o storyboards. La revisión de borradores llega antes de la implementación para confirmar el rumbo; la revisión del código entregado se hace igual que siempre.",
+      body: "Las partes que necesitan tu criterio tienen un borrador primero. Revísalo y edítalo en la tarjeta; los agentes continúan desde la versión aprobada y resuelven los detalles dentro del alcance acordado. Corregir lo esencial aquí reduce lo que hay que rehacer después.",
       art: ["Borrador", "Aprobar", "Ejecución"],
     },
     memory: {
       title: "Lleva las decisiones a la siguiente tarea",
-      body: "Cada agente tiene una receta de memoria pensada para su trabajo y aprende tus preferencias y decisiones para ese tipo de tarea. Los agentes pueden compartir memoria. Al terminar un trabajo principal, proponen tareas de seguimiento para cubrir huecos y detectar omisiones.",
+      body: "Cada agente recuerda las preferencias y decisiones relevantes para su trabajo y puede compartir el contexto del proyecto con otros agentes. Las tareas posteriores parten de lo ya acordado. Tras completar un trabajo principal, los agentes proponen próximos pasos que puedes aceptar, modificar o rechazar.",
       art: {
         agents: ["Diseño UI", "Redacción"],
         shared: "Compartida · proyecto",
@@ -107,12 +107,12 @@ const es: VsOrcaCopy = {
     ours: {
       name: "Elige AI4Kanban",
       points: [
-        "Marcar el rumbo y tomar las decisiones clave",
-        "Revisar los borradores importantes",
-        "Dejar que los agentes dirijan los detalles de la ejecución",
+        "Agentes y flujos listos para código, blogs y vídeos",
+        "Ajustar los detalles clave en un borrador antes de terminar el trabajo",
+        "Reutilizar tus preferencias para reducir las correcciones en tareas futuras",
       ],
       goalLabel: "El objetivo",
-      goal: "Multiplicar otra vez por 10 la eficiencia, más allá de la programación en paralelo",
+      goal: "Avanza con desarrollo y marketing, con menos trabajo que rehacer",
     },
   },
   start: {

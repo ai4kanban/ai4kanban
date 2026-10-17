@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const en: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator: review drafts, run tasks",
+    title: "AI4Kanban vs. Plannotator: from key drafts to delivery",
     socialTitle: "AI4Kanban vs. Plannotator",
     description:
-      "Want to review key drafts and run tasks in parallel? Compare AI4Kanban's specialist agents and task board with Plannotator's plan, document and code review.",
+      "Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
     social:
-      "Plannotator brings plan, document and code review into your agent sessions. AI4Kanban brings key drafts, parallel delivery, memory and follow-ups to a task board.",
+      "Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs. Plannotator",
-    lead: "Plannotator lets you annotate your coding agent's plans, documents and code. AI4Kanban organizes tasks on a board: built-in specialist agents prepare key drafts for your approval, then run tasks in parallel in the background.",
+    lead: "Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
   },
   both: {
     title: "What both support",
@@ -41,21 +41,21 @@ const en: VsPlannotatorCopy = {
     links: ["Explore Plannotator", "Plannotator README"],
   },
   ours: {
-    title: "AI4Kanban: review key drafts, move several tasks forward",
-    lead: "AI4Kanban organizes coding agents' work on a task board, with built-in specialists for UI design, copywriting and competitor research. You help plan the work and approve key drafts, then agents execute in the background. Tasks without dependencies can run together.",
+    title: "AI4Kanban: from key drafts to finished work",
+    lead: "Specialist agents prepare the UI, copy or script you need to review. After you approve those key parts, the workflow carries the task through. Coding, blog and video workflows are built in; independent tasks can run in parallel.",
     drafts: {
       title: "Review what you would want to change",
-      body: "Worried about AI taking liberties with a screen, prompt or piece of copy? Parts that need your decision get a draft first; agents build from the approved draft. Beyond plans and HTML, preview images, diagrams and storyboards. Agents handle the remaining details directly.",
+      body: "Parts that need your judgment get a draft first. Review and edit it on the card; agents build from the approved version and handle the remaining details within the agreed scope. Catch changes here to reduce rework later.",
       art: ["Draft", "Approve", "Execution"],
     },
     parallel: {
       title: "Move several tasks forward together",
-      body: "The board keeps tasks, dependencies and progress together. Once requirements are settled, independent tasks run in parallel. Read logs and code diffs from each card without watching every session during execution.",
+      body: "Keep development and marketing tasks on one board, with drafts, decisions and progress on each card. Once requirements are settled, independent tasks run in parallel; dependent tasks follow in order.",
       art: ["Login page", "Pricing copy", "API fix"],
     },
     memory: {
       title: "Explain less next time",
-      body: "Each agent uses memory designed for its job to learn your preferences and decisions. Agents can share that memory. After a main piece of work is finished, they propose follow-ups to help fill gaps and catch omissions.",
+      body: "Each agent remembers preferences and decisions relevant to its work and can share project context with other agents. Later tasks build on what you have already agreed. After a main piece of work is complete, agents suggest follow-ups for you to accept, revise or reject.",
       art: { agents: ["UI design", "Copywriting"], shared: "Shared · project context" },
     },
     custom: "You can also create custom agents and workflows.",
@@ -101,7 +101,7 @@ const en: VsPlannotatorCopy = {
     },
     ours: {
       name: "Choose AI4Kanban",
-      body: "You want to move several tasks forward: approve key UI and copy drafts, let agents execute, and carry your preferences and decisions into later tasks.",
+      body: "Review key drafts on the task card, then let agents finish the work. Built-in workflows cover coding and marketing, with independent tasks moving in parallel. Agents reuse your preferences on later tasks, so you spend less time repeating corrections.",
     },
   },
   start: {

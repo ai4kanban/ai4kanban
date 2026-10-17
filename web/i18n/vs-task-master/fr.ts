@@ -4,19 +4,19 @@ import type { VsTaskMasterCopy } from "./types";
 
 const fr: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster : moins de guidage et de reprises avec des agents IA",
+    title: "AI4Kanban vs. Taskmaster : valider avant de refaire",
     socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "AI4Kanban ajoute à la gestion des tâches des workflows spécialisés, l’approbation des brouillons et la mémoire des préférences. Découvrez comment il réduit les reprises par rapport à Taskmaster.",
-    social: "AI4Kanban découpe et gère les tâches, vous laisse approuver des brouillons d’UI, de prompts ou de textes avant l’exécution, et réutilise vos préférences et décisions dans la suite du travail. Taskmaster n’intègre ni approbation des brouillons ni mémoire des préférences.",
+    description: "Comparez AI4Kanban et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
+    social: "Comparez AI4Kanban et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs.\nTaskmaster",
-    lead: "Workflows spécialisés, approbation des brouillons et mémoire des préférences intégrés : guidez vos agents avec moins d’effort et réduisez les reprises.",
+    lead: "Comparez AI4Kanban et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
     sharedLabel: "Les deux proposent",
     setup: {
       heading: "Des agents et workflows spécialisés, prêts à l’emploi",
-      ours: "Les agents et workflows intégrés couvrent le développement logiciel, les blogs, les carrousels pour réseaux sociaux, les présentations et les vidéos produit. Vous pouvez aussi créer vos propres agents et workflows.",
+      ours: "Les agents spécialisés et les workflows intégrés couvrent le développement du produit et le contenu marketing. Utilisez le workflow adapté à la tâche sans concevoir vous-même l’équipe. Vous pouvez aussi créer vos propres agents et workflows.",
       theirs: "Centré sur les tâches de code. Aucun agent ni workflow spécialisé intégré pour le design d’UI, la rédaction ou la production de contenu.",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const fr: VsTaskMasterCopy = {
     },
     drafts: {
       heading: "Relire les brouillons clés avant l’implémentation",
-      ours: "Choisissez l’UI, les prompts, les textes ou les autres parties clés à relire. Les agents préparent des brouillons à prévisualiser et modifier, puis s’appuient sur ce que vous approuvez.",
+      ours: "Les parties qui demandent votre jugement font d’abord l’objet d’un brouillon. Relisez-le et modifiez-le sur la carte ; les agents poursuivent à partir de la version validée et règlent les détails dans le périmètre convenu. Corriger les points clés à ce stade limite les reprises ultérieures.",
       theirs: "Vous pouvez relire descriptions de tâches, détails d’implémentation et stratégies de test. Aucun workflow intégré ne permet de prévisualiser et d’approuver les brouillons des livrables clés avant l’exécution.",
       art: {
         ours: [
@@ -76,7 +76,7 @@ const fr: VsTaskMasterCopy = {
     },
     memory: {
       heading: "Vos préférences, reprises à la tâche suivante",
-      ours: "Les designers retiennent vos préférences de design ; les rédacteurs, vos choix de formulation. Les agents peuvent aussi partager le contexte du projet.",
+      ours: "Chaque agent retient les préférences et décisions utiles à son travail et peut partager le contexte du projet avec les autres agents. Les tâches suivantes partent de ce qui a déjà été convenu, ce qui réduit les explications à répéter.",
       theirs: "Il stocke des règles et des notes de tâche. Aucun système de mémoire n’apprend automatiquement vos préférences à partir de vos modifications et refus pour les tâches suivantes.",
       art: {
         ours: {
@@ -197,16 +197,16 @@ const fr: VsTaskMasterCopy = {
     oursHeading: "Choisissez AI4Kanban si vous",
     theirsHeading: "Choisissez Taskmaster si vous",
     ours: [
-      "Voulez des agents et workflows spécialisés intégrés, ou créer les vôtres.",
-      "Voulez approuver les brouillons clés d’UI, de prompts ou de textes avant l’exécution complète.",
-      "Voulez que les tâches suivantes réutilisent vos préférences et suggèrent un travail de suivi utile.",
+      "Voulez des agents et workflows prêts pour le code, les articles et les vidéos.",
+      "Voulez corriger les détails clés sur un brouillon avant la réalisation.",
+      "Voulez réutiliser vos préférences pour limiter les corrections des tâches suivantes.",
     ],
     theirs: [
       "Voulez gérer vos tâches via MCP dans votre éditeur ou agent de code actuel.",
       "Voulez une commande de recherche dédiée, avec le contexte des tâches et un modèle de recherche à part.",
       "Voulez un workflow intégré qui guide le code par des tests qui échouent, des tests qui passent et des commits.",
     ],
-    verdict: "Choisissez AI4Kanban pour **les workflows spécialisés, l’approbation des brouillons et la mémoire des préférences** ; choisissez Taskmaster pour **l’intégration MCP, une commande de recherche dédiée et un workflow de code test-first intégré**.",
+    verdict: "Choisissez AI4Kanban pour **des workflows spécialisés prêts à utiliser et des brouillons clés qui limitent les reprises** ; choisissez Taskmaster pour **l’intégration MCP, une commande de recherche dédiée et un workflow de code test-first intégré**.",
     note: "Cette page compare la version open source de Taskmaster. Hamster est un produit hébergé de la même équipe ; ses fonctions d’équipe sortent du cadre de ce comparatif.",
   },
 };

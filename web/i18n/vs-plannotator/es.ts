@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const es: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator: revisa borradores, ejecuta tareas",
+    title: "AI4Kanban vs. Plannotator: del borrador a la entrega",
     socialTitle: "AI4Kanban vs. Plannotator",
     description:
-      "¿Quieres revisar los borradores clave y ejecutar tareas en paralelo? Compara los agentes especializados y el tablero de tareas de AI4Kanban con la revisión de planes, documentos y código de Plannotator.",
+      "Compara AI4Kanban y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
     social:
-      "Plannotator lleva la revisión de planes, documentos y código a tus sesiones con agentes. AI4Kanban lleva a un tablero de tareas los borradores clave, la entrega en paralelo, la memoria y las tareas de seguimiento.",
+      "Compara AI4Kanban y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
   },
   hero: {
     badge: "Comparativa",
     title: "AI4Kanban vs. Plannotator",
-    lead: "Plannotator te permite anotar los planes, documentos y código de tu agente de programación. AI4Kanban organiza las tareas en un tablero: agentes especializados integrados preparan los borradores clave para que los apruebes y luego ejecutan las tareas en paralelo, en segundo plano.",
+    lead: "Compara AI4Kanban y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
   },
   both: {
     title: "Lo que ambos ofrecen",
@@ -41,21 +41,21 @@ const es: VsPlannotatorCopy = {
     links: ["Conoce Plannotator", "README de Plannotator"],
   },
   ours: {
-    title: "AI4Kanban: revisa los borradores clave y avanza varias tareas",
-    lead: "AI4Kanban organiza el trabajo de los agentes de programación en un tablero de tareas, con especialistas integrados en diseño UI, redacción y análisis de la competencia. Tú ayudas a planificar y apruebas los borradores clave; después, los agentes ejecutan en segundo plano. Las tareas sin dependencias pueden avanzar a la vez.",
+    title: "AI4Kanban: del borrador al trabajo terminado",
+    lead: "Los agentes preparan borradores de la interfaz, los textos o el guion que debes revisar. Tras aprobar lo esencial, el flujo completa la tarea. Hay flujos integrados para código, blogs y vídeos; las tareas independientes pueden ejecutarse en paralelo.",
     drafts: {
       title: "Revisa lo que querrías cambiar",
-      body: "¿Te preocupa que la IA se tome libertades con una pantalla, un prompt o un texto? Lo que requiere tu decisión recibe primero un borrador, y los agentes construyen a partir del borrador aprobado. Además de planes y HTML, puedes previsualizar imágenes, diagramas y storyboards. Los agentes resuelven directamente el resto de los detalles.",
+      body: "Las partes que necesitan tu criterio tienen un borrador primero. Revísalo y edítalo en la tarjeta; los agentes continúan desde la versión aprobada y resuelven los detalles dentro del alcance acordado. Corregir lo esencial aquí reduce lo que hay que rehacer después.",
       art: ["Borrador", "Aprobar", "Ejecución"],
     },
     parallel: {
       title: "Avanza varias tareas a la vez",
-      body: "El tablero reúne tareas, dependencias y progreso. Una vez definidos los requisitos, las tareas independientes se ejecutan en paralelo. Consulta los registros y los diffs de código desde cada tarjeta sin vigilar cada sesión durante la ejecución.",
+      body: "Organiza desarrollo y marketing en un mismo tablero, con borradores, decisiones y progreso en cada tarjeta. Una vez definidos los requisitos, las tareas independientes avanzan en paralelo; las que tienen dependencias siguen su orden.",
       art: ["Login", "Precios", "Fix de API"],
     },
     memory: {
       title: "Explica menos la próxima vez",
-      body: "Cada agente usa una memoria pensada para su trabajo para aprender tus preferencias y decisiones. Los agentes pueden compartir esa memoria. Al terminar un trabajo principal, proponen tareas de seguimiento para cubrir huecos y detectar omisiones.",
+      body: "Cada agente recuerda las preferencias y decisiones relevantes para su trabajo y puede compartir el contexto del proyecto con otros agentes. Las tareas posteriores parten de lo ya acordado. Tras completar un trabajo principal, los agentes proponen próximos pasos que puedes aceptar, modificar o rechazar.",
       art: { agents: ["Diseño UI", "Redacción"], shared: "Compartida · contexto del proyecto" },
     },
     custom: "También puedes crear tus propios agentes y flujos de trabajo.",
@@ -101,7 +101,7 @@ const es: VsPlannotatorCopy = {
     },
     ours: {
       name: "Elige AI4Kanban",
-      body: "Quieres avanzar varias tareas: aprobar los borradores clave de UI y textos, dejar que los agentes ejecuten y llevar tus preferencias y decisiones a las tareas siguientes.",
+      body: "Revisa borradores clave en la tarjeta y deja que los agentes terminen. Los flujos integrados cubren desarrollo y marketing, con tareas independientes en paralelo. Los agentes reutilizan tus preferencias para reducir las correcciones repetidas.",
     },
   },
   start: {

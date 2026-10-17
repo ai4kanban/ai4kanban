@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const fr: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator : relire les brouillons, lancer les tâches",
+    title: "AI4Kanban vs. Plannotator : du brouillon à la livraison",
     socialTitle: "AI4Kanban vs. Plannotator",
     description:
-      "Envie de relire les brouillons clés et de lancer des tâches en parallèle ? Comparez les agents spécialisés et le tableau de tâches d’AI4Kanban avec la relecture de plans, de documents et de code de Plannotator.",
+      "Comparez AI4Kanban et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
     social:
-      "Plannotator apporte la relecture de plans, de documents et de code dans vos sessions d’agent. AI4Kanban réunit sur un tableau de tâches les brouillons clés, la livraison en parallèle, la mémoire et les suivis.",
+      "Comparez AI4Kanban et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs. Plannotator",
-    lead: "Plannotator vous permet d’annoter les plans, les documents et le code de votre agent de code. AI4Kanban organise les tâches sur un tableau : des agents spécialisés intégrés préparent les brouillons clés pour que vous les approuviez, puis exécutent les tâches en parallèle, en arrière-plan.",
+    lead: "Comparez AI4Kanban et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
   },
   both: {
     title: "Ce que les deux proposent",
@@ -41,21 +41,21 @@ const fr: VsPlannotatorCopy = {
     links: ["Découvrir Plannotator", "README de Plannotator"],
   },
   ours: {
-    title: "AI4Kanban : relire les brouillons clés, faire avancer plusieurs tâches",
-    lead: "AI4Kanban organise le travail des agents de code sur un tableau de tâches, avec des spécialistes intégrés en design UI, rédaction et veille concurrentielle. Vous participez à la planification et approuvez les brouillons clés, puis les agents exécutent en arrière-plan. Les tâches sans dépendances peuvent avancer en même temps.",
+    title: "AI4Kanban : des brouillons au travail terminé",
+    lead: "Les spécialistes préparent les brouillons d’interface, de textes ou de script à valider. Une fois ces parties approuvées, le workflow mène la tâche à terme. Code, articles et vidéos sont intégrés ; les tâches indépendantes peuvent avancer en parallèle.",
     drafts: {
       title: "Relire ce que vous voudriez changer",
-      body: "Vous craignez que l’IA prenne des libertés avec un écran, un prompt ou un texte ? Ce qui demande votre décision passe d’abord par un brouillon ; les agents construisent à partir du brouillon approuvé. En plus des plans et du HTML, prévisualisez des images, des schémas et des storyboards. Les agents règlent directement le reste des détails.",
+      body: "Les parties qui demandent votre jugement font d’abord l’objet d’un brouillon. Relisez-le et modifiez-le sur la carte ; les agents poursuivent à partir de la version validée et règlent les détails dans le périmètre convenu. Corriger les points clés à ce stade limite les reprises ultérieures.",
       art: ["Brouillon", "Approuver", "Exécution"],
     },
     parallel: {
       title: "Faire avancer plusieurs tâches ensemble",
-      body: "Le tableau réunit les tâches, leurs dépendances et leur avancement. Une fois les besoins fixés, les tâches indépendantes s’exécutent en parallèle. Consultez les journaux et les diffs de code depuis chaque carte, sans surveiller chaque session pendant l’exécution.",
+      body: "Réunissez développement et marketing sur un même tableau, avec les brouillons, décisions et avancées sur chaque carte. Une fois les exigences définies, les tâches indépendantes avancent en parallèle ; celles qui ont des dépendances suivent leur ordre.",
       art: ["Connexion", "Tarifs", "Correctif API"],
     },
     memory: {
       title: "Moins d’explications la prochaine fois",
-      body: "Chaque agent dispose d’une mémoire pensée pour son travail, qui apprend vos préférences et vos décisions. Les agents peuvent partager cette mémoire. Une fois un travail principal terminé, ils proposent des suivis pour combler les manques et repérer les oublis.",
+      body: "Chaque agent retient les préférences et décisions utiles à son travail et peut partager le contexte du projet avec les autres agents. Les tâches suivantes partent de ce qui a déjà été convenu. Après un travail principal, les agents proposent des suites que vous pouvez accepter, modifier ou refuser.",
       art: { agents: ["Design UI", "Rédaction"], shared: "Partagée · contexte du projet" },
     },
     custom: "Vous pouvez aussi créer vos propres agents et workflows.",
@@ -101,7 +101,7 @@ const fr: VsPlannotatorCopy = {
     },
     ours: {
       name: "Choisir AI4Kanban",
-      body: "Vous voulez faire avancer plusieurs tâches : approuver les brouillons clés d’UI et de textes, laisser les agents exécuter, et reporter vos préférences et décisions sur les tâches suivantes.",
+      body: "Validez les brouillons clés sur la carte, puis laissez les agents terminer. Les workflows intégrés couvrent développement et marketing, avec des tâches indépendantes en parallèle. Les agents réutilisent vos préférences pour limiter les corrections répétées.",
     },
   },
   start: {

@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const en: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca: delegate the details, keep control",
+    title: "AI4Kanban vs. Orca: review drafts, hand off the details",
     socialTitle: "AI4Kanban vs. Orca",
     description:
-      "Already running coding agents in parallel? Compare Orca with AI4Kanban: keep control of execution details, or let agents lead them while you set the direction.",
+      "Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
     social:
-      "Orca adds a thin layer around coding agents. AI4Kanban gives you a ready-made team to lead execution details while you keep control of direction and key decisions.",
+      "Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs. Orca",
-    lead: "Already running several coding agents in parallel? Orca brings those sessions into one workspace. AI4Kanban goes further: agents lead the execution details while you set the direction and make the key decisions.",
+    lead: "Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
   },
   both: {
     title: "What both support",
@@ -65,16 +65,16 @@ const en: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban: you set the direction, agents handle the details",
-    lead: "AI4Kanban is for people who are comfortable letting agents lead execution details while retaining control of direction and key decisions. Specialist agents, workflows and memory are ready to use, so you don't have to design agent roles or tune their prompts yourself. You discuss the plan and review key drafts; agents work out the details and carry the work through.",
+    title: "AI4Kanban: review the drafts, hand off the details",
+    lead: "Specialist agents prepare the UI, copy or script you need to review. After you approve those key parts, the workflow carries the task through. Coding, blog and video workflows are built in; independent tasks can run in parallel.",
     drafts: {
       title: "Review key drafts before execution",
-      body: "Worried about AI taking too many liberties with a UI, prompt or piece of copy? Review a draft before approving execution. Drafts can be images, diagrams, HTML/TSX, diffs or storyboards. Draft review comes before implementation to confirm the direction; reviewing the delivered code still happens as usual.",
+      body: "Parts that need your judgment get a draft first. Review and edit it on the card; agents build from the approved version and handle the remaining details within the agreed scope. Catch changes here to reduce rework later.",
       art: ["Draft", "Approve", "Execution"],
     },
     memory: {
       title: "Carry decisions into the next task",
-      body: "Each agent has a memory recipe for its own job, learning your preferences and decisions for that kind of task. Agents can share memory. After a main piece of work is finished, they suggest follow-ups to help fill gaps and catch omissions.",
+      body: "Each agent remembers preferences and decisions relevant to its work and can share project context with other agents. Later tasks build on what you have already agreed. After a main piece of work is complete, agents suggest follow-ups for you to accept, revise or reject.",
       art: {
         agents: ["UI designer", "Copywriter"],
         shared: "Shared · project",
@@ -105,12 +105,12 @@ const en: VsOrcaCopy = {
     ours: {
       name: "Choose AI4Kanban",
       points: [
-        "Set the direction and make key decisions",
-        "Review important drafts",
-        "Let agents lead the execution details",
+        "Get ready-to-use specialist agents and workflows for coding, blogs and videos",
+        "Change key details in a draft before agents complete the work",
+        "Have agents reuse your preferences so later tasks need fewer corrections",
       ],
       goalLabel: "The goal",
-      goal: "Another 10× gain in efficiency beyond parallel coding",
+      goal: "Move development and marketing forward together, with less rework",
     },
   },
   start: {

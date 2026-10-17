@@ -1,16 +1,17 @@
 # AI4Kanban vs. Multica
 
-> AI4Kanban comes with specialist agents and workflows, ready out of the box:
-> hand off your first piece of work in 10 minutes. Agents run in parallel,
-> drafts keep the quality of every delivery in your hands, and they keep
-> learning as they go.
+> Compare AI4Kanban and Multica on specialist agents, workflow setup, draft
+> review, preference memory and team collaboration.
 
 ## Start working without designing the team first
 
-Specialist agents come ready, so you hand off work on day one.
+Use built-in workflows for development and marketing instead of arranging
+every handoff yourself.
 
-- **AI4Kanban** — Built-in specialist agents and workflows cover software
-  development, blogs, social carousels, slide decks and product videos.
+- **AI4Kanban** — Built-in specialist agents and workflows cover product
+  development and marketing content. Start with the workflow for your task
+  instead of designing the team yourself. You can also create custom agents and
+  workflows.
 - **Multica** — Apart from the coordinator Mika, you create and configure every
   specialist agent yourself.
 
@@ -23,14 +24,14 @@ Specialist agents come ready, so you hand off work on day one.
   tools such as Claude Code or Codex. Multica runs agents in parallel, with
   queues, retries and cost tracking.
 
-## Worried about AI taking too many liberties? Review a draft before approving execution
+## Review key drafts before agents continue
 
-Fix the direction before the run, not after it.
+Change the key parts in the draft to reduce rework after implementation.
 
-- **AI4Kanban** — For any part where you want control over the direction, the
-  draft system can prepare a preview for your approval before execution and
-  delivery. AI4Kanban supports image, diagram, HTML/TSX, diff and storyboard
-  drafts.
+- **AI4Kanban** — Parts that need your judgment get a draft first. Review and
+  edit it on the card; agents build from the approved version and handle the
+  remaining details within the agreed scope. Catch changes here to reduce
+  rework later.
 - **Multica** — You build the draft-review process yourself.
 
 **Both have**
@@ -43,11 +44,13 @@ Fix the direction before the run, not after it.
 
 ## Will you need to explain it again?
 
-Preferences and decisions are kept per task, so you never repeat them.
+Later tasks start with the project context, preferences and decisions you have
+already established.
 
-- **AI4Kanban** — Each agent has a memory recipe designed for its own job: it
-  learns your preferences and decisions for that kind of task, not generic
-  lessons. Agents can also share memory with each other.
+- **AI4Kanban** — Each agent remembers preferences and decisions relevant to its
+  work and can share project context with other agents. Later tasks build on
+  what you have already agreed, so you spend less time explaining the same
+  background.
 - **Multica** — Long-term memory depends on the agent tool, for you to check and
   set up.
 
@@ -74,12 +77,12 @@ Preferences and decisions are kept per task, so you never repeat them.
 
 **Choose AI4Kanban if you**
 
-- Want built-in specialist agents and workflows without configuring them from
-  scratch; some workflows require Pro.
-- Want to review key drafts before execution.
-- Want agents to remember useful edits and decisions across coding tools.
-- Want planning and follow-up suggestions included, with room to customize the
-  workflow.
+- Want ready-to-use specialist agents and workflows for your own product and
+  marketing.
+- Want to approve drafts where your judgment matters before agents continue.
+- Want later tasks to reuse project context and your preferences and decisions.
+- Want independent tasks to run in parallel and follow-up suggestions after
+  delivery.
 
 **Choose Multica if you**
 
@@ -92,9 +95,10 @@ Preferences and decisions are kept per task, so you never repeat them.
 
 ### Bottom line
 
-Choose AI4Kanban to **start with specialist agents, approve key drafts before
-execution, and keep your decisions remembered**. Choose Multica only if you
-**specifically need its multi-user workspace or execution management**.
+Choose AI4Kanban to **move your product and marketing forward with ready-to-use
+workflows**, reviewing key drafts first and carrying preferences into later
+tasks. Choose Multica only if you **specifically need its multi-user workspace
+or execution management**.
 
 ---
 

@@ -4,19 +4,19 @@ import type { VsTaskMasterCopy } from "./types";
 
 const es: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster: menos guía y menos retrabajo con agentes de IA",
+    title: "AI4Kanban vs. Taskmaster: revisa borradores, rehace menos",
     socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "AI4Kanban añade flujos especializados, aprobación de borradores y memoria de preferencias a la gestión de tareas. Descubre cómo reduce el retrabajo frente a Taskmaster.",
-    social: "AI4Kanban desglosa y gestiona tareas, te deja aprobar borradores de UI, prompts o textos antes de ejecutarlos y reutiliza tus preferencias y decisiones en el trabajo futuro. Taskmaster no incluye aprobación de borradores ni memoria de preferencias.",
+    description: "Compara AI4Kanban y Taskmaster en flujos especializados, revisión de borradores, memoria de preferencias y el paso de la planificación a la ejecución.",
+    social: "Compara AI4Kanban y Taskmaster en flujos especializados, revisión de borradores, memoria de preferencias y el paso de la planificación a la ejecución.",
   },
   hero: {
     badge: "Comparativa",
     title: "AI4Kanban vs.\nTaskmaster",
-    lead: "Los flujos especializados, la aprobación de borradores y la memoria de preferencias incluidos te ayudan a guiar a los agentes con menos esfuerzo y a reducir el retrabajo.",
+    lead: "Compara AI4Kanban y Taskmaster en flujos especializados, revisión de borradores, memoria de preferencias y el paso de la planificación a la ejecución.",
     sharedLabel: "Ambos ofrecen",
     setup: {
       heading: "Agentes y flujos especializados, listos para usar",
-      ours: "Los agentes y flujos incluidos cubren desarrollo de software, blogs, carruseles para redes sociales, presentaciones y vídeos de producto. También puedes crear tus propios agentes y flujos.",
+      ours: "Los agentes especializados y los flujos integrados cubren el desarrollo del producto y el contenido de marketing. Usa el flujo adecuado para cada tarea sin diseñar el equipo desde cero. También puedes crear agentes y flujos personalizados.",
       theirs: "Centrado en tareas de programación. No incluye agentes ni flujos especializados para diseño de UI, redacción o producción de contenido.",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const es: VsTaskMasterCopy = {
     },
     drafts: {
       heading: "Revisa los borradores clave antes de implementar",
-      ours: "Elige la UI, los prompts, los textos u otras partes clave que quieras revisar. Los agentes preparan borradores que puedes previsualizar y editar, y luego trabajan a partir de lo que apruebas.",
+      ours: "Las partes que necesitan tu criterio tienen un borrador primero. Revísalo y edítalo en la tarjeta; los agentes continúan desde la versión aprobada y resuelven los detalles dentro del alcance acordado. Corregir lo esencial aquí reduce lo que hay que rehacer después.",
       theirs: "Puedes revisar descripciones de tareas, detalles de implementación y estrategias de prueba. No hay un flujo integrado para previsualizar y aprobar borradores de los resultados clave antes de ejecutar.",
       art: {
         ours: [
@@ -76,7 +76,7 @@ const es: VsTaskMasterCopy = {
     },
     memory: {
       heading: "Lleva tus preferencias a la siguiente tarea",
-      ours: "Los diseñadores recuerdan tus preferencias de diseño; los redactores, tus elecciones de redacción. Los agentes también pueden compartir el contexto del proyecto.",
+      ours: "Cada agente recuerda las preferencias y decisiones relevantes para su trabajo y puede compartir el contexto del proyecto con otros agentes. Las tareas posteriores parten de lo ya acordado para que tengas que repetir menos explicaciones.",
       theirs: "Guarda reglas y notas de tareas. No tiene un sistema de memoria que aprenda automáticamente preferencias de tus ediciones y rechazos para tareas futuras.",
       art: {
         ours: {
@@ -197,16 +197,16 @@ const es: VsTaskMasterCopy = {
     oursHeading: "Elige AI4Kanban si",
     theirsHeading: "Elige Taskmaster si",
     ours: [
-      "Quieres agentes y flujos especializados incluidos, o crear los tuyos.",
-      "Quieres aprobar borradores clave de UI, prompts o textos antes de la ejecución completa.",
-      "Quieres que las tareas futuras reutilicen tus preferencias y sugieran trabajo de seguimiento útil.",
+      "Quieres agentes y flujos listos para código, blogs y vídeos.",
+      "Quieres ajustar los detalles clave en un borrador antes de terminar el trabajo.",
+      "Quieres reutilizar tus preferencias para reducir las correcciones en tareas futuras.",
     ],
     theirs: [
       "Quieres gestionar tareas por MCP desde tu editor o agente de programación actual.",
       "Quieres un comando de investigación dedicado, con contexto de tareas y un modelo de investigación aparte.",
       "Quieres un flujo integrado que guíe la programación por pruebas que fallan, pruebas que pasan y commits.",
     ],
-    verdict: "Elige AI4Kanban por **los flujos especializados, la aprobación de borradores y la memoria de preferencias**; elige Taskmaster por **la integración MCP, un comando de investigación dedicado y un flujo de programación test-first incluido**.",
+    verdict: "Elige AI4Kanban para **usar flujos especializados listos y revisar borradores clave para rehacer menos**; elige Taskmaster por **la integración MCP, un comando de investigación dedicado y un flujo de programación test-first incluido**.",
     note: "Esta página compara la versión de código abierto de Taskmaster. Hamster es un producto alojado del mismo equipo; sus funciones de equipo quedan fuera de esta comparativa.",
   },
 };

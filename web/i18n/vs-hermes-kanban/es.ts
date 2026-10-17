@@ -4,19 +4,19 @@ import type { VsHermesCopy } from "./types";
 
 const es: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Agent Kanban: revisa las partes clave antes de que los agentes construyan",
+    title: "AI4Kanban vs. Hermes Kanban: borradores antes de ejecutar",
     socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "¿Ya usas Claude Code o Codex y quieres ver la UI, el prompt o los textos antes de que los agentes los construyan? AI4Kanban encaja. ¿Ya usas Hermes Agent y quieres gestionar tareas desde Telegram o Slack? Hermes Kanban encaja. Descubre en qué destaca cada uno, fila por fila.",
-    social: "Hermes Kanban pone a trabajar a tus agentes de Hermes y te deja dirigirlos desde apps de chat. AI4Kanban pone a trabajar a Claude Code o Codex y te enseña antes los borradores de las partes clave. ¿Cuál encaja con tu forma de trabajar?",
+    description: "Compara AI4Kanban y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
+    social: "Compara AI4Kanban y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
   },
   hero: {
     badge: "Comparativa",
     title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Los flujos especializados incluidos y la aprobación de borradores ponen tu criterio antes de la construcción, así corriges menos después.",
+    lead: "Compara AI4Kanban y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
     sharedLabel: "Ambos ofrecen",
     setup: {
       heading: "Agentes y flujos especializados, listos para usar",
-      ours: "Los agentes y flujos incluidos cubren desarrollo de software, blogs, carruseles para redes sociales, presentaciones y vídeos de producto. También puedes crear los tuyos.",
+      ours: "Los agentes especializados y los flujos integrados cubren el desarrollo del producto y el contenido de marketing. Usa el flujo adecuado para cada tarea sin diseñar el equipo desde cero. También puedes crear agentes y flujos personalizados.",
       theirs: "Los workers son perfiles de Hermes que configuras con un modelo y skills. No incluye flujos especializados para diseño de UI, redacción o producción de contenido.",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const es: VsHermesCopy = {
     },
     drafts: {
       heading: "Revisa los borradores clave antes de implementar",
-      ours: "Elige la UI, los prompts, los textos u otras partes clave que quieras revisar. Los agentes preparan borradores que puedes previsualizar y editar, y luego trabajan a partir de lo que apruebas.",
+      ours: "Las partes que necesitan tu criterio tienen un borrador primero. Revísalo y edítalo en la tarjeta; los agentes continúan desde la versión aprobada y resuelven los detalles dentro del alcance acordado. Corregir lo esencial aquí reduce lo que hay que rehacer después.",
       theirs: "Las tareas parten de una especificación en texto. Su documentación no describe una previsualización ni una aprobación de borradores clave antes de ejecutar.",
       art: {
         ours: [
@@ -89,9 +89,9 @@ const es: VsHermesCopy = {
       ],
     },
     questions: {
-      heading: "Define primero los requisitos y deja de vigilar",
-      verdict: "Vigilar menos no significa menos calidad: los borradores, las preguntas y los resúmenes de puntos clave mantienen el resultado en el rumbo.",
-      ours: "No empieza a ciegas. Primero hace las preguntas que importan y fija lo que debe cumplir la entrega, y después construye. Tú apruebas los puntos clave y dejas los detalles a los agentes, así no tienes que vigilar cada ejecución y puedes entregar más trabajo en un día.",
+      heading: "Define los requisitos y deja que los agentes ejecuten",
+      verdict: "Aprueba los borradores clave para reducir correcciones y comprueba la entrega según los requisitos acordados.",
+      ours: "Planifica con los agentes y define los requisitos y borradores clave que necesitan tu decisión. Después, los agentes resuelven los detalles de ejecución y las tareas independientes pueden avanzar en paralelo. Vuelves para tomar decisiones y comprobar las entregas, sin vigilar cada sesión mientras se ejecuta.",
       theirs: "Planificación ligera, ejecución rápida: el trabajo empieza en cuanto se desglosa, el listón se ajusta sobre la marcha y las correcciones se hacen en el worktree. Es una forma válida de trabajar, pero depende de que vayas revisando mientras se ejecuta, lo que limita cuánto trabajo puedes entregar en un día.",
       art: {
         ours: [
@@ -216,16 +216,16 @@ const es: VsHermesCopy = {
     oursHeading: "Elige AI4Kanban si",
     theirsHeading: "Elige Hermes Kanban si",
     ours: [
-      "Quieres agentes y flujos especializados incluidos, o crear los tuyos.",
-      "Quieres aprobar borradores clave de UI, prompts o textos antes de la ejecución completa.",
-      "Quieres que los agentes sugieran trabajo de seguimiento después de cada entrega.",
+      "Quieres agentes y flujos listos para código, blogs y vídeos.",
+      "Quieres ajustar los detalles clave en un borrador antes de terminar el trabajo.",
+      "Quieres reutilizar tus preferencias para reducir las correcciones en tareas futuras.",
     ],
     theirs: [
       "Ya usas Hermes Agent y quieres el tablero dentro de él.",
       "Quieres gestionar tareas desde Telegram, Slack, Discord u otras apps de chat.",
       "Quieres recuperación automática de tareas atascadas y una API sobre la que construir.",
     ],
-    verdict: "Elige AI4Kanban por **los flujos especializados, la aprobación de borradores antes de construir y las sugerencias de trabajo de seguimiento**; elige Hermes Kanban por **el control desde apps de chat, la recuperación automática y una API**.",
+    verdict: "Elige AI4Kanban para **usar flujos especializados listos y revisar borradores clave para rehacer menos**; elige Hermes Kanban por **el control desde apps de chat, la recuperación automática y una API**.",
     note: "Comparado con la documentación de Hermes Agent v0.21.6, revisada en octubre de 2026.",
   },
 };

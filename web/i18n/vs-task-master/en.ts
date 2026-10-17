@@ -4,19 +4,19 @@ import type { VsTaskMasterCopy } from "./types";
 
 const en: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster: less guidance and rework with AI agents",
+    title: "AI4Kanban vs. Taskmaster: review drafts, reduce rework",
     socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "AI4Kanban adds specialist workflows, draft approval and preference memory to task management. See how it reduces rework compared with Taskmaster.",
-    social: "AI4Kanban breaks down and manages tasks, lets you approve UI, prompt or copy drafts before execution, and reuses your preferences and decisions in future work. Taskmaster has no built-in draft approval or preference memory.",
+    description: "Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
+    social: "Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nTaskmaster",
-    lead: "Built-in specialist workflows, draft approval and preference memory help you guide agents with less effort and reduce rework.",
+    lead: "Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
     sharedLabel: "Both support",
     setup: {
       heading: "Specialist agents and workflows, ready to use",
-      ours: "Built-in agents and workflows cover software development, blogs, social carousels, slide decks and product videos. You can also create custom agents and workflows.",
+      ours: "Built-in specialist agents and workflows cover product development and marketing content. Start with the workflow for your task instead of designing the team yourself. You can also create custom agents and workflows.",
       theirs: "Focused on coding tasks. No built-in specialist agents or workflows for UI design, copywriting or content production.",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const en: VsTaskMasterCopy = {
     },
     drafts: {
       heading: "Review key drafts before implementation",
-      ours: "Choose the UI, prompts, copy or other key parts you want to review. Agents prepare drafts you can preview and edit, then build from what you approve.",
+      ours: "Parts that need your judgment get a draft first. Review and edit it on the card; agents build from the approved version and handle the remaining details within the agreed scope. Catch changes here to reduce rework later.",
       theirs: "You can review task descriptions, implementation details and test strategies. There is no built-in preview and approval workflow for key output drafts before execution.",
       art: {
         ours: [
@@ -76,7 +76,7 @@ const en: VsTaskMasterCopy = {
     },
     memory: {
       heading: "Carry your preferences into the next task",
-      ours: "Designers remember your design preferences; copywriters remember your wording choices. Agents can also share project context.",
+      ours: "Each agent remembers preferences and decisions relevant to its work and can share project context with other agents. Later tasks build on what you have already agreed, so you spend less time explaining the same background.",
       theirs: "It stores rules and task notes. It has no memory system that automatically learns preferences from user edits and rejections for future tasks.",
       art: {
         ours: {
@@ -197,16 +197,16 @@ const en: VsTaskMasterCopy = {
     oursHeading: "Choose AI4Kanban if you",
     theirsHeading: "Choose Taskmaster if you",
     ours: [
-      "Want built-in specialist agents and workflows, or to create your own.",
-      "Want to approve key UI, prompt or copy drafts before full execution.",
-      "Want future tasks to reuse your preferences and suggest useful follow-up work.",
+      "Want ready-to-use specialist agents and workflows for coding, blogs and videos.",
+      "Want to change key details in a draft before agents complete the work.",
+      "Want agents to reuse your preferences so later tasks need fewer corrections.",
     ],
     theirs: [
       "Want to manage tasks through MCP in your existing editor or coding agent.",
       "Want a dedicated research command with task context and a separate research model.",
       "Want a built-in workflow that guides coding through failing tests, passing tests and commits.",
     ],
-    verdict: "Choose AI4Kanban for **specialist workflows, draft approval and preference memory**; choose Taskmaster for **MCP integration, a dedicated research command and a built-in test-first coding workflow**.",
+    verdict: "Choose AI4Kanban for **ready-to-use specialist workflows and key drafts that reduce rework**; choose Taskmaster for **MCP integration, a dedicated research command and a built-in test-first coding workflow**.",
     note: "This page compares open-source Taskmaster. Hamster is a hosted product from the same team; its team features are outside this comparison.",
   },
 };

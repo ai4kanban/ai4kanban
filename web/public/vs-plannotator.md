@@ -1,8 +1,7 @@
 # AI4Kanban vs. Plannotator
 
-> Plannotator lets you annotate your coding agent's plans, documents and code.
-> AI4Kanban organizes tasks on a board: built-in specialist agents prepare key
-> drafts for your approval, then run tasks in parallel in the background.
+> Compare AI4Kanban and Plannotator on draft and code review, specialist
+> workflows, parallel tasks and how work continues after approval.
 
 **What both support**
 
@@ -34,31 +33,30 @@ collaboration is moving to Workspaces, still marked as coming soon on the site.
 [Explore Plannotator](https://plannotator.ai)
 · [Plannotator README](https://github.com/backnotprop/plannotator)
 
-## 02 · AI4Kanban: review key drafts, move several tasks forward
+## 02 · AI4Kanban: from key drafts to finished work
 
-AI4Kanban organizes coding agents' work on a task board, with built-in
-specialists for UI design, copywriting and competitor research. You help plan
-the work and approve key drafts, then agents execute in the background. Tasks
-without dependencies can run together.
+Specialist agents prepare the UI, copy or script you need to review. After you
+approve those key parts, the workflow carries the task through. Coding, blog and
+video workflows are built in; independent tasks can run in parallel.
 
 ### Review what you would want to change
 
-Worried about AI taking liberties with a screen, prompt or piece of copy? Parts
-that need your decision get a draft first; agents build from the approved
-draft. Beyond plans and HTML, preview images, diagrams and storyboards. Agents
-handle the remaining details directly.
+Parts that need your judgment get a draft first. Review and edit it on the card;
+agents build from the approved version and handle the remaining details within
+the agreed scope. Catch changes here to reduce rework later.
 
 ### Move several tasks forward together
 
-The board keeps tasks, dependencies and progress together. Once requirements
-are settled, independent tasks run in parallel. Read logs and code diffs from
-each card without watching every session during execution.
+Keep development and marketing tasks on one board, with drafts, decisions and
+progress on each card. Once requirements are settled, independent tasks run in
+parallel; dependent tasks follow in order.
 
 ### Explain less next time
 
-Each agent uses memory designed for its job to learn your preferences and
-decisions. Agents can share that memory. After a main piece of work is
-finished, they propose follow-ups to help fill gaps and catch omissions.
+Each agent remembers preferences and decisions relevant to its work and can
+share project context with other agents. Later tasks build on what you have
+already agreed. After a main piece of work is complete, agents suggest
+follow-ups for you to accept, revise or reject.
 
 You can also create custom agents and workflows.
 
@@ -94,9 +92,10 @@ later tasks.
 agent you already use, checking each revision. You also need PR review or shared
 annotations.
 
-**Choose AI4Kanban**: You want to move several tasks forward: approve key UI and
-copy drafts, let agents execute, and carry your preferences and decisions into
-later tasks.
+**Choose AI4Kanban**: Review key drafts on the task card, then let agents finish
+the work. Built-in workflows cover coding and marketing, with independent tasks
+moving in parallel. Agents reuse your preferences on later tasks, so you spend
+less time repeating corrections.
 
 ---
 

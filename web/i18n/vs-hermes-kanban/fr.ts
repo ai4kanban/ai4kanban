@@ -4,19 +4,19 @@ import type { VsHermesCopy } from "./types";
 
 const fr: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Agent Kanban : relisez les parties clés avant que les agents construisent",
+    title: "AI4Kanban vs. Hermes Kanban : valider avant de produire",
     socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "Vous utilisez déjà Claude Code ou Codex et voulez voir l’UI, le prompt ou les textes avant que les agents les construisent ? AI4Kanban vous convient. Vous utilisez déjà Hermes Agent et voulez gérer vos tâches depuis Telegram ou Slack ? Hermes Kanban vous convient. Voyez où chacun est le plus fort, ligne par ligne.",
-    social: "Hermes Kanban met vos agents Hermes au travail et vous laisse les piloter depuis vos applications de chat. AI4Kanban met Claude Code ou Codex au travail et vous montre d’abord les brouillons des parties clés. Lequel correspond à votre façon de travailler ?",
+    description: "Comparez AI4Kanban et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
+    social: "Comparez AI4Kanban et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
   },
   hero: {
     badge: "Comparatif",
     title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Workflows spécialisés intégrés et approbation des brouillons : votre jugement intervient avant la construction, et vous corrigez moins après.",
+    lead: "Comparez AI4Kanban et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
     sharedLabel: "Les deux proposent",
     setup: {
       heading: "Des agents et workflows spécialisés, prêts à l’emploi",
-      ours: "Les agents et workflows intégrés couvrent le développement logiciel, les blogs, les carrousels pour réseaux sociaux, les présentations et les vidéos produit. Vous pouvez aussi créer les vôtres.",
+      ours: "Les agents spécialisés et les workflows intégrés couvrent le développement du produit et le contenu marketing. Utilisez le workflow adapté à la tâche sans concevoir vous-même l’équipe. Vous pouvez aussi créer vos propres agents et workflows.",
       theirs: "Les workers sont des profils Hermes que vous configurez avec un modèle et des skills. Aucun workflow spécialisé intégré pour le design d’UI, la rédaction ou la production de contenu.",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const fr: VsHermesCopy = {
     },
     drafts: {
       heading: "Relire les brouillons clés avant l’implémentation",
-      ours: "Choisissez l’UI, les prompts, les textes ou les autres parties clés à relire. Les agents préparent des brouillons à prévisualiser et modifier, puis s’appuient sur ce que vous approuvez.",
+      ours: "Les parties qui demandent votre jugement font d’abord l’objet d’un brouillon. Relisez-le et modifiez-le sur la carte ; les agents poursuivent à partir de la version validée et règlent les détails dans le périmètre convenu. Corriger les points clés à ce stade limite les reprises ultérieures.",
       theirs: "Les tâches partent d’une spécification texte. Sa documentation ne décrit ni prévisualisation ni approbation des brouillons clés avant l’exécution.",
       art: {
         ours: [
@@ -89,9 +89,9 @@ const fr: VsHermesCopy = {
       ],
     },
     questions: {
-      heading: "Fixez d’abord les exigences, puis cessez de surveiller",
-      verdict: "Surveiller moins ne veut pas dire moins de qualité : brouillons, questions et synthèses des points clés gardent le résultat sur la bonne voie.",
-      ours: "Il ne démarre pas à l’aveugle. Il pose d’abord les questions qui comptent et fixe ce que la livraison doit respecter, puis il construit. Vous approuvez les points clés et laissez les détails aux agents : inutile de surveiller chaque exécution, et vous livrez plus de travail dans la journée.",
+      heading: "Définissez les exigences, puis laissez les agents exécuter",
+      verdict: "Validez les brouillons clés pour limiter les reprises, puis vérifiez la livraison selon les exigences convenues.",
+      ours: "Planifiez avec les agents et définissez les exigences et brouillons clés qui demandent votre décision. Les agents règlent ensuite les détails d’exécution ; les tâches indépendantes peuvent avancer en parallèle. Vous revenez pour les décisions et la vérification des livraisons sans surveiller chaque session pendant l’exécution.",
       theirs: "Planification légère, exécution rapide : le travail démarre dès qu’il est découpé, le niveau d’exigence s’ajuste en cours de route et les corrections se font dans le worktree. C’est une façon de travailler valable, mais elle suppose que vous suiviez l’exécution, ce qui limite la quantité de travail livrée dans la journée.",
       art: {
         ours: [
@@ -216,16 +216,16 @@ const fr: VsHermesCopy = {
     oursHeading: "Choisissez AI4Kanban si vous",
     theirsHeading: "Choisissez Hermes Kanban si vous",
     ours: [
-      "Voulez des agents et workflows spécialisés intégrés, ou créer les vôtres.",
-      "Voulez approuver les brouillons clés d’UI, de prompts ou de textes avant l’exécution complète.",
-      "Voulez que les agents suggèrent du travail de suivi après chaque livraison.",
+      "Voulez des agents et workflows prêts pour le code, les articles et les vidéos.",
+      "Voulez corriger les détails clés sur un brouillon avant la réalisation.",
+      "Voulez réutiliser vos préférences pour limiter les corrections des tâches suivantes.",
     ],
     theirs: [
       "Utilisez déjà Hermes Agent et voulez le tableau à l’intérieur.",
       "Voulez gérer vos tâches depuis Telegram, Slack, Discord ou d’autres applications de chat.",
       "Voulez une reprise automatique des tâches bloquées et une API sur laquelle construire.",
     ],
-    verdict: "Choisissez AI4Kanban pour **les workflows spécialisés, l’approbation des brouillons avant la construction et les suggestions de travail de suivi** ; choisissez Hermes Kanban pour **le pilotage depuis les applications de chat, la reprise automatique et une API**.",
+    verdict: "Choisissez AI4Kanban pour **des workflows spécialisés prêts à utiliser et des brouillons clés qui limitent les reprises** ; choisissez Hermes Kanban pour **le pilotage depuis les applications de chat, la reprise automatique et une API**.",
     note: "Comparaison établie d’après la documentation de Hermes Agent v0.21.6, vérifiée en octobre 2026.",
   },
 };

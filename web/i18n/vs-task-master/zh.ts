@@ -4,19 +4,19 @@ import type { VsTaskMasterCopy } from "./types";
 
 const zh: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster：如何减少指导 AI 和返工的精力？",
+    title: "AI4Kanban vs. Taskmaster：先审草稿，减少返工",
     socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "相比 Taskmaster，AI4Kanban 在任务管理之外，还内置专业工作流、关键草稿审批和偏好记忆，帮你提前确认方向，减少返工和重复解释。",
-    social: "AI4Kanban 能拆分和管理任务，还能让你先审阅 UI、Prompt 或文案草稿，再执行，并让后续任务复用你的偏好和决策。Taskmaster 没有内置这套草稿审批和偏好记忆。",
+    description: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
+    social: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs.\nTaskmaster",
-    lead: "内置专业工作流、草稿审批和偏好记忆，减少指导智能体的精力和返工。",
+    lead: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
     sharedLabel: "两者都支持",
     setup: {
       heading: "专业智能体和工作流，开箱即用",
-      ours: "内置智能体和工作流覆盖软件开发、博客、社交轮播、演示文稿和产品视频；你也可以创建自定义智能体和工作流。",
+      ours: "内置专业 agent 和工作流覆盖产品开发与营销内容。按任务使用对应工作流，不用自己设计团队分工。你也可以创建自定义 agent 和工作流。",
       theirs: "围绕编码任务推进；没有内置 UI 设计、文案或内容制作的专业智能体及配套工作流。",
       art: {
         ours: [
@@ -53,7 +53,7 @@ const zh: VsTaskMasterCopy = {
     },
     drafts: {
       heading: "关键草稿，先审阅再实现",
-      ours: "选择你要审阅的 UI、Prompt、文案等关键部分；智能体先准备可预览、可修改的草稿，再按你确认的内容执行。",
+      ours: "需要你判断的部分先出草稿。你在卡片上审阅、修改，agent 按确认的版本继续，在约定范围内完成其余细节。关键部分提前改好，减少后续返工。",
       theirs: "能审阅任务描述、实现细节和测试策略；没有关键成果草稿的内置预览与执行前审批流程。",
       art: {
         ours: [
@@ -76,7 +76,7 @@ const zh: VsTaskMasterCopy = {
     },
     memory: {
       heading: "让后续任务复用你的偏好",
-      ours: "设计智能体记住你的设计偏好，文案智能体记住你的用词选择；智能体之间也能共享项目背景。",
+      ours: "每个 agent 记住与自身工作相关的偏好和决策，也能与其他 agent 共享项目背景。后续任务从已有共识继续，减少重复解释。",
       theirs: "能保存规则和任务笔记；没有从用户修改和否决中自动积累偏好、供后续任务复用的记忆系统。",
       art: {
         ours: {
@@ -197,16 +197,16 @@ const zh: VsTaskMasterCopy = {
     oursHeading: "选择 AI4Kanban，如果你",
     theirsHeading: "选择 Taskmaster，如果你",
     ours: [
-      "希望直接使用专业智能体和工作流，也能创建自己的。",
-      "希望在完整执行前确认 UI、Prompt 或文案等关键草稿。",
-      "希望后续任务复用偏好，并收到值得考虑的跟进建议。",
+      "希望直接使用开发、博客、视频的专业 agent 和工作流。",
+      "希望在草稿里改好关键部分，再让 agent 完成后续工作。",
+      "希望 agent 沿用已明确的偏好，减少后续任务的重复修改。",
     ],
     theirs: [
       "希望通过 MCP 在现有编辑器或编码智能体中管理任务。",
       "希望用独立调研命令，带入任务背景并单独配置调研模型。",
       "希望用内置流程引导编码：先写失败测试，再实现到通过，最后提交。",
     ],
-    verdict: "需要**专业工作流、草稿审批和偏好记忆**，选 AI4Kanban；需要 **MCP 接入、独立调研命令和内置测试先行编码流程**，选 Taskmaster。",
+    verdict: "希望**直接使用专业工作流，先审关键草稿以减少返工**，选 AI4Kanban；需要 **MCP 接入、独立调研命令和内置测试先行编码流程**，选 Taskmaster。",
     note: "本页比较开源 Taskmaster。Hamster 是同团队的托管产品，其团队功能不计入本页对比。",
   },
 };

@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const zh: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca：细节放权，主导权仍在你手中",
+    title: "AI4Kanban vs. Orca：先审草稿，执行细节交给 agent",
     socialTitle: "AI4Kanban vs. Orca",
     description:
-      "已经在并行运行编码智能体？了解 Orca 与 AI4Kanban 的区别：自己掌握执行细节，或让智能体主导细节、由你把握方向。",
+      "对比 AI4Kanban 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
     social:
-      "Orca 在编码智能体上增加一层较薄的功能；AI4Kanban 提供现成的团队，让智能体主导执行细节，由你掌握方向和关键决定。",
+      "对比 AI4Kanban 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
   },
   hero: {
     badge: "对比",
     title: "AI4Kanban vs. Orca",
-    lead: "已经在并行运行多个编码智能体？Orca 把这些会话集中到一个工作区；AI4Kanban 更进一步，让智能体主导执行细节，由你定方向、做关键决定。",
+    lead: "对比 AI4Kanban 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
   },
   both: {
     title: "两者都支持",
@@ -55,16 +55,16 @@ const zh: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban：你定方向，细节交给智能体",
-    lead: "AI4Kanban 面向愿意让智能体主导执行细节、自己掌握大方向和关键决定的用户。专业智能体、工作流和记忆开箱即用，不用自己设计智能体角色和分工，也不用反复调 Prompt。你参与规划讨论、审阅关键草稿；智能体补全细节并推进执行。",
+    title: "AI4Kanban：先审草稿，执行细节交给 agent",
+    lead: "专业 agent 把需要你审阅的界面、文案或脚本做成草稿。关键部分确认后，由对应工作流完成后续任务。开发、博客、视频都有内置工作流，独立任务可并行推进。",
     drafts: {
       title: "关键部分先看草稿，再批准执行",
-      body: "担心 AI 在 UI、Prompt 或文案上自由发挥？先看草稿，再批准执行。草稿可以是图片、图表、HTML/TSX、diff 或 storyboard。草稿审阅在动手实现之前，用来确认方向；交付后的代码审阅照常进行。",
+      body: "需要你判断的部分先出草稿。你在卡片上审阅、修改，agent 按确认的版本继续，在约定范围内完成其余细节。关键部分提前改好，减少后续返工。",
       art: ["草稿", "批准", "执行"],
     },
     memory: {
       title: "把决定带到下一项工作",
-      body: "每个智能体都有针对自身场景设计的记忆配方，学习你对这类任务的偏好和决策，智能体之间也能共享记忆。完成一项主线工作后，智能体会提出跟进项，帮你补缺补漏。",
+      body: "每个 agent 记住与自身工作相关的偏好和决策，也能与其他 agent 共享项目背景，让后续任务从已有共识继续。完成一项主线工作后，agent 自主提出跟进项，由你接受、修改或拒绝。",
       art: {
         agents: ["UI 设计", "文案"],
         shared: "共享 · 项目背景",
@@ -86,9 +86,13 @@ const zh: VsOrcaCopy = {
     },
     ours: {
       name: "选 AI4Kanban",
-      points: ["定方向、做关键决定", "审阅重要草稿", "让智能体主导执行细节"],
+      points: [
+        "直接使用开发、博客、视频的专业 agent 和工作流",
+        "在草稿里改好关键部分，再让 agent 完成后续工作",
+        "agent 沿用已明确的偏好，减少后续任务的重复修改",
+      ],
       goalLabel: "目标",
-      goal: "在并行编码的基础上，效率再提升 10 倍",
+      goal: "开发与营销一起推进，减少返工",
     },
   },
   start: {
