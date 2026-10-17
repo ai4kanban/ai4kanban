@@ -275,7 +275,7 @@ export interface BoardRules {
    *  load, and rules that predate it answer with nothing, which spells the names instead. */
   agentTitles?(): Record<string, string>;
   setAgentRule?(agent: string, text: string): Promise<WriteResult>;
-  createAgent?(name: string, stage?: AgentSlot): Promise<WriteResult & { agent?: string }>;
+  createAgent?(name: string, stage?: AgentSlot, opts?: { title?: string }): Promise<WriteResult & { agent?: string }>;
   saveAgentFile?(name: string, text: string): Promise<WriteResult>;
   deleteAgent?(name: string): Promise<WriteResult & { removed?: string[] }>;
 

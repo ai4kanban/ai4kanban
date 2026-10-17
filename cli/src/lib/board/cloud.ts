@@ -815,7 +815,7 @@ function cloudBoard(ctx: Context): BoardProvider {
 
     readAgents: () => local.readAgents(),
     saveAgentRule: (agent, text, env) => through({ board: true }, env, (e) => local.saveAgentRule(agent, text, e)),
-    createAgent: (name, stage, env) => through({ board: true }, env, (e) => local.createAgent(name, stage, e)),
+    createAgent: (name, stage, env, title) => through({ board: true }, env, (e) => local.createAgent(name, stage, e, title)),
     saveAgentFile: (name, text, env) => through({ board: true }, env, (e) => local.saveAgentFile(name, text, e)),
     deleteAgent: (name, env) => through({ board: true }, env, (e) => local.deleteAgent(name, e)),
     readGlobalMemories: () => local.readGlobalMemories(),

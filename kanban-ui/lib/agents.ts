@@ -90,10 +90,11 @@ export async function setAgentRule(agent: string, text: string): Promise<WriteRe
 export async function createAgent(
   name: string,
   stage?: AgentSlot,
+  title?: string,
 ): Promise<WriteResult & { agent?: string }> {
   const rules = await boardRules();
   if (!rules.createAgent) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
-  return await rules.createAgent(name, stage);
+  return await rules.createAgent(name, stage, title ? { title } : undefined);
 }
 
 /** Replace one project agent's `AGENT.md`, whole. The board reads the text the way its

@@ -33,7 +33,7 @@ import {
   countTodos,
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
-import { workflowFor } from '../agent/workflows'
+import { finishedInPlanning, workflowFor } from '../agent/workflows'
 import { readMemoryOwners } from './memory'
 import type {
   ArchiveGroup,
@@ -63,8 +63,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   const { meta, body } = parseFrontmatter(text)
   if (!meta) return null
   const relPath = relFromTodo.split(path.sep).join('/')
-  const flow = meta.workflow ? workflowFor(meta.workflow) : undefined
-  const plan = flow?.delivers === 'plan'
+  const plan = !!meta.workflow && finishedInPlanning(workflowFor(meta.workflow))
   return {
     id,
     // Derived from the file exactly as it is on disk (lib/board/revision.ts), so a card

@@ -1373,13 +1373,15 @@ export async function setAgentRuleAction(agent: string, text: string): Promise<W
 export async function createAgentAction(
   name: string,
   stage?: AgentSlot,
+  title?: string,
 ): Promise<WriteResult & { agent?: string }> {
   if (typeof name !== "string") return { ok: false, error: "an agent is created by name" };
+  if (title !== undefined && typeof title !== "string") return { ok: false, error: "an agent's title is text" };
   if (stage !== undefined && stage !== "schedule" && !WORKFLOW_STAGES.includes(stage)) {
     return { ok: false, error: "an agent is created on a stage, or as a scheduled one" };
   }
   try {
-    return await createAgent(name, stage);
+    return await createAgent(name, stage, title);
   } catch (e) {
     return { ok: false, ...(await saidThrown(e)) };
   }

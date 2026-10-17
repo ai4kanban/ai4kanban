@@ -55,8 +55,9 @@ describe("a project's own agents", () => {
 
     assert.equal(switchWorkflowAgent('coding', 'plan', 'outliner', false).ok, true)
     assert.deepEqual(customAgentsOn(), ['checker'])
-    // Nothing runs after a build (#1507).
-    assert.equal(createAgent('after', 'execute').ok, false)
+    // Made for execute it is a lead, so off until a workflow takes it (#1772).
+    assert.equal(createAgent('builder-2', 'execute').ok, true)
+    assert.deepEqual(customAgentsOn(), ['checker'])
   })
 
   it("tells a project's agent from one the board ships", () => {

@@ -80,6 +80,7 @@ const en: ConfigurationCopy = {
     about: (name) => `About ${name}`,
     stages: { plan: "Plan", execute: "Execute" },
     pickLead: "Select agent",
+    setLead: "Set agent",
     leadUndeclared: "This agent isn't declared as a lead.",
     notReady: "Unavailable",
     notReadyHint: "This stage cannot start yet",

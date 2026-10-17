@@ -355,8 +355,9 @@ export function useAgentRoster(onError?: (msg: string) => void) {
   const create = async (
     name: string,
     stage?: AgentSlot,
+    title?: string,
   ): Promise<{ agent?: string; error?: string }> => {
-    const res = await createAgentAction(name, stage);
+    const res = await createAgentAction(name, stage, title);
     if (!res.ok) return { error: sayFailure(res, c.saveFailed(name))};
     await load();
     return { agent: res.agent ?? name };

@@ -870,6 +870,11 @@ export function workflowFor(id: string | undefined): Workflow | undefined {
   return (wanted ? workflowById(wanted) : undefined) ?? workflowById(DEFAULT_WORKFLOW)
 }
 
+/** Whether a card on this workflow is finished in planning and archived rather than built
+ *  (#1057): it delivers in planning and nobody leads its execute stage (#1772). */
+export const finishedInPlanning = (flow: Workflow | undefined): boolean =>
+  flow?.delivers === 'plan' && !flow.stages.execute.lead
+
 /** The project agents one of the board's own workflows owns — what deleting it deletes
  *  (#1248). Never a role, a bundled agent, or one another workflow owns. */
 export function workflowOwnAgents(id: string): string[] {
@@ -906,7 +911,7 @@ export function workflowIssues(id: string): RunRefusal[] {
   for (const stage of WORKFLOW_STAGES) {
     const { lead } = flow.stages[stage]
     // Planning hands over the work, so nothing is built (#1057).
-    if (stage === 'execute' && flow.delivers === 'plan' && !lead) continue
+    if (stage === 'execute' && finishedInPlanning(flow)) continue
     const name = flow.name
     if (!lead) {
       problems.push(

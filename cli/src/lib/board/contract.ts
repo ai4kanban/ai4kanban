@@ -206,7 +206,7 @@ export interface BoardProvider {
   saveAgentRule(agent: string, text: string, env: OpEnvelope): Promise<OpResult>
   /** Write a new specialist from the board's template. The name is checked against the
    *  roster and the folders on disk first, so a clash is refused rather than created. */
-  createAgent(name: string, stage: AgentSlot | undefined, env: OpEnvelope): Promise<OpResult<{ agent: string }>>
+  createAgent(name: string, stage: AgentSlot | undefined, env: OpEnvelope, title?: string): Promise<OpResult<{ agent: string }>>
   /** Replace one project agent's `AGENT.md`, whole. Read the way the catalog reads an
    *  agent, so a text it would refuse never reaches the file. */
   saveAgentFile(name: string, text: string, env: OpEnvelope): Promise<OpResult>

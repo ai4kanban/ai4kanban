@@ -17,7 +17,7 @@ import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
 import { proAccess, proGate, type ProAccess } from '../cloud/pro'
-import { cardWorkflowId, workflowById, workflowFor, workflowIssues, workflows } from './workflows'
+import { cardWorkflowId, finishedInPlanning, workflowById, workflowFor, workflowIssues, workflows } from './workflows'
 import { cancelDelivery, carriedSession, closeRun, markSpawned, openResume, openRun, peekRun } from './sessions'
 import { runtimeById } from './runtimes'
 import { scheduledBusy, stalePasses } from './scheduled'
@@ -64,7 +64,7 @@ export function workflowRefusal(req: AgentRequest): RunRefusal | null {
   const flow = workflowFor(id)
   if (!flow) return null
   // A workflow that finishes in planning builds nothing (#1057).
-  if (flow.delivers === 'plan' && req.action === 'implement') {
+  if (finishedInPlanning(flow) && req.action === 'implement') {
     return refusal('planDelivered', `#${req.id} is finished during planning, so it is archived rather than built.`, { card: String(req.id) })
   }
   const [problem] = workflowIssues(flow.id)

@@ -158,9 +158,11 @@ export async function setAgentRule(agent: string, text: string, opts?: WriteOpti
 export async function createAgent(
   name: string,
   stage?: AgentSlot,
-  opts?: WriteOptions,
+  opts?: WriteOptions & { title?: string },
 ): Promise<WriteResult & { agent?: string }> {
-  return flat<{ agent: string }>(await envelopeFor({ board: true }, opts, (env) => board().createAgent(name, stage, env)))
+  return flat<{ agent: string }>(
+    await envelopeFor({ board: true }, opts, (env) => board().createAgent(name, stage, env, opts?.title)),
+  )
 }
 
 /** Replace one project agent's `AGENT.md`, whole. A text the catalog would refuse never

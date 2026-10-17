@@ -50,6 +50,8 @@ import { startRun, workflowRefusal } from '../src/lib/agent/start.ts'
 import { agentMemoryDir } from '../src/lib/memory.ts'
 import { RULES, setBoardRoot } from '../src/lib/paths.ts'
 import { patchCard } from '../src/lib/view/edit.ts'
+import { findCard } from '../src/lib/view/read.ts'
+import { canImplement } from '../src/lib/view/rules.ts'
 import type { CardPatch } from '../src/lib/view/types.ts'
 import { move, refuses, run, uiConfigOf } from './helpers/board.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
@@ -1037,5 +1039,46 @@ describe('one workflow per agent (#1095)', () => {
     assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-designer-2', 'notes.md')))
     assert.deepEqual(saved().specAgents['ui-designer-2'], { output: 'human' })
     assert.match(fs.readFileSync(path.join(kanban(), 'agents', 'ui-designer-2', 'AGENT.md'), 'utf8'), /^name: ui-designer-2$/m)
+  })
+})
+
+describe('a workflow finished in planning that adds a build agent (#1772)', () => {
+  const copyCard = async (): Promise<{ copy: string; id: number }> => {
+    const copy = 'wf-2'
+    fs.writeFileSync(
+      uiConfigOf(kanban()),
+      JSON.stringify({
+        workflows: {
+          added: [{ id: copy, name: 'Clone', needsArtifact: true, delivers: 'plan' }],
+          stages: { [copy]: { plan: { lead: 'software-planner' } } },
+        },
+      }),
+    )
+    const card = await move(root, ['create', '--title', 'A clone'])
+    setWorkflow(card.id as number, copy)
+    return { copy, id: card.id as number }
+  }
+
+  it('is archived rather than built while its execute stage is empty', async () => {
+    const { id } = await copyCard()
+    const card = findCard(id)!
+    assert.equal(card.deliversIn, 'plan')
+    assert.equal(canImplement(card), false)
+    assert.equal(workflowRefusal({ action: 'implement', id })!.reason, 'planDelivered')
+    await assert.rejects(() => run(root, ['card', 'implement', String(id), '--print']), /archived rather than built/)
+  })
+
+  it('is built by the execute lead it is given', async () => {
+    const { copy, id } = await copyCard()
+    const made = createAgent(`${copy}-executor`, 'execute', 'Clone executor')
+    assert.equal(made.ok, true)
+    assert.equal(setWorkflowLead(copy, 'execute', made.agent!).ok, true)
+    const execute = workflowViews().find((w) => w.id === copy)!.stages.find((s) => s.stage === 'execute')!
+    assert.equal(execute.candidates.find((a) => a.name === made.agent)?.title, 'Clone executor')
+    const card = findCard(id)!
+    assert.equal(card.deliversIn, undefined)
+    assert.equal(canImplement(card), true)
+    assert.equal(workflowRefusal({ action: 'implement', id }), null)
+    await run(root, ['card', 'implement', String(id), '--print'])
   })
 })

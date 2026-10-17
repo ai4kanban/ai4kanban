@@ -98,11 +98,11 @@ export function customAgentsOn(): string[] {
  *  the pane never creates the clash it would then have to report as a problem.
  *
  *  The agent is created unwritten on purpose: its `description` says so, so a
- *  planning flow reading the roster before the user has filled it in never picks it. */
-export function createAgent(asked: string, stage?: AgentSlot): WriteResult & { agent?: string } {
+ *  planning flow reading the roster before the user has filled it in never picks it.
+ *  Made for `execute` it is that stage's lead (#1772): nothing runs after a build. */
+export function createAgent(asked: string, stage?: AgentSlot, title?: string): WriteResult & { agent?: string } {
   const name = String(asked ?? '').trim().toLowerCase()
   if (!name) return { ok: false, error: 'an agent needs a name' }
-  if (stage === 'execute') return { ok: false, error: 'nothing runs after a build — make it a scheduled agent instead' }
   if (!AGENT_NAME.test(name)) {
     return { ok: false, error: `"${name}" is not a usable agent name — use lower-case words joined by "-"` }
   }
@@ -121,7 +121,7 @@ export function createAgent(asked: string, stage?: AgentSlot): WriteResult & { a
   settleWorkflows()
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
-    fs.writeFileSync(file, agentTemplate(name, stage))
+    fs.writeFileSync(file, agentTemplate(name, stage, title?.trim()))
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
@@ -131,18 +131,20 @@ export function createAgent(asked: string, stage?: AgentSlot): WriteResult & { a
 // The file a new specialist starts as. It parses — so the tile is in the roster rather than
 // in the problems under it — and every line a flow would pick it by says it is unwritten.
 //
-// It starts as a hook on the stage it was made for, or on `plan` when made for none.
+// It starts as a hook on the stage it was made for, or on `plan` when made for none; made for
+// `execute`, as its lead.
 //
 // Every other key is one line pointing at `akb guide write-agent` (#935): the constraints —
 // what a `reference` has to be — belong in the guide, not
 // in a template nobody has read yet.
-function agentTemplate(name: string, stage?: AgentSlot): string {
+function agentTemplate(name: string, stage?: AgentSlot, title?: string): string {
   return [
     '---',
     `name: ${name}`,
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
-    `  hook: ${stage ?? 'plan'}`,
+    stage === 'execute' ? '  lead: execute' : `  hook: ${stage ?? 'plan'}`,
+    ...(title ? ['  i18n:', '    en:', `      title: ${JSON.stringify(title)}`] : []),
     '  # `lead` in place of `hook`, output and i18n: `akb guide write-agent`',
     '---',
     '',

@@ -98,12 +98,14 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
 export const stageBlocked = (setup: WorkflowStageView): boolean =>
   !setup.lead || !setup.candidates.some((a) => a.name === setup.lead);
 
-/** The stages a start of this workflow is refused over (#1227). One finished in planning
- *  needs no execute lead, the same exception the board's own check makes. */
+/** Whether a stage is empty on purpose: a workflow finished in planning needs no execute lead
+ *  (#1057), the same exception the board's own check makes, and may add one (#1772). */
+const leadOptional = (flow: WorkflowView, setup: WorkflowStageView): boolean =>
+  setup.stage === "execute" && flow.delivers === "plan" && !setup.lead;
+
+/** The stages a start of this workflow is refused over (#1227). */
 export const blockedStages = (flow: WorkflowView): WorkflowStage[] =>
-  flow.stages
-    .filter((s) => stageBlocked(s) && !(s.stage === "execute" && flow.delivers === "plan" && !s.lead))
-    .map((s) => s.stage);
+  flow.stages.filter((s) => stageBlocked(s) && !leadOptional(flow, s)).map((s) => s.stage);
 
 /** Whether a stage runs on a lead picked before agents declared whether they may lead (#846).
  *  It still runs; the pane only says so. */
@@ -186,11 +188,14 @@ export function WorkflowsPanel({
   const pro = useCopy().shared.pro;
   const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const proLocked = !!flow?.pro && !!lock;
-  // A workflow finished in planning has no execute stage to show (#1057).
-  const setups = useMemo(() => {
-    const stages: readonly WorkflowStage[] = flow?.delivers === "plan" ? ["plan"] : WORKFLOW_STAGES;
-    return stages.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []);
-  }, [flow]);
+  // A built-in finished in planning has no execute stage to show (#1057); a copy may add one (#1772).
+  const setups = useMemo(
+    () =>
+      WORKFLOW_STAGES.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []).filter(
+        (s) => !(flow?.builtIn && leadOptional(flow, s)),
+      ),
+    [flow],
+  );
   const scheduled = useMemo(() => flow?.scheduled ?? [], [flow]);
   // Every agent the flow has, in the order the column draws them.
   const assigned = useMemo(
@@ -358,6 +363,16 @@ export function WorkflowsPanel({
     return "";
   };
 
+  // An empty execute stage gets a new lead of its own, named after the workflow (#1772).
+  const createExecutor = async () => {
+    if (!flow) return;
+    const made = await roster.create(`${flow.id}-executor`, "execute", `${nameOf(flow)} executor`);
+    if (made.error || !made.agent) return onError?.(made.error ?? c.saveFailed);
+    if (!(await move("execute", { kind: "lead", agent: made.agent }))) return;
+    show(made.agent);
+    roster.setFocusFile(true);
+  };
+
   const agent = roster.agents?.find((a) => a.name === shown);
   const isLead = !timed && !!setup && shown === setup.lead;
   const shownOff = !!setup?.helpers.find((h) => h.agent === shown)?.off;
@@ -451,6 +466,7 @@ export function WorkflowsPanel({
           />
         ));
     const off = one.helpers.filter((h) => h.off).length;
+    const blocked = stageBlocked(one) && !leadOptional(flow, one);
     return (
       <section className="relative min-w-0 shrink-0 rounded-[12px] border border-nb-ink/10 px-1 pb-2.5 pt-5">
         <h4 className="absolute -top-[10px] left-2 flex items-center gap-1.5 bg-nb-paper px-1.5">
@@ -458,7 +474,7 @@ export function WorkflowsPanel({
             <Icon aria-hidden className="text-[11px]" />
           </span>
           <span className="text-[12.5px] font-[500] leading-[20px] text-nb-ink">{c.stages[one.stage]}</span>
-          {stageBlocked(one) && (
+          {blocked && (
             <span
               role="img"
               aria-label={c.notReadyHint}
@@ -467,7 +483,7 @@ export function WorkflowsPanel({
             />
           )}
         </h4>
-        {stageBlocked(one) && <p className="mb-2 px-2.5 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
+        {blocked && <p className="mb-2 px-2.5 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
         {/* A built-in's lead is what its name promises, so it is shown and not offered
             (#774). On a workflow of this board's own the chevron beside it swaps it. */}
         <Popover open={picking === one.stage} onOpenChange={(open) => setPicking(open ? one.stage : null)}>
@@ -482,6 +498,15 @@ export function WorkflowsPanel({
                   onOpen={() => void select(one.lead)}
                   swap={flow.builtIn ? undefined : c.pickLead}
                 />
+              ) : leadOptional(flow, one) ? (
+                <button
+                  type="button"
+                  onClick={() => void createExecutor()}
+                  className={`${FLAT_CONTROL} mx-1.5 flex h-[36px] w-[calc(100%-12px)] cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 text-[12.5px] font-[700] nb-focus`}
+                >
+                  <FiPlus aria-hidden />
+                  {c.setLead}
+                </button>
               ) : (
                 <PopoverTrigger asChild>
                   <button
