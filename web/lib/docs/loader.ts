@@ -139,7 +139,38 @@ function loadAll(): DocPage[] {
   }
 
   docs.sort((a, b) => a.order - b.order);
+  checkLlmsTxt(docs);
   return (cache = docs);
+}
+
+const LLMS_FILE = path.join(process.cwd(), "public", "llms.txt");
+const SITE_DOCS = "https://ai4kanban.dev/docs";
+
+// AI search learns the site from llms.txt, so its `## Documentation` list must
+// match the docs in rail order, URL and description alike.
+function checkLlmsTxt(docs: DocPage[]): void {
+  const text = fs.readFileSync(LLMS_FILE, "utf8");
+  const section = text.split(/^## Documentation\s*$/m)[1]?.split(/^## /m)[0];
+  if (section === undefined) fail("llms.txt", "no `## Documentation` section");
+
+  const listed = [...section.matchAll(/^- \[[^\]]*\]\(([^)]+)\): (.+)$/gm)].map(
+    ([, url, description]) => ({ url, description: description.trim() }),
+  );
+
+  docs.forEach((doc, i) => {
+    const url = doc.slug === INDEX_SLUG ? SITE_DOCS : `${SITE_DOCS}/${doc.slug}`;
+    const entry = listed[i];
+    if (!entry) fail("llms.txt", `"${doc.slug}" is missing from ## Documentation`);
+    if (entry.url !== url) {
+      fail("llms.txt", `entry ${i + 1} should be "${doc.slug}" (${url}), found ${entry.url}`);
+    }
+    if (entry.description !== doc.description) {
+      fail("llms.txt", `"${doc.slug}" description differs from its frontmatter`);
+    }
+  });
+  if (listed.length > docs.length) {
+    fail("llms.txt", `${listed[docs.length].url} is not a docs page`);
+  }
 }
 
 /** Every page except the landing one, in rail order. */
