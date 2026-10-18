@@ -309,6 +309,8 @@ export type CardCopy = {
     mismatch: string;
     unsupported: (name: string) => string;
     downloadSide: (name: string) => string;
+    /** B, a storyboard, has no shot with the id A is on (#1803). */
+    notInVersion: string;
   };
   /** A `<Storyboard>` script (#963). */
   storyboard: {

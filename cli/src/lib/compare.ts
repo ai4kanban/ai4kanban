@@ -4,6 +4,8 @@
 //
 // Two images or two videos from the card's asset folder, drawn together. `a-label` and `b-label`
 // name each side; `shots` (videos only) is a JSON list that cuts the shared play bar per shot.
+// B may instead be a storyboard of A's video (#1803), shown shot by shot as A plays; `shots` is
+// then required, and may itself be a storyboard of A.
 
 export type CompareTag = { a: string; b: string; label: string; aLabel: string; bLabel: string; shots: string }
 export type Shot = { id: string; start: number; end: number; name: string }
@@ -30,9 +32,9 @@ export function compareTag(raw: string): CompareTag | null {
   return { a: attrs.a, b: attrs.b, label: attrs.label ?? '', aLabel: attrs['a-label'] ?? '', bLabel: attrs['b-label'] ?? '', shots: attrs.shots ?? '' }
 }
 
-export function compareKind(src: string): 'image' | 'video' | null {
+export function compareKind(src: string): 'image' | 'video' | 'storyboard' | null {
   const ext = src.split('.').pop()!.toLowerCase()
-  return COMPARE_IMAGES.includes(ext) ? 'image' : COMPARE_VIDEOS.includes(ext) ? 'video' : null
+  return COMPARE_IMAGES.includes(ext) ? 'image' : COMPARE_VIDEOS.includes(ext) ? 'video' : ext === 'json' ? 'storyboard' : null
 }
 
 /** What is wrong with a shots list, or null: `[{ "id": "S1", "start": 0, "end": 2.25, "name": "…" }, …]`,
@@ -52,6 +54,30 @@ export function shotsProblem(data: unknown): string | null {
   }
   return null
 }
+
+/** What is wrong with a video storyboard's outline, or null: `{ "version": 1, "shots": [...] }`, each
+ *  shot with an `S<n>` id, an action and its captions, starting where the one before ends. The
+ *  rest of its contract is its writer's validator's (#992). */
+export function storyboardProblem(data: unknown): string | null {
+  const shape = 'Write a storyboard: { "version": 1, "shots": [...] }, passing scriptwriter\'s scripts/validate-storyboard.mjs.'
+  const shots = data && typeof data === 'object' && !Array.isArray(data) ? (data as { shots?: unknown }).shots : undefined
+  if ((data as { version?: unknown })?.version !== 1 || !Array.isArray(shots) || shots.length === 0) return `It is not a storyboard with shots. ${shape}`
+  const ids = new Set<string>()
+  let at = 0
+  for (const [i, s] of shots.entries()) {
+    const ok = s && typeof s === 'object' && typeof s.id === 'string' && /^S[1-9][0-9]*$/.test(s.id) && Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start && typeof s.action === 'string' && Array.isArray(s.captions) && s.voiceover && typeof s.voiceover === 'object'
+    if (!ok) return `Shot ${i + 1} is malformed. ${shape}`
+    if (ids.has(s.id)) return `Shot id ${s.id} is repeated. Give every shot its own id.`
+    ids.add(s.id)
+    if (Math.abs(s.start - at) > 0.01) return `Shot ${s.id} starts at ${s.start}s, but the one before ends at ${at}s. ${shape}`
+    at = s.end
+  }
+  return null
+}
+
+/** A storyboard's shots as a play bar's list: id and times, no name. */
+export const storyboardShots = (data: { shots: { id: string; start: number; end: number }[] }): Shot[] =>
+  data.shots.map(({ id, start, end }) => ({ id, start, end, name: '' }))
 
 /** The shots a file's text holds, or null when it is not a valid list. */
 export function parseShots(text: string): Shot[] | null {

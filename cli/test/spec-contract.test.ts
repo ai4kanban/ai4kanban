@@ -198,6 +198,28 @@ describe('the card format contract', () => {
     }
   })
 
+  it('checks a Compare tag whose b is a storyboard (#1803)', () => {
+    const tag = (attrs: string) => valid.replace('- [ ] Implement it.', `- [ ] Implement it.\n\n<Compare ${attrs} />\n`)
+    const rules = (attrs: string) => validateSpec(file, tag(attrs), 1).map((e) => e.rule)
+    const dir = path.join(ASSETS, '1')
+    fs.mkdirSync(dir, { recursive: true })
+    for (const name of ['a.mp4', 'a.png']) fs.writeFileSync(path.join(dir, name), '')
+    const shot = (id: string, start: number, end: number) => ({ id, start, end, voiceover: { mode: 'none' }, action: 'A move.', captions: [], details: 'Cut.', frames: [] })
+    const board = (name: string, ids: string[]) => fs.writeFileSync(path.join(dir, name), JSON.stringify({ version: 1, shots: ids.map((id, i) => shot(id, i, i + 1)) }))
+    board('breakdown.json', ['S1', 'S2', 'S3'])
+    board('clone.json', ['S1', 'S3'])
+    fs.writeFileSync(path.join(dir, 'shots.json'), JSON.stringify([{ id: 'S1', start: 0, end: 1, name: 'Open' }]))
+    const ok = 'a=".assets/1/a.mp4" b=".assets/1/clone.json" label="Source vs clone" shots=".assets/1/breakdown.json"'
+    assert.deepEqual(rules(ok), [])
+    assert.deepEqual(rules('a=".assets/1/a.mp4" b=".assets/1/clone.json" label="A"'), ['compare-shots'])
+    assert.deepEqual(rules('a=".assets/1/a.png" b=".assets/1/clone.json" label="A" shots=".assets/1/breakdown.json"'), ['compare-src'])
+    assert.deepEqual(rules('a=".assets/1/a.mp4" b=".assets/1/clone.json" label="A" shots=".assets/1/shots.json"'), ['compare-shots'])
+    board('clone.json', ['S1', 'S4'])
+    assert.match(validateSpec(file, tag(ok), 1)[0]!.message, /Add S4 to/)
+    fs.writeFileSync(path.join(dir, 'clone.json'), JSON.stringify({ version: 1, shots: [] }))
+    assert.deepEqual(rules(ok), ['compare-src'])
+  })
+
   it('validates specialist sections while ignoring examples inside code fences', () => {
     const example = '\n## By `ui-designer` agent\n\n### Layout\n\n````md\n```\n## Scope\n<!-- agent -->\n<Mockup broken>\n```\n````\n'
     assert.deepEqual(validateSpec(file, valid.replace('## Decided by the agent', example + '\n## Decided by the agent')), [])

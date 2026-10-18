@@ -8,12 +8,12 @@
 // of the same content; `src` is the one shown first.
 //
 // `<Compare a=".." b=".." shots=".." />` (#1740) shows two images or two videos together; its
-// files are read the same way.
+// files are read the same way. A storyboard `b` or `shots` (#1803) is read with the storyboards.
 //
 // Client-safe on purpose: the remark plugin in Markdown.tsx runs in the browser, and the
 // reader in lib/mockup.ts runs on the server. Both agree on the tag here.
 
-import { compareTag, type Shot } from "./format/compare";
+import { compareKind, compareTag, type Shot } from "./format/compare";
 
 /** A mockup as a card body points at it. */
 export type MockupTag = {
@@ -223,11 +223,21 @@ export function compareShots(body: string): Set<string> {
   return new Set([...body.matchAll(COMPARE)].map((m) => compareTag(m[0])?.shots).filter((s): s is string => !!s));
 }
 
+/** The JSON files `<Compare>` tags in a body may hold storyboards in (#1803): a `b`, or a `shots`
+ *  that is not a plain list. */
+export function compareStoryboards(body: string): { src: string; list: boolean }[] {
+  return [...body.matchAll(COMPARE)].flatMap((m) => {
+    const tag = compareTag(m[0]);
+    if (!tag) return [];
+    return [...(compareKind(tag.b) === "storyboard" ? [{ src: tag.b, list: false }] : []), ...(tag.shots ? [{ src: tag.shots, list: true }] : [])];
+  });
+}
+
 /** Every file a body points at, variants and `<Compare>` sides included, deduplicated — what the server reads before drawing. */
 export function mockupSources(body: string): string[] {
   const compared = [...body.matchAll(COMPARE)].flatMap((m) => {
     const tag = compareTag(m[0]);
-    return tag ? [tag.a, tag.b, ...(tag.shots ? [tag.shots] : [])] : [];
+    return tag ? [tag.a, ...(compareKind(tag.b) === "storyboard" ? [] : [tag.b]), ...(tag.shots ? [tag.shots] : [])] : [];
   });
   return [...new Set([...mockupTags(body).flatMap((t) => [t.src, ...t.variants.map((v) => v.src)]), ...compared])];
 }

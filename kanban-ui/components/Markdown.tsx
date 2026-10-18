@@ -24,7 +24,7 @@ import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryLinkKey } from "@/lib/memory-panel";
-import { compareTag } from "@/lib/format/compare";
+import { compareKind, compareTag } from "@/lib/format/compare";
 import { storyboardAttrs } from "@/lib/format/storyboard";
 import { assetImageHref, deviceOf, mockupBlock, type MockupSet, type Variant } from "@/lib/mockup-tag";
 import type { StoryboardSet } from "@/lib/storyboard";
@@ -300,11 +300,18 @@ function MockupNode(props: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CompareNode(props: any) {
   const mockups = useContext(MockupsContext);
+  const storyboards = useContext(StoryboardsContext);
+  const label = props["data-label"] || "";
+  const src = props["data-b"] as string;
   const a = mockups?.[props["data-a"] as string];
-  const b = mockups?.[props["data-b"] as string];
+  // A storyboard B (#1803) is read with the storyboards, which a hosted page has none of.
+  const script = compareKind(src) === "storyboard";
+  const b = script ? storyboards?.[src] : mockups?.[src];
+  if (script && !storyboards) return <StoryboardUnavailable label={label} />;
   if (!a || !b) return null;
+  const breakdown = storyboards?.[props["data-shots"] as string];
   const shots = mockups?.[props["data-shots"] as string]?.shots;
-  return <Compare a={a} b={b} label={props["data-label"] || ""} aLabel={props["data-a-label"] || ""} bLabel={props["data-b-label"] || ""} shots={shots} />;
+  return <Compare a={a} b={b} label={label} aLabel={props["data-a-label"] || ""} bLabel={props["data-b-label"] || ""} shots={shots} breakdown={breakdown} />;
 }
 
 const StoryboardsContext = createContext<StoryboardSet | null>(null);

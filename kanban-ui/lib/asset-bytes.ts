@@ -33,7 +33,8 @@ export const FILE_TYPES: Record<string, string> = {
   mdx: "text/markdown; charset=utf-8",
 };
 
-export const ASSET_TYPES: Record<string, string> = { ...IMAGE_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES, ...FILE_TYPES };
+// A `<Compare>` storyboard's own file, for its download (#1803).
+export const ASSET_TYPES: Record<string, string> = { ...IMAGE_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES, ...FILE_TYPES, json: "application/json; charset=utf-8" };
 
 /** `[start, end]` inclusive for one `bytes=` range, `"unsatisfiable"` for one past the end,
  *  and `null` for no range, a malformed one or several — all served whole. */

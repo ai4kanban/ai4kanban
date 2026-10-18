@@ -275,6 +275,7 @@ const zh: CardCopy = {
     mismatch: "图片和视频无法对比，请使用两张图片或两段视频。",
     unsupported: (name) => `无法对比 ${name}：只支持图片和视频。`,
     downloadSide: (name) => `下载「${name}」`,
+    notInVersion: "新版没有这一镜",
   },
   storyboard: {
     heading: "静态分镜",

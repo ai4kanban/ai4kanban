@@ -93,7 +93,9 @@ Every flow writes a card in this order:
 - **Compare**: to show two images or two videos against each other, such as a source and its
   clone, write `<Compare a="<src>" b="<src>" label="..." a-label="..." b-label="..." />`;
   never render a side-by-side file for it. For videos, add `shots="<src>"`: a JSON list of
-  `{ "id": "S1", "start": 0, "end": 2.25, "name": "..." }` covering the video in order.
+  `{ "id": "S1", "start": 0, "end": 2.25, "name": "..." }` covering video A in order, or a
+  storyboard of A. B may be a storyboard instead of a video; it then shows its shot with the
+  id A is on, beside that shot of a storyboard `shots`.
 - **Asset label and alt**: `label` is a tag of a few words; an image's caption goes in its
   optional `alt="..."`, its shipped alt text, which cannot contain `<`, `>` or its own quote mark.
 - **Asset variants**: versions of the same content, such as languages or devices, are one tag

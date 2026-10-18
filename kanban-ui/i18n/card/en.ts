@@ -284,6 +284,7 @@ const en: CardCopy = {
     mismatch: "Can't compare an image with a video. Use two images or two videos.",
     unsupported: (name) => `Can't compare ${name}: only images and videos can be compared.`,
     downloadSide: (name) => `Download “${name}”`,
+    notInVersion: "Not in this version",
   },
   storyboard: {
     heading: "Storyboard",

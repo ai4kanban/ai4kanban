@@ -4,7 +4,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { assetImageHref, mockupViewHref } from "./mockup-tag";
+import { assetImageHref, compareStoryboards, mockupViewHref } from "./mockup-tag";
 import { assetsDir } from "./cli";
 import { repoRoot } from "./paths";
 import { assetName, storyboardMarkers } from "./format/storyboard";
@@ -61,10 +61,11 @@ function inside(dir: string, name: string): string | null {
   }
 }
 
-/** `lead` is the agent the fix goes back to; empty leaves it to the file's shape. */
+/** `lead` is the agent the fix goes back to; empty leaves it to the file's shape. A `<Compare>`'s
+ *  storyboards are read too; its `shots`, when a plain list, is not one. */
 export async function readStoryboards(body: string, cardId: number, lead = ""): Promise<StoryboardSet> {
   const set: StoryboardSet = {};
-  const markers = storyboardMarkers(body);
+  const markers = [...storyboardMarkers(body).map(({ src }) => ({ src, list: false })), ...compareStoryboards(body)];
   if (!markers.length) return set;
   let dir: string;
   try {
@@ -73,7 +74,7 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
     dir = "";
   }
   const shown = (file: string) => path.relative(repoRoot(), file) || file;
-  for (const { src } of markers) {
+  for (const { src, list } of markers) {
     if (set[src]) continue;
     const named = assetName(src, cardId, ["json"]);
     if (!("name" in named)) {
@@ -86,6 +87,7 @@ export async function readStoryboards(body: string, cardId: number, lead = ""): 
     // Frames that pass, by name, with the address the page loads them from and their shape.
     const drawn = new Map<string, { href: string; ratio: number | null }>();
     const source = json ? fs.readFileSync(json, "utf8") : null;
+    if (list && source?.trimStart().startsWith("[")) continue;
     const { storyboard, diagnostics } = checkStoryboard(source, {
       file,
       cardId,

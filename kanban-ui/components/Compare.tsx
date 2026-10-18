@@ -5,20 +5,27 @@
 // play bar: A leads, B follows muted, is pulled back when it drifts, and holds its last frame
 // once it runs out. With `shots` the bar is cut into one segment per shot.
 //
+// B may be a storyboard of A instead (#1803): under A's video, the shot A is on, as `shots` (when
+// a storyboard) tells it and as B does, side by side.
+//
 // Full size opens the block over the page, in this window (#1776); the ⋯ menu downloads either
 // side.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiDownload, FiMaximize2, FiPause, FiPlay } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import type { Shot } from "@/lib/format/compare";
-import type { MockupView } from "@/lib/mockup-tag";
+import { storyboardShots, type Shot } from "@/lib/format/compare";
+import { assetImageHref, type MockupView } from "@/lib/mockup-tag";
+import type { StoryboardShotView, StoryboardView } from "@/lib/storyboard";
 import { PreviewDialog } from "./image-preview";
+import { Markdown } from "./Markdown";
 import { clock } from "./MediaPlayer";
 import { Caption, DraftFrame, ICON_BTN, Note, useFold, type MenuItem } from "./Mockup";
+import { Storyboard } from "./Storyboard";
 
 const nameOf = (src: string) => src.split("/").pop()!;
 const kindOf = (v: MockupView) => (v.image !== undefined ? "image" : v.media?.kind === "video" ? "video" : null);
+const isScript = (v: MockupView | StoryboardView): v is StoryboardView => "diagnostics" in v;
 
 export function Compare({
   a,
@@ -27,21 +34,33 @@ export function Compare({
   aLabel,
   bLabel,
   shots,
+  breakdown,
 }: {
   a: MockupView;
-  b: MockupView;
+  b: MockupView | StoryboardView;
   label: string;
   aLabel: string;
   bLabel: string;
   shots?: Shot[];
+  /** `shots` when it is a storyboard of A. */
+  breakdown?: StoryboardView;
 }) {
   const c = useCopy().card.compare;
+  const names: [string, string] = [aLabel || nameOf(a.src), bLabel || nameOf(b.src)];
+  if (isScript(b)) {
+    if (a.error !== undefined) return <Note text={a.error} />;
+    if (kindOf(a) !== "video") return <Note text={c.mismatch} />;
+    const broken = [b, breakdown].find((v) => v && !v.shots);
+    if (broken) return <Storyboard view={broken} label={label} />;
+    const bar = breakdown ? storyboardShots({ shots: breakdown.shots! }) : (shots ?? storyboardShots({ shots: b.shots! }));
+    return <Frame a={a} b={b} label={label} names={names} shots={bar} breakdown={breakdown} />;
+  }
   for (const v of [a, b]) {
     if (v.error !== undefined) return <Note text={v.error} />;
     if (!kindOf(v)) return <Note text={c.unsupported(nameOf(v.src))} />;
   }
   if (kindOf(a) !== kindOf(b)) return <Note text={c.mismatch} />;
-  return <Frame a={a} b={b} label={label} names={[aLabel || nameOf(a.src), bLabel || nameOf(b.src)]} shots={shots} />;
+  return <Frame a={a} b={b} label={label} names={names} shots={shots} />;
 }
 
 type Ratios = [number | null, number | null];
@@ -58,7 +77,7 @@ const maxHeight = (stacked: boolean, full: boolean, video: boolean) =>
       ? `calc(100dvh - ${video ? 190 : 125}px)`
       : "max(320px, calc(100vh - 220px))";
 
-type FrameProps = { a: MockupView; b: MockupView; label: string; names: [string, string]; shots?: Shot[] };
+type FrameProps = { a: MockupView; b: MockupView | StoryboardView; label: string; names: [string, string]; shots?: Shot[]; breakdown?: StoryboardView };
 
 function Frame(props: FrameProps) {
   const c = useCopy().card.mockup;
@@ -97,12 +116,12 @@ function useDownloads({ a, b, names }: FrameProps): MenuItem[] {
   return [a, b].map((v, side) => ({
     icon: <FiDownload size={13} />,
     text: c.downloadSide(names[side]!),
-    href: v.image ?? v.media!.href,
+    href: isScript(v) ? assetImageHref(String(v.card), nameOf(v.src)) : (v.image ?? v.media!.href),
     download: nameOf(v.src),
   }));
 }
 
-function Body({ a, b, names, shots, full }: FrameProps & { full: boolean }) {
+function Body({ a, b, names, shots, breakdown, full }: FrameProps & { full: boolean }) {
   const c = useCopy().card.mockup;
   const [ratios, setRatios] = useState<Ratios>([null, null]);
   const [failed, setFailed] = useState(false);
@@ -121,6 +140,15 @@ function Body({ a, b, names, shots, full }: FrameProps & { full: boolean }) {
     [ratio],
   );
   if (failed) return <Note text={c.unplayable} />;
+  if (isScript(b)) {
+    // Half a screen, so the shot's script stays in view under it.
+    const pane = { name: names[0], ratio: ratios[0], max: maxHeight(true, full, true), bg: "#000" };
+    return (
+      <Videos a={a.media!.href} panes={[pane]} stacked shots={shots} ratio={ratio} fail={fail}>
+        {(time) => <Scripts time={time} shots={shots!} script={b} breakdown={breakdown} names={names} />}
+      </Videos>
+    );
+  }
   const video = a.media !== undefined;
   const stacked = (ratios[0] ?? 16 / 9) >= 1;
   const max = maxHeight(stacked, full, video);
@@ -179,14 +207,18 @@ function Videos({
   shots,
   ratio,
   fail,
+  children,
 }: {
   a: string;
-  b: string;
+  /** Absent when B is a storyboard. */
+  b?: string;
   panes: PaneProps[];
   stacked: boolean;
   shots?: Shot[];
   ratio: (side: 0 | 1, w: number, h: number) => void;
   fail: () => void;
+  /** What sits under the play bar, at A's time. */
+  children?: (time: number) => React.ReactNode;
 }) {
   const va = useRef<HTMLVideoElement>(null);
   const vb = useRef<HTMLVideoElement>(null);
@@ -296,9 +328,13 @@ function Videos({
         ))}
       </Sides>
       <PlayBar playing={playing} time={time} duration={duration} rate={rate} shots={shots} toggle={toggle} seek={seek} speed={speed} />
+      {children?.(time)}
     </>
   );
 }
+
+/** The shot playing at `time`. */
+const shotAt = (shots: Shot[], time: number) => Math.max(0, shots.findLastIndex((s) => s.start <= time + 0.01));
 
 const STEP =
   "nb-tip grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink";
@@ -323,7 +359,7 @@ function PlayBar({
   speed: () => void;
 }) {
   const c = useCopy().card;
-  const at = shots ? Math.max(0, shots.findLastIndex((s) => s.start <= time + 0.01)) : -1;
+  const at = shots ? shotAt(shots, time) : -1;
   const shot = shots?.[at];
   const go = (i: number) => shots && seek(shots[Math.max(0, Math.min(shots.length - 1, i))]!.start);
   return (
@@ -348,7 +384,11 @@ function PlayBar({
         {shot && (
           <span className="min-w-0 truncate text-[12.5px] font-[700] text-nb-ink">
             {shot.id}
-            <span className="font-[600] text-nb-ink-soft"> / {shots!.length} · </span>
+            <span className="font-[600] text-nb-ink-soft">
+              {" "}
+              / {shots!.length}
+              {shot.name && " · "}
+            </span>
             {shot.name}
           </span>
         )}
@@ -447,9 +487,70 @@ function Track({ shots, time, duration, seek }: { shots?: Shot[]; time: number; 
           className="pointer-events-none absolute bottom-[22px] z-10 block whitespace-nowrap rounded-[6px] bg-nb-ink px-2 py-1 text-[11.5px] font-[600] text-nb-paper"
           style={tipAt}
         >
-          {tip.id} · {tip.name} · {clock(tip.start)}
+          {[tip.id, tip.name, clock(tip.start)].filter(Boolean).join(" · ")}
         </span>
       )}
     </span>
+  );
+}
+
+/** Under the play bar (#1803): the shot A is on, from `shots` left when it is a storyboard and from
+ *  B right, or B alone. Production notes open in both at once. */
+function Scripts({ time, shots, script, breakdown, names }: { time: number; shots: Shot[]; script: StoryboardView; breakdown?: StoryboardView; names: [string, string] }) {
+  const c = useCopy().card;
+  const [open, setOpen] = useState(false);
+  const id = shots[shotAt(shots, time)]?.id;
+  const columns = [
+    ...(breakdown ? [{ name: names[0], shot: breakdown.shots!.find((s) => s.id === id) }] : []),
+    { name: names[1], shot: script.shots!.find((s) => s.id === id), missing: true },
+  ];
+  const details = columns.some((col) => col.shot?.details.trim());
+  return (
+    <div className="@container border-t border-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] px-4 pb-4 pt-3 text-[13px] leading-5">
+      <div className={`grid items-start gap-x-6 gap-y-4 ${columns.length > 1 ? "grid-cols-2 @max-[560px]:grid-cols-1" : ""}`}>
+        {columns.map((col, k) => (
+          <ScriptColumn key={k} name={col.name} shot={col.shot} missing={col.missing ? c.compare.notInVersion : undefined} details={open} />
+        ))}
+      </div>
+      {details && (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="nb-focus mt-3 flex w-fit cursor-pointer items-center gap-1 text-[12.5px] font-[600] text-nb-ink-soft hover:text-nb-ink"
+        >
+          <FiChevronRight aria-hidden size={13} className={`transition-transform ${open ? "rotate-90" : ""}`} />
+          {c.storyboard.details}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ScriptColumn({ name, shot, missing, details }: { name: string; shot?: StoryboardShotView; missing?: string; details: boolean }) {
+  const c = useCopy().card.storyboard;
+  const captions = shot?.captions.filter((line) => line.trim()).join(" / ");
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="truncate text-[11.5px] font-[700] text-nb-ink-soft">{name}</div>
+      {!shot ? (
+        missing && <div className="grid min-h-[64px] place-items-center rounded-[6px] bg-nb-wash px-3 text-center text-[12.5px] font-[700] text-nb-ink-soft">{missing}</div>
+      ) : (
+        <>
+          <div>{shot.action}</div>
+          {captions && <div className="text-[12px] text-nb-ink-soft">“{captions}”</div>}
+          {shot.voiceover.mode === "spoken" && (
+            <div className="text-[12px] text-nb-ink-soft">
+              <span className="font-[700]">{c.voiceover}</span> {shot.voiceover.text}
+            </div>
+          )}
+          {details && shot.details.trim() && (
+            <div className="text-nb-ink-soft">
+              <Markdown body={shot.details} className="text-[13px]" />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import path from 'node:path'
 import { enclosingGroupRoot, idPrefix, isLegacyRecurring, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { ASSETS, rel, TODO } from './paths'
-import { COMPARE_IMAGES, COMPARE_VIDEOS, compareAttrs, compareKind, shotsProblem } from './compare'
+import { COMPARE_IMAGES, COMPARE_VIDEOS, compareAttrs, compareKind, shotsProblem, storyboardProblem, type Shot } from './compare'
 import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
 import { dependencyCycle, LEVELS, STATUSES } from './validate'
 
@@ -239,32 +239,47 @@ function variantsProblem(raw: string, src: string, id?: number): string | null {
 }
 
 /** What is wrong with a Compare tag's files (#1740), or null: `a` and `b` are both images or both
- *  videos in this card's asset folder, and `shots`, on videos only, is a valid shots list there. */
+ *  videos in this card's asset folder, and `shots`, on videos only, is a valid shots list there.
+ *  `b` may be a storyboard of video `a` (#1803); `shots` is then required and covers every shot
+ *  it has. `shots` may itself be a storyboard. */
 function compareProblem(attrs: Record<string, string>, id: number): { rule: string; message: string } | null {
   const dir = path.join(ASSETS, String(id))
   const src = (message: string) => ({ rule: 'compare-src', message })
+  const shots = (message: string) => ({ rule: 'compare-shots', message })
   for (const side of ['a', 'b'] as const) {
-    const named = assetName(attrs[side]!, id, [...COMPARE_IMAGES, ...COMPARE_VIDEOS])
+    const named = assetName(attrs[side]!, id, [...COMPARE_IMAGES, ...COMPARE_VIDEOS, ...(side === 'b' ? ['json'] : [])])
     if (!('name' in named)) return src(`Compare ${side} is ${named.actual}; expected ${named.expected}.`)
     if (!inside(dir, named.name)) return src(`Compare ${side} ${attrs[side]} names no file in this card's asset folder. Write the file there or fix the path.`)
   }
   const kind = compareKind(attrs.a!)
-  if (kind !== compareKind(attrs.b!)) return src('Compare a and b must both be images or both be videos.')
-  if (attrs.shots === undefined) return null
-  const shots = (message: string) => ({ rule: 'compare-shots', message })
+  const script = compareKind(attrs.b!) === 'storyboard'
+  if (script && kind !== 'video') return src('Compare b may be a storyboard only when a is a video.')
+  if (!script && kind !== compareKind(attrs.b!)) return src('Compare a and b must both be images or both be videos.')
+  if (attrs.shots === undefined) return script ? shots('shots is required when b is a storyboard. Add shots="..." naming a storyboard or shots list of video a.') : null
   if (kind !== 'video') return shots('shots is for videos only. Remove it from this Compare tag.')
-  const named = assetName(attrs.shots, id, ['json'])
-  if (!('name' in named)) return shots(`Compare shots is ${named.actual}; expected ${named.expected}.`)
-  const file = inside(dir, named.name)
-  if (!file) return shots(`Compare shots ${attrs.shots} names no file in this card's asset folder. Write the JSON there or fix the path.`)
-  let data: unknown
-  try {
-    data = JSON.parse(fs.readFileSync(file, 'utf8'))
-  } catch {
-    return shots(`${attrs.shots} is not valid JSON.`)
+  const read = (at: string): { data: unknown } | { message: string } => {
+    const named = assetName(at, id, ['json'])
+    if (!('name' in named)) return { message: `Compare shots is ${named.actual}; expected ${named.expected}.` }
+    const file = inside(dir, named.name)
+    if (!file) return { message: `Compare shots ${at} names no file in this card's asset folder. Write the JSON there or fix the path.` }
+    try {
+      return { data: JSON.parse(fs.readFileSync(file, 'utf8')) }
+    } catch {
+      return { message: `${at} is not valid JSON.` }
+    }
   }
-  const why = shotsProblem(data)
-  return why ? shots(`${attrs.shots}: ${why}`) : null
+  const list = read(attrs.shots)
+  if ('message' in list) return shots(list.message)
+  const why = Array.isArray(list.data) ? shotsProblem(list.data) : storyboardProblem(list.data)
+  if (why) return shots(`${attrs.shots}: ${why}`)
+  if (!script) return null
+  const b = read(attrs.b!)
+  if ('message' in b) return src(b.message)
+  const bad = storyboardProblem(b.data)
+  if (bad) return src(`${attrs.b}: ${bad}`)
+  const known = new Set((Array.isArray(list.data) ? list.data : (list.data as { shots: Shot[] }).shots).map((s: Shot) => s.id))
+  const extra = (b.data as { shots: Shot[] }).shots.find((s) => !known.has(s.id))
+  return extra ? shots(`${attrs.b} has shot ${extra.id}, which ${attrs.shots} lacks. Add ${extra.id} to ${attrs.shots}, or drop it from ${attrs.b}.`) : null
 }
 
 /** Every storyboard the card points at is a JSON file in its asset folder. Its contents are the
