@@ -1,7 +1,7 @@
 // The paintings the landing page mounts its screenshots on. A wash is two
 // blooms on a diagonal with the paper left empty between them; `PixelWash.tsx`
-// draws all five from the numbers here. The pigments and the diagonal vary per
-// mat so a page of five doesn't read as one texture repeated.
+// draws them all from the numbers here. The pigments and the diagonal vary per
+// mat so a page of them doesn't read as one texture repeated.
 
 type Rgb = readonly [number, number, number];
 
@@ -32,6 +32,7 @@ export const WASHES = {
   peachEmber: { top: PEACH, bottom: EMBER, flip: false, phase: 3.1 },
   skyLilac: { top: SKY, bottom: LILAC, flip: true, phase: 4.6 },
   emberMint: { top: EMBER, bottom: MINT, flip: false, phase: 6.2 },
+  emberPeach: { top: EMBER, bottom: PEACH, flip: true, phase: 7.7 },
 } as const satisfies Record<string, Wash>;
 
 export type WashName = keyof typeof WASHES;

@@ -75,6 +75,7 @@ export function HomePage({ locale }: { locale: Locale }) {
             body={c.followUps.body}
             scene={<FollowUpsScene label={c.followUps.image} />}
             flip
+            className="lg:mt-12"
           />
           <Tools c={c.tools} />
         </div>

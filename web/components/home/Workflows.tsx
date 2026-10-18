@@ -13,7 +13,7 @@ import { workflowPath } from "@/lib/workflows";
 // next one's edge showing; after the sixth the page scrolls on. Without scroll-driven animations,
 // or with reduced motion, the cards stack.
 const PREVIEWS = ["coding", "blog", "video", "slides", "carousel", "clone"] as const;
-const WASHES: WashName[] = ["peachEmber", "skyLilac", "emberMint", "mintSky", "emberLilac", "peachEmber"];
+const WASHES: WashName[] = ["peachEmber", "skyLilac", "emberMint", "mintSky", "emberLilac", "emberPeach"];
 
 const PIN_CSS = `
 .wf-bar{display:none}

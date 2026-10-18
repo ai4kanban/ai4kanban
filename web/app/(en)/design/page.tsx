@@ -180,10 +180,10 @@ function Label({ children }: { children: string }) {
   );
 }
 
-// The five paintings the landing page mounts its screenshots on, drawn by the
+// The paintings the landing page mounts its screenshots on, drawn by the
 // same module the page draws them with. They are here so the palette can be
 // judged against the artwork it has to sit next to rather than against a memory
-// of it — and so the set can be read as a set: five two-pigment washes on
+// of it — and so the set can be read as a set: six two-pigment washes on
 // alternating diagonals, and the one warm paper under all of them, which is what
 // gives a mat an edge on a white page and gives its white print something to sit
 // against.
@@ -193,6 +193,7 @@ const MATS: { name: WashName; note: string }[] = [
   { name: "peachEmber", note: "loop 02, and the iteration diagram" },
   { name: "skyLilac", note: "loop 03" },
   { name: "emberMint", note: "loop 04 — the ember lands last" },
+  { name: "emberPeach", note: "the clone workflow, mirroring the carousel beside it" },
 ];
 
 export default function DesignPage() {

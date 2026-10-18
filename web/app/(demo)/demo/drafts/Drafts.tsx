@@ -222,11 +222,8 @@ function Draft({ kind, live, view }: { kind: Kind; live: boolean; view: RefObjec
         </Paged>
       );
     case "carousel":
-      return (
-        <Paged pages={PAGES.carousel!} live={live}>
-          <Storyboard view={CAROUSEL} label="3x4" />
-        </Paged>
-      );
+      // Still: paging it clicks the current slide, which opens it enlarged.
+      return <Storyboard view={CAROUSEL} label="3x4" />;
     case "clone":
       return <Clone live={live} />;
   }

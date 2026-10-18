@@ -23,7 +23,6 @@ export const TITLES: Record<Kind, string> = {
 export const PAGES: Partial<Record<Kind, number[]>> = {
   video: [4, 5],
   slides: [7, 8, 9],
-  carousel: [1, 2, 3],
 };
 
 const frame = (href: string, alt = ""): StoryboardFrameView => ({ src: href, alt, href, ratio: null });
