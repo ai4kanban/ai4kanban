@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI4Kanban — the AI project manager that runs your agent team, from Claude Code.",
-    "version": "0.10.1"
+    "version": "0.10.2"
   },
   "plugins": [
     {
