@@ -8,12 +8,12 @@ import { NearImage } from "./NearImage";
 // so a capture is named by its CDN key under `shots/`; the sizes reserve its box.
 
 const SIZES: Record<string, [number, number]> = {
-  "coding-draft-v1": [1664, 1248],
+  "coding-draft-v2": [1584, 1338],
   "coding-email-v1": [1582, 1186],
   "coding-preview-desktop-v1": [1584, 1084],
   "coding-preview-phone-v1": [1040, 1378],
   "coding-follow-ups-v1": [2560, 1440],
-  "coding-key-points-v1": [1200, 674],
+  "coding-key-points-v2": [1200, 674],
   "coding-questions-v1": [1200, 674],
   "coding-tools-v1": [1200, 674],
   "coding-questions-poster-v1": [1200, 675],

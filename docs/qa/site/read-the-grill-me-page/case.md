@@ -32,7 +32,7 @@
    ![多个 Agent 怎么不重复](06-multi-agents.png) · [grill-me.log](grill-me.log)
 
 7. 读「What does the human actually read?」和它下面的截图。
-   表格把卡分成人读的一半（摘要、待审草稿、真正的开放问题、Worth noting）和折叠的 Agent 一半；正文说草稿审定后就是这部分必须照做的要求，其余细节由 Agent 在范围内决定，审完就让 Agent 交付，没有额外的人工交付审阅。截图正常加载（`shots/grill-draft-v2`），是子卡「#4 Invite members by email」：BLOCKED BY #3，UI designer 一栏有未勾选的「The user approved the page design.」和一张邀请成员页的设计稿。
+   表格把卡分成人读的一半（摘要、待审草稿、真正的开放问题、Worth noting）和折叠的 Agent 一半；正文说草稿审定后就是这部分必须照做的要求，其余细节由 Agent 在范围内决定，审完就让 Agent 交付，没有额外的人工交付审阅。截图正常加载（`shots/grill-draft-v3`），是子卡「#4 Invite members by email」：BLOCKED BY #3，UI designer 一栏有未勾选的「The user approved the page design.」和一张邀请成员页的设计稿。
    ![人读部分和待审草稿](07-draft.png) · [grill-me.log](grill-me.log)
 
 8. 在页末「Frequently asked questions」点开「Does AI4Kanban replace Grill Me?」。

@@ -42,7 +42,7 @@ await p.ev(`(${h2('How do multiple agents work')}).scrollIntoView({block:'start'
 await p.shot(D + '06-multi-agents.png', { x: 0, y: s.y - 30, width: 1280, height: 900 })
 
 s = await part('What does the human actually read')
-log += `\n# 7. Read "What does the human actually read?"\n${s.text}\n${await fig('07-draft.png', 'grill-draft-v2')}\n`
+log += `\n# 7. Read "What does the human actually read?"\n${s.text}\n${await fig('07-draft.png', 'grill-draft-v3')}\n`
 
 const faq = `(()=>{const sec=document.querySelector('main .mdx-faq');const d=[...sec.querySelectorAll('details')];const r=sec.getBoundingClientRect();return {questions:d.map(x=>x.querySelector('summary').innerText.replace(/[+–]$/,'').trim()),open:d.filter(x=>x.open).length,y:r.y+scrollY,h:r.height}})()`
 await p.ev(`document.querySelector('main .mdx-faq').scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-80)'); await p.sleep(1200)
@@ -57,7 +57,7 @@ log += `\nCTA at the end: ${JSON.stringify(cta)}\n`
 const links = await p.ev(`[...new Set([...document.querySelectorAll('main a[href^="/"]')].map(a=>a.getAttribute('href')))]`)
 log += `\n# 9. Follow each on-site link in the page body\n`
 for (const l of links) { const r = await fetch(B + l.split('#')[0], { redirect: 'manual' }); log += `${r.status} ${l}\n` }
-for (const k of ['grill-group-v2', 'grill-questions-v2', 'grill-draft-v2', 'board-v2', 'card-questions-v1', 'card-plan-v1']) log += `page references ${k}: ${await p.ev(`document.documentElement.outerHTML.includes(${JSON.stringify(k)})`)}\n`
+for (const k of ['grill-group-v2', 'grill-questions-v2', 'grill-draft-v3', 'board-v2', 'card-questions-v1', 'card-plan-v1']) log += `page references ${k}: ${await p.ev(`document.documentElement.outerHTML.includes(${JSON.stringify(k)})`)}\n`
 await p.close()
 
 const txt = await (await fetch(B + '/llms.txt')).text()
