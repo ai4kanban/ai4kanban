@@ -25,10 +25,26 @@ const es: HomeCopy = {
       "Grabación del tablero de demostración de AI4Kanban: planificar tareas, revisar los borradores de una tarjeta y pasar el trabajo a los agentes.",
   },
 
+  review: {
+    title: "Tú revisas las partes clave.\nLos agentes hacen el resto.",
+    lead:
+      "AI4Kanban convierte las partes de tu idea que necesitan tu criterio en borradores que puedes revisar y ajustar. Cuando los apruebas, los agentes terminan el trabajo a partir de esos borradores y tú puedes centrarte en otras cosas.",
+    scene: {
+      label:
+        "Le das una idea a AI4Kanban, que la convierte en borradores para que los revises. Cuando los apruebas, AI4Kanban pasa los borradores y su contexto a los agentes, que se encargan del trabajo.",
+      idea: "Lanzar un plan Pro",
+      you: "Tú",
+      board: "AI4Kanban",
+      agent: "Agente",
+      review: "Tú revisas",
+      build: "Los agentes siguen",
+    },
+  },
+
   workflows: {
     title: "Desarrolla el producto. Mantén el marketing en marcha.",
     lead:
-      "Con 6 flujos integrados, los agentes especializados comparten el contexto de tu proyecto y se encargan del desarrollo y el marketing sin que tengas que organizar el equipo desde cero. Preparan borradores solo de las partes clave que necesitan tu criterio y terminan el trabajo a partir de lo que apruebas, para que dediques menos tiempo a comprobarlo y corregirlo después.",
+      "Con 6 flujos integrados para desarrollo y creación de contenido, revisas maquetas de interfaz, el texto y las imágenes de un artículo, guiones gráficos de vídeo y más antes de que los agentes terminen el trabajo.",
     items: [
       {
         label: "Desarrollo de software",

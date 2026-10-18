@@ -25,10 +25,26 @@ const fr: HomeCopy = {
       "Enregistrement du tableau de démonstration d'AI4Kanban : planifier les tâches, relire les brouillons d'une carte, puis confier le travail aux agents.",
   },
 
+  review: {
+    title: "Vous validez l’essentiel.\nLes agents font le reste.",
+    lead:
+      "AI4Kanban transforme les parties de votre idée qui demandent votre jugement en brouillons que vous pouvez relire et ajuster. Une fois validés, les agents terminent le travail à partir de ces brouillons, et vous pouvez passer à autre chose.",
+    scene: {
+      label:
+        "Vous confiez une idée à AI4Kanban, qui la transforme en brouillons à relire. Une fois validés, AI4Kanban transmet les brouillons et leur contexte aux agents, qui prennent le relais.",
+      idea: "Lancer une offre Pro",
+      you: "Vous",
+      board: "AI4Kanban",
+      agent: "Agent",
+      review: "Vous validez",
+      build: "Les agents prennent le relais",
+    },
+  },
+
   workflows: {
     title: "Développez le produit. Faites avancer le marketing.",
     lead:
-      "Avec 6 workflows intégrés, des agents spécialisés partagent le contexte de votre projet et prennent en charge le développement et le marketing, sans vous demander de constituer une équipe. Ils préparent les brouillons des seules parties clés qui demandent votre jugement, puis terminent le travail à partir de ce que vous validez, pour réduire les vérifications et les corrections après coup.",
+      "Avec 6 workflows intégrés pour le développement et la création de contenu, vous relisez maquettes d’interface, texte et images d’article, storyboards vidéo et plus encore avant que les agents terminent le travail.",
     items: [
       {
         label: "Développement logiciel",

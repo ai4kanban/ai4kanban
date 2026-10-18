@@ -25,10 +25,26 @@ const en: HomeCopy = {
       "A recording of the AI4Kanban demo board: planning tasks, reviewing the drafts on a card, then handing the work to agents.",
   },
 
+  review: {
+    title: "Review the key parts.\nAgents do the rest.",
+    lead:
+      "AI4Kanban turns the parts of your idea that need your judgment into drafts you can review and refine. Once you approve them, agents finish the work from those drafts, freeing you to focus on other things.",
+    scene: {
+      label:
+        "You hand an idea to AI4Kanban, which turns it into drafts for you to review. Once you approve them, AI4Kanban passes the drafts and their context to agents, who take over the work.",
+      idea: "Launch a Pro plan",
+      you: "You",
+      board: "AI4Kanban",
+      agent: "Agent",
+      review: "You review",
+      build: "Agents take over",
+    },
+  },
+
   workflows: {
     title: "Build the product. Keep marketing moving.",
     lead:
-      "With 6 built-in workflows, specialist agents share your project context and handle coding and marketing without you having to design the team. They draft only the key parts that need your judgment, then finish the work from what you approve, so you spend less time checking and revising it afterwards.",
+      "Across 6 built-in workflows for coding and content creation, review UI mockups, article copy and images, video storyboards and more before agents finish the work.",
     items: [
       { label: "Coding", image: "Coding draft: a UI mockup of a key screen." },
       { label: "Blog post", image: "Blog post draft: the article and its images." },

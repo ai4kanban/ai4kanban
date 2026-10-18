@@ -31,6 +31,22 @@ export type HomeCopy = {
     /** The /demo recording's label. */
     image: string;
   };
+  /** Where the user reviews: words beside the bridge scene. */
+  review: {
+    /** Each `\n` starts a new line. */
+    title: string;
+    lead: string;
+    /** The scene's words; `label` reads the whole loop for a reader who cannot see it. */
+    scene: {
+      label: string;
+      idea: string;
+      you: string;
+      board: string;
+      agent: string;
+      review: string;
+      build: string;
+    };
+  };
   /** One card per workflow, in `PREVIEWS` order — coding, blog post, product video, slide
    *  deck, carousel post, video clone. */
   workflows: {

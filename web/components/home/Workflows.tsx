@@ -8,30 +8,41 @@ import { localePath, type Locale } from "@/lib/i18n";
 import { workflowPath } from "@/lib/workflows";
 
 // One card per workflow: its draft, drawn by the board's own components on /demo/drafts/<kind>
-// and framed here, with the workflow's name under it. Two columns from `sm`. On a phone the
-// cards, progress bar and links pin under the header and the scroll slides the row left, one
-// card at a time with the next one's edge showing; the cards shrink to fit the screen. After the
-// sixth the page scrolls on. Without scroll-driven animations, or with reduced motion, the cards
-// stack.
+// and framed here, with the workflow's name under it. The title and lede scroll past; then the
+// cards, progress bar and links pin under the header and the scroll slides the row left, the
+// next card's edge showing and the row bleeding to the screen edges. A phone shows one card that
+// shrinks to fit the screen; wider screens about one and a half. After the sixth the page
+// scrolls on. Without scroll-driven animations, or with reduced motion, the cards stack in one
+// column on a phone and two from `sm`.
 const PREVIEWS = ["coding", "blog", "video", "slides", "carousel", "clone"] as const;
 const WASHES: WashName[] = ["peachEmber", "skyLilac", "emberMint", "mintSky", "emberLilac", "emberPeach"];
 
 const PIN_CSS = `
 .wf-bar{display:none}
-@keyframes wf-slide{to{transform:translateX(calc(-100% + 100vw - 3rem))}}
+@keyframes wf-slide{to{transform:translateX(calc(-100% + min(100vw,72rem) - 3rem))}}
 @keyframes wf-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@supports (animation-timeline: view()){@media (max-width:639px) and (prefers-reduced-motion:no-preference){
+@supports (animation-timeline: view()){@media (prefers-reduced-motion:no-preference){
+body{overflow-x:clip}
 .wf-pin{height:300svh;view-timeline:--wf block}
-.wf-stick{position:sticky;top:4rem;height:calc(100svh - 4rem);margin-inline:-1.5rem;padding:1rem 1.5rem 2.5rem;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+.wf-stick{position:sticky;top:4rem;height:calc(100svh - 4rem);margin-inline:calc(50% - 50vw);padding:1rem calc(50vw - 50%) 2.5rem;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
 .wf-stick>*{flex-shrink:0}
-.wf-track{flex-shrink:1;min-height:0;margin-top:0;flex-direction:row;gap:1rem;width:max-content;animation:wf-slide linear both;animation-timeline:--wf;animation-range:contain 8% contain 92%}
+.wf-track{display:flex;flex-shrink:1;min-height:0;margin-top:0;flex-direction:row;gap:1rem;width:max-content;animation:wf-slide linear both;animation-timeline:--wf;animation-range:contain 8% contain 92%}
 .wf-track>li{width:86vw;display:flex;flex-direction:column}
 .wf-track h3{margin-top:.75rem}
-.wf-mat{flex:1;min-height:0}
-.wf-mat>div:last-child,.wf-mat [role=img],.wf-mat iframe{height:100%}
 .wf-bar{display:block;margin-top:1rem}
 .wf-bar>span{animation:wf-fill linear both;animation-timeline:--wf;animation-range:contain 8% contain 92%}
 .wf-links{flex-direction:row;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem;margin-top:1rem}
+@media (max-width:639px){
+.wf-mat{flex:1;min-height:0}
+.wf-mat>div:last-child,.wf-mat [role=img],.wf-mat iframe{height:100%}
+}
+@media (min-width:640px){
+.wf-pin{height:240svh}
+.wf-track{gap:2.5rem}
+.wf-track>li{width:min(40rem,58vw,(100svh - 19rem)*1.6)}
+.wf-bar{margin-top:1.5rem}
+.wf-links{margin-top:1.5rem;gap:.75rem 1.5rem}
+}
 }}`;
 
 export function Workflows({ c, locale }: { c: HomeCopy["workflows"]; locale: Locale }) {

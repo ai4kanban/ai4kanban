@@ -21,10 +21,26 @@ const zh: HomeCopy = {
     image: "AI4Kanban 演示看板的录屏：规划任务、审阅卡片上的草稿，再交给 agent 完成。",
   },
 
+  review: {
+    title: "关键部分由你把关\n后续交给 agent",
+    lead:
+      "AI4Kanban 把想法中需要你把关的部分先做成草稿，让你能具体审阅、反复修改。确认后，agent 按草稿完成后续工作，你可以继续处理其他事务。",
+    scene: {
+      label:
+        "你把想法交给 AI4Kanban，它整理成草稿供你把关；你确认后，AI4Kanban 把草稿连同上下文交给 agent 接手后续工作。",
+      idea: "上线 Pro 套餐",
+      you: "你",
+      board: "AI4Kanban",
+      agent: "Agent",
+      review: "你把关",
+      build: "agent 接手",
+    },
+  },
+
   workflows: {
     title: "产品要开发，营销也要跟上",
     lead:
-      "AI4Kanban 内置 6 种工作流，专业 agent 共享项目背景，分工完成开发与营销，不用你从头安排团队。需要你把关的关键部分先做成草稿，确认后 agent 按它完成后续工作，减少事后检查和修改。",
+      "从产品开发到轮播帖、SEO 博客和视频，AI4Kanban 内置 6 种工作流，分别把界面原型、正文与配图、分镜等内容先交给你把关，再由 agent 完成后续工作。",
     items: [
       { label: "软件开发", image: "软件开发草稿：关键页面的 UI 原型。" },
       { label: "博客文章", image: "博客文章草稿：文章正文与配图。" },

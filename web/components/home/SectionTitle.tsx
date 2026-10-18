@@ -11,7 +11,7 @@ export function SectionTitle({ title, brand }: { title: string; brand?: React.Re
     <div data-reveal className="mb-5">
       {/* Each clause stays whole, so a narrow screen breaks at the comma
           instead of orphaning the last character. */}
-      <h2 className="text-3xl font-bold tracking-tight sm:text-[2rem]">
+      <h2 className="whitespace-pre-line text-3xl font-bold tracking-tight sm:text-[2rem]">
         {title.split(/(?<=，)/).map((part) => {
           const at = brand ? part.indexOf("AI4Kanban") : -1;
           return (

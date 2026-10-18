@@ -1,6 +1,7 @@
 import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
+import { Review } from "@/components/home/Review";
 import { Workflows } from "@/components/home/Workflows";
 import { Story } from "@/components/home/Story";
 import { MemoryScene } from "@/components/home/MemoryScene";
@@ -67,6 +68,7 @@ export function HomePage({ locale }: { locale: Locale }) {
       <main>
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
+          <Review c={c.review} />
           <Workflows c={c.workflows} locale={locale} />
           <Parallel c={c.parallel} />
           <Story title={c.agents.title} body={c.agents.body} scene={<MemoryScene label={c.agents.image} />} />
