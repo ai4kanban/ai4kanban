@@ -6,9 +6,9 @@ const zh: DownloadCopy = {
   meta: {
     title: "下载 AI4Kanban —— macOS、Windows 与 Linux 桌面应用",
     description:
-      "下载 AI4Kanban，独立创业者的 Agent 工作台。支持 macOS、Windows 和 Linux。",
+      "下载 AI4Kanban，独立开发者的 Agent 工作台。支持 macOS、Windows 和 Linux。",
     socialTitle: "下载 AI4Kanban",
-    social: "AI4Kanban，独立创业者的 Agent 工作台。下载 macOS、Windows 和 Linux 桌面应用。",
+    social: "AI4Kanban，独立开发者的 Agent 工作台。下载 macOS、Windows 和 Linux 桌面应用。",
   },
 
   hero: {

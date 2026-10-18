@@ -2,7 +2,7 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**独立创业者的 Agent 工作台**<br>先看草稿，其余交给 Agent
+**独立开发者的 Agent 工作台**<br>先看草稿，其余交给 Agent
 
 [![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-24231f?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-24231f?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
 
@@ -18,7 +18,7 @@ AI4Kanban 将开发与营销工作流整合在同一个 agent 工作台中。age
 
 ## 既做产品，也做营销
 
-独立创业者既要开发产品，也要让用户看见它、愿意使用它。营销投入的时间和精力，可能与开发一样多，甚至更多。如果每个细节都要亲自盯，快速、稳定地交付更多功能、发布更多内容，就很难兼顾。
+独立开发者不仅要开发产品，还要让用户看见它、愿意使用它。营销投入的时间和精力，可能与开发一样多，甚至更多。如果每个细节都要亲自盯，快速、稳定地交付更多功能、发布更多内容，就很难兼顾。
 
 ## AI4Kanban 如何帮助你
 
@@ -26,7 +26,7 @@ AI4Kanban 将开发与营销工作流整合在同一个 agent 工作台中。age
 
 ![6 个工作流及各自的专业 agent 团队](https://cdn.ai4kanban.dev/readme/workflow-teams-zh-v2.png)
 
-AI4Kanban 为独立创业者的日常工作内置了 **6 个工作流和 10+ agent**。每个 agent 负责工作流中的一部分，例如界面设计或文案。开始工作前，无需先搭建 agent 团队。
+AI4Kanban 为独立开发者的日常工作内置了 **6 个工作流和 10+ agent**。每个 agent 负责工作流中的一部分，例如界面设计或文案。开始工作前，无需先搭建 agent 团队。
 
 agent 共享项目背景，同时在各自的专业领域积累你的反馈。设计偏好由设计 agent 记住，用词偏好由文案 agent 记住。后续任务沿用这些经验，逐渐更符合你的要求，减少反复解释。
 
