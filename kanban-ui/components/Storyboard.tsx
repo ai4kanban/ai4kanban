@@ -5,7 +5,8 @@
 // (#1786): its pictures side by side, then its script in two columns. A storyboard with no
 // pictures gets a row of shot chips instead of thumbnails. A slide deck (#969) pages the same
 // way: a preview per slide and no timing; a slide with no notes takes the full width, capped
-// to fit the screen (#1117), and its preview may be an HTML/TSX page (#1742).
+// to fit the screen (#1117), and its preview may be an HTML/TSX page (#1742). Each sits in an
+// `<Asset>`'s frame and folds the same way (#1788).
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +18,7 @@ import type { StoryboardFrameView, StoryboardShotView, StoryboardSlideView, Stor
 import { useCopyText } from "./copy";
 import { CORNER, ExpandableImage, PreviewDialog } from "./image-preview";
 import { Markdown } from "./Markdown";
-import { sandboxOf } from "./Mockup";
+import { Caption, ICON_BTN, sandboxOf, useFold } from "./Mockup";
 
 const seconds = (n: number) => String(Number(n.toFixed(2)));
 // A thumbnail fits a 120 × 96 box; a picture with no notes is at most this tall.
@@ -79,15 +80,15 @@ function DownloadAll({ hrefs, name }: { hrefs: (string | null)[]; name: string }
       disabled={state === "packing"}
       onClick={pack}
       aria-label={tip}
-      title={tip}
-      className={`${SOFT_BUTTON} self-center !px-2 ${state === "packing" ? "cursor-default opacity-70" : ""}`}
+      data-tip={tip}
+      className={`${ICON_BTN} ${state === "packing" ? "cursor-default opacity-70" : ""}`}
     >
       {state === "packing" ? (
-        <FiLoader size={14} aria-hidden className="animate-spin" />
+        <FiLoader size={13} aria-hidden className="animate-spin" />
       ) : state === "failed" ? (
-        <FiAlertTriangle size={14} aria-hidden className="text-nb-peach-ink" />
+        <FiAlertTriangle size={13} aria-hidden className="text-nb-peach-ink" />
       ) : (
-        <FiDownload size={14} aria-hidden />
+        <FiDownload size={13} aria-hidden />
       )}
     </button>
   );
@@ -97,24 +98,39 @@ function DownloadAll({ hrefs, name }: { hrefs: (string | null)[]; name: string }
 const zipName = (card: number, label: string | undefined) =>
   `${card}-${(label?.trim() || "storyboard").replace(/[\\/:*?"<>|\x00-\x1f]+/g, "-")}`;
 
-function Heading({ title, children }: { title?: string; children?: React.ReactNode }) {
-  const c = useCopy().card.storyboard;
+/** The caption row an `<Asset>` has, then the body until it is folded. `head` fills the
+ *  caption's right side, told whether the body shows. */
+function Framed({
+  label,
+  head,
+  onKeyDown,
+  children,
+}: {
+  label: string;
+  head?: (open: boolean) => React.ReactNode;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  children: React.ReactNode;
+}) {
+  const fold = useFold();
   return (
-    <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <span className="text-[15px] font-[700]">{title ?? c.heading}</span>
-      {children}
+    <div className="nb-storyboard my-4 block min-w-0 bg-nb-paper" onKeyDown={onKeyDown}>
+      <Caption label={label} variants={null} {...fold}>
+        {head?.(fold.open)}
+      </Caption>
+      {fold.open && <div className="@container px-4 pb-4 text-[13px] leading-5">{children}</div>}
     </div>
   );
 }
+
+const META = "text-[12px] text-nb-ink-soft";
 
 /** A hosted page, which has no file to read. The frame's own Open in app is the way there. */
 export function StoryboardUnavailable({ label }: { label?: string }) {
   const c = useCopy().card.storyboard;
   return (
-    <div className="nb-storyboard min-w-0">
-      <Heading title={label} />
-      <div className="rounded-[8px] bg-nb-wash px-3 py-2.5 text-[13px] text-nb-ink-soft">{c.unavailable}</div>
-    </div>
+    <Framed label={label ?? c.heading}>
+      <div className="rounded-[8px] bg-nb-wash px-3 py-2.5 text-nb-ink-soft">{c.unavailable}</div>
+    </Framed>
   );
 }
 
@@ -128,8 +144,7 @@ function Broken({ view, label }: { view: StoryboardView; label?: string }) {
   const c = useCopy().card.storyboard;
   const { copied, copy } = useCopyText();
   return (
-    <div className="nb-storyboard min-w-0 text-[13px] leading-5">
-      <Heading title={label} />
+    <Framed label={label ?? c.heading}>
       <div role="alert" className="rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
         <div className="font-[700]">{c.needsFixing}</div>
         <div className="mt-0.5">{c.fixHint}</div>
@@ -155,7 +170,7 @@ function Broken({ view, label }: { view: StoryboardView; label?: string }) {
           ))}
         </div>
       </details>
-    </div>
+    </Framed>
   );
 }
 
@@ -384,12 +399,17 @@ function Shots({ shots, ratio, label, name }: { shots: StoryboardShotView[]; rat
   const shot = shots[current];
 
   return (
-    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5" onKeyDown={onKeyDown}>
-      <Heading title={label}>
-        {shots.length > 0 && <span className="text-nb-ink-soft">{c.summary(shots.length, seconds(total))}</span>}
-        <span className="ml-auto text-[11px] text-nb-ink-soft">{c.sketch}</span>
-        <DownloadAll hrefs={shots.flatMap((s) => s.frames.map((f) => f.href))} name={name} />
-      </Heading>
+    <Framed
+      label={label ?? c.heading}
+      onKeyDown={onKeyDown}
+      head={(open) => (
+        <>
+          {shots.length > 0 && <span className={META}>{c.summary(shots.length, seconds(total))}</span>}
+          {open && <span className="text-[11px] text-nb-ink-soft">{c.sketch}</span>}
+          <DownloadAll hrefs={shots.flatMap((s) => s.frames.map((f) => f.href))} name={name} />
+        </>
+      )}
+    >
       {!shot ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.empty}</div>
       ) : (
@@ -445,7 +465,7 @@ function Shots({ shots, ratio, label, name }: { shots: StoryboardShotView[]; rat
           <Shot key={shot.id} shot={shot} ratio={ratio} />
         </>
       )}
-    </div>
+    </Framed>
   );
 }
 
@@ -554,12 +574,16 @@ function Slides({
   const slide = slides[current];
 
   return (
-    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5" onKeyDown={onKeyDown}>
-      <Heading title={label ?? c.slidesHeading}>
-        {slides.length > 0 && <span className="text-nb-ink-soft">{c.pages(slides.length)}</span>}
-        <span className="ml-auto" />
-        <DownloadAll hrefs={slides.map((s) => (s.preview.page ? null : s.preview.href))} name={name} />
-      </Heading>
+    <Framed
+      label={label ?? c.slidesHeading}
+      onKeyDown={onKeyDown}
+      head={() => (
+        <>
+          {slides.length > 0 && <span className={META}>{c.pages(slides.length)}</span>}
+          <DownloadAll hrefs={slides.map((s) => (s.preview.page ? null : s.preview.href))} name={name} />
+        </>
+      )}
+    >
       {!slide ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.emptySlides}</div>
       ) : (
@@ -594,7 +618,7 @@ function Slides({
           <Slide key={slide.id} slide={slide} ratio={ratio} size={size} />
         </>
       )}
-    </div>
+    </Framed>
   );
 }
 
