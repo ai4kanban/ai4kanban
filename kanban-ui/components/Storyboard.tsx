@@ -1,16 +1,15 @@
 "use client";
 
 // A card's static storyboard (#963): the script a `<Storyboard>` tag points at, read and
-// checked on the server (lib/storyboard.ts). A timeline of thumbnails on top, each in its
-// picture's own shape and scrolled natively when it overflows; under it every shot, picture
-// left and script right, stacked once the body is narrower than 640px. A slide deck's storyboard
-// (#969) is the same layout with pages instead of shots: a preview per slide and no timing. A
-// slide with no notes takes the full width, a tall one capped to fit the screen (#1117). A slide's
-// preview may be an HTML/TSX page, drawn on the deck's canvas and scaled to fit (#1742).
+// checked on the server (lib/storyboard.ts). A timeline on top, then only the current shot
+// (#1786): its pictures side by side, then its script in two columns. A storyboard with no
+// pictures gets a row of shot chips instead of thumbnails. A slide deck (#969) pages the same
+// way: a preview per slide and no timing; a slide with no notes takes the full width, capped
+// to fit the screen (#1117), and its preview may be an HTML/TSX page (#1742).
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState } from "react";
-import { FiAlertTriangle, FiCheck, FiChevronRight, FiCopy, FiDownload, FiLoader, FiMaximize2, FiRotateCw } from "react-icons/fi";
+import { useEffect, useRef, useState } from "react";
+import { FiAlertTriangle, FiCheck, FiChevronLeft, FiChevronRight, FiCopy, FiDownload, FiLoader, FiMaximize2, FiRotateCw } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { formatDiagnostic, type StoryboardSize } from "@/lib/storyboard-check";
 import { zip } from "@/lib/zip";
@@ -24,6 +23,7 @@ const seconds = (n: number) => String(Number(n.toFixed(2)));
 // A thumbnail fits a 120 × 96 box; a picture with no notes is at most this tall.
 const thumbWidth = (ratio: number) => Math.min(120, 96 * ratio);
 const PAGE_HEIGHT = "min(560px, 70vh)";
+const FRAME_HEIGHT = "min(360px, 45vh)";
 const SOFT_BUTTON =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] nb-focus";
 
@@ -321,85 +321,159 @@ function LargePage({ page, size, title }: { page: { doc: string; scripts?: boole
   );
 }
 
+/** One shot or slide at a time (#1786): its index, pager and ←/→ while focus is inside, and a
+ *  timeline that keeps the current item in view. */
+function usePager(count: number) {
+  const [current, setCurrent] = useState(0);
+  const strip = useRef<HTMLDivElement>(null);
+  const k = Math.min(current, Math.max(0, count - 1));
+  useEffect(() => {
+    const box = strip.current;
+    const item = box?.querySelectorAll<HTMLElement>("[data-item]")[k];
+    if (!box || !item) return;
+    const left = item.offsetLeft - 3;
+    const right = item.offsetLeft + item.offsetWidth + 3;
+    if (left < box.scrollLeft) box.scrollTo({ left, behavior: "smooth" });
+    else if (right > box.scrollLeft + box.clientWidth) box.scrollTo({ left: right - box.clientWidth, behavior: "smooth" });
+  }, [k]);
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || !e.currentTarget.contains(e.target as Node)) return;
+    const next = k + (e.key === "ArrowLeft" ? -1 : 1);
+    if (next < 0 || next >= count) return;
+    e.preventDefault();
+    setCurrent(next);
+  };
+  return { current: k, go: setCurrent, strip, onKeyDown };
+}
+
+const PAGER_BUTTON =
+  "nb-tip inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-nb-wash text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-nb-wash nb-focus";
+
+function Pager({ head, current, count, go, prev, next }: { head: React.ReactNode; current: number; count: number; go: (k: number) => void; prev: string; next: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <div className="min-w-0 font-[700] text-nb-accent-deep">{head}</div>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <button type="button" className={PAGER_BUTTON} data-tip={prev} aria-label={prev} disabled={current === 0} onClick={() => go(current - 1)}>
+          <FiChevronLeft size={15} aria-hidden />
+        </button>
+        <span className="min-w-[44px] text-center text-[12px] text-nb-ink-soft tabular-nums">
+          {current + 1} / {count}
+        </span>
+        <button
+          type="button"
+          className={PAGER_BUTTON}
+          data-tip={next}
+          aria-label={next}
+          disabled={current === count - 1}
+          onClick={() => go(current + 1)}
+        >
+          <FiChevronRight size={15} aria-hidden />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Shots({ shots, ratio, label, name }: { shots: StoryboardShotView[]; ratio: number; label?: string; name: string }) {
   const c = useCopy().card.storyboard;
-  const base = useId();
-  const [current, setCurrent] = useState(0);
-  const anchor = (k: number) => `${base}-${k}`;
+  const { current, go, strip, onKeyDown } = usePager(shots.length);
   const total = shots.length ? shots[shots.length - 1]!.end : 0;
-
-  const go = (k: number) => {
-    setCurrent(k);
-    document.getElementById(anchor(k))?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const pictured = shots.some((s) => s.frames.length > 0);
+  const shot = shots[current];
 
   return (
-    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5">
+    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5" onKeyDown={onKeyDown}>
       <Heading title={label}>
         {shots.length > 0 && <span className="text-nb-ink-soft">{c.summary(shots.length, seconds(total))}</span>}
         <span className="ml-auto text-[11px] text-nb-ink-soft">{c.sketch}</span>
         <DownloadAll hrefs={shots.flatMap((s) => s.frames.map((f) => f.href))} name={name} />
       </Heading>
-      {shots.length === 0 ? (
+      {!shot ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.empty}</div>
       ) : (
         <>
-          <div className="mb-6 overflow-x-auto" role="group" aria-label={c.timeline}>
-            <div className="flex w-max gap-2 p-[3px]">
-              {shots.map((shot, k) => (
+          {pictured ? (
+            <div ref={strip} className="relative mb-4 overflow-x-auto" role="group" aria-label={c.timeline}>
+              <div className="flex w-max gap-2 p-[3px]">
+                {shots.map((s, k) => (
+                  <button
+                    key={s.id}
+                    data-item
+                    type="button"
+                    onClick={() => go(k)}
+                    aria-current={k === current ? "true" : undefined}
+                    aria-label={`${s.id} · ${seconds(s.end - s.start)}s`}
+                    className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
+                    style={{ width: thumbWidth(s.frames[0]?.ratio ?? ratio) }}
+                  >
+                    <Thumb frame={s.frames[0] ?? BLANK} ratio={ratio} current={k === current} />
+                    <div className="flex justify-between gap-1 px-1 pt-1 text-[11px]">
+                      <span className="font-[700]">{s.id.slice(1)}</span>
+                      <span className="text-nb-ink-soft">{seconds(s.end - s.start)}s</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label={c.timeline}>
+              {shots.map((s, k) => (
                 <button
-                  key={shot.id}
+                  key={s.id}
                   type="button"
                   onClick={() => go(k)}
                   aria-current={k === current ? "true" : undefined}
-                  aria-label={`${shot.id} · ${seconds(shot.end - shot.start)}s`}
-                  className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
-                  style={{ width: thumbWidth(shot.frames[0]?.ratio ?? ratio) }}
+                  aria-label={`${s.id} · ${seconds(s.end - s.start)}s`}
+                  className={`inline-flex cursor-pointer items-baseline gap-1.5 rounded-[6px] px-2 py-1 text-[11px] nb-focus ${k === current ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash"}`}
                 >
-                  {shot.frames[0] && <Thumb frame={shot.frames[0]} ratio={ratio} current={k === current} />}
-                  <div
-                    className={`flex justify-between gap-1 px-1 pt-1 text-[11px] ${shot.frames.length === 0 && k === current ? "text-nb-accent-deep" : ""}`}
-                  >
-                    <span className="font-[700]">{shot.id.slice(1)}</span>
-                    <span className="text-nb-ink-soft">{seconds(shot.end - shot.start)}s</span>
-                  </div>
+                  <span className="font-[700]">{s.id.slice(1)}</span>
+                  <span className={k === current ? "" : "text-nb-ink-soft"}>{seconds(s.end - s.start)}s</span>
                 </button>
               ))}
             </div>
-          </div>
-          <div className="flex flex-col gap-8">
-            {shots.map((shot, k) => (
-              <Shot key={shot.id} id={anchor(k)} shot={shot} ratio={ratio} current={k === current} />
-            ))}
-          </div>
+          )}
+          <Pager
+            head={`${shot.id} · ${seconds(shot.start)}–${seconds(shot.end)}s`}
+            current={current}
+            count={shots.length}
+            go={go}
+            prev={c.prevShot}
+            next={c.nextShot}
+          />
+          <Shot key={shot.id} shot={shot} ratio={ratio} />
         </>
       )}
     </div>
   );
 }
 
-function Shot({ id, shot, ratio, current }: { id: string; shot: StoryboardShotView; ratio: number; current: boolean }) {
+const BLANK: StoryboardFrameView = { src: "", alt: "", href: null, ratio: null };
+
+function Shot({ shot, ratio }: { shot: StoryboardShotView; ratio: number }) {
   const c = useCopy().card.storyboard;
   const pair = shot.frames.length === 2;
+  const captions = shot.captions.filter((line) => line.trim()).join(" / ");
   return (
-    <section id={id} className="scroll-mt-4" aria-current={current ? "true" : undefined}>
-      <div className={`mb-2 font-[700] ${current ? "text-nb-accent-deep" : ""}`}>
-        {shot.id} · {seconds(shot.start)}–{seconds(shot.end)}s
-      </div>
-      <div
-        className={`grid items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4 ${shot.frames.length ? "grid-cols-2" : "grid-cols-1"}`}
-      >
-        {shot.frames.length > 0 && (
-          <div className="flex min-w-0 flex-col gap-3">
-            {shot.frames.map((frame, k) => (
-              <div key={k}>
-                {pair && <div className="mb-1 text-[11px] font-[700]">{k === 0 ? c.start : c.end}</div>}
-                <Frame frame={frame} ratio={ratio} />
-              </div>
-            ))}
-          </div>
-        )}
+    <section aria-label={shot.id}>
+      {shot.frames.length > 0 && (
+        <div className="mb-5 flex gap-4">
+          {shot.frames.map((frame, k) => (
+            // Two to a row, and short enough that a tall picture still leaves the script on screen.
+            <div key={k} className="min-w-0" style={{ width: `min(calc((100% - 16px) / 2), calc(${FRAME_HEIGHT} * ${frame.ratio ?? ratio}))` }}>
+              {pair && <div className="mb-1 text-[11px] font-[700]">{k === 0 ? c.start : c.end}</div>}
+              <Frame frame={frame} ratio={ratio} />
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="grid grid-cols-2 items-start gap-x-4 gap-y-4 @max-[640px]:grid-cols-1">
         <div className="flex min-w-0 flex-col gap-4">
+          <div>
+            <div className="mb-1 font-[700]">{c.action}</div>
+            <div>{shot.action}</div>
+          </div>
           <div>
             <div className="mb-1 font-[700]">{c.voiceover}</div>
             {shot.voiceover.mode === "spoken" ? (
@@ -411,28 +485,24 @@ function Shot({ id, shot, ratio, current }: { id: string; shot: StoryboardShotVi
               <div className="text-nb-ink-soft">{c.noVoiceover}</div>
             )}
           </div>
-          <div>
-            <div className="mb-1 font-[700]">{c.action}</div>
-            <div>{shot.action}</div>
-          </div>
-          <details className="group">
+          {captions && (
+            <div>
+              <div className="mb-1 font-[700]">{c.captions}</div>
+              <div>{captions}</div>
+            </div>
+          )}
+        </div>
+        {shot.details.trim() && (
+          <details open className="group min-w-0">
             <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft nb-focus">
               <FiChevronRight size={13} aria-hidden className="transition-transform group-open:rotate-90" />
               {c.details}
             </summary>
-            <div className="mt-2 text-nb-ink-soft">
+            <div className="mt-1 text-nb-ink-soft">
               <Markdown body={shot.details} className="text-[13px]" />
-              {shot.captions.length > 0 && (
-                <div className="mt-3">
-                  <div className="mb-1 font-[700] text-nb-ink">{c.captions}</div>
-                  {shot.captions.map((line, k) => (
-                    <div key={k}>{line}</div>
-                  ))}
-                </div>
-              )}
             </div>
           </details>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -480,70 +550,55 @@ function Slides({
   name: string;
 }) {
   const c = useCopy().card.storyboard;
-  const base = useId();
-  const [current, setCurrent] = useState(0);
-  const anchor = (k: number) => `${base}-${k}`;
-
-  const go = (k: number) => {
-    setCurrent(k);
-    document.getElementById(anchor(k))?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const { current, go, strip, onKeyDown } = usePager(slides.length);
+  const slide = slides[current];
 
   return (
-    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5">
+    <div className="nb-storyboard @container min-w-0 text-[13px] leading-5" onKeyDown={onKeyDown}>
       <Heading title={label ?? c.slidesHeading}>
         {slides.length > 0 && <span className="text-nb-ink-soft">{c.pages(slides.length)}</span>}
         <span className="ml-auto" />
         <DownloadAll hrefs={slides.map((s) => (s.preview.page ? null : s.preview.href))} name={name} />
       </Heading>
-      {slides.length === 0 ? (
+      {!slide ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.emptySlides}</div>
       ) : (
         <>
-          <div className="mb-6 overflow-x-auto" role="group" aria-label={c.slidesTimeline}>
+          <div ref={strip} className="relative mb-4 overflow-x-auto" role="group" aria-label={c.slidesTimeline}>
             <div className="flex w-max gap-2 p-[3px]">
-              {slides.map((slide, k) => (
+              {slides.map((s, k) => (
                 <button
-                  key={slide.id}
+                  key={s.id}
+                  data-item
                   type="button"
                   onClick={() => go(k)}
                   aria-current={k === current ? "true" : undefined}
-                  aria-label={`${k + 1} · ${slide.title}`}
+                  aria-label={`${k + 1} · ${s.title}`}
                   className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
-                  style={{ width: thumbWidth(slide.preview.ratio ?? ratio) }}
+                  style={{ width: thumbWidth(s.preview.ratio ?? ratio) }}
                 >
-                  <Thumb frame={slide.preview} ratio={ratio} size={size} current={k === current} />
+                  <Thumb frame={s.preview} ratio={ratio} size={size} current={k === current} />
                   <div className="px-1 pt-1 text-[11px] font-[700]">{k + 1}</div>
                 </button>
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-8">
-            {slides.map((slide, k) => (
-              <Slide key={slide.id} id={anchor(k)} slide={slide} ratio={ratio} size={size} page={k + 1} current={k === current} />
-            ))}
-          </div>
+          <Pager
+            head={`${current + 1} · ${slide.title}`}
+            current={current}
+            count={slides.length}
+            go={go}
+            prev={c.prevSlide}
+            next={c.nextSlide}
+          />
+          <Slide key={slide.id} slide={slide} ratio={ratio} size={size} />
         </>
       )}
     </div>
   );
 }
 
-function Slide({
-  id,
-  slide,
-  ratio,
-  size,
-  page,
-  current,
-}: {
-  id: string;
-  slide: StoryboardSlideView;
-  ratio: number;
-  size: StoryboardSize;
-  page: number;
-  current: boolean;
-}) {
+function Slide({ slide, ratio, size }: { slide: StoryboardSlideView; ratio: number; size: StoryboardSize }) {
   const c = useCopy().card.storyboard;
   const notes = slide.notes?.trim();
   const shape = slide.preview.ratio ?? ratio;
@@ -553,10 +608,7 @@ function Slide({
     <Frame frame={slide.preview} ratio={ratio} missing={c.noPreview} />
   );
   return (
-    <section id={id} className="scroll-mt-4" aria-current={current ? "true" : undefined}>
-      <div className={`mb-2 font-[700] ${current ? "text-nb-accent-deep" : ""}`}>
-        {page} · {slide.title}
-      </div>
+    <section aria-label={slide.title}>
       {notes ? (
         <div className="grid grid-cols-2 items-start gap-6 @max-[640px]:grid-cols-1 @max-[640px]:gap-4">
           <div className="min-w-0 overflow-hidden rounded-[6px]">{frame}</div>

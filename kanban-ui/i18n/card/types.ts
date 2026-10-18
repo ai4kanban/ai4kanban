@@ -303,6 +303,8 @@ export type CardCopy = {
     summary: (shots: number, seconds: string) => string;
     sketch: string;
     timeline: string;
+    prevShot: string;
+    nextShot: string;
     voiceover: string;
     noVoiceover: string;
     action: string;
@@ -322,6 +324,8 @@ export type CardCopy = {
     slidesHeading: string;
     pages: (slides: number) => string;
     slidesTimeline: string;
+    prevSlide: string;
+    nextSlide: string;
     notes: string;
     noPreview: string;
     emptySlides: string;
