@@ -49,7 +49,7 @@ const zh: HomeCopy = {
       { label: "轮播帖", image: "轮播帖草稿：逐页文案与内容大纲。" },
       { label: "视频克隆（代码生成的视频）", image: "视频克隆草稿：原片拆解与复刻分镜。" },
     ],
-    links: { demo: "体验演示", coding: "了解软件开发工作流", all: "查看全部 agent 与工作流" },
+    links: { demo: "体验演示", all: "查看全部 agent 与工作流" },
   },
 
   parallel: {

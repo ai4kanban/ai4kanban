@@ -9,7 +9,7 @@ import type { HomeCopy } from "@/i18n/home/types";
 // phone keeps only the sessions: the deck and the graph are unreadable at that width.
 export function Parallel({ c }: { c: HomeCopy["parallel"] }) {
   return (
-    <section className="mt-28">
+    <section className="mt-16">
       <SectionTitle title={c.title} />
       {c.body.map((p) => (
         <p key={p} data-reveal data-delay="1" className="mt-4 max-w-3xl text-[1.05rem] leading-relaxed text-muted">

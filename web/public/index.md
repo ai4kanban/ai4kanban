@@ -18,7 +18,7 @@ With 6 built-in workflows, specialist agents share your project context and hand
 - **Carousel post**: Page copy and content outline.
 - **Video clone (code-generated videos)**: The source breakdown and clone storyboard.
 
-[Try the demo](https://ai4kanban.dev/demo) · [Explore the coding workflow](https://ai4kanban.dev/workflows/coding) · [See all agents and workflows](https://ai4kanban.dev/docs/agents)
+[Try the demo](https://ai4kanban.dev/demo) · [See all agents and workflows](https://ai4kanban.dev/docs/agents)
 
 ## Move independent work forward together
 

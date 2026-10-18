@@ -69,7 +69,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
           <Review c={c.review} />
-          <Workflows c={c.workflows} locale={locale} />
+          <Workflows c={c.workflows} />
           <Parallel c={c.parallel} />
           <Story title={c.agents.title} body={c.agents.body} scene={<MemoryScene label={c.agents.image} />} />
           <Story

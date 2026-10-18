@@ -72,7 +72,6 @@ const fr: HomeCopy = {
     ],
     links: {
       demo: "Essayer la démo",
-      coding: "Découvrir le workflow de développement",
       all: "Voir tous les agents et workflows",
     },
   },

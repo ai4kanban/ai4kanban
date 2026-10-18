@@ -4,8 +4,6 @@ import { SectionTitle } from "./SectionTitle";
 import { Mat, printFrame } from "./Mat";
 import type { WashName } from "./washes";
 import type { HomeCopy } from "@/i18n/home/types";
-import { localePath, type Locale } from "@/lib/i18n";
-import { workflowPath } from "@/lib/workflows";
 
 // One card per workflow: its draft, drawn by the board's own components on /demo/drafts/<kind>
 // and framed here, with the workflow's name under it. The title and lede scroll past; then the
@@ -45,7 +43,7 @@ body{overflow-x:clip}
 }
 }}`;
 
-export function Workflows({ c, locale }: { c: HomeCopy["workflows"]; locale: Locale }) {
+export function Workflows({ c }: { c: HomeCopy["workflows"] }) {
   return (
     <section id="workflows" className="mt-28 scroll-mt-24">
       <style>{PIN_CSS}</style>
@@ -82,19 +80,13 @@ export function Workflows({ c, locale }: { c: HomeCopy["workflows"]; locale: Loc
               <FiPlay className="h-4 w-4 shrink-0" aria-hidden="true" />
               {c.links.demo}
             </Button>
-            {[
-              { href: localePath(locale, workflowPath("coding")), label: c.links.coding },
-              { href: "/docs/agents", label: c.links.all },
-            ].map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="inline-flex items-center gap-1.5 text-[0.95rem] font-semibold text-accent-deep hover:underline"
-              >
-                {l.label}
-                <FiArrowRight className="h-4 w-4" aria-hidden="true" />
-              </a>
-            ))}
+            <a
+              href="/docs/agents"
+              className="inline-flex items-center gap-1.5 text-[0.95rem] font-semibold text-accent-deep hover:underline"
+            >
+              {c.links.all}
+              <FiArrowRight className="h-4 w-4" aria-hidden="true" />
+            </a>
           </div>
         </div>
       </div>

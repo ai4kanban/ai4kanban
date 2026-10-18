@@ -53,8 +53,8 @@ export type HomeCopy = {
     title: string;
     lead: string;
     items: [Workflow, Workflow, Workflow, Workflow, Workflow, Workflow];
-    /** The links under the cards: the demo, the coding workflow page, every agent. */
-    links: { demo: string; coding: string; all: string };
+    /** The links under the cards: the demo and every agent. */
+    links: { demo: string; all: string };
   };
   parallel: {
     title: string;

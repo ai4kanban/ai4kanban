@@ -71,7 +71,6 @@ const es: HomeCopy = {
     ],
     links: {
       demo: "Probar la demo",
-      coding: "Explora el flujo de desarrollo",
       all: "Consulta todos los agentes y flujos",
     },
   },

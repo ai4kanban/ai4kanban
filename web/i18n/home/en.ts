@@ -61,7 +61,6 @@ const en: HomeCopy = {
     ],
     links: {
       demo: "Try the demo",
-      coding: "Explore the coding workflow",
       all: "See all agents and workflows",
     },
   },
