@@ -1,0 +1,37 @@
+---
+title: "Review follow-up suggestions"
+title_tag: "AI4Kanban follow-ups — find gaps after delivery"
+description: "Catch omissions after delivery and check changed features without repeating every check yourself. Review suggestions in Triage and choose how much follow-up you want."
+lead: "Finishing a task can reveal something else worth doing. Follow-up suggestions help you catch omissions; recurring checks help you spot broken user flows without repeating every check yourself."
+last_updated: "October 18, 2026"
+nav_label: "Follow-ups"
+icon: "repeat"
+---
+
+## Find suggestions after delivery
+
+You do not have to trace every loose end yourself after a delivery. **Suggest follow-up work** reviews completed tasks for work they left behind or made worth doing next:
+
+- **Check what was asked for and delivered.** It reads the completed cards, their related discussions and the delivered work to identify possible gaps or useful next steps.
+- **Verify the need.** It checks the project for evidence, such as a new feature whose setup instructions are still missing. Unsupported guesses are left out.
+- **Avoid work you do not need.** It filters out existing tasks, duplicate suggestions, work you turned down and work already covered by scheduled agents.
+
+The remaining suggestions arrive in **Triage**, linked to the completed task so you can see why each one matters. If nothing is worth following up, it adds nothing. Builds and plans can also identify follow-ups along the way.
+
+Under **Configuration → Board → Suggest follow-up work**, use **Small fixes** to choose how much attention to give minor work:
+
+- **Ask me first**: review suggestions before they become tasks.
+- **Just do them**: let small fixes become tasks and build automatically, saving you a decision on each one.
+- **Don't suggest**: leave small fixes out so you can focus on mainline work.
+
+This setting only controls small fixes; other follow-up suggestions still arrive.
+
+## Decide what becomes work
+
+Read each suggestion and its source in [Triage](/docs/triage), then decide whether to make it a task, discuss it or ignore it. Recording why you ignore an item helps steer future suggestions. That page also covers Pro automatic sorting, which can create cards but does not start builds.
+
+## Set up recurring checks
+
+Coding's **QA manager** helps catch broken user flows after changes. On each run, it updates the test cases affected by finished cards, runs their steps and records screenshots or logs. It also adds coverage for one area of the product still missing tests. Failures go to **Triage** with the case and step, so you can see what failed before deciding what to fix. Read the evidence in [Test cases](/docs/daily-loop#test-cases).
+
+Under **Configuration → Workflows → Coding → Scheduled**, open **QA manager** to choose how often it runs. Keep it enabled for ongoing checks, run it less often to reduce agent usage, or choose **Disable** if you prefer to handle these checks yourself. **Run now** lets you request a check even while it is disabled. See [Run an agent on a schedule](/docs/agents#run-an-agent-on-a-schedule) for the controls.

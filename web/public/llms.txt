@@ -35,6 +35,7 @@ Markdown, so these need no separate mirror.
 - [Your first card](https://ai4kanban.dev/docs/first-card): Follow an idea through planning, review the screen draft, request changes, then build and check the delivered work.
 - [Draft review](https://ai4kanban.dev/docs/drafts): See the final version of the parts you care about most, change it on the card, and approve what agents will build.
 - [Memory](https://ai4kanban.dev/docs/memory): How project memory, agent memory and global memory carry your preferences forward, and how they stay current without you.
+- [Follow-ups](https://ai4kanban.dev/docs/follow-ups): Catch omissions after delivery and check changed features without repeating every check yourself. Review suggestions in Triage and choose how much follow-up you want.
 - [Workflows](https://ai4kanban.dev/docs/workflows): Use six built-in workflows for development and marketing, let AI4Kanban match your request to a workflow, or create your own.
 - [The daily loop](https://ai4kanban.dev/docs/daily-loop): The rhythm once the board exists: pick what to work on, add and refine cards, build one end to end, check what it leaves you, and finish it.
 - [Chat](https://ai4kanban.dev/docs/chat): Explore an idea, request draft changes or update a card in a conversation with your board's context.
