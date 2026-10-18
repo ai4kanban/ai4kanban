@@ -2,8 +2,9 @@
 
 // A card's static storyboard (#963): the script a `<Storyboard>` tag points at, read and
 // checked on the server (lib/storyboard.ts). A timeline on top, then only the current shot
-// (#1786): its pictures side by side, then its script in two columns. A storyboard with no
-// pictures gets a row of shot chips instead of thumbnails. A slide deck (#969) pages the same
+// (#1786). One picture sits left of its script; a start and end frame sit side by side over
+// a two-column script; below 640px everything stacks (#1792). A storyboard with no pictures
+// gets a row of shot chips instead of thumbnails. A slide deck (#969) pages the same
 // way: a preview per slide and no timing; a slide with no notes takes the full width, capped
 // to fit the screen (#1117), and its preview may be an HTML/TSX page (#1742). Each sits in an
 // `<Asset>`'s frame and folds the same way (#1788).
@@ -475,13 +476,67 @@ function Shot({ shot, ratio }: { shot: StoryboardShotView; ratio: number }) {
   const c = useCopy().card.storyboard;
   const pair = shot.frames.length === 2;
   const captions = shot.captions.filter((line) => line.trim()).join(" / ");
+  // Short enough that a tall picture still leaves the script on screen.
+  const tall = (frame: StoryboardFrameView) => `calc(${FRAME_HEIGHT} * ${frame.ratio ?? ratio})`;
+  const frameBox = (frame: StoryboardFrameView, share: string) =>
+    ({ "--w": `min(${share}, ${tall(frame)})`, "--w-narrow": `min(100%, ${tall(frame)})` }) as React.CSSProperties;
+  const FRAME_BOX = "min-w-0 w-(--w) @max-[640px]:w-(--w-narrow)";
+  const script = (
+    <div className="flex min-w-0 flex-col gap-4">
+      <div>
+        <div className="mb-1 font-[700]">{c.action}</div>
+        <div>{shot.action}</div>
+      </div>
+      <div>
+        <div className="mb-1 font-[700]">{c.voiceover}</div>
+        {shot.voiceover.mode === "spoken" ? (
+          <>
+            <div>{shot.voiceover.text}</div>
+            <div className="mt-1 text-[12px] text-nb-ink-soft">{shot.voiceover.source}</div>
+          </>
+        ) : (
+          <div className="text-nb-ink-soft">{c.noVoiceover}</div>
+        )}
+      </div>
+      {captions && (
+        <div>
+          <div className="mb-1 font-[700]">{c.captions}</div>
+          <div>{captions}</div>
+        </div>
+      )}
+    </div>
+  );
+  const details = shot.details.trim() && (
+    <details open className="group min-w-0">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft nb-focus">
+        <FiChevronRight size={13} aria-hidden className="transition-transform group-open:rotate-90" />
+        {c.details}
+      </summary>
+      <div className="mt-1 text-nb-ink-soft">
+        <Markdown body={shot.details} className="text-[13px]" />
+      </div>
+    </details>
+  );
+  if (shot.frames.length === 1) {
+    const frame = shot.frames[0]!;
+    return (
+      <section aria-label={shot.id} className="flex items-start gap-5 @max-[640px]:flex-col">
+        <div className={FRAME_BOX} style={frameBox(frame, "58%")}>
+          <Frame frame={frame} ratio={ratio} />
+        </div>
+        <div className="flex min-w-[240px] flex-1 flex-col gap-4 @max-[640px]:min-w-0 @max-[640px]:self-stretch">
+          {script}
+          {details}
+        </div>
+      </section>
+    );
+  }
   return (
     <section aria-label={shot.id}>
       {shot.frames.length > 0 && (
-        <div className="mb-5 flex gap-4">
+        <div className="mb-5 flex gap-4 @max-[640px]:flex-col">
           {shot.frames.map((frame, k) => (
-            // Two to a row, and short enough that a tall picture still leaves the script on screen.
-            <div key={k} className="min-w-0" style={{ width: `min(calc((100% - 16px) / 2), calc(${FRAME_HEIGHT} * ${frame.ratio ?? ratio}))` }}>
+            <div key={k} className={FRAME_BOX} style={frameBox(frame, "calc((100% - 16px) / 2)")}>
               {pair && <div className="mb-1 text-[11px] font-[700]">{k === 0 ? c.start : c.end}</div>}
               <Frame frame={frame} ratio={ratio} />
             </div>
@@ -489,40 +544,8 @@ function Shot({ shot, ratio }: { shot: StoryboardShotView; ratio: number }) {
         </div>
       )}
       <div className="grid grid-cols-2 items-start gap-x-4 gap-y-4 @max-[640px]:grid-cols-1">
-        <div className="flex min-w-0 flex-col gap-4">
-          <div>
-            <div className="mb-1 font-[700]">{c.action}</div>
-            <div>{shot.action}</div>
-          </div>
-          <div>
-            <div className="mb-1 font-[700]">{c.voiceover}</div>
-            {shot.voiceover.mode === "spoken" ? (
-              <>
-                <div>{shot.voiceover.text}</div>
-                <div className="mt-1 text-[12px] text-nb-ink-soft">{shot.voiceover.source}</div>
-              </>
-            ) : (
-              <div className="text-nb-ink-soft">{c.noVoiceover}</div>
-            )}
-          </div>
-          {captions && (
-            <div>
-              <div className="mb-1 font-[700]">{c.captions}</div>
-              <div>{captions}</div>
-            </div>
-          )}
-        </div>
-        {shot.details.trim() && (
-          <details open className="group min-w-0">
-            <summary className="flex w-fit cursor-pointer list-none items-center gap-1 font-[600] text-nb-ink-soft nb-focus">
-              <FiChevronRight size={13} aria-hidden className="transition-transform group-open:rotate-90" />
-              {c.details}
-            </summary>
-            <div className="mt-1 text-nb-ink-soft">
-              <Markdown body={shot.details} className="text-[13px]" />
-            </div>
-          </details>
-        )}
+        {script}
+        {details}
       </div>
     </section>
   );
