@@ -159,6 +159,18 @@ describe('akb cloud template', () => {
     assert.deepEqual(fs.readdirSync(to), ['hero-tilted-screen-cover.png'])
   })
 
+  it('keeps a preview already named after the template as it is', async () => {
+    signIn()
+    serve({
+      '/hero-tilted-screen/previews': json({ previews: [{ path: 'hero-tilted-screen-cover.png', size: 3 }] }),
+      '/hero-tilted-screen/previews/hero-tilted-screen-cover.png': () => new Response('png'),
+    })
+    const to = path.join(home, 'assets')
+    const { code } = await akb(['cloud', 'template', 'preview', 'hero-tilted-screen', '--to', to])
+    assert.equal(code, 0)
+    assert.deepEqual(fs.readdirSync(to), ['hero-tilted-screen-cover.png'])
+  })
+
   it('writes a template only when every file matches its hash, and never over a file', async () => {
     signIn()
     const files = { 'template.md': '# Hero', 'src/hero.tsx': 'export {}' }

@@ -139,7 +139,8 @@ export async function templateSearch(
   return { templates }
 }
 
-/** `akb cloud template preview <name> --to <dir>` — its catalog previews, as `<name>-<file>`. */
+/** `akb cloud template preview <name> --to <dir>` — its catalog previews, as `<name>-<file>`
+ * unless the file already starts with `<name>-`. */
 export async function templatePreview(name: string, opts: { to?: string }, program: string): Promise<MoveResult> {
   if (!opts.to) usage('Missing --to.', `${program} cloud template preview <name> --to <dir>`)
   const at = encodeURIComponent(name)
@@ -148,7 +149,8 @@ export async function templatePreview(name: string, opts: { to?: string }, progr
   const written: string[] = []
   for (const p of previews) {
     const bytes = Buffer.from(await (await ask(`/${at}/previews/${route(p.path)}`, {}, WITHOUT)).arrayBuffer())
-    const out = path.join(opts.to, `${name}-${path.basename(p.path)}`)
+    const file = path.basename(p.path)
+    const out = path.join(opts.to, file.startsWith(`${name}-`) ? file : `${name}-${file}`)
     fs.mkdirSync(opts.to, { recursive: true })
     fs.writeFileSync(out, bytes)
     written.push(out)

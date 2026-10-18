@@ -441,7 +441,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 
   withShared(template.command('preview'))
     .argument('<name>', 'the template')
-    .summary("download a template's catalog previews, as <name>-<file>")
+    .summary("download a template's catalog previews, as <name>-<file> unless already so named")
     .option('--to <dir>', 'the folder to write them into')
     .action(async function (this: Command, name: string) {
       await boardless(this, cli, (p) => templatePreview(name, this.opts() as { to?: string }, p))
