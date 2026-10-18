@@ -1,74 +1,114 @@
 ---
 title: "AI4Kanban documentation"
-title_tag: "AI4Kanban documentation — the board, the loop, the agents"
-description: "How to run AI4Kanban, the kanban board for AI agents: install it, drive the daily loop, and pick the coding agent your work runs on."
-lead: "You set the direction. AI leads the team. AI4Kanban organizes your agents and brings you only the decisions and results that need you."
-last_updated: "September 29, 2026"
+title_tag: "AI4Kanban docs — an agent workspace for indie hackers"
+description: "Set up AI4Kanban, review key drafts before execution, and deliver development and marketing work with six built-in workflows."
+lead: "An agent workspace for indie hackers. Review the parts that need your judgment before agents build, so you can catch problems early and reduce rework."
+last_updated: "October 18, 2026"
 nav_label: "Overview"
 icon: "compass"
 ---
 
-## Install the board
+AI4Kanban brings development and marketing onto one board. Built-in workflows bring in the specialist agents each task needs, with shared project context, so you can start without designing an agent team yourself.
 
-<InstallBoard download="/download">
-
-```sh
-npm install -g ai4kanban@latest
-akb install
-```
-
-</InstallBoard>
-
-Either way, the board is a folder of Markdown in `docs/kanban/` — versioned in git,
-readable by you and by your agent.
-
-## Read this first
+## Install the desktop app
 
 <CardGroup>
-  <Card title="The daily loop" icon="repeat" href="/docs/daily-loop">
-    What to say to pick work, refine a card and build it.
+  <Card title="Download AI4Kanban" icon="download" href="/download">
+    macOS, Windows and Linux.
   </Card>
 </CardGroup>
 
-## Then pick your tooling
+Open your project and finish setup. On a Local board, tasks and memory live in `docs/kanban/` as Markdown you can keep in git.
+
+## Deliver your first card
+
+[Connect a coding agent](/docs/connectors), then start with a small change in your project or follow the interactive demo.
 
 <CardGroup>
-  <Card title="Multi-runtime support" icon="cpu" href="/docs/connectors">
-    Connect your coding tool, choose a runtime for each agent, and set what a run may touch.
+  <Card title="Your first card" icon="target" href="/docs/first-card">
+    Follow an idea through planning, review the screen draft, request changes, then build and try the finished work.
   </Card>
 </CardGroup>
 
-## What it does
+<figure>
+  <img
+    src="/docs/first-card/delivered.webp"
+    alt="The archived card's diff: four files changed in the Notely project, SyncSettings.tsx replacing the password field with a recovery key, and the commit it landed in"
+    width="1620"
+    height="1244"
+    loading="lazy"
+  />
+  <figcaption>The changed files and the commit they landed in. Try the result in your project.</figcaption>
+</figure>
 
-As a few agents become ten, twenty, or more, assigning every task, checking every
-update, and reading every output consumes your day. AI4Kanban acts as your AI project
-manager. It organizes the work and keeps the execution details inside the team,
-bringing you key updates, decisions that need your judgment, and results to approve.
+After your first delivery, use [the daily loop](/docs/daily-loop) to pick work, add tasks and move cards forward.
 
-Agents plan and do the work; you set the direction and approve the results. Two
-workflows are built in: product development, planned and built in one or two sessions, and
-product video, made on your machine from a script you approve and captures of your
-product. Other work needs its own workflows and agents added first.
-AI4Kanban writes and produces; sending and publishing stay with you.
+## Review the parts that need your judgment
 
-## More than one board
+During planning, specialist agents put drafts on the card for the parts that need your judgment, such as a screen, copy or a video script. Review them, request changes and approve the version agents will follow. This lets you catch problems before execution and leave the rest to agents.
 
-One repository can hold more than one board: `akb install --board design/kanban`
-puts a second one anywhere you like. A board away from `docs/kanban` is named rather
-than found, so pass `--board <dir>` on any command, or set `AI4KANBAN_BOARD` — a
-command typed inside the board folder finds it. In the app the folder chip says which
-board you are on, and switches between them.
+<figure>
+  <img
+    src="/docs/first-card/draft.webp"
+    alt="Screen draft of Notely's Sync settings asking for a sync password, with a warning that a forgotten password makes synced notes unrecoverable"
+    width="1504"
+    height="650"
+    loading="lazy"
+  />
+  <figcaption>The first screen draft asks for a sync password. It is a draft, not the built feature.</figcaption>
+</figure>
 
-## Where the rest lives
+Some cards have several review stages, such as copy followed by screen design. Settle the required drafts and questions before pressing **Build**. Small fixes can go straight to implementation when there is no draft or product decision you need to review.
 
-The commands are their own reference: `akb --help` lists them, `akb <noun>`
-lists that noun's verbs, and `akb raw help` the bookkeeping ones. This site says
-what to say, not what to type.
+<CardGroup>
+  <Card title="Review drafts before execution" icon="eye" href="/docs/drafts">
+    See the final version of the parts you care about most, change it on the card, and approve what agents will build.
+  </Card>
+</CardGroup>
 
-The flows themselves — how a card is refined, what goes into memory, how a
-build lands — ship with the command rather than with this site, so
-`akb update` upgrades them all at once. `akb guide` lists them, and
-`akb guide board` is how the board works at all.
+## Choose a workflow for development or marketing
 
-The board app's own reference — what every column, panel, button and setting does
-— is `kanban-ui/README.md` in the [repository](https://github.com/ai4kanban/ai4kanban).
+Six workflows are built in: **Coding**, **Product video**, **Slide deck**, **Carousel post**, **Blog post** and **Video clone**. Describe the task and AI4Kanban matches it to a workflow. Tasks on the same board can use different workflows.
+
+<figure>
+  <img
+    src="/docs/workflows/workflow-on-card.webp"
+    alt="A task card whose Workflow field reads Product video, matched from the request"
+    width="1720"
+    height="880"
+    loading="lazy"
+  />
+  <figcaption>The workflow matched to a request, shown on the task.</figcaption>
+</figure>
+
+**Coding** is free. The other five built-in workflows require [Pro](/pricing). You can also create custom agents and workflows.
+
+<CardGroup>
+  <Card title="Workflows" icon="git-branch" href="/docs/workflows">
+    See what each workflow produces, how a workflow is chosen and how to customize one.
+  </Card>
+</CardGroup>
+
+For examples, see [AI4Kanban for coding](/workflows/coding) and [AI4Kanban for SaaS](/solutions/saas).
+
+## Keep independent tasks moving
+
+Independent cards can run in parallel, so one task does not have to wait for unrelated work. Use priorities and dependencies to choose what comes next, and [Runs and runtimes](/docs/runs) to follow progress and pick the coding agent and model each role runs on.
+
+## Carry preferences forward and catch omissions
+
+Agents keep preferences and decisions relevant to their work, so you have less to explain on later tasks. After delivery, agents suggest follow-up work to fill gaps; recurring checks help spot broken user flows. Review suggestions in **Triage** and choose what becomes work.
+
+<CardGroup>
+  <Card title="Carry preferences into the next task" icon="database" href="/docs/memory">
+    See how project memory, agent memory and global memory carry preferences forward and stay current.
+  </Card>
+  <Card title="Review follow-up suggestions" icon="repeat" href="/docs/follow-ups">
+    Review suggestions in Triage and choose how much follow-up you want.
+  </Card>
+</CardGroup>
+
+## Switch between projects
+
+Click the project chip at the top of the board to see your projects and switch between them. Choose **Open folder…** to add another project; AI4Kanban sets up its board for you.
+

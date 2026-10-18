@@ -31,7 +31,7 @@ content — no navigation, styling, or scripts.
 Every documentation page carries a "Copy page" button that hands you its raw
 Markdown, so these need no separate mirror.
 
-- [Documentation overview](https://ai4kanban.dev/docs): How to run AI4Kanban, the kanban board for AI agents: install it, drive the daily loop, and pick the coding agent your work runs on.
+- [Documentation overview](https://ai4kanban.dev/docs): Set up AI4Kanban, review key drafts before execution, and deliver development and marketing work with six built-in workflows.
 - [Your first card](https://ai4kanban.dev/docs/first-card): Follow an idea through planning, review the screen draft, request changes, then build and check the delivered work.
 - [Draft review](https://ai4kanban.dev/docs/drafts): See the final version of the parts you care about most, change it on the card, and approve what agents will build.
 - [Memory](https://ai4kanban.dev/docs/memory): How project memory, agent memory and global memory carry your preferences forward, and how they stay current without you.
