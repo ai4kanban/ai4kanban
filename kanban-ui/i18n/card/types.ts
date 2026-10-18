@@ -182,8 +182,6 @@ export type CardCopy = {
     workflow: string;
     /** Why the card's workflow cannot start: the stages that have no lead agent it can use. */
     noLead: (stages: string[]) => string;
-    /** The card's stages (#1790), right after the workflow. */
-    stage: string;
     /** Stands in for the name of a workflow the board has deleted. */
     deletedWorkflow: string;
     deletedHint: string;
@@ -202,10 +200,13 @@ export type CardCopy = {
     sourcePlan: string;
     sourceLink: string;
   };
-  /** The band where a finished stage waits on the user (#1790). */
-  approve: {
-    ready: (stage: string) => string;
-    button: (stage: string) => string;
+  /** The block that says where a staged card is and what the user does next (#1808). */
+  stage: {
+    waiting: (stage: string) => string;
+    approve: (next: string) => string;
+    questions: (n: number) => string;
+    running: (stage: string) => string;
+    done: (stage: string) => string;
   };
   subtasks: {
     heading: string;

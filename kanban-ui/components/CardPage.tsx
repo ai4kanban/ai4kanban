@@ -7,6 +7,7 @@ import {
   FiAlertCircle,
   FiArchive,
   FiArrowLeft,
+  FiArrowRightCircle,
   FiCheck,
   FiCheckCircle,
   FiChevronRight,
@@ -1044,52 +1045,73 @@ function WorkflowItem({ card }: { card: Card }) {
   );
 }
 
-// The card's stages (#1790), read-only, right after the workflow; the current one is a pill.
-// `done` ticks the last one too, once its deliverable is on the card.
-function StageItem({ phases, phase, done }: { phases: string[]; phase: number; done: boolean }) {
-  const c = useCopy().card;
+type StageState = "running" | "questions" | "waiting" | "done" | null;
+
+// Where a staged card is and what the user does next (#1808): the stages, one status, and
+// Approve when the current stage waits on it.
+function StageBand({
+  phases,
+  phase,
+  state,
+  questions,
+  approve,
+}: {
+  phases: string[];
+  phase: number;
+  state: StageState;
+  questions: number;
+  approve?: { disabled: boolean; why?: string; onApprove: () => void };
+}) {
+  const s = useCopy().card.stage;
+  const current = phases[phase - 1]!;
+  const done = state === "done";
+  const text = state && { running: s.running(current), questions: s.questions(questions), waiting: s.waiting(current), done: s.done(current) }[state];
+  const ICON = { width: 15, height: 15, flex: "0 0 auto" } as const;
   return (
-    <MetaItem label={c.meta.stage}>
-      <span className="inline-flex h-[15px] items-center gap-1 whitespace-nowrap text-[10px] font-[700] leading-none tracking-[0.04em] text-nb-ink-soft max-md:h-9">
+    <div className="nb-section flex items-center gap-4 bg-nb-sheet py-2 pl-4 pr-2.5 max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:px-3.5 max-md:py-3">
+      <ol className="flex shrink-0 flex-wrap items-center gap-1.5 text-[12px] font-[700] leading-none text-nb-ink-soft">
         {phases.map((name, k) => {
           const n = k + 1;
           const past = n < phase || (done && n === phase);
           return (
-            <span key={k} className="inline-flex items-center gap-1">
-              {k > 0 && <FiChevronRight aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto", opacity: 0.5 }} />}
+            <li key={k} className="inline-flex items-center gap-1.5">
+              {k > 0 && <FiChevronRight aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto", opacity: 0.5 }} />}
               {n === phase && !done ? (
                 <span
                   aria-current="step"
                   className="nb-chip"
-                  style={{ textTransform: "none", background: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)", color: "var(--color-nb-ink)" }}
+                  style={{ textTransform: "none", fontSize: 12, background: "color-mix(in srgb, var(--color-nb-ink) 8%, transparent)", color: "var(--color-nb-ink)" }}
                 >
                   {name}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-[2px]" style={n > phase ? { opacity: 0.5 } : undefined}>
-                  {past && <FiCheck aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto", color: "var(--color-nb-mint-ink)" }} />}
+                  {past && <FiCheck aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto", color: "var(--color-nb-mint-ink)" }} />}
                   {name}
                 </span>
               )}
-            </span>
+            </li>
           );
         })}
-      </span>
-    </MetaItem>
-  );
-}
-
-// The current stage's draft is done (#1790); it stands where the open questions do.
-function ApprovalBand({ stage, disabled, why, onApprove }: { stage: string; disabled: boolean; why?: string; onApprove: () => void }) {
-  const a = useCopy().card.approve;
-  return (
-    <div className="nb-section flex items-center gap-3 bg-nb-sheet py-2.5 pl-3.5 pr-2.5 text-[13px]">
-      <FiCheckCircle aria-hidden className="shrink-0" style={{ width: 14, height: 14, color: "var(--color-nb-mint-ink)" }} />
-      <p className="min-w-0 flex-1 font-[600]">{a.ready(stage)}</p>
-      <Button variant="ghost" size="xs" disabled={disabled} title={why} onClick={onApprove}>
-        <FiCheck className="text-[13px]" aria-hidden />
-        {a.button(stage)}
-      </Button>
+      </ol>
+      {text && (
+        <>
+          <span aria-hidden className="h-5 w-px shrink-0 max-md:hidden" style={{ background: "color-mix(in srgb, var(--color-nb-ink) 15%, transparent)" }} />
+          <p className="flex min-w-0 flex-1 items-center gap-2 text-[14px] font-[700]">
+            {state === "running" && <span aria-hidden className={PULSE_DOT} />}
+            {state === "questions" && <FiHelpCircle aria-hidden style={{ ...ICON, color: "var(--color-nb-accent-deep)" }} />}
+            {state === "waiting" && <FiArrowRightCircle aria-hidden style={{ ...ICON, color: "var(--color-nb-accent-deep)" }} />}
+            {done && <FiCheckCircle aria-hidden style={{ ...ICON, color: "var(--color-nb-mint-ink)" }} />}
+            <span className={state === "running" ? "font-[600] text-nb-ink-soft" : undefined}>{text}</span>
+          </p>
+        </>
+      )}
+      {state === "waiting" && approve && (
+        <Button variant="ghost" size="sm" className="shrink-0 max-md:w-full" disabled={approve.disabled} title={approve.why} onClick={approve.onApprove}>
+          <FiCheck className="text-[14px]" aria-hidden style={{ color: "var(--color-nb-mint-ink)" }} />
+          {s.approve(phases[phase]!)}
+        </Button>
+      )}
     </div>
   );
 }
@@ -1316,6 +1338,17 @@ export function CardPage({
   const buttons = visibleActions(card, offered);
   // A stage waiting on Approve (#1790), on a surface that offers it, with no run on the card.
   const approving = !!actions && (!offered || offered.includes("approve")) && !busy ? awaitingApproval(card) : null;
+  // The stage block's one status (#1808), the first that holds.
+  const userQuestions = openOf(card.questions).filter((q) => parseQuestion(q.text).tag === "user").length;
+  const stage: StageState = busy
+    ? "running"
+    : userQuestions
+      ? "questions"
+      : awaitingApproval(card)
+        ? "waiting"
+        : card.phases && card.phase === card.phases.length && card.deliversIn === "plan" && planDeliveryGap(card) === null
+          ? "done"
+          : null;
   // The delivery has ended and its block is still on the page — the one that carries Discard.
   const finishedBlock = !delivery && !!card.finished && !!diff;
   // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
@@ -1915,14 +1948,6 @@ export function CardPage({
                   before the module. */}
               <WorkflowItem card={card} />
 
-              {card.phases && card.phase && (
-                <StageItem
-                  phases={card.phases}
-                  phase={card.phase}
-                  done={card.phase === card.phases.length && card.deliversIn === "plan" && planDeliveryGap(card) === null}
-                />
-              )}
-
               {card.modules.length > 0 && (
                 <MetaItem label={c.meta.modules}>
                   <span className="flex flex-wrap items-center gap-1.5">
@@ -2097,12 +2122,21 @@ export function CardPage({
               </div>
             )}
 
-            {approving && (
-              <ApprovalBand
-                stage={approving}
-                disabled={off || locked}
-                why={frozen ? frozenWhy : undefined}
-                onApprove={() => void runAgent({ action: "approve", id: card.id }, "approve")}
+            {card.phases && card.phase && (
+              <StageBand
+                phases={card.phases}
+                phase={card.phase}
+                state={stage}
+                questions={userQuestions}
+                approve={
+                  approving
+                    ? {
+                        disabled: off || locked,
+                        why: frozen ? frozenWhy : undefined,
+                        onApprove: () => void runAgent({ action: "approve", id: card.id }, "approve"),
+                      }
+                    : undefined
+                }
               />
             )}
 

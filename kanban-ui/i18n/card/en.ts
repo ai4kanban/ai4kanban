@@ -186,7 +186,6 @@ const en: CardCopy = {
   meta: {
     workflow: "Workflow",
     noLead: (stages) => `No available lead agent: ${stages.join(", ")}`,
-    stage: "Stage",
     deletedWorkflow: "Deleted workflow",
     deletedHint: "This workflow was deleted, so the task can't start",
     modules: "Modules",
@@ -202,9 +201,12 @@ const en: CardCopy = {
     sourcePlan: "Plan",
     sourceLink: "Link",
   },
-  approve: {
-    ready: (stage) => `${stage} ready`,
-    button: (stage) => `Approve ${stage}`,
+  stage: {
+    waiting: (stage) => `${stage} ready for your approval`,
+    approve: (next) => `Approve, start ${next}`,
+    questions: (n) => (n === 1 ? "1 question needs your answer" : `${n} questions need your answer`),
+    running: (stage) => `Making ${stage}…`,
+    done: (stage) => `${stage} done`,
   },
   subtasks: {
     heading: "subtasks",
