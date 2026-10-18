@@ -59,7 +59,7 @@ const zh: DraftFirstCopy = {
     title: "常见问题",
     items: [
       ["草稿存在哪里？", "保存在项目的 .draft-first/ 目录里。确认后的草稿和批注也留在这里，agent 继续做时会读取。"],
-      ["支持哪些智能体？", "支持读取 .claude/skills/ 或 .agents/skills/ 中技能的编码 agent。"],
+      ["支持哪些 agent？", "支持读取 .claude/skills/ 或 .agents/skills/ 中技能的编码 agent。"],
       [
         "如何卸载？",
         "删除 .claude/skills/ 与 .agents/skills/ 下的 draft-first 目录。若也要清理项目草稿，先备份需要保留的内容，再删除该项目的 .draft-first/。",
