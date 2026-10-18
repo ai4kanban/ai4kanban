@@ -281,9 +281,14 @@ export type CardCopy = {
     collapse: string;
     /** The version switch of an asset with `variants` (#1663). */
     version: string;
-    versions: (n: number) => string;
     copyPath: string;
     copied: string;
+    /** A draft's head (#1793): its code or source switch, and the ⋯ menu. */
+    viewCode: string;
+    viewScreen: string;
+    viewSource: string;
+    viewArticle: string;
+    more: string;
     /** The caption's label, folding the asset to its caption (#1759). */
     collapseAsset: string;
     expandAsset: string;
@@ -296,12 +301,12 @@ export type CardCopy = {
     /** One side is an image and the other a video. */
     mismatch: string;
     unsupported: (name: string) => string;
+    downloadSide: (name: string) => string;
   };
   /** A `<Storyboard>` script (#963). */
   storyboard: {
     heading: string;
-    summary: (shots: number, seconds: string) => string;
-    sketch: string;
+    duration: (seconds: string) => string;
     timeline: string;
     prevShot: string;
     nextShot: string;

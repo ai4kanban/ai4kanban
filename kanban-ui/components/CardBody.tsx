@@ -170,7 +170,7 @@ function SubSection({
         />
         <Markdown body={`### ${heading}`} className="min-w-0" />
       </summary>
-      <div className="pb-3 pl-[21px] pt-1">{children}</div>
+      <div className="nb-sub pb-3 pl-[21px] pt-1">{children}</div>
     </details>
   );
 }

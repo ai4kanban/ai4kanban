@@ -301,18 +301,30 @@
 }
 
 /* A storyboard's pictures (#963): a hairline frame rather than the body's ink border, and
-   thumbnails that fill their cell whatever the picture's shape. */
-.nb-md .nb-storyboard img {
+   thumbnails that fill their cell whatever the picture's shape. Two classes, so it holds
+   inside a card body and outside one alike. */
+.nb-draft.nb-storyboard img {
   display: block;
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--color-nb-ink) 25%, transparent);
   border-radius: 6px;
 }
-.nb-md .nb-storyboard img.nb-thumb {
+.nb-draft.nb-storyboard img.nb-thumb {
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   border: 0;
   border-radius: 0;
+}
+
+/* A draft runs edge to edge on a phone (#1793): out over the page's and the section's 16px
+   each, and a `###` subsection's indent too. */
+@media (max-width: 767px) {
+  .nb-section .nb-draft {
+    margin-inline: -32px;
+  }
+  .nb-section .nb-sub .nb-draft {
+    margin-left: -53px;
+  }
 }
 
 /* ```mermaid, drawn by MermaidDiagram. */

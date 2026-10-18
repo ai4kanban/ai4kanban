@@ -1,35 +1,41 @@
 "use client";
 
 // A card's static storyboard (#963): the script a `<Storyboard>` tag points at, read and
-// checked on the server (lib/storyboard.ts). A timeline on top, then only the current shot
-// (#1786). One picture sits left of its script; a start and end frame sit side by side over
-// a two-column script; below 640px everything stacks (#1792). A storyboard with no pictures
-// gets a row of shot chips instead of thumbnails. A slide deck (#969) pages the same
-// way: a preview per slide and no timing; a slide with no notes takes the full width, capped
-// to fit the screen (#1117), and its preview may be an HTML/TSX page (#1742). Each sits in an
-// `<Asset>`'s frame and folds the same way (#1788).
+// checked on the server (lib/storyboard.ts). Every shot in one row that fits the width, then
+// only the current shot (#1786); the pager is in the head (#1793). One picture sits left of
+// its script; a start and end frame sit side by side over a two-column script; below 640px
+// everything stacks (#1792). Without pictures, or on a phone, the row is a bar cut by
+// duration. A slide deck (#969) pages the same way; a slide with no notes takes the full
+// width, capped to fit the screen (#1117), and its preview may be an HTML/TSX page (#1742).
+// Portrait pages (a 3:4 carousel) run side by side at their own shape instead, the current
+// one outlined. Each sits in an `<Asset>`'s frame and folds the same way (#1788).
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { FiAlertTriangle, FiCheck, FiChevronLeft, FiChevronRight, FiCopy, FiDownload, FiLoader, FiMaximize2, FiRotateCw } from "react-icons/fi";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FiAlertTriangle, FiCheck, FiChevronLeft, FiChevronRight, FiCopy, FiDownload, FiMaximize2, FiRotateCw } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { formatDiagnostic, type StoryboardSize } from "@/lib/storyboard-check";
 import { zip } from "@/lib/zip";
 import type { StoryboardFrameView, StoryboardShotView, StoryboardSlideView, StoryboardView } from "@/lib/storyboard";
+import { useMachine } from "@/lib/screen";
 import { useCopyText } from "./copy";
-import { CORNER, ExpandableImage, PreviewDialog } from "./image-preview";
+import { CORNER, ExpandableImage, ImagePreview, PreviewDialog } from "./image-preview";
 import { Markdown } from "./Markdown";
-import { Caption, ICON_BTN, sandboxOf, useFold } from "./Mockup";
+import { Caption, DraftFrame, ICON_BTN, sandboxOf, useFold, type MenuItem } from "./Mockup";
 
 const seconds = (n: number) => String(Number(n.toFixed(2)));
-// A thumbnail fits a 120 × 96 box; a picture with no notes is at most this tall.
-const thumbWidth = (ratio: number) => Math.min(120, 96 * ratio);
+// A picture with no notes is at most this tall.
 const PAGE_HEIGHT = "min(560px, 70vh)";
 const FRAME_HEIGHT = "min(360px, 45vh)";
 const SOFT_BUTTON =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] nb-focus";
 
+/** Reads the card again — only where the board is. */
 function Reload() {
+  return useMachine() ? <ReloadButton /> : null;
+}
+
+function ReloadButton() {
   const c = useCopy().card.storyboard;
   const router = useRouter();
   return (
@@ -40,12 +46,13 @@ function Reload() {
   );
 }
 
-/** Every picture that loads, as one zip (#1554). Numbered by place in the storyboard, so a
- *  missing page leaves a gap rather than renumbering the rest. */
-function DownloadAll({ hrefs, name }: { hrefs: (string | null)[]; name: string }) {
+/** Every picture that loads, as one zip (#1554), as a row of the ⋯ menu; `busy` while it
+ *  packs. Numbered by place in the storyboard, so a missing page leaves a gap rather than
+ *  renumbering the rest. */
+function useDownloadAll(hrefs: (string | null)[], name: string): { item: MenuItem | null; busy: boolean } {
   const c = useCopy().card.storyboard;
   const [state, setState] = useState<"idle" | "packing" | "failed">("idle");
-  if (!hrefs.some(Boolean)) return null;
+  if (!hrefs.some(Boolean)) return { item: null, busy: false };
 
   const pack = async () => {
     setState("packing");
@@ -74,25 +81,14 @@ function DownloadAll({ hrefs, name }: { hrefs: (string | null)[]; name: string }
     setState("idle");
   };
 
-  const tip = state === "packing" ? c.packing : state === "failed" ? c.downloadFailed : c.downloadAll;
-  return (
-    <button
-      type="button"
-      disabled={state === "packing"}
-      onClick={pack}
-      aria-label={tip}
-      data-tip={tip}
-      className={`${ICON_BTN} ${state === "packing" ? "cursor-default opacity-70" : ""}`}
-    >
-      {state === "packing" ? (
-        <FiLoader size={13} aria-hidden className="animate-spin" />
-      ) : state === "failed" ? (
-        <FiAlertTriangle size={13} aria-hidden className="text-nb-peach-ink" />
-      ) : (
-        <FiDownload size={13} aria-hidden />
-      )}
-    </button>
-  );
+  return {
+    busy: state === "packing",
+    item: {
+      icon: state === "failed" ? <FiAlertTriangle size={13} className="text-nb-peach-ink" /> : <FiDownload size={13} />,
+      text: state === "packing" ? c.packing : state === "failed" ? c.downloadFailed : c.downloadAll,
+      onSelect: () => state !== "packing" && pack(),
+    },
+  };
 }
 
 /** `<card>-<label>`, with what a file name cannot hold swapped out. */
@@ -100,30 +96,34 @@ const zipName = (card: number, label: string | undefined) =>
   `${card}-${(label?.trim() || "storyboard").replace(/[\\/:*?"<>|\x00-\x1f]+/g, "-")}`;
 
 /** The caption row an `<Asset>` has, then the body until it is folded. `head` fills the
- *  caption's right side, told whether the body shows. */
+ *  caption's right side while the body shows. */
 function Framed({
   label,
+  meta,
   head,
+  menu,
+  busy,
   onKeyDown,
   children,
 }: {
   label: string;
-  head?: (open: boolean) => React.ReactNode;
+  meta?: string;
+  head?: React.ReactNode;
+  menu?: (MenuItem | null)[];
+  busy?: boolean;
   onKeyDown?: (e: React.KeyboardEvent) => void;
   children: React.ReactNode;
 }) {
   const fold = useFold();
   return (
-    <div className="nb-storyboard my-4 block min-w-0 bg-nb-paper" onKeyDown={onKeyDown}>
-      <Caption label={label} variants={null} {...fold}>
-        {head?.(fold.open)}
+    <DraftFrame className="nb-storyboard" onKeyDown={onKeyDown}>
+      <Caption label={label} meta={meta} variants={null} menu={menu} busy={busy} {...fold}>
+        {head}
       </Caption>
       {fold.open && <div className="@container px-4 pb-4 text-[13px] leading-5">{children}</div>}
-    </div>
+    </DraftFrame>
   );
 }
-
-const META = "text-[12px] text-nb-ink-soft";
 
 /** A hosted page, which has no file to read. The frame's own Open in app is the way there. */
 export function StoryboardUnavailable({ label }: { label?: string }) {
@@ -175,21 +175,88 @@ function Broken({ view, label }: { view: StoryboardView; label?: string }) {
   );
 }
 
-/** A timeline thumbnail, in its picture's own shape — the storyboard's when it has none. */
-function Thumb({ frame, ratio, size, current }: { frame: StoryboardFrameView; ratio: number; size?: StoryboardSize; current: boolean }) {
-  const shape = frame.ratio ?? ratio;
+/** A picture filling its box, or the HTML/TSX page standing in for one. */
+function Preview({ frame, size }: { frame: StoryboardFrameView; size?: StoryboardSize }) {
+  if (!frame.href) return null;
+  return frame.page && size ? (
+    <PageBox href={frame.href} size={size} />
+  ) : (
+    // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
+    <img className="nb-thumb absolute inset-0" src={frame.href} alt="" />
+  );
+}
+
+/** The timeline: every item in one row that fits the width, at the storyboard's shape. Below
+ *  640px, or with no pictures at all, a bar cut by each item's `share` of the whole. */
+function Timeline({
+  items,
+  ratio,
+  size,
+  current,
+  go,
+  label,
+  pictured,
+}: {
+  items: { key: string; tip: string; frame: StoryboardFrameView; share: number }[];
+  ratio: number;
+  size?: StoryboardSize;
+  current: number;
+  go: (k: number) => void;
+  label: string;
+  pictured: boolean;
+}) {
+  const bar = (
+    <div role="group" aria-label={label} className={`mb-3 h-[18px] items-center gap-[2px] ${pictured ? "hidden @max-[640px]:flex" : "flex"}`}>
+      {items.map((it, k) => (
+        <button
+          key={it.key}
+          type="button"
+          onClick={() => go(k)}
+          aria-current={k === current ? "true" : undefined}
+          aria-label={it.tip}
+          data-tip={it.tip}
+          className="nb-tip group/seg flex h-full min-w-[3px] cursor-pointer items-center nb-focus"
+          style={{ flex: `${it.share} 0 0` }}
+        >
+          <span className={`block h-[6px] w-full rounded-[2px] ${k === current ? "bg-nb-accent" : "bg-nb-wash group-hover/seg:bg-nb-ink-soft/40"}`} />
+        </button>
+      ))}
+    </div>
+  );
+  if (!pictured) return bar;
   return (
-    <div
-      className={`overflow-hidden rounded-[4px] bg-nb-wash ${current ? "outline outline-1 outline-offset-1 outline-nb-accent-deep" : ""}`}
-      style={{ width: thumbWidth(shape), aspectRatio: shape }}
-    >
-      {frame.href &&
-        (frame.page && size ? (
-          <PageBox href={frame.href} size={size} />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
-          <img className="nb-thumb" src={frame.href} alt="" />
+    <>
+      <div role="group" aria-label={label} className="mb-4 flex gap-[3px] @max-[640px]:hidden">
+        {items.map((it, k) => (
+          <button
+            key={it.key}
+            type="button"
+            onClick={() => go(k)}
+            aria-current={k === current ? "true" : undefined}
+            aria-label={it.tip}
+            data-tip={it.tip}
+            className="nb-tip min-w-0 flex-1 cursor-pointer rounded-[3px] nb-focus"
+          >
+            <span
+              className={`relative block overflow-hidden rounded-[3px] bg-nb-wash ${k === current ? "outline outline-2 outline-offset-1 outline-nb-accent" : "opacity-80 hover:opacity-100"}`}
+              style={{ aspectRatio: ratio }}
+            >
+              <Preview frame={it.frame} size={size} />
+            </span>
+          </button>
         ))}
+      </div>
+      {bar}
+    </>
+  );
+}
+
+/** The current item's name over its body. */
+function Heading({ index, children }: { index: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-2.5 flex min-w-0 items-baseline gap-2">
+      <span className="shrink-0 font-[700] text-nb-accent-deep">{index}</span>
+      {children}
     </div>
   );
 }
@@ -337,21 +404,10 @@ function LargePage({ page, size, title }: { page: { doc: string; scripts?: boole
   );
 }
 
-/** One shot or slide at a time (#1786): its index, pager and ←/→ while focus is inside, and a
- *  timeline that keeps the current item in view. */
+/** One shot or slide at a time (#1786), and ←/→ while focus is inside. */
 function usePager(count: number) {
   const [current, setCurrent] = useState(0);
-  const strip = useRef<HTMLDivElement>(null);
   const k = Math.min(current, Math.max(0, count - 1));
-  useEffect(() => {
-    const box = strip.current;
-    const item = box?.querySelectorAll<HTMLElement>("[data-item]")[k];
-    if (!box || !item) return;
-    const left = item.offsetLeft - 3;
-    const right = item.offsetLeft + item.offsetWidth + 3;
-    if (left < box.scrollLeft) box.scrollTo({ left, behavior: "smooth" });
-    else if (right > box.scrollLeft + box.clientWidth) box.scrollTo({ left: right - box.clientWidth, behavior: "smooth" });
-  }, [k]);
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || !e.currentTarget.contains(e.target as Node)) return;
@@ -360,109 +416,60 @@ function usePager(count: number) {
     e.preventDefault();
     setCurrent(next);
   };
-  return { current: k, go: setCurrent, strip, onKeyDown };
+  return { current: k, go: setCurrent, onKeyDown };
 }
 
-const PAGER_BUTTON =
-  "nb-tip inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-nb-wash text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-nb-wash nb-focus";
-
-function Pager({ head, current, count, go, prev, next }: { head: React.ReactNode; current: number; count: number; go: (k: number) => void; prev: string; next: string }) {
+/** ‹ 5 / 18 › in the head. */
+function Pager({ current, count, go, prev, next }: { current: number; count: number; go: (k: number) => void; prev: string; next: string }) {
+  if (count < 2) return null;
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <div className="min-w-0 font-[700] text-nb-accent-deep">{head}</div>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        <button type="button" className={PAGER_BUTTON} data-tip={prev} aria-label={prev} disabled={current === 0} onClick={() => go(current - 1)}>
-          <FiChevronLeft size={15} aria-hidden />
-        </button>
-        <span className="min-w-[44px] text-center text-[12px] text-nb-ink-soft tabular-nums">
-          {current + 1} / {count}
-        </span>
-        <button
-          type="button"
-          className={PAGER_BUTTON}
-          data-tip={next}
-          aria-label={next}
-          disabled={current === count - 1}
-          onClick={() => go(current + 1)}
-        >
-          <FiChevronRight size={15} aria-hidden />
-        </button>
-      </div>
-    </div>
+    <span className="mr-1 inline-flex items-center">
+      <button type="button" className={ICON_BTN} data-tip={prev} aria-label={prev} disabled={current === 0} onClick={() => go(current - 1)}>
+        <FiChevronLeft size={15} aria-hidden />
+      </button>
+      <span className="min-w-[46px] text-center text-[12px] font-[600] tabular-nums text-nb-ink-soft">
+        <span className="text-nb-ink">{current + 1}</span> / {count}
+      </span>
+      <button type="button" className={ICON_BTN} data-tip={next} aria-label={next} disabled={current === count - 1} onClick={() => go(current + 1)}>
+        <FiChevronRight size={15} aria-hidden />
+      </button>
+    </span>
   );
 }
 
 function Shots({ shots, ratio, label, name }: { shots: StoryboardShotView[]; ratio: number; label?: string; name: string }) {
   const c = useCopy().card.storyboard;
-  const { current, go, strip, onKeyDown } = usePager(shots.length);
+  const { current, go, onKeyDown } = usePager(shots.length);
   const total = shots.length ? shots[shots.length - 1]!.end : 0;
-  const pictured = shots.some((s) => s.frames.length > 0);
   const shot = shots[current];
+  const download = useDownloadAll(shots.flatMap((s) => s.frames.map((f) => f.href)), name);
 
   return (
     <Framed
       label={label ?? c.heading}
+      meta={shots.length > 0 ? c.duration(seconds(total)) : undefined}
       onKeyDown={onKeyDown}
-      head={(open) => (
-        <>
-          {shots.length > 0 && <span className={META}>{c.summary(shots.length, seconds(total))}</span>}
-          {open && <span className="text-[11px] text-nb-ink-soft">{c.sketch}</span>}
-          <DownloadAll hrefs={shots.flatMap((s) => s.frames.map((f) => f.href))} name={name} />
-        </>
-      )}
+      head={<Pager current={current} count={shots.length} go={go} prev={c.prevShot} next={c.nextShot} />}
+      menu={[download.item]}
+      busy={download.busy}
     >
       {!shot ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.empty}</div>
       ) : (
         <>
-          {pictured ? (
-            <div ref={strip} className="relative mb-4 overflow-x-auto" role="group" aria-label={c.timeline}>
-              <div className="flex w-max gap-2 p-[3px]">
-                {shots.map((s, k) => (
-                  <button
-                    key={s.id}
-                    data-item
-                    type="button"
-                    onClick={() => go(k)}
-                    aria-current={k === current ? "true" : undefined}
-                    aria-label={`${s.id} · ${seconds(s.end - s.start)}s`}
-                    className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
-                    style={{ width: thumbWidth(s.frames[0]?.ratio ?? ratio) }}
-                  >
-                    <Thumb frame={s.frames[0] ?? BLANK} ratio={ratio} current={k === current} />
-                    <div className="flex justify-between gap-1 px-1 pt-1 text-[11px]">
-                      <span className="font-[700]">{s.id.slice(1)}</span>
-                      <span className="text-nb-ink-soft">{seconds(s.end - s.start)}s</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label={c.timeline}>
-              {shots.map((s, k) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => go(k)}
-                  aria-current={k === current ? "true" : undefined}
-                  aria-label={`${s.id} · ${seconds(s.end - s.start)}s`}
-                  className={`inline-flex cursor-pointer items-baseline gap-1.5 rounded-[6px] px-2 py-1 text-[11px] nb-focus ${k === current ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash"}`}
-                >
-                  <span className="font-[700]">{s.id.slice(1)}</span>
-                  <span className={k === current ? "" : "text-nb-ink-soft"}>{seconds(s.end - s.start)}s</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <Pager
-            head={`${shot.id} · ${seconds(shot.start)}–${seconds(shot.end)}s`}
+          <Timeline
+            items={shots.map((s) => ({ key: s.id, tip: `${s.id} · ${seconds(s.end - s.start)}s`, frame: s.frames[0] ?? BLANK, share: s.end - s.start }))}
+            ratio={ratio}
             current={current}
-            count={shots.length}
             go={go}
-            prev={c.prevShot}
-            next={c.nextShot}
+            label={c.timeline}
+            pictured={shots.some((s) => s.frames.length > 0)}
           />
+          <Heading index={shot.id}>
+            <span className="text-[12px] tabular-nums text-nb-ink-soft">
+              {seconds(shot.start)}–{seconds(shot.end)}s
+            </span>
+          </Heading>
           <Shot key={shot.id} shot={shot} ratio={ratio} />
         </>
       )}
@@ -593,55 +600,189 @@ function Slides({
   name: string;
 }) {
   const c = useCopy().card.storyboard;
-  const { current, go, strip, onKeyDown } = usePager(slides.length);
+  const { current, go, onKeyDown } = usePager(slides.length);
   const slide = slides[current];
+  const download = useDownloadAll(slides.map((s) => (s.preview.page ? null : s.preview.href)), name);
 
   return (
     <Framed
       label={label ?? c.slidesHeading}
+      meta={slides.length > 0 ? c.pages(slides.length) : undefined}
       onKeyDown={onKeyDown}
-      head={() => (
-        <>
-          {slides.length > 0 && <span className={META}>{c.pages(slides.length)}</span>}
-          <DownloadAll hrefs={slides.map((s) => (s.preview.page ? null : s.preview.href))} name={name} />
-        </>
-      )}
+      head={<Pager current={current} count={slides.length} go={go} prev={c.prevSlide} next={c.nextSlide} />}
+      menu={[download.item]}
+      busy={download.busy}
     >
       {!slide ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.emptySlides}</div>
+      ) : ratio < 1 ? (
+        <Pages slides={slides} ratio={ratio} size={size} current={current} go={go} />
       ) : (
         <>
-          <div ref={strip} className="relative mb-4 overflow-x-auto" role="group" aria-label={c.slidesTimeline}>
-            <div className="flex w-max gap-2 p-[3px]">
-              {slides.map((s, k) => (
-                <button
-                  key={s.id}
-                  data-item
-                  type="button"
-                  onClick={() => go(k)}
-                  aria-current={k === current ? "true" : undefined}
-                  aria-label={`${k + 1} · ${s.title}`}
-                  className="shrink-0 cursor-pointer rounded-[5px] text-left nb-focus"
-                  style={{ width: thumbWidth(s.preview.ratio ?? ratio) }}
-                >
-                  <Thumb frame={s.preview} ratio={ratio} size={size} current={k === current} />
-                  <div className="px-1 pt-1 text-[11px] font-[700]">{k + 1}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <Pager
-            head={`${current + 1} · ${slide.title}`}
+          <Timeline
+            items={slides.map((s, k) => ({ key: s.id, tip: `${k + 1} · ${s.title}`, frame: s.preview, share: 1 }))}
+            ratio={ratio}
+            size={size}
             current={current}
-            count={slides.length}
             go={go}
-            prev={c.prevSlide}
-            next={c.nextSlide}
+            label={c.slidesTimeline}
+            pictured
           />
+          <Heading index={String(current + 1)}>
+            <span className="min-w-0 truncate font-[700]">{slide.title}</span>
+          </Heading>
           <Slide key={slide.id} slide={slide} ratio={ratio} size={size} />
         </>
       )}
     </Framed>
+  );
+}
+
+/** Portrait pages side by side at the storyboard's shape, about three and a half across; on a phone,
+ *  one at a time with the next one's edge showing, and a swipe moves the current page. A side
+ *  fades while there are pages past it. */
+function Pages({
+  slides,
+  ratio,
+  size,
+  current,
+  go,
+}: {
+  slides: StoryboardSlideView[];
+  ratio: number;
+  size: StoryboardSize;
+  current: number;
+  go: (k: number) => void;
+}) {
+  const copy = useCopy();
+  const c = copy.card.storyboard;
+  const band = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const [open, setOpen] = useState(false);
+  const settle = useRef(0);
+
+  const measure = useCallback(() => {
+    const el = band.current;
+    if (el) setEdges({ left: el.scrollLeft > 1, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 1 });
+  }, []);
+  useEffect(() => {
+    const el = band.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  const items = () => [...(band.current?.querySelectorAll<HTMLElement>("[data-item]") ?? [])];
+  /** One page across: the phone's band. */
+  const single = (el: HTMLElement, first: HTMLElement) => first.offsetWidth > el.clientWidth / 2;
+
+  // Keep the current page clear of the fades, scrolling no further than that.
+  useEffect(() => {
+    const el = band.current;
+    const all = items();
+    const it = all[current];
+    if (!el || !it) return;
+    const fade = single(el, all[0]!) ? all[0]!.offsetLeft : FADE;
+    const left = it.offsetLeft - fade;
+    const right = it.offsetLeft + it.offsetWidth + fade - el.clientWidth;
+    if (left < el.scrollLeft) el.scrollTo({ left, behavior: "smooth" });
+    else if (right > el.scrollLeft) el.scrollTo({ left: right, behavior: "smooth" });
+  }, [current]);
+
+  const onScroll = () => {
+    measure();
+    window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => {
+      const el = band.current;
+      const all = items();
+      if (!el || !all[0] || !single(el, all[0])) return;
+      const at = el.scrollLeft + all[0].offsetLeft;
+      let best = 0;
+      all.forEach((it, k) => {
+        if (Math.abs(it.offsetLeft - at) < Math.abs(all[best]!.offsetLeft - at)) best = k;
+      });
+      go(best);
+    }, 120);
+  };
+
+  const slide = slides[current]!;
+  const notes = slide.notes?.trim();
+  return (
+    <>
+      <div className="relative -mx-4 @max-[640px]:mb-1">
+        <div
+          ref={band}
+          onScroll={onScroll}
+          role="group"
+          aria-label={c.slidesTimeline}
+          className="relative flex items-start gap-7 overflow-x-auto px-4 pb-1 pt-1 [scrollbar-width:none] @max-[640px]:snap-x @max-[640px]:snap-mandatory @max-[640px]:gap-5 @max-[640px]:px-3 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollPaddingInline: "16px 12px" }}
+        >
+          {slides.map((s, k) => (
+            <button
+              key={s.id}
+              data-item
+              type="button"
+              onClick={() => (k === current && s.preview.href ? setOpen(true) : go(k))}
+              aria-current={k === current ? "true" : undefined}
+              aria-label={k === current && s.preview.href ? `${k + 1} · ${s.title} · ${copy.shared.viewLarger}` : `${k + 1} · ${s.title}`}
+              className={`w-[calc((100cqw_-_68px)/3.5)] shrink-0 snap-start rounded-[6px] text-left nb-focus @max-[640px]:w-[calc(100cqw_-_56px)] ${k === current && s.preview.href ? "cursor-zoom-in" : "cursor-pointer"}`}
+            >
+              <span
+                className={`relative block overflow-hidden rounded-[6px] bg-nb-wash ${
+                  k === current
+                    ? "outline outline-2 outline-offset-2 outline-nb-accent"
+                    : "border border-[color-mix(in_srgb,var(--color-nb-ink)_12%,transparent)]"
+                }`}
+                style={{ aspectRatio: ratio }}
+              >
+                {s.preview.href ? (
+                  <Preview frame={s.preview} size={size} />
+                ) : (
+                  <span className="flex size-full items-center justify-center text-[12px] text-nb-ink-soft">{c.noPreview}</span>
+                )}
+              </span>
+              <span className={`mt-2.5 line-clamp-2 text-[12.5px] leading-[18px] ${k === current ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
+                <span className={`mr-1.5 font-[700] tabular-nums ${k === current ? "text-nb-accent-deep" : ""}`}>{k + 1}</span>
+                {s.title}
+              </span>
+            </button>
+          ))}
+        </div>
+        {edges.left && (
+          <span className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-nb-paper to-transparent @max-[640px]:w-3" />
+        )}
+        {edges.right && (
+          <span className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-nb-paper to-transparent @max-[640px]:w-10" />
+        )}
+      </div>
+      {notes && (
+        <div className="mt-4">
+          <div className="mb-1 font-[700]">{c.notes}</div>
+          <div>{notes}</div>
+        </div>
+      )}
+      {open && slide.preview.href && <Enlarged frame={slide.preview} size={size} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/** How far a desktop band's fade reaches. */
+const FADE = 64;
+
+/** A page opened over everything, as a picture opens. */
+function Enlarged({ frame, size, onClose }: { frame: StoryboardFrameView; size: StoryboardSize; onClose: () => void }) {
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const page = usePage(el, frame.page ? frame.href : null);
+  if (!frame.page) return <ImagePreview src={frame.href!} alt={frame.alt} onClose={onClose} />;
+  return (
+    <PreviewDialog label={frame.alt} onClose={onClose}>
+      <div ref={setEl} className="flex w-full justify-center">
+        {page && page !== "failed" && <LargePage page={page} size={size} title={frame.alt} />}
+      </div>
+    </PreviewDialog>
   );
 }
 

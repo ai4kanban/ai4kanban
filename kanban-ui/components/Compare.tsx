@@ -5,7 +5,8 @@
 // play bar: A leads, B follows muted, is pulled back when it drifts, and holds its last frame
 // once it runs out. With `shots` the bar is cut into one segment per shot.
 //
-// Full size opens the block over the page, in this window (#1776); download picks a side.
+// Full size opens the block over the page, in this window (#1776); the ⋯ menu downloads either
+// side.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiDownload, FiMaximize2, FiPause, FiPlay } from "react-icons/fi";
@@ -14,8 +15,7 @@ import type { Shot } from "@/lib/format/compare";
 import type { MockupView } from "@/lib/mockup-tag";
 import { PreviewDialog } from "./image-preview";
 import { clock } from "./MediaPlayer";
-import { Caption, ICON_BTN, Note, useFold } from "./Mockup";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Caption, DraftFrame, ICON_BTN, Note, useFold, type MenuItem } from "./Mockup";
 
 const nameOf = (src: string) => src.split("/").pop()!;
 const kindOf = (v: MockupView) => (v.image !== undefined ? "image" : v.media?.kind === "video" ? "video" : null);
@@ -62,6 +62,7 @@ type FrameProps = { a: MockupView; b: MockupView; label: string; names: [string,
 
 function Frame(props: FrameProps) {
   const c = useCopy().card.mockup;
+  const menu = useDownloads(props);
   const box = useRef<HTMLSpanElement>(null);
   const [full, setFull] = useState(false);
   const fold = useFold();
@@ -71,54 +72,34 @@ function Frame(props: FrameProps) {
     setFull(true);
   };
   return (
-    <span ref={box} className="my-4 block bg-nb-paper">
-      <Caption label={props.label} variants={null} {...fold}>
+    <DraftFrame ref={box}>
+      <Caption label={props.label} variants={null} menu={menu} {...fold}>
         <button type="button" onClick={open} className={ICON_BTN} data-tip={c.openFull} aria-label={c.openFull}>
-          <FiMaximize2 aria-hidden size={12} />
+          <FiMaximize2 aria-hidden size={13} />
         </button>
-        <Download {...props} />
       </Caption>
       {fold.open && <Body {...props} full={false} />}
       {full && (
         <PreviewDialog label={props.label} onClose={() => setFull(false)}>
           <span onClick={(e) => e.stopPropagation()} className="block w-[calc(100vw-128px)] bg-nb-paper shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
-            <Caption label={props.label} variants={null}>
-              <Download {...props} />
-            </Caption>
+            <Caption label={props.label} variants={null} menu={menu} />
             <Body {...props} full />
           </span>
         </PreviewDialog>
       )}
-    </span>
+    </DraftFrame>
   );
 }
 
 /** Each side's own file, under its own name. */
-function Download({ a, b, names }: FrameProps) {
-  const c = useCopy().card.mockup;
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={`${ICON_BTN} data-[state=open]:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] data-[state=open]:text-nb-accent-deep`}
-          data-tip={c.download}
-          aria-label={c.download}
-        >
-          <FiDownload aria-hidden size={13} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {[a, b].map((v, side) => (
-          <DropdownMenuItem key={side} asChild>
-            <a href={v.image ?? v.media!.href} download={nameOf(v.src)}>
-              {names[side]}
-            </a>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+function useDownloads({ a, b, names }: FrameProps): MenuItem[] {
+  const c = useCopy().card.compare;
+  return [a, b].map((v, side) => ({
+    icon: <FiDownload size={13} />,
+    text: c.downloadSide(names[side]!),
+    href: v.image ?? v.media!.href,
+    download: nameOf(v.src),
+  }));
 }
 
 function Body({ a, b, names, shots, full }: FrameProps & { full: boolean }) {

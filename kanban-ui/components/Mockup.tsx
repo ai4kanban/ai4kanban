@@ -28,11 +28,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiDownload, FiImage, FiMaximize2 } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCode, FiCopy, FiDownload, FiImage, FiLoader, FiMaximize2, FiMoreHorizontal } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, mockupViewHref, SCREENS, type ArticleFile, type Device, type MockupView } from "@/lib/mockup-tag";
 import { phoneScreen, SAFE_AREA } from "@/lib/phone-screen";
-import { ArticleFolded, SourceSwitch, useArticle } from "./Article";
+import { useMachine } from "@/lib/screen";
+import { ArticleFolded, useArticle } from "./Article";
 import { useCopyText } from "./copy";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
@@ -233,18 +234,29 @@ function Picture({ image, src, alt, zoom }: { image: string; src: string; alt: s
       }
     />
   );
+  const machine = useMachine();
+  const inner = (badge: React.ReactNode) => (
+    <>
+      <span ref={box} className="block w-full">
+        <ZoomArea height={size && fit ? size.h * fit : undefined} zoomed={scale > fit}>
+          {img}
+        </ZoomArea>
+      </span>
+      {badge}
+    </>
+  );
   return (
     <ImageMenu src={image}>
-      {(badge) => (
-        <Link href={mockupHref(src)} className="relative block bg-nb-wash">
-          <span ref={box} className="block w-full">
-            <ZoomArea height={size && fit ? size.h * fit : undefined} zoomed={scale > fit}>
-              {img}
-            </ZoomArea>
-          </span>
-          {badge}
-        </Link>
-      )}
+      {(badge) =>
+        // Its own page is the board's: anywhere else the picture is just the picture.
+        machine ? (
+          <Link href={mockupHref(src)} className="relative block bg-nb-wash">
+            {inner(badge)}
+          </Link>
+        ) : (
+          <span className="relative block bg-nb-wash">{inner(badge)}</span>
+        )
+      }
     </ImageMenu>
   );
 }
@@ -347,7 +359,8 @@ function Pending({ hyperframe, device }: { hyperframe: boolean; device: Device }
 }
 
 export const ICON_BTN =
-  "nb-tip nb-tip-below relative inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-accent-deep";
+  "nb-tip nb-tip-below relative inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+const PRESSED = "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] text-nb-ink";
 
 /** Puts the file's absolute path on the clipboard. */
 export function CopyPath({ path }: { path: string }) {
@@ -370,9 +383,18 @@ export function DownloadIcon({ href, name }: { href: string; name: string }) {
   );
 }
 
+/** A head control: an icon with its tip, pressed while its view is on. */
+export function HeadButton({ tip, on, onClick, children }: { tip: string; on?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on} className={`${ICON_BTN} ${on ? PRESSED : ""}`} data-tip={tip} aria-label={tip}>
+      {children}
+    </button>
+  );
+}
+
 export type Variants = { labels: string[]; at: number; pick: (i: number) => void };
 
-/** The version switch: the version shown, a muted count, and the menu. */
+/** The version switch: the version shown, and the menu. */
 function VariantSwitch({ variants }: { variants: Variants }) {
   const c = useCopy().card.mockup;
   const { labels, at, pick } = variants;
@@ -381,13 +403,10 @@ function VariantSwitch({ variants }: { variants: Variants }) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label={c.version}
-          className="inline-flex min-w-0 shrink cursor-pointer items-center gap-1 rounded-[6px] py-[2px] pl-1.5 pr-1 text-[12.5px] font-[600] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] data-[state=open]:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
+          aria-label={`${c.version}: ${labels[at]}`}
+          className="inline-flex min-w-0 shrink cursor-pointer items-center gap-0.5 rounded-[6px] bg-nb-wash py-[2px] pl-2 pr-1 text-[12px] font-[600] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] data-[state=open]:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]"
         >
           <span className="truncate">{labels[at]}</span>
-          <span className="shrink-0 text-[11px] font-[600] text-nb-ink-soft" title={c.versions(labels.length)}>
-            {labels.length}
-          </span>
           <FiChevronDown aria-hidden size={12} className="shrink-0 text-nb-ink-soft" />
         </button>
       </DropdownMenuTrigger>
@@ -403,65 +422,135 @@ function VariantSwitch({ variants }: { variants: Variants }) {
   );
 }
 
-/** The row over every asset: label and versions on the left; on the right the kind's own
- *  switches (`children`), then copy path, full size and download. With `onToggle`, the label
- *  folds the asset down to this row (#1759). */
+/** A row of the ⋯ menu: a link to a file, or an action. */
+export type MenuItem = { icon: React.ReactNode; text: string; href?: string; download?: string; onSelect?: () => void; keepOpen?: boolean };
+
+/** The menu's copy-path row, which stays open to say it worked. Only where the board's own
+ *  machine is: anywhere else the path means nothing. */
+export function useCopyPathItem(path: string | undefined): MenuItem | null {
+  const c = useCopy().card.mockup;
+  const machine = useMachine();
+  const { copied, copy } = useCopyText();
+  if (!machine || !path) return null;
+  return {
+    icon: copied ? <FiCheck size={13} /> : <FiCopy size={13} />,
+    text: copied ? c.copied : c.copyPath,
+    onSelect: () => copy(path),
+    keepOpen: true,
+  };
+}
+
+function More({ items, busy }: { items: MenuItem[]; busy?: boolean }) {
+  const c = useCopy().card.mockup;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={`${ICON_BTN} data-[state=open]:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] data-[state=open]:text-nb-ink`}
+          data-tip={c.more}
+          aria-label={c.more}
+        >
+          {busy ? <FiLoader aria-hidden size={14} className="animate-spin" /> : <FiMoreHorizontal aria-hidden size={15} />}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {items.map((it, k) => {
+          const body = (
+            <>
+              <span aria-hidden className="text-nb-ink-soft">
+                {it.icon}
+              </span>
+              {it.text}
+            </>
+          );
+          return it.href ? (
+            <DropdownMenuItem key={k} asChild>
+              <a href={it.href} download={it.download}>
+                {body}
+              </a>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              key={k}
+              onSelect={(e) => {
+                if (it.keepOpen) e.preventDefault();
+                it.onSelect?.();
+              }}
+            >
+              {body}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The frame every draft sits in — an asset, a storyboard, a compare (#1793). Edge to edge on a
+ *  phone (app/markdown.css). */
+export function DraftFrame({ className = "", children, ...rest }: React.ComponentProps<"span">) {
+  return (
+    <span className={`nb-draft @container/draft my-4 block min-w-0 bg-nb-paper ${className}`} {...rest}>
+      {children}
+    </span>
+  );
+}
+
+/** The row over every draft: fold arrow and name, one muted fact, versions; on the right the
+ *  kind's own controls (`children`, drawn only while open) and a ⋯ menu for the rest. */
 export function Caption({
   label,
+  meta,
   variants,
-  path,
-  full,
-  download,
   open = true,
   onToggle,
+  menu = [],
+  busy,
   children,
 }: {
   label: string;
+  meta?: string;
   variants: Variants | null;
-  path?: string;
-  full?: string;
-  download?: { href: string; name: string };
   open?: boolean;
   onToggle?: () => void;
+  menu?: (MenuItem | null | false | undefined)[];
+  busy?: boolean;
   children?: React.ReactNode;
 }) {
   const c = useCopy().card.mockup;
-  const chip = { background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" };
-  const tip = open ? c.collapseAsset : c.expandAsset;
+  const items = menu.filter((m): m is MenuItem => !!m);
   const Arrow = open ? FiChevronDown : FiChevronRight;
+  const name = <span className="min-w-0 truncate text-[13.5px] font-[700] leading-5 text-nb-ink">{label}</span>;
+  const fact = meta && <span className="shrink-0 text-[12px] tabular-nums text-nb-ink-soft">{meta}</span>;
   return (
-    <span className="flex items-center gap-x-2 px-4 py-2">
-      {label &&
-        (onToggle ? (
+    <span className="block">
+      <span className="flex h-11 items-center gap-2 px-2.5">
+        {onToggle ? (
           <button
             type="button"
             onClick={onToggle}
             aria-expanded={open}
-            data-tip={tip}
-            className="nb-chip nb-tip nb-tip-below relative inline-flex shrink-0 cursor-pointer items-center gap-1 hover:brightness-95"
-            style={chip}
+            aria-label={`${open ? c.collapseAsset : c.expandAsset} ${label}`}
+            className="group/fold inline-flex min-w-0 cursor-pointer items-center gap-2 rounded-[6px] text-left nb-focus"
           >
-            <Arrow aria-hidden size={11} className="-ml-0.5 shrink-0" />
-            {label}
+            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] text-nb-ink-soft group-hover/fold:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] group-hover/fold:text-nb-ink">
+              <Arrow aria-hidden size={14} />
+            </span>
+            {name}
           </button>
         ) : (
-          <span className="nb-chip shrink-0" style={chip}>
-            {label}
-          </span>
-        ))}
-      {variants && <VariantSwitch variants={variants} />}
-      <span className="ml-auto flex shrink-0 items-center gap-x-2.5">
-        {children}
-        {path && <CopyPath path={path} />}
-        {/* Opens in the board, not a separate browser: the desktop app hands any new
-            window to the system browser. */}
-        {full && (
-          <Link href={full} className={ICON_BTN} data-tip={c.openFull} aria-label={c.openFull}>
-            <FiMaximize2 aria-hidden size={12} />
-          </Link>
+          <span className="inline-flex min-w-0 pl-1.5">{name}</span>
         )}
-        {download && <DownloadIcon {...download} />}
+        {fact && <span className="contents @max-[480px]/draft:hidden">{fact}</span>}
+        {variants && <VariantSwitch variants={variants} />}
+        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+          {open && children}
+          {items.length > 0 && <More items={items} busy={busy} />}
+        </span>
       </span>
+      {/* A phone has no room for the fact beside the name. */}
+      {fact && <span className="-mt-2 hidden pb-2 pl-[42px] @max-[480px]/draft:block">{fact}</span>}
     </span>
   );
 }
@@ -476,23 +565,35 @@ export function useFold() {
 
 type Fold = ReturnType<typeof useFold>;
 
+/** Opens the draft on its own page in the board, not a separate browser: the desktop app
+ *  hands any new window to the system browser. Only where the board is. */
+function FullSize({ href }: { href: string }) {
+  const c = useCopy().card.mockup;
+  if (!useMachine()) return null;
+  return (
+    <Link href={href} className={ICON_BTN} data-tip={c.openFull} aria-label={c.openFull}>
+      <FiMaximize2 aria-hidden size={13} />
+    </Link>
+  );
+}
+
+const downloadItem = (text: string, href: string, name: string): MenuItem => ({ icon: <FiDownload size={13} />, text, href, download: name });
+
 /** A `.md`/`.mdx` asset (#1651): the article, folded, under the same caption a screen has. */
 function ArticleAsset({ file, view, label, variants, fold }: { file: ArticleFile; view: MockupView; label: string; variants: Variants | null; fold: Fold }) {
+  const c = useCopy().card.mockup;
   const state = useArticle(file, view.src);
+  const copyPath = useCopyPathItem(view.path);
   return (
-    <span className="my-4 block bg-nb-paper">
-      <Caption
-        label={label}
-        variants={variants}
-        path={view.path}
-        full={mockupHref(view.src)}
-        download={{ href: file.href, name: nameOf(view.src) }}
-        {...fold}
-      >
-        <SourceSwitch state={state} />
+    <DraftFrame>
+      <Caption label={label} variants={variants} menu={[downloadItem(c.download, file.href, nameOf(view.src)), copyPath]} {...fold}>
+        <HeadButton tip={state.source ? c.viewArticle : c.viewSource} on={state.source} onClick={() => state.setSource((v) => !v)}>
+          <FiCode aria-hidden size={14} />
+        </HeadButton>
+        <FullSize href={mockupHref(view.src)} />
       </Caption>
       {fold.open && <ArticleFolded state={state} />}
-    </span>
+    </DraftFrame>
   );
 }
 
@@ -586,52 +687,55 @@ function One({
   const screen = deferred ? !deferred.hyperframe : view.doc !== undefined && !view.hyperframe;
   const shown: Device = screen ? device : "desktop";
 
-  const zoomable = !showCode && (view.image !== undefined || (drawn?.doc !== undefined && !drawn.hyperframe));
+
+  const copyPath = useCopyPathItem(view.path);
 
   if (drawn?.error !== undefined)
     return variants ? (
-      <span className="my-4 block bg-nb-paper">
+      <DraftFrame>
         <Caption label={label} variants={variants} {...fold} />
         {fold.open && <Note text={drawn.error} />}
-      </span>
+      </DraftFrame>
     ) : (
       <Note text={drawn.error} />
     );
+  // A delivered file: its name is the download.
   if (view.file)
     return (
-      <span className="my-4 block bg-nb-paper">
-        <Caption label={label} variants={variants} path={view.path}>
+      <DraftFrame>
+        <Caption label={label} variants={variants} menu={[copyPath]}>
           <a
             href={view.file.href}
             download={view.file.name}
-            className="inline-flex min-w-0 items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]"
+            className="mr-1 inline-flex min-w-0 max-w-[260px] items-center gap-1.5 rounded-[7px] bg-nb-wash px-3 py-1.5 text-[12.5px] font-[700] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]"
             title={c.download}
           >
             <FiDownload aria-hidden className="shrink-0" style={{ width: 12, height: 12 }} />
             <span className="truncate">{view.file.name}</span>
           </a>
         </Caption>
-      </span>
+      </DraftFrame>
     );
   if (view.article) return <ArticleAsset file={view.article} view={view} label={label} variants={variants} fold={fold} />;
 
+  const bytes = view.image ?? view.media?.href;
   return (
     // No frame around it: a mockup is a picture of a screen, and a box drawn round it is
-    // one more edge competing with the edges inside it. The caption sits over the screen,
-    // and the screen's own fill is what marks where it starts.
-    <span ref={box} className="my-4 block bg-nb-paper">
-      <Caption label={label} variants={variants} path={view.path} full={mockupHref(view.src, shown)} {...fold}>
-        {fold.open && zoomable && <ZoomControls zoom={zoom} />}
+    // one more edge competing with the edges inside it.
+    <DraftFrame ref={box}>
+      <Caption
+        label={label}
+        variants={variants}
+        menu={[bytes !== undefined && downloadItem(c.download, bytes, nameOf(view.src)), copyPath]}
+        {...fold}
+      >
         {/* No switch on a `.txt` mockup, an image or media: there is nothing behind it. */}
         {(deferred || view.doc !== undefined) && (
-          <button
-            type="button"
-            onClick={() => setShowCode((v) => !v)}
-            className="shrink-0 cursor-pointer text-[12px] font-[600] text-nb-ink-soft hover:text-nb-accent-deep"
-          >
-            {showCode ? c.screen : c.code}
-          </button>
+          <HeadButton tip={showCode ? c.viewScreen : c.viewCode} on={showCode} onClick={() => setShowCode((v) => !v)}>
+            <FiCode aria-hidden size={14} />
+          </HeadButton>
         )}
+        <FullSize href={mockupHref(view.src, shown)} />
       </Caption>
       {!fold.open ? null : drawn === null || (showCode && code === null) ? (
         <Pending hyperframe={!showCode && !!deferred?.hyperframe} device={showCode ? "desktop" : shown} />
@@ -649,7 +753,9 @@ function One({
           loop={loop}
         />
       ) : view.image !== undefined ? (
-        <Picture image={view.image} src={view.src} alt={alt || label || view.src} zoom={zoom} />
+        <Zoomable zoom={zoom}>
+          <Picture image={view.image} src={view.src} alt={alt || label || view.src} zoom={zoom} />
+        </Zoomable>
       ) : view.text !== undefined ? (
         <Drawing text={view.text} />
       ) : showCode ? (
@@ -662,13 +768,31 @@ function One({
       ) : (
         drawn.doc !== undefined && (
           <span className={deferred ? "a4k-reveal block" : "block"}>
-            {shown === "mobile" ? (
-              <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} zoom={zoom} />
-            ) : (
-              <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} zoom={zoom} />
-            )}
+            <Zoomable zoom={zoom}>
+              {shown === "mobile" ? (
+                <PhoneScreen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} zoom={zoom} />
+              ) : (
+                <Screen doc={drawn.doc} title={label ? c.frame(label) : view.src} scripts={drawn.scripts} zoom={zoom} />
+              )}
+            </Zoomable>
           </span>
         )
+      )}
+    </DraftFrame>
+  );
+}
+
+/** A picture with its zoom floating in the corner, shown while the pointer is over it. */
+function Zoomable({ zoom, children }: { zoom: Zoom; children: React.ReactNode }) {
+  return (
+    <span className="group/zoom relative block">
+      {children}
+      {zoom.fit > 0 && (
+        <span
+          className={`absolute bottom-3 right-3 z-10 inline-flex rounded-[8px] bg-nb-paper p-0.5 shadow-[0_1px_6px_rgba(36,35,31,.18)] transition-opacity focus-within:opacity-100 group-hover/zoom:opacity-100 [@media(hover:none)]:opacity-100 ${zoom.fitted ? "opacity-0" : ""}`}
+        >
+          <ZoomControls zoom={zoom} />
+        </span>
       )}
     </span>
   );
