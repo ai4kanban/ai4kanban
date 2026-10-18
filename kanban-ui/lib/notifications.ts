@@ -148,8 +148,8 @@ export async function notificationCenter(page?: CenterPage): Promise<Notificatio
   rules.startCloudCenter(autoWorkAllowed());
   const center = page && rules.fetchCloudCenter ? await rules.fetchCloudCenter(page) : rules.readCloudCenter(page);
   // Reading took the alerts away wherever this runs; only the one board that interrupts
-  // passes them on.
-  return alertsAllowed() ? center : { ...center, alerts: [] };
+  // passes the account's on. Signed out, every alert is this board's own (#1817).
+  return alertsAllowed() || !center.signedIn ? center : { ...center, alerts: [] };
 }
 
 /** `notificationCenter` for a page sent from the browser: bad counts read as 0, and a failure

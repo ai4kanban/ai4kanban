@@ -39,11 +39,6 @@ const zh: NotificationsCopy = {
   end: "没有更多通知了",
   checking: "正在检查…",
   unavailable: "这里无法使用通知",
-  signedOut: {
-    title: "尚未登录 Cloud",
-    body: "登录后，这个看板的卡片动态会显示在这里。登录前，不会有任何数据离开这台电脑。",
-    hint: "配置 → 通知",
-  },
   off: {
     title: "通知已关闭",
     body: "可在「配置 → 通知」中开启。",

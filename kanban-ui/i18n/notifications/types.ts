@@ -56,7 +56,6 @@ export type NotificationsCopy = {
   checking: string;
   /** The rail's ends: a mark, what would fill it, and where to go. */
   unavailable: string;
-  signedOut: { title: string; body: string; hint: string };
   /** This board's notifications are switched off. */
   off: { title: string; body: string };
   empty: { title: string; body: string };

@@ -8,7 +8,8 @@
 // What is held here is a cache of what Cloud already stored, never a second authority: the
 // catch-up read on every connect and reconnect is what makes a missed hint cost nothing. That
 // read is the OPEN events alone (#1245) — landed history is read a page at a time, only as far
-// as the rail has been scrolled.
+// as the rail has been scrolled. The board's own record (./local-events.ts) sits under it,
+// signed in or not (#1817): it fills the bell where Cloud holds no copy, and raises its own.
 //
 // Two interruptions and no more, both decided here and raised by the app:
 //   • a card that is waiting for a person and has nothing working on it — the board has
@@ -35,7 +36,7 @@ import path from 'node:path'
 
 import { machineHome } from '../machine/home'
 import { notificationsSilenced } from '../machine/settings'
-import { KANBAN } from '../paths'
+import { KANBAN, REPO_ROOT } from '../paths'
 import { cloudBoardById, cloudBoardFor, readCloudBoards } from './boards'
 import { readBoardCopy } from './copy'
 import { isTerminal, listEvents, listOpenEvents, readEvent } from './client'
@@ -52,9 +53,16 @@ import {
 } from './events'
 import { eventHome, inHome, type EventHome } from './home'
 import { connectCloudLive, type LiveConnection } from './live'
+import { isLocalEvent, readLocalEvents, type LocalEvent } from './local-events'
 import { ensureBoardNotifications } from './notifications'
-import { unsentToCloud } from './outbox'
-import { flushCloudOutbox, reconcileBoard, retireStaleOnCloud, takeWatchFill } from './publish'
+import { readOutbox, unsentToCloud } from './outbox'
+import {
+  flushCloudOutbox,
+  reconcileBoard,
+  recordBoardEvents,
+  retireStaleOnCloud,
+  takeWatchFill,
+} from './publish'
 import { readSession } from './session'
 
 /** One row of the rail. The card's number and title, the event's name under it, and nothing
@@ -223,6 +231,11 @@ interface Held {
   epoch: number
   /** The first durable read has come back, answered or not. */
   loaded?: boolean
+  /** Each local row's state as the last read saw it (#1817). Unset until the first read,
+   *  which restores the rows and raises nothing. */
+  localSeen?: Map<string, CloudEventState>
+  /** This process has brought the local record in line with the board once. */
+  localSynced?: boolean
 }
 
 function state(): Held {
@@ -253,6 +266,11 @@ function state(): Held {
  */
 export function startCloudCenter(onScreen: boolean): void {
   const held = state()
+  // A card edited outside `akb` ran no pass; the start is where the local record catches up.
+  if (!held.localSynced) {
+    held.localSynced = true
+    void recordBoardEvents().catch(() => {})
+  }
   if (!onScreen || !readSession()) return
   // Signed in means on, so the board registers itself here rather than waiting for somebody
   // to open Configuration. Ahead of the guards below: this runs on every poll, and the pass
@@ -446,7 +464,13 @@ export function readCloudCenter(page?: CenterPage): NotificationCenter {
   if (page && home && readSession()) void readPages(home, page).catch(() => {})
   // The bell is the open board's. The connection carries the whole account, because one
   // machine holds one socket and every board's interruptions come down it.
-  const mine = home ? known().filter((event) => inHome(event, home)) : []
+  const onCloud = home && readSession() ? known().filter((event) => inHome(event, home)) : []
+  // This board's own record comes first (#1817); a row Cloud also holds is drawn from Cloud,
+  // which carries the remote actions.
+  const local = readLocalEvents()
+  const paired = pairedOnCloud(onCloud)
+  const onBoth = new Set(local.map((event) => paired(event)?.id).filter(Boolean))
+  const mine: CloudEvent[] = [...onCloud, ...local.filter((event) => !paired(event))]
   // The endings a later answer or Implement already took over (#695). Read once over the
   // whole set, because the judgment is about the card rather than the single event, and read
   // by both the row and its unread mark so the list and the count say the same thing.
@@ -456,7 +480,9 @@ export function readCloudCenter(page?: CenterPage): NotificationCenter {
   const unread = rows.filter((r) => r.unread && notificationGroup(r.state) === 'todo').length
   const paged = page ? pageOf(rows, page, home) : { rows }
 
-  const alerts = notificationsSilenced() ? [] : held.alerts
+  const fromHere = localAlerts(local)
+  const fromCloud = held.alerts.filter((a) => !(LOCAL_ALERTS.has(a.state) && onBoth.has(a.eventId)))
+  const alerts = notificationsSilenced() ? [] : [...fromHere, ...fromCloud]
   held.alerts = []
   // Handed out once, like an alert. The rail keeps it on screen while it is open; nothing is
   // said again later to make up for a bell nobody opened.
@@ -478,6 +504,43 @@ export function readCloudCenter(page?: CenterPage): NotificationCenter {
     error: held.error,
     unsent: unsentToCloud().length,
   }
+}
+
+/** The states this board's record raises itself. A landing is not one of them: only one
+ *  approved away from the app interrupts anybody, and that is Cloud's to raise. */
+const LOCAL_ALERTS = new Set<CloudEventState>(['actionable', 'failed', 'interrupted'])
+
+/** The alerts the record holds since the last read. The first read restores and raises nothing. */
+function localAlerts(local: LocalEvent[]): NotificationAlert[] {
+  const held = state()
+  const seen = held.localSeen
+  held.localSeen = new Map(local.map((e) => [e.id, e.state]))
+  if (!seen) return []
+  const out: NotificationAlert[] = []
+  for (const event of local) {
+    if (!LOCAL_ALERTS.has(event.state)) continue
+    const was = seen.get(event.id)
+    const raise = alertFor(was ? { ...event, state: was } : undefined, event, false)
+    if (raise) out.push(raise)
+  }
+  return out
+}
+
+/** Which local rows Cloud already holds: the event the outbox sent it as, or — for one sent
+ *  before the link was written — the same card asking the same thing. */
+function pairedOnCloud(onCloud: CloudEvent[]): (event: LocalEvent) => CloudEvent | undefined {
+  if (onCloud.length === 0) return () => undefined
+  const outbox = readOutbox()
+  const asked = new Map<string, string>()
+  for (const r of [...Object.values(outbox.published), ...Object.values(outbox.delivering)]) {
+    asked.set(r.eventId, r.fingerprint)
+  }
+  return (event) =>
+    onCloud.find((c) =>
+      event.cloudId
+        ? c.id === event.cloudId
+        : c.taskId === event.taskId && !!event.fingerprint && asked.get(c.id) === event.fingerprint,
+    )
 }
 
 const newestFirst = (a: NotificationRow, b: NotificationRow) =>
@@ -637,11 +700,14 @@ function pageOf(
 export function openNotification(
   eventId: string,
 ): { boardPath: string | null; boardDir: string | null; taskId: number } | null {
-  const event = known().find((e) => e.id === eventId)
+  const event = isLocalEvent(eventId)
+    ? readLocalEvents().find((e) => e.id === eventId)
+    : known().find((e) => e.id === eventId)
   if (!event) return null
   const marks = reads()
   marks[eventId] = event.changedAt
   writeReads(marks)
+  if (isLocalEvent(eventId)) return { boardPath: REPO_ROOT, boardDir: KANBAN, taskId: event.taskId }
   const where = checkoutOf(event)
   return { boardPath: where?.path ?? null, boardDir: where?.boardDir ?? null, taskId: event.taskId }
 }
@@ -673,11 +739,11 @@ function checkoutOf(event: {
  *  tab. */
 export function readAllNotifications(group?: NotificationGroup): void {
   const enabled = cloudBoardFor(KANBAN)
-  if (!enabled) return
-  const home = eventHome(enabled)
+  const home = enabled ? eventHome(enabled) : null
   const marks = reads()
-  for (const event of known()) {
-    if (!inHome(event, home) || !needsPerson(event)) continue
+  const mine = [...(home ? known().filter((event) => inHome(event, home)) : []), ...readLocalEvents()]
+  for (const event of mine) {
+    if (!needsPerson(event)) continue
     if (group && notificationGroup(event.state) !== group) continue
     marks[event.id] = event.changedAt
   }

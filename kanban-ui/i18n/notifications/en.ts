@@ -40,11 +40,6 @@ const en: NotificationsCopy = {
   end: "No more notifications",
   checking: "Checking…",
   unavailable: "Notifications aren’t available here",
-  signedOut: {
-    title: "Not signed in to Cloud",
-    body: "Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do.",
-    hint: "Configuration → Notifications",
-  },
   off: {
     title: "Notifications are off",
     body: "Turn them on in Configuration → Notifications.",

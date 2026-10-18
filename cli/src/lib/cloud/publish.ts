@@ -37,8 +37,9 @@ import crypto from 'node:crypto'
 import { cardsAwaitingAnswer } from '../agent/deliveries'
 import { cardsAtWork, cardsBeingCreated, cardsWithLiveRun } from '../agent/store'
 import { board } from '../board'
-import { KANBAN } from '../paths'
-import { cloudBoardFor, type CloudBoard } from './boards'
+import { KANBAN, REPO_ROOT } from '../paths'
+import type { Card } from '../view/types'
+import { boardName, cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
   listOpenEvents,
@@ -79,7 +80,8 @@ import {
 import { attachBoardServer } from './servers'
 import { readSession } from './session'
 import { eventHome, inHome, type EventHome } from './home'
-import { snapshotFor } from './snapshot'
+import { linkLocalEvent, recordLocalDelivery, syncLocalEvents } from './local-events'
+import { snapshotFor, type EventSnapshot } from './snapshot'
 import { traceCloud } from './trace'
 
 /** How many times a queued item is tried before this board gives up on it. Spread over the
@@ -180,17 +182,36 @@ export async function recordBoardEvents({
   broughtIn = false,
 }: { onCloud?: CloudEvent[]; broughtIn?: boolean } = {}): Promise<void> {
   const enabled = cloudBoardFor(KANBAN)
-  if (!enabled || !readSession()) return
   // A member whose own switch is off publishes nothing from this machine (#328) — and retires
   // nothing either: a workspace card's decision belongs to the team, so going quiet must not
   // take a row out from under the teammates still waiting on it.
-  if (enabled.watchOff) return
+  if (enabled?.watchOff) return
   try {
-    await queueDifference(enabled, onCloud, broughtIn)
+    const cards = await board().readCards()
+    recordLocal(cards)
+    if (enabled && readSession()) await queueDifference(enabled, onCloud, broughtIn, cards)
   } catch {
     // A board we could not read this second is a board the next write reads again.
   }
 }
+
+/** The bell's own record (#1817): what the board is asking now, written whether or not
+ *  anybody is signed in. */
+function recordLocal(cards: Card[]): void {
+  const named = cloudBoardFor(KANBAN) ?? { id: '', path: REPO_ROOT, boardDir: KANBAN, name: localName() }
+  const raising = silenced(cardsAtWork())
+  const nowhere = { boardId: '', workspaceId: '' }
+  const snapshots = cards
+    .map((card) => snapshotFor(card, named, raising, nowhere))
+    .filter((s): s is EventSnapshot => s !== null)
+  syncLocalEvents(snapshots, {
+    stopped: cardsAwaitingAnswer(),
+    sweep: cards.length > 0,
+    titles: new Map(cards.map((card) => [card.id, card.title])),
+  })
+}
+
+const localName = (): string => boardName(REPO_ROOT, KANBAN)
 
 /**
  * What a board write calls once it has landed.
@@ -201,9 +222,8 @@ export async function recordBoardEvents({
  */
 export async function afterBoardWrite(): Promise<void> {
   try {
-    if (!cloudBoardFor(KANBAN) || !readSession()) return
     await recordBoardEvents()
-    void flushCloudOutbox()
+    if (cloudBoardFor(KANBAN) && readSession()) void flushCloudOutbox()
   } catch {
     // A board write never fails because of Cloud. Whatever this could not record, the next
     // write records again, and the reconciliation at start closes what neither reached.
@@ -283,8 +303,8 @@ async function queueDifference(
   enabled: CloudBoard,
   onCloud: CloudEvent[] | undefined,
   broughtIn: boolean,
+  cards: Card[],
 ): Promise<void> {
-  const cards = await board().readCards()
   // Where this checkout's decisions live (#364) — its workspace, or the board id its machine
   // minted. Read once for the pass, like the record below: it is a file on disk, and it
   // cannot change under one read of the board.
@@ -628,6 +648,16 @@ const startedBeforeAction = new Map<number, { eventId: string; state: CloudEvent
  * duplicating the other.
  */
 export function recordCloudDeliveryState(taskId: number, outcome: CloudEventState, reason = ''): void {
+  try {
+    const held = deliveringFor(taskId) ?? publishedFor(taskId)
+    recordLocalDelivery(taskId, outcome, {
+      reason,
+      boardName: cloudBoardFor(KANBAN)?.name ?? localName(),
+      fingerprint: held?.fingerprint ?? '',
+    })
+  } catch {
+    // The bell misses one row rather than the delivery failing over it.
+  }
   // The event a stopped delivery is carrying, when there is one (#647): that is where its
   // landing is reported, and the question the card is asking meanwhile is not touched.
   report(taskId, deliveringFor(taskId) ?? publishedFor(taskId), outcome, reason)
@@ -991,6 +1021,11 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       besides: snapshot.besides,
     })
     if (!answer.ok) return answer
+    try {
+      linkLocalEvent(snapshot.taskId, snapshot.fingerprint, answer.value.event.id)
+    } catch {
+      // Unpaired, the bell draws this card's row from Cloud and from here until the next send.
+    }
     settle(item.opId, {
       taskId: snapshot.taskId,
       event: {

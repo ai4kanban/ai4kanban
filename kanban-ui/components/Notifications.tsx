@@ -130,11 +130,10 @@ export function BellPane({ rail }: { rail: BellRail }) {
     setTab(next);
     if (next === "landed") void rail.readAll("landed");
   };
-  // Whether there is a list to split rather than an end to draw. A board with rows has one
-  // however it got them: this board's own runs fill the rail with no account behind them
-  // (#809), so being signed out is no longer an answer on its own.
+  // Whether there is a list to split rather than an end to draw. The board keeps its own
+  // record (#1817), so signed out is a list like any other.
   const live =
-    rows.length > 0 || (rail.ready && !center.unavailable && center.signedIn && center.enabled);
+    rows.length > 0 || (rail.ready && !center.unavailable && (!center.signedIn || center.enabled));
   return (
     <div {...LEAVES_SHEET} className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
       <Head
@@ -143,11 +142,8 @@ export function BellPane({ rail }: { rail: BellRail }) {
         onFold={rail.fold}
         tabs={live ? { tab, landedNew, pick } : null}
       />
-      {/* Before the first read lands the rail has been told nothing — least of all that
-          nobody is signed in. It says it is looking. */}
-      {/* Every end below is about Cloud, and none of them is the whole truth once this board
-          has rows of its own. So a rail with something on it draws the list, and the ends are
-          what is left to say when there is nothing. */}
+      {/* Before the first read lands the rail has been told nothing. It says it is looking. */}
+      {/* A rail with something on it draws the list; the ends are what is left when there is nothing. */}
       {(!live && !rail.ready) || (rows.length === 0 && center.loading) ? (
         <div className="flex flex-1 items-center justify-center">
           <Loading>{c.checking}</Loading>
@@ -158,14 +154,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
           title={c.unavailable}
           body={center.unavailable}
         />
-      ) : !live && !center.signedIn ? (
-        <Empty
-          icon={<FiBellOff size={20} aria-hidden />}
-          title={c.signedOut.title}
-          body={c.signedOut.body}
-          hint={c.signedOut.hint}
-        />
-      ) : !center.enabled && rows.length === 0 ? (
+      ) : !live ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
           title={c.off.title}
@@ -451,29 +440,13 @@ function ago(changedAt: string, c: NotificationsCopy): string {
   return c.daysAgo(Math.round(h / 24));
 }
 
-/** The rail's ends. One mark, one line of what would fill it, and — where there is one — the
- *  place to go. */
-function Empty({
-  icon,
-  title,
-  body,
-  hint,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-  hint?: string;
-}) {
+/** The rail's ends. One mark, and one line of what would fill it. */
+function Empty({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-4 text-center text-nb-ink-soft">
       {icon}
       <span className="text-[13px] font-[800] text-nb-ink">{title}</span>
       <span className="max-w-[34ch] text-[12px] leading-[17px]">{body}</span>
-      {hint && (
-        <span className="mt-1 rounded-[8px] bg-nb-ink/8 px-2.5 py-1 text-[12px] font-[700] text-nb-ink">
-          {hint}
-        </span>
-      )}
     </div>
   );
 }
