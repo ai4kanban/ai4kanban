@@ -68,6 +68,7 @@ const zh: ConfigurationCopy = {
     stages: { plan: "规划", execute: "执行" },
     pickLead: "选择 Agent",
     setLead: "设置 Agent",
+    clearLead: "移除 Agent",
     leadUndeclared: "此 Agent 未声明可作为负责 Agent。",
     notReady: "不可用",
     notReadyHint: "这个阶段还不能开始",

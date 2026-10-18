@@ -98,10 +98,13 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
 export const stageBlocked = (setup: WorkflowStageView): boolean =>
   !setup.lead || !setup.candidates.some((a) => a.name === setup.lead);
 
-/** Whether a stage is empty on purpose: a workflow finished in planning needs no execute lead
- *  (#1057), the same exception the board's own check makes, and may add one (#1772). */
-const leadOptional = (flow: WorkflowView, setup: WorkflowStageView): boolean =>
-  setup.stage === "execute" && flow.delivers === "plan" && !setup.lead;
+/** A workflow finished in planning needs no execute lead (#1057) and may set one, built in
+ *  or not (#1772, #1814). */
+const openLead = (flow: WorkflowView, setup: WorkflowStageView): boolean =>
+  setup.stage === "execute" && flow.delivers === "plan";
+
+/** Whether a stage is empty on purpose — the same exception the board's own check makes. */
+const leadOptional = (flow: WorkflowView, setup: WorkflowStageView): boolean => openLead(flow, setup) && !setup.lead;
 
 /** The stages a start of this workflow is refused over (#1227). */
 export const blockedStages = (flow: WorkflowView): WorkflowStage[] =>
@@ -188,12 +191,8 @@ export function WorkflowsPanel({
   const pro = useCopy().shared.pro;
   const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const proLocked = !!flow?.pro && !!lock;
-  // A built-in finished in planning has no execute stage to show (#1057); a copy may add one (#1772).
   const setups = useMemo(
-    () =>
-      WORKFLOW_STAGES.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []).filter(
-        (s) => !(flow?.builtIn && leadOptional(flow, s)),
-      ),
+    () => WORKFLOW_STAGES.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []),
     [flow],
   );
   const scheduled = useMemo(() => flow?.scheduled ?? [], [flow]);
@@ -496,7 +495,7 @@ export function WorkflowsPanel({
                   problem={warn(one.lead)}
                   held={shown === one.lead}
                   onOpen={() => void select(one.lead)}
-                  swap={flow.builtIn ? undefined : c.pickLead}
+                  swap={flow.builtIn && !openLead(flow, one) ? undefined : c.pickLead}
                 />
               ) : leadOptional(flow, one) ? (
                 <button
@@ -529,6 +528,14 @@ export function WorkflowsPanel({
                 setPicking(null);
                 if (await move(one.stage, { kind: "lead", agent: name })) show(name);
               }}
+              onClear={
+                openLead(flow, one) && one.lead
+                  ? async () => {
+                      setPicking(null);
+                      if (await move(one.stage, { kind: "lead", agent: "" })) show("");
+                    }
+                  : undefined
+              }
             />
           )}
         </Popover>
@@ -1038,11 +1045,14 @@ function AgentPicker({
   candidates,
   chosen,
   onPick,
+  onClear,
 }: {
   label: string;
   candidates: WorkflowCandidate[];
   chosen: string;
   onPick: (name: string) => void;
+  /** Offered when the stage may be left empty. */
+  onClear?: () => void;
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useCandidateName();
@@ -1072,6 +1082,14 @@ function AgentPicker({
               </span>
             </PopoverOption>
           ))}
+        </div>
+      )}
+      {onClear && (
+        <div className="mt-1 border-t border-nb-ink/10 pt-1">
+          <PopoverOption onClick={onClear} className="px-2 text-[12px] font-[700] text-nb-ink-soft">
+            <FiX aria-hidden className="text-[13px]" />
+            {c.clearLead}
+          </PopoverOption>
         </div>
       )}
     </PopoverContent>

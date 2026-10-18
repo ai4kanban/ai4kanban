@@ -92,6 +92,7 @@ export type ConfigurationCopy = {
     pickLead: string;
     /** An execute stage left empty on purpose (#1772): adds an agent to lead it. */
     setLead: string;
+    clearLead: string;
     /** Under a lead picked before agents declared whether they may lead (#846). */
     leadUndeclared: string;
     /** Beside a workflow that cannot start a card, and the one line that says what it

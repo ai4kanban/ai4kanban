@@ -30,6 +30,7 @@ import {
   workflowById,
   workflowProblems,
   workflows,
+  openBuiltinLead,
   WORKFLOW_STAGES,
   type WorkflowStage,
 } from '../lib/agent/workflows'
@@ -200,10 +201,11 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
       .filter((a) => a.canLead && [flow.id, ''].includes(agentWorkflow(a.name)))
       .map((a) => a.name)
     say(`${flow.name} · ${stage}`)
-    say(`  lead: ${setup.lead || '(nobody)'}${flow.builtIn ? ' — built in; duplicate the workflow to pick another' : ''}`)
+    const fixed = flow.builtIn && !openBuiltinLead(flow.id, stage)
+    say(`  lead: ${setup.lead || '(nobody)'}${fixed ? ' — built in; duplicate the workflow to pick another' : ''}`)
     say(`  hooks on: ${on.join(', ') || '(none)'}`)
     if (off.length) say(`  hooks off: ${off.join(', ')}`)
-    if (!flow.builtIn) say(`  can lead: ${leads.join(', ') || '(none)'}`)
+    if (!fixed) say(`  can lead: ${leads.join(', ') || '(none)'}`)
     return { id: flow.id, stage, lead: setup.lead, on, off, leads }
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)

@@ -81,6 +81,7 @@ const en: ConfigurationCopy = {
     stages: { plan: "Plan", execute: "Execute" },
     pickLead: "Select agent",
     setLead: "Set agent",
+    clearLead: "Remove agent",
     leadUndeclared: "This agent isn't declared as a lead.",
     notReady: "Unavailable",
     notReadyHint: "This stage cannot start yet",

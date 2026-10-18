@@ -44,7 +44,7 @@ import {
 } from '../src/lib/agent/workflows.ts'
 import { cardsOnWorkflow, removeWorkflow } from '../src/lib/agent/workflow-cards.ts'
 import { setSpecAgentEnabled, specAgentAssigned } from '../src/lib/agents/index.ts'
-import { createAgent } from '../src/lib/agents/roster.ts'
+import { createAgent, deleteAgent } from '../src/lib/agents/roster.ts'
 import { cmdWorkflowDelete } from '../src/commands/workflow.ts'
 import { startRun, workflowRefusal } from '../src/lib/agent/start.ts'
 import { agentMemoryDir } from '../src/lib/memory.ts'
@@ -1080,5 +1080,39 @@ describe('a workflow finished in planning that adds a build agent (#1772)', () =
     assert.equal(canImplement(card), true)
     assert.equal(workflowRefusal({ action: 'implement', id }), null)
     await run(root, ['card', 'implement', String(id), '--print'])
+  })
+})
+
+describe('a built-in finished in planning that adds a build agent (#1814)', () => {
+  const cloneCard = async (): Promise<number> => {
+    const card = await move(root, ['create', '--title', 'A clone'])
+    setWorkflow(card.id as number, 'video-clone')
+    return card.id as number
+  }
+
+  it('keeps the lead it is given, and goes back to archiving once it is removed', async () => {
+    const id = await cloneCard()
+    const made = createAgent('video-clone-executor', 'execute', 'Video clone executor')
+    assert.equal(setWorkflowLead('video-clone', 'execute', made.agent!).ok, true)
+    assert.equal(JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8')).workflows.stages['video-clone'].execute.lead, made.agent)
+    assert.equal(workflowById('video-clone')!.stages.execute.lead, made.agent)
+    assert.equal(findCard(id)!.deliversIn, undefined)
+
+    assert.equal(setWorkflowLead('video-clone', 'execute', '').ok, true)
+    assert.equal(workflowById('video-clone')!.stages.execute.lead, '')
+    assert.equal(findCard(id)!.deliversIn, 'plan')
+  })
+
+  it('still refuses another planning lead', () => {
+    assert.equal(setWorkflowLead('video-clone', 'plan', 'software-planner').ok, false)
+  })
+
+  it('clears the stage when its lead is deleted', async () => {
+    const id = await cloneCard()
+    const made = createAgent('video-clone-executor', 'execute')
+    assert.equal(setWorkflowLead('video-clone', 'execute', made.agent!).ok, true)
+    assert.equal(deleteAgent(made.agent!).ok, true)
+    assert.equal(workflowById('video-clone')!.stages.execute.lead, '')
+    assert.equal(findCard(id)!.deliversIn, 'plan')
   })
 })
