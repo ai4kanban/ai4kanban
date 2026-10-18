@@ -2,14 +2,14 @@
 
 ## Setup
 
-- **站点**：官网（`web/`）在本地跑起来，浏览器打开 `/docs/memory`，窗口 1280×1000。
+- **站点**：官网（`web/`）在本地跑起来，浏览器打开 `/docs/follow-ups`，窗口 1280×1000。
 - **命令**：一个刚 `akb install` 的临时项目，用来对照第 4 步。
 - **读者**：想知道看板除了写代码还能做什么、一张卡用哪个工作流、能不能改成自己的流程的人。
 
 ## Steps
 
-1. 滚到 `/docs/memory` 页底，点「Next / Workflows」。
-   进入 `/docs/workflows`，从页顶开始；分组「How it works」，标题「Workflows」，导语「Use a built-in workflow for your task, or create one for the work you do.」；左栏「How it works」下 Memory 之后的「Workflows」高亮；右侧目录三节：Use a workflow、Built-in workflows、Customize a workflow。
+1. 滚到 `/docs/follow-ups` 页底，点「Next / Workflows」。
+   进入 `/docs/workflows`，从页顶开始；分组「How it works」，标题「Workflows」，导语「Use a built-in workflow for your task, or create one for the work you do.」；左栏「How it works」下 Follow-ups 之后的「Workflows」高亮；右侧目录三节：Use a workflow、Built-in workflows、Customize a workflow。
    ![Workflows 页顶部](01-workflows-top.png)
 
 2. 点右侧目录里的「Use a workflow」。
@@ -33,7 +33,7 @@
    [标签页前后](06-runs-link.log)
 
 7. 关掉新标签页，滚到页底。
-   两张翻页卡：左「Previous / Memory」（How it works），右「Next / The daily loop」（Using the board）。
+   两张翻页卡：左「Previous / Follow-ups」（How it works），右「Next / The daily loop」（Using the board）。
    ![页底翻页](07-end-of-page.png)
 
 ## Feedback
@@ -43,5 +43,5 @@
 - **没说匹配错了怎么办**：只写 Agent 自动推断，没有一句讲推断错了怎么换工作流，读者只能猜。
 - **配置截图字太小**：2060px 宽的图缩进正文栏后，helper 名字和按钮几乎读不清，要点开原图才看得见。
 - **「AI4Kanban skill」链到 daily loop**：链接文字说的是 skill，落地却是 The daily loop 页，想装 skill 的人要再找一次。
-- **llms.txt 里没有这页**：文档列表只列了六页，Workflows 不在其中，AI 从 llms.txt 找不到它（llms.txt 是手选的列表，不算错误）。
+- **How it works 的收尾**：前一页换成了 Follow-ups，「先审草稿 → 记住偏好 → 交付后跟进 → 换工作流」顺着读下来是通的。
 - **没有跑到的**：在看板界面里真的建一张卡看工作流被匹配、真的 Duplicate 一个工作流（见 local-ui 模块的场景）；窄屏。

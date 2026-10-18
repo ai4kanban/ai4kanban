@@ -24,11 +24,11 @@
    ![记忆自己保持最新](04-keeps-itself-current.png)
 
 5. 打开 `/llms.txt`，看文档列表。
-   「Memory」排在「Draft review」之后、「The daily loop」之前，带一句描述；左栏里排在 Memory 之后的「Workflows」不在这份列表里。
+   「Memory」排在「Draft review」之后，带一句描述；后面接着「Follow-ups」「Workflows」，和左栏顺序一致。
    [llms.txt 的文档条目](05-llms-txt.log)
 
 6. 回到 `/docs/memory`，滚到页底。
-   两张翻页卡：左「Previous / Draft review」，右「Next / Workflows」，两张都属「How it works」。
+   两张翻页卡：左「Previous / Draft review」，右「Next / Follow-ups」，两张都属「How it works」。
    ![页底翻页](06-end-of-page.png)
 
 ## Feedback
@@ -37,6 +37,6 @@
 - **「不用你管」讲得干脆**：两个 Agent 的周期、按钮名和配置页一致，想停用或改周期知道去哪。
 - **和 Agents 页打架**：Agents 页还留着三节讲记忆的旧文字，Roles 里叫「Memory pruner」而这里叫「Tidy memory」，Review chats 那边写「卡片归档后」、这里写「每天」；两页都读的人会疑惑哪个对。
 - **项目记忆一节太省**：只说「edits by hand do not last」，没说项目描述在哪个文件、想纠正它该怎么做（Agents 页倒写了 `docs/kanban/memory/project.md`）。
-- **读完自然接到工作流**：页底下一页是同组的 Workflows，不再直接跳到「Using the board」，How it works 三页能连着读完。
+- **读完接到跟进建议**：页底下一页是同组的 Follow-ups，再往后才是 Workflows；从「记住你说过的」到「交付后替你找漏」顺得上。
 - **全局记忆的「Connect」要改 `AGENT.md`**：界面里能建、能删，连接却要手写 YAML，对不写代码的人是个坎。
 - **没有跑到的**：在看板上真的建全局记忆、按 Review now（见 local-ui、skill 模块的场景）；窄屏。

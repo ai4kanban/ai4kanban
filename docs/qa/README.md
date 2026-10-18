@@ -96,6 +96,7 @@
 - [点附件标签把它收起，再点展开](local-ui/collapse-an-asset-by-clicking-its-label/case.md)
 - [做演示文稿：先看清交付的是图片版 PPT，再在卡片上直接翻 HTML 幻灯片](local-ui/see-html-slides-directly-in-the-storyboard/case.md)
 - [给复制的「视频克隆」工作流设置执行 Agent，让卡片可以执行](local-ui/give-a-copied-video-clone-workflow-a-build-agent/case.md)
+- [审视频复刻的两份分镜：一次看一镜，翻镜，收起](local-ui/review-two-storyboards-one-shot-at-a-time/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -119,6 +120,7 @@
 - [AI 从 llms.txt 找到文档页](site/read-the-docs-list-in-llms-txt/case.md)
 - [读 Claude Code 介绍页，看先审草稿再交给 Claude Code 是怎么回事](site/read-the-claude-code-page/case.md)
 - [读 Grill Me 介绍页，看一个大想法怎么拆卡、逐卡规划、按依赖交付](site/read-the-grill-me-page/case.md)
+- [读 Codex 介绍页，看 AI4Kanban 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
 
 ### docs
 
@@ -136,6 +138,7 @@
 - [在文档里查 Agent 记住了什么、记忆怎么保持最新](docs/read-how-agents-remember-your-preferences-in-the-docs/case.md)
 - [在文档里查任务用哪个工作流、怎么自定义工作流](docs/read-which-workflow-a-task-uses-in-the-docs/case.md)
 - [在文档里查怎么看、停、续跑一次运行，以及给 Agent 换运行时](docs/watch-stop-and-resume-a-run-from-the-docs/case.md)
+- [在文档里查交付后的跟进建议从哪来、怎么调](docs/read-follow-up-suggestions-in-the-docs/case.md)
 
 ### cloud
 

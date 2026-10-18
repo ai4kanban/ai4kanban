@@ -28,7 +28,7 @@
    ![手机上的折叠栏](05-phone-closed.png)
 
 6. 点折叠栏。
-   展开完整的文档目录，「Runs and runtimes」高亮，箭头朝上；「How it works」下是 Draft review、Memory、Workflows，「Using the board」下是 The daily loop、Chat、Agents、Runs and runtimes、Triage、Local and Cloud、Multi-runtime 七项，没有「Releases」和「Triage endpoint」。
+   展开完整的文档目录，「Runs and runtimes」高亮，箭头朝上；「How it works」下是 Draft review、Memory、Follow-ups、Workflows，「Using the board」下是 The daily loop、Chat、Agents、Runs and runtimes、Triage、Local and Cloud、Multi-runtime 七项，没有「Releases」和「Triage endpoint」。
    ![展开的目录](06-phone-open.png)
 
 7. 点「Triage」。
@@ -42,10 +42,10 @@
 ## Feedback
 
 - **左栏、翻页、手机目录都顺手**：高亮总在当前页，跳页后从页顶开始，手机上选完目录自己收起，不用再点一下。
-- **目录一屏看完**：「How it works」多了 Workflows，三组十二项在手机上展开仍是一屏多一点；「Runs and runtimes」比「Runs and agents」更贴近页里讲的事，但和页标题「Manage runs and runtimes」仍不完全一样。
+- **目录一屏看完**：「How it works」多了 Follow-ups，三组十三项在手机上展开仍在一屏内；「Runs and runtimes」比「Runs and agents」更贴近页里讲的事，但和页标题「Manage runs and runtimes」仍不完全一样。
 - **旧链接是死路**：书签或外部文章里的 `/docs/releases` 只给一行 Next 默认的 404，没有页头、没有回文档的链接，也没有一句说明版本功能已去掉；`_redirects` 里也没有转到别处（本地静态构建加 `pages dev` 上看到，线上没核对）。
 - **正文链接开新标签页**：文档内部互相引用（如「Multi-runtime support」）也用 `target="_blank"`，读几页就攒一排标签页；左栏和翻页都是原页打开，行为不一致。
 - **翻页卡的分组名重复**：前后两张都写「Using the board」，占地方却不提供信息。
-- **图标有重复**：「Agents」和「Local and Cloud」用的是同一个叠层图标，扫一眼分不开。
+- **图标有重复**：「Agents」和「Local and Cloud」用同一个叠层图标，新加的「Follow-ups」和「The daily loop」也用同一个循环箭头，扫一眼分不开。
 - **手机上两条折叠栏挨得近**：「Using the board / Runs and runtimes」和「On this page」样式相同，第一次看分不清哪条是换页、哪条是本页小节。
 - **没有跑到的**：手机上的「On this page」折叠栏、站内搜索、左栏底部的「Open an issue」。

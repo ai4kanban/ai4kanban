@@ -27,5 +27,17 @@ for (const u of ['/vs-task-master', '/vs-hermes-kanban', '/zh/vs-multica']) {
   await p.nav(B + u, 4000)
   log += `\n# 5. Open ${u}\nh1: ${await p.ev(`document.querySelector('h1').innerText.replace(/\\n/g,' ')`)}  h2s: ${await p.ev(`[...document.querySelectorAll('main h2')].map(h=>h.innerText.replace(/\\n/g,' ')).join(' | ')`)}\n`
 }
+// the five Chinese pages say "agent", never 智能体
+log += `\n# 5b. Chinese pages: 智能体 vs agent\n`
+for (const u of ['/zh/vs-task-master', '/zh/vs-hermes-kanban', '/zh/vs-multica', '/zh/vs-orca', '/zh/vs-plannotator']) {
+  await p.nav(B + u, 4000)
+  const t = await p.ev(`document.title+'\\n'+document.querySelector('main').innerText`)
+  log += `${u}  智能体: ${(t.match(/智能体/g) || []).length}  agent: ${(t.match(/agent/gi) || []).length}  e.g. ${[...new Set(t.match(/[一-鿿]{0,4} ?agent ?[一-鿿]{0,4}/gi) || [])].slice(0, 4).join(' / ')}\n`
+}
+await p.nav(B + '/zh/vs-multica', 4000)
+const m = `[...document.querySelectorAll('main h2')].find(h=>h.innerText.includes('逐项比较'))`
+await p.ev(`(${m}).scrollIntoView({block:'start'})`); await p.sleep(1500)
+const zt = await p.ev(`(()=>{const r=(${m}).closest('section').getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`)
+await p.shot(D + '04-multica-zh-details.png', { x: 0, y: zt.y, width: 1280, height: Math.min(zt.h, 1100) })
 await p.close()
 fs.writeFileSync(D + 'compare.log', log); console.log(log)

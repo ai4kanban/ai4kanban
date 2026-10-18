@@ -8,20 +8,19 @@
 ## Steps
 
 1. 读 `/llms.txt` 的 `## Documentation` 一节。
-   返回 200、`text/plain`。开头一句说每个文档页都有「Copy page」按钮能拿到原始 Markdown，下面依次六条：Documentation overview、Your first card、Draft review、Memory、The daily loop、Multi-runtime support，各带一句描述。
+   返回 200、`text/plain`。开头一句说每个文档页都有「Copy page」按钮能拿到原始 Markdown，下面依次 13 条：Documentation overview、Your first card、Draft review、Memory、Follow-ups、Workflows、The daily loop、Chat、Agents、Runs and runtimes、Triage、Local and Cloud boards、Multi-runtime support，各带一句描述；Follow-ups 一条是「Catch omissions after delivery and check changed features without repeating every check yourself. …」。
    [llms.log](llms.log)
 
-2. 依次打开这六条链接。
-   都返回 200，页面上都有「Copy page」按钮。除 Documentation overview 外，每条的名字都与左侧文档栏一致（文档栏把 Multi-runtime support 简写成「Multi-runtime」）；「Draft review」页的大标题是「Review drafts before execution」，「Memory」页的大标题是「Carry preferences into the next task」。六条描述都与该页的 meta description 一字不差，The daily loop 的是「…add and refine cards, build one end to end, check what it leaves you, and finish it.」。
+2. 依次打开这 13 条链接。
+   都返回 200，页面上都有「Copy page」按钮，13 条描述都与该页的 meta description 一字不差。名字大多与左侧文档栏一致；不一致的三处：Documentation overview（文档栏写「Documentation」）、Local and Cloud boards（「Local and Cloud」）、Multi-runtime support（「Multi-runtime」）。除 Documentation overview 外，还有六页的大标题和名字不同，如「Follow-ups」页是「Review follow-up suggestions」、「Agents」页是「The agents that work your board」。
    [llms.log](llms.log)
 
 3. 把 `llms.txt` 的文档列表和 `/docs` 左侧文档栏对一遍。
-   文档栏有十一页；`llms.txt` 列了其中六页，没有 Chat、Agents、Runs、Triage、Local and cloud boards。
+   文档栏 13 页，`llms.txt` 一页不缺，顺序也相同。
    [llms.log](llms.log)
 
 ## Feedback
 
-- **描述终于全对上了**：The daily loop 不再提已删掉的发布功能，六条描述都与页面逐字一致，AI 引用 `llms.txt` 不会再说出不存在的功能。
-- **新页上线即可见**：Memory 和页面同一次提交进了 `llms.txt`，排序也和文档栏一样，AI 按新手顺序读下去不会漏。
-- **列表仍只有一半多**：文档栏十一页里 Chat、Agents、Runs、Triage、Local and cloud boards 五页不在 `llms.txt`，AI 想回答「Agents 有哪些」「Triage 怎么分流」时得自己去爬文档栏。
-- **同一页两个名字**：「Draft review」和「Memory」进去看到的大标题分别是「Review drafts before execution」「Carry preferences into the next task」，AI 按名字引用、用户按标题找，对不上号会让人以为点错了页。
+- **列表终于全了**：文档栏 13 页全在 `llms.txt`，顺序一致，AI 回答「Agents 有哪些」「Triage 怎么分流」「交付后的跟进建议怎么关」不用再自己爬文档栏；新的 Follow-ups 页和页面同一次上线。
+- **描述不会再漂**：13 条描述与页面逐字相同，而且构建时会比对，改了页面描述忘改 `llms.txt` 就构建失败，AI 引用到的说法和页面不会对不上。
+- **同一页仍有三个名字**：`llms.txt`、文档栏和大标题常各说各的（「Follow-ups」/「Follow-ups」/「Review follow-up suggestions」、「Local and Cloud boards」/「Local and Cloud」），AI 按名字引用、用户按标题找，偶尔会以为点错了页。

@@ -1,16 +1,16 @@
-# 用「视频克隆」把一条程序化短片复刻成模板，再换上自己的内容
+# 用「视频克隆」复刻一条程序化短片：先审原片拆解和复刻脚本，再拿到模板和对比
 
 ## Setup
 
-- **项目**：一次性 git 项目，`media/launch.mp4` 是一条用 ffmpeg 画的 6 秒短片（1280×720、30 fps、无声）：藏青底白块 → 橙色从右擦入、一扇 macOS 浏览器窗口从底部升起（里面是示意仪表盘） → 叠化到白底藏青横条；`akb install` 新装，删掉 `setup-checklist.md`、自带的 #1 和索引里它那一行后提交。产品截图（`inbox.png`、`report.png`，一个叫 Tasko 的待办应用）先不放进项目。
+- **项目**：一次性 git 项目，`media/launch.mp4` 是一条用 ffmpeg 画的 6 秒短片（1280×720、30 fps、无声）：藏青底白块 → 橙色从右擦入、一扇浏览器窗口从底部升起 → 叠化到白底藏青横条；`akb install` 新装，删掉 `setup-checklist.md`、自带的 #1 和索引里它那一行后提交。
 - **账号**：已登录 Cloud，套餐先是免费版，第 3 步起是 Pro（本地假 Cloud 应答 `/v1/billing`）。
-- **Agent**：真实的 Claude Code（`claude-opus-5-5`），界面语言中文。
-- **界面**：看板 UI（`kanban-ui`）指向这个项目，浏览器窗口 1440 宽。
+- **Agent**：用本目录的 [stand-in.mjs](stand-in.mjs) 顶替 Claude Code（不花钱）——在 `<project>/.akb/boards/docs/kanban/ui.config.json` 写 `{"harness":"claude-code","harnessSettings":{"claude-code":{"command":"node <路径>/stand-in.mjs <路径>/cli/bin/ai4kanban.mjs"}}}`。它照 `video-cloner` 的 `AGENT.md` 在各节点该做的事动手：规划时写两份草稿并提问；收到确认就勾掉确认项；再规划时换成对比、写模板待办。复刻成片是事先准备好的文件，模板目录里只有 `template.md`。
+- **界面**：看板 UI（`kanban-ui`）指向这个项目，浏览器窗口 1440 宽，看板语言中文。
 
 ## Steps
 
 1. 执行 `akb workflow list`。
-   最后一项是 `video-clone  Video clone  (built-in)  (Pro · locked)  (no worktree)`，规划由 `video-cloner` 领头，执行无人。
+   最后一项是 `video-clone  Video clone  (built-in)  (Pro · locked)  (no worktree)`，简介 `Approve a breakdown and a clone script, get a rendered clone of a reference video and a reusable template, and archive it when you are happy.`；规划由 `video-cloner` 领头，执行无人。
    [01-workflows.log](01-workflows.log)
 
 2. 免费账号下用它建卡：`akb raw create --title '复刻发布短片' --workflow video-clone --body-file body.md`（正文：复刻 `media/launch.mp4` 的节奏和动效，做成以后能放我们自己产品画面的模板），再执行 `akb card refine 2`。
@@ -18,53 +18,39 @@
    [02-free-refused.log](02-free-refused.log)
 
 3. 账号升到 Pro 后再执行 `akb card refine 2`。
-   返回一次运行，领头的是 `video-cloner`。
+   返回一次 `refine` 运行。
    [03-pro-refine.log](03-pro-refine.log)
 
-4. 运行结束后（9 分 34 秒，$2.80）看回话、卡片和模板。
-   没有问用户要内容：卡片 **todo**、没有问题，Todo 只有一条已勾选的「模板 `<绝对路径>/template`，渲染命令 `npx --yes hyperframes@0.8.169 render -f 30 -o ../clone.mp4`」；``## By `video-cloner` agent`` 一节是复刻成片、源片对比和按 S1–S3 写的差异。成片里 Logo、品牌色、产品界面和标语都是标好的占位。模板 `template.md` 开头写明只复刻拍法（节拍、擦入、窗口缓出升起、叠化、布局、各颜色的角色），不带源片的任何内容，`content.js` 里全是要换成自己的占位，`index.html` 只放拍法和道具。浏览器窗口作为道具存进了 `memory/agents/video-cloner/props/`。回话最后一句是「你看过没问题的话，请把 #2 归档」；`akb card implement 2 --print` 被拒。
-   [04-planned.log](04-planned.log)
+4. 运行结束后看 `akb run log`、卡片和素材目录。
+   Agent 读到的 `AGENT.md` 以 `Stage 1 — drafts` 开头；`breakdown.json` 和 `clone.json` 都过了 scriptwriter 的校验（`valid`）。卡片 **todo**、1 个问题：`[user] 原片拆解和复刻脚本可以照这样做模板吗？`（`agent: video-cloner`，推荐「可以，按这两份稿做模板」）。``## By `video-cloner` agent`` 一节只有两个 `<Storyboard>`：「原片拆解」和「复刻脚本」；Todo 一条未勾选的「原片拆解和复刻脚本已确认」。素材目录里还没有成片和模板。`akb raw validate 2` 通过；`akb card implement 2 --print` 被拒：`#2 is finished during planning, so it is archived rather than built.`
+   [04-drafts.log](04-drafts.log)
 
-5. 把两张截图放进 `media/product/` 并提交，执行 `akb card revise 2 '换成我们自己的内容：产品画面用 media/product/inbox.png 和 media/product/report.png 两张截图；没有 Logo 图片，Logo 位写 Tasko；标语：Plan less. Ship more.'`。
-   返回一次 `edit` 运行。
-   [05-revise.log](05-revise.log)
+5. 在看板 UI 打开 `/2`。
+   顶部「待你决定」列出这个问题和两个选项；「视频克隆」一节展开着，「原片拆解」三镜各带一张源片画面，右侧写动作、旁白和制作说明（标出骨架镜、运动、道具、内容位、转场、声音）；「复刻脚本」三镜写 Tasko 的内容，没有画面。待办 0/1，按钮只有「修订」「移除」。
+   ![两份草稿](05-drafts-on-card.png)
 
-6. 运行结束后（3 分 1 秒，$0.97）看卡片和模板。
-   卡片仍 **todo**、没有问题，Todo 两条都已勾选（多了一条「换上 Tasko 内容后重新渲染」）。`content.js` 填上了 Tasko：S1 是 `Tasko` 字标，S2 的窗口里是按截图重画的侧栏、收件箱列表、「14 tasks」统计和周报柱状图，S3 是标语；颜色取自截图。`Worth noting` 多了一条：截图是重画进一屏的，不是原图，产品里没有这样一页。回话同样以「满意的话请把 #2 归档」结束。`akb raw validate` 通过。
-   [06-revised.log](06-revised.log)
+6. 执行 `akb card resolve 2 '可以，按这两份稿做模板'`，等它跑完。
+   起一次 `resolve` 运行，结束后看板自己接着起一次 `clarify`，两次都完成。
+   [06-approve.log](06-approve.log)
 
-7. 在看板 UI 打开 `/2`，展开「视频克隆」一节，把「复刻成片」拖到 0:03。
-   视频带浏览器自己的播放控件；青绿底上的浏览器窗口里是 Tasko 的收件箱、统计和周报。
-   ![复刻成片](07-clone.png)
+7. 看 `akb run log`、卡片和素材目录。
+   卡片没有问题，Todo 两条都已勾选（多了「模板 `<绝对路径>/template`，渲染命令 `…`」）；两个 `<Storyboard>` 换成一个 `<Compare>`（源片 vs 复刻，`shots` 取自 `breakdown.json` 的三镜）和一条按镜号写的差异；`clone.json` 删了，`breakdown.json` 留着。`akb raw validate 2` 通过。回话以「满意的话请把 #2 归档。」结束。
+   **未通过**：回话后面多了一句看板自己的 `#2 is still in To do after planning, and the board won't plan it again on its own — refine it again, or mark it ready yourself.`，卡片已是 ready、交付已齐，这句话是错的。
+   [07-template.log](07-template.log)
 
-8. 往下看「源片 vs 复刻」。
-   两段横版片上下并列，左上角标「源片」「复刻」；下面一个共用播放条，进度条分三段，显示「S1 / 3 · Logo 静置」和 `0:00 / 0:06`：源片是藏青底白块，复刻是深绿底白色 `Tasko`。
+8. 在看板 UI 打开 `/2`，展开「视频克隆」一节。
+   只有「源片 vs 复刻」：两段片上下并列，左上角标「源片」「复刻」，下面一个共用播放条分三段，显示「S1 / 3 · Logo 静置」和 `0:00 / 0:06`；下面一行差异「S2：窗口里的产品界面是按截图重画的，不是原图。」卡片上没有单独的复刻成片。
    ![对比](08-compare.png)
 
-9. 点「下一镜」，再点播放，约 1.5 秒后暂停。
-   两段先都跳到 1.60 秒、显示「S2 / 3 · 色块推入 + 浏览器窗口升起」；播放中两段时间差约 0.04 秒，暂停在 3.12 / 3.10 秒：窗口位置、大小一致，源片里是示意仪表盘，复刻里是 Tasko。
-   ![S2](09-compare-s2.png)
-
-10. 再点「下一镜」，播放约 1.8 秒后暂停。
-    两段都跳到 3.50 秒、显示「S3 / 3 · 叠化到标语」，暂停在 5.3 秒：源片是白底藏青横条，复刻是白底「Plan less. Ship more.」。
-    ![S3](10-compare-s3.png)
-
-11. 在模板的一份拷贝里只改 `content.js`：删掉 S1 那一拍，S2 改成硬切开场、时长 3 秒，标语改成 `Try Tasko free`；执行 `npx --yes hyperframes@0.8.169 render -f 30 -o out.mp4`。
-    8 秒渲出 5.5 秒的 `out.mp4`，退出码 0；片子直接从青绿底的窗口开场，最后叠化到白底「Try Tasko free」，`index.html` 没动。
-    [11-drop-a-beat.log](11-drop-a-beat.log)
-    ![删掉一拍后的五帧](12-drop-a-beat-frames.png)
-
-12. 执行 `akb card archive 2`。
-    起一次 `archive` 运行，31 秒（$0.32）：待办都已勾选，直接把卡片移进 `docs/kanban/.archive/2-clone-launch-video.md`，`memory/readme.md` 记一行换内容出片的方法；模板留在卡片的素材目录，没有复制到项目里。
-    [13-archive.log](13-archive.log)
+9. 看卡片页顶部的按钮。
+   应该出现「归档」。**未通过**：只有「细化」「修订」「移除」，标题旁是「可以开始执行」。按看板 UI 自己的规则（`planDeliveryGap`）算，这张卡缺 `deliverable`——它只认 `<Asset>` 里的视频，不认 `<Compare>`；在 `<Compare>` 前补一个复刻成片的 `<Asset>`，「归档」就出现、「细化」消失。
+   ![按钮](09-buttons.png)
+   [09-buttons.log](09-buttons.log)（[buttons.mjs](buttons.mjs)）
 
 ## Feedback
 
-- **规划完就是成品，按钮不再打架**：两次运行都只留已勾选的待办，回话都说「满意就归档」，归档 31 秒、什么都不用补做；不再出现「说可以 build、`implement` 却拒绝」。
-- **拍法和内容分得清**：`template.md` 一段话讲明复刻了什么、不带什么，`content.js` 每项都标着要换；拿到模板的人不看指南也知道改哪里。删一拍、换标语只动 `content.js`，8 秒出片。
-- **不先问内容，直接给占位版**：第一次规划没停下来要产品画面，交出的是全占位的成片；想看自己的产品得再 `revise` 一次。省了一问一答，但第一版成片只能看节奏。
-- **截图被重画了**：给的是两张截图，复刻里却是按截图重画的一屏合成界面，第 5 条任务被挤掉；写在了 `Worth noting` 里，但第一次看会以为截图没用上。
-- **模板默认不进 git**：模板在 `.akb/` 下，回话和交付记录都提醒了要自己复制进仓库；忘了这一步，换台电脑就没了。
-- **还是慢，也不便宜**：一张 6 秒短片从建卡到归档 3 次运行、约 13 分钟、$4.09；第一次规划 9 分半钟没有可看的东西。
-- **免费账号挡得干脆**：`refine` 只回一句 `Video clone needs Pro.`；不过 `raw create --workflow video-clone` 照样能建卡，到运行时才被拦。
-- **没有跑到的**：不是产品视频的源片（数据可视化、片头）；带声音、带字幕的原片；产品画面给的是录屏视频；竖版片的对比。
+- **先审稿再出片，方向对了**：第一次规划就停在两份草稿上，原片拆解带源片画面、每镜写清骨架和内容位，复刻脚本只讲自己的内容；在花时间做模板前就能指出哪一镜不对。
+- **卡片做完却归档不了**：按 `AGENT.md` 卡上只留 `<Compare>`，看板却仍把它当成没交付——卡片页没有「归档」，反而给「细化」，徽标还写「可以开始执行」；最后一轮回话也说卡片「still in To do」。用户只能自己 `akb card archive 2`，或去看懂为什么没按钮。
+- **选项里夹着英文**：中文看板上问题的第三个选项是「Something else — I'll type it」。
+- **证据的局限**：Agent 是替身，草稿、对比和差异都由脚本写成；这里验证的是看板对两阶段流程的处理（提问、确认、再规划、按钮），不是真实 `video-cloner` 拆片和做模板的质量。
+- **没有跑到的**：真实 Agent 的两轮规划和渲染；回答「要改」让草稿就地改；换内容后重出片；模板删一拍、改标语后重渲染；归档。
