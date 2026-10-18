@@ -3,7 +3,7 @@
 // A `<Compare>` (#1740): two images or two videos, each whole at its own ratio, framed like an
 // `<Asset>`. Landscape A stacks A over B; portrait A puts them side by side. Videos share one
 // play bar: A leads, B follows muted, is pulled back when it drifts, and holds its last frame
-// once it runs out. With `shots` the bar is cut into one segment per shot.
+// once it runs out. With `shots`, a list or a storyboard, the bar is cut into one segment per shot.
 //
 // B may be a storyboard of A instead (#1803): under A's video, the shot A is on, as `shots` (when
 // a storyboard) tells it and as B does, side by side.
@@ -42,7 +42,7 @@ export function Compare({
   aLabel: string;
   bLabel: string;
   shots?: Shot[];
-  /** `shots` when it is a storyboard of A. */
+  /** `shots` when it is a storyboard. */
   breakdown?: StoryboardView;
 }) {
   const c = useCopy().card.compare;
@@ -60,6 +60,10 @@ export function Compare({
     if (!kindOf(v)) return <Note text={c.unsupported(nameOf(v.src))} />;
   }
   if (kindOf(a) !== kindOf(b)) return <Note text={c.mismatch} />;
+  if (!shots && breakdown) {
+    if (!breakdown.shots) return <Storyboard view={breakdown} label={label} />;
+    return <Frame a={a} b={b} label={label} names={names} shots={storyboardShots({ shots: breakdown.shots })} />;
+  }
   return <Frame a={a} b={b} label={label} names={names} shots={shots} />;
 }
 
