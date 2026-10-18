@@ -5,6 +5,7 @@ import { Card, Scene3d } from "./Scene3d";
 // stack into B's draft, already applied. The words are English in every locale.
 const CSS = `
 .m-cam{--cx:49%;--cy:52%;--s:.72}
+@media (max-width:639px){.s3d-stage:has(>.m-cam){aspect-ratio:600/400;perspective-origin:50% 22.5%}.m-cam{--cy:58.4%}}
 .m-stack{position:absolute;left:400px;top:62px;width:160px;height:200px;transform-style:preserve-3d}
 .m-sheet{position:absolute;inset:0;border-radius:12px;background:#fff;box-shadow:0 0 0 1px #ece7de,0 1px 2px rgba(36,35,31,.06)}
 .m-top{padding:14px;transform:translateZ(24px)}

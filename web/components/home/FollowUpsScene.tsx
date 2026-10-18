@@ -4,6 +4,7 @@ import { Card, Scene3d } from "./Scene3d";
 // arcs back to Todo and waits; the user presses Accept. The words are English in every locale.
 const CSS = `
 .f-cam{--cx:48%;--cy:44%;--s:.94}
+@media (max-width:639px){.s3d-stage:has(>.f-cam){aspect-ratio:600/347;perspective-origin:50% 16.9%}.f-cam{--cy:48%}}
 .f-cam .s3d-board{left:-200px;width:400px}
 .f-cam .s3d-shadow{left:-230px;width:460px}
 .f-run{left:144px;top:68px;animation:f-run 10s cubic-bezier(.4,0,.2,1) infinite}

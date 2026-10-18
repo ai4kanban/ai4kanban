@@ -5,7 +5,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 // The stage the home page's two CSS 3D scenes share, with the /solutions/saas hero's camera: it
 // waits until it scrolls into view, then tilts gently with the pointer. The scene is laid out
 // 600px wide and scaled to its column. A billboard (`.bb`) undoes the camera so a page or chip
-// faces the viewer. Never animate opacity or filter in the scene: Chrome flattens or drops it.
+// faces the viewer. On a phone a scene may crop the 4:3 stage to what it draws, moving --cy
+// and the perspective origin with it so the picture stays put. Never animate opacity or filter in the scene: Chrome flattens or drops it.
 const BASE_CSS = `
 .s3d{width:100%;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#24231f}
 .s3d *{box-sizing:border-box;animation-play-state:paused!important}
