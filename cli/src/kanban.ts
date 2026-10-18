@@ -81,6 +81,7 @@ export { rejectCard } from './lib/agent/reject'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 export { refinementRequest } from './lib/agent/refine'
+export { approvalRequest } from './lib/agent/approve'
 
 // The team (#420, #422): everyone working on the board, and the four moves the Agents pane
 // makes on them — the roster read that carries each agent's rule, memory, settings and

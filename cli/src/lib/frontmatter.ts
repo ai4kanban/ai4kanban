@@ -30,6 +30,12 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
     out.push('source:')
     for (const ref of m.source) out.push(`  - ${yamlScalar(ref)}`)
   }
+  // A card's stages (#1790), named by its lead, and the current one, 1-based.
+  if (m.phases?.length) {
+    out.push('phases:')
+    for (const name of m.phases) out.push(`  - ${yamlScalar(name)}`)
+    if (m.phase) out.push(`phase: ${m.phase}`)
+  }
   if (m.preview_approved) out.push('preview_approved: true')
   // The day the card was archived (`archive` stamps it on the way out). Written only when
   // the card carries one, so nothing on the board grows a field — and re-emitted whenever it
@@ -161,6 +167,8 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   meta.source = (Array.isArray(meta.source) ? meta.source : typeof meta.source === 'string' ? [meta.source] : [])
     .map((ref) => String(ref).trim())
     .filter(Boolean)
+  meta.phases = (Array.isArray(meta.phases) ? meta.phases : []).map((name) => String(name).trim()).filter(Boolean)
+  meta.phase = /^\d+$/.test(String(meta.phase ?? '').trim()) ? Number(meta.phase) : 0
   meta.preview_approved = meta.preview_approved === 'true'
   // The day it was archived. Every card archived before this field existed carries none,
   // and nothing backfills them, so empty is the ordinary answer and reads as "no date".

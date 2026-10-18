@@ -12,6 +12,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { dropRunCard, takeRunCard } from '../board'
+import { advancePhase } from './approve'
 import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
@@ -33,6 +34,12 @@ export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spa
   if (short) return short
   const held = await takeRunCard(sessionId, cardId)
   if (!held.ok) return held
+  // Approve moves the card on only once its run is cleared to start (#1790).
+  const moved = req.action === 'approve' ? advancePhase(cardId!) : null
+  if (moved) {
+    await dropRunCard(sessionId)
+    return moved
+  }
 
   const opened = open(req, sessionId)
   if ('error' in opened) await dropRunCard(sessionId)

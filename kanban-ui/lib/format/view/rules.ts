@@ -63,7 +63,7 @@ export const openOf = <Q extends Question>(questions: readonly Q[]): Q[] => ques
 // ---- a card that finishes in planning (#1057) -------------------------------
 //
 // A product video, slide deck (#1075), carousel post (#1117) or blog post (#1126) is made while
-// the card is planned: the user reviews each step through a `[user]` question and a todo, and archives the
+// the card is planned: the user approves each stage (#1790) or answers a `[user]` question, and archives the
 // card to accept it. Nothing is built.
 
 /** The finished files a card finishing in planning delivers: a video, a PowerPoint deck or an
@@ -90,6 +90,14 @@ export const planDeliverables = (body: string): string[] => [
   ...[...body.matchAll(/<Asset\s[^>]*src="([^"]+)"/gi)].map((m) => m[1]!).filter((src) => PLAN_DELIVERABLE.test(src)),
   ...[...body.matchAll(/<Storyboard\s[^>]*src="([^"]+)"/gi)].map((m) => m[1]!).filter((src) => PAGES_STORYBOARD.test(src)),
 ]
+
+/** The stage whose finished draft waits on the user's Approve (#1790), or null: a stage before
+ *  the last, with nothing left to answer. A run in flight is the caller's to rule out. */
+export function awaitingApproval(card: Pick<Card, 'phases' | 'phase' | 'questions'>): string | null {
+  const { phases, phase } = card
+  if (!phases || !phase || phase >= phases.length) return null
+  return openOf(card.questions).length ? null : phases[phase - 1]!
+}
 
 /** A card finishing in planning with more to do before it is archived. */
 const planUnfinished = (card: Card): boolean => card.deliversIn === 'plan' && planDeliveryGap(card) !== null
@@ -171,7 +179,7 @@ export function byDispatchOrder(a: Card, b: Card): number {
  * untagged question — that one still needs triage.
  *
  * A card finishing in planning (#1057) stays refinable, `ready` or ticked, until its file
- * is done: planning is where it is made.
+ * is done: planning is where it is made. A stage waiting on Approve (#1790) is not.
  *
  * Being blocked is deliberately NOT part of this. The follow-up skips a blocked card
  * because spending a run on a plan whose foundation could still change shape is wasted
@@ -180,6 +188,7 @@ export function byDispatchOrder(a: Card, b: Card): number {
  */
 export function canRefine(card: Card): boolean {
   if (card.isGroup) return false
+  if (awaitingApproval(card)) return false
   if (card.status !== 'todo' && !planUnfinished(card)) return false
   const { total, done } = card.todos
   if (total > 0 && done === total && !planUnfinished(card)) return false

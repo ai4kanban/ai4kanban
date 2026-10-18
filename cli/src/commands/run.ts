@@ -9,6 +9,7 @@ import { recordAnswer } from '../lib/agent/answers'
 import { activeDelivery, deliveryAcceptsAnswers, heldByDelivery, namedDelivery } from '../lib/agent/deliveries'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { readLogTail, splitLog } from '../lib/agent/log'
+import { advancePhase, approvalRequest } from '../lib/agent/approve'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
 import { rejectCard } from '../lib/agent/reject'
 import {
@@ -69,9 +70,13 @@ export async function cmdStartRun(
     const creating = creationRefusal(req.id as number, cardCreation(req.id as number, req.discard === true), action, req.discard === true)
     if (creating) die(creating, { kind: 'card-being-created', action })
   }
-  const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
-  if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
   const inside = insideRun()
+  // Only the user approves a stage (#1790); a run going back moves `--phase` itself.
+  if (inside && action === 'approve') die('only the user approves a stage — stop here and leave the card for them.', { kind: 'run-refused', action })
+  if (action === 'approve') sayIfHeld(req, program)
+  const runnable =
+    action === 'refine' ? refinementRequest(req) : action === 'approve' ? approvalRequest(req) : (req as AgentRequest)
+  if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
   // Refine is the one flow a run hands work to rather than does itself: a revise makes the
   // change asked for and passes the card on. So it is written down here and started by this
   // run's watcher at the close — in the same flow, so it reads as the next session of the
@@ -97,6 +102,10 @@ export async function cmdStartRun(
       } catch {
         // an unwritable record never costs the flow
       }
+    }
+    if (action === 'approve') {
+      const moved = advancePhase(runnable.id as number)
+      if (moved) die(moved.error, { kind: 'run-refused', action })
     }
     return printFlow(runnable, program)
   }
@@ -166,7 +175,7 @@ function queueRefine(inside: string, req: CommandRequest): MoveResult {
 //
 // The hold is the board's, not one screen's: the card page turns the same five controls off
 // (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
-const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'archive'])
+const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'approve', 'archive'])
 
 function sayIfHeld(req: CommandRequest, program: string): void {
   if (!HELD_BY_DELIVERY.has(req.action) || req.id === undefined) return

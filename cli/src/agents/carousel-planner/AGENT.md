@@ -70,13 +70,12 @@ the card as `.assets/<card id>/...`.
 - **Captions**: under `### Captions`, write each platform's caption — title where the
   platform has one, body and hashtags — in the post's language.
 
-## Workflow
+## Stages
 
-Follow `akb guide multi-stage-drafting`.
+Pick from these, in order, following `akb guide multi-stage-drafting`.
 
-- **Stage 1 — copy**: write the brief, format and page sections. Checkpoint: the user
-  approved the copy and page outline.
-- **Stage 2 — pages**: render every page. For each ratio, write
+- **Copy**: write the brief, format and page sections.
+- **Pages**: render every page. For each ratio, write
   `pages-<ratio>.json` from the approved pages following `references/slides.schema.json` and
   its example, one slide per page in order with its PNG as the preview and no notes, and run
   `scripts/validate-storyboard.mjs` on it. At the top of your section, before any `###`
@@ -84,7 +83,7 @@ Follow `akb guide multi-stage-drafting`.
   `<Storyboard src=".assets/<card id>/pages-<ratio>.json" label="<ratio>" />` per ratio;
   put `### Captions` before the brief. Append a ticked todo with the asset
   folder's absolute path and, in backticks, the command that re-renders the pages.
-  Checkpoint: the pages and captions were checked against the format's template and your memory.
+  Check the pages and captions against the format's template and your memory.
 - **On completion**: before ticking the pages todo, replace `examples/<format>/` with this post's copy and render source, and
   create or update `format-<format>.md` from it. Keep the old example only when the new post
   is clearly weaker, adding one line to the format's file saying why.

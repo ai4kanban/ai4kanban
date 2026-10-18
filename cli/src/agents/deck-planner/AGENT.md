@@ -47,7 +47,7 @@ as `.assets/<card id>/...`.
   or the network, so the preview and the exported image match.
 - **Wireframes**: black text on white in one font, no colour; every image, screenshot and
   chart is a box labelled with what goes there; each slide carries a sticky note telling
-  stage 2 how to produce it — layout and assets.
+  the slides stage how to produce it — layout and assets.
 - **Samples**: three slides from this deck, one per main layout, in the final recipe.
 - **The deck**: in a `deck/` project of the asset folder, with pinned dependencies and no
   machine paths, render each page to `slides/<slide id>.png` at its `size`, then pack them
@@ -57,27 +57,26 @@ as `.assets/<card id>/...`.
 - **Fit**: check every page in a browser at its `size` for overflow and collisions, not by eye
   on a thumbnail. A fix that needs shorter copy is a content change.
 
-## Workflow
+## Stages
 
-Follow `akb guide multi-stage-drafting`.
+Pick from these, in order, following `akb guide multi-stage-drafting`.
 
-- **Stage 1 — wireframes**: write `storyboard.json` with wireframe pages, and `samples.json`
+- **Wireframes**: write `storyboard.json` with wireframe pages, and `samples.json`
   with sample pages; show
   `<Storyboard src=".assets/<card id>/storyboard.json" label="<wireframes>" />` and
   `<Storyboard src=".assets/<card id>/samples.json" label="<samples>" />`, each alone in its
-  paragraph. Checkpoint: the user approved the content and the look.
-- **Stage 2 — slides**: rewrite each page in the final recipe, following its note and the
-  samples' look; then drop `samples.json` and every file only stage 1 used. Show the standalone
+  paragraph.
+- **Slides**: rewrite each page in the final recipe, following its note and the
+  samples' look; then drop `samples.json` and every file only the wireframes used. Show the standalone
   `<Storyboard src=".assets/<card id>/storyboard.json" />` and check every slide against the
-  recipe and fit rules. Checkpoint: the user approved the slides.
-- **Stage 3 — deck**: build the deck and show
+  recipe and fit rules.
+- **Deck**: build the deck and show
   `<Asset src=".assets/<card id>/<short-name>.pptx" label="<card title>" />` near the top of
   the card, outside this agent's section, after checking it holds one image per slide in
   order; append a ticked todo with the deck's absolute path and the command that rebuilds it.
-  Checkpoint: the deck was checked.
 - **Changes**: edit only the affected pages and JSON, keeping unchanged slide IDs; rebuild a
   deck that already exists.
-- **Existing cards**: a stage 1 written as Markdown `## Slide N:` sections becomes
+- **Existing cards**: an outline written as Markdown `## Slide N:` sections becomes
   wireframes with the same content, and those sections are removed; a card with approved
   PNG previews packs those images as they are.
 

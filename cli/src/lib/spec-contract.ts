@@ -114,6 +114,14 @@ export function validateSpec(file: string, text: string, id?: number): ContractE
     }
   }
 
+  const phases = fields.get('phases')
+  const phase = fields.get('phase')
+  if (phases && meta && meta.phases.length < 2) add(phases.line, 'phases', 'phases must list at least two stages. Set them with akb raw update <id> --phases "<a>,<b>", or clear them with --phases "".')
+  if (phase && !phases) add(phase.line, 'phase', 'phase is set but the card has no phases. Remove it, or set the stages with akb raw update <id> --phases.')
+  if (phases && meta && meta.phases.length >= 2 && !(meta.phase >= 1 && meta.phase <= meta.phases.length)) {
+    add(phase?.line ?? phases.line, 'phase', `phase must be a stage number from 1 to ${meta.phases.length}. Set it with akb raw update <id> --phase <n>.`)
+  }
+
   const headings: { title: string; line: number }[] = []
   const markers: number[] = []
   let fence: { char: string; length: number; line: number } | null = null

@@ -14,6 +14,13 @@ export type { AgentRequest, CommandRequest } from "./cli";
 
 /** Turn a public command into the one agent session it starts now. */
 export async function prepareAgentRequest(req: CommandRequest): Promise<AgentRequest> {
+  if (req.action === "approve") {
+    const approve = (await boardRules()).approvalRequest;
+    if (!approve) throw new Error("the installed akb is too old to approve a stage — update it");
+    const result = approve(req);
+    if ("error" in result) throw new Error(result.error);
+    return result;
+  }
   if (req.action !== "refine") return req as AgentRequest;
   const prepare = (await boardRules()).refinementRequest;
   // An older installed command still knows refine as one session.

@@ -62,20 +62,18 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 - **Validation**: run `akb raw validate <card id> --json` after every change; fix every
   diagnostic.
 
-## Workflow
+## Stages
 
-Follow `akb guide multi-stage-drafting`.
+Pick from these, in order, following `akb guide multi-stage-drafting`.
 
-- **Stage 1 — outline**: write the brief and an outline whose angle and sections carry the
-  points from existing pages. Checkpoint: the user approved the outline.
-- **Stage 2 — article**: request `blog-illustrator`, then write
-  the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
+- **Outline**: write the brief and an outline whose angle and sections carry the points from
+  existing pages.
+- **Article**: request `blog-illustrator`, then write the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
   with its images beside it, in the blog's own frontmatter format, and put
   `<Asset src=".assets/<card id>/<slug>.<ext>" label="Article" />` at the top of your section.
   For a blog in the project, also write the post and its images where its existing posts
   keep theirs, with the keywords in the frontmatter field `keywords`; for an online-only
   blog, add the post's expected URL to `keywords.md`. Append a ticked todo listing every
-  delivered path in backticks. Checkpoint: the article was checked.
-- **Keyword changes**: revise the brief and affected titles, metadata and sections together
-  in stage 1; revising an unapproved outline does not authorize the article.
+  delivered path in backticks.
+- **Keyword changes**: revise the brief and affected titles, metadata and sections together.
 - **Changes**: keep every delivered copy matching the article.

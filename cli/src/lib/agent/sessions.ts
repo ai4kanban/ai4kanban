@@ -120,6 +120,7 @@ const VERB: Record<AgentAction, string> = {
   propose: 'proposed',
   clarify: 'clarified',
   resolve: 'resolved',
+  approve: 'approved',
   writing: 'rewritten',
   gate: 'judged',
   decide: 'decided',
@@ -659,7 +660,7 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
 // The actions a card's own chat holds its card against (#633): each one acts on the card as
 // it reads right now, and the reply being written is about to rewrite it. Reject goes through
 // (#1649) — it drops the card, and the reply and conversation with it.
-const HELD_BY_DISCUSSION = new Set<AgentAction>(['implement', 'clarify', 'resolve', 'archive'])
+const HELD_BY_DISCUSSION = new Set<AgentAction>(['implement', 'clarify', 'resolve', 'approve', 'archive'])
 
 // `clarify` is refine's own pass — the user asked for a refine, so that is what the refusal
 // names.
@@ -994,7 +995,7 @@ export function openRun(
 }
 
 /** The planning runs: each carries the card's planning session on (#1304). */
-const PLANNING = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
+const PLANNING = new Set<AgentAction>(['clarify', 'resolve', 'approve', 'edit'])
 
 /** The session a card's planning carries on (#1304): its last finished planning run's, resumed,
  *  or — before any — the one it was created in (a setup's seed cards: setup's), forked. Only one its CLI would find from `cwd`;

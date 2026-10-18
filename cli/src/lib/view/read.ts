@@ -80,6 +80,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     questions: meta.questions,
     workflow: meta.workflow,
     ...(plan ? { deliversIn: 'plan' as const } : {}),
+    ...(meta.phases.length >= 2 && meta.phase >= 1 ? { phases: meta.phases, phase: Math.min(meta.phase, meta.phases.length) } : {}),
     modules: meta.modules,
     schedule: meta.schedule,
     body: body.replace(/^\n+/, '').replace(/\s+$/, ''),

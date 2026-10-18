@@ -188,6 +188,8 @@ export interface UpdateOptions {
   slug?: string
   source?: string[]
   addSource?: string[]
+  phases?: string
+  phase?: string
 }
 
 // What `--source` names, as `source:` stores it. A plan's path becomes `plan:<id>`, which
@@ -288,6 +290,20 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.addSource !== undefined) {
     meta.source = [...new Set([...meta.source, ...sourceFlag(flags.addSource, 'add-source', ceiling)])]
     changes.push('source')
+  }
+  if (flags.phases !== undefined) {
+    const names = flags.phases.split(/[,，]/).map((s) => s.trim()).filter(Boolean)
+    if (names.length === 1) die('--phases needs at least two stages; a card with one stage has none — pass "" to clear them')
+    meta.phases = names
+    meta.phase = names.length ? Math.min(meta.phase || 1, names.length) : 0
+    changes.push('phases')
+  }
+  if (flags.phase !== undefined) {
+    const n = Number(flags.phase)
+    if (!meta.phases.length) die(`#${id} has no stages — set them with --phases first`)
+    if (!Number.isInteger(n) || n < 1 || n > meta.phases.length) die(`--phase must be 1 to ${meta.phases.length} (got "${flags.phase}")`)
+    meta.phase = n
+    changes.push('phase')
   }
   // A `ready` card has no open questions by definition (see STATUSES). Open questions
   // mean the plan is not settled, so a `--status ready` with them pending lands as

@@ -334,6 +334,7 @@ const ACTIONS = new Set([
   "edit",
   "create",
   "resolve",
+  "approve",
   "refine",
   // Finish setting the board up (#173) — from the guided run's closing screen and from the
   // setup strip. Started through startSetupRunAction below, which is where its own refusals

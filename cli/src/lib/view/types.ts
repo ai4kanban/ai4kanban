@@ -343,6 +343,10 @@ export interface Card {
   workflow: string
   /** Its workflow finishes in planning (#1057): the card is archived, never built. */
   deliversIn?: 'plan'
+  /** The card's stages (#1790), as its lead named them, and the current one, 1-based. Absent
+   *  on a card with none. */
+  phases?: string[]
+  phase?: number
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
   /** The action waiting to run on this card once every card it waits on has left the board,

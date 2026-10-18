@@ -52,6 +52,9 @@ export type AgentAction =
    *  can settle itself, and leave only the decisions that are the user's. */
   | 'clarify'
   | 'resolve'
+  /** Approve a card's current stage (#1790): the board moves it to its next stage, and the
+   *  plan lead makes that stage. */
+  | 'approve'
   /** Retired (#1203) with the sessions they were: a planning pass now writes and closes the
    *  card itself, nothing gates a ready card, and nothing answers for the user. They stay
    *  here so the runs already recorded still read back as what they were. */

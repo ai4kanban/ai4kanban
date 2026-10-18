@@ -111,6 +111,7 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'implement',
   'clarify',
   'resolve',
+  'approve',
   'archive',
   'spec',
   'conflict',
@@ -328,7 +329,7 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 // an agent handed the list of agents is an agent that can ask for itself.
 //
 // It goes after everything else because it is a block and the rest is prose.
-const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
+const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'approve', 'edit'])
 
 // What a reflection judges against on top of the card (#534): what the product is and
 // every module's decisions and rejections, none of which it writes back.
@@ -713,6 +714,14 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Follow \`akb guide conflict\`.`,
       ].join(' ')
     }
+    case 'approve':
+      return [
+        `${kb}. Task ${req.id} ${named} has moved to its next stage: produce that stage from the card as it stands, dropping what earlier stages left that it does not reuse.`,
+        req.notes ? `Extra notes: ${req.notes}` : '',
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
     case 'resolve':
       return [
         `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,

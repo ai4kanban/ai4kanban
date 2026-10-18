@@ -104,6 +104,13 @@ export const FLOWS: Flow[] = [
     gloss: "apply the user's answers to its open questions",
   },
   {
+    command: 'approve',
+    group: 'card',
+    action: 'approve',
+    argument: '<id>',
+    gloss: "approve the current stage's draft and make the next stage",
+  },
+  {
     command: 'revise',
     group: 'card',
     action: 'edit',

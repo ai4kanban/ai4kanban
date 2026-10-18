@@ -240,6 +240,8 @@ export interface BoardRules {
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
   refinementRequest?(req: CommandRequest): AgentRequest | { error: string };
+  /** Moves the card to its next stage before the run (#1790). */
+  approvalRequest?(req: CommandRequest): AgentRequest | { error: string };
 
   // the deliveries (#301) — the whole job one Implement click starts, several runs
   // long. Optional: a project can be running rules older than the release that added them,

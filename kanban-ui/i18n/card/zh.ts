@@ -177,6 +177,7 @@ const zh: CardCopy = {
   meta: {
     workflow: "工作流",
     noLead: (stages) => `没有可用的负责 Agent：${stages.join("、")}`,
+    stage: "阶段",
     deletedWorkflow: "已删除的工作流",
     deletedHint: "该工作流已被删除，任务无法开始",
     modules: "模块",
@@ -191,6 +192,10 @@ const zh: CardCopy = {
     source: "来源",
     sourcePlan: "计划",
     sourceLink: "链接",
+  },
+  approve: {
+    ready: (stage) => `${stage}已完成`,
+    button: (stage) => `批准${stage}`,
   },
   subtasks: {
     heading: "子任务",

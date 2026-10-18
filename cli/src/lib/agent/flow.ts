@@ -469,6 +469,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // One planning session (#1203): the page that plans, and the two it writes the card by.
   clarify: ['refine', 'writing', 'update-questions'],
   resolve: ['board', 'writing', 'resolve', 'update-questions'],
+  approve: ['board', 'writing', 'update-questions'],
   edit: ['writing', 'revise', 'update-questions'],
   create: ['board', 'evaluate-task', 'add-task'],
   archive: ['board'],
@@ -622,6 +623,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       facts.push(...field('memory', memoryLines(card!.meta.modules, 'decisions.md')))
       if (building) close.push(answeredClose(building, self))
+      break
+    }
+    case 'approve': {
+      const { phases, phase } = card!.meta
+      facts.push(...field('stage', `${phase} of ${phases.length}: ${phases.map((name, i) => (i + 1 === phase ? `**${name}**` : name)).join(' › ')}`))
       break
     }
     case 'edit': {

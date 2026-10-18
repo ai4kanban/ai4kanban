@@ -7,6 +7,8 @@ import {
   FiAlertCircle,
   FiArchive,
   FiArrowLeft,
+  FiCheck,
+  FiCheckCircle,
   FiChevronRight,
   FiCornerLeftUp,
   FiEdit2,
@@ -65,7 +67,7 @@ import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
 import { useOnHistoryRestore } from "@/lib/history-restore";
 import { cardChat } from "@/lib/chat-open";
-import { canImplement, canRefine, planDeliveryGap } from "@/lib/refine";
+import { awaitingApproval, canImplement, canRefine, planDeliveryGap } from "@/lib/refine";
 import { scheduleMark } from "@/lib/schedule";
 import { deliveryWords } from "@/lib/delivery-words";
 import { useBoardHref, useCardHref } from "./board-links";
@@ -1042,6 +1044,56 @@ function WorkflowItem({ card }: { card: Card }) {
   );
 }
 
+// The card's stages (#1790), read-only, right after the workflow; the current one is a pill.
+// `done` ticks the last one too, once its deliverable is on the card.
+function StageItem({ phases, phase, done }: { phases: string[]; phase: number; done: boolean }) {
+  const c = useCopy().card;
+  return (
+    <MetaItem label={c.meta.stage}>
+      <span className="inline-flex h-[15px] items-center gap-1 whitespace-nowrap text-[10px] font-[700] leading-none tracking-[0.04em] text-nb-ink-soft max-md:h-9">
+        {phases.map((name, k) => {
+          const n = k + 1;
+          const past = n < phase || (done && n === phase);
+          return (
+            <span key={k} className="inline-flex items-center gap-1">
+              {k > 0 && <FiChevronRight aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto", opacity: 0.5 }} />}
+              {n === phase && !done ? (
+                <span
+                  aria-current="step"
+                  className="nb-chip"
+                  style={{ textTransform: "none", background: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)", color: "var(--color-nb-ink)" }}
+                >
+                  {name}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-[2px]" style={n > phase ? { opacity: 0.5 } : undefined}>
+                  {past && <FiCheck aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto", color: "var(--color-nb-mint-ink)" }} />}
+                  {name}
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </span>
+    </MetaItem>
+  );
+}
+
+// The current stage's draft is done (#1790); it stands where the open questions do.
+function ApprovalBand({ stage, disabled, why, onApprove }: { stage: string; disabled: boolean; why?: string; onApprove: () => void }) {
+  const a = useCopy().card.approve;
+  return (
+    <div className="nb-section flex items-center gap-3 bg-nb-sheet py-2.5 pl-3.5 pr-2.5 text-[13px]">
+      <FiCheckCircle aria-hidden className="shrink-0" style={{ width: 14, height: 14, color: "var(--color-nb-mint-ink)" }} />
+      <p className="min-w-0 flex-1 font-[600]">{a.ready(stage)}</p>
+      <Button variant="ghost" size="xs" disabled={disabled} title={why} onClick={onApprove}>
+        <FiCheck className="text-[13px]" aria-hidden />
+        {a.button(stage)}
+      </Button>
+    </div>
+  );
+}
+
 // One meta column: micro-caption stacked over its value. Columns flow
 // horizontally and wrap, so the box stays one shallow band instead of a tall
 // stack of full-width rows. Every value is chip-height, so rows self-align.
@@ -1262,6 +1314,8 @@ export function CardPage({
   const offUnlessAsked = busy || (held && !answerable) || discussing;
   const { total, done } = card.todos;
   const buttons = visibleActions(card, offered);
+  // A stage waiting on Approve (#1790), on a surface that offers it, with no run on the card.
+  const approving = !!actions && (!offered || offered.includes("approve")) && !busy ? awaitingApproval(card) : null;
   // The delivery has ended and its block is still on the page — the one that carries Discard.
   const finishedBlock = !delivery && !!card.finished && !!diff;
   // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
@@ -1861,6 +1915,14 @@ export function CardPage({
                   before the module. */}
               <WorkflowItem card={card} />
 
+              {card.phases && card.phase && (
+                <StageItem
+                  phases={card.phases}
+                  phase={card.phase}
+                  done={card.phase === card.phases.length && card.deliversIn === "plan" && planDeliveryGap(card) === null}
+                />
+              )}
+
               {card.modules.length > 0 && (
                 <MetaItem label={c.meta.modules}>
                   <span className="flex flex-wrap items-center gap-1.5">
@@ -2033,6 +2095,15 @@ export function CardPage({
                   </ul>
                 )}
               </div>
+            )}
+
+            {approving && (
+              <ApprovalBand
+                stage={approving}
+                disabled={off || locked}
+                why={frozen ? frozenWhy : undefined}
+                onApprove={() => void runAgent({ action: "approve", id: card.id }, "approve")}
+              />
             )}
 
             {/* The questions, and the decision made in them — the panel is the control,

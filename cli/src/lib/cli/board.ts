@@ -204,6 +204,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--modules <names>', 'the parts of the project it touches', collectList)
     .option('--source <ref>', "where it came from: a plan's path, plan:<id>, #<id> or a URL. Repeatable; \"\" clears the list", collect)
     .option('--add-source <ref>', 'append one source, keeping the ones already there. Repeatable', collect)
+    .option('--phases <names>', 'the card\'s stages, comma-separated, in the card\'s language; "" clears them')
+    .option('--phase <n>', 'the current stage, 1-based')
     .option('--slug <slug>', 'rename the file')
     .addOption(new Option('--cadence <cadence>').hideHelp())
     .action(async function (this: Command, id: number) {

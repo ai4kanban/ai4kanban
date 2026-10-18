@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto'
 
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
-import { byDispatchOrder, canRefine, openOf, parseQuestion, planDeliveryGap } from '../view/rules'
+import { awaitingApproval, byDispatchOrder, canRefine, openOf, parseQuestion, planDeliveryGap } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-end'
@@ -182,6 +182,8 @@ export function refinementAfter(
   if (open.some((q) => parseQuestion(q.text).tag !== 'user')) return action === 'clarify' ? 'incomplete' : null
   if (open.length > 0 || action === 'clarify' || card.deliversIn !== 'plan') return null
   if (planDeliveryGap(card) === null) return null
+  // A stage before the last waits on the user's Approve (#1790).
+  if (awaitingApproval(card)) return null
   return { action: 'clarify', id: card.id, title: card.title, refineRound: 1, ...(flowId ? { flowId } : {}) }
 }
 
@@ -195,6 +197,7 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'edit',
   'clarify',
   'resolve',
+  'approve',
   'spec',
 ])
 
@@ -280,7 +283,7 @@ export function refinementRunsAfter(
     scheduleRefineOnBlock(id)
   }
   const next =
-    waitingForSpec || run.cardId === null || !['clarify', 'resolve', 'edit'].includes(run.action)
+    waitingForSpec || run.cardId === null || !['clarify', 'resolve', 'edit', 'approve'].includes(run.action)
       ? null
       : refinementAfter(run.action, run.cardId, run.flowId)
   const starts = refinesAfter(run.action, changed, before).filter(

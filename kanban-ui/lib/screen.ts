@@ -151,6 +151,7 @@ export type CardControl =
   | 'refine'
   | 'edit'
   | 'resolve'
+  | 'approve'
   | 'archive'
   | 'reject'
   | 'resume'

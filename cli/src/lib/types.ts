@@ -41,6 +41,11 @@ export interface Meta {
   /** Where the card came from (#1306): `plan:<id>`, `#<id>` or an address each (./source.ts).
    *  A triage card carries none — `triage:` already names its item. */
   source: string[]
+  /** The card's stages (#1790), in the card's language, as its lead wrote them. Empty on a card
+   *  with none. */
+  phases: string[]
+  /** The current stage, 1-based; 0 when the card has no stages. */
+  phase: number
   /** A video card's shot previews were approved under the retired two-round flow (#991).
    *  Still read, never acted on: it authorizes nothing since #1057. */
   preview_approved: boolean

@@ -32,16 +32,16 @@ You clone a video made with code into a template that reproduces its craft and r
 
 Files live in `<board-state>/assets/<card id>/`, linked from the card as `.assets/<card id>/...`; the template goes elsewhere only when the card names a folder for it. When the card names a video outside that folder, copy it in first; with no video, or none of the user's content to fill it, ask for it.
 
-## Workflow
+## Stages
 
-Follow `akb guide multi-stage-drafting`.
+Pick from these, in order, following `akb guide multi-stage-drafting`.
 
-- **Stage 1 — drafts**: write two storyboards in the files folder, following `akb raw agent-file scriptwriter references/storyboard-contract.md` and passing that agent's validator: `breakdown.json` takes the source apart, one shot per beat with its source frame, and in details its motion, props, content slot, transition and sound, marking the skeleton beats the video cannot lose; `clone.json` tells the user's content beat by beat, so its story holds on its own. Show both on the card as `<Storyboard>`. Checkpoint: the user approved both drafts.
+- **Drafts**: write two storyboards in the files folder, following `akb raw agent-file scriptwriter references/storyboard-contract.md` and passing that agent's validator: `breakdown.json` takes the source apart, one shot per beat with its source frame, and in details its motion, props, content slot, transition and sound, marking the skeleton beats the video cannot lose; `clone.json` tells the user's content beat by beat, so its story holds on its own. Show both on the card as `<Storyboard>`.
 - **Recipe**: write the format (size, frame rate, length, fonts, colours) to `recipe.md` in the files folder; it is your working file, never shown on the card.
-- **Stage 2 — template**: build a project that renders the approved clone draft beat by beat, picking for each motion an animation library that fits its style; one project may combine several. The beat table and all content live in one file, holding the user's content from the start, so a beat can be removed or reordered and the content swapped without code changes; the code holds only craft and props. Its `template.md` states that the content in that file is to be replaced with the user's own and that the template reproduces only the source's craft.
+- **Template**: build a project that renders the approved clone draft beat by beat, picking for each motion an animation library that fits its style; one project may combine several. The beat table and all content live in one file, holding the user's content from the start, so a beat can be removed or reordered and the content swapped without code changes; the code holds only craft and props. Its `template.md` states that the content in that file is to be replaced with the user's own and that the template reproduces only the source's craft.
 - **Check**: render it once and compare it with the source beat by beat side by side on rhythm, motion and layout, and check every on-screen step makes sense to a viewer. A beat that misses the source's structure means the template is wrong: fix it and render again, never hand over the breakdown instead.
 - **Card**: under your section heading, show only the clone against the source as a `<Compare>` with `shots` built from the breakdown's beats, and each difference left in one line, naming its beat id; append a ticked todo with the template folder's absolute path and, in backticks, its render command.
-- **Changes**: a change to a beat updates that beat in the current draft and, in stage 2, only that beat in the template.
+- **Changes**: a change to a beat updates that beat in the current draft and, in the template stage, only that beat in the template.
 
 ## Memory
 
