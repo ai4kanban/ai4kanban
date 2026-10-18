@@ -56,6 +56,7 @@ export function SiteFooter({
         title: t.groups.product,
         links: [
           { href: localePath(locale, "/download"), label: c.shared.nav.download },
+          { href: "/demo", label: t.demo },
           { href: "/cloud", label: t.cloud },
           // Two languages only, so in the other three the row is absent rather
           // than pointing at a page that reader cannot use.

@@ -1,8 +1,10 @@
 import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
-import { Drafts } from "@/components/home/Drafts";
+import { Workflows } from "@/components/home/Workflows";
 import { Story } from "@/components/home/Story";
+import { MemoryScene } from "@/components/home/MemoryScene";
+import { FollowUpsScene } from "@/components/home/FollowUpsScene";
 import { Parallel } from "@/components/home/Parallel";
 import { Tools } from "@/components/home/Tools";
 import { Start } from "@/components/home/Start";
@@ -10,7 +12,6 @@ import { Reveal } from "@/components/home/Reveal";
 import { SiteFooter } from "@/components/SiteFooter";
 import { releaseBuilds } from "@/components/download/builds";
 import { column } from "@/components/styles";
-import { CDN } from "@/lib/site";
 import { getCopy } from "@/i18n";
 import {
   APP_ID,
@@ -66,27 +67,15 @@ export function HomePage({ locale }: { locale: Locale }) {
       <main>
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
-          <Drafts c={c.drafts} locale={locale === "zh" ? "zh" : "en"} />
-          <Story
-            title={c.agents.title}
-            body={c.agents.body}
-            note={c.agents.pro}
-            art={{ src: `${CDN}/home/agents-v1.png`, alt: c.agents.image, width: 1055, height: 431 }}
-          />
-          {/* Capped so its strokes match the drawing above. */}
+          <Workflows c={c.workflows} locale={locale} />
+          <Parallel c={c.parallel} />
+          <Story title={c.agents.title} body={c.agents.body} scene={<MemoryScene label={c.agents.image} />} />
           <Story
             title={c.followUps.title}
             body={c.followUps.body}
-            art={{
-              src: `${CDN}/home/followups-v1.png`,
-              alt: c.followUps.image,
-              width: 969,
-              height: 565,
-              className: "mx-auto max-w-md",
-            }}
+            scene={<FollowUpsScene label={c.followUps.image} />}
             flip
           />
-          <Parallel c={c.parallel} />
           <Tools c={c.tools} />
         </div>
         <Band flush>

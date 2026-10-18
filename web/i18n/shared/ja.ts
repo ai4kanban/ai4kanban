@@ -27,6 +27,7 @@ const ja: SharedCopy = {
     docs: "ドキュメント",
     blog: "ブログ",
     cloud: "Cloud",
+    demo: "デモを試す",
     training: "トレーニング",
     pricing: "料金",
     contact: "お問い合わせ",

@@ -27,6 +27,7 @@ const zh: SharedCopy = {
     docs: "文档",
     blog: "博客",
     cloud: "Cloud",
+    demo: "体验演示",
     training: "培训",
     pricing: "定价",
     contact: "联系我们",

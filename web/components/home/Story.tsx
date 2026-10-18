@@ -1,19 +1,18 @@
+import type { ReactNode } from "react";
 import { SectionTitle } from "./SectionTitle";
 
-// A section as words beside a line drawing. The drawing sits on the bare page, no mat; one
-// image serves every locale. The words always lead in reading order; `flip` puts the
-// drawing first on wide screens.
+// A section as words beside a scene. The scene sits on the bare page, no mat; one scene serves
+// every locale. The words always lead in reading order; `flip` puts the scene first on wide
+// screens.
 export function Story({
   title,
   body,
-  note,
-  art,
+  scene,
   flip = false,
 }: {
   title: string;
   body: string[];
-  note?: string;
-  art: { src: string; alt: string; width: number; height: number; className?: string };
+  scene: ReactNode;
   flip?: boolean;
 }) {
   return (
@@ -25,18 +24,9 @@ export function Story({
             {p}
           </p>
         ))}
-        {note && <p className="mt-6 text-[0.85rem] leading-relaxed text-muted">{note}</p>}
       </div>
       <div data-reveal className={`px-2 sm:px-6 ${flip ? "lg:col-start-1 lg:row-start-1" : ""}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={art.src}
-          alt={art.alt}
-          width={art.width}
-          height={art.height}
-          loading="lazy"
-          className={`h-auto w-full ${art.className ?? ""}`}
-        />
+        {scene}
       </div>
     </section>
   );

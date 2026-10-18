@@ -1,48 +1,50 @@
 # AI4Kanban — See the draft. Let agents do the rest.
 
-> AI4Kanban prepares the key drafts for the tasks on your board. You check what matters, agents handle the details, and one person moves more work forward.
+> An agent workspace for indie hackers
+>
+> From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there—without having to manage every detail.
 
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
-## Review the key drafts. Get the direction right.
+## Build the product. Keep marketing moving.
 
-Agents put key drafts on the task card. Review and revise them before the rest of the work starts.
+With 6 built-in workflows, specialist agents share your project context and handle coding and marketing without you having to design the team. They draft only the key parts that need your judgment, then finish the work from what you approve, so you spend less time checking and revising it afterwards.
 
-- **UI mockup**: Preview layout and interactions.
-- **Copy draft**: Confirm the message and wording.
-- **Storyboard**: Review each shot and its voiceover.
-- **Figures**: Check what each figure shows.
+- **Coding**: A UI mockup of a key screen.
+- **Blog post**: The article and its images.
+- **Product video**: Scenes and voiceover in a storyboard.
+- **Slide deck**: Page content and layout previews.
+- **Carousel post**: Page copy and content outline.
+- **Video clone (code-generated videos)**: The source breakdown and clone storyboard.
 
-You don't have to spell out every detail. Once the key drafts are approved, agents finish the rest within the agreed scope.
+[Try the demo](https://ai4kanban.dev/demo) · [Explore the coding workflow](https://ai4kanban.dev/workflows/coding) · [See all agents and workflows](https://ai4kanban.dev/docs/agents)
 
-## Your feedback carries over to the next task.
+## Move independent work forward together
 
-A design agent prepares mockups, a copy agent polishes wording, a script agent plans the content. AI4Kanban comes with 5 workflows and 10+ specialist agents that split the work by task and remember the preferences and decisions you've made clear.
+Keep product development and marketing tasks on one board. Independent tasks can run in parallel; dependent tasks follow in order.
 
-Say you ask for "more direct headlines." The copy agent applies that feedback to future drafts. The next task starts from what you've already agreed, so you never explain it from scratch.
+Each card keeps its own drafts, decisions and progress. Return to the card when a decision needs you, and let agents handle execution without repeated handoffs across chats.
 
-Product videos, slide decks, carousel posts, and blog posts require Pro.
+## Start the next task with what you've already agreed
 
-## Let agents catch what you missed.
+Your preferences and decisions carry forward. Each agent remembers what matters to its work and can share that context with other agents.
 
-As tasks pile up, finding every gap shouldn't be on you alone. Background agents check progress on a schedule, and a QA agent tests recent changes the way a user would.
+The next draft builds on that shared understanding, so you spend your time on what needs to change this time.
 
-An overlooked error state or a missing test can become a follow-up suggestion on your board. You accept, revise or reject it, and agents carry on.
+## Finish one piece of work. Catch what comes next.
 
-## Many things at once. The key calls stay yours.
+After a main piece of work is complete, agents suggest follow-ups to help catch gaps and identify useful next steps.
 
-A product change, a launch post, an intro video — no need to finish one before starting the next. Independent tasks go to agents in parallel; you review the key drafts on the cards, make the calls, and keep your attention for what's worth doing next.
+Suggestions come back to your board. Accept, revise or reject them before deciding what to take on.
 
-AI4Kanban handles task breakdown, priorities, progress and notifications, so you don't have to coordinate work across multiple chats.
+## Keep the AI tools you already use
 
-## Keep the AI tools you already use.
+Connect Claude Code, Codex and 6 other tools, running on your machine with your own subscriptions. Choose a tool and model for each agent. AI4Kanban charges no extra token fees.
 
-Connect Claude Code, Codex and more; they run on your machine with your own subscriptions. 8 tools are supported, each agent can pick its own tool and model, and AI4Kanban charges no extra token fees.
+## Start with your first task
 
-## Write down an idea. See the draft first.
-
-Open a project and write what you want to do. Start from the first key draft, set the direction, and hand the rest to agents.
+Download the desktop app, open a project and write what you want to do. Review the drafts that need your judgment, then hand the rest to agents.
 
 Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then choose to continue in the warning. The download page has the full steps for macOS, Windows and Linux.
 

@@ -4,62 +4,57 @@ import type { HomeCopy } from "./types";
 
 const en: HomeCopy = {
   meta: {
-    title: "See the draft before agents get to work | AI4Kanban",
+    title: "Agent workspace for indie hackers | AI4Kanban",
     description:
-      "AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details, and you move more work forward on your own.",
+      "Specialist agents draft the key parts of coding and marketing tasks for you to review, then finish the work—so you spend less time checking and reworking it.",
     socialTitle: "See the draft. Let agents do the rest.",
-    social: "A kanban board for AI agents that shows you the key drafts first, then lets agents finish the rest.",
+    social:
+      "Specialist agents handle coding and marketing. Review the key drafts, then hand over the work—with less to check and revise afterwards.",
     schema:
-      "AI4Kanban is an open-source, local-first kanban board for AI agents. It prepares the key drafts for each task — a UI mockup, a copy draft, a storyboard, figures — so you settle the direction first, then specialist agents finish the rest within the agreed scope. It covers product development and content creation, and connects to 8 tools such as Claude Code and Codex, running on your machine with your own subscriptions.",
+      "AI4Kanban is an open-source, local-first agent workspace for indie hackers. Specialist agents share project context across 6 coding and content workflows. They draft the parts that need your judgment, then finish the work from what you approve, reducing the time you spend checking and revising finished work. Independent tasks run in parallel, preferences and decisions carry forward, and agents suggest follow-ups. Use your own AI tools and subscriptions.",
   },
 
   hero: {
     eyebrow: "An agent workspace for indie hackers",
     title: "See the draft.\nLet agents do the rest.",
-    lead: "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there—without having to manage every detail.",
+    lead:
+      "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there—without having to manage every detail.",
     ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
     image:
       "A recording of the AI4Kanban demo board: planning tasks, reviewing the drafts on a card, then handing the work to agents.",
   },
 
-  drafts: {
-    title: "Review the key drafts. Get the direction right.",
-    lead: "Agents put key drafts on the task card. Review and revise them before the rest of the work starts.",
-    kinds: [
-      { label: "UI mockup", body: "Preview layout and interactions." },
-      { label: "Copy draft", body: "Confirm the message and wording." },
-      { label: "Storyboard", body: "Review each shot and its voiceover." },
-      { label: "Figures", body: "Check what each figure shows." },
+  workflows: {
+    title: "Build the product. Keep marketing moving.",
+    lead:
+      "With 6 built-in workflows, specialist agents share your project context and handle coding and marketing without you having to design the team. They draft only the key parts that need your judgment, then finish the work from what you approve, so you spend less time checking and revising it afterwards.",
+    items: [
+      { label: "Coding", image: "Coding draft: a UI mockup of a key screen." },
+      { label: "Blog post", image: "Blog post draft: the article and its images." },
+      {
+        label: "Product video",
+        image: "Product video draft: scenes and voiceover in a storyboard.",
+      },
+      { label: "Slide deck", image: "Slide deck draft: page content and layout previews." },
+      { label: "Carousel post", image: "Carousel post draft: page copy and content outline." },
+      {
+        label: "Video clone (code-generated videos)",
+        image: "Video clone drafts: the source breakdown and clone storyboard.",
+      },
     ],
-    closing:
-      "You don't have to spell out every detail. Once the key drafts are approved, agents finish the rest within the agreed scope.",
-  },
-
-  agents: {
-    title: "Your feedback carries over to the next task.",
-    body: [
-      "A design agent prepares mockups, a copy agent polishes wording, a script agent plans the content. AI4Kanban comes with 5 workflows and 10+ specialist agents that split the work by task and remember the preferences and decisions you've made clear.",
-      'Say you ask for "more direct headlines." The copy agent applies that feedback to future drafts. The next task starts from what you\'ve already agreed, so you never explain it from scratch.',
-    ],
-    pro: "Product videos, slide decks, carousel posts, and blog posts require Pro.",
-    image: "You give a note once; the agent remembers it and every later draft follows it.",
-  },
-
-  followUps: {
-    title: "Let agents catch what you missed.",
-    body: [
-      "As tasks pile up, finding every gap shouldn't be on you alone. Background agents check progress on a schedule, and a QA agent tests recent changes the way a user would.",
-      "An overlooked error state or a missing test can become a follow-up suggestion on your board. You accept, revise or reject it, and agents carry on.",
-    ],
-    image: "The QA agent finds a gap and hands you a follow-up to accept or dismiss.",
+    links: {
+      demo: "Try the demo",
+      coding: "Explore the coding workflow",
+      all: "See all agents and workflows",
+    },
   },
 
   parallel: {
-    title: "Many things at once. The key calls stay yours.",
+    title: "Move independent work forward together",
     body: [
-      "A product change, a launch post, an intro video — no need to finish one before starting the next. Independent tasks go to agents in parallel; you review the key drafts on the cards, make the calls, and keep your attention for what's worth doing next.",
-      "AI4Kanban handles task breakdown, priorities, progress and notifications, so you don't have to coordinate work across multiple chats.",
+      "Keep product development and marketing tasks on one board. Independent tasks can run in parallel; dependent tasks follow in order.",
+      "Each card keeps its own drafts, decisions and progress. Return to the card when a decision needs you, and let agents handle execution without repeated handoffs across chats.",
     ],
     shots: {
       board: { label: "Board", alt: "The AI4Kanban board: Board view" },
@@ -69,14 +64,34 @@ const en: HomeCopy = {
     },
   },
 
+  agents: {
+    title: "Start the next task with what you've already agreed",
+    body: [
+      "Your preferences and decisions carry forward. Each agent remembers what matters to its work and can share that context with other agents.",
+      "The next draft builds on that shared understanding, so you spend your time on what needs to change this time.",
+    ],
+    image: "You give a note once; the agent remembers it and every later draft follows it.",
+  },
+
+  followUps: {
+    title: "Finish one piece of work. Catch what comes next.",
+    body: [
+      "After a main piece of work is complete, agents suggest follow-ups to help catch gaps and identify useful next steps.",
+      "Suggestions come back to your board. Accept, revise or reject them before deciding what to take on.",
+    ],
+    image: "The QA agent finds a gap and hands you a follow-up to accept or dismiss.",
+  },
+
   tools: {
-    title: "Keep the AI tools you already use.",
-    body: "Connect Claude Code, Codex and more; they run on your machine with your own subscriptions. 8 tools are supported, each agent can pick its own tool and model, and AI4Kanban charges no extra token fees.",
+    title: "Keep the AI tools you already use",
+    body:
+      "Connect Claude Code, Codex and 6 other tools, running on your machine with your own subscriptions. Choose a tool and model for each agent. AI4Kanban charges no extra token fees.",
   },
 
   start: {
-    title: "Write down an idea. See the draft first.",
-    lead: "Open a project and write what you want to do. Start from the first key draft, set the direction, and hand the rest to agents.",
+    title: "Start with your first task",
+    lead:
+      "Download the desktop app, open a project and write what you want to do. Review the drafts that need your judgment, then hand the rest to agents.",
     cta: "Download",
     firstOpen:
       "Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then choose to continue in the warning. The download page has the full steps for macOS, Windows and Linux.",

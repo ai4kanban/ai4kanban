@@ -1,17 +1,13 @@
 # AI4Kanban
 
-> AI4Kanban is an open-source, local-first kanban board for AI agents. It prepares the
-> key drafts for each task — a UI mockup, a copy draft, a storyboard, figures — so you
-> settle the direction first, then specialist agents finish the rest within the agreed
-> scope. It covers product development and content creation, and connects to 8 tools
-> such as Claude Code and Codex, running on your machine with your own subscriptions.
+> AI4Kanban is an open-source, local-first agent workspace for indie hackers. Specialist agents share project context across 6 built-in workflows for coding, blog posts, product videos, slide decks, carousel posts and code-generated video clones. They draft only the key parts that need your judgment, then finish the work from what you approve, reducing the time you spend checking and revising finished work. Independent tasks run in parallel, preferences and decisions carry forward, and agents suggest follow-ups. Use your own AI tools and subscriptions.
 
 Each page below has a plain-Markdown mirror (the `.md` links) with the full page
 content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — See the draft. Let agents do the rest.](https://ai4kanban.dev/index.md): AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details, and you move more work forward on your own.
+- [Home — See the draft. Let agents do the rest.](https://ai4kanban.dev/index.md): Specialist agents draft the key parts of coding and marketing tasks for you to review, then finish the work—so you spend less time checking and reworking it.
 - [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): How Tao Wu went from trying to let agents plan a project on their own, through early users' feedback that it didn't feel faster, to having people confirm key drafts before agents build the rest.
 - [Kanban for Claude Code](https://ai4kanban.dev/agents/kanban-for-claude-code): An agent workspace for indie hackers. Review key drafts before Claude Code builds, use Codex for writing alongside Claude Code for coding, and carry project preferences into later tasks. Follow-up suggestions and scheduled QA help find what to improve next.
 - [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex): Manage tasks above individual Codex conversations. Specialist workflows identify what needs your judgment and present UI prototypes, prompt diffs, copy and other drafts before execution. Use development and marketing workflows, choose runtimes per agent, and carry role-specific preferences into later tasks. Codex keeps using your installed skills.

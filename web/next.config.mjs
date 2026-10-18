@@ -33,10 +33,10 @@ const nextConfig = {
         // A kanban-ui file's `@/` is kanban-ui's root, not this site's.
         if (resource.context.startsWith(kanbanUi)) resource.request = path.join(kanbanUi, resource.request.slice(2));
       }),
-      // The demo's seam: the site's typecheck sees `screen.d.ts`, the bundle the real screen
-      // (tsconfig.demo.json checks that one).
-      new webpack.NormalModuleReplacementPlugin(/^@demo\/screen$/, (resource) => {
-        resource.request = path.join(demo, 'Screen.tsx');
+      // The demo's seams: the site's typecheck sees `screen.d.ts` and `drafts/drafts.d.ts`, the
+      // bundle the real screens (tsconfig.demo.json checks those).
+      new webpack.NormalModuleReplacementPlugin(/^@demo\/(screen|drafts)$/, (resource) => {
+        resource.request = path.join(demo, resource.request.endsWith('screen') ? 'Screen.tsx' : 'drafts/Drafts.tsx');
       }),
       // Its timed polls fetch `app/poll/`, which a static site does not have.
       new webpack.NormalModuleReplacementPlugin(/poll$/, (resource) => {

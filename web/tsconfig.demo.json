@@ -7,6 +7,7 @@
     "paths": {
       "@/*": ["../kanban-ui/*"],
       "@demo/screen": ["./app/(demo)/demo/Screen.tsx"],
+      "@demo/drafts": ["./app/(demo)/demo/drafts/Drafts.tsx"],
       // Packages come from this app first, as the bundle's do (next.config.mjs).
       "react": ["./node_modules/@types/react"],
       "react/*": ["./node_modules/@types/react/*"],

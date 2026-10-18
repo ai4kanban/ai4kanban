@@ -29,6 +29,9 @@
       ],
       "@demo/screen": [
         "./app/(demo)/demo/screen.d.ts"
+      ],
+      "@demo/drafts": [
+        "./app/(demo)/demo/drafts/drafts.d.ts"
       ]
     }
   },

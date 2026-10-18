@@ -41,6 +41,7 @@ export type SharedCopy = {
     blog: string;
     /** The Cloud page. English-only, like the blog. */
     cloud: string;
+    demo: string;
     /** The training page, in the footer's Product column. Drawn only where the
      *  page is published — see `nav.training`. */
     training: string;

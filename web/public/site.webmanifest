@@ -1,7 +1,7 @@
 {
   "name": "AI4Kanban",
   "short_name": "AI4Kanban",
-  "description": "AI4Kanban prepares key drafts for tasks on your board. You review what matters, agents handle the details.",
+  "description": "An agent workspace for indie hackers. Specialist agents handle coding and marketing, drafting the key parts for you to review before finishing the work.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

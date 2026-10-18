@@ -27,6 +27,7 @@ const es: SharedCopy = {
     docs: "Documentación",
     blog: "Blog",
     cloud: "Cloud",
+    demo: "Probar la demo",
     training: "Formación",
     pricing: "Precios",
     contact: "Contacto",

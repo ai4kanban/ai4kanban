@@ -8,7 +8,11 @@ import type { PageMeta } from "../types";
  * the copy is a tuple rather than an array: a translation that drops or adds an
  * entry is then a build error instead of a row that renders without its picture.
  */
-type Kind = { label: string; body: string };
+type Workflow = {
+  label: string;
+  /** What the preview shows, for a reader who cannot see it. */
+  image: string;
+};
 
 export type HomeCopy = {
   meta: PageMeta & {
@@ -27,24 +31,14 @@ export type HomeCopy = {
     /** The /demo recording's label. */
     image: string;
   };
-  /** 01: one picture per kind, in `DRAFTS` order — UI, copy, storyboard, figures. */
-  drafts: {
+  /** One card per workflow, in `PREVIEWS` order — coding, blog post, product video, slide
+   *  deck, carousel post, video clone. */
+  workflows: {
     title: string;
     lead: string;
-    kinds: [Kind, Kind, Kind, Kind];
-    closing: string;
-  };
-  agents: {
-    title: string;
-    body: string[];
-    /** The Pro note under the section. */
-    pro: string;
-    image: string;
-  };
-  followUps: {
-    title: string;
-    body: string[];
-    image: string;
+    items: [Workflow, Workflow, Workflow, Workflow, Workflow, Workflow];
+    /** The links under the cards: the demo, the coding workflow page, every agent. */
+    links: { demo: string; coding: string; all: string };
   };
   parallel: {
     title: string;
@@ -56,6 +50,18 @@ export type HomeCopy = {
       frontAria: string;
       flipAria: string;
     };
+  };
+  agents: {
+    title: string;
+    body: string[];
+    /** The animation's label. */
+    image: string;
+  };
+  followUps: {
+    title: string;
+    body: string[];
+    /** The animation's label. */
+    image: string;
   };
   tools: {
     title: string;
