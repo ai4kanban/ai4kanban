@@ -359,7 +359,7 @@ function Pending({ hyperframe, device }: { hyperframe: boolean; device: Device }
 }
 
 export const ICON_BTN =
-  "nb-tip nb-tip-below relative inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+  "nb-tip nb-tip-below relative inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink aria-disabled:cursor-default aria-disabled:opacity-40 aria-disabled:hover:bg-transparent";
 const PRESSED = "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] text-nb-ink";
 
 /** Puts the file's absolute path on the clipboard. */

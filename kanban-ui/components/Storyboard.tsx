@@ -419,18 +419,18 @@ function usePager(count: number) {
   return { current: k, go: setCurrent, onKeyDown };
 }
 
-/** ‹ 5 / 18 › in the head. */
+/** ‹ 5 / 18 › in the head. An end stays focusable (aria-disabled) so ←/→ keep working (#1796). */
 function Pager({ current, count, go, prev, next }: { current: number; count: number; go: (k: number) => void; prev: string; next: string }) {
   if (count < 2) return null;
   return (
     <span className="mr-1 inline-flex items-center">
-      <button type="button" className={ICON_BTN} data-tip={prev} aria-label={prev} disabled={current === 0} onClick={() => go(current - 1)}>
+      <button type="button" className={ICON_BTN} data-tip={prev} aria-label={prev} aria-disabled={current === 0 || undefined} onClick={() => current > 0 && go(current - 1)}>
         <FiChevronLeft size={15} aria-hidden />
       </button>
       <span className="min-w-[46px] text-center text-[12px] font-[600] tabular-nums text-nb-ink-soft">
         <span className="text-nb-ink">{current + 1}</span> / {count}
       </span>
-      <button type="button" className={ICON_BTN} data-tip={next} aria-label={next} disabled={current === count - 1} onClick={() => go(current + 1)}>
+      <button type="button" className={ICON_BTN} data-tip={next} aria-label={next} aria-disabled={current === count - 1 || undefined} onClick={() => current < count - 1 && go(current + 1)}>
         <FiChevronRight size={15} aria-hidden />
       </button>
     </span>
