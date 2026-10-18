@@ -23,20 +23,12 @@ import type { HomeCopy } from "@/i18n/home/types";
 
 type Mode = "board" | "card";
 
-const SRC: Record<Mode, string> = {
-  board: "https://cdn.ai4kanban.dev/home/demo-board-v1.jpg",
-  card: "https://cdn.ai4kanban.dev/home/demo-card-v1.jpg",
-};
+// Drawn from `sm` up, well below the fold: both load lazily. `scripts/build-home-images.mjs`
+// makes the two widths.
+const srcSet = (mode: Mode) => [1200, 2400].map((w) => `/home/demo-${mode}-${w}.webp ${w}w`).join(", ");
+const SIZES = "(min-width: 1200px) 1000px, 90vw";
 
-function Frame({
-  mode,
-  alt,
-  eager,
-}: {
-  mode: Mode;
-  alt: string;
-  eager: boolean;
-}) {
+function Frame({ mode, alt }: { mode: Mode; alt: string }) {
   return (
     // No title bar is drawn here. The deck used to carry a thin macOS strip so
     // the capture read as a real app window; these captures are of the desktop
@@ -45,11 +37,14 @@ function Frame({
     <div className={`${printFrame} bg-elev`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={SRC[mode]}
+        src={`/home/demo-${mode}-1200.webp`}
+        srcSet={srcSet(mode)}
+        sizes={SIZES}
+        width={2400}
+        height={1500}
         alt={alt}
-        className="block w-full"
-        loading={eager ? "eager" : "lazy"}
-        fetchPriority={eager ? "high" : "auto"}
+        className="block h-auto w-full"
+        loading="lazy"
       />
     </div>
   );
@@ -76,7 +71,7 @@ export function HeroShots({ c }: { c: HomeCopy["parallel"]["shots"] }) {
     >
       {/* Invisible sizer sets the container height; the real cards float on top. */}
       <div aria-hidden className="pointer-events-none invisible">
-        <Frame mode={front} alt={c[front].alt} eager={false} />
+        <Frame mode={front} alt={c[front].alt} />
       </div>
 
       {order.map((mode) => {
@@ -105,7 +100,7 @@ export function HeroShots({ c }: { c: HomeCopy["parallel"]["shots"] }) {
             }}
             tabIndex={isFront ? -1 : 0}
           >
-            <Frame mode={mode} alt={c[mode].alt} eager={mode === "board"} />
+            <Frame mode={mode} alt={c[mode].alt} />
             {/* Washes the back card out toward the mat; clears as it comes
                 forward, thins on hover. Now that the outline is gone this is
                 the whole of the front/back distinction, so it stays generous.

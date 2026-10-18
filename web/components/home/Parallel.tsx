@@ -3,6 +3,7 @@ import { HeroShots } from "./HeroShots";
 import { Mat, printFrame } from "./Mat";
 import { ShotTaskGraph } from "../shots/ShotTaskGraph";
 import { ShotSessions } from "../shots/ShotSessions";
+import { PauseOffscreen } from "./PauseOffscreen";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // The Board / Card deck, then the task graph and the running sessions side by side. A
@@ -26,9 +27,9 @@ export function Parallel({ c }: { c: HomeCopy["parallel"] }) {
           </div>
         </Mat>
         <Mat wash="emberMint" data-reveal data-delay="1" className="p-3 sm:p-6">
-          <div aria-hidden className={printFrame}>
+          <PauseOffscreen className={printFrame}>
             <ShotSessions />
-          </div>
+          </PauseOffscreen>
         </Mat>
       </div>
     </section>

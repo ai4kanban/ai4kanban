@@ -2,6 +2,7 @@ import { FiArrowRight, FiPlay } from "react-icons/fi";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "./SectionTitle";
 import { Mat, printFrame } from "./Mat";
+import { DraftFrame } from "./DraftFrame";
 import type { WashName } from "./washes";
 import type { HomeCopy } from "@/i18n/home/types";
 
@@ -58,12 +59,9 @@ export function Workflows({ c }: { c: HomeCopy["workflows"] }) {
               <li key={PREVIEWS[i]} data-reveal className="shrink-0">
                 <Mat wash={WASHES[i]!} className="wf-mat p-3 sm:p-5">
                   <div role="img" aria-label={w.image} className={printFrame}>
-                    <iframe
+                    <DraftFrame
                       src={`/demo/drafts/${PREVIEWS[i]}`}
                       title={w.image}
-                      loading="lazy"
-                      tabIndex={-1}
-                      aria-hidden
                       className="pointer-events-none block aspect-[5/7] w-full bg-[#fbfaf7] sm:aspect-[16/10]"
                     />
                   </div>

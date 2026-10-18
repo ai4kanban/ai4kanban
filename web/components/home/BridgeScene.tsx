@@ -7,7 +7,7 @@ import type { HomeCopy } from "@/i18n/home/types";
 // "AI4Kanban is the bridge", one 7s loop in three beats: an idea flies from you into the board,
 // which puts out two drafts (frame around you + board); the drafts get approved; the drafts and
 // their footnotes go to the agent (frame slides to board + agent). Sizes are em off a cqw font
-// size, so the scene scales with its column. It waits until it scrolls into view. Reduced
+// size, so the scene scales with its column. It moves only while in view. Reduced
 // motion shows both frames at once.
 const CSS = `
 .br{width:100%;container-type:inline-size;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#24231f;margin:0}
@@ -81,11 +81,7 @@ export function BridgeScene({ c }: { c: HomeCopy["review"]["scene"] }) {
   useEffect(() => {
     const el = root.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting) return;
-      el.setAttribute("data-on", "");
-      io.disconnect();
-    });
+    const io = new IntersectionObserver(([entry]) => el.toggleAttribute("data-on", !!entry?.isIntersecting));
     io.observe(el);
     return () => io.disconnect();
   }, []);

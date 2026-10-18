@@ -27,16 +27,20 @@ export const PAGES: Partial<Record<Kind, number[]>> = {
 
 const frame = (href: string, alt = ""): StoryboardFrameView => ({ src: href, alt, href, ratio: null });
 
-/** A long page, scrolled down and back up inside the prototype's frame. */
-export function prototype(origin: string, still: boolean): MockupView {
-  const motion = still
-    ? ""
-    : "img{animation:s 18s ease-in-out infinite}" +
-      "@keyframes s{0%,10%{transform:translateY(0)}45%,55%{transform:translateY(calc(-100% + 100vh))}90%,100%{transform:translateY(0)}}" +
-      "@media (prefers-reduced-motion:reduce){img{animation:none}}";
+/** A long page, scrolled down and back up inside the prototype's frame, and held still while
+ *  the frame is out of view. Its own script watches that, so the frame never redraws. */
+export function prototype(origin: string): MockupView {
   return {
     src: ".assets/demo/home-desktop.html",
-    doc: `<!doctype html><html><head><style>html,body{margin:0;height:100%;overflow:hidden;background:#fff}img{display:block;width:100%}${motion}</style></head><body><img src="${origin}${DIR}/ui-home.jpg" alt=""></body></html>`,
+    scripts: true,
+    doc:
+      `<!doctype html><html><head><style>html,body{margin:0;height:100%;overflow:hidden;background:#fff}img{display:block;width:100%}` +
+      "img{animation:s 18s ease-in-out infinite paused}.on img{animation-play-state:running}" +
+      "@keyframes s{0%,10%{transform:translateY(0)}45%,55%{transform:translateY(calc(-100% + 100vh))}90%,100%{transform:translateY(0)}}" +
+      "@media (prefers-reduced-motion:reduce){img{animation:none}}" +
+      `</style></head><body><img src="${origin}${DIR}/ui-home.webp" alt="">` +
+      "<script>new IntersectionObserver(([e])=>document.body.classList.toggle('on',e.isIntersecting)).observe(document.body)</script>" +
+      "</body></html>",
   };
 }
 
@@ -129,7 +133,7 @@ export const STORYBOARD: StoryboardView = {
     action: SCRIPT[k]?.action ?? name,
     captions: SCRIPT[k]?.captions ?? [],
     details: SCRIPT[k]?.details ?? "",
-    frames: [frame(`${DIR}/shots/s${k + 1}.jpg`, name)],
+    frames: [frame(`${DIR}/shots/s${k + 1}.webp`, name)],
   })),
 };
 
@@ -178,7 +182,7 @@ export const DECK: StoryboardView = {
     notes,
     layout: "",
     assets: [],
-    preview: frame(`${DIR}/slides/${id}.jpg`, title),
+    preview: frame(`${DIR}/slides/${id}.webp`, title),
   })),
 };
 
@@ -205,7 +209,7 @@ export const CAROUSEL: StoryboardView = {
     copy: [],
     layout: "",
     assets: [],
-    preview: frame(`${DIR}/carousel/${k + 1}.jpg`, title),
+    preview: frame(`${DIR}/carousel/${k + 1}.webp`, title),
   })),
 };
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 // The stage the home page's two CSS 3D scenes share, with the /solutions/saas hero's camera: it
-// waits until it scrolls into view, then tilts gently with the pointer. The scene is laid out
+// moves only while in view, and tilts gently with the pointer. The scene is laid out
 // 600px wide and scaled to its column. A billboard (`.bb`) undoes the camera so a page or chip
 // faces the viewer. On a phone a scene may crop the 4:3 stage to what it draws, moving --cy
 // and the perspective origin with it so the picture stays put. Never animate opacity or filter in the scene: Chrome flattens or drops it.
@@ -50,12 +50,7 @@ export function Scene3d({ label, cam, css, children }: { label: string; cam: str
     if (!el || !c) return;
     const fit = new ResizeObserver(() => c.style.setProperty("--k", String(el.clientWidth / WIDTH)));
     fit.observe(el);
-    const start = () => el.setAttribute("data-on", "");
-    const io = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting) return;
-      start();
-      io.disconnect();
-    });
+    const io = new IntersectionObserver(([entry]) => el.toggleAttribute("data-on", !!entry?.isIntersecting));
     io.observe(el);
     if (matchMedia("(prefers-reduced-motion: reduce)").matches)
       return () => {

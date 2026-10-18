@@ -116,12 +116,12 @@ function Paged({ pages, live, children }: { pages: number[]; live: boolean; chil
   return <div ref={box}>{children}</div>;
 }
 
-/** The prototype scrolls its own page; out of view it is redrawn still. */
-function Coding({ live }: { live: boolean }) {
+/** The prototype scrolls its own page. */
+function Coding() {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(location.origin), []);
   if (!origin) return null;
-  return <Mockup key={String(live)} views={[{ label: "", view: prototype(origin, !live) }]} label="Home page (desktop)" device="desktop" />;
+  return <Mockup views={[{ label: "", view: prototype(origin) }]} label="Home page (desktop)" device="desktop" />;
 }
 
 /** The article is opened with its own button, read down to the end, and scrolled back up. */
@@ -206,7 +206,7 @@ function Clone({ live }: { live: boolean }) {
 function Draft({ kind, live, view }: { kind: Kind; live: boolean; view: RefObject<HTMLDivElement | null> }) {
   switch (kind) {
     case "coding":
-      return <Coding live={live} />;
+      return <Coding />;
     case "blog":
       return <Blog live={live} view={view} />;
     case "video":

@@ -30,15 +30,21 @@ import {
 import type { SiteCopy } from "@/i18n/types";
 
 // A few pixels rather than 0, so a browser restoring a scroll position of 1px
-// doesn't open the page with a rule on it.
+// doesn't open the page with a rule on it. Watched with an observer on the
+// page's top 5px: reading `scrollY` on every scroll forces a layout pass.
 function useScrolled() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const edge = document.createElement("div");
+    edge.style.cssText = "position:absolute;top:0;left:0;width:1px;height:5px;pointer-events:none";
+    document.body.prepend(edge);
+    const io = new IntersectionObserver(([e]) => setScrolled(!e?.isIntersecting));
+    io.observe(edge);
+    return () => {
+      io.disconnect();
+      edge.remove();
+    };
   }, []);
 
   return scrolled;
