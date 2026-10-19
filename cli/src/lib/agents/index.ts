@@ -39,15 +39,15 @@ export const specAgents = (): SpecAgent[] => specAgentCatalog().agents
  *  the English its file declares. Only ever DRAWN — every run is handed the English, so a
  *  board reads in one language and its agents are asked in another.
  *
- *  `title` is empty unless the agent says one: a screen that has no translated name spells
- *  the agent's own out, which is the right answer in English and never a blank. */
+ *  `title` falls back to the English one, then to empty: a screen with no title spells the
+ *  agent's own name out. */
 export function agentLines(
   agent: SpecAgent,
   language: Language = readLanguage(),
 ): { title: string; description: string } {
   const said = agent.i18n[language]
   return {
-    title: said?.title || '',
+    title: said?.title || agent.i18n.en?.title || '',
     description: said?.description || agent.description,
   }
 }

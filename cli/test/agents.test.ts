@@ -137,6 +137,14 @@ describe("what an agent says to a reader who doesn't read English", () => {
     // spells the agent's own name out, which is the answer in English too.
     assert.deepEqual(agentLines(agent, 'en'), { title: '', description: agent.description })
 
+    // A title only in English — what a workflow's new executor is given (#1772) — is drawn in
+    // every language rather than the screen spelling the name out.
+    project('wf-2-executor', {
+      'AGENT.md': ['---', 'name: wf-2-executor', 'description: Unwritten.', 'akb:', '  lead: execute',
+        '  i18n:', '    en:', '      title: "视频克隆2 executor"', '---', '', 'Unwritten.', ''].join('\n'),
+    })
+    assert.equal(agentLines(findSpecAgent('wf-2-executor')!, 'zh').title, '视频克隆2 executor')
+
     // The block is drawn, never run: what a spec run is handed is the English description and
     // the instructions under the frontmatter.
     assert.equal(agent.body.includes('i18n'), false)
