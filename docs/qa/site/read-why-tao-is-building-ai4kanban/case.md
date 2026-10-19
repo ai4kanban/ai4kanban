@@ -8,33 +8,28 @@
 ## Steps
 
 1. 在 `/blog/spec-to-code` 点作者行「Tao Wu · Founder of AI4Kanban」。
-   到 `/builder`，标签页标题「Why I'm building AI4Kanban — Tao Wu」。一封书信式的页面：大标题「Why I'm building AI4Kanban」（「AI4Kanban」下一道橙色粗线），头像旁写「Tao Wu / Founder of AI4Kanban」，下面是十几段第一人称正文，没有要点清单，也没有 FAQ。正文讲先让 agent 自己规划、早期用户觉得「it didn't feel faster」、再改成先看关键草稿，几处关键句加粗。
+   到 `/builder`，标签页标题「Why I'm building AI4Kanban — Tao Wu」。大标题「Why I'm building AI4Kanban」下没有橙色横条，头像旁写「Tao Wu / Founder of AI4Kanban」。正文 7 段：先是加粗编号「1.」到「4.」的四段想法（人和 agent 的边界、planning smart、skill 很薄、AI4Kanban 是中间层），再三段收尾；没有列表，没有 `h2`/`h3`。
    ![页面开头](01-builder-top.png) · [builder.log](builder.log)
 
-2. 往下读到第一张插图。
-   手绘风插图：一张想法卡片、agent 自己勾掉了几个问题，只把一道选择题递给人；下面斜体图注「The agent asks first, settles what it can, and hands you the few real choices.」。
-   ![第一张插图](02-asking-first.png) · [builder.log](builder.log)
+2. 读到第 1 段后的动画。
+   页面上唯一一张 figure：「You」把想法「Launch a Pro plan」交给「AI4Kanban」，出两张草稿，「You review」批准后交给「Agent」（「Agents take over」）。无障碍标签是一整句「You hand an idea to AI4Kanban, which turns it into drafts for you to review. …」，下面没有图注。截图是循环中两张草稿刚出、还没批准的那一帧。
+   ![第 1 段后的动画](02-bridge-scene.png) · [builder.log](builder.log)
 
-3. 继续读到第二张插图。
-   人勾选了一张草稿、划掉另一张，agent 接着做出一叠卡片；图注「You settle the key drafts. The agent builds the rest.」。
-   ![第二张插图](03-drafts-first.png) · [builder.log](builder.log)
+3. 读到信的结尾。
+   最后一段讲模板；正文里没有链接。落款「Tao」，下面一排四个图标：LinkedIn、GitHub、X、个人网站，都在新标签页打开。
+   ![结尾和落款](03-signature.png) · [builder.log](builder.log)
 
-4. 读到信的结尾。
-   最后一段链到「home page」（`/`）和「GitHub」（项目仓库，新标签页打开），落款「Tao」，下面一排四个图标：LinkedIn、GitHub、X、个人网站，都在新标签页打开。
-   ![结尾和落款](04-signature.png) · [builder.log](builder.log)
+4. 用 390px 宽的手机打开 `/builder`，滚到动画。
+   动画缩到正文宽 342px，文字和草稿同比缩小，页面不横向滚动。
+   ![手机上的动画](04-phone-scene.png) · [builder.log](builder.log)
 
-5. 用 390px 宽的手机打开 `/builder`，滚到第一张插图。
-   插图缩到 342px，图注换成两行，页面不横向滚动。
-   ![手机上的插图](05-phone-picture.png) · [builder.log](builder.log)
-
-6. 以 AI 的身份读 `/llms.txt`，再打开它指向的 `/builder.md`。
-   `llms.txt` 里的 Builder 条目概括同一个故事：从让 agent 自己规划，到早期用户觉得不够快，到先确认关键草稿。`/builder.md` 返回 Markdown，正文与页面一致，作者写「Founder of AI4Kanban」，两张插图换成图注一句，没有旧的要点清单和 FAQ。
+5. 以 AI 的身份读 `/llms.txt`，再打开它指向的 `/builder.md`。
+   `llms.txt` 的 Builder 条目概括四段想法：人和 agent 的边界、planning smart、skill 很薄、写代码和做营销的同一个工作台。`/builder.md` 返回 Markdown，正文与页面一致，编号 `**1.**` 到 `**4.**`，动画换成一句斜体，与无障碍标签同文；没有要点清单和 FAQ。
    [builder.log](builder.log)
 
 ## Feedback
 
-- **像真人在讲话**：先失败、再听用户反馈、再改方向，比一份履历更让人相信这个产品是被打磨出来的；两张插图把「先问」和「先看草稿」的差别画得一目了然。
-- **读完无处可去**：结尾只有「home page」和 GitHub，想试的人得自己找页头的「Download」。
-- **入口难发现**：博客作者行是灰色小字、没有下划线，看不出能点；页脚叫「Builder」，页面上的头衔却是「Founder」。
-- **只有英文**：中文页脚也链到这一页，`/zh/builder` 是 404。
-- **图注读两遍**：插图的无障碍标签和下面的图注是同一句，读屏会念两次。
+- **观点鲜明**：四段编号想法短而直接，第 1 段一讲「人管关键部分、agent 管细节」，紧跟的动画就把这句话演出来了。
+- **读完无处可去**：结尾除了四个社交图标没有下一步，想试的人得自己找页头的「Download」。
+- **入口难发现**：博客作者行是灰色小字、没有下划线，看不出能点；英文页脚叫「Builder」，页面上的头衔却是「Founder」。
+- **只有英文**：中文页脚的「创始人」也链到这一页，`/zh/builder` 是 404。
