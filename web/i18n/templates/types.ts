@@ -10,8 +10,12 @@ export type TemplatesCopy = {
   meta: PageMeta;
   title: string;
   lead: string;
-  count: (n: number) => string;
   categories: Record<string, CategoryCopy>;
+  /** Screen-reader names for the category tabs and the page numbers. */
+  tabs: string;
+  pages: string;
+  prev: string;
+  next: string;
   /** The way back to a category's section the site has no name for. */
   back: (title: string) => string;
   /** The way back from a missing template. */

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { Tab, Tabs } from "@/components/ui/Tabs";
 
 type Topic = { slug: string; label: string };
 type Item = { slug: string; categories: string[]; tile: ReactNode };
@@ -34,32 +34,18 @@ export function TopicView({
     ? items.filter((i) => i.categories.includes(active))
     : items.slice(1);
 
-  const tab = (label: string, slug: string | null) => {
-    const on = slug === active;
-    return (
-      <Link
-        key={label}
-        href={slug ? `/blog?topic=${slug}` : "/blog"}
-        scroll={false}
-        aria-current={on ? "page" : undefined}
-        className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold no-underline transition-colors ${
-          on ? "bg-ink text-elev" : "text-muted hover:text-ink"
-        }`}
-      >
-        {label}
-      </Link>
-    );
-  };
+  const tab = (label: string, slug: string | null) => (
+    <Tab key={label} href={slug ? `/blog?topic=${slug}` : "/blog"} on={slug === active}>
+      {label}
+    </Tab>
+  );
 
   return (
     <>
-      {/* The rule stays on the column; only the tabs scroll past its edges on a phone. */}
-      <nav aria-label="Topics" className="mt-6 border-b-2 border-border pb-3 sm:mt-8">
-        <div className="-mx-6 flex items-center gap-1.5 overflow-x-auto px-6 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-          {tab("All", null)}
-          {topics.map((t) => tab(t.label, t.slug))}
-        </div>
-      </nav>
+      <Tabs label="Topics" className="mt-6 border-b-2 border-border sm:mt-8">
+        {tab("All", null)}
+        {topics.map((t) => tab(t.label, t.slug))}
+      </Tabs>
 
       {!active && <section className="mt-8 sm:mt-10">{featured}</section>}
 

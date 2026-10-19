@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
-import { column, heroTop } from "@/components/styles";
+import { column } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import { getTemplatesCopy, type TemplatesLocale } from "@/i18n/templates";
 import { jsonLd, pageUrl, webPage } from "@/lib/schema";
@@ -38,10 +38,6 @@ export function TemplatesHomePage({ locale, initial }: { locale: TemplatesLocale
   });
   return (
     <Page locale={locale} path={TEMPLATES_PATH} schema={schema}>
-      <section className={heroTop}>
-        <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">{t.title}</h1>
-        <p className="mt-3 text-lg text-muted">{t.lead}</p>
-      </section>
       <Catalog locale={locale} initial={initial} />
     </Page>
   );
