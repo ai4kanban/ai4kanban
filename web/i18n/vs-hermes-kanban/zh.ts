@@ -193,7 +193,7 @@ const zh: VsHermesCopy = {
       },
       chat: {
         dimension: "在聊天应用中操控",
-        kanban: "通知、Slack 和飞书都依赖 Cloud，目前是邀请制预览。",
+        kanban: "应用内通知无需 Cloud；Slack 和飞书推送、远程操作需要 Cloud，目前是邀请制预览。",
         hermes: "在 Telegram、Discord、Slack、WhatsApp、Signal 等应用中用 /kanban 管理看板，并接收任务通知。",
       },
       recovery: {

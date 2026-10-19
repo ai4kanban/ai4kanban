@@ -193,7 +193,7 @@ const es: VsHermesCopy = {
       },
       chat: {
         dimension: "Control desde apps de chat",
-        kanban: "Las notificaciones, Slack y Lark requieren Cloud, que está en vista previa solo por invitación.",
+        kanban: "Las notificaciones en la app funcionan sin Cloud; los avisos en Slack y Lark y el control remoto requieren Cloud, que está en vista previa solo por invitación.",
         hermes: "Gestiona el tablero con /kanban desde Telegram, Discord, Slack, WhatsApp, Signal y más, con notificaciones de tareas.",
       },
       recovery: {

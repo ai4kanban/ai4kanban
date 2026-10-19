@@ -193,7 +193,7 @@ const ja: VsHermesCopy = {
       },
       chat: {
         dimension: "チャットアプリからの操作",
-        kanban: "通知、Slack、LarkにはCloudが必要で、現在は招待制のプレビューです。",
+        kanban: "アプリ内通知はCloudなしで使えます。SlackとLarkへの通知やリモート操作にはCloudが必要で、現在は招待制のプレビューです。",
         hermes: "Telegram、Discord、Slack、WhatsApp、Signalなどから/kanbanでボードを管理でき、タスクの通知も受け取れます。",
       },
       recovery: {

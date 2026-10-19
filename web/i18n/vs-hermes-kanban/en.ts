@@ -193,7 +193,7 @@ const en: VsHermesCopy = {
       },
       chat: {
         dimension: "Control from chat apps",
-        kanban: "Notifications, Slack and Lark need Cloud, which is in invite-only preview.",
+        kanban: "In-app notifications work without Cloud; Slack and Lark alerts and remote control need Cloud, which is in invite-only preview.",
         hermes: "Manage the board with /kanban from Telegram, Discord, Slack, WhatsApp, Signal and more, with task notifications.",
       },
       recovery: {

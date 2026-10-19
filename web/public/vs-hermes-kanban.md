@@ -79,7 +79,7 @@ A ✓ marks the stronger side on each row.
 | Running Claude Code or Codex | Claude Code, Codex, Cursor, OpenCode and other coding agents run the work directly, on your own subscriptions; choose one per agent. | Workers are Hermes agents; a bundled skill lets one call Claude Code or Codex from the terminal. | AI4Kanban |
 | Board and interface | A desktop app for cards, drafts, conversations and run status. | A CLI, a web dashboard and a Desktop app plugin. | Even |
 | Checking the work | Claude Code or Codex run tests and check the requirements as they build; AI4Kanban adds no second review pass, to avoid over-testing. | A reviewer profile checks each acceptance criterion and runs tests, sending work back until it passes. | Even |
-| Control from chat apps | Notifications, Slack and Lark need Cloud, which is in invite-only preview. | Manage the board with /kanban from Telegram, Discord, Slack, WhatsApp, Signal and more, with task notifications. | Hermes Kanban |
+| Control from chat apps | In-app notifications work without Cloud; Slack and Lark alerts and remote control need Cloud, which is in invite-only preview. | Manage the board with /kanban from Telegram, Discord, Slack, WhatsApp, Signal and more, with task notifications. | Hermes Kanban |
 | Recovery from failed runs | Provider errors are retried automatically. A stopped run waits for you to resume it. | Heartbeats reclaim stalled tasks, and a task that keeps failing is put on hold. | Hermes Kanban |
 | API and extensions | A CLI that coding agents call. No public API. | A REST and WebSocket API, plus plugin hooks for task events. | Hermes Kanban |
 
