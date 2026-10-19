@@ -104,9 +104,10 @@ export async function routeCatalog(request: Request, env: Env, rest: string): Pr
 
 const fresh = { 'cache-control': 'public, max-age=60' }
 
-/** What a catalog tile needs. */
+/** What a catalog tile needs. A motion's tile plays its clip in place. */
 function card(base: string, row: Row) {
   const show = row.showcase ?? {}
+  const clip = row.category === 'motion' ? show.recreation?.video : undefined
   return {
     name: row.name,
     category: row.category,
@@ -116,13 +117,14 @@ function card(base: string, row: Row) {
     access: row.access,
     cover: coverOf(base, row),
     duration: show.recreation?.duration ?? null,
+    clip: clip ? mediaUrl(base, row, clip) : null,
   }
 }
 
 function detail(base: string, row: Row) {
   const show = row.showcase ?? {}
   const s = row.source ?? {}
-  const url = (path?: string) => (path && show.id ? `${base}/${row.name}/media/${show.id}/${encodeURIComponent(path)}` : null)
+  const url = (path?: string) => (path ? mediaUrl(base, row, path) : null)
   const side = (v?: Side) =>
     v && {
       image: url(v.image),
@@ -144,10 +146,13 @@ function detail(base: string, row: Row) {
 /** The registered cover, else the first catalog preview; null draws a placeholder. */
 function coverOf(base: string, row: Row): string | null {
   const show = row.showcase ?? {}
-  if (show.cover && show.id) return `${base}/${row.name}/media/${show.id}/${encodeURIComponent(show.cover)}`
+  if (show.cover && show.id) return mediaUrl(base, row, show.cover)
   const first = row.previews[0]
   return first ? `${base}/${row.name}/media/${row.revision}/${encodeURIComponent(first.path)}` : null
 }
+
+const mediaUrl = (base: string, row: Row, path: string) =>
+  row.showcase?.id ? `${base}/${row.name}/media/${row.showcase.id}/${encodeURIComponent(path)}` : null
 
 /** One file, by range when asked: a video only seeks with partial answers. Its URL names the
  *  revision it belongs to, so it never changes. */
@@ -177,6 +182,11 @@ export async function registerShowcase(env: Env, bucket: R2Bucket, name: string,
   const form = await request.formData().catch(() => null)
   if (!form) throw badRequest('Send the showcase as multipart form data.')
   const show = readShowcase(form.get('meta'))
+  const row = await call<Row | null>(env, 'template', { p_name: name })
+  if (!row) throw notFound('No template has this name.')
+  if (row.category === 'motion' && !show.recreation?.video) {
+    throw badRequest('A motion plays its clip: send recreation.video.')
+  }
   const uploads: { path: string; bytes: ArrayBuffer }[] = []
   const parts: [string, FormDataEntryValue][] = []
   form.forEach((value, field) => void parts.push([field, value]))

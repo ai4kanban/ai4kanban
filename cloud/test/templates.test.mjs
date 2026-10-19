@@ -229,7 +229,8 @@ describe('/v1/catalog', () => {
     const { categories } = await res.json()
     assert.deepEqual(categories.map((c) => [c.category, c.templates.length]), [['ui', 12], ['video', 1]])
     const [one] = categories[0].templates
-    assert.deepEqual(Object.keys(one).sort(), ['access', 'category', 'cover', 'duration', 'name', 'summary', 'tags', 'title'])
+    assert.deepEqual(Object.keys(one).sort(), ['access', 'category', 'clip', 'cover', 'duration', 'name', 'summary', 'tags', 'title'])
+    assert.equal(one.clip, null)
     assert.match(one.cover, /\/v1\/catalog\/hero-tilted-screen\/media\/[^/]+\/cover\.png$/)
     assert.equal(await (await anon(new URL(one.cover).pathname)).text(), 'png')
   })
@@ -286,6 +287,21 @@ describe('/v1/catalog', () => {
     const missing = await send(PUBLISHER, '/v1/templates/nothing/showcase', { method: 'PUT', body: showcase() })
     assert.equal(missing.status, 404)
     assert.equal([...bucket.objects.keys()].filter((k) => k.startsWith('showcase/')).length, 0)
+  })
+
+  it('gives a motion’s tile its clip, and registers no motion showcase without one', async () => {
+    await publish(PUBLISHER, hero({ name: 'card-widen', category: 'motion' }))
+    const put = (form) => send(PUBLISHER, '/v1/templates/card-widen/showcase', { method: 'PUT', body: form })
+    const still = await put(showcase({ original: undefined, recreation: { image: 'cover.jpg', keyframe: true } }))
+    assert.equal(still.status, 400)
+    assert.match((await still.json()).error.message, /recreation\.video/)
+    assert.equal([...bucket.objects.keys()].filter((k) => k.startsWith('showcase/')).length, 0)
+
+    assert.equal((await put(showcase({ original: undefined, recreation: { image: 'cover.jpg', video: 'clone.mp4', duration: 4 } }))).status, 200)
+    const { categories } = await (await anon('/v1/catalog')).json()
+    const [tile] = categories.find((c) => c.category === 'motion').templates
+    assert.equal(tile.duration, 4)
+    assert.equal(await (await anon(new URL(tile.clip).pathname)).text(), 'mp4')
   })
 })
 

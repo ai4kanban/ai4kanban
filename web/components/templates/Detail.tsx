@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { FiAlertCircle, FiArrowLeft, FiCheck, FiCopy, FiExternalLink, FiInfo, FiPlay, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiArrowLeft, FiCheck, FiCopy, FiExternalLink, FiInfo, FiPause, FiPlay, FiRefreshCw } from "react-icons/fi";
 import { Button } from "@/components/ui/Button";
 import { getTemplatesCopy, type TemplatesLocale } from "@/i18n/templates";
 import type { TemplatesCopy } from "@/i18n/templates/types";
@@ -17,13 +17,14 @@ import {
   type Side,
   type Template,
 } from "@/lib/templates";
-import { AccessTag, Duration, NoPreview, StateBox, Tag } from "./parts";
+import { AccessTag, Duration, NoPreview, Progress, StateBox, Tag, reducedMotion } from "./parts";
 
 type State = { template: Template | null; missing: boolean; failed: boolean };
 
-// One template: what it is, the original beside its recreation (a prop or a
-// motion has only its keyframe), where it came from, and how to use it. Like the catalog, the browser reads it again on
-// every visit, so a template taken down since the build says so.
+// One template: what it is, the original beside its recreation (a prop has only
+// its keyframe, a motion its clip), where it came from, and how to use it. Like the
+// catalog, the browser reads it again on every visit, so a template taken down since
+// the build says so.
 export function Detail({
   locale,
   category,
@@ -91,8 +92,10 @@ export function Detail({
   ].filter((s) => s !== null);
   const video = tpl.category === "video" || sides.some((s) => s.value.video || s.value.youtube);
   const aspect = video ? "aspect-video" : "aspect-[16/10]";
-  // Props and motion are pieces of a video template: one keyframe, shown whole.
-  const piece = tpl.category === "prop" || tpl.category === "motion";
+  // Props and motion are pieces of a video template: a prop is one keyframe, shown whole; a
+  // motion plays its clip, or its keyframe until it has one. Where a motion came from is no use.
+  const motion = tpl.category === "motion";
+  const piece = motion || tpl.category === "prop";
 
   return (
     <>
@@ -112,6 +115,7 @@ export function Detail({
         <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted">{tpl.summary}</p>
       </section>
 
+      {!motion && (
       <section className={`mt-10 grid gap-6 ${sides.length > 1 ? "lg:grid-cols-2" : ""}`}>
         {piece ? (
           <figure>
@@ -135,9 +139,22 @@ export function Detail({
           ))
         )}
       </section>
+      )}
 
       <section className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
         <div>
+          {motion && (
+            <figure className="mb-10 max-w-[40rem]">
+              <figcaption className="mb-2 flex items-center gap-2">
+                <Tag>{tpl.recreation?.video ? t.preview : t.keyframe}</Tag>
+              </figcaption>
+              {tpl.recreation?.video ? (
+                <Clip t={t} src={tpl.recreation.video} poster={tpl.recreation.image ?? tpl.cover} />
+              ) : (
+                <Still src={tpl.cover} aspect="aspect-video" whole t={t} />
+              )}
+            </figure>
+          )}
           {piece && (
             <p className="mb-4 flex items-center gap-2 text-sm font-semibold text-ink">
               <FiInfo className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
@@ -157,11 +174,12 @@ export function Detail({
           )}
         </div>
         <aside className="space-y-6">
-          <div className="border-b border-border/15 pb-6">
+          <div className={motion ? "" : "border-b border-border/15 pb-6"}>
             <h2 className="text-base font-bold text-ink">{t.use}</h2>
             <p className="mt-1 text-sm text-muted">{t.useLead}</p>
             <CopyPrompt prompt={t.prompt(tpl.category, tpl.name)} t={t} />
           </div>
+          {!motion && (
           <div className="space-y-3 text-sm">
             <h2 className="text-sm font-semibold text-ink">{t.source}</h2>
             {"original" in tpl.source ? (
@@ -182,6 +200,7 @@ export function Detail({
               </>
             )}
           </div>
+          )}
         </aside>
       </section>
     </>
@@ -262,33 +281,26 @@ function Player({
 
   if (failed) {
     return (
-      <div className={`flex ${aspect} w-full flex-col items-center justify-center gap-3 rounded-xl bg-code p-6 text-center`}>
-        <FiAlertCircle className="h-6 w-6 text-caution" aria-hidden="true" />
-        <p className="font-semibold text-ink">{t.videoFailed}</p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            size="sm"
-            onClick={() => {
-              setFailed(false);
-              setAttempt((n) => n + 1);
-            }}
+      <Failed
+        t={t}
+        aspect={aspect}
+        retry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      >
+        {origin && (
+          <a
+            href={origin}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline underline-offset-4"
           >
-            <FiRefreshCw className="h-4 w-4" aria-hidden="true" />
-            {t.retry}
-          </Button>
-          {origin && (
-            <a
-              href={origin}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline underline-offset-4"
-            >
-              {side.youtube ? t.openYouTube : t.openOriginal}
-              <FiExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-          )}
-        </div>
-      </div>
+            {side.youtube ? t.openYouTube : t.openOriginal}
+            <FiExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        )}
+      </Failed>
     );
   }
 
@@ -320,22 +332,130 @@ function Player({
   }
 
   return (
+    <PlayCover t={t} image={side.image} aspect={aspect} label={`${t.play}: ${label}`} onPlay={() => setPlaying(true)}>
+      {side.duration ? <Duration>{clock(side.duration)}</Duration> : null}
+    </PlayCover>
+  );
+}
+
+// A motion's clip: silent, looping, playing as the page opens — unless the system asks
+// for reduced motion, when it waits for the play button.
+function Clip({ t, src, poster }: { t: TemplatesCopy; src: string; poster: string | null }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [started, setStarted] = useState(false);
+  const [paused, setPaused] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => setStarted(!reducedMotion()), []);
+  useEffect(() => {
+    const v = video.current;
+    if (!started || !v) return;
+    v.muted = true;
+    v.play().catch(() => undefined);
+  }, [started, attempt]);
+
+  const aspect = "aspect-video";
+  if (failed) {
+    return (
+      <Failed
+        t={t}
+        aspect={aspect}
+        retry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
+  if (!started) return <PlayCover t={t} image={poster} aspect={aspect} label={t.play} onPlay={() => setStarted(true)} />;
+
+  const toggle = () => {
+    const v = video.current;
+    if (!v) return;
+    if (v.paused) v.play().catch(() => setFailed(true));
+    else v.pause();
+  };
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border/15 bg-code">
+      <video
+        key={attempt}
+        ref={video}
+        src={src}
+        poster={poster ?? undefined}
+        muted
+        loop
+        playsInline
+        onPlay={() => setPaused(false)}
+        onPause={() => setPaused(true)}
+        onError={() => setFailed(true)}
+        className={`${aspect} block w-full`}
+      />
+      <Progress video={video} />
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={paused ? t.play : t.pause}
+        title={paused ? t.play : t.pause}
+        className="absolute bottom-3 right-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-ink/80 text-elev hover:bg-ink"
+      >
+        {paused ? (
+          <FiPlay className="ml-0.5 h-4 w-4 fill-elev" aria-hidden="true" />
+        ) : (
+          <FiPause className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
+    </div>
+  );
+}
+
+function Failed({ t, aspect, retry, children }: { t: TemplatesCopy; aspect: string; retry: () => void; children?: ReactNode }) {
+  return (
+    <div className={`flex ${aspect} w-full flex-col items-center justify-center gap-3 rounded-xl bg-code p-6 text-center`}>
+      <FiAlertCircle className="h-6 w-6 text-caution" aria-hidden="true" />
+      <p className="font-semibold text-ink">{t.videoFailed}</p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Button size="sm" onClick={retry}>
+          <FiRefreshCw className="h-4 w-4" aria-hidden="true" />
+          {t.retry}
+        </Button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PlayCover({
+  t,
+  image,
+  aspect,
+  label,
+  onPlay,
+  children,
+}: {
+  t: TemplatesCopy;
+  image: string | null;
+  aspect: string;
+  label: string;
+  onPlay: () => void;
+  children?: ReactNode;
+}) {
+  return (
     <button
       type="button"
-      onClick={() => setPlaying(true)}
-      aria-label={`${t.play}: ${label}`}
+      onClick={onPlay}
+      aria-label={label}
       className="group relative block w-full cursor-pointer overflow-hidden rounded-xl bg-code text-left"
     >
-      {side.image ? (
+      {image ? (
         // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-        <img src={side.image} alt="" className={`${aspect} w-full object-cover`} />
+        <img src={image} alt="" className={`${aspect} w-full object-cover`} />
       ) : (
         <NoPreview label={t.noPreview} aspect={aspect} />
       )}
       <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-border bg-elev shadow-[3px_3px_0_0_var(--color-ink)] transition-transform duration-150 group-hover:scale-105 motion-reduce:transition-none">
         <FiPlay className="ml-0.5 h-6 w-6 fill-ink text-ink" aria-hidden="true" />
       </span>
-      {side.duration ? <Duration>{clock(side.duration)}</Duration> : null}
+      {children}
     </button>
   );
 }

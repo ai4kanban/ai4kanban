@@ -26,6 +26,8 @@ const zh: TemplatesCopy = {
   originalVideo: "原视频",
   recreationVideo: "复刻视频",
   keyframe: "关键帧",
+  preview: "预览",
+  pause: "暂停",
   pieceNote: "需在视频模板中使用，不能单独运行。",
   play: "播放",
   noPreview: "暂无预览",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
-import { FiRefreshCw } from "react-icons/fi";
+import { FiPlay, FiRefreshCw } from "react-icons/fi";
 import { heroTop } from "@/components/styles";
 import { Button } from "@/components/ui/Button";
 import { Pager, Tab, Tabs } from "@/components/ui/Tabs";
@@ -9,19 +9,22 @@ import { getTemplatesCopy, type TemplatesLocale } from "@/i18n/templates";
 import type { TemplatesCopy } from "@/i18n/templates/types";
 import { localePath } from "@/lib/i18n";
 import { clock, fetchCatalog, templatePath, type Category, type TemplateCard } from "@/lib/templates";
-import { AccessTag, Duration, NoPreview, StateBox } from "./parts";
+import { AccessTag, Duration, NoPreview, Progress, StateBox, reducedMotion } from "./parts";
 
 const PER_PAGE = 12;
 
 // The catalog: a tab per category, twelve templates a page. Only the open tab's
 // page is rendered, so only its covers load. The HTML holds what the build saw;
-// the browser reads it again so it is always current.
+// the browser reads it again so it is always current. A motion's clip plays in its
+// tile — under the pointer, or on a touch screen the tile nearest the middle — one
+// at a time, and loads only then.
 export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial: Category[] | null }) {
   const t = getTemplatesCopy(locale);
   const [categories, setCategories] = useState(initial);
   const [failed, setFailed] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [playing, setPlaying] = useState<string | null>(null);
   const grid = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
@@ -35,6 +38,7 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
     const sync = () => {
       setPicked(decodeURIComponent(window.location.hash.slice(1)) || null);
       setPage(1);
+      setPlaying(null);
     };
     sync();
     window.addEventListener("hashchange", sync);
@@ -46,13 +50,34 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
     window.history.replaceState(window.history.state, "", `#${category}`);
     setPicked(category);
     setPage(1);
+    setPlaying(null);
   };
   const turn = (n: number) => {
     setPage(n);
+    setPlaying(null);
     grid.current?.scrollIntoView({ block: "start" });
   };
 
   const open = categories?.find((c) => c.category === picked) ?? categories?.[0];
+  const shown = open?.templates.slice((page - 1) * PER_PAGE, page * PER_PAGE) ?? [];
+  const hover = useHover();
+
+  // Without a pointer, the clip tile most in view plays.
+  const clips = shown.filter((tpl) => tpl.clip).length;
+  useEffect(() => {
+    if (hover !== false || !clips || reducedMotion() || typeof IntersectionObserver === "undefined") return;
+    const seen = new Map<Element, number>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) seen.set(e.target, e.intersectionRatio);
+        const best = [...seen].filter(([, r]) => r >= 0.75).sort((a, b) => b[1] - a[1])[0];
+        setPlaying(best ? (best[0] as HTMLElement).dataset.clip! : null);
+      },
+      { threshold: [0, 0.75, 1] },
+    );
+    grid.current?.querySelectorAll("[data-clip]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [hover, clips, open, page]);
 
   return (
     <>
@@ -81,8 +106,23 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
       {open ? (
         <section>
           <div ref={grid} className="mt-8 grid scroll-mt-24 gap-x-8 gap-y-10 sm:grid-cols-2 md:mt-10 lg:grid-cols-3">
-            {open.templates.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((tpl) => (
-              <Tile key={tpl.name} locale={locale} t={t} category={open.category} tpl={tpl} />
+            {shown.map((tpl) => (
+              <Tile
+                key={tpl.name}
+                locale={locale}
+                t={t}
+                category={open.category}
+                tpl={tpl}
+                playing={playing === tpl.name}
+                onHover={
+                  hover && tpl.clip
+                    ? (on) => {
+                        if (on && !reducedMotion()) setPlaying(tpl.name);
+                        else setPlaying((p) => (p === tpl.name ? null : p));
+                      }
+                    : undefined
+                }
+              />
             ))}
           </div>
           <Pager
@@ -114,36 +154,88 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
   );
 }
 
+/** Whether the screen has a pointer that hovers; null until the browser says. */
+function useHover() {
+  const [hover, setHover] = useState<boolean | null>(null);
+  useEffect(() => {
+    const q = window.matchMedia("(hover: hover)");
+    const sync = () => setHover(q.matches);
+    sync();
+    q.addEventListener("change", sync);
+    return () => q.removeEventListener("change", sync);
+  }, []);
+  return hover;
+}
+
 function Tile({
   locale,
   t,
   category,
   tpl,
+  playing,
+  onHover,
 }: {
   locale: TemplatesLocale;
   t: TemplatesCopy;
   category: string;
   tpl: TemplateCard;
+  playing: boolean;
+  onHover?: (on: boolean) => void;
 }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const v = video.current;
+    if (!playing) setShown(false);
+    else if (v) {
+      v.muted = true;
+      v.play().catch(() => undefined);
+    }
+  }, [playing]);
+  // A motion is shown whole, as its clip frames it.
+  const aspect = category === "motion" ? "aspect-video" : "aspect-[16/10]";
+  const fit =
+    category === "motion"
+      ? "object-contain"
+      : "object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100";
+
   return (
-    <a href={localePath(locale, templatePath(category, tpl.name))} className="group block no-underline">
-      <div className="relative overflow-hidden rounded-xl bg-code">
+    <a
+      href={localePath(locale, templatePath(category, tpl.name))}
+      className="group block no-underline"
+      onPointerEnter={onHover && (() => onHover(true))}
+      onPointerLeave={onHover && (() => onHover(false))}
+    >
+      <div className="relative overflow-hidden rounded-xl bg-code" data-clip={tpl.clip ? tpl.name : undefined}>
         {tpl.cover ? (
           // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-          <img
-            src={tpl.cover}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="aspect-[16/10] w-full object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-          />
+          <img src={tpl.cover} alt="" loading="lazy" decoding="async" className={`${aspect} w-full ${fit}`} />
         ) : (
-          <NoPreview label={t.noPreview} aspect="aspect-[16/10]" />
+          <NoPreview label={t.noPreview} aspect={aspect} />
+        )}
+        {playing && tpl.clip && (
+          <video
+            ref={video}
+            src={tpl.clip}
+            muted
+            loop
+            playsInline
+            onPlaying={() => setShown(true)}
+            onError={() => setShown(false)}
+            className={`absolute inset-0 h-full w-full object-contain ${shown ? "" : "opacity-0"}`}
+          />
         )}
         <span className="absolute left-2 top-2 flex">
           <AccessTag access={tpl.access} t={t} cover />
         </span>
-        {tpl.duration ? <Duration>{clock(tpl.duration)}</Duration> : null}
+        {playing && shown ? (
+          <Progress video={video} />
+        ) : tpl.duration ? (
+          <Duration>
+            {tpl.clip && <FiPlay className="h-3 w-3 fill-elev" aria-hidden="true" />}
+            {clock(tpl.duration)}
+          </Duration>
+        ) : null}
       </div>
       <h3 className="mt-4 text-lg font-semibold leading-snug tracking-tight text-ink group-hover:text-accent-deep">
         {tpl.title}

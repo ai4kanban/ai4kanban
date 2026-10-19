@@ -23,8 +23,10 @@ export type TemplateCard = {
   tags: string[];
   access: Access;
   cover: string | null;
-  /** Seconds, for a video template. */
+  /** Seconds, for a video template or a motion's clip. */
   duration: number | null;
+  /** A motion's silent clip, played in place on its tile. */
+  clip: string | null;
 };
 
 export type Side = {

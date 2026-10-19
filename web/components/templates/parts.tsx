@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { FiImage } from "react-icons/fi";
 import { panelInset } from "@/components/styles";
 import type { Access } from "@/lib/templates";
@@ -29,7 +29,7 @@ export function AccessTag({ access, t, cover }: { access: Access; t: TemplatesCo
 
 export function Duration({ children }: { children: ReactNode }) {
   return (
-    <span className="absolute bottom-2 right-2 rounded-md bg-ink/80 px-1.5 py-0.5 font-mono text-xs font-semibold text-elev">
+    <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-ink/80 px-1.5 py-0.5 font-mono text-xs font-semibold text-elev">
       {children}
     </span>
   );
@@ -54,3 +54,25 @@ export function StateBox({ line, children }: { line: string; children?: ReactNod
     </div>
   );
 }
+
+/** A thin bar along a playing clip's foot. Drawn every frame: `timeupdate` is too coarse for a clip of a few seconds. */
+export function Progress({ video }: { video: RefObject<HTMLVideoElement | null> }) {
+  const bar = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    let frame = 0;
+    const draw = () => {
+      const v = video.current;
+      if (v && bar.current && v.duration) bar.current.style.width = `${(v.currentTime / v.duration) * 100}%`;
+      frame = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(frame);
+  }, [video]);
+  return (
+    <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-ink/10" aria-hidden="true">
+      <span ref={bar} className="block h-full w-0 bg-accent" />
+    </span>
+  );
+}
+
+export const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
