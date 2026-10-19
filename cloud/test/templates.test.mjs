@@ -70,6 +70,15 @@ const db = {
     )
   },
   template: ({ p_name }) => json(rows.get(p_name) ?? null),
+  template_catalog: () =>
+    json([...rows.values()].map(({ files, evidence, source, description, ...r }) => ({ ...r, showcase: r.showcase ?? {} }))),
+  set_template_showcase: ({ p_name, p_showcase }) => {
+    const row = rows.get(p_name)
+    if (!row) return json(null)
+    const replaced = row.showcase ?? {}
+    row.showcase = p_showcase
+    return json({ replaced })
+  },
   publish_template: (b) => {
     const old = rows.get(b.p_name)
     if (old && !b.p_replace) return json({ code: 'AKB19', message: `A template named ${b.p_name} already exists.` }, 400)
@@ -77,6 +86,7 @@ const db = {
       name: b.p_name, category: b.p_category, tags: b.p_tags, title: b.p_title, summary: b.p_summary,
       description: b.p_description, source: b.p_source, access: b.p_access, files: b.p_files,
       previews: b.p_previews, evidence: b.p_evidence, revision: b.p_revision, published_at: '2026-10-16T00:00:00Z',
+      showcase: old?.showcase ?? {},
     })
     return json({ revision: b.p_revision, replaced: old?.revision ?? null })
   },
@@ -207,6 +217,94 @@ describe('/v1/templates', () => {
     assert.equal((await res.json()).error.code, 'templates_unavailable')
   })
 })
+
+describe('/v1/catalog', () => {
+  it('lists every template by category to anyone, with nothing private in it', async () => {
+    await publish(PUBLISHER, hero())
+    for (let i = 0; i < 11; i++) await publish(PUBLISHER, hero({ name: `hero-${i}`, tags: ['other'] }))
+    await publish(PUBLISHER, hero({ name: 'ui-walkthrough-launch', category: 'video', access: 'pro' }))
+    const res = await anon('/v1/catalog')
+    assert.equal(res.status, 200)
+    assert.equal(res.headers.get('access-control-allow-origin'), '*')
+    const { categories } = await res.json()
+    assert.deepEqual(categories.map((c) => [c.category, c.templates.length]), [['ui', 12], ['video', 1]])
+    const [one] = categories[0].templates
+    assert.deepEqual(Object.keys(one).sort(), ['access', 'category', 'cover', 'duration', 'name', 'summary', 'tags', 'title'])
+    assert.match(one.cover, /\/v1\/catalog\/hero-tilted-screen\/media\/[^/]+\/cover\.png$/)
+    assert.equal(await (await anon(new URL(one.cover).pathname)).text(), 'png')
+  })
+
+  it('answers a template’s public source and showcase, never its files or evidence', async () => {
+    await publish(PUBLISHER, hero())
+    assert.equal((await send(PUBLISHER, '/v1/templates/hero-tilted-screen/showcase', { method: 'PUT', body: showcase() })).status, 200)
+    const { template } = await (await anon('/v1/catalog/hero-tilted-screen')).json()
+    assert.deepEqual(template.source, { site: SOURCE.site, references: SOURCE.references, captured: SOURCE.captured })
+    assert.equal(template.files, undefined)
+    assert.equal(template.evidence, undefined)
+    assert.equal(template.original.youtube, 'UAmKyyZ-b9E')
+    assert.equal(template.original.video, null)
+    assert.equal(template.recreation.duration, 69)
+    assert.match(template.cover, /media\/[^/]+\/cover\.jpg$/)
+    assert.equal(await (await anon(new URL(template.recreation.video).pathname)).text(), 'mp4')
+
+    const revision = rows.get('hero-tilted-screen').revision
+    for (const path of ['files/template.md', 'evidence/linear.webp']) {
+      assert.equal((await anon(`/v1/catalog/hero-tilted-screen/${path}`)).status, 404)
+    }
+    assert.equal((await anon(`/v1/catalog/hero-tilted-screen/media/${revision}/linear.webp`)).status, 404)
+    assert.equal((await anon('/v1/templates/hero-tilted-screen/files/template.md')).status, 401)
+    assert.equal((await anon('/v1/catalog/nothing')).status, 404)
+  })
+
+  it('swaps a showcase whole, keeps it through a replacement, and drops it with the template', async () => {
+    await publish(PUBLISHER, hero())
+    await send(PUBLISHER, '/v1/templates/hero-tilted-screen/showcase', { method: 'PUT', body: showcase() })
+    await send(PUBLISHER, '/v1/templates/hero-tilted-screen/showcase', { method: 'PUT', body: showcase() })
+    const shown = () => [...bucket.objects.keys()].filter((k) => k.startsWith('showcase/'))
+    assert.equal(shown().length, 3)
+    await publish(PUBLISHER, hero({ replace: true }))
+    assert.ok((await (await anon('/v1/catalog/hero-tilted-screen')).json()).template.recreation)
+    await send(PUBLISHER, '/v1/templates/hero-tilted-screen', { method: 'DELETE' })
+    assert.equal(shown().length, 0)
+    assert.equal((await anon('/v1/catalog/hero-tilted-screen')).status, 404)
+  })
+
+  it('lets only a publisher register a showcase, and checks it before writing', async () => {
+    await publish(PUBLISHER, hero())
+    assert.equal((await send(FREE_USER, '/v1/templates/hero-tilted-screen/showcase', { method: 'PUT', body: showcase() })).status, 403)
+    const refused = async (form, words) => {
+      const res = await send(PUBLISHER, '/v1/templates/hero-tilted-screen/showcase', { method: 'PUT', body: form })
+      assert.equal(res.status, 400)
+      assert.match((await res.json()).error.message, words)
+    }
+    await refused(showcase({ cover: 'cover.mp4' }), /cover/)
+    await refused(showcase({ original: { image: 'original.jpg', youtube: 'https://example.com/v' } }), /YouTube/)
+    await refused(showcase({ original: { image: 'original.jpg', keyframe: true, youtube: 'https://youtu.be/UAmKyyZ-b9E' } }), /keyframe/)
+    await refused(showcase({}, { 'extra.png': 'x' }), /never named/)
+    await refused(showcase({ cover: 'missing.jpg' }), /not sent/)
+    assert.equal([...bucket.objects.keys()].filter((k) => k.startsWith('showcase/')).length, 0)
+    const missing = await send(PUBLISHER, '/v1/templates/nothing/showcase', { method: 'PUT', body: showcase() })
+    assert.equal(missing.status, 404)
+    assert.equal([...bucket.objects.keys()].filter((k) => k.startsWith('showcase/')).length, 0)
+  })
+})
+
+function showcase(meta = {}, extra = {}) {
+  const form = new FormData()
+  const m = {
+    cover: 'cover.jpg',
+    original: { image: 'original.jpg', youtube: 'https://www.youtube.com/watch?v=UAmKyyZ-b9E' },
+    recreation: { image: 'cover.jpg', video: 'clone.mp4', duration: 69 },
+    ...meta,
+  }
+  form.set('meta', JSON.stringify(m))
+  const files = { 'cover.jpg': 'jpg', 'original.jpg': 'orig', 'clone.mp4': 'mp4', ...extra }
+  const named = new Set([m.cover, m.original?.image, m.original?.video, m.recreation?.image, m.recreation?.video, ...Object.keys(extra)])
+  for (const [path, text] of Object.entries(files)) if (named.has(path)) form.append(`media:${path}`, new Blob([text]), path)
+  return form
+}
+
+const anon = (path) => worker.fetch(new Request(`https://api.example${path}`), env, ctx)
 
 const ctx = { waitUntil() {} }
 

@@ -60,14 +60,16 @@ export const PATH_LOCALES: Record<string, readonly Locale[]> = {
   "/training": ["en", "zh"],
   "/pricing": ["en", "zh"],
   "/seed": ["en", "zh"],
+  "/templates": ["en", "zh"],
 };
 
 /** Every route that exists in more than one language. */
 export const TRANSLATED_PATHS = Object.keys(PATH_LOCALES);
 
-/** The languages a route is published in, or none when it is English-only. */
+/** The languages a route is published in, or none when it is English-only. A
+ *  template's page, `/templates/<category>/<name>`, has its catalog's. */
 export function localesFor(path: string): readonly Locale[] {
-  return PATH_LOCALES[path] ?? [];
+  return PATH_LOCALES[path] ?? (path.startsWith("/templates/") ? PATH_LOCALES["/templates"]! : []);
 }
 
 /** Whether this exact route exists in this language. What decides if a nav link

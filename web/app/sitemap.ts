@@ -8,6 +8,7 @@ import { DOCS_PATH, docPath, getAllDocs } from "@/lib/docs";
 import { getLegalDocs } from "@/lib/legal";
 import { BASE_URL } from "@/lib/site";
 import { PATH_LOCALES, localePath } from "@/lib/i18n";
+import { TEMPLATES_PATH, buildCatalog, templatePath } from "@/lib/templates";
 
 // Required for `output: export` — emit sitemap.xml at build time.
 export const dynamic = "force-static";
@@ -60,7 +61,7 @@ function routeSources(route: string, locale: string): string[] {
   return [`components/${slug}`, page, `i18n/${slug}/${locale}.ts`, `content${route}/${locale}.mdx`];
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
 
   // Every translated route: one entry per language it is published in — which is
@@ -77,6 +78,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
         url: `${BASE_URL}${localePath(locale, route)}`,
         lastModified: gitLastModified(...routeSources(route, locale)),
       });
+    }
+  }
+
+  // Each template the catalog held at build time, in the catalog's languages.
+  // One taken down since drops out at the next build; its page already says so.
+  for (const { category, templates } of (await buildCatalog()) ?? []) {
+    for (const tpl of templates) {
+      for (const locale of PATH_LOCALES[TEMPLATES_PATH] ?? []) {
+        entries.push({ url: `${BASE_URL}${localePath(locale, templatePath(category, tpl.name))}` });
+      }
     }
   }
 

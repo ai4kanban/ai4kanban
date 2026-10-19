@@ -47,6 +47,11 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       <a href="/blog" className={item}>
         {nav.blog}
       </a>
+      {publishedIn("/templates", locale) && (
+        <a href={localeHref(locale, "/templates")} className={item}>
+          {nav.templates}
+        </a>
+      )}
       {publishedIn("/training", locale) && (
         <a href={localeHref(locale, "/training")} className={item}>
           {nav.training}

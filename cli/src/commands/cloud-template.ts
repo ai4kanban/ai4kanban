@@ -267,6 +267,31 @@ export async function templateDelete(name: string): Promise<MoveResult> {
   return { name, deleted: true }
 }
 
+/** `akb cloud template showcase <name> <dir>` — what the site shows for a published template,
+ *  described by `<dir>/showcase.json` and kept apart from the template. Maintainers only. */
+export async function templateShowcase(name: string, dir: string): Promise<MoveResult> {
+  const file = path.join(dir, 'showcase.json')
+  if (!fs.existsSync(file)) invalid(`${dir} 中缺少 showcase.json。`, `showcase.json is missing from ${dir}.`)
+  let meta: Record<string, unknown>
+  try {
+    meta = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>
+  } catch {
+    return invalid('showcase.json 不是有效的 JSON。', 'showcase.json is not valid JSON.')
+  }
+  const sides = [meta.original, meta.recreation].filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
+  const named = [meta.cover, ...sides.flatMap((s) => [s.image, s.video])].filter((p): p is string => typeof p === 'string')
+  const form = new FormData()
+  form.set('meta', JSON.stringify(meta))
+  for (const p of new Set(named)) {
+    const at = path.join(dir, p)
+    if (!fs.existsSync(at)) invalid(`找不到文件 ${at}。`, `${at} does not exist.`)
+    form.append(`media:${p}`, new Blob([fs.readFileSync(at)]), p)
+  }
+  const done = await asJson<{ files: number }>(await ask(`/${encodeURIComponent(name)}/showcase`, { method: 'PUT', body: form }))
+  say(`已更新 ${name} 的展示资料：${done.files} 个文件。\nUpdated ${name}'s showcase: ${done.files} files.`)
+  return { name, files: done.files }
+}
+
 /** Every file under the folder, as relative paths; dotfiles and `node_modules` stay home. */
 function walk(root: string, sub = ''): string[] {
   const out: string[] = []

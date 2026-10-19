@@ -1,0 +1,51 @@
+import type { TemplatesCopy } from "./types";
+
+const en: TemplatesCopy = {
+  meta: {
+    title: "AI4Kanban: Templates",
+    description:
+      "Browse templates by category. View images and compare the original work with its recreation before using a template in AI4Kanban.",
+  },
+  title: "Templates",
+  lead: "Browse by category.",
+  count: (n) => `${n} ${n === 1 ? "template" : "templates"}`,
+  categories: {
+    ui: { name: "UI", title: "UI templates", back: "Back to UI templates" },
+    video: { name: "Video", title: "Video templates", back: "Back to video templates" },
+    prop: { name: "Props", title: "Props", back: "Back to props" },
+    motion: { name: "Motion", title: "Motion", back: "Back to motion" },
+  },
+  back: (title) => `Back to ${title}`,
+  all: "All categories",
+  free: "Free",
+  pro: "Pro",
+  original: "Original",
+  recreation: "Recreation",
+  originalVideo: "Original video",
+  recreationVideo: "Recreation",
+  keyframe: "Keyframe",
+  play: "Play",
+  noPreview: "No preview yet",
+  tags: "Tags",
+  use: "Use this template",
+  useLead: "Download and sign in to AI4Kanban. Ask your agent to use this template.",
+  download: "Download AI4Kanban",
+  proLead: "This template is included with Pro.",
+  pricing: "See pricing",
+  source: "Source",
+  site: "Site",
+  reference: "Reference",
+  captured: "Captured",
+  originalWork: "Original template",
+  loading: "Loading templates…",
+  unavailable: "Templates could not be loaded.",
+  retry: "Retry",
+  empty: "No templates yet.",
+  missing: "This template is not available.",
+  videoFailed: "This video could not be played.",
+  openYouTube: "Open on YouTube",
+  openOriginal: "Open the original",
+  detailTitle: (title) => `${title} | AI4Kanban Templates`,
+};
+
+export default en;

@@ -50,6 +50,7 @@ import { generateMusic } from './music.ts'
 import { speak } from './speech.ts'
 import { judge } from './judge.ts'
 import { routeTemplates } from './templates.ts'
+import { CATALOG_CORS, isCatalogPath, routeCatalog } from './catalog.ts'
 import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
 import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
 import { routeWorkspace } from './workspaces.ts'
@@ -63,11 +64,13 @@ export { MusicCall } from './music.ts'
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // The training and contact routes are the only things here a browser on another origin
-    // calls (#683, #784), so their answer carries the CORS headers — a refusal included, or the
-    // page reads a network error where the service gave it a sentence.
+    // The training, contact and public catalog routes are the only things here a browser on
+    // another origin calls (#683, #784, #1711), so their answer carries the CORS headers — a
+    // refusal included, or the page reads a network error where the service gave it a sentence.
     const { pathname } = new URL(request.url)
-    const cors = isTrainingPath(pathname) || isContactPath(pathname) ? corsHeaders(request) : {}
+    const cors = isTrainingPath(pathname) || isContactPath(pathname)
+      ? corsHeaders(request)
+      : isCatalogPath(pathname) ? CATALOG_CORS : {}
     try {
       requireEnv(env)
       if (request.method === 'OPTIONS' && Object.keys(cors).length > 0) {
@@ -387,6 +390,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     const session = await readSession(request, env)
     return judge(env, session.subject, await bodyOf(request))
   }
+
+  // The site's public view of the template catalog (#1711): no sign-in, `src/catalog.ts`.
+  const catalog = /^\/v1\/catalog(?:\/(.*))?$/.exec(pathname)
+  if (catalog) return routeCatalog(request, env, (catalog[1] ?? '').replace(/\/+$/, ''))
 
   // The shared template catalog (#1708). Any verified sign-in reads it; `src/templates.ts`
   // says which reads need Pro and who publishes.

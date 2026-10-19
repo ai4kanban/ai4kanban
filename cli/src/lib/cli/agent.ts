@@ -36,6 +36,7 @@ import {
   templateGet,
   templatePreview,
   templatePublish,
+  templateShowcase,
   templateSearch,
   templateSource,
   templateTags,
@@ -484,6 +485,14 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, dir: string) {
       const o = this.opts() as { preview: string[]; evidence: string[]; replace?: boolean }
       await boardless(this, cli, () => templatePublish(dir, o))
+    })
+
+  withShared(template.command('showcase'))
+    .argument('<name>', 'the published template')
+    .argument('<dir>', 'a folder holding showcase.json and the files it names')
+    .summary("set what ai4kanban.dev/templates shows for a template (maintainers only)")
+    .action(async function (this: Command, name: string, dir: string) {
+      await boardless(this, cli, () => templateShowcase(name, dir))
     })
 
   withShared(template.command('delete'))

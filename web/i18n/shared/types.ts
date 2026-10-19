@@ -21,7 +21,11 @@ export type SharedCopy = {
     pricing: string;
     /** One line under "Training" in the header's Resources menu. */
     trainingNote: string;
-    /** The header menu holding the blog and training. */
+    /** The template catalog. English and Chinese only, like `training`. */
+    templates: string;
+    /** One line under "Templates" in the header's Resources menu. */
+    templatesNote: string;
+    /** The header menu holding the blog, templates and training. */
     resources: string;
     /** Only read out loud: the label on the phone header's menu button. */
     menu: string;
@@ -47,6 +51,8 @@ export type SharedCopy = {
     training: string;
     /** The pricing page, beside training. */
     pricing: string;
+    /** The template catalog, after pricing. Drawn where it is published. */
+    templates: string;
     /** The contact page, in the footer's Product column. */
     contact: string;
     /** The coding workflow page, under Solutions. */

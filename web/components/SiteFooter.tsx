@@ -63,6 +63,9 @@ export function SiteFooter({
           ...(publishedIn("/pricing", locale)
             ? [{ href: localePath(locale, "/pricing"), label: t.pricing }]
             : []),
+          ...(publishedIn("/templates", locale)
+            ? [{ href: localePath(locale, "/templates"), label: t.templates }]
+            : []),
           ...(publishedIn("/training", locale)
             ? [{ href: localePath(locale, "/training"), label: t.training }]
             : []),

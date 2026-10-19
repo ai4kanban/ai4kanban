@@ -17,12 +17,14 @@ declare interface R2ObjectBody {
   readonly size: number
   readonly httpMetadata?: { contentType?: string }
   readonly body: ReadableStream
+  /** Set when the read asked for a range (#1711). */
+  readonly range?: { offset?: number; length?: number; suffix?: number }
   arrayBuffer(): Promise<ArrayBuffer>
 }
 
 /** The parts of an R2 binding the template catalog uses (#1708). */
 declare interface R2Bucket {
-  get(key: string): Promise<R2ObjectBody | null>
+  get(key: string, options?: { range?: Headers }): Promise<R2ObjectBody | null>
   put(
     key: string,
     value: ArrayBuffer | Uint8Array | string,

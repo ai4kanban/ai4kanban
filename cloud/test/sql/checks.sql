@@ -3157,6 +3157,19 @@ begin
   assert api.delete_template('hero-b', BUDGET) ->> 'revision' = 'r2', 'a delete did not answer its revision';
   assert api.delete_template('hero-b', BUDGET) is null, 'deleting a missing template answered a revision';
 
+  -- #1711: the public catalog lists every template, and a showcase survives a replacement.
+  assert api.set_template_showcase('nothing', '{"id": "s0"}', BUDGET) is null, 'a showcase landed on no template';
+  v_json := api.set_template_showcase('hero-a', '{"id": "s1", "files": []}', BUDGET);
+  assert (v_json -> 'replaced')::jsonb = '{}'::jsonb, 'a first showcase did not answer the empty one';
+  perform api.publish_template('neverchanje', 'hero-a', 'ui', array['hero'], 'A3', 'Dark hero.', 'Tilted screen.',
+    SRC, 'free', FILES, '[]', '[]', 'r6', true, BUDGET);
+  v_json := api.template_catalog();
+  assert json_array_length(v_json) = 2, 'the catalog missed a template';
+  assert (select count(*) from json_array_elements(v_json) e where e -> 'files' is not null or e -> 'source' is not null
+    or e -> 'published_by' is not null) = 0, 'the catalog answered private columns';
+  assert (select e -> 'showcase' ->> 'id' from json_array_elements(v_json) e where e ->> 'name' = 'hero-a') = 's1',
+    'a replacement lost the showcase';
+
   raise notice 'sql checks: #1708 template catalog checks passed';
 end
 $templates$;

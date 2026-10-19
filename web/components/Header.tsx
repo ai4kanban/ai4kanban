@@ -9,6 +9,7 @@ import {
   FiCompass,
   FiDownload,
   FiGlobe,
+  FiGrid,
 } from "react-icons/fi";
 import { Button } from "./ui/Button";
 import { Logo } from "./ui/Logo";
@@ -84,9 +85,10 @@ export function Header({
 }) {
   const nav = c.shared.nav;
   const scrolled = useScrolled();
-  // Training and pricing are English and Chinese only; elsewhere the links are
-  // not drawn at all.
+  // Training, pricing and templates are English and Chinese only; elsewhere the
+  // links are not drawn at all.
   const training = publishedIn("/training", locale);
+  const templates = publishedIn("/templates", locale);
   const pricing = publishedIn("/pricing", locale);
   const path = stripLocale(usePathname() ?? "");
   const suggested = useSuggestedLocale(locale, path);
@@ -153,6 +155,15 @@ export function Header({
               Icon={FiBookOpen}
               tint="bg-accent/10 text-accent-deep"
             />
+            {templates && (
+              <ResourceLink
+                href={localeHref(locale, "/templates")}
+                title={nav.templates}
+                note={nav.templatesNote}
+                Icon={FiGrid}
+                tint="bg-nb-peach-soft text-nb-peach-ink"
+              />
+            )}
             {training && (
               <ResourceLink
                 href={localeHref(locale, "/training")}

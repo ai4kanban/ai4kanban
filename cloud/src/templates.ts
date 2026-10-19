@@ -8,6 +8,7 @@
  */
 
 import { readBilling } from './billing.ts'
+import { dropShowcase, registerShowcase } from './catalog.ts'
 import { TEMPLATE_PUBLISHERS } from './config.ts'
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
@@ -91,6 +92,10 @@ export async function routeTemplates(request: Request, env: Env, rest: string): 
     return json({ tags: await call(env, 'template_tags', { p_category: category(url.searchParams.get('category')) }) })
   }
   if (!kind && request.method === 'DELETE') return remove(env, bucket, session, name)
+  if (kind === 'showcase' && !path && request.method === 'PUT') {
+    requirePublisher(session)
+    return registerShowcase(env, bucket, name, request)
+  }
   only(request, 'GET')
   const row = await call<TemplateRow | null>(env, 'template', { p_name: name })
   if (!row) throw notFound('No template has this name.')
@@ -214,6 +219,7 @@ async function remove(env: Env, bucket: R2Bucket, session: Session, name: string
   const done = await mutate<{ revision: string } | null>(env, 'delete_template', { p_name: name })
   if (!done) throw notFound('No template has this name.')
   await dropRevision(bucket, name, done.revision)
+  await dropShowcase(bucket, name)
   return json({ name, deleted: true })
 }
 

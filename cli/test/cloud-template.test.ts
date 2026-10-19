@@ -267,6 +267,26 @@ describe('akb cloud template', () => {
     assert.match(err, /本地文件未改动/)
     assert.match(err, /--replace/)
   })
+
+  it('sends a showcase with exactly the files showcase.json names', async () => {
+    signIn()
+    const dir = path.join(home, 'show')
+    fs.mkdirSync(dir)
+    fs.writeFileSync(path.join(dir, 'showcase.json'), JSON.stringify({
+      cover: 'cover.jpg',
+      original: { image: 'original.jpg', youtube: 'https://youtu.be/UAmKyyZ-b9E' },
+      recreation: { image: 'cover.jpg', video: 'clone.mp4' },
+    }))
+    for (const f of ['cover.jpg', 'original.jpg', 'clone.mp4', 'notes.txt']) fs.writeFileSync(path.join(dir, f), f)
+    serve({ '/ui-walkthrough-launch/showcase': json({ name: 'ui-walkthrough-launch', files: 3 }) })
+    const { code, out } = await akb(['cloud', 'template', 'showcase', 'ui-walkthrough-launch', dir])
+    assert.equal(code, 0, out)
+    assert.equal(sent[0]?.method, 'PUT')
+    const fields: string[] = []
+    ;(sent[0]?.body as FormData).forEach((_, k) => void fields.push(k))
+    assert.deepEqual(fields, ['meta', 'media:cover.jpg', 'media:original.jpg', 'media:clone.mp4'])
+    assert.match(out, /Updated ui-walkthrough-launch's showcase: 3 files\./)
+  })
 })
 
 describe('template.md frontmatter', () => {

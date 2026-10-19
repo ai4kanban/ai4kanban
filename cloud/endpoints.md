@@ -207,6 +207,23 @@ The shared template catalog (#1708). Any verified sign-in, admitted or not. Meta
   evidence file; `captured` carries its time zone. A taken name is `template_exists` unless
   `replace` is true. Handles in `TEMPLATE_PUBLISHERS` (`src/config.ts`) only, else `owner_only`.
 - `DELETE /v1/templates/<name>` — take it out of the catalog, files included. Publishers only.
+- `PUT /v1/templates/<name>/showcase` — register what the site shows, replacing any earlier
+  one, as multipart: `meta` (JSON: `cover?`, `original?`, `recreation?`, each side
+  `{ image, video? | youtube?, keyframe?, duration? }`) and one `media:<file>` part per file it
+  names. At most 12 files and 80 MB. Kept through a replacement. Publishers only.
+
+### Public catalog
+
+No sign-in, `access-control-allow-origin: *` (#1711). Answers published metadata, the public
+part of `source` and the registered showcase — never files, evidence or who published.
+
+- `GET /v1/catalog` — `{ categories: [{ category, templates: [{ name, category, title, summary,
+  tags, access, cover, duration }] }] }`, every template, newest first.
+- `GET /v1/catalog/<name>` — `{ template }`: the above plus `description`, `publishedAt`,
+  `source` (`{ original: true }` or `{ site, references, captured }`), `original` and
+  `recreation` (`{ image, video, youtube, keyframe, duration }`, URLs or null).
+- `GET /v1/catalog/<name>/media/<version>/<file>` — one cover or showcase file; ranges work.
+  Cached for good: a new showcase or revision is a new URL.
 
 ## Billing
 
