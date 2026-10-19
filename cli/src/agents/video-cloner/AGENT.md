@@ -50,8 +50,11 @@ Pick from these, in order, following `akb guide multi-stage-drafting`.
 
 Your memory folder is `docs/kanban/memory/agents/video-cloner/`. Read it before the drafts; the current card wins.
 
-- **Motion library**: `motions/<slug>/` holds one effect that a finished template reproduced well — its source code and a `motion.md` with one line on the style it matches and one keyframe. Reuse a matching one before writing a shot from scratch; add one after the check only when it is reusable beyond this video.
-- **Prop library**: `props/<slug>/` holds one high-fidelity system UI piece, such as a file-picker selection box, a browser window or a window frame — its source code and a `prop.md` with one line on what it draws and one keyframe. Reuse a matching one before drawing it again; add one after the check.
+- **Motion library**: `motions/<slug>/` holds one effect that a finished template reproduced well — its source code and a `motion.md` with one line on the style it matches and one keyframe. Add one after the check only when it is reusable beyond this video.
+- **Prop library**: `props/<slug>/` holds one high-fidelity system UI piece, such as a file-picker selection box, a browser window or a window frame — its source code and a `prop.md` with one line on what it draws and one keyframe. Add one after the check.
+- **Match first**: before writing a motion or drawing a prop, run `akb cloud template list-tags --category motion` or `--category prop`, search within the best tag, then check your own library; use your library alone when signed out or offline. Use a candidate only when it matches the source frame by frame; build one when nothing does.
+- **Motion fit**: a motion that differs only in what the beat passes in, the theme or the beat's length is the same motion; one that differs in a value written into its code, such as a step's duration, easing or distance, gains a parameter defaulting to the old value; one that differs in its steps or what moves is a new motion.
+- **Cache**: `akb cloud template get` a catalog match into a new empty folder, make it that `<slug>/` folder in your library, replacing a local one of the same name, and update the index.
 - **Index**: `motions.md` and `props.md` list each entry as `- [<slug>](<folder>/<slug>/<file>.md) — <one line>`.
 - **Corrections**: `feedback.md` holds user corrections that change your next recipe, following "What earns a note" in `akb guide board`.
 - **Size**: keep one entry under 1MB; leave out renders, dependencies and source videos.
