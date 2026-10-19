@@ -207,6 +207,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--phases <names>', 'the card\'s stages, comma-separated, in the card\'s language; "" clears them')
     .option('--phase <n>', 'the current stage, 1-based')
     .option('--slug <slug>', 'rename the file')
+    .option('--workflow <id>', 'the workflow it runs through; "" puts it back on the default. The card goes back to todo and is re-planned')
     .addOption(new Option('--cadence <cadence>').hideHelp())
     .action(async function (this: Command, id: number) {
       refuseRecurring(this)

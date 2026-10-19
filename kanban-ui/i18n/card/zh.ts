@@ -192,6 +192,12 @@ const zh: CardCopy = {
     sourcePlan: "计划",
     sourceLink: "链接",
   },
+  workflow: {
+    replan: "更换后将重新规划。",
+    manage: "管理工作流",
+    locked: "正在运行，停下后才能更换工作流",
+    open: "更换工作流",
+  },
   stage: {
     waiting: (stage) => `${stage}待你批准`,
     approve: (next) => `批准，开始${next}`,

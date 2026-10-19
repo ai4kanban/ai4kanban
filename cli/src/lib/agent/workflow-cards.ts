@@ -12,7 +12,11 @@ import { parseFrontmatter } from '../frontmatter'
 import { idPrefix } from '../board/assemble'
 import { TODO } from '../paths'
 import { deleteAgent } from '../agents/roster'
-import { deleteWorkflow, DEFAULT_WORKFLOW, workflowOwnAgents } from './workflows'
+import { die } from '../paths'
+import type { Meta } from '../types'
+import { heldByDelivery } from './deliveries'
+import { readRuns, runIsLive } from './store'
+import { deleteWorkflow, DEFAULT_WORKFLOW, knownWorkflow, workflowOwnAgents } from './workflows'
 
 /** The ids of the open cards that run on one workflow, lowest first. A card carrying no
  *  `workflow:` key counts as the default one — which is what every flow reading it does. */
@@ -43,11 +47,31 @@ export function cardsOnWorkflow(id: string): number[] {
   return [...new Set(ids)].sort((a, b) => a - b)
 }
 
+/** Move card `id` to workflow `asked` (`""` is the default) by editing `meta` in place; the
+ *  caller writes it. Refused while a run or a delivery is on the card (#1849). A switch drops
+ *  the old workflow's plan: back to `todo`, stages cleared, a refine scheduled. Shared by
+ *  `akb raw update --workflow` and the card page. Answers whether anything changed. */
+export function switchWorkflow(id: number, meta: Meta, asked: string): boolean {
+  const wanted = asked.trim()
+  const next = !wanted || wanted === DEFAULT_WORKFLOW ? '' : knownWorkflow(wanted)
+  if (next === meta.workflow) return false
+  if (readRuns().some((r) => r.cardId === id && runIsLive(r))) {
+    die(`#${id} has a run in progress — stop it before switching its workflow.`, { kind: 'card-held', id })
+  }
+  const held = heldByDelivery(id)
+  if (held) die(held, { kind: 'card-held', id })
+  meta.workflow = next
+  meta.status = 'todo'
+  meta.phases = []
+  meta.phase = 0
+  meta.schedule = { action: 'refine', notes: '' }
+  return true
+}
+
 /** Drop one of the board's own, with the agents it owns (#1248), refused while an open card
  *  still runs on it — a card left naming a workflow nobody has is a card that cannot start
- *  (agent/start.ts). A card's workflow is fixed once it is created (#744), so the way through
- *  is to finish or drop those cards. The one place that rule lives, so the pane and
- *  `akb workflow delete` turn down the same delete.
+ *  (agent/start.ts). The one place that rule lives, so the pane and `akb workflow delete`
+ *  turn down the same delete.
  *
  *  An agent that fails to go leaves the workflow deleted and is named in `failed`. */
 export function removeWorkflow(id: string): {
@@ -64,7 +88,7 @@ export function removeWorkflow(id: string): {
       cards: held,
       error:
         `${held.length} open card${held.length === 1 ? '' : 's'} (${held.map((n) => `#${n}`).join(', ')}) ` +
-        `still ${held.length === 1 ? 'runs' : 'run'} on this workflow — finish or drop ${held.length === 1 ? 'it' : 'them'} first.`,
+        `still ${held.length === 1 ? 'runs' : 'run'} on this workflow — move ${held.length === 1 ? 'it' : 'them'} to another one first.`,
     }
   }
   // Read before the workflow goes: ownership goes with it.

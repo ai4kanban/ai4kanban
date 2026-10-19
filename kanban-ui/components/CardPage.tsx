@@ -10,6 +10,7 @@ import {
   FiArrowRightCircle,
   FiCheck,
   FiCheckCircle,
+  FiChevronDown,
   FiChevronRight,
   FiCornerLeftUp,
   FiEdit2,
@@ -21,6 +22,7 @@ import {
   FiMoreHorizontal,
   FiPlay,
   FiRotateCw,
+  FiSettings,
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi";
@@ -996,52 +998,134 @@ export function LandedBlock({
 
 // --- the workflow this card runs through (#715) -------------------------------
 //
-// Read-only: a card's workflow is fixed at creation (#744). Drawn borderless — the strip
-// beside it already spends mint on the module and peach on the levels, and a third tint
-// there stops being read — so this one is ink and an icon. Chip type exactly (#757): a
-// bigger, heavier value read as the strip's heading instead of its first label, and the
-// taller line box dropped it off the baseline the others share.
-function WorkflowItem({ card }: { card: Card }) {
+// Drawn borderless — the strip beside it already spends mint on the module and peach on the
+// levels, and a third tint there stops being read — so this one is ink and an icon. Chip
+// type exactly (#757). Opens a list to switch workflow (#1849); locked, with the reason
+// where it is pressed, while a run or a delivery is on the card.
+function WorkflowItem({
+  card,
+  locked,
+  disabled,
+  onPick,
+}: {
+  card: Card;
+  locked: boolean;
+  disabled: boolean;
+  onPick: (workflow: string) => void;
+}) {
   const c = useCopy().card;
   const w = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
   // A board with no workflows — older rules — answers none, and the item is not drawn at all.
   const flows = useWorkflows()?.workflows;
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
 
   if (!flows?.length) return null;
   const deleted = workflowDeleted(card.workflow || "", flows.map((f) => f.id));
   const mine =
     flows.find((f) => f.id === (card.workflow || "")) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+  const current = deleted ? null : mine.id;
   const blocked = blockedStages(mine).map((s) => w.stages[s]);
   const unavailable = deleted || mine.problems.length > 0;
   const tip = deleted ? c.meta.deletedHint : c.meta.noLead(blocked);
+  const shut = locked || disabled;
+
+  const pick = (id: string) => {
+    setOpen(false);
+    if (id !== current) onPick(id);
+  };
 
   return (
-    <MetaItem label={c.meta.workflow}>
-      <span
-        className="inline-flex items-center gap-1 whitespace-nowrap px-[2px] py-[2.5px] text-[10px] font-[700] uppercase leading-none tracking-[0.04em] max-md:h-9"
-        style={{ color: "var(--color-nb-ink)" }}
-      >
-        <FiGitCommit aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-        {deleted ? c.meta.deletedWorkflow : nameOf(mine)}
-      </span>
-      {unavailable &&
-        (deleted ? (
-          <span tabIndex={0} role="note" data-tip={tip} aria-label={tip} className="nb-tip nb-tip-start inline-flex rounded-[5px]">
-            <Pill tone="peach">{w.notReady}</Pill>
-          </span>
-        ) : (
+    <div ref={box} className="relative flex flex-col gap-1">
+      <span className={CAP}>{c.meta.workflow}</span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          disabled={disabled}
+          aria-disabled={locked || undefined}
+          aria-expanded={shut ? undefined : open}
+          aria-label={shut ? undefined : c.workflow.open}
+          data-tip={locked ? c.workflow.locked : undefined}
+          onClick={() => !shut && setOpen((was) => !was)}
+          className={`nb-tip nb-tip-below nb-tip-start inline-flex items-center gap-1 whitespace-nowrap rounded-[6px] px-[2px] py-[2.5px] text-[10px] font-[700] uppercase leading-none tracking-[0.04em] nb-focus max-md:h-9 ${
+            shut ? "" : "cursor-pointer"
+          }`}
+          style={{ color: locked ? "var(--color-nb-ink-soft)" : "var(--color-nb-ink)" }}
+        >
+          <FiGitCommit aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+          {deleted ? c.meta.deletedWorkflow : nameOf(mine)}
+          {locked ? (
+            <FiLock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto", opacity: 0.8 }} />
+          ) : (
+            !disabled && <FiChevronDown aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto", opacity: 0.7 }} />
+          )}
+        </button>
+        {unavailable &&
+          (deleted ? (
+            <span tabIndex={0} role="note" data-tip={tip} aria-label={tip} className="nb-tip nb-tip-start inline-flex rounded-[5px]">
+              <Pill tone="peach">{w.notReady}</Pill>
+            </span>
+          ) : (
+            <button
+              type="button"
+              data-tip={tip}
+              aria-label={tip}
+              onClick={() => configDialog.open("workflows")}
+              className="nb-tip nb-tip-start inline-flex cursor-pointer rounded-[5px] nb-focus"
+            >
+              <Pill tone="peach">{w.notReady}</Pill>
+            </button>
+          ))}
+      </div>
+
+      {open && (
+        <div
+          className="absolute left-0 top-[calc(100%+6px)] z-20 w-[200px] overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1"
+          style={{ boxShadow: "3px 3px 0 0 var(--color-nb-ink)" }}
+        >
+          <p className="px-2.5 pb-1.5 pt-1.5 text-[10.5px] leading-[1.45] text-nb-ink-soft">{c.workflow.replan}</p>
+          {flows.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => pick(f.id)}
+              className={`flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-[6px] text-left max-md:min-h-11 ${
+                f.id === current ? "bg-nb-accent-soft" : "hover:bg-nb-ink/5"
+              }`}
+            >
+              <span className={`min-w-0 flex-1 truncate text-[12px] ${f.id === current ? "font-[700]" : "font-[600]"}`}>
+                {nameOf(f)}
+              </span>
+              {f.id === current && (
+                <FiCheck aria-hidden style={{ width: 12, height: 12, flex: "0 0 auto", color: "var(--color-nb-accent-deep)" }} />
+              )}
+            </button>
+          ))}
+          <div className="my-1 border-t border-nb-ink/15" />
           <button
             type="button"
-            data-tip={tip}
-            aria-label={tip}
-            onClick={() => configDialog.open("workflows")}
-            className="nb-tip nb-tip-start inline-flex cursor-pointer rounded-[5px] nb-focus"
+            onClick={() => {
+              setOpen(false);
+              configDialog.open("workflows");
+            }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-[6px] text-left text-[12px] font-[700] text-nb-accent-deep hover:bg-nb-ink/5 max-md:min-h-11"
           >
-            <Pill tone="peach">{w.notReady}</Pill>
+            <FiSettings aria-hidden style={{ width: 12, height: 12, flex: "0 0 auto" }} />
+            {c.workflow.manage}
           </button>
-        ))}
-    </MetaItem>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1950,7 +2034,12 @@ export function CardPage({
               {/* The workflow this card runs through (#715). First in the strip: it is what
                   decides who plans, who builds and who reviews this card, so it is read
                   before the module. */}
-              <WorkflowItem card={card} />
+              <WorkflowItem
+                card={card}
+                locked={busy || held}
+                disabled={!fieldWrites}
+                onPick={(workflow) => void patchCard(card.id, { workflow })}
+              />
 
               {card.modules.length > 0 && (
                 <MetaItem label={c.meta.modules}>

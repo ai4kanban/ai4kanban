@@ -125,7 +125,7 @@ const zh: ConfigurationCopy = {
     nameLabel: "工作流名称",
     namePlaceholder: "工作流名称",
     confirmDelete: (name) => `删除「${name}」`,
-    inUse: (n) => `还有 ${n} 张未归档卡片在使用该工作流，请先完成或删除这些卡片。`,
+    inUse: (n) => `还有 ${n} 张未归档卡片在使用该工作流，请先把这些卡片换到别的工作流。`,
     ownAgents: (n) => `该工作流的 ${n} 个 Agent 会一并删除，包括你为它们写的要求和它们记住的内容。`,
     agentsLeft: (names) => `工作流已删除，但这些 Agent 未能删除：${names.join("、")}`,
     retired: "此工作流用到的部分 Agent 已不再提供，已从中移除。",

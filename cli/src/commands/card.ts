@@ -18,6 +18,7 @@ import { locate, enclosingGroupRoot } from '../lib/cards'
 import { hasSourceSection, sourceRefFrom } from '../lib/source'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { cardCreation, readStore } from '../lib/agent/store'
+import { switchWorkflow } from '../lib/agent/workflow-cards'
 import { insideRun } from '../lib/agent/env'
 import { activeDelivery } from '../lib/agent/deliveries'
 import { recordAnswer, takeUnchanged } from '../lib/agent/answers'
@@ -190,6 +191,8 @@ export interface UpdateOptions {
   addSource?: string[]
   phases?: string
   phase?: string
+  /** `--workflow`: move the card to another workflow; `""` is the default (#1849). */
+  workflow?: string
 }
 
 // What `--source` names, as `source:` stores it. A plan's path becomes `plan:<id>`, which
@@ -304,6 +307,9 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     if (!Number.isInteger(n) || n < 1 || n > meta.phases.length) die(`--phase must be 1 to ${meta.phases.length} (got "${flags.phase}")`)
     meta.phase = n
     changes.push('phase')
+  }
+  if (flags.workflow !== undefined && switchWorkflow(id, meta, flags.workflow)) {
+    changes.push(`workflow→${meta.workflow || DEFAULT_WORKFLOW}`, 'status→todo', 'schedule→refine')
   }
   // A `ready` card has no open questions by definition (see STATUSES). Open questions
   // mean the plan is not settled, so a `--status ready` with them pending lands as

@@ -139,7 +139,7 @@ const en: ConfigurationCopy = {
     namePlaceholder: "Workflow name",
     confirmDelete: (name) => `Delete "${name}"`,
     inUse: (n) =>
-      `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Finish or drop ${n === 1 ? "it" : "them"} first.`,
+      `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Move ${n === 1 ? "it" : "them"} to another workflow first.`,
     ownAgents: (n) =>
       n === 1
         ? "Its agent is deleted with it, including your instructions for it and what it remembered."

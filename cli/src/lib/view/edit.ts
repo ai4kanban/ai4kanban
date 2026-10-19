@@ -15,6 +15,7 @@ import { locate } from '../cards'
 import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { repointReadmeLink } from '../readme'
 import { cardCreation } from '../agent/store'
+import { switchWorkflow } from '../agent/workflow-cards'
 import { normalizeSchedule, SCHEDULED_ACTIONS } from '../schedule'
 import { LEVELS } from '../validate'
 import { findCard } from './read'
@@ -50,6 +51,7 @@ export function patchCard(id: number, patch: CardPatch): void {
     if (!LEVELS.includes(value)) die(`${field} must be one of ${LEVELS.join(' | ')}`)
     meta[field] = value
   }
+  if (patch.workflow !== undefined) switchWorkflow(id, meta, patch.workflow)
   const newBody = patch.body !== undefined ? patch.body : body
   const normalized = newBody.replace(/^\n+/, '').replace(/\s+$/, '')
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + normalized + '\n')

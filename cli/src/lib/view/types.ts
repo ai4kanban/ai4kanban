@@ -529,6 +529,9 @@ export interface CardPatch {
   body?: string
   priority?: string
   roi?: string
+  /** Move the card to another workflow, or `""` for the default (#1849). Refused while a run
+   *  or a delivery is on it; the card goes back to `todo` and is re-planned. */
+  workflow?: string
 }
 
 /** What turning an older board's recurring cards into scheduled agents did (#1414). */

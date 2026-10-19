@@ -201,6 +201,12 @@ const en: CardCopy = {
     sourcePlan: "Plan",
     sourceLink: "Link",
   },
+  workflow: {
+    replan: "Switching re-plans the card.",
+    manage: "Manage workflows",
+    locked: "Running — stop it to switch workflow",
+    open: "Change workflow",
+  },
   stage: {
     waiting: (stage) => `${stage} ready for your approval`,
     approve: (next) => `Approve, start ${next}`,

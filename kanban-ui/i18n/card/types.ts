@@ -177,8 +177,7 @@ export type CardCopy = {
   };
   meta: {
     /** The workflow this card runs through (#715) — the first thing in the strip: it is what
-     *  decides who plans, who builds and who reviews this card. Read-only: a card's
-     *  workflow is fixed when it is created (#744). */
+     *  decides who plans, who builds and who reviews this card. */
     workflow: string;
     /** Why the card's workflow cannot start: the stages that have no lead agent it can use. */
     noLead: (stages: string[]) => string;
@@ -201,6 +200,16 @@ export type CardCopy = {
     sourceLink: string;
   };
   /** The block that says where a staged card is and what the user does next (#1808). */
+  /** The list the workflow item opens (#1849). */
+  workflow: {
+    /** The cost, read before the pick. */
+    replan: string;
+    manage: string;
+    /** Why the item will not open while a run or a delivery is on the card. */
+    locked: string;
+    /** Only read out loud: the item that opens the list. */
+    open: string;
+  };
   stage: {
     waiting: (stage: string) => string;
     approve: (next: string) => string;
