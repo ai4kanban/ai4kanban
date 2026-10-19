@@ -35,7 +35,8 @@ Use the first available source for each file:
 
 ## Templates
 
-Consider a template only when the user wants a markedly better look, or the video is created or redesigned as a whole from scratch; never for a partial revision. Read `template-selection.md` from your files first, and apply a template only after the user picks it.
+- **Named video template**: when the card names a catalog video template, `akb cloud template get` it and build the whole video on it, replacing its content with the approved script's.
+- **Props and motions**: otherwise, use a prop or motion where the card names one; for any other shot, build it yourself or, when a catalog piece may save work, look for one as `template-selection.md` says.
 
 ## Build
 

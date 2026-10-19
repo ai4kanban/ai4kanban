@@ -1,7 +1,7 @@
 // `akb cloud template` — the shared template catalog (#1708).
 //
-// Agents list a category's tags, search within one for bounded metadata, fetch up to three
-// previews, and only after the user picks one, the whole template. Maintainers publish. Every
+// Agents list a category's tags, search within one for bounded metadata, preview, and fetch
+// the whole template. Maintainers publish. Every
 // message is bilingual because an agent relays it as it is; a reader's failure always offers
 // carrying on without a template.
 

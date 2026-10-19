@@ -31,10 +31,23 @@ const zh: TemplatesCopy = {
   noPreview: "暂无预览",
   tags: "标签",
   use: "使用这个模板",
-  useLead: "下载并登录 AI4Kanban，让 agent 使用这个模板。",
-  download: "下载 AI4Kanban",
-  proLead: "这个模板包含在 Pro 方案中。",
-  pricing: "查看定价",
+  useLead: "粘贴到 AI4Kanban，再补上你的主题。",
+  prompt: (category, name) => {
+    switch (category) {
+      case "video":
+        return `用 AI4Kanban 的视频模板「${name}」做：<写下你的产品和视频要展示的内容>`;
+      case "ui":
+        return `用 AI4Kanban 的界面模板「${name}」设计：<写下要做的页面或界面>`;
+      case "prop":
+        return `用 AI4Kanban 做一个视频，用上道具「${name}」：<写下视频的主题和内容>`;
+      case "motion":
+        return `用 AI4Kanban 做一个视频，用上动效「${name}」：<写下视频的主题和内容>`;
+      default:
+        return `用 AI4Kanban 的 ${category} 模板「${name}」做：<写下你想做的内容>`;
+    }
+  },
+  copyPrompt: "复制提示词",
+  copied: "已复制",
   source: "来源",
   site: "原站",
   reference: "参考",

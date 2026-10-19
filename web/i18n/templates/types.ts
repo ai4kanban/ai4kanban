@@ -34,9 +34,10 @@ export type TemplatesCopy = {
   tags: string;
   use: string;
   useLead: string;
-  download: string;
-  proLead: string;
-  pricing: string;
+  /** What to paste into AI4Kanban to use this template, ending in a `<…>` for the topic. */
+  prompt: (category: string, name: string) => string;
+  copyPrompt: string;
+  copied: string;
   source: string;
   site: string;
   reference: string;

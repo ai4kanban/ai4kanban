@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiExternalLink, FiInfo, FiPlay, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiArrowLeft, FiCheck, FiCopy, FiExternalLink, FiInfo, FiPlay, FiRefreshCw } from "react-icons/fi";
 import { Button } from "@/components/ui/Button";
 import { getTemplatesCopy, type TemplatesLocale } from "@/i18n/templates";
 import type { TemplatesCopy } from "@/i18n/templates/types";
-import { localeHref, localePath } from "@/lib/i18n";
+import { localePath } from "@/lib/i18n";
 import {
   SHELL,
   TEMPLATES_PATH,
@@ -160,16 +160,7 @@ export function Detail({
           <div className="border-b border-border/15 pb-6">
             <h2 className="text-base font-bold text-ink">{t.use}</h2>
             <p className="mt-1 text-sm text-muted">{t.useLead}</p>
-            <Button href={localeHref(locale, "/download")} variant="primary" className="mt-4 w-full">
-              {t.download}
-              <FiArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            {tpl.access === "pro" && (
-              <>
-                <p className="mt-4 text-sm text-muted">{t.proLead}</p>
-                <Arrow href={localeHref(locale, "/pricing")}>{t.pricing}</Arrow>
-              </>
-            )}
+            <CopyPrompt prompt={t.prompt(tpl.category, tpl.name)} t={t} />
           </div>
           <div className="space-y-3 text-sm">
             <h2 className="text-sm font-semibold text-ink">{t.source}</h2>
@@ -349,12 +340,30 @@ function Player({
   );
 }
 
-function Arrow({ href, children }: { href: string; children: ReactNode }) {
+function CopyPrompt({ prompt, t }: { prompt: string; t: TemplatesCopy }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  }
+
+  const Icon = copied ? FiCheck : FiCopy;
   return (
-    <a href={href} className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-accent-deep no-underline hover:underline">
-      {children}
-      <FiArrowRight className="h-4 w-4" aria-hidden="true" />
-    </a>
+    <>
+      <pre className="mt-4 whitespace-pre-wrap break-words rounded-lg border border-border/15 bg-elev p-3 font-mono text-[0.8rem] leading-relaxed text-ink">
+        {prompt}
+      </pre>
+      <Button variant="primary" className="mt-4 w-full" onClick={copy}>
+        <Icon className="h-4 w-4" aria-hidden="true" />
+        {copied ? t.copied : t.copyPrompt}
+      </Button>
+    </>
   );
 }
 

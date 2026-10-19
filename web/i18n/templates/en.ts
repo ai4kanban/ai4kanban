@@ -32,10 +32,22 @@ const en: TemplatesCopy = {
   noPreview: "No preview yet",
   tags: "Tags",
   use: "Use this template",
-  useLead: "Download and sign in to AI4Kanban. Ask your agent to use this template.",
-  download: "Download AI4Kanban",
-  proLead: "This template is included with Pro.",
-  pricing: "See pricing",
+  useLead: "Paste it into AI4Kanban and add your topic.",
+  prompt: (category, name) => {
+    switch (category) {
+      case "video":
+        return `Use the AI4Kanban video template "${name}" to make: <describe your product and what the video should show>`;
+      case "ui":
+        return `Use the AI4Kanban UI template "${name}" to design: <describe the page or screen>`;
+      case "prop":
+      case "motion":
+        return `Make a video with AI4Kanban using the ${category} "${name}": <describe your video>`;
+      default:
+        return `Use the AI4Kanban ${category} template "${name}" to make: <describe what you want>`;
+    }
+  },
+  copyPrompt: "Copy prompt",
+  copied: "Copied",
   source: "Source",
   site: "Site",
   reference: "Reference",
