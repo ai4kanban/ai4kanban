@@ -24,9 +24,8 @@
    ![开发和营销一节](04-dev-and-marketing.png) · [codex.log](codex.log)
 
 5. 读「Can I use Codex alongside Claude Code?」。
-   每个 agent 可以选自己的运行时，比如 Codex 写文案、Claude Code 实现，在「Configuration → Workflows」里选；节末一张截图，显示某个 agent 选用 Codex 及其模型和推理强度，图注「Choose a runtime and model for each agent's work.」。
-   ![运行时一节：截图没显示出来](04b-runtimes.png) · [codex.log](codex.log)
-   实测这张图是坏的：`/shots/configuration-agents-codex-v1.webp` 在 CDN 上返回 404，图框里只剩替代文字。
+   每个 agent 可以选自己的运行时，比如 Codex 写文案、Claude Code 实现，在「Configuration → Workflows」里选；节末一张截图正常显示：配置页 Coding 工作流里的「Copy & docs」agent，Runtime 一栏是「Codex · gpt-6.1-sol」，被一道橙色椭圆圈出；替代文字「An AI4Kanban agent set to run on Codex with its own model」，图注「Choose a runtime and model for each agent's work.」。图片地址 `/shots/configuration-agents-codex-v1.webp` 返回 200。
+   ![运行时一节的截图](04b-runtimes.png) · [codex.log](codex.log)
 
 6. 读「How does parallel Codex work reach my project?」。
    开着「Automatic Git commits」时，独立任务各在自己的分支和 worktree 里并行，完成的交付排队、逐个以 squash 提交合入，AI4Kanban 从不 push。配图是配置页的 Delivery 和 Runs 两组：「Automatic Git commits」开关，和「End a silent run after」10 minutes；图注「Enable automatic commits for isolated deliveries. Set how long a silent run can wait before it stops.」。
@@ -46,9 +45,8 @@
 
 ## Feedback
 
-- **定位清楚**：不再和 Codex 比功能，开头就说「把 Codex 的活放上看板」，任务跨对话、先审草稿、工作流和 skills 互补，Codex 用户读完知道多了什么、原来的设置不用动。
+- **运行时那张图回来了**：「Can I use Codex alongside Claude Code?」终于有图，一道橙圈直接指到 Runtime 一栏的「Codex · gpt-6.1-sol」，Codex 用户一眼看到「可以按 agent 换成 Codex」在哪设；图里只显示模型，没显示推理强度，和替代文字对得上。
+- **定位清楚**：开头就说「把 Codex 的活放上看板」，任务跨对话、先审草稿、工作流和 skills 互补，Codex 用户读完知道多了什么、原来的设置不用动。
 - **FAQ 正中要害**：桌面端能不能用、skills 还在不在、会不会自己 push，正是 Codex 用户会先问的；11 问偏多，后几问（成本上限、当前检出）更像文档。
-- **新设置图对上了产品**：只拍 Delivery 和 Runs 两组，和现在的配置页一致，不再画已下线的评审设置。
-- **一张图是坏的**：「Can I use Codex alongside Claude Code?」节末的运行时截图 404，读者看到一个带替代文字的空框，正好在最该给 Codex 用户看的地方。
-- **首图是旧界面**：顶部的看板截图还带「No release」下拉和「RECURRING」列，这两样产品里都已去掉。
+- **首图是旧界面，还露了本机路径**：顶部的看板截图仍带「No release」下拉和「RECURRING」列（产品里都已去掉），左上角还显示维护者电脑上的项目路径；本次截图特意停在这张图之上。
 - **没有 `.md` 镜像**：`llms.txt` 指向 HTML，AI 要自己剥掉导航和样式。

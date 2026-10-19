@@ -39,5 +39,24 @@ const m = `[...document.querySelectorAll('main h2')].find(h=>h.innerText.include
 await p.ev(`(${m}).scrollIntoView({block:'start'})`); await p.sleep(1500)
 const zt = await p.ev(`(()=>{const r=(${m}).closest('section').getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`)
 await p.shot(D + '04-multica-zh-details.png', { x: 0, y: zt.y, width: 1280, height: Math.min(zt.h, 1100) })
+// a row of "Compare the details" by its first cell
+const row = (t) => `[...document.querySelectorAll('main section div.border-b')].find(r=>r.firstElementChild?.innerText.trim()===${JSON.stringify(t)})`
+const rowText = (t) => p.ev(`(${row(t)}).innerText.replace(/\\n+/g,' | ')`)
+const rowShot = async (t, file) => { await p.ev(`(${row(t)}).scrollIntoView({block:'center'})`); await p.sleep(1200); const b = await p.ev(`(()=>{const r=(${row(t)}).getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`); await p.shot(D + file, { x: 0, y: b.y - 50, width: 1280, height: b.h + 70 }) }
+log += `\n# 5c. Multica: which workflows need Pro\n`
+await p.nav(B + '/vs-multica', 4000)
+log += `/vs-multica: ${await rowText('Built-in agents and workflows')}\n`
+await rowShot('Built-in agents and workflows', '04b-multica-pro.png')
+await p.nav(B + '/zh/vs-multica', 4000)
+log += `/zh/vs-multica: ${await rowText('内置 agent 与工作流')}\n`
+log += `\n# 5d. Hermes: control from chat apps\n`
+await p.nav(B + '/vs-hermes-kanban', 4000)
+log += `/vs-hermes-kanban: ${await rowText('Control from chat apps')}\n`
+await rowShot('Control from chat apps', '04c-hermes-chat.png')
+for (const l of ['zh', 'ja', 'es', 'fr']) {
+  await p.nav(B + `/${l}/vs-hermes-kanban`, 3500)
+  log += `/${l}/vs-hermes-kanban: ${await p.ev(`(()=>{const r=[...document.querySelectorAll('main section div.border-b')].find(r=>/Cloud/.test(r.innerText)&&/Slack/.test(r.innerText));return r?r.innerText.replace(/\\n+/g,' | '):'(no row)'})()`)}\n`
+}
+log += `/vs-hermes-kanban.md: ${(await (await fetch(B + '/vs-hermes-kanban.md')).text()).split('\n').filter(l => /Slack/.test(l) && /Cloud/.test(l)).join('\n')}\n`
 await p.close()
 fs.writeFileSync(D + 'compare.log', log); console.log(log)

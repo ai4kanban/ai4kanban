@@ -18,7 +18,9 @@ log += `# 1. Open ${PATH}\ntitle: ${await p.ev('document.title')}\nmeta descript
 // paragraphs fade in as they scroll into view: pass over the page once
 for (let y = 0; y < await p.ev('document.body.scrollHeight'); y += 400) { await p.ev(`scrollTo(0,${y})`); await p.sleep(150) }
 await p.ev('scrollTo(0,0)'); await p.sleep(800)
-await p.shot(D + '01-top.png', { x: 0, y: 0, width: 1280, height: 900 })
+// stop above the board shot: it shows the maintainer's local project path
+const top = await p.ev(`Math.floor([...document.querySelectorAll('main img')].find(i=>(i.currentSrc||i.src).includes('/shots/board-')).closest('figure,div').getBoundingClientRect().y)`)
+await p.shot(D + '01-top.png', { x: 0, y: 0, width: 1280, height: Math.min(900, top - 10) })
 log += `\nimages and videos in the body:\n${JSON.stringify(await p.ev(`[...document.querySelectorAll('main video, main img')].map(m=>({tag:m.tagName,src:(m.currentSrc||m.getAttribute('src')||'').replace(/^https?:\\/\\/[^/]+/,''),loaded:m.tagName==='IMG'?m.complete&&m.naturalWidth>0:undefined}))`), null, 1)}\n`
 
 let s = await shotPart('02-idea-to-work.png', 'How does an idea become work')
@@ -26,7 +28,7 @@ log += `\n# 2. Read "How does an idea become work Codex can carry out?"\n${s.tex
 
 s = await part('What should I review before Codex starts')
 log += `\n# 3. Read "What should I review before Codex starts?"\n${s.text}\n`
-let f = await shotFig('03-review-draft.png', 'coding-draft-v1')
+let f = await shotFig('03-review-draft.png', 'coding-draft-v')
 log += `figure: ${JSON.stringify(f)}\n`
 
 s = await shotPart('04-dev-and-marketing.png', 'development and marketing')

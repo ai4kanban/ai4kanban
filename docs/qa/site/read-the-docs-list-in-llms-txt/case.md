@@ -8,11 +8,11 @@
 ## Steps
 
 1. 读 `/llms.txt` 的 `## Documentation` 一节。
-   返回 200、`text/plain`。开头一句说每个文档页都有「Copy page」按钮能拿到原始 Markdown，下面依次 13 条：Documentation overview、Your first card、Draft review、Memory、Follow-ups、Workflows、The daily loop、Chat、Agents、Runs and runtimes、Triage、Local and Cloud boards、Multi-runtime support，各带一句描述；Follow-ups 一条是「Catch omissions after delivery and check changed features without repeating every check yourself. …」。
+   返回 200、`text/plain`。开头一句说每个文档页都有「Copy page」按钮能拿到原始 Markdown，下面依次 13 条：Documentation overview、Your first card、Draft review、Memory、Follow-ups、Workflows、The daily loop、Chat、Agents、Runs and runtimes、Triage、Local and Cloud boards、Multi-runtime support，各带一句描述；第一条 Documentation overview 是「Set up AI4Kanban, review key drafts before execution, and deliver development and marketing work with six built-in workflows.」，和改版后的文档首页同一句；Follow-ups 一条是「Catch omissions after delivery and check changed features without repeating every check yourself. …」。
    [llms.log](llms.log)
 
 2. 依次打开这 13 条链接。
-   都返回 200，页面上都有「Copy page」按钮，13 条描述都与该页的 meta description 一字不差。名字大多与左侧文档栏一致；不一致的三处：Documentation overview（文档栏写「Documentation」）、Local and Cloud boards（「Local and Cloud」）、Multi-runtime support（「Multi-runtime」）。除 Documentation overview 外，还有六页的大标题和名字不同，如「Follow-ups」页是「Review follow-up suggestions」、「Agents」页是「The agents that work your board」。
+   都返回 200，页面上都有「Copy page」按钮，13 条描述都与该页的 meta description 一字不差；`/docs` 的标签页标题是「AI4Kanban docs — an agent workspace for indie hackers」。名字大多与左侧文档栏一致；不一致的三处：Documentation overview（文档栏写「Documentation」）、Local and Cloud boards（「Local and Cloud」）、Multi-runtime support（「Multi-runtime」）。除 Documentation overview 外，还有六页的大标题和名字不同，如「Follow-ups」页是「Review follow-up suggestions」、「Agents」页是「The agents that work your board」。
    [llms.log](llms.log)
 
 3. 把 `llms.txt` 的文档列表和 `/docs` 左侧文档栏对一遍。
@@ -21,6 +21,7 @@
 
 ## Feedback
 
-- **列表终于全了**：文档栏 13 页全在 `llms.txt`，顺序一致，AI 回答「Agents 有哪些」「Triage 怎么分流」「交付后的跟进建议怎么关」不用再自己爬文档栏；新的 Follow-ups 页和页面同一次上线。
-- **描述不会再漂**：13 条描述与页面逐字相同，而且构建时会比对，改了页面描述忘改 `llms.txt` 就构建失败，AI 引用到的说法和页面不会对不上。
-- **同一页仍有三个名字**：`llms.txt`、文档栏和大标题常各说各的（「Follow-ups」/「Follow-ups」/「Review follow-up suggestions」、「Local and Cloud boards」/「Local and Cloud」），AI 按名字引用、用户按标题找，偶尔会以为点错了页。
+- **首页摘要跟上了新定位**：Documentation overview 一条不再是泛泛的「文档总览」，一句话讲清先审关键草稿、开发和营销六个工作流，AI 拿它回答「AI4Kanban 是什么」也够用；和页面描述逐字相同。
+- **列表全、顺序对**：文档栏 13 页全在 `llms.txt`，顺序一致，AI 回答「Agents 有哪些」「Triage 怎么分流」不用再自己爬文档栏。
+- **描述不会漂**：13 条描述与页面逐字相同，构建时会比对，改了页面描述忘改 `llms.txt` 就构建失败。
+- **同一页仍有三个名字**：`llms.txt`、文档栏和大标题常各说各的（「Documentation overview」/「Documentation」/「AI4Kanban documentation」、「Follow-ups」/「Follow-ups」/「Review follow-up suggestions」），AI 按名字引用、用户按标题找，偶尔会以为点错了页。

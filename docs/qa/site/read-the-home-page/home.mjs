@@ -1,79 +1,133 @@
-// Reads the home page: /zh hero and its video, the pinned drafts section and its clickable kinds,
-// the memory and follow-up sections, the flip deck,
-// the closing band, the English hero, a phone and reduced motion.
-// Usage: SITE=127.0.0.1:4371 CDP_PORT=9371 OUT=<proof dir> node home.mjs
+// Reads the home page: the /zh hero, the review scene, the pinned workflow row and its previews,
+// the links under it, the parallel deck, the memory and follow-up scenes, the closing band and
+// footer, the English page, two phones and reduced motion.
+// Usage: SITE=127.0.0.1:4391 CDP_PORT=9391 OUT=<proof dir> node home.mjs   (needs ffmpeg for the GIF)
 import fs from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { open } from './cdp.mjs'
 const SITE = `http://${process.env.SITE || '127.0.0.1:4330'}`, OUT = process.env.OUT || '.'
 const log = (...a) => { const s = a.map((x) => typeof x === 'string' ? x : JSON.stringify(x)).join(' '); console.log(s); fs.appendFileSync(`${OUT}/home.log`, s + '\n') }
 const W = 1440, H = 900
 let p = await open(W, H)
 const shotView = (f) => p.shot(`${OUT}/${f}`)
-const video = `(()=>{const v=document.querySelector('main video');return v&&{src:v.currentSrc,paused:v.paused,muted:v.muted,loop:v.loop,controls:v.controls,t:+v.currentTime.toFixed(1),poster:v.poster.split('/').pop()}})()`
+// the site scrolls smoothly; a scripted scroll must land at once
+const go = async (pg, url, wait) => { await pg.nav(url, wait); await pg.ev(`document.documentElement.style.scrollBehavior='auto'`) }
+// a page-coordinate clip, also past the viewport
+const shotAt = async (f, clip, pg = p) => { const r = await pg.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { ...clip, scale: 1 } }); fs.writeFileSync(`${OUT}/${f}`, Buffer.from(r.data, 'base64')) }
+const h2 = (t) => `[...document.querySelectorAll('main h2')].find(h=>h.innerText.replace(/\\n/g,'').startsWith(${JSON.stringify(t)}))`
+const sec = (t) => `(${h2(t)}).closest('section')`
+const rect = (sel, pg = p) => pg.ev(`(()=>{const r=(${sel}).getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y+scrollY),w:Math.round(r.width),h:Math.round(r.height),top:Math.round(r.top),bottom:Math.round(r.bottom)}})()`)
+const video = `(()=>{const v=document.querySelector('main video');return v&&{src:v.currentSrc.split('/').pop(),paused:v.paused,muted:v.muted,loop:v.loop,controls:v.controls,t:+v.currentTime.toFixed(1),poster:v.poster.split('/').pop()}})()`
 
-log('# step 1: /zh hero'); await p.nav(`${SITE}/zh`, 4000)
-log(await p.ev(`(()=>{const h=document.querySelector('main h1');const sec=h.closest('section')||h.parentElement.parentElement;const e=h.previousElementSibling;return {eyebrow:e?.innerText,eyebrowAlign:e&&getComputedStyle(e).textAlign,eyebrowBorder:e&&getComputedStyle(e).borderLeftWidth,h1:h.innerText.replace(/\\n/g,' / '),lead:h.nextElementSibling?.innerText,buttons:[...sec.querySelectorAll('a')].map(a=>a.innerText.replace(/\\s+/g,' ').trim()+' -> '+a.href.replace(/arm64|x64/,'<arch>'))}})()`))
+log('# step 1: /zh hero'); await go(p, `${SITE}/zh`, 4000)
+log('title', await p.ev('document.title'))
+log(await p.ev(`(()=>{const h=document.querySelector('main h1');const sec=h.closest('section')||h.parentElement.parentElement;const e=h.previousElementSibling;return {eyebrow:e?.innerText,eyebrowAlign:e&&getComputedStyle(e).textAlign,h1:h.innerText.replace(/\\n/g,' / '),lead:h.nextElementSibling?.innerText,buttons:[...sec.querySelectorAll('a')].map(a=>a.innerText.replace(/\\s+/g,' ').trim()+' -> '+a.href.replace(/arm64|x64/,'<arch>'))}})()`))
 log('video', await p.ev(video)); await p.sleep(3000); log('3s later', await p.ev(video))
+log('workflow previews before any scroll:', await p.ev(`[...document.querySelectorAll('.wf-track iframe')].map(f=>f.getAttribute('src'))`))
 await shotView('01-zh-hero.png')
 
-log('# step 2: drafts section pins and glides')
-const top = await p.ev(`document.getElementById('drafts-stage').getBoundingClientRect().top+scrollY`)
-log('stage', await p.ev(`getComputedStyle(document.getElementById('drafts-stage')).display`), 'stack', await p.ev(`getComputedStyle(document.getElementById('drafts-stack')).display`))
-const RUN = 1.5 * H
-for (let i = 0; i < 4; i++) {
-  await p.ev(`scrollTo(0, ${top - 80 + (RUN * i) / 3})`); await p.sleep(900)
-  const s = await p.ev(`(()=>{const g=document.querySelector('#drafts [data-glide]').getBoundingClientRect();const lis=[...document.querySelectorAll('#drafts-stage li:not([data-glide])')];const on=lis.find(l=>{const b=l.getBoundingClientRect();return Math.abs(b.top-g.top)<20});return {highlight:on?.querySelector('span')?.innerText,titleTop:Math.round(document.querySelector('#drafts-stage h2').getBoundingClientRect().top)}})()`)
-  log('stop', i, s); if (i === 0) await shotView('02-zh-drafts-ui.png')
+log('# step 2: the review section and its scene')
+await p.ev(`(${sec('关键部分由你把关')}).scrollIntoView({block:'center'})`); await p.sleep(1500)
+log(await p.ev(`(()=>{const s=${sec('关键部分由你把关')};const f=s.querySelector('figure');return {title:s.querySelector('h2').innerText.replace(/\\n/g,' / '),lead:s.querySelector('p').innerText,sceneWords:[...f.querySelectorAll('.br-name,.br-chip,.br-idea')].map(e=>e.innerText.trim()),label:f.getAttribute('aria-label'),playing:f.hasAttribute('data-on')}})()`))
+const fig = await rect(`(${sec('关键部分由你把关')}).querySelector('figure')`)
+const sr = await rect(sec('关键部分由你把关'))
+await shotAt('02-zh-review.png', { x: sr.x - 20, y: sr.y - 20, width: sr.w + 40, height: sr.h + 40 })
+// one 7s loop as a GIF, a frame every ~250ms
+fs.mkdirSync(`${OUT}/.frames`, { recursive: true })
+for (let i = 0; i < 28; i++) {
+  const r = await p.send('Page.captureScreenshot', { format: 'png', clip: { x: fig.x, y: fig.y, width: fig.w, height: fig.h, scale: 1 } })
+  fs.writeFileSync(`${OUT}/.frames/${String(i).padStart(3, '0')}.png`, Buffer.from(r.data, 'base64')); await p.sleep(200)
 }
-log('heading above title', await p.ev(`document.querySelector('#drafts-stage h2').previousElementSibling?.innerText ?? null`))
-log('fits', await p.ev(`(()=>{const pin=document.getElementById('drafts-stage').firstElementChild.getBoundingClientRect();return {pinBottom:Math.round(pin.bottom),viewport:innerHeight}})()`))
-log('# step 3: click a kind')
-await p.ev(`scrollTo(0, ${top - 80})`); await p.sleep(900)
-const glide = `(()=>{const g=document.querySelector('#drafts [data-glide]').getBoundingClientRect();const lis=[...document.querySelectorAll('#drafts-stage li:not([data-glide])')];return lis.find(l=>{const b=l.getBoundingClientRect();return Math.abs(b.top-g.top)<20})?.querySelector('span')?.innerText})()`
-for (const k of ['分镜', 'UI 原型']) {
-  const b = await p.ev(`(()=>{const r=[...document.querySelectorAll('#drafts-stage li button')].find(b=>b.innerText.startsWith('${k}')).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`)
-  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await p.send('Input.dispatchMouseEvent', { type, ...b, button: 'left', clickCount: 1 })
-  await p.sleep(1800)
-  log('clicked', k, 'highlight', await p.ev(glide), 'picture', await p.ev(`[...document.querySelectorAll('#drafts-stage [aria-hidden] img, #drafts-stage img')].filter(i=>+getComputedStyle(i.closest('[style]')||i).opacity>0.5).map(i=>i.alt).join(' | ')`))
-  if (k === '分镜') await shotView('03-zh-drafts-script.png')
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '4', '-i', `${OUT}/.frames/%03d.png`, '-vf', 'scale=640:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse', `${OUT}/03-zh-review-loop.gif`])
+fs.rmSync(`${OUT}/.frames`, { recursive: true })
+
+log('# step 3: the workflows pin and slide')
+const wf = await rect(sec('产品要开发'))
+log(await p.ev(`(()=>{const s=${sec('产品要开发')};return {title:s.querySelector('h2').innerText,lead:s.querySelector('h2').parentElement.nextElementSibling?.innerText??s.querySelector('p').innerText,cards:[...s.querySelectorAll('.wf-track h3')].map(h=>h.innerText),links:[...s.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()+' -> '+a.getAttribute('href'))}})()`))
+await p.ev(`(${h2('产品要开发')}).scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-90)'); await p.sleep(1200)
+await shotView('04-zh-workflows-title.png')
+const pin = await p.ev(`(()=>{const e=document.querySelector('.wf-pin').getBoundingClientRect();return {top:Math.round(e.top+scrollY),h:Math.round(e.height),stick:Math.round(document.querySelector('.wf-stick').getBoundingClientRect().height)}})()`)
+log('pin', pin)
+const at = async (f) => { await p.ev(`scrollTo(0, ${Math.round(pin.top - 64 + f * (pin.h - pin.stick))})`); await p.sleep(2500) }
+const state = () => p.ev(`(()=>{const s=document.querySelector('.wf-stick').getBoundingClientRect();const lis=[...document.querySelectorAll('.wf-track>li')];return {stickTop:Math.round(s.top),inView:lis.filter(l=>{const b=l.getBoundingClientRect();return b.right>40&&b.left<innerWidth-40}).map(l=>l.querySelector('h3').innerText+' '+Math.round(Math.max(0,Math.min(innerWidth,l.getBoundingClientRect().right)-Math.max(0,l.getBoundingClientRect().left))/l.getBoundingClientRect().width*100)+'%'),bar:Math.round(document.querySelector('.wf-bar span').getBoundingClientRect().width/document.querySelector('.wf-bar').getBoundingClientRect().width*100)+'%',linksVisible:document.querySelector('.wf-links').getBoundingClientRect().bottom<=innerHeight}})()`)
+for (const [f, file] of [[0.02, '05-zh-workflows-first.png'], [0.5, '06-zh-workflows-middle.png'], [0.98, '07-zh-workflows-last.png']]) { await at(f); log('at', f, await state()); await shotView(file) }
+log('previews after scrolling:', await p.ev(`[...document.querySelectorAll('.wf-track iframe')].map(f=>f.getAttribute('src')+': '+(f.contentDocument?.body?.innerText.split('\\n')[0]??'(blocked)'))`))
+const xfo = await fetch(`${SITE}/demo/drafts/coding`, { method: 'HEAD' }); log('/demo/drafts/coding X-Frame-Options:', xfo.headers.get('x-frame-options'))
+// the carousel preview stays on its slide grid: watch it for 10s
+await at(0.75); const seen = new Set()
+for (let i = 0; i < 20; i++) { seen.add(await p.ev(`(()=>{const d=document.querySelector('.wf-track iframe[src$="carousel"]').contentDocument;return (d.querySelector('[role=dialog]')?'dialog open':'no dialog')+' · '+(d.body.innerText.match(/\\d+ \\/ 8/)||[''])[0]})()`)); await p.sleep(500) }
+log('carousel preview over 10s:', [...seen]); log('at', 0.75, await state())
+log('clone preview video:', await p.ev(`(()=>{const d=document.querySelector('.wf-track iframe[src$="clone"]').contentDocument;return [...d.querySelectorAll('video')].map(v=>({t:+v.currentTime.toFixed(1),paused:v.paused}))})()`))
+await shotView('08-zh-workflows-carousel-clone.png')
+
+log('# step 4: the links under the row, then the gap to the next section')
+log('links', await p.ev(`[...document.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()+' -> '+a.getAttribute('href'))`))
+await p.ev(`scrollTo(0, ${pin.top + pin.h - H + 200})`); await p.sleep(1500)
+const gap = await p.ev(`(()=>{const l=document.querySelector('.wf-links').getBoundingClientRect();const n=(${h2('多项工作并行推进')}).getBoundingClientRect();return {linksBottomToNextTitle:Math.round(n.top-l.bottom)}})()`)
+log('gap', gap); await shotView('09-zh-after-workflows.png')
+for (const [label, want] of [['体验演示', '/demo'], ['查看全部 agent 与工作流', '/docs/agents']]) {
+  const q = await open(W, H); await go(q, `${SITE}/zh`, 3000)
+  await q.ev(`scrollTo(0, ${pin.top + pin.h - H + 200})`); await q.sleep(1500)
+  await q.click(`[...document.querySelectorAll('.wf-links a')].find(a=>a.innerText.includes(${JSON.stringify(label)}))`); await q.sleep(3000)
+  log(`clicked ${label}:`, await q.ev(`location.pathname+' · '+document.title`), '(wanted', want + ')'); await q.close()
 }
 
-log('# step 4: memory and follow-ups')
-for (const [n, f] of [['这次提过的意见', '04-zh-agents.png'], ['让 agent 替你查缺补漏', '05-zh-followups.png']]) {
-  const b = await p.box(`[...document.querySelectorAll('main h2')].find(h=>h.innerText.startsWith('${n}'))?.closest('section')`)
-  await p.sleep(1500)
-  log(n, await p.ev(`(()=>{const s=[...document.querySelectorAll('main h2')].find(h=>h.innerText.startsWith('${n}')).closest('section');const i=s.querySelector('img');return {title:s.querySelector('h2').innerText,above:s.querySelector('h2').previousElementSibling?.innerText??null,alt:i.alt,loaded:i.naturalWidth,framed:!!i.closest('[class*=ring],[class*=shadow]')}})()`))
-  await shotView(f)
-}
-
-log('# step 5: flip deck')
+log('# step 5: parallel and the flip deck')
+log(await p.ev(`(()=>{const s=${sec('多项工作并行推进')};return {title:s.querySelector('h2').innerText,body:[...s.querySelectorAll('p')].map(x=>x.innerText).slice(0,2)}})()`))
 await p.box(`document.querySelector('button[aria-pressed]')`); await p.sleep(2000)
 const deck = `[...document.querySelectorAll('button[aria-pressed]')].map(b=>b.getAttribute('aria-label'))`
-log(await p.ev(`[...document.querySelectorAll('button[aria-pressed] img')].map(i=>({src:i.src.split('/').pop(),loaded:i.naturalWidth}))`))
-log('deck buttons', await p.ev(deck)); await shotView('06-zh-deck-board.png')
+log('deck buttons', await p.ev(deck)); await shotView('10-zh-deck-board.png')
 const ledge = await p.ev(`(()=>{const b=document.querySelector('button[aria-pressed=false]').getBoundingClientRect();return {x:b.right-20,y:b.bottom-15}})()`)
 for (const type of ['mousePressed', 'mouseReleased']) await p.send('Input.dispatchMouseEvent', { type, ...ledge, button: 'left', clickCount: 1 })
-await p.sleep(800)
-log('after click', await p.ev(deck)); await shotView('07-zh-deck-card.png')
+await p.sleep(900); log('after click', await p.ev(deck)); await shotView('11-zh-deck-card.png')
 
-log('# step 6: closing band')
+log('# step 6: memory and follow-ups')
+for (const [n, f] of [['下次不用从头解释', '12-zh-memory.png'], ['做完一项', '13-zh-followups.png']]) {
+  await p.ev(`(${sec(n)}).scrollIntoView({block:'center'})`); await p.sleep(2500)
+  log(n, await p.ev(`(()=>{const s=${sec(n)};const sc=s.querySelector('.s3d');const t=s.querySelector('h2').getBoundingClientRect(),c=sc.getBoundingClientRect();return {title:s.querySelector('h2').innerText,body:[...s.querySelectorAll('p')].map(x=>x.innerText),label:sc.getAttribute('aria-label')??sc.closest('[aria-label]')?.getAttribute('aria-label'),sceneSide:c.left<t.left?'left':'right',moving:sc.hasAttribute('data-on')}})()`))
+  const r = await rect(sec(n)); await shotAt(f, { x: r.x - 20, y: r.y - 30, width: r.w + 40, height: r.h + 60 })
+}
+log('memory → follow-ups gap', await p.ev(`Math.round((${sec('做完一项')}).getBoundingClientRect().top-(${sec('下次不用从头解释')}).getBoundingClientRect().bottom)`))
+
+log('# step 7: tools, the closing band and the footer')
+log(await p.ev(`(()=>{const s=${sec('继续用你熟悉的 AI 工具')};return s.innerText})()`))
 await p.box(`document.getElementById('install')`); await p.sleep(2000)
 log(await p.ev(`(()=>{const s=document.getElementById('install');return {title:s.querySelector('h2').innerText,text:s.innerText,links:[...s.querySelectorAll('a')].map(a=>a.innerText.replace(/\\s+/g,' ').trim()+' -> '+a.href.replace(/arm64|x64/,'<arch>'))}})()`))
-await shotView('08-zh-start.png')
-
-log('# step 7: English hero')
-await p.nav(`${SITE}/`, 3000)
-log(await p.ev(`({eyebrow:document.querySelector('main h1').previousElementSibling?.innerText,lead:document.querySelector('main h1').nextElementSibling?.innerText,h1:document.querySelector('main h1').innerText.replace(/\\n/g,' / '),title:document.title,description:document.querySelector('meta[name=description]').content,kinds:[...document.querySelectorAll('#drafts-stage li:not([data-glide]) span')].map(s=>s.innerText)})`))
+await shotView('14-zh-start.png')
+log('footer 产品:', await p.ev(`(()=>{const h=[...document.querySelectorAll('footer *')].find(e=>e.children.length===0&&e.textContent.trim()==='产品');return [...h.parentElement.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.getAttribute('href')).join(' · ')})()`))
 await p.close()
 
-log('# step 8: phone')
-p = await open(390, 844, true); await p.nav(`${SITE}/zh`, 3500)
-log('hero', await p.ev(`(()=>{const h=document.querySelector('main h1'),e=h.previousElementSibling;return {eyebrow:e.innerText,align:getComputedStyle(e).textAlign,h1:h.innerText.replace(/\\n/g,' / '),lines:Math.round(h.getBoundingClientRect().height/parseFloat(getComputedStyle(h).lineHeight))}})()`))
-await shotView('09-phone-hero.png')
-await p.box(`document.getElementById('drafts-stack')`); await p.sleep(1500)
-log(await p.ev(`({stage:getComputedStyle(document.getElementById('drafts-stage')).display,stack:[...document.querySelectorAll('#drafts-stack h3')].map(h=>h.innerText+(h.parentElement.querySelector('[aria-hidden]')?' + picture':'')),overflow:document.documentElement.scrollWidth>innerWidth})`))
-await shotView('10-phone-drafts.png'); await p.close()
+log('# step 8: English home')
+p = await open(W, H); await go(p, `${SITE}/`, 3500)
+log(await p.ev(`({title:document.title,description:document.querySelector('meta[name=description]').content,ogTitle:document.querySelector('meta[property="og:title"]')?.content,eyebrow:document.querySelector('main h1').previousElementSibling?.innerText,h1:document.querySelector('main h1').innerText.replace(/\\n/g,' / '),lead:document.querySelector('main h1').nextElementSibling?.innerText,h2s:[...document.querySelectorAll('main h2')].map(h=>h.innerText.replace(/\\n/g,' / ')),cards:[...document.querySelectorAll('.wf-track h3')].map(h=>h.innerText),links:[...document.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()+' -> '+a.getAttribute('href')),coding:[...document.querySelectorAll('main a')].some(a=>/Explore the coding workflow/i.test(a.innerText)),scene:[...document.querySelectorAll('main figure .br-name, main figure .br-chip, main figure .br-idea')].map(e=>e.innerText.trim())})`))
+await p.ev(`(${h2('Review the key parts')}).closest('section').scrollIntoView({block:'center'})`); await p.sleep(1500)
+await shotView('15-en-review.png')
+await p.close()
 
-log('# step 9: reduced motion')
+log('# step 9: phone 390x844, /zh')
+p = await open(390, 844, true); await go(p, `${SITE}/zh`, 3500)
+await shotView('16-phone-hero.png')
+await p.ev(`(${h2('产品要开发')}).scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-80)'); await p.sleep(1500)
+await shotView('17-phone-workflows-title.png')
+const ppin = await p.ev(`(()=>{const e=document.querySelector('.wf-pin').getBoundingClientRect();return {top:Math.round(e.top+scrollY),h:Math.round(e.height),stick:Math.round(document.querySelector('.wf-stick').getBoundingClientRect().height)}})()`)
+const fits = (pg) => pg.ev(`(()=>{const s=document.querySelector('.wf-stick');const kids=[...s.children].map(k=>k.getBoundingClientRect());const lis=[...document.querySelectorAll('.wf-track>li')];const vis=lis.find(l=>{const b=l.getBoundingClientRect();return b.left>=-5&&b.left<innerWidth/2});return {viewport:innerHeight,stickTop:Math.round(s.getBoundingClientRect().top),contentTop:Math.round(Math.min(...kids.map(k=>k.top))),contentBottom:Math.round(Math.max(...kids.map(k=>k.bottom))),titleInPin:!!s.querySelector('h2'),card:vis?.querySelector('h3').innerText,cardWidth:vis&&Math.round(vis.getBoundingClientRect().width),links:[...s.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()),overflowX:document.documentElement.scrollWidth>innerWidth}})()`)
+for (const [f, file] of [[0.02, '18-phone-workflows-pinned.png'], [0.98, '19-phone-workflows-last.png']]) { await p.ev(`scrollTo(0, ${Math.round(ppin.top - 64 + f * (ppin.h - ppin.stick))})`); await p.sleep(2500); log('phone at', f, await fits(p)); await shotView(file) }
+await p.ev(`(${sec('下次不用从头解释')}).scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-70)'); await p.sleep(2500)
+log('memory scene', await p.ev(`(()=>{const s=${sec('下次不用从头解释')};const c=s.querySelector('.s3d').getBoundingClientRect();const n=(${h2('做完一项')}).getBoundingClientRect();return {sceneHeight:Math.round(c.height),sceneBottomToNextTitle:Math.round(n.top-c.bottom)}})()`))
+await shotView('20-phone-memory.png'); await p.close()
+
+log('# step 10: phone 375x667, English')
+p = await open(375, 667, true); await go(p, `${SITE}/`, 3500)
+await p.ev(`(${h2('Build the product')}).scrollIntoView({block:'start'})`); await p.sleep(800)
+const epin = await p.ev(`(()=>{const e=document.querySelector('.wf-pin').getBoundingClientRect();return {top:Math.round(e.top+scrollY),h:Math.round(e.height),stick:Math.round(document.querySelector('.wf-stick').getBoundingClientRect().height)}})()`)
+await p.ev(`scrollTo(0, ${Math.round(epin.top - 64 + 0.3 * (epin.h - epin.stick))})`); await p.sleep(2500)
+log('375 en pinned', await fits(p)); await shotView('21-phone-375-en-pinned.png'); await p.close()
+
+log('# step 11: reduced motion, 1440 wide')
 p = await open(W, H); await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
-await p.nav(`${SITE}/zh`, 4000); log('reduced', await p.ev(video)); await p.close()
+await go(p, `${SITE}/zh`, 4000); log('hero video', await p.ev(video))
+await p.ev(`(${sec('关键部分由你把关')}).scrollIntoView({block:'center'})`); await p.sleep(1500)
+log('review scene', await p.ev(`(()=>{const f=document.querySelector('main figure');return {bothFrames:getComputedStyle(f.querySelector('.br-fb')).display!=='none',idea:getComputedStyle(f.querySelector('.br-idea')).display}})()`))
+await p.ev(`(${h2('产品要开发')}).scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-80)'); await p.sleep(1500)
+log('workflows', await p.ev(`(()=>{const t=document.querySelector('.wf-track');const s=document.querySelector('.wf-stick');return {position:getComputedStyle(s).position,columns:getComputedStyle(t).gridTemplateColumns.split(' ').length,pinHeight:Math.round(document.querySelector('.wf-pin').getBoundingClientRect().height)}})()`))
+await shotView('23-reduced-workflows.png'); await p.close()

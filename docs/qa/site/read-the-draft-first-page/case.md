@@ -9,11 +9,11 @@
 ## Steps
 
 1. 在首页滚到页脚，点「SOLUTIONS」下的「draft-first」。
-   「SOLUTIONS」下有「For coding」和「draft-first」两条；页头导航里没有这一页。点完到 `/draft-first`，标签页标题「draft-first: Preview AI drafts before the build」。
+   「SOLUTIONS」下有「For coding」「For SaaS」「draft-first」三条；页头导航里没有这一页。点完到 `/draft-first`，标签页标题「draft-first: Preview AI drafts before the build」。
    ![页脚入口](01-footer-link.png) · [draft-first.log](draft-first.log)
 
 2. 看首屏，再用 390px 宽的手机打开同一页。
-   页头是站点原有的 AI4Kanban 页头。主标题上方是举着剪贴板的小机器人和小写字标「draft-first」；标题两行「See the draft. / Then build.」，下面一行说明，然后是带「Copy」按钮的 `$ npx draft-first install` 和「Run again to update. · GitHub」，再下面「WORKS WITH」后一排七个灰色 logo（Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode、Grok Build）。再往下是浅灰水彩底里的一段录屏：静音、循环、自己播放（3 秒后从 6.9 秒走到 9.9 秒），录的是审阅页上删除、批注、确认的过程。手机上命令框不出屏，页面不横向滚动，录屏裁成 4:3。
+   页头是站点原有的 AI4Kanban 页头。主标题上方是举着剪贴板的小机器人和小写字标「draft-first」；标题两行「See the draft. / Then build.」，下面一行说明，然后是带「Copy」按钮的 `$ npx draft-first install` 和「Run again to update. · GitHub」，再下面「WORKS WITH」后一排七个灰色 logo（Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode、Grok Build）。再往下是浅灰水彩底里的一段录屏：静音、循环、自己播放（3 秒后从 6.5 秒走到 9.5 秒），录的是审阅页上删除、批注、确认的过程。手机上命令框不出屏，页面不横向滚动，录屏裁成 4:3。
    ![首屏](02-hero.png) · ![手机首屏](02b-hero-phone.png) · ![手机上的录屏](02c-video-phone.png) · [draft-first.log](draft-first.log)
 
 3. 点命令旁的「Copy」。
@@ -36,9 +36,9 @@
    三问纯文字：草稿存在项目的 `.draft-first/`；支持读取 `.claude/skills/` 或 `.agents/skills/` 的编码 agent；卸载时删掉这两处的 `draft-first` 目录，草稿要先备份再删 `.draft-first/`。
    ![FAQ](07-faq.png) · [draft-first.log](draft-first.log)
 
-8. 打开 `/zh/draft-first`。
-   标题两行「先看草稿 / 再往下做」，按钮「复制」，五节标题都是中文；录屏换成中文审阅页（`hero-zh-v1`）。
-   ![中文首屏](08-zh-hero.png) · [draft-first.log](draft-first.log)
+8. 打开 `/zh/draft-first`，滚到最后的「常见问题」。
+   标题两行「先看草稿 / 再往下做」，按钮「复制」，五节标题都是中文；录屏换成中文审阅页（`hero-zh-v1`）。常见问题三问：「草稿存在哪里？」「支持哪些 agent？」「如何卸载？」，第二问答「支持读取 `.claude/skills/` 或 `.agents/skills/` 中技能的编码 agent。」；整页没有一处「智能体」。
+   ![中文首屏](08-zh-hero.png) · ![中文常见问题](08b-zh-faq.png) · [draft-first.log](draft-first.log)
 
 9. 打开博客「show-the-ui-first」，读到最后。
    末尾一句「Install the draft-first skill …」，「draft-first skill」链到 `https://ai4kanban.dev/draft-first`。
@@ -51,9 +51,9 @@
 ## Feedback
 
 - **一屏就懂**：标题、一行说明、一条命令、一段真实录屏，看完就知道它做什么、怎么装；复制按钮反馈清楚。
-- **源码终于有入口**：命令下多了一个「GitHub」，想先看代码或提 issue 的人不用再去翻 AI4Kanban 主仓库；但它是一行小灰字，又在同一标签页打开，读到一半点进去就离开了落地页。
+- **中文用词统一了**：中文 FAQ 改成「支持哪些 agent？」，问题和答案都说「agent」，和首页、对比页一个口径；不熟这个词的中文读者仍然没有任何解释。
+- **源码有入口，但不显眼**：命令下的「GitHub」是一行小灰字，又在同一标签页打开，读到一半点进去就离开了落地页。
 - **图比字多，读得快**：四种草稿和审阅三步都是照真实界面画的图，比说明文字直观；AI4Kanban 到第四节才出现，不抢 draft-first 的主角位置。
 - **还是装不上**：页面上的主要行动仍是一条 404 的命令；仓库已公开、包却没发，读者只能自己从仓库手动装。
-- **节标题没了编号**：各节只剩标题，和首页一致，读起来更像一页介绍而不是一份目录。
 - **logo 栏要靠悬停**：七个灰色小图标没有文字，认不出 DeepSeek Harness、ZCode 的读者只能悬停看提示。
 - **手机上录屏字太小**：4:3 裁切后审阅页的文字几乎读不清，只能看个动作轮廓。

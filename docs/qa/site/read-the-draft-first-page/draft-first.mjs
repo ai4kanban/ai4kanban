@@ -75,6 +75,11 @@ const z = await open(1280, 900)
 await z.nav(SITE + '/zh/draft-first', 5000)
 log += `title: ${await z.ev('document.title')}\nh1: ${JSON.stringify(await z.ev(`document.querySelector('h1').innerText`))}\nh2s: ${await z.ev(`[...document.querySelectorAll('main section')].filter(s=>!s.parentElement.closest('section')).slice(1).map(s=>s.querySelector('h2')).map(h=>h.innerText).join(' | ')`)}\nvideo: ${await z.ev(`document.querySelector('main video').currentSrc.replace(/\\?.*/,'')`)}\n`
 await z.shot(D + '08-zh-hero.png', { x: 0, y: 0, width: 1280, height: 900 })
+const zf = `[...document.querySelectorAll('main section')].filter(s=>!s.parentElement.closest('section'))[5]`
+await z.ev(`scrollTo(0, ${zf}.getBoundingClientRect().top + scrollY - 100)`); await z.sleep(2500)
+const zb = await z.ev(`(()=>{const r=${zf}.getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`)
+await z.shot(D + '08b-zh-faq.png', { x: 0, y: zb.y - 16, width: 1280, height: Math.min(zb.h + 32, 1600) })
+log += `FAQ: ${await z.ev(`${zf}.innerText.replace(/\\n+/g,' | ')`)}\n智能体 on the page: ${await z.ev(`(document.body.innerText.match(/智能体/g)||[]).length`)}\n`
 await z.close()
 
 log += '\n# 9. Blog post link\n'

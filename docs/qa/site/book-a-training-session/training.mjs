@@ -24,8 +24,11 @@ await p.ev('scrollTo(0,0)'); await p.sleep(500)
 await p.click(byText('main a, main button', 'Book a session')); await p.sleep(1500)
 log += `# 2. Click "Book a session"\nscrolled to: ${await p.ev(`(()=>{const h=[...document.querySelectorAll('main h2')].find(e=>/Start with a conversation/.test(e.textContent));return 'h2 "'+h.textContent+'" at viewport y '+Math.round(h.getBoundingClientRect().y)})()`)}\nlocation: ${await p.ev('location.pathname+location.hash')}\nAPI calls: ${JSON.stringify(await p.ev('window.__sent'))}\nopen hours: ${await p.ev(`[...document.querySelectorAll('main button')].filter(b=>/available$/.test(b.getAttribute('aria-label')||'')).map(b=>b.getAttribute('aria-label')).join(' / ')`)}\n`
 await shot('01-week.png')
-await p.click(`document.querySelector('main button[aria-label="Monday 19 October at 10:00, available"]')`); await p.sleep(1000)
-log += `\n# 3. Click Monday 19 October 10:00\n${await p.ev(`(${book}).innerText.split('Select an available time')[0].split('Not available\\nBooked\\nNot available').pop().split('\\n').filter(l=>l && !/^(Not available|Available|\\d\\d:00)$/.test(l.trim())).slice(-25).join('\\n')`)}\nfields: ${await p.ev(`[...(${book}).querySelectorAll('input,textarea,select')].map(e=>e.type+':'+(e.labels?.[0]?.innerText||e.name||e.getAttribute('aria-label'))).join(' / ')`)}\n`
+// the open hours of the live week, in order: book the first, lose the second to someone else
+const openSlot = (i) => `[...document.querySelectorAll('main button')].filter(b=>/available$/.test(b.getAttribute('aria-label')||''))[${i}]`
+const first = await p.ev(`(${openSlot(0)}).getAttribute('aria-label')`)
+await p.click(openSlot(0)); await p.sleep(1000)
+log += `\n# 3. Click ${first}\n${await p.ev(`(${book}).innerText.split('Select an available time')[0].split('Not available\\nBooked\\nNot available').pop().split('\\n').filter(l=>l && !/^(Not available|Available|\\d\\d:00)$/.test(l.trim())).slice(-25).join('\\n')`)}\nfields: ${await p.ev(`[...(${book}).querySelectorAll('input,textarea,select')].map(e=>e.type+':'+(e.labels?.[0]?.innerText||e.name||e.getAttribute('aria-label'))).join(' / ')`)}\n`
 await shot('02-form.png')
 fs.writeFileSync(D + 'partial.log', log)
 console.log(log)
@@ -45,11 +48,12 @@ await shot('03-booked.png')
 // 4. the hour was taken meanwhile
 await p.nav('about:blank', 500); await p.nav(B + '/training', 6000); await p.click(byText('main a, main button', 'Book a session')); await p.sleep(1500)
 await p.ev(`window.__replies['/v1/training/bookings']={status:409,body:{error:{code:'training_slot_taken',message:'That hour was just booked by someone else. Pick another one — what you typed is kept.'}}}`)
-await p.click(`document.querySelector('main button[aria-label="Wednesday 21 October at 22:00, available"]')`); await p.sleep(1000)
+const second = await p.ev(`(${openSlot(1)}).getAttribute('aria-label')`)
+await p.click(openSlot(1)); await p.sleep(1000)
 await fill(`[...(${book}).querySelectorAll('input')].find(e=>e.labels?.[0]?.innerText==='Name')`, 'QA Tester')
 await fill(`(${book}).querySelector('input[type=email]')`, 'qa@example.com')
 await p.click(byText('main button', 'Confirm booking')); await p.sleep(2500)
-log += `\n# 5. Open the page again, click "Book a session", pick Wednesday 21 October 22:00, confirm (the stand-in answers 409 training_slot_taken)\npage says:\n${await p.ev(`(${book}).innerText.split('Select an available time')[0].replace(/(\\n\\s*(Not available|Available|Booked)\\s*)+/g,'\\n').slice(0,1500)`)}\nform still holds: name=${await p.ev(`[...document.querySelectorAll('main input')].find(e=>e.labels?.[0]?.innerText==='Name')?.value ?? '(form gone)'`)} email=${await p.ev(`document.querySelector('main input[type=email]')?.value ?? '(form gone)'`)}\n`
+log += `\n# 5. Open the page again, click "Book a session", pick ${second}, confirm (the stand-in answers 409 training_slot_taken)\npage says:\n${await p.ev(`(${book}).innerText.split('Select an available time')[0].replace(/(\\n\\s*(Not available|Available|Booked)\\s*)+/g,'\\n').slice(0,1500)`)}\nform still holds: name=${await p.ev(`[...document.querySelectorAll('main input')].find(e=>e.labels?.[0]?.innerText==='Name')?.value ?? '(form gone)'`)} email=${await p.ev(`document.querySelector('main input[type=email]')?.value ?? '(form gone)'`)}\n`
 await shot('04-taken.png')
 fs.writeFileSync(D + 'booking.log', log)
 fs.rmSync(D + 'partial.log')

@@ -1,7 +1,8 @@
 #!/bin/zsh
 # Adds this case's card to a scratch project (installing a fresh board there first if it has
-# none): a 6-second landscape source video and its clone (same pattern, hue shifted) compared
-# with a three-shot list, two landscape images and two portrait images. Needs ffmpeg.
+# none): a 6-second landscape source video beeping at 440 Hz and its clone (hue shifted, at
+# 660 Hz) compared with a three-shot list, two landscape images and two portrait images.
+# Needs ffmpeg.
 # Usage: seed.sh <project dir> <path to cli/bin/ai4kanban.mjs>
 set -e
 P=$1 CLI=$2
@@ -14,8 +15,8 @@ fi
 ID=$(akb raw create --title "对比发布会片头的原片和复刻" --slug compare-intro | head -1)
 A=.akb/boards/docs/kanban/assets/$ID && mkdir -p $A
 ff() { ffmpeg -loglevel error -y "$@" }
-ff -f lavfi -i "testsrc2=s=960x540:r=30:d=6" -an -c:v libx264 -pix_fmt yuv420p -movflags +faststart $A/source.mp4
-ff -i $A/source.mp4 -vf "hue=h=90" -an -c:v libx264 -pix_fmt yuv420p -movflags +faststart $A/clone.mp4
+ff -f lavfi -i "testsrc2=s=960x540:r=30:d=6" -f lavfi -i "sine=f=440:d=6" -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest -movflags +faststart $A/source.mp4
+ff -i $A/source.mp4 -f lavfi -i "sine=f=660:d=6" -map 0:v -map 1:a -vf "hue=h=90" -c:v libx264 -c:a aac -shortest -pix_fmt yuv420p -movflags +faststart $A/clone.mp4
 ff -ss 1 -i $A/source.mp4 -frames:v 1 $A/source.png
 ff -ss 1 -i $A/clone.mp4 -frames:v 1 $A/clone.png
 ff -f lavfi -i "testsrc=s=540x960:d=1" -frames:v 1 $A/phone-source.png

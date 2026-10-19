@@ -51,6 +51,7 @@
 - [在卡片上手写 `<Compare>`，让 `akb raw validate` 指出写错的地方](skill/write-a-compare-on-a-card-and-validate-it/case.md)
 - [改版时给一张已规划好的卡加一张图，改版当场请配图画出来](skill/a-revision-that-adds-an-image-runs-the-illustrator/case.md)
 - [复制「视频克隆」工作流，给它配一个执行 Agent，卡片规划完就能开发](skill/give-a-copied-video-clone-workflow-a-build-agent/case.md)
+- [在命令行生成一张图和一段托管配乐](skill/generate-an-image-and-hosted-music-from-the-command-line/case.md)
 
 ### local-ui
 
@@ -97,6 +98,11 @@
 - [做演示文稿：先看清交付的是图片版 PPT，再在卡片上直接翻 HTML 幻灯片](local-ui/see-html-slides-directly-in-the-storyboard/case.md)
 - [给复制的「视频克隆」工作流设置执行 Agent，让卡片可以执行](local-ui/give-a-copied-video-clone-workflow-a-build-agent/case.md)
 - [审视频复刻的两份分镜：一次看一镜，翻镜，收起](local-ui/review-two-storyboards-one-shot-at-a-time/case.md)
+- [在卡片页看阶段走到哪一步，批准草稿进入下一阶段](local-ui/approve-a-stage-on-a-card/case.md)
+- [视频复刻还没出片时，逐镜对照原片和复刻脚本](local-ui/compare-a-source-video-against-a-clone-script/case.md)
+- [不登录 Cloud，也在铃铛里看到等你处理的卡片](local-ui/get-notified-without-signing-in/case.md)
+- [不复制，直接给内置的「视频克隆」工作流设置、换掉或移除执行 Agent](local-ui/give-the-built-in-video-clone-workflow-a-build-agent/case.md)
+- [在「配置 → 云端」看 Cloud 提供哪些托管 AI 能力，在「账单」看它们各花多少积分](local-ui/see-what-cloud-offers-in-settings/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -150,6 +156,8 @@
 - [在 Cloud 看板上，子卡仍在推进的分组不进「搁置」列](cloud/a-group-stays-off-stale-while-a-subtask-moves/case.md)
 - [在 Cloud 看板网站恢复已取消的 Pro 续费](cloud/resume-a-canceled-pro-renewal/case.md)
 - [登录后在模板库按标签找模板，预览后取回](cloud/find-preview-and-fetch-a-shared-template/case.md)
+- [用 `akb cloud image` 生成一张图像](cloud/generate-an-image-with-cloud/case.md)
+- [用 `akb cloud music` 生成一段托管配乐](cloud/generate-music-with-cloud/case.md)
 
 ### telemetry
 

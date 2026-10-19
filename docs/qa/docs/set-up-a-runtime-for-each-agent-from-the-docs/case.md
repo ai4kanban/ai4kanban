@@ -8,17 +8,18 @@
 
 ## Steps
 
-1. 打开 `/docs`，往下看到「Then pick your tooling」。
-   这一节只有一张卡片「Multi-runtime support」，说明是「Connect your coding tool, choose a runtime for each agent, and set what a run may touch.」，不再叫「What each coding agent can do」。
-   ![文档首页的工具卡片](01-docs-home-card.png)
+1. 打开 `/docs`，读到「Deliver your first card」。
+   第一句「Connect a coding agent, then start with a small change in your project or follow the interactive demo.」，「Connect a coding agent」是链接；首页已没有「Multi-runtime support」卡片，只在「Keep independent tasks moving」一节提到「Runs and runtimes」。
+   ![首页的接入链接](01-docs-home-link.png)
 
 2. 看 `/docs` 和 `/docs/connectors` 在搜索结果、链接预览里的标题和描述。
-   `/docs` 的描述是「How to run AI4Kanban, the kanban board for AI agents: install it, drive the daily loop, and pick the coding agent your work runs on.」；`/docs/connectors` 的标题是「AI4Kanban multi-runtime support — run Claude Code, Codex, Cursor and more」，描述与首页卡片同义。
+   `/docs` 的标题「AI4Kanban docs — an agent workspace for indie hackers」，描述「Set up AI4Kanban, review key drafts before execution, and deliver development and marketing work with six built-in workflows.」；`/docs/connectors` 的标题「AI4Kanban multi-runtime support — run Claude Code, Codex, Cursor and more」，描述「Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch.」。
    [页面标题与描述](02-page-description.log)
 
-3. 点「Multi-runtime support」卡片。
-   进入 `/docs/connectors`，从页顶开始；标题「Multi-runtime support」，导语列出八个工具；左栏「Using the board」最后一项「Multi-runtime」高亮；第一节「Set up a runtime」四步：按官方文档安装登录（只给八个链接，不写安装命令）、在 Configuration → Runtimes 或 `akb agent runtime add` 添加、填设置、按 Test 或 `akb agent test`。
+3. 点「Connect a coding agent」。
+   `/docs/connectors` 在新标签页打开，首页留在原标签页；新页从页顶开始，标题「Multi-runtime support」，导语列出八个工具；左栏「Using the board」最后一项「Multi-runtime」高亮；第一节「Set up a runtime」四步：按官方文档安装登录（只给八个链接，不写安装命令）、在 Configuration → Runtimes 或 `akb agent runtime add` 添加、填设置、按 Test 或 `akb agent test`。
    ![Multi-runtime support 页顶部](03-connectors-top.png)
+   [点击与页面结构](connectors.log)
 
 4. 点右侧目录里的「Settings」。
    页面滚到「Settings」，地址栏带 `#settings`；一张两列表，八行各写该工具要填什么（Provider、模型、推理强度、key）；表下一段说模型留空用工具默认值，以及网关该选哪个运行时。
@@ -42,12 +43,11 @@
 
 ## Feedback
 
-- **入口和名字对上了**：首页卡片、左栏、页标题、Runs 页底的链接都叫 Multi-runtime（support），点进去就是操作指南。
+- **首页入口变成一句话里的链接**：原来的「Multi-runtime support」卡片没了，只剩「Connect a coding agent」，点进去还是另开标签页；想换运行时、而不是第一次接入的人，从首页不容易想到点这里，左栏「Multi-runtime」更直接。
+- **叫法三处不一**：首页说「coding agent」，左栏叫「Multi-runtime」，页面描述又是「coding tool」，同一件事读者要自己对上。
 - **顺序是照着做的顺序**：装好 → 添加 → 填设置 → Test，再讲每个 Agent 怎么绑定，四步读完就知道下一步按哪里。
-- **能力表一屏看全了**：换成 logo 表头、去掉全是 ✓ 的一行后，八列都在表框里，「All eight」不再自相矛盾。
-- **logo 要认得出才省事**：Claude、OpenAI、Cursor、X 一眼能认；OpenCode、DeepSeek Harness、ZCode 的小图标得悬停才知道是谁，而悬停提示在手机上看不到，读的人可能要回到上面的设置表去对顺序。
-- **Runs 页底说清了去那页看什么**：链接前写明「supported tools, their settings and execution limits」，比原来的「the tools behind an agent」更知道点进去能找到什么；但同一段说对话能换「agent or model」，和 Chat 页的「runtime」说法不一。
-- **和命令行的说法改准了**：「shows these too」不再说「同一张表」，命令行多两项、把 DeepSeek Harness 叫 DSH 也不算出入。
-- **安装要跳出去**：八个工具只给官方文档链接，没有一行安装命令；第一次接 ZCode、Grok Build 这类小众工具的人得在别人的站上找。
-- **权限一节有用**：直接点名哪些工具会写项目外，像该决定的事。
+- **能力表一屏看全**：logo 表头、八列都在表框里，没有横向滚动条。
+- **logo 要认得出才省事**：Claude、OpenAI、Cursor、X 一眼能认；OpenCode、DeepSeek Harness、ZCode 的小图标得悬停才知道是谁，手机上看不到悬停提示。
+- **和命令行的说法对得上**：「shows these too」不说「同一张表」，命令行多两项、把 DeepSeek Harness 叫 DSH 也不算出入。
+- **安装要跳出去**：八个工具只给官方文档链接，没有一行安装命令。
 - **没有跑到的**：真的接一个工具并按 Test、在界面里给 Agent 绑定运行时（要真实工具和账号）；窄屏；真鼠标悬停看提示框（只核对了 logo 带 `title` 和 `alt`）。
