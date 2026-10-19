@@ -24,6 +24,7 @@ import { FiAlertCircle, FiArrowDown, FiChevronDown, FiChevronRight, FiClock, FiM
 import {
   cardsOnWorkflowAction,
   createWorkflowAction,
+  deleteAgentAction,
   deleteWorkflowAction,
   dismissRetiredAssignmentAction,
   duplicateWorkflowAction,
@@ -372,6 +373,19 @@ export function WorkflowsPanel({
     roster.setFocusFile(true);
   };
 
+  // Removing that lead deletes it, so the next press can make a fresh one under the same
+  // name (#1836). Any other lead picked here is only unassigned: it may be shared or bundled.
+  const clearLead = async (to: WorkflowStage, lead: string) => {
+    setPicking(null);
+    if (!flow || lead !== `${flow.id}-executor`) {
+      if (await move(to, { kind: "lead", agent: "" })) show("");
+      return;
+    }
+    if (refused(await deleteAgentAction(lead))) return;
+    await Promise.all([load(), roster.load()]);
+    show("");
+  };
+
   const agent = roster.agents?.find((a) => a.name === shown);
   const isLead = !timed && !!setup && shown === setup.lead;
   const shownOff = !!setup?.helpers.find((h) => h.agent === shown)?.off;
@@ -528,14 +542,7 @@ export function WorkflowsPanel({
                 setPicking(null);
                 if (await move(one.stage, { kind: "lead", agent: name })) show(name);
               }}
-              onClear={
-                openLead(flow, one) && one.lead
-                  ? async () => {
-                      setPicking(null);
-                      if (await move(one.stage, { kind: "lead", agent: "" })) show("");
-                    }
-                  : undefined
-              }
+              onClear={openLead(flow, one) && one.lead ? () => void clearLead(one.stage, one.lead) : undefined}
             />
           )}
         </Popover>
