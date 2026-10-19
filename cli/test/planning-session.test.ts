@@ -15,6 +15,8 @@ import { harnessLabel } from '../src/lib/agent/resolve.ts'
 import { closeRun, openRun, patch, peekRun, readSpec, resumeSessionId } from '../src/lib/agent/sessions.ts'
 import { startRun } from '../src/lib/agent/start.ts'
 import { readRuns, recordCreatedCards } from '../src/lib/agent/store.ts'
+import { createWorkflow, setWorkflowLead } from '../src/lib/agent/workflows.ts'
+import { copyAgent } from '../src/lib/agents/roster.ts'
 import type { AgentRequest, RunRecord } from '../src/lib/agent/types.ts'
 import { watchRun } from '../src/lib/agent/watch.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
@@ -246,6 +248,27 @@ describe('a new session, as before', () => {
       assert.deepEqual(notes(run), [])
       await end(run.sessionId)
     }
+  })
+})
+
+describe('a lead that asks for a new session (#1824)', () => {
+  it('opens one for every planning step, and other leads carry on', async () => {
+    // Its copy, on a board's own workflow: the built-in one needs Pro.
+    const mine = createWorkflow('Clips').id!
+    assert.equal(setWorkflowLead(mine, 'plan', copyAgent('video-cloner').agent!).ok, true)
+    assert.equal(setWorkflowLead(mine, 'execute', 'builder').ok, true)
+    await move(root, ['create', '--title', 'A clip', '--workflow', mine])
+    await created([1, 3])
+    const planned = await start({ action: 'clarify', id: 3 })
+    assert.equal(planned.continues, undefined)
+    assert.ok(!planned.argv?.includes('--resume'))
+    assert.deepEqual(notes(planned), ['new session — video-cloner-2 starts each planning step in a new session'])
+    await end(planned.sessionId)
+    const answered = await start({ action: 'resolve', id: 3 })
+    assert.equal(answered.continues, undefined)
+    assert.ok(!answered.argv?.includes('--resume'))
+    const other = await start({ action: 'clarify', id: 1 })
+    assert.equal(other.continues?.fork, true)
   })
 })
 

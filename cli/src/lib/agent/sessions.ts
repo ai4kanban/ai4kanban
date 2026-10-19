@@ -26,6 +26,7 @@ import { readInbox } from '../signals/inbox'
 import { tickedSetupSteps } from '../setup'
 import { reportBoardNumbers, reportRun } from '../machine/usage'
 import { customAgentsOn, isCustomAgent } from '../agents/roster'
+import { findSpecAgent } from '../agents'
 import { SKILL_VERSION } from '../../version'
 import { INDEX_LOCK, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import {
@@ -1030,11 +1031,12 @@ export function carriedSession(
   if (!Number.isInteger(req.id) || !PLANNING.has(req.action)) return undefined
   const fresh = (why: string) => ({ note: `new session — ${why}` })
   if (req.session === 'new') return fresh('the earlier one is gone, so this step was started again')
+  const agent = agentForRun(req)
+  if (agent && findSpecAgent(agent)?.session === 'new') return fresh(`${agent} starts each planning step in a new session`)
   const found = planningSession(req.id as number)
   if ('none' in found) {
     return fresh(found.none === 'elsewhere' ? 'the earlier session was opened in another folder' : 'no earlier session of this card is on record')
   }
-  const agent = agentForRun(req)
   const own = planRun(randomUUID(), REPO_ROOT, agent, req.runtime ? { pin: req.runtime } : {})
   if (own.harness !== found.session.harness) {
     return fresh(`the earlier session was held by ${harnessLabel(found.session.harness)}, and this step runs on ${harnessLabel(own.harness)}`)

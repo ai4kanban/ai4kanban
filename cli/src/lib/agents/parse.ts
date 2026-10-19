@@ -28,6 +28,9 @@ export interface SpecAgent {
   /** The new input a scheduled agent runs on (#1475) — `akb.reads`. Absent: it runs on its
    *  cadence alone. */
   reads?: ScheduleReads
+  /** Each of a plan lead's planning steps opens a new session (#1824) — `akb.session: new`.
+   *  Absent: planning carries the card's session on. */
+  session?: 'new'
   /** The global memories it keeps (#1575) — `akb.memory`, by name. A name no memory has is
    *  kept here and skipped where the run is written. */
   memory: string[]
@@ -72,8 +75,8 @@ const ROLE_LINES = [...WORKFLOW_STAGES.map((stage) => `\`lead: ${stage}\``), '`h
  *  and the word every flow asks for it by. */
 export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
-/** Every `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts holds
- *  the written key table to it. */
+/** Every documented `akb.*` key read below. Change it with the parser: test/agent-key-docs.test.ts
+ *  holds the written key table to it. `akb.session` (#1824) is read but kept out of the guide. */
 export const AGENT_KEYS = ['lead', 'hook', 'reads', 'memory', 'i18n'] as const
 
 /** What `akb.reads` names (#1475): the new input whose arrival makes a scheduled agent due. */
@@ -170,6 +173,14 @@ export function parseSpecAgent(
     return bad(`\`${name}\` declares \`akb.reads: ${declaredReads}\` — it is \`${SCHEDULE_READS.join('` or `')}\``)
   }
 
+  const declaredSession = str(akb.session)
+  if (declaredSession && !(role === 'lead' && stage === 'plan')) {
+    return bad(`\`${name}\` declares \`akb.session\`, which only a \`lead: plan\` agent reads — remove it`)
+  }
+  if (declaredSession && declaredSession !== 'new') {
+    return bad(`\`${name}\` declares \`akb.session: ${declaredSession}\` — it is \`new\`, or left out to carry the session on`)
+  }
+
   const instructions = body.trim()
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
@@ -187,6 +198,7 @@ export function parseSpecAgent(
       stage,
       schedule,
       ...(declaredReads ? { reads: declaredReads as ScheduleReads } : {}),
+      ...(declaredSession ? { session: 'new' as const } : {}),
       memory: names(akb.memory),
       files: list(),
       body: instructions,

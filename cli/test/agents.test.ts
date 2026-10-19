@@ -317,6 +317,19 @@ describe('an agent nobody can read', () => {
       assert.match(problem('lead: yes'), /`akb.lead: yes` — it is `plan` or `execute`/)
     })
 
+    it('reads `session: new` on a plan lead alone (#1824)', () => {
+      const got = read('lead: plan', 'session: new')
+      assert.ok('agent' in got)
+      assert.equal(got.agent.session, 'new')
+      const plain = read('lead: plan')
+      assert.ok('agent' in plain)
+      assert.equal(plain.agent.session, undefined)
+      assert.match(problem('lead: plan', 'session: resume'), /`akb.session: resume` — it is `new`/)
+      for (const role of ['lead: execute', 'hook: plan']) {
+        assert.match(problem(role, 'session: new'), /only a `lead: plan` agent reads — remove it/, role)
+      }
+    })
+
     it('refuses the old keys, naming them and the line that replaces them', () => {
       for (const [old, line] of [
         [['kind: lead', 'stage: plan'], 'lead: plan'],

@@ -3,6 +3,7 @@ name: video-cloner
 description: Leads a video clone card — clones a video made with code into a reusable beat-table template that keeps its craft and swaps in the user's content, renders it once and checks it against the source beat by beat.
 akb:
   lead: plan
+  session: new
   i18n:
     en:
       title: Video cloner
