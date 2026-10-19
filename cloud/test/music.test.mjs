@@ -93,9 +93,9 @@ describe('POST /v1/music', () => {
     assert.equal(cut.seconds, 12)
   })
 
-  it('spends 320 credits per track and records it with what it cost', async () => {
+  it('spends 160 credits per track and records it with what it cost', async () => {
     await call({ prompt: 'Calm piano', seconds: 30 })
-    assert.equal(used[SUBJECT], 320)
+    assert.equal(used[SUBJECT], 160)
     assert.deepEqual(recorded, [row('music', { p_usage: 30, p_cost_usd: 0.08, p_generation_id: 'gen-m1' })])
   })
 
