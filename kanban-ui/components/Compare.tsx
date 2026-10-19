@@ -2,8 +2,9 @@
 
 // A `<Compare>` (#1740): two images or two videos, each whole at its own ratio, framed like an
 // `<Asset>`. Landscape A stacks A over B; portrait A puts them side by side. Videos share one
-// play bar: A leads, B follows muted, is pulled back when it drifts, and holds its last frame
-// once it runs out. With `shots`, a list or a storyboard, the bar is cut into one segment per shot.
+// play bar: A leads, B follows, is pulled back when it drifts, and holds its last frame once it
+// runs out. One side at most is heard (#1831), A by default. With `shots`, a list or a
+// storyboard, the bar is cut into one segment per shot.
 //
 // B may be a storyboard of A instead (#1803): under A's video, the shot A is on, as `shots` (when
 // a storyboard) tells it and as B does, side by side.
@@ -12,7 +13,7 @@
 // side.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight, FiDownload, FiMaximize2, FiPause, FiPlay } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiDownload, FiMaximize2, FiPause, FiPlay, FiVolume2, FiVolumeX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { storyboardShots, type Shot } from "@/lib/format/compare";
 import { assetImageHref, type MockupView } from "@/lib/mockup-tag";
@@ -69,6 +70,8 @@ export function Compare({
 
 type Ratios = [number | null, number | null];
 type PaneProps = { name: string; ratio: number | null; max: string; bg: string };
+/** Which side is heard: A, B, or neither. */
+type Heard = 0 | 1 | null;
 
 /** How tall one side may be, so both fit one screen: stacked, half of it each. Full size takes
  *  off the preview's padding, the caption and the play bar. */
@@ -89,6 +92,9 @@ function Frame(props: FrameProps) {
   const box = useRef<HTMLSpanElement>(null);
   const [full, setFull] = useState(false);
   const fold = useFold();
+  // Shared by the card and full size, so opening it keeps the choice.
+  const [heard, setHeard] = useState<Heard>(0);
+  const sound = { heard, setHeard };
   const open = () => {
     // One side plays with sound; the copy under the preview must not play along.
     for (const v of box.current?.querySelectorAll("video") ?? []) v.pause();
@@ -101,12 +107,12 @@ function Frame(props: FrameProps) {
           <FiMaximize2 aria-hidden size={13} />
         </button>
       </Caption>
-      {fold.open && <Body {...props} full={false} />}
+      {fold.open && <Body {...props} {...sound} full={false} />}
       {full && (
         <PreviewDialog label={props.label} onClose={() => setFull(false)}>
           <span onClick={(e) => e.stopPropagation()} className="block w-[calc(100vw-128px)] bg-nb-paper shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
             <Caption label={props.label} variants={null} menu={menu} />
-            <Body {...props} full />
+            <Body {...props} {...sound} full />
           </span>
         </PreviewDialog>
       )}
@@ -125,7 +131,7 @@ function useDownloads({ a, b, names }: FrameProps): MenuItem[] {
   }));
 }
 
-function Body({ a, b, names, shots, breakdown, full }: FrameProps & { full: boolean }) {
+function Body({ a, b, names, shots, breakdown, full, heard, setHeard }: FrameProps & { full: boolean; heard: Heard; setHeard: (h: Heard) => void }) {
   const c = useCopy().card.mockup;
   const [ratios, setRatios] = useState<Ratios>([null, null]);
   const [failed, setFailed] = useState(false);
@@ -148,7 +154,7 @@ function Body({ a, b, names, shots, breakdown, full }: FrameProps & { full: bool
     // Half a screen, so the shot's script stays in view under it.
     const pane = { name: names[0], ratio: ratios[0], max: maxHeight(true, full, true), bg: "#000" };
     return (
-      <Videos a={a.media!.href} panes={[pane]} stacked shots={shots} ratio={ratio} fail={fail}>
+      <Videos a={a.media!.href} panes={[pane]} stacked shots={shots} ratio={ratio} fail={fail} heard={heard}>
         {(time) => <Scripts time={time} shots={shots!} script={b} breakdown={breakdown} names={names} />}
       </Videos>
     );
@@ -158,7 +164,7 @@ function Body({ a, b, names, shots, breakdown, full }: FrameProps & { full: bool
   const max = maxHeight(stacked, full, video);
   const panes = ([0, 1] as const).map((side) => ({ name: names[side], ratio: ratios[side], max, bg: video ? "#000" : "var(--color-nb-wash)" }));
   return video ? (
-    <Videos a={a.media!.href} b={b.media!.href} panes={panes} stacked={stacked} shots={shots} ratio={ratio} fail={fail} />
+    <Videos a={a.media!.href} b={b.media!.href} panes={panes} stacked={stacked} shots={shots} ratio={ratio} fail={fail} heard={heard} setHeard={setHeard} />
   ) : (
     <Sides stacked={stacked}>
       {[a, b].map((v, side) => (
@@ -185,15 +191,30 @@ function Sides({ stacked, children }: { stacked: boolean; children: React.ReactN
 }
 
 /** One side: the picture whole at its own ratio, letterboxed when its height is capped. */
-function Pane({ name, ratio, max, bg, children }: PaneProps & { children: React.ReactNode }) {
+function Pane({ name, ratio, max, bg, sound, children }: PaneProps & { sound?: { heard: boolean; toggle: () => void }; children: React.ReactNode }) {
+  const c = useCopy().card.mockup;
+  const Icon = sound?.heard ? FiVolume2 : FiVolumeX;
+  const tip = sound?.heard ? c.mute : c.unmute;
   return (
     <span className="relative block w-full overflow-hidden" style={{ aspectRatio: ratio ?? 16 / 9, maxHeight: max, background: bg }}>
       {children}
       <span
-        className="pointer-events-none absolute left-2.5 top-2.5 max-w-[calc(100%-20px)] truncate rounded-[6px] px-2 py-[2px] text-[11.5px] font-[700] text-white"
+        className={`pointer-events-none absolute left-2.5 top-2.5 flex max-w-[calc(100%-20px)] items-center gap-1 rounded-[6px] py-[2px] pl-2 text-[11.5px] font-[700] text-white ${sound ? "pr-1" : "pr-2"}`}
         style={{ background: "rgba(0,0,0,.55)" }}
       >
-        {name}
+        <span className="truncate">{name}</span>
+        {sound && (
+          <button
+            type="button"
+            onClick={sound.toggle}
+            data-tip={tip}
+            aria-label={tip}
+            aria-pressed={sound.heard}
+            className={`nb-tip nb-tip-below nb-focus pointer-events-auto grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-[4px] hover:bg-white/20 ${sound.heard ? "text-white" : "text-white/55 hover:text-white"}`}
+          >
+            <Icon aria-hidden size={13} />
+          </button>
+        )}
       </span>
     </span>
   );
@@ -211,6 +232,8 @@ function Videos({
   shots,
   ratio,
   fail,
+  heard,
+  setHeard,
   children,
 }: {
   a: string;
@@ -221,6 +244,9 @@ function Videos({
   shots?: Shot[];
   ratio: (side: 0 | 1, w: number, h: number) => void;
   fail: () => void;
+  heard: Heard;
+  /** Absent when B is a storyboard: A alone, and no speaker. */
+  setHeard?: (h: Heard) => void;
   /** What sits under the play bar, at A's time. */
   children?: (time: number) => React.ReactNode;
 }) {
@@ -303,7 +329,7 @@ function Videos({
       src={side ? b : a}
       preload="metadata"
       playsInline
-      muted={side === 1}
+      muted={heard !== side}
       onClick={toggle}
       onError={fail}
       onLoadedMetadata={() => meta(side)}
@@ -326,7 +352,7 @@ function Videos({
     <>
       <Sides stacked={stacked}>
         {panes.map((pane, side) => (
-          <Pane key={side} {...pane}>
+          <Pane key={side} {...pane} sound={setHeard && { heard: heard === side, toggle: () => setHeard(heard === side ? null : (side as 0 | 1)) }}>
             {video(side as 0 | 1)}
           </Pane>
         ))}
