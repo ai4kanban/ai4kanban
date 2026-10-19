@@ -58,8 +58,8 @@ await p.close()
 
 // 7. a motion, in Chinese
 p = await open(1280, 1300); req = watch(p)
-await p.nav(B + '/zh/templates/motion/logo-build', 6000)
-log += `\n# 7. Open /zh/templates/motion/logo-build\ntitle: ${await p.ev('document.title')}\n${await text(p)}\nmedia on the page:\n${await mediaEls(p)}\n`
+await p.nav(B + '/zh/templates/motion/card-widen', 6000)
+log += `\n# 7. Open /zh/templates/motion/card-widen\ntitle: ${await p.ev('document.title')}\n${await text(p)}\nmedia on the page:\n${await mediaEls(p)}\n`
 await p.shot(D + '08-motion-detail-zh.png', { x: 0, y: 0, width: 1280, height: 1300 })
 await p.close()
 

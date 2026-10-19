@@ -8,7 +8,7 @@
 ## Steps
 
 1. 打开 `/templates`，从头滚到底。
-   大标题「Templates」，下面一行「Browse by category.」；依次四个区块，标题旁写数量：「UI templates · 1 template」「Video templates · 1 template」「Props · 4 templates」「Motion · 5 templates」，没有分类选择或「查看全部」。每张卡片是封面、名称和两行说明，「Free」叠在封面左上角；视频模板封面右下角还标时长「1:09」。滚完整页只请求了目录接口和 11 张静态封面，页面上没有任何 video 或 iframe。
+   大标题「Templates」，下面一行「Browse by category.」；依次四个区块，标题旁写数量：「UI templates · 1 template」「Video templates · 1 template」「Props · 4 templates」「Motion · 4 templates」，没有分类选择或「查看全部」。每张卡片是封面、名称和两行说明，「Free」叠在封面左上角；视频模板封面右下角还标时长「1:09」。滚完整页只请求了目录接口和 10 张静态封面，页面上没有任何 video 或 iframe。
    ![目录首屏](01-catalog-top.png) · ![道具和动效两个区块](02-props-and-motion.png) · [templates.log](templates.log)
 
 2. 点视频区块里的「UI walkthrough launch」。
@@ -31,8 +31,8 @@
    名称下是「Props」「Free」；没有原作／复刻对照，只有一张完整显示、不裁切的关键帧（16:9），左上角标「Keyframe」。说明上方一行带图标的提示「Works inside a video template; it can't run on its own.」；说明、标签、使用入口和来源与其他类别相同。关键帧原图只有 480×270，被放大到 1104 宽，看得出发虚。
    ![道具详情](07-prop-detail.png) · [templates.log](templates.log)
 
-7. 打开中文的动效「Logo built from its own parts」（`/zh/templates/motion/logo-build`）。
-   「返回动效」、「动效」「免费」；关键帧按 2:1 完整显示，标「关键帧」，说明上方提示「需在视频模板中使用，不能单独运行。」；标签、「使用这个模板」「下载 AI4Kanban」「来源」「采集时间」都是中文，但名称、一句话简介和长说明仍是英文，长说明里还写着「the `HF` helpers `el` and `tl`」。
+7. 打开中文的动效「Narrow card widens into a line」（`/zh/templates/motion/card-widen`）。
+   「返回动效」、「动效」「免费」；关键帧按 16:9 完整显示，标「关键帧」，说明上方提示「需在视频模板中使用，不能单独运行。」；标签、「使用这个模板」「下载 AI4Kanban」「来源」「采集时间」都是中文，但名称、一句话简介和长说明仍是英文，长说明里还写着「the `HF` helpers `el` and `tl`」。
    ![中文动效详情](08-motion-detail-zh.png) · [templates.log](templates.log)
 
 8. 用 390px 宽的手机打开视频详情，再打开道具「macOS Open panel」。
