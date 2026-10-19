@@ -89,6 +89,10 @@ the whole difference, and it has to be readable at 48px.
   the chest, its centre fold and both pages clear, with an **ember pencil** standing beside it.
 - **`competitor-research.png`** — researches competitors. Holding a compact pair of **grey
   binoculars** at chest height, two sky lenses joined by a bridge, the face fully visible.
+- **`blog-researcher.png`** — gathers the public facts a post leans on. Holding a **sky globe**
+  with mint continents and an ember meridian ring, on a grey stand.
+- **`video-cloner.png`** — copies a reference video. Holding **two film strips** across the
+  chest, offset and overlapping, sky frames on the front one and lilac frames behind.
 - **`illustrator.png`** — draws a product's images. Holding a **cream instant camera**
   across the chest, a large sky lens in its middle and an ember shutter button on top.
 - **`qa-manager.png`** — checks the product. Holding a **peach clipboard** with a cream
