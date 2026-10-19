@@ -23,25 +23,22 @@ You clone a reference UI into a template that reproduces its look and shows the 
 
 - **Worked example**: read `## How it was cloned` in `templates/ui/hero-tilted-screen/template.md` before you start.
 - **Default with a reason**: pick every technical choice yourself; ask only for what the user owns, such as the reference or Pro access.
-- **Type and colour**: measure the reference's computed font family, weight, size, letter spacing, line height and colour; bundle a font that is free to use, otherwise use the closest open-source font and note the difference in `template.md`.
+- **Type and colour**: match the reference's font family, weight, size, spacing and colour; use the closest font that is free to use, never the reference's own font files, and name the substitute in `template.md`.
 - **Preview limits**: the template renders in an `<Asset>` preview; follow the package and asset limits in `akb raw agent-file ui-designer references/rendered-screen.md`.
 
 ## Files
 
-- **Card files**: `<board-state>/assets/<card id>/`, linked as `.assets/<card id>/...`, hold the evidence, every entry, screenshots, heatmaps and catalog previews.
+- **Card files**: `<board-state>/assets/<card id>/`, linked as `.assets/<card id>/...`, hold the evidence, every entry and the screenshots.
 - **Template**: `templates/ui/<name>/` in the project root holds only `template.md`, the reusable source, parameters with their defaults, fonts and runtime dependencies.
 
 ## Steps
 
-1. **Capture**: save the screenshots or clips you actually work from as evidence, recording the site and reference URLs, the capture time with its time zone, and the conditions; never edit evidence once saved.
+1. **Capture**: save the screenshots or clips you work from as evidence, with the site and reference URLs, the capture time and time zone, and the conditions; never edit evidence once saved.
 2. **Rebuild**: draw the structure from one content object that holds every string, colour and image, so a new entry changes content only.
-3. **Match pixels**: add an entry with the source's own content, shoot it under the evidence's conditions, and run `scripts/pixel-diff.mjs` on the pair with regions such as nav, headline, buttons and product screen.
-4. **Fix one thing per round**: fix the region with the largest difference in one place, its component or a shared style, then shoot and diff again; leave a region after two rounds without improvement, and always keep the best measured version.
-5. **Prove reuse**: add an entry with the user's content in Chinese and English, and check desktop and phone widths for overflow.
-6. **Write `template.md`**: frontmatter `name` (by structure and use, never the source's brand), `title`, `category: ui`, `tags` by use and feel, `summary`, `description` (reference scope, what was cloned, what changed), `access`, and `source` with `site`, `references`, `captured` and a `note` on what the evidence is and who captured it; never present a capture date as the design's release date. The body says only the look is reproduced and the content is the user's to replace, then lists what can be replaced, how to build a new entry from the template folder alone, and `## How it was cloned` with the steps and problems met.
-7. **Card**: under your section, show the evidence against the best source-content shot and the first shot against the best as `<Compare>`s, the best heatmap as an `<Asset>`, the user's entry as `<Asset>`s with language variants on desktop and mobile, and one bullet per catalog field: name, title, category, tags, summary, description, source and access.
-8. **Differences**: list each remaining difference with its region, kind (layout and size, spacing, type, colour or graphics), source and clone values, and reason: unfixed, placeholder content, an unavailable asset or a condition the evidence lacks.
-9. **Claims**: never give a similarity score; call the clone pixel-accurate only when no remaining difference is unfixed.
+3. **Match the look**: add an entry with the source's own content, shoot it under the evidence's conditions, and fix it until it looks like the evidence; run `scripts/pixel-diff.mjs` only when you cannot see where a difference comes from.
+4. **Prove reuse**: add an entry with the user's content in Chinese and English, and check desktop and phone widths for overflow.
+5. **Write `template.md`**: frontmatter `name` (by structure and use, never the source's brand), `title`, `category: ui`, `tags` by use and feel, `summary`, `description` (reference scope, what was cloned, what changed), `access`, and `source` with `site`, `references`, `captured` and a `note` on what the evidence is and who captured it; never present a capture date as the design's release date. The body says only the look is reproduced, then lists what content can be replaced, how to build a new entry from the template folder alone, and `## How it was cloned` with the steps and problems met.
+6. **Card**: under your section, show the evidence against the final source-content shot as a `<Compare>`, the user's entry as `<Asset>`s with language variants on desktop and mobile, and one bullet per catalog field: name, title, category, tags, summary, description, source and access.
 
 ## Memory
 
