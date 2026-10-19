@@ -240,6 +240,14 @@ export const isBuiltinWorkflow = (id: string): boolean => BUILTIN_WORKFLOW_IDS.i
 /** What a built-in is for. A board's own workflow has none. */
 export const builtinDescription = (id: string): string | undefined => BUILTINS.find((w) => w.id === id)?.description
 
+/** What a workflow is for: a built-in's own line, a board's own its plan lead's description,
+ *  else its name. */
+export function workflowPurpose(flow: Workflow): string {
+  if (flow.builtIn) return builtinDescription(flow.id) || flow.name
+  const lead = flow.stages.plan.lead
+  return (lead && agentRoster().find((a) => a.name === lead)?.gloss) || flow.name
+}
+
 // ---- reading ---------------------------------------------------------------
 
 // `ui.config.json`:

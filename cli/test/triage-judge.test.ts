@@ -15,6 +15,7 @@ import { openRun } from '../src/lib/agent/sessions.ts'
 import { readRuns } from '../src/lib/agent/store.ts'
 import { cmdTriageAdd, cmdTriageRestore } from '../src/commands/triage.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
+import { createWorkflow, setWorkflowLead } from '../src/lib/agent/workflows.ts'
 import { addToInbox } from '../src/lib/signals/add.ts'
 import { fileName, readAllDismissed, readArchived, readInbox, writeSignal } from '../src/lib/signals/inbox.ts'
 import {
@@ -292,6 +293,15 @@ describe('the questions', () => {
     assert.equal(asked.workflow!.criteria.coding, 'Plan and implement software changes.')
     assert.match(asked.workflow!.criteria['blog-post']!, /full article/)
     assert.equal(asked.workflow!.criteria.none, 'no workflow here can do this work.')
+  })
+
+  it("tells a board's own workflow by its plan lead's description, else by its name", () => {
+    const mine = createWorkflow('UI clone')
+    const purpose = () => (questionsFor([], 'card') as Record<string, { criteria: Record<string, string> }>).workflow!.criteria[mine.id!]
+    assert.equal(purpose(), 'UI clone')
+    write(path.join(kanban(), 'agents', 'cloner', 'AGENT.md'), '---\nname: cloner\ndescription: Rebuild a reference screen as a reusable template.\nakb:\n  lead: plan\n---\n\nYou work.\n')
+    assert.equal(setWorkflowLead(mine.id!, 'plan', 'cloner').ok, true)
+    assert.equal(purpose(), 'Rebuild a reference screen as a reusable template.')
   })
 
   it('asks only what the card needs of an item already judged worth one', () => {

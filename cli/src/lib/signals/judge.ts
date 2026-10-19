@@ -15,7 +15,7 @@ import path from 'node:path'
 import os from 'node:os'
 
 import { nodeOfFlow } from '../agent/stages'
-import { builtinDescription, scheduledWorkflow, workflows } from '../agent/workflows'
+import { scheduledWorkflow, workflowPurpose, workflows } from '../agent/workflows'
 import { runBoardMove } from '../board'
 import { idPrefix, walkMd } from '../cards'
 import { cloudEndpoints } from '../cloud/config'
@@ -107,7 +107,8 @@ const ROI = {
   },
 } as const
 
-const WORKFLOW_ASKS = 'Which workflow does the work this item asks for? Pick none when no workflow here can.'
+const WORKFLOW_ASKS =
+  'Which workflow does the work this item asks for? Choose by the work, not the topic: changing code, agent instructions or skill files is `coding` work, even when they are about UI or video. Pick none when no workflow here can.'
 
 const NO_WORKFLOW = 'no workflow here can do this work.'
 
@@ -147,7 +148,7 @@ function moduleCriteria(): Record<string, string> {
 }
 
 const workflowCriteria = (): Record<string, string> =>
-  Object.fromEntries(workflows().map((flow) => [flow.id, (flow.builtIn && builtinDescription(flow.id)) || flow.name]))
+  Object.fromEntries(workflows().map((flow) => [flow.id, workflowPurpose(flow)]))
 
 /** Which questions an item is asked: all of them, a proposer's, or only its card's. */
 export type Asks = 'all' | 'proposer' | 'card'

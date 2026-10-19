@@ -13,7 +13,7 @@ import { die } from '../lib/paths'
 import { agentRoster } from '../lib/agent/roles'
 import {
   agentWorkflow,
-  builtinDescription,
+  workflowPurpose,
   createWorkflow,
   duplicateWorkflowIfAllowed,
   liveStage,
@@ -96,8 +96,8 @@ export async function cmdWorkflowList(): Promise<MoveResult> {
   for (const flow of rows) {
     const pro = flow.pro ? (locked ? '  (Pro · locked)' : '  (Pro)') : ''
     say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}${pro}${flow.needsArtifact ? '  (no worktree)' : ''}`)
-    const description = flow.builtIn ? builtinDescription(flow.id) : undefined
-    if (description) say(`  ${description}`)
+    const description = workflowPurpose(flow)
+    if (description !== flow.name) say(`  ${description}`)
     for (const stage of WORKFLOW_STAGES) {
       const setup = liveStage(flow, stage)
       const hooks = setup.helpers.map((h) => `${titleOf(h.agent)}${h.off ? ' (off)' : ''}`).join(', ')
@@ -115,7 +115,7 @@ export async function cmdWorkflowList(): Promise<MoveResult> {
     workflows: rows.map((flow) => ({
       ...flow,
       scheduled: scheduledMembers(flow),
-      ...(flow.builtIn ? { description: builtinDescription(flow.id) } : {}),
+      description: workflowPurpose(flow),
       ...(flow.pro ? { locked } : {}),
     })),
   }
