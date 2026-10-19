@@ -363,13 +363,18 @@ export function WorkflowsPanel({
     return "";
   };
 
-  // An empty execute stage gets a new lead of its own, named after the workflow (#1772).
+  // An empty execute stage gets a new lead of its own, named after the workflow (#1772). One
+  // left behind unassigned is taken back rather than refused (#1859).
   const createExecutor = async () => {
     if (!flow) return;
-    const made = await roster.create(`${flow.id}-executor`, "execute", `${nameOf(flow)} executor`);
-    if (made.error || !made.agent) return onError?.(made.error ?? c.saveFailed);
-    if (!(await move("execute", { kind: "lead", agent: made.agent }))) return;
-    show(made.agent);
+    let agent = `${flow.id}-executor`;
+    if (!roster.agents?.some((a) => a.name === agent)) {
+      const made = await roster.create(agent, "execute", `${nameOf(flow)} executor`);
+      if (made.error || !made.agent) return onError?.(made.error ?? c.saveFailed);
+      agent = made.agent;
+    }
+    if (!(await move("execute", { kind: "lead", agent }))) return;
+    show(agent);
     roster.setFocusFile(true);
   };
 
@@ -498,7 +503,8 @@ export function WorkflowsPanel({
         </h4>
         {blocked && <p className="mb-2 px-2.5 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
         {/* A built-in's lead is what its name promises, so it is shown and not offered
-            (#774). On a workflow of this board's own the chevron beside it swaps it. */}
+            (#774). On a workflow of this board's own the chevron beside it swaps it. A
+            workflow finished in planning only sets or removes its own (#1859). */}
         <Popover open={picking === one.stage} onOpenChange={(open) => setPicking(open ? one.stage : null)}>
           <PopoverAnchor asChild>
             <div>
@@ -509,7 +515,8 @@ export function WorkflowsPanel({
                   problem={warn(one.lead)}
                   held={shown === one.lead}
                   onOpen={() => void select(one.lead)}
-                  swap={flow.builtIn && !openLead(flow, one) ? undefined : c.pickLead}
+                  swap={flow.builtIn || openLead(flow, one) ? undefined : c.pickLead}
+                  onRemove={openLead(flow, one) ? () => void clearLead(one.stage, one.lead) : undefined}
                 />
               ) : leadOptional(flow, one) ? (
                 <button
@@ -533,7 +540,7 @@ export function WorkflowsPanel({
               )}
             </div>
           </PopoverAnchor>
-          {picking === one.stage && (
+          {picking === one.stage && !openLead(flow, one) && (
             <AgentPicker
               label={c.pickLead}
               candidates={one.candidates.filter((a) => a.canLead && !one.helpers.some((h) => h.agent === a.name))}
@@ -542,7 +549,6 @@ export function WorkflowsPanel({
                 setPicking(null);
                 if (await move(one.stage, { kind: "lead", agent: name })) show(name);
               }}
-              onClear={openLead(flow, one) && one.lead ? () => void clearLead(one.stage, one.lead) : undefined}
             />
           )}
         </Popover>
@@ -899,6 +905,7 @@ function StageRow({
   off,
   onOpen,
   swap,
+  onRemove,
 }: {
   name: string;
   agent: WorkflowCandidate | undefined;
@@ -911,7 +918,9 @@ function StageRow({
   onOpen: () => void;
   /** The label of the chevron that swaps who leads; the row must sit in that Popover. */
   swap?: string;
+  onRemove?: () => void;
 }) {
+  const c = useCopy().configuration.workflows;
   const nameOf = useCandidateName();
   return (
     <div
@@ -952,6 +961,17 @@ function StageRow({
             <FiChevronDown aria-hidden />
           </button>
         </PopoverTrigger>
+      )}
+      {onRemove && (
+        <button
+          type="button"
+          aria-label={c.clearLead}
+          title={c.clearLead}
+          onClick={onRemove}
+          className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft hover:bg-nb-ink/5 nb-focus"
+        >
+          <FiX aria-hidden />
+        </button>
       )}
     </div>
   );
@@ -1052,14 +1072,11 @@ function AgentPicker({
   candidates,
   chosen,
   onPick,
-  onClear,
 }: {
   label: string;
   candidates: WorkflowCandidate[];
   chosen: string;
   onPick: (name: string) => void;
-  /** Offered when the stage may be left empty. */
-  onClear?: () => void;
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useCandidateName();
@@ -1089,14 +1106,6 @@ function AgentPicker({
               </span>
             </PopoverOption>
           ))}
-        </div>
-      )}
-      {onClear && (
-        <div className="mt-1 border-t border-nb-ink/10 pt-1">
-          <PopoverOption onClick={onClear} className="px-2 text-[12px] font-[700] text-nb-ink-soft">
-            <FiX aria-hidden className="text-[13px]" />
-            {c.clearLead}
-          </PopoverOption>
         </div>
       )}
     </PopoverContent>
