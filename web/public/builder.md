@@ -4,28 +4,20 @@ Tao Wu
 
 Founder of AI4Kanban
 
-Hi, I'm Tao. I'm building AI4Kanban full-time.
+**1.** Everyone in the AI industry believes you can let AI agents handle everything. But we believe differently. AI and humans should have a clear boundary: humans handle precision, and agents handle generation. Humans handle the key parts while agents handle the details.
 
-My first idea was to build a one-person startup with agents running the project on their own. Coding agents were already doing more of the implementation. I wanted to see if they could take on the planning too.
+*You hand an idea to AI4Kanban, which turns it into drafts for you to review. Once you approve them, AI4Kanban passes the drafts and their context to agents, who take over the work.*
 
-Our idea was simple: before building, the agent asks questions until the task is clear. It worked in the background. It broke an idea into tasks, found the missing details, and answered what it could on its own. Only the few choices that needed a person came back, as multiple-choice questions.
+**2.** Human thinking is still what really matters. But not "execution smart". It's more about "planning smart". Models are evolving quickly, skills are getting thinner, and there's no need for another complex harness with over 100k lines of code just to handle one specific task. The models have already learned those capabilities. So knowing what to do and having a sense of what's good or bad are what really differentiate you in this AI era.
 
-*The agent asks first, settles what it can, and hands you the few real choices.*
+**3.** Skills are thin, so it's pointless to pay $99/month for a workflow that can be encapsulated in a skill. I prefer a unified workspace where I manage different kinds of work. As an indie hacker, I don't just code. I do marketing as well. My Codex desktop gets messy when I mix 10+ tasks in the UI, some coding, some marketing.
 
-We spent a lot of time trying to make it work. The agents did raise useful questions and make useful decisions. But early users told us **it didn't feel faster**. A coding agent shows results right away. Ours made them wait through planning and answer more questions, and it spent more tokens. A small task could turn into a long conversation.
+**4.** These thoughts led to what AI4Kanban is today. It's a middle layer between humans and the agents who handle execution. You manage your ideas, both coding and marketing, on the board.
 
-That feedback showed me what was wrong. We were asking people to settle everything before they had seen a result. But most people **don't know exactly what they want until they see a first version**. More questions upfront couldn't fix that.
+For each idea, you review a draft before agents build it. Once the "key parts" match your expectations perfectly, leave the rest to agents.
 
-So AI4Kanban now shows you **drafts of the key parts first**: a UI mockup, the copy for a page, or a change to a prompt. You settle those, and the agent builds the rest.
+What about "execution"? It's thin today, but it hasn't entirely vanished. So we provide 6 built-in workflows and 20+ agents tailored for indie hackers. We've created thousands of tasks through these workflows. They use your existing AI subscriptions, like Codex, Claude Code, and Cursor, so you don't pay extra for AI coding. You can create your own workflow and add new agents to the team in existing workflows.
 
-*You settle the key drafts. The agent builds the rest.*
-
-Agents sometimes add features you never asked for. In a long written spec, those additions are easy to miss. In a UI draft, you can see the extra pages right away. You can say, 'I don't need these,' before the agent builds them. Sometimes, seeing the draft makes you rethink the whole idea.
-
-We had moved from trying to let AI do everything, to having people help AI, to having **AI help people**. Giving people more say over the direction made it easier to hand over the execution. Once the key drafts were agreed on, there was less left to keep checking.
-
-My goal is simple: reduce the effort people spend on each task, and help them become **another 10 times more productive**. That's why I'm building AI4Kanban.
-
-This took a few attempts to understand. I'm still building it. You can see where AI4Kanban is today on the [home page](https://ai4kanban.dev/), or follow the work on [GitHub](https://github.com/ai4kanban/ai4kanban).
+Yet while skills, agents, and workflows are thin, templates are not. Without a template, you may still produce an ugly product intro video or landing page, even with the most powerful model and agent. This is not their fault. We've cloned videos, UI, and decks into a template catalog, with carousels coming soon. The templates are "feels" and "recipes" that teach your agent to work like an expert.
 
 Tao

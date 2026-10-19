@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { GITHUB_URL } from "@/components/content";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SOCIALS, SOCIAL_URLS } from "@/components/social";
 import { buttonClass } from "@/components/ui/Button";
-import { AskingFirst } from "@/components/builder/AskingFirst";
-import { DraftsFirst } from "@/components/builder/DraftsFirst";
+import { BridgeScene } from "@/components/home/BridgeScene";
 import { getCopy } from "@/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { ORG_ID, PERSON_ID, jsonLd, pageUrl, webPage } from "@/lib/schema";
@@ -18,9 +15,9 @@ const AVATAR = "https://cdn.dist0.com/images/tao.avatar.jpg";
 const PATH = "/builder";
 const TITLE = "Why I'm building AI4Kanban — Tao Wu";
 const DESCRIPTION =
-  "I started AI4Kanban hoping AI could run a project. Trying it with early users changed my mind about which decisions I could hand over.";
+  "Four thoughts on why I'm building AI4Kanban: clear boundaries between humans and agents, planning smart, thin skills, and a workspace for coding and marketing.";
 const SCHEMA_DESCRIPTION =
-  "The story of building AI4Kanban, from trying to let AI run a project to reviewing key drafts before execution.";
+  "Tao Wu's four thoughts on building AI4Kanban: humans handle precision while agents handle generation, planning matters as models improve, skills are thin, and a shared workspace brings coding, marketing, workflows, agents and templates together.";
 
 export const metadata: Metadata = pageMetadata({
   locale: "en",
@@ -50,10 +47,11 @@ const schema = jsonLd(
   },
 );
 
-const linkClass =
-  "text-ink underline decoration-2 decoration-accent underline-offset-[3px] transition-colors hover:text-accent-deep hover:decoration-accent-deep";
+function N({ n }: { n: number }) {
+  return <span className="font-semibold">{n}. </span>;
+}
 
-// /builder as one letter: title, who is writing, the story, the signature.
+// /builder as one letter: title, who is writing, four numbered thoughts, the signature.
 export default function BuilderPage() {
   return (
     <>
@@ -65,14 +63,7 @@ export default function BuilderPage() {
       <main className="px-6 pb-8 text-ink">
         <article className="mx-auto max-w-[38rem] pt-14 sm:pt-24">
           <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.035em] sm:text-5xl">
-            Why I&apos;m building{" "}
-            <span className="relative whitespace-nowrap">
-              <span className="relative z-10">AI4Kanban</span>
-              <span
-                aria-hidden="true"
-                className="absolute inset-x-0 bottom-[0.06em] h-[0.24em] bg-accent"
-              />
-            </span>
+            Why I&apos;m building AI4Kanban
           </h1>
 
           <div className="mt-8 flex items-center gap-4">
@@ -93,85 +84,65 @@ export default function BuilderPage() {
           </div>
 
           <div className="mt-12 space-y-6 text-[1.125rem] leading-[1.8]">
-            <p>Hi, I&apos;m Tao. I&apos;m building AI4Kanban full-time.</p>
             <p>
-              My first idea was to build a one-person startup with agents
-              running the project on their own. Coding agents were already
-              doing more of the implementation. I wanted to see if they could
-              take on the planning too.
-            </p>
-            <p>
-              Our idea was simple: before building, the agent asks questions
-              until the task is clear. It worked in the background. It broke an
-              idea into tasks, found the missing details, and answered what it
-              could on its own. Only the few choices that needed a person came
-              back, as multiple-choice questions.
+              <N n={1} />
+              Everyone in the AI industry believes you can let AI agents
+              handle everything. But we believe differently. AI and humans
+              should have a clear boundary: humans handle precision, and agents
+              handle generation. Humans handle the key parts while agents handle
+              the details.
             </p>
             <div className="py-2">
-              <AskingFirst />
+              <BridgeScene c={c.home.review.scene} />
             </div>
             <p>
-              We spent a lot of time trying to make it work. The agents did
-              raise useful questions and make useful decisions. But early users
-              told us <strong>it didn&apos;t feel faster</strong>. A coding
-              agent shows results right away. Ours made them wait through
-              planning and answer more questions, and it spent more tokens. A
-              small task could turn into a long conversation.
+              <N n={2} />
+              Human thinking is still what really matters. But not
+              &quot;execution smart&quot;. It&apos;s more about &quot;planning
+              smart&quot;. Models are evolving quickly, skills are getting
+              thinner, and there&apos;s no need for another complex harness with
+              over 100k lines of code just to handle one specific task. The
+              models have already learned those capabilities. So knowing what to
+              do and having a sense of what&apos;s good or bad are what really
+              differentiate you in this AI era.
             </p>
             <p>
-              That feedback showed me what was wrong. We were asking people to
-              settle everything before they had seen a result. But most people{" "}
-              <strong>
-                don&apos;t know exactly what they want until they see a first
-                version
-              </strong>
-              . More questions upfront couldn&apos;t fix that.
+              <N n={3} />
+              Skills are thin, so it&apos;s pointless to pay $99/month for a
+              workflow that can be encapsulated in a skill. I prefer a unified
+              workspace where I manage different kinds of work. As an indie
+              hacker, I don&apos;t just code. I do marketing as well. My Codex
+              desktop gets messy when I mix 10+ tasks in the UI, some coding,
+              some marketing.
             </p>
             <p>
-              So AI4Kanban now shows you{" "}
-              <strong>drafts of the key parts first</strong>: a UI mockup, the
-              copy for a page, or a change to a prompt. You settle those, and
-              the agent builds the rest.
-            </p>
-            <div className="py-2">
-              <DraftsFirst />
-            </div>
-            <p>
-              Agents sometimes add features you never asked for. In a long
-              written spec, those additions are easy to miss. In a UI draft, you
-              can see the extra pages right away. You can say, &apos;I
-              don&apos;t need these,&apos; before the agent builds them.
-              Sometimes, seeing the draft makes you rethink the whole idea.
+              <N n={4} />
+              These thoughts led to what AI4Kanban is today. It&apos;s a middle
+              layer between humans and the agents who handle execution. You
+              manage your ideas, both coding and marketing, on the board.
             </p>
             <p>
-              We had moved from trying to let AI do everything, to having people
-              help AI, to having <strong>AI help people</strong>. Giving people
-              more say over the direction made it easier to hand over the
-              execution. Once the key drafts were agreed on, there was less left
-              to keep checking.
+              For each idea, you review a draft before agents build it. Once the
+              &quot;key parts&quot; match your expectations perfectly, leave the
+              rest to agents.
             </p>
             <p>
-              My goal is simple: reduce the effort people spend on each task,
-              and help them become{" "}
-              <strong>another 10 times more productive</strong>. That&apos;s why
-              I&apos;m building AI4Kanban.
+              What about &quot;execution&quot;? It&apos;s thin today, but it
+              hasn&apos;t entirely vanished. So we provide 6 built-in workflows
+              and 20+ agents tailored for indie hackers. We&apos;ve created
+              thousands of tasks through these workflows. They use your existing
+              AI subscriptions, like Codex, Claude Code, and Cursor, so you
+              don&apos;t pay extra for AI coding. You can create your own
+              workflow and add new agents to the team in existing workflows.
             </p>
             <p>
-              This took a few attempts to understand. I&apos;m still building
-              it. You can see where AI4Kanban is today on the{" "}
-              <Link href="/" className={linkClass}>
-                home page
-              </Link>
-              , or follow the work on{" "}
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-              >
-                GitHub
-              </a>
-              .
+              Yet while skills, agents, and workflows are thin, templates are
+              not. Without a template, you may still produce an ugly product
+              intro video or landing page, even with the most powerful model and
+              agent. This is not their fault. We&apos;ve cloned videos, UI, and
+              decks into a template catalog, with carousels coming soon. The
+              templates are &quot;feels&quot; and &quot;recipes&quot; that teach
+              your agent to work like an expert.
             </p>
           </div>
 
