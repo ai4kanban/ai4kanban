@@ -9,7 +9,7 @@
 ## Steps
 
 1. 执行 `akb workflow duplicate video-clone`，再 `akb workflow rename wf-2 Template clone`，然后 `akb workflow list`。
-   回 `copied it to "Video clone 2" (wf-2) — each of its agents was copied with it`；列表末尾是 `wf-2  Template clone  (Pro)  (no worktree)`，规划 `video-cloner-2`，执行 `(nobody)`。
+   回 `copied it to "Video clone 2" (wf-2) — each of its agents was copied with it`；列表末尾是 `wf-2  Template clone  (Pro)  (no worktree)`，下一行是规划负责人 `video-cloner-2` 的描述「Leads a video clone card — clones a video made with code into a reusable beat-table template …」，再是规划 `video-cloner-2`、执行 `(nobody)`；`--json` 的 `description` 是同一句。
    [01-duplicate.log](01-duplicate.log)
 
 2. 用副本建卡：`akb raw create --title '复刻发布短片' --workflow wf-2 --body-file body.md`，再执行 `akb card implement 2 --print`。
@@ -32,14 +32,14 @@
    回 `execute: lead→(nobody)`；#2 又被拒，跟第 2 步一样。
    [06-clear-executor.log](06-clear-executor.log)
 
-7. 试着直接给内置的 `video-clone` 配执行 Agent：`akb workflow stage video-clone --stage execute --lead wf-2-executor`。
-   被拒：`` `Video clone` is built in — its lead agents are fixed. Duplicate it to make one you can reassign.``，退出码 1。
-   [07-builtin-fixed.log](07-builtin-fixed.log)
+7. 直接给内置的 `video-clone` 配执行 Agent：`akb workflow stage video-clone --stage execute --lead wf-2-executor`，再 `akb card implement 3 --print`；然后试着换它的规划负责人 `--stage plan --lead video-cloner-2`，最后把执行清空。
+   内置工作流空着的执行阶段也收下：`Video clone · execute: lead→wf-2-executor`，#3 的 `implement` 随即放行；换规划负责人被拒：`` `Video clone` is built in — its lead agents are fixed. Duplicate it to make one you can reassign.``，退出码 1。
+   [07-builtin-execute.log](07-builtin-execute.log)
 
 ## Feedback
 
 - **开关清楚**：执行阶段有没有人，一条 `workflow stage` 就切过来，`implement` 的结果和规划提示同时跟着变，没有残留状态。
+- **复制品看得出是做什么的**：`workflow list` 在 `wf-2` 下面给出规划负责人的描述，和内置工作流一样一行说明；但那句是 Agent 的口吻（「Leads a video clone card — …」），比内置的「Approve a breakdown …」长，也没说执行阶段配没配人。
+- **不复制也能开发了**：内置工作流空着的执行阶段现在可以直接配人，这个场景复制的理由只剩「想换规划负责人」；第 2 步的拒绝仍只说「规划完就归档」，没提示「给执行阶段配一个 Agent 就能开发」。
 - **命令行要自己写 Agent 文件**：看板界面里有「设置 Agent」按钮一键新建 `<工作流> executor`；命令行没有对应命令，得先照 `akb guide write-agent` 手写 `AGENT.md`，再 `workflow stage --lead`。
-- **复制品没有简介**：`workflow list` 里内置的每个工作流都有一行说明，复制出来的 `wf-2` 没有，也看不出它会不会走开发。
-- **拒绝的说法没跟着变**：第 2 步的拒绝只说「规划完就归档」，没提示「给执行阶段配一个 Agent 就能开发」，第一次碰到的人不知道还有这条路。
-- **没有跑到的**：真实的执行运行（这里只看了 `--print`）；执行 Agent 把模板发布到共享模板库（不在这次改动里）。
+- **没有跑到的**：真实的执行运行（这里只看了 `--print`）；执行 Agent 把模板发布到共享模板库。

@@ -33,7 +33,7 @@
 - [Claude Code 把命令放到后台后，继续聊天并等结论](skill/chat-while-claude-code-runs-a-background-task/case.md)
 - [让对话 Agent 起一个常驻服务，回复结束后它跟着结束](skill/a-dev-server-the-chat-agent-starts-ends-with-its-reply/case.md)
 - [规划一张纯文字卡片，看软件规划师画出示意图](skill/plan-a-text-only-card-and-get-an-explainer-diagram/case.md)
-- [让博客策划写一篇博客的大纲，它先读了排在前面的页面](skill/blog-planner-reads-the-top-pages-before-the-outline/case.md)
+- [让博客策划写一篇博客的大纲，研究员先查资料、读排在前面的页面](skill/blog-planner-reads-the-top-pages-before-the-outline/case.md)
 - [让软件规划师换用自己的 Agent 规划](skill/let-the-software-planner-plan-on-its-own-agent/case.md)
 - [让文案 Agent 改两个页面：整页重写的给全文，只改一句的给 diff](skill/get-a-full-draft-for-a-rewrite-and-a-diff-for-a-small-edit/case.md)
 - [请产品配图先画一张示意图，再做一段 canvas 动画预览](skill/ask-the-illustrator-for-an-image-and-a-canvas-animation/case.md)
@@ -52,6 +52,8 @@
 - [改版时给一张已规划好的卡加一张图，改版当场请配图画出来](skill/a-revision-that-adds-an-image-runs-the-illustrator/case.md)
 - [复制「视频克隆」工作流，给它配一个执行 Agent，卡片规划完就能开发](skill/give-a-copied-video-clone-workflow-a-build-agent/case.md)
 - [在命令行生成一张图和一段托管配乐](skill/generate-an-image-and-hosted-music-from-the-command-line/case.md)
+- [在命令行把一张已有的卡换到另一个工作流](skill/switch-a-card-to-another-workflow/case.md)
+- [在命令行从 Cloud 的道具库和动效库找到并取回一个](skill/find-a-prop-or-motion-in-the-cloud-library/case.md)
 
 ### local-ui
 
@@ -103,6 +105,8 @@
 - [不登录 Cloud，也在铃铛里看到等你处理的卡片](local-ui/get-notified-without-signing-in/case.md)
 - [不复制，直接给内置的「视频克隆」工作流设置、换掉或移除执行 Agent](local-ui/give-the-built-in-video-clone-workflow-a-build-agent/case.md)
 - [在「配置 → 云端」看 Cloud 提供哪些托管 AI 能力，在「账单」看它们各花多少积分](local-ui/see-what-cloud-offers-in-settings/case.md)
+- [在卡片页把一张卡换到另一个工作流](local-ui/switch-a-card-to-another-workflow/case.md)
+- [在「博客文章」工作流里找到博客研究员，停用再启用它](local-ui/see-the-researcher-in-the-blog-workflow/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -127,6 +131,7 @@
 - [读 Claude Code 介绍页，看先审草稿再交给 Claude Code 是怎么回事](site/read-the-claude-code-page/case.md)
 - [读 Grill Me 介绍页，看一个大想法怎么拆卡、逐卡规划、按依赖交付](site/read-the-grill-me-page/case.md)
 - [读 Codex 介绍页，看 AI4Kanban 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
+- [在官网模板目录里按分类浏览，看原视频和复刻视频，再看一个道具和一个动效](site/browse-the-template-catalog/case.md)
 
 ### docs
 
@@ -158,6 +163,7 @@
 - [登录后在模板库按标签找模板，预览后取回](cloud/find-preview-and-fetch-a-shared-template/case.md)
 - [用 `akb cloud image` 生成一张图像](cloud/generate-an-image-with-cloud/case.md)
 - [用 `akb cloud music` 生成一段托管配乐](cloud/generate-music-with-cloud/case.md)
+- [维护者给已发布的模板登记展示资料，官网不登录就能读到目录](cloud/register-a-template-showcase-for-the-public-catalog/case.md)
 
 ### telemetry
 
