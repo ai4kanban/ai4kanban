@@ -1238,12 +1238,9 @@ export function CardPage({
 
   const { sessions, start, watch, kick } = useAgentSessions(onFinish);
 
-  // Re-read the card in place whenever any session finishes — from this tab or
-  // another. The onFinish above only covers sessions this tab started; a session
-  // from the board view or another tab can rewrite the card while this page is
-  // open, so give the page the same running-set diff Board uses. (Own-session
-  // reject/archive still navigate home via onFinish; this only adds the in-place
-  // refresh for the rest.)
+  // Re-read the card in place whenever any session starts or finishes — from this tab or
+  // another. A start counts because Approve writes the next stage before its run begins
+  // (#1838). Own-session reject/archive still navigate home via onFinish.
   //
   // Asks first whether the card is still there (#299). A delivery that lands archives its
   // card, and a group root goes the moment its last subtask leaves — so a background
@@ -1260,10 +1257,9 @@ export function CardPage({
   const prevRunning = useRef<Set<string>>(new Set());
   useEffect(() => {
     const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
-    let finished = false;
-    for (const id of prevRunning.current) if (!now.has(id)) finished = true;
+    const prev = prevRunning.current;
     prevRunning.current = now;
-    if (finished) refresh();
+    if ([...prev].some((id) => !now.has(id)) || [...now].some((id) => !prev.has(id))) refresh();
   }, [sessions, refresh]);
 
   // On tab focus, re-read the card once, unconditionally — so a session that ran
