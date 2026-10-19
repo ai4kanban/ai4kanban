@@ -72,7 +72,7 @@ const zh: VsOrcaCopy = {
     },
     custom: "你也可以创建自己的 agent 和工作流。",
     tipLabel: "提示",
-    tip: "软件开发工作流免费；博客、社交轮播、演示文稿和产品视频工作流需 Pro。",
+    tip: "软件开发工作流免费；博客文章、轮播帖、幻灯片、产品视频和视频克隆工作流需 Pro。",
   },
   decision: {
     title: "你希望怎样工作？",

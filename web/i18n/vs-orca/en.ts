@@ -82,7 +82,7 @@ const en: VsOrcaCopy = {
     },
     custom: "You can also create your own agents and workflows.",
     tipLabel: "Tip",
-    tip: "The software development workflow is free. Blog, social carousel, slide deck and product video workflows require Pro.",
+    tip: "The software development workflow is free. Blog, social carousel, slide deck, product video and video clone workflows require Pro.",
   },
   decision: {
     title: "Which way do you want to work?",

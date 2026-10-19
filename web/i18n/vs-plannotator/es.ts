@@ -60,7 +60,7 @@ const es: VsPlannotatorCopy = {
     },
     custom: "También puedes crear tus propios agentes y flujos de trabajo.",
     tipLabel: "Nota",
-    tip: "El flujo de desarrollo de software es gratuito. Los flujos de blog, carrusel para redes sociales, presentaciones y vídeo de producto requieren Pro.",
+    tip: "El flujo de desarrollo de software es gratuito. Los flujos de blog, carrusel para redes sociales, presentaciones, vídeo de producto y clonación de vídeos requieren Pro.",
   },
   compare: {
     title: "Qué viene integrado",

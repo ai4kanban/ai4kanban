@@ -3,14 +3,14 @@ import type { PricingCopy } from "./types";
 
 const en: PricingCopy = {
   meta: {
-    title: "AI4Kanban pricing — Free, Pro and seed partners",
+    title: "AI4Kanban: Plans and pricing",
     description:
-      "AI4Kanban is free and open source. Pro adds slide deck and product video workflows for $10 a month, billed yearly.",
+      "AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, carousels, blogs and video clones. $10/month, billed yearly.",
   },
   hero: {
     eyebrow: "PRICING",
-    title: "Free to run. Pro when you need more.",
-    lead: "Every plan runs on your own computer, with your own coding agents.",
+    title: "Plans and pricing",
+    lead: "Every plan runs on your own computer, with your own AI tools.",
   },
   billing: { monthly: "Monthly", yearly: "Yearly", save: "Save 33%" },
   free: {
@@ -34,6 +34,9 @@ const en: PricingCopy = {
     rows: [
       "Slide deck workflow",
       "Product video workflow",
+      "Carousel post workflow",
+      "Blog post workflow",
+      "Video clone workflow",
       "Auto-screened ideas — you decide only the unclear ones",
       "5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160",
       "Priority support",

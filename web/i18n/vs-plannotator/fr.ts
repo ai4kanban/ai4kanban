@@ -60,7 +60,7 @@ const fr: VsPlannotatorCopy = {
     },
     custom: "Vous pouvez aussi créer vos propres agents et workflows.",
     tipLabel: "Astuce",
-    tip: "Le workflow de développement logiciel est gratuit. Les workflows de blog, de carrousel pour réseaux sociaux, de présentation et de vidéo produit nécessitent Pro.",
+    tip: "Le workflow de développement logiciel est gratuit. Les workflows de blog, de carrousel pour réseaux sociaux, de présentation, de vidéo produit et de clonage vidéo nécessitent Pro.",
   },
   compare: {
     title: "Ce qui est intégré",

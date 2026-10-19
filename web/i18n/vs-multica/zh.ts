@@ -119,7 +119,7 @@ const zh: VsMulticaCopy = {
         dimension: "内置 agent 与工作流",
         kanban: "内置多种专业 agent 及配套工作流，可修改或添加自己的角色。",
         kanbanTip:
-          "软件开发工作流免费；博客、社交轮播、演示文稿和产品视频工作流需 Pro。",
+          "软件开发工作流免费；博客文章、轮播帖、幻灯片、产品视频和视频克隆工作流需 Pro。",
         multica:
           "已有协调 agent Mika；你自己或通过 Agent Builder 创建专业角色，再配置 Instructions 和 Skills。",
       },
