@@ -692,7 +692,6 @@ export type ConfigurationCopy = {
       stop: string;
     };
     blurb: string;
-    alpha: string;
     checking: string;
     /** Beside a control whose new value is already drawn but not yet written. */
     saving: string;
@@ -713,12 +712,22 @@ export type ConfigurationCopy = {
     expiredBody: string;
     inviteOnly: string;
     inviteOnlyBody: string;
-    boundary: string;
     terms: string;
     privacyLink: string;
     termsAnd: string;
     termsLink: string;
     termsEnd: string;
+    /** What Cloud generates for agents, by capability — no provider or model names. */
+    hosted: {
+      title: string;
+      image: string;
+      imageHint: string;
+      voice: string;
+      voiceHint: string;
+      music: string;
+      musicHint: string;
+      note: string;
+    };
     signIn: string;
     signInAgain: string;
     needsApp: string;

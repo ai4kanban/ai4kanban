@@ -744,8 +744,6 @@ const en: ConfigurationCopy = {
       stop: "Don't move",
     },
     blurb: "One sign-in covers every project on this machine.",
-    alpha:
-      "Cloud is in alpha and still under development. Access is currently free for invited users; pricing may change in the future.",
     checking: "Checking this machine…",
     saving: "Saving…",
     unreachable: {
@@ -766,14 +764,21 @@ const en: ConfigurationCopy = {
     inviteOnly: "Cloud is an invite-only preview.",
     inviteOnlyBody:
       "Sign in with GitHub and we will say straight away whether your account is in it.",
-    boundary:
-      "Cloud relays this board’s questions and review requests, and the decisions made on them. It never receives your repository, never runs an agent, and never reads a card the board has not published.",
-    terms: "Signing in confirms you have read the",
+    terms: "By signing in you agree to the",
     privacyLink: "Privacy Policy",
-    termsAnd: " and the ",
+    termsAnd: " and ",
     termsLink: "Terms of Service",
-    termsEnd:
-      ". GitHub is asked for your name, your handle and your verified email address, and nothing else — no repository access.",
+    termsEnd: ".",
+    hosted: {
+      title: "Hosted AI",
+      image: "Image generation",
+      imageHint: "Images from a description and reference pictures.",
+      voice: "Text to speech",
+      voiceHint: "Reads text aloud in a natural voice.",
+      music: "Music generation",
+      musicHint: "Original music from a description, at the length you need.",
+      note: "Agents use these in tasks as needed, drawing on your Pro plan’s AI credits.",
+    },
     signIn: "Sign in with GitHub",
     signInAgain: "Sign in again",
     needsApp:

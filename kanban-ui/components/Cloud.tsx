@@ -14,7 +14,7 @@
 // refusals are shown in its own words.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FiBell, FiBellOff, FiFolder, FiLogOut, FiMail, FiUploadCloud } from "react-icons/fi";
+import { FiBell, FiBellOff, FiFolder, FiImage, FiLogOut, FiMail, FiMic, FiMusic, FiUploadCloud } from "react-icons/fi";
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
@@ -78,7 +78,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import { sayFailure } from "@/lib/start-failure";
 import { accountChanged, cloudAccount } from "@/lib/window-state";
 
-/** The published pages the terms say signing in confirms you have read. */
+/** The published pages signing in agrees to. */
 const PRIVACY_URL = "https://ai4kanban.dev/privacy";
 const TERMS_URL = "https://ai4kanban.dev/terms";
 
@@ -245,7 +245,6 @@ export function CloudPanel({
 
   return (
     <div className="flex flex-col gap-6">
-      {tab === "cloud" && <Note>{c.alpha}</Note>}
       {!account ? (
         // Nothing to draw yet — and once a read has failed, the band below is what is said.
         !misses && <Loading>{c.checking}</Loading>
@@ -284,6 +283,8 @@ export function CloudPanel({
           onSignOut={() => void signOut()}
         />
       )}
+
+      {tab === "cloud" && account && <HostedAI />}
 
       {!!misses && <Alert title={c.unreachable.title}>{c.unreachable.body}</Alert>}
     </div>
@@ -1319,8 +1320,12 @@ function SignedOut({
       {waiting && <Note>{c.waiting}</Note>}
       {!account.configured && account.message && <Alert>{account.message}</Alert>}
 
-      {/* What Cloud does and does not do, before the sign-in rather than after it. */}
-      <Boundary />
+      <Note>
+        {c.terms} <Link href={PRIVACY_URL}>{c.privacyLink}</Link>
+        {c.termsAnd}
+        <Link href={TERMS_URL}>{c.termsLink}</Link>
+        {c.termsEnd}
+      </Note>
     </Group>
   );
 }
@@ -1437,19 +1442,20 @@ function asked(at: string, undated: string, language: Language): string {
   return when.toLocaleDateString(LANGUAGE_TAGS[language], { month: "short", day: "numeric" });
 }
 
-/** What Cloud is for, and what it never receives. */
-function Boundary() {
-  const c = useCopy().configuration.cloud;
+/** What Cloud generates for agents (#1825) — a list, not a control: agents call it through
+ *  `akb cloud image` / `tts` / `music`. Drawn signed in or not. */
+function HostedAI() {
+  const h = useCopy().configuration.cloud.hosted;
+  const icon = (I: typeof FiImage) => <I size={MARK} className="text-nb-ink-soft" aria-hidden />;
   return (
-    <>
-      <Note>{c.boundary}</Note>
-      <Note>
-        {c.terms} <Link href={PRIVACY_URL}>{c.privacyLink}</Link>
-        {c.termsAnd}
-        <Link href={TERMS_URL}>{c.termsLink}</Link>
-        {c.termsEnd}
-      </Note>
-    </>
+    <Group title={h.title}>
+      <Panel>
+        <Row icon={icon(FiImage)} label={h.image} hint={h.imageHint} />
+        <Row icon={icon(FiMic)} label={h.voice} hint={h.voiceHint} />
+        <Row icon={icon(FiMusic)} label={h.music} hint={h.musicHint} />
+      </Panel>
+      <Note>{h.note}</Note>
+    </Group>
   );
 }
 

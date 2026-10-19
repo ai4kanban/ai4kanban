@@ -801,7 +801,6 @@ const zh: ConfigurationCopy = {
       stop: "不迁移了",
     },
     blurb: "登录一次即可用于这台电脑上的所有项目。",
-    alpha: "Cloud 目前处于 alpha 阶段，仍在持续开发中。目前对受邀用户免费，未来定价可能调整。",
     checking: "正在检查这台电脑…",
     saving: "正在保存…",
     unreachable: {
@@ -820,13 +819,21 @@ const zh: ConfigurationCopy = {
     expiredBody: "没有任何数据丢失。重新登录后，等待发送的内容会继续。",
     inviteOnly: "Cloud 目前是邀请制内测。",
     inviteOnlyBody: "用 GitHub 登录，我们会立即告诉你这个账号是否在名单中。",
-    boundary:
-      "Cloud 只中转这个看板的提问、评审请求，以及针对它们做出的决策。它从不接收你的仓库，从不运行 Agent，也从不读取看板未发布的卡片。",
-    terms: "登录即表示你已阅读",
+    terms: "登录即表示你同意",
     privacyLink: "隐私政策",
     termsAnd: "与",
     termsLink: "服务条款",
-    termsEnd: "。我们只向 GitHub 索取你的姓名、用户名和已验证的邮箱地址，不索取仓库访问权限。",
+    termsEnd: "。",
+    hosted: {
+      title: "托管 AI 能力",
+      image: "图像生成",
+      imageHint: "按描述和参考图生成图片。",
+      voice: "语音合成",
+      voiceHint: "把文字读成自然的人声。",
+      music: "音乐生成",
+      musicHint: "按描述生成指定时长的原创音乐。",
+      note: "Agent 在任务中按需使用，消耗 Pro 套餐的 AI 积分。",
+    },
     signIn: "用 GitHub 登录",
     signInAgain: "重新登录",
     needsApp:
