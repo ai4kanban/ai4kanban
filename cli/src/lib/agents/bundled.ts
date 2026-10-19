@@ -11,6 +11,7 @@
 
 import blogIllustrator from '../../agents/blog-illustrator/AGENT.md'
 import blogPlanner from '../../agents/blog-planner/AGENT.md'
+import blogResearcher from '../../agents/blog-researcher/AGENT.md'
 import carouselPlanner from '../../agents/carousel-planner/AGENT.md'
 import carouselSlidesExample from '../../agents/carousel-planner/references/slides.example.json'
 import carouselSlidesSchema from '../../agents/carousel-planner/references/slides.schema.json'
@@ -58,6 +59,7 @@ import videoClonerMusic from '../../agents/video-cloner/references/music.md'
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'blog-illustrator/AGENT.md': blogIllustrator,
   'blog-planner/AGENT.md': blogPlanner,
+  'blog-researcher/AGENT.md': blogResearcher,
   'carousel-planner/AGENT.md': carouselPlanner,
   'carousel-planner/references/slides.example.json': carouselSlidesExample as unknown as string,
   'carousel-planner/references/slides.schema.json': carouselSlidesSchema as unknown as string,

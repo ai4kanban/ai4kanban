@@ -134,7 +134,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(workflowProblems('carousel-post'), [])
     const blog = workflowById('blog-post')!
     assert.deepEqual([blog.stages.plan.lead, blog.stages.execute.lead, blog.needsArtifact, blog.delivers], ['blog-planner', '', true, 'plan'])
-    assert.deepEqual(blog.stages.plan.helpers.map((h) => h.agent), ['blog-illustrator'])
+    assert.deepEqual(blog.stages.plan.helpers.map((h) => h.agent), ['blog-researcher', 'blog-illustrator'])
     assert.deepEqual(workflowProblems('blog-post'), [])
     const clone = workflowById('video-clone')!
     assert.deepEqual([clone.stages.plan.lead, clone.stages.execute.lead, clone.needsArtifact, clone.delivers], ['video-cloner', '', true, 'plan'])
@@ -161,7 +161,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['blog-illustrator', 'blog-planner', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'scriptwriter', 'software-planner', 'tech-stack-advisor', 'ui-designer', 'video-cloner'])
+    assert.deepEqual(plan, ['blog-illustrator', 'blog-planner', 'blog-researcher', 'carousel-planner', 'competitor-research', 'copywriting', 'cover-designer', 'deck-planner', 'demo-rehearser', 'email-planner', 'hyperframes-editor', 'illustrator', 'prompt-writer', 'scriptwriter', 'software-planner', 'tech-stack-advisor', 'ui-designer', 'video-cloner'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -998,7 +998,7 @@ describe('one workflow per agent (#1095)', () => {
   it('turns a newly shipped agent on in a Coding the board already chose, once (#1099)', () => {
     write({ workflows: { stages: { coding: { plan: { helpers: [{ agent: 'ui-designer', extra: '' }] } } } } })
     assert.deepEqual(members('coding').slice(0, 3), ['ui-designer', 'prompt-writer', 'email-planner'])
-    assert.deepEqual(saved().workflows.shipped, ['prompt-writer', 'email-planner', 'competitor-research', 'cover-designer', 'demo-rehearser', 'illustrator'])
+    assert.deepEqual(saved().workflows.shipped, ['prompt-writer', 'email-planner', 'competitor-research', 'cover-designer', 'demo-rehearser', 'illustrator', 'blog-researcher'])
     assert.equal(switchWorkflowAgent('coding', 'plan', 'prompt-writer', false).ok, true)
     assert.ok(members('coding').includes('prompt-writer (off)'))
     const cfg = saved()
@@ -1017,6 +1017,18 @@ describe('one workflow per agent (#1095)', () => {
     cfg.workflows.stages['hyperframes-video'].plan.helpers = [{ agent: 'hyperframes-editor', extra: 'x' }]
     write(cfg)
     assert.deepEqual(members('hyperframes-video'), ['hyperframes-editor'])
+  })
+
+  it('adds the researcher to a Blog post the board already chose, once', () => {
+    write({ workflows: { stages: { 'blog-post': { plan: { helpers: [{ agent: 'blog-illustrator', extra: 'x' }] } } } } })
+    assert.deepEqual(members('blog-post'), ['blog-illustrator', 'blog-researcher'])
+    assert.equal(specAgentAssigned('blog-researcher', 'blog-post'), true)
+    assert.ok(!members('coding').some((m) => m.startsWith('blog-researcher')))
+    const cfg = saved()
+    cfg.workflows.stages['blog-post'].plan.helpers = [{ agent: 'blog-illustrator', extra: 'x' }]
+    write(cfg)
+    assert.deepEqual(members('blog-post'), ['blog-illustrator'])
+    assert.equal(specAgentAssigned('blog-researcher', 'blog-post'), false)
   })
 
   it('gives every later workflow its own copy of a shared agent, once', () => {

@@ -20,8 +20,9 @@ source; planning ends, with no further question, when the checked article is del
 - **Default with a reason**: propose a justified default for every content choice.
 - **Ask little**: a `[user]` question only for what the user owns — the audience, the angle,
   the keyword to win, or a fact only they know.
-- **Facts**: state only what the card, the project or the user supplies; ask for a missing
-  fact instead of inventing it.
+- **Facts**: state only what the card, the project, the user or the research supports;
+  internal facts, personal experience and the stance come from the user — ask for a missing
+  one instead of inventing it.
 
 ## Memory
 
@@ -44,7 +45,8 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 - **Existing posts**: they are the catalogue — read them for voice, overlap and internal
   links: in the project, the posts and their frontmatter; online, its sitemap, RSS or list page.
 - **Brief**: one line each — audience, goal (what the reader should believe or do
-  afterwards), language, length and keywords.
+  afterwards), language, length, keywords, and the starting angle with the doubts that could
+  overturn it.
 - **Keywords**: zero or more, the first is the one to win. Ask which one the user wants to
   win; when they give none, leave it empty. No keyword research or rank tracking.
 - **Keyword use**: put the primary keyword naturally in the title, H1 and SEO title, and each
@@ -52,13 +54,19 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
   unrelated section, stuff it, or add a meta keywords tag. Flag a keyword the topic cannot
   cover. With no keywords, skip placement and draft the metadata from the topic alone.
 - **Existing pages**: with a primary keyword, search it and read the top-ranking pages, then
-  pick one to three points this post adds beyond them, each backed by the project's evidence
-  or a fact the user supplied. Keep this research out of the card.
+  pick one to three points this post adds beyond them, each backed by the project's evidence,
+  the research or a fact the user supplied. Keep this reading out of the card.
+- **Research**: `research.md` in the asset folder, from `blog-researcher`. Read it before the
+  outline and the article; change or drop the angle or a point it overturns. When writing
+  finds a public fact gap that affects a point, request `blog-researcher` again. When a
+  request is refused, carry on without research and do not request it again.
+- **Evidence**: cite an external source only for a key fact, a concrete case or further
+  reading, preferring the primary source; never generalise from one case, and narrow, qualify
+  or drop a point the evidence does not support. Not every finding belongs in the article.
 - **Outline**: title, subtitle, drafted SEO title and meta description, any other metadata
   the project requires, and one line per section with its point, images and cited links;
   review the metadata with the outline.
-- **Links**: internal links go to existing posts or pages; external links go to primary
-  sources. Check that every link resolves.
+- **Links**: internal links go to existing posts or pages. Check that every link resolves.
 - **Validation**: run `akb raw validate <card id> --json` after every change; fix every
   diagnostic.
 
@@ -66,8 +74,8 @@ Files live in `<board-state>/assets/<card id>/`, linked from the card as `.asset
 
 Pick from these, in order, following `akb guide multi-stage-drafting`.
 
-- **Outline**: write the brief and an outline whose angle and sections carry the points from
-  existing pages.
+- **Outline**: write the brief, request `blog-researcher`, then write an outline whose angle
+  and sections carry the points from existing pages and the research.
 - **Article**: request `blog-illustrator`, then write the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
   with its images beside it, in the blog's own frontmatter format, and put
   `<Asset src=".assets/<card id>/<slug>.<ext>" label="Article" />` at the top of your section.

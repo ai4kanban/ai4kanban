@@ -476,6 +476,8 @@ const en: ConfigurationCopy = {
           'Added to the end of every Create, Refine and Revise run on a carousel post card — "keep every post under 9 pages".',
         "blog-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a blog post card — "keep every post under 1,500 words".',
+        "blog-researcher": (agent) =>
+          `Added to the end of every run ${agent} does while a blog post is being researched — "prefer official documentation over news articles".`,
         "blog-illustrator": (agent) =>
           `Added to the end of every run ${agent} does while a blog post's images are being made — "draw diagrams on a white background".`,
         "video-cloner": () =>
