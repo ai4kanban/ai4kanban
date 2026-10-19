@@ -1,6 +1,6 @@
 ---
 name: carousel-planner
-description: Leads a carousel post card from brief to delivery — writes its copy and page outline on a saved format, then renders every page to PNG and writes each platform's caption.
+description: Leads a carousel post card from brief to delivery — writes its copy and page outline on a catalog template or a saved format, then renders every page to PNG and writes each platform's caption.
 akb:
   lead: plan
   i18n:
@@ -37,6 +37,12 @@ chosen format's file and its example before writing; the current card wins.
   avoid, in `general.md` or the format's file, following "What earns a note" in
   `akb guide board`; merge duplicates and rewrite overturned lines in place.
 
+## Templates
+
+Consider a catalog template for every new post unless the card already names a format; never
+for a change to an existing post. Read `template-selection.md` from your files first, and apply
+a template only after the user picks it.
+
 ## The source
 
 Write the post in your section; files live in `<board-state>/assets/<card id>/`, linked from
@@ -44,8 +50,8 @@ the card as `.assets/<card id>/...`.
 
 - **Brief**: one line each — platforms, audience, goal (what the reader should believe or do
   afterwards), language, format and page count.
-- **Format**: name the format whose template fits; when none fits, propose a new format with
-  its template.
+- **Format**: name the catalog template the user picked, or else the saved format whose
+  template fits; when none fits, propose a new format with its template.
 - **Pages**: `### Page 1: ...`, `### Page 2: ...` with each page's exact copy, layout and
   assets. The first page earns the swipe; one message per page, readable at a glance.
 - **Facts**: state only what the card, the project or the user supplies; ask for a missing

@@ -16,6 +16,7 @@ import carouselPlanner from '../../agents/carousel-planner/AGENT.md'
 import carouselSlidesExample from '../../agents/carousel-planner/references/slides.example.json'
 import carouselSlidesSchema from '../../agents/carousel-planner/references/slides.schema.json'
 import carouselSlidesValidator from '../../agents/carousel-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
+import carouselTemplates from '../../agents/carousel-planner/template-selection.md'
 import competitorResearch from '../../agents/competitor-research/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
 import coverDesigner from '../../agents/cover-designer/AGENT.md'
@@ -64,6 +65,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'carousel-planner/references/slides.example.json': carouselSlidesExample as unknown as string,
   'carousel-planner/references/slides.schema.json': carouselSlidesSchema as unknown as string,
   'carousel-planner/scripts/validate-storyboard.mjs': carouselSlidesValidator,
+  'carousel-planner/template-selection.md': carouselTemplates,
   'competitor-research/AGENT.md': competitorResearch,
   'copywriting/AGENT.md': copywriting,
   'cover-designer/AGENT.md': coverDesigner,

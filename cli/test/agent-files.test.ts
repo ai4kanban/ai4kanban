@@ -68,6 +68,10 @@ describe('what an agent offers', () => {
   it('offers a reference file the way it offers any other file (#1003)', () => {
     assert.deepEqual(findSpecAgent('ui-designer')!.files, ['references/rendered-screen.md', 'template-selection.md'])
   })
+
+  it('offers the carousel planner its template selection (#1862)', () => {
+    assert.ok(findSpecAgent('carousel-planner')!.files.includes('template-selection.md'))
+  })
 })
 
 describe('what a run is told', () => {
