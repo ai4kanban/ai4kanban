@@ -8,6 +8,8 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { printFlow } from '../src/lib/agent/flow.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { advancePhase, approvalRequest } from '../src/lib/agent/approve.ts'
 import { refinementAfter } from '../src/lib/agent/refine.ts'
 import { findCard } from '../src/lib/view/read.ts'
@@ -92,6 +94,32 @@ describe('a card with stages', () => {
       const before = canImplement(findCard(id)!)
       await move(root, ['update', String(id), '--phases', 'A,B,C', '--phase', '2'])
       assert.equal(canImplement(findCard(id)!), before)
+    }
+  })
+
+  it('tells the lead of a stage before the last that Approve ends it', async () => {
+    const printed = (action: 'clarify' | 'resolve', id: number): string => {
+      const sink = startCollecting()
+      try {
+        printFlow({ action, id })
+        return sink.out.join('\n')
+      } finally {
+        stopCollecting()
+      }
+    }
+    const close = /the board's Approve moves the card on/
+    const staged = await create('blog-post')
+    const plain = await create('blog-post')
+    await move(root, ['update', String(staged), '--phases', 'Outline,Article', '--phase', '1'])
+    for (const action of ['clarify', 'resolve'] as const) {
+      assert.match(printed(action, staged), /stage\s+1 of 2: \*\*Outline\*\* › Article/)
+      assert.match(printed(action, staged), close)
+      assert.doesNotMatch(printed(action, plain), /stage\s+\d|the board's Approve/)
+    }
+    await move(root, ['update', String(staged), '--phase', '2'])
+    for (const action of ['clarify', 'resolve'] as const) {
+      assert.match(printed(action, staged), /stage\s+2 of 2/)
+      assert.doesNotMatch(printed(action, staged), close)
     }
   })
 })

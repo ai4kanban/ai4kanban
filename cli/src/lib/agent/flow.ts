@@ -417,6 +417,17 @@ function questionsField(meta: Meta): string[] {
   return field('questions', [`${open} open:`, ...lines.map((s) => `  ${s}`)])
 }
 
+function stageField({ phases, phase }: Meta): string[] {
+  if (!phases.length) return []
+  return field('stage', `${phase} of ${phases.length}: ${phases.map((name, i) => (i + 1 === phase ? `**${name}**` : name)).join(' › ')}`)
+}
+
+// A stage before the last ends on the board's Approve, never on a question (#1790).
+const stageClose = ({ phases, phase }: Meta): string[] =>
+  phase && phase < phases.length
+    ? ["end the stage with its draft; ask no question about approving it — the board's Approve moves the card on"]
+    : []
+
 // What a run that wrote code has to leave behind for whatever reads it next. In a worktree
 // the board commits the whole change onto the delivery's branch as the run closes — so the
 // one thing asked of the run is to leave nothing of the board's own in there, which
@@ -606,15 +617,16 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       break
     }
     case 'clarify': {
-      facts.push(...stepsField(card!), ...questionsField(card!.meta))
+      facts.push(...stepsField(card!), ...questionsField(card!.meta), ...stageField(card!.meta))
       close.push(
         'settle and write the card as `akb guide refine` says; leave only `[user]` questions',
+        ...stageClose(card!.meta),
         `${raw} update ${req.id} --status ready — once the card validates`,
       )
       break
     }
     case 'resolve': {
-      facts.push(...questionsField(card!.meta))
+      facts.push(...questionsField(card!.meta), ...stageField(card!.meta))
       // The build these answers land on top of, where there is one (#637).
       const building = activeDelivery(req.id!)
       if (building) {
@@ -623,11 +635,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       facts.push(...field('memory', memoryLines(card!.meta.modules, 'decisions.md')))
       if (building) close.push(answeredClose(building, self))
+      close.push(...stageClose(card!.meta))
       break
     }
     case 'approve': {
-      const { phases, phase } = card!.meta
-      facts.push(...field('stage', `${phase} of ${phases.length}: ${phases.map((name, i) => (i + 1 === phase ? `**${name}**` : name)).join(' › ')}`))
+      facts.push(...stageField(card!.meta))
+      close.push(...stageClose(card!.meta))
       break
     }
     case 'edit': {
