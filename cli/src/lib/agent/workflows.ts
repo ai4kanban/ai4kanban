@@ -142,7 +142,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
     name: 'Coding',
-    description: 'Plan and implement software changes.',
+    description: 'Use for software changes, and for any work no other workflow covers. Plans the change, then builds it.',
     stages: {
       plan: { lead: 'software-planner', helpers: 'every' },
       execute: { lead: 'builder', helpers: [] },
@@ -152,7 +152,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'hyperframes-video',
     name: 'Product video',
-    description: 'Approve a script, get a finished product video, and archive it when you are happy.',
+    description: 'Use when the deliverable is a product or promo video. Writes a script for approval, then renders the video.',
     needsArtifact: true,
     delivers: 'plan',
     pro: true,
@@ -164,7 +164,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'slide-deck',
     name: 'Slide deck',
-    description: 'Approve the slides, get a PowerPoint deck with one image per slide (not editable), and archive it when you are happy.',
+    description: 'Use when the deliverable is a slide deck or presentation, including one designed as HTML or TSX pages. Lays out the slides for approval, then exports a PowerPoint with one image per slide.',
     needsArtifact: true,
     delivers: 'plan',
     pro: true,
@@ -177,7 +177,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     id: 'carousel-post',
     name: 'Carousel post',
     description:
-      'Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.',
+      'Use when the deliverable is a multi-image social post, such as a carousel. Writes the copy and page outline for approval, then renders every page with captions for each platform.',
     needsArtifact: true,
     delivers: 'plan',
     pro: true,
@@ -189,7 +189,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'blog-post',
     name: 'Blog post',
-    description: 'Approve the outline, get the full article with its images and links, and archive it when you are happy.',
+    description: 'Use when the deliverable is a blog article. Outlines it for approval, then writes the article with its images and links.',
     needsArtifact: true,
     delivers: 'plan',
     pro: true,
@@ -201,7 +201,7 @@ const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'video-clone',
     name: 'Video clone',
-    description: 'Approve a breakdown and a clone script, get a rendered clone of a reference video and a reusable template, and archive it when you are happy.',
+    description: 'Use when a reference video should be recreated or turned into a reusable template. Breaks it down for approval, then renders the clone and publishes the template.',
     needsArtifact: true,
     delivers: 'plan',
     pro: true,

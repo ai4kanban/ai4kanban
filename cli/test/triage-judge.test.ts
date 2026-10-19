@@ -290,8 +290,8 @@ describe('the questions', () => {
     assert.deepEqual(asked.modules!.criteria, { skill: 'the board machinery. `cli/`.', docs: 'the user guides.' })
     assert.deepEqual(Object.keys(asked.priority!.criteria), ['high', 'med', 'low'])
     assert.deepEqual(Object.keys(asked.roi!.criteria), ['high', 'med', 'low'])
-    assert.equal(asked.workflow!.criteria.coding, 'Plan and implement software changes.')
-    assert.match(asked.workflow!.criteria['blog-post']!, /full article/)
+    assert.match(asked.workflow!.criteria.coding!, /^Use for software changes/)
+    assert.match(asked.workflow!.criteria['blog-post']!, /blog article/)
     assert.equal(asked.workflow!.criteria.none, 'no workflow here can do this work.')
   })
 
