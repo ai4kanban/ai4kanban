@@ -161,6 +161,15 @@ chat message carries depends on where the event lives.
   narration, spending 320 AI credits per image, only once it is generated. Each call is recorded
   in `cloud.ai_calls` with its upstream cost.
 
+## Music
+
+- `POST /v1/music` — `{ "prompt": "…", "seconds": 30 }`: one instrumental track from
+  `google/lyria-3-pro-preview` through OpenRouter, asked to end at `seconds` (5–180); a WAV
+  answer is cut there, or at its last sound if earlier, and faded out. Prompt at most 4000
+  characters. No header or refusal names the provider or model. Same key and sign-in as
+  narration, spending 320 AI credits per track, only once it is generated. Each call is recorded
+  in `cloud.ai_calls` with its seconds and upstream cost.
+
 ## Triage
 
 - `POST /v1/judge` — `{ "state": {…}, "questions": { "<name>": { "type": "choice", "instructions": "…", "criteria": { "<option>": "…" } } } }`:
@@ -275,8 +284,9 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `contact_too_many_attempts` | Too many contact submits per address or email. Carries `retry-after`. |
 | `speech_unavailable` / `speech_failed` | This build carries no narration key, or the provider failed. Retry later. |
 | `image_unavailable` / `image_failed` | This build carries no image key, or the provider failed. Retry later. |
+| `music_unavailable` / `music_failed` | This build carries no music key, or the provider failed. Retry later. |
 | `judge_unavailable` / `judge_failed` | This build carries no key for judging, or the provider failed. Retry later. |
-| `pro_required` | Hosted voices, images, judging triage items and Pro templates' files need Pro. |
+| `pro_required` | Hosted voices, images, music, judging triage items and Pro templates' files need Pro. |
 | `template_exists` | Publishing under a name already taken, without `replace`. |
 | `templates_unavailable` | This build carries no template bucket. |
 | `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month. |

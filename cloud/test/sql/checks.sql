@@ -2809,6 +2809,7 @@ begin
   assert (api.credits_used(OTHER))::text::numeric = 0, 'one user spent another''s credits';
   assert (select count(*) from cloud.credit_spends where user_id = SPEAKER and use = 'speech') = 2, 'a spend was not its own row';
   assert (api.spend_credits(SPEAKER, 'image', 320))::text::numeric = 362.5, 'a generated cover was not spent (#1114)';
+  assert (api.spend_credits(SPEAKER, 'music', 320))::text::numeric = 682.5, 'a music track was not spent (#1822)';
   perform pg_temp.refuses($sql$select api.spend_credits('00000000-0000-4000-8000-00000000c001', 'movie', 1)$sql$,
     '23514', 'a spend on no known capability was stored');
 
@@ -2837,6 +2838,7 @@ begin
   assert (select usage is null and cost_usd is null from cloud.ai_calls where user_id = CALLER and not ok),
     'a failed call kept usage or cost';
   perform api.record_ai_call(CALLER, 'speech', true, 2.5, null, 'gen-2');
+  perform api.record_ai_call(CALLER, 'music', true, 30, 0.08, 'gen-3');
   assert (select cost_usd is null and usage = 2.5 from cloud.ai_calls where generation_id = 'gen-2'),
     'a call whose cost is unknown was not stored with none';
   perform pg_temp.refuses(

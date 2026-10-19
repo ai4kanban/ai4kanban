@@ -46,6 +46,7 @@ import {
   renewClaim,
 } from './servers.ts'
 import { generateImage } from './image.ts'
+import { generateMusic } from './music.ts'
 import { speak } from './speech.ts'
 import { judge } from './judge.ts'
 import { routeTemplates } from './templates.ts'
@@ -369,6 +370,13 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     requireMethod(request, 'POST')
     const session = await readSession(request, env)
     return generateImage(env, session.subject, await bodyOf(request))
+  }
+
+  // Hosted music for video clones (#1822), on the same terms.
+  if (pathname === '/v1/music') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    return generateMusic(env, ctx, session.subject, await bodyOf(request))
   }
 
   // Judging one triage item (#1221): Pro only, and free.

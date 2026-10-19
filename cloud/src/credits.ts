@@ -17,6 +17,8 @@ export const CREDIT_RATES = {
   speech: 1,
   /** Per generated cover, a flat price covering its reference images (#1114). */
   image: 320,
+  /** Per hosted music track, whatever its length (#1822). */
+  music: 320,
 } as const
 
 export type CreditUse = keyof typeof CREDIT_RATES

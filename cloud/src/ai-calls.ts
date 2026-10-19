@@ -6,11 +6,11 @@
 import { call } from './db.ts'
 import type { Env } from './env.ts'
 
-export type AiCapability = 'judge' | 'speech' | 'image'
+export type AiCapability = 'judge' | 'speech' | 'image' | 'music'
 
 export interface AiCall {
   ok: boolean
-  /** Input tokens for judge, seconds for speech, 1 for image. */
+  /** Input tokens for judge, seconds for speech and music, 1 for image. */
   usage?: number | null
   /** US dollars, as the provider reported it. */
   cost?: number | null

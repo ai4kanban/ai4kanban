@@ -71,7 +71,7 @@ async function akb(argv: string[]): Promise<{ code: number; out: string; err: st
   }
 }
 
-describe('akb cloud image / tts', () => {
+describe('akb cloud image / tts / music', () => {
   it('exits 2 with the usage line when an option or the prompt is missing', async () => {
     for (const [argv, problem] of [
       [['cloud', 'image', '--out', 'a.png', 'a cat'], 'Missing --aspect.'],
@@ -79,6 +79,9 @@ describe('akb cloud image / tts', () => {
       [['cloud', 'image', '--aspect', '16:9', '--out', 'a.png'], 'Missing the prompt.'],
       [['cloud', 'tts', '--out', 'a.wav', 'hi'], 'Missing --voice.'],
       [['cloud', 'tts', '--voice', 'Ava', '--out', 'a.wav'], 'Missing the text to speak.'],
+      [['cloud', 'music', '--out', 'a.wav', 'calm piano'], 'Missing --seconds.'],
+      [['cloud', 'music', '--seconds', 'soon', '--out', 'a.wav', 'calm piano'], '--seconds soon: give a number of seconds.'],
+      [['cloud', 'music', '--seconds', '30', '--out', 'a.wav'], 'Missing the prompt.'],
     ] as const) {
       const { code, err } = await akb([...argv])
       assert.equal(code, 2, argv.join(' '))
@@ -111,6 +114,10 @@ describe('akb cloud image / tts', () => {
     const tts = await akb(['cloud', 'tts', '--voice', 'Ava', '--out', 'a.wav', 'hi'])
     assert.equal(tts.code, 1)
     assert.match(tts.err, /Hosted voices are a Pro feature/)
+    const music = await akb(['cloud', 'music', '--seconds', '30', '--out', 'a.wav', 'calm piano'])
+    assert.equal(music.code, 1)
+    assert.match(music.err, /托管配乐是 Pro 功能/)
+    assert.match(music.err, /leave the music slot empty/)
   })
 
   it('exits 1 when the credits are used up, and 2 when Cloud refuses the request', async () => {
@@ -141,5 +148,16 @@ describe('akb cloud image / tts', () => {
         body: { prompt: 'a cat', aspect: '16:9', references: [`data:image/png;base64,${Buffer.from('png').toString('base64')}`] },
       },
     ])
+  })
+
+  it('writes the track and asks for the length given', async () => {
+    signIn()
+    answer(() => new Response('wav-bytes', { headers: { 'content-type': 'audio/wav' } }))
+    const out = path.join(home, 'music', 'score.wav')
+    const { code, out: said } = await akb(['cloud', 'music', '--seconds', '42.5', '--out', out, 'calm', 'piano'])
+    assert.equal(code, 0)
+    assert.equal(fs.readFileSync(out, 'utf8'), 'wav-bytes')
+    assert.equal(said, `${out} (42.5s)`)
+    assert.deepEqual(sent, [{ url: `${API}/v1/music`, body: { prompt: 'calm piano', seconds: 42.5 } }])
   })
 })

@@ -53,6 +53,7 @@ import uiDesignerRendered from '../../agents/ui-designer/references/rendered-scr
 import uiDesignerTemplates from '../../agents/ui-designer/template-selection.md'
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 import videoCloner from '../../agents/video-cloner/AGENT.md'
+import videoClonerMusic from '../../agents/video-cloner/references/music.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'blog-illustrator/AGENT.md': blogIllustrator,
@@ -100,4 +101,5 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'ui-designer/template-selection.md': uiDesignerTemplates,
   'tech-stack-advisor/AGENT.md': techStackAdvisor,
   'video-cloner/AGENT.md': videoCloner,
+  'video-cloner/references/music.md': videoClonerMusic,
 }

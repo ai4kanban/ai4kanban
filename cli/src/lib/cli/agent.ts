@@ -30,7 +30,7 @@ import type { DeliveryRecord } from '../agent/types'
 import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
-import { cloudImage, cloudTts, cmdCloud } from '../../commands/cloud'
+import { cloudImage, cloudMusic, cloudTts, cmdCloud } from '../../commands/cloud'
 import {
   templateDelete,
   templateGet,
@@ -412,6 +412,18 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, text: string[]) {
       const o = this.opts() as { voice?: string; out?: string }
       await boardless(this, cli, (p) => cloudTts({ voice: o.voice, out: o.out, text: text.join(' ') }, p))
+    })
+
+  withShared(cloud.command('music'))
+    .argument('[prompt...]', 'the music to make')
+    .summary('generate an instrumental track through Cloud, spending Pro credits')
+    .option('--seconds <n>', 'how long the track runs')
+    .option('--out <file>', 'where to write the audio')
+    .action(async function (this: Command, prompt: string[]) {
+      const o = this.opts() as { seconds?: string; out?: string }
+      await boardless(this, cli, (p) =>
+        cloudMusic({ seconds: o.seconds, out: o.out, prompt: prompt.join(' ') }, p),
+      )
     })
 
   // The shared template catalog (#1708). Options are read in the handlers, so a missing one exits 2.

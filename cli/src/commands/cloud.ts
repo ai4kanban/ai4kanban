@@ -11,7 +11,7 @@
 // sign-in belongs to the machine rather than to any one project, and an export writes a board
 // into the folder it is given.
 //
-// `image` and `tts` generate through Cloud on the user's Pro credits (#1119). Their messages
+// `image`, `tts` and `music` generate through Cloud on the user's Pro credits (#1119). Their messages
 // are bilingual because an agent relays them to the user as they are; exit 2 is a usage error.
 
 import fs from 'node:fs'
@@ -321,6 +321,36 @@ export async function cloudTts(
       en: 'You can also use a local voice instead (`npx hyperframes tts --list`).',
     },
     label: (res) => res.headers.get('x-voice') ?? voice,
+  })
+}
+
+/** `akb cloud music --seconds <n> --out <file.wav> "<prompt>"` */
+export async function cloudMusic(
+  opts: { seconds?: string; out?: string; prompt: string },
+  program: string,
+): Promise<MoveResult> {
+  const line = `${program} cloud music --seconds <n> --out <file.wav> "<prompt>"`
+  if (!opts.seconds) usage('Missing --seconds.', line)
+  if (!opts.out) usage('Missing --out.', line)
+  const seconds = Number(opts.seconds)
+  if (!Number.isFinite(seconds) || seconds <= 0) usage(`--seconds ${opts.seconds}: give a number of seconds.`, line)
+  const prompt = opts.prompt.trim()
+  if (!prompt) usage('Missing the prompt.', line)
+  return generate({
+    usage: line,
+    endpoint: '/v1/music',
+    body: { prompt, seconds },
+    out: opts.out,
+    pro_required: {
+      zh: '托管配乐是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
+      en: 'Hosted music is a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+    },
+    failed: { zh: '托管配乐暂时无法生成，请稍后重试。', en: 'Hosted music could not be generated right now. Try again later.' },
+    fallback: {
+      zh: '也可以先留空音乐槽位，或换成你自己的曲子。',
+      en: 'You can also leave the music slot empty, or use a track of your own.',
+    },
+    label: () => `${seconds}s`,
   })
 }
 
