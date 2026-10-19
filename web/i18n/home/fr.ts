@@ -6,29 +6,30 @@ const fr: HomeCopy = {
   meta: {
     title: "Espace de travail avec agents pour indie hackers | AI4Kanban",
     description:
-      "Des agents spécialisés préparent les brouillons essentiels au développement et au marketing. Vous les validez, ils terminent le travail : moins de temps à vérifier et corriger le résultat.",
-    socialTitle: "Voyez le brouillon. Laissez les agents faire le reste.",
+      "Du développement au marketing, AI4Kanban vous prépare des brouillons des parties qui demandent votre jugement. Relisez-les, puis laissez les agents gérer les détails de l’exécution.",
+    socialTitle: "Inutile de gérer chaque détail.",
     social:
-      "Des agents spécialisés pour le développement et le marketing. Validez les brouillons clés, puis confiez-leur la suite, avec moins de vérifications et de corrections après coup.",
+      "Relisez les parties qui demandent votre jugement. Laissez les agents s’occuper de l’exécution, du développement au marketing.",
     schema:
-      "AI4Kanban est un espace de travail local et open source pour indie hackers. Ses agents spécialisés partagent le contexte du projet dans 6 workflows de développement et de contenu. Ils préparent les brouillons des parties qui demandent votre jugement, puis terminent le travail à partir de ce que vous validez, afin de réduire le temps passé à vérifier et corriger le résultat. Les tâches indépendantes avancent en parallèle ; préférences et décisions sont conservées et les agents proposent des suites utiles. Utilisez vos outils d'IA et vos abonnements.",
+      "AI4Kanban est un espace de travail avec agents pour indie hackers. Six workflows intégrés repèrent les décisions qui demandent un jugement humain et préparent des brouillons à valider avant que les agents n’exécutent. Vous pouvez créer vos propres agents et workflows pour définir ce que vous relisez et ce que les agents prennent en charge.",
   },
 
   hero: {
-    eyebrow: "Un espace de travail avec agents pour les indie hackers",
-    title: "Voyez le brouillon.\nLaissez les agents faire le reste.",
+    eyebrow: "Espace de travail avec agents pour indie hackers",
+    title: "Inutile de gérer\nchaque détail.",
     lead:
-      "Du développement au marketing, AI4Kanban vous prépare des brouillons des parties qui demandent votre jugement. Relisez, ajustez, et laissez les agents prendre le relais, sans avoir à gérer chaque détail.",
+      "Du développement au marketing, AI4Kanban vous prépare des brouillons des parties qui demandent votre jugement. Relisez, ajustez, et laissez les agents prendre le relais.",
     ctaDownload: "Télécharger",
     ctaGithub: "Voir sur GitHub ↗",
     image:
-      "Enregistrement du tableau de démonstration d'AI4Kanban : planifier les tâches, relire les brouillons d'une carte, puis confier le travail aux agents.",
+      "Enregistrement d’AI4Kanban : planifier une tâche, relire ses brouillons, puis confier le plan validé aux agents.",
   },
 
-  review: {
+  handoff: {
     title: "Vous validez l’essentiel.\nLes agents font le reste.",
-    lead:
-      "AI4Kanban transforme les parties de votre idée qui demandent votre jugement en brouillons que vous pouvez relire et ajuster. Une fois validés, les agents terminent le travail à partir de ces brouillons, et vous pouvez passer à autre chose.",
+    body: [
+      "AI4Kanban vous aide à clarifier votre idée. Chaque workflow vous prépare des brouillons des parties qui demandent votre avis. Relisez-les, ajustez-les, puis laissez les agents terminer le travail. Les tâches indépendantes avancent en même temps.",
+    ],
     scene: {
       label:
         "Vous confiez une idée à AI4Kanban, qui la transforme en brouillons à relire. Une fois validés, AI4Kanban transmet les brouillons et leur contexte aux agents, qui prennent le relais.",
@@ -42,88 +43,56 @@ const fr: HomeCopy = {
   },
 
   workflows: {
-    title: "Développez le produit. Faites avancer le marketing.",
+    title: "Le bon workflow pour chaque travail",
     lead:
-      "Avec 6 workflows intégrés pour le développement et la création de contenu, vous relisez maquettes d’interface, texte et images d’article, storyboards vidéo et plus encore avant que les agents terminent le travail.",
+      "Commencez avec six workflows intégrés pour le développement et le contenu. Chacun précise ce que vous relisez avant que les agents prennent le relais. Vous pouvez aussi créer vos propres agents et workflows.",
     items: [
       {
         label: "Développement logiciel",
-        image: "Brouillon de développement : maquette d’un écran clé.",
-      },
-      { label: "Article de blog", image: "Brouillon d’article de blog : l’article et ses images." },
-      {
-        label: "Vidéo produit",
-        image: "Brouillon de vidéo produit : scènes et voix off dans un storyboard.",
-      },
-      {
-        label: "Présentation",
-        image:
-          "Brouillon de présentation : aperçu du contenu et de la mise en page des diapositives.",
-      },
-      {
-        label: "Publication en carrousel",
-        image: "Brouillon de carrousel : textes des pages et plan du contenu.",
+        body: "Relisez l’interface et les textes qui demandent votre avis. Les agents mettent en œuvre le plan validé.",
+        image: "Brouillon de développement : maquette d’un écran clé.",
       },
       {
         label: "Clonage vidéo (vidéos créées par du code)",
-        image:
-          "Brouillons de réplique vidéo : découpage de la source et storyboard de la réplique.",
+        body: "Relisez l’analyse de la vidéo source et le storyboard de la recréation. Les agents recréent la vidéo et en font un modèle réutilisable.",
+        image: "Brouillons de clonage vidéo : l’analyse de la source et le storyboard de la recréation.",
+      },
+      {
+        label: "Vidéo produit",
+        body: "Relisez le script et le storyboard. Les agents produisent la vidéo et sa couverture.",
+        image: "Brouillon de vidéo produit : scènes et voix off dans un storyboard.",
+      },
+      {
+        label: "Présentation",
+        body: "Relisez le contenu et la mise en page des diapositives. Les agents produisent un fichier PowerPoint dont chaque diapositive est une image.",
+        image: "Brouillon de présentation : contenu et mise en page de chaque diapositive.",
+      },
+      {
+        label: "Publication en carrousel",
+        body: "Relisez le texte des pages et le plan. Les agents créent les images et les légendes pour chaque plateforme.",
+        image: "Brouillon de carrousel : le texte de chaque page et le plan du contenu.",
+      },
+      {
+        label: "Article de blog",
+        body: "Relisez le plan, le texte et les images. Les agents préparent l’article complet.",
+        image: "Brouillon d’article de blog : l’article et ses images.",
       },
     ],
-    links: {
-      demo: "Essayer la démo",
-      all: "Voir tous les agents et workflows",
-    },
-  },
-
-  parallel: {
-    title: "Faites avancer les tâches indépendantes en parallèle",
-    body: [
-      "Réunissez le développement produit et le marketing sur un même tableau. Les tâches indépendantes peuvent avancer en parallèle ; celles qui dépendent d'autres tâches suivent leur ordre.",
-      "Chaque carte conserve ses brouillons, décisions et progrès. Revenez-y lorsqu'une décision vous revient et confiez l'exécution aux agents, sans multiplier les relais entre conversations.",
-    ],
-    shots: {
-      board: { label: "Board", alt: "Le tableau AI4Kanban : vue Board" },
-      card: { label: "Card", alt: "Le tableau AI4Kanban : les détails et exigences d'une carte" },
-      frontAria: "Vue {view} (actuelle)",
-      flipAria: "Passer à la vue {view}",
-    },
-  },
-
-  agents: {
-    title: "Reprenez là où vous vous êtes mis d'accord",
-    body: [
-      "Vos préférences et décisions servent aux tâches suivantes. Chaque agent retient ce qui compte pour son travail et peut partager ce contexte avec les autres agents.",
-      "Le brouillon suivant part de ces acquis communs, pour que vous consacriez votre temps à ce qui doit changer cette fois-ci.",
-    ],
-    image:
-      "Vous donnez une consigne une fois ; l'agent la retient et chaque brouillon suivant la respecte.",
-  },
-
-  followUps: {
-    title: "Terminez un travail. Repérez la suite utile.",
-    body: [
-      "Une fois un travail principal terminé, les agents proposent des suites pour repérer les manques et les prochaines étapes utiles.",
-      "Les suggestions reviennent sur votre tableau. Acceptez-les, modifiez-les ou refusez-les avant de décider quoi entreprendre.",
-    ],
-    image: "L'agent QA repère un oubli et vous remet un suivi à accepter ou à ignorer.",
+    links: { demo: "Essayer la démo", all: "Voir tous les agents et workflows" },
   },
 
   tools: {
     title: "Gardez les outils d'IA que vous utilisez déjà",
     body:
-      "Connectez Claude Code, Codex et 6 autres outils, qui tournent sur votre machine avec vos propres abonnements. Choisissez l'outil et le modèle de chaque agent. AI4Kanban ne facture aucun supplément pour les tokens.",
+      "Connectez Claude Code et 7 autres outils, sur votre machine et avec vos propres abonnements. Choisissez un outil et un modèle pour chaque agent. AI4Kanban ne facture aucun frais de tokens supplémentaire.",
   },
 
   start: {
-    title: "Commencez par votre première tâche",
-    lead:
-      "Téléchargez l’application de bureau, ouvrez un projet et décrivez ce que vous voulez faire. Validez les brouillons qui demandent votre jugement, puis confiez la suite aux agents.",
+    title: "Apportez votre prochaine idée",
+    lead: "Téléchargez l’application de bureau, ouvrez votre projet et clarifiez ce que vous voulez faire.",
     cta: "Télécharger",
     firstOpen:
-      "Les versions ne sont pas signées, donc macOS bloque la première ouverture : glissez l'app depuis le `.dmg`, puis choisissez de continuer dans l'avertissement. La page de téléchargement détaille les étapes pour macOS, Windows et Linux.",
-    command:
-      "Vous préférez la ligne de commande ? Lancez `npx ai4kanban@latest install` dans votre projet.",
+      "L’application macOS n’est pas signée. Si macOS la bloque à la première ouverture, suivez les étapes de la page de téléchargement.",
   },
 };
 

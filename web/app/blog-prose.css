@@ -380,3 +380,11 @@
   padding: 0.5rem 2.75rem 0.5rem 0.75rem;
   font-size: 0.8rem;
 }
+/* A landing-page picture in a doc (`DocVisuals.tsx`) keeps its own markup's styles. */
+.docs-prose .doc-visual {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.docs-prose .doc-visual :is(img, ul, ol, li, code, strong) {
+  all: revert-layer;
+}

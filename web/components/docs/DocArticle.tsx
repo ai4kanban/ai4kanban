@@ -3,6 +3,7 @@ import { BlogMdx } from "../blog/BlogMdx";
 import { hairline } from "../styles";
 import { Callout, Card, CardGroup, InstallBoard, RuntimeLogo } from "./DocCards";
 import { CopyPage } from "./CopyPage";
+import { BoardShots, FollowUpsAnimation, MemoryAnimation, SessionsShot, TaskGraphShot } from "./DocVisuals";
 import { DocTocBlock, DocTocRail } from "./DocToc";
 import { extractToc } from "@/lib/blog";
 import { DOCS_PATH, docPath, getDocsNav, type DocPage } from "@/lib/docs";
@@ -94,7 +95,18 @@ export function DocArticle({
           <BlogMdx
             source={doc.body}
             className="docs-prose"
-            extra={{ Callout, Card, CardGroup, InstallBoard, RuntimeLogo }}
+            extra={{
+              Callout,
+              Card,
+              CardGroup,
+              InstallBoard,
+              RuntimeLogo,
+              BoardShots,
+              TaskGraphShot,
+              SessionsShot,
+              MemoryAnimation,
+              FollowUpsAnimation,
+            }}
           />
         </div>
 

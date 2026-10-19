@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { printFrame } from "./Mat";
-import type { HomeCopy } from "@/i18n/home/types";
 
 // The board and one card as a flip deck: the front shot sits top-left, the other
 // peeks out from behind — click it to bring it forward. Keeps both screenshots
 // full size instead of shrinking them side by side, and nothing is drawn on top
 // of the capture.
 //
-// The deck is mounted on a watercolour (`Parallel.tsx`), so both cards are
+// The deck is mounted on a watercolour (`DocVisuals.tsx`), so both cards are
 // prints on a mat and take that treatment: `printFrame`'s soft shadow, and no
 // outline on either. They used to carry the site's hard ink offset and a 2px
 // ink frame on the front card, which is the right vocabulary on the page and
@@ -23,7 +22,15 @@ import type { HomeCopy } from "@/i18n/home/types";
 
 type Mode = "board" | "card";
 
-// Drawn from `sm` up, well below the fold: both load lazily. `scripts/build-home-images.mjs`
+export type HeroShotsCopy = {
+  board: { label: string; alt: string };
+  card: { label: string; alt: string };
+  /** `{view}` is replaced by the card's label. */
+  frontAria: string;
+  flipAria: string;
+};
+
+// Drawn from `sm` up: both load lazily. `scripts/build-home-images.mjs`
 // makes the two widths.
 const srcSet = (mode: Mode) => [1200, 2400].map((w) => `/home/demo-${mode}-${w}.webp ${w}w`).join(", ");
 const SIZES = "(min-width: 1200px) 1000px, 90vw";
@@ -56,7 +63,7 @@ function Frame({ mode, alt }: { mode: Mode; alt: string }) {
 // shrink to a sliver, and it must not grow into a shelf on a wide deck.
 const PEEK = 40;
 
-export function HeroShots({ c }: { c: HomeCopy["parallel"]["shots"] }) {
+export function HeroShots({ c }: { c: HeroShotsCopy }) {
   const [front, setFront] = useState<Mode>("board");
   const back: Mode = front === "board" ? "card" : "board";
   // Paint back-to-front so the front card wins the stacking order naturally.

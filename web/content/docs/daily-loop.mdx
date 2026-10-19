@@ -81,11 +81,15 @@ In a terminal it is `akb card implement 4`.
 
 ## Queue a card that is waiting on another
 
+<TaskGraphShot />
+
 A card blocked by another can still be built or refined — the board only warns. By default it
 is refined once the last card in its way leaves the board; the card reads **Scheduled**, with
 **cancel**. `akb raw schedule 4 --action implement` makes it build instead.
 
 ## Review the board
+
+<BoardShots />
 
 Say **"review the board"** (or "review #4"). The skill checks cards for plain language, split
 todos, duplication, and whether any are done or no longer worth it.

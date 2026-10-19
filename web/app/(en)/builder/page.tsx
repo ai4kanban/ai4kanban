@@ -93,7 +93,7 @@ export default function BuilderPage() {
               the details.
             </p>
             <div className="py-2">
-              <BridgeScene c={c.home.review.scene} />
+              <BridgeScene c={c.home.handoff.scene} />
             </div>
             <p>
               <N n={2} />

@@ -6,29 +6,30 @@ const en: HomeCopy = {
   meta: {
     title: "Agent workspace for indie hackers | AI4Kanban",
     description:
-      "Specialist agents draft the key parts of coding and marketing tasks for you to review, then finish the work—so you spend less time checking and reworking it.",
-    socialTitle: "See the draft. Let agents do the rest.",
+      "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review them, then let agents handle the execution details.",
+    socialTitle: "You don’t have to manage every detail.",
     social:
-      "Specialist agents handle coding and marketing. Review the key drafts, then hand over the work—with less to check and revise afterwards.",
+      "Review the parts that need your judgment. Let agents take care of the execution, from coding to marketing.",
     schema:
-      "AI4Kanban is an open-source, local-first agent workspace for indie hackers. Specialist agents share project context across 6 coding and content workflows. They draft the parts that need your judgment, then finish the work from what you approve, reducing the time you spend checking and revising finished work. Independent tasks run in parallel, preferences and decisions carry forward, and agents suggest follow-ups. Use your own AI tools and subscriptions.",
+      "AI4Kanban is an agent workspace for indie hackers. Six built-in workflows identify decisions that need human input and prepare drafts for approval before agents execute. Users can create custom agents and workflows that define what they review and what agents handle.",
   },
 
   hero: {
-    eyebrow: "An agent workspace for indie hackers",
-    title: "See the draft.\nLet agents do the rest.",
+    eyebrow: "Agent workspace for indie hackers",
+    title: "You don’t have to\nmanage every detail.",
     lead:
-      "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there—without having to manage every detail.",
+      "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there.",
     ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
     image:
-      "A recording of the AI4Kanban demo board: planning tasks, reviewing the drafts on a card, then handing the work to agents.",
+      "A recording of AI4Kanban: planning a task, reviewing its drafts, and handing the approved plan to agents.",
   },
 
-  review: {
-    title: "Review the key parts.\nAgents do the rest.",
-    lead:
-      "AI4Kanban turns the parts of your idea that need your judgment into drafts you can review and refine. Once you approve them, agents finish the work from those drafts, freeing you to focus on other things.",
+  handoff: {
+    title: "Review the key parts.\nLet agents do the rest.",
+    body: [
+      "AI4Kanban helps you clarify your idea. Each workflow brings you drafts of the parts that need your input. Review and refine them, then let agents complete the work. Tasks that don’t depend on each other move forward at the same time.",
+    ],
     scene: {
       label:
         "You hand an idea to AI4Kanban, which turns it into drafts for you to review. Once you approve them, AI4Kanban passes the drafts and their context to agents, who take over the work.",
@@ -42,21 +43,39 @@ const en: HomeCopy = {
   },
 
   workflows: {
-    title: "Build the product. Keep marketing moving.",
+    title: "The right workflow for the work",
     lead:
-      "Across 6 built-in workflows for coding and content creation, review UI mockups, article copy and images, video storyboards and more before agents finish the work.",
+      "Start with six built-in workflows for coding and content. Each makes clear what you review before agents take over. You can also create your own agents and workflows.",
     items: [
-      { label: "Coding", image: "Coding draft: a UI mockup of a key screen." },
-      { label: "Blog post", image: "Blog post draft: the article and its images." },
       {
-        label: "Product video",
-        image: "Product video draft: scenes and voiceover in a storyboard.",
+        label: "Coding",
+        body: "Review the UI and copy that need your input. Agents implement the approved plan.",
+        image: "Coding draft: a UI mockup of a key screen.",
       },
-      { label: "Slide deck", image: "Slide deck draft: page content and layout previews." },
-      { label: "Carousel post", image: "Carousel post draft: page copy and content outline." },
       {
         label: "Video clone (code-generated videos)",
-        image: "Video clone drafts: the source breakdown and clone storyboard.",
+        body: "Review the reference breakdown and recreation storyboard. Agents recreate the video and make a reusable template.",
+        image: "Video clone drafts: the source breakdown and recreation storyboard.",
+      },
+      {
+        label: "Product video",
+        body: "Review the script and storyboard. Agents produce the video and cover.",
+        image: "Product video draft: scenes and voiceover in a storyboard.",
+      },
+      {
+        label: "Slide deck",
+        body: "Review the slide content and layout. Agents produce a PowerPoint deck with each slide as an image.",
+        image: "Slide deck draft: page content and layout previews.",
+      },
+      {
+        label: "Carousel post",
+        body: "Review the page copy and outline. Agents create the page images and platform captions.",
+        image: "Carousel post draft: page copy and content outline.",
+      },
+      {
+        label: "Blog post",
+        body: "Review the outline, copy and images. Agents prepare the complete article.",
+        image: "Blog post draft: the article and its images.",
       },
     ],
     links: {
@@ -65,52 +84,18 @@ const en: HomeCopy = {
     },
   },
 
-  parallel: {
-    title: "Move independent work forward together",
-    body: [
-      "Keep product development and marketing tasks on one board. Independent tasks can run in parallel; dependent tasks follow in order.",
-      "Each card keeps its own drafts, decisions and progress. Return to the card when a decision needs you, and let agents handle execution without repeated handoffs across chats.",
-    ],
-    shots: {
-      board: { label: "Board", alt: "The AI4Kanban board: Board view" },
-      card: { label: "Card", alt: "The AI4Kanban board: a card's details and requirements" },
-      frontAria: "{view} view (current)",
-      flipAria: "Switch to the {view} view",
-    },
-  },
-
-  agents: {
-    title: "Start the next task with what you've already agreed",
-    body: [
-      "Your preferences and decisions carry forward. Each agent remembers what matters to its work and can share that context with other agents.",
-      "The next draft builds on that shared understanding, so you spend your time on what needs to change this time.",
-    ],
-    image: "You give a note once; the agent remembers it and every later draft follows it.",
-  },
-
-  followUps: {
-    title: "Finish one piece of work. Catch what comes next.",
-    body: [
-      "After a main piece of work is complete, agents suggest follow-ups to help catch gaps and identify useful next steps.",
-      "Suggestions come back to your board. Accept, revise or reject them before deciding what to take on.",
-    ],
-    image: "The QA agent finds a gap and hands you a follow-up to accept or dismiss.",
-  },
-
   tools: {
     title: "Keep the AI tools you already use",
     body:
-      "Connect Claude Code, Codex and 6 other tools, running on your machine with your own subscriptions. Choose a tool and model for each agent. AI4Kanban charges no extra token fees.",
+      "Connect Claude Code and 7 other tools, running on your machine with your own subscriptions. Choose a tool and model for each agent. AI4Kanban charges no extra token fees.",
   },
 
   start: {
-    title: "Start with your first task",
-    lead:
-      "Download the desktop app, open a project and write what you want to do. Review the drafts that need your judgment, then hand the rest to agents.",
+    title: "Bring your next idea",
+    lead: "Download the desktop app, open your project and talk through what you want to do.",
     cta: "Download",
     firstOpen:
-      "Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then choose to continue in the warning. The download page has the full steps for macOS, Windows and Linux.",
-    command: "Prefer the command line? Run `npx ai4kanban@latest install` in your project.",
+      "The macOS app is unsigned. If macOS blocks it on first open, follow the steps on the download page.",
   },
 };
 

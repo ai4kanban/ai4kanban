@@ -1,12 +1,8 @@
 import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
-import { Review } from "@/components/home/Review";
+import { Handoff } from "@/components/home/Handoff";
 import { Workflows } from "@/components/home/Workflows";
-import { Story } from "@/components/home/Story";
-import { MemoryScene } from "@/components/home/MemoryScene";
-import { FollowUpsScene } from "@/components/home/FollowUpsScene";
-import { Parallel } from "@/components/home/Parallel";
 import { Tools } from "@/components/home/Tools";
 import { Start } from "@/components/home/Start";
 import { Reveal } from "@/components/home/Reveal";
@@ -68,17 +64,8 @@ export function HomePage({ locale }: { locale: Locale }) {
       <main>
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
-          <Review c={c.review} />
+          <Handoff c={c.handoff} />
           <Workflows c={c.workflows} />
-          <Parallel c={c.parallel} />
-          <Story title={c.agents.title} body={c.agents.body} scene={<MemoryScene label={c.agents.image} />} />
-          <Story
-            title={c.followUps.title}
-            body={c.followUps.body}
-            scene={<FollowUpsScene label={c.followUps.image} />}
-            flip
-            className="lg:mt-12"
-          />
           <Tools c={c.tools} />
         </div>
         <Band flush>

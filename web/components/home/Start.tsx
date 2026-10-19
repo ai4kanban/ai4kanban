@@ -65,15 +65,6 @@ export function Start({
       >
         <Rich>{c.firstOpen}</Rich>
       </p>
-
-      {/* The terminal way in, as a line rather than a block: the app is the way in. */}
-      <p
-        data-reveal
-        data-delay="3"
-        className="mt-4 max-w-3xl text-[0.9rem] leading-relaxed text-muted"
-      >
-        <Rich>{c.command}</Rich>
-      </p>
     </section>
   );
 }

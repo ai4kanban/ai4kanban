@@ -13,8 +13,8 @@ import type { HomeCopy } from "@/i18n/home/types";
 // shrinks to fit the screen; wider screens about one and a half. After the sixth the page
 // scrolls on. Without scroll-driven animations, or with reduced motion, the cards stack in one
 // column on a phone and two from `sm`.
-const PREVIEWS = ["coding", "blog", "video", "slides", "carousel", "clone"] as const;
-const WASHES: WashName[] = ["peachEmber", "skyLilac", "emberMint", "mintSky", "emberLilac", "emberPeach"];
+const PREVIEWS = ["coding", "clone", "video", "slides", "carousel", "blog"] as const;
+const WASHES: WashName[] = ["peachEmber", "emberPeach", "emberMint", "mintSky", "emberLilac", "skyLilac"];
 
 const PIN_CSS = `
 .wf-bar{display:none}
@@ -67,6 +67,7 @@ export function Workflows({ c }: { c: HomeCopy["workflows"] }) {
                   </div>
                 </Mat>
                 <h3 className="mt-4 text-[1.05rem] font-semibold text-ink">{w.label}</h3>
+                <p className="mt-1 max-w-xl text-[0.95rem] leading-relaxed text-muted">{w.body}</p>
               </li>
             ))}
           </ul>

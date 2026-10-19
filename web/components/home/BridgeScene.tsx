@@ -75,7 +75,7 @@ const CSS = `
 `;
 
 
-export function BridgeScene({ c }: { c: HomeCopy["review"]["scene"] }) {
+export function BridgeScene({ c }: { c: HomeCopy["handoff"]["scene"] }) {
   const root = useRef<HTMLElement>(null);
 
   useEffect(() => {

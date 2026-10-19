@@ -6,29 +6,30 @@ const es: HomeCopy = {
   meta: {
     title: "Espacio de trabajo con agentes para desarrolladores independientes | AI4Kanban",
     description:
-      "Los agentes especializados preparan borradores de lo esencial en desarrollo y marketing. Los revisas y ellos terminan el trabajo, para que dediques menos tiempo a comprobar y corregir el resultado.",
-    socialTitle: "Revisa el borrador. Deja el resto a los agentes.",
+      "Del desarrollo al marketing, AI4Kanban te prepara borradores de las partes que necesitan tu criterio. Revísalos y deja los detalles de la ejecución a los agentes.",
+    socialTitle: "No tienes que supervisar cada detalle.",
     social:
-      "Agentes especializados para desarrollo y marketing. Revisa los borradores clave y deja que terminen el trabajo, con menos que comprobar y corregir después.",
+      "Revisa las partes que necesitan tu criterio. Deja la ejecución a los agentes, del desarrollo al marketing.",
     schema:
-      "AI4Kanban es un espacio de trabajo local y de código abierto para desarrolladores independientes. Sus agentes especializados comparten el contexto del proyecto en 6 flujos de desarrollo y contenido. Preparan borradores de las partes que necesitan tu criterio y terminan el trabajo a partir de lo que apruebas, para reducir el tiempo dedicado a comprobar y corregir el resultado. Las tareas independientes avanzan en paralelo; las preferencias y decisiones pasan a las siguientes tareas y los agentes proponen próximos pasos. Usa tus herramientas de IA y suscripciones.",
+      "AI4Kanban es un espacio de trabajo con agentes para desarrolladores independientes. Seis flujos integrados identifican las decisiones que requieren criterio humano y preparan borradores para aprobar antes de que los agentes ejecuten. Puedes crear tus propios agentes y flujos que definan qué revisas tú y qué hacen los agentes.",
   },
 
   hero: {
-    eyebrow: "Un espacio de trabajo con agentes para desarrolladores independientes",
-    title: "Revisa el borrador.\nDeja el resto a los agentes.",
+    eyebrow: "Espacio de trabajo con agentes para desarrolladores independientes",
+    title: "No tienes que supervisar\ncada detalle.",
     lead:
-      "Del desarrollo al marketing, AI4Kanban te prepara borradores de las partes que necesitan tu criterio. Revisa, ajusta y deja que los agentes sigan desde ahí, sin tener que supervisar cada detalle.",
+      "Del desarrollo al marketing, AI4Kanban te prepara borradores de las partes que necesitan tu criterio. Revisa, ajusta y deja que los agentes sigan desde ahí.",
     ctaDownload: "Descargar",
     ctaGithub: "Ver en GitHub ↗",
     image:
-      "Grabación del tablero de demostración de AI4Kanban: planificar tareas, revisar los borradores de una tarjeta y pasar el trabajo a los agentes.",
+      "Grabación de AI4Kanban: planificar una tarea, revisar sus borradores y pasar el plan aprobado a los agentes.",
   },
 
-  review: {
+  handoff: {
     title: "Tú revisas las partes clave.\nLos agentes hacen el resto.",
-    lead:
-      "AI4Kanban convierte las partes de tu idea que necesitan tu criterio en borradores que puedes revisar y ajustar. Cuando los apruebas, los agentes terminan el trabajo a partir de esos borradores y tú puedes centrarte en otras cosas.",
+    body: [
+      "AI4Kanban te ayuda a aclarar tu idea. Cada flujo te prepara borradores de las partes que necesitan tu opinión. Revísalos y ajústalos, y deja que los agentes completen el trabajo. Las tareas que no dependen entre sí avanzan a la vez.",
+    ],
     scene: {
       label:
         "Le das una idea a AI4Kanban, que la convierte en borradores para que los revises. Cuando los apruebas, AI4Kanban pasa los borradores y su contexto a los agentes, que se encargan del trabajo.",
@@ -42,88 +43,56 @@ const es: HomeCopy = {
   },
 
   workflows: {
-    title: "Desarrolla el producto. Mantén el marketing en marcha.",
+    title: "El flujo adecuado para cada trabajo",
     lead:
-      "Con 6 flujos integrados para desarrollo y creación de contenido, revisas maquetas de interfaz, el texto y las imágenes de un artículo, guiones gráficos de vídeo y más antes de que los agentes terminen el trabajo.",
+      "Empieza con seis flujos integrados para desarrollo y contenido. Cada uno deja claro qué revisas antes de que los agentes se encarguen. También puedes crear tus propios agentes y flujos.",
     items: [
       {
         label: "Desarrollo de software",
+        body: "Revisa la interfaz y los textos que necesitan tu opinión. Los agentes implementan el plan aprobado.",
         image: "Borrador de desarrollo: prototipo de una pantalla clave.",
-      },
-      { label: "Artículo de blog", image: "Borrador de blog: el artículo y sus imágenes." },
-      {
-        label: "Vídeo de producto",
-        image: "Borrador de vídeo de producto: escenas y locución en un guion gráfico.",
-      },
-      {
-        label: "Presentación",
-        image: "Borrador de presentación: contenido y composición de las diapositivas.",
-      },
-      {
-        label: "Publicación en carrusel",
-        image: "Borrador de carrusel: textos de las páginas y esquema del contenido.",
       },
       {
         label: "Clonación de vídeo (vídeos generados con código)",
-        image:
-          "Borradores de clonación de vídeo: desglose del original y guion gráfico de la réplica.",
+        body: "Revisa el análisis del vídeo original y el guion gráfico de la recreación. Los agentes recrean el vídeo y crean una plantilla reutilizable.",
+        image: "Borradores de clonación de vídeo: el análisis del original y el guion gráfico de la recreación.",
+      },
+      {
+        label: "Vídeo de producto",
+        body: "Revisa el guion y el guion gráfico. Los agentes producen el vídeo y la portada.",
+        image: "Borrador de vídeo de producto: escenas y voz en off en un guion gráfico.",
+      },
+      {
+        label: "Presentación",
+        body: "Revisa el contenido y el diseño de cada diapositiva. Los agentes crean un archivo PowerPoint con cada diapositiva como imagen.",
+        image: "Borrador de presentación: contenido y diseño de cada diapositiva.",
+      },
+      {
+        label: "Publicación en carrusel",
+        body: "Revisa el texto de cada página y el esquema. Los agentes crean las imágenes y los textos para cada plataforma.",
+        image: "Borrador de carrusel: el texto de cada página y el esquema del contenido.",
+      },
+      {
+        label: "Artículo de blog",
+        body: "Revisa el esquema, el texto y las imágenes. Los agentes preparan el artículo completo.",
+        image: "Borrador de blog: el artículo y sus imágenes.",
       },
     ],
-    links: {
-      demo: "Probar la demo",
-      all: "Consulta todos los agentes y flujos",
-    },
-  },
-
-  parallel: {
-    title: "Avanza en paralelo con las tareas independientes",
-    body: [
-      "Reúne las tareas de desarrollo y marketing en un solo tablero. Las tareas independientes pueden avanzar en paralelo; las que dependen de otras siguen su orden.",
-      "Cada tarjeta conserva sus borradores, decisiones y progreso. Vuelve a ella cuando haga falta tu criterio y deja la ejecución a los agentes, sin repetir traspasos entre conversaciones.",
-    ],
-    shots: {
-      board: { label: "Board", alt: "Tablero de AI4Kanban: vista Board" },
-      card: { label: "Card", alt: "Tablero de AI4Kanban: los detalles y requisitos de una tarjeta" },
-      frontAria: "Vista {view} (actual)",
-      flipAria: "Cambiar a la vista {view}",
-    },
-  },
-
-  agents: {
-    title: "Empieza la siguiente tarea con lo que ya habéis acordado",
-    body: [
-      "Tus preferencias y decisiones pasan a las siguientes tareas. Cada agente recuerda lo relevante para su trabajo y puede compartir ese contexto con otros agentes.",
-      "El siguiente borrador parte de ese entendimiento compartido, para que dediques tu tiempo a lo que necesita cambiar esta vez.",
-    ],
-    image:
-      "Das una indicación una vez; el agente la recuerda y todos los borradores siguientes la aplican.",
-  },
-
-  followUps: {
-    title: "Termina una tarea. Detecta lo que viene después.",
-    body: [
-      "Al completar un trabajo principal, los agentes proponen tareas de seguimiento para detectar carencias y próximos pasos útiles.",
-      "Las sugerencias vuelven al tablero. Acéptalas, modifícalas o recházalas antes de decidir qué abordar.",
-    ],
-    image:
-      "El agente de QA detecta un hueco y te entrega un seguimiento para aceptarlo o descartarlo.",
+    links: { demo: "Probar la demo", all: "Ver todos los agentes y flujos" },
   },
 
   tools: {
     title: "Sigue usando las herramientas de IA que ya conoces",
     body:
-      "Conecta Claude Code, Codex y otras 6 herramientas, que se ejecutan en tu equipo con tus propias suscripciones. Elige herramienta y modelo para cada agente. AI4Kanban no cobra tarifas adicionales por tokens.",
+      "Conecta Claude Code y otras 7 herramientas, en tu equipo y con tus propias suscripciones. Elige herramienta y modelo para cada agente. AI4Kanban no cobra tarifas adicionales por tokens.",
   },
 
   start: {
-    title: "Empieza con tu primera tarea",
-    lead:
-      "Descarga la aplicación de escritorio, abre un proyecto y escribe qué quieres hacer. Revisa los borradores que necesitan tu criterio y deja el resto en manos de los agentes.",
+    title: "Trae tu próxima idea",
+    lead: "Descarga la aplicación de escritorio, abre tu proyecto y aclara lo que quieres hacer.",
     cta: "Descargar",
     firstOpen:
-      "Las versiones no están firmadas, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y elige continuar en el aviso. La página de descarga tiene los pasos completos para macOS, Windows y Linux.",
-    command:
-      "¿Prefieres la línea de comandos? Ejecuta `npx ai4kanban@latest install` en tu proyecto.",
+      "La aplicación para macOS no está firmada. Si macOS la bloquea al abrirla por primera vez, sigue los pasos de la página de descarga.",
   },
 };
 

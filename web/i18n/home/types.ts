@@ -10,6 +10,8 @@ import type { PageMeta } from "../types";
  */
 type Workflow = {
   label: string;
+  /** What the user reviews and what agents then do, one line under the name. */
+  body: string;
   /** What the preview shows, for a reader who cannot see it. */
   image: string;
 };
@@ -31,11 +33,11 @@ export type HomeCopy = {
     /** The /demo recording's label. */
     image: string;
   };
-  /** Where the user reviews: words beside the bridge scene. */
-  review: {
+  /** How it works: words beside the bridge scene. */
+  handoff: {
     /** Each `\n` starts a new line. */
     title: string;
-    lead: string;
+    body: string[];
     /** The scene's words; `label` reads the whole loop for a reader who cannot see it. */
     scene: {
       label: string;
@@ -47,37 +49,14 @@ export type HomeCopy = {
       build: string;
     };
   };
-  /** One card per workflow, in `PREVIEWS` order — coding, blog post, product video, slide
-   *  deck, carousel post, video clone. */
+  /** One card per workflow, in `PREVIEWS` order — coding, video clone, product video, slide
+   *  deck, carousel post, blog post. */
   workflows: {
     title: string;
     lead: string;
     items: [Workflow, Workflow, Workflow, Workflow, Workflow, Workflow];
     /** The links under the cards: the demo and every agent. */
     links: { demo: string; all: string };
-  };
-  parallel: {
-    title: string;
-    body: string[];
-    shots: {
-      board: { label: string; alt: string };
-      card: { label: string; alt: string };
-      /** `{view}` is replaced by the card's label. */
-      frontAria: string;
-      flipAria: string;
-    };
-  };
-  agents: {
-    title: string;
-    body: string[];
-    /** The animation's label. */
-    image: string;
-  };
-  followUps: {
-    title: string;
-    body: string[];
-    /** The animation's label. */
-    image: string;
   };
   tools: {
     title: string;
@@ -89,6 +68,5 @@ export type HomeCopy = {
     cta: string;
     /** What a Mac user has to do the first time, beside the button. */
     firstOpen: string;
-    command: string;
   };
 };
