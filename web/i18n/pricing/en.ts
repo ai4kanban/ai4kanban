@@ -35,7 +35,7 @@ const en: PricingCopy = {
       "Slide deck workflow",
       "Product video workflow",
       "Auto-screened ideas — you decide only the unclear ones",
-      "5,000 AI credits a month — voiceover uses 1 per second, a generated cover 320",
+      "5,000 AI credits a month — voiceover uses 1 per second, a generated image 320",
       "Priority support",
     ],
     button: "Get Pro",

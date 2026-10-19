@@ -1,6 +1,6 @@
 /**
- * Generated video covers (#1114). The OpenRouter key stays here; a machine sends a prompt, the
- * video's aspect ratio and a few real screenshots, and gets the image back.
+ * Image generation (#1114). The OpenRouter key stays here; a machine sends a prompt, an aspect
+ * ratio and optional reference images, and gets the image back.
  *
  * Pro only, at a flat price per image from the month's AI credits (#1113). A failure costs
  * nothing: credits are spent only once the image is in hand. What each call cost us is recorded

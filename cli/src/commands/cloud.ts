@@ -280,13 +280,13 @@ export async function cloudImage(
     body: { prompt, aspect: opts.aspect, references },
     out: opts.out,
     pro_required: {
-      zh: '生成封面是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
-      en: 'Generated covers are a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+      zh: '图像生成是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
+      en: 'Image generation is a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
     },
-    failed: { zh: '封面暂时无法生成，请稍后重试。', en: 'The cover could not be generated right now. Try again later.' },
+    failed: { zh: '图像暂时无法生成，请稍后重试。', en: 'The image could not be generated right now. Try again later.' },
     fallback: {
-      zh: '也可以改用素材排版制作封面。',
-      en: 'You can also lay out the cover from existing material instead.',
+      zh: '也可以改用现有图片或截图。',
+      en: 'You can also use an existing image or screenshot instead.',
     },
     label: (res) => res.headers.get('x-model') ?? 'unknown model',
   })

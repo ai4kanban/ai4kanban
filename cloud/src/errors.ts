@@ -321,7 +321,7 @@ export const speechUnavailable = () =>
 export const speechFailed = () =>
   new Refusal('speech_failed', 502, 'The narration could not be generated. Try again shortly.')
 
-/** Generated covers (#1114): no key in this build, or the provider failed. */
+/** Image generation (#1114): no key in this build, or the provider failed. */
 export const imageUnavailable = () =>
   new Refusal('image_unavailable', 503, 'Image generation is not available right now.')
 

@@ -15,7 +15,7 @@ export const MONTHLY_CREDITS = 5000
 export const CREDIT_RATES = {
   /** Per second spoken. */
   speech: 1,
-  /** Per generated cover, a flat price covering its reference images (#1114). */
+  /** Per generated image, a flat price including its reference images (#1114). */
   image: 320,
   /** Per hosted music track, whatever its length (#1822). */
   music: 320,
