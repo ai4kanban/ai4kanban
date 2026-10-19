@@ -35,3 +35,13 @@ declare interface R2Bucket {
     cursor?: string
   }>
 }
+
+/** The parts of a Durable Object namespace and its state that hosted music uses (#1828). */
+declare interface DurableObjectNamespace {
+  newUniqueId(): unknown
+  get(id: unknown): { fetch(input: string, init?: RequestInit): Promise<Response> }
+}
+
+declare interface DurableObjectState {
+  readonly storage: { setAlarm(at: number): Promise<void> }
+}

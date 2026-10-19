@@ -49,6 +49,9 @@ export interface Env {
   /** The private bucket holding shared templates' files, previews and evidence (#1708).
    *  Optional: without it every template route refuses. */
   TEMPLATES?: R2Bucket
+  /** Where hosted music calls its model from (#1828). Optional: without it the call goes out
+   *  directly, carrying the user's country. */
+  MUSIC_CALLS?: DurableObjectNamespace
   /** The commit this build was deployed from, set by `npm run deploy`; `+dirty` when the
    *  Worker files had uncommitted changes. */
   COMMIT?: string

@@ -59,6 +59,8 @@ interface SelfCheck {
   daily_write_budget: number
 }
 
+export { MusicCall } from './music.ts'
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // The training and contact routes are the only things here a browser on another origin

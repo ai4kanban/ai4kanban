@@ -29,5 +29,10 @@
     }
   ],
 
+  // Hosted music's model refuses some users' countries, which a subrequest made while serving
+  // them carries; one made from this object's alarm carries none (#1828).
+  "durable_objects": { "bindings": [{ "name": "MUSIC_CALLS", "class_name": "MusicCall" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MusicCall"] }],
+
   "observability": { "enabled": true }
 }

@@ -164,11 +164,13 @@ chat message carries depends on where the event lives.
 ## Music
 
 - `POST /v1/music` — `{ "prompt": "…", "seconds": 30 }`: one instrumental track from
-  `google/lyria-3-pro-preview` through OpenRouter, asked to end at `seconds` (5–180); a WAV
-  answer is cut there, or at its last sound if earlier, and faded out. Prompt at most 4000
-  characters. No header or refusal names the provider or model. Same key and sign-in as
-  narration, spending 320 AI credits per track, only once it is generated. Each call is recorded
-  in `cloud.ai_calls` with its seconds and upstream cost.
+  `google/lyria-3-pro-preview` through OpenRouter, asked to end at `seconds` (5–180); the
+  answer (MP3 today, WAV if the model sends one) is cut there, or at its last sound if earlier,
+  and faded out. The call goes out from a `MusicCall` Durable Object's alarm, since one made
+  while serving the request carries the user's country and the model refuses some, mainland
+  China among them. Prompt at most 4000 characters. No header or refusal names the provider or
+  model. Same key and sign-in as narration, spending 160 AI credits per track, only once it is
+  generated. Each call is recorded in `cloud.ai_calls` with its seconds and upstream cost.
 
 ## Triage
 

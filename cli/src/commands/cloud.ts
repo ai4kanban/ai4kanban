@@ -324,12 +324,12 @@ export async function cloudTts(
   })
 }
 
-/** `akb cloud music --seconds <n> --out <file.wav> "<prompt>"` */
+/** `akb cloud music --seconds <n> --out <file.mp3> "<prompt>"` */
 export async function cloudMusic(
   opts: { seconds?: string; out?: string; prompt: string },
   program: string,
 ): Promise<MoveResult> {
-  const line = `${program} cloud music --seconds <n> --out <file.wav> "<prompt>"`
+  const line = `${program} cloud music --seconds <n> --out <file.mp3> "<prompt>"`
   if (!opts.seconds) usage('Missing --seconds.', line)
   if (!opts.out) usage('Missing --out.', line)
   const seconds = Number(opts.seconds)

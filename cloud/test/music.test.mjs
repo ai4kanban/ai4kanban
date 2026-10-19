@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
 import { MONTHLY_CREDITS } from '../src/credits.ts'
-import { endAt, MUSIC_MODEL } from '../src/music.ts'
+import { endAt, endMp3At, MusicCall, MUSIC_MODEL } from '../src/music.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
 const ENV = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: 'service-role', OPENROUTER_API_KEY: 'or-key' }
@@ -93,6 +93,51 @@ describe('POST /v1/music', () => {
     assert.equal(cut.seconds, 12)
   })
 
+  it('cuts an mp3 answer at the length asked and fades it by its gains alone', async () => {
+    provider = () => stream([mp3(400)], 0.08)
+    const res = await call({ prompt: 'Calm piano', seconds: 5 })
+
+    assert.equal(res.headers.get('content-type'), 'audio/mpeg')
+    const out = new Uint8Array(await res.arrayBuffer())
+    const kept = Math.round((5 * 44100) / 1152)
+    assert.equal(out.length, ID3.length + kept * FRAME)
+    assert.deepEqual(out.subarray(0, ID3.length), ID3)
+    const gains = Array.from({ length: kept }, (_, f) => gain(out, f, 3))
+    assert.equal(gains[0], 150)
+    assert.equal(gains[kept - 60], 150, 'more than the last 1.5 seconds was faded')
+    assert.ok(gains[kept - 20] < 150 && gains[kept - 20] > gains[kept - 1], 'the fade does not fall')
+    assert.equal(gains[kept - 1], 150 - 80)
+    assert.equal(recorded[0].p_usage, (kept * 1152) / 44100)
+  })
+
+  it('cuts off an mp3 answer\'s silent tail', () => {
+    const cut = endMp3At(mp3(200, 100), 30)
+    assert.equal(cut.bytes.length, ID3.length + 100 * FRAME)
+  })
+
+  it('sends an answer it cannot read as it came', () => {
+    assert.equal(endMp3At(new Uint8Array(500), 10), null)
+  })
+
+  it('reaches the model from an alarm, not from the request that asked', async () => {
+    let object
+    const env = {
+      ...ENV,
+      MUSIC_CALLS: {
+        newUniqueId: () => 'id',
+        get: () => ({ fetch: (url, init) => object.fetch(new Request(url, init)) }),
+      },
+    }
+    let alarms = 0
+    object = new MusicCall({ storage: { setAlarm: async () => void setTimeout(() => (alarms++, object.alarm())) } }, env)
+    const res = await call({ prompt: 'Calm piano', seconds: 30 }, env)
+
+    assert.equal(res.status, 200)
+    assert.equal(alarms, 1)
+    assert.equal(sent.length, 1)
+    assert.equal(sent[0].headers.authorization, 'Bearer or-key')
+  })
+
   it('spends 160 credits per track and records it with what it cost', async () => {
     await call({ prompt: 'Calm piano', seconds: 30 })
     assert.equal(used[SUBJECT], 160)
@@ -170,6 +215,40 @@ function wav(seconds, level, loud = seconds) {
   view.setUint32(40, frames * 2, true)
   for (let f = 0; f < loud * RATE; f++) view.setInt16(44 + f * 2, (f % 2 ? 1 : -1) * level * 32767, true)
   return out
+}
+
+const ID3 = new Uint8Array([0x49, 0x44, 0x33, 3, 0, 0, 0, 0, 0, 2, 7, 7])
+/** An MPEG-1 Layer III frame at 128 kbps, 44.1 kHz, stereo. */
+const FRAME = 417
+
+/** An mp3 of `frames` frames, every granule at gain 150, silent after `loud` frames. */
+function mp3(frames, loud = frames) {
+  const out = new Uint8Array(ID3.length + frames * FRAME)
+  out.set(ID3)
+  for (let f = 0; f < frames; f++) {
+    const at = ID3.length + f * FRAME
+    out.set([0xff, 0xfb, 0x90, 0x00], at)
+    for (let g = 0; g < 4; g++) {
+      bits(out, at, g, 12, 9, f < loud ? 100 : 0)
+      bits(out, at, g, 21, 8, 150)
+    }
+  }
+  return out
+}
+
+const gain = (bytes, frame, granule) => {
+  let n = 0
+  const from = (ID3.length + frame * FRAME + 4) * 8 + 20 + granule * 59 + 21
+  for (let i = 0; i < 8; i++) n = (n << 1) | ((bytes[(from + i) >> 3] >> (7 - ((from + i) & 7))) & 1)
+  return n
+}
+
+function bits(bytes, at, granule, offset, width, value) {
+  const from = (at + 4) * 8 + 20 + granule * 59 + offset
+  for (let i = 0; i < width; i++) {
+    const b = from + i
+    if ((value >> (width - 1 - i)) & 1) bytes[b >> 3] |= 1 << (7 - (b & 7))
+  }
 }
 
 function stream(parts, cost) {

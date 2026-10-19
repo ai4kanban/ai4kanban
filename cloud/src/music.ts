@@ -2,10 +2,10 @@
  * Hosted music for video clones (#1822). The OpenRouter key stays here; a machine sends a
  * prompt and a length, and gets an instrumental track back that ends at that length.
  *
- * The model takes no length, so the prompt asks it to end there, and a WAV answer is cut at
- * the last sound before it and faded out. Pro only, at a flat price per track from the
- * month's AI credits (#1113); a failure costs nothing. Neither the answer nor a refusal names
- * the provider or the model.
+ * The model takes no length, so the prompt asks it to end there, and the answer is cut at the
+ * last sound before it and faded out. Pro only, at a flat price per track from the month's AI
+ * credits (#1113); a failure costs nothing. Neither the answer nor a refusal names the provider
+ * or the model.
  */
 
 import { generationCost, recordAiCall } from './ai-calls.ts'
@@ -43,14 +43,9 @@ export async function generateMusic(env: Env, ctx: ExecutionContext, user: strin
   const length = Math.round(seconds * 10) / 10
   let answer: Response
   try {
-    answer = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-        'content-type': 'application/json',
-        'x-title': 'AI4Kanban Cloud',
-      },
-      body: JSON.stringify({
+    answer = await askModel(
+      env,
+      JSON.stringify({
         model: MUSIC_MODEL,
         messages: [
           {
@@ -64,7 +59,7 @@ export async function generateMusic(env: Env, ctx: ExecutionContext, user: strin
         audio: { format: 'wav' },
         stream: true,
       }),
-    })
+    )
   } catch (e) {
     console.error('cloud: music unreachable', e)
     throw await failed()
@@ -79,17 +74,71 @@ export async function generateMusic(env: Env, ctx: ExecutionContext, user: strin
     throw await failed()
   }
   const wav = isWav(streamed.audio) ? endAt(streamed.audio, length) : null
+  const mp3 = wav ? null : endMp3At(streamed.audio, length)
   const generationId = answer.headers.get('x-generation-id') ?? streamed.id
   await spendCredits(env, user, 'music', 1)
-  const usage = wav?.seconds ?? length
+  const usage = wav?.seconds ?? mp3?.seconds ?? length
   ctx.waitUntil(
     (streamed.cost !== null ? Promise.resolve(streamed.cost) : generationCost(env, generationId)).then((cost) =>
       recordAiCall(env, user, 'music', { ok: true, usage, cost, generationId }),
     ),
   )
-  return new Response(wav?.bytes ?? streamed.audio, {
+  return new Response(wav?.bytes ?? mp3?.bytes ?? streamed.audio, {
     headers: { 'content-type': wav ? 'audio/wav' : 'audio/mpeg' },
   })
+}
+
+const ask = (env: Env, body: string) =>
+  fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      'content-type': 'application/json',
+      'x-title': 'AI4Kanban Cloud',
+    },
+    body,
+  })
+
+/**
+ * The model's answer. A subrequest made while serving a user carries that user's country, and
+ * the model refuses some of them (#1828), so the call goes out from a `MusicCall` alarm.
+ */
+function askModel(env: Env, body: string): Promise<Response> {
+  if (!env.MUSIC_CALLS) return ask(env, body)
+  const call = env.MUSIC_CALLS.get(env.MUSIC_CALLS.newUniqueId())
+  return call.fetch('https://music-call/', { method: 'POST', body })
+}
+
+/** Makes one model call from its alarm and answers it to the request that asked. */
+export class MusicCall {
+  private call?: { body: string; done: (answer: Response) => void }
+  private readonly state: DurableObjectState
+  private readonly env: Env
+
+  constructor(state: DurableObjectState, env: Env) {
+    this.state = state
+    this.env = env
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const body = await request.text()
+    const answer = new Promise<Response>((done) => (this.call = { body, done }))
+    await this.state.storage.setAlarm(Date.now())
+    return answer
+  }
+
+  async alarm(): Promise<void> {
+    const call = this.call
+    this.call = undefined
+    if (!call) return
+    try {
+      const res = await ask(this.env, call.body)
+      call.done(new Response(await res.text(), { status: res.status, headers: res.headers }))
+    } catch (e) {
+      console.error('cloud: music unreachable', e)
+      call.done(new Response(null, { status: 502 }))
+    }
+  }
 }
 
 /** The audio, generation id and cost carried by a server-sent event stream. */
@@ -212,4 +261,79 @@ function sampler(view: DataView, format: number, bits: number): Sampler | null {
     return { get: (o) => view.getFloat32(o, true), set: (o, v) => view.setFloat32(o, v, true) }
   }
   return null
+}
+
+const BITRATES = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
+const RATES = [44100, 48000, 32000]
+const GRANULE = 576
+/** One `global_gain` step is 1.5 dB; this many leave a granule inaudible. */
+const MUTE_STEPS = 80
+
+/**
+ * An MPEG-1 Layer III answer cut at `seconds`, or earlier where its sound stops, with the last
+ * stretch faded out by lowering each granule's global gain, so nothing is re-encoded. Null when
+ * its format is not one handled here.
+ */
+export function endMp3At(bytes: Uint8Array, seconds: number): { bytes: Uint8Array<ArrayBuffer>; seconds: number } | null {
+  let start = 0
+  if (tag(bytes, 0).startsWith('ID3') && bytes.length > 10) {
+    start = 10 + (((bytes[6]! & 127) << 21) | ((bytes[7]! & 127) << 14) | ((bytes[8]! & 127) << 7) | (bytes[9]! & 127))
+  }
+  const frames: { at: number; length: number; channels: number }[] = []
+  let rate = 0
+  for (let at = start; at + 4 <= bytes.length; ) {
+    const h = ((bytes[at]! << 24) | (bytes[at + 1]! << 16) | (bytes[at + 2]! << 8) | bytes[at + 3]!) >>> 0
+    const bitrate = BITRATES[(h >>> 12) & 15] ?? 0
+    const frameRate = RATES[(h >>> 10) & 3] ?? 0
+    // MPEG-1, Layer III, no CRC: a changed side info would fail a CRC.
+    if (h >>> 21 !== 0x7ff || ((h >>> 19) & 3) !== 3 || ((h >>> 17) & 3) !== 1 || !((h >>> 16) & 1)) break
+    if (!bitrate || !frameRate || (rate && frameRate !== rate)) break
+    rate = frameRate
+    const length = Math.floor((144 * bitrate * 1000) / rate) + ((h >>> 9) & 1)
+    if (at + length > bytes.length) break
+    frames.push({ at, length, channels: ((h >>> 6) & 3) === 3 ? 1 : 2 })
+    at += length
+  }
+  if (frames.length === 0) return null
+
+  const granules = (f: (typeof frames)[number]) =>
+    Array.from({ length: 2 * f.channels }, (_, i) => (f.at + 4) * 8 + (f.channels === 1 ? 18 : 20) + i * 59)
+  let end = Math.min(frames.length, Math.round((seconds * rate) / (2 * GRANULE)))
+  // A granule with no big values carries no tone: only silence, or close to it.
+  while (end > 0 && granules(frames[end - 1]!).every((g) => readBits(bytes, g + 12, 9) === 0)) end--
+  const last = frames[end - 1]
+  if (!last) return null
+
+  const out = new Uint8Array(bytes.subarray(0, last.at + last.length))
+  const fade = Math.min(end * 2, Math.round((FADE_SECONDS * rate) / GRANULE))
+  for (let f = Math.max(0, end - Math.ceil(fade / 2)); f < end; f++) {
+    const frame = frames[f]!
+    granules(frame).forEach((g, i) => {
+      const left = (end - f) * 2 - Math.floor(i / frame.channels) - 1
+      if (left >= fade) return
+      const gain = left / fade
+      const steps = gain > 0 ? Math.min(MUTE_STEPS, Math.ceil(-4 * Math.log2(gain))) : MUTE_STEPS
+      writeBits(out, g + 21, 8, Math.max(0, readBits(out, g + 21, 8) - steps))
+    })
+  }
+  return { bytes: out, seconds: (end * 2 * GRANULE) / rate }
+}
+
+/** `width` bits from bit `bit`, most significant first. */
+function readBits(bytes: Uint8Array, bit: number, width: number): number {
+  let n = 0
+  for (let i = 0; i < width; i++) {
+    const b = bit + i
+    n = (n << 1) | ((bytes[b >> 3]! >> (7 - (b & 7))) & 1)
+  }
+  return n
+}
+
+function writeBits(bytes: Uint8Array, bit: number, width: number, value: number): void {
+  for (let i = 0; i < width; i++) {
+    const b = bit + i
+    const mask = 1 << (7 - (b & 7))
+    const byte = bytes[b >> 3]!
+    bytes[b >> 3] = (value >> (width - 1 - i)) & 1 ? byte | mask : byte & ~mask
+  }
 }
