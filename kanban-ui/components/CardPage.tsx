@@ -1047,6 +1047,9 @@ function WorkflowItem({ card }: { card: Card }) {
 
 type StageState = "running" | "questions" | "waiting" | "done" | null;
 
+// How long before an approve run starts the board writes the card's next stage.
+const APPROVE_WRITE_MS = 5000;
+
 // Where a staged card is and what the user does next (#1808): the stages, one status, and
 // Approve when the current stage waits on it.
 function StageBand({
@@ -1345,6 +1348,11 @@ export function CardPage({
         : card.phases && card.phase === card.phases.length && card.deliversIn === "plan" && planDeliveryGap(card) === null
           ? "done"
           : null;
+  // Approve moves the card on just before its run starts; a card read earlier than that still
+  // shows the stage just approved, so draw the next one until it is re-read (#1844).
+  const approvingAhead =
+    liveSession?.action === "approve" && !!card.updatedAt && Date.parse(card.updatedAt) < liveSession.startedAt - APPROVE_WRITE_MS;
+  const stagePhase = (phase: number, phases: string[]) => (approvingAhead ? Math.min(phase + 1, phases.length) : phase);
   // The delivery has ended and its block is still on the page — the one that carries Discard.
   const finishedBlock = !delivery && !!card.finished && !!diff;
   // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
@@ -2121,7 +2129,7 @@ export function CardPage({
             {card.phases && card.phase && (
               <StageBand
                 phases={card.phases}
-                phase={card.phase}
+                phase={stagePhase(card.phase, card.phases)}
                 state={stage}
                 questions={userQuestions}
                 approve={
