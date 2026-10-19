@@ -352,6 +352,15 @@
   border-radius: 0;
   vertical-align: middle;
 }
+.docs-prose img.agent-art {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: none;
+  border-radius: 0;
+  vertical-align: middle;
+  image-rendering: pixelated;
+}
 .docs-prose video {
   width: 100%;
   border-radius: 0.5rem;

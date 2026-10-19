@@ -1,133 +1,107 @@
 ---
-title: "The agents that work your board"
-title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
-description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
-lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "October 8, 2026"
+title: "Configure your agents"
+title_tag: "AI4Kanban agents — built-in specialists, rules and schedules"
+description: "Find the agents included with your board, give them rules, set schedules and create your own helpers."
+lead: "Start with built-in agents. Give them your rules or create custom agents for the work you need."
+last_updated: "October 19, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
 
-Every flow on the board is run by a named **agent**. Each one has a page where you set its rule,
-what it runs on and, for a scheduled one, how often it runs. **Configuration → Workflows** lists
-each workflow's agents; **Configuration → Board** lists the ones the board runs for every workflow.
-
-Product video, Slide deck, Carousel post, Blog post and Video clone need a Pro plan. Coding and the workflows
-you make yourself are free.
+Open **Configuration → Workflows** for a workflow's agents and **Configuration → Board** for
+board-wide agents. Each agent has a page for its instructions and runtime; scheduled agents also
+have schedule controls.
 
 ## Roles
 
-Roles run the board's own flows. You can't add, remove or switch one off.
+Built-in roles handle planning, execution and board maintenance. Configure their rules and
+runtimes on their pages; add custom helpers or scheduled agents below.
 
-- **Software planner** — plans the Coding workflow's cards: create, refine, resolve and
-  revise.
-- **Builder** — builds a card and lands it.
-- **Scriptwriter** — writes a Product video's script; you approve it before the film is made.
-- **Deck planner** — plans a Slide deck: you approve the content, then get an image-based `.pptx`, one image per slide.
-- **Carousel planner** — plans a multi-page post for Xiaohongshu, Instagram, LinkedIn or TikTok:
-  you approve the copy, then get every page as an image with captions.
-- **Blog planner** — plans a Blog post: you approve the outline, then get the full article with
-  its images.
-- **Video cloner** — captures the feel of a video made with code: you approve a breakdown of the
-  source and a clone script, then get the clone side by side with the source, and a template of
-  its beats that renders your own content — drop, reorder or retime any beat without
-  touching code.
-- **Proposer** — after a card is archived, proposes the work that should follow it into
-  [Triage](/docs/triage).
-- **Review chats** — after a card is archived, reads its chat and writes down what it settled.
-- **Describe the project** — keeps `docs/kanban/memory/project.md` — what the project is and who
-  it is for — up to date. Planning reads it for direction.
-- **Memory pruner** — trims the memory back to what helps planning.
+- **Planning helper**: discusses ideas and cards with you.
+- **Workflow planners**: plan each workflow's cards; see [Workflows](/docs/workflows) for each
+  workflow's planning helpers and which require Pro.
+- **Builder**: builds a card and lands it.
+- **Suggest follow-up work**: proposes work after delivery; see [Follow-ups](/docs/follow-ups).
+- **Review chats** and **Tidy memory**: retain useful decisions and compress notes; see
+  [Memory](/docs/memory).
+- **Describe the project**: keeps `memory/project.md` current for planning.
 
 ## Specialists
 
-A specialist writes one section of a card while it is planned, and changes nothing else. The
-planner calls one in when the card needs it, so you rarely ask yourself. When the answer is a
-choice only you can make, it leaves an open question on the card.
+A specialist writes its own section of a card while the card is planned. The workflow's planner
+brings in the ones a card needs and leaves you a question when a decision is yours.
 
-- **`copywriting`** — copy and user docs: website pages, the README, release notes, store
-  listings, and help pages.
-- **`ui-designer`** — a mockup of each screen the card changes, with its text.
-- **`illustrator`** — diagrams, illustrations, and GIFs that ship with the product.
-- **`tech-stack-advisor`** — compares the libraries, tools or services a card could use, and
-  picks one.
-- **`prompt-writer`** — instructions an AI model follows: skills and agent prompts.
-- **`email-planner`** — every email the card adds or changes, previewed on desktop and mobile.
-- **`competitor-research`** — on a card that adds a feature or reworks a core flow, compares how
-  the closest competitors do it with your design in one short table. Ask for it on any card.
-- **`demo-rehearser`** — Product video only: rehearses each demo for real and shows the results.
-- **`hyperframes-editor`** — Product video only: makes the film once you approve the script.
-- **`cover-designer`** — Product video only: makes the video's cover.
-- **`blog-researcher`** — Blog post only: researches the public facts the post's angle depends on.
-- **`blog-illustrator`** — Blog post only: makes the post's cover and images.
+### Coding
 
-To ask for one yourself, say **"put the ui-designer agent on #4"** or run
-`akb spec ui-designer 4`. Which specialists a workflow uses is set in its plan stage under
-**Configuration → Workflows**.
+| | Specialist | Work |
+| --- | --- | --- |
+| <img className="agent-art" src="/agent-art/ui-designer.png" alt="" width="96" height="96" /> | `ui-designer` | Screen layouts, interactions and screen text. |
+| <img className="agent-art" src="/agent-art/copywriting.png" alt="" width="96" height="96" /> | `copywriting` | Promotional copy and user documentation. |
+| <img className="agent-art" src="/agent-art/illustrator.png" alt="" width="96" height="96" /> | `illustrator` | Diagrams, illustrations, GIFs and product screenshots. |
+| <img className="agent-art" src="/agent-art/prompt-writer.png" alt="" width="96" height="96" /> | `prompt-writer` | Skills, agent prompts and other model instructions. |
+| <img className="agent-art" src="/agent-art/email-planner.png" alt="" width="96" height="96" /> | `email-planner` | Email copy with desktop and mobile previews. |
+| <img className="agent-art" src="/agent-art/tech-stack-advisor.png" alt="" width="96" height="96" /> | `tech-stack-advisor` | Choices of tools, libraries and services. |
+| <img className="agent-art" src="/agent-art/competitor-research.png" alt="" width="96" height="96" /> | `competitor-research` | How competitors handle what the card changes. |
+
+### Product video (Pro)
+
+| | Specialist | Work |
+| --- | --- | --- |
+| <img className="agent-art" src="/agent-art/demo-rehearser.png" alt="" width="96" height="96" /> | `demo-rehearser` | Rehearses the product demo the script calls for. |
+| <img className="agent-art" src="/agent-art/hyperframes-editor.png" alt="" width="96" height="96" /> | `hyperframes-editor` | Produces the video once you approve the script. |
+| <img className="agent-art" src="/agent-art/cover-designer.png" alt="" width="96" height="96" /> | `cover-designer` | The video cover. |
+
+### Blog post (Pro)
+
+| | Specialist | Work |
+| --- | --- | --- |
+| <img className="agent-art" src="/agent-art/base.png" alt="" width="96" height="96" /> | `blog-researcher` | The public facts the post's angle depends on. |
+| <img className="agent-art" src="/agent-art/blog-illustrator.png" alt="" width="96" height="96" /> | `blog-illustrator` | The cover and the images inside the article. |
+
+Slide deck, Carousel post and Video clone have no specialists; their planner drafts everything.
+
+Ask **"put the ui-designer agent on #4"** or run `akb spec ui-designer 4`. Turn a workflow's
+specialists on or off among its planning helpers under **Configuration → Workflows**. See
+[Draft review](/docs/drafts) for what each draft looks like and how to approve it.
 
 ## Give an agent a rule
 
-A **rule** is a paragraph in your own words that the agent reads on every run. Write it in the
-box on the agent's page. It is saved to `docs/kanban/rules/<agent>.md`, so git shares it with
-your team. Keep it short — every run reads it.
+Write instructions in the rule box on its page. The agent reads them on every run. Rules are
+stored in `docs/kanban/rules/<agent>.md` and shared through git on Local boards. Keep them short.
 
-## What agents remember
-
-Some agents remember your corrections and choices, so their next plan starts from them. An
-agent's page lists its memory files, kept in `docs/kanban/memory/agents/<agent>/`; edit them
-like any other file.
-
-## Share a memory between agents
-
-A **global memory** is one folder of notes that several agents read and keep, such as what
-your competitors offer. You write its rules once — what it holds, how each entry reads, how
-its `README.md` index reads, and when to check an entry again — and every agent that uses it
-follows them.
-
-- **Create one**: press **+** in **Configuration → Global memory**, then fill in its name,
-  description and rules. It is kept in `docs/kanban/memory/<name>/`.
-- **Let an agent use it**: add `memory: [<name>]` under `akb:` in the agent's `AGENT.md`.
-- **Built-in**: **Competitors** ships with the board, one file per competitor, kept by
-  `competitor-research`. Its rules update with each release and can't be edited.
-- **Delete**: on its page, removes the folder and everything in it.
-
-## Let the memory review remember for you
-
-Chats don't save memory as you talk. Once a card is archived, **Review chats** reads its whole
-chat once and writes down what lasted. Say "don't record this" in the chat and nothing is
-written. **Review now** on its page runs one at any time.
+See [Memory](/docs/memory) to edit preferences and decisions, share notes between agents, and
+review finished card chats.
 
 ## Run an agent on a schedule
 
-Scheduled agents run by themselves, on no card: the board's own under **Configuration → Board**,
-and each workflow's under **Scheduled** in **Configuration → Workflows**. Coding ships one, the
+Find board-wide scheduled agents under **Configuration → Board**, or a workflow's under
+**Scheduled** in **Configuration → Workflows**. Coding includes
 [QA manager](/docs/daily-loop#test-cases).
 
-- **Choose how often**: on the agent's page pick **Auto** — it runs when there is something new
-  for it — a preset, or your own schedule. **Disable** turns it off.
-- **Run now**: starts one at any time, even while it is disabled.
-- **Its changes are committed** like a build when **Automatic Git commits** is on.
-- **A failed run is tried again later**, or **Resume** it from **Runs**.
+On the agent's page, choose **Auto** to run when it has new input, a preset or a custom schedule.
+**Disable** turns scheduling off; **Run now** starts a run even when disabled. Changes are
+committed when **Automatic Git commits** is on. Failed runs can retry later or be resumed from
+**Runs**.
 
-From a terminal: `akb workflow schedule <id> --on <agent> --cadence 1d` (or `auto`),
-`--off <agent>`, or `--run <agent>`.
+From a terminal:
+
+```bash
+akb workflow schedule <id> --on <agent> --cadence 1d
+akb workflow schedule <id> --off <agent>
+akb workflow schedule <id> --run <agent>
+```
 
 ## Add one of your own
 
-Ask your coding agent, with the [AI4Kanban skill](/docs/daily-loop) installed:
+Ask your coding agent with the AI4Kanban skill:
 
-```text
-Use the AI4Kanban skill. Read akb guide write-agent,
-then create an agent that [describe its job].
-```
+> Read akb guide write-agent, then create an agent that [describe its job].
 
 Or press **+** beside **Helpers** or under **Scheduled** in **Configuration → Workflows**, name
-it, and write its instructions on its page. A **helper** joins planning on the cards it fits; a
-**scheduled** agent runs by itself.
-
-**Delete** on its page removes an agent you added, with its rule and memory.
+the agent and write its instructions. Helpers join planning; scheduled agents run without a card.
+**Delete** removes a custom agent, its rule and memory.
 
 ## Choose what an agent runs on
 
-Each agent's page picks its runtime — the coding tool and model it runs. See
-[Runs](/docs/runs#which-runtime-each-agent-runs-on).
+Choose its runtime on the agent's page. See
+[Runs](/docs/runs#which-runtime-each-agent-runs-on) for coding tools and models.
