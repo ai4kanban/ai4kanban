@@ -24,6 +24,7 @@ const en: TemplatesCopy = {
   originalVideo: "Original video",
   recreationVideo: "Recreation",
   keyframe: "Keyframe",
+  pieceNote: "Works inside a video template; it can't run on its own.",
   play: "Play",
   noPreview: "No preview yet",
   tags: "Tags",

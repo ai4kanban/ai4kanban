@@ -23,6 +23,8 @@ export type TemplatesCopy = {
   originalVideo: string;
   recreationVideo: string;
   keyframe: string;
+  /** Shown on a prop or motion page: it only runs inside a video template. */
+  pieceNote: string;
   play: string;
   noPreview: string;
   tags: string;

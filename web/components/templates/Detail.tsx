@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiExternalLink, FiPlay, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiExternalLink, FiInfo, FiPlay, FiRefreshCw } from "react-icons/fi";
 import { Button } from "@/components/ui/Button";
 import { getTemplatesCopy, type TemplatesLocale } from "@/i18n/templates";
 import type { TemplatesCopy } from "@/i18n/templates/types";
@@ -21,8 +21,8 @@ import { AccessTag, Duration, NoPreview, StateBox, Tag } from "./parts";
 
 type State = { template: Template | null; missing: boolean; failed: boolean };
 
-// One template: what it is, the original beside its recreation, where it came
-// from, and how to use it. Like the catalog, the browser reads it again on
+// One template: what it is, the original beside its recreation (a prop or a
+// motion has only its keyframe), where it came from, and how to use it. Like the catalog, the browser reads it again on
 // every visit, so a template taken down since the build says so.
 export function Detail({
   locale,
@@ -91,6 +91,8 @@ export function Detail({
   ].filter((s) => s !== null);
   const video = tpl.category === "video" || sides.some((s) => s.value.video || s.value.youtube);
   const aspect = video ? "aspect-video" : "aspect-[16/10]";
+  // Props and motion are pieces of a video template: one keyframe, shown whole.
+  const piece = tpl.category === "prop" || tpl.category === "motion";
 
   return (
     <>
@@ -111,7 +113,14 @@ export function Detail({
       </section>
 
       <section className={`mt-10 grid gap-6 ${sides.length > 1 ? "lg:grid-cols-2" : ""}`}>
-        {sides.length === 0 ? (
+        {piece ? (
+          <figure>
+            <figcaption className="mb-2 flex items-center gap-2">
+              <Tag>{t.keyframe}</Tag>
+            </figcaption>
+            <Still src={tpl.cover} aspect="aspect-video" whole t={t} />
+          </figure>
+        ) : sides.length === 0 ? (
           <Still src={tpl.cover} aspect={aspect} t={t} />
         ) : (
           sides.map(({ key, value }) => (
@@ -129,6 +138,12 @@ export function Detail({
 
       <section className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
         <div>
+          {piece && (
+            <p className="mb-4 flex items-center gap-2 text-sm font-semibold text-ink">
+              <FiInfo className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+              {t.pieceNote}
+            </p>
+          )}
           <p className="whitespace-pre-line text-[0.98rem] leading-relaxed text-ink">{tpl.description}</p>
           {tpl.tags.length > 0 && (
             <>
@@ -227,10 +242,12 @@ function Figure({
   );
 }
 
-function Still({ src, aspect, t }: { src: string | null; aspect: string; t: TemplatesCopy }) {
+/** `whole` keeps the image's own ratio; `aspect` then only sizes the empty placeholder. */
+function Still({ src, aspect, whole, t }: { src: string | null; aspect: string; whole?: boolean; t: TemplatesCopy }) {
   if (!src) return <NoPreview label={t.noPreview} aspect={aspect} />;
+  const fit = whole ? "h-auto border border-border/15" : `${aspect} object-cover object-top`;
   // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-  return <img src={src} alt="" className={`${aspect} w-full rounded-xl bg-code object-cover object-top`} />;
+  return <img src={src} alt="" className={`${fit} w-full rounded-xl bg-code`} />;
 }
 
 // A still and a play button until it is pressed: nothing of the video, or of
