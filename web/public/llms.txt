@@ -35,7 +35,7 @@ Markdown, so these need no separate mirror.
 - [Workflows](https://ai4kanban.dev/docs/workflows): Use six built-in workflows for development and marketing, let AI4Kanban match your request to a workflow, or create your own.
 - [The daily loop](https://ai4kanban.dev/docs/daily-loop): The rhythm once the board exists: pick what to work on, add and refine cards, build one end to end, check what it leaves you, and finish it.
 - [Chat](https://ai4kanban.dev/docs/chat): Explore an idea, request draft changes or update a card in a conversation with your board's context.
-- [Agents](https://ai4kanban.dev/docs/agents): Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own.
+- [Agents](https://ai4kanban.dev/docs/agents): Find the agents included with your board, give them rules, set schedules and create your own helpers.
 - [Runs and runtimes](https://ai4kanban.dev/docs/runs): Monitor background work, recover a failed run and choose the coding tool and model each agent uses.
 - [Triage](https://ai4kanban.dev/docs/triage): Triage is a queue beside your cards for follow-ups, the Proposer's ideas and items your scripts add. What lands there is a lead, not a task: make a card of it, or ignore it.
 - [Local and Cloud boards](https://ai4kanban.dev/docs/local-and-cloud-boards): A Local board is Markdown in your repository. A Cloud board lives in a workspace we host, opens on every machine you sign in from, and reads in a browser. What each one is, and what moving between them costs.
