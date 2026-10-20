@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 const PORT = process.env.CDP_PORT || 9261
 export async function open(width = 1280, height = 1000, mobile = false) {
-  const t = await (await fetch(`http://localhost:${PORT}/json/new?about:blank`, { method: 'PUT' })).json()
+  const t = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: 'PUT' })).json()
   const ws = new WebSocket(t.webSocketDebuggerUrl)
   await new Promise((r) => ws.addEventListener('open', r, { once: true }))
   let id = 0
@@ -26,7 +26,7 @@ export async function open(width = 1280, height = 1000, mobile = false) {
       for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x: b2.x, y: b2.y, button: 'left', clickCount: 1 }) },
     async type(text) { for (const ch of text) { await send('Input.insertText', { text: ch }); await sleep(15) } },
     async shot(file, clip) { const r = await send('Page.captureScreenshot', { format: 'png', ...(clip ? { clip: { ...clip, scale: 1 } } : {}) }); fs.writeFileSync(file, Buffer.from(r.data, 'base64')) },
-    async close() { ws.close(); await fetch(`http://localhost:${PORT}/json/close/${t.id}`) },
+    async close() { ws.close(); await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`) },
   }
   return page
 }

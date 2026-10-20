@@ -10,8 +10,8 @@
 ## Steps
 
 1. 执行 `akb workflow list`。
-   最后一项是 `video-clone  Video clone  (built-in)  (Pro · locked)  (no worktree)`，简介 `Approve a breakdown and a clone script, get a rendered clone of a reference video and a reusable template, and archive it when you are happy.`；规划由 `video-cloner` 领头，执行无人。
-   [01-workflows.log](01-workflows.log)
+   最后一项是 `video-clone  Video clone  (built-in)  (Pro · locked)  (no worktree)`，简介 `Use when a reference video should be recreated or turned into a reusable template. Breaks it down for approval, then renders the clone and publishes the template.`；规划由 `video-cloner` 领头，执行无人。
+   未重跑：#1867 改了简介，旧日志已删；新简介见 [看工作流列表就知道一张卡该交给哪个工作流](../workflows-say-when-to-pick-them/case.md) 第 1 步。
 
 2. 免费账号下建卡：`akb raw create --title '复刻发布短片' --workflow video-clone --body-file body.md`（正文：复刻 `media/launch.mp4` 的节奏和动效，做成能放 Tasko 画面的模板），再执行 `akb card refine 2`。
    卡片建成；`refine` 被拒：`Video clone needs Pro.`，退出码 1，没有起运行。

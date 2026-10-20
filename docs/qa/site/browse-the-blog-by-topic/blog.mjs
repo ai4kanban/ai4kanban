@@ -23,7 +23,8 @@ await p.shot(D + '03-blog-covers.png')
 await p.ev('scrollTo(0, 0)')
 await p.click(`[...document.querySelectorAll('main a, main button')].find(a=>a.textContent.trim()==='The board')`); await p.sleep(2500)
 const topics = `[...new Set([...document.querySelectorAll('main a[href^="/blog/"]')].filter(a=>a.getBoundingClientRect().height>0).map(a=>a.closest('article,li')?.innerText.split('\\n').find(l=>/^[A-Z ]+$/.test(l.trim())&&l.trim().length>3)))].join(', ')`
-log += `\n# 4. Click "The board"\nlocation: ${await p.ev('location.pathname + location.search')}\ntiles: ${await p.ev(GRID)}\n  ${await p.ev(TITLES)}\n`
+const TABS = `[...document.querySelectorAll('main nav a')].map(a=>(a.getAttribute('aria-current')?'[on] ':'')+a.innerText.trim()+' color '+getComputedStyle(a).color+' bg '+getComputedStyle(a).backgroundColor+' bar '+!!a.querySelector('span[aria-hidden]')).join('\\n  ')`
+log += `\n# 4. Click "The board"\nlocation: ${await p.ev('location.pathname + location.search')}\ntabs:\n  ${await p.ev(TABS)}\ntiles: ${await p.ev(GRID)}\n  ${await p.ev(TITLES)}\n`
 await p.shot(D + '04-board-topic.png', { x: 0, y: 0, width: 1280, height: 900 })
 await p.send('Page.navigateToHistoryEntry', { entryId: (await p.send('Page.getNavigationHistory')).entries.at(-2).id }); await p.sleep(2000)
 log += `\n# 5. Press Back\nlocation: ${await p.ev('location.pathname + location.search')}\nfeatured: ${await p.ev(`document.querySelectorAll('main section').length > 1 ? 'yes' : 'no'`)}  grid tiles: ${await p.ev(GRID)}\n`

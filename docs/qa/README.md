@@ -46,14 +46,15 @@
 - [升级后，版本从看板上消失，卡片照常可读](skill/releases-leave-the-board-on-upgrade/case.md)
 - [建一张要求「复用现有组件」的界面卡，规划照样请界面设计师出稿](skill/plan-a-card-that-reuses-a-component-and-still-get-a-ui-draft/case.md)
 - [规划一份演示文稿：先看线框稿和样张，再拿到图片版 PPT](skill/see-wireframe-slides-before-the-styled-deck/case.md)
-- [用「视频克隆」把一条程序化短片的节奏做成能放自己产品画面的模板](skill/clone-a-programmatic-video-into-a-template/case.md)
+- [用「视频克隆」复刻一条程序化短片：先审原片拆解和复刻脚本，批准后拿到模板和对比](skill/clone-a-programmatic-video-into-a-template/case.md)
 - [在命令行按标签找模板、看预览，再取回一个](skill/find-a-template-and-fetch-it-from-the-command-line/case.md)
 - [在卡片上手写 `<Compare>`，让 `akb raw validate` 指出写错的地方](skill/write-a-compare-on-a-card-and-validate-it/case.md)
 - [改版时给一张已规划好的卡加一张图，改版当场请配图画出来](skill/a-revision-that-adds-an-image-runs-the-illustrator/case.md)
 - [复制「视频克隆」工作流，给它配一个执行 Agent，卡片规划完就能开发](skill/give-a-copied-video-clone-workflow-a-build-agent/case.md)
 - [在命令行生成一张图和一段托管配乐](skill/generate-an-image-and-hosted-music-from-the-command-line/case.md)
 - [在命令行把一张已有的卡换到另一个工作流](skill/switch-a-card-to-another-workflow/case.md)
-- [在命令行从 Cloud 的道具库和动效库找到并取回一个](skill/find-a-prop-or-motion-in-the-cloud-library/case.md)
+- [在命令行从 Cloud 的道具库和动效库找到并取回一个，取回的动效单独就能跑](skill/find-a-prop-or-motion-in-the-cloud-library/case.md)
+- [看工作流列表就知道一张卡该交给哪个工作流](skill/workflows-say-when-to-pick-them/case.md)
 
 ### local-ui
 
@@ -103,7 +104,7 @@
 - [在卡片页看阶段走到哪一步，批准草稿进入下一阶段](local-ui/approve-a-stage-on-a-card/case.md)
 - [视频复刻还没出片时，逐镜对照原片和复刻脚本](local-ui/compare-a-source-video-against-a-clone-script/case.md)
 - [不登录 Cloud，也在铃铛里看到等你处理的卡片](local-ui/get-notified-without-signing-in/case.md)
-- [不复制，直接给内置的「视频克隆」工作流设置、换掉或移除执行 Agent](local-ui/give-the-built-in-video-clone-workflow-a-build-agent/case.md)
+- [不复制，直接给内置的「视频克隆」工作流设置或移除执行 Agent](local-ui/give-the-built-in-video-clone-workflow-a-build-agent/case.md)
 - [在「配置 → 云端」看 Cloud 提供哪些托管 AI 能力，在「账单」看它们各花多少积分](local-ui/see-what-cloud-offers-in-settings/case.md)
 - [在卡片页把一张卡换到另一个工作流](local-ui/switch-a-card-to-another-workflow/case.md)
 - [在「博客文章」工作流里找到博客研究员，停用再启用它](local-ui/see-the-researcher-in-the-blog-workflow/case.md)
@@ -131,7 +132,7 @@
 - [读 Claude Code 介绍页，看先审草稿再交给 Claude Code 是怎么回事](site/read-the-claude-code-page/case.md)
 - [读 Grill Me 介绍页，看一个大想法怎么拆卡、逐卡规划、按依赖交付](site/read-the-grill-me-page/case.md)
 - [读 Codex 介绍页，看 AI4Kanban 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
-- [在官网模板目录里按分类浏览，看原视频和复刻视频，再看一个道具和一个动效](site/browse-the-template-catalog/case.md)
+- [在官网模板目录里按分类浏览，看动效片段，复制一段提示词去 AI4Kanban 里用](site/browse-the-template-catalog/case.md)
 
 ### docs
 
