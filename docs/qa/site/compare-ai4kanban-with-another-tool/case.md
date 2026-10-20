@@ -64,7 +64,7 @@
     ![Plannotator 一节](12-plannotator-theirs.png) · [plannotator.log](plannotator.log)
 
 15. 读「02 AI4Kanban: from key drafts to finished work」的三张卡片，再把鼠标移到「You can also create custom agents and workflows.」后面的 ⓘ。
-    三张卡：「Review what you would want to change」（草稿→确认→执行）、「Move several tasks forward together」（Login page / Pricing copy / API fix 并行）、「Explain less next time」（两个 agent 共享项目背景），每张配像素小人。ⓘ 悬停前隐藏，悬停后弹出与 Orca 页同一句：软件开发工作流免费，博客、轮播图、幻灯片、产品视频和视频克隆工作流需要 Pro。
+    三张卡：「Review what you would want to change」（草稿→确认→执行）、「Move several tasks forward together」（Login page / Pricing copy / API fix 并行）、「Explain less next time」（两个 agent 共享项目背景），每张配像素小人，按职业穿戴各不相同：草稿和 Login page 是戴橙色贝雷帽、穿淡紫罩衫的设计师，执行和 API fix 是穿薄荷色兜帽衫的开发者，Pricing copy 和 Copywriting 是戴灰帽、围橙围巾的文案；放大显示仍是清晰的像素格，不发糊。ⓘ 悬停前隐藏，悬停后弹出与 Orca 页同一句：「The software development workflow is free. Blog, social post, slide deck, product video and video clone workflows require Pro.」
     ![AI4Kanban 一节](13-plannotator-ours.png) · ![悬停 ⓘ 出现的 Pro 提示](13b-plannotator-pro-tip.png) · [plannotator.log](plannotator.log)
 
 16. 读「03 What comes built in」。
@@ -81,13 +81,11 @@
 
 ## Feedback
 
-- **Hermes 页不再低估免费版**：「在聊天应用中操控」一行先说应用内通知不需要 Cloud，再说 Slack、飞书推送和远程操作才要；没登录的读者不会以为连铃铛提醒都得申请 Cloud。这一行仍判 Hermes 赢，老实。
-- **Pro 清单补齐了**：Multica 表里的小字和 Orca、Plannotator 的 ⓘ 都加上了视频克隆，三页说法一致，和定价页的五个工作流对得上。
-- **Pro 限制仍藏得深**：Orca 和 Plannotator 页只在悬停 ⓘ 时出现，手机上或不习惯悬停的人容易错过；Multica 页写成表格里的灰色小字，也很容易滑过。
-- **导语变成了目录**：五页首屏都只说「比较 X 和 Y 的哪几方面」，客观但没有立场，读者要往下滚才知道 AI4Kanban 到底强在哪；搜索结果里看到的也是这句。
-- **敢说谁赢**：每行都标出赢的一方，也老实承认对手赢的地方（Multica 的执行管理、Hermes 的聊天应用操控、Orca 的浏览器/SSH/手机控制、Plannotator 的计划差异、PR 审阅和分享）。
-- **中文用词统一**：五个中文页只说「agent」，读惯英文术语的开发者更顺，但不熟这个词的中文读者没有任何解释。
-- **Multica 清单四行都以「Want」开头**：读起来像重复；Orca 页同类清单已改为动词开头，两页口吻不一。
-- **五页三种版式**：Multica 等三页是主题+逐项表，Orca 和 Plannotator 是共同点+介绍+表+选择，在页面间来回比较时要重新找位置。
-- **入口太深**：对比页只在页脚，正在比较工具的访客很难从页头找到。
-- **旧链接没说明就回首页**：从别处点进旧的 vs Linear 链接，直接落到首页，不知道那页去哪了。
+- **像素小人终于分得清谁是谁**：Plannotator、Orca 等页的插图里，设计师戴贝雷帽、开发者穿兜帽衫、文案围围巾，「草稿 → 执行」「两个 agent 共享背景」不用读标签就看出是不同角色；放大后仍是清楚的像素格。但读者不认识这些造型，图下的小标签仍是唯一的说明。
+- **Pro 清单跟上改名**：Multica 表里的小字、Orca 和 Plannotator 的 ⓘ 都写「social post / 社媒帖」，五个工作流和定价页对得上。
+- **Pro 限制仍藏得深**：Orca 和 Plannotator 只在悬停 ⓘ 时出现，手机上容易错过；Multica 页是表格里的灰色小字，也容易滑过。
+- **Hermes 页不低估免费版**：聊天应用一行先说应用内通知不需要 Cloud，仍老实判 Hermes 赢。
+- **敢说谁赢**：每行标出赢的一方，也承认对手赢的地方（Multica 的执行管理、Orca 的浏览器/SSH/手机控制、Plannotator 的计划差异和 PR 审阅）。
+- **导语像目录**：五页首屏都只说「比较哪几方面」，没有立场，要往下滚才知道 AI4Kanban 强在哪。
+- **五页三种版式**：Multica 等三页是主题+逐项表，Orca 和 Plannotator 是共同点+介绍+表+选择，来回比较时要重新找位置。
+- **入口太深、旧链接无说明**：对比页只在页脚；点进旧的 vs Linear 链接直接落到首页，不知道那页去哪了。

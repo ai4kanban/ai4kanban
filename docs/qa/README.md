@@ -55,6 +55,10 @@
 - [在命令行把一张已有的卡换到另一个工作流](skill/switch-a-card-to-another-workflow/case.md)
 - [在命令行从 Cloud 的道具库和动效库找到并取回一个，取回的动效单独就能跑](skill/find-a-prop-or-motion-in-the-cloud-library/case.md)
 - [看工作流列表就知道一张卡该交给哪个工作流](skill/workflows-say-when-to-pick-them/case.md)
+- [升级后，自建工作流变成看板里的 WORKFLOW.md；再手写一个](skill/keep-your-own-workflows-as-files-on-the-board/case.md)
+- [升级后，改过社媒帖流程的看板自动加上「社媒帖配图」，关掉后不再加回](skill/a-customized-social-post-workflow-gets-the-illustrator-on-upgrade/case.md)
+- [用 Codex 续聊一张卡，每条回复只记这一轮的费用；升级后旧记录自动改对](skill/a-resumed-codex-chat-costs-only-its-own-turn/case.md)
+- [在卡片对话里要求改草稿，草稿当轮就改好；第二轮不再重读一遍](skill/ask-the-card-chat-to-change-a-draft-and-it-changes-the-draft/case.md)
 
 ### local-ui
 
@@ -108,6 +112,8 @@
 - [在「配置 → 云端」看 Cloud 提供哪些托管 AI 能力，在「账单」看它们各花多少积分](local-ui/see-what-cloud-offers-in-settings/case.md)
 - [在卡片页把一张卡换到另一个工作流](local-ui/switch-a-card-to-another-workflow/case.md)
 - [在「博客文章」工作流里找到博客研究员，停用再启用它](local-ui/see-the-researcher-in-the-blog-workflow/case.md)
+- [在「社媒帖」工作流里找到社媒帖配图，停用后它不再回来](local-ui/see-the-illustrator-in-the-social-post-workflow/case.md)
+- [在运行办公室里看每个 Agent 穿着自己的职业装](local-ui/see-each-agent-in-its-own-outfit-in-the-runs-office/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 

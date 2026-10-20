@@ -8,7 +8,7 @@
 ## Steps
 
 1. 打开 `/pricing`。
-   标签页标题「AI4Kanban: Plans and pricing」，大标题「Plans and pricing」，导语只有一句「Every plan runs on your own computer, with your own AI tools.」。默认选中「Yearly · Save 33%」。左边 Free $0（Apache 2.0 开源，按钮「Download」），列出编码工作流、不限并发、无限自定义工作流和 agent 等五项；右边 Pro $120 / year、划掉的 $180，下面「$10 a month, billed yearly」，按钮「Get Pro」，「Everything in Free, plus:」下先是五个工作流（Slide deck、Product video、Social post、Blog post、Video clone），再是自动筛选新想法、「5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160」和优先支持。页面描述「AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, carousels, blogs and video clones. $10/month, billed yearly.」，分享说明相同。
+   标签页标题「AI4Kanban: Plans and pricing」，大标题「Plans and pricing」，导语只有一句「Every plan runs on your own computer, with your own AI tools.」。默认选中「Yearly · Save 33%」。左边 Free $0（Apache 2.0 开源，按钮「Download」），列出编码工作流、不限并发、无限自定义工作流和 agent 等五项；右边 Pro $120 / year、划掉的 $180，下面「$10 a month, billed yearly」，按钮「Get Pro」，「Everything in Free, plus:」下先是五个工作流（Slide deck、Product video、Social post、Blog post、Video clone），再是自动筛选新想法、「5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160」和优先支持。页面描述「AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, social posts, blogs and video clones. $10/month, billed yearly.」，分享说明相同。
    ![按年显示的两档价格](01-yearly.png) · [03-links.log](03-links.log)
 
 2. 点「Monthly」。
@@ -29,8 +29,9 @@
 
 ## Feedback
 
-- **免费和付费的边界清楚了**：Pro 一栏把五个内容工作流逐个列出，视频克隆不再漏掉；导语只剩一句「都在你自己的电脑上、用你自己的 AI 工具」，不再重复首页的定位，读者直接看两栏比较。
-- **额度终于能算一算**：配音按秒、图像每张 320、配乐每首 160 都写出来了，「生成图像」也比原来的「生成封面」更像一种能力而不是一个用途；但还是要自己换算「5,000 积分够几张图、几首歌」，没有一句「大约够 15 张图」之类的直观说法。
-- **年付月付切换直接**：切换即时，结账链接也跟着换，不会选了月付却按年扣；「$10 a month, billed yearly」把折算月价和划线原价都摆出来，很好比较。
-- **背景安静**：背景卡片只剩色块和灰线，看得出是一块看板在动，又不抢价格的注意力。
+- **改名后各处一致**：Pro 一栏、页面描述和中文页都从「轮播帖 / carousels」换成「社媒帖 / social posts」，和首页、对比页的说法对得上；只发 LinkedIn、X 文字帖的人现在也看得出这在 Pro 里。
+- **名字没说清范围**：光看「Social post workflow」不知道它既做纯文字帖也做图文轮播，想要小红书轮播的人得猜这是不是原来那个。
+- **额度仍要自己换算**：配音按秒、图像每张 320、配乐每首 160 都写了，但「5,000 积分够几张图」还得自己算。
+- **年付月付切换直接**：切换即时，结账链接跟着换；「$10 a month, billed yearly」和划线原价摆在一起，好比较。
+- **背景安静**：背景卡片只剩色块和灰线，不抢价格的注意力。
 - **Free 的五项偏技术**：「Coding workflow with 8 agents」「Works with 8 coding agents」两个「8」挨着，第一次看容易混成一回事。

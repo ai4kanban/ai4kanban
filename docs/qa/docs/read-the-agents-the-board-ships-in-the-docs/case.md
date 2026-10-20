@@ -9,7 +9,7 @@
 ## Steps
 
 1. 打开 `/docs/agents`。
-   标题「Configure your agents」，副标题「Start with built-in agents. Give them your rules or create custom agents for the work you need.」；第一段说工作流的 Agent 在 **Configuration → Workflows**、全看板的在 **Configuration → Board**。右侧目录：Roles、Specialists（下挂 Coding、Product video (Pro)、Blog post (Pro)）、Give an agent a rule、Run an agent on a schedule、Add one of your own、Choose what an agent runs on。
+   标题「Configure your agents」，副标题「Start with built-in agents. Give them your rules or create custom agents for the work you need.」；第一段说工作流的 Agent 在 **Configuration → Workflows**、全看板的在 **Configuration → Board**。右侧目录：Roles、Specialists（下挂 Coding、Product video (Pro)、Blog post (Pro)、Social post (Pro)）、Give an agent a rule、Run an agent on a schedule、Add one of your own、Choose what an agent runs on。
    ![Agents 页顶部](01-agents-top.png)
 
 2. 点右侧目录里的「Roles」。
@@ -24,6 +24,9 @@
    blog-researcher 是胸前抱着蓝色地球仪的专属角色，和旁边 blog-illustrator 一样有自己的道具；13 个头像里没有通用机器人底图。
    ![Blog post 表放大 3 倍](04-blog-post-art.png)
 
+   再放大 Social post (Pro) 表：一行 social-illustrator，「The images on a carousel's pages, or one image for a text-only post.」，头像是自己的像素角色。
+   ![Social post 表放大 3 倍](04-social-post-art.png)
+
 5. 点目录里的「Give an agent a rule」。
    一段讲规则框和 `docs/kanban/rules/<agent>.md`；下面只一句「See Memory to edit preferences and decisions, share notes between agents, and review finished card chats.」，页上没有讲记忆的小节。
    ![Give an agent a rule 一节](05-give-a-rule.png)
@@ -33,16 +36,15 @@
    [标签页前后](06-memory-link.log)
 
 7. 在空项目里跑 `akb spec`，数清单上的专员。
-   列出 12 个，名字和第 3 步三张表一一对得上，`blog-researcher` 在内。
+   列出 13 个，名字和第 3 步四张表一一对得上，`blog-researcher`、`social-illustrator` 在内。
    [akb spec 的清单](07-akb-spec.log)
 
 ## Feedback
 
 - **短，好扫**：Roles 六条，每条一句，「哪些要 Pro」交给 Workflows 页。
-- **按工作流分表很直观**：做博客的人只看 Blog post 一张表；头像和看板配置页是同一张图。
-- **缺图的那一格补上了**：blog-researcher 换成举地球仪的专属角色，Blog post 表不再一格像没做完。
-- **头像仍太小**：和字一样高（约 15px），不放大看不出地球仪还是望远镜；Coding 表里被列宽挤成 14×15，略变形。
-- **三张表列宽不齐**：每张表各自排版，「Specialist」「Work」两列上下不对齐；`competitor-research` 在名字列里折成两行。
+- **按工作流分表很直观**：做社媒帖的人一眼看到 Social post 表和配图帮手，一句话说清轮播出各页图、纯文字帖配一张。
+- **数字对上了**：页上 13 个专员，`akb spec` 也是 13 个，`social-illustrator` 在内。
+- **社媒帖配图头像被挤窄**：名字 `social-illustrator` 在窄列里折成两行，头像只剩 11×15（别的 14～15×15），肉眼看比旁边几张瘦；整页头像和字一样高，不放大看不出道具。
+- **四张表列宽不齐**：每张表各自排版，「Specialist」「Work」两列上下不对齐；`competitor-research` 也折成两行。
 - **站内链接仍开新标签页**：读文档时跳一下就多一个标签页。
-- **数字对上了**：页上 12 个专员，`akb spec` 也是 12 个。
-- **没有跑到的**：窄屏；真实部署后的页面；看板 Agent 页里 blog-researcher、video-cloner 的新头像（属 local-ui 模块）。
+- **没有跑到的**：窄屏；真实部署后的页面；看板 Agent 页和 Configuration → Workflows 里的社媒帖配图（属 local-ui 模块）。
