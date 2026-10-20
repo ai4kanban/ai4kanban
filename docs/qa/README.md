@@ -139,6 +139,7 @@
 - [读 Grill Me 介绍页，看一个大想法怎么拆卡、逐卡规划、按依赖交付](site/read-the-grill-me-page/case.md)
 - [读 Codex 介绍页，看 AI4Kanban 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
 - [在官网模板目录里按分类浏览，看动效片段，复制一段提示词去 AI4Kanban 里用](site/browse-the-template-catalog/case.md)
+- [打开已下架模板的旧链接，拿到真正的 404](site/open-a-retired-template-link/case.md)
 
 ### docs
 
