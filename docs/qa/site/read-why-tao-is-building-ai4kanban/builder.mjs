@@ -12,6 +12,9 @@ const figShot = async (pg, file, w) => {
   await pg.shot(D + file, { x: Math.max(0, b.x - 24), y: b.y - 24, width: Math.min(w, b.w + 48), height: b.h + 48 })
   return `frame at: ${at}ms of 7000\nfigures: ${await pg.ev(`document.querySelectorAll('main figure').length`)}\n` + Object.entries(await pg.ev(`(()=>{const f=${FIG};return {role:f.getAttribute('role'),label:f.getAttribute('aria-label'),names:[...f.querySelectorAll('.br-name,.br-chip,.br-idea')].map(e=>e.innerText.trim()).join(' | '),figcaption:!!f.querySelector('figcaption'),svg:f.querySelectorAll('svg').length,width:Math.round(f.getBoundingClientRect().width),running:f.hasAttribute('data-on')}})()`)).map(([k, v]) => `${k}: ${v}`).join('\n') + '\n'
 }
+// Watch the handoff scene's idea bubble for `ms`: each idea in turn, how visible the bubble was when
+// its words changed, and at rest whether it stays on one line inside the scene.
+const IDEAS = (ms) => `new Promise(r=>{const f=document.querySelector('main figure'),b=f.querySelector('.br-idea'),seen=[];let last=null;const t=setInterval(()=>{const s=b.querySelector('span'),op=+getComputedStyle(b).opacity;if(s.innerText!==last){last=s.innerText;seen.push({text:last,opacityAtChange:op})}const c=seen.at(-1);if(op>0.99&&c.lines==null){const g=document.createRange();g.selectNodeContents(s);const a=s.getBoundingClientRect(),fr=f.getBoundingClientRect();c.lines=new Set([...g.getClientRects()].map(x=>Math.round(x.top))).size;c.width=Math.round(a.width);c.insideScene=a.left>=fr.left&&a.right<=fr.right}},40);setTimeout(()=>{clearInterval(t);r({sceneWidth:Math.round(f.getBoundingClientRect().width),pageScrollsSideways:document.documentElement.scrollWidth>innerWidth,ideas:seen})},${ms})})`
 // Body paragraphs opening with a number: the number, its font weight, the first words.
 const NUMBERED = String.raw`[...document.querySelectorAll('main article .space-y-6 > p')].filter(x => /^\d+\. /.test(x.innerText)).map(x => {
   const n = x.firstElementChild.innerText.trim()
@@ -26,6 +29,7 @@ log += `location: ${await p.ev('location.pathname')}\ntitle: ${await p.ev('docum
 await p.ev('scrollTo(0,0)'); await p.sleep(1000)
 await p.shot(D + '01-builder-top.png', { x: 0, y: 0, width: 1280, height: 900 })
 log += `\n# 2. Read on to the animation after thought 1\nafter paragraph: ${await p.ev(`${FIG}.parentElement.previousElementSibling.innerText.slice(0,40)`)}…\n` + await figShot(p, '02-bridge-scene.png', 1280)
+log += `ideas over six loops: ${JSON.stringify(await p.ev(IDEAS(43000)))}\n`
 await p.ev(`[...document.querySelectorAll('main p')].find(x=>x.innerText.trim()==='Tao').scrollIntoView({block:'center'})`); await p.sleep(2000)
 const LINKS = String.raw`[...document.querySelectorAll('main article a')].map(a => (a.innerText.trim() || a.getAttribute('aria-label')) + ' -> ' + a.getAttribute('href') + (a.target === '_blank' ? ' (new tab)' : '')).join('\n  ')`
 log += '\n# 3. The end of the letter\n'
@@ -38,6 +42,7 @@ await p.close()
 const m = await open(390, 844, true)
 await m.nav(B + '/builder', 5000)
 log += `\n# 4. Same page on a 390px phone\nscrollWidth: ${await m.ev('document.documentElement.scrollWidth')} (viewport 390)\n` + await figShot(m, '04-phone-scene.png', 390)
+log += `ideas over six loops: ${JSON.stringify(await m.ev(IDEAS(43000)))}\n`
 await m.close()
 log += `\n# 5. What an AI reads\n`
 const label = await (async () => { const pg = await open(1280, 900); await pg.nav(B + '/builder', 4000); const l = await pg.ev(`${FIG}.getAttribute('aria-label')`); await pg.close(); return l })()

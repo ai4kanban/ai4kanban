@@ -18,6 +18,9 @@ const h2 = (t) => `[...document.querySelectorAll('main h2')].find(h=>h.innerText
 const sec = (t) => `(${h2(t)}).closest('section')`
 const rect = (sel, pg = p) => pg.ev(`(()=>{const r=(${sel}).getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y+scrollY),w:Math.round(r.width),h:Math.round(r.height),top:Math.round(r.top),bottom:Math.round(r.bottom)}})()`)
 const reqs = []; p.on((d) => { if (d.method === 'Network.responseReceived') reqs.push({ url: d.params.response.url, type: d.params.type }) })
+// Watch the handoff scene's idea bubble for `ms`: each idea in turn, how visible the bubble was when
+// its words changed, and at rest whether it stays on one line inside the scene.
+const IDEAS = (ms) => `new Promise(r=>{const f=document.querySelector('main figure'),b=f.querySelector('.br-idea'),seen=[];let last=null;const t=setInterval(()=>{const s=b.querySelector('span'),op=+getComputedStyle(b).opacity;if(s.innerText!==last){last=s.innerText;seen.push({text:last,opacityAtChange:op})}const c=seen.at(-1);if(op>0.99&&c.lines==null){const g=document.createRange();g.selectNodeContents(s);const a=s.getBoundingClientRect(),fr=f.getBoundingClientRect();c.lines=new Set([...g.getClientRects()].map(x=>Math.round(x.top))).size;c.width=Math.round(a.width);c.insideScene=a.left>=fr.left&&a.right<=fr.right}},40);setTimeout(()=>{clearInterval(t);r({sceneWidth:Math.round(f.getBoundingClientRect().width),pageScrollsSideways:document.documentElement.scrollWidth>innerWidth,ideas:seen})},${ms})})`
 const video = `(()=>{const v=document.querySelector('main video');return v&&{src:v.currentSrc.split('/').pop(),paused:v.paused,muted:v.muted,loop:v.loop,controls:v.controls,t:+v.currentTime.toFixed(1),poster:v.poster.split('/').pop()}})()`
 
 log('# step 1: /zh hero'); await go(p, `${SITE}/zh`, 4000)
@@ -26,6 +29,12 @@ log(await p.ev(`(()=>{const h=document.querySelector('main h1');const sec=h.clos
 log('video', await p.ev(video)); await p.sleep(3000); log('3s later', await p.ev(video))
 log('workflow previews before any scroll:', await p.ev(`[...document.querySelectorAll('.wf-track iframe')].map(f=>f.getAttribute('src'))`))
 await shotView('01-zh-hero.png')
+// the download button's .dmg is on GitHub (Node's fetch needs NODE_USE_ENV_PROXY=1 behind a proxy)
+{
+  const url = await p.ev(`document.querySelector('main a[href$=".dmg"]').href`)
+  const r = await fetch(url, { method: 'HEAD' })
+  fs.writeFileSync(`${OUT}/download.log`, `HEAD ${url}\n-> ${r.status} ${r.headers.get('content-type')} ${r.headers.get('content-length')} bytes\n`)
+}
 
 log('first screen text, before the recording plays:', await p.ev(`[...document.querySelectorAll('main section')][0].innerText.split('\\n').filter(Boolean).slice(0,6).join(' | ')`))
 log('# step 2: the handoff section and its scene')
@@ -34,14 +43,15 @@ log(await p.ev(`(()=>{const s=${sec('关键部分由你把关')};const f=s.query
 const fig = await rect(`(${sec('关键部分由你把关')}).querySelector('figure')`)
 const sr = await rect(sec('关键部分由你把关'))
 await shotAt('02-zh-handoff.png', { x: sr.x - 20, y: sr.y - 20, width: sr.w + 40, height: sr.h + 40 })
-// one 7s loop as a GIF, a frame every ~250ms
+// two 7s loops as a GIF, a frame every ~250ms, so the idea changes once
 fs.mkdirSync(`${OUT}/.frames`, { recursive: true })
-for (let i = 0; i < 28; i++) {
+for (let i = 0; i < 56; i++) {
   const r = await p.send('Page.captureScreenshot', { format: 'png', clip: { x: fig.x, y: fig.y, width: fig.w, height: fig.h, scale: 1 } })
   fs.writeFileSync(`${OUT}/.frames/${String(i).padStart(3, '0')}.png`, Buffer.from(r.data, 'base64')); await p.sleep(200)
 }
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '4', '-i', `${OUT}/.frames/%03d.png`, '-vf', 'scale=640:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse', `${OUT}/03-zh-handoff-loop.gif`])
 fs.rmSync(`${OUT}/.frames`, { recursive: true })
+log('idea bubble over six loops:', await p.ev(IDEAS(43000)))
 
 log('# step 3: the workflows pin and slide')
 const wf = await rect(sec('不同的工作'))
@@ -94,31 +104,41 @@ p = await open(W, H); await go(p, `${SITE}/`, 3500)
 log(await p.ev(`({title:document.title,description:document.querySelector('meta[name=description]').content,ogTitle:document.querySelector('meta[property="og:title"]')?.content,eyebrow:document.querySelector('main h1').previousElementSibling?.innerText,h1:document.querySelector('main h1').innerText.replace(/\\n/g,' / '),lead:document.querySelector('main h1').nextElementSibling?.innerText,h2s:[...document.querySelectorAll('main h2')].map(h=>h.innerText.replace(/\\n/g,' / ')),cards:[...document.querySelectorAll('.wf-track h3')].map(h=>h.innerText),links:[...document.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()+' -> '+a.getAttribute('href')),coding:[...document.querySelectorAll('main a')].some(a=>/Explore the coding workflow/i.test(a.innerText)),scene:[...document.querySelectorAll('main figure .br-name, main figure .br-chip, main figure .br-idea')].map(e=>e.innerText.trim())})`))
 await p.ev(`(${h2('Review the key parts')}).closest('section').scrollIntoView({block:'center'})`); await p.sleep(1500)
 await shotView('12-en-handoff.png')
+log('idea bubble over six loops:', await p.ev(IDEAS(43000)))
 await p.close()
 
-log('# step 7: phone 390x844, /zh')
+log('# step 7: the other languages on a 375px phone')
+for (const l of ['es', 'fr', 'ja', 'zh', '']) {
+  p = await open(375, 667, true); await go(p, `${SITE}/${l}`, 3500)
+  await p.ev(`document.querySelector('main figure').scrollIntoView({block:'center'})`); await p.sleep(500)
+  if (l === 'fr') { await p.ev(`new Promise(r=>{const b=document.querySelector('.br-idea'),t=setInterval(()=>{if(+getComputedStyle(b).opacity>0.99){clearInterval(t);r()}},20)})`); await shotView('13-phone-fr-idea.png') }
+  log(`/${l} idea bubble over six loops:`, await p.ev(IDEAS(43000)))
+  await p.close()
+}
+
+log('# step 8: phone 390x844, /zh')
 p = await open(390, 844, true); await go(p, `${SITE}/zh`, 3500)
-await shotView('13-phone-hero.png')
+await shotView('14-phone-hero.png')
 await p.ev(`(${h2('不同的工作')}).scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-80)'); await p.sleep(1500)
-await shotView('14-phone-workflows-title.png')
+await shotView('15-phone-workflows-title.png')
 const ppin = await p.ev(`(()=>{const e=document.querySelector('.wf-pin').getBoundingClientRect();return {top:Math.round(e.top+scrollY),h:Math.round(e.height),stick:Math.round(document.querySelector('.wf-stick').getBoundingClientRect().height)}})()`)
 const fits = (pg) => pg.ev(`(()=>{const s=document.querySelector('.wf-stick');const kids=[...s.children].map(k=>k.getBoundingClientRect());const lis=[...document.querySelectorAll('.wf-track>li')];const vis=lis.find(l=>{const b=l.getBoundingClientRect();return b.left>=-5&&b.left<innerWidth/2});return {viewport:innerHeight,stickTop:Math.round(s.getBoundingClientRect().top),contentTop:Math.round(Math.min(...kids.map(k=>k.top))),contentBottom:Math.round(Math.max(...kids.map(k=>k.bottom))),titleInPin:!!s.querySelector('h2'),card:vis?.querySelector('h3').innerText,cardWidth:vis&&Math.round(vis.getBoundingClientRect().width),links:[...s.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()),overflowX:document.documentElement.scrollWidth>innerWidth}})()`)
-for (const [f, file] of [[0.02, '15-phone-workflows-pinned.png'], [0.98, '16-phone-workflows-last.png']]) { await p.ev(`scrollTo(0, ${Math.round(ppin.top - 64 + f * (ppin.h - ppin.stick))})`); await p.sleep(2500); log('phone at', f, await fits(p)); await shotView(file) }
+for (const [f, file] of [[0.02, '16-phone-workflows-pinned.png'], [0.98, '17-phone-workflows-last.png']]) { await p.ev(`scrollTo(0, ${Math.round(ppin.top - 64 + f * (ppin.h - ppin.stick))})`); await p.sleep(2500); log('phone at', f, await fits(p)); await shotView(file) }
 await p.close()
 
-log('# step 8: phone 375x667, English')
+log('# step 9: phone 375x667, English')
 p = await open(375, 667, true); await go(p, `${SITE}/`, 3500)
 await p.ev(`(${h2('The right workflow')}).scrollIntoView({block:'start'})`); await p.sleep(800)
 const epin = await p.ev(`(()=>{const e=document.querySelector('.wf-pin').getBoundingClientRect();return {top:Math.round(e.top+scrollY),h:Math.round(e.height),stick:Math.round(document.querySelector('.wf-stick').getBoundingClientRect().height)}})()`)
 await p.ev(`scrollTo(0, ${Math.round(epin.top - 64 + 0.3 * (epin.h - epin.stick))})`); await p.sleep(2500)
-log('375 en pinned', await fits(p)); await shotView('17-phone-375-en-pinned.png'); await p.close()
+log('375 en pinned', await fits(p)); await shotView('18-phone-375-en-pinned.png'); await p.close()
 
-log('# step 9: reduced motion, 1440 wide')
+log('# step 10: reduced motion, 1440 wide')
 p = await open(W, H); await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
 await go(p, `${SITE}/zh`, 4000); log('hero video', await p.ev(video))
 await p.ev(`(${sec('关键部分由你把关')}).scrollIntoView({block:'center'})`); await p.sleep(1500)
-await shotView('18-reduced-handoff.png')
+await shotView('19-reduced-handoff.png')
 log('handoff scene', await p.ev(`(()=>{const f=document.querySelector('main figure');return {bothFrames:getComputedStyle(f.querySelector('.br-fb')).display!=='none',idea:getComputedStyle(f.querySelector('.br-idea')).display}})()`))
 await p.ev(`(${h2('不同的工作')}).scrollIntoView({block:'start'})`); await p.ev('scrollBy(0,-80)'); await p.sleep(1500)
 log('workflows', await p.ev(`(()=>{const t=document.querySelector('.wf-track');const s=document.querySelector('.wf-stick');return {position:getComputedStyle(s).position,columns:getComputedStyle(t).gridTemplateColumns.split(' ').length,pinHeight:Math.round(document.querySelector('.wf-pin').getBoundingClientRect().height)}})()`))
-await shotView('19-reduced-workflows.png'); await p.close()
+await shotView('20-reduced-workflows.png'); await p.close()
