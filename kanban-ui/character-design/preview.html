@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8" />
+<title>角色设计 · Character design</title>
+<style>
+  body {
+    margin: 0;
+    padding: 40px 48px 56px;
+    background: #f6f2e6;
+    color: #12130f;
+    font: 14px/1.5 Inter, -apple-system, "PingFang SC", sans-serif;
+  }
+  h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 40px 0 4px; }
+  p { margin: 0 0 16px; color: #5b574f; }
+  img { image-rendering: pixelated; display: block; }
+  .row { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
+  .cell { text-align: center; font-size: 12px; color: #5b574f; }
+  .ground { border-bottom: 2px solid #12130f; padding: 0 12px; display: flex; gap: 8px; }
+  .x4 img { width: 192px; height: 192px; }
+  .x2 img { width: 96px; height: 96px; }
+  .x1 img { width: 48px; height: 48px; }
+  .grid { display: grid; grid-template-columns: 120px repeat(3, 192px); gap: 0 16px; align-items: end; }
+  .grid .job { align-self: center; font-weight: 600; }
+  .list { background: #fffdf7; border: 2px solid #12130f; border-radius: 10px; width: 300px; }
+  .list div { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-top: 1px solid #e6dfcd; }
+  .list div:first-child { border-top: 0; }
+  .list b { font-weight: 600; }
+  .silhouette img { filter: brightness(0); }
+  .dark { background: #24211f; padding: 12px; border-radius: 10px; }
+  .checker {
+    padding: 12px;
+    border-radius: 10px;
+    background: repeating-conic-gradient(#e6dfcd 0% 25%, #fffdf7 0% 50%) 0 0 / 16px 16px;
+  }
+</style>
+<body>
+  <h1>角色设计 · Character design</h1>
+  <p>穿职业服装的小机器人。48×48 像素画布，列表 1 倍、桌宠 4 倍显示。</p>
+
+  <h2>四种职业 · Four jobs</h2>
+  <p>正面、侧面、背面站在同一条地面线上。</p>
+  <div class="grid x4" id="views"></div>
+
+  <h2>列表尺寸 · At list size</h2>
+  <p>左：现在的角色。右：新角色，同为 48px。</p>
+  <div class="row">
+    <div class="list" id="old"></div>
+    <div class="list" id="new"></div>
+  </div>
+
+  <h2>辨识检查 · Can you tell them apart?</h2>
+  <p>不看名字、拿掉道具，只看剪影，48px 与 2 倍。</p>
+  <div class="row" id="check"></div>
+  <div class="row" id="check2" style="margin-top: 16px"></div>
+
+  <h2>桌宠尺寸 · As a desktop pet</h2>
+  <p>规划：站立、行走四帧、工作、转身。</p>
+  <div class="row x4" id="poses"></div>
+
+  <h2>透明背景 · Transparent</h2>
+  <div class="row">
+    <div class="checker row x2" id="clear"></div>
+    <div class="dark row x2" id="dark"></div>
+  </div>
+
+  <script>
+    const JOBS = [
+      ["planner", "规划", "Planner", "software-planner"],
+      ["developer", "开发", "Developer", "builder"],
+      ["designer", "设计", "Designer", "ui-designer"],
+      ["archivist", "记忆整理", "Archivist", "memory-pruner"],
+    ];
+    const img = (src) => `<img src="${src}" alt="" />`;
+    const png = (name) => img(`png/${name}.png`);
+    const cell = (inner, label = "") => `<div class="cell">${inner}${label}</div>`;
+
+    document.getElementById("views").innerHTML = JOBS.map(
+      ([n, zh, en]) =>
+        `<div class="job">${zh}<br><span class="cell">${en}</span></div>` +
+        ["front", "side", "back"].map((v) => `<div class="ground">${png(`${n}-${v}`)}</div>`).join(""),
+    ).join("");
+
+    const list = (src) => JOBS.map(([n, zh, en, old]) => `<div class="x1">${img(src(n, old))}<b>${zh}</b> ${en}</div>`).join("");
+    document.getElementById("old").innerHTML = list((n, old) => `../public/agent-art/${old}.png`);
+    document.getElementById("new").innerHTML = list((n) => `png/${n}-front.png`);
+
+    const set = (cls, view) =>
+      `<div class="${cls} row" style="gap:8px">${JOBS.map(([n]) => png(`${n}-${view}-noprop`)).join("")}</div>`;
+    document.getElementById("check").innerHTML = [
+      cell(set("x1", "front"), "正面 Front"),
+      cell(set("x1", "back"), "背面 Back"),
+      cell(set("x1 silhouette", "front"), "剪影 Silhouette"),
+    ].join("");
+    document.getElementById("check2").innerHTML = [cell(set("x2", "front"), "2×"), cell(set("x2", "back"), "")].join("");
+
+    document.getElementById("poses").innerHTML = [
+      ["planner-front", "站立 Stand"],
+      ["planner-walk-1", "行走 Walk"],
+      ["planner-walk-2", ""],
+      ["planner-walk-3", ""],
+      ["planner-walk-4", ""],
+      ["planner-work", "工作 Work"],
+    ]
+      .map(([f, l]) => cell(png(f), l))
+      .join("") +
+      cell(
+        `<div class="row x2" style="gap:4px">${["planner-front", "planner-side", "planner-back", "planner-side-left"].map(png).join("")}</div>`,
+        "转身 Turn",
+      );
+
+    const all = JOBS.map(([n]) => png(`${n}-front`)).join("");
+    document.getElementById("clear").innerHTML = all;
+    document.getElementById("dark").innerHTML = all;
+  </script>
+</body>
+</html>
