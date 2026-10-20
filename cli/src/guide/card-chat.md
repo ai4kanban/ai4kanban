@@ -31,6 +31,9 @@ This is the conversation on one card. Answer what the user asked, and act on wha
   name that card in the reply.
 - **Write no memory**: not here, and not in the flows this conversation starts, whatever their
   own pages say — "What earns a note" in `akb guide board`.
+- **Read once**: what this conversation already printed — flows, the card, agent rules — still
+  holds on later turns; print a flow again only for another action or card, or once it has
+  left your context, and never reopen a file a printed flow already carries.
 - **Say what actually happened**: end the reply with the changes you made, in a line or two.
   A write the board refused is said plainly; never report work that did not land.
 - **Hide machinery**: name actions by their UI labels. Never put akb commands or these

@@ -32,7 +32,7 @@ as `.assets/<card id>/...`.
   missing font. Reuse the project's template or brand when there is one.
 - **Facts**: slides state only sourced facts; ask for a missing fact instead of inventing it.
 - **Storyboard**: `storyboard.json` follows `references/slides.schema.json` and its example;
-  it is the deck's only source, with stable slide IDs and the slide canvas as its `size`.
+  it is the deck's only outline, with stable slide IDs and the slide canvas as its `size`.
 - **Validation**: run `akb raw validate <card id> --json` after every change, and this
   agent's `scripts/validate-storyboard.mjs` on every storyboard JSON; fix every diagnostic.
 - **One story**: the outline reads as one argument from first slide to last; one message per
@@ -42,7 +42,7 @@ as `.assets/<card id>/...`.
 
 - **Pages**: lay out each slide as a static HTML or TSX page at `pages/<slide id>.html` or
   `.tsx` of the asset folder, sized to the storyboard's `size`, and set the slide's preview to
-  it; the pages are the only visual source.
+  it; the pages are the only source of each slide's look and text, never copied elsewhere.
 - **Self-contained**: load fonts and images from the asset folder, never from system fonts
   or the network, so the preview and the exported image match.
 - **Wireframes**: black text on white in one font, no colour; every image, screenshot and
@@ -53,7 +53,8 @@ as `.assets/<card id>/...`.
   machine paths, render each page to `slides/<slide id>.png` at its `size`, then pack them
   with this agent's `scripts/pack-pptx.mjs` into `<short-name>.pptx`, `<short-name>` a
   lowercase slug of the card title. Never use a PowerPoint-generation library.
-- **Consistent**: every slide of one type shares its recipe layout, margins and type sizes.
+- **Consistent**: every slide of one type shares its recipe layout, margins and type sizes,
+  kept in one stylesheet or component the pages import.
 - **Fit**: check every page in a browser at its `size` for overflow and collisions, not by eye
   on a thumbnail. A fix that needs shorter copy is a content change.
 
@@ -74,8 +75,8 @@ Pick from these, in order, following `akb guide multi-stage-drafting`.
   `<Asset src=".assets/<card id>/<short-name>.pptx" label="<card title>" />` near the top of
   the card, outside this agent's section, after checking it holds one image per slide in
   order; append a ticked todo with the deck's absolute path and the command that rebuilds it.
-- **Changes**: edit only the affected pages and JSON, keeping unchanged slide IDs; rebuild a
-  deck that already exists.
+- **Changes**: read, edit and check only the affected pages and their storyboard entries,
+  keeping unchanged slide IDs and leaving other pages untouched; rebuild a deck that exists.
 - **Existing cards**: an outline written as Markdown `## Slide N:` sections becomes
   wireframes with the same content, and those sections are removed; a card with approved
   PNG previews packs those images as they are.

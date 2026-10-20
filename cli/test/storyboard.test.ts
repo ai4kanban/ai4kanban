@@ -196,11 +196,13 @@ describe("deck-planner's storyboard script", () => {
     assert.deepEqual(slideCodes((d) => { d.size = [1920, 1080] }), ['/size invalid-value'])
   })
 
-  it('keeps the schema to the fields the script enforces, notes optional', () => {
+  it('keeps the schema to the fields the script enforces, notes and copy optional', () => {
     assert.deepEqual(slidesSchema.required, fieldsOf('deck-planner', 'ROOT_FIELDS').filter((f) => f !== 'size'))
-    assert.deepEqual(slidesSchema.$defs.slide.required, fieldsOf('deck-planner', 'SLIDE_FIELDS').filter((f) => f !== 'notes'))
+    assert.deepEqual(slidesSchema.$defs.slide.required, fieldsOf('deck-planner', 'SLIDE_FIELDS').filter((f) => f !== 'notes' && f !== 'copy'))
     assert.deepEqual(slideCodes((d) => { delete d.slides[0].notes }), [])
     assert.deepEqual(slideCodes((d) => { d.slides[0].notes = 3 }), ['/slides/0/notes invalid-value'])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].copy = ['212'] }), [])
+    assert.deepEqual(slideCodes((d) => { d.slides[0].copy = '212' }), ['/slides/0/copy invalid-value'])
   })
 
   it('ships the same contract to carousel-planner', () => {

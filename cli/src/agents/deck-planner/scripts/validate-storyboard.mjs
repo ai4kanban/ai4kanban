@@ -214,7 +214,7 @@ function validate(file) {
       else ids.set(slide.id, i)
     }
     required(slide, at, 'title', nonblank, text)
-    strings(slide, at, 'copy', 'an array of the exact text on the slide, or [] for none')
+    if (slide.copy !== undefined) strings(slide, at, 'copy', 'an array of non-blank strings, or leave the field out')
     if (slide.notes !== undefined) required(slide, at, 'notes', 'the speaker notes, or leave the field out', (v) => typeof v === 'string')
     required(slide, at, 'layout', `${nonblank}: the recipe layout this slide uses`, text)
     strings(slide, at, 'assets', 'an array of the images, charts and files the slide uses, or [] for none')
