@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mat } from "./Mat";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // "AI4Kanban is the bridge", one 7s loop in three beats: an idea flies from you into the board,
 // which puts out two drafts (frame around you + board); the drafts get approved; the drafts and
-// their footnotes go to the agent (frame slides to board + agent). Sizes are em off a cqw font
-// size, so the scene scales with its column. It moves only while in view. Reduced
-// motion shows both frames at once.
+// their footnotes go to the agent (frame slides to board + agent). Each loop brings the next
+// idea. Sizes are em off a cqw font size, so the scene scales with its column. It moves only
+// while in view. Reduced motion shows both frames at once.
 const CSS = `
 .br{width:100%;container-type:inline-size;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#24231f;margin:0}
 .br *{box-sizing:border-box;animation-play-state:paused!important}
@@ -77,6 +77,7 @@ const CSS = `
 
 export function BridgeScene({ c }: { c: HomeCopy["handoff"]["scene"] }) {
   const root = useRef<HTMLElement>(null);
+  const [n, setN] = useState(0);
 
   useEffect(() => {
     const el = root.current;
@@ -110,7 +111,9 @@ export function BridgeScene({ c }: { c: HomeCopy["handoff"]["scene"] }) {
           <div className="br-name" style={{ left: "1em" }}><span>{c.you}</span></div>
           <div className="br-name" style={{ left: "22em" }}><span>{c.board}</span></div>
           <div className="br-name" style={{ left: "43em" }}><span>{c.agent}</span></div>
-          <div className="br-idea"><span>{c.idea}</span></div>
+          <div className="br-idea" onAnimationIteration={() => setN((i) => i + 1)}>
+            <span>{c.idea[n % c.idea.length]}</span>
+          </div>
           <div className="br-pack">
             <div className="br-dr br-d1">
               <div className="br-pic" />

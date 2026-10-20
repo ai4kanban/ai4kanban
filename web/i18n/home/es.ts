@@ -33,7 +33,13 @@ const es: HomeCopy = {
     scene: {
       label:
         "Le das una idea a AI4Kanban, que la convierte en borradores para que los revises. Cuando los apruebas, AI4Kanban pasa los borradores y su contexto a los agentes, que se encargan del trabajo.",
-      idea: "Lanzar un plan Pro",
+      idea: [
+        "Lanzar un plan Pro",
+        "Añadir modo oscuro",
+        "Vídeo de 30 s de la v2",
+        "Blog sobre la v2",
+        "Carrusel de 5 consejos",
+      ],
       you: "Tú",
       board: "AI4Kanban",
       agent: "Agente",

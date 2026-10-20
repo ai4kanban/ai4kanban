@@ -33,7 +33,13 @@ const en: HomeCopy = {
     scene: {
       label:
         "You hand an idea to AI4Kanban, which turns it into drafts for you to review. Once you approve them, AI4Kanban passes the drafts and their context to agents, who take over the work.",
-      idea: "Launch a Pro plan",
+      idea: [
+        "Launch a Pro plan",
+        "Add dark mode",
+        "30s v2 launch video",
+        "v2 release blog post",
+        "Carousel of 5 tips",
+      ],
       you: "You",
       board: "AI4Kanban",
       agent: "Agent",

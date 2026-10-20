@@ -41,7 +41,7 @@ export type HomeCopy = {
     /** The scene's words; `label` reads the whole loop for a reader who cannot see it. */
     scene: {
       label: string;
-      idea: string;
+      idea: string[];
       you: string;
       board: string;
       agent: string;

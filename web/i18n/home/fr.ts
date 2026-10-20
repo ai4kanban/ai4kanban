@@ -33,7 +33,13 @@ const fr: HomeCopy = {
     scene: {
       label:
         "Vous confiez une idée à AI4Kanban, qui la transforme en brouillons à relire. Une fois validés, AI4Kanban transmet les brouillons et leur contexte aux agents, qui prennent le relais.",
-      idea: "Lancer une offre Pro",
+      idea: [
+        "Lancer une offre Pro",
+        "Ajouter le mode sombre",
+        "Vidéo de 30 s de la v2",
+        "Billet sur la v2",
+        "Carrousel de 5 astuces",
+      ],
       you: "Vous",
       board: "AI4Kanban",
       agent: "Agent",

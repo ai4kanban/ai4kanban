@@ -30,7 +30,13 @@ const zh: HomeCopy = {
     scene: {
       label:
         "你把想法交给 AI4Kanban，它整理成草稿供你把关；你确认后，AI4Kanban 把草稿连同上下文交给 agent 接手后续工作。",
-      idea: "上线 Pro 套餐",
+      idea: [
+        "上线 Pro 套餐",
+        "添加深色模式",
+        "30 秒 v2 宣传片",
+        "v2 发布博客",
+        "5 页小红书教程",
+      ],
       you: "你",
       board: "AI4Kanban",
       agent: "Agent",
