@@ -111,9 +111,10 @@ describe('the discussion helper', () => {
 describe('when a card chat writes', () => {
   it('names every case the brief decides', () => {
     const chat = findGuide('card-chat')!.text
-    assert.match(chat, /stated\s+outright, asked as a question/)
-    assert.match(chat, /a yes to a change you proposed last turn/)
-    assert.match(chat, /never ask them to confirm what they already said/)
+    assert.match(chat, /stated, asked as a question/)
+    assert.match(chat, /a yes to your proposal/)
+    assert.match(chat, /never ask the user to confirm what they already said/)
+    assert.match(chat, /already printed without printing it again/)
     assert.match(chat, /a question about why/)
     assert.match(chat, /Told to discuss first or\s+hold off, leave the card alone/)
     assert.match(chat, /only when its answer would materially\s+change the edit/)

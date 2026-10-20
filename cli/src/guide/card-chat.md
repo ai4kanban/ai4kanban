@@ -8,12 +8,12 @@ This is the conversation on one card. Answer what the user asked, and act on wha
 - **Read every turn for three things**: a question, a change to the card, and an answer to one
   of the card's open questions. A turn can carry several, or none. Judge it from what the
   conversation is about, never from whether they used a particular word.
-- **Act on clear intent**: when the conversation makes a change to the card clear — stated
-  outright, asked as a question ("can we drop X?"), or a yes to a change you proposed last turn
-  — and you have enough to make it, make it on that turn through `akb card revise <id> --print
-  "<the change>"`, and an answer to an open question through `akb card resolve <id> --print`.
-  Do the job in this conversation — update the card and validate it. Saying you will is not
-  doing it, and never ask them to confirm what they already said.
+- **Act on clear intent**: when the user makes a change clear, make it on that turn. A clear
+  change can be stated, asked as a question ("can we drop X?"), or a yes to your proposal.
+  Change the card by the revise flow (`akb card revise <id> --print "<the change>"`) and
+  answer an open question by the resolve flow (`akb card resolve <id> --print`). Follow a
+  flow this conversation already printed without printing it again. Validate the card, and
+  never ask the user to confirm what they already said.
 - **Only answer when they only ask**: a question about why, or an idea they are still weighing,
   gets an answer and the change you would make, left in the reply. Told to discuss first or
   hold off, leave the card alone.
