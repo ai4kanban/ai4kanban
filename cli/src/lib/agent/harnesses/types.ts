@@ -140,8 +140,10 @@ export interface Harness
    *  `binary` is the first word of this run's command line, for a renderer that has to ASK
    *  that CLI instead: OpenCode's events name no model and `opencode export` does
    *  (agent/wire/opencode-session.ts). Left out by the one call that has no run behind it —
-   *  ./check's load-time probe — so a renderer treats it as it does a missing file. */
-  renderer?(cwd: string, binary?: string): StreamRenderer
+   *  ./check's load-time probe — so a renderer treats it as it does a missing file.
+   *
+   *  `argv` is the run's command line without its prompt. */
+  renderer?(cwd: string, binary?: string, argv?: string[]): StreamRenderer
   /** How the prompt goes in on stdin, for a printing CLI whose `argv` asks it to read its
    *  turns there and keep going while stdin stays open (#1540). Undefined when this argv
    *  takes the prompt on the command line. */

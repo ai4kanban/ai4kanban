@@ -17,7 +17,15 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import type { ContextWindow } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
+
+/** One finished turn of a thread: the thread's running total as it ended, and what the turn
+ *  itself added to it — absent when it added nothing. */
+export interface CodexTurn {
+  total: TokenUsage
+  own?: TokenUsage
+  model?: string
+}
 
 export interface CodexRunFacts {
   /** The model id Codex ran the turn on, e.g. `gpt-5.6-sol`. */
@@ -29,6 +37,8 @@ export interface CodexRunFacts {
    *  a handful of thread events and none of them carries a count, while the rollout beside
    *  them keeps every `token_count` the session ever emitted. */
   context?: ContextWindow
+  /** Every turn the rollout saw finish, oldest first. */
+  turns?: CodexTurn[]
 }
 
 type Entry = { type?: unknown; payload?: Record<string, unknown> }
@@ -40,6 +50,35 @@ function text(value: unknown): string | undefined {
 function count(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined
 }
+
+// Codex's counts in the board's four buckets. Its `input_tokens` is the WHOLE prompt, cached
+// part included, where the board's is only the fresh part, so the cached tokens come back out;
+// `reasoning_output_tokens` is already inside `output_tokens`. All-zero reads as "nothing".
+export function codexUsage(raw: unknown): TokenUsage | undefined {
+  const u = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+  const cacheCreation = n(u.cache_write_input_tokens)
+  const cacheRead = n(u.cached_input_tokens)
+  const usage: TokenUsage = {
+    input: Math.max(0, n(u.input_tokens) - cacheCreation - cacheRead),
+    cacheCreation,
+    cacheRead,
+    output: n(u.output_tokens),
+  }
+  return usage.input + usage.cacheCreation + usage.cacheRead + usage.output > 0 ? usage : undefined
+}
+
+export const sameUsage = (a: TokenUsage, b: TokenUsage): boolean =>
+  a.input === b.input && a.cacheCreation === b.cacheCreation && a.cacheRead === b.cacheRead && a.output === b.output
+
+const ZERO: TokenUsage = { input: 0, cacheCreation: 0, cacheRead: 0, output: 0 }
+
+const minus = (a: TokenUsage, b: TokenUsage): TokenUsage => ({
+  input: a.input - b.input,
+  cacheCreation: a.cacheCreation - b.cacheCreation,
+  cacheRead: a.cacheRead - b.cacheRead,
+  output: a.output - b.output,
+})
 
 // How full the window is, off one `token_count` event. `last_token_usage.input_tokens` is
 // the WHOLE prompt of the request that just came back, cached part included — which is what
@@ -57,9 +96,10 @@ function contextIn(raw: unknown): ContextWindow | undefined {
 
 // Sessions are filed under the LOCAL date they started, so a run that straddles midnight —
 // or a machine whose clock disagrees with Codex's by a few hours — lands in a neighbouring
-// folder. Three days is the whole of it, and each is one readdir.
-function dayDir(root: string, shiftDays: number): string {
-  const day = new Date(Date.now() + shiftDays * 86_400_000)
+// folder. A resumed thread may have started days ago: its id is a UUIDv7, whose first 48 bits
+// are the moment it was minted.
+function dayDir(root: string, at: number): string {
+  const day = new Date(at)
   const pad = (n: number) => String(n).padStart(2, '0')
   return join(root, String(day.getFullYear()), pad(day.getMonth() + 1), pad(day.getDate()))
 }
@@ -71,17 +111,22 @@ function findRollout(threadId: string): string | undefined {
   const home = process.env.CODEX_HOME?.trim() || join(homedir(), '.codex')
   const root = join(home, 'sessions')
   const tail = `-${threadId}.jsonl`
+  const minted = parseInt(threadId.replace(/-/g, '').slice(0, 12), 16)
+  const days = new Set<string>()
+  for (const at of [Date.now(), ...(Number.isFinite(minted) && minted > 0 ? [minted] : [])]) {
+    for (const shift of [0, -1, 1]) days.add(dayDir(root, at + shift * 86_400_000))
+  }
   let newest: { path: string; at: number } | undefined
-  for (const shift of [0, -1, 1]) {
+  for (const dir of days) {
     let names: string[]
     try {
-      names = readdirSync(dayDir(root, shift))
+      names = readdirSync(dir)
     } catch {
       continue
     }
     for (const name of names) {
       if (!name.startsWith('rollout-') || !name.endsWith(tail)) continue
-      const path = join(dayDir(root, shift), name)
+      const path = join(dir, name)
       try {
         const at = statSync(path).mtimeMs
         if (!newest || at > newest.at) newest = { path, at }
@@ -106,10 +151,22 @@ export function readCodexRunFacts(threadId: string): CodexRunFacts | undefined {
     return undefined
   }
   const facts: CodexRunFacts = {}
+  // `turn.completed` carries the THREAD's running total, and so does every `token_count`: a
+  // turn's own share is its closing total less the total the turn before closed on. A thread's
+  // first turn starts from the total its first request was added to — zero for a new thread,
+  // the parent's for a fork, whose rollout holds none of the parent's turns.
+  const turns: CodexTurn[] = []
+  let total: TokenUsage | undefined
+  let before: TokenUsage | undefined
   for (const line of raw.split('\n')) {
-    // A rollout is mostly the conversation itself. Only three kinds of line carry an answer,
+    // A rollout is mostly the conversation itself. Only a few kinds of line carry an answer,
     // so the rest is skipped without parsing it.
-    if (!line.includes('"session_meta"') && !line.includes('"turn_context"') && !line.includes('"token_count"')) continue
+    if (
+      !line.includes('"session_meta"') &&
+      !line.includes('"turn_context"') &&
+      !line.includes('"token_count"') &&
+      !line.includes('"task_complete"')
+    ) continue
     let entry: Entry
     try {
       const parsed: unknown = JSON.parse(line)
@@ -127,7 +184,22 @@ export function readCodexRunFacts(threadId: string): CodexRunFacts | undefined {
     if (entry.type === 'turn_context') facts.model = text(payload.model) ?? facts.model
     // One reading per request that came back, and the last one is what the model holds now
     // — a compaction takes it down rather than adding to it.
-    if (payload.type === 'token_count') facts.context = contextIn(payload.info) ?? facts.context
+    if (payload.type === 'token_count') {
+      facts.context = contextIn(payload.info) ?? facts.context
+      const info = payload.info && typeof payload.info === 'object' ? (payload.info as Record<string, unknown>) : {}
+      const now = codexUsage(info.total_token_usage)
+      if (now) {
+        before ??= minus(now, codexUsage(info.last_token_usage) ?? ZERO)
+        total = now
+      }
+    }
+    if (payload.type === 'task_complete' && total && before) {
+      const own = minus(total, before)
+      const spent = Object.values(own).some((n) => n > 0)
+      if (Object.values(own).every((n) => n >= 0)) turns.push({ total, ...(spent ? { own } : {}), model: facts.model })
+      before = total
+    }
   }
+  if (turns.length) facts.turns = turns
   return facts.model || facts.provider || facts.context ? facts : undefined
 }

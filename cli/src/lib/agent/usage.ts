@@ -60,7 +60,7 @@ function asEntry(v: unknown): UsageEntry | null {
   }
 }
 
-function writeLedger(ledger: UsageLedger): void {
+export function writeLedger(ledger: UsageLedger): void {
   fs.mkdirSync(path.dirname(USAGE), { recursive: true })
   const tmp = `${USAGE}.tmp`
   fs.writeFileSync(tmp, JSON.stringify(ledger) + '\n')

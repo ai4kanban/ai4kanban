@@ -1,6 +1,7 @@
 // The usage ledger (../agent/usage.ts) summed for Insights: one row per connector and model
 // over the last `span` local days that reported a cost or tokens, costliest first.
 
+import { fixCodexHistoryQuietly } from '../agent/codex-history'
 import { harnessByName } from '../agent/harnesses'
 import { harnessLabel } from '../agent/resolve'
 import { readRuns } from '../agent/store'
@@ -9,6 +10,7 @@ import { USAGE } from '../paths'
 import type { UsageResult, UsageRow } from './types'
 
 export function readUsageView(span: number): UsageResult {
+  fixCodexHistoryQuietly()
   let ledger
   try {
     ledger = loadLedger(readRuns)

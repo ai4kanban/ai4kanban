@@ -64,6 +64,7 @@ import { endAgent, killMarked, markEnv, stopMark, trackAgent } from './stop'
 import { handoffOf, readRuns, runIsLive } from './store'
 import { lastSessionTotal, ownCost, reportsSessionTotal } from './own-cost'
 import { recordReplyUsage } from './usage'
+import { fixCodexHistoryQuietly } from './codex-history'
 import { isDiscussion, refusal, type DiscussionTarget, type RunRefusal } from './types'
 import type {
   Chat,
@@ -699,6 +700,7 @@ const blockedView = (why: RunRefusal | undefined): Pick<ChatView, 'blocked' | 'b
 
 /** One conversation and what the board can do about it right now. */
 export function readChatView(cardId: ChatTarget): ChatView {
+  fixCodexHistoryQuietly()
   const chat = readChat(cardId)
   const agent = chatAgent(runtimeOf(chat))
   const background = liveChats.get(keyOf(cardId))?.background()

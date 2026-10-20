@@ -10,7 +10,8 @@
 //   • `item.started` / `item.completed` — one per thing the agent did. A command
 //     is logged when it starts (a long build should show up while it runs, not
 //     after), everything else when it completes and is final.
-//   • `turn.completed` — the token counts for the turn.
+//   • `turn.completed` — the THREAD's running token total, not the turn's: a resumed or
+//     forked thread carries everything spent before it.
 //
 // What a reader wants is what the agent said, the commands it ran and the files
 // it changed, so those are rendered and the rest (its reasoning summaries, its
@@ -23,8 +24,8 @@
 // at that model's list rate are the price (../prices.ts). A model whose rates aren't
 // known gets no price, the way it did when nothing was worked out at all.
 
-import { readCodexRunFacts, type CodexRunFacts } from './codex-session'
-import { hint, num, obj, str, type Json } from './json'
+import { codexUsage, readCodexRunFacts, sameUsage, type CodexRunFacts, type CodexTurn } from './codex-session'
+import { hint, obj, str, type Json } from './json'
 import { createLineReader, frame, type StreamRenderer } from './stream'
 import { priceUsd } from '../prices'
 import type { TokenUsage } from '../types'
@@ -70,31 +71,6 @@ function renderCompleted(item: Json): string {
   }
 }
 
-// The token counts a completed turn carries, in the four buckets the board shows.
-//
-// Codex counts prompt tokens the other way round from Claude: its `input_tokens`
-// is the WHOLE prompt, cached part included, where Claude's is only the fresh
-// part and the cache is counted beside it. The board's four are Claude's, and are
-// added up as four separate numbers — so the cached tokens are taken back out
-// here. Left in, a run's input would carry its cache reads twice.
-//
-// `reasoning_output_tokens` is dropped for the same reason from the other end:
-// it is already inside `output_tokens`. All-zero counts read as "reported
-// nothing", like the Claude renderer.
-function parseUsage(raw: unknown): TokenUsage | undefined {
-  const u = obj(raw)
-  const cacheCreation = num(u.cache_write_input_tokens)
-  const cacheRead = num(u.cached_input_tokens)
-  const usage: TokenUsage = {
-    input: Math.max(0, num(u.input_tokens) - cacheCreation - cacheRead),
-    cacheCreation,
-    cacheRead,
-    output: num(u.output_tokens),
-  }
-  const total = usage.input + usage.cacheCreation + usage.cacheRead + usage.output
-  return total > 0 ? usage : undefined
-}
-
 // How often the rollout is looked for while a run is going. The runner asks the
 // renderer for the model on every chunk of output, and a run arrives in hundreds
 // of them; the rollout is a file, and reading it that many times would be a lot
@@ -102,9 +78,10 @@ function parseUsage(raw: unknown): TokenUsage | undefined {
 // panel names the model while the run is still working, rather than at the end.
 const LOOK_EVERY_MS = 3_000
 
-export function createCodexStreamRenderer(): StreamRenderer {
+/** `carried` is a run that resumes or forks a thread, whose stream total holds earlier turns. */
+export function createCodexStreamRenderer(carried = false): StreamRenderer {
   let final: string | undefined
-  let usage: TokenUsage | undefined
+  let total: TokenUsage | undefined
   let threadId: string | undefined
   let failure: string | undefined
   let facts: CodexRunFacts | undefined
@@ -121,6 +98,20 @@ export function createCodexStreamRenderer(): StreamRenderer {
     if (!now && at - lookedAt < LOOK_EVERY_MS) return
     lookedAt = at
     facts = readCodexRunFacts(threadId) ?? facts
+  }
+
+  // The turn this run closed: the newest one in the rollout that ended on the stream's total.
+  const turn = (): CodexTurn | undefined => {
+    look(false)
+    return total && facts?.turns?.filter((t) => sameUsage(t.total, total!)).pop()
+  }
+
+  // The turn's own share. With no rollout to subtract by, a new thread's total is its own and
+  // a carried thread's is unknown — never the history's.
+  const own = (): TokenUsage | undefined => {
+    const t = turn()
+    if (t) return t.own
+    return carried ? undefined : total
   }
 
   const renderLine = (line: string): string => {
@@ -147,10 +138,7 @@ export function createCodexStreamRenderer(): StreamRenderer {
         return renderCompleted(item)
       }
       case 'turn.completed':
-        // Last turn wins. `codex exec` sends one prompt, so there is normally
-        // one — and if a run ever takes more, the numbers the board shows are
-        // the ones the run ended on rather than a total it can't verify.
-        usage = parseUsage(ev.usage) ?? usage
+        total = codexUsage(ev.usage) ?? total
         return ''
       // The two events that say the RUN did not get there — the turn giving up, and the
       // stream itself failing. Kept as the run's failure (#525), because `codex exec`
@@ -184,7 +172,7 @@ export function createCodexStreamRenderer(): StreamRenderer {
       return out
     },
     result: () => final,
-    usage: () => usage,
+    usage: own,
     // Off the rollout, not the stream: no thread event carries a count, and the rollout
     // gains a `token_count` every time a request comes back — so a long run's ring climbs
     // while it works (./codex-session.ts).
@@ -196,13 +184,10 @@ export function createCodexStreamRenderer(): StreamRenderer {
       look(false)
       return facts?.model
     },
-    // Worked out here rather than reported: the run's tokens at the model's list
+    // Worked out here rather than reported: the turn's own tokens at the model's list
     // rate, and nothing at all unless both the provider and the model are ones
     // whose rates the board knows.
-    costUsd: () => {
-      look(false)
-      return priceUsd(facts?.provider, facts?.model, usage)
-    },
+    costUsd: () => priceUsd(facts?.provider, turn()?.model ?? facts?.model, own()),
     resumeId: () => threadId,
     failure: () => failure,
   }

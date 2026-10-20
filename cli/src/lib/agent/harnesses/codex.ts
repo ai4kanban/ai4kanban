@@ -417,7 +417,8 @@ export const CODEX: Harness = {
   // reason on the stream, so a message that merely mentions one is the agent's prose.
   transient: ({ failure }) => providerBlip(failure),
 
-  renderer: createCodexStreamRenderer,
+  // resumeArgs/forkArgs end on the subcommand and the thread id.
+  renderer: (_cwd, _binary, argv = []) => createCodexStreamRenderer(['resume', 'fork'].includes(argv.at(-2) ?? '')),
 
   // Codex re-reads its model list on a timer and traces the attempt to stderr every time,
   // whether it worked or not. On a codex whose cached list is a version out of date that is
