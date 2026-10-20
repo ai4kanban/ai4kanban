@@ -19,7 +19,7 @@ import { zip } from "@/lib/zip";
 import type { StoryboardFrameView, StoryboardShotView, StoryboardSlideView, StoryboardView } from "@/lib/storyboard";
 import { useMachine } from "@/lib/screen";
 import { useCopyText } from "./copy";
-import { CORNER, ExpandableImage, ImagePreview, PreviewDialog } from "./image-preview";
+import { CORNER, ExpandableImage, ImageMenu, PreviewDialog, SCRIM_BUTTON } from "./image-preview";
 import { Markdown } from "./Markdown";
 import { Caption, DraftFrame, ICON_BTN, sandboxOf, useFold, type MenuItem } from "./Mockup";
 
@@ -345,61 +345,36 @@ function PageBox({ href, size, title = "" }: { href: string; size: StoryboardSiz
 }
 
 /** A slide's page at the body's width, opening larger like a picture does. */
-function PageFrame({ frame, size, missing }: { frame: StoryboardFrameView; size: StoryboardSize; missing: string }) {
+function PageFrame({ frame, size, missing, onOpen }: { frame: StoryboardFrameView; size: StoryboardSize; missing: string; onOpen: () => void }) {
   const c = useCopy().shared;
   const [box, setBox] = useState<HTMLDivElement | null>(null);
   const width = useWidth(box);
   const page = usePage(box, frame.href);
-  const [open, setOpen] = useState(false);
   const ratio = size.width / size.height;
   if (!frame.href || page === "failed") return <Missing ratio={ratio} text={missing} />;
   const ready = page !== null;
   return (
-    <>
-      <div
-        ref={setBox}
-        role={ready ? "button" : undefined}
-        tabIndex={ready ? 0 : undefined}
-        aria-label={ready ? c.viewLarger : undefined}
-        onClick={() => ready && setOpen(true)}
-        onKeyDown={(e) => {
-          if (!ready || (e.key !== "Enter" && e.key !== " ")) return;
-          e.preventDefault();
-          setOpen(true);
-        }}
-        className={`group relative w-full overflow-hidden rounded-[6px] bg-nb-wash ${ready ? "cursor-zoom-in nb-focus" : ""}`}
-        style={{ aspectRatio: ratio }}
-      >
-        {ready && width > 0 && <Canvas page={page} size={size} width={width} title={frame.alt} />}
-        {ready && (
-          <span className={`${CORNER} opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100`}>
-            <FiMaximize2 size={12} aria-hidden />
-            {c.viewLarger}
-          </span>
-        )}
-      </div>
-      {open && ready && (
-        <PreviewDialog label={frame.alt} onClose={() => setOpen(false)}>
-          <LargePage page={page} size={size} title={frame.alt} />
-        </PreviewDialog>
-      )}
-    </>
-  );
-}
-
-/** Fitted to the window and never past the canvas's own pixels, as a picture is. */
-function LargePage({ page, size, title }: { page: { doc: string; scripts?: boolean }; size: StoryboardSize; title: string }) {
-  const [box, setBox] = useState<HTMLDivElement | null>(null);
-  const width = useWidth(box);
-  const ratio = size.width / size.height;
-  return (
     <div
       ref={setBox}
-      onClick={(e) => e.stopPropagation()}
-      className="relative shrink-0 overflow-hidden rounded-[10px] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-      style={{ width: `min(100%, ${size.width}px, calc((100dvh - 80px) * ${ratio}))`, aspectRatio: ratio }}
+      role={ready ? "button" : undefined}
+      tabIndex={ready ? 0 : undefined}
+      aria-label={ready ? c.viewLarger : undefined}
+      onClick={() => ready && onOpen()}
+      onKeyDown={(e) => {
+        if (!ready || (e.key !== "Enter" && e.key !== " ")) return;
+        e.preventDefault();
+        onOpen();
+      }}
+      className={`group relative w-full overflow-hidden rounded-[6px] bg-nb-wash ${ready ? "cursor-zoom-in nb-focus" : ""}`}
+      style={{ aspectRatio: ratio }}
     >
-      {width > 0 && <Canvas page={page} size={size} width={width} title={title} />}
+      {ready && width > 0 && <Canvas page={page} size={size} width={width} title={frame.alt} />}
+      {ready && (
+        <span className={`${CORNER} opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100`}>
+          <FiMaximize2 size={12} aria-hidden />
+          {c.viewLarger}
+        </span>
+      )}
     </div>
   );
 }
@@ -558,7 +533,7 @@ function Shot({ shot, ratio }: { shot: StoryboardShotView; ratio: number }) {
   );
 }
 
-function Frame({ frame, ratio, missing }: { frame: StoryboardFrameView; ratio: number; missing?: string }) {
+function Frame({ frame, ratio, missing, onOpen }: { frame: StoryboardFrameView; ratio: number; missing?: string; onOpen?: () => void }) {
   const c = useCopy().card.storyboard;
   const [failed, setFailed] = useState<string | null>(null);
   if (frame.href && failed !== frame.href) {
@@ -567,6 +542,7 @@ function Frame({ frame, ratio, missing }: { frame: StoryboardFrameView; ratio: n
         src={frame.href}
         alt={frame.alt}
         onError={() => setFailed(frame.href)}
+        onOpen={onOpen}
         hint
         className="block w-full"
       />
@@ -601,8 +577,10 @@ function Slides({
 }) {
   const c = useCopy().card.storyboard;
   const { current, go, onKeyDown } = usePager(slides.length);
+  const [open, setOpen] = useState(false);
   const slide = slides[current];
   const download = useDownloadAll(slides.map((s) => (s.preview.page ? null : s.preview.href)), name);
+  const onOpen = () => setOpen(true);
 
   return (
     <Framed
@@ -616,7 +594,7 @@ function Slides({
       {!slide ? (
         <div className="rounded-[8px] bg-nb-wash p-6 text-nb-ink-soft">{c.emptySlides}</div>
       ) : ratio < 1 ? (
-        <Pages slides={slides} ratio={ratio} size={size} current={current} go={go} />
+        <Pages slides={slides} ratio={ratio} size={size} current={current} go={go} onOpen={onOpen} />
       ) : (
         <>
           <Timeline
@@ -631,9 +609,10 @@ function Slides({
           <Heading index={String(current + 1)}>
             <span className="min-w-0 truncate font-[700]">{slide.title}</span>
           </Heading>
-          <Slide key={slide.id} slide={slide} ratio={ratio} size={size} />
+          <Slide key={slide.id} slide={slide} ratio={ratio} size={size} onOpen={onOpen} />
         </>
       )}
+      {open && slide && <SlideViewer slides={slides} size={size} current={current} go={go} onClose={() => setOpen(false)} />}
     </Framed>
   );
 }
@@ -647,18 +626,19 @@ function Pages({
   size,
   current,
   go,
+  onOpen,
 }: {
   slides: StoryboardSlideView[];
   ratio: number;
   size: StoryboardSize;
   current: number;
   go: (k: number) => void;
+  onOpen: () => void;
 }) {
   const copy = useCopy();
   const c = copy.card.storyboard;
   const band = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
-  const [open, setOpen] = useState(false);
   const settle = useRef(0);
 
   const measure = useCallback(() => {
@@ -725,7 +705,7 @@ function Pages({
               key={s.id}
               data-item
               type="button"
-              onClick={() => (k === current && s.preview.href ? setOpen(true) : go(k))}
+              onClick={() => (k === current && s.preview.href ? onOpen() : go(k))}
               aria-current={k === current ? "true" : undefined}
               aria-label={k === current && s.preview.href ? `${k + 1} · ${s.title} · ${copy.shared.viewLarger}` : `${k + 1} · ${s.title}`}
               className={`w-[calc((100cqw_-_68px)/3.5)] shrink-0 snap-start rounded-[6px] text-left nb-focus @max-[640px]:w-[calc(100cqw_-_56px)] ${k === current && s.preview.href ? "cursor-zoom-in" : "cursor-pointer"}`}
@@ -764,7 +744,6 @@ function Pages({
           <div>{notes}</div>
         </div>
       )}
-      {open && slide.preview.href && <Enlarged frame={slide.preview} size={size} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -772,28 +751,112 @@ function Pages({
 /** How far a desktop band's fade reaches. */
 const FADE = 64;
 
-/** A page opened over everything, as a picture opens. */
-function Enlarged({ frame, size, onClose }: { frame: StoryboardFrameView; size: StoryboardSize; onClose: () => void }) {
-  const [el, setEl] = useState<HTMLDivElement | null>(null);
-  const page = usePage(el, frame.page ? frame.href : null);
-  if (!frame.page) return <ImagePreview src={frame.href!} alt={frame.alt} onClose={onClose} />;
+/** A slide deck opened over everything (#1880): the current slide fitted to the window and never
+ *  past its own pixels, ‹ › and ←/→ paging the deck itself, and its number and title below. On a
+ *  phone the ‹ › flank that line; at an end, the one past it is gone. */
+function SlideViewer({
+  slides,
+  size,
+  current,
+  go,
+  onClose,
+}: {
+  slides: StoryboardSlideView[];
+  size: StoryboardSize;
+  current: number;
+  go: (k: number) => void;
+  onClose: () => void;
+}) {
+  const c = useCopy().card.storyboard;
+  const slide = slides[current]!;
+  const many = slides.length > 1;
+  const step = (by: -1 | 1) => {
+    const next = current + by;
+    if (next >= 0 && next < slides.length) go(next);
+  };
+  const arrow = (by: -1 | 1, className: string) => {
+    if (!many) return null;
+    const end = by < 0 ? current === 0 : current === slides.length - 1;
+    if (end) return <span aria-hidden className={`size-10 shrink-0 ${className}`} />;
+    return (
+      <button
+        type="button"
+        aria-label={by < 0 ? c.prevSlide : c.nextSlide}
+        onClick={(e) => {
+          e.stopPropagation();
+          step(by);
+        }}
+        className={`shrink-0 ${className} ${SCRIM_BUTTON}`}
+      >
+        {by < 0 ? <FiChevronLeft size={22} aria-hidden /> : <FiChevronRight size={22} aria-hidden />}
+      </button>
+    );
+  };
   return (
-    <PreviewDialog label={frame.alt} onClose={onClose}>
-      <div ref={setEl} className="flex w-full justify-center">
-        {page && page !== "failed" && <LargePage page={page} size={size} title={frame.alt} />}
+    <PreviewDialog label={slide.title} onClose={onClose} onStep={many ? step : undefined}>
+      <div className="flex w-full flex-col items-center gap-3">
+        <LargeSlide key={slide.id} frame={slide.preview} size={size} title={slide.title} />
+        <div className="flex max-w-full items-center gap-3">
+          {arrow(-1, "sm:hidden")}
+          <div onClick={(e) => e.stopPropagation()} className="flex h-8 min-w-0 items-center gap-2 rounded-full bg-nb-ink/60 px-3.5 text-[13px] text-white backdrop-blur-sm">
+            <span className="shrink-0 font-[700] tabular-nums">
+              {current + 1} <span className="font-[500] text-white/70">/ {slides.length}</span>
+            </span>
+            <span className="min-w-0 truncate text-white/90">{slide.title}</span>
+          </div>
+          {arrow(1, "sm:hidden")}
+        </div>
       </div>
+      {arrow(-1, "absolute left-5 top-1/2 -translate-y-1/2 max-sm:hidden")}
+      {arrow(1, "absolute right-5 top-1/2 -translate-y-1/2 max-sm:hidden")}
     </PreviewDialog>
   );
 }
 
-function Slide({ slide, ratio, size }: { slide: StoryboardSlideView; ratio: number; size: StoryboardSize }) {
+/** One slide in the viewer: room is left for the ‹ › beside it and the line below. */
+function LargeSlide({ frame, size, title }: { frame: StoryboardFrameView; size: StoryboardSize; title: string }) {
+  const c = useCopy().card.storyboard;
+  const [box, setBox] = useState<HTMLDivElement | null>(null);
+  const width = useWidth(box);
+  const page = usePage(box, frame.page ? frame.href : null);
+  const ratio = size.width / size.height;
+  const fit = (room: string) => `min(${room}, ${size.width}px, calc((100dvh - 136px) * ${ratio}))`;
+  const style = { "--w": fit("100% - 112px"), "--w-narrow": fit("100%"), aspectRatio: ratio } as React.CSSProperties;
+  const SHADOW = "rounded-[10px] shadow-[0_8px_40px_rgba(0,0,0,0.35)]";
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
+  if (frame.href && !frame.page) {
+    return (
+      <ImageMenu src={frame.href}>
+        {(badge) => (
+          <span onClick={stop} className="relative flex min-w-0 max-w-[calc(100%-112px)] max-sm:max-w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+            <img src={frame.href!} alt={frame.alt} className={`max-h-[calc(100dvh-136px)] max-w-full object-contain ${SHADOW}`} />
+            {badge}
+          </span>
+        )}
+      </ImageMenu>
+    );
+  }
+  return (
+    <div ref={setBox} onClick={stop} className={`relative w-(--w) shrink-0 overflow-hidden bg-white max-sm:w-(--w-narrow) ${SHADOW}`} style={style}>
+      {page && page !== "failed" && width > 0 ? (
+        <Canvas page={page} size={size} width={width} title={title} />
+      ) : (
+        (!frame.href || page === "failed") && <div className="grid size-full place-items-center bg-nb-wash text-nb-ink-soft">{c.noPreview}</div>
+      )}
+    </div>
+  );
+}
+
+function Slide({ slide, ratio, size, onOpen }: { slide: StoryboardSlideView; ratio: number; size: StoryboardSize; onOpen: () => void }) {
   const c = useCopy().card.storyboard;
   const notes = slide.notes?.trim();
   const shape = slide.preview.ratio ?? ratio;
   const frame = slide.preview.page ? (
-    <PageFrame frame={slide.preview} size={size} missing={c.noPreview} />
+    <PageFrame frame={slide.preview} size={size} missing={c.noPreview} onOpen={onOpen} />
   ) : (
-    <Frame frame={slide.preview} ratio={ratio} missing={c.noPreview} />
+    <Frame frame={slide.preview} ratio={ratio} missing={c.noPreview} onOpen={onOpen} />
   );
   return (
     <section aria-label={slide.title}>

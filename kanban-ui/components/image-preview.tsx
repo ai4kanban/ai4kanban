@@ -35,11 +35,25 @@ export function ImagePreview({ src, alt, onClose }: { src: string; alt: string; 
   );
 }
 
+/** The round see-through button over a preview: its ✕, a slide deck's ‹ › (#1880). */
+export const SCRIM_BUTTON =
+  "grid size-10 cursor-pointer place-items-center rounded-full bg-nb-ink/60 text-white backdrop-blur-sm transition-colors hover:bg-nb-ink/80";
+
 /** The dialog a preview opens in — a storyboard's HTML page too (#1742). Every way out — Esc,
  *  the ✕, the scrim, the swipe back — closes only this: Esc is taken in the capture phase and
- *  stopped, because the screens underneath answer it too. Focus goes back to whatever opened
- *  it, without scrolling, if that is still on the page. */
-export function PreviewDialog({ label, onClose, children }: { label: string; onClose: () => void; children: React.ReactNode }) {
+ *  stopped, because the screens underneath answer it too, and so are ←/→ when `onStep` pages
+ *  it. Focus goes back to whatever opened it, without scrolling, if that is still on the page. */
+export function PreviewDialog({
+  label,
+  onClose,
+  onStep,
+  children,
+}: {
+  label: string;
+  onClose: () => void;
+  onStep?: (by: -1 | 1) => void;
+  children: React.ReactNode;
+}) {
   const c = useCopy().shared;
   const close = useRef<HTMLButtonElement>(null);
   useOverRail();
@@ -60,9 +74,15 @@ export function PreviewDialog({ label, onClose, children }: { label: string; onC
       if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
+      } else if (onStep && (e.key === "ArrowLeft" || e.key === "ArrowRight") && !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey)) {
+        e.stopPropagation();
+        e.preventDefault();
+        onStep(e.key === "ArrowLeft" ? -1 : 1);
       } else if (e.key === "Tab") {
-        // Focus cycles through the dialog's own controls.
-        const all = [...(close.current?.parentElement?.querySelectorAll<HTMLElement>("button, a[href], video[controls], [tabindex]") ?? [])];
+        // Focus cycles through the dialog's own controls that are drawn.
+        const all = [...(close.current?.parentElement?.querySelectorAll<HTMLElement>("button, a[href], video[controls], [tabindex]") ?? [])].filter(
+          (el) => el.getClientRects().length > 0,
+        );
         const at = all.indexOf(document.activeElement as HTMLElement);
         e.preventDefault();
         all[at < 0 ? 0 : (at + (e.shiftKey ? -1 : 1) + all.length) % all.length]?.focus({ preventScroll: true });
@@ -70,7 +90,7 @@ export function PreviewDialog({ label, onClose, children }: { label: string; onC
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
+  }, [onClose, onStep]);
 
   return createPortal(
     <div
@@ -89,9 +109,9 @@ export function PreviewDialog({ label, onClose, children }: { label: string; onC
         type="button"
         aria-label={c.close}
         onClick={onClose}
-        className="absolute right-4 top-4 grid size-9 cursor-pointer place-items-center rounded-[8px] bg-nb-paper text-nb-ink shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
+        className={`absolute right-4 top-4 ${SCRIM_BUTTON}`}
       >
-        <FiX size={18} aria-hidden />
+        <FiX size={20} aria-hidden />
       </button>
       {children}
     </div>,
@@ -101,20 +121,23 @@ export function PreviewDialog({ label, onClose, children }: { label: string; onC
 
 /** A picture that opens in ImagePreview to a click, Enter or Space — once it has loaded, so a
  *  broken one never opens a blank preview. Its own size and layout are the `<img>`'s; `hint`
- *  adds the corner "View larger" on hover and focus. */
+ *  adds the corner "View larger" on hover and focus. `onOpen` opens the caller's own preview
+ *  instead. */
 export function ExpandableImage({
   className,
   hint,
+  onOpen,
   onLoad,
   onError,
   ...img
-}: React.ComponentProps<"img"> & { hint?: boolean }) {
+}: React.ComponentProps<"img"> & { hint?: boolean; onOpen?: () => void }) {
   const c = useCopy().shared;
   const ref = useRef<HTMLImageElement>(null);
   const [ready, setReady] = useState(false);
   // What it had loaded when pressed, so a picture that recovered opens as it recovered.
   const [open, setOpen] = useState<string | null>(null);
   const src = typeof img.src === "string" ? img.src : undefined;
+  const expand = () => (onOpen ? onOpen() : setOpen(ref.current?.currentSrc || src || null));
 
   // A picture loaded before hydration has already fired its load event.
   useEffect(() => {
@@ -135,12 +158,12 @@ export function ExpandableImage({
               if (!ready) return;
               e.preventDefault();
               e.stopPropagation();
-              setOpen(ref.current?.currentSrc || src || null);
+              expand();
             }}
             onKeyDown={(e) => {
               if (!ready || (e.key !== "Enter" && e.key !== " ")) return;
               e.preventDefault();
-              setOpen(ref.current?.currentSrc || src || null);
+              expand();
             }}
             className={`group relative max-w-full ${className ?? "inline-block align-bottom"} ${ready ? "cursor-zoom-in rounded-[6px] nb-focus" : ""}`}
           >
