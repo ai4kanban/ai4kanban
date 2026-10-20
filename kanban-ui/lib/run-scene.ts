@@ -50,8 +50,18 @@ const DOOR_X = 40;
 /** The robot's drawn height in world pixels — 96 CSS px of cell at the dialog's full size,
  *  which is the scale the art was drawn for. Its feet are the anchor. */
 export const BOT_HEIGHT = 115;
-/** The share of the sprite's height above its ground line (`public/run-scene/README.md`). */
-export const BOT_GROUND = 285 / 300;
+/** The share of the sprite's height above its ground line: feet end on row 45 of 48
+ *  (`character-design/README.md`). */
+export const BOT_GROUND = 46 / 48;
+/** The sprites' own pixel grid, and the patch on the plain robot's arm that carries a
+ *  custom agent's first character — its top-left per pose, in sprite pixels. */
+export const SPRITE = 48;
+export const BADGE = {
+  size: 7,
+  at: { type: [7, 23], sit: [31, 29], walk: [20, 23] } as Record<"type" | "sit" | "walk", [number, number]>,
+};
+/** The look an agent without art of its own wears. */
+export const PLAIN = "base";
 
 export type Side = "solo" | "left" | "right";
 
@@ -73,6 +83,8 @@ export interface SceneBot {
   label: string;
   /** The agent that ran it, as a name to show. */
   role: string;
+  /** …and as the name its art is filed under. */
+  agent: string;
   /** The connector's name, for its mark. */
   harness: string;
   status: SessionView["status"];
@@ -201,6 +213,8 @@ export const ART = {
   clock: `${LAYERS}/clock-face.png`,
   deskSleep: `${LAYERS}/desk-sleep.png`,
   deskWork: `${LAYERS}/desk-work.json`,
+  /** Every job's sprites and the desk screens other than code — `character-design/draw.mjs`. */
+  cast: "/run-scene/cast.json",
 } as const;
 
 /** Both windows look out on the same city, scaled to this box — never stretched to a pane.
@@ -222,6 +236,8 @@ export const DESK_AT: Spot[] = [
   ...DESK_AT_X.map((x) => ({ x, y: 323 })),
   ...DESK_AT_X.map((x) => ({ x, y: 558 })),
 ];
+/** Where a desk's display sits in its picture; a job's own screen is drawn over it. */
+export const DESK_SCREEN = { x: 105, y: 19, w: 76, h: 42 };
 /** One frame of the working screen's four-frame second (`layers/desk-work.json`). */
 export const DESK_FRAME_MS = 250;
 

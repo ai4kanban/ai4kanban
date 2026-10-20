@@ -18,6 +18,7 @@ import { lookForAgent, useInstalledAgents } from "@/lib/window-state";
 import { useCopy } from "@/i18n/use-copy";
 import {
   ART,
+  BADGE,
   BOT_GROUND,
   BOT_HEIGHT,
   CLOCK,
@@ -26,11 +27,14 @@ import {
   DESKS,
   DESK_AT,
   DESK_FRAME_MS,
+  DESK_SCREEN,
   PAIR_OFFSET,
+  PLAIN,
   PLATE_ABOVE,
   PLATE_BELOW,
   SCENERY,
   SCENERY_ART,
+  SPRITE,
   fitCamera,
   handAngles,
   periodAt,
@@ -43,7 +47,6 @@ import {
   type Spot,
 } from "@/lib/run-scene";
 
-const ATLAS = "/run-scene/bot-actions.json";
 const PERIODS: Period[] = ["dawn", "day", "dusk", "night"];
 
 /** The clock's two hands, and the pin they turn on. */
@@ -72,10 +75,14 @@ interface Actor {
   /** On its way out: dropped from the cast when the path runs out. */
   leaving: boolean;
   act: Act;
+  /** Whose sprites it wears: its agent's, or the plain robot's. */
+  look: string;
   /** Fractional and seeded per bot, so they never type in lockstep. */
   frame: number;
   sprite?: Sprite;
   node?: HTMLButtonElement | null;
+  /** The first character of a plain robot's name, on its arm. */
+  badge?: HTMLSpanElement | null;
 }
 
 interface View {
@@ -120,12 +127,14 @@ export function RunScene({
   const stage = useRef<{
     sheet: Spritesheet;
     layer: Container;
-    make: () => Sprite;
+    make: (look: string) => Sprite;
     /** Repaint the eight screens from who is standing at them. */
     screens: () => void;
   } | null>(null);
   const [cast, setCast] = useState<SceneBot[]>([]);
   const [ready, setReady] = useState(false);
+  // The agents with sprites of their own; everyone else wears the plain robot.
+  const [drawn, setDrawn] = useState<Set<string>>(new Set());
   const agents = useInstalledAgents();
   const marks = useMemo(
     () => new Map<string, Mark>((agents ?? []).map((o) => [o.name, { label: o.label, icon: o.icon }])),
@@ -181,7 +190,7 @@ export function RunScene({
         ]);
         const [busy, sheet] = await Promise.all([
           lib.Assets.load<Spritesheet>(ART.deskWork),
-          lib.Assets.load<Spritesheet>(ATLAS),
+          lib.Assets.load<Spritesheet>(ART.cast),
         ]);
         const outlooks = new Map<Period, Texture>(
           await Promise.all(
@@ -208,6 +217,7 @@ export function RunScene({
           t.source.scaleMode = "nearest";
         };
         for (const t of [base, face, asleep, ...outlooks.values(), ...drifts.values()]) crisp(t);
+        setDrawn(new Set(Object.keys(sheet.animations).map((a) => a.split("/")[0])));
         for (const frame of Object.values(busy.textures)) crisp(frame);
         for (const frame of Object.values(sheet.textures)) crisp(frame);
         // `clampMargin` belongs to the texture, so every band needs its own — the one the
@@ -229,19 +239,27 @@ export function RunScene({
         });
         const floor = new lib.Sprite(base);
         const screens = DESK_AT.map(() => new lib.Sprite(asleep));
+        // A job whose work is not code shows its own picture over the desk's display.
+        const shows = DESK_AT.map(() => {
+          const show = new lib.Sprite(lib.Texture.EMPTY);
+          show.visible = false;
+          return show;
+        });
+        const screenOf = (sheet.data.meta as { screens?: Record<string, string> }).screens ?? {};
         const dial = new lib.Sprite(face);
         const hands = new lib.Container();
         const hourHand = new lib.Graphics().roundRect(-2.4, -16, 4.8, 19, 2).fill(HAND);
         const minuteHand = new lib.Graphics().roundRect(-1.8, -24, 3.6, 27, 1.8).fill(HAND);
         hands.addChild(hourHand, minuteHand, new lib.Graphics().circle(0, 0, 2.6).fill(PIN));
         const layer = new lib.Container();
-        app.stage.addChild(...scenery, ...sky, floor, ...screens, dial, hands, layer);
+        app.stage.addChild(...scenery, ...sky, floor, ...screens, ...shows, dial, hands, layer);
         box.appendChild(app.canvas);
         app.canvas.style.display = "block";
 
         // Which screens are awake. A desk plays while anyone standing at it is working,
         // and sleeps the moment the last of them stops or turns to leave — shared desks
-        // included. The frame is shared: the eight screens show the same four pictures.
+        // included. The frame is shared: every screen steps in time. A desk shows what its
+        // first worker does — code, writing, a design or a video.
         let elapsed = 0;
         // How far the clouds have drifted, in world pixels, wrapped to one tile so the
         // number stays small however long the dialog is left open. Both windows look out on
@@ -249,18 +267,20 @@ export function RunScene({
         let drifted = 0;
         const frames = busy.animations.work;
         const paintScreens = () => {
-          const frame = still.current
-            ? frames[0]
-            : frames[Math.floor(elapsed / DESK_FRAME_MS) % frames.length];
-          const awake = new Array<boolean>(DESKS).fill(false);
-          for (const actor of cast.values()) {
+          const step = still.current ? 0 : Math.floor(elapsed / DESK_FRAME_MS) % frames.length;
+          const awake = new Array<string | null>(DESKS).fill(null);
+          for (const actor of [...cast.values()].sort((a, b) => a.x - b.x)) {
             const bot = actor.bot;
             if (bot.desk === null || bot.room !== shown.current) continue;
             if (!bot.working || actor.leaving || actor.path.length > 0) continue;
-            awake[bot.desk] = true;
+            awake[bot.desk] ??= actor.look;
           }
           screens.forEach((sprite, at) => {
-            sprite.texture = awake[at] ? frame : asleep;
+            const look = awake[at];
+            sprite.texture = look === null ? asleep : frames[step];
+            const own = look === null ? undefined : sheet.animations[`screen/${screenOf[look]}`];
+            shows[at].visible = own !== undefined;
+            if (own) shows[at].texture = own[step];
           });
         };
 
@@ -268,8 +288,8 @@ export function RunScene({
           sheet,
           layer,
           screens: paintScreens,
-          make: () => {
-            const sprite = new lib.Sprite(sheet.animations.type[0]);
+          make: (look) => {
+            const sprite = new lib.Sprite(sheet.animations[`${look}/type`][0]);
             sprite.anchor.set(0.5, BOT_GROUND);
             layer.addChild(sprite);
             return sprite;
@@ -299,6 +319,9 @@ export function RunScene({
           });
           put(floor, 0, 0, WORLD.w, WORLD.h);
           screens.forEach((sprite, i) => put(sprite, DESK_AT[i].x, DESK_AT[i].y, DESK.w, DESK.h));
+          shows.forEach((sprite, i) =>
+            put(sprite, DESK_AT[i].x + DESK_SCREEN.x, DESK_AT[i].y + DESK_SCREEN.y, DESK_SCREEN.w, DESK_SCREEN.h),
+          );
           put(dial, CLOCK.x, CLOCK.y, CLOCK.w, CLOCK.h);
           hands.x = at.ox + (CLOCK.x + CLOCK.w / 2) * at.scale;
           hands.y = at.oy + (CLOCK.y + CLOCK.h / 2) * at.scale;
@@ -421,9 +444,10 @@ export function RunScene({
         path: walk.slice(1),
         leaving: false,
         act: poseOf(bot),
+        look: built.sheet.animations[`${bot.agent}/type`] ? bot.agent : PLAIN,
         frame: Math.floor(Math.random() * 4),
       };
-      actor.sprite = built.make();
+      actor.sprite = built.make(actor.look);
       lib.set(bot.id, actor);
     }
 
@@ -461,6 +485,7 @@ export function RunScene({
     const actor = actors.current.get(id);
     if (!actor) return;
     actor.node = node;
+    actor.badge = node?.querySelector<HTMLSpanElement>("[data-badge]");
     if (node) place(node, actor, view.current);
   }, []);
 
@@ -475,6 +500,7 @@ export function RunScene({
             key={bot.id}
             bot={bot}
             mark={marks.get(bot.harness)}
+            plain={!drawn.has(bot.agent)}
             selected={selected === bot.id}
             hold={hold}
             onPick={onPick}
@@ -489,12 +515,14 @@ export function RunScene({
 function BotTarget({
   bot,
   mark,
+  plain,
   selected,
   hold,
   onPick,
 }: {
   bot: SceneBot;
   mark: Mark | undefined;
+  plain: boolean;
   selected: boolean;
   hold: (id: string, node: HTMLButtonElement | null) => void;
   onPick: (bot: SceneBot) => void;
@@ -519,6 +547,16 @@ function BotTarget({
         selected ? "outline outline-2 outline-nb-accent" : ""
       }`}
     >
+      {plain && (
+        <span
+          data-badge
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 flex items-center justify-center font-[800] leading-none"
+          style={{ color: INK }}
+        >
+          {initialOf(bot.role)}
+        </span>
+      )}
       {/* Always legible, never on hover. The two plates sit apart: who is at this desk over
           its head, the card it is on under its feet — between them is the screen it works
           at, and the code on it stays readable. They take no clicks.
@@ -621,15 +659,19 @@ function advance(actor: Actor, dt: number): boolean {
   return false;
 }
 
+/** Which loop an act plays: both walks are one loop, facing left drawn mirrored. */
+const loopOf = (act: Act) => (act === "walk-left" || act === "walk-right" ? "walk" : act);
+
 function draw(actor: Actor, view: View, sheet: Spritesheet) {
   const sprite = actor.sprite;
   if (sprite) {
-    const frames = sheet.animations[actor.act];
+    const frames = sheet.animations[`${actor.look}/${loopOf(actor.act)}`];
     if (frames) sprite.texture = frames[Math.floor(actor.frame) % frames.length];
     sprite.x = view.ox + actor.x * view.scale;
     sprite.y = view.oy + actor.y * view.scale;
     sprite.width = BOT_HEIGHT * view.scale;
     sprite.height = BOT_HEIGHT * view.scale;
+    if (actor.act === "walk-left") sprite.scale.x *= -1;
   }
   if (actor.node) place(actor.node, actor, view);
 }
@@ -649,6 +691,24 @@ function place(node: HTMLButtonElement, actor: Actor, view: View) {
   // Both plates hang off the feet, so they keep their distance from the bot at every size.
   node.style.setProperty("--plate-above", `${PLATE_ABOVE * view.scale}px`);
   node.style.setProperty("--plate-below", `${PLATE_BELOW * view.scale}px`);
+  const badge = actor.badge;
+  if (badge) {
+    // The patch moves with the sprite: mirrored facing left, a row up on a walk's pass frames.
+    const u = size / SPRITE;
+    const loop = loopOf(actor.act);
+    const [bx, by] = BADGE.at[loop];
+    const x = actor.act === "walk-left" ? SPRITE - BADGE.size - bx : bx;
+    const y = by - (loop === "walk" && Math.floor(actor.frame) % 2 ? 1 : 0);
+    badge.style.width = badge.style.height = `${BADGE.size * u}px`;
+    badge.style.fontSize = `${5 * u}px`;
+    badge.style.transform = `translate(${x * u - (size - w) / 2}px, ${y * u - size * BOT_GROUND + h}px)`;
+  }
+}
+
+/** A name's first visible character, Latin in capitals. */
+function initialOf(name: string): string {
+  const first = [...name.trim()][0] ?? "?";
+  return first.toLocaleUpperCase();
 }
 
 /** `claude-code` → `Claude code`, for a connector this build ships no mark for. */

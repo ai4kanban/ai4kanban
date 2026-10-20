@@ -746,7 +746,8 @@ its page: runtime, rule, memory, settings and, for one you added, its `AGENT.md`
   them; you can't put one on a card by hand.
 - **Problems** — an `AGENT.md` that doesn't parse, a duplicate name, a folder still in the old
   `docs/kanban/skills/` — are listed under the grid.
-- **Art**: `kanban-ui/public/agent-art/<name>.png`; an agent without one draws its initial.
+- **Art**: `kanban-ui/public/agent-art/<name>.png`, drawn by `character-design/draw.mjs`; an
+  agent without one is the plain robot wearing its first character.
 
 **Runtime**: one picker over the board's runtimes, saved in `ui.config.json`.
 

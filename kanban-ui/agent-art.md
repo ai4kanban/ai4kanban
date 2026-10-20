@@ -1,110 +1,15 @@
 # The agent characters
 
-An agent's page draws one character per agent. This is the recipe for the next one:
-generate the image, name it after the agent, and commit it.
+Every built-in agent is the same small robot dressed for its job. The art is drawn in code —
+`character-design/draw.mjs` — and `character-design/README.md` is the spec.
 
-- **Where a file goes**: `kanban-ui/public/agent-art/<agent name>.png` — `builder.png`,
-  `ui-designer.png`. The name is the agent's own name from the catalog, not a title.
-  `public/agents/` is a different folder: those are the coding agents' brand logos.
-- **What draws without a file**: `base.png` — the same character with no prop — holding a
-  card with the agent's initial, in one of the palette's five inks picked from its name.
-  That is the normal state for an agent a project adds, so only the agents the command ships
-  need art. The card is drawn over the PNG in `Agents.tsx`, not baked into it.
-
-## The shared style line
-
-Put this in front of every prompt below. It is what makes the characters read as one team:
-they are the same robot, and only the prop tells them apart.
-
-> Pixel art sprite exported at 96×96 PNG with hard pixel edges and a fully transparent
-> background. One small black robot, front-facing, centred, standing on two stubby legs and
-> filling the frame from top to bottom. Charcoal `#141312` rounded body, a cream `#f6f2e6`
-> visor face with two mint `#3fa87a` rectangular eyes, a thin antenna topped with an ember
-> `#f4511e` square, one arm holding the prop and the other a plain square hand at the end of
-> a thin wire arm. No text, no shadow, no background, no gradients, no anti-aliasing.
-
-Prop accents come from `app/globals.css`: ember `#dd4f1e`, mint `#7fca9c`, sky `#7fb4e0`,
-lilac `#b199e0`, peach `#ec9a72`.
-
-## One prompt per agent
-
-Each names the job and the one prop nobody else carries. Same body, different prop — that is
-the whole difference, and it has to be readable at 48px.
-
-- **`discussion-helper.png`** — talks a question through before a card exists. Holding **two
-  speech bubbles** in front of the body, a cream one with three mint dots and a lilac one
-  with two black lines, the lilac one overlapping behind.
-- **`software-planner.png`** — plans and refines cards. Holding a **three-column board** across the
-  chest, its columns mint, ember and sky, each with a couple of cards in it.
-- **`builder.png`** — builds cards and lands them. Holding an **ember hammer** upright on a
-  wooden handle, head above the shoulder.
-- **`writer.png`** — writes the drafts and repurposes them (marketing boards). Holding a
-  **yellow pencil** with a pink eraser, angled nib-down, over a ruled sheet of paper held
-  against the chest.
-- **`ui-designer.png`** — draws the screen a card changes. Holding a **browser window** across
-  the chest — title bar with two dots, one lilac block and two pale panels — and a **peach
-  pencil** in the free hand.
-- **`tech-stack-advisor.png`** — picks the library a card leans on. Holding **two
-  interlocking puzzle pieces**, one sky and one mint, meeting in front of the body.
-- **`copywriting.png`** — writes the promotional copy a card changes. Holding a **megaphone**,
-  its bell ember and its handle cream, pointed up and away from the head.
-- **`scriptwriter.png`** — scripts a product video. Holding a **storyboard sheet** across the
-  chest: a cream page with an ember title bar and two rows, each a small sky or mint shot
-  frame beside two black caption lines.
-- **`hyperframes-editor.png`** — the Video editor: produces and checks the film during planning.
-  Holding a **clapperboard** across the chest — a sky slate with cream lines under an
-  ember-and-cream striped bar — with its clapstick swung open up past the left shoulder.
-- **`memory-pruner.png`** — squeezes memory back down to what helps planning. A **mint
-  notebook** with a spiral spine across the chest, and **grey pruning shears** with ember
-  handles raised in the free hand.
-- **`chat-reviewer.png`** — reads past chats for what to remember. Holding a **tall transcript
-  page** across the chest, short black lines alternating left and right, an **ember bookmark
-  ribbon** hanging from its top edge.
-- **`feedback.png`** — works out what a spec got wrong. A **cream plan page** across the
-  chest, and a thick **ember arrow** looping out from it and turning back to point at it.
-- **`proposer.png`** — suggests follow-up work. Holding a **lit light bulb** in front of the
-  chest: a peach glass with a cream glint and an ember filament on a grey screw base, short
-  ember rays around it.
-- **`triage.png`** — sorts what is waiting in triage into cards. Holding a **grey tray with
-  three compartments** across the chest, a mint, an ember and a sky card standing up in them.
-- **`blog-planner.png`** — plans long-form posts. Holding a **tall cream manuscript page**
-  across the chest, with a sky title bar and four short black lines.
-- **`blog-illustrator.png`** — illustrates posts. Holding a **peach palette** with mint,
-  sky and lilac paint dabs, and an upright **wooden paintbrush** with ember bristles.
-- **`social-illustrator.png`** — illustrates social posts. Holding an **upright cream phone**
-  showing a post: a sky picture block with a peach sun, two short black lines and an ember heart.
-- **`carousel-planner.png`** — plans carousel posts. Holding **three cream cards fanned out**
-  across the chest, with mint, sky and lilac top bars.
-- **`deck-planner.png`** — plans slide decks. Holding a **cream projection slide** on a grey
-  stand, with a sky title bar and three mint, ember and lilac chart bars.
-- **`cover-designer.png`** — designs covers. Holding a **lilac-framed cover poster** across
-  the chest, a peach circle above a sky landscape block inside the frame.
-- **`demo-rehearser.png`** — rehearses product demos. Holding a **cream stopwatch** with
-  an ember rim and top button, with a bold **sky mouse pointer** beside it.
-- **`email-planner.png`** — plans email campaigns. Holding a **cream envelope** across the
-  chest, with clear diagonal fold lines and an ember seal.
-- **`prompt-writer.png`** — writes reusable prompts. Holding a **dark terminal window**
-  with a sky title bar and a large cream `>_` prompt, the only exception to no text.
-- **`dismissal-reviewer.png`** — reviews dismissed ideas. Holding a **cream card stamped
-  with an ember X** across the chest, and a **peach-rimmed magnifying glass** beside it.
-- **`project-writer.png`** — describes the project. Holding an **open cream book** across
-  the chest, its centre fold and both pages clear, with an **ember pencil** standing beside it.
-- **`competitor-research.png`** — researches competitors. Holding a compact pair of **grey
-  binoculars** at chest height, two sky lenses joined by a bridge, the face fully visible.
-- **`blog-researcher.png`** — gathers the public facts a post leans on. Holding a **sky globe**
-  with mint continents and an ember meridian ring, on a grey stand.
-- **`video-cloner.png`** — copies a reference video. Holding **two film strips** across the
-  chest, offset and overlapping, sky frames on the front one and lilac frames behind.
-- **`illustrator.png`** — draws a product's images. Holding a **cream instant camera**
-  across the chest, a large sky lens in its middle and an ember shutter button on top.
-- **`qa-manager.png`** — checks the product. Holding a **peach clipboard** with a cream
-  checklist of three green ticks.
-
-## Checking a result
-
-- The characters read as different workers at a glance, at 48px, without their names —
-  which means the prop, not the body, carries it.
-- They read as one family: same robot, same canvas, same pixel size, same baseline, so a row
-  of them stands on one ground line.
-- The background is transparent — the tile's paper shows through, and a paused agent is
-  greyed by the pane rather than by the file.
+- **Where a file goes**: `node character-design/draw.mjs` writes each agent's 48×48 front
+  view to `public/agent-art/<agent name>.png`, the name being the agent's own name from the
+  catalog. It also rewrites the site's copies in `web/public/agent-art/` that already exist
+  (the site's `planner.png` is `software-planner`) and the office atlas
+  `public/run-scene/cast.{png,json}`.
+- **What draws without a file**: `base.png`, the plain robot with a blank patch on its arm.
+  `Agents.tsx` lays the agent's first character over the patch, so an agent a project adds
+  needs no art. `public/agents/` is a different folder: the coding agents' brand logos.
+- **Adding a job**: follow "Adding a job" in `character-design/README.md`, rerun `draw.mjs`,
+  and check `preview.html`.

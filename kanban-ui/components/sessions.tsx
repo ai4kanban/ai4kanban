@@ -1519,6 +1519,7 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
       cardId: flow.cardId,
       label: flowLabel(flow, copy),
       role: roleName(flow.latest.agent),
+      agent: flow.latest.agent ?? "",
       harness: flow.latest.harness ?? "",
       status: flow.latest.status,
     });

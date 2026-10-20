@@ -23,7 +23,7 @@
 // copy has never heard of keeps the board's English and a generic box — never a blank.
 //
 // The characters are PNGs under `public/agent-art/`, one per bundled agent, named by the
-// agent. An agent with no art draws its first letter in the same pixel style, which is the
+// agent. An agent with no art is the plain robot wearing its first character, which is the
 // normal state for an agent you add — never a broken image.
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
@@ -1949,10 +1949,9 @@ function useRuntimeShown(agent: AgentView, info: AgentInfo) {
 
 // --- the characters ----------------------------------------------------------
 
-// The art is one PNG per agent at `public/agent-art/<name>.png`, drawn on a shared canvas
-// with a shared pixel size — `agent-art.md` beside `design.md` is the recipe. An agent with
-// no file of its own is the same character holding a card with its initial, so the pane is
-// never a row of broken images and two art-less agents still differ.
+// The art is one 48px PNG per agent at `public/agent-art/<name>.png`, drawn in code by
+// `character-design/draw.mjs`. An agent with no file of its own is the plain robot with its
+// first character on its arm, so the pane is never a row of broken images.
 export function Character({ name, size = 48 }: { name: string; size?: number }) {
   const [art, setArt] = useState(true);
   const img = useRef<HTMLImageElement>(null);
@@ -1973,70 +1972,13 @@ export function Character({ name, size = 48 }: { name: string; size?: number }) 
   );
 }
 
-// The palette's five inks, picked by the agent's name — so two agents without art are two
-// different colours and stay the colour they were.
-const INKS = [
-  "var(--color-nb-sky-ink)",
-  "var(--color-nb-lilac-ink)",
-  "var(--color-nb-mint-ink)",
-  "var(--color-nb-peach-ink)",
-  "var(--color-nb-accent-deep)",
-];
-
-// A 5x7 letter, drawn a block at a time so it lands on the character's own pixel grid
-// rather than reading as text that wandered into it.
-const GLYPHS: Record<string, string> = {
-  a: "01110 10001 10001 11111 10001 10001 10001",
-  b: "11110 10001 10001 11110 10001 10001 11110",
-  c: "01110 10001 10000 10000 10000 10001 01110",
-  d: "11110 10001 10001 10001 10001 10001 11110",
-  e: "11111 10000 10000 11110 10000 10000 11111",
-  f: "11111 10000 10000 11110 10000 10000 10000",
-  g: "01110 10001 10000 10111 10001 10001 01111",
-  h: "10001 10001 10001 11111 10001 10001 10001",
-  i: "11111 00100 00100 00100 00100 00100 11111",
-  j: "00111 00010 00010 00010 00010 10010 11110",
-  k: "10011 10110 11100 11000 11100 10110 10011",
-  l: "10000 10000 10000 10000 10000 10000 11111",
-  m: "10001 11011 11111 10101 10001 10001 10001",
-  n: "10001 11001 11101 10111 10011 10001 10001",
-  o: "01110 10001 10001 10001 10001 10001 01110",
-  p: "11110 10001 10001 11110 10000 10000 10000",
-  q: "01110 10001 10001 10001 10101 10010 01101",
-  r: "11110 10001 10001 11110 11100 10110 10011",
-  s: "01111 10000 10000 01110 00001 00001 11110",
-  t: "11111 00100 00100 00100 00100 00100 00100",
-  u: "10001 10001 10001 10001 10001 10001 01110",
-  v: "11011 11011 11011 01110 01110 00100 00100",
-  w: "10001 10001 10001 10101 10101 11111 10001",
-  x: "11011 11011 01110 00100 01110 11011 11011",
-  y: "11011 11011 01110 00100 00100 00100 00100",
-  z: "11111 00011 00110 00100 01100 11000 11111",
-  "0": "01110 10001 10011 10101 11001 10001 01110",
-  "1": "00100 01100 00100 00100 00100 00100 01110",
-  "2": "01110 10001 00001 00010 00100 01000 11111",
-  "3": "11111 00010 00100 00010 00001 10001 01110",
-  "4": "10010 10010 10010 11111 00010 00010 00010",
-  "5": "11111 10000 11110 00001 00001 10001 01110",
-  "6": "00110 01000 10000 11110 10001 10001 01110",
-  "7": "11111 00011 00110 00100 00100 00100 00100",
-  "8": "01110 10001 10001 01110 10001 10001 01110",
-  "9": "01110 10001 10001 01111 00001 00010 01100",
-};
-
-// The character with no prop, holding a card with the agent's initial — one PNG plus a card
-// drawn over it, because the letter changes and the character does not. The card is in the
-// agent's own ink, which is what keeps two added agents apart at a glance; the letter itself
-// is the visor's cream, so the card reads as a held card and not as a second face.
-//
-// The rectangles are in the PNG's own 96x96 coordinates: the card sits on the torso, below
-// the visor and above the legs, where every bundled character carries its prop.
+// The plain robot with the agent's first character on the patch on its arm — one PNG plus
+// the character drawn over it, so every added agent shares the art and still reads its own
+// name. The patch is 7px square at (31, 23) on the art's 48px grid; drawn small, the badge
+// grows past it around the same centre so the character stays readable in a list.
 function Lettered({ name, size = 48 }: { name: string; size?: number }) {
-  const rows = (GLYPHS[name[0]?.toLowerCase() ?? ""] ?? GLYPHS.a!).split(" ");
-  const ink =
-    INKS[
-      [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % INKS.length
-    ]!;
+  const u = size / 48;
+  const badge = Math.max(7 * u, 11);
   return (
     <span className="relative block" style={{ height: size, width: size }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2047,31 +1989,22 @@ function Lettered({ name, size = 48 }: { name: string; size?: number }) {
         height={size}
         style={{ imageRendering: "pixelated" }}
       />
-      <svg
-        className="absolute inset-0"
-        width={size}
-        height={size}
-        viewBox="0 0 96 96"
-        shapeRendering="crispEdges"
+      <span
         aria-hidden
+        className="absolute flex items-center justify-center rounded-full font-[800] leading-none"
+        style={{
+          left: 34.5 * u - badge / 2,
+          top: 26.5 * u - badge / 2,
+          width: badge,
+          height: badge,
+          fontSize: badge * 0.7,
+          color: "#24231f",
+          background: badge > 7 * u ? "#f6f2e6" : undefined,
+          boxShadow: badge > 7 * u ? "0 0 0 1px #0b0a09" : undefined,
+        }}
       >
-        <rect x={22} y={48} width={35} height={37} fill="#12130f" />
-        <rect x={25} y={51} width={29} height={31} fill={ink} />
-        {rows.map((row, y) =>
-          [...row].map((on, x) =>
-            on === "1" ? (
-              <rect
-                key={`${x}-${y}`}
-                x={29 + x * 4}
-                y={52 + y * 4}
-                width={4}
-                height={4}
-                fill="#fcf8ea"
-              />
-            ) : null,
-          ),
-        )}
-      </svg>
+        {([...name.trim()][0] ?? "?").toLocaleUpperCase()}
+      </span>
     </span>
   );
 }
