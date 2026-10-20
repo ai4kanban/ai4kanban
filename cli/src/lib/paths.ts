@@ -60,6 +60,8 @@ export let SETUP_CHECKLIST = ''
 // own AGENT.md. The board's built-in agents ship inside the command, so this folder is only
 // ever the project's, and a board that never adds one has no folder at all.
 export let AGENTS = ''
+// The workflows this project adds of its own (#1890), one folder each with its WORKFLOW.md.
+export let WORKFLOWS = ''
 // Where they used to sit, read for one release so a board that already has some keeps
 // working (#419). Every agent found here is reported, telling the user to move it.
 export let LEGACY_AGENTS = ''
@@ -261,6 +263,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   RELEASE_SUMMARIES = path.join(KANBAN, '.release-summaries')
   SETUP_CHECKLIST = path.join(KANBAN, 'setup-checklist.md')
   AGENTS = path.join(KANBAN, 'agents')
+  WORKFLOWS = path.join(KANBAN, 'workflows')
   LEGACY_AGENTS = path.join(KANBAN, 'skills')
   MEMORY = path.join(KANBAN, 'memory')
   AGENT_MEMORY = path.join(MEMORY, 'agents')

@@ -7,10 +7,10 @@
 // Two stages, always the same two. `plan` has hooks (stored as `helpers`) its lead calls in
 // when their description applies; `execute` is its lead alone (#1507).
 //
-// `coding` ships with the command and cannot be renamed or deleted: it is what every board did
-// before this file. A board adds its own, and every one of them — built-in included — keeps its
-// assignments in `ui.config.json` under `workflows`. A built-in's unset stage falls back to
-// the defaults below; a stage deliberately cleared does not.
+// Every workflow is a `WORKFLOW.md` (./workflow-file.ts, #1890): the built-ins ship with the
+// command and cannot be renamed or deleted, a board's own sit in `docs/kanban/workflows/`.
+// What a board changes on a built-in stays in `ui.config.json` under `workflows`, over the
+// file; a stage deliberately cleared does not fall back to it.
 //
 // A built-in's LEADS are the command's and nobody else's (#774). Its name is a promise about
 // who runs it — `Coding` led by some other planner is a workflow lying about itself — so a
@@ -36,6 +36,15 @@ import { agentRoster, type RosterEntry } from './roles'
 import { copyAgent } from '../agents/roster'
 import { proGate } from '../cloud/pro'
 import { scheduledAuto, scheduledNext } from './scheduled'
+import {
+  BUILTIN_DEFS,
+  WORKFLOW_ID,
+  boardWorkflowDefs,
+  removeWorkflowDef,
+  workflowFileExists,
+  writeWorkflowDef,
+  type WorkflowDef,
+} from './workflow-file'
 import {
   refusal,
   WORKFLOW_STAGES,
@@ -102,9 +111,6 @@ export interface Workflow {
  *  existed, and every one created without a choice. */
 export const DEFAULT_WORKFLOW = 'coding'
 
-/** What a workflow may be called on disk: the same shape an agent's name takes. */
-const WORKFLOW_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
-
 const emptyStages = (): Record<WorkflowStage, WorkflowStageSetup> => ({
   plan: { lead: '', helpers: [], helpersChosen: false },
   execute: { lead: '', helpers: [], helpersChosen: false },
@@ -112,114 +118,19 @@ const emptyStages = (): Record<WorkflowStage, WorkflowStageSetup> => ({
 
 // ---- what the command ships ------------------------------------------------
 
-/** What a built-in stage offers as helpers until the board chooses. `every` means every
- *  agent on the board that declares this stage — the two specialists the command ships, and
- *  every one a project adds afterwards. It is what a card's planning always offered, so a
- *  board upgrading into workflows keeps every specialist it had. */
-type BuiltinHelpers = 'every' | string[]
+// `coding` is what every board did before workflows existed. Its plan stage offers `every`
+// specialist, each joining only when its own applicability says so. The others are one
+// deliverable each, finished and checked during planning by a `lead` the command ships.
+const BUILTINS: WorkflowDef[] = BUILTIN_DEFS
 
-interface BuiltinWorkflow {
-  id: string
-  name: string
-  /** What it is for, in English; screens translate it by id. */
-  description: string
-  needsArtifact?: boolean
-  delivers?: DeliveryStage
-  pro?: boolean
-  stages: Record<WorkflowStage, { lead: string; helpers: BuiltinHelpers }>
-  /** The scheduled agents it starts with, on, until the board changes them (#1401). */
-  scheduled?: { agent: string; cadence?: string }[]
-}
-
-// `coding` is what every board did before workflows existed, written down. Its two planning
-// helpers are the specialists the command ships — each joins only when its own applicability
-// says so, which is why neither is required.
-//
-// `hyperframes-video` is one product video per card (#822, #1057), `slide-deck` one image-based
-// `.pptx` (#969, #1075, #1743), `carousel-post` one multi-page social post (#1117), `blog-post` one
-// article (#1126) and `video-clone` one reusable template of a reference video (#1692), each finished and checked during planning. Their leads are `lead` agents the command ships.
-const BUILTINS: BuiltinWorkflow[] = [
-  {
-    id: 'coding',
-    name: 'Coding',
-    description: 'Use for software changes, and for any work no other workflow covers. Plans the change, then builds it.',
-    stages: {
-      plan: { lead: 'software-planner', helpers: 'every' },
-      execute: { lead: 'builder', helpers: [] },
-    },
-    scheduled: [{ agent: 'qa-manager' }],
-  },
-  {
-    id: 'hyperframes-video',
-    name: 'Product video',
-    description: 'Use when the deliverable is a product or promo video. Writes a script for approval, then renders the video.',
-    needsArtifact: true,
-    delivers: 'plan',
-    pro: true,
-    stages: {
-      plan: { lead: 'scriptwriter', helpers: ['demo-rehearser', 'hyperframes-editor', 'cover-designer'] },
-      execute: { lead: '', helpers: [] },
-    },
-  },
-  {
-    id: 'slide-deck',
-    name: 'Slide deck',
-    description: 'Use when the deliverable is a slide deck or presentation, including one designed as HTML or TSX pages. Lays out the slides for approval, then exports a PowerPoint with one image per slide.',
-    needsArtifact: true,
-    delivers: 'plan',
-    pro: true,
-    stages: {
-      plan: { lead: 'deck-planner', helpers: [] },
-      execute: { lead: '', helpers: [] },
-    },
-  },
-  {
-    id: 'carousel-post',
-    name: 'Carousel post',
-    description:
-      'Use when the deliverable is a multi-image social post, such as a carousel. Writes the copy and page outline for approval, then renders every page with captions for each platform.',
-    needsArtifact: true,
-    delivers: 'plan',
-    pro: true,
-    stages: {
-      plan: { lead: 'carousel-planner', helpers: [] },
-      execute: { lead: '', helpers: [] },
-    },
-  },
-  {
-    id: 'blog-post',
-    name: 'Blog post',
-    description: 'Use when the deliverable is a blog article. Outlines it for approval, then writes the article with its images and links.',
-    needsArtifact: true,
-    delivers: 'plan',
-    pro: true,
-    stages: {
-      plan: { lead: 'blog-planner', helpers: ['blog-researcher', 'blog-illustrator'] },
-      execute: { lead: '', helpers: [] },
-    },
-  },
-  {
-    id: 'video-clone',
-    name: 'Video clone',
-    description: 'Use when a reference video should be recreated or turned into a reusable template. Breaks it down for approval, then renders the clone and publishes the template.',
-    needsArtifact: true,
-    delivers: 'plan',
-    pro: true,
-    stages: {
-      plan: { lead: 'video-cloner', helpers: [] },
-      execute: { lead: '', helpers: [] },
-    },
-  },
-]
+const listed = (helpers: WorkflowDef['stages'][WorkflowStage]['helpers']): WorkflowHelper[] =>
+  Array.isArray(helpers) ? helpers : []
 
 // A helper another built-in names is that workflow's, so `every` leaves it out.
 const namedByBuiltins = (except: string): Set<string> =>
   new Set(
     BUILTINS.filter((w) => w.id !== except).flatMap((w) =>
-      WORKFLOW_STAGES.flatMap((stage) => {
-        const helpers = w.stages[stage].helpers
-        return Array.isArray(helpers) ? helpers : []
-      }),
+      WORKFLOW_STAGES.flatMap((stage) => listed(w.stages[stage].helpers).map((h) => h.agent)),
     ),
   )
 
@@ -240,10 +151,11 @@ export const isBuiltinWorkflow = (id: string): boolean => BUILTIN_WORKFLOW_IDS.i
 /** What a built-in is for. A board's own workflow has none. */
 export const builtinDescription = (id: string): string | undefined => BUILTINS.find((w) => w.id === id)?.description
 
-/** What a workflow is for: a built-in's own line, a board's own its plan lead's description,
- *  else its name. */
+/** What a workflow is for: its own line, else its plan lead's description, else its name. */
 export function workflowPurpose(flow: Workflow): string {
   if (flow.builtIn) return builtinDescription(flow.id) || flow.name
+  const own = boardWorkflowDefs().defs.find((d) => d.id === flow.id)?.description
+  if (own) return own
   const lead = flow.stages.plan.lead
   return (lead && agentRoster().find((a) => a.name === lead)?.gloss) || flow.name
 }
@@ -253,15 +165,15 @@ export function workflowPurpose(flow: Workflow): string {
 // `ui.config.json`:
 //
 //   "workflows": {
-//     "added": [ { "id": "wf-2", "name": "Weekly newsletter" } ],
 //     "stages": {
-//       "coding": { "plan": { "lead": "product-planner", "helpers": [...] } }
+//       "coding": { "plan": { "helpers": [...] }, "schedule": { "helpers": [...] } }
 //     }
 //   }
 //
-// `added` is the board's own workflows, in the order they were made. `stages` is every
-// assignment the board has changed, built-in and added alike — a key that isn't there means
-// "whatever the built-in says", and on an added workflow there is nothing to fall back to.
+// `stages` is what the board changed on a built-in — a key that isn't there means "whatever
+// its file says" — and every workflow's scheduled agents with their run state. `added`, and
+// the stages under its ids, are where a board's own lived before #1890; they are moved into
+// files on the next read.
 
 interface StoredHelper {
   agent: string
@@ -362,46 +274,36 @@ const scheduledRow = (h: WorkflowScheduled) => ({
   ...(h.since ? { since: h.since } : {}),
 })
 
-function resolveOne(
-  cfg: Record<string, unknown>,
-  id: string,
-  name: string,
-  builtIn: boolean,
-  needsArtifact = false,
-  delivers: DeliveryStage = 'execute',
-  pro = false,
-): Workflow {
-  const base = BUILTINS.find((w) => w.id === id)
+// A built-in's stages are its file under what the board saved; a board's own are its file alone.
+function resolveOne(cfg: Record<string, unknown>, def: WorkflowDef, builtIn: boolean): Workflow {
   const stages = emptyStages()
   for (const stage of WORKFLOW_STAGES) {
-    const declared = base?.stages[stage].helpers
-    const fallback = {
-      lead: base ? base.stages[stage].lead : '',
-      helpers: Array.isArray(declared) ? declared.map((agent) => ({ agent, extra: '' })) : ([] as WorkflowHelper[]),
-    }
-    const saved = readStage(storedStages(cfg, id)[stage])
+    const declared = def.stages[stage]
+    const saved = builtIn
+      ? readStage(storedStages(cfg, def.id)[stage])
+      : { lead: declared.lead, helpers: Array.isArray(declared.helpers) ? declared.helpers : undefined }
     stages[stage] = {
-      // A built-in's lead is read off the command, never off the file — except a stage it
+      // A built-in's lead is read off the command, never off the settings — except a stage it
       // ships empty, which the board may fill (#1814).
-      lead: base && fallback.lead ? fallback.lead : (saved.lead ?? ''),
-      helpers: saved.helpers !== undefined ? saved.helpers : fallback.helpers,
+      lead: builtIn && declared.lead ? declared.lead : (saved.lead ?? ''),
+      helpers: (saved.helpers ?? (builtIn ? listed(declared.helpers) : [])).map((h) => ({ ...h })),
       helpersChosen: saved.helpers !== undefined,
     }
   }
   // Hooks after the build are gone (#1507): ones a board still has saved are ignored.
   stages.execute = { ...stages.execute, helpers: [], helpersChosen: false }
   return {
-    id,
-    name,
+    id: def.id,
+    name: def.name,
     builtIn,
-    needsArtifact: base?.needsArtifact ?? needsArtifact,
-    delivers: base ? (base.delivers ?? 'execute') : delivers,
-    pro: base ? base.pro === true : pro,
-    retiredAssignment: retiredRows(cfg).includes(id),
+    needsArtifact: def.needsArtifact,
+    delivers: def.delivers,
+    pro: def.pro,
+    retiredAssignment: retiredRows(cfg).includes(def.id),
     stages,
     scheduled:
-      readScheduled(storedStages(cfg, id)[SCHEDULE]) ??
-      (base?.scheduled ?? []).map((one) => ({ agent: one.agent, extra: '', cadence: one.cadence ?? AUTO_CADENCE, lastRun: '' })),
+      readScheduled(storedStages(cfg, def.id)[SCHEDULE]) ??
+      def.scheduled.map((one) => ({ agent: one.agent, extra: '', cadence: one.cadence ?? AUTO_CADENCE, lastRun: '' })),
   }
 }
 
@@ -446,7 +348,7 @@ function offeredBefore(
         .map(([name]) => ({ agent: name, extra: '' })),
     }
   }
-  return { lead, helpers: (declared ?? []).map((agent) => ({ agent, extra: '' })) }
+  return { lead, helpers: listed(declared) }
 }
 
 /** Fold every switched-off workflow agent into the stages that were offering it, and drop
@@ -801,8 +703,52 @@ function scheduleQaManager(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
-// The workflows as written down, every pass above done first.
-function writtenWorkflows(): Workflow[] {
+// ---- a board's own workflows move into files (#1890) ---------------------------
+//
+// `added` and the stages under its ids become one WORKFLOW.md each, once, after every pass
+// above has had its say on them. The scheduled agents' run state stays in the settings. A file
+// already there is left as it is.
+
+function moveAddedToFiles(cfg: Record<string, unknown>): boolean {
+  if (!('added' in workflowsBlock(cfg))) return false
+  try {
+    for (const row of addedRows(cfg)) {
+      if (workflowFileExists(row.id)) continue
+      const saved = storedStages(cfg, row.id)
+      const stages = Object.fromEntries(
+        WORKFLOW_STAGES.map((stage) => {
+          const one = readStage(saved[stage])
+          return [stage, { lead: one.lead ?? '', ...(stage === 'plan' && one.helpers ? { helpers: one.helpers } : {}) }]
+        }),
+      ) as WorkflowDef['stages']
+      const scheduled = (readScheduled(saved[SCHEDULE]) ?? []).map((h) => ({
+        agent: h.agent,
+        ...(!isAuto(h.cadence) ? { cadence: h.cadence } : {}),
+      }))
+      const { id, name, needsArtifact, delivers, pro } = row
+      writeWorkflowDef({ id, name: name || id, description: '', needsArtifact, delivers, pro, stages, scheduled })
+    }
+  } catch {
+    return false
+  }
+  const { ok } = writeConfig((raw) => {
+    const block = configBlock(raw.workflows)
+    const all = configBlock(block.stages)
+    for (const row of addedRows(raw)) {
+      const kept = configBlock(all[row.id])[SCHEDULE]
+      if (kept !== undefined) all[row.id] = { [SCHEDULE]: kept }
+      else delete all[row.id]
+    }
+    if (Object.keys(all).length) block.stages = all
+    else delete block.stages
+    delete block.added
+    raw.workflows = block
+  })
+  return ok
+}
+
+// The workflows as written down, every pass above done first, each with the file it came from.
+function writtenWorkflows(): { flows: Workflow[]; defs: WorkflowDef[] } {
   let cfg = safeConfig()
   if (renameSavedAgents(cfg)) cfg = safeConfig()
   if (dropRetiredAgents(cfg)) cfg = safeConfig()
@@ -811,11 +757,16 @@ function writtenWorkflows(): Workflow[] {
   if (splitSharedAgents(cfg)) cfg = safeConfig()
   if (addShippedAgents(cfg)) cfg = safeConfig()
   if (scheduleQaManager(cfg)) cfg = safeConfig()
-  return [
-    ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
-    ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact, row.delivers, row.pro)),
-  ]
+  if (moveAddedToFiles(cfg)) cfg = safeConfig()
+  const own = boardWorkflowDefs().defs
+  return {
+    flows: [...BUILTINS.map((def) => resolveOne(cfg, def, true)), ...own.map((def) => resolveOne(cfg, def, false))],
+    defs: [...BUILTINS, ...own],
+  }
 }
+
+/** Why a board's own workflow file is not used, one line each. */
+export const workflowFileProblems = (): string[] => boardWorkflowDefs().problems
 
 // The specialists one workflow lists. Roles are never anybody's.
 const listedBy = (flow: Workflow, specialist: Set<string>): string[] =>
@@ -824,26 +775,29 @@ const listedBy = (flow: Workflow, specialist: Set<string>): string[] =>
     ...flow.scheduled.map((h) => h.agent),
   ].filter((name) => specialist.has(name))
 
-// Every workflow, and which one each listed agent belongs to. A helper no workflow lists sits
-// in Coding, disabled and nobody's — or enabled and Coding's, on a board whose Coding still
-// offers every plan helper it has.
+// Every workflow, and which one each listed agent belongs to. A plan stage still offering
+// `every` takes, enabled, each plan helper no workflow lists; one nobody takes sits in Coding,
+// disabled and nobody's.
 function resolved(): { flows: Workflow[]; owners: Map<string, string> } {
-  const flows = writtenWorkflows()
+  const { flows, defs } = writtenWorkflows()
   const catalog = specAgentCatalog().agents
   const specialist = new Set(catalog.map((a) => a.name))
   const owners = new Map<string, string>()
   for (const flow of flows) for (const name of listedBy(flow, specialist)) if (!owners.has(name)) owners.set(name, flow.id)
+  const free = (stage: WorkflowStage, lead: string): string[] =>
+    catalog.filter((a) => a.stage === stage && !a.canLead && a.name !== lead && !owners.has(a.name)).map((a) => a.name)
+  flows.forEach((flow, i) => {
+    const setup = flow.stages.plan
+    if (setup.helpersChosen || defs[i]!.stages.plan.helpers !== 'every') return
+    const taken = free('plan', setup.lead)
+    for (const name of taken) owners.set(name, flow.id)
+    setup.helpers = [...setup.helpers, ...taken.map((agent) => ({ agent, extra: '' }))]
+  })
   const coding = flows.find((w) => w.id === DEFAULT_WORKFLOW)
   if (!coding) return { flows, owners }
-  const base = BUILTINS.find((w) => w.id === DEFAULT_WORKFLOW)!
   for (const stage of WORKFLOW_STAGES) {
     const setup = coding.stages[stage]
-    const every = !setup.helpersChosen && base.stages[stage].helpers === 'every'
-    const free = catalog
-      .filter((a) => a.stage === stage && !a.canLead && a.name !== setup.lead && !owners.has(a.name))
-      .map((a) => a.name)
-    if (every) for (const name of free) owners.set(name, coding.id)
-    setup.helpers = [...setup.helpers, ...free.map((agent) => ({ agent, extra: '', ...(every ? {} : { off: true }) }))]
+    setup.helpers = [...setup.helpers, ...free(stage, setup.lead).map((agent) => ({ agent, extra: '', off: true }))]
   }
   // And a scheduled agent no workflow lists (#1401): Coding's, off.
   const idle = catalog.filter((a) => a.schedule && !owners.has(a.name)).map((a) => a.name)
@@ -1055,6 +1009,19 @@ const save = (change: (block: Record<string, unknown>) => void): Write => {
 /** Write down what Coding still inherits — before an agent is made, so it starts in none. */
 export const settleWorkflows = (): Write => save(() => {})
 
+// Write one of the board's own to its file, then the settings as every write does.
+function writeOwn(def: WorkflowDef, settings: (block: Record<string, unknown>) => void = () => {}): Write {
+  try {
+    writeWorkflowDef(def)
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e)
+    return { ok: false, ...refusal('fileWrite', `couldn't write the "${def.name}" workflow: ${why}`, { path: def.id, details: why }) }
+  }
+  return save(settings)
+}
+
+const ownDef = (id: string): WorkflowDef | undefined => boardWorkflowDefs().defs.find((d) => d.id === id)
+
 const trimmedName = (name: string): string => name.replace(/\s+/g, ' ').trim()
 
 // A number written onto the end of a name. No space after a Han, Kana or Hangul character:
@@ -1093,10 +1060,15 @@ export function createWorkflow(name: string): Write & { id?: string; name?: stri
   if (!wanted) return { ok: false, ...refusal('workflowUnnamed', 'a workflow needs a name') }
   if (nameTaken(wanted)) return { ok: false, ...refusal('workflowTaken', `this board already has a workflow called "${wanted}"`, { name: wanted }) }
   const id = freeId(workflows().map((w) => w.id))
-  const res = save((block) => {
-    const added = Array.isArray(block.added) ? [...block.added] : []
-    added.push({ id, name: wanted, needsArtifact: true })
-    block.added = added
+  const res = writeOwn({
+    id,
+    name: wanted,
+    description: '',
+    needsArtifact: true,
+    delivers: 'execute',
+    pro: false,
+    stages: { plan: { lead: '' }, execute: { lead: '' } },
+    scheduled: [],
   })
   return res.ok ? { ok: true, id, name: wanted } : res
 }
@@ -1126,31 +1098,34 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
     }
     return copied.get(agent)!
   }
+  // The stages as they RESOLVE, not as they are written: one still inheriting its workflow's
+  // default has nothing written.
   const stages = Object.fromEntries(
     WORKFLOW_STAGES.map((stage) => {
       const setup = liveStage(flow, stage)
-      const helpers = setup.helpers.map((h) => toRow({ ...h, agent: own(h.agent) }))
-      return [stage, { lead: own(setup.lead), helpers }]
+      const helpers = setup.helpers.map((h) => ({ ...h, agent: own(h.agent) }))
+      return [stage, { lead: own(setup.lead), ...(stage === 'plan' ? { helpers } : {}) }]
     }),
-  )
+  ) as WorkflowDef['stages']
   // Its scheduled agents come too (#1401), counting from the copy rather than the original's last pass.
   const scheduled = scheduledMembers(flow).map((h) =>
     scheduledRow({ ...h, agent: own(h.agent), lastRun: '', since: formatStamp(new Date()) }),
   )
-  const res = save((block) => {
-    const added = Array.isArray(block.added) ? [...block.added] : []
-    added.push({
+  const res = writeOwn(
+    {
       id: copy,
       name,
+      description: flow.builtIn ? '' : (ownDef(flow.id)?.description ?? ''),
       needsArtifact: flow.needsArtifact,
-      ...(flow.delivers === 'plan' ? { delivers: 'plan' } : {}),
-      ...(flow.pro ? { pro: true } : {}),
-    })
-    block.added = added
-    // The stages as they RESOLVE, not as they are saved: one still inheriting its workflow's
-    // default has nothing saved.
-    block.stages = { ...configBlock(block.stages), [copy]: { ...stages, ...(scheduled.length ? { [SCHEDULE]: { helpers: scheduled } } : {}) } }
-  })
+      delivers: flow.delivers,
+      pro: flow.pro,
+      stages,
+      scheduled: scheduled.map((h) => ({ agent: h.agent, ...(h.cadence ? { cadence: h.cadence } : {}) })),
+    },
+    (block) => {
+      if (scheduled.length) block.stages = { ...configBlock(block.stages), [copy]: { [SCHEDULE]: { helpers: scheduled } } }
+    },
+  )
   return res.ok ? { ok: true, id: copy, name } : res
 }
 
@@ -1170,13 +1145,8 @@ export function renameWorkflow(id: string, name: string): Write {
   const wanted = trimmedName(name)
   if (!wanted) return { ok: false, ...refusal('workflowUnnamed', 'a workflow needs a name') }
   if (nameTaken(wanted, id)) return { ok: false, ...refusal('workflowTaken', `this board already has a workflow called "${wanted}"`, { name: wanted }) }
-  return save((block) => {
-    const added = Array.isArray(block.added) ? [...block.added] : []
-    block.added = added.map((entry) => {
-      const row = configBlock(entry)
-      return row.id === id ? { ...row, name: wanted } : row
-    })
-  })
+  const def = ownDef(id)
+  return def ? writeOwn({ ...def, name: wanted }) : { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
 }
 
 /** Turn **Use a Git worktree** on or off for one of the board's own (#874). Only deliveries
@@ -1185,13 +1155,8 @@ export function setWorkflowWorktree(id: string, on: boolean): Write {
   const flow = workflowById(id)
   if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
   if (flow.builtIn) return { ok: false, ...refusal('workflowBuiltInChange', `\`${flow.name}\` is built in — duplicate it to make one you can change`, { name: flow.name, workflow: flow.id }) }
-  return save((block) => {
-    const added = Array.isArray(block.added) ? [...block.added] : []
-    block.added = added.map((entry) => {
-      const row = configBlock(entry)
-      return row.id === id ? { ...row, needsArtifact: !on } : row
-    })
-  })
+  const def = ownDef(id)
+  return def ? writeOwn({ ...def, needsArtifact: !on }) : { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
 }
 
 /** Take the "an assignment was removed" mark off one workflow (#945) — **Got it** in the
@@ -1212,11 +1177,13 @@ export function deleteWorkflow(id: string): Write {
   const flow = workflowById(id)
   if (!flow) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
   if (flow.builtIn) return { ok: false, ...refusal('workflowBuiltInDelete', `\`${flow.name}\` is built in and cannot be deleted`, { name: flow.name, workflow: flow.id }) }
+  try {
+    removeWorkflowDef(id)
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e)
+    return { ok: false, ...refusal('fileWrite', `couldn't delete the "${flow.name}" workflow: ${why}`, { path: id, details: why }) }
+  }
   return save((block) => {
-    const added = Array.isArray(block.added) ? block.added : []
-    const kept = added.filter((entry) => configBlock(entry).id !== id)
-    if (kept.length) block.added = kept
-    else delete block.added
     const stages = configBlock(block.stages)
     delete stages[id]
     if (Object.keys(stages).length) block.stages = stages
@@ -1250,11 +1217,17 @@ function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStag
     setup.helpers.some(
       (h, i) => h.agent !== before.helpers[i]!.agent || h.extra !== before.helpers[i]!.extra || !h.off !== !before.helpers[i]!.off,
     )
+  if (!flow.builtIn) {
+    const def = ownDef(id)
+    if (!def) return { ok: false, ...refusal('workflowNotFound', `this board has no \`${id}\` workflow`, { id }) }
+    const helpers = movedHelpers ? setup.helpers : def.stages[stage].helpers
+    return writeOwn({ ...def, stages: { ...def.stages, [stage]: { lead: setup.lead, ...(helpers ? { helpers } : {}) } } })
+  }
   return save((block) => {
     const stages = configBlock(block.stages)
     const mine = configBlock(stages[id])
     const written = {
-      ...(flow.builtIn && !openBuiltinLead(id, stage) ? {} : { lead: setup.lead }),
+      ...(!openBuiltinLead(id, stage) ? {} : { lead: setup.lead }),
       ...(movedHelpers ? { helpers: setup.helpers.map(toRow) } : {}),
     }
     if (Object.keys(written).length) mine[stage] = written
@@ -1354,6 +1327,22 @@ export const addWorkflowHelper = (id: string, stage: WorkflowStage, agent: strin
 /** Drop a deleted agent from every stage that saved it, so a later agent of the same name
  *  starts in no workflow. A stage it led is left cleared. */
 export function forgetWorkflowAgent(agent: string): Write {
+  for (const def of boardWorkflowDefs().defs) {
+    const stages = Object.fromEntries(
+      WORKFLOW_STAGES.map((stage) => {
+        const { lead, helpers } = def.stages[stage]
+        const kept = Array.isArray(helpers) ? helpers.filter((h) => h.agent !== agent) : helpers
+        return [stage, { lead: lead === agent ? '' : lead, ...(kept ? { helpers: kept } : {}) }]
+      }),
+    ) as WorkflowDef['stages']
+    const scheduled = def.scheduled.filter((s) => s.agent !== agent)
+    if (JSON.stringify(stages) === JSON.stringify(def.stages) && scheduled.length === def.scheduled.length) continue
+    try {
+      writeWorkflowDef({ ...def, stages, scheduled })
+    } catch {
+      // Left listing it: an agent no board has drops out of every stage it is read into.
+    }
+  }
   return save((block) => {
     const all = configBlock(block.stages)
     for (const [id, flow] of Object.entries(all)) {
@@ -1527,9 +1516,10 @@ export function adoptWorkflowScheduled(id: string, agent: string, from: { cadenc
   })
 }
 
-/** Whether the config names a workflow at all — what says a board has been through this
+/** Whether the board names a workflow at all — what says a board has been through this
  *  screen. Read straight, so an unreadable file is not mistaken for an untouched one. */
 export function workflowsConfigured(): boolean {
+  if (boardWorkflowDefs().defs.length) return true
   try {
     return Object.keys(workflowsBlock(readConfigRaw())).length > 0
   } catch {

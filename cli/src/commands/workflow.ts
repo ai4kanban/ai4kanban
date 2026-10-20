@@ -28,6 +28,7 @@ import {
   stageCandidates,
   switchWorkflowAgent,
   workflowById,
+  workflowFileProblems,
   workflowProblems,
   workflows,
   openBuiltinLead,
@@ -111,6 +112,7 @@ export async function cmdWorkflowList(): Promise<MoveResult> {
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
+  for (const problem of workflowFileProblems()) say(`! ${problem}`)
   return {
     workflows: rows.map((flow) => ({
       ...flow,

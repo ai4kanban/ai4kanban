@@ -29,6 +29,9 @@ import {
   frozenWorkflow,
   liveStage,
   scheduledAgent,
+  settleWorkflows,
+  workflowFileProblems,
+  workflowPurpose,
   switchWorkflowAgent,
   switchWorkflowScheduled,
   renameWorkflow,
@@ -43,6 +46,7 @@ import {
   workflowViews,
 } from '../src/lib/agent/workflows.ts'
 import { cardsOnWorkflow, removeWorkflow } from '../src/lib/agent/workflow-cards.ts'
+import { BUILTIN_DEFS, parseWorkflowFile, workflowFileText, type WorkflowDef } from '../src/lib/agent/workflow-file.ts'
 import { setSpecAgentEnabled, specAgentAssigned } from '../src/lib/agents/index.ts'
 import { createAgent, deleteAgent } from '../src/lib/agents/roster.ts'
 import { cmdWorkflowDelete } from '../src/commands/workflow.ts'
@@ -840,10 +844,11 @@ describe('an agent that can lead never helps (#858)', () => {
       }),
     )
     assert.equal(workflowById('wf-5')!.stages.plan.lead, 'software-planner')
-    assert.deepEqual(config().workflows.stages['wf-5'].plan, {
-      lead: 'software-planner',
-      helpers: [{ agent: 'ui-designer', extra: 'x' }, { agent: 'illustrator', extra: '' }],
-    })
+    assert.deepEqual(workflowById('wf-5')!.stages.plan.helpers, [
+      { agent: 'ui-designer', extra: 'x' },
+      { agent: 'illustrator', extra: '' },
+    ])
+    assert.equal(config().workflows.stages?.['wf-5'], undefined)
     assert.deepEqual(workflowProblems('wf-5'), [])
   })
 
@@ -1152,5 +1157,102 @@ describe('a built-in finished in planning that adds a build agent (#1814)', () =
     assert.equal(deleteAgent(made.agent!).ok, true)
     assert.equal(workflowById('video-clone')!.stages.execute.lead, '')
     assert.equal(findCard(id)!.deliversIn, 'plan')
+  })
+})
+
+describe('workflows in files (#1890)', () => {
+  const file = (id: string): string => path.join(kanban(), 'workflows', id, 'WORKFLOW.md')
+  const config = (): Record<string, any> => JSON.parse(fs.readFileSync(uiConfigOf(kanban()), 'utf8'))
+  const write = (id: string, text: string): void => {
+    fs.mkdirSync(path.dirname(file(id)), { recursive: true })
+    fs.writeFileSync(file(id), text)
+  }
+
+  it('reads back what it writes', () => {
+    const def: WorkflowDef = {
+      id: 'wf-2',
+      name: 'Release #2: notes',
+      description: 'Use for release notes.',
+      needsArtifact: true,
+      delivers: 'plan',
+      pro: false,
+      stages: {
+        plan: { lead: 'software-planner', helpers: [{ agent: 'ui-designer', extra: 'Line one #1\nline two', off: true }, { agent: 'copywriting', extra: '' }] },
+        execute: { lead: '' },
+      },
+      scheduled: [{ agent: 'qa-manager', cadence: '2d' }],
+    }
+    assert.deepEqual(parseWorkflowFile('wf-2', workflowFileText(def), 'x'), { def })
+    assert.match(JSON.stringify(parseWorkflowFile('Bad_Id', workflowFileText(def), 'x')), /not a workflow id/)
+  })
+
+  it('ships the built-ins as the same files', () => {
+    assert.deepEqual(BUILTIN_DEFS.map((d) => d.id), workflows().filter((w) => w.builtIn).map((w) => w.id))
+    const coding = BUILTIN_DEFS[0]!
+    assert.deepEqual([coding.stages.plan.helpers, coding.stages.execute.lead, coding.scheduled], ['every', 'builder', [{ agent: 'qa-manager' }]])
+    const blog = BUILTIN_DEFS.find((d) => d.id === 'blog-post')!
+    assert.deepEqual(blog.stages.plan.helpers, [{ agent: 'blog-researcher', extra: '' }, { agent: 'blog-illustrator', extra: '' }])
+    assert.deepEqual([blog.needsArtifact, blog.delivers, blog.pro], [true, 'plan', true])
+  })
+
+  it('creates, renames, reassigns and deletes the board’s own in its file', () => {
+    const made = createWorkflow('Newsletter')
+    assert.equal(made.ok, true)
+    const id = made.id!
+    assert.match(fs.readFileSync(file(id), 'utf8'), /^name: Newsletter$/m)
+    assert.equal(renameWorkflow(id, 'Weekly').ok, true)
+    assert.equal(setWorkflowLead(id, 'execute', 'test-writer').ok, true)
+    const text = fs.readFileSync(file(id), 'utf8')
+    assert.match(text, /^name: Weekly$/m)
+    assert.match(text, /execute:\n {4}lead: test-writer/)
+    assert.equal(workflowById(id)!.stages.execute.lead, 'test-writer')
+    assert.equal(config().workflows.added, undefined)
+    assert.equal(deleteWorkflow(id).ok, true)
+    assert.equal(fs.existsSync(path.dirname(file(id))), false)
+    assert.equal(workflowById(id), undefined)
+  })
+
+  it('reads a hand-written one: `every`, its own description, its body kept', () => {
+    settleWorkflows()
+    stageAgent('researcher', 'plan')
+    write('notes', '---\nname: Notes\ndescription: Use for notes.\nstages:\n  plan:\n    lead: software-planner\n    helpers: every\n---\n\nWhy it exists.\n')
+    const flow = workflowById('notes')!
+    assert.deepEqual(flow.stages.plan.helpers, [{ agent: 'researcher', extra: '' }])
+    assert.equal(workflowPurpose(flow), 'Use for notes.')
+    assert.equal(renameWorkflow('notes', 'Team notes').ok, true)
+    assert.match(fs.readFileSync(file('notes'), 'utf8'), /---\n\nWhy it exists.\n$/)
+  })
+
+  it('reports a file it cannot use instead of dropping it in silence', () => {
+    write('broken', '---\ndescription: no name\n---\n')
+    write('coding', '---\nname: Mine\n---\n')
+    assert.equal(workflowById('broken'), undefined)
+    assert.equal(workflowById('coding')!.name, 'Coding')
+    assert.equal(workflowFileProblems().length, 2)
+  })
+
+  it('moves the ones saved in the settings into files, once, keeping run state there', () => {
+    const schedule = { helpers: [{ agent: 'qa-manager', extra: '', cadence: '3d', lastRun: '2026-10-01 09:00' }] }
+    fs.writeFileSync(
+      uiConfigOf(kanban()),
+      JSON.stringify({
+        workflows: {
+          agentsOwned: true,
+          qaScheduled: true,
+          added: [{ id: 'wf-5', name: 'Old', delivers: 'plan', pro: true }],
+          stages: { 'wf-5': { plan: { lead: 'software-planner', helpers: [{ agent: 'ui-designer', extra: 'x' }] }, schedule } },
+        },
+      }),
+    )
+    const flow = workflowById('wf-5')!
+    assert.deepEqual([flow.name, flow.needsArtifact, flow.delivers, flow.pro], ['Old', false, 'plan', true])
+    // `illustrator` joins beside `ui-designer` first (#1099), and moves with it.
+    assert.deepEqual(flow.stages.plan.helpers, [{ agent: 'ui-designer', extra: 'x' }, { agent: 'illustrator', extra: '' }])
+    assert.equal(flow.stages.plan.helpersChosen, true)
+    assert.equal(scheduledAgent('wf-5', 'qa-manager')!.lastRun, '2026-10-01 09:00')
+    assert.ok(fs.existsSync(file('wf-5')))
+    const saved = config().workflows
+    assert.equal(saved.added, undefined)
+    assert.deepEqual(saved.stages['wf-5'], { schedule })
   })
 })
