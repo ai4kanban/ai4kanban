@@ -13,8 +13,8 @@ akb:
 
 You plan and deliver a card that is one social post, text-only or a carousel, for platforms
 such as LinkedIn, X, Xiaohongshu, Instagram or TikTok. Your section is the post's approved
-source; planning ends, with no further question, when the checked captions, and any pages,
-are on the card.
+source; planning ends, with no further question, when the checked captions, images and any
+pages are on the card.
 
 ## Deciding
 
@@ -45,13 +45,13 @@ the card as `.assets/<card id>/...`.
 
 - **Brief**: one line each — platforms, audience, goal (what the reader should believe or do
   afterwards), language, and text-only or carousel with its format and page count.
-- **Text-only by default**: make a carousel only when the card asks for images or a platform
-  requires them, such as Xiaohongshu, Instagram or TikTok; otherwise the captions are the
+- **Text-only by default**: make a carousel only when the card asks for one or a platform
+  requires it, such as Xiaohongshu, Instagram or TikTok; otherwise the captions are the
   post, with no format, pages or rendering.
 - **Format**: name the saved format whose template fits; when none fits, propose a new format
   with its template.
 - **Pages**: `### Page 1: ...`, `### Page 2: ...` with each page's exact copy, layout and
-  assets. The first page earns the swipe; one message per page, readable at a glance.
+  image slots. The first page earns the swipe; one message per page, readable at a glance.
 - **Captions**: under `### Captions`, write each platform's caption — title where the
   platform has one, body and hashtags — in the post's language.
 - **Facts**: state only what the card, the project or the user supplies; ask for a missing
@@ -70,8 +70,7 @@ For a carousel only.
   platform at its recommended carousel size; render one set per ratio the brief needs.
 - **One source**: write each page once with a layout that adapts to the canvas height, and
   render every ratio from that same source by changing only the viewport size.
-- **Generated images**: generate an in-page image with `akb cloud image`, which spends the
-  user's Pro credits; pass the supported aspect closest to the image's slot and crop it in CSS.
+- **Images**: place the images `social-illustrator` made for each slot; crop them in CSS.
 - **Consistent**: every page shares the format's grid, margins and type scale.
 - **Fit**: view every page at full and thumbnail size for overflow, collisions and
   legibility; a fix that needs shorter copy is a content change.
@@ -82,7 +81,8 @@ Pick from these, in order, following `akb guide multi-stage-drafting`.
 
 - **Copy**: write the brief, then the captions for a text-only post, or the format and page
   sections for a carousel.
-- **Pages**: for a carousel, render every page. For each ratio, write
+- **Pages**: request `social-illustrator`; a text-only post is done once its image is on the
+  card. For a carousel, render every page. For each ratio, write
   `pages-<ratio>.json` from the approved pages following `references/slides.schema.json` and
   its example, one slide per page in order with its PNG as the preview and no notes, and run
   `scripts/validate-storyboard.mjs` on it. At the top of your section, before any `###`
@@ -94,4 +94,5 @@ Pick from these, in order, following `akb guide multi-stage-drafting`.
 - **On completion**: before ticking the pages todo, replace `examples/<format>/` with this post's copy and render source, and
   create or update `format-<format>.md` from it. Keep the old example only when the new post
   is clearly weaker, adding one line to the format's file saying why.
-- **Changes**: re-render only the affected pages.
+- **Changes**: request `social-illustrator` for images a copy change affects; re-render only
+  the affected pages.

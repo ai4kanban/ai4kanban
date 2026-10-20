@@ -37,6 +37,7 @@ const NAMES = {
     "demo-rehearser": "Demo rehearser", "hyperframes-editor": "Video editor", "cover-designer": "Cover designer",
     "deck-planner": "Deck planner", "carousel-planner": "Social post planner", "blog-planner": "Blog planner",
     "blog-researcher": "Blog researcher", "blog-illustrator": "Blog illustrator", "video-cloner": "Video cloner",
+    "social-illustrator": "Social post illustrator",
   },
   zh: {
     "software-planner": "软件规划师", "ui-designer": "界面设计师", copywriting: "文案与文档",
@@ -46,6 +47,7 @@ const NAMES = {
     "demo-rehearser": "演示排练", "hyperframes-editor": "视频剪辑", "cover-designer": "封面设计",
     "deck-planner": "演示文稿策划", "carousel-planner": "社媒帖策划", "blog-planner": "博客策划",
     "blog-researcher": "博客研究员", "blog-illustrator": "博客配图", "video-cloner": "视频克隆",
+    "social-illustrator": "社媒帖配图",
   },
 };
 
@@ -58,7 +60,7 @@ const FLOWS = [
   { id: "hyperframes-video", lead: "scriptwriter", helpers: ["demo-rehearser", "hyperframes-editor", "cover-designer"] },
   { id: "blog-post", lead: "blog-planner", helpers: ["blog-researcher", "blog-illustrator"] },
   { id: "slide-deck", lead: "deck-planner", helpers: [] },
-  { id: "carousel-post", lead: "carousel-planner", helpers: [] },
+  { id: "carousel-post", lead: "carousel-planner", helpers: ["social-illustrator"] },
   { id: "video-clone", lead: "video-cloner", helpers: [] },
 ];
 

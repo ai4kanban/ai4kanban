@@ -34,6 +34,7 @@ import hyperframesTemplates from '../../agents/hyperframes-editor/template-selec
 import promptWriter from '../../agents/prompt-writer/AGENT.md'
 import qaManager from '../../agents/qa-manager/AGENT.md'
 import scriptwriter from '../../agents/scriptwriter/AGENT.md'
+import socialIllustrator from '../../agents/social-illustrator/AGENT.md'
 import softwarePlanner from '../../agents/software-planner/AGENT.md'
 import scriptwriterRecipes from '../../agents/scriptwriter/references/index.md'
 import storyboardContract from '../../agents/scriptwriter/references/storyboard-contract.md'
@@ -96,6 +97,7 @@ export const BUNDLED_AGENT_FILES: Record<string, string> = {
   'scriptwriter/references/composition/shader-transitions.md': compositionShaderTransitions,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
   'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
+  'social-illustrator/AGENT.md': socialIllustrator,
   'software-planner/AGENT.md': softwarePlanner,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/rendered-screen.md': uiDesignerRendered,

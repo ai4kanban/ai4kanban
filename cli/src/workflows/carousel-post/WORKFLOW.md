@@ -7,6 +7,7 @@ pro: true
 stages:
   plan:
     lead: carousel-planner
+    helpers: [social-illustrator]
   execute:
     lead: ""
 ---

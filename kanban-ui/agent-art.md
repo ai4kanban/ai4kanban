@@ -71,6 +71,8 @@ the whole difference, and it has to be readable at 48px.
   across the chest, with a sky title bar and four short black lines.
 - **`blog-illustrator.png`** — illustrates posts. Holding a **peach palette** with mint,
   sky and lilac paint dabs, and an upright **wooden paintbrush** with ember bristles.
+- **`social-illustrator.png`** — illustrates social posts. Holding an **upright cream phone**
+  showing a post: a sky picture block with a peach sun, two short black lines and an ember heart.
 - **`carousel-planner.png`** — plans carousel posts. Holding **three cream cards fanned out**
   across the chest, with mint, sky and lilac top bars.
 - **`deck-planner.png`** — plans slide decks. Holding a **cream projection slide** on a grey

@@ -17,11 +17,11 @@
    ![Roles 一节](02-roles.png)
 
 3. 点目录里的「Specialists」。
-   一段说明后分三张表：Coding 7 个（ui-designer、copywriting、illustrator、prompt-writer、email-planner、tech-stack-advisor、competitor-research）、Product video (Pro) 3 个、Blog post (Pro) 2 个（blog-researcher、blog-illustrator），共 12 个。每行左边一个和正文字一样高的像素头像，表行不被撑高。表下一句：Slide deck、Social post、Video clone 没有专员；再一句给点名说法（「put the ui-designer agent on #4」或 `akb spec ui-designer 4`）。
+   一段说明后分四张表：Coding 7 个（ui-designer、copywriting、illustrator、prompt-writer、email-planner、tech-stack-advisor、competitor-research）、Product video (Pro) 3 个、Blog post (Pro) 2 个（blog-researcher、blog-illustrator）、Social post (Pro) 1 个（social-illustrator），共 13 个。每行左边一个和正文字一样高的像素头像，表行不被撑高。表下一句：Slide deck、Video clone 没有专员；再一句给点名说法（「put the ui-designer agent on #4」或 `akb spec ui-designer 4`）。
    ![Specialists 一节](03-specialists.png)
 
 4. 放大看 Blog post (Pro) 表的头像。
-   blog-researcher 是胸前抱着蓝色地球仪的专属角色，和旁边 blog-illustrator 一样有自己的道具；12 个头像里没有通用机器人底图。
+   blog-researcher 是胸前抱着蓝色地球仪的专属角色，和旁边 blog-illustrator 一样有自己的道具；13 个头像里没有通用机器人底图。
    ![Blog post 表放大 3 倍](04-blog-post-art.png)
 
 5. 点目录里的「Give an agent a rule」。

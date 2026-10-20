@@ -35,7 +35,7 @@ The agents share your project context, while each specialist learns from your fe
 | Coding | Software changes, from UI updates to new features |
 | Slide deck | A PowerPoint deck with one image per slide; slide elements are not editable |
 | Product video | A finished product video and cover image |
-| Social post | Post copy and captions for each platform, plus page images for a carousel |
+| Social post | Post copy, images and captions for each platform, plus page images for a carousel |
 | Blog post | A complete article with images and links |
 | Video clone | A recreated video and reusable template based on a reference made with code; footage, illustrations and logos use placeholders |
 

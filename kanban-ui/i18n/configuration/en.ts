@@ -480,6 +480,8 @@ const en: ConfigurationCopy = {
           `Added to the end of every run ${agent} does while a blog post is being researched — "prefer official documentation over news articles".`,
         "blog-illustrator": (agent) =>
           `Added to the end of every run ${agent} does while a blog post's images are being made — "draw diagrams on a white background".`,
+        "social-illustrator": (agent) =>
+          `Added to the end of every run ${agent} does while a social post's images are being made — "use a light background on every image".`,
         "video-cloner": () =>
           'Added to the end of every Create, Refine and Revise run on a video clone card — "keep every template at 1080×1920".',
       },

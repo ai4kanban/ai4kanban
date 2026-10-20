@@ -615,6 +615,7 @@ const SHIPPED_ON: { agent: string; flow?: string; beside?: string }[] = [
   { agent: 'demo-rehearser', flow: 'hyperframes-video' },
   { agent: 'illustrator', beside: 'ui-designer' },
   { agent: 'blog-researcher', flow: 'blog-post' },
+  { agent: 'social-illustrator', flow: 'carousel-post' },
 ]
 const SHIPPED = 'shipped'
 
