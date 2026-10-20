@@ -20,7 +20,7 @@
    [saas.log](saas.log)
 
 4. 读第二节「Turn product work into marketing material.」，看「Pro」那一行。
-   四种素材各一行，先审什么、拿到什么：Blog post（大纲 → 带图和链接的全文）、Product video（脚本 → 成片和封面）、Slide deck（内容和幻灯片预览 → 每页一张图的 PowerPoint，文字和形状不能单独改）、Carousel post（文案和页面大纲 → 每页一张图加配文）。下面一行「Blog posts, product videos, slide decks and carousel posts require Pro. See plans」，「See plans」指向 `/pricing`。
+   四种素材各一行，先审什么、拿到什么：Blog post（大纲 → 带图和链接的全文）、Product video（脚本 → 成片和封面）、Slide deck（内容和幻灯片预览 → 每页一张图的 PowerPoint，文字和形状不能单独改）、Social post（文案 → 帖子和各平台配文，轮播另有逐页图片）。下面一行「Blog posts, product videos, slide decks and carousel posts require Pro. See plans」，「See plans」指向 `/pricing`。
    ![营销素材一节](03-marketing-material.png) · [saas.log](saas.log)
 
 5. 读到最后一节，点「Request customization」。
@@ -28,7 +28,7 @@
    ![定制入口](04-customize.png) · [saas.log](saas.log)
 
 6. 打开 `/zh/solutions/saas`，再打开 `/ja/solutions/saas`。
-   中文标题两行「一边开发产品 / 一边推进营销」，导语「为 SaaS 创始人和小团队准备的 Agent 工作台。你把关产品与营销的关键草稿，agent 完成细节。」，Pro 一行「博客文章、产品视频、幻灯片和轮播帖需要 Pro。查看套餐」指向 `/zh/pricing`；日文标题「SaaS を作りながら、 / マーケティングも進める。」，Pro 一行「ブログ記事、製品動画、スライド、カルーセル投稿には Pro が必要です。」没有套餐链接（日文没有定价页）。
+   中文标题两行「一边开发产品 / 一边推进营销」，导语「为 SaaS 创始人和小团队准备的 Agent 工作台。你把关产品与营销的关键草稿，agent 完成细节。」，Pro 一行「博客文章、产品视频、幻灯片和社媒帖需要 Pro。查看套餐」指向 `/zh/pricing`；日文标题「SaaS を作りながら、 / マーケティングも進める。」，Pro 一行「ブログ記事、製品動画、スライド、カルーセル投稿には Pro が必要です。」没有套餐链接（日文没有定价页）。
    ![中文首屏](05-zh-hero.png) · [saas.log](saas.log)
 
 7. 用 390px 宽的手机打开 `/solutions/saas`。
@@ -43,7 +43,7 @@
 
 - **短了，也更像创始人的一周**：从 11 节砍到 8 节，营销素材提到第二节，四种素材各一行「先审什么、拿到什么」，一眼能比较；配图、文案、竞品调研不再各占一节，读起来快很多。
 - **说清了限制**：幻灯片「每页一张图、文字不能单独改」直接写在列表里，不会买了才发现。
-- **Pro 范围对不上定价页**：这里说博客文章和轮播帖也要 Pro，定价页 Pro 的权益里只列了演示文稿和产品视频，想买的人会不确定博客和轮播帖算不算在内。
+- **Pro 范围对不上定价页**：这里说博客文章和社媒帖也要 Pro，定价页 Pro 的权益里只列了演示文稿和产品视频，想买的人会不确定博客和社媒帖算不算在内。
 - **中文大小写不一**：中文导语一句里先写「Agent 工作台」，后写「agent 完成细节」。
 - **插图克制好看**：浅灰加一点橙，3D 动起来有质感；但很抽象，没读正文前看不出那张浮起的是卡片页，而且和 coding 页首屏一模一样。
 - **定制入口顺手**：「Request customization」直达联系表单并预选原因；页尾就有「Download」和「Setup guide」。页头「Resources」里仍然找不到这一页。

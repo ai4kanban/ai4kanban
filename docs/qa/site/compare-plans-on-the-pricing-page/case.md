@@ -8,7 +8,7 @@
 ## Steps
 
 1. 打开 `/pricing`。
-   标签页标题「AI4Kanban: Plans and pricing」，大标题「Plans and pricing」，导语只有一句「Every plan runs on your own computer, with your own AI tools.」。默认选中「Yearly · Save 33%」。左边 Free $0（Apache 2.0 开源，按钮「Download」），列出编码工作流、不限并发、无限自定义工作流和 agent 等五项；右边 Pro $120 / year、划掉的 $180，下面「$10 a month, billed yearly」，按钮「Get Pro」，「Everything in Free, plus:」下先是五个工作流（Slide deck、Product video、Carousel post、Blog post、Video clone），再是自动筛选新想法、「5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160」和优先支持。页面描述「AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, carousels, blogs and video clones. $10/month, billed yearly.」，分享说明相同。
+   标签页标题「AI4Kanban: Plans and pricing」，大标题「Plans and pricing」，导语只有一句「Every plan runs on your own computer, with your own AI tools.」。默认选中「Yearly · Save 33%」。左边 Free $0（Apache 2.0 开源，按钮「Download」），列出编码工作流、不限并发、无限自定义工作流和 agent 等五项；右边 Pro $120 / year、划掉的 $180，下面「$10 a month, billed yearly」，按钮「Get Pro」，「Everything in Free, plus:」下先是五个工作流（Slide deck、Product video、Social post、Blog post、Video clone），再是自动筛选新想法、「5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160」和优先支持。页面描述「AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, carousels, blogs and video clones. $10/month, billed yearly.」，分享说明相同。
    ![按年显示的两档价格](01-yearly.png) · [03-links.log](03-links.log)
 
 2. 点「Monthly」。
@@ -24,7 +24,7 @@
    ![价格卡背后的空白卡片](04-backdrop.png) · [03-links.log](03-links.log)
 
 5. 打开 `/zh/pricing`。
-   标签页标题「AI4Kanban：方案与定价」，大标题「方案与定价」，导语「所有方案都在你自己的电脑上运行，使用你自己的 AI 工具。」；Pro 列出幻灯片、产品视频、轮播帖、博客文章、视频克隆五个工作流，额度一行是「每月 5,000 AI 积分，配音每秒用 1 积分，生成图像每张用 320 积分，生成音乐每首用 160 积分」，不再提「封面」。页面描述「AI4Kanban，独立开发者的 Agent 工作台。软件开发免费；Pro 提供幻灯片、产品视频、轮播帖、博客文章和视频克隆工作流，按年付费折合每月 $10。」
+   标签页标题「AI4Kanban：方案与定价」，大标题「方案与定价」，导语「所有方案都在你自己的电脑上运行，使用你自己的 AI 工具。」；Pro 列出幻灯片、产品视频、社媒帖、博客文章、视频克隆五个工作流，额度一行是「每月 5,000 AI 积分，配音每秒用 1 积分，生成图像每张用 320 积分，生成音乐每首用 160 积分」，不再提「封面」。页面描述「AI4Kanban，独立开发者的 Agent 工作台。软件开发免费；Pro 提供幻灯片、产品视频、社媒帖、博客文章和视频克隆工作流，按年付费折合每月 $10。」
    ![中文定价页](05-zh-yearly.png) · [03-links.log](03-links.log)
 
 ## Feedback

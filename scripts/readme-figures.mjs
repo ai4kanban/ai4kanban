@@ -35,7 +35,7 @@ const NAMES = {
     "competitor-research": "Competitor research", "tech-stack-advisor": "Tech stack advisor",
     builder: "Builder", "qa-manager": "QA manager", scriptwriter: "Scriptwriter",
     "demo-rehearser": "Demo rehearser", "hyperframes-editor": "Video editor", "cover-designer": "Cover designer",
-    "deck-planner": "Deck planner", "carousel-planner": "Carousel planner", "blog-planner": "Blog planner",
+    "deck-planner": "Deck planner", "carousel-planner": "Social post planner", "blog-planner": "Blog planner",
     "blog-researcher": "Blog researcher", "blog-illustrator": "Blog illustrator", "video-cloner": "Video cloner",
   },
   zh: {
@@ -44,7 +44,7 @@ const NAMES = {
     "competitor-research": "竞品调研", "tech-stack-advisor": "技术选型顾问",
     builder: "开发", "qa-manager": "质检员", scriptwriter: "脚本作者",
     "demo-rehearser": "演示排练", "hyperframes-editor": "视频剪辑", "cover-designer": "封面设计",
-    "deck-planner": "演示文稿策划", "carousel-planner": "图文轮播策划", "blog-planner": "博客策划",
+    "deck-planner": "演示文稿策划", "carousel-planner": "社媒帖策划", "blog-planner": "博客策划",
     "blog-researcher": "博客研究员", "blog-illustrator": "博客配图", "video-cloner": "视频克隆",
   },
 };
@@ -65,14 +65,14 @@ const FLOWS = [
 const T = {
   en: {
     font: "", teamsCaption: "Six built-in workflows, each run by its own team of specialist agents.",
-    flow: { coding: "Coding", "hyperframes-video": "Product video", "slide-deck": "Slide deck", "carousel-post": "Carousel post", "blog-post": "Blog post", "video-clone": "Video clone" },
-    gets: { coding: "Software changes", "hyperframes-video": "Finished video + cover", "slide-deck": "Image-based .pptx", "carousel-post": "Page images + captions", "blog-post": "Article with images & links", "video-clone": "Clone + reusable template" },
+    flow: { coding: "Coding", "hyperframes-video": "Product video", "slide-deck": "Slide deck", "carousel-post": "Social post", "blog-post": "Blog post", "video-clone": "Video clone" },
+    gets: { coding: "Software changes", "hyperframes-video": "Finished video + cover", "slide-deck": "Image-based .pptx", "carousel-post": "Captions + any page images", "blog-post": "Article with images & links", "video-clone": "Clone + reusable template" },
     plan: "Plan", execute: "Execute", scheduled: "Scheduled", lead: "Lead", helpers: "Helpers", timed: "Runs on its own, not per card",
   },
   zh: {
     font: '"PingFang SC", "Hiragino Sans GB", ', teamsCaption: "6 个内置工作流，各由一支专业 agent 团队负责。",
-    flow: { coding: "软件开发", "hyperframes-video": "产品视频", "slide-deck": "演示文稿", "carousel-post": "图文轮播", "blog-post": "博客文章", "video-clone": "视频克隆" },
-    gets: { coding: "软件改动", "hyperframes-video": "成片与封面", "slide-deck": "图片版 PPT", "carousel-post": "逐页图片与配文", "blog-post": "带配图和链接的文章", "video-clone": "复刻成片与视频模板" },
+    flow: { coding: "软件开发", "hyperframes-video": "产品视频", "slide-deck": "演示文稿", "carousel-post": "社媒帖", "blog-post": "博客文章", "video-clone": "视频克隆" },
+    gets: { coding: "软件改动", "hyperframes-video": "成片与封面", "slide-deck": "图片版 PPT", "carousel-post": "配文与逐页图片", "blog-post": "带配图和链接的文章", "video-clone": "复刻成片与视频模板" },
     plan: "规划", execute: "执行", scheduled: "定期运行", lead: "负责", helpers: "规划助手", timed: "按时自动运行，与卡片无关",
   },
 };

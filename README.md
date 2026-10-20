@@ -24,7 +24,7 @@ As an indie hacker, you need to build a product and get people to use it. Market
 
 ### 1. A specialist team for coding and marketing
 
-![Six workflows and their specialist agent teams](https://cdn.ai4kanban.dev/readme/workflow-teams-en-v2.png)
+![Six workflows and their specialist agent teams](https://cdn.ai4kanban.dev/readme/workflow-teams-en-v3.png)
 
 AI4Kanban comes with **6 workflows and 10+ specialist agents** for the work indie hackers do every day. Each agent owns a specific part of a workflow, such as UI design or copywriting. No need to assemble an agent team before you start.
 
@@ -35,7 +35,7 @@ The agents share your project context, while each specialist learns from your fe
 | Coding | Software changes, from UI updates to new features |
 | Slide deck | A PowerPoint deck with one image per slide; slide elements are not editable |
 | Product video | A finished product video and cover image |
-| Carousel post | Images for each slide and captions for each platform |
+| Social post | Post copy and captions for each platform, plus page images for a carousel |
 | Blog post | A complete article with images and links |
 | Video clone | A recreated video and reusable template based on a reference made with code; footage, illustrations and logos use placeholders |
 

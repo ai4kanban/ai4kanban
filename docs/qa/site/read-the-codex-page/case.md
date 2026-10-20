@@ -20,7 +20,7 @@
    ![界面草稿配图](03-review-draft.png) · [codex.log](codex.log)
 
 4. 读「Can the same board handle development and marketing?」。
-   回答「Yes」，一张表列六个工作流和各自产出：Coding、Blog post、Product video、Slide deck、Carousel post、Video clone；表下小字「Coding and custom workflows are free. The other five built-in workflows require Pro.」，Pro 链到定价页。
+   回答「Yes」，一张表列六个工作流和各自产出：Coding、Blog post、Product video、Slide deck、Social post、Video clone；表下小字「Coding and custom workflows are free. The other five built-in workflows require Pro.」，Pro 链到定价页。
    ![开发和营销一节](04-dev-and-marketing.png) · [codex.log](codex.log)
 
 5. 读「Can I use Codex alongside Claude Code?」。

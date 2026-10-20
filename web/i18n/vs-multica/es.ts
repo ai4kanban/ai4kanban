@@ -125,7 +125,7 @@ const es: VsMulticaCopy = {
         kanban:
           "Agentes especializados y flujos de trabajo incluidos, con roles que puedes editar o añadir.",
         kanbanTip:
-          "El desarrollo de software es gratis; los flujos de blog, carrusel para redes, presentación, vídeo de producto y clonación de vídeos requieren Pro.",
+          "El desarrollo de software es gratis; los flujos de blog, publicaciones para redes sociales, presentación, vídeo de producto y clonación de vídeos requieren Pro.",
         multica:
           "Incluye a Mika. Creas los agentes especializados tú o con Agent Builder y les das Instructions y Skills.",
       },

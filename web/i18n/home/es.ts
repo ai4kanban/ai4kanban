@@ -74,7 +74,7 @@ const es: HomeCopy = {
         image: "Borrador de presentación: contenido y diseño de cada diapositiva.",
       },
       {
-        label: "Publicación en carrusel",
+        label: "Publicación para redes sociales",
         body: "Revisa el texto de cada página y el esquema. Los agentes crean las imágenes y los textos para cada plataforma.",
         image: "Borrador de carrusel: el texto de cada página y el esquema del contenido.",
       },

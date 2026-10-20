@@ -4,7 +4,7 @@ import type { PricingCopy } from "./types";
 const zh: PricingCopy = {
   meta: {
     title: "AI4Kanban：方案与定价",
-    description: "AI4Kanban，独立开发者的 Agent 工作台。软件开发免费；Pro 提供幻灯片、产品视频、轮播帖、博客文章和视频克隆工作流，按年付费折合每月 $10。",
+    description: "AI4Kanban，独立开发者的 Agent 工作台。软件开发免费；Pro 提供幻灯片、产品视频、社媒帖、博客文章和视频克隆工作流，按年付费折合每月 $10。",
   },
   hero: {
     eyebrow: "定价",
@@ -33,7 +33,7 @@ const zh: PricingCopy = {
     rows: [
       "幻灯片工作流",
       "产品视频工作流",
-      "轮播帖工作流",
+      "社媒帖工作流",
       "博客文章工作流",
       "视频克隆工作流",
       "新想法自动筛选，你只需决定拿不准的几条",

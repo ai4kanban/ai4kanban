@@ -74,7 +74,7 @@ const fr: HomeCopy = {
         image: "Brouillon de présentation : contenu et mise en page de chaque diapositive.",
       },
       {
-        label: "Publication en carrousel",
+        label: "Publication pour les réseaux sociaux",
         body: "Relisez le texte des pages et le plan. Les agents créent les images et les légendes pour chaque plateforme.",
         image: "Brouillon de carrousel : le texte de chaque page et le plan du contenu.",
       },

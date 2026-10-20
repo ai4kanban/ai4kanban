@@ -15,11 +15,11 @@ Explain a new release, show how a feature works, or prepare a product introducti
 - **Blog post**: Review the outline, then get a full article with images and links.
 - **Product video**: Review the script, then get a finished video and cover. Product demos are rehearsed in the real app before you approve the script.
 - **Slide deck**: Approve the content and slide previews, then get a PowerPoint with one image per slide. Individual text and shapes are not editable.
-- **Carousel post**: Approve the copy and page outline, then get each page as an image with captions for your chosen platforms.
+- **Social post**: Approve the copy, then get the post with captions for your chosen platforms, plus page images for a carousel.
 
 Independent tasks can continue while these materials are produced. Work that depends on a feature's final behavior follows its delivery.
 
-Blog posts, product videos, slide decks and carousel posts require Pro. [See plans](https://ai4kanban.dev/pricing)
+Blog posts, product videos, slide decks and social posts require Pro. [See plans](https://ai4kanban.dev/pricing)
 
 ## Give your launch a clear message.
 

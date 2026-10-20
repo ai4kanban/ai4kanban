@@ -17,7 +17,7 @@
    ![Use a workflow](02-use-a-workflow.png)
 
 3. 点目录里的「Built-in workflows」。
-   一张两列表：Coding、Product video、Slide deck、Carousel post、Blog post、Video clone 六行，各一句用途（Slide deck 写明幻灯片元素不可编辑）；表下一句「Coding is free. The other five built-in workflows require Pro.」，Pro 链到定价页。
+   一张两列表：Coding、Product video、Slide deck、Social post、Blog post、Video clone 六行，各一句用途（Slide deck 写明幻灯片元素不可编辑）；表下一句「Coding is free. The other five built-in workflows require Pro.」，Pro 链到定价页。
    ![内置工作流](03-built-in-workflows.png)
 
 4. 在临时项目里跑 `akb workflow list`，和第 3 步的表对照。

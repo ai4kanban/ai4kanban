@@ -64,7 +64,7 @@ const en: ConfigurationCopy = {
       coding: "Coding",
       "hyperframes-video": "Product video",
       "slide-deck": "Slide deck",
-      "carousel-post": "Carousel post",
+      "carousel-post": "Social post",
       "blog-post": "Blog post",
       "video-clone": "Video clone",
     },
@@ -73,7 +73,7 @@ const en: ConfigurationCopy = {
       "hyperframes-video": "Approve a script, get a finished product video, and archive it when you are happy.",
       "slide-deck": "Approve the slides, get a PowerPoint deck with one image per slide (not editable), and archive it when you are happy.",
       "carousel-post":
-        "Approve the copy and page outline, get every page as an image with captions for each platform, and archive it when you are happy.",
+        "Approve the copy, get the post with captions for each platform (and page images for a carousel), and archive it when you are happy.",
       "blog-post": "Approve the outline, get the full article with its images and links, and archive it when you are happy.",
       "video-clone": "Approve a breakdown and a clone script, get a rendered clone of a reference video and a reusable template, and archive it when you are happy.",
     },
@@ -473,7 +473,7 @@ const en: ConfigurationCopy = {
         "deck-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a slide deck card — "keep every deck under 12 slides".',
         "carousel-planner": () =>
-          'Added to the end of every Create, Refine and Revise run on a carousel post card — "keep every post under 9 pages".',
+          'Added to the end of every Create, Refine and Revise run on a social post card — "keep every post under 9 pages".',
         "blog-planner": () =>
           'Added to the end of every Create, Refine and Revise run on a blog post card — "keep every post under 1,500 words".',
         "blog-researcher": (agent) =>

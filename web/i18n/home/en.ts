@@ -74,7 +74,7 @@ const en: HomeCopy = {
         image: "Slide deck draft: page content and layout previews.",
       },
       {
-        label: "Carousel post",
+        label: "Social post",
         body: "Review the page copy and outline. Agents create the page images and platform captions.",
         image: "Carousel post draft: page copy and content outline.",
       },

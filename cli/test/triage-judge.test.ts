@@ -291,7 +291,7 @@ describe('the questions', () => {
     assert.deepEqual(Object.keys(asked.priority!.criteria), ['high', 'med', 'low'])
     assert.deepEqual(Object.keys(asked.roi!.criteria), ['high', 'med', 'low'])
     assert.match(asked.workflow!.criteria.coding!, /^Use for software changes/)
-    assert.match(asked.workflow!.criteria['blog-post']!, /blog article/)
+    assert.match(asked.workflow!.criteria['blog-post']!, /article published on the project's own site/)
     assert.equal(asked.workflow!.criteria.none, 'no workflow here can do this work.')
   })
 

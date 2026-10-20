@@ -60,7 +60,7 @@ const en: VsPlannotatorCopy = {
     },
     custom: "You can also create custom agents and workflows.",
     tipLabel: "Tip",
-    tip: "The software development workflow is free. Blog, social carousel, slide deck, product video and video clone workflows require Pro.",
+    tip: "The software development workflow is free. Blog, social post, slide deck, product video and video clone workflows require Pro.",
   },
   compare: {
     title: "What comes built in",

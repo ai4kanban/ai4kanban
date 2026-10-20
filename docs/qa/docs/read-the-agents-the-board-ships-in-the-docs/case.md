@@ -17,7 +17,7 @@
    ![Roles 一节](02-roles.png)
 
 3. 点目录里的「Specialists」。
-   一段说明后分三张表：Coding 7 个（ui-designer、copywriting、illustrator、prompt-writer、email-planner、tech-stack-advisor、competitor-research）、Product video (Pro) 3 个、Blog post (Pro) 2 个（blog-researcher、blog-illustrator），共 12 个。每行左边一个和正文字一样高的像素头像，表行不被撑高。表下一句：Slide deck、Carousel post、Video clone 没有专员；再一句给点名说法（「put the ui-designer agent on #4」或 `akb spec ui-designer 4`）。
+   一段说明后分三张表：Coding 7 个（ui-designer、copywriting、illustrator、prompt-writer、email-planner、tech-stack-advisor、competitor-research）、Product video (Pro) 3 个、Blog post (Pro) 2 个（blog-researcher、blog-illustrator），共 12 个。每行左边一个和正文字一样高的像素头像，表行不被撑高。表下一句：Slide deck、Social post、Video clone 没有专员；再一句给点名说法（「put the ui-designer agent on #4」或 `akb spec ui-designer 4`）。
    ![Specialists 一节](03-specialists.png)
 
 4. 放大看 Blog post (Pro) 表的头像。

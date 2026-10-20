@@ -16,7 +16,7 @@
    ![Multica 对比页首屏](02-multica-top.png)
 
 3. 滚到「Compare the details」。
-   逐行比较：内置 agent 和工作流、执行前审阅草稿、记住修改和决定、交付之后、许可、执行管理、团队协作；每行赢的一侧打勾，执行管理一行是 Multica 赢。第一行 AI4Kanban 一格下的小字列出要 Pro 的工作流：「Software development is free; blog, social carousel, slide deck, product video and video clone workflows require Pro.」；中文页同一处是「软件开发工作流免费；博客文章、轮播帖、幻灯片、产品视频和视频克隆工作流需 Pro。」
+   逐行比较：内置 agent 和工作流、执行前审阅草稿、记住修改和决定、交付之后、许可、执行管理、团队协作；每行赢的一侧打勾，执行管理一行是 Multica 赢。第一行 AI4Kanban 一格下的小字列出要 Pro 的工作流：「Software development is free; blog, social post, slide deck, product video and video clone workflows require Pro.」；中文页同一处是「软件开发工作流免费；博客文章、社媒帖、幻灯片、产品视频和视频克隆工作流需 Pro。」
    ![逐项比较表](03-multica-details.png) · ![第一行的 Pro 说明](04b-multica-pro.png) · [compare.log](compare.log)
 
 4. 看最后的「Which should you choose?」。
@@ -44,7 +44,7 @@
    ![Orca 介绍和 Codex 小框](07-orca-codex.png) · [orca.log](orca.log)
 
 10. 读「02 AI4Kanban: review the drafts, hand off the details」的对比表，再把鼠标移到「You can also create your own agents and workflows.」后面的 ⓘ。
-   表只有 AI4Kanban 和 Orca 两列：规划并只问关键决定、现成的专业 agent 和工作流、执行前审草稿、共享记忆四行 AI4Kanban 打勾、Orca 一道短横；内置浏览器/SSH/手机控制一行反过来。ⓘ 平时不显示内容，悬停后弹出黑底提示：「The software development workflow is free. Blog, social carousel, slide deck, product video and video clone workflows require Pro.」
+   表只有 AI4Kanban 和 Orca 两列：规划并只问关键决定、现成的专业 agent 和工作流、执行前审草稿、共享记忆四行 AI4Kanban 打勾、Orca 一道短横；内置浏览器/SSH/手机控制一行反过来。ⓘ 平时不显示内容，悬停后弹出黑底提示：「The software development workflow is free. Blog, social post, slide deck, product video and video clone workflows require Pro.」
    ![两列对比表](08-ours-table.png) · ![悬停 ⓘ 出现的 Pro 提示](08b-pro-tip.png) · [orca.log](orca.log)
 
 11. 读「03 Which way do you want to work?」。

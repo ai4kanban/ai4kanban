@@ -70,7 +70,7 @@ const zh: HomeCopy = {
         image: "逐页内容与版式预览。",
       },
       {
-        label: "轮播帖",
+        label: "社媒帖",
         body: "审阅逐页文案和内容大纲，agent 制作页面图片与平台发布文案。",
         image: "逐页文案与内容大纲。",
       },

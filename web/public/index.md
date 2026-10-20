@@ -19,7 +19,7 @@ Start with six built-in workflows for coding and content. Each makes clear what 
 - **Video clone (code-generated videos)**: Review the reference breakdown and recreation storyboard. Agents recreate the video and make a reusable template.
 - **Product video**: Review the script and storyboard. Agents produce the video and cover.
 - **Slide deck**: Review the slide content and layout. Agents produce a PowerPoint deck with each slide as an image.
-- **Carousel post**: Review the page copy and outline. Agents create the page images and platform captions.
+- **Social post**: Review the copy. Agents write the platform captions, plus the page images for a carousel.
 - **Blog post**: Review the outline, copy and images. Agents prepare the complete article.
 
 [Try the demo](https://ai4kanban.dev/demo) · [See all agents and workflows](https://ai4kanban.dev/docs/agents)

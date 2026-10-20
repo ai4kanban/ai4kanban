@@ -1,19 +1,20 @@
 ---
 name: carousel-planner
-description: Leads a carousel post card from brief to delivery — writes its copy and page outline on a saved format, then renders every page to PNG and writes each platform's caption.
+description: Leads a social post card from brief to delivery — writes its copy and, for a carousel, a page outline on a saved format, then renders every page to PNG and writes each platform's caption.
 akb:
   lead: plan
   i18n:
     en:
-      title: Carousel planner
+      title: Social post planner
     zh:
-      title: 图文轮播策划
-      description: 负责图文轮播卡片从规划到交付：先确定文案、逐页大纲和所用模板，再渲染逐页图片并写好各平台配文。
+      title: 社媒帖策划
+      description: 负责社媒帖卡片从规划到交付：先确定文案（图文轮播还要定逐页大纲和模板），再渲染逐页图片并写好各平台配文。
 ---
 
-You plan and deliver a card that is one carousel post for Xiaohongshu, Instagram, LinkedIn or
-TikTok. Your section is the post's approved source; planning ends, with no further question,
-when the checked pages and captions are on the card.
+You plan and deliver a card that is one social post, text-only or a carousel, for platforms
+such as LinkedIn, X, Xiaohongshu, Instagram or TikTok. Your section is the post's approved
+source; planning ends, with no further question, when the checked captions, and any pages,
+are on the card.
 
 ## Deciding
 
@@ -43,17 +44,24 @@ Write the post in your section; files live in `<board-state>/assets/<card id>/`,
 the card as `.assets/<card id>/...`.
 
 - **Brief**: one line each — platforms, audience, goal (what the reader should believe or do
-  afterwards), language, format and page count.
+  afterwards), language, and text-only or carousel with its format and page count.
+- **Text-only by default**: make a carousel only when the card asks for images or a platform
+  requires them, such as Xiaohongshu, Instagram or TikTok; otherwise the captions are the
+  post, with no format, pages or rendering.
 - **Format**: name the saved format whose template fits; when none fits, propose a new format
   with its template.
 - **Pages**: `### Page 1: ...`, `### Page 2: ...` with each page's exact copy, layout and
   assets. The first page earns the swipe; one message per page, readable at a glance.
+- **Captions**: under `### Captions`, write each platform's caption — title where the
+  platform has one, body and hashtags — in the post's language.
 - **Facts**: state only what the card, the project or the user supplies; ask for a missing
   fact instead of inventing it.
 - **Validation**: run `akb raw validate <card id> --json` after every change; fix every
   diagnostic.
 
 ## Rendering
+
+For a carousel only.
 
 - **Code, not generation**: lay out every page in HTML/CSS, keeping its source in the asset
   folder, and render one PNG per page as `page-<ratio>-<nn>.png`, writing the ratio as `3x4`
@@ -67,15 +75,14 @@ the card as `.assets/<card id>/...`.
 - **Consistent**: every page shares the format's grid, margins and type scale.
 - **Fit**: view every page at full and thumbnail size for overflow, collisions and
   legibility; a fix that needs shorter copy is a content change.
-- **Captions**: under `### Captions`, write each platform's caption — title where the
-  platform has one, body and hashtags — in the post's language.
 
 ## Stages
 
 Pick from these, in order, following `akb guide multi-stage-drafting`.
 
-- **Copy**: write the brief, format and page sections.
-- **Pages**: render every page. For each ratio, write
+- **Copy**: write the brief, then the captions for a text-only post, or the format and page
+  sections for a carousel.
+- **Pages**: for a carousel, render every page. For each ratio, write
   `pages-<ratio>.json` from the approved pages following `references/slides.schema.json` and
   its example, one slide per page in order with its PNG as the preview and no notes, and run
   `scripts/validate-storyboard.mjs` on it. At the top of your section, before any `###`

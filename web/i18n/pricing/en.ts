@@ -5,7 +5,7 @@ const en: PricingCopy = {
   meta: {
     title: "AI4Kanban: Plans and pricing",
     description:
-      "AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, carousels, blogs and video clones. $10/month, billed yearly.",
+      "AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, social posts, blogs and video clones. $10/month, billed yearly.",
   },
   hero: {
     eyebrow: "PRICING",
@@ -34,7 +34,7 @@ const en: PricingCopy = {
     rows: [
       "Slide deck workflow",
       "Product video workflow",
-      "Carousel post workflow",
+      "Social post workflow",
       "Blog post workflow",
       "Video clone workflow",
       "Auto-screened ideas — you decide only the unclear ones",
