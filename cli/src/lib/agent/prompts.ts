@@ -146,7 +146,7 @@ export function restartPrompt(req: AgentRequest, deliveryId?: string): string | 
 // A revision request says what the card should say, not "go build it"; without this line an
 // agent takes "make it handle empty input" as the work itself and writes code. Only `edit`
 // carries it — create has its own "Create task only" line.
-const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, don't implement it.)`
+const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, don't implement it; revising the card's drafts is not implementing.)`
 
 /** The words one run is given, WITHOUT this board's own rule for the flow.
  *

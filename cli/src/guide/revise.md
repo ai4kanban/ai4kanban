@@ -13,6 +13,10 @@ the project and leave only decisions the user owns.
 - **Spec agents**: when the revision adds or changes work a spec agent's description covers,
   such as images, page copy or a screen, run that agent as "Spec agents" in `akb guide refine`
   says; a plan of that work written into `## Scope` is no substitute.
+- **Drafts**: when the change affects a draft on the card, revise its files and previews in
+  place on this run. Follow the lead agent's rules attached to this prompt for its own drafts.
+  Use `akb spec` only for a helper agent's drafts. Keep the stage, the unaffected content and
+  the IDs. A note or todo is no substitute.
 - **Superseded decisions**: An entry under `## Decided by the agent`, or a line under the
   human half's `## Worth noting`, that the revision makes invalid is a call the user
   overruled — keep it. Move the line, as it stands, under a `### Overruled by the user`
