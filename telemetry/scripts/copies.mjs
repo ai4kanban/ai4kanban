@@ -43,12 +43,19 @@ export function wrangler(args, { absentIf, cwd = serviceRoot } = {}) {
     delete env[name]
     delete env[name.toLowerCase()]
   }
-  const run = spawnSync('npx', ['--no-install', 'wrangler', ...args], {
-    cwd,
-    env,
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  })
+  const spawn = (runEnv, runArgs = args) =>
+    spawnSync('npx', ['--no-install', 'wrangler', ...runArgs], {
+      cwd,
+      env: runEnv,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    })
+  let run = spawn(env)
+  // An expired OAuth login can only refresh through the proxy; refresh it there, then retry.
+  if (run.status !== 0 && /could not be refreshed/i.test(`${run.stderr}${run.stdout}`)) {
+    spawn(process.env, ['whoami'])
+    run = spawn(env)
+  }
   if (run.status !== 0) {
     if (absentIf?.test(`${run.stderr}${run.stdout}`)) return null
     throw new Error(`wrangler ${args[0]} ${args[1] ?? ''} failed:\n${run.stderr || run.stdout}`)

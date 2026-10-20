@@ -4,12 +4,16 @@ This is a small, evolving guide for `web/`.
 
 ## Shared language
 
-- **Open, warm, direct**: white space, warm near-black ink, and restrained warm neutral
-  fills give the content room. Spacing and typography do most of the grouping.
+- **Open, warm, direct**: white space and warm near-black ink give the content room.
+  Spacing and typography do most of the grouping. Never fill controls with beige or tan.
 - **Ember accent**: orange marks actions and points of emphasis. Larger areas can work
   when they serve the composition, as on the download page.
 - **Selective tactile detail**: rounded corners, ink outlines, and hard offset shadows
-  give buttons and selected objects weight. Most content sits openly on the page.
+  give buttons weight. Most content sits openly on the page.
+- **Ink sparingly**: ink is for text and outlines. Never fill a tab, a page number or a
+  selected state with it.
+- **Tabs and pages**: the selected tab or page is deep-ember text over a short ember bar;
+  the rest are muted text. No fills or shadows.
 - **Clear typography**: Inter headings are bold and tightly spaced; body copy is calmer
   and comfortably readable. Monospace suits code and short labels.
 - **Artwork with warmth**: pixel textures and watercolor-like washes accompany product
