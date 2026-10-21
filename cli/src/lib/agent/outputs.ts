@@ -3,7 +3,8 @@
 //
 // A file is recorded as a ticked todo naming its path in backticks. The todos the plan
 // wrote are left out — ticking one is progress, not a record — so the board notes their
-// wording when the delivery starts.
+// wording when the delivery starts. A ticked todo that still opens with that wording is
+// one of them, even with text added after it.
 
 import fs from 'node:fs'
 import os from 'node:os'
@@ -38,7 +39,7 @@ const todos = (cardId: number): { done: boolean; text: string }[] =>
 export const plannedTodos = (cardId: number): string[] => todos(cardId).filter((t) => !t.done).map((t) => t.text)
 
 const looksLikePath = (token: string): boolean =>
-  !/\s/.test(token) && !token.includes('://') && !token.startsWith('-') && (token.includes('/') || /\.\w{1,8}$/.test(token))
+  !/\s/.test(token) && !token.includes('://') && !token.startsWith('-') && token.includes('/')
 
 const resolveOutput = (file: string): string => {
   if (file.startsWith('~/')) return path.join(os.homedir(), file.slice(2))
@@ -50,10 +51,10 @@ const resolveOutput = (file: string): string => {
 /** The files this delivery's card records, in the order it names them. */
 export function recordedOutputs(delivery: Pick<DeliveryRecord, 'cardId' | 'planned'>): string[] {
   if (delivery.cardId === null) return []
-  const planned = new Set(delivery.planned ?? [])
+  const planned = (delivery.planned ?? []).filter(Boolean)
   const out: string[] = []
   for (const todo of todos(delivery.cardId)) {
-    if (!todo.done || planned.has(todo.text)) continue
+    if (!todo.done || planned.some((p) => todo.text.startsWith(p))) continue
     for (const m of todo.text.matchAll(/`([^`]+)`/g)) {
       const file = m[1]!.trim()
       if (looksLikePath(file) && !out.includes(file)) out.push(file)

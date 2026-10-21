@@ -438,7 +438,8 @@ function committingClose(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
   if (delivery.commitMode === 'files') {
     return [
-      'record each output file on the card by its path — a ticked `## Todo` line naming it in backticks; a missing record or file means not delivered',
+      'add one ticked `## Todo` line naming where the output is, such as `- [x] Output: `./out/email/``',
+      "tick the plan's todos without changing their text",
       'do not create a branch or worktree, commit, or merge',
       'change no tracked file outside the board. New changes there stop the delivery; never revert them automatically',
     ]

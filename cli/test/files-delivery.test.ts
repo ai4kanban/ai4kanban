@@ -210,6 +210,37 @@ describe('a files delivery', () => {
     assert.equal(fs.existsSync(cardFile(1)), true)
   })
 
+  it('takes a planned todo reworded after its text as progress, not a record (#1921)', async () => {
+    card(1, filesFlow())
+    const session = open(1)
+    const body = fs.readFileSync(cardFile(1), 'utf8')
+    fs.writeFileSync(cardFile(1), body.replace('- [ ] Write `out/draft.html`', '- [x] Write `out/draft.html` — kept `template.md`'))
+    await end(session)
+    const stopped = activeDelivery(1)!.review?.stopped
+    assert.equal(stopped?.reason, 'output')
+    assert.deepEqual(stopped?.paths, [])
+  })
+
+  it('reads a bare file name as no output', async () => {
+    card(1, filesFlow())
+    const session = open(1)
+    record(1, 'template.md')
+    await end(session)
+    assert.deepEqual(activeDelivery(1)!.review?.stopped?.paths, [])
+  })
+
+  it('takes `./x.md` and a folder as outputs', async () => {
+    card(1, filesFlow())
+    const session = open(1)
+    const delivery = activeDelivery(1)!
+    write('x.md')
+    write('out/email/index.html')
+    record(1, './x.md')
+    record(1, './out/email/')
+    await end(session)
+    assert.equal(recordOf(delivery.deliveryId).status, 'finished')
+  })
+
   it('stops naming a recorded file that is not there', async () => {
     card(1, filesFlow())
     const session = open(1)
@@ -236,7 +267,8 @@ describe('a files delivery', () => {
     card(1, filesFlow())
     open(1)
     const build = flow('implement', 1)
-    assert.match(build, /record each output file on the card by its path/)
+    assert.match(build, /add one ticked `## Todo` line naming where the output is/)
+    assert.match(build, /tick the plan's todos without changing their text/)
     assert.match(build, /do not create a branch or worktree, commit, or merge/)
     assert.match(build, /The board archives it after the output files pass the delivery checks/)
     assert.doesNotMatch(build, /leave your work uncommitted|once the delivery has landed|Review comes next/)
