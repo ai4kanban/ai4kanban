@@ -9,7 +9,7 @@ import { getTemplatesCopy, type TemplatesLocale } from "@/i18n/templates";
 import type { TemplatesCopy } from "@/i18n/templates/types";
 import { localePath } from "@/lib/i18n";
 import { clock, fetchCatalog, templatePath, type Category, type TemplateCard } from "@/lib/templates";
-import { AccessTag, Duration, NoPreview, Progress, StateBox, reducedMotion } from "./parts";
+import { AccessTag, Bone, Duration, Img, NoPreview, Progress, StateBox, reducedMotion } from "./parts";
 
 const PER_PAGE = 12;
 
@@ -21,6 +21,7 @@ const PER_PAGE = 12;
 export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial: Category[] | null }) {
   const t = getTemplatesCopy(locale);
   const [categories, setCategories] = useState(initial);
+  const [fresh, setFresh] = useState(false);
   const [failed, setFailed] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -29,7 +30,13 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
 
   const load = useCallback(() => {
     setFailed(false);
-    fetchCatalog().then(setCategories, () => setFailed(true));
+    fetchCatalog().then(
+      (c) => {
+        setCategories(c);
+        setFresh(true);
+      },
+      () => setFailed(true),
+    );
   }, []);
   useEffect(load, [load]);
 
@@ -58,7 +65,10 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
     grid.current?.scrollIntoView({ block: "start" });
   };
 
-  const open = categories?.find((c) => c.category === picked) ?? categories?.[0];
+  // A tab the snapshot lacks waits for the fresh read, rather than flashing the first tab.
+  const found = categories?.find((c) => c.category === picked);
+  const waiting = !found && !!picked && !fresh && !failed;
+  const open = found ?? (waiting ? undefined : categories?.[0]);
   const shown = open?.templates.slice((page - 1) * PER_PAGE, page * PER_PAGE) ?? [];
   const hover = useHover();
 
@@ -86,13 +96,13 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
           <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">{t.title}</h1>
           <p className="mt-3 text-lg text-muted">{t.lead}</p>
         </div>
-        {categories && open && (
+        {categories && (open || waiting) ? (
           <Tabs label={t.tabs} className="mt-6 shrink-0 md:mt-0">
             {categories.map(({ category, templates }) => (
               <Tab
                 key={category}
                 href={`#${category}`}
-                on={category === open.category}
+                on={category === open?.category}
                 count={templates.length}
                 onClick={(e) => pick(e, category)}
               >
@@ -100,6 +110,14 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
               </Tab>
             ))}
           </Tabs>
+        ) : (
+          !failed && (
+            <div className="mt-6 flex shrink-0 items-center gap-6 py-2 md:mt-0" aria-hidden="true">
+              {[3.5, 3, 3.5, 3.5, 3.5].map((w, i) => (
+                <Bone key={i} className="h-4" style={{ width: `${w}rem` }} />
+              ))}
+            </div>
+          )
         )}
       </section>
 
@@ -107,7 +125,7 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
         <section>
           <div
             ref={grid}
-            className={`mt-8 grid scroll-mt-24 gap-x-8 gap-y-10 sm:grid-cols-2 md:mt-10 ${open.category === "carousel" ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+            className={`mt-8 grid scroll-mt-24 gap-x-8 gap-y-10 sm:grid-cols-2 md:mt-10 ${columns(open.category)}`}
           >
             {shown.map((tpl) => (
               <Tile
@@ -137,23 +155,49 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
             next={t.next}
           />
         </section>
+      ) : waiting || (!categories && !failed) ? (
+        <Loading t={t} category={picked} />
       ) : (
         <section className="mt-10">
           {categories ? (
             <StateBox line={t.empty} />
-          ) : failed ? (
+          ) : (
             <StateBox line={t.unavailable}>
               <Button size="sm" onClick={load}>
                 <FiRefreshCw className="h-4 w-4" aria-hidden="true" />
                 {t.retry}
               </Button>
             </StateBox>
-          ) : (
-            <p className="text-muted">{t.loading}</p>
           )}
         </section>
       )}
     </>
+  );
+}
+
+const columns = (category: string) => (category === "carousel" ? "lg:grid-cols-4" : "lg:grid-cols-3");
+
+// A motion is shown whole, as its clip frames it; a carousel stands portrait.
+const tileAspect = (category: string) =>
+  category === "motion" ? "aspect-video" : category === "carousel" ? "aspect-[3/4]" : "aspect-[16/10]";
+
+/** One row of the tab's own tiles; two on a phone. */
+function Loading({ t, category }: { t: TemplatesCopy; category: string | null }) {
+  const c = category ?? "";
+  return (
+    <section aria-busy="true">
+      <span className="sr-only">{t.loading}</span>
+      <div className={`mt-8 grid gap-x-8 gap-y-10 sm:grid-cols-2 md:mt-10 ${columns(c)}`}>
+        {Array.from({ length: c === "carousel" ? 4 : 3 }, (_, i) => (
+          <div key={i} className={i >= 2 ? "hidden lg:block" : ""}>
+            <Bone className={`${tileAspect(c)} w-full rounded-xl`} />
+            <Bone className="mt-4 h-5 w-3/4" />
+            <Bone className="mt-2.5 h-3.5 w-full" />
+            <Bone className="mt-2 h-3.5 w-2/3" />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -195,13 +239,11 @@ function Tile({
       v.play().catch(() => undefined);
     }
   }, [playing]);
-  // A motion is shown whole, as its clip frames it; a carousel stands portrait.
-  const aspect =
-    category === "motion" ? "aspect-video" : category === "carousel" ? "aspect-[3/4]" : "aspect-[16/10]";
+  const aspect = tileAspect(category);
   const fit =
     category === "motion"
       ? "object-contain"
-      : "object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100";
+      : "object-cover group-hover:scale-[1.02] motion-reduce:group-hover:scale-100";
 
   return (
     <a
@@ -212,8 +254,7 @@ function Tile({
     >
       <div className="relative overflow-hidden rounded-xl bg-code" data-clip={tpl.clip ? tpl.name : undefined}>
         {tpl.cover ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-          <img src={tpl.cover} alt="" loading="lazy" decoding="async" className={`${aspect} w-full ${fit}`} />
+          <Img src={tpl.cover} lazy className={`${aspect} w-full ${fit}`} />
         ) : (
           <NoPreview label={t.noPreview} aspect={aspect} />
         )}

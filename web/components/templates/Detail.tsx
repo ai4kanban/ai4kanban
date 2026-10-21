@@ -18,9 +18,11 @@ import {
   type Side,
   type Template,
 } from "@/lib/templates";
-import { AccessTag, Duration, NoPreview, Progress, StateBox, Tag, reducedMotion } from "./parts";
+import { AccessTag, Bone, Duration, Img, NoPreview, Progress, StateBox, Tag, reducedMotion } from "./parts";
 
-type State = { template: Template | null; missing: boolean; failed: boolean };
+/** `settled`: the fresh read is back, or failed — until then the preview waits, so an old
+ *  snapshot's layout never flashes before the current one. */
+type State = { template: Template | null; missing: boolean; failed: boolean; settled: boolean };
 
 // One template: what it is, the original beside its recreation (a prop has only
 // its keyframe, a motion its clip), where it came from, and how to use it. Like the
@@ -43,7 +45,7 @@ export function Detail({
   const shell = name === SHELL;
   const [urlCategory = category, urlName = name] = shell ? pathname.split(`${TEMPLATES_PATH}/`)[1]?.split("/") ?? [] : [];
   const want = shell ? urlName : name;
-  const [state, setState] = useState<State>({ template: initial, missing: false, failed: false });
+  const [state, setState] = useState<State>({ template: initial, missing: false, failed: false, settled: false });
 
   const load = useCallback(() => {
     setState((s) => ({ ...s, failed: false }));
@@ -52,9 +54,9 @@ export function Detail({
         if (template && template.category !== (shell ? urlCategory : category)) {
           window.location.replace(localePath(locale, templatePath(template.category, template.name)));
         }
-        setState({ template, missing: !template, failed: false });
+        setState({ template, missing: !template, failed: false, settled: true });
       },
-      () => setState((s) => ({ ...s, failed: !s.template })),
+      () => setState((s) => ({ ...s, failed: !s.template, settled: true })),
     );
   }, [want, shell, urlCategory, category, locale]);
   useEffect(load, [load]);
@@ -64,7 +66,7 @@ export function Detail({
   }, [shell, state.template, t]);
 
   const home = localePath(locale, TEMPLATES_PATH);
-  const { template: tpl, missing, failed } = state;
+  const { template: tpl, missing, failed, settled } = state;
 
   if (missing || (failed && !tpl)) {
     return (
@@ -84,7 +86,7 @@ export function Detail({
       </section>
     );
   }
-  if (!tpl) return <p className="mt-10 text-muted">{t.loading}</p>;
+  if (!tpl) return <Skeleton t={t} home={home} category={shell ? urlCategory : category} />;
 
   const named = t.categories[tpl.category];
   const sides = [
@@ -102,13 +104,7 @@ export function Detail({
   return (
     <>
       <section className="mt-8 lg:mt-12">
-        <a
-          href={`${home}#${tpl.category}`}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted no-underline hover:text-ink"
-        >
-          <FiArrowLeft className="h-4 w-4" aria-hidden="true" />
-          {named?.back ?? t.back(tpl.category)}
-        </a>
+        <Back t={t} home={home} category={tpl.category} />
         <h1 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight sm:text-5xl">{tpl.title}</h1>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Tag>{named?.name ?? tpl.category}</Tag>
@@ -117,7 +113,9 @@ export function Detail({
         <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted">{tpl.summary}</p>
       </section>
 
-      {pages.length > 0 ? (
+      {!settled ? (
+        !motion && <PreviewBones category={tpl.category} sides={sides.length} />
+      ) : pages.length > 0 ? (
         <figure className="mt-10">
           <figcaption className="mb-2 flex items-center gap-2">
             <Tag>{t.pageCount(pages.length)}</Tag>
@@ -152,7 +150,8 @@ export function Detail({
 
       <section className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
         <div>
-          {motion && (
+          {motion && !settled && <MotionBones />}
+          {motion && settled && (
             <figure className="mb-10 max-w-[40rem]">
               <figcaption className="mb-2 flex items-center gap-2">
                 <Tag>{tpl.recreation?.video ? t.preview : t.keyframe}</Tag>
@@ -216,7 +215,100 @@ export function Detail({
   );
 }
 
+function Back({ t, home, category }: { t: TemplatesCopy; home: string; category: string }) {
+  return (
+    <a
+      href={`${home}#${category}`}
+      className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted no-underline hover:text-ink"
+    >
+      <FiArrowLeft className="h-4 w-4" aria-hidden="true" />
+      {t.categories[category]?.back ?? t.back(category)}
+    </a>
+  );
+}
+
+/** The page's own layout in quiet blocks, shaped by the category in the URL. */
+function Skeleton({ t, home, category }: { t: TemplatesCopy; home: string; category: string }) {
+  const motion = category === "motion";
+  return (
+    <div aria-busy="true">
+      <span className="sr-only">{t.loading}</span>
+      <section className="mt-8 lg:mt-12">
+        <Back t={t} home={home} category={category} />
+        <Bone className="mt-5 h-9 w-4/5 sm:h-12 sm:w-1/2" />
+        <div className="mt-4 flex gap-2">
+          <Bone className="h-5 w-14" />
+          <Bone className="h-5 w-12" />
+        </div>
+        <Bone className="mt-5 h-5 w-full max-w-3xl" />
+        <Bone className="mt-2.5 h-5 w-2/3 max-w-xl" />
+      </section>
+      {!motion && <PreviewBones category={category} sides={2} />}
+      <section className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
+        <div>
+          {motion && <MotionBones />}
+          <div className="space-y-2.5">
+            <Bone className="h-4 w-full" />
+            <Bone className="h-4 w-full" />
+            <Bone className="h-4 w-5/6" />
+            <Bone className="h-4 w-2/3" />
+          </div>
+        </div>
+        <div className={`space-y-3 ${motion ? "" : "border-b border-border/15 pb-6"}`}>
+          <Bone className="h-5 w-40" />
+          <Bone className="h-3.5 w-56 max-w-full" />
+          <Bone className="h-24 w-full rounded-lg" />
+          <Bone className="h-10 w-full rounded-lg" />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/** Where the preview will be: a carousel's strip of pages, or the finished piece's own ratio. */
+function PreviewBones({ category, sides }: { category: string; sides: number }) {
+  if (category === "carousel") {
+    return (
+      <div className="mt-10" aria-busy="true">
+        <Bone className="mb-2 h-5 w-16" />
+        <div className="-mx-6 flex gap-4 overflow-hidden px-6 pb-2">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Bone key={i} className="aspect-[4/5] h-[min(26rem,104vw)] shrink-0 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const piece = category === "prop";
+  const n = piece ? 1 : Math.max(sides, 1);
+  const aspect = piece || category === "video" ? "aspect-video" : "aspect-[16/10]";
+  return (
+    <section className={`mt-10 grid gap-6 ${n > 1 ? "lg:grid-cols-2" : ""}`} aria-busy="true">
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i}>
+          <Bone className="mb-2 h-5 w-24" />
+          <Bone className={`${aspect} w-full rounded-xl`} />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function MotionBones() {
+  return (
+    <div className="mb-10 max-w-[40rem]" aria-busy="true">
+      <Bone className="mb-2 h-5 w-16" />
+      <Bone className="aspect-video w-full rounded-xl" />
+    </div>
+  );
+}
+
 const PAGE = "h-[min(26rem,104vw)] w-auto max-w-none shrink-0 snap-start rounded-xl border border-border/15 bg-code";
+
+/** A page's image, at the strip's height and its own width; a portrait block until it loads. */
+function PageImg({ src }: { src: string }) {
+  return <Img src={src} lazy until="aspect-[4/5]" className="block h-full w-auto max-w-none" />;
+}
 
 /** A carousel's pages side by side at one height and their own ratio; on a phone one fills the
  *  screen and the next peeks past the edge. */
@@ -227,8 +319,9 @@ function Strip({ t, pages }: { t: TemplatesCopy; pages: Page[] }) {
         p.video ? (
           <LivePage key={i} t={t} image={p.image} video={p.video} />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-          <img key={i} src={p.image} alt="" className={PAGE} />
+          <span key={i} className={`overflow-hidden ${PAGE}`}>
+            <PageImg src={p.image} />
+          </span>
         ),
       )}
     </div>
@@ -261,8 +354,11 @@ function LivePage({ t, image, video }: { t: TemplatesCopy; image: string; video:
   }, [visible, seen]);
 
   if (failed) {
-    // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-    return <img src={image} alt="" className={PAGE} />;
+    return (
+      <span className={`overflow-hidden ${PAGE}`}>
+        <PageImg src={image} />
+      </span>
+    );
   }
   if (mode === "waiting") {
     return (
@@ -272,25 +368,27 @@ function LivePage({ t, image, video }: { t: TemplatesCopy; image: string; video:
         aria-label={t.play}
         className={`group relative cursor-pointer overflow-hidden p-0 ${PAGE}`}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's */}
-        <img src={image} alt="" className="block h-full w-auto max-w-none" />
+        <PageImg src={image} />
         <PlayBadge />
       </button>
     );
   }
+  // The cover frame sits under the video, so it can fade in like every other page.
   return (
-    <video
-      ref={ref}
-      src={seen ? video : undefined}
-      poster={image}
-      muted
-      loop
-      playsInline
-      preload="none"
-      aria-hidden="true"
-      onError={() => setFailed(true)}
-      className={PAGE}
-    />
+    <span className={`relative overflow-hidden ${PAGE}`}>
+      <PageImg src={image} />
+      <video
+        ref={ref}
+        src={seen ? video : undefined}
+        muted
+        loop
+        playsInline
+        preload="none"
+        aria-hidden="true"
+        onError={() => setFailed(true)}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+    </span>
   );
 }
 
@@ -342,9 +440,15 @@ function Figure({
 /** `whole` keeps the image's own ratio; `aspect` then only sizes the empty placeholder. */
 function Still({ src, aspect, whole, t }: { src: string | null; aspect: string; whole?: boolean; t: TemplatesCopy }) {
   if (!src) return <NoPreview label={t.noPreview} aspect={aspect} />;
-  const fit = whole ? "h-auto border border-border/15" : `${aspect} object-cover object-top`;
-  // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-  return <img src={src} alt="" className={`${fit} w-full rounded-xl bg-code`} />;
+  return (
+    <div className={`overflow-hidden rounded-xl bg-code ${whole ? "border border-border/15" : ""}`}>
+      <Img
+        src={src}
+        until={whole ? aspect : ""}
+        className={`block w-full ${whole ? "h-auto" : `${aspect} object-cover object-top`}`}
+      />
+    </div>
+  );
 }
 
 // A still and a play button until it is pressed: nothing of the video, or of
@@ -534,8 +638,7 @@ function PlayCover({
       className="group relative block w-full cursor-pointer overflow-hidden rounded-xl bg-code text-left"
     >
       {image ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-        <img src={image} alt="" className={`${aspect} w-full object-cover`} />
+        <Img src={image} className={`${aspect} w-full object-cover`} />
       ) : (
         <NoPreview label={t.noPreview} aspect={aspect} />
       )}

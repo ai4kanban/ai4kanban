@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { FiImage } from "react-icons/fi";
 import { panelInset } from "@/components/styles";
 import type { Access } from "@/lib/templates";
@@ -72,6 +72,32 @@ export function Progress({ video }: { video: RefObject<HTMLVideoElement | null> 
     <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-ink/10" aria-hidden="true">
       <span ref={bar} className="block h-full w-0 bg-accent" />
     </span>
+  );
+}
+
+/** A quiet block where content will be, breathing slowly; still under reduced motion. */
+export function Bone({ className = "", style }: { className?: string; style?: CSSProperties }) {
+  return <span aria-hidden="true" style={style} className={`block rounded-md bg-code motion-safe:animate-pulse ${className}`} />;
+}
+
+/** An image that fades in once loaded, over whatever wash sits behind it. `until` sizes it
+ *  before then, for an image whose own ratio is not known yet. */
+export function Img({ src, className = "", until = "", lazy }: { src: string; className?: string; until?: string; lazy?: boolean }) {
+  const img = useRef<HTMLImageElement>(null);
+  const [loaded, setLoaded] = useState(false);
+  // A cached image may finish before React attaches `onLoad`.
+  useEffect(() => setLoaded(!!img.current?.complete && img.current.naturalWidth > 0), [src]);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
+    <img
+      ref={img}
+      src={src}
+      alt=""
+      loading={lazy ? "lazy" : undefined}
+      decoding={lazy ? "async" : undefined}
+      onLoad={() => setLoaded(true)}
+      className={`transition-[opacity,transform] duration-200 motion-reduce:transition-none ${loaded ? "" : `opacity-0 ${until}`} ${className}`}
+    />
   );
 }
 
