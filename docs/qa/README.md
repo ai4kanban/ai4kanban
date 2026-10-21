@@ -57,7 +57,10 @@
 - [升级后，改过社媒帖流程的看板自动加上「社媒帖配图」，关掉后不再加回](skill/a-customized-social-post-workflow-gets-the-illustrator-on-upgrade/case.md)
 - [用 Codex 续聊一张卡，每条回复只记这一轮的费用；升级后旧记录自动改对](skill/a-resumed-codex-chat-costs-only-its-own-turn/case.md)
 - [在卡片对话里要求改草稿，草稿当轮就改好；第二轮改卡也不再重读一遍](skill/ask-the-card-chat-to-change-a-draft-and-it-changes-the-draft/case.md)
-- [发布一个不写 access 和 source 的模板，按免费、原创收进模板库](skill/publish-a-template-without-access-or-source/case.md)
+- [发布一个不写 access 和 source 的模板，按 Pro、原创收进模板库](skill/publish-a-template-without-access-or-source/case.md)
+- [给图文模板上传按顺序排好的多页展示，其中一页带实况视频](skill/upload-a-carousel-showcase-with-a-live-page/case.md)
+- [不用 Git 工作树的卡片：规划待办被改了字，交付照样按 Output 那一行收尾](skill/a-reworded-plan-todo-does-not-stop-a-files-delivery/case.md)
+- [一篇博客同时发官网和 dev.to：两份稿子分开交付，dev.to 那份指回原文；下一篇照记下的去向走](skill/deliver-a-blog-post-to-the-site-and-dev-to-as-separate-copies/case.md)
 
 ### local-ui
 
@@ -138,6 +141,8 @@
 - [读 Codex 介绍页，看 AI4Kanban 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
 - [在官网模板目录里按分类浏览，看动效片段，复制一段提示词去 AI4Kanban 里用](site/browse-the-template-catalog/case.md)
 - [打开已下架模板的旧链接，拿到真正的 404](site/open-a-retired-template-link/case.md)
+- [在官网模板目录里看图文模板：先见骨架，再翻整套竖屏页面，动态页自己播放](site/browse-carousel-templates/case.md)
+- [打开已停掉的 draft-first 旧链接，回到首页](site/open-an-old-draft-first-link/case.md)
 
 ### docs
 
@@ -169,7 +174,8 @@
 - [登录后在模板库按标签找模板，预览后取回](cloud/find-preview-and-fetch-a-shared-template/case.md)
 - [用 `akb cloud image` 生成一张图像](cloud/generate-an-image-with-cloud/case.md)
 - [用 `akb cloud music` 生成一段托管配乐](cloud/generate-music-with-cloud/case.md)
-- [维护者给已发布的模板登记展示资料，官网不登录就能读到目录](cloud/register-a-template-showcase-for-the-public-catalog/case.md)
+- [维护者给已发布的模板登记展示资料（含图文的整套页面），官网不登录就能读到目录](cloud/register-a-template-showcase-for-the-public-catalog/case.md)
+- [模板默认是 Pro：免费账号只能取到维护者明确发布为免费的模板](cloud/templates-are-pro-unless-published-free/case.md)
 
 ### telemetry
 

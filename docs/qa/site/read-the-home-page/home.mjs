@@ -1,4 +1,4 @@
-// Reads the home page: the /zh hero, the handoff scene, the pinned workflow row and its previews,
+// Reads the home page (the office section is office.mjs): the /zh hero, the handoff scene, the pinned workflow row and its previews,
 // the links under it, the tools, the closing band and footer, what the page loads, the English
 // page, two phones and reduced motion.
 // Usage: SITE=127.0.0.1:4391 CDP_PORT=9391 OUT=<proof dir> node home.mjs   (needs ffmpeg for the GIF)
@@ -95,7 +95,7 @@ log('sections on the page:', await p.ev(`[...document.querySelectorAll('main h2'
 await p.ev('scrollTo(0, document.body.scrollHeight)'); await p.sleep(3000)
 const img = reqs.filter((r) => /Image|Media/.test(r.type) && !r.url.startsWith('data:') && !/\/demo\//.test(r.url)).map((r) => r.url.replace(SITE, '').replace(/^\/_next\/image\?url=([^&]+).*/, (m, u) => decodeURIComponent(u)))
 log('images and media the page loaded, scrolled to the end:', [...new Set(img)])
-log('any removed-section art requested (board/card shots, task graph, office, memory/follow-up scenes):', img.filter((u) => !u.startsWith('/home/drafts/') && /\/home\/demo-|task-?graph|office|memory|follow/i.test(u)))
+log('any removed-section art requested (board/card shots, task graph, memory/follow-up scenes):', img.filter((u) => !u.startsWith('/home/drafts/') && /\/home\/demo-|task-?graph|memory|follow/i.test(u)))
 log('footer 产品:', await p.ev(`(()=>{const h=[...document.querySelectorAll('footer *')].find(e=>e.children.length===0&&e.textContent.trim()==='产品');return [...h.parentElement.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.getAttribute('href')).join(' · ')})()`))
 await p.close()
 
