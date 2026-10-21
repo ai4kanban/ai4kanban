@@ -29,12 +29,15 @@ source; planning ends, with no further question, when the checked article is del
 Your memory folder is `docs/kanban/memory/agents/blog-planner/`. Read it before writing; the
 current card wins.
 
-- **General**: `general.md` holds writing preferences and where the blog lives — a folder in
-  the project or a URL. When it names neither and the project has no blog folder, ask for the
-  blog's URL or confirm there is no blog yet, and record the answer.
-- **Keywords**: `keywords.md` is for an online-only blog: one line per post this workflow
-  wrote, `<URL> → <keywords>`. When you read it, drop lines whose URL no longer resolves.
-- **Corrections**: record each user correction that changes your next post in `general.md`,
+- **General**: `general.md` holds writing preferences shared by every destination.
+- **Destinations**: `destination.md` holds, per destination, its location, its format and the
+  writing preferences specific to it, which override `general.md`. Record a destination's
+  location and format after its first publication, reuse them afterwards, and update only
+  that destination's record when the user changes it.
+- **Keywords**: `keywords.md` holds one line per delivered copy, `<URL> → <keywords>`,
+  whatever its destination. When you read it, drop lines whose URL no longer resolves.
+- **Corrections**: record each user preference or correction that changes your next post in
+  `general.md`, or in `destination.md` when it applies to one destination only,
   following "What earns a note" in `akb guide board`; merge duplicates and rewrite overturned
   lines in place.
 
@@ -42,11 +45,15 @@ current card wins.
 
 Files live in `<board-state>/assets/<card id>/`, linked from the card as `.assets/<card id>/...`.
 
-- **Existing posts**: they are the catalogue — read them for voice, overlap and internal
-  links: in the project, the posts and their frontmatter; online, its sitemap, RSS or list page.
+- **Existing posts**: they are the catalogue — read them, as files or through a sitemap, RSS
+  or list page, for voice, overlap and internal links.
 - **Brief**: one line each — audience, goal (what the reader should believe or do
-  afterwards), language, length, keywords, and the starting angle with the doubts that could
-  overturn it.
+  afterwards), language, length, keywords, destinations, and the starting angle with the
+  doubts that could overturn it.
+- **Destinations**: where the post is published, such as a site folder, a CMS, dev.to or
+  Medium; there may be several. Use the destinations the user names; otherwise the project
+  default in the applicable agent rules; otherwise `destination.md`; otherwise infer them
+  from the card and earlier posts. Ask only when all of these leave them open.
 - **Keywords**: zero or more, the first is the one to win. Ask which one the user wants to
   win; when they give none, leave it empty. No keyword research or rank tracking.
 - **Keyword use**: put the primary keyword naturally in the title, H1 and SEO title, and each
@@ -76,12 +83,17 @@ Pick from these, in order, following `akb guide multi-stage-drafting`.
 
 - **Outline**: write the brief, request `blog-researcher`, then write an outline whose angle
   and sections carry the points from existing pages and the research.
-- **Article**: request `blog-illustrator`, then write the article. Deliver it as `<slug>.md` in the asset folder — `.mdx` when the blog uses it —
-  with its images beside it, in the blog's own frontmatter format, and put
-  `<Asset src=".assets/<card id>/<slug>.<ext>" label="Article" />` at the top of your section.
-  For a blog in the project, also write the post and its images where its existing posts
-  keep theirs, with the keywords in the frontmatter field `keywords`; for an online-only
-  blog, add the post's expected URL to `keywords.md`. Append a ticked todo listing every
-  delivered path in backticks.
+- **Article**: request `blog-illustrator`, then write the article. Deliver one copy per
+  destination in the asset folder: one article file in the format that destination accepts,
+  with any number of images beside it.
+- **Delivery**: at the top of your section, put one
+  `<Asset src=".assets/<card id>/<article file>" label="<destination>" />` per copy. Where a
+  destination keeps posts as files, also write that copy and its images there. Put each
+  copy's keywords where its format holds them and in `keywords.md`. Append a ticked todo
+  listing every delivered path in backticks.
+- **Separate copies**: never write a copy into another destination.
+- **Canonical**: when the user clearly means to publish the same post in several
+  destinations, set the URL of the copy they treat as the original as every other copy's
+  canonical URL, in that platform's own field, or tell the user to set it when publishing.
 - **Keyword changes**: revise the brief and affected titles, metadata and sections together.
 - **Changes**: keep every delivered copy matching the article.
