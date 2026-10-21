@@ -229,6 +229,10 @@ export const SAID = {
     zh: '本月积分已用完，下月 1 日（UTC）重置；可在桌面应用的 Billing 页查看余额。',
     en: 'This month’s AI credits are used up. They reset on the 1st of next month (UTC); check your balance on the Billing page in the desktop app.',
   },
+  trial_credits_used_up: {
+    zh: '试用期的 AI 积分已用完。试用结束后可在桌面应用的 Billing 页购买 Pro。',
+    en: 'Your trial’s AI credits are used up. Get Pro from the Billing page in the desktop app once the trial ends.',
+  },
 } satisfies Record<string, Said>
 
 interface Generation {
@@ -375,7 +379,10 @@ async function generate(g: Generation): Promise<MoveResult> {
     const { error } = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } }
     if (res.status === 401) refuse(SAID.expired, g.fallback)
     if (error?.code === 'pro_required') refuse(g.pro_required, g.fallback)
-    if (error?.code === 'credits_used_up') refuse(SAID.credits_used_up, g.fallback)
+    // Only the month's pool resets, so only its refusal says when (#1932).
+    if (error?.code === 'credits_used_up') {
+      refuse(res.headers.has('retry-after') ? SAID.credits_used_up : SAID.trial_credits_used_up, g.fallback)
+    }
     if (res.status === 400) usage(error?.message ?? 'The request was refused.', g.usage)
     refuse(g.failed, g.fallback)
   }

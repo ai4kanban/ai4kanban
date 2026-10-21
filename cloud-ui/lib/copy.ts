@@ -59,6 +59,13 @@ export interface HostedCopy {
   perMonth: string;
   perYear: string;
   getPro: string;
+  /** The 7-day trial (#1932). `{days}` is the days left, `{date}` its end. */
+  startTrial: string;
+  trial: string;
+  trialLeft: string;
+  trialLeftOne: string;
+  trialEnds: string;
+  trialFailed: string;
   manage: string;
   /** `{date}` is the plan's date. Strings rather than functions: this copy crosses into the
    *  client frame, which takes nothing that is not serialisable. */
@@ -117,6 +124,12 @@ const en: HostedCopy = {
   perMonth: "/ month",
   perYear: "/ year",
   getPro: "Get Pro",
+  startTrial: "Start 7-day free trial",
+  trial: "Trial",
+  trialLeft: "{days} days left",
+  trialLeftOne: "1 day left",
+  trialEnds: "Ends on {date}",
+  trialFailed: "The trial could not start. Try again.",
   manage: "Manage billing",
   renews: "Renews on {date}",
   ends: "Ends on {date}. Won't renew.",
@@ -169,6 +182,12 @@ const zh: HostedCopy = {
   perMonth: "/ 月",
   perYear: "/ 年",
   getPro: "购买 Pro",
+  startTrial: "免费试用 7 天",
+  trial: "试用中",
+  trialLeft: "还剩 {days} 天",
+  trialLeftOne: "还剩 1 天",
+  trialEnds: "{date}结束",
+  trialFailed: "无法开始试用，请重试。",
   manage: "管理账单",
   renews: "{date}自动续费",
   ends: "{date}到期，不再续费。",

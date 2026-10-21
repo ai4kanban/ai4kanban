@@ -252,7 +252,7 @@ export type { BoardEntry } from './lib/boards'
 export { readCloudAccount, signOutOfCloud } from './lib/cloud/account'
 export { proAccess } from './lib/cloud/pro'
 // The desktop Billing tab (#1109).
-export { openBillingPortal, readBilling, readInvoices, resumeRenewal, startCheckout } from './lib/cloud/billing'
+export { openBillingPortal, readBilling, readInvoices, resumeRenewal, startCheckout, startTrial } from './lib/cloud/billing'
 export type { CloudAccount, CloudMove, CloudState } from './lib/cloud/account'
 // The one way out of the not-admitted state (#327, #350): ask us for an invite, and we admit
 // the account when we approve it. Open to a verified sign-in we have not admitted.

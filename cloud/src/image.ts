@@ -8,10 +8,10 @@
  */
 
 import { recordAiCall } from './ai-calls.ts'
-import { readBilling } from './billing.ts'
-import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
+import { onTrialOnly, readBilling } from './billing.ts'
+import { readCredits, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
-import { badRequest, creditsUsedUp, imageFailed, imageUnavailable, proRequired } from './errors.ts'
+import { badRequest, creditsUsedUp, imageFailed, imageUnavailable, proRequired, trialCreditsUsedUp } from './errors.ts'
 
 export const IMAGE_MODEL = 'openai/gpt-image-2.5-sunburst'
 /** What the model accepts. */
@@ -46,9 +46,9 @@ export async function generateImage(env: Env, user: string, body: unknown): Prom
       throw badRequest(`Each reference image must be ${MAX_REFERENCE_BYTES / 1024 / 1024} MB or smaller.`)
     }
   }
-  const [billing, used] = await Promise.all([readBilling(env, user), creditsUsed(env, user)])
+  const billing = await readBilling(env, user)
   if (billing.plan !== 'pro') throw proRequired()
-  if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
+  if ((await readCredits(env, user, billing)).left <= 0) throw onTrialOnly(billing) ? trialCreditsUsedUp() : creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw imageUnavailable()
 
   const failed = async () => {

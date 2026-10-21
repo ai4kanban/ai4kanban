@@ -12,6 +12,7 @@ import {
   readInvoicesAction,
   resumeRenewalAction,
   startCheckoutAction,
+  startTrialAction,
 } from "@/app/actions";
 import type { BillingCopy, PlanRow } from "@/i18n/configuration/types";
 import { useCopy } from "@/i18n/use-copy";
@@ -44,6 +45,10 @@ const FAIL = "text-[12.5px] font-[700] text-nb-peach-ink";
 
 /** Paying for Pro. A seed partner's grant alone is Pro too, but may still buy (#1039). */
 const subscribed = (b: CloudBilling) => b.state === "active" || b.state === "canceled" || b.state === "pastDue";
+
+/** Pro on the trial alone (#1932): nothing can be bought until it ends. */
+const trialing = (b: CloudBilling) => !!b.trialEnd && !b.grantEnd && !subscribed(b);
+const daysLeft = (end: string) => Math.max(1, Math.ceil((Date.parse(end) - Date.now()) / 86_400_000));
 
 export function BillingPanel({
   openOn,
@@ -127,6 +132,10 @@ export function BillingPanel({
       billing={billing}
       onBack={() => setPage("billing")}
       onOpened={() => setPollUntil(Date.now() + POLL_FOR_MS)}
+      onTrial={async () => {
+        await read();
+        setPage("billing");
+      }}
     />
   ) : (
     <div className="flex flex-col gap-6">
@@ -225,6 +234,20 @@ function Summary({
 
   const b = billing.billing;
   const gift = b.grantEnd ? day(b.grantEnd) : "";
+
+  if (trialing(b))
+    return (
+      <div className="rounded-[12px] border border-nb-ink/12 bg-nb-paper px-5 py-4">
+        <p className="flex items-center gap-2">
+          <span className="text-[17px] font-[800] tracking-[-0.01em] text-nb-ink">{t.pricing.pro.name}</span>
+          <span className={`${BADGE} ${TONE.mint}`}>{p.trial}</span>
+        </p>
+        <p className="mt-1 text-[13px] text-nb-ink-soft">
+          <span className="font-[700] tabular-nums text-nb-ink">{p.trialLeft(daysLeft(b.trialEnd!))}</span>
+          <span> · {p.trialEnds(day(b.trialEnd))}</span>
+        </p>
+      </div>
+    );
 
   // The grant alone: Pro with no price, its end, and a way to subscribe before it ends.
   if (gift && !subscribed(b))
@@ -354,7 +377,9 @@ function Credits({ t, credits }: { t: BillingCopy["credits"]; credits: CloudCred
             </span>
             <span className="text-[13px] tabular-nums text-nb-ink-soft">{t.left(num(credits.total))}</span>
           </p>
-          <p className="shrink-0 text-[13px] text-nb-ink-soft">{t.resets(day(credits.resetsAt))}</p>
+          <p className="shrink-0 text-[13px] text-nb-ink-soft">
+            {credits.resetsAt ? t.resets(day(credits.resetsAt)) : t.noReset}
+          </p>
         </div>
         <div className="mt-3 h-[6px] overflow-hidden rounded-full bg-nb-ink/8">
           <div
@@ -368,7 +393,7 @@ function Credits({ t, credits }: { t: BillingCopy["credits"]; credits: CloudCred
             role="status"
           >
             <FiAlertCircle className="shrink-0 text-nb-peach-ink" size={14} aria-hidden />
-            {t.usedUp}
+            {credits.resetsAt ? t.usedUp : t.trialUsedUp}
           </p>
         ) : (
           <p className="mt-2 text-[12px] text-nb-ink-soft">{t.rate}</p>
@@ -566,14 +591,17 @@ function Plans({
   billing,
   onBack,
   onOpened,
+  onTrial,
 }: {
   t: BillingCopy;
   billing: BillingRead;
   onBack: () => void;
   onOpened: () => void;
+  onTrial: () => Promise<void>;
 }) {
   const [period, setPeriod] = useState<Period>("yearly");
   const [checkout, setCheckout] = useState<"idle" | "opening" | "opened" | "failed">("idle");
+  const [trial, setTrial] = useState<"idle" | "starting" | "failed">("idle");
   const p = t.pricing;
   const pro = period === "yearly" ? p.pro.yearly : p.pro.monthly;
   const known = billing.state === "ok";
@@ -594,6 +622,18 @@ function Plans({
     }
   };
 
+  const start = async () => {
+    if (trial === "starting") return;
+    setTrial("starting");
+    try {
+      const res = await startTrialAction();
+      if (!res.ok) return setTrial("failed");
+      await onTrial();
+    } catch {
+      setTrial("failed");
+    }
+  };
+
   const current = (
     <button type="button" disabled className={SLOT_BOX}>
       {t.plan.current}
@@ -606,6 +646,21 @@ function Plans({
     </p>
   ) : onProNow ? (
     current
+  ) : trialing(billing.billing) ? (
+    <p className={SLOT_BOX}>
+      {t.plan.trial} · {t.plan.trialLeft(daysLeft(billing.billing.trialEnd!))}
+    </p>
+  ) : billing.billing.mayTrial ? (
+    <>
+      <Button className="w-full" disabled={trial === "starting"} onClick={() => void start()}>
+        {trial === "starting" ? t.plan.starting : p.pro.trial}
+      </Button>
+      {trial === "failed" && (
+        <p className={`${NOTE} !text-nb-peach-ink`} role="alert">
+          {t.plan.trialFailed}
+        </p>
+      )}
+    </>
   ) : checkout === "opening" ? (
     <Button disabled className="w-full">
       {t.plan.opening}

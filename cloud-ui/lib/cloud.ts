@@ -206,6 +206,10 @@ export interface Billing {
   grantEnd: string | null;
   /** Cancelled but still in its period, so renewal can be turned back on (#1682). */
   resumable: boolean;
+  /** The 7-day trial (#1932): its end while it runs. No checkout until it is over. */
+  trialEnd?: string | null;
+  /** Never had Pro: the trial comes before any checkout. */
+  mayTrial?: boolean;
 }
 
 /** Paying for Pro, as opposed to Pro on a grant alone. */
@@ -243,6 +247,11 @@ export async function confirmCheckout(token: string, subscriptionId: string): Pr
 /** Where to send the reader: a Creem checkout, or `/settings` for somebody already on Pro. */
 export async function startCheckout(token: string, period: "monthly" | "yearly"): Promise<string | null> {
   return (await post<{ url?: string }>("/v1/billing/checkout", token, { period }))?.url ?? null;
+}
+
+/** Start the 7-day trial. Null when Cloud refused or could not be reached. */
+export async function startTrial(token: string): Promise<Billing | null> {
+  return (await post<{ billing?: Billing }>("/v1/billing/trial", token))?.billing ?? null;
 }
 
 /** Turn renewal back on for a cancelled subscription still in its period. */

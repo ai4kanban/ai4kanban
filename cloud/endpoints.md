@@ -233,17 +233,22 @@ carries no `CREEM_API_KEY` / `CREEM_WEBHOOK_SECRET`.
 
 - `GET /v1/billing` — `{ "billing": { "plan": "free" | "pro", "state": "free" | "active" |
   "canceled" | "pastDue" | "expired", "period": "monthly" | "yearly" | null, "periodEnd",
-  "grantEnd", "resumable" } }`. `periodEnd` is the renewal date while `active` or `pastDue`, the end date
+  "grantEnd", "resumable", "trialEnd", "mayTrial" } }`. `periodEnd` is the renewal date while `active` or `pastDue`, the end date
   otherwise. Judged on read: `active`, `trialing`, `past_due` are Pro; `scheduled_cancel`,
   `canceled` until `periodEnd`; the best of several subscriptions wins. A seed partner's grant
   (#1039) also makes `plan` Pro and sets `grantEnd` while it runs; `state`, `period` and
   `periodEnd` stay the subscription's. `resumable` is true only when the subscription shown is
-  Creem's `scheduled_cancel`. Also `"credits": { "total", "left",
-  "resetsAt" }` for Pro, `null` otherwise: Pro's AI credits this UTC month (#1113), spent by every
-  hosted capability at the rates in `src/credits.ts` (`cloud.credit_spends`).
+  Creem's `scheduled_cancel`. The 7-day trial (#1932) also makes `plan` Pro and sets `trialEnd`
+  while it runs; `mayTrial` is true for whoever never had a trial, a subscription or a grant.
+  Also `"credits": { "total", "left", "resetsAt" }` for Pro, `null` otherwise: Pro's AI credits
+  this UTC month (#1113), spent by every hosted capability at the rates in `src/credits.ts`
+  (`cloud.credit_spends`). On the trial alone, its fixed pool instead, with `resetsAt` null.
+- `POST /v1/billing/trial` — starts the trial and answers `billing`; `trial_used` unless
+  `mayTrial`.
 - `POST /v1/billing/checkout` — `{ "period": "monthly" | "yearly" }`: `{ "url" }`, a Creem
   checkout returning to `/settings?checkout=done`, or `/settings?checkout=subscribed` for somebody already
-  subscribed (`active`, `canceled` or `pastDue`). A grant alone may buy.
+  subscribed (`active`, `canceled` or `pastDue`), or `/settings` before the trial and while it
+  runs. A grant alone may buy.
 - `POST /v1/billing/confirm` — `{ "subscriptionId" }` from that return: reads it from Creem,
   writes it when it is the caller's, and answers `billing`.
 - `POST /v1/billing/resume` — resumes the caller's `scheduled_cancel` subscription through
@@ -308,7 +313,8 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `pro_required` | Hosted voices, images, music, judging triage items and Pro templates' files need Pro. |
 | `template_exists` | Publishing under a name already taken, without `replace`. |
 | `templates_unavailable` | This build carries no template bucket. |
-| `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month. |
+| `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month; on the trial, none. |
+| `trial_used` | This account has had a trial, a subscription or a seed grant. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
 | `storage_limit_reached` | The database turned read-only at its size limit. |

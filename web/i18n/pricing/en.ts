@@ -49,7 +49,7 @@ const en: PricingCopy = {
       },
       "Priority support",
     ],
-    button: "Get Pro",
+    button: "Start 7-day free trial",
   },
   seed: {
     name: "Seed partner",

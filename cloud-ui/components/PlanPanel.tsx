@@ -1,5 +1,6 @@
 // The plan panel on /settings (#1037). No script of its own: buying is a GET form to
-// /billing/checkout, billing a POST form to /billing/portal, resuming one to /billing/resume.
+// /billing/checkout, the trial a POST form to /billing/trial, billing one to /billing/portal,
+// resuming one to /billing/resume.
 
 import type { ReactNode } from "react";
 import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
@@ -66,6 +67,21 @@ function Buy({ copy, failed }: { copy: HostedCopy; failed: boolean }) {
   );
 }
 
+function Trial({ copy, failed }: { copy: HostedCopy; failed: boolean }) {
+  return (
+    <form action="/billing/trial" method="post" className="flex flex-col gap-3">
+      {failed && (
+        <p className="text-[12.5px] font-[700] text-nb-peach-ink" role="alert">
+          {copy.trialFailed}
+        </p>
+      )}
+      <Button type="submit" className="w-full">
+        {copy.startTrial}
+      </Button>
+    </form>
+  );
+}
+
 function Portal({ label, accent, action = "/billing/portal" }: { label: string; accent?: boolean; action?: string }) {
   return (
     <form action={action} method="post" className="shrink-0">
@@ -76,12 +92,12 @@ function Portal({ label, accent, action = "/billing/portal" }: { label: string; 
   );
 }
 
-function Title({ name, period, seed }: { name: string; period?: string; seed?: string }) {
+function Title({ name, period, tag }: { name: string; period?: string; tag?: string }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span className="text-[18px] font-[800] tracking-[-0.01em] text-nb-ink">{name}</span>
       {period && <span className={CHIP}>{period}</span>}
-      {seed && <span className={SEED_TAG}>{seed}</span>}
+      {tag && <span className={SEED_TAG}>{tag}</span>}
     </span>
   );
 }
@@ -96,6 +112,7 @@ export function PlanPanel({
   state,
   billing,
   checkoutFailed,
+  trialFailed,
   portalFailed,
   resumeFailed,
   alreadySubscribed,
@@ -106,6 +123,7 @@ export function PlanPanel({
   state: PlanState;
   billing: Billing | null;
   checkoutFailed: boolean;
+  trialFailed: boolean;
   portalFailed: boolean;
   resumeFailed: boolean;
   /** Back from Get Pro while already subscribed (#1682). */
@@ -138,13 +156,39 @@ export function PlanPanel({
     </p>
   );
 
+  const unpaid = state === "free" || state === "expired";
+  const trialEnd = unpaid && !grant ? (billing?.trialEnd ?? null) : null;
+  const days = trialEnd ? Math.max(1, Math.ceil((Date.parse(trialEnd) - Date.now()) / 86_400_000)) : 0;
+
   let body: ReactNode;
-  switch (grant && (state === "free" || state === "expired") ? "gifted" : state) {
+  switch (trialEnd ? "trialing" : unpaid && billing?.mayTrial ? "untried" : grant && unpaid ? "gifted" : state) {
+    case "untried":
+      body = (
+        <>
+          <Title name={copy.free} />
+          <Trial copy={copy} failed={trialFailed} />
+        </>
+      );
+      break;
+    case "trialing":
+      body = (
+        <div className="flex flex-col gap-1">
+          <Title name={copy.pro} tag={copy.trial} />
+          <Line>
+            <span className="font-[700] text-nb-ink">
+              {days === 1 ? copy.trialLeftOne : copy.trialLeft.replace("{days}", String(days))}
+            </span>
+            {" · "}
+            {copy.trialEnds.replace("{date}", planDate(trialEnd, language))}
+          </Line>
+        </div>
+      );
+      break;
     case "gifted":
       body = (
         <>
           <div className="flex flex-col gap-1">
-            <Title name={copy.pro} seed={copy.seed} />
+            <Title name={copy.pro} tag={copy.seed} />
             <Line>{copy.gifted.replace("{date}", grant)}</Line>
           </div>
           <Buy copy={copy} failed={checkoutFailed} />

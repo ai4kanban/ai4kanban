@@ -2821,6 +2821,36 @@ end
 $credits$;
 
 -- ---------------------------------------------------------------------------
+-- The trial is had once, and its credits are what it spent while it ran (#1932)
+-- ---------------------------------------------------------------------------
+
+do $trials$
+declare
+  TRIER constant uuid := '00000000-0000-4000-8000-00000000c201';
+  OTHER constant uuid := '00000000-0000-4000-8000-00000000c202';
+  BUDGET constant integer := 1000000;
+  v_first json;
+begin
+  assert api.trial_for(TRIER) is null, 'a new user started with a trial';
+  v_first := api.start_trial(TRIER, BUDGET);
+  assert v_first ->> 'ends_at' like '____-__-__T__:__:__.___Z', 'the trial''s end is not an ISO date';
+  assert (select ends_at - starts_at from cloud.pro_trials where user_id = TRIER) = interval '7 days',
+    'the trial is not seven days';
+  assert api.start_trial(TRIER, BUDGET)::text = v_first::text, 'a second start moved the trial';
+  assert (select count(*) from cloud.pro_trials where user_id = TRIER) = 1, 'a user got two trials';
+  assert api.trial_for(OTHER) is null, 'somebody else got the trial';
+
+  perform api.spend_credits(TRIER, 'speech', 40);
+  insert into cloud.credit_spends (user_id, month, use, credits, at)
+  values (TRIER, date_trunc('month', now())::date, 'speech', 500, now() - interval '1 day');
+  assert (api.trial_credits_used(TRIER))::text::numeric = 40, 'a spend before the trial counted against it';
+  assert (api.trial_credits_used(OTHER))::text::numeric = 0, 'a user with no trial spent trial credits';
+
+  raise notice 'sql checks: #1932 trial checks passed';
+end
+$trials$;
+
+-- ---------------------------------------------------------------------------
 -- Every hosted AI call is recorded with what it cost (#1355)
 -- ---------------------------------------------------------------------------
 

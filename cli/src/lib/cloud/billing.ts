@@ -49,7 +49,11 @@ export async function readBilling(): Promise<BillingRead> {
   const billing = asked.body.billing as CloudBilling | undefined
   const credits = (asked.body.credits as CloudCredits | undefined) ?? null
   if (!billing) return { state: 'unavailable' }
-  return { state: 'ok', billing: { ...billing, resumable: billing.resumable === true }, credits }
+  return {
+    state: 'ok',
+    billing: { ...billing, resumable: billing.resumable === true, trialEnd: billing.trialEnd ?? null, mayTrial: billing.mayTrial === true },
+    credits,
+  }
 }
 
 /** The account's charges, newest first. Never throws. */
@@ -74,6 +78,12 @@ export function startCheckout(period: 'monthly' | 'yearly'): Promise<BillingLink
 /** Creem's billing portal, where the plan is changed, cancelled or paid. */
 export function openBillingPortal(): Promise<BillingLink> {
   return link('/v1/billing/portal')
+}
+
+/** Start the 7-day Pro trial (#1932). Never throws. */
+export async function startTrial(): Promise<BillingResume> {
+  const asked = await ask('POST', '/v1/billing/trial')
+  return asked.ok ? { ok: true } : { ok: false, error: asked.error }
 }
 
 /** Turn renewal back on for a cancelled subscription still in its period. Never throws. */

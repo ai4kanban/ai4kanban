@@ -81,6 +81,12 @@ export async function startCheckout(period: "monthly" | "yearly"): Promise<Billi
   return rules.startCheckout(period);
 }
 
+export async function startTrial(): Promise<BillingResume> {
+  const rules = await boardRules();
+  if (!rules.startTrial) return { ok: false, error: await tooOld() };
+  return rules.startTrial();
+}
+
 export async function openBillingPortal(): Promise<BillingLink> {
   const rules = await boardRules();
   if (!rules.openBillingPortal) return { ok: false, error: await tooOld() };

@@ -74,6 +74,7 @@ import {
   readInvoices,
   resumeRenewal,
   startCheckout,
+  startTrial,
   cloudCardLink,
   disconnectLark,
   disconnectSlack,
@@ -1839,6 +1840,14 @@ export async function readInvoicesAction(): Promise<InvoicesRead> {
 export async function startCheckoutAction(period: "monthly" | "yearly"): Promise<BillingLink> {
   try {
     return await startCheckout(period);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function startTrialAction(): Promise<BillingResume> {
+  try {
+    return await startTrial();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

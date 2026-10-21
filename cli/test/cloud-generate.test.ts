@@ -52,8 +52,8 @@ function answer(res: () => Response): void {
   }) as typeof fetch
 }
 
-const refusal = (status: number, code: string) => () =>
-  new Response(JSON.stringify({ error: { code, message: code } }), { status })
+const refusal = (status: number, code: string, headers: Record<string, string> = {}) => () =>
+  new Response(JSON.stringify({ error: { code, message: code } }), { status, headers })
 
 /** Run it, holding stdout and stderr aside. */
 async function akb(argv: string[]): Promise<{ code: number; out: string; err: string }> {
@@ -122,10 +122,14 @@ describe('akb cloud image / tts / music', () => {
 
   it('exits 1 when the credits are used up, and 2 when Cloud refuses the request', async () => {
     signIn()
-    answer(refusal(402, 'credits_used_up'))
+    answer(refusal(429, 'credits_used_up', { 'retry-after': '3600' }))
     const spent = await akb(['cloud', 'tts', '--voice', 'Ava', '--out', 'a.wav', 'hi'])
     assert.equal(spent.code, 1)
     assert.match(spent.err, /本月积分已用完/)
+    answer(refusal(429, 'credits_used_up'))
+    const trial = await akb(['cloud', 'tts', '--voice', 'Ava', '--out', 'a.wav', 'hi'])
+    assert.equal(trial.code, 1)
+    assert.match(trial.err, /试用期的 AI 积分已用完/)
     answer(refusal(400, 'Unknown voice.'))
     const bad = await akb(['cloud', 'tts', '--voice', 'Nobody', '--out', 'a.wav', 'hi'])
     assert.equal(bad.code, 2)

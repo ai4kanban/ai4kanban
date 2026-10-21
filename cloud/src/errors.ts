@@ -41,6 +41,7 @@ export type RefusalCode =
   | 'template_exists'
   | 'templates_unavailable'
   | 'credits_used_up'
+  | 'trial_used'
   | 'billing_unavailable'
   | 'billing_failed'
   | 'not_found'
@@ -359,6 +360,12 @@ export const creditsUsedUp = (now = Date.now()) =>
     'This month’s AI credits are used up. They reset on the 1st (UTC).',
     secondsUntilNextUtcMonth(now),
   )
+
+export const trialCreditsUsedUp = () =>
+  new Refusal('credits_used_up', 429, 'The trial’s AI credits are used up. Get Pro once the trial ends.')
+
+/** The 7-day trial (#1932) is had once, and never after a subscription or a seed grant. */
+export const trialUsed = () => new Refusal('trial_used', 409, 'This account has already had Pro.')
 
 /** Pro billing (#1037): this build carries no Creem store, or Creem did not answer. */
 export const billingUnavailable = () =>

@@ -48,7 +48,7 @@ const zh: PricingCopy = {
       },
       "优先支持",
     ],
-    button: "购买 Pro",
+    button: "免费试用 7 天",
   },
   seed: {
     name: "种子伙伴",

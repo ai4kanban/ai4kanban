@@ -9,10 +9,10 @@
  */
 
 import { generationCost, recordAiCall } from './ai-calls.ts'
-import { readBilling } from './billing.ts'
-import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
+import { onTrialOnly, readBilling } from './billing.ts'
+import { readCredits, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
-import { badRequest, creditsUsedUp, musicFailed, musicUnavailable, proRequired } from './errors.ts'
+import { badRequest, creditsUsedUp, musicFailed, musicUnavailable, proRequired, trialCreditsUsedUp } from './errors.ts'
 
 export const MUSIC_MODEL = 'google/lyria-3-pro-preview'
 export const MAX_PROMPT_CHARS = 4000
@@ -31,9 +31,9 @@ export async function generateMusic(env: Env, ctx: ExecutionContext, user: strin
   if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < MIN_SECONDS || seconds > MAX_SECONDS) {
     throw badRequest(`Give the length in seconds, from ${MIN_SECONDS} to ${MAX_SECONDS}.`)
   }
-  const [billing, used] = await Promise.all([readBilling(env, user), creditsUsed(env, user)])
+  const billing = await readBilling(env, user)
   if (billing.plan !== 'pro') throw proRequired()
-  if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
+  if ((await readCredits(env, user, billing)).left <= 0) throw onTrialOnly(billing) ? trialCreditsUsedUp() : creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw musicUnavailable()
 
   const failed = async () => {

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
 import { COST_LOOKUP, GENERATION_URL } from '../src/ai-calls.ts'
-import { MONTHLY_CREDITS } from '../src/credits.ts'
+import { MONTHLY_CREDITS, TRIAL_CREDITS } from '../src/credits.ts'
 import { SPEECH_MODEL, wav } from '../src/speech.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
@@ -29,6 +29,8 @@ let recording
 let generation
 let looked
 let later
+let trials
+let trialUsed
 const realWait = COST_LOOKUP.waitMs
 
 beforeEach(async () => {
@@ -38,6 +40,8 @@ beforeEach(async () => {
   admitted = true
   subscriptions = { [SUBJECT]: [PRO], [OTHER]: [PRO] }
   used = {}
+  trials = {}
+  trialUsed = {}
   provider = () =>
     new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1', 'x-generation-id': 'gen-s1' } })
   sent = []
@@ -58,6 +62,8 @@ beforeEach(async () => {
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) return json(subscriptions[body.p_user_id] ?? [])
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(used[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(null)
+    if (address.endsWith('/rest/v1/rpc/trial_for')) return json(trials[body.p_user_id] ?? null)
+    if (address.endsWith('/rest/v1/rpc/trial_credits_used')) return json(trialUsed[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/spend_credits')) {
       assert.equal(body.p_use, 'speech')
       used[body.p_user_id] = (used[body.p_user_id] ?? 0) + body.p_credits
@@ -159,6 +165,19 @@ describe('POST /v1/speech', () => {
     assert.equal(recorded.length, 0)
 
     assert.equal((await call({ voice: 'Kore', text: 'Hi' }, ENV, OTHER)).status, 200)
+  })
+
+  it('stops a trial user at the trial’s 1000 credits, with no retry (#1932)', async () => {
+    subscriptions[SUBJECT] = []
+    trials[SUBJECT] = { starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 86_400_000).toISOString() }
+    trialUsed[SUBJECT] = TRIAL_CREDITS - 1
+    assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 200)
+
+    trialUsed[SUBJECT] = TRIAL_CREDITS
+    const res = await call({ voice: 'Kore', text: 'Hi' })
+    assert.equal(res.status, 429)
+    assert.equal((await res.json()).error.code, 'credits_used_up')
+    assert.equal(res.headers.get('retry-after'), null)
   })
 
   it('lets a line start with any credit left', async () => {

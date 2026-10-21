@@ -888,6 +888,8 @@ export type BillingCopy = {
       leadIn: string;
       rows: PlanRow[];
       button: string;
+      /** Pro's button for whoever never had Pro (#1932). */
+      trial: string;
     };
   };
   plan: {
@@ -911,6 +913,12 @@ export type BillingCopy = {
     resuming: string;
     resumeFailed: string;
     upgrade: string;
+    /** The 7-day trial (#1932): the tag, the days left, its end, and starting it. */
+    trial: string;
+    trialLeft: (days: number) => string;
+    trialEnds: (date: string) => string;
+    starting: string;
+    trialFailed: string;
     current: string;
     unavailable: string;
     back: string;
@@ -923,8 +931,11 @@ export type BillingCopy = {
     title: string;
     left: (total: string) => string;
     resets: (date: string) => string;
+    /** The trial's pool, in the reset date's place. */
+    noReset: string;
     rate: string;
     usedUp: string;
+    trialUsedUp: string;
   };
   invoices: {
     title: string;

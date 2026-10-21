@@ -44,6 +44,7 @@ beforeEach(async () => {
     }
     if (fn === 'subscriptions_for') return json(body.p_user_id === PRO_USER ? [PRO] : [])
     if (fn === 'seed_grant_for') return json(null)
+    if (fn === 'trial_for') return json(null)
     if (fn in db) return db[fn](body)
     throw new Error(`unexpected fetch of ${address}`)
   }

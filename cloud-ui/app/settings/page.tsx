@@ -77,6 +77,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Que
         state={state}
         billing={billing}
         checkoutFailed={one("checkout") === "failed"}
+        trialFailed={one("trial") === "failed"}
         portalFailed={one("portal") === "failed"}
         resumeFailed={one("resume") === "failed"}
         alreadySubscribed={one("checkout") === "subscribed"}

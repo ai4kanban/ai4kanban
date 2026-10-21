@@ -636,6 +636,7 @@ export interface BoardRules {
   readBilling?(): Promise<BillingRead>;
   readInvoices?(): Promise<InvoicesRead>;
   startCheckout?(period: "monthly" | "yearly"): Promise<BillingLink>;
+  startTrial?(): Promise<BillingResume>;
   openBillingPortal?(): Promise<BillingLink>;
   resumeRenewal?(): Promise<BillingResume>;
   startCloudSignIn?(): { ok: true; url: string } | { ok: false; error: string };

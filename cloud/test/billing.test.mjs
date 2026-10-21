@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import { billingOf, creemBase, isPro, signatureOf } from '../src/billing.ts'
-import { creditsOf, MONTHLY_CREDITS } from '../src/credits.ts'
+import { creditsOf, MONTHLY_CREDITS, TRIAL_CREDITS } from '../src/credits.ts'
 import worker from '../src/index.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
@@ -37,7 +37,10 @@ let creemCalls
 let creemDown
 let creemTxs
 let spent
+let trialSpent
 let grants
+// What 0046_pro_trials.sql keeps (#1932).
+let trials
 // What 0036_pending_checkouts.sql keeps, on a clock the tests move.
 let pending
 let pendingDown
@@ -55,7 +58,10 @@ beforeEach(async () => {
   creemDown = false
   creemTxs = []
   spent = {}
+  trialSpent = {}
   grants = {}
+  // A trial long over: most tests buy.
+  trials = { [SUBJECT]: { starts_at: '2026-08-01T12:00:00.000Z', ends_at: '2026-08-08T12:00:00.000Z' } }
   pending = new Map()
   pendingDown = false
   clock = NOW
@@ -116,6 +122,12 @@ beforeEach(async () => {
     }
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(spent[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(grants[body.p_user_id] ?? null)
+    if (address.endsWith('/rest/v1/rpc/trial_for')) return json(trials[body.p_user_id] ?? null)
+    if (address.endsWith('/rest/v1/rpc/start_trial')) {
+      trials[body.p_user_id] ??= { starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 7 * DAY).toISOString() }
+      return json(trials[body.p_user_id])
+    }
+    if (address.endsWith('/rest/v1/rpc/trial_credits_used')) return json(trialSpent[body.p_user_id] ?? 0)
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) {
       return json([...rows.values()].filter((r) => r.user_id === body.p_user_id))
     }
@@ -183,34 +195,34 @@ describe('who is Pro', () => {
   })
 
   it('takes the best of several, and reads a lapsed one as expired', () => {
-    assert.deepEqual(billingOf([], null, NOW), { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false })
-    assert.deepEqual(billingOf([row('expired', EARLIER)], null, NOW), {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: EARLIER, grantEnd: null, resumable: false,
+    assert.deepEqual(billingOf([], null, null, NOW), { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false, trialEnd: null, mayTrial: true })
+    assert.deepEqual(billingOf([row('expired', EARLIER)], null, null, NOW), {
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: EARLIER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false,
     })
     const best = billingOf(
       [row('past_due'), row('canceled', LATER, { id: 'sub_2' }), row('active', LATER, { id: 'sub_3', period: 'yearly' })],
       null,
       NOW,
     )
-    assert.deepEqual(best, { plan: 'pro', state: 'active', period: 'yearly', periodEnd: LATER, grantEnd: null, resumable: false })
-    assert.equal(billingOf([row('past_due'), row('scheduled_cancel')], null, NOW).state, 'canceled')
-    assert.equal(billingOf([row('expired'), row('past_due')], null, NOW).state, 'pastDue')
+    assert.deepEqual(best, { plan: 'pro', state: 'active', period: 'yearly', periodEnd: LATER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
+    assert.equal(billingOf([row('past_due'), row('scheduled_cancel')], null, null, NOW).state, 'canceled')
+    assert.equal(billingOf([row('expired'), row('past_due')], null, null, NOW).state, 'pastDue')
   })
 
   it('makes a seed partner Pro until the grant ends, leaving the subscription’s state its own (#1039)', () => {
     const grant = { starts_at: EARLIER, ends_at: LATER }
-    assert.deepEqual(billingOf([], grant, NOW), { plan: 'pro', state: 'free', period: null, periodEnd: null, grantEnd: LATER, resumable: false })
-    assert.deepEqual(billingOf([], { starts_at: EARLIER, ends_at: EARLIER }, NOW).plan, 'free')
+    assert.deepEqual(billingOf([], grant, null, NOW), { plan: 'pro', state: 'free', period: null, periodEnd: null, grantEnd: LATER, resumable: false, trialEnd: null, mayTrial: false })
+    assert.deepEqual(billingOf([], { starts_at: EARLIER, ends_at: EARLIER }, null, NOW).plan, 'free')
 
     // A cancelled subscription that has run out: still Pro on the grant.
-    const lapsed = billingOf([row('canceled', EARLIER)], grant, NOW)
+    const lapsed = billingOf([row('canceled', EARLIER)], grant, null, NOW)
     assert.equal(lapsed.plan, 'pro')
     assert.equal(lapsed.state, 'expired')
     // A grant that has run out: still Pro on the subscription.
-    const paying = billingOf([row('active')], { starts_at: EARLIER, ends_at: EARLIER }, NOW)
-    assert.deepEqual(paying, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
+    const paying = billingOf([row('active')], { starts_at: EARLIER, ends_at: EARLIER }, null, NOW)
+    assert.deepEqual(paying, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
     // Both at once.
-    assert.equal(billingOf([row('active')], grant, NOW).grantEnd, LATER)
+    assert.equal(billingOf([row('active')], grant, null, NOW).grantEnd, LATER)
   })
 
   it('ends Pro at once on a refund of the period it is in, and not on a later one', () => {
@@ -221,8 +233,8 @@ describe('who is Pro', () => {
     assert.equal(isPro(row('canceled', '2026-10-28T11:00:00.000Z', refunded), NOW), false)
     // A renewal after the refund is a later period.
     assert.equal(isPro(row('active', NEXT, refunded), NOW), true)
-    assert.deepEqual(billingOf([row('canceled', LATER, refunded)], null, NOW), {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false,
+    assert.deepEqual(billingOf([row('canceled', LATER, refunded)], null, null, NOW), {
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false,
     })
   })
 
@@ -316,7 +328,7 @@ describe('the signed-in billing routes', () => {
     rows.set('sub_9', { ...row('active'), id: 'sub_9', user_id: OTHER, period: 'yearly' })
     const res = await signedIn('GET', '/v1/billing')
     assert.equal(res.status, 200)
-    assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
+    assert.deepEqual((await res.json()).billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
   })
 
   it('shows Pro this month\'s credits, and nobody else any', async () => {
@@ -405,7 +417,7 @@ describe('the signed-in billing routes', () => {
     assert.equal(res.status, 200)
     assert.equal(creemCalls[0].address, 'https://api.creem.io/v1/subscriptions/sub_1/resume')
     assert.deepEqual((await res.json()).billing, {
-      plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false,
+      plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false,
     })
     assert.equal(rows.get('sub_1').status, 'active')
   })
@@ -487,7 +499,7 @@ describe('a refund or chargeback', () => {
       creemTxs = [tx('tx_1', status)]
       await send(refundEvent)
       const { billing, credits } = await read()
-      assert.deepEqual(billing, { plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false })
+      assert.deepEqual(billing, { plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
       assert.equal(credits, null)
     })
   }
@@ -509,7 +521,7 @@ describe('a refund or chargeback', () => {
     creemTxs = [tx('tx_1', 'paid')]
     await send(refundEvent)
     const { billing, credits } = await read()
-    assert.deepEqual(billing, { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
+    assert.deepEqual(billing, { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
     assert.notEqual(credits, null)
   })
 
@@ -526,7 +538,7 @@ describe('a refund or chargeback', () => {
     creemTxs.push(tx('tx_2', 'paid', { period_end: Date.parse(NEXT) }))
     await send(JSON.stringify({ eventType: 'subscription.paid', object: { id: 'sub_1', object: 'subscription' } }))
     const { billing } = await read()
-    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: NEXT, grantEnd: null, resumable: false })
+    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: NEXT, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
   })
 
   it('lets a revoked subscriber buy again', async () => {
@@ -573,7 +585,7 @@ describe('a checkout whose notification never came (#1251)', () => {
     pay()
     clock += MINUTE
     const { billing, credits } = await read()
-    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false })
+    assert.deepEqual(billing, { plan: 'pro', state: 'active', period: 'monthly', periodEnd: LATER, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false })
     assert.notEqual(credits, null)
     assert.equal(rows.get('sub_1').user_id, SUBJECT)
     assert.equal(pending.size, 0)
@@ -592,7 +604,7 @@ describe('a checkout whose notification never came (#1251)', () => {
     pay('ch_1', { ...creemSub('canceled'), canceled_at: CANCELED_AT })
     creemTxs = [refundedTx]
     assert.deepEqual((await read()).billing, {
-      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false,
+      plan: 'free', state: 'expired', period: 'monthly', periodEnd: CANCELED_AT, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false,
     })
     assert.equal(pending.size, 0)
   })
@@ -760,3 +772,77 @@ const b64u = (text) => b64uBytes(new TextEncoder().encode(text))
 
 const b64uBytes = (bytes) =>
   Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+describe('the trial before purchase (#1932)', () => {
+  // The routes read the real clock.
+  const TRIAL_END = new Date(NOW + 7 * DAY).toISOString()
+  const trial = { starts_at: new Date(NOW).toISOString(), ends_at: TRIAL_END }
+  const running = () => ({ starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 5 * DAY).toISOString() })
+
+  beforeEach(() => {
+    delete trials[SUBJECT]
+  })
+
+  it('makes the user Pro until the trial ends, and offers it only to whoever never had Pro', () => {
+    assert.equal(billingOf([], null, null, NOW).mayTrial, true)
+    assert.deepEqual(billingOf([], null, trial, NOW), {
+      plan: 'pro', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false, trialEnd: TRIAL_END, mayTrial: false,
+    })
+    const over = billingOf([], null, trial, NOW + 7 * DAY)
+    assert.equal(over.plan, 'free')
+    assert.equal(over.trialEnd, null)
+    assert.equal(over.mayTrial, false)
+    assert.equal(billingOf([row('expired', EARLIER)], null, null, NOW).mayTrial, false)
+    assert.equal(billingOf([], { starts_at: EARLIER, ends_at: EARLIER }, null, NOW).mayTrial, false)
+  })
+
+  it('starts the trial once, and refuses a second', async () => {
+    const res = await signedIn('POST', '/v1/billing/trial')
+    assert.equal(res.status, 200)
+    const { billing } = await res.json()
+    assert.equal(billing.plan, 'pro')
+    assert.equal(billing.trialEnd, trials[SUBJECT].ends_at)
+    assert.equal(billing.mayTrial, false)
+
+    const again = await signedIn('POST', '/v1/billing/trial')
+    assert.equal(again.status, 409)
+    assert.equal((await again.json()).error.code, 'trial_used')
+  })
+
+  it('refuses the trial to a past subscriber or a seed partner', async () => {
+    rows.set('sub_1', { ...row('expired', EARLIER), user_id: SUBJECT })
+    assert.equal((await signedIn('POST', '/v1/billing/trial')).status, 409)
+    rows.clear()
+    grants[SUBJECT] = { starts_at: EARLIER, ends_at: EARLIER }
+    assert.equal((await signedIn('POST', '/v1/billing/trial')).status, 409)
+    assert.equal(trials[SUBJECT], undefined)
+  })
+
+  it('refuses a checkout before the trial and during it, and opens one after', async () => {
+    const url = async () => (await (await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })).json()).url
+    assert.equal(await url(), 'https://cloud.ai4kanban.dev/settings')
+    trials[SUBJECT] = running()
+    assert.equal(await url(), 'https://cloud.ai4kanban.dev/settings')
+    assert.equal(creemCalls.filter((c) => c.address.endsWith('/v1/checkouts')).length, 0)
+
+    trials[SUBJECT] = { starts_at: EARLIER, ends_at: new Date(Date.now() - DAY).toISOString() }
+    assert.equal(await url(), 'https://checkout.creem.io/ch_1')
+  })
+
+  it('lets a seed partner buy without a trial', async () => {
+    grants[SUBJECT] = { starts_at: EARLIER, ends_at: LATER }
+    const res = await signedIn('POST', '/v1/billing/checkout', { period: 'monthly' })
+    assert.equal((await res.json()).url, 'https://checkout.creem.io/ch_1')
+  })
+
+  it('gives the trial 1000 credits that never reset, and the month’s pool once paying', async () => {
+    trials[SUBJECT] = running()
+    trialSpent[SUBJECT] = 180
+    spent[SUBJECT] = 4000
+    const { credits } = await (await signedIn('GET', '/v1/billing')).json()
+    assert.deepEqual(credits, { total: TRIAL_CREDITS, left: TRIAL_CREDITS - 180, resetsAt: null })
+
+    trials[SUBJECT] = { starts_at: EARLIER, ends_at: EARLIER }
+    assert.equal((await (await signedIn('GET', '/v1/billing')).json()).credits, null)
+  })
+})

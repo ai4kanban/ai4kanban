@@ -8,7 +8,8 @@ import type { PlanRow, PricingCopy } from "@/i18n/pricing/types";
 type Billing = "yearly" | "monthly";
 type Workflow = "coding" | "email" | "slides" | "video";
 
-const CHECKOUT = "https://cloud.ai4kanban.dev/billing/checkout?period=";
+// Pro starts with the 7-day trial (#1932); purchase opens in Cloud once it has run out.
+const TRIAL = "https://cloud.ai4kanban.dev/billing/trial";
 
 const focus =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-deep";
@@ -276,7 +277,7 @@ export function Plans({
             leadIn={t.pro.leadIn}
             rows={t.pro.rows}
             button={
-              <Button href={`${CHECKOUT}${billing}`} variant="primary" className="mt-6 w-full">
+              <Button href={TRIAL} variant="primary" className="mt-6 w-full">
                 {t.pro.button}
               </Button>
             }

@@ -10,10 +10,10 @@
  */
 
 import { generationCost, recordAiCall } from './ai-calls.ts'
-import { readBilling } from './billing.ts'
-import { creditsUsed, MONTHLY_CREDITS, spendCredits } from './credits.ts'
+import { onTrialOnly, readBilling } from './billing.ts'
+import { readCredits, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
-import { badRequest, creditsUsedUp, proRequired, speechFailed, speechUnavailable } from './errors.ts'
+import { badRequest, creditsUsedUp, proRequired, speechFailed, speechUnavailable, trialCreditsUsedUp } from './errors.ts'
 
 export const SPEECH_MODEL = 'google/gemini-3.8-flash-tts'
 export const MAX_SPEECH_CHARS = 4000
@@ -36,9 +36,9 @@ export async function speak(env: Env, ctx: ExecutionContext, user: string, body:
   if (text.length > MAX_SPEECH_CHARS) {
     throw badRequest(`That text is too long. Split it into parts of ${MAX_SPEECH_CHARS} characters or fewer.`)
   }
-  const [billing, used] = await Promise.all([readBilling(env, user), creditsUsed(env, user)])
+  const billing = await readBilling(env, user)
   if (billing.plan !== 'pro') throw proRequired()
-  if (used >= MONTHLY_CREDITS) throw creditsUsedUp()
+  if ((await readCredits(env, user, billing)).left <= 0) throw onTrialOnly(billing) ? trialCreditsUsedUp() : creditsUsedUp()
   if (!env.OPENROUTER_API_KEY) throw speechUnavailable()
 
   const failed = async () => {

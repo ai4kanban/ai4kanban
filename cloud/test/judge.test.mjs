@@ -53,6 +53,7 @@ beforeEach(async () => {
     const body = init?.body ? JSON.parse(init.body) : {}
     if (address.endsWith('/rest/v1/rpc/subscriptions_for')) return json(subscriptions[body.p_user_id] ?? [])
     if (address.endsWith('/rest/v1/rpc/seed_grant_for')) return json(null)
+    if (address.endsWith('/rest/v1/rpc/trial_for')) return json(null)
     if (address.endsWith('/rest/v1/rpc/credits_used')) return json(0)
     if (address.endsWith('/rest/v1/rpc/spend_credits')) {
       spent++

@@ -11,10 +11,10 @@
  */
 
 import { CLOUD_UI_ORIGIN } from './config.ts'
-import { creditsOf, creditsUsed } from './credits.ts'
+import { readCredits } from './credits.ts'
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
-import { badRequest, billingFailed, billingUnavailable, notFound, unauthenticated } from './errors.ts'
+import { badRequest, billingFailed, billingUnavailable, notFound, trialUsed, unauthenticated } from './errors.ts'
 import { bodyOf, json, requireMethod } from './http.ts'
 import { readSession } from './owner.ts'
 import { hex, sameString } from './verify.ts'
@@ -39,8 +39,11 @@ export interface GrantRow {
   ends_at: string
 }
 
-/** What `/settings` draws and #1038 gates on. `plan` is Pro through a subscription or a grant;
- *  `state`, `period` and `periodEnd` are the subscription's alone. */
+/** The 7-day trial (#1932), as `api.trial_for` returns it. */
+export type TrialRow = GrantRow
+
+/** What `/settings` draws and #1038 gates on. `plan` is Pro through a subscription, a grant or
+ *  the trial; `state`, `period` and `periodEnd` are the subscription's alone. */
 export interface Billing {
   plan: 'free' | 'pro'
   state: 'free' | 'active' | 'canceled' | 'pastDue' | 'expired'
@@ -51,11 +54,18 @@ export interface Billing {
   grantEnd: string | null
   /** Whether the subscription shown is set to end and Creem can still resume it. */
   resumable: boolean
+  /** The trial's end, while it lasts. No checkout until it is over. */
+  trialEnd: string | null
+  /** Never had a trial, a subscription or a grant: the trial comes before any checkout. */
+  mayTrial: boolean
 }
 
 /** Whether a subscription is being paid for — what stops a second checkout. */
 export const subscribed = (billing: Billing) =>
   billing.state === 'active' || billing.state === 'canceled' || billing.state === 'pastDue'
+
+/** Whether Pro comes from the trial alone, so credits are the trial's pool. */
+export const onTrialOnly = (billing: Billing) => !!billing.trialEnd && !billing.grantEnd && !subscribed(billing)
 
 const RENEWING = ['active', 'trialing', 'past_due']
 const ENDING = ['scheduled_cancel', 'canceled']
@@ -85,9 +95,16 @@ const endedAt = (row: SubscriptionRow) => (revoked(row) ? row.revoked_at ?? null
 /** The best of a user's subscriptions: a renewing one over one ending over one failing to
  *  pay, then the one that runs longest. None Pro reads as expired once any has ended, a
  *  refunded one on the day it was revoked. A grant
- *  still running makes the user Pro whatever the subscriptions say. */
-export function billingOf(rows: SubscriptionRow[], grant: GrantRow | null = null, now = Date.now()): Billing {
+ *  or a trial still running makes the user Pro whatever the subscriptions say. */
+export function billingOf(
+  rows: SubscriptionRow[],
+  grant: GrantRow | null = null,
+  trial: TrialRow | null = null,
+  now = Date.now(),
+): Billing {
   const grantEnd = grant && now < Date.parse(grant.ends_at) ? grant.ends_at : null
+  const trialEnd = trial && now < Date.parse(trial.ends_at) ? trial.ends_at : null
+  const mayTrial = !trial && !grant && rows.length === 0
   const pro = rows
     .filter((row) => isPro(row, now))
     .sort((a, b) => RANK[stateOf(a)]! - RANK[stateOf(b)]! || endOf(b) - endOf(a))
@@ -100,14 +117,16 @@ export function billingOf(rows: SubscriptionRow[], grant: GrantRow | null = null
       periodEnd: best.current_period_end,
       grantEnd,
       resumable: best.status === 'scheduled_cancel',
+      trialEnd,
+      mayTrial,
     }
   }
-  const plan = grantEnd ? 'pro' : 'free'
+  const plan = grantEnd || trialEnd ? 'pro' : 'free'
   const ended = (row: SubscriptionRow) => Date.parse(endedAt(row) ?? '') || 0
   const last = rows.filter(ended).sort((a, b) => ended(b) - ended(a))[0]
   return last
-    ? { plan, state: 'expired', period: last.period, periodEnd: endedAt(last), grantEnd, resumable: false }
-    : { plan, state: 'free', period: null, periodEnd: null, grantEnd, resumable: false }
+    ? { plan, state: 'expired', period: last.period, periodEnd: endedAt(last), grantEnd, resumable: false, trialEnd, mayTrial }
+    : { plan, state: 'free', period: null, periodEnd: null, grantEnd, resumable: false, trialEnd, mayTrial }
 }
 
 /** The routes under `/v1/billing`. */
@@ -127,8 +146,15 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     ])
     const billing = recovered ? await readBilling(env, session.subject) : read
     // AI credits are Pro's alone (#1113): nobody else is granted any to show.
-    const credits = billing.plan === 'pro' ? creditsOf(await creditsUsed(env, session.subject)) : null
+    const credits = billing.plan === 'pro' ? await readCredits(env, session.subject, billing) : null
     return json({ billing, credits })
+  }
+
+  if (rest === 'trial') {
+    requireMethod(request, 'POST')
+    if (!(await readBilling(env, session.subject)).mayTrial) throw trialUsed()
+    await mutate(env, 'start_trial', { p_user_id: session.subject })
+    return json({ billing: await readBilling(env, session.subject) })
   }
 
   if (rest === 'checkout') {
@@ -138,9 +164,10 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
     // A payment whose notification was lost must not be taken a second time.
     await recoverCheckouts(env, creem, session.subject, true)
     // One subscription per person: a subscriber manages theirs instead. A grant alone may buy.
-    if (subscribed(await readBilling(env, session.subject))) {
-      return json({ url: `${CLOUD_UI_ORIGIN}/settings?checkout=subscribed` })
-    }
+    const billing = await readBilling(env, session.subject)
+    if (subscribed(billing)) return json({ url: `${CLOUD_UI_ORIGIN}/settings?checkout=subscribed` })
+    // The trial comes first, and runs out before anything is bought (#1932).
+    if (billing.mayTrial || billing.trialEnd) return json({ url: `${CLOUD_UI_ORIGIN}/settings` })
     const checkout = await creem<{ id?: string; checkout_url?: string }>('POST', '/v1/checkouts', {
       product_id: period === 'monthly' ? env.CREEM_PRODUCT_MONTHLY : env.CREEM_PRODUCT_YEARLY,
       // The desktop app has no browser sign-in to return to, so it lands on a public page.
@@ -272,11 +299,12 @@ function isoOf(value: number | string | null | undefined): string | null {
 }
 
 export async function readBilling(env: Env, user: string): Promise<Billing> {
-  const [rows, grant] = await Promise.all([
+  const [rows, grant, trial] = await Promise.all([
     call<SubscriptionRow[]>(env, 'subscriptions_for', { p_user_id: user }),
     call<GrantRow | null>(env, 'seed_grant_for', { p_user_id: user }),
+    call<TrialRow | null>(env, 'trial_for', { p_user_id: user }),
   ])
-  return billingOf(rows, grant)
+  return billingOf(rows, grant, trial)
 }
 
 // ---- Creem ------------------------------------------------------------------

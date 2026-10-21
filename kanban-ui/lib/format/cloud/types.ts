@@ -169,13 +169,18 @@ export interface CloudBilling {
   grantEnd: string | null
   /** Cancelled, still in its period, and Creem can still turn renewal back on. */
   resumable: boolean
+  /** The 7-day trial (#1932): its end while it runs. No purchase until it is over. */
+  trialEnd: string | null
+  /** Never had a trial, a subscription or a grant: the trial comes before any purchase. */
+  mayTrial: boolean
 }
 
-/** Pro's AI credits this UTC month (#1113). `resetsAt` is the next UTC month's first instant. */
+/** Pro's AI credits this UTC month (#1113). `resetsAt` is the next UTC month's first instant,
+ *  or null for the trial's pool, which never resets. */
 export interface CloudCredits {
   total: number
   left: number
-  resetsAt: string
+  resetsAt: string | null
 }
 
 /** One charge on the account. `amount` is in minor units. */
