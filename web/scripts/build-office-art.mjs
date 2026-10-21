@@ -15,7 +15,7 @@
 // committed under web/public/run-scene/.
 
 import { spawn } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -23,8 +23,27 @@ const ART = new URL("../../kanban-ui/public/run-scene/", import.meta.url).pathna
 const OUT = new URL("../public/run-scene/", import.meta.url).pathname;
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
-/** The desks with someone at them — the same six ShotSessions.tsx seats. */
-const AWAKE = [0, 1, 2, 3, 4, 5];
+/** Who works at each awake desk, and who rests on the sofa — the same seats as
+ *  `CAST` in ShotSessions.tsx. */
+const DESKS = ["builder", "builder", "ui-designer", "builder", "software-planner", "copywriting"];
+const SOFA = ["builder", "illustrator"];
+/** bots.webp's rows, in the order ShotSessions.tsx's `LOOKS` reads them. */
+const LOOKS = [...new Set([...DESKS, ...SOFA])];
+
+/** One 48px cast frame drawn at 6x, nearest-neighbour. */
+const CELL = 288;
+const SCALE = CELL / 48;
+
+const cast = JSON.parse(await readFile(join(ART, "cast.json"), "utf8"));
+const frame = (name) => cast.frames[name].frame;
+const SHEET = `background-image:url(cast.png);background-size:${cast.meta.size.w * SCALE}px ${cast.meta.size.h * SCALE}px`;
+
+/** `DESK_SCREEN` in kanban-ui/lib/run-scene.ts, from a desk's corner. */
+const SCREEN = { x: 105, y: 19, w: 76, h: 42 };
+const shows = DESKS.flatMap((look, i) => {
+  const kind = cast.meta.screens[look];
+  return kind ? [{ i, ...frame(`screen/${kind}-0`) }] : [];
+});
 
 const OFFICE = `<!doctype html><meta charset="utf-8">
 <style>
@@ -35,6 +54,7 @@ const OFFICE = `<!doctype html><meta charset="utf-8">
   .desk{width:284px;height:184px;background-repeat:no-repeat}
   .sleep{background-image:url(layers/desk-sleep.png);background-size:284px 184px}
   .work{background-image:url(layers/desk-work.png);background-size:1136px 184px}
+  .show{width:${SCREEN.w}px;height:${SCREEN.h}px;background-image:url(cast.png)}
 </style>
 <div id="w">
   <img src="layers/window-day.png" style="left:264px;top:0;width:394px;height:197px">
@@ -51,12 +71,20 @@ const OFFICE = `<!doctype html><meta charset="utf-8">
   </svg>
 </div>
 <script>
-  const X=[203,523,838,1160], Y=[323,558], awake=new Set(${JSON.stringify(AWAKE)});
+  const X=[203,523,838,1160], Y=[323,558], awake=${DESKS.length};
   const box=document.getElementById('desks');
-  Y.flatMap((y,r)=>X.map((x,c)=>({x,y,i:r*4+c}))).forEach(({x,y,i})=>{
+  const at=Y.flatMap((y)=>X.map((x)=>({x,y})));
+  at.forEach(({x,y},i)=>{
     const d=document.createElement('div');
-    d.className='desk '+(awake.has(i)?'work':'sleep');
+    d.className='desk '+(i<awake?'work':'sleep');
     d.style.left=x+'px'; d.style.top=y+'px';
+    box.append(d);
+  });
+  ${JSON.stringify(shows)}.forEach(({i,x,y})=>{
+    const d=document.createElement('div');
+    d.className='show';
+    d.style.left=at[i].x+${SCREEN.x}+'px'; d.style.top=at[i].y+${SCREEN.y}+'px';
+    d.style.backgroundPosition=(-x)+'px '+(-y)+'px';
     box.append(d);
   });
 </script>`;
@@ -64,23 +92,19 @@ const OFFICE = `<!doctype html><meta charset="utf-8">
 const BOTS = `<!doctype html><meta charset="utf-8">
 <style>
   html,body{margin:0;padding:0;background:transparent}
-  #s{position:relative;width:1500px;height:300px}
-  i{position:absolute;top:0;width:300px;height:300px;display:block;image-rendering:pixelated;
-    background-image:url(bot-actions.png);background-size:1254px 1254px}
+  #s{position:relative;width:${5 * CELL}px;height:${LOOKS.length * CELL}px}
+  i{position:absolute;width:${CELL}px;height:${CELL}px;display:block;image-rendering:pixelated;${SHEET}}
 </style>
 <div id="s"></div>
 <script>
-  // type-0..3 then sit-0, from bot-actions.json's rectangles, one per 300px cell.
-  const at=[[8,11],[321,11],[634,11],[947,11],[8,924]];
   const s=document.getElementById('s');
-  at.forEach(([x,y],i)=>{
-    const e=document.createElement('i');
-    e.style.left=i*300+'px';
-    e.style.backgroundPosition=(-x)+'px '+(-y)+'px';
-    // The sheet's sit row overlaps the walking row above it — clip the bleed.
-    if(i===4) e.style.clipPath='inset(14px 0 0 0)';
-    s.append(e);
-  });
+  ${JSON.stringify(LOOKS.map((look) => [0, 1, 2, 3].map((n) => frame(`${look}/type-${n}`)).concat(frame(`${look}/sit-0`))))}
+    .forEach((row,r)=>row.forEach(({x,y},c)=>{
+      const e=document.createElement('i');
+      e.style.left=c*${CELL}+'px'; e.style.top=r*${CELL}+'px';
+      e.style.backgroundPosition=(-x*${SCALE})+'px '+(-y*${SCALE})+'px';
+      s.append(e);
+    }));
 </script>`;
 
 const work = join(tmpdir(), "ai4kanban-office-art");
@@ -127,7 +151,7 @@ function encode(png, out, args) {
 // keep their alpha lossless, which is the only part a smear would show in.
 const room = await shoot("still", OFFICE, 1536, 1024, false);
 await encode(room, join(OUT, "office.webp"), ["-q", "88"]);
-const bots = await shoot("bots", BOTS, 1500, 300, true);
+const bots = await shoot("bots", BOTS, 5 * CELL, LOOKS.length * CELL, true);
 await encode(bots, join(OUT, "bots.webp"), ["-q", "92", "-alpha_q", "100"]);
 
 console.log(`wrote ${OUT}office.webp and ${OUT}bots.webp`);

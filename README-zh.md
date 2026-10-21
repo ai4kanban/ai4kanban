@@ -57,7 +57,7 @@ AI4Kanban 会将一个请求拆成任务，识别哪些可以独立推进。agen
 
 完成一项主线工作后，agent 会提出跟进项，帮你补缺补漏。质检 agent 也会从用户角度检查近期开发改动。哪些建议继续推进，由你决定。
 
-![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
+![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v10.png)
 
 ## 快速开始
 

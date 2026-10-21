@@ -57,7 +57,7 @@ AI4Kanban breaks a request into tasks and identifies which can run independently
 
 After completing a main task, agents suggest follow-up work to address gaps. The QA agent also reviews recent software changes from a user's perspective. You decide which suggestions to act on.
 
-![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v9.png)
+![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v10.png)
 
 ## Quick start
 

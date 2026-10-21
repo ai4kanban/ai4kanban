@@ -11,8 +11,8 @@ import { CROP, NB, Panel, Shot, em } from "./nb";
 // and no list.
 //
 // The room is the app's own art, flattened to one still by
-// `scripts/build-office-art.mjs`; the bots and everything over them are drawn
-// here, at the world coordinates kanban-ui/lib/run-scene.ts places them at.
+// `scripts/build-office-art.mjs`, which also cuts each costume's frames out of
+// the app's cast; the bots and everything over them are drawn here, at the world coordinates kanban-ui/lib/run-scene.ts places them at.
 //
 // Drawn without the board behind it. The real dialog floats on a scrim over the
 // board, and half a blurred board bleeding off the edges reads as a screen grab
@@ -28,7 +28,7 @@ const TOP_CROP = 20;
 
 /** `BOT_HEIGHT`, and the share of the sprite above its ground line. */
 const BOT = 115;
-const GROUND = 285 / 300;
+const GROUND = 46 / 48;
 
 /** The nameplates, in world pixels from the bot's feet: who is at this desk
  *  above its head, the card it is on below its feet. A worker's plate has to
@@ -38,6 +38,8 @@ const GROUND = 285 / 300;
 const ABOVE = 139;
 const SEATED_ABOVE = 86;
 const BELOW = 3;
+/** How far each sofa plate leans away from its neighbour, so the two clear. */
+const SOFA_SPREAD = 10;
 
 const DESK_X = [345, 665, 980, 1302];
 const ROW_Y = [481, 716];
@@ -52,10 +54,15 @@ const SOFA_SPOTS = [
   { x: 1280, y: 901 },
 ];
 
+/** bots.webp's rows, one costume each — `LOOKS` in build-office-art.mjs. */
+const LOOKS = ["builder", "ui-designer", "software-planner", "copywriting", "illustrator"];
+
 // Six jobs running at six desks, and the two latest to pass on the sofa. The
-// still's screens are awake at exactly these six desks — move a worker and the
-// art has to be rebuilt with it.
+// still's screens are awake at exactly these six desks, each showing its
+// worker's job — move or recast a worker and the art has to be rebuilt with it.
 const CAST: {
+  look: string;
+  /** The role's name in the app's English UI. */
   role: string;
   card: number;
   /** The connector's mark, from web/public/agents/. */
@@ -63,19 +70,19 @@ const CAST: {
   desk?: number;
   seat?: number;
 }[] = [
-  { role: "Builder", card: 374, agent: "claude", desk: 0 },
-  { role: "Builder", card: 357, agent: "codex", desk: 1 },
-  { role: "Reviewer", card: 378, agent: "claude", desk: 2 },
-  { role: "Builder", card: 388, agent: "cursor", desk: 3 },
-  { role: "Planner", card: 391, agent: "claude", desk: 4 },
-  { role: "Writer", card: 362, agent: "opencode", desk: 5 },
-  { role: "Reviewer", card: 369, agent: "codex", seat: 0 },
-  { role: "Builder", card: 341, agent: "claude", seat: 1 },
+  { look: "builder", role: "Builder", card: 374, agent: "claude", desk: 0 },
+  { look: "builder", role: "Builder", card: 357, agent: "codex", desk: 1 },
+  { look: "ui-designer", role: "UI designer", card: 378, agent: "claude", desk: 2 },
+  { look: "builder", role: "Builder", card: 388, agent: "cursor", desk: 3 },
+  { look: "software-planner", role: "Software planner", card: 391, agent: "claude", desk: 4 },
+  { look: "copywriting", role: "Copywriting", card: 362, agent: "opencode", desk: 5 },
+  { look: "builder", role: "Builder", card: 369, agent: "codex", seat: 0 },
+  { look: "illustrator", role: "Illustrator", card: 341, agent: "claude", seat: 1 },
 ];
 
 const RUNNING = CAST.filter((b) => b.desk !== undefined).length;
 
-// The sprite sheet: four typing frames, then the seated one.
+// Each row of the sheet: four typing frames, then the seated one.
 const FRAMES = 5;
 const TYPE_MS = 640;
 
@@ -94,18 +101,23 @@ const px = (v: number, of: number) => `${(v / of) * 100}%`;
 
 /** One bot, its sprite and its two plates, at the spot the scene stands it on. */
 function Bot({
+  look,
   role,
   card,
   agent,
   spot,
   sitting,
+  lean = 0,
   delay,
 }: {
+  look: string;
   role: string;
   card: number;
   agent: string;
   spot: { x: number; y: number };
   sitting?: boolean;
+  /** A sofa plate's lean: -1 left, 1 right. */
+  lean?: number;
   delay: number;
 }) {
   // The sofa seats two a desk's width apart, so its plates are set a size down
@@ -123,15 +135,20 @@ function Bot({
             width: px(BOT, WORLD.w),
             aspectRatio: "1",
             backgroundImage: "url(/run-scene/bots.webp)",
-            backgroundSize: `${FRAMES * 100}% 100%`,
+            backgroundSize: `${FRAMES * 100}% ${LOOKS.length * 100}%`,
             // The seated frame is the sheet's last; a worker starts on its first.
             backgroundPositionX: sitting ? "100%" : "0%",
+            backgroundPositionY: px(LOOKS.indexOf(look), LOOKS.length - 1),
             imageRendering: "pixelated",
             "--d": `${delay}ms`,
           } as CSSProperties
         }
       />
-      <Plate spot={{ x: spot.x, y: spot.y - (sitting ? SEATED_ABOVE : ABOVE) }} size={F} lift>
+      <Plate
+        spot={{ x: spot.x + lean * SOFA_SPREAD, y: spot.y - (sitting ? SEATED_ABOVE : ABOVE) }}
+        size={F}
+        lift
+      >
         <span style={{ fontWeight: 600 }}>{role}</span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -140,7 +157,7 @@ function Bot({
           style={{ width: em(9, F), height: em(9, F), flex: "0 0 auto" }}
         />
       </Plate>
-      <Plate spot={{ x: spot.x, y: spot.y + BELOW }} size={F - 0.5}>
+      <Plate spot={{ x: spot.x + lean * SOFA_SPREAD, y: spot.y + BELOW }} size={F - 0.5}>
         #{card}
       </Plate>
     </>
@@ -256,11 +273,13 @@ export function ShotSessions() {
               {CAST.map((b, i) => (
                 <Bot
                   key={b.card}
+                  look={b.look}
                   role={b.role}
                   card={b.card}
                   agent={b.agent}
                   spot={b.desk !== undefined ? DESK_SPOTS[b.desk] : SOFA_SPOTS[b.seat!]}
                   sitting={b.desk === undefined}
+                  lean={b.seat === undefined ? 0 : b.seat * 2 - 1}
                   delay={-97 * i}
                 />
               ))}
