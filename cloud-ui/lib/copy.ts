@@ -87,6 +87,8 @@ export interface HostedCopy {
   /** Back from Get Pro while already subscribed (#1682). */
   alreadyPro: string;
   stillActive: string;
+  /** Back from the pricing page's trial button with the trial already used (#1937). */
+  trialUsed: string;
   resume: string;
   resumeFailed: string;
   /** The public page a desktop checkout lands on (#1109). */
@@ -145,8 +147,9 @@ const en: HostedCopy = {
   planUnavailable: "Your plan could not be read just now. Try again shortly.",
   checkoutFailed: "Checkout could not start. Try again.",
   portalFailed: "Billing could not be opened. Try again.",
-  alreadyPro: "You're already on Pro. No need to buy again.",
+  alreadyPro: "You’re already subscribed to Pro.",
   stillActive: "Your Pro is still active. Resume renewal to keep it.",
+  trialUsed: "You’ve already used your free trial. Upgrade to Pro to continue.",
   resume: "Resume renewal",
   resumeFailed: "Renewal could not be resumed. Try again.",
   checkoutDone: "Payment complete",
@@ -203,8 +206,9 @@ const zh: HostedCopy = {
   planUnavailable: "暂时无法读取你的套餐，请稍后重试。",
   checkoutFailed: "无法开始结账，请重试。",
   portalFailed: "无法打开账单管理，请重试。",
-  alreadyPro: "你已是 Pro，无需再次购买。",
+  alreadyPro: "你已订阅 Pro。",
   stillActive: "Pro 仍在有效期内，恢复续费即可继续使用。",
+  trialUsed: "你已用过免费试用，升级到 Pro 即可继续使用。",
   resume: "恢复续费",
   resumeFailed: "无法恢复续费，请重试。",
   checkoutDone: "付款成功",

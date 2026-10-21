@@ -65,7 +65,7 @@ const zh: TourCopy = {
     label: "质检反馈",
     feedback: "手机上『导出』按钮被底栏挡住了",
   },
-  replay: { note: "五页看懂 AI4Kanban 能为你做什么。", button: "重新查看" },
+  replay: { note: "看看 AI4Kanban 能为你做些什么。", button: "重新查看" },
 };
 
 export default zh;

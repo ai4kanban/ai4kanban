@@ -3,7 +3,7 @@
 // resuming one to /billing/resume.
 
 import type { ReactNode } from "react";
-import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import { FiAlertCircle, FiCheckCircle, FiInfo } from "react-icons/fi";
 import { Button } from "@/components/button";
 import type { Language } from "@/lib/format/machine/types";
 import type { Billing } from "../lib/cloud";
@@ -146,22 +146,37 @@ export function PlanPanel({
     </p>
   );
   const resumable = state === "canceled" && !!billing?.resumable;
-  const notice = alreadySubscribed && (state === "active" || state === "canceled" || state === "pastDue") && (
-    <p
-      className="flex items-center gap-2 rounded-[10px] bg-nb-mint-soft px-3 py-2 text-[12.5px] font-[700] text-nb-mint-ink"
-      role="status"
-    >
-      <FiCheckCircle className="shrink-0" size={14} aria-hidden />
-      {resumable ? copy.stillActive : copy.alreadyPro}
-    </p>
-  );
-
   const unpaid = state === "free" || state === "expired";
   const trialEnd = unpaid && !grant ? (billing?.trialEnd ?? null) : null;
   const days = trialEnd ? Math.max(1, Math.ceil((Date.parse(trialEnd) - Date.now()) / 86_400_000)) : 0;
+  const shown = trialEnd ? "trialing" : unpaid && billing?.mayTrial ? "untried" : grant && unpaid ? "gifted" : state;
+
+  // Back from Get Pro or the pricing page's trial button (#1937), say why nothing started.
+  const subscribed = state === "active" || state === "canceled" || state === "pastDue";
+  const notice =
+    subscribed && (alreadySubscribed || trialFailed) ? (
+      <p
+        className="flex items-center gap-2 rounded-[10px] bg-nb-mint-soft px-3 py-2 text-[12.5px] font-[700] text-nb-mint-ink"
+        role="status"
+      >
+        <FiCheckCircle className="shrink-0" size={14} aria-hidden />
+        {resumable ? copy.stillActive : copy.alreadyPro}
+      </p>
+    ) : (
+      trialFailed &&
+      (shown === "free" || shown === "expired") && (
+        <p
+          className="flex items-center gap-2 rounded-[10px] bg-nb-wash px-3 py-2 text-[12.5px] font-[700] text-nb-ink"
+          role="status"
+        >
+          <FiInfo className="shrink-0" size={14} aria-hidden />
+          {copy.trialUsed}
+        </p>
+      )
+    );
 
   let body: ReactNode;
-  switch (trialEnd ? "trialing" : unpaid && billing?.mayTrial ? "untried" : grant && unpaid ? "gifted" : state) {
+  switch (shown) {
     case "untried":
       body = (
         <>
