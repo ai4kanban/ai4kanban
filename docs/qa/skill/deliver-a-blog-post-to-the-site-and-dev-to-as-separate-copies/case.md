@@ -3,7 +3,7 @@
 ## Setup
 
 - **项目**：`/tmp` 下一次性 git 项目，`web/blog/` 里已有一篇带 `title`、`date`、`description`、`keywords` 的文章；`akb install` 新装，删掉初始卡 #1 和 `setup-checklist.md`。
-- **账号**：博客工作流要 Pro，用一份手写的 Pro 登录状态，Cloud 地址指向本机替身 [stand-in-cloud.mjs](stand-in-cloud.mjs)（`127.0.0.1:8819`，`/v1/billing` 答 Pro）。
+- **账号**：录证据时用一份手写的 Pro 登录状态，Cloud 地址指向本机替身 [stand-in-cloud.mjs](stand-in-cloud.mjs)（`127.0.0.1:8819`，`/v1/billing` 答 Pro）。#1930 起博客工作流免费，不登录也能跑（见[在命令行把一张已有的卡换到另一个工作流](../switch-a-card-to-another-workflow/case.md)第 4 步）；本用例的真实运行未重跑。
 - **Agent**：真实的 Claude Code（`claude-opus-5-5`）；PATH 最前面的 `akb` 转到这次构建出的命令，运行里的 agent 也用它（见 [rb.sh](rb.sh)）。
 
 ## Steps

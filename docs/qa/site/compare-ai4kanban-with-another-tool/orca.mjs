@@ -1,4 +1,4 @@
-// /vs-orca: footer link, each section, the Pro tip on hover, then the zh page, .md mirror and llms.txt entry.
+// /vs-orca: footer link, each section, the workflows tip on hover, then the zh page, .md mirror and llms.txt entry.
 import fs from 'node:fs'
 import { open } from './cdp.mjs'
 const D = process.argv[2] + '/'
@@ -32,7 +32,7 @@ const b = await p.ev(`(()=>{const b=${tip}.getBoundingClientRect();return {x:b.x
 await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: b.x, y: b.y }); await p.sleep(600)
 log += `tip visible on hover: ${await p.ev(`getComputedStyle(document.getElementById('pro-tip')).visibility`)}  text: ${await p.ev(`document.getElementById('pro-tip').innerText`)}\n`
 const vy = await p.ev('scrollY')
-await p.shot(D + '08b-pro-tip.png', { x: 140, y: vy + b.y - 160, width: 1000, height: 220 })
+await p.shot(D + '08b-workflows-tip.png', { x: 140, y: vy + b.y - 160, width: 1000, height: 220 })
 await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 })
 const dec = `${h('h2', 'Which way')}.closest('section')`
 log += `\n# 9. Read section 03\n${await p.ev(txt(dec))}\n`

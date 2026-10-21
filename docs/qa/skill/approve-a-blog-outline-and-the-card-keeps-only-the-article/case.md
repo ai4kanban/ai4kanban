@@ -3,7 +3,7 @@
 ## Setup
 
 - **项目**：一次性 git 项目，`akb install` 新装，删掉 `setup-checklist.md`；没有博客目录。
-- **账号**：博客工作流要 Pro，用一份手写的 Pro 登录状态（`AI4KANBAN_HOME` 指向临时目录，Cloud 地址指向本机替身 [stand-in-cloud.mjs](stand-in-cloud.mjs)：`/v1/billing` 答 Pro，`/v1/image` 一律失败）。
+- **账号**：录证据时用一份手写的 Pro 登录状态（`AI4KANBAN_HOME` 指向临时目录，Cloud 地址指向本机替身 [stand-in-cloud.mjs](stand-in-cloud.mjs)：`/v1/billing` 答 Pro，`/v1/image` 一律失败）。#1930 起博客工作流免费，不登录也能跑（见[在命令行把一张已有的卡换到另一个工作流](../switch-a-card-to-another-workflow/case.md)第 4 步）；本用例的真实运行未重跑。
 - **Agent**：真实的 Claude Code（`claude-opus-5-5`）；PATH 最前面放一个 `akb`，转到这次构建出的命令，运行里的 agent 也用它（见 [rb.sh](rb.sh)）。
 - **终端**：在项目目录里；日志里的 `akb` 都是这次构建出的命令。
 

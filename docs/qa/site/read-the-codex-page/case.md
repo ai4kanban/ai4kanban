@@ -20,7 +20,7 @@
    ![界面草稿配图](03-review-draft.png) · [codex.log](codex.log)
 
 4. 读「Can the same board handle development and marketing?」。
-   回答「Yes」，一张表列六个工作流和各自产出：Coding、Blog post、Product video、Slide deck、Social post、Video clone；表下小字「Coding and custom workflows are free. The other five built-in workflows require Pro.」，Pro 链到定价页。
+   回答「Yes」，一张表列六个工作流和各自产出：Coding、Blog post、Product video、Slide deck、Social post、Video clone；表下小字「All built-in and custom workflows are free. Slide elements in the image-based decks are not editable.」，没有链接；下一行「Explore workflows and the specialist agents.」链到工作流和 agent 文档。
    ![开发和营销一节](04-dev-and-marketing.png) · [codex.log](codex.log)
 
 5. 读「Can I use Codex alongside Claude Code?」。
@@ -36,7 +36,7 @@
    ![FAQ，点开 skills 一问](06-faq-skills.png) · [codex.log](codex.log)
 
 8. 逐个打开正文里的站内链接。
-   `/builder`、`/docs/drafts`、`/pricing`、`/docs/workflows`、`/docs/agents`、`/docs/connectors`、`/docs/memory`、`/download` 都返回 200。
+   `/builder`、`/docs/drafts`、`/docs/workflows`、`/docs/agents`、`/docs/connectors`、`/docs/memory`、`/download` 都返回 200；正文不再链到 `/pricing`。
    [codex.log](codex.log)
 
 9. 读 `/llms.txt` 里这一页的条目。
@@ -45,7 +45,9 @@
 
 ## Feedback
 
-- **工作流表跟上了改名**：「Social post」一行写清是各平台文案加配文、轮播才有逐页图片，比原来「多页图文帖」更准确，纯文字帖的用户也知道能用。
+- **六个工作流都能直接试**：表下一句「全部免费」，读完表就能去下载，不用再想营销那五个要不要付费。
+- **小字里两件事挤一行**：「全部免费」和「幻灯片文字不能改」放在同一行灰色小字里，前者是卖点，后者是限制，都容易被跳过。
+- **Pro 从页面上消失了**：正文不再提 Pro，也不链定价页；想知道生图、配音要不要钱的 Codex 用户在这页找不到答案。
 - **运行时那张图有用**：橙圈直接指到 Runtime 一栏的「Codex · gpt-6.1-sol」，一眼看到按 agent 换成 Codex 在哪设。
 - **定位清楚**：开头就说「把 Codex 的活放上看板」，任务跨对话、先审草稿、工作流和 skills 互补，原来的设置不用动。
 - **FAQ 正中要害但偏多**：桌面端能不能用、skills 还在不在、会不会自己 push 正是先问的；11 问里后几问（成本上限、当前检出）更像文档。

@@ -73,4 +73,4 @@
 - **自带的那个默认就开着**：新看板什么都不做，`qa-manager` 明天此刻就会自己跑一遍真的 agent；`akb install` 的输出没有提它，要执行 `akb workflow schedule coding` 或看 `workflow list` 才知道。
 - **拒绝挂回的那句话不知所云**：「`qa-manager` is a board agent and cannot help execute」——没说它现在只按周期运行，也没指向 `akb workflow schedule`；想让 QA 跟在构建之后的人读完不知道下一步。
 - **列表看不到额外要求**：`--extra` 设了什么只有 `--json` 里有，`akb workflow schedule coding` 的那一行不显示。
-- **没有跑到的**：`qa-manager` 的 `--run`（会启动真实的 Agent，替身不做它的事）；真实的 Agent（这里是替身，开场白之后的规则、文件、记忆几段没有逐段核对）；产出文件的工作流（需要 Pro）；上一遍还在合入时不启动新的一遍；`akb run resume` 继续失败的一遍；界面的真实定时器（由 `tick.mjs` 顶替，没有真的让看板自己启动一遍）；`1d at 09:30` 这种带时刻的周期。
+- **没有跑到的**：`qa-manager` 的 `--run`（会启动真实的 Agent，替身不做它的事）；真实的 Agent（这里是替身，开场白之后的规则、文件、记忆几段没有逐段核对）；产出文件的工作流里的周期 Agent；上一遍还在合入时不启动新的一遍；`akb run resume` 继续失败的一遍；界面的真实定时器（由 `tick.mjs` 顶替，没有真的让看板自己启动一遍）；`1d at 09:30` 这种带时刻的周期。

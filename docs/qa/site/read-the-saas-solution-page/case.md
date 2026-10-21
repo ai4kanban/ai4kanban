@@ -19,8 +19,8 @@
    左侧「ON THIS PAGE」目录列出 8 项，和正文 8 个大节一一对应，依次是：同一看板上的产品与营销、把产品进展做成营销素材、发布的文案与客户邮件、按确认的草稿实现功能、项目背景与偏好延续、交付后的跟进、沿用自己的工具、按需定制。营销素材排在第二节，开发排到第四节。
    [saas.log](saas.log)
 
-4. 读第二节「Turn product work into marketing material.」，看「Pro」那一行。
-   四种素材各一行，先审什么、拿到什么：Blog post（大纲 → 带图和链接的全文）、Product video（脚本 → 成片和封面）、Slide deck（内容和幻灯片预览 → 每页一张图的 PowerPoint，文字和形状不能单独改）、Social post（文案 → 帖子和所选平台的配文，轮播另有逐页图片）。下面一行「Blog posts, product videos, slide decks and social posts require Pro. See plans」，「See plans」指向 `/pricing`。
+4. 读第二节「Turn product work into marketing material.」，看节末带标签图标的那一行，再往下读到「Keep your tools and subscriptions.」节末的同样一行。
+   四种素材各一行，先审什么、拿到什么：Blog post（大纲 → 带图和链接的全文）、Product video（脚本 → 成片和封面）、Slide deck（内容和幻灯片预览 → 每页一张图的 PowerPoint，文字和形状不能单独改）、Social post（文案 → 帖子和所选平台的配文，轮播另有逐页图片）。节末一行「Blog, video, slide deck and social post workflows are free. Pro templates help you make more polished content. See plans」，「See plans」指向 `/pricing`。「Keep your tools」一节末尾是「All built-in and custom workflows are free. Hosted image, voiceover and music generation require Pro and use AI credits.」，没有链接。
    ![营销素材一节](03-marketing-material.png) · [saas.log](saas.log)
 
 5. 读到最后一节，点「Request customization」。
@@ -28,7 +28,7 @@
    ![定制入口](04-customize.png) · [saas.log](saas.log)
 
 6. 打开 `/zh/solutions/saas`，再打开 `/ja/solutions/saas`。
-   中文标题两行「一边开发产品 / 一边推进营销」，导语「为 SaaS 创始人和小团队准备的 Agent 工作台。你把关产品与营销的关键草稿，agent 完成细节。」，Pro 一行「博客文章、产品视频、幻灯片和社媒帖需要 Pro。查看套餐」指向 `/zh/pricing`；日文标题「SaaS を作りながら、 / マーケティングも進める。」，Pro 一行「ブログ記事、製品動画、スライド、SNS投稿には Pro が必要です。」没有套餐链接（日文没有定价页）。
+   中文标题两行「一边开发产品 / 一边推进营销」，导语「为 SaaS 创始人和小团队准备的 Agent 工作台。你把关产品与营销的关键草稿，agent 完成细节。」，营销素材一节末尾「博客文章、产品视频、幻灯片和社媒帖工作流免费。使用 Pro 模板，让成品更精致。查看套餐」指向 `/zh/pricing`，工具一节末尾「所有内置和自建工作流均可免费使用。托管生图、配音和配乐需要 Pro，并消耗 AI 积分。」；日文标题「SaaS を作りながら、 / マーケティングも進める。」，两行分别是「ブログ記事、製品動画、スライド、SNS投稿のワークフローは無料です。Pro テンプレートを使うと、より洗練されたコンテンツを作れます。」和「組み込みとカスタムのワークフローはすべて無料です。ホスト型の画像・ナレーション・音楽生成には Pro が必要で、AI クレジットを消費します。」，都没有套餐链接（日文没有定价页）。
    ![中文首屏](05-zh-hero.png) · [saas.log](saas.log)
 
 7. 用 390px 宽的手机打开 `/solutions/saas`。
@@ -41,10 +41,10 @@
 
 ## Feedback
 
-- **改名落到了每种语言**：四种素材里的 Social post 写清是文案、各平台配文、轮播另有逐页图片；英、中、日三页的 Pro 一行都改成社媒帖 / social posts / SNS投稿，和定价页一致，做 LinkedIn 文字帖的创始人也看得出这页说的是自己。
-- **短，像创始人的一周**：8 节，营销素材排第二，四种素材各一行「先审什么、拿到什么」，一眼能比较。
-- **说清了限制**：幻灯片「每页一张图、文字不能单独改」直接写在列表里，不会买了才发现。
-- **日文页没有套餐链接**：Pro 一行只说要 Pro，不给去处，日文读者要自己找英文定价页。
-- **中文大小写不一**：导语先写「Agent 工作台」，后写「agent 完成细节」。
+- **营销素材不再像付费墙**：四种素材一节末尾直接说工作流免费，创始人读到这里不会以为博客和视频要先掏钱；英、中、日三页同一口径。
+- **Pro 到底多给什么，还是没说透**：「Pro templates help you make more polished content」点了模板却不说模板是什么、差别多大；真正要钱的生图、配音、配乐却放在后面「Keep your tools」一节，读营销素材时看不到「视频配音要 Pro」。
+- **两行标签意思重叠**：第二行又说一遍「所有工作流免费」，同一页讲了两次。
+- **日文页没有套餐链接**：两行都不给去处，日文读者要自己找英文定价页。
+- **短，像创始人的一周**：8 节，营销素材排第二，四种素材各一行「先审什么、拿到什么」，一眼能比较；幻灯片「文字不能单独改」直接写明。
 - **插图克制但抽象**：浅灰加一点橙，3D 有质感；没读正文前看不出浮起的是卡片页，而且和 coding 页首屏一模一样。
 - **定制入口顺手**：「Request customization」直达联系表单并预选原因；页头「Resources」里仍找不到这一页。

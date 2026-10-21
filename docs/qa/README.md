@@ -77,7 +77,7 @@
 - [在讨论里看它写成的卡片哪些已经完成](local-ui/see-which-cards-a-discussion-became-are-done/case.md)
 - [在工作流里让一个 Agent 定期运行](local-ui/set-a-workflow-agent-to-run-on-a-schedule/case.md)
 - [看板自带的 Agent 在「自动」下多久跑一次](local-ui/see-when-the-board-s-own-agents-run-on-auto/case.md)
-- [在卡片页按「开发」，而它的工作流负责人文件被看板拒用](local-ui/start-a-card-whose-workflow-lead-is-refused/case.md)
+- [在卡片页按「执行」，而它的工作流负责人文件被看板拒用](local-ui/start-a-card-whose-workflow-lead-is-refused/case.md)
 - [切换看板界面的语言](local-ui/switch-the-board-language/case.md)
 - [在看板上把一个想法变成卡片](local-ui/turn-an-idea-into-a-card-on-the-board/case.md)
 - [在执行中的卡片上看「差异」，合入后在归档页再看一次](local-ui/watch-a-building-card-s-changes-in-the-diff-tab/case.md)
@@ -95,7 +95,7 @@
 - [放大卡片里的样稿和图片，看清小字](local-ui/zoom-a-mockup-or-image-on-a-card/case.md)
 - [在「搁置」列里找出放了好几天没动的卡](local-ui/find-cards-untouched-for-days-in-the-stale-column/case.md)
 - [卡片的对话还在回复时移除这张卡](local-ui/reject-a-card-while-its-chat-is-replying/case.md)
-- [在卡片页把 Markdown 原稿当文章读，切换语言](local-ui/read-a-markdown-asset-as-an-article-on-a-card/case.md)
+- [在卡片页把 Markdown 原稿当文章读，切换版本](local-ui/read-a-markdown-asset-as-an-article-on-a-card/case.md)
 - [在归档页按交付时间或创建时间排序](local-ui/sort-the-archive-by-delivery-or-creation-time/case.md)
 - [只在用键盘移动时看到聚焦框](local-ui/see-a-focus-frame-only-when-moving-by-keyboard/case.md)
 - [升级后打开一个用过版本的旧看板](local-ui/open-a-board-that-used-releases-after-upgrading/case.md)
@@ -116,6 +116,7 @@
 - [在「博客文章」工作流里找到博客研究员，停用再启用它](local-ui/see-the-researcher-in-the-blog-workflow/case.md)
 - [在「社媒帖」工作流里找到社媒帖配图，停用后它不再回来](local-ui/see-the-illustrator-in-the-social-post-workflow/case.md)
 - [在运行办公室里看每个 Agent 穿着自己的职业装](local-ui/see-each-agent-in-its-own-outfit-in-the-runs-office/case.md)
+- [在桌面应用的账单面板里先免费试用 Pro 7 天，试用结束后再购买](local-ui/start-a-pro-trial-in-the-desktop-billing-panel/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -176,6 +177,7 @@
 - [用 `akb cloud music` 生成一段托管配乐](cloud/generate-music-with-cloud/case.md)
 - [维护者给已发布的模板登记展示资料（含图文的整套页面），官网不登录就能读到目录](cloud/register-a-template-showcase-for-the-public-catalog/case.md)
 - [模板默认是 Pro：免费账号只能取到维护者明确发布为免费的模板](cloud/templates-are-pro-unless-published-free/case.md)
+- [在 Cloud 看板网站开始 7 天 Pro 试用，试用中不能购买，已试用过的不能再开](cloud/start-a-pro-trial-on-the-hosted-board/case.md)
 
 ### telemetry
 

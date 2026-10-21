@@ -79,4 +79,4 @@
 - **问题换了地方答**：#4 的开放问题成了一条待筛选条目，标题就是问题本身，选项成了正文里的列表；答案不会回到 Agent 的规则里，要自己改 `AGENT.md`。
 - **`run` 的报错不指路**：`--recurring`、`--cadence` 都说了去哪，`akb raw record-run` / `run` 只说 `unknown command`，还建议 `rule`。旧脚本和旧的 `## Process` 里写着它的人得自己猜。
 - **Agent 的标题只写了一种语言**：迁移把卡片标题写在看板语言（这里是 `zh`）的 `i18n` 下，标题本身是英文原样。
-- **没有跑到的**：真实的 Agent 照迁来的 `## Process` 跑一遍并维护 `## Run state`（第 7 步是替身）；写了工作流的卡迁到 Coding 以外的工作流（需要 Pro）；短名已被别的 Agent 占用时在后面加卡片 id；卡片本身是文件夹（`<id>-<slug>/root.md`）；Cloud 看板上的卡；允许自动提交关闭时的一遍；旧的「Prune the memory」卡。
+- **没有跑到的**：真实的 Agent 照迁来的 `## Process` 跑一遍并维护 `## Run state`（第 7 步是替身）；写了工作流的卡迁到 Coding 以外的工作流；短名已被别的 Agent 占用时在后面加卡片 id；卡片本身是文件夹（`<id>-<slug>/root.md`）；Cloud 看板上的卡；允许自动提交关闭时的一遍；旧的「Prune the memory」卡。

@@ -3,7 +3,7 @@
 ## Setup
 
 - **项目**：一次性 git 项目，`akb install` 新装，删掉 `setup-checklist.md`；没有博客目录。
-- **账号**：博客工作流要 Pro，用一份手写的 Pro 登录状态（`AI4KANBAN_HOME` 指向临时目录，Cloud 地址指向本机替身，只答 `/v1/billing` 为 Pro）。
+- **账号**：录证据时用一份手写的 Pro 登录状态（`AI4KANBAN_HOME` 指向临时目录，Cloud 地址指向本机替身，只答 `/v1/billing` 为 Pro）。#1930 起博客工作流免费，不登录也能跑（见[在命令行把一张已有的卡换到另一个工作流](../switch-a-card-to-another-workflow/case.md)第 4 步）；本用例的真实运行未重跑。
 - **Agent**：真实的 Claude Code（`claude-opus-5-5`），能用 WebSearch、WebFetch；`blog-post` 的规划辅助是 `blog-researcher` 和 `blog-illustrator`。
 - **终端**：在项目目录里；`PATH` 最前是这次构建出的命令，日志里的 `akb` 就是它。
 

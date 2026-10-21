@@ -5,7 +5,7 @@ import http from 'node:http'
 
 const port = Number(process.argv[2] ?? 4791)
 let failNext = process.argv.includes('--fail-resume')
-const billing = { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: '2026-11-14T00:00:00Z', grantEnd: null, resumable: true }
+const billing = { plan: 'pro', state: 'canceled', period: 'monthly', periodEnd: '2026-11-14T00:00:00Z', grantEnd: null, resumable: true, trialEnd: null, mayTrial: false }
 const invoices = [{ id: 'inv_1', date: '2026-10-14T00:00:00Z', amount: 1500, currency: 'USD', status: 'paid' }]
 
 const send = (res, status, body) => {

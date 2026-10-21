@@ -8,30 +8,34 @@
 ## Steps
 
 1. 打开 `/pricing`。
-   标签页标题「AI4Kanban: Plans and pricing」，大标题「Plans and pricing」，导语只有一句「Every plan runs on your own computer, with your own AI tools.」。默认选中「Yearly · Save 33%」。左边 Free $0（Apache 2.0 开源，按钮「Download」），列出编码工作流、不限并发、无限自定义工作流和 agent 等五项；右边 Pro $120 / year、划掉的 $180，下面「$10 a month, billed yearly」，按钮「Get Pro」，「Everything in Free, plus:」下先是五个工作流（Slide deck、Product video、Social post、Blog post、Video clone），再是自动筛选新想法、「5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160」和优先支持。页面描述「AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, social posts, blogs and video clones. $10/month, billed yearly.」，分享说明相同。
-   ![按年显示的两档价格](01-yearly.png) · [03-links.log](03-links.log)
+   标签页标题「AI4Kanban: Plans and pricing」，大标题「Plans and pricing」，导语只有一句「Every plan runs on your own computer, with your own AI tools.」。默认选中「Yearly · Save 33%」。左边 Free $0（Apache 2.0 开源，按钮「Download」），五项里第二项是「All 6 workflows」，旁边一个折叠箭头；右边 Pro $120 / year、划掉的 $180，下面「$10 a month, billed yearly」，按钮「Start 7-day free trial」，「Everything in Free, plus:」下依次是「All Pro templates」「Automatic idea screening」「AI voiceover, image and music generation」「5,000 AI credits a month」（旁边小字「Credit costs」带折叠箭头）和「Priority support」，不再列任何工作流。页面描述「All AI4Kanban workflows are free. Pro adds templates for more polished results, AI credits and automatic idea screening. $10/month, billed yearly.」，分享说明相同。
+   ![按年显示的两档价格](01-yearly.png) · [links.log](links.log)
 
 2. 点「Monthly」。
-   Pro 变成 $15 / month，划线价和「billed yearly」那行消失；Free 和两边的清单不变。
-   ![按月显示的两档价格](02-monthly.png) · [03-links.log](03-links.log)
+   Pro 变成 $15 / month，划线价和「billed yearly」那行消失；按钮仍是「Start 7-day free trial」，Free 和两边的清单不变。
+   ![按月显示的两档价格](02-monthly.png) · [links.log](links.log)
 
-3. 读两种状态下按钮指向哪里。
-   「Get Pro」按年指向 `https://cloud.ai4kanban.dev/billing/checkout?period=yearly`，按月变成 `period=monthly`；「Download」指向 `/download`。没有点进 Cloud 的结账页。
-   [03-links.log](03-links.log)
+3. 点「All 6 workflows」，再点「Credit costs」。
+   Free 下展开两列六项：Coding、Slide deck、Product video、Social post、Blog post、Video clone。Pro 下展开一句「AI voiceover, image and music generation share your 5,000 monthly credits.」和三行费率：Voiceover 1 credit / second、Image 320 credits each、Music 160 credits / track。箭头翻转，再点一次收起。
+   ![两处都展开](03-folds-open.png) · [links.log](links.log)
 
-4. 看两张价格卡背后的背景。
+4. 读两种状态下按钮指向哪里。
+   「Start 7-day free trial」按年按月都指向 `https://cloud.ai4kanban.dev/billing/trial`，不再带 `period`；「Download」指向 `/download`。没登录时，线上的这个地址把人送到 `/signin?next=%2Fbilling%2Ftrial`；没有登录走完试用。
+   [links.log](links.log)
+
+5. 看两张价格卡背后的背景。
    背景是七条缓缓右移的空白小卡片：每张只有一小块色标（绿、橙、紫、蓝四种）和一两道灰线，没有任何文字；中间被价格卡挡住，四周渐隐，整体只到 70% 不透明度，对读屏软件隐藏。`/zh/pricing` 相同。价格卡下面还有三格：Seed partner、Done-for-you agents（$15 / agent）、Training。
-   ![价格卡背后的空白卡片](04-backdrop.png) · [03-links.log](03-links.log)
+   ![价格卡背后的空白卡片](04-backdrop.png) · [links.log](links.log)
 
-5. 打开 `/zh/pricing`。
-   标签页标题「AI4Kanban：方案与定价」，大标题「方案与定价」，导语「所有方案都在你自己的电脑上运行，使用你自己的 AI 工具。」；Pro 列出幻灯片、产品视频、社媒帖、博客文章、视频克隆五个工作流，额度一行是「每月 5,000 AI 积分，配音每秒用 1 积分，生成图像每张用 320 积分，生成音乐每首用 160 积分」，不再提「封面」。页面描述「AI4Kanban，独立开发者的 Agent 工作台。软件开发免费；Pro 提供幻灯片、产品视频、社媒帖、博客文章和视频克隆工作流，按年付费折合每月 $10。」
-   ![中文定价页](05-zh-yearly.png) · [03-links.log](03-links.log)
+6. 打开 `/zh/pricing`，点开「全部 6 种工作流」和「消耗标准」。
+   标签页标题「AI4Kanban：方案与定价」，大标题「方案与定价」；免费版第二项「全部 6 种工作流」，展开是编码、演示文稿、产品视频、社交帖子、博客文章、视频克隆；Pro 按钮「免费试用 7 天」，同样指向 `/billing/trial`，下面依次「全部 Pro 模板」「新想法自动筛选」「AI 配音、图像和音乐生成」「每月 5,000 AI 积分」「优先支持」，「消耗标准」展开是「配音、图像和音乐共用每月 5,000 AI 积分。」和配音 1 积分 / 秒、图像 320 积分 / 张、音乐 160 积分 / 首。页面描述「AI4Kanban 全部工作流免费。Pro 提供模板，让成品更精致，另含 AI 积分和新想法自动筛选；按年付费折合每月 $10。」
+   ![中文定价页](05-zh-yearly.png) · ![中文页两处都展开](06-zh-folds-open.png) · [links.log](links.log)
 
 ## Feedback
 
-- **改名后各处一致**：Pro 一栏、页面描述和中文页都从「轮播帖 / carousels」换成「社媒帖 / social posts」，和首页、对比页的说法对得上；只发 LinkedIn、X 文字帖的人现在也看得出这在 Pro 里。
-- **名字没说清范围**：光看「Social post workflow」不知道它既做纯文字帖也做图文轮播，想要小红书轮播的人得猜这是不是原来那个。
-- **额度仍要自己换算**：配音按秒、图像每张 320、配乐每首 160 都写了，但「5,000 积分够几张图」还得自己算。
-- **年付月付切换直接**：切换即时，结账链接跟着换；「$10 a month, billed yearly」和划线原价摆在一起，好比较。
-- **背景安静**：背景卡片只剩色块和灰线，不抢价格的注意力。
-- **Free 的五项偏技术**：「Coding workflow with 8 agents」「Works with 8 coding agents」两个「8」挨着，第一次看容易混成一回事。
+- **一眼看懂免费给了什么**：「All 6 workflows」放在 Free 里，Pro 一栏只剩模板、筛选、生成和积分，原来「Pro 才能做视频」的误会没了。
+- **积分终于有上下文**：费率收进「Credit costs」，先说三种生成共用 5,000 积分；但「够几张图」仍要自己算（约 15 张图）。
+- **「Pro 模板」说不清**：Pro 第一项是「All Pro templates」，页面上没解释模板是什么、和免费版成品差在哪，也没链到模板库，最该说服人的一项最模糊。
+- **试用按钮不说规则**：「Start 7-day free trial」看不出要不要绑卡、试用有多少积分（1000）、试用中能不能提前买；用过 Pro 的人点它也走同一个地址，按钮文案对他们不准。
+- **折叠项不显眼**：「All 6 workflows」只有一个小箭头，第一次看不知道能点；展开后的名字和别处不一致：这里叫「演示文稿」「社交帖子」，SaaS 页叫「幻灯片」「社媒帖」。
+- **年付月付切换直接**：价格即时变，「$10 a month, billed yearly」和划线原价摆在一起好比较；按钮不再随周期变，周期要到 Cloud 再选。

@@ -11,7 +11,8 @@ const port = Number(process.argv[2] || 8790)
 const ui = process.argv[3] || 'http://localhost:3790'
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
 
-let billing = { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false }
+// Free, its 7-day trial (#1932) already over, so it may buy.
+let billing = { plan: 'free', state: 'free', period: null, periodEnd: null, grantEnd: null, resumable: false, trialEnd: null, mayTrial: false }
 // `node stand-in.mjs … --fail-resume` makes the first resume fail, as a Creem error would.
 let failResume = process.argv.includes('--fail-resume')
 const signedOut = new Set()
@@ -89,9 +90,13 @@ http.createServer(async (req, res) => {
     billing = { ...billing, period }
     return json(res, 200, { url: `http://127.0.0.1:${port}/creem/checkout?period=${period}` })
   }
+  if (p === '/v1/billing/trial') {
+    await bodyOf(req)
+    return json(res, 409, { error: { code: 'trial_used', message: 'This account has already had Pro.' } })
+  }
   if (p === '/v1/billing/confirm') {
     await bodyOf(req)
-    billing = { plan: 'pro', state: 'active', period: billing.period || 'yearly', periodEnd: '2027-10-04T00:00:00Z', grantEnd: null, resumable: false }
+    billing = { ...billing, plan: 'pro', state: 'active', period: billing.period || 'yearly', periodEnd: '2027-10-04T00:00:00Z', resumable: false }
     return json(res, 200, { billing })
   }
   if (p === '/v1/billing/resume') {

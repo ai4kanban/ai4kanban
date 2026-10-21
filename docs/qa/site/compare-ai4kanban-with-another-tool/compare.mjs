@@ -43,12 +43,24 @@ await p.shot(D + '04-multica-zh-details.png', { x: 0, y: zt.y, width: 1280, heig
 const row = (t) => `[...document.querySelectorAll('main section div.border-b')].find(r=>r.firstElementChild?.innerText.trim()===${JSON.stringify(t)})`
 const rowText = (t) => p.ev(`(${row(t)}).innerText.replace(/\\n+/g,' | ')`)
 const rowShot = async (t, file) => { await p.ev(`(${row(t)}).scrollIntoView({block:'center'})`); await p.sleep(1200); const b = await p.ev(`(()=>{const r=(${row(t)}).getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`); await p.shot(D + file, { x: 0, y: b.y - 50, width: 1280, height: b.h + 70 }) }
-log += `\n# 5c. Multica: which workflows need Pro\n`
+log += `\n# 5c. Multica: the workflows line\n`
 await p.nav(B + '/vs-multica', 4000)
 log += `/vs-multica: ${await rowText('Built-in agents and workflows')}\n`
-await rowShot('Built-in agents and workflows', '04b-multica-pro.png')
+await rowShot('Built-in agents and workflows', '04b-multica-workflows.png')
 await p.nav(B + '/zh/vs-multica', 4000)
 log += `/zh/vs-multica: ${await rowText('内置 agent 与工作流')}\n`
+log += `\n# 5c. Taskmaster and Hermes: the first row\n`
+for (const u of ['/vs-task-master', '/zh/vs-task-master', '/vs-hermes-kanban', '/zh/vs-hermes-kanban']) {
+  await p.nav(B + u, 3500)
+  log += `${u}: ${await p.ev(`(()=>{const r=[...document.querySelectorAll('main section div.border-b')].find(r=>/workflow|工作流/i.test(r.firstElementChild?.innerText||''));return r?r.innerText.replace(/\\n+/g,' | '):'(no row)'})()`)}\n`
+}
+await p.nav(B + '/vs-hermes-kanban', 3500)
+await rowShot('Built-in agents and workflows', '04d-hermes-workflows.png')
+log += `\n# 5c. Any page or .md mirror still saying a workflow needs Pro\n`
+for (const u of ['vs-task-master', 'vs-hermes-kanban', 'vs-multica', 'vs-orca', 'vs-plannotator']) for (const v of [`/${u}`, `/zh/${u}`, `/${u}.md`]) {
+  const t = await (await fetch(B + v)).text()
+  log += `${v}: ${(t.match(/[^.。>"]{0,60}(require Pro|need Pro|需 ?Pro|需要 Pro)[^.。<"]{0,20}/g) || ['(none)']).slice(0, 2).join(' / ')}\n`
+}
 log += `\n# 5d. Hermes: control from chat apps\n`
 await p.nav(B + '/vs-hermes-kanban', 4000)
 log += `/vs-hermes-kanban: ${await rowText('Control from chat apps')}\n`

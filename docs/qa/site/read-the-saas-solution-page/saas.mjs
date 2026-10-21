@@ -1,4 +1,4 @@
-// Reads /solutions/saas: footer entry, the CSS 3D hero, the sections, the Pro line, the
+// Reads /solutions/saas: footer entry, the CSS 3D hero, the sections, the plan lines, the
 // customize link, the zh/ja pages, a phone and reduced motion.
 // Usage: SITE=127.0.0.1:4371 CDP_PORT=9371 OUT=<proof dir> node saas.mjs
 import fs from 'node:fs'
@@ -28,7 +28,8 @@ log('# 3. Sections')
 log(await p.ev(`({toc:[...document.querySelectorAll('nav a[href^="#"]')].filter(a=>a.getBoundingClientRect().width>0).length,h2:[...document.querySelectorAll('main h2,article h2')].map(h=>h.innerText)})`))
 
 log('# 4. Pro line and the customize link')
-const plan = `[...document.querySelectorAll('article *, main *')].filter(e=>/require Pro|需要 Pro|Pro が必要/.test(e.innerText||'')&&(e.innerText||'').length<120).sort((a,b)=>a.innerText.length-b.innerText.length).map(e=>e.closest('p,div')).map(e=>({text:e.innerText,links:[...e.querySelectorAll('a')].map(a=>a.getAttribute('href'))}))[0]`
+// every <Plan> line: a tag icon before a short muted paragraph
+const plan = `[...document.querySelectorAll('p')].filter(e=>e.firstElementChild?.tagName==='svg'&&e.children.length===2&&e.children[1].tagName==='SPAN').map(e=>({section:(()=>{let n=e;while(n&&!/^H2$/.test(n.tagName)){n=n.previousElementSibling||n.parentElement}return n?.innerText})(),text:e.innerText,links:[...e.querySelectorAll('a')].map(a=>a.getAttribute('href'))}))`
 log('plan', await p.ev(plan))
 await p.box(`[...document.querySelectorAll('a')].find(a=>/reason=customize/.test(a.href))`); await p.sleep(1500)
 await p.shot(`${OUT}/04-customize.png`, await p.ev(`(()=>{const r=[...document.querySelectorAll('a')].find(a=>/reason=customize/.test(a.href)).getBoundingClientRect();return {x:0,y:r.y+scrollY-320,width:innerWidth,height:420}})()`))

@@ -1,4 +1,4 @@
-// /vs-plannotator: footer link, each section, the table row by row, the Pro tip on hover, then the zh page, .md mirror and llms.txt entry.
+// /vs-plannotator: footer link, each section, the table row by row, the workflows tip on hover, then the zh page, .md mirror and llms.txt entry.
 import fs from 'node:fs'
 import { open } from './cdp.mjs'
 const D = process.argv[2] + '/'
@@ -33,7 +33,7 @@ const b = await p.ev(`(()=>{const b=${tip}.getBoundingClientRect();return {x:b.x
 await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: b.x, y: b.y }); await p.sleep(600)
 log += `tip visible on hover: ${await p.ev(`getComputedStyle(document.getElementById('pro-tip')).visibility`)}  text: ${await p.ev(`document.getElementById('pro-tip').innerText`)}\n`
 const vy = await p.ev('scrollY')
-await p.shot(D + '13b-plannotator-pro-tip.png', { x: 140, y: vy + b.y - 160, width: 1000, height: 220 })
+await p.shot(D + '13b-plannotator-workflows-tip.png', { x: 140, y: vy + b.y - 160, width: 1000, height: 220 })
 await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 })
 const table = sec('What comes built in')
 const rows = `[...${table}.querySelectorAll('div.sm\\\\:grid')].slice(1).map(r=>{const c=[...r.querySelectorAll(':scope > div.grid > div')].map(d=>{const s=d.querySelector('svg[aria-label]');return (s?s.getAttribute('aria-label'):'')+(d.innerText.replace(/^(Plannotator|AI4Kanban)\\n?/,'').trim()?' '+d.innerText.replace(/^(Plannotator|AI4Kanban)\\n?/,'').trim():'')});return r.firstElementChild.innerText+' — Plannotator: '+c[0]+', AI4Kanban: '+c[1]}).join('\\n')`
