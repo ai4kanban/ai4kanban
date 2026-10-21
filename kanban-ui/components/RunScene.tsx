@@ -671,7 +671,9 @@ function draw(actor: Actor, view: View, sheet: Spritesheet) {
     sprite.y = view.oy + actor.y * view.scale;
     sprite.width = BOT_HEIGHT * view.scale;
     sprite.height = BOT_HEIGHT * view.scale;
-    if (actor.act === "walk-left") sprite.scale.x *= -1;
+    // Setting width keeps the old sign, so set the facing outright every frame.
+    const sx = Math.abs(sprite.scale.x);
+    sprite.scale.x = actor.act === "walk-left" ? -sx : sx;
   }
   if (actor.node) place(actor.node, actor, view);
 }
