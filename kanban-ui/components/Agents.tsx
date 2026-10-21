@@ -23,8 +23,8 @@
 // copy has never heard of keeps the board's English and a generic box — never a blank.
 //
 // The characters are PNGs under `public/agent-art/`, one per bundled agent, named by the
-// agent. An agent with no art is the plain robot wearing its first character, which is the
-// normal state for an agent you add — never a broken image.
+// agent and inlined into `lib/agent-art.ts`. An agent with no art is the plain robot wearing
+// its first character, which is the normal state for an agent you add — never a broken image.
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -56,6 +56,7 @@ import {
   startBoardScheduleAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
+import { AGENT_ART } from "@/lib/agent-art";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
 import { AUTO_CADENCE, type Cadence, type CadenceUnit, formatCadence, isAuto, parseCadence, parseStamp } from "@/lib/cadence";
 import type {
@@ -1949,26 +1950,15 @@ function useRuntimeShown(agent: AgentView, info: AgentInfo) {
 
 // --- the characters ----------------------------------------------------------
 
-// The art is one 48px PNG per agent at `public/agent-art/<name>.png`, drawn in code by
-// `character-design/draw.mjs`. An agent with no file of its own is the plain robot with its
-// first character on its arm, so the pane is never a row of broken images.
+// The art is one 48px PNG per agent, inlined as a data URL so it draws with the row instead
+// of after a request. An agent with no art of its own is the plain robot with its first
+// character on its arm.
 export function Character({ name, size = 48 }: { name: string; size?: number }) {
-  const [art, setArt] = useState(true);
-  const img = useRef<HTMLImageElement>(null);
-  // An image that failed before hydration fired its error with nobody listening.
-  useEffect(() => setArt(!(img.current?.complete && img.current.naturalWidth === 0)), [name]);
+  const art = Object.hasOwn(AGENT_ART, name) ? AGENT_ART[name] : null;
   if (!art) return <Lettered name={name} size={size} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      ref={img}
-      src={`/agent-art/${name}.png`}
-      alt=""
-      width={size}
-      height={size}
-      onError={() => setArt(false)}
-      style={{ imageRendering: "pixelated" }}
-    />
+    <img src={art} alt="" width={size} height={size} style={{ imageRendering: "pixelated" }} />
   );
 }
 
@@ -1983,7 +1973,7 @@ function Lettered({ name, size = 48 }: { name: string; size?: number }) {
     <span className="relative block" style={{ height: size, width: size }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/agent-art/base.png"
+        src={AGENT_ART.base}
         alt=""
         width={size}
         height={size}

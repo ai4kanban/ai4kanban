@@ -2153,6 +2153,7 @@ for (const job of drawn) {
   if (siteNames.has(job.name)) put(site, job.name, [job.still.front]);
   if (job.name === "software-planner") put(site, "planner", [job.still.front]);
 }
+await import("../scripts/inline-agent-art.mjs");
 
 // The office's atlas: a row per job — type ×4, walk ×4 facing right, sit — then a row of the
 // desk screens other than code, which the desk art already shows.
