@@ -289,6 +289,23 @@ describe('/v1/catalog', () => {
     assert.equal([...bucket.objects.keys()].filter((k) => k.startsWith('showcase/')).length, 0)
   })
 
+  it('answers a carousel’s pages in order, and none without a showcase', async () => {
+    await publish(PUBLISHER, hero({ name: 'long-read', category: 'carousel' }))
+    assert.deepEqual((await (await anon('/v1/catalog/long-read')).json()).template.pages, [])
+    const put = (form) => send(PUBLISHER, '/v1/templates/long-read/showcase', { method: 'PUT', body: form })
+    const pages = { 'p2.png': 'two', 'p1.png': 'one' }
+    const sides = { original: undefined, recreation: undefined }
+    for (const bad of [[], 'p1.png', ['p1.mp4']]) {
+      const res = await put(showcase({ ...sides, pages: bad }, pages))
+      assert.equal(res.status, 400)
+      assert.match((await res.json()).error.message, /pages/)
+    }
+    assert.equal((await put(showcase({ ...sides, cover: 'p1.png', pages: ['p2.png', 'p1.png'] }, pages))).status, 200)
+    const { template } = await (await anon('/v1/catalog/long-read')).json()
+    assert.deepEqual(await Promise.all(template.pages.map(async (u) => (await anon(new URL(u).pathname)).text())), ['two', 'one'])
+    assert.match(template.cover, /\/p1\.png$/)
+  })
+
   it('gives a motion’s tile its clip, and registers no motion showcase without one', async () => {
     await publish(PUBLISHER, hero({ name: 'card-widen', category: 'motion' }))
     const put = (form) => send(PUBLISHER, '/v1/templates/card-widen/showcase', { method: 'PUT', body: form })
@@ -315,7 +332,7 @@ function showcase(meta = {}, extra = {}) {
   }
   form.set('meta', JSON.stringify(m))
   const files = { 'cover.jpg': 'jpg', 'original.jpg': 'orig', 'clone.mp4': 'mp4', ...extra }
-  const named = new Set([m.cover, m.original?.image, m.original?.video, m.recreation?.image, m.recreation?.video, ...Object.keys(extra)])
+  const named = new Set([m.cover, ...(Array.isArray(m.pages) ? m.pages : []), m.original?.image, m.original?.video, m.recreation?.image, m.recreation?.video, ...Object.keys(extra)])
   for (const [path, text] of Object.entries(files)) if (named.has(path)) form.append(`media:${path}`, new Blob([text]), path)
   return form
 }

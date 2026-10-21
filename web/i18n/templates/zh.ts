@@ -12,6 +12,7 @@ const zh: TemplatesCopy = {
     video: { name: "视频", title: "视频模板", back: "返回视频模板" },
     prop: { name: "道具", title: "道具", back: "返回道具" },
     motion: { name: "动效", title: "动效", back: "返回动效" },
+    carousel: { name: "图文", title: "图文模板", back: "返回图文模板" },
   },
   tabs: "分类",
   pages: "分页",
@@ -26,6 +27,7 @@ const zh: TemplatesCopy = {
   originalVideo: "原视频",
   recreationVideo: "复刻视频",
   keyframe: "关键帧",
+  pageCount: (n) => `共 ${n} 页`,
   preview: "预览",
   pause: "暂停",
   pieceNote: "需在视频模板中使用，不能单独运行。",
@@ -40,6 +42,8 @@ const zh: TemplatesCopy = {
         return `用 AI4Kanban 的视频模板「${name}」做：<写下你的产品和视频要展示的内容>`;
       case "ui":
         return `用 AI4Kanban 的界面模板「${name}」设计：<写下要做的页面或界面>`;
+      case "carousel":
+        return `用 AI4Kanban 的图文模板「${name}」做：<写下你的主题和内容>`;
       case "prop":
         return `用 AI4Kanban 做一个视频，用上道具「${name}」：<写下视频的主题和内容>`;
       case "motion":

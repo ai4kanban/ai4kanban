@@ -105,7 +105,10 @@ export function Catalog({ locale, initial }: { locale: TemplatesLocale; initial:
 
       {open ? (
         <section>
-          <div ref={grid} className="mt-8 grid scroll-mt-24 gap-x-8 gap-y-10 sm:grid-cols-2 md:mt-10 lg:grid-cols-3">
+          <div
+            ref={grid}
+            className={`mt-8 grid scroll-mt-24 gap-x-8 gap-y-10 sm:grid-cols-2 md:mt-10 ${open.category === "carousel" ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+          >
             {shown.map((tpl) => (
               <Tile
                 key={tpl.name}
@@ -192,8 +195,9 @@ function Tile({
       v.play().catch(() => undefined);
     }
   }, [playing]);
-  // A motion is shown whole, as its clip frames it.
-  const aspect = category === "motion" ? "aspect-video" : "aspect-[16/10]";
+  // A motion is shown whole, as its clip frames it; a carousel stands portrait.
+  const aspect =
+    category === "motion" ? "aspect-video" : category === "carousel" ? "aspect-[3/4]" : "aspect-[16/10]";
   const fit =
     category === "motion"
       ? "object-contain"

@@ -27,6 +27,8 @@ export type TemplatesCopy = {
   originalVideo: string;
   recreationVideo: string;
   keyframe: string;
+  /** Over a carousel's pages. */
+  pageCount: (n: number) => string;
   /** Over a motion's clip. */
   preview: string;
   pause: string;

@@ -4,8 +4,8 @@
  * for the site — never a template's files, its evidence, the source note or who published it.
  *
  * A showcase is registered apart from the template (`PUT /v1/templates/<name>/showcase`):
- * a cover, and the original and recreation shown side by side, each an image with an
- * optional video or YouTube link. Its files sit under `showcase/<name>/<id>/<path>`.
+ * a cover, the original and recreation shown side by side, each an image with an
+ * optional video or YouTube link, and a carousel's pages in order. Its files sit under `showcase/<name>/<id>/<path>`.
  */
 
 import { call, mutate } from './db.ts'
@@ -49,6 +49,7 @@ interface Showcase {
   id?: string
   files?: Entry[]
   cover?: string
+  pages?: string[]
   original?: Side
   recreation?: Side
 }
@@ -138,6 +139,7 @@ function detail(base: string, row: Row) {
     description: row.description ?? '',
     publishedAt: row.published_at,
     source: s.original === true ? { original: true } : { site: s.site, references: s.references, captured: s.captured },
+    pages: show.id ? (show.pages ?? []).map((p) => url(p)!) : [],
     original: side(show.original) ?? null,
     recreation: side(show.recreation) ?? null,
   }
@@ -275,17 +277,24 @@ export function readShowcase(raw: unknown): Omit<Showcase, 'id' | 'files'> {
       ...(typeof s.duration === 'number' ? { duration: Math.round(s.duration) } : {}),
     }
   }
+  if (m.pages !== undefined && (!Array.isArray(m.pages) || m.pages.length === 0)) {
+    throw badRequest('pages is a list of image file names, in order.')
+  }
+  const pages = (m.pages as unknown[] | undefined)?.map((p, i) => file(`pages[${i}]`, p, IMAGES)!)
   const out = {
     cover: file('cover', m.cover, IMAGES),
+    pages,
     original: side('original', m.original),
     recreation: side('recreation', m.recreation),
   }
-  if (!out.cover && !out.original && !out.recreation) throw badRequest('Name a cover, an original or a recreation.')
+  if (!out.cover && !out.pages && !out.original && !out.recreation) {
+    throw badRequest('Name a cover, pages, an original or a recreation.')
+  }
   return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined))
 }
 
 function referenced(show: Omit<Showcase, 'id' | 'files'>): string[] {
-  const paths = [show.cover, show.original?.image, show.original?.video, show.recreation?.image, show.recreation?.video]
+  const paths = [show.cover, ...(show.pages ?? []), show.original?.image, show.original?.video, show.recreation?.image, show.recreation?.video]
   return [...new Set(paths.filter((p): p is string => !!p))]
 }
 

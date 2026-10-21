@@ -279,7 +279,8 @@ export async function templateShowcase(name: string, dir: string): Promise<MoveR
     return invalid('showcase.json 不是有效的 JSON。', 'showcase.json is not valid JSON.')
   }
   const sides = [meta.original, meta.recreation].filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
-  const named = [meta.cover, ...sides.flatMap((s) => [s.image, s.video])].filter((p): p is string => typeof p === 'string')
+  const pages = Array.isArray(meta.pages) ? meta.pages : []
+  const named = [meta.cover, ...pages, ...sides.flatMap((s) => [s.image, s.video])].filter((p): p is string => typeof p === 'string')
   const form = new FormData()
   form.set('meta', JSON.stringify(meta))
   for (const p of new Set(named)) {

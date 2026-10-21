@@ -40,6 +40,8 @@ export type Side = {
 export type Template = TemplateCard & {
   description: string;
   publishedAt: string;
+  /** A carousel's pages, in order. */
+  pages: string[];
   source: { original: true } | { site: string; references: string[]; captured: string };
   original: Side | null;
   recreation: Side | null;
@@ -49,7 +51,7 @@ export type Category = { category: string; templates: TemplateCard[] };
 
 // The categories the site names, in the order it shows them. Any other comes
 // after, alphabetically, under the name it was published with.
-const ORDER = ["ui", "video", "prop", "motion"];
+const ORDER = ["ui", "video", "prop", "motion", "carousel"];
 
 export function ordered(categories: Category[]): Category[] {
   const rank = (c: string) => (ORDER.includes(c) ? ORDER.indexOf(c) : ORDER.length);
@@ -73,7 +75,8 @@ export async function fetchTemplate(name: string, init?: RequestInit): Promise<T
   const res = await fetch(`${CATALOG_API}/${encodeURIComponent(name)}`, init).catch(() => null);
   if (res?.status === 404) return null;
   if (!res?.ok) throw new CatalogUnavailable();
-  return ((await res.json()) as { template: Template }).template;
+  const { template } = (await res.json()) as { template: Template };
+  return { ...template, pages: template.pages ?? [] };
 }
 
 /** What the build saw, or nothing: a build that cannot reach Cloud still ships,

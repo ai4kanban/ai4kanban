@@ -96,6 +96,7 @@ export function Detail({
   // motion plays its clip, or its keyframe until it has one. Where a motion came from is no use.
   const motion = tpl.category === "motion";
   const piece = motion || tpl.category === "prop";
+  const pages = tpl.category === "carousel" ? tpl.pages : [];
 
   return (
     <>
@@ -115,7 +116,14 @@ export function Detail({
         <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted">{tpl.summary}</p>
       </section>
 
-      {!motion && (
+      {pages.length > 0 ? (
+        <figure className="mt-10">
+          <figcaption className="mb-2 flex items-center gap-2">
+            <Tag>{t.pageCount(pages.length)}</Tag>
+          </figcaption>
+          <Strip pages={pages} />
+        </figure>
+      ) : !motion && (
       <section className={`mt-10 grid gap-6 ${sides.length > 1 ? "lg:grid-cols-2" : ""}`}>
         {piece ? (
           <figure>
@@ -204,6 +212,24 @@ export function Detail({
         </aside>
       </section>
     </>
+  );
+}
+
+/** A carousel's pages side by side at one height and their own ratio; on a phone one fills the
+ *  screen and the next peeks past the edge. */
+function Strip({ pages }: { pages: string[] }) {
+  return (
+    <div className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-4 overflow-x-auto px-6 pb-2 [scrollbar-width:none]">
+      {pages.map((src, i) => (
+        // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
+        <img
+          key={i}
+          src={src}
+          alt=""
+          className="h-[min(26rem,104vw)] w-auto max-w-none shrink-0 snap-start rounded-xl border border-border/15 bg-code"
+        />
+      ))}
+    </div>
   );
 }
 

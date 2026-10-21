@@ -13,6 +13,7 @@ const en: TemplatesCopy = {
     video: { name: "Video", title: "Video templates", back: "Back to video templates" },
     prop: { name: "Props", title: "Props", back: "Back to props" },
     motion: { name: "Motion", title: "Motion", back: "Back to motion" },
+    carousel: { name: "Carousel", title: "Carousel templates", back: "Back to carousel templates" },
   },
   tabs: "Categories",
   pages: "Pages",
@@ -27,6 +28,7 @@ const en: TemplatesCopy = {
   originalVideo: "Original video",
   recreationVideo: "Recreation",
   keyframe: "Keyframe",
+  pageCount: (n) => `${n} pages`,
   preview: "Preview",
   pause: "Pause",
   pieceNote: "Works inside a video template; it can't run on its own.",
@@ -41,6 +43,8 @@ const en: TemplatesCopy = {
         return `Use the AI4Kanban video template "${name}" to make: <describe your product and what the video should show>`;
       case "ui":
         return `Use the AI4Kanban UI template "${name}" to design: <describe the page or screen>`;
+      case "carousel":
+        return `Use the AI4Kanban carousel template "${name}" to make: <describe your topic>`;
       case "prop":
       case "motion":
         return `Make a video with AI4Kanban using the ${category} "${name}": <describe your video>`;
