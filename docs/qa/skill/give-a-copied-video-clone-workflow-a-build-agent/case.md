@@ -28,18 +28,24 @@
    #3 的提示里有 `This card is finished in planning, then archived, never built: leave no unticked todo, and end by telling me to archive it once I'm happy.`；#2 的没有（`grep` 退出码 1）。#3 的 `implement` 照旧被拒。
    [05-refine-prompts.log](05-refine-prompts.log)
 
-6. 执行 `akb workflow stage wf-2 --stage execute --lead ''`，再 `akb card implement 2 --print`。
-   回 `execute: lead→(nobody)`；#2 又被拒，跟第 2 步一样。
-   [06-clear-executor.log](06-clear-executor.log)
+6. 看 #2 的规划提示指向的分阶段出稿规则：`akb card refine 2 --print`，再 `akb guide multi-stage-drafting`。
+   提示里写着 `Pick from these, in order, following \`akb guide multi-stage-drafting\`.`；那份指引的「Leading a card」写明 `` `phases` alone tracks your drafting stages; todos list only the build stage's work. ``——领头 Agent 的草稿阶段只记在阶段条上，不写成待办，规划完待办里只剩执行阶段的事，「执行」不会因为草稿待办全勾而被藏起。
+   [06-drafting-rule.log](06-drafting-rule.log)
 
-7. 直接给内置的 `video-clone` 配执行 Agent：`akb workflow stage video-clone --stage execute --lead wf-2-executor`，再 `akb card implement 3 --print`；然后试着换它的规划负责人 `--stage plan --lead video-cloner-2`，最后把执行清空。
+7. 执行 `akb workflow stage wf-2 --stage execute --lead ''`，再 `akb card implement 2 --print`。
+   回 `execute: lead→(nobody)`；#2 又被拒，跟第 2 步一样。
+   [07-clear-executor.log](07-clear-executor.log)
+
+8. 直接给内置的 `video-clone` 配执行 Agent：`akb workflow stage video-clone --stage execute --lead wf-2-executor`，再 `akb card implement 3 --print`；然后试着换它的规划负责人 `--stage plan --lead video-cloner-2`，最后把执行清空。
    内置工作流空着的执行阶段也收下：`Video clone · execute: lead→wf-2-executor`，#3 的 `implement` 随即放行；换规划负责人被拒：`` `Video clone` is built in — its lead agents are fixed. Duplicate it to make one you can reassign.``，退出码 1。
-   [07-builtin-execute.log](07-builtin-execute.log)
+   [08-builtin-execute.log](08-builtin-execute.log)
 
 ## Feedback
 
 - **开关清楚**：执行阶段有没有人，一条 `workflow stage` 就切过来，`implement` 的结果和规划提示同时跟着变，没有残留状态。
-- **复制品看得出是做什么的**：`workflow list` 在 `wf-2` 下面给出规划负责人的描述，和内置工作流一样一行说明；但那句是 Agent 的口吻（「Leads a video clone card — …」），比内置的「Approve a breakdown …」长，也没说执行阶段配没配人。
+- **出稿和执行分开记**：草稿阶段只走阶段条、待办只留执行的事，规划完的卡不会因为草稿待办全勾就看起来「已经做完」；但这只是写给领头 Agent 的一句规则，要靠它照做。
+- **复制品看得出是做什么的**：`workflow list` 在 `wf-2` 下面给出规划负责人的描述，和内置工作流一样一行说明；但那句是 Agent 的口吻（「Leads a video clone card — …」），偏长，也没说执行阶段配没配人。
 - **不复制也能开发了**：内置工作流空着的执行阶段现在可以直接配人，这个场景复制的理由只剩「想换规划负责人」；第 2 步的拒绝仍只说「规划完就归档」，没提示「给执行阶段配一个 Agent 就能开发」。
 - **命令行要自己写 Agent 文件**：看板界面里有「设置 Agent」按钮一键新建 `<工作流> executor`；命令行没有对应命令，得先照 `akb guide write-agent` 手写 `AGENT.md`，再 `workflow stage --lead`。
-- **没有跑到的**：真实的执行运行（这里只看了 `--print`）；执行 Agent 把模板发布到共享模板库。
+- **中文标题的卡文件名是数字**：`raw create --title '复刻发布短片 2'` 写成了 `3-2.md`，没有英文 slug 时文件名读不出是哪张卡。
+- **没有跑到的**：真实的规划运行——没看领头 Agent 实际写出的待办里是否真的不含草稿阶段（要一次 Pro 付费运行）；看板界面里「执行」按钮的显隐；真实的执行运行和把模板发布到共享模板库。

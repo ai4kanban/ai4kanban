@@ -8,10 +8,10 @@
 ## Steps
 
 1. 执行 `akb workflow list`。
-   六个内置工作流，每个名字下一行先说何时选它，再一句做什么：Coding「Use for software changes, and for any work no other workflow covers.」；Social post（id 仍是 `carousel-post`）「Use when the deliverable is a post published on a social platform, text-only or with images, such as a LinkedIn post, an X thread or a carousel.」，规划由 `carousel-planner` 主持、帮手是 `social-illustrator`；Blog post「Use when the deliverable is an article published on the project's own site or blog, whether or not it targets search; a post on a social platform is a Social post.」；其余三个以「Use when the deliverable is …」或「Use when a reference video …」开头。
+   六个内置工作流，每个名字下一行先说何时选它，再一句做什么：Coding「Use for software changes, and for any work no other workflow covers.」；Social post（id 仍是 `carousel-post`）「Use when the deliverable is a post published on a social platform, text-only or with images, such as a LinkedIn post, an X thread or a carousel.」，规划由 `carousel-planner` 主持、帮手是 `social-illustrator`；Blog post「Use when the deliverable is a titled article on its own page, on the project's site or a platform such as dev.to or Medium; a post read in a feed is a Social post.」；其余三个以「Use when the deliverable is …」或「Use when a reference video …」开头。
    [01-list.log](01-list.log)
 
-2. 执行 `akb workflow list --json`，取每项的 `description`。
+2. 执行 `akb workflow list --json`，取 `workflows` 里每项的 `description`。
    与第 1 步逐字相同。
    [02-json.log](02-json.log)
 
@@ -21,8 +21,8 @@
 
 ## Feedback
 
-- **社媒帖有了去处**：LinkedIn 长帖、X 串这类纯文字帖以前没有对应工作流，会落到 Coding；现在 Social post 点名了它们，和 Blog post 互相指认边界，一眼能分。
+- **博客和社媒帖按形式分**：Blog post 改成「有标题、独立成页的文章」，点名 dev.to 和 Medium，Social post 是「在信息流里读的帖子」；「发到 Medium」这类请求不再看发布地点猜归属，两句互相指认边界，一眼能分。
 - **名字和 id 对不上**：列表里叫 Social post，id 却还是 `carousel-post`，帮手叫 `social-illustrator`、负责人叫 `carousel-planner`；手写 `--workflow` 时得记旧名。
 - **说明偏长**：Social post 和 Blog post 两句都超过 30 词，终端里折成两三行，扫读要多看一眼。
-- **dev.to、Medium 没说清**：Blog post 只写「project's own site or blog」，发在第三方博客平台的文章归哪边要靠 agent 自己推断。
-- **没有跑到的**：没让真实 agent 把「写一条 LinkedIn 帖」这类请求建成卡、看它选中 Social post——那要一次付费运行；这里只证明它读到的列表写对了。
+- **两边都上锁**：未登录时 Blog post 和 Social post 都是 `Pro · locked`，建卡指引又要求优先选没上锁的，免费用户的博客请求多半落到 Coding。
+- **没有跑到的**：没让真实 agent 把「写一篇发到 Medium 的文章」这类请求建成卡、看它选中 Blog post——那要一次付费运行；这里只证明它读到的列表写对了。

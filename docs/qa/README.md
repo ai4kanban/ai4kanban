@@ -58,7 +58,8 @@
 - [升级后，自建工作流变成看板里的 WORKFLOW.md；再手写一个](skill/keep-your-own-workflows-as-files-on-the-board/case.md)
 - [升级后，改过社媒帖流程的看板自动加上「社媒帖配图」，关掉后不再加回](skill/a-customized-social-post-workflow-gets-the-illustrator-on-upgrade/case.md)
 - [用 Codex 续聊一张卡，每条回复只记这一轮的费用；升级后旧记录自动改对](skill/a-resumed-codex-chat-costs-only-its-own-turn/case.md)
-- [在卡片对话里要求改草稿，草稿当轮就改好；第二轮不再重读一遍](skill/ask-the-card-chat-to-change-a-draft-and-it-changes-the-draft/case.md)
+- [在卡片对话里要求改草稿，草稿当轮就改好；第二轮改卡也不再重读一遍](skill/ask-the-card-chat-to-change-a-draft-and-it-changes-the-draft/case.md)
+- [发布一个不写 access 和 source 的模板，按免费、原创收进模板库](skill/publish-a-template-without-access-or-source/case.md)
 
 ### local-ui
 

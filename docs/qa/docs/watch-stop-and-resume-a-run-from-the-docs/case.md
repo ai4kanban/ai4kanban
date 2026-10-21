@@ -17,7 +17,7 @@
    ![看或恢复一次运行](02-watch-or-recover.png)
 
 3. 看第一句和表格之间的那张图。
-   水彩底上一张像素办公室：每张桌前一个机器人，头顶标着 Builder / Planner / Reviewer / Writer 和卡号（#374、#357…），右下沙发上两个歇着；左下两个页签「6 running」「Completed」，右上一个 ×。它一直在轻轻动；读屏器跳过它（`aria-hidden`）。
+   水彩底上一张像素办公室：六张工位坐着穿职业装的角色，头顶名牌是应用里的角色名和运行它的编码工具图标——三个 Builder、UI designer、Software planner、Copywriting，脚下是卡号（#374、#357…）；Builder 屏上是代码，UI designer 是设计稿，Software planner 和 Copywriting 是文档；右下沙发上歇着 Builder 和 Illustrator，两块名牌左右错开不重叠。左下两个页签「6 running」「Completed」，右上一个 ×。它一直在轻轻动；读屏器跳过它（`aria-hidden`）。
    ![运行动画](03-sessions-shot.png)
 
 4. 滚到页底再滚回来；再把窗口换成 390px 宽的手机重新打开。
@@ -47,11 +47,11 @@
 ## Feedback
 
 - **一张表回答「我想…」**：看、停、续、重来四行一眼扫完，像操作指南。
-- **图让「Runs」有了样子**：没打开过应用的人也能看出一次运行就是一个在干活的 Agent、按卡号排开；但它是装饰，标签、卡号太小读不出来，和表里的四件事也对不上。
+- **图让「Runs」有了样子**：不同职业穿不同衣服、屏幕上各干各的活，一眼看出一次运行就是一个在干活的 Agent；名牌也换成了应用里真有的角色。但它是装饰，名牌、卡号太小要凑近才读得出，和表里的四件事也对不上。
 - **图上的控件像能点**：「6 running」「Completed」两个页签和右上的 × 都画得像按钮；点页签没反应，鼠标也不变手形。
 - **命令照抄就能跑**：四行运行时命令在新项目里一次跑通，`akb agent` 马上能看到 builder 换了运行时。
 - **代码块被截断**：`akb agent set … https://my-gateway.example.com` 一行在 1280 宽下超出框（687/622px），要横向滚动才看到完整地址。
 - **Retry 没说在哪**：表里和 Resume 并列，但命令行没有 `retry`；Resume 的「where supported」也没说哪里不支持。
 - **页尾和 Chat 页说法不一**：这里说一段对话「can use a different agent or model」，Chat 页已改成选「runtime」。
-- **更新日期没跟上**：页头仍写「Updated October 15, 2026」，10 月 20 日加了这张图。
+- **更新日期没跟上**：页头仍写「Updated October 15, 2026」，10 月 20 日加了这张图、21 日又换了角色。
 - **没有跑到的**：在应用的 **Runs** 面板里真的看日志、停、续跑一次运行，以及子运行的展示（见 skill、local-ui 模块的场景）。
