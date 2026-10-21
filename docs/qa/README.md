@@ -59,7 +59,7 @@
 - [在卡片对话里要求改草稿，草稿当轮就改好；第二轮改卡也不再重读一遍](skill/ask-the-card-chat-to-change-a-draft-and-it-changes-the-draft/case.md)
 - [发布一个不写 access 和 source 的模板，按 Pro、原创收进模板库](skill/publish-a-template-without-access-or-source/case.md)
 - [给图文模板上传按顺序排好的多页展示，其中一页带实况视频](skill/upload-a-carousel-showcase-with-a-live-page/case.md)
-- [不用 Git 工作树的卡片：规划待办被改了字，交付照样按 Output 那一行收尾](skill/a-reworded-plan-todo-does-not-stop-a-files-delivery/case.md)
+- [不用 Git 工作树的卡片：交付只认这次新加的 Output 行](skill/a-files-delivery-counts-only-new-output-lines/case.md)
 - [一篇博客同时发官网和 dev.to：两份稿子分开交付，dev.to 那份指回原文；下一篇照记下的去向走](skill/deliver-a-blog-post-to-the-site-and-dev-to-as-separate-copies/case.md)
 
 ### local-ui
