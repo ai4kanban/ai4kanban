@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-// Build the two pictures ShotSessions.tsx draws the agent office from, out of
-// the board's own art in kanban-ui/public/run-scene/:
+// Build the pictures ShotSessions.tsx draws the agent office from, out of the
+// board's own art in kanban-ui/public/run-scene/:
 //
-//   office.webp  the room as one still — the view out of the windows, the room
-//                over it, the eight desks (six awake, matching the shot's cast),
-//                the clock at ten past ten.
-//   bots.webp    one row of five 300px frames: the four typing ones, then the
-//                seated one the sofa uses.
+//   office.webp          the room as one still — panes transparent, the eight
+//                        desks (six awake, matching the shot's cast), the clock
+//                        face without its hands.
+//   bots.webp            one row of nine frames per costume: four typing, four
+//                        walking, then the seated one the sofa uses.
+//   window-<period>.webp the city through the glass, cropped to the panes.
+//   clouds-<period>.webp the band of sky drifting over it.
 //
 //   node scripts/build-office-art.mjs
 //
@@ -26,13 +28,26 @@ const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 /** Who works at each awake desk, and who rests on the sofa — the same seats as
  *  `CAST` in ShotSessions.tsx. */
 const DESKS = ["builder", "builder", "ui-designer", "builder", "software-planner", "copywriting"];
-const SOFA = ["builder", "illustrator"];
+/** The still's sofa, then the homepage's loop: a copywriter on the left. */
+const SOFA = ["builder", "illustrator", "copywriting"];
 /** bots.webp's rows, in the order ShotSessions.tsx's `LOOKS` reads them. */
 const LOOKS = [...new Set([...DESKS, ...SOFA])];
 
 /** One 48px cast frame drawn at 6x, nearest-neighbour. */
 const CELL = 288;
 const SCALE = CELL / 48;
+
+/** Each row of bots.webp, in ShotSessions.tsx's frame order. */
+const POSES = ["type-0", "type-1", "type-2", "type-3", "walk-0", "walk-1", "walk-2", "walk-3", "sit-0"];
+const FRAMES = POSES.length;
+
+const PERIODS = ["dawn", "day", "dusk", "night"];
+/** `SCENERY` in kanban-ui/lib/run-scene.ts is 394×197; both windows' glass lies in
+ *  this part of it (layers/layout.json), so nothing outside is shipped. */
+const GLASS = { x: 20, y: 24, w: 354, h: 133 };
+/** World pixels to one shipped window pixel: enough for a 2x screen at the
+ *  homepage's width. */
+const GLASS_SCALE = 2;
 
 const cast = JSON.parse(await readFile(join(ART, "cast.json"), "utf8"));
 const frame = (name) => cast.frames[name].frame;
@@ -57,18 +72,9 @@ const OFFICE = `<!doctype html><meta charset="utf-8">
   .show{width:${SCREEN.w}px;height:${SCREEN.h}px;background-image:url(cast.png)}
 </style>
 <div id="w">
-  <img src="layers/window-day.png" style="left:264px;top:0;width:394px;height:197px">
-  <img src="layers/window-day.png" style="left:879px;top:0;width:394px;height:197px">
   <img src="layers/office-base.png" style="left:0;top:0;width:1536px;height:1024px">
   <div id="desks"></div>
   <img src="layers/clock-face.png" style="left:732px;top:52px;width:72px;height:72px">
-  <svg viewBox="0 0 72 72" style="position:absolute;left:732px;top:52px;width:72px;height:72px">
-    <g transform="translate(36,36)">
-      <g transform="rotate(305)"><rect x="-2.4" y="-16" width="4.8" height="19" rx="2" fill="#c8501d"/></g>
-      <g transform="rotate(60)"><rect x="-1.8" y="-24" width="3.6" height="27" rx="1.8" fill="#c8501d"/></g>
-      <circle r="2.6" fill="#3a3936"/>
-    </g>
-  </svg>
 </div>
 <script>
   const X=[203,523,838,1160], Y=[323,558], awake=${DESKS.length};
@@ -92,13 +98,13 @@ const OFFICE = `<!doctype html><meta charset="utf-8">
 const BOTS = `<!doctype html><meta charset="utf-8">
 <style>
   html,body{margin:0;padding:0;background:transparent}
-  #s{position:relative;width:${5 * CELL}px;height:${LOOKS.length * CELL}px}
+  #s{position:relative;width:${FRAMES * CELL}px;height:${LOOKS.length * CELL}px}
   i{position:absolute;width:${CELL}px;height:${CELL}px;display:block;image-rendering:pixelated;${SHEET}}
 </style>
 <div id="s"></div>
 <script>
   const s=document.getElementById('s');
-  ${JSON.stringify(LOOKS.map((look) => [0, 1, 2, 3].map((n) => frame(`${look}/type-${n}`)).concat(frame(`${look}/sit-0`))))}
+  ${JSON.stringify(LOOKS.map((look) => POSES.map((name) => frame(`${look}/${name}`))))}
     .forEach((row,r)=>row.forEach(({x,y},c)=>{
       const e=document.createElement('i');
       e.style.left=c*${CELL}+'px'; e.style.top=r*${CELL}+'px';
@@ -147,11 +153,23 @@ function encode(png, out, args) {
   });
 }
 
-// The room is lossy at a quality that holds every pixel edge at 3x; the bots
-// keep their alpha lossless, which is the only part a smear would show in.
-const room = await shoot("still", OFFICE, 1536, 1024, false);
-await encode(room, join(OUT, "office.webp"), ["-q", "88"]);
-const bots = await shoot("bots", BOTS, 5 * CELL, LOOKS.length * CELL, true);
-await encode(bots, join(OUT, "bots.webp"), ["-q", "92", "-alpha_q", "100"]);
+// The room is lossy at a quality that holds every pixel edge at 3x, its panes'
+// alpha lossless; the bots are flat pixel blocks, which lossless packs smallest.
+const [room, bots] = await Promise.all([
+  shoot("still", OFFICE, 1536, 1024, true),
+  shoot("bots", BOTS, FRAMES * CELL, LOOKS.length * CELL, true),
+]);
+await encode(room, join(OUT, "office.webp"), ["-q", "88", "-alpha_q", "100"]);
+await encode(bots, join(OUT, "bots.webp"), ["-lossless", "-z", "9"]);
 
-console.log(`wrote ${OUT}office.webp and ${OUT}bots.webp`);
+// The window art is 1774×887 for a 394×197 box; crop in its own pixels.
+const WINDOW_SCALE = 1774 / 394;
+const crop = [GLASS.x, GLASS.y, GLASS.w, GLASS.h].map((v) => String(Math.round(v * WINDOW_SCALE)));
+for (const p of PERIODS) {
+  await encode(join(ART, `layers/window-${p}.png`), join(OUT, `window-${p}.webp`), [
+    "-q", "80", "-crop", ...crop, "-resize", String(GLASS.w * GLASS_SCALE), String(GLASS.h * GLASS_SCALE),
+  ]);
+  await encode(join(ART, `layers/clouds-${p}.png`), join(OUT, `clouds-${p}.webp`), ["-q", "85", "-alpha_q", "100"]);
+}
+
+console.log(`wrote office, bots, window-* and clouds-* under ${OUT}`);

@@ -48,6 +48,11 @@ const fr: HomeCopy = {
     },
   },
 
+  office: {
+    title: "Concentrez-vous sur l’essentiel. Laissez le reste aux agents.",
+    body: "Le travail complexe avance en arrière-plan. Vos agents vous préviennent dès qu’il y a du nouveau.",
+  },
+
   workflows: {
     title: "Le bon workflow pour chaque travail",
     lead:

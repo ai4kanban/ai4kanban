@@ -48,6 +48,11 @@ const es: HomeCopy = {
     },
   },
 
+  office: {
+    title: "Céntrate en lo que importa. Deja el resto a los agentes.",
+    body: "El trabajo complejo avanza en segundo plano. Tus agentes te avisan cuando hay avances.",
+  },
+
   workflows: {
     title: "El flujo adecuado para cada trabajo",
     lead:

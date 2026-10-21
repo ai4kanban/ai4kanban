@@ -49,6 +49,11 @@ export type HomeCopy = {
       build: string;
     };
   };
+  /** The running office, under its title and one line. */
+  office: {
+    title: string;
+    body: string;
+  };
   /** One card per workflow, in `PREVIEWS` order — coding, video clone, product video, slide
    *  deck, carousel post, blog post. */
   workflows: {

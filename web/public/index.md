@@ -11,6 +11,10 @@
 
 AI4Kanban helps you clarify your idea. Each workflow brings you drafts of the parts that need your input. Review and refine them, then let agents complete the work. Tasks that don’t depend on each other move forward at the same time.
 
+## Focus on what matters. Leave the rest to agents.
+
+Complex work moves forward in the background. Your agents notify you when there’s progress.
+
 ## The right workflow for the work
 
 Start with six built-in workflows for coding and content. Each makes clear what you review before agents take over. You can also create your own agents and workflows.

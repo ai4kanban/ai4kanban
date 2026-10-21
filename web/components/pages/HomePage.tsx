@@ -2,6 +2,7 @@ import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
 import { Handoff } from "@/components/home/Handoff";
+import { Office } from "@/components/home/Office";
 import { Workflows } from "@/components/home/Workflows";
 import { Tools } from "@/components/home/Tools";
 import { Start } from "@/components/home/Start";
@@ -65,6 +66,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
           <Handoff c={c.handoff} />
+          <Office c={c.office} />
           <Workflows c={c.workflows} />
           <Tools c={c.tools} />
         </div>

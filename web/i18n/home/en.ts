@@ -48,6 +48,11 @@ const en: HomeCopy = {
     },
   },
 
+  office: {
+    title: "Focus on what matters. Leave the rest to agents.",
+    body: "Complex work moves forward in the background. Your agents notify you when there’s progress.",
+  },
+
   workflows: {
     title: "The right workflow for the work",
     lead:
