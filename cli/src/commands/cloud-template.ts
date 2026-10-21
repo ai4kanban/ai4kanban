@@ -338,7 +338,7 @@ export function readTemplateMeta(text: string): PublishMeta {
   const tags = [...new Set((rawTags as Yaml[]).map(String))]
   const bad = tags.filter((t) => !SLUG.test(t))
   if (bad.length > 0) invalid(`标签 ${bad.join('、')} 不合规：只能用小写英文短词。`, `tag ${bad.join(', ')}: use lowercase words joined by hyphens.`)
-  const access = fm.access === undefined || fm.access === '' ? 'free' : fm.access
+  const access = fm.access === undefined || fm.access === '' ? 'pro' : fm.access
   if (access !== 'free' && access !== 'pro') return invalid('access 只能是 free 或 pro。', 'access is free or pro.')
   // An absent source means original; the creator answers for that.
   const source = fm.source === undefined || fm.source === '' ? { original: true } : fm.source

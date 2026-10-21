@@ -323,9 +323,9 @@ describe('template.md frontmatter', () => {
     fails(TEMPLATE_MD.replace(/source:[\s\S]*?---/, 'source: [a]\n---'), /source/)
   })
 
-  it('reads a missing access as free and a missing source as original', () => {
+  it('reads a missing access as pro and a missing source as original', () => {
     const meta = readTemplateMeta(TEMPLATE_MD.replace('access: free\n', '').replace(/source:[\s\S]*?---/, '---'))
-    assert.equal(meta.access, 'free')
+    assert.equal(meta.access, 'pro')
     assert.deepEqual(meta.source, { original: true })
   })
 })
