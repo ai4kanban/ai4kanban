@@ -67,7 +67,7 @@ In practice, a screen draft or a comparison is often a single HTML page you can 
 
 ### A small example
 
-The example task in our draft-first demo is to build a CLI that generates commit messages from staged changes, along with a settings page for choosing the model and output language.
+The example task here is to build a CLI that generates commit messages from staged changes, along with a settings page for choosing the model and output language.
 
 A written requirement might ask for a simple settings page and concise commit messages. The drafts make both requests concrete: a one-page form, an alternative wizard, and the actual generation prompt with a sample output.
 
@@ -77,11 +77,7 @@ You can choose the single form over the wizard and edit the prompt while checkin
 
 The agent then implements the selected screen and uses the revised prompt.
 
-Our [draft-first skill](/draft-first) displays the drafts on a local review page, where you can discard an option, leave comments on a draft and confirm the version you want the agent to use.
-
-![The draft-first review page showing a removed wizard draft and an annotation on the commit-message prompt.](https://cdn.ai4kanban.dev/draft-first-development/fig-03.webp)
-
-The skill is a smaller version of AI4Kanban, focused on drafting and review. It leaves out project memory, parallel task management and task breakdown. The method itself can be used without either tool.
+In [AI4Kanban](/download), the drafts sit on the task card next to the plan, where you revise them and approve the version you want the agent to build from. The method itself works without any particular tool.
 
 ## How much should you leave to the agent?
 

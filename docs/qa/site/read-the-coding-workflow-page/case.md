@@ -8,7 +8,7 @@
 ## Steps
 
 1. 在首页滚到页脚，点「SOLUTIONS」下的「For coding」。
-   页脚四栏：「PRODUCT」；「SOLUTIONS」（「For coding」「For SaaS」「draft-first」）叠在「LEARN」上面；「COMPARE」；「PROJECT」叠在「LEGAL」上面。手机上两栏，同样的顺序两两成行，页面不横向滚动。中文首页的分组叫「解决方案」，链接是「编程」「SaaS」「draft-first」，指向 `/zh/workflows/coding`、`/zh/solutions/saas` 和 `/zh/draft-first`。点完到 `/workflows/coding`。
+   页脚四栏：「PRODUCT」；「SOLUTIONS」（「For coding」「For SaaS」）叠在「LEARN」上面；「COMPARE」；「PROJECT」叠在「LEGAL」上面。手机上两栏，同样的顺序两两成行，页面不横向滚动。中文首页的分组叫「解决方案」，链接是「编程」「SaaS」，指向 `/zh/workflows/coding` 和 `/zh/solutions/saas`。点完到 `/workflows/coding`。
    ![桌面页脚](01-footer-solutions.png) · ![手机页脚](01b-footer-phone.png) · [coding.log](coding.log)
 
 2. 看首屏，等几秒，再用 390px 宽的手机打开同一页。

@@ -79,8 +79,6 @@ export function SiteFooter({
         links: [
           { href: localePath(locale, workflowPath("coding")), label: t.coding },
           { href: localePath(locale, SAAS_PATH), label: t.saas },
-          // A product name, so not a translated slot.
-          { href: localePath(locale, "/draft-first"), label: "draft-first" },
         ],
       },
       {

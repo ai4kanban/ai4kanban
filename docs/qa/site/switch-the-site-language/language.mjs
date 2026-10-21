@@ -35,7 +35,7 @@ log += `\n# 5. On the home page, open the footer menu\nthe menu offers:\n${await
 await p.click(`[...(${menu}).querySelectorAll('a')].find(a=>a.getAttribute('href')==='/ja')`); await p.sleep(4000)
 log += `\n# 6. Pick 日本語\n${await where(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
 // Footer labels per language, and those still identical to the English footer's. Product, agent-page and language names stay as they are.
-const KEEP = /^(AI4Kanban|AI4KANBAN|Cloud|GitHub|draft-first|Taskmaster|Hermes Agent Kanban|Multica|Orca|Plannotator|Kanban for .+|English|中文|日本語|Español|Français)$/
+const KEEP = /^(AI4Kanban|AI4KANBAN|Cloud|GitHub|Taskmaster|Hermes Agent Kanban|Multica|Orca|Plannotator|Kanban for .+|English|中文|日本語|Español|Français)$/
 const footer = (pg) => pg.ev(`[...document.querySelectorAll('footer a, footer h2, footer h3, footer p, footer summary span')].filter(e=>!e.querySelector('a,h2,h3,p')).map(e=>e.textContent.trim()).filter(Boolean)`)
 await p.nav(B + '/', 4000)
 const en = new Set(await footer(p))

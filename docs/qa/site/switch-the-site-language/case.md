@@ -24,7 +24,7 @@
    [switch.log](switch.log)
 
 5. 在 `/zh`、`/ja`、`/es`、`/fr` 各滚到页脚。
-   栏目和链接都已是本地语言：中文「产品」一栏是「下载 · 体验演示 · Cloud · 定价 · 模板 · 培训 · 联系我们」，其余有「文档 · 博客 · 创始人 · 更新日志 · 隐私政策 · 服务条款」，左下署名「由 Tao Wu 打造」；新加的演示入口在日、西、法页是「デモを試す」「Probar la demo」「Essayer la démo」；日文其余是「ドキュメント · ブログ · 創業者 · 更新履歴 · プライバシー · 利用規約」。保留原样的只有产品名（Cloud、draft-first、各竞品）、语言名和「Kanban for Claude Code」这类按页面名写的智能体页链接；西语的 Blog、Legal 和法语的 Contact、Solutions、Documentation、Blog 与英文同形，本来就是这两种语言的写法。
+   栏目和链接都已是本地语言：中文「产品」一栏是「下载 · 体验演示 · Cloud · 定价 · 模板 · 培训 · 联系我们」，其余有「文档 · 博客 · 创始人 · 更新日志 · 隐私政策 · 服务条款」，左下署名「由 Tao Wu 打造」；新加的演示入口在日、西、法页是「デモを試す」「Probar la demo」「Essayer la démo」；日文其余是「ドキュメント · ブログ · 創業者 · 更新履歴 · プライバシー · 利用規約」。保留原样的只有产品名（Cloud、各竞品）、语言名和「Kanban for Claude Code」这类按页面名写的智能体页链接；西语的 Blog、Legal 和法语的 Contact、Solutions、Documentation、Blog 与英文同形，本来就是这两种语言的写法。
    ![中文页脚](07-zh-footer.png) · [switch.log](switch.log)
 
 6. 浏览器语言改成 `zh-CN,zh`，打开 `/pricing`。
