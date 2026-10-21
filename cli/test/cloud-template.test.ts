@@ -268,18 +268,19 @@ describe('akb cloud template', () => {
     assert.match(err, /--replace/)
   })
 
-  it('sends a carousel showcase with its pages in order', async () => {
+  it('sends a carousel showcase with its pages in order, a live page with its video', async () => {
     signIn()
     const dir = path.join(home, 'pages')
     fs.mkdirSync(dir)
-    fs.writeFileSync(path.join(dir, 'showcase.json'), JSON.stringify({ cover: '01.png', pages: ['01.png', '02.png'] }))
-    for (const f of ['01.png', '02.png']) fs.writeFileSync(path.join(dir, f), f)
+    const pages = ['01.png', { image: '02.png', video: '02.mp4' }]
+    fs.writeFileSync(path.join(dir, 'showcase.json'), JSON.stringify({ cover: '01.png', pages }))
+    for (const f of ['01.png', '02.png', '02.mp4']) fs.writeFileSync(path.join(dir, f), f)
     serve({ '/long-read/showcase': json({ name: 'long-read', files: 2 }) })
     const { code, out } = await akb(['cloud', 'template', 'showcase', 'long-read', dir])
     assert.equal(code, 0, out)
     const fields: string[] = []
     ;(sent[0]?.body as FormData).forEach((_, k) => void fields.push(k))
-    assert.deepEqual(fields, ['meta', 'media:01.png', 'media:02.png'])
+    assert.deepEqual(fields, ['meta', 'media:01.png', 'media:02.png', 'media:02.mp4'])
   })
 
   it('sends a showcase with exactly the files showcase.json names', async () => {

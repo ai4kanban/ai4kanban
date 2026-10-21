@@ -37,11 +37,13 @@ export type Side = {
   duration: number | null;
 };
 
+export type Page = { image: string; video: string | null };
+
 export type Template = TemplateCard & {
   description: string;
   publishedAt: string;
-  /** A carousel's pages, in order. */
-  pages: string[];
+  /** A carousel's pages, in order; a live page plays its video. */
+  pages: Page[];
   source: { original: true } | { site: string; references: string[]; captured: string };
   original: Side | null;
   recreation: Side | null;
@@ -75,8 +77,10 @@ export async function fetchTemplate(name: string, init?: RequestInit): Promise<T
   const res = await fetch(`${CATALOG_API}/${encodeURIComponent(name)}`, init).catch(() => null);
   if (res?.status === 404) return null;
   if (!res?.ok) throw new CatalogUnavailable();
-  const { template } = (await res.json()) as { template: Template };
-  return { ...template, pages: template.pages ?? [] };
+  const { template } = (await res.json()) as { template: Omit<Template, "pages"> & { pages?: (string | Page)[] } };
+  // Cloud answered bare image URLs before live pages.
+  const pages = (template.pages ?? []).map((p) => (typeof p === "string" ? { image: p, video: null } : p));
+  return { ...template, pages };
 }
 
 /** What the build saw, or nothing: a build that cannot reach Cloud still ships,

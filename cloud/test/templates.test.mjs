@@ -293,16 +293,19 @@ describe('/v1/catalog', () => {
     await publish(PUBLISHER, hero({ name: 'long-read', category: 'carousel' }))
     assert.deepEqual((await (await anon('/v1/catalog/long-read')).json()).template.pages, [])
     const put = (form) => send(PUBLISHER, '/v1/templates/long-read/showcase', { method: 'PUT', body: form })
-    const pages = { 'p2.png': 'two', 'p1.png': 'one' }
+    const pages = { 'p2.png': 'two', 'p1.png': 'one', 'p1.mp4': 'live' }
     const sides = { original: undefined, recreation: undefined }
-    for (const bad of [[], 'p1.png', ['p1.mp4']]) {
+    const many = Array.from({ length: 13 }, () => 'p1.png')
+    for (const bad of [[], 'p1.png', ['p1.mp4'], [{ video: 'p1.mp4' }], [{ image: 'p1.png', video: 'p2.png' }], many]) {
       const res = await put(showcase({ ...sides, pages: bad }, pages))
       assert.equal(res.status, 400)
       assert.match((await res.json()).error.message, /pages/)
     }
-    assert.equal((await put(showcase({ ...sides, cover: 'p1.png', pages: ['p2.png', 'p1.png'] }, pages))).status, 200)
+    assert.equal((await put(showcase({ ...sides, cover: 'p1.png', pages: ['p2.png', { image: 'p1.png', video: 'p1.mp4' }] }, pages))).status, 200)
     const { template } = await (await anon('/v1/catalog/long-read')).json()
-    assert.deepEqual(await Promise.all(template.pages.map(async (u) => (await anon(new URL(u).pathname)).text())), ['two', 'one'])
+    const read = (u) => u && anon(new URL(u).pathname).then((r) => r.text())
+    const shown = await Promise.all(template.pages.map(async (p) => [await read(p.image), await read(p.video)]))
+    assert.deepEqual(shown, [['two', null], ['one', 'live']])
     assert.match(template.cover, /\/p1\.png$/)
   })
 
@@ -332,7 +335,8 @@ function showcase(meta = {}, extra = {}) {
   }
   form.set('meta', JSON.stringify(m))
   const files = { 'cover.jpg': 'jpg', 'original.jpg': 'orig', 'clone.mp4': 'mp4', ...extra }
-  const named = new Set([m.cover, ...(Array.isArray(m.pages) ? m.pages : []), m.original?.image, m.original?.video, m.recreation?.image, m.recreation?.video, ...Object.keys(extra)])
+  const pages = Array.isArray(m.pages) ? m.pages.flatMap((p) => (typeof p === 'string' ? [p] : [p.image, p.video])) : []
+  const named = new Set([m.cover, ...pages, m.original?.image, m.original?.video, m.recreation?.image, m.recreation?.video, ...Object.keys(extra)])
   for (const [path, text] of Object.entries(files)) if (named.has(path)) form.append(`media:${path}`, new Blob([text]), path)
   return form
 }

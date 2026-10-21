@@ -14,6 +14,7 @@ import {
   fetchTemplate,
   linkLabel,
   templatePath,
+  type Page,
   type Side,
   type Template,
 } from "@/lib/templates";
@@ -121,7 +122,7 @@ export function Detail({
           <figcaption className="mb-2 flex items-center gap-2">
             <Tag>{t.pageCount(pages.length)}</Tag>
           </figcaption>
-          <Strip pages={pages} />
+          <Strip t={t} pages={pages} />
         </figure>
       ) : !motion && (
       <section className={`mt-10 grid gap-6 ${sides.length > 1 ? "lg:grid-cols-2" : ""}`}>
@@ -215,21 +216,81 @@ export function Detail({
   );
 }
 
+const PAGE = "h-[min(26rem,104vw)] w-auto max-w-none shrink-0 snap-start rounded-xl border border-border/15 bg-code";
+
 /** A carousel's pages side by side at one height and their own ratio; on a phone one fills the
  *  screen and the next peeks past the edge. */
-function Strip({ pages }: { pages: string[] }) {
+function Strip({ t, pages }: { t: TemplatesCopy; pages: Page[] }) {
   return (
     <div className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-4 overflow-x-auto px-6 pb-2 [scrollbar-width:none]">
-      {pages.map((src, i) => (
-        // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
-        <img
-          key={i}
-          src={src}
-          alt=""
-          className="h-[min(26rem,104vw)] w-auto max-w-none shrink-0 snap-start rounded-xl border border-border/15 bg-code"
-        />
-      ))}
+      {pages.map((p, i) =>
+        p.video ? (
+          <LivePage key={i} t={t} image={p.image} video={p.video} />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
+          <img key={i} src={p.image} alt="" className={PAGE} />
+        ),
+      )}
     </div>
+  );
+}
+
+// A live page loads and plays, muted on a loop, only while in view. Under reduced motion it
+// waits for the play button; a video that fails stays on its cover frame.
+function LivePage({ t, image, video }: { t: TemplatesCopy; image: string; video: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [mode, setMode] = useState<"idle" | "waiting" | "live">("idle");
+  const [visible, setVisible] = useState(false);
+  const [seen, setSeen] = useState(false);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setMode(reducedMotion() ? "waiting" : "live"), []);
+  useEffect(() => {
+    const v = ref.current;
+    if (mode !== "live" || !v) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(!!entry?.isIntersecting));
+    io.observe(v);
+    return () => io.disconnect();
+  }, [mode]);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (visible) {
+      setSeen(true);
+      v.play().catch(() => undefined);
+    } else v.pause();
+  }, [visible, seen]);
+
+  if (failed) {
+    // eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's
+    return <img src={image} alt="" className={PAGE} />;
+  }
+  if (mode === "waiting") {
+    return (
+      <button
+        type="button"
+        onClick={() => setMode("live")}
+        aria-label={t.play}
+        className={`group relative cursor-pointer overflow-hidden p-0 ${PAGE}`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- a static export, and the image is Cloud's */}
+        <img src={image} alt="" className="block h-full w-auto max-w-none" />
+        <PlayBadge />
+      </button>
+    );
+  }
+  return (
+    <video
+      ref={ref}
+      src={seen ? video : undefined}
+      poster={image}
+      muted
+      loop
+      playsInline
+      preload="none"
+      aria-hidden="true"
+      onError={() => setFailed(true)}
+      className={PAGE}
+    />
   );
 }
 
@@ -478,11 +539,17 @@ function PlayCover({
       ) : (
         <NoPreview label={t.noPreview} aspect={aspect} />
       )}
-      <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-border bg-elev shadow-[3px_3px_0_0_var(--color-ink)] transition-transform duration-150 group-hover:scale-105 motion-reduce:transition-none">
-        <FiPlay className="ml-0.5 h-6 w-6 fill-ink text-ink" aria-hidden="true" />
-      </span>
+      <PlayBadge />
       {children}
     </button>
+  );
+}
+
+function PlayBadge() {
+  return (
+    <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-border bg-elev shadow-[3px_3px_0_0_var(--color-ink)] transition-transform duration-150 group-hover:scale-105 motion-reduce:transition-none">
+      <FiPlay className="ml-0.5 h-6 w-6 fill-ink text-ink" aria-hidden="true" />
+    </span>
   );
 }
 

@@ -5,7 +5,7 @@
  *
  * A showcase is registered apart from the template (`PUT /v1/templates/<name>/showcase`):
  * a cover, the original and recreation shown side by side, each an image with an
- * optional video or YouTube link, and a carousel's pages in order. Its files sit under `showcase/<name>/<id>/<path>`.
+ * optional video or YouTube link, and a carousel's pages in order, a live page with its video. Its files sit under `showcase/<name>/<id>/<path>`.
  */
 
 import { call, mutate } from './db.ts'
@@ -26,7 +26,7 @@ const TYPES: Record<string, string> = {
   '.webm': 'video/webm',
 }
 const MB = 1024 * 1024
-export const SHOWCASE_LIMITS = { count: 12, bytes: 80 * MB }
+export const SHOWCASE_LIMITS = { count: 30, bytes: 80 * MB, pages: 12 }
 
 /** A browser page on any origin reads the catalog; it carries no credentials. */
 export const CATALOG_CORS = { 'access-control-allow-origin': '*' }
@@ -45,11 +45,14 @@ interface Side {
   duration?: number
 }
 
+/** A page as registered before live pages: a bare image name. */
+type Page = string | { image: string; video?: string }
+
 interface Showcase {
   id?: string
   files?: Entry[]
   cover?: string
-  pages?: string[]
+  pages?: Page[]
   original?: Side
   recreation?: Side
 }
@@ -139,7 +142,9 @@ function detail(base: string, row: Row) {
     description: row.description ?? '',
     publishedAt: row.published_at,
     source: s.original === true ? { original: true } : { site: s.site, references: s.references, captured: s.captured },
-    pages: show.id ? (show.pages ?? []).map((p) => url(p)!) : [],
+    pages: show.id
+      ? (show.pages ?? []).map((p) => (typeof p === 'string' ? { image: url(p)!, video: null } : { image: url(p.image)!, video: url(p.video) }))
+      : [],
     original: side(show.original) ?? null,
     recreation: side(show.recreation) ?? null,
   }
@@ -277,10 +282,18 @@ export function readShowcase(raw: unknown): Omit<Showcase, 'id' | 'files'> {
       ...(typeof s.duration === 'number' ? { duration: Math.round(s.duration) } : {}),
     }
   }
-  if (m.pages !== undefined && (!Array.isArray(m.pages) || m.pages.length === 0)) {
-    throw badRequest('pages is a list of image file names, in order.')
+  if (m.pages !== undefined && (!Array.isArray(m.pages) || m.pages.length === 0 || m.pages.length > SHOWCASE_LIMITS.pages)) {
+    throw badRequest(`pages is a list of 1 to ${SHOWCASE_LIMITS.pages} pages, in order.`)
   }
-  const pages = (m.pages as unknown[] | undefined)?.map((p, i) => file(`pages[${i}]`, p, IMAGES)!)
+  const pages = (m.pages as unknown[] | undefined)?.map((p, i): Page => {
+    if (typeof p === 'string') return file(`pages[${i}]`, p, IMAGES)!
+    if (!p || typeof p !== 'object' || Array.isArray(p)) throw badRequest(`pages[${i}] is an image file name, or { image, video }.`)
+    const page = p as Record<string, unknown>
+    const image = file(`pages[${i}].image`, page.image, IMAGES)
+    if (!image) throw badRequest(`pages[${i}].image is the still shown before the page plays.`)
+    const video = file(`pages[${i}].video`, page.video, VIDEOS)
+    return video ? { image, video } : { image }
+  })
   const out = {
     cover: file('cover', m.cover, IMAGES),
     pages,
@@ -294,7 +307,8 @@ export function readShowcase(raw: unknown): Omit<Showcase, 'id' | 'files'> {
 }
 
 function referenced(show: Omit<Showcase, 'id' | 'files'>): string[] {
-  const paths = [show.cover, ...(show.pages ?? []), show.original?.image, show.original?.video, show.recreation?.image, show.recreation?.video]
+  const pages = (show.pages ?? []).flatMap((p) => (typeof p === 'string' ? [p] : [p.image, p.video]))
+  const paths = [show.cover, ...pages, show.original?.image, show.original?.video, show.recreation?.image, show.recreation?.video]
   return [...new Set(paths.filter((p): p is string => !!p))]
 }
 
