@@ -326,7 +326,7 @@ describe('the flow', () => {
   it('lists the files a files delivery recorded', async () => {
     open(1)
     const file = path.join(TODO(), '1-card.md')
-    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- [x] Build it.', '- [x] Write `notes/plan.md`\n- [x] Draw `art/cover.png`'))
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- [x] Build it.', '- [x] Output: `notes/plan.md`\n- [x] Output: `art/cover.png`'))
     complete(1)
     ended({ commitMode: 'files', planned: [] })
     const printed = await reflect()

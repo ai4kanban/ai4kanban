@@ -438,8 +438,7 @@ function committingClose(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
   if (delivery.commitMode === 'files') {
     return [
-      'add one ticked `## Todo` line naming where the output is, such as `- [x] Output: `./out/email/``',
-      "tick the plan's todos without changing their text",
+      'add one new ticked `## Todo` line naming the output file or folder, never a wildcard, such as `- [x] Output: `./out/email/``',
       'do not create a branch or worktree, commit, or merge',
       'change no tracked file outside the board. New changes there stop the delivery; never revert them automatically',
     ]

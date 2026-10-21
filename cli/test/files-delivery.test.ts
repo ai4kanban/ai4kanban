@@ -10,7 +10,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { deliveryPlan } from '../src/lib/agent/commit-mode.ts'
-import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
+import { activeDelivery, endDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
@@ -66,8 +66,8 @@ function card(id: number, workflow = ''): void {
   )
 }
 
-// What the build leaves on the card: a ticked todo naming the file.
-const record = (id: number, file: string): void => fs.appendFileSync(cardFile(id), `- [x] Wrote \`${file}\`\n`)
+// What the build leaves on the card: a ticked `Output:` todo naming the file.
+const record = (id: number, file: string): void => fs.appendFileSync(cardFile(id), `- [x] Output: \`${file}\`\n`)
 
 const write = (file: string, text = 'x\n'): void => {
   fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
@@ -241,6 +241,46 @@ describe('a files delivery', () => {
     assert.equal(recordOf(delivery.deliveryId).status, 'finished')
   })
 
+  it('takes only an `Output:` line as a record, not a path in another ticked todo', async () => {
+    card(1, filesFlow())
+    const session = open(1)
+    write('out/email.html')
+    fs.appendFileSync(cardFile(1), '- [x] Wrote `out/email.html`\n')
+    await end(session)
+    assert.equal(activeDelivery(1)!.review?.stopped?.reason, 'output')
+  })
+
+  // #1923: a first delivery ticked its todos, naming a draft it later deleted and a wildcard,
+  // and recorded an output; a second one picks the card up from there.
+  async function secondDelivery(): Promise<string> {
+    card(1, filesFlow())
+    const first = open(1)
+    const body = fs.readFileSync(cardFile(1), 'utf8')
+    fs.writeFileSync(cardFile(1), body.replace('- [ ] Write `out/draft.html`', '- [x] Write `out/draft.html` and `out/page-4x5-*.png`'))
+    write('out/old.html')
+    record(1, 'out/old.html')
+    endDelivery(activeDelivery(1)!.deliveryId, 'cancelled')
+    await end(first)
+    return open(1)
+  }
+
+  it('takes only the `Output:` line the delivery added (#1941)', async () => {
+    const session = await secondDelivery()
+    const delivery = activeDelivery(1)!
+    write('out/email/index.html')
+    record(1, 'out/email/')
+    await end(session)
+    assert.equal(recordOf(delivery.deliveryId).status, 'finished')
+  })
+
+  it('stops when the delivery added no `Output:` line, whatever earlier ones recorded', async () => {
+    const session = await secondDelivery()
+    await end(session)
+    const stopped = activeDelivery(1)!.review?.stopped
+    assert.equal(stopped?.reason, 'output')
+    assert.deepEqual(stopped?.paths, [])
+  })
+
   it('stops naming a recorded file that is not there', async () => {
     card(1, filesFlow())
     const session = open(1)
@@ -267,8 +307,7 @@ describe('a files delivery', () => {
     card(1, filesFlow())
     open(1)
     const build = flow('implement', 1)
-    assert.match(build, /add one ticked `## Todo` line naming where the output is/)
-    assert.match(build, /tick the plan's todos without changing their text/)
+    assert.match(build, /add one new ticked `## Todo` line naming the output file or folder, never a wildcard/)
     assert.match(build, /do not create a branch or worktree, commit, or merge/)
     assert.match(build, /The board archives it after the output files pass the delivery checks/)
     assert.doesNotMatch(build, /leave your work uncommitted|once the delivery has landed|Review comes next/)
