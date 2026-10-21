@@ -305,5 +305,12 @@ describe('template.md frontmatter', () => {
     fails(TEMPLATE_MD.replace(/description: \|\n.*\n.*\n/, ''), /description/)
     fails(TEMPLATE_MD.replace('2026-10-16T09:00:00+08:00', '2026-10-16'), /time zone/)
     fails(TEMPLATE_MD.replace('access: free', 'access: paid'), /access/)
+    fails(TEMPLATE_MD.replace(/source:[\s\S]*?---/, 'source: [a]\n---'), /source/)
+  })
+
+  it('reads a missing access as free and a missing source as original', () => {
+    const meta = readTemplateMeta(TEMPLATE_MD.replace('access: free\n', '').replace(/source:[\s\S]*?---/, '---'))
+    assert.equal(meta.access, 'free')
+    assert.deepEqual(meta.source, { original: true })
   })
 })

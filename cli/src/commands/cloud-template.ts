@@ -335,11 +335,12 @@ export function readTemplateMeta(text: string): PublishMeta {
   const tags = [...new Set((rawTags as Yaml[]).map(String))]
   const bad = tags.filter((t) => !SLUG.test(t))
   if (bad.length > 0) invalid(`标签 ${bad.join('、')} 不合规：只能用小写英文短词。`, `tag ${bad.join(', ')}: use lowercase words joined by hyphens.`)
-  const access = text_('access')
+  const access = fm.access === undefined || fm.access === '' ? 'free' : fm.access
   if (access !== 'free' && access !== 'pro') return invalid('access 只能是 free 或 pro。', 'access is free or pro.')
-  const source = fm.source
-  if (!source || typeof source !== 'object' || Array.isArray(source)) {
-    invalid('缺少 source；原创模板写 source: { original: true }。', 'source is missing; an original says original: true.')
+  // An absent source means original; the creator answers for that.
+  const source = fm.source === undefined || fm.source === '' ? { original: true } : fm.source
+  if (typeof source !== 'object' || Array.isArray(source)) {
+    invalid('source 写法不对；原创模板可以不写，或写 source: { original: true }。', 'source is malformed; an original can omit it or say original: true.')
   }
   const s = source as Record<string, unknown>
   if (s.original !== true) {
