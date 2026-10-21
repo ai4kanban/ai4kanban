@@ -871,19 +871,22 @@ export type CadenceCopy = {
   tooOld: string;
 };
 
+/** A plan row; one with `more` folds its details behind a chevron, `cue` labelling it. */
+export type PlanRow = string | { text: string; cue?: string; more: { note?: string; list?: string[]; table?: [string, string][] } };
+
 /** The Billing tab (#1109). `pricing` is web/i18n/pricing word for word. */
 export type BillingCopy = {
   pricing: {
     monthly: string;
     yearly: string;
     save: string;
-    free: { name: string; price: string; tagline: string; rows: string[] };
+    free: { name: string; price: string; tagline: string; rows: PlanRow[] };
     pro: {
       name: string;
       yearly: { price: string; per: string; sub: string; was: string };
       monthly: { price: string; per: string };
       leadIn: string;
-      rows: string[];
+      rows: PlanRow[];
       button: string;
     };
   };

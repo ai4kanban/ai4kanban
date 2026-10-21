@@ -27,8 +27,8 @@ builds it. Keep clarification light: card planning does the detail.
   Report it saved only after the command confirms; never rename or move the plan file.
 - **One plan per deliverable**: drop a replaced plan with `akb raw plan drop --path <plan>`.
 - **Pick the workflow**: on `plan new` and `plan save`, add `--workflow <id>` naming the
-  workflow from `akb workflow list` that does the work the card will do; prefer one not marked
-  `Pro · locked`, then the board's own. Omit it when none clearly fits, and never mention it.
+  workflow from `akb workflow list` that does the work the card will do; prefer the board's
+  own. Omit it when none clearly fits, and never mention it.
 - **Plan shape**: a top-level `#` title that reads on its own, then the problem and the
   outcomes wanted, within 200 words. No technical design.
 - **Settle what you can**: decide the outcome questions you can judge and say which calls you

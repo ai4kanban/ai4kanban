@@ -138,7 +138,7 @@ const en: VsHermesCopy = {
     rows: {
       startingPoint: {
         dimension: "Built-in agents and workflows",
-        kanban: "Built-in specialist agents and workflows for development and content. Create your own. Content workflows require Pro.",
+        kanban: "Built-in specialist agents and workflows for development and content. Create your own. All built-in and custom workflows are free.",
         hermes: "General-purpose Hermes profiles you set up. No built-in specialist workflows for UI design, copywriting or content production.",
       },
       planning: {

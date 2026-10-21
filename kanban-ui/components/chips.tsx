@@ -186,11 +186,8 @@ export function StatusPill({ status, detailed = false }: { status: CardStatus; d
 // Peach, the one colour the board gives work that is in the way, and the colour of the
 // blocked chip beside it: a pending card is a blocked card the user has already answered
 // for. The hover carries the whole of it — what will run, and what it is waiting on.
-//
-// `locked`: the schedule is waiting on Pro (#1281), so it wears a lock and says so.
-export function PendingPill({ label, detailed = false, locked = false }: { label: string; detailed?: boolean; locked?: boolean }) {
+export function PendingPill({ label, detailed = false }: { label: string; detailed?: boolean }) {
   const copy = useCopy().chips;
-  const Icon = locked ? FiLock : FiClock;
   return (
     <span
       className="nb-chip nb-tip"
@@ -198,8 +195,8 @@ export function PendingPill({ label, detailed = false, locked = false }: { label
       data-tip={label}
       style={{ ...ELASTIC_CHIP, background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
     >
-      <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      <span className="truncate">{locked ? copy.needsPro : detailed ? label : copy.pending}</span>
+      <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="truncate">{detailed ? label : copy.pending}</span>
     </span>
   );
 }

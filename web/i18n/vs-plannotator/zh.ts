@@ -54,7 +54,7 @@ const zh: VsPlannotatorCopy = {
     },
     custom: "你也可以创建自定义 agent 和工作流。",
     tipLabel: "提示",
-    tip: "软件开发工作流免费；博客文章、社媒帖、幻灯片、产品视频和视频克隆工作流需 Pro。",
+    tip: "所有内置和自建工作流均可免费使用。",
   },
   compare: {
     title: "哪些能力开箱即用",

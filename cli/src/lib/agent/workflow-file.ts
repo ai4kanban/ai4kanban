@@ -41,7 +41,6 @@ export interface WorkflowDef {
   description: string
   needsArtifact: boolean
   delivers: DeliveryStage
-  pro: boolean
   /** `helpers` absent is a stage whose hooks nobody has chosen. */
   stages: Record<WorkflowStage, { lead: string; helpers?: DefHelpers }>
   /** The scheduled agents it starts with; their run state lives in the board's settings. */
@@ -96,7 +95,6 @@ export function parseWorkflowFile(id: string, source: string, from: string): { d
       description: text(raw.description),
       needsArtifact: text(raw.needsArtifact) === 'true',
       delivers: text(raw.delivers) === 'plan' ? 'plan' : 'execute',
-      pro: text(raw.pro) === 'true',
       stages: Object.fromEntries(
         WORKFLOW_STAGES.map((stage) => {
           const one = box(stages[stage])
@@ -113,7 +111,7 @@ export function parseWorkflowFile(id: string, source: string, from: string): { d
 export function workflowFileText(def: WorkflowDef, body = ''): string {
   const lines = ['---', `name: ${scalar(def.name)}`]
   if (def.description) lines.push(`description: ${scalar(def.description)}`)
-  lines.push(`needsArtifact: ${def.needsArtifact}`, `delivers: ${def.delivers}`, `pro: ${def.pro}`, 'stages:')
+  lines.push(`needsArtifact: ${def.needsArtifact}`, `delivers: ${def.delivers}`, 'stages:')
   for (const stage of WORKFLOW_STAGES) {
     const { lead, helpers } = def.stages[stage]
     lines.push(`  ${stage}:`, `    lead: ${scalar(lead)}`)

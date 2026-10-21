@@ -5,7 +5,7 @@
 // The plan cards are web/components/pricing/Plans.tsx on the app's tokens.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FiAlertCircle, FiArrowLeft, FiCheck, FiExternalLink } from "react-icons/fi";
+import { FiAlertCircle, FiArrowLeft, FiCheck, FiChevronDown, FiExternalLink } from "react-icons/fi";
 import {
   openBillingPortalAction,
   readBillingAction,
@@ -13,7 +13,7 @@ import {
   resumeRenewalAction,
   startCheckoutAction,
 } from "@/app/actions";
-import type { BillingCopy } from "@/i18n/configuration/types";
+import type { BillingCopy, PlanRow } from "@/i18n/configuration/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { BillingRead, CloudBilling, CloudCredits, InvoicesRead } from "@/lib/types";
 import { Button } from "./button";
@@ -474,15 +474,54 @@ function Switch({ t, period, onPick }: { t: BillingCopy["pricing"]; period: Peri
   );
 }
 
-function Rows({ rows, lead }: { rows: string[]; lead?: string }) {
+function Fold({ row }: { row: Exclude<PlanRow, string> }) {
+  const [open, setOpen] = useState(false);
+  const { note, list, table } = row.more;
+  return (
+    <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+        className="inline-flex cursor-pointer flex-wrap items-center gap-x-1.5 text-left"
+      >
+        <span>{row.text}</span>
+        <span className="inline-flex items-center gap-0.5 text-[12.5px] text-nb-ink-soft">
+          {row.cue}
+          <FiChevronDown size={13} className={open ? "rotate-180" : ""} aria-hidden />
+        </span>
+      </button>
+      {open && (
+        <div className="mt-1.5 mb-0.5 rounded-[9px] bg-nb-wash px-3 py-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
+          {note && <p className="mb-1">{note}</p>}
+          {list && (
+            <ul className="grid grid-cols-2 gap-x-4">
+              {list.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {table?.map(([name, cost]) => (
+            <p key={name} className="flex justify-between gap-4">
+              <span>{name}</span>
+              <span className="tabular-nums text-nb-ink">{cost}</span>
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Rows({ rows, lead }: { rows: PlanRow[]; lead?: string }) {
   return (
     <div className="mt-4 border-t border-nb-ink/10 pt-4">
       {lead && <p className="mb-2 text-[13px] font-[700] text-nb-ink">{lead}</p>}
       <ul className="space-y-1.5 text-[13px] leading-relaxed text-nb-ink">
         {rows.map((row) => (
-          <li key={row} className="flex gap-2.5">
+          <li key={typeof row === "string" ? row : row.text} className="flex gap-2.5">
             <FiCheck className="mt-[3px] size-3.5 shrink-0 text-nb-accent" strokeWidth={3} aria-hidden />
-            <span>{row}</span>
+            {typeof row === "string" ? <span>{row}</span> : <Fold row={row} />}
           </li>
         ))}
       </ul>

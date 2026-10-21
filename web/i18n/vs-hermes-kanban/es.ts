@@ -138,7 +138,7 @@ const es: VsHermesCopy = {
     rows: {
       startingPoint: {
         dimension: "Agentes y flujos incluidos",
-        kanban: "Agentes y flujos especializados incluidos para desarrollo y contenido. Crea los tuyos. Los flujos de contenido requieren Pro.",
+        kanban: "Agentes y flujos especializados incluidos para desarrollo y contenido. Crea los tuyos. Todos los flujos incluidos y personalizados son gratuitos.",
         hermes: "Perfiles de Hermes de uso general que configuras tú. No incluye flujos especializados para diseño de UI, redacción o producción de contenido.",
       },
       planning: {

@@ -32,7 +32,6 @@ import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
 import { blockedStages, useWorkflowName } from "./Workflows";
 import { useWorkflows } from "@/lib/window-state";
-import { goPro, ProPill, proLock, useProAccess, type ProLock } from "./pro";
 import { useWorkflowTip } from "./WorkflowTip";
 import { Popover, PopoverContent, PopoverOption, PopoverTrigger, POPUP_ROW, POPUP_TRIGGER, stepOptions } from "./ui/popover";
 import { cn } from "@/lib/utils";
@@ -122,8 +121,6 @@ function Sheet({
   const usable = (id?: string) => flows?.find((f) => f.id === id && f.problems.length === 0)?.id;
   const workflowOf = (row: { path: string; workflow?: string }) =>
     picked[row.path] ?? usable(row.workflow) ?? flows?.find((f) => f.isDefault)?.id ?? "";
-  // What unlocks the Pro workflows (#1038). A locked pick is kept, never swapped for the default.
-  const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
   const [sending, setSending] = useState(false);
   // The window's body, when there is one — the sheet fills that rather than the viewport.
   const body = useBodySlot();
@@ -206,7 +203,6 @@ function Sheet({
       rerouted={rerouted}
       flows={flows}
       workflowOf={workflowOf}
-      lock={lock}
       onWorkflow={(path, id) => setPicked((was) => ({ ...was, [path]: id }))}
       onHandoff={onHandoff}
     />
@@ -542,7 +538,6 @@ function Handoff({
   rerouted,
   flows,
   workflowOf,
-  lock,
   onWorkflow,
   onHandoff,
 }: {
@@ -555,7 +550,6 @@ function Handoff({
   /** The board's workflows, or null before they are read or on rules without them. */
   flows: WorkflowView[] | null;
   workflowOf(row: HandoffRow): string;
-  lock: ProLock;
   onWorkflow(path: string, id: string): void;
   onHandoff(answer: PlanAnswer, picks: PlanPick[], all: boolean, ends: boolean): void;
 }) {
@@ -578,7 +572,6 @@ function Handoff({
   const idle = plan.shown && !rail.answering && rail.live === null && answered;
   const down = starting !== null || rows.some((r) => r.run?.running && r.run.answer === "plan");
   const pick = (r: HandoffRow): PlanPick => ({ path: r.path, workflow: workflowOf(r) || undefined });
-  const lockedOf = (r: HandoffRow) => !!lock && !!flows?.find((f) => f.id === workflowOf(r))?.pro;
   const startingOn = (r: HandoffRow) =>
     starting && (starting.paths === null ? waiting.includes(r) : starting.paths.includes(r.path)) ? starting.answer : null;
   const one = (answer: PlanAnswer, r: HandoffRow) =>
@@ -599,19 +592,17 @@ function Handoff({
       <div>
         <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
           <Answers
-            locked={lockedOf(r)}
-            lock={lock}
             down={down}
             starting={startingOn(r)}
             labels={{ plan: c.start, build: c.build, buildGuard: false }}
             onPlan={() => one("plan", r)}
             onBuild={() => one("build", r)}
           />
-          {r.run && !starting && !failures[r.path] && !lockedOf(r) && (
+          {r.run && !starting && !failures[r.path] && (
             <span className="text-[11.5px] text-nb-ink-soft">{r.run.answer === "build" ? c.buildAgain : c.tryAgain}</span>
           )}
           {flows && flows.length > 1 && (
-            <WorkflowPick flows={flows} picked={workflowOf(r)} disabled={down} lock={lock} onPick={(id) => onWorkflow(r.path, id)} />
+            <WorkflowPick flows={flows} picked={workflowOf(r)} disabled={down} onPick={(id) => onWorkflow(r.path, id)} />
           )}
         </div>
         <Failure failure={failures[r.path] ?? failures[""]} />
@@ -623,7 +614,6 @@ function Handoff({
   const together = (r: HandoffRow) => !!r.run?.running && rows.filter((o) => o.run?.sessionId === r.run!.sessionId).length > 1;
   const shared = rows.find(together);
   const sharedCount = shared ? rows.filter((o) => o.run?.sessionId === shared.run!.sessionId).length : 0;
-  const allLocked = waiting.some(lockedOf);
   return (
     <div>
       {rows.map((r) => (
@@ -636,13 +626,11 @@ function Handoff({
             {idle && waiting.includes(r) && (
               <span className="ml-auto flex shrink-0 items-center gap-2">
                 {flows && flows.length > 1 && (
-                  <WorkflowPick flows={flows} picked={workflowOf(r)} disabled={down} lock={lock} onPick={(id) => onWorkflow(r.path, id)} />
+                  <WorkflowPick flows={flows} picked={workflowOf(r)} disabled={down} onPick={(id) => onWorkflow(r.path, id)} />
                 )}
                 <span className="flex items-center">
                   <Answers
                     quiet
-                    locked={lockedOf(r)}
-                    lock={lock}
                     down={down}
                     starting={startingOn(r)}
                     labels={{ plan: c.planOne, build: c.buildOne, buildGuard: false }}
@@ -676,9 +664,7 @@ function Handoff({
       {idle && waiting.length > 1 && (
         <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
           <Answers
-            locked={false}
-            lock={lock}
-            down={down || allLocked}
+            down={down}
             starting={starting?.paths === null ? starting.answer : null}
             labels={{ plan: c.planAll, build: c.buildAll, buildGuard: waiting.length }}
             onPlan={() => onHandoff("plan", waiting.map(pick), true, true)}
@@ -699,12 +685,9 @@ function BecameLinks({ cards, inset = "px-2.5 pt-2" }: { cards: BecameCard[]; in
 }
 
 /** The two answers: Plan tasks filled, Start now in accent ink behind its guard — or, `quiet`,
- *  as small text buttons on a plan's own row (#1442). A Pro workflow this account cannot run
- *  puts one way to Pro in place of both. */
+ *  as small text buttons on a plan's own row (#1442). */
 function Answers({
   quiet,
-  locked,
-  lock,
   down,
   starting,
   labels,
@@ -712,8 +695,6 @@ function Answers({
   onBuild,
 }: {
   quiet?: boolean;
-  locked: boolean;
-  lock: ProLock;
   down: boolean;
   /** Which of the two is being asked for on these plans (#706). */
   starting: PlanAnswer | null;
@@ -723,23 +704,11 @@ function Answers({
   onBuild(): void;
 }) {
   const c = useCopy().board.create.sheet.plan;
-  const pro = useCopy().shared.pro;
   // Whether Start now's "are you sure?" is open, anchored to the answer that was pressed.
   const [guard, setGuard] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
   const text =
     "flex h-7 shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 text-[12px] font-[600] text-nb-accent-deep transition-[background-color] duration-100 hover:bg-nb-ink/5 disabled:cursor-not-allowed disabled:opacity-45";
-  if (locked) {
-    return quiet ? (
-      <button type="button" className={text} onClick={() => goPro(lock)}>
-        {lock === "upgrade" ? pro.upgrade : pro.signIn}
-      </button>
-    ) : (
-      <Button size="xs" onClick={() => goPro(lock)}>
-        {lock === "upgrade" ? pro.upgrade : pro.signIn}
-      </Button>
-    );
-  }
   const planLabel = starting === "plan" ? c.starting : labels.plan;
   const buildLabel = starting === "build" ? c.starting : labels.build;
   return (
@@ -823,17 +792,14 @@ function WorkflowPick({
   flows,
   picked,
   disabled,
-  lock,
   onPick,
 }: {
   flows: WorkflowView[];
   picked: string;
   disabled: boolean;
-  lock: ProLock;
   onPick: (id: string) => void;
 }) {
   const c = useCopy().board.create.sheet.workflow;
-  const pro = useCopy().shared.pro;
   const w = useCopy().configuration.workflows;
   const noLead = useCopy().card.meta.noLead;
   const nameOf = useWorkflowName();
@@ -893,7 +859,6 @@ function WorkflowPick({
             className={`${POPUP_TRIGGER} flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 text-[12px] text-nb-ink bg-nb-accent-wash`}
           >
             <span className="max-w-[160px] truncate">{nameOf(mine)}</span>
-            {mine.pro && <ProPill />}
             <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
           </button>
         </PopoverTrigger>
@@ -938,7 +903,6 @@ function WorkflowPick({
                 {flows.map((f) => {
                   // A workflow that cannot start would only write a card that stops on its first run.
                   const off = f.problems.length > 0;
-                  const shut = off || (!!f.pro && !!lock);
                   const row = () => rows.current.get(f.id) ?? null;
                   const reason = reasonOf(f.id);
                   const props = tip.rowProps(f, row, reason);
@@ -954,19 +918,17 @@ function WorkflowPick({
                       <PopoverOption
                         selected={f.id === mine.id}
                         data-active={tip.shownId === f.id || undefined}
-                        aria-disabled={shut || undefined}
-                        title={"aria-describedby" in props || !shut ? undefined : pro.locked}
+                        aria-disabled={off || undefined}
                         onClick={() => {
-                          if (shut) return;
+                          if (off) return;
                           onPick(f.id);
                           show(false);
                         }}
-                        className={cn("text-[12.5px] font-[700]", shut && "cursor-not-allowed hover:bg-transparent active:bg-transparent")}
+                        className={cn("text-[12.5px] font-[700]", off && "cursor-not-allowed hover:bg-transparent active:bg-transparent")}
                         style={{ minHeight: MENU_ROW }}
                         {...props}
                       >
-                        <span className={`min-w-0 flex-1 break-words ${shut ? "opacity-45" : ""}`}>{nameOf(f)}</span>
-                        {f.pro && !off && <ProPill />}
+                        <span className={`min-w-0 flex-1 break-words ${off ? "opacity-45" : ""}`}>{nameOf(f)}</span>
                         {off && <span className="shrink-0 text-[10.5px] text-nb-ink-soft opacity-45">{w.notReady}</span>}
                       </PopoverOption>
                       {tip.infoButton(f, nameOf(f), row, reason)}
@@ -991,20 +953,6 @@ function WorkflowPick({
             </div>
             {tip.layer(flows, reasonOf)}
             <div className="mt-1 shrink-0 border-t border-nb-ink/10 pt-1">
-              {lock && flows.some((f) => f.pro) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    leaving.current = true;
-                    show(false);
-                    goPro(lock);
-                  }}
-                  className={cn(POPUP_ROW, "justify-between py-2 text-[12px] font-[700] text-nb-accent-deep")}
-                >
-                  {lock === "upgrade" ? pro.upgrade : pro.signIn}
-                  <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => {

@@ -51,7 +51,6 @@ import { AgentDetail, type AgentSchedule, Character, NewAgentRow, useAgentRoster
 import { useGlobalMemories } from "./GlobalMemories";
 import { useWorkflowTip } from "./WorkflowTip";
 import { useWorkflows, workflows } from "@/lib/window-state";
-import { goPro, ProPill, proLock, useProAccess } from "./pro";
 import {
   ACCENT_BTN,
   CAPTION,
@@ -188,10 +187,6 @@ export function WorkflowsPanel({
   }, [flows, picked]);
 
   const flow = flows?.find((f) => f.id === picked);
-  // A Pro workflow this account cannot use cannot be copied either (#1038).
-  const pro = useCopy().shared.pro;
-  const lock = proLock(useProAccess(!!flows?.some((f) => f.pro)));
-  const proLocked = !!flow?.pro && !!lock;
   const setups = useMemo(
     () => WORKFLOW_STAGES.flatMap((name) => flow?.stages.find((s) => s.stage === name) ?? []),
     [flow],
@@ -581,12 +576,7 @@ export function WorkflowsPanel({
       onSaved={load}
       onError={onError}
       items={[
-        proLocked
-          ? { label: c.duplicate, run: () => {}, locked: pro.locked }
-          : { label: c.duplicate, run: () => void duplicate() },
-        ...(proLocked
-          ? [{ label: lock === "upgrade" ? pro.upgrade : pro.signIn, run: () => goPro(lock), accent: true }]
-          : []),
+        { label: c.duplicate, run: () => void duplicate() },
         ...(flow.builtIn
           ? []
           : [
@@ -649,13 +639,8 @@ export function WorkflowsPanel({
                                 <span className="min-w-0 flex-1 truncate text-left text-[14px] font-[800]">
                                   {nameOf(flow)}
                                 </span>
-                                {/* Pro outranks Built-in: three marks leave a name no room. */}
-                                {flow.pro ? (
-                                  <ProPill />
-                                ) : (
-                                  flow.builtIn && (
-                                    <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
-                                  )
+                                {flow.builtIn && (
+                                  <span className="shrink-0 text-[11px] font-normal text-nb-ink-soft">{c.builtIn}</span>
                                 )}
                                 {flow.isDefault && <Pill>{c.isDefault}</Pill>}
                                 {flow.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
@@ -1046,7 +1031,6 @@ function FlowPicker({
                 {...tip.rowProps(f, row)}
               >
                 <span className="min-w-0 flex-1 break-words text-[12.5px] font-[700]">{nameOf(f)}</span>
-                {f.pro && <ProPill />}
                 {f.isDefault && <Pill>{c.isDefault}</Pill>}
                 {f.problems.length > 0 && <Pill tone="peach">{c.notReady}</Pill>}
               </PopoverOption>
@@ -1127,8 +1111,7 @@ function MoreMenu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   label: string;
-  /** `locked`: held back, with why as its tooltip. `accent`: the way to Pro (#1038). */
-  items: { label: string; run: () => void; locked?: string; accent?: boolean }[];
+  items: { label: string; run: () => void }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
   flow: WorkflowView;
   onSaved: () => Promise<void>;
@@ -1194,15 +1177,7 @@ function MoreMenu({
         className="w-[258px] p-1.5"
       >
         {items.map((item) => (
-          <DropdownMenuItem
-            key={item.label}
-            disabled={!!item.locked}
-            title={item.locked}
-            onSelect={act(item.run)}
-            className={`${row} ${item.locked ? "data-[disabled]:pointer-events-auto cursor-not-allowed" : ""} ${
-              item.accent ? "justify-between font-[700] text-nb-accent-deep" : ""
-            }`}
-          >
+          <DropdownMenuItem key={item.label} onSelect={act(item.run)} className={row}>
             {item.label}
           </DropdownMenuItem>
         ))}

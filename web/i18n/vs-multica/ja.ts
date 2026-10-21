@@ -124,7 +124,7 @@ const ja: VsMulticaCopy = {
         kanban:
           "専門エージェントとワークフローを組み込み済み。役割の編集や追加も可能。",
         kanbanTip:
-          "ソフトウェア開発は無料。ブログ、SNS投稿、スライド、製品動画、動画クローンのワークフローにはProが必要です。",
+          "組み込みとカスタムのワークフローはすべて無料です。",
         multica:
           "Mikaは最初から利用可能。専門エージェントは自分で、またはAgent Builderで作成し、InstructionsとSkillsを設定します。",
       },

@@ -129,7 +129,7 @@ const fr: VsTaskMasterCopy = {
     rows: {
       startingPoint: {
         dimension: "Agents et workflows intégrés",
-        kanban: "Agents et workflows spécialisés intégrés pour le développement et le contenu. Créez vos propres agents et workflows. Les workflows de contenu nécessitent Pro.",
+        kanban: "Agents et workflows spécialisés intégrés pour le développement et le contenu. Créez vos propres agents et workflows. Tous les workflows intégrés et personnalisés sont gratuits.",
         taskMaster: "Workflows de code pour exécuter les tâches, tester et nettoyer le code. Aucun agent ni workflow spécialisé intégré pour le design, la rédaction ou la production de contenu.",
       },
       planning: {

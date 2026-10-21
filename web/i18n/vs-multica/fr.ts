@@ -125,7 +125,7 @@ const fr: VsMulticaCopy = {
         kanban:
           "Agents spécialisés et workflows intégrés, avec des rôles que vous pouvez modifier ou ajouter.",
         kanbanTip:
-          "Le développement logiciel est gratuit ; les workflows blog, publications pour les réseaux sociaux, présentation, vidéo produit et clonage vidéo nécessitent Pro.",
+          "Tous les workflows intégrés et personnalisés sont gratuits.",
         multica:
           "Mika est inclus. Vous créez les agents spécialisés vous-même ou avec Agent Builder, puis leur donnez des Instructions et des Skills.",
       },

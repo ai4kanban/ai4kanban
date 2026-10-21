@@ -43,9 +43,7 @@ import { anyChatToReview } from '../agent/memory-review'
 import { nextReflection, REFLECT_BATCH } from '../agent/propose'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
-import { proRefusal } from '../agent/start'
 import { dueScheduledAgents } from '../agent/scheduled'
-import { proAccess, type ProAccess } from '../cloud/pro'
 import { pruneLeftovers } from '../leftovers'
 import { listRuns } from '../agent/sessions'
 import { noteRefineTried, withStore } from '../agent/store'
@@ -256,15 +254,11 @@ const scheduledRequest = (card: Card): AgentRequest => ({
  * A schedule whose action would no longer do anything — a refine on a card someone already
  * took to `ready` — is dropped in the same pass rather than started, and dropping one is not
  * a start, so it never uses up the tick.
- *
- * A card whose Pro workflow this account cannot run keeps its mark and is passed over (#1281),
- * so it starts on the first tick after Pro is on. Cloud is asked at most once per pass.
  */
 async function dueScheduled(
   cards: Card[],
   busy: Set<number>,
   clearMark: ClearMark,
-  ask: () => Promise<ProAccess>,
 ): Promise<AgentRequest | null> {
   const ready = cards.filter((c) => c.schedule && !busy.has(c.id) && c.openBlockers.length === 0)
   if (ready.length === 0) return null
@@ -274,7 +268,6 @@ async function dueScheduled(
     // One start per tick. Everything after it keeps its mark — except a stale one, which
     // is dropped whenever we meet it, since no later tick would do anything else with it.
     if (!stale && request) continue
-    if (!stale && (await proRefusal(scheduledRequest(card), ask))) continue
     // The card moved or went away between the read and this write — leave it be.
     if (!(await clearMark(card.id))) continue
     if (!stale) request = scheduledRequest(card)
@@ -305,11 +298,8 @@ const settled = (card: Card, now: number): boolean => {
  *
  * The first pass on a board only writes the list, with every card refinable right then on it:
  * a backlog that was there before this rule is the user's to refine.
- *
- * A card whose Pro workflow this account cannot run is passed over and not listed, the same
- * as a scheduled one.
  */
-async function dueRefine(cards: Card[], busy: Set<number>, ask: () => Promise<ProAccess>): Promise<AgentRequest | null> {
+function dueRefine(cards: Card[], busy: Set<number>): AgentRequest | null {
   const refinable = cards.filter(canRefine)
   const ids = new Set(refinable.map((c) => c.id))
   const tried = withStore((store) => {
@@ -326,7 +316,6 @@ async function dueRefine(cards: Card[], busy: Set<number>, ask: () => Promise<Pr
     if (tried.has(card.id) || busy.has(card.id) || card.schedule || card.openBlockers.length > 0) continue
     if (!settled(card, now)) continue
     const request: AgentRequest = { action: 'clarify', id: card.id, title: card.title, refineRound: 1 }
-    if (await proRefusal(request, ask)) continue
     // Listed as it is handed back, like a schedule's mark: a start refused after this must
     // not come round again every tick.
     withStore((store) => noteRefineTried(store, card.id))
@@ -368,14 +357,10 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
   // being rewritten, and a schedule taken off in this pass would be lost to a refused start.
   for (const c of cards) if (c.discussing) busy.add(c.id)
 
-  // Cloud is asked at most once per pass, and only when a due card needs Pro (#1281, #1293).
-  let asked: Promise<ProAccess> | undefined
-  const ask = () => (asked ??= proAccess())
-
   const work: AgentRequest[] = []
   let scheduled: AgentRequest | null = null
   try {
-    scheduled = await dueScheduled(cards, busy, clearMark, ask)
+    scheduled = await dueScheduled(cards, busy, clearMark)
   } catch {
     // The board was busy being written, or a card wouldn't take the write. Every card keeps
     // its mark, and the next tick tries again.
@@ -386,7 +371,7 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
   }
 
   try {
-    const refine = await dueRefine(cards, busy, ask)
+    const refine = dueRefine(cards, busy)
     if (refine) {
       work.push(refine)
       busy.add(refine.id!)
@@ -425,7 +410,7 @@ export async function nextWork(clearMark: ClearMark, pruneArchive?: PruneArchive
 
   // And every workflow's scheduled agents whose cadence has come round (#1401), a slot each.
   try {
-    work.push(...(await dueScheduledAgents(ask)))
+    work.push(...dueScheduledAgents())
   } catch {
     // unreadable settings — the next tick tries again
   }

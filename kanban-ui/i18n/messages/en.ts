@@ -128,9 +128,6 @@ const en: MessagesCopy = {
     workflowLeadRefused: (a) => `${a.agent}, the lead of ${a.name}'s ${a.stage} stage, can't be used: ${leadFix(a)}`,
     workflowLeadStage: (a) =>
       `${a.name} has ${a.agent} leading its ${a.stage} stage, but ${a.agent} is a ${a.assigned} agent.`,
-    proSignIn: (a) => `${a.name} needs Pro. Sign in first.`,
-    proRequired: (a) => `${a.name} needs Pro.`,
-    proUnconfirmed: () => "Couldn't confirm your Pro plan. Reconnect and retry.",
     cloudUnreachable: () =>
       "Cloud could not be reached, so the run was not started. A run works on the workspace, never on the copy left on this computer. Try again once the board is back.",
     cardHeld: (a) => `${a.details} Wait for that hold to end, or work on another card.`,

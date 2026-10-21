@@ -19,7 +19,7 @@ Explain a new release, show how a feature works, or prepare a product introducti
 
 Independent tasks can continue while these materials are produced. Work that depends on a feature's final behavior follows its delivery.
 
-Blog posts, product videos, slide decks and social posts require Pro. [See plans](https://ai4kanban.dev/pricing)
+Blog, video, slide deck and social post workflows are free. Pro templates help you make more polished content. [See plans](https://ai4kanban.dev/pricing)
 
 ## Give your launch a clear message.
 
@@ -55,7 +55,7 @@ Open your project in the desktop app and connect Claude Code, Codex or another [
 
 Choose a tool and model for each agent, or work with the same board through the skill and CLI from your coding-agent session.
 
-The coding workflow and workflows you create yourself are free.
+All built-in and custom workflows are free. Hosted image, voiceover and music generation require Pro and use AI credits.
 
 ## Make the workflow fit your SaaS.
 

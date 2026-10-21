@@ -54,7 +54,7 @@ See which workflows, review steps and integrations each product includes.
 
 | Dimension | AI4Kanban | Taskmaster | Edge |
 | --- | --- | --- | --- |
-| Built-in agents and workflows | Built-in specialist agents and workflows for development and content. Create your own agents and workflows. Content workflows require Pro. | Coding workflows for task execution, testing and code cleanup. No built-in specialist agents or workflows for design, copywriting or content production. | AI4Kanban |
+| Built-in agents and workflows | Built-in specialist agents and workflows for development and content. Create your own agents and workflows. All built-in and custom workflows are free. | Coding workflows for task execution, testing and code cleanup. No built-in specialist agents or workflows for design, copywriting or content production. | AI4Kanban |
 | Task breakdown and dependencies | AI4Kanban splits work into cards and subtasks, with dependencies controlling execution order. | Taskmaster can generate tasks and subtasks from a PRD and manage dependencies. | Even |
 | Key draft review before execution | Image, diagram, HTML/TSX, diff and storyboard drafts. Approved key content becomes part of the execution requirements. | You can review task descriptions, implementation details and test strategies. There is no built-in preview and approval workflow for key output drafts before execution. | AI4Kanban |
 | Chat on a task | Discuss requirements and revise plans with agents on the card. Conversations stay with the card. | No built-in task chat interface. Discuss tasks in the agent chat of tools such as Cursor. | AI4Kanban |

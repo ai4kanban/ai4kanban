@@ -4,7 +4,7 @@ import { chatRuntime } from '../lib/agent/env'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { agentHarness } from '../lib/agent/resolve'
 import { askForSpec, readRuns } from '../lib/agent/sessions'
-import { proRefusal, startRun } from '../lib/agent/start'
+import { startRun } from '../lib/agent/start'
 import { titleOf } from '../lib/agent/sessions'
 import type { AgentRequest } from '../lib/agent/types'
 import { locate } from '../lib/cards'
@@ -89,10 +89,6 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   const ownRuntime = opts.print === true && !!caller && caller !== agentHarness(name).runtime
   const print = opts.print === true && !ownRuntime
 
-  if (print && !inside) {
-    const pro = await proRefusal(req)
-    if (pro) die(pro.error, { kind: 'run-refused', action: 'spec', reason: pro.reason })
-  }
   if (print) return printFlow(req, program)
 
   // Separate requests from a board run start after its parent finishes.

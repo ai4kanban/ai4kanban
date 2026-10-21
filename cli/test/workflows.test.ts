@@ -1186,7 +1186,6 @@ describe('workflows in files (#1890)', () => {
       description: 'Use for release notes.',
       needsArtifact: true,
       delivers: 'plan',
-      pro: false,
       stages: {
         plan: { lead: 'software-planner', helpers: [{ agent: 'ui-designer', extra: 'Line one #1\nline two', off: true }, { agent: 'copywriting', extra: '' }] },
         execute: { lead: '' },
@@ -1203,7 +1202,7 @@ describe('workflows in files (#1890)', () => {
     assert.deepEqual([coding.stages.plan.helpers, coding.stages.execute.lead, coding.scheduled], ['every', 'builder', [{ agent: 'qa-manager' }]])
     const blog = BUILTIN_DEFS.find((d) => d.id === 'blog-post')!
     assert.deepEqual(blog.stages.plan.helpers, [{ agent: 'blog-researcher', extra: '' }, { agent: 'blog-illustrator', extra: '' }])
-    assert.deepEqual([blog.needsArtifact, blog.delivers, blog.pro], [true, 'plan', true])
+    assert.deepEqual([blog.needsArtifact, blog.delivers], [true, 'plan'])
   })
 
   it('creates, renames, reassigns and deletes the board’s own in its file', () => {
@@ -1256,7 +1255,8 @@ describe('workflows in files (#1890)', () => {
       }),
     )
     const flow = workflowById('wf-5')!
-    assert.deepEqual([flow.name, flow.needsArtifact, flow.delivers, flow.pro], ['Old', false, 'plan', true])
+    assert.deepEqual([flow.name, flow.needsArtifact, flow.delivers], ['Old', false, 'plan'])
+    assert.doesNotMatch(fs.readFileSync(file('wf-5'), 'utf8'), /^pro:/m)
     // `illustrator` joins beside `ui-designer` first (#1099), and moves with it.
     assert.deepEqual(flow.stages.plan.helpers, [{ agent: 'ui-designer', extra: 'x' }, { agent: 'illustrator', extra: '' }])
     assert.equal(flow.stages.plan.helpersChosen, true)

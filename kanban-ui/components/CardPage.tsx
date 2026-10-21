@@ -21,7 +21,6 @@ import {
   FiLock,
   FiMoreHorizontal,
   FiPlay,
-  FiRotateCw,
   FiSettings,
   FiTrash2,
   FiXCircle,
@@ -78,7 +77,6 @@ import { CardBody } from "./CardBody";
 import { SourceLinks } from "./card-sources";
 import { withoutSourceSection } from "@/lib/format/source";
 import { ConfirmationPopover } from "./confirm-popover";
-import { goPro, useWorkflowLock } from "./pro";
 import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { columnOf } from "./Queue";
@@ -1302,7 +1300,6 @@ export function CardPage({
   const [moreActions, setMoreActions] = useState(false);
   useEffect(() => setMoreActions(false), [card.id]);
   const [error, setError] = useState<string | null>(null);
-  const [retry, setRetry] = useState<{ line: string; run: () => void } | null>(null);
   // The subtask chip under the cursor, said in the panel's heading (#333).
   const [mapTip, setMapTip] = useState("");
   // The rows under the map are folded away until asked for; the map is the panel. Where
@@ -1412,10 +1409,6 @@ export function CardPage({
   const frozen = held || discussing;
   const frozenWhy = held ? heldWhy : discussing ? c.toolbar.discussingWhy : "";
   const off = busy || frozen;
-  // A Pro workflow this account cannot run (#1038): every run gives way to the one way to Pro,
-  // and archive and reject stay. A delivery already under way finishes as it began.
-  const lock = useWorkflowLock(card.workflow);
-  const locked = !!lock && !delivery;
   const offUnlessAsked = busy || (held && !answerable) || discussing;
   const { total, done } = card.todos;
   const buttons = visibleActions(card, offered);
@@ -1448,7 +1441,6 @@ export function CardPage({
   // not in a copy of it. At phone width that panel is a page pushed over the card, so the
   // stack needs a button to push it. Same test the panel uses to decide it is live.
   const canResolve =
-    !locked &&
     buttons.has("resolve") &&
     !offUnlessAsked &&
     openOf(card.questions).some((q) => parseQuestion(q.text).tag === "user");
@@ -1461,7 +1453,7 @@ export function CardPage({
   // so this is only false while a delivery holds it.
   const hasExtra =
     !!(card.discard && !delivery && !finishedBlock) ||
-    (buttons.has("edit") && !delivery && !locked) ||
+    (buttons.has("edit") && !delivery) ||
     (buttons.has("archive") && !delivery) ||
     (buttons.has("reject") && !delivery);
   // Whether the toolbar has anything to draw. A page handed no actions has none of it: every
@@ -1469,7 +1461,6 @@ export function CardPage({
   // has a held card the delivery leaves nothing to click on — nor a surface offering controls
   // this card carries none of (#364), where an empty row would just be a gap.
   const anyAction =
-    locked ||
     (buttons.has("implement") && !delivery) ||
     (phone && canResolve) ||
     hasExtra ||
@@ -1537,10 +1528,7 @@ export function CardPage({
   const runAgent = async (req: AgentReq, label: string) => {
     setDialog(null);
     const res = await start(req, label, req.action === "archive");
-    // A plan Cloud could not confirm is answered under the row, with the same run to retry.
-    const unconfirmed = !res.ok && res.reason === "proUnconfirmed";
-    setRetry(unconfirmed ? { line: sayFailure(res, c.toolbar.startFailed), run: () => void runAgent(req, label) } : null);
-    setError(res.ok || unconfirmed ? null : sayFailure(res, c.toolbar.startFailed));
+    setError(res.ok ? null : sayFailure(res, c.toolbar.startFailed));
   };
 
   // A rejection is filed on the spot (#1497), so the page goes back to the board at once.
@@ -1731,7 +1719,7 @@ export function CardPage({
                   // the session and hide what happened. One word for both ways out: the record
                   // spells them the same, and which one it was changes nothing from here.
                   <DeliveryPill label={c.ended} tone="ended" />
-                ) : card.schedule && !locked ? (
+                ) : card.schedule ? (
                   // Waiting on its blockers, with a run already queued (#140) — the mark
                   // stands in for the stage, and says what will run and what it waits for.
                   <PendingPill label={scheduleMark(card, t.chips)} detailed />
@@ -1810,15 +1798,9 @@ export function CardPage({
                     phone ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-2"
                   }
                 >
-                  {locked && (
-                    <Button size="sm" className={ACT} onClick={() => goPro(lock)}>
-                      <FiLock className="text-[14px]" aria-hidden />
-                      {lock === "upgrade" ? t.shared.pro.upgrade : t.shared.pro.signIn}
-                    </Button>
-                  )}
                   {/* Implement — gone while a delivery is in flight, since what ends one is
                       Discard in the block below. */}
-                  {!delivery && !locked && buttons.has("implement") && (
+                  {!delivery && buttons.has("implement") && (
                     <Button
                       size="sm"
                       className={ACT}
@@ -1886,7 +1868,7 @@ export function CardPage({
                       and its tooltip names what that run is doing, so a second refine is
                       never a click away. (The server refuses one anyway — the poll behind
                       `busy` can be a second and a half old.) */}
-                  {buttons.has("refine") && !delivery && !locked && (
+                  {buttons.has("refine") && !delivery && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1924,7 +1906,7 @@ export function CardPage({
                       on it, and what the card should say is settled by talking. It is the one
                       control the discussion hold leaves alone — a reply in flight is a reason
                       to be in the conversation, not a reason to be shut out of it. */}
-                  {buttons.has("edit") && !delivery && !locked && (
+                  {buttons.has("edit") && !delivery && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1975,18 +1957,6 @@ export function CardPage({
                       {c.toolbar.reject}
                     </Button>
                   )}
-                </div>
-              )}
-              {retry && (
-                <div
-                  role="alert"
-                  className="nb-section flex items-center gap-4 break-words bg-nb-peach-soft py-2.5 pl-3.5 pr-2.5 text-[13px] text-nb-peach-ink"
-                >
-                  <p className="min-w-0 flex-1">{retry.line}</p>
-                  <Button size="xs" variant="ghost" onClick={retry.run}>
-                    <FiRotateCw className="text-[12px]" aria-hidden />
-                    {c.opening.retry}
-                  </Button>
                 </div>
               )}
 
@@ -2100,7 +2070,7 @@ export function CardPage({
                       color: "var(--color-nb-peach-ink)",
                     }}
                   >
-                    {scheduleMark(card, t.chips, locked)}
+                    {scheduleMark(card, t.chips)}
                   </span>
                   {fieldWrites && (
                     <button
@@ -2224,7 +2194,7 @@ export function CardPage({
                 approve={
                   approving
                     ? {
-                        disabled: off || locked,
+                        disabled: off,
                         why: frozen ? frozenWhy : undefined,
                         onApprove: () => void runAgent({ action: "approve", id: card.id }, "approve"),
                       }
@@ -2240,7 +2210,7 @@ export function CardPage({
               open={deciding}
               onOpen={() => setDeciding(true)}
               onClose={closeDeciding}
-              canDecide={!!actions && !locked && buttons.has("resolve") && !offUnlessAsked}
+              canDecide={!!actions && buttons.has("resolve") && !offUnlessAsked}
               disabledWhy={frozen ? frozenWhy : busy && liveSession ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action]) : undefined}
               canSkip={fieldWrites && !busy && !discussing}
               onRun={runAgent}

@@ -125,7 +125,7 @@ const en: VsMulticaCopy = {
         kanban:
           "Built-in specialist agents and workflows, with roles you can edit or add.",
         kanbanTip:
-          "Software development is free; blog, social post, slide deck, product video and video clone workflows require Pro.",
+          "All built-in and custom workflows are free.",
         multica:
           "Mika is included. Create specialist agents yourself or with Agent Builder, then give them Instructions and Skills.",
       },

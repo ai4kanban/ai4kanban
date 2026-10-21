@@ -129,7 +129,7 @@ const es: VsTaskMasterCopy = {
     rows: {
       startingPoint: {
         dimension: "Agentes y flujos incluidos",
-        kanban: "Agentes y flujos especializados incluidos para desarrollo y contenido. Crea tus propios agentes y flujos. Los flujos de contenido requieren Pro.",
+        kanban: "Agentes y flujos especializados incluidos para desarrollo y contenido. Crea tus propios agentes y flujos. Todos los flujos incluidos y personalizados son gratuitos.",
         taskMaster: "Flujos de programación para ejecutar tareas, probar y limpiar código. No incluye agentes ni flujos especializados para diseño, redacción o producción de contenido.",
       },
       planning: {

@@ -342,10 +342,6 @@ export type RunRefusalKind =
   /** The lead's file is there and the board does not use it (#1342); `args.cause` says why. */
   | 'workflowLeadRefused'
   | 'workflowLeadStage'
-  /** A Pro workflow (#1038): nobody signed in, a free account, or a plan Cloud could not confirm. */
-  | 'proSignIn'
-  | 'proRequired'
-  | 'proUnconfirmed'
   | 'cloudUnreachable'
   | 'cardHeld'
   // Runtimes, workflows and settings the Configuration dialog saves.
@@ -1962,8 +1958,6 @@ export interface WorkflowView {
   needsArtifact: boolean
   /** The stage that hands over the finished work (#1057). */
   delivers: DeliveryStage
-  /** Whether only a Pro account may run it (#1038). Absent from rules older than that. */
-  pro?: boolean
   /** Whether an upgrade took a retired agent off this workflow and the user has not been
    *  told yet (#945). The pane says what happened, and **Got it** clears it. */
   retiredAssignment: boolean

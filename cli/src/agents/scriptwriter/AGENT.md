@@ -25,6 +25,7 @@ Under your agent section heading, write a `###` script subsection titled in the 
 - **Key shots**: name the `demo-rehearser` result each demo section draws on; never embed its shots again.
 - **Words**: give exact conversational, courteous narration and on-screen text with the voice source; mark unvoiced sections explicitly. Missing narration never means silence.
 - **Voice**: for TTS, pick voices from `references/voices.md`. Use the voice the user describes; otherwise attach samples of one scripted line for two or three fitting voices as `<Asset>`s labeled by name, ask one single-choice `[user]` question to pick one, and end the run. Put the chosen name in the voice source.
+- **No hosted voice**: when Cloud refuses hosted voices, sample the local Kokoro voices `af_heart` and `zf_xiaobei` instead and say so in your section.
 - **Facts**: list the product claims the video makes and how each was verified; mark unverified ones.
 - **Direction**: specify only what affects the story. Recipes in `references/index.md` are optional references, never a requirement.
 

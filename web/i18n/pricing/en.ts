@@ -5,7 +5,7 @@ const en: PricingCopy = {
   meta: {
     title: "AI4Kanban: Plans and pricing",
     description:
-      "AI4Kanban: an agent workspace for indie hackers. Coding is free; Pro adds slides, product videos, social posts, blogs and video clones. $10/month, billed yearly.",
+      "All AI4Kanban workflows are free. Pro adds templates for more polished results, AI credits and automatic idea screening. $10/month, billed yearly.",
   },
   hero: {
     eyebrow: "PRICING",
@@ -19,7 +19,7 @@ const en: PricingCopy = {
     tagline: "Apache 2.0 open source.",
     rows: [
       "Works with 8 coding agents",
-      "Coding workflow with 8 agents",
+      { text: "All 6 workflows", more: { list: ["Coding", "Slide deck", "Product video", "Social post", "Blog post", "Video clone"] } },
       "No limit on concurrent tasks",
       "Unlimited custom workflows and agents",
       "Email support",
@@ -32,13 +32,21 @@ const en: PricingCopy = {
     monthly: { price: "$15", per: "/ month" },
     leadIn: "Everything in Free, plus:",
     rows: [
-      "Slide deck workflow",
-      "Product video workflow",
-      "Social post workflow",
-      "Blog post workflow",
-      "Video clone workflow",
-      "Auto-screened ideas — you decide only the unclear ones",
-      "5,000 AI credits a month — voiceover uses 1 per second, a generated image 320, a music track 160",
+      "All Pro templates",
+      "Automatic idea screening",
+      "AI voiceover, image and music generation",
+      {
+        text: "5,000 AI credits a month",
+        cue: "Credit costs",
+        more: {
+          note: "AI voiceover, image and music generation share your 5,000 monthly credits.",
+          table: [
+            ["Voiceover", "1 credit / second"],
+            ["Image", "320 credits each"],
+            ["Music", "160 credits / track"],
+          ],
+        },
+      },
       "Priority support",
     ],
     button: "Get Pro",

@@ -40,7 +40,6 @@ import { forgetMachineState, move, refuses } from './helpers/board.ts'
 let root = ''
 const kanban = (): string => path.join(root, 'docs', 'kanban')
 const PASS = { workflow: 'coding', agent: 'night-auditor' }
-const pro = () => Promise.resolve('pro' as const)
 
 const git = (args: string[], cwd = root): string => {
   const out = spawnSync('git', args, { cwd, encoding: 'utf8' })
@@ -182,38 +181,37 @@ describe('the prompt a pass is given', () => {
 describe('when a scheduled agent is due', () => {
   it('waits a whole cadence from the moment it was switched on', async () => {
     enable(at('2026-10-01T09:00'))
-    assert.deepEqual(await dueScheduledAgents(pro, at('2026-10-01T09:01')), [])
-    assert.deepEqual(await dueScheduledAgents(pro, at('2026-10-02T08:59')), [])
-    assert.deepEqual(await dueScheduledAgents(pro, at('2026-10-02T09:00')), [scheduledRequest(PASS)])
+    assert.deepEqual(dueScheduledAgents(at('2026-10-01T09:01')), [])
+    assert.deepEqual(dueScheduledAgents(at('2026-10-02T08:59')), [])
+    assert.deepEqual(dueScheduledAgents(at('2026-10-02T09:00')), [scheduledRequest(PASS)])
   })
 
   it('never starts one that is switched off', async () => {
-    assert.deepEqual(await dueScheduledAgents(pro, at('2030-01-01T00:00')), [])
+    assert.deepEqual(dueScheduledAgents(at('2030-01-01T00:00')), [])
   })
 
   it('counts from the last run that passed', async () => {
     enable(at('2026-10-01T09:00'))
     assert.equal(stampScheduledRun(PASS.workflow, PASS.agent, at('2026-10-05T10:00')), true)
-    assert.deepEqual(await dueScheduledAgents(pro, at('2026-10-06T09:59')), [])
-    assert.equal((await dueScheduledAgents(pro, at('2026-10-06T10:00'))).length, 1)
+    assert.deepEqual(dueScheduledAgents(at('2026-10-06T09:59')), [])
+    assert.equal(dueScheduledAgents(at('2026-10-06T10:00')).length, 1)
   })
 
   it('does not start a second pass while one is running', async () => {
     enable(new Date(Date.now() - 3 * 86_400_000))
-    assert.equal((await dueScheduledAgents(pro)).length, 1)
+    assert.equal(dueScheduledAgents().length, 1)
     open()
     assert.equal(scheduledBusy(PASS)?.reason, 'scheduledRunning')
-    assert.deepEqual(await dueScheduledAgents(pro), [])
+    assert.deepEqual(dueScheduledAgents(), [])
   })
 
-  it('passes over a Pro workflow this account cannot run', async () => {
+  it('runs on every workflow, whatever the plan', () => {
     enable(at('2026-10-01T09:00'))
     const copy = duplicateWorkflow('hyperframes-video')
     scheduleAgent('clip-checker')
     assert.equal(switchWorkflowScheduled(copy.id!, 'clip-checker', true, at('2026-10-01T09:00')).ok, true)
-    const free = () => Promise.resolve('free' as const)
-    const due = await dueScheduledAgents(free, at('2026-10-03T09:00'))
-    assert.deepEqual(due.map((r) => r.specAgent), [PASS.agent])
+    const due = dueScheduledAgents(at('2026-10-03T09:00'))
+    assert.deepEqual(due.map((r) => r.specAgent), [PASS.agent, 'clip-checker'])
   })
 })
 
@@ -236,12 +234,12 @@ describe('what a scheduled agent waits for (#1475)', () => {
     assert.equal(scheduledWait(PASS, one()).wait, 'nothingNew')
     archived(6)
     assert.equal(scheduledWait(PASS, one()).wait, null)
-    assert.deepEqual(await dueScheduledAgents(pro), [scheduledRequest(PASS)])
+    assert.deepEqual(dueScheduledAgents(), [scheduledRequest(PASS)])
   })
 
   it('runs on its cadence alone when it declares nothing', async () => {
     enable(new Date(Date.now() - 3 * DAY))
-    assert.deepEqual(await dueScheduledAgents(pro), [scheduledRequest(PASS)])
+    assert.deepEqual(dueScheduledAgents(), [scheduledRequest(PASS)])
   })
 
   it('keeps a cadence the user set in place of auto, and takes auto back', () => {
@@ -279,7 +277,7 @@ describe('one pass', () => {
     const one = scheduledAgent(PASS.workflow, PASS.agent)!
     assert.equal(one.off, true)
     assert.equal(one.lastRun, formatStamp(new Date(delivery!.startedAt)))
-    assert.deepEqual(await dueScheduledAgents(pro, at('2030-01-01T00:00')), [])
+    assert.deepEqual(dueScheduledAgents(at('2030-01-01T00:00')), [])
   })
 
   it('still refuses a second pass of a switched-off agent while one is running', async () => {
@@ -320,8 +318,8 @@ describe('one pass', () => {
     enable(new Date(Date.now() - 3 * 86_400_000))
     await end(open(), 'error')
     assert.equal(scheduledAgent(PASS.workflow, PASS.agent)!.lastRun, '')
-    assert.deepEqual(await dueScheduledAgents(pro), [])
-    assert.equal((await dueScheduledAgents(pro, new Date(Date.now() + 86_400_000 + 60_000))).length, 1)
+    assert.deepEqual(dueScheduledAgents(), [])
+    assert.equal(dueScheduledAgents(new Date(Date.now() + 86_400_000 + 60_000)).length, 1)
   })
 })
 

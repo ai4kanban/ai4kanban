@@ -27,7 +27,7 @@ Record each dependency on the card that waits: `--blocked-by` on the new card, o
 Non-English titles also need `--slug <short-english-slug>`.
 
 Add `--workflow <id>` from `akb workflow list` that fits the card's work, unless the request
-names one; prefer one not `Pro · locked`, then the board's own. Omit it when none fits.
+names one; prefer the board's own. Omit it when none fits.
 
 Representative examples:
 

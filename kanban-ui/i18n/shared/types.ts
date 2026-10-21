@@ -23,12 +23,4 @@ export type SharedCopy = {
   contextWindow: (used: string, limit: string) => string;
   /** A card a discussion was written into (#1535), by where it stands now. */
   became: { open: string; done: string; dropped: string };
-  /** A Pro workflow (#1038): its mark, and the one way to it for an account without Pro. */
-  pro: {
-    mark: string;
-    upgrade: string;
-    signIn: string;
-    /** Why a Pro row cannot be picked. */
-    locked: string;
-  };
 };

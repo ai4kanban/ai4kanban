@@ -68,7 +68,7 @@ A ✓ marks the stronger side on each row.
 
 | Dimension | AI4Kanban | Hermes Kanban | Edge |
 | --- | --- | --- | --- |
-| Built-in agents and workflows | Built-in specialist agents and workflows for development and content. Create your own. Content workflows require Pro. | General-purpose Hermes profiles you set up. No built-in specialist workflows for UI design, copywriting or content production. | AI4Kanban |
+| Built-in agents and workflows | Built-in specialist agents and workflows for development and content. Create your own. All built-in and custom workflows are free. | General-purpose Hermes profiles you set up. No built-in specialist workflows for UI design, copywriting or content production. | AI4Kanban |
 | Before work starts | Planning settles what it can and asks you what is still open. Nothing is built until you start it. | A model breaks the task into a task graph without asking you; child tasks start on their own unless you turn that off. | AI4Kanban |
 | Key draft review before execution | Image, diagram, HTML/TSX, diff and storyboard drafts. Approved content becomes part of the execution requirements. | A text spec with goal, approach and acceptance criteria. No draft preview before execution in its docs. | AI4Kanban |
 | Questions for you | Asked while planning or mid-build, each with options and a recommended answer; only dependent work waits, and it continues once you answer. | A worker pauses the whole task with a written reason; you comment, unblock it, and the worker starts again. | AI4Kanban |

@@ -129,7 +129,7 @@ const zh: VsTaskMasterCopy = {
     rows: {
       startingPoint: {
         dimension: "内置 agent 与工作流",
-        kanban: "内置开发、内容等专业 agent 和工作流，也可创建自定义 agent 和工作流；内容工作流需 Pro。",
+        kanban: "内置开发、内容等专业 agent 和工作流，也可创建自定义 agent 和工作流；所有内置和自建工作流均可免费使用。",
         taskMaster: "内置任务执行、测试和代码清理等编码流程；没有设计、文案或内容制作的专业 agent 及配套工作流。",
       },
       planning: {

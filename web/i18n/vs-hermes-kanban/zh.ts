@@ -138,7 +138,7 @@ const zh: VsHermesCopy = {
     rows: {
       startingPoint: {
         dimension: "内置 agent 和工作流",
-        kanban: "内置开发和内容方向的专业 agent 与工作流，也可自建；内容工作流需要 Pro。",
+        kanban: "内置开发和内容方向的专业 agent 与工作流，也可自建；所有内置和自建工作流均可免费使用。",
         hermes: "通用的 Hermes profile 由你配置；没有内置 UI 设计、文案或内容制作的专业工作流。",
       },
       planning: {

@@ -217,8 +217,7 @@ export {
   createWorkflow,
   DEFAULT_WORKFLOW,
   dismissRetiredAssignment,
-  // Checked for Pro (#1038); the board's own copying stays `duplicateWorkflow` inside.
-  duplicateWorkflowIfAllowed as duplicateWorkflow,
+  duplicateWorkflow,
   switchWorkflowAgent,
   renameWorkflow,
   setWorkflowHelperExtra,

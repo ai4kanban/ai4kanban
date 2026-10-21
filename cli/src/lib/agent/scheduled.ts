@@ -4,7 +4,6 @@
 // when one is due (./due.ts), what a pass is asked with, and what stands in a new pass's way.
 
 import { specAgentCatalog } from '../agents/catalog'
-import { proGate, type ProAccess } from '../cloud/pro'
 import { autoSchedule, building, readsNew, scheduleDue, stampMs, type DueAnswer } from './due'
 import { insideRun } from './env'
 import { flowNodes } from './stages'
@@ -91,10 +90,7 @@ export function scheduledNext(workflow: string, one: WorkflowScheduled): DueAnsw
  * The scheduled agents due right now, one request each (`scheduledWait`). Nothing runs in the
  * minute an agent was first seen or switched on.
  */
-export async function dueScheduledAgents(
-  ask: () => Promise<ProAccess>,
-  now: Date = new Date(),
-): Promise<AgentRequest[]> {
+export function dueScheduledAgents(now: Date = new Date()): AgentRequest[] {
   const store = readStore()
   const due: AgentRequest[] = []
   for (const flow of workflows()) {
@@ -107,7 +103,6 @@ export async function dueScheduledAgents(
       }
       if (scheduledWait(pass, one, store, now).wait) continue
       if (scheduledBusy(pass, store)) continue
-      if (await proGate(flow, ask)) continue
       due.push(scheduledRequest(pass))
     }
   }

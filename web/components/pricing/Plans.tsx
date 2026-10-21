@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { FiArrowRight, FiCheck } from "react-icons/fi";
+import { FiArrowRight, FiCheck, FiChevronDown } from "react-icons/fi";
 import { Button } from "@/components/ui/Button";
-import type { PricingCopy } from "@/i18n/pricing/types";
+import type { PlanRow, PricingCopy } from "@/i18n/pricing/types";
 
 type Billing = "yearly" | "monthly";
 type Workflow = "coding" | "email" | "slides" | "video";
@@ -105,15 +105,54 @@ function Odometer({ value }: { value: string }) {
   );
 }
 
-function Rows({ rows }: { rows: string[] }) {
+function Fold({ row }: { row: Exclude<PlanRow, string> }) {
+  const [open, setOpen] = useState(false);
+  const { note, list, table } = row.more;
+  return (
+    <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+        className={`inline-flex cursor-pointer flex-wrap items-center gap-x-2 rounded text-left ${focus}`}
+      >
+        <span>{row.text}</span>
+        <span className="inline-flex items-center gap-1 text-sm text-muted">
+          {row.cue}
+          <FiChevronDown className={`h-3.5 w-3.5 ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+        </span>
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg bg-ink/[0.04] px-3.5 py-2.5 text-sm leading-relaxed text-muted">
+          {note && <p className="mb-1.5">{note}</p>}
+          {list && (
+            <ul className="grid grid-cols-2 gap-x-4">
+              {list.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {table?.map(([name, cost]) => (
+            <p key={name} className="flex justify-between gap-4">
+              <span>{name}</span>
+              <span className="tabular-nums text-ink">{cost}</span>
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Rows({ rows }: { rows: PlanRow[] }) {
   return (
     <ul className="space-y-3 text-[0.95rem] leading-relaxed text-ink">
       {rows.map((row) => (
-        <li key={row} className="flex gap-3">
+        <li key={typeof row === "string" ? row : row.text} className="flex gap-3">
           <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center text-accent">
             <FiCheck className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
           </span>
-          <span>{row}</span>
+          {typeof row === "string" ? <span>{row}</span> : <Fold row={row} />}
         </li>
       ))}
     </ul>
@@ -171,7 +210,7 @@ function Plan({
   per?: string;
   sub: string;
   leadIn?: string;
-  rows: string[];
+  rows: PlanRow[];
   button: ReactNode;
 }) {
   return (

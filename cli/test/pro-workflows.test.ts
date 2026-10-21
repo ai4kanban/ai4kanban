@@ -1,4 +1,4 @@
-// Pro workflows (#1038): who may run and copy one, and how the answer is kept.
+// Whether this account has Pro (#1038), and how the answer is kept.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -6,14 +6,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { proRefusal, startRun } from '../src/lib/agent/start.ts'
-import { duplicateWorkflowIfAllowed, workflowById } from '../src/lib/agent/workflows.ts'
 import { signOutOfCloud } from '../src/lib/cloud/account.ts'
 import { proAccess } from '../src/lib/cloud/pro.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { nextWork } from '../src/lib/view/dispatch.ts'
-import { restoreMachineHome, uiConfigOf } from './helpers/board.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://project.supabase.co'
 const API = 'https://api.example.test'
@@ -49,29 +46,6 @@ const billing = (answer: { plan: 'free' | 'pro'; periodEnd?: string | null; gran
   }) as typeof fetch
 }
 
-const card = (id: number, workflow: string, schedule?: 'refine' | 'implement'): void => {
-  fs.writeFileSync(
-    path.join(kanban(), 'todo', `${id}-card.md`),
-    [
-      '---',
-      `title: card ${id}`,
-      'priority: med',
-      'roi: med',
-      'status: todo',
-      'blocked_by: []',
-      'related: []',
-      'modules: []',
-      'questions: []',
-      `workflow: ${workflow}`,
-      ...(schedule ? [`schedule: ${schedule}`] : []),
-      '---',
-      '',
-      'What this card is for.',
-      '',
-    ].join('\n'),
-  )
-}
-
 beforeEach(() => {
   asked = 0
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-pro-home-'))
@@ -94,23 +68,6 @@ afterEach(() => {
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL
-})
-
-describe('which workflows are Pro', () => {
-  it('marks the video, deck, carousel, blog and video clone built-ins, not Coding', () => {
-    assert.deepEqual(
-      ['coding', 'hyperframes-video', 'slide-deck', 'carousel-post', 'blog-post', 'video-clone'].map((id) => workflowById(id)!.pro),
-      [false, true, true, true, true, true],
-    )
-  })
-
-  it('leaves a copy made before Pro existed free', () => {
-    fs.writeFileSync(
-      uiConfigOf(kanban()),
-      JSON.stringify({ workflows: { added: [{ id: 'wf-2', name: 'Video 2', needsArtifact: true, delivers: 'plan' }] } }),
-    )
-    assert.equal(workflowById('wf-2')!.pro, false)
-  })
 })
 
 describe('the account', () => {
@@ -181,80 +138,5 @@ describe('the account', () => {
     signIn()
     billing('offline')
     assert.equal(await proAccess(), 'unconfirmed')
-  })
-})
-
-describe('running a Pro card', () => {
-  it('refuses every run but archive, in the words the account needs', async () => {
-    card(1, 'slide-deck')
-    billing({ plan: 'free' })
-    assert.equal((await proRefusal({ action: 'clarify', id: 1 }))?.reason, 'proSignIn')
-    signIn()
-    const free = await proRefusal({ action: 'implement', id: 1 })
-    assert.equal(free?.reason, 'proRequired')
-    assert.equal(free?.error, 'Slide deck needs Pro.')
-    assert.deepEqual(free?.args, { workflow: 'slide-deck', name: 'Slide deck' })
-    assert.equal(await proRefusal({ action: 'archive', id: 1 }), null)
-    billing('offline')
-    assert.equal((await proRefusal({ action: 'clarify', id: 1 }))?.reason, 'proUnconfirmed')
-    const started = await startRun({ action: 'clarify', id: 1 })
-    assert.equal('error' in started && started.reason, 'proUnconfirmed')
-  })
-
-  it('never asks Cloud for a Coding card', async () => {
-    card(2, 'coding')
-    billing('offline')
-    assert.equal(await proRefusal({ action: 'clarify', id: 2 }), null)
-    assert.equal(asked, 0)
-  })
-})
-
-describe('copying a Pro workflow', () => {
-  it('is refused without Pro, and the copy stays Pro', async () => {
-    signIn()
-    billing({ plan: 'free' })
-    const refused = await duplicateWorkflowIfAllowed('hyperframes-video')
-    assert.equal(refused.ok, false)
-    assert.equal(refused.reason, 'proRequired')
-    billing({ plan: 'pro' })
-    const copy = await duplicateWorkflowIfAllowed('hyperframes-video')
-    assert.equal(copy.ok, true)
-    assert.equal(workflowById(copy.id!)!.pro, true)
-    signOutOfCloud()
-    card(3, copy.id!)
-    assert.equal((await proRefusal({ action: 'clarify', id: 3 }))?.reason, 'proSignIn')
-  })
-})
-
-describe('a scheduled Pro card', () => {
-  // Only the scheduled runs are read back.
-  const tick = async (cleared: number[]) =>
-    (await nextWork((id) => (cleared.push(id), Promise.resolve(true)))).filter((w) => w.id !== undefined)
-
-  it('keeps its mark without Pro, and lets a free card take the tick', async () => {
-    signIn()
-    billing({ plan: 'free' })
-    card(1, 'slide-deck', 'refine')
-    card(2, 'hyperframes-video', 'refine')
-    card(3, 'coding', 'implement')
-    const cleared: number[] = []
-    const work = await tick(cleared)
-    assert.deepEqual(work.map((w) => w.id), [3])
-    assert.deepEqual(cleared, [3])
-    assert.equal(asked, 1, 'Cloud is asked once for both Pro cards')
-  })
-
-  it('waits while signed out or offline, and starts once Pro is on', async () => {
-    card(1, 'slide-deck', 'refine')
-    const cleared: number[] = []
-    assert.deepEqual(await tick(cleared), [])
-    signIn()
-    billing('offline')
-    assert.deepEqual(await tick(cleared), [])
-    assert.deepEqual(cleared, [])
-    billing({ plan: 'pro' })
-    const work = await tick(cleared)
-    assert.deepEqual(work.map((w) => [w.action, w.id]), [['clarify', 1]])
-    assert.deepEqual(cleared, [1])
   })
 })

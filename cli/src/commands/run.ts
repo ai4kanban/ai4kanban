@@ -22,7 +22,7 @@ import {
   titleOf,
 } from '../lib/agent/sessions'
 import { currentSession } from '../lib/agent/origin'
-import { proRefusal, startResume, startRun, startSubRun } from '../lib/agent/start'
+import { startResume, startRun, startSubRun } from '../lib/agent/start'
 import { knownWorkflow } from '../lib/agent/workflows'
 import { cardCreation, noteRefineTried, withStore } from '../lib/agent/store'
 import type {
@@ -82,9 +82,6 @@ export async function cmdStartRun(
   // run's watcher at the close — in the same flow, so it reads as the next session of the
   // job that handed the card over.
   if (inside && action === 'refine' && !print) return queueRefine(inside, req)
-  // A run the board started passed this at its own start (#1038).
-  const pro = inside ? null : await proRefusal(runnable)
-  if (pro) die(pro.error, { kind: 'run-refused', action, reason: pro.reason })
   // Planning never builds (#1295). A printed build here has no delivery and no worktree, so
   // it would write code in the project checkout.
   if (inside && action === 'implement' && planningRun(inside)) {

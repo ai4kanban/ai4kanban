@@ -17,7 +17,6 @@ const zh: SharedCopy = {
   stop: "。",
   contextWindow: (used, limit) => `上下文窗口 ${used}/${limit}`,
   became: { open: "→ 已写成", done: "已完成", dropped: "已放弃" },
-  pro: { mark: "Pro", upgrade: "升级到 Pro", signIn: "登录以使用 Pro", locked: "Pro 工作流，升级后可用" },
 };
 
 export default zh;

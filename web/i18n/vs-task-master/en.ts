@@ -129,7 +129,7 @@ const en: VsTaskMasterCopy = {
     rows: {
       startingPoint: {
         dimension: "Built-in agents and workflows",
-        kanban: "Built-in specialist agents and workflows for development and content. Create your own agents and workflows. Content workflows require Pro.",
+        kanban: "Built-in specialist agents and workflows for development and content. Create your own agents and workflows. All built-in and custom workflows are free.",
         taskMaster: "Coding workflows for task execution, testing and code cleanup. No built-in specialist agents or workflows for design, copywriting or content production.",
       },
       planning: {

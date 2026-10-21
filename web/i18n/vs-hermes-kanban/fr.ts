@@ -138,7 +138,7 @@ const fr: VsHermesCopy = {
     rows: {
       startingPoint: {
         dimension: "Agents et workflows intégrés",
-        kanban: "Agents et workflows spécialisés intégrés pour le développement et le contenu. Créez les vôtres. Les workflows de contenu nécessitent Pro.",
+        kanban: "Agents et workflows spécialisés intégrés pour le développement et le contenu. Créez les vôtres. Tous les workflows intégrés et personnalisés sont gratuits.",
         hermes: "Des profils Hermes généralistes que vous configurez. Aucun workflow spécialisé intégré pour le design d’UI, la rédaction ou la production de contenu.",
       },
       planning: {

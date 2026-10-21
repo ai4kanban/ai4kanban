@@ -69,8 +69,7 @@ follow-ups for you to accept, revise or reject.
 
 You can also create your own agents and workflows.
 
-> Tip: The software development workflow is free. Blog, social post, slide
-> deck and product video workflows require Pro.
+> Tip: All built-in and custom workflows are free.
 
 ## 03 · Which way do you want to work?
 
