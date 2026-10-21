@@ -24,7 +24,7 @@ AI4Kanban 将开发与营销工作流整合在同一个 agent 工作台中。age
 
 ### 1. 开发与营销都有专业 agent 团队
 
-![6 个工作流及各自的专业 agent 团队](https://cdn.ai4kanban.dev/readme/workflow-teams-zh-v3.png)
+![6 个工作流及各自的专业 agent 团队](https://cdn.ai4kanban.dev/readme/workflow-teams-zh-v5.png)
 
 AI4Kanban 为独立开发者的日常工作内置了 **6 个工作流和 10+ agent**。每个 agent 负责工作流中的一部分，例如界面设计或文案。开始工作前，无需先搭建 agent 团队。
 
